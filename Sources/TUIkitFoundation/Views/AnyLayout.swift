@@ -86,7 +86,7 @@ public struct AnyLayout: Layout {
 
 extension AnyLayout: WholeGridRowExpanding {
     /// Whether the erased layout lays out grid cells.
-    var expandsWholeGridRows: Bool { box.expandsWholeGridRows }
+    package var expandsWholeGridRows: Bool { box.expandsWholeGridRows }
 }
 
 extension AnyLayout: ExplicitAlignmentForwarding {

@@ -18,6 +18,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 private final class MultiSelectionBox {
     var selection: Set<String> = []

@@ -32,7 +32,7 @@ import TUIkitCore
 /// `Sendable` stated, as it was inferred while the type was not usable from
 /// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-enum ScrollAnchorMode: Equatable, Sendable {
+package enum ScrollAnchorMode: Equatable, Sendable {
     case top
     case bottom
     case row
@@ -92,7 +92,7 @@ enum ScrollAnchorMode: Equatable, Sendable {
     /// every caller that predates the roles, the tests among them — must keep
     /// behaving exactly as it did, and the way to guarantee that is to make
     /// "nobody stated an opening anchor" defer rather than default.
-    static func governing(opening: Self?, standing: Self, hasOpened: Bool) -> Self {
+    package static func governing(opening: Self?, standing: Self, hasOpened: Bool) -> Self {
         hasOpened ? standing : (opening ?? standing)
     }
 
@@ -107,7 +107,7 @@ enum ScrollAnchorMode: Equatable, Sendable {
     /// always recoverable and the framework keeps no hidden shadow state. It is
     /// also why `.window` and `nil` must stay distinct: `.window` is an
     /// explicit release (the user scrolled away), `nil` is "never left".
-    static func effective(boundAnchor: ErasedScrollAnchor?, declared: Self) -> Self {
+    package static func effective(boundAnchor: ErasedScrollAnchor?, declared: Self) -> Self {
         switch boundAnchor {
         case .none: return declared
         case .top: return .top

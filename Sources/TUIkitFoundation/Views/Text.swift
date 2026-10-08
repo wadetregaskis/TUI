@@ -68,13 +68,13 @@ public struct Text: View, Equatable {
     /// `nil` is not an empty list: it is the overwhelmingly common case, and it
     /// takes the original render path untouched — no re-attribution, no extra
     /// allocation, byte-identical output. See ``Text/+(_:_:)``.
-    var runs: [Run]?
+    package var runs: [Run]?
 
     /// The style of the text (color, formatting, etc.).
     ///
     /// For a concatenated text this is the *base* beneath every run's own
     /// attributes — see ``Text/+(_:_:)``.
-    var style: TextStyle
+    package var style: TextStyle
 
     /// Creates a text view displaying a localized string.
     ///

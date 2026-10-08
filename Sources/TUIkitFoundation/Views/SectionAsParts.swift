@@ -65,5 +65,5 @@ func sectionPartChildren<Part: View>(
 extension Section {
     /// Whether the content is shown: always, unless the section is collapsible
     /// and collapsed.
-    var showsContent: Bool { isExpanded?.wrappedValue ?? true }
+    package var showsContent: Bool { isExpanded?.wrappedValue ?? true }
 }

@@ -412,7 +412,7 @@ extension Group: TableRowContent where Content: TableRowContent {
     ///
     /// - Parameter content: The rows to group.
     public init<R>(@TableRowBuilder<R> content: () -> Content) where R == Content.TableRowValue {
-        self.content = content()
+        self = .grouping(content())
     }
 }
 

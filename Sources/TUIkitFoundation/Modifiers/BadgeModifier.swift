@@ -144,7 +144,7 @@ public func viewTypeCarriesBadge<V: View>(_ type: V.Type) -> Bool {
 /// two arrangements are priced alike, instead of the badge being cheap in one
 /// and absent in the other.
 @MainActor
-func extractRowBadgeValue(from view: any View) -> BadgeValue? {
+package func extractRowBadgeValue(from view: any View) -> BadgeValue? {
     if let badge = extractBadgeValue(from: view) { return badge }
     guard let memo = view as? any _ValueMemoWrapping,
         viewTypeCarriesBadge(memo.memoizedContentType)

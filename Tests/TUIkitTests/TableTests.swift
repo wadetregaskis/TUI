@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 // MARK: - Test Data
 

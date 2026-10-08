@@ -30,20 +30,29 @@ import TUIkitView
 /// `.automatic` is the style's answer, and no built-in style draws separators
 /// by default yet: each costs a line of height, which a list of single-line
 /// rows doubles (decisions A47; the default is A-D6L-2's open question).
-struct ListSeparatorPreference: Equatable, Sendable {
+package struct ListSeparatorPreference: Equatable, Sendable {
     /// Whether the line above shows.
-    var top: Visibility = .automatic
+    package var top: Visibility = .automatic
     /// Whether the line below shows.
-    var bottom: Visibility = .automatic
+    package var bottom: Visibility = .automatic
     /// The line above's ink, or `nil` for the style's.
-    var topTint: Color?
+    package var topTint: Color?
     /// The line below's ink, or `nil` for the style's.
-    var bottomTint: Color?
+    package var bottomTint: Color?
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for its lists.
+    package init(top: Visibility = .automatic, bottom: Visibility = .automatic, topTint: Color? = nil, bottomTint: Color? = nil) {
+        self.top = top
+        self.bottom = bottom
+        self.topTint = topTint
+        self.bottomTint = bottomTint
+    }
 
     /// `self`, with whatever `other` states — a visibility other than
     /// `.automatic`, a tint — written over it: a row's own preference over the
     /// list-wide one.
-    func overridden(by other: Self) -> Self {
+    package func overridden(by other: Self) -> Self {
         var merged = self
         if other.top != .automatic { merged.top = other.top }
         if other.bottom != .automatic { merged.bottom = other.bottom }
@@ -55,7 +64,7 @@ struct ListSeparatorPreference: Equatable, Sendable {
 
 /// One separator modifier's statement, carried as data so the views holding
 /// it compare as values.
-enum ListSeparatorChange: Equatable, Sendable {
+package enum ListSeparatorChange: Equatable, Sendable {
     /// `.listRowSeparator(_:edges:)` / `.listSectionSeparator(_:edges:)`.
     case visibility(Visibility, VerticalEdge.Set)
     /// `.listRowSeparatorTint(_:edges:)` / `.listSectionSeparatorTint(_:edges:)`.
@@ -72,7 +81,7 @@ enum ListSeparatorChange: Equatable, Sendable {
     /// visibility the default already has changes nothing; and a tint shows
     /// only on a rule that is drawn, which only a statement answering yes — or a
     /// default that draws one — puts there.
-    func changesRow(over defaults: ListSeparatorPreference) -> Bool {
+    package func changesRow(over defaults: ListSeparatorPreference) -> Bool {
         switch self {
         case .visibility(let visibility, let edges):
             guard edges.contains(.bottom), visibility != .automatic else { return false }
@@ -84,7 +93,7 @@ enum ListSeparatorChange: Equatable, Sendable {
     }
 
     /// `preference` with this statement applied.
-    func apply(to preference: inout ListSeparatorPreference) {
+    package func apply(to preference: inout ListSeparatorPreference) {
         switch self {
         case .visibility(let visibility, let edges):
             if edges.contains(.top) { preference.top = visibility }

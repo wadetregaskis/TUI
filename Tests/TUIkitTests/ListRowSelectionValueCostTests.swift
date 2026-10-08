@@ -26,6 +26,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("A list resolves the selection values it is asked for", .rendersEnglishUI)

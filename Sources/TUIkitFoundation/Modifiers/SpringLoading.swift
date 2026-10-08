@@ -36,7 +36,7 @@ public struct SpringLoadingBehavior: Hashable, Sendable {
 
     /// Whether a view that spring-loads by default when `byDefault` says so
     /// spring-loads under this behavior.
-    func allows(byDefault: Bool) -> Bool {
+    package func allows(byDefault: Bool) -> Bool {
         switch kind {
         case .automatic: byDefault
         case .enabled: true

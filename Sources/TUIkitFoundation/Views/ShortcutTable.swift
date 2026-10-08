@@ -8,7 +8,7 @@
 
 /// An action a shortcut table binds keys to, with the keys TUIkit binds it to
 /// out of the box.
-protocol ShortcutTableAction: Hashable, CaseIterable, Sendable {
+package protocol ShortcutTableAction: Hashable, CaseIterable, Sendable {
     /// What TUIkit binds this action to out of the box.
     var defaultShortcuts: Set<KeyboardShortcut> { get }
 }
@@ -17,7 +17,7 @@ protocol ShortcutTableAction: Hashable, CaseIterable, Sendable {
 /// action's value a ``ShortcutSet`` over TUIkit's defaults — ``RowShortcuts``
 /// is the model, and the rules below are its, kept once so a second table
 /// cannot read them differently.
-protocol ShortcutTable {
+package protocol ShortcutTable {
     associatedtype Action: ShortcutTableAction
 
     /// The app's changes, by action. Empty for the stock table.
@@ -36,7 +36,7 @@ extension ShortcutTable {
     /// Two overrides on one chord are reported through `report`, and the
     /// action `Action` declares first keeps the chord, whatever order the
     /// dictionary was written in.
-    func triggerTable(
+    package func triggerTable(
         commandKey: CommandKeyBinding, onClash report: (String) -> Void
     ) -> [KeyboardShortcut.Trigger: Action] {
         var byTrigger: [KeyboardShortcut.Trigger: Action] = [:]
@@ -77,7 +77,7 @@ extension ShortcutTable {
     /// The keys that reach `action`, each once, in ``KeyboardShortcut``'s own
     /// order — only the chords a key press would dispatch to it (see
     /// ``triggerTable(commandKey:onClash:)``).
-    func boundShortcuts(for action: Action, commandKey: CommandKeyBinding) -> [KeyboardShortcut] {
+    package func boundShortcuts(for action: Action, commandKey: CommandKeyBinding) -> [KeyboardShortcut] {
         // The table a key is dispatched through, not a second copy of its rule:
         // which chord goes to which action is decided in one place. Built
         // without a report, so a listing is not a second place a debug build
@@ -93,7 +93,7 @@ extension ShortcutTable {
     /// some of them) — the framework's own binding if one is there, else the
     /// first in order. Adding an alias should not quietly rename the hint the
     /// user has learned.
-    func hint(
+    package func hint(
         for action: Action, among candidates: [KeyboardShortcut], commandKey: CommandKeyBinding
     ) -> String? {
         hintShortcut(for: action, among: candidates, commandKey: commandKey)?.displayString

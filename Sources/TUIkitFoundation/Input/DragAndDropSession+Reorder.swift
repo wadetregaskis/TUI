@@ -21,26 +21,43 @@ extension DragAndDropSession {
     /// frame's geometry is not where the rows are now. Registering per render
     /// answers both — the drop runs against this frame's control, through this
     /// frame's rectangle.
-    struct ReorderHost {
+    package struct ReorderHost {
         /// The control's focus identity — the gesture's key, because it is the
         /// one name that survives both a re-render and a trip off the page.
-        let focusID: String
+        package let focusID: String
 
         /// This frame's hit region for the control. Its rect (from the
         /// dispatcher, post-composite) localises the cursor, exactly as a
         /// ``DragAndDropSession/Target``'s does.
-        let handlerID: HitTestRegion.HandlerID
+        package let handlerID: HitTestRegion.HandlerID
 
         /// Lines of chrome between the region's top and the first row line — a
         /// border, a title, a `Table`'s column header and scroll indicator.
-        let topInset: Int
+        package let topInset: Int
 
         /// The columns within the region that are rows rather than chrome; a
         /// cursor outside them is off the rows.
-        let contentColumns: Range<Int>
+        package let contentColumns: Range<Int>
 
         /// The control's reorder state machine.
-        let handler: any RowReorderHosting
+        package let handler: any RowReorderHosting
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitLists makes these, for the lists, tables and
+        /// tab bars.
+        package init(
+            focusID: String,
+            handlerID: HitTestRegion.HandlerID,
+            topInset: Int,
+            contentColumns: Range<Int>,
+            handler: any RowReorderHosting
+        ) {
+            self.focusID = focusID
+            self.handlerID = handlerID
+            self.topInset = topInset
+            self.contentColumns = contentColumns
+            self.handler = handler
+        }
     }
 
     /// Registers a control as this frame's home for reorders of its rows, and
@@ -77,7 +94,7 @@ extension DragAndDropSession {
     /// Mouse only, deliberately: a keyboard move (<kbd>Ctrl</kbd>+<kbd>R</kbd>)
     /// is bounded by the control it started in and ends with the page, so it
     /// has nothing to resume and nothing to hand over.
-    func beginReorder(focusID: String, handler: any RowReorderHosting) {
+    package func beginReorder(focusID: String, handler: any RowReorderHosting) {
         reorderFocusID = focusID
         reorderHandler = handler
     }
@@ -88,7 +105,7 @@ extension DragAndDropSession {
     /// riding the cursor, and the gesture picks up where it left off if the user
     /// navigates back. That is the same contract a `.draggable` payload has
     /// while it is over a page that would refuse it.
-    func trackReorder() {
+    package func trackReorder() {
         guard let host = currentReorderHost() else { return }
         host.handler.dragReorder(toContentY: contentY(in: host))
     }
@@ -101,7 +118,7 @@ extension DragAndDropSession {
     /// `dropDestination` could take it, and the control has placed the rows
     /// itself.
     @discardableResult
-    func performReorderDrop() -> Bool {
+    package func performReorderDrop() -> Bool {
         // Whether a reorder gesture was in flight AT ALL — set at
         // `beginReorder` and cleared below. Asked before the handler lookups
         // because the handler can be gone while the gesture is not: the
@@ -193,7 +210,7 @@ extension DragAndDropSession {
 
     /// Abandons the reorder in flight without moving anything — the rows go back
     /// where they were picked up and the preview walks home.
-    func cancelReorder() {
+    package func cancelReorder() {
         reorderHandler?.cancelReorder()
         // The button is still down, so a release is still coming: without the
         // latch it falls into the click path and selects whatever row the
@@ -216,7 +233,7 @@ extension DragAndDropSession {
     /// Reads and clears the session's cancel latch — "the release now arriving
     /// is the tail of a cancelled gesture, not a click". One-shot, like the
     /// handler-level flag it backstops.
-    func consumeReorderCancellation() -> Bool {
+    package func consumeReorderCancellation() -> Bool {
         defer { reorderCancelledPendingRelease = false }
         return reorderCancelledPendingRelease
     }
@@ -246,7 +263,7 @@ extension DragAndDropSession {
     }
 
     /// Just the scroll state of ``zoneUnderCursor()``.
-    func scrollableUnderCursor() -> (any ScrollableOffsetState)? {
+    package func scrollableUnderCursor() -> (any ScrollableOffsetState)? {
         zoneUnderCursor()?.vertical
     }
 

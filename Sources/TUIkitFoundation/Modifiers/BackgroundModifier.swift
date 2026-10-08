@@ -13,7 +13,13 @@ import TUIkitStyling
 ///   ``View`` instead of instantiating this type directly.
 public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// What to fill with.
-    let style: S
+    package let style: S
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for a list's surface.
+    package init(style: S) {
+        self.style = style
+    }
 
     /// Fills at this modifier's own type, which is the right owner only when
     /// nothing encloses it — a direct call, never the render path. `ModifiedView`

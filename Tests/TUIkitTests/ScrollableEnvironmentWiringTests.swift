@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("Scrollables capture the same environment")

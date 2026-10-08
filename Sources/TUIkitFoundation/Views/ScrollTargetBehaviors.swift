@@ -200,14 +200,14 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
     }
 
     /// How far one gesture may go, in views or in screenfuls.
-    enum Limit: Equatable {
+    package enum Limit: Equatable {
         case views(Int)
         case screenful
     }
 
     /// This behaviour's limit along an axis whose size class is, or is not,
     /// compact; `nil` for none.
-    func limit(compact: Bool) -> Limit? {
+    package func limit(compact: Bool) -> Limit? {
         switch limitBehavior.kind {
         case .automatic: compact ? .screenful : nil
         case .always: .screenful

@@ -275,7 +275,7 @@ extension RenderContext {
     /// `TextEditor` scrolled sideways through four thousand blank columns.
     /// Everywhere else a nil width means the available width, as it always
     /// has, and the view fills it.
-    func fillingWidth(proposal: ProposedSize) -> Int {
+    package func fillingWidth(proposal: ProposedSize) -> Int {
         proposal.width ?? (asksIdealWidth ? 0 : availableWidth)
     }
 }

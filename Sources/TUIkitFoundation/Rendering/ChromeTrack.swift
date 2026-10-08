@@ -23,7 +23,7 @@ import TUIkitCore
 /// it). Failing both, the palette's own rung stands: a groove too close to its
 /// thumb is a worse bar than one too close to its page, and an INVISIBLE groove
 /// is worse than either.
-enum ChromeTrack {
+package enum ChromeTrack {
     /// `base`, resolved against `palette` and separated from the palette's
     /// accent and page, answered once per distinct set of inputs and kept.
     @MainActor
@@ -101,7 +101,7 @@ enum ChromeTrack {
     /// Two colours' contrast AS DRAWN — through the 256-colour cube, which is
     /// where chrome this quiet collapses. See
     /// ``ScrollbarColors/separated(_:in:standingOffThePage:)``.
-    static func renderedRatio(_ lhs: Color, _ rhs: Color) -> Double {
+    package static func renderedRatio(_ lhs: Color, _ rhs: Color) -> Double {
         lhs.downsampledToPalette256().contrastRatio(against: rhs.downsampledToPalette256())
     }
 }

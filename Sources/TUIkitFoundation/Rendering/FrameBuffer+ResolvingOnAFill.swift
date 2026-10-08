@@ -28,13 +28,13 @@ extension FrameBuffer {
     /// same at a painter as at the root — and a palette with a translucent ink puts a
     /// claim on every label it draws, which a painter that spent them would walk for
     /// nothing.
-    var hasFadeOnWhatIsBehind: Bool {
+    package var hasFadeOnWhatIsBehind: Bool {
         Self.fadesOnWhatIsBehind(opacityRegions, runAlphas: animatedCells.lazy.map(\.alpha))
     }
 
     /// ``hasFadeOnWhatIsBehind`` asked of the claims and the runs' alphas a buffer would
     /// carry, before one is built to carry them.
-    static func fadesOnWhatIsBehind(
+    package static func fadesOnWhatIsBehind(
         _ regions: [OpacityRegion], runAlphas: some Sequence<AnimatedRunAlpha?>
     ) -> Bool {
         regions.contains { $0.opacity < 1 || $0.fieldOpacity < 1 || $0.cycle != nil }
@@ -69,7 +69,7 @@ extension FrameBuffer {
     ///     being drawn does not show — so every run is left out rather than faded and
     ///     thrown away (``resolvingOpacity(over:at:surface:palette:statingTheSurface:buildingRuns:)``).
     /// - Returns: The buffer, spent, or as it was.
-    func resolvingOpacity(
+    package func resolvingOpacity(
         onOpaqueFill fill: () -> FrameBuffer?, surface: Color, palette: any Palette, buildingRuns: Bool = true
     ) -> Self {
         // Nothing asking what is behind it — nearly every painter, nearly every
@@ -113,7 +113,7 @@ extension FrameBuffer {
     ///   - ink: The reversal's ink — the colour it shows as its field.
     ///   - palette: Resolves SGR 39 and the terminal's own colours.
     /// - Returns: The buffer, spent, or as it was.
-    func resolvingOpacity(onReversal ink: Color, palette: any Palette) -> Self {
+    package func resolvingOpacity(onReversal ink: Color, palette: any Palette) -> Self {
         guard hasFadeOnWhatIsBehind else { return self }
         var content = self
         content.opacityRegions.removeAll { !$0.isTranslucent && $0.cycle == nil }

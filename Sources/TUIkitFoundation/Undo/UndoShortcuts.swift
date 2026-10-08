@@ -159,7 +159,7 @@ public struct UndoShortcuts: Hashable, Sendable {
 }
 
 extension UndoShortcuts: ShortcutTable {
-    static var modifierName: String { "undoShortcuts" }
+    package static var modifierName: String { "undoShortcuts" }
 }
 
 // MARK: - What a terminal can deliver

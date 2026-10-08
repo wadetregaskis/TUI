@@ -16,7 +16,7 @@ import TUIkitView
 
 /// A kind of child a container treats specially, asked about a view's type
 /// before any of its children is resolved (``mayHandOver(_:_:)``).
-enum ChildKind: Equatable {
+package enum ChildKind: Equatable {
     /// A `Section`: a lazy grid draws them section by section, a lazy stack
     /// keeps them whole, a menu styles them.
     case section
@@ -95,7 +95,7 @@ func mayHandOver<V: View>(_ kind: ChildKind, _ type: V.Type, visited: inout Set<
 /// view keeps no section scope, and a menu of one resolves as it always did.
 /// A metatype compare for any other view.
 @MainActor
-func mayHandOver<V: View>(_ kind: ChildKind, in view: V) -> Bool {
+package func mayHandOver<V: View>(_ kind: ChildKind, in view: V) -> Bool {
     guard V.self == AnyView.self, let erased = view as? AnyView else { return mayHandOver(kind, V.self) }
     return erasedMayHandOver(kind, erased.erasedView)
 }

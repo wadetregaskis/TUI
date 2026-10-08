@@ -145,7 +145,7 @@ func renderMenuPopup(
 }
 
 /// Where a presented menu hangs, and off what.
-struct MenuAnchor {
+package struct MenuAnchor {
     /// The menu's top-left column, in the presenter's own coordinate space.
     let x: Int
 
@@ -172,7 +172,7 @@ struct MenuAnchor {
     /// ``OverlayLayer/anchorHeight``.
     let controlHeight: Int
 
-    init(x: Int, y: Int, controlHeight: Int, centredWithin: Int? = nil) {
+    package init(x: Int, y: Int, controlHeight: Int, centredWithin: Int? = nil) {
         self.x = x
         self.y = y
         self.controlHeight = controlHeight
@@ -204,7 +204,7 @@ struct MenuAnchor {
 ///     any item that fires.
 ///   - context: The presenter's render context.
 @MainActor
-func presentMenuPopover<Items: View>(
+package func presentMenuPopover<Items: View>(
     items: Items,
     over base: inout FrameBuffer,
     controller: MenuPopupController,

@@ -15,7 +15,11 @@
 // (until step B4). TUIkitNavigation is the third since step B5 carved it: the
 // panels are `Dialog`s and the picker presents them through `.modal`, both
 // TUIkitPresentation's, which compiles into TUIkitNavigation until step C1.
-// The umbrella, Sources/TUIkit, re-exports this module beside TUIkitFoundation.
+// TUIkitLists is the fourth since step B6 carved it: the panel lays its modes
+// out in a `TabView` of `Tab`s, TUIkitTabs', which compiles into TUIkitLists
+// until step C3. The umbrella, Sources/TUIkit, re-exports this module beside
+// TUIkitFoundation.
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
+@_exported import TUIkitLists
 @_exported import TUIkitNavigation

@@ -77,14 +77,14 @@ extension EnvironmentValues {
     /// The list item tint in force (``View/listItemTint(_:)-(ListItemTint?)``),
     /// or `nil` for the accent.
     @inlinable
-    var listItemTint: ListItemTint? {
+    package var listItemTint: ListItemTint? {
         get { self[ListItemTintKey.self] }
         set { self[ListItemTintKey.self] = newValue }
     }
 
     /// Whether this is a row of a sidebar-style list (``SidebarListStyle``).
     @inlinable
-    var isSidebarListRow: Bool {
+    package var isSidebarListRow: Bool {
         get { self[SidebarListRowKey.self] }
         set { self[SidebarListRowKey.self] = newValue }
     }

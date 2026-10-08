@@ -15,6 +15,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("A list pins its section headers")

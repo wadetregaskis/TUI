@@ -69,7 +69,7 @@ public struct VStack<Content: View>: View {
 /// `VStack` is `.clip` (distribute + clip trailing rows at the cell),
 /// `LazyVStack` is `.window` (append whole rows while they fit `availableHeight`,
 /// stopping at the first that won't).
-struct _VStackCore<Content: View>: View, Renderable, Layoutable {
+package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     // The one-byte `overflow` after the content, not before it: before, it
     // left seven undefined bytes ahead of the word-aligned content, which the
     // per-pass memos' value hash read then and must skip now; with none, the
@@ -86,7 +86,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     let pinsSectionHeaders: Bool
     let pinsSectionFooters: Bool
 
-    init(
+    package init(
         alignment: HorizontalAlignment, spacing: Int, overflow: StackOverflow,
         pinnedViews: PinnedScrollableViews = [], content: Content
     ) {
@@ -98,12 +98,12 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         self.pinsSectionFooters = pinnedViews.contains(.sectionFooters)
     }
 
-    var body: Never {
+    package var body: Never {
         fatalError("_VStackCore renders via Renderable")
     }
 
     /// Measures the VStack without rendering.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = context.publishingContainerAxis(.vertical)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -385,7 +385,7 @@ struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             isHeightFlexible: heightFlexible)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = context.publishingContainerAxis(.vertical)
         switch overflow {
         case .clip: return renderClip(context: context)

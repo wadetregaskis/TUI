@@ -9,7 +9,7 @@ import Foundation
 // MARK: - Scroll Direction
 
 /// The direction of a scroll indicator arrow.
-enum ScrollIndicatorDirection {
+package enum ScrollIndicatorDirection {
     case up, down
 }
 
@@ -17,7 +17,7 @@ enum ScrollIndicatorDirection {
 /// "42 more rows below" (a `List`'s whole items) and "~200M more lines
 /// below" (a `ScrollView`'s terminal lines) can't be conflated. Required at
 /// every call site: a new caller must decide what it is actually counting.
-enum ScrollIndicatorUnit {
+package enum ScrollIndicatorUnit {
     /// Whole rows/items — `List`, `Table`, menus. Exact counts.
     case rows
     /// Terminal lines — `ScrollView`, whose scroll space is line-based.
@@ -38,7 +38,7 @@ enum ScrollIndicatorUnit {
 /// indicator's cells can be handed to the run loop instead of the page being
 /// re-rendered on every tick to recolour them.
 @MainActor
-func scrollIndicatorCycle(isFocused: Bool, context: RenderContext) -> SelectionEmphasisCycle? {
+package func scrollIndicatorCycle(isFocused: Bool, context: RenderContext) -> SelectionEmphasisCycle? {
     guard isFocused else { return nil }
     return context.environment.selectionEmphasis.cycle(true)
 }
@@ -93,17 +93,17 @@ func localizedInteger(_ value: Int, locale: Locale = .current) -> String {
 /// is one (§43.1): `List`, both of `Table`'s paths and both of `ScrollView`'s put the
 /// line on a row of their own, and a claim in the line's own coordinates lets each
 /// place it with the shift it already gives the run.
-struct ScrollIndicatorLine {
+package struct ScrollIndicatorLine {
     /// The centring blanks, then the arrow and its label. Its claims are in the
     /// line's own coordinates: column 0 is the first blank, row 0 the line.
     let drawn: ClaimingRow
     /// Breathes the arrow and its label at row 0, column `padding`; `nil` when still.
-    let animation: AnimatedCellRun?
+    package let animation: AnimatedCellRun?
 
-    var text: String { drawn.text }
+    package var text: String { drawn.text }
 
     /// The line's claims, moved to the row its host drew it on.
-    func claims(atRow row: Int) -> [OpacityRegion] {
+    package func claims(atRow row: Int) -> [OpacityRegion] {
         drawn.claims.map { $0.shifted(byX: 0, y: row) }
     }
 }
@@ -164,7 +164,7 @@ func scrollIndicatorBreath(palette: any Palette, over surface: Color) -> (dim: C
 ///   be bytes spent to redraw spaces. Its `offsetY` is 0 — the caller knows which
 ///   row the line landed on, and shifts the run there as it places the claims.
 @MainActor
-func renderScrollIndicator(
+package func renderScrollIndicator(
     direction: ScrollIndicatorDirection,
     count: Int,
     unit: ScrollIndicatorUnit,
@@ -212,14 +212,14 @@ func renderScrollIndicator(
 /// An indicator's text and geometry, before any colour is chosen — so the still
 /// line and every frame of the breathing one are laid out by the same arithmetic,
 /// and cannot drift apart.
-struct ScrollIndicatorParts {
+package struct ScrollIndicatorParts {
     let arrow: String
     let label: String
     let padding: Int
 
     /// The cells the line draws, measured the way its claim and its run are: by
     /// what is drawn (`strippedLength`).
-    var width: Int { padding + arrow.strippedLength + label.strippedLength }
+    package var width: Int { padding + arrow.strippedLength + label.strippedLength }
 
     /// The breathing cells alone: the arrow and its label.
     func body(ink: Color) -> ClaimingRow {
@@ -243,7 +243,7 @@ struct ScrollIndicatorParts {
     }
 }
 
-func scrollIndicatorParts(
+package func scrollIndicatorParts(
     direction: ScrollIndicatorDirection,
     count: Int,
     unit: ScrollIndicatorUnit,

@@ -16,6 +16,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitView
 
 /// A heading: two views, no loop.

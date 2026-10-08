@@ -14,18 +14,21 @@
 // TUIkitFoundation's own re-exports; one carved out that is built on
 // TUIkitFoundation is re-exported here: TUIkitApp (`App`, `Scene` and the run
 // loop, since step B3), TUIkitColorPicker (`ColorPicker` and its editors, since
-// step B4) and TUIkitNavigation (the navigation containers, and the
-// presentations until step C1 peels them into TUIkitPresentation; since step
-// B5). Each by name, though until C1 TUIkitColorPicker re-exports
-// TUIkitNavigation too: the `umbrella` check asks for every module built on
-// TUIkitFoundation, because no build notices one this file leaves out while a
-// sibling's re-export still reaches it. A qualified name in an app,
-// `TUIkit.Label`, still resolves through these re-exports.
+// step B4), TUIkitNavigation (the navigation containers, and the presentations
+// until step C1 peels them into TUIkitPresentation; since step B5) and
+// TUIkitLists (lists, and tables, tabs and grids until steps C2 to C4 peel
+// them; since step B6). Each by name, though TUIkitColorPicker re-exports
+// TUIkitNavigation until C1 and TUIkitLists until C3: the `umbrella` check
+// asks for every module built on TUIkitFoundation, because no build notices
+// one this file leaves out while a sibling's re-export still reaches it. A
+// qualified name in an app, `TUIkit.Label`, still resolves through these
+// re-exports.
 @_exported import TUIkitApp
 @_exported import TUIkitColorPicker
 @_exported import TUIkitCore
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
+@_exported import TUIkitLists
 @_exported import TUIkitNavigation
 @_exported import TUIkitStyling
 @_exported import TUIkitView

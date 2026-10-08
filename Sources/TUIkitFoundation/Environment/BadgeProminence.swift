@@ -58,7 +58,7 @@ public struct BadgeProminence: Hashable, Sendable {
     public static let increased = Self(level: 1)
 
     /// The ink a list draws a badge of this prominence in.
-    func badgeInk(in palette: any Palette) -> Color {
+    package func badgeInk(in palette: any Palette) -> Color {
         self == .decreased ? palette.foregroundQuaternary : palette.foregroundTertiary
     }
 }

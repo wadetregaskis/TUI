@@ -198,5 +198,5 @@ extension GridLayout: Animatable {
 
 /// A `ForEach` of rows is cells, as in a ``Grid``.
 extension GridLayout: WholeGridRowExpanding {
-    var expandsWholeGridRows: Bool { true }
+    package var expandsWholeGridRows: Bool { true }
 }

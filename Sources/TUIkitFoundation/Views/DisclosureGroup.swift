@@ -191,9 +191,9 @@ private struct _DisclosedStateRetainer<Content: View>: View, Renderable, Layouta
 /// Its own type because a generic type cannot hold a static stored property,
 /// and because these are the numbers a test should assert against rather than
 /// re-deriving them from a rendered line.
-enum DisclosureMetrics {
+package enum DisclosureMetrics {
     /// Cells between the triangle and the label.
-    static let glyphSpacing = 1
+    package static let glyphSpacing = 1
 
     /// How far the content is indented, in cells: past the header's focus
     /// gutter, past the triangle, past the space after it — so the content
@@ -202,7 +202,7 @@ enum DisclosureMetrics {
     /// Derived rather than written as a literal, because each part of it is
     /// owned elsewhere: change the focus indicator's width or the triangle and
     /// the indent follows.
-    static var contentIndent: Int {
+    package static var contentIndent: Int {
         BorderRenderer.focusIndicatorWidth + triangleColumnWidth
     }
 
@@ -212,7 +212,7 @@ enum DisclosureMetrics {
     /// blank is part of the target: with the focus gutter in front of it that
     /// is four clickable cells around a one-cell glyph, which is the
     /// difference between a triangle you can hit and one you cannot.
-    static var triangleColumnWidth: Int {
+    package static var triangleColumnWidth: Int {
         TerminalSymbols.disclosureCollapsed.strippedLength + glyphSpacing
     }
 }

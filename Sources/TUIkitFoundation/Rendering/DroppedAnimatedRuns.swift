@@ -25,7 +25,7 @@ extension AnimatedCellRun {
     /// keeps those lines and discards the run (§69.4). Right at that frame, frozen
     /// after. Empty for a run that is not animating, which no container carries
     /// either, and for one with no payload.
-    var alphaLeftBehind: [OpacityRegion] {
+    package var alphaLeftBehind: [OpacityRegion] {
         guard isAnimating, let alpha else { return [] }
         return alpha.drawnRegions(forRunAt: offsetX, offsetY: offsetY)
     }
@@ -46,7 +46,7 @@ extension RenderContext {
     ///   - token: A stable per-view key, from the structural identity.
     ///   - runs: The rate and clock of each run dropped.
     @MainActor
-    func requestWake(token: String, forNextStepOf runs: [(clock: AnimationClock, frameTicks: Int)]) {
+    package func requestWake(token: String, forNextStepOf runs: [(clock: AnimationClock, frameTicks: Int)]) {
         guard !runs.isEmpty, !isMeasuring else { return }
         requestWake(token: token, atNanos: nextStepNanos(of: runs))
     }

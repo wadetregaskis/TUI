@@ -39,7 +39,7 @@ public struct LayoutSubview: @MainActor Equatable {
     let index: Int
 
     /// The wrapped child.
-    let child: ChildView
+    package let child: ChildView
 
     /// The context children measure and render in.
     let context: RenderContext
@@ -226,7 +226,7 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     /// ``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``.
     /// A subview placed twice counts twice; one never placed is not drawn and
     /// counts not at all.
-    func mergedExplicitGuide(_ query: AlignmentGuideQuery) -> Double? {
+    package func mergedExplicitGuide(_ query: AlignmentGuideQuery) -> Double? {
         let entries = placements.entries
         let placedChildren = entries.map { children[$0.index] }
         let frames = entries.map { entry -> (x: Int, y: Int, width: Int, height: Int) in

@@ -28,7 +28,7 @@ package enum ANSIRenderer {
     /// SGR 39: the terminal's own foreground again, everything else left in
     /// force — what closes a run of ink without ending the background it is
     /// drawn over, as a ``reset`` would.
-    static let defaultForeground = "\(csi)39m"
+    package static let defaultForeground = "\(csi)39m"
 
     /// Dim/faint text style code.
     static let dim = "\(csi)2m"
@@ -110,7 +110,7 @@ extension ANSIRenderer {
     /// join and the interpolation: four or five allocations per call, 4.5% of a
     /// `menus` frame and 4.3% of a `markdown` one. `SGRStyleSequenceTests` pins
     /// the two spellings equal.
-    static func styleSequence(for style: TextStyle) -> String? {
+    package static func styleSequence(for style: TextStyle) -> String? {
         var writer = SGRWriter()
         if style.isBold == true { writer.add(StyleCode.bold) }
         if style.isDim == true { writer.add(StyleCode.dim) }
@@ -136,7 +136,7 @@ extension ANSIRenderer {
     ///
     /// - Parameter color: The background color.
     /// - Returns: The ANSI escape sequence.
-    static func backgroundCode(for color: Color) -> String {
+    package static func backgroundCode(for color: Color) -> String {
         // Through the writer rather than `Color.backgroundEscape()`, which spells
         // the same bytes by building an array of codes, joining it and
         // concatenating twice: one allocation where that took four, and this
@@ -198,7 +198,7 @@ extension ANSIRenderer {
     ///   - padding: Spaces to append inside the background — what wrapping
     ///     `string` padded by that many spaces draws, without the padded copy.
     /// - Returns: The string with persistent background applied.
-    static func applyPersistentBackground(_ string: String, color: Color, padding: Int = 0) -> String {
+    package static func applyPersistentBackground(_ string: String, color: Color, padding: Int = 0) -> String {
         let bgCode = backgroundCode(for: color)
         return wrapping(string, restoring: bgCode, opening: bgCode, padding: padding, closing: "") ?? string
     }
@@ -214,7 +214,7 @@ extension ANSIRenderer {
     ///
     /// - Parameter string: The text to draw faint.
     /// - Returns: The string with persistent dim applied.
-    static func applyPersistentDim(_ string: String) -> String {
+    package static func applyPersistentDim(_ string: String) -> String {
         wrapping(string, restoring: dim, opening: dim, padding: 0, closing: reset) ?? string
     }
 

@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitView
 
 /// How many bodies of the app's own were evaluated.

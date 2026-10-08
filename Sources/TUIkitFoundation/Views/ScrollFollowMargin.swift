@@ -38,7 +38,7 @@
 ///
 /// Set it for a subtree with ``View/scrollFollowMargin(_:)``.
 public struct ScrollFollowMargin: Sendable, Hashable {
-    enum Value: Sendable, Hashable {
+    package enum Value: Sendable, Hashable {
         case steps(Int)
         case fraction(Double)
         case centered(RowAnchor)
@@ -65,7 +65,7 @@ public struct ScrollFollowMargin: Sendable, Hashable {
         case line(Int)
     }
 
-    let value: Value
+    package let value: Value
 
     /// No margin: scrolling starts only when the selection reaches the
     /// viewport edge. The default.
@@ -115,7 +115,7 @@ public struct ScrollFollowMargin: Sendable, Hashable {
     /// ScrollView reveal) use this directly — for them a step IS a line.
     /// Row-space consumers under row granularity take the step count as a row
     /// count instead (see `ItemListHandler.followMarginRows`).
-    func resolvedLines(viewportLines: Int) -> Int {
+    package func resolvedLines(viewportLines: Int) -> Int {
         let raw: Int
         switch value {
         case .steps(let count):
@@ -137,7 +137,7 @@ public struct ScrollFollowMargin: Sendable, Hashable {
     /// The row anchor when this margin is ``centered(anchor:)`` — the signal a
     /// multi-line row list uses to centre with sub-row precision instead of the
     /// whole-row margin approximation. `nil` for every other margin.
-    var centeredAnchor: RowAnchor? {
+    package var centeredAnchor: RowAnchor? {
         if case .centered(let anchor) = value { return anchor }
         return nil
     }

@@ -15,6 +15,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 private struct ExtentRow: Identifiable {
     let id: Int

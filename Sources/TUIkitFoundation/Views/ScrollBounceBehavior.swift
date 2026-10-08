@@ -95,7 +95,7 @@ extension EnvironmentValues {
     /// settles its overscroll, in the Lists group, which leaves the substrate
     /// at B6.
     @inlinable
-    func overscrollAllowances(overflowing: Bool) -> (top: ScrollOverscroll, bottom: ScrollOverscroll) {
+    package func overscrollAllowances(overflowing: Bool) -> (top: ScrollOverscroll, bottom: ScrollOverscroll) {
         verticalScrollBounceBehavior.allowsOverscroll(overflowing: overflowing)
             ? (scrollOverscrollTop, scrollOverscrollBottom) : (.none, .none)
     }

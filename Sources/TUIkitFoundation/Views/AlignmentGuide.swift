@@ -196,7 +196,7 @@ extension View {
 
 /// One explicit-guide question: which guide, and so along which axis a
 /// container translates a child's answer and how it merges several.
-enum AlignmentGuideQuery {
+package enum AlignmentGuideQuery {
     case horizontal(HorizontalAlignment)
     case vertical(VerticalAlignment)
 
@@ -236,7 +236,7 @@ enum AlignmentGuideQuery {
 /// container cannot find its children's guides without resolving and measuring
 /// them, and that needs the context it is laid out in.
 @MainActor
-protocol AlignmentGuideQuerying {
+package protocol AlignmentGuideQuerying {
     /// The explicit value this view has for `query`'s guide when laid out at
     /// `dimensions` in `context` — its own context, identity included — or
     /// `nil` when it has none.
@@ -256,7 +256,7 @@ protocol AlignmentGuideQuerying {
 /// its body renders at. An app's own views state no witness, so a guide inside
 /// one does not travel out of it.
 @MainActor
-func explicitGuide<V: View>(
+package func explicitGuide<V: View>(
     of view: V, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions,
     context: RenderContext
 ) -> Double? {
@@ -323,7 +323,7 @@ func mergedExplicitGuide(
 extension _AlignmentGuideView: AlignmentGuideQuerying {
     /// This wrapper's own guide, or whatever its content has for any other —
     /// a guide set further in, or one a container inside reports.
-    func explicitGuide(
+    package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         if query.key == key { return computeValue(dimensions) }

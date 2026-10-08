@@ -82,11 +82,11 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// The `.onMove(perform:)` row-reorder action, if attached: `(source
     /// offsets, destination offset)`. `nil` unless a `.onMove` modifier set it.
     /// Read by an enclosing editable `List` (see ``DynamicViewContentActions``).
-    var onMoveAction: ((IndexSet, Int) -> Void)?
+    package var onMoveAction: ((IndexSet, Int) -> Void)?
 
     /// The `.onDelete(perform:)` row-delete action, if attached: `(offsets to
     /// delete)`. `nil` unless a `.onDelete` modifier set it.
-    var onDeleteAction: ((IndexSet) -> Void)?
+    package var onDeleteAction: ((IndexSet) -> Void)?
 
     /// The `.dropDestination(for:action:)` insertion action, if attached:
     /// `(insertion index, payloads)`. Type-erased so `ForEach` need not carry
@@ -100,7 +100,7 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// public initializers inlined into another module would otherwise call it
     /// unspecialised (module split step A3).
     @inlinable
-    init(
+    package init(
         storing data: Data, id: KeyPath<Data.Element, ID>, directID: ((Data.Element) -> ID)? = nil,
         content: @escaping (Data.Element) -> Content
     ) {

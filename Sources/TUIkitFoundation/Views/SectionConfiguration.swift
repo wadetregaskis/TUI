@@ -92,7 +92,7 @@ public struct SectionCollection: RandomAccessCollection {
     public typealias Index = Int
     public typealias Indices = Range<Int>
 
-    let sections: [SectionConfiguration]
+    package let sections: [SectionConfiguration]
 
     public var startIndex: Int { sections.startIndex }
 
@@ -116,7 +116,7 @@ extension SectionCollection {
     /// taken apart here rather than drawn, so a header gets none of the
     /// styling a `List` gives one.
     @MainActor
-    init(resolving base: some View, in scope: RenderContext) {
+    package init(resolving base: some View, in scope: RenderContext) {
         // Sections whole, to be read as sections (`RenderContext.keepsSectionsWhole`).
         let children = resolveChildViews(from: base, context: scope.keepingSectionsWhole())
         let rowIDs =

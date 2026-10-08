@@ -211,7 +211,7 @@ package enum TextWrapping {
     /// truncated with an ellipsis; finally truncates any line still wider than
     /// `width` (a single over-long word). `maxLines == nil` keeps every wrapped
     /// line. Returns plain (unstyled) lines.
-    static func fit(
+    package static func fit(
         _ text: String,
         width: Int,
         maxLines: Int?,

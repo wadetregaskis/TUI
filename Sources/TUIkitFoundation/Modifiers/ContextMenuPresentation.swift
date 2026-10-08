@@ -12,26 +12,30 @@ import TUIkitCore
 /// StateStorage box (not `@State`) marked active each frame, the same pattern
 /// ``Menu`` and the Picker drop-down use.
 @MainActor
-final class ContextMenuState {
+package final class ContextMenuState {
     /// Whether the menu is currently shown.
-    var isOpen = false
+    package var isOpen = false
     /// The open menu's highlight and its rows — see ``MenuPopupController``.
-    let controller = MenuPopupController()
+    package let controller = MenuPopupController()
     /// The column of the click that opened it, in the modified content's local
     /// coordinate space (composition makes it absolute).
-    var anchorX = 0
+    package var anchorX = 0
     /// The row of the opening click, content-local.
-    var anchorY = 0
+    package var anchorY = 0
     /// Whether the keyboard opened it, which changes where it is anchored —
     /// see ``MenuAnchor/centredWithin``.
-    var openedByKeyboard = false
+    package var openedByKeyboard = false
     /// Whether a menu was presented since the closed content last rendered, so
     /// the section it activated may be left to tear down.
-    var needsSectionTeardown = false
+    package var needsSectionTeardown = false
+
+    /// No arguments, spelled out because the implicit initializer is internal
+    /// and TUIkitLists makes these, for the lists' and tabs' row menus.
+    package init() {}
 
     /// Closes the menu — chosen from, dismissed, or let go of — dropping its
     /// highlight. Idempotent.
-    func close() {
+    package func close() {
         isOpen = false
         controller.closed()
     }
@@ -39,7 +43,7 @@ final class ContextMenuState {
     /// The menu, as the press that opens it hands it to the dispatcher for the
     /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``).
     /// Built once, weakly, as ``MenuPopupState/openedPopup`` is.
-    private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
+    package private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
         isOpen: { [weak self] in self?.isOpen ?? false },
         close: { [weak self] in self?.close() })
 }
@@ -52,7 +56,7 @@ extension KeyEvent {
     /// Menu key where the terminal reports it (``Key/menu``) — and closes an
     /// open one. One test for every menu that answers it: `.contextMenu`, a
     /// list's or table's row menu, a tab's.
-    var opensContextMenu: Bool { (key == .f10 && shift) || key == .menu }
+    package var opensContextMenu: Bool { (key == .f10 && shift) || key == .menu }
 }
 
 // MARK: - Presenting
@@ -62,10 +66,10 @@ extension KeyEvent {
 /// the secondary-click trigger, the menu hung at its anchor, and the Shift+F10
 /// that closes it.
 @MainActor
-enum ContextMenuPresentation {
+package enum ContextMenuPresentation {
     /// Draws the open menu over `baseBuffer` — the content it belongs to,
     /// already rendered — and keeps the trigger live under it.
-    static func present<Items: View>(
+    package static func present<Items: View>(
         _ items: Items, over baseBuffer: inout FrameBuffer, stateBox: StateBox<ContextMenuState>,
         sectionID: String, context: RenderContext
     ) {
@@ -112,7 +116,7 @@ enum ContextMenuPresentation {
     /// Opens the menu as the keyboard does: on its first item, so the arrows
     /// have somewhere to go, and written back through its box, which drops a
     /// memo holding the closed content.
-    static func openFromKeyboard(_ stateBox: StateBox<ContextMenuState>, onOpen: MenuOpenAction?) {
+    package static func openFromKeyboard(_ stateBox: StateBox<ContextMenuState>, onOpen: MenuOpenAction?) {
         let state = stateBox.value
         state.isOpen = true
         state.openedByKeyboard = true
@@ -131,7 +135,7 @@ enum ContextMenuPresentation {
     /// Registered on the MENU's section rather than the page's: the menu grabs
     /// the keyboard while it is up, so the trigger that opened it is not
     /// listening any more.
-    static func attachKeyboardCloser(
+    package static func attachKeyboardCloser(
         state: ContextMenuState, sectionID: String, context: RenderContext
     ) {
         guard !context.isMeasuring, let dispatcher = context.environment.keyEventDispatcher
@@ -174,7 +178,7 @@ enum ContextMenuPresentation {
     /// memo holding the closed content: the state is a class, changed in place,
     /// and a row served as it was stored would never draw the menu.
     @MainActor
-    static func attachTrigger(
+    package static func attachTrigger(
         to buffer: inout FrameBuffer, stateBox: StateBox<ContextMenuState>, focusID: String?,
         context: RenderContext
     ) {

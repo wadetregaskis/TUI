@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 /// A reference holder so a `Binding<Color>` can be read back in tests.
 private final class ColorBox {

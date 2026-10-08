@@ -196,7 +196,7 @@ extension Group: TableColumnContent where Content: TableColumnContent {
     /// - Parameter content: The columns to group.
     public init<R, C>(@TableColumnBuilder<R, C> content: () -> Content)
     where R == Content.TableRowValue, C == Content.TableColumnSortComparator {
-        self.content = content()
+        self = .grouping(content())
     }
 }
 

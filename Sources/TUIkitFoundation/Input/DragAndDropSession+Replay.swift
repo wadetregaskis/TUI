@@ -69,7 +69,7 @@ extension DragAndDropSession {
     /// rather than capturing this one, as every journalled effect does: a hit's
     /// context belongs to a later frame.
     @MainActor
-    func registerTarget(_ target: Target, in context: RenderContext) {
+    package func registerTarget(_ target: Target, in context: RenderContext) {
         registerTarget(target)
         guard let journal = DragAndDropRegistrar.declareReplayable(in: context) else { return }
         journal.append(
@@ -91,7 +91,7 @@ extension DragAndDropSession {
     /// The zone is stamped with the scrollable's pictures here, so every zone a
     /// render walk registers reports the ticks that move it.
     @MainActor
-    func registerAutoScrollZone(_ zone: AutoScrollZone, in context: RenderContext) {
+    package func registerAutoScrollZone(_ zone: AutoScrollZone, in context: RenderContext) {
         var zone = zone
         zone.drawing = HandlerDrawing(context)
         registerAutoScrollZone(zone)
@@ -114,7 +114,7 @@ extension DragAndDropSession {
     /// frame it returns rather than on whichever later frame something finally
     /// forces a render.
     @MainActor
-    func registerReorderHost(_ host: ReorderHost, in context: RenderContext) {
+    package func registerReorderHost(_ host: ReorderHost, in context: RenderContext) {
         registerReorderHost(host)
         guard let journal = DragAndDropRegistrar.declareReplayable(in: context) else { return }
         journal.append(

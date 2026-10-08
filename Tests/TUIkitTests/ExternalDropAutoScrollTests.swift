@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("Incoming drop while auto-scrolling")

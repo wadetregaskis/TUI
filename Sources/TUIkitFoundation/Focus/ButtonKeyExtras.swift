@@ -64,7 +64,7 @@ extension View {
     ///   - keys: Which keys to intercept.
     ///   - handle: What to do with one. `false` lets it fall through.
     /// - Returns: A view whose button answers those keys too.
-    func buttonKeyExtras(
+    package func buttonKeyExtras(
         keys: Set<Key>, handle: @escaping (KeyEvent) -> Bool
     ) -> some View {
         environment(\.buttonKeyExtras, ButtonKeyExtras(keys: keys, handle: handle))

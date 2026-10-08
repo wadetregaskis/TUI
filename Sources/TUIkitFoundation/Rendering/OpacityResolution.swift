@@ -636,7 +636,7 @@ extension FrameBuffer {
     ///     a floating surface, painted onto the page's colour — so it is
     ///     composited without asking what it lands on
     ///     (``FrameBuffer/composited(with:at:overlayIsPainted:)``).
-    func compositedResolvingOpacity(
+    package func compositedResolvingOpacity(
         with overlay: Self,
         at position: (x: Int, y: Int),
         palette: any Palette,

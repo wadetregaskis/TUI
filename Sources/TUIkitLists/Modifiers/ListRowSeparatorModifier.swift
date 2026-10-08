@@ -77,7 +77,7 @@ extension ListRowSeparatorModifier {
 }
 
 extension ListRowSeparatorModifier: AlignmentGuideQuerying {
-    func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
+    package func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
         TUIkitFoundation.explicitGuide(of: content, query, in: dimensions, context: context)
     }
 }

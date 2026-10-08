@@ -10,14 +10,14 @@
 
 /// The evaluated `body` of a view of the app's own, and the context its rows
 /// are extracted under — see ``listRowsBody(of:context:)``.
-struct ListRowsBody {
+package struct ListRowsBody {
     /// The body, evaluated as a render evaluates it.
-    let content: any View
+    package let content: any View
 
     /// One identity step inside the view's own: the step the render walk takes
     /// into a body, so every row lands where drawing the view would have put
     /// it.
-    let context: RenderContext
+    package let context: RenderContext
 }
 
 /// The body of `view`, when `view` is a view of the app's own whose `body` is
@@ -63,7 +63,7 @@ struct ListRowsBody {
 /// at its own identity, so it takes no step. When it holds nothing it is left
 /// alone, to draw nothing — or a departing view's last frames.
 @MainActor
-func listRowsBody<V: View>(of view: V, context: RenderContext) -> ListRowsBody? {
+package func listRowsBody<V: View>(of view: V, context: RenderContext) -> ListRowsBody? {
     // Container first: `as?` takes an `Optional`'s own conformance before it
     // looks inside, so this catches `.some` and `.none` alike.
     if let optional = view as? any ListRowsOptional {

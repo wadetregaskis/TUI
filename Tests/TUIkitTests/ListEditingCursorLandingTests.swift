@@ -24,6 +24,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("Where the cursor stands after a delete", .rendersEnglishUI)

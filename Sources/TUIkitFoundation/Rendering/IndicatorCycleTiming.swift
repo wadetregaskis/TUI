@@ -15,13 +15,13 @@ import TUIkitCore
 /// which is right only while every cycle is laid out one cursor tick a frame.
 /// Nothing on a producer's side of a cycle should know what its frames are laid out
 /// on.
-struct IndicatorCycleTiming: Equatable, Sendable {
+package struct IndicatorCycleTiming: Equatable, Sendable {
     /// How many ticks of 1/60 s each frame is shown for.
-    var frameTicks: Int
+    package var frameTicks: Int
 
     /// The clock the steps are counted on, and the one a run built from the cycle
     /// replays on.
-    var clock: AnimationClock
+    package var clock: AnimationClock
 
     /// One cursor tick a frame, on the focus-relative clock: a still cycle's timing,
     /// and a pulse's standard frame.

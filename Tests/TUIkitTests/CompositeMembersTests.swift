@@ -18,6 +18,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitView
 
 /// Two views, as a body.

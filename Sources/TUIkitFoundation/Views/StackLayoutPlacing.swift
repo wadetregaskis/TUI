@@ -220,13 +220,13 @@ extension _VStackCore {
 // MARK: - LayoutPlacing
 
 extension _VStackCore: LayoutPlacing {
-    func placementCount(context: RenderContext) -> Int {
+    package func placementCount(context: RenderContext) -> Int {
         // O(1) for lazy providers (a ForEach answers from its data's count);
         // eager content pays its (already-paid) resolution.
         resolveChildViewCollection(from: content, context: placementContext(context)).count
     }
 
-    func placement(at ordinal: Int, proposal: ProposedSize, context: RenderContext) -> Placement? {
+    package func placement(at ordinal: Int, proposal: ProposedSize, context: RenderContext) -> Placement? {
         let queryContext = placementContext(context)
         let slots = naturalRowSlots(width: proposal.width, context: queryContext)
         guard slots.indices.contains(ordinal) else { return nil }
@@ -237,7 +237,7 @@ extension _VStackCore: LayoutPlacing {
             x: 0, y: slot.y, width: slot.width, height: slot.height)
     }
 
-    func ordinal(of target: ViewIdentity, context: RenderContext) -> Int? {
+    package func ordinal(of target: ViewIdentity, context: RenderContext) -> Int? {
         guard let step = target.childStep(below: context.identity) else { return nil }
         let children = resolveChildViewCollection(from: content, context: placementContext(context))
         if let key = step.key {

@@ -52,7 +52,7 @@ extension _TypeSelectEquivalentModifier: DrawsContentUnchanged {}
 /// wrappers around it: `.some(nil)` for a row stating none — derive it — and
 /// `nil` for one with no modifier at all.
 @MainActor
-func statedTypeSelectEquivalent(of row: any View) -> String?? {
+package func statedTypeSelectEquivalent(of row: any View) -> String?? {
     guard let carrier = throughWrappers(row, as: (any _TypeSelectEquivalentCarrying).self) else { return nil }
     return .some(carrier.typeSelectEquivalent)
 }
@@ -61,7 +61,7 @@ func statedTypeSelectEquivalent(of row: any View) -> String?? {
 /// the list already drawn — `nil` where it states none, so its drawn text is
 /// used.
 @MainActor
-func typeSelectProbe(statedBy row: any View) -> (() -> String?)? {
+package func typeSelectProbe(statedBy row: any View) -> (() -> String?)? {
     guard let stated = statedTypeSelectEquivalent(of: row), let stated else { return nil }
     return { stated }
 }

@@ -17,6 +17,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 /// A row-order holder plus the pieces to render it — a reference type so the
 /// `onMove` closure (which fires during a later mouse dispatch, not during

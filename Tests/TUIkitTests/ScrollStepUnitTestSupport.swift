@@ -11,6 +11,7 @@
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 extension ScrollStepUnit {
     /// The scroll target behaviour a list steps in this unit under:

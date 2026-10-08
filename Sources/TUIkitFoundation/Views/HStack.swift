@@ -67,7 +67,7 @@ public struct HStack<Content: View>: View {
 /// `HStack` is `.clip` (distribute + clip trailing columns at the cell),
 /// `LazyHStack` is `.window` (append whole columns while they fit
 /// `availableWidth`, stopping at the first that won't).
-struct _HStackCore<Content: View>: View, Renderable, Layoutable {
+package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     // The one-byte `overflow` after the content, not before it: before, it
     // left seven undefined bytes ahead of the word-aligned content, which the
     // per-pass memos' value hash read then and must skip now; with none, the
@@ -84,7 +84,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     let pinsSectionHeaders: Bool
     let pinsSectionFooters: Bool
 
-    init(
+    package init(
         alignment: VerticalAlignment, spacing: Int, overflow: StackOverflow,
         pinnedViews: PinnedScrollableViews = [], content: Content
     ) {
@@ -96,7 +96,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         self.pinsSectionFooters = pinnedViews.contains(.sectionFooters)
     }
 
-    var body: Never {
+    package var body: Never {
         fatalError("_HStackCore renders via Renderable")
     }
 
@@ -310,7 +310,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     }
 
     /// Measures the HStack without rendering.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = context.publishingContainerAxis(.horizontal)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -443,7 +443,7 @@ struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             isWidthFlexible: widthFlexible, isHeightFlexible: heightFlexible)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = context.publishingContainerAxis(.horizontal)
         switch overflow {
         case .clip: return renderClip(context: context)
@@ -751,7 +751,7 @@ extension HStack {
 
 extension _HStackCore {
     /// See ``HStack/_providesAlignmentGuide``.
-    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+    package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
 extension _HStackCore: AlignmentGuideQuerying {
@@ -763,7 +763,7 @@ extension _HStackCore: AlignmentGuideQuerying {
     /// laid end to end (a column of no cells earns no gap), and the row's own
     /// guide run or its alignment down. A lazy row answers nothing, as a lazy
     /// column does not.
-    func explicitGuide(
+    package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         guard overflow == .clip else { return nil }

@@ -158,16 +158,18 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # A regression guard with teeth: these types live in the modules the umbrella
 # re-exports (it declares nothing itself), and their absence is the exact
 # failure this script exists to prevent. Cheap to check, and it fails loudly
-# the day someone documents just one target again. `text` and `list` are
+# the day someone documents just one target again. `text` is
 # TUIkitFoundation's, `localizationservice` TUIkitStrings', `terminalclient`
 # TUIkitTerminalHost's (the modules step B2 carved out of it), `windowgroup`
 # TUIkitApp's (step B3), `colorpicker` TUIkitColorPicker's (step B4),
 # `navigationstack` and `alert` TUIkitNavigation's (step B5: one from each of
-# the two directories that target compiles until step C1), the rest the lower
-# modules'.
+# the two directories that target compiles until step C1), `list`, `table`,
+# `tabview` and `grid` TUIkitLists' (step B6: one from each of its four
+# directories, until steps C2 to C4), the rest the lower modules'.
 MISSING=()
-for symbol in view color binding state environmentvalues framebuffer palette text list \
-    localizationservice terminalclient windowgroup colorpicker navigationstack alert; do
+for symbol in view color binding state environmentvalues framebuffer palette text \
+    localizationservice terminalclient windowgroup colorpicker navigationstack alert \
+    list table tabview grid; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then

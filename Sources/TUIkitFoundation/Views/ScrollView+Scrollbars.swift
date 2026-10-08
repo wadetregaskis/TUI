@@ -524,26 +524,26 @@ extension _ScrollViewCore {
 /// A scrollbar and the animated runs that pulse it, with the inputs they were
 /// drawn from — a vertical bar's column or a horizontal bar's row. See
 /// `ScrollViewHandler.verticalScrollbarMemo`.
-struct ScrollbarMemo<Bar> {
+package struct ScrollbarMemo<Bar> {
     /// Everything the bar's cells and runs are a function of. The palette by
     /// its id and the depth outright, since the cells carry resolved colours;
     /// the pulse cycle whole, since the runs carry one render per frame of it.
-    struct Key: Equatable {
+    package struct Key: Equatable {
         /// The bar's length along its axis: a vertical bar's height, a
         /// horizontal bar's width.
-        let length: Int
-        let extent: Int
-        let viewport: Int
-        let offset: Int
-        let arrows: ScrollbarArrows
-        let proportional: Bool
-        let isFocused: Bool
-        let isScrollEnabled: Bool
-        let hoveredCell: Int?
+        package let length: Int
+        package let extent: Int
+        package let viewport: Int
+        package let offset: Int
+        package let arrows: ScrollbarArrows
+        package let proportional: Bool
+        package let isFocused: Bool
+        package let isScrollEnabled: Bool
+        package let hoveredCell: Int?
         /// The palette by value where it can be, not by its id: a palette edited in
         /// place keeps the id, and a key of the id served the bar drawn before the edit.
-        let palette: ComparablePalette
-        let depth: ColorDepth
+        package let palette: ComparablePalette
+        package let depth: ColorDepth
         /// The colours the terminal had reported when the bar was drawn.
         ///
         /// At sixteen colours an RGB colour is emitted as the slot nearest to what that
@@ -558,11 +558,53 @@ struct ScrollbarMemo<Bar> {
         /// (b7a2f35d): a task-local pin changes what a slot measures as without moving the
         /// generation. The render cache's clear on a moved generation does not reach this
         /// memo either — it lives on the handler, not in the cache.
-        let terminalColors: TerminalColors
-        let cycle: SelectionEmphasisCycle?
+        package let terminalColors: TerminalColors
+        package let cycle: SelectionEmphasisCycle?
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitLists makes these, for the lists' and tables'
+        /// scrollbars.
+        package init(
+            length: Int,
+            extent: Int,
+            viewport: Int,
+            offset: Int,
+            arrows: ScrollbarArrows,
+            proportional: Bool,
+            isFocused: Bool,
+            isScrollEnabled: Bool,
+            hoveredCell: Int?,
+            palette: ComparablePalette,
+            depth: ColorDepth,
+            terminalColors: TerminalColors,
+            cycle: SelectionEmphasisCycle?
+        ) {
+            self.length = length
+            self.extent = extent
+            self.viewport = viewport
+            self.offset = offset
+            self.arrows = arrows
+            self.proportional = proportional
+            self.isFocused = isFocused
+            self.isScrollEnabled = isScrollEnabled
+            self.hoveredCell = hoveredCell
+            self.palette = palette
+            self.depth = depth
+            self.terminalColors = terminalColors
+            self.cycle = cycle
+        }
     }
 
-    let key: Key
-    let bar: Bar
-    let runs: [AnimatedCellRun]
+    package let key: Key
+    package let bar: Bar
+    package let runs: [AnimatedCellRun]
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for the lists' and tables'
+    /// scrollbars.
+    package init(key: Key, bar: Bar, runs: [AnimatedCellRun]) {
+        self.key = key
+        self.bar = bar
+        self.runs = runs
+    }
 }

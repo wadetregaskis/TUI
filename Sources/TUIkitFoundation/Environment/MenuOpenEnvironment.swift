@@ -15,9 +15,9 @@ import TUIkitCore
 /// it is created and invoked only on the render loop's single thread.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-struct MenuOpenAction: @unchecked Sendable {
+package struct MenuOpenAction: @unchecked Sendable {
     let action: () -> Void
-    func callAsFunction() { action() }
+    package func callAsFunction() { action() }
 }
 
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
@@ -31,7 +31,7 @@ extension EnvironmentValues {
     /// What to run when a pop-up menu in this subtree opens. `nil` — do
     /// nothing — everywhere it has not been set.
     @inlinable
-    var menuOpenAction: MenuOpenAction? {
+    package var menuOpenAction: MenuOpenAction? {
         get { self[MenuOpenKey.self] }
         set { self[MenuOpenKey.self] = newValue }
     }

@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("Incoming drop onto a list with no spare row")

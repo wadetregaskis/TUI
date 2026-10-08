@@ -121,7 +121,7 @@ extension EnvironmentValues {
     /// what it memoized below is still good, so a style that is not `Equatable`
     /// turns memoization off in its subtree — see ``ListStyle``.
     @inlinable
-    var listStyle: any ListStyle {
+    package var listStyle: any ListStyle {
         get { self[ListStyleKey.self] }
         set { self[ListStyleKey.self] = newValue }
     }

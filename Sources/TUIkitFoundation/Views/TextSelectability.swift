@@ -176,7 +176,7 @@ extension EnvironmentValues {
     /// The innermost ``View/textSelection(_:)`` around this view: `true`
     /// enabled, `false` disabled, `nil` none — TUIkit's default.
     @inlinable
-    var textSelectionAllowed: Bool? {
+    package var textSelectionAllowed: Bool? {
         get { self[TextSelectionAllowedKey.self] }
         set { self[TextSelectionAllowedKey.self] = newValue }
     }

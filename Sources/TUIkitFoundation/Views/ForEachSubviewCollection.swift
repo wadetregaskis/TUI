@@ -18,7 +18,7 @@ import TUIkitView
 /// resolves it on every walk that has a context. A walk without one sees it
 /// empty, so it draws nothing rather than rows it cannot account for.
 @MainActor
-protocol ContextResolvedCollection {
+package protocol ContextResolvedCollection {
     /// This collection with its elements resolved in `context`.
     func resolved(in context: RenderContext) -> Self
 }
@@ -118,7 +118,7 @@ extension ForEachSubviewCollection: ContextResolvedCollection {
     /// loop, so they cannot share an identity with the rows the loop builds
     /// from them — the namespace ``Group/init(subviews:transform:)`` keeps
     /// between its members and its result.
-    func resolved(in context: RenderContext) -> Self {
+    package func resolved(in context: RenderContext) -> Self {
         func resolve<V: View>(_ source: V) -> SubviewMembers {
             SubviewMembers(resolving: source, in: context.withChildIdentity(type: V.self, index: 0))
         }

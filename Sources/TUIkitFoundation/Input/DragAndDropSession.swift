@@ -99,20 +99,20 @@ final class DropPayload: @unchecked Sendable, Equatable {
 @usableFromInline
 package final class DragAndDropSession: @unchecked Sendable {
     /// One frame's registration of a drop destination.
-    struct Target {
+    package struct Target {
         /// The mouse-region id whose on-screen rectangle is the drop zone.
-        let handlerID: HitTestRegion.HandlerID
+        package let handlerID: HitTestRegion.HandlerID
 
         /// Whether this destination accepts the given payload (a type check).
-        let accepts: (Any) -> Bool
+        package let accepts: (Any) -> Bool
 
         /// Performs the drop: the payload and the absolute release event.
         /// Returns whether the destination took the payload.
-        let perform: (Any, MouseEvent) -> Bool
+        package let perform: (Any, MouseEvent) -> Bool
 
         /// The `isTargeted` callback: fired with `true` when an accepted drag
         /// moves over the destination, `false` when it leaves (or drops).
-        let setTargeted: (Bool) -> Void
+        package let setTargeted: (Bool) -> Void
 
         /// Where the pointer is INSIDE this destination, in its own local
         /// cells, on every move while it is the targeted one.
@@ -120,7 +120,24 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// `setTargeted` fires once on entry and once on exit, which is all a
         /// highlight needs; a destination that opens a landing slot has to
         /// track the pointer the whole time it is over it.
-        var hovering: ((_ x: Int, _ y: Int) -> Void)?
+        package var hovering: ((_ x: Int, _ y: Int) -> Void)?
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitLists makes these, for the lists, tables and
+        /// tab bars.
+        package init(
+            handlerID: HitTestRegion.HandlerID,
+            accepts: @escaping (Any) -> Bool,
+            perform: @escaping (Any, MouseEvent) -> Bool,
+            setTargeted: @escaping (Bool) -> Void,
+            hovering: ((_ x: Int, _ y: Int) -> Void)? = nil
+        ) {
+            self.handlerID = handlerID
+            self.accepts = accepts
+            self.perform = perform
+            self.setTargeted = setTargeted
+            self.hovering = hovering
+        }
     }
 
     /// One frame's registration of a scrollable that should auto-scroll while
@@ -135,23 +152,23 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// finally places it). The scroll state is held by reference (both are
     /// classes) so the driver can move the viewport and read whether there is
     /// anything left to reveal in a given direction.
-    struct AutoScrollZone {
+    package struct AutoScrollZone {
         /// The viewport region's id — its rect is the auto-scroll frame.
-        let handlerID: HitTestRegion.HandlerID
+        package let handlerID: HitTestRegion.HandlerID
 
         /// The vertical scroll position to drive (a `ScrollViewHandler` or an
         /// `ItemListHandler`).
-        let vertical: any ScrollableOffsetState
+        package let vertical: any ScrollableOffsetState
 
         /// The horizontal scroll position, when the scrollable has one (a
         /// `ScrollView` with horizontal scrolling); `nil` otherwise.
-        let horizontal: (any ScrollableOffsetState)?
+        package let horizontal: (any ScrollableOffsetState)?
 
         /// How long the cursor must dwell at this zone's edge before the first
         /// auto-scroll tick — captured from the scrollable's own environment at
         /// registration (`.dragAutoScrollDelay(_:)`), so a per-subtree override
         /// is honoured even though the driver runs at the root.
-        let delayNanos: UInt64
+        package let delayNanos: UInt64
 
         /// Chrome lines at the top of the zone's rect that are not part of the
         /// scrollable band — a `Table`'s column header, say.
@@ -162,17 +179,17 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// edge swallow the entire margin, and the edge stops responding until
         /// the cursor is over the chrome — which is exactly what a Table's
         /// header did to its upward auto-scroll.
-        var topInset: Int = 0
+        package var topInset: Int = 0
 
         /// Chrome lines at the bottom — a `List`'s divider and footer. Same
         /// reasoning as ``topInset``, and the symmetric bug: a footered List
         /// only auto-scrolls downward once the cursor is over the footer.
-        var bottomInset: Int = 0
+        package var bottomInset: Int = 0
 
         /// How far a SHIFTED navigator moves this view mid-drag, from its own
         /// environment at registration (`.shiftStepMultiplier`) — the keys are
         /// answered at the root, where that environment is out of reach.
-        var shiftStep: Int = 5
+        package var shiftStep: Int = 5
 
         /// Where a tick that moved the viewport is reported: the scrollable's
         /// own pictures, stamped by ``registerAutoScrollZone(_:in:)``.
@@ -182,6 +199,27 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// with no `@State` write, and the row around it is stored: it was
         /// served unscrolled. See ``HandlerDrawing``.
         var drawing: HandlerDrawing?
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitLists makes these, for the lists, tables and
+        /// tab bars.
+        package init(
+            handlerID: HitTestRegion.HandlerID,
+            vertical: any ScrollableOffsetState,
+            horizontal: (any ScrollableOffsetState)?,
+            delayNanos: UInt64,
+            topInset: Int = 0,
+            bottomInset: Int = 0,
+            shiftStep: Int = 5
+        ) {
+            self.handlerID = handlerID
+            self.vertical = vertical
+            self.horizontal = horizontal
+            self.delayNanos = delayNanos
+            self.topInset = topInset
+            self.bottomInset = bottomInset
+            self.shiftStep = shiftStep
+        }
     }
 
     /// The drag in flight, or `nil`.
@@ -334,7 +372,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Weak: while the gesture is away from its page this is an orphan kept
     /// alive only by the press-captured mouse closure, and the session has no
     /// business extending that.
-    weak var reorderHandler: (any RowReorderHosting)?
+    package weak var reorderHandler: (any RowReorderHosting)?
 
     /// This frame's spring-loaded controls, in registration (render) order —
     /// written by `DragAndDropSession+SpringLoading`, like the reorder state
@@ -463,7 +501,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// What a container asks about its own children: a `List` row is not itself
     /// the `.draggable`, it merely contains one, so the row that has left is the
     /// one whose identity the drag's source descends from.
-    func isDragSource(within identity: ViewIdentity) -> Bool {
+    package func isDragSource(within identity: ViewIdentity) -> Bool {
         guard active != nil, let source else { return false }
         return source == identity || identity.isAncestor(of: source)
     }
@@ -479,7 +517,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     ///   - source: The identity of the view the gesture started in, so that
     ///     view — and any container holding it — can render it as gone while
     ///     it is in the user's hand.
-    func begin(
+    package func begin(
         payload: Any, preview: FrameBuffer,
         morph: [FrameBuffer] = [],
         grabX: Int = 0, grabY: Int = 0,
@@ -622,7 +660,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Advances the drag to the last stamped cursor position and updates
     /// which destination (if any) is targeted, firing `isTargeted`
     /// transitions on the way.
-    func dragMoved() {
+    package func dragMoved() {
         guard var drag = active, let event = lastAbsoluteEvent else { return }
         drag.cursorX = event.x
         drag.cursorY = event.y
@@ -662,7 +700,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// in a `defer`: the two outcomes end it differently, and the flight needs
     /// the drag still in hand to know where home is.
     @discardableResult
-    func performDrop() -> Bool {
+    package func performDrop() -> Bool {
         guard let drag = active else { return false }
         // Resolve against the CURRENT frame's registrations at the release
         // position — never through the id stored at the last movement. A
@@ -707,7 +745,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Cell-stepped and derived from the clock rather than counted in frames,
     /// so a slow frame shortens the flight instead of stretching it — the same
     /// contract `Spinner` keeps.
-    struct ReturnFlight {
+    package struct ReturnFlight {
         let preview: FrameBuffer
 
         /// The travel, in the same order ``ActiveDrag/morph`` holds it — row
@@ -735,7 +773,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// start and end are (``renderInvalidation``). Landing happens in the loop's
     /// `driveDragFlights`, before the frame's pass begins, so the frame that
     /// no longer shows the flight is the frame that draws the view again.
-    private(set) var returnFlight: ReturnFlight? {
+    package private(set) var returnFlight: ReturnFlight? {
         didSet { drawnAsGoneMoved(from: oldValue?.source, to: returnFlight?.source) }
     }
 
@@ -872,7 +910,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// an owner ``adoptAutoScrollOwner(from:to:)`` moved to a replacement
     /// handler) and gated on the grab actually having begun — the row
     /// closures claim every press, including ones that missed the rows.
-    func armReorderAutoScrollOnMotion(owner: any ScrollableOffsetState) {
+    package func armReorderAutoScrollOnMotion(owner: any ScrollableOffsetState) {
         guard reorderFocusID != nil, !autoScrollArmed else { return }
         armAutoScroll(owner: owner)
     }
@@ -890,7 +928,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Releases the arming when the gesture ends WITHOUT having been a drag —
     /// a motionless press and release is a click, and `end()` (which disarms)
     /// only runs when the gesture actually reordered something.
-    func disarmAutoScroll() {
+    package func disarmAutoScroll() {
         guard active == nil else { return }  // a real drag is still in flight
         autoScrollArmed = false
         autoScrollOwner = nil

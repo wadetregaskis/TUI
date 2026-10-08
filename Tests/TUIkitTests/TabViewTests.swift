@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 private final class IntBox {
     var value: Int

@@ -112,7 +112,7 @@ extension ScrollbarRenderer {
     /// path, which is a string rendered on every call, and it is needed only
     /// while a bar is held.
     @MainActor
-    static func driveAutoRepeat(
+    package static func driveAutoRepeat(
         state: ScrollableOffsetState, token: @autoclosure () -> String, context: RenderContext
     ) {
         guard !context.isMeasuring, var repeating = state.scrollbarRepeat else { return }
@@ -387,7 +387,7 @@ extension ScrollbarRenderer {
 
     /// Vertical convenience wrapper over ``mouseHandler(for:length:vertical:arrows:proportional:behavior:)``
     /// — the bar position is `event.y`.
-    static func verticalMouseHandler(
+    package static func verticalMouseHandler(
         for state: ScrollableOffsetState, length: Int, arrows: ScrollbarArrows,
         proportional: Bool, behavior: ScrollbarClickBehavior
     ) -> (MouseEvent) -> Bool {
@@ -424,7 +424,7 @@ extension ScrollbarRenderer {
     ///
     /// Only when the underlying handler claimed the event, so the inert cells a
     /// bar may contain (a corner where two bars meet) do not steal focus.
-    static func focusing(
+    package static func focusing(
         _ handler: @escaping (MouseEvent) -> Bool,
         focusID: String, focusManager: FocusManager?
     ) -> (MouseEvent) -> Bool {

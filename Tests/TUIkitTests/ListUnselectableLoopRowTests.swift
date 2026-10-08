@@ -16,6 +16,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("A loop whose ids the selection cannot hold", .rendersEnglishUI)

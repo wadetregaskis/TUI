@@ -25,7 +25,7 @@
 ///   short of the limit by a truncated child. Because of that child-boundary
 ///   truncation the reported size MUST be render-derived (an analytic sum would
 ///   over-report it).
-enum StackOverflow {
+package enum StackOverflow {
     /// Eager: distribute + clip trailing overflow at the cell.
     case clip
     /// Lazy: append whole children while they fit; stop at the first that won't.

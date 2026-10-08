@@ -158,7 +158,7 @@ extension RenderContext {
     /// observer would come back unmeasured — reported shown, since its marker
     /// is in the frame, however far off screen it is.
     @MainActor
-    func measureScrollVisibility(in drawn: FrameBuffer, viewport: CellRect) {
+    package func measureScrollVisibility(in drawn: FrameBuffer, viewport: CellRect) {
         guard !isMeasuring, let geometry = geometryCoordinator,
             geometry.hasUnmeasuredVisibilityObservers
         else { return }

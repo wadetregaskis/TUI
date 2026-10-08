@@ -42,7 +42,7 @@ public enum ScrollAnchor<ID: Hashable>: Equatable {
 /// environment (which cannot hold a generic). `AnyHashable` preserves the base
 /// value, so a `.row` written by the framework maps back to the app's own `ID`
 /// without loss.
-typealias ErasedScrollAnchor = ScrollAnchor<AnyHashable>
+package typealias ErasedScrollAnchor = ScrollAnchor<AnyHashable>
 
 extension ErasedScrollAnchor {
     /// The stable row key this anchor names, in the same spelling `ForEach`
@@ -71,8 +71,8 @@ extension ErasedScrollAnchor {
 ///
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-struct AnchorPositionBinding: Equatable {
-    let binding: Binding<ErasedScrollAnchor?>
+package struct AnchorPositionBinding: Equatable {
+    package let binding: Binding<ErasedScrollAnchor?>
     let snapshot: ErasedScrollAnchor?
 
     init(_ binding: Binding<ErasedScrollAnchor?>) {
@@ -84,7 +84,7 @@ struct AnchorPositionBinding: Equatable {
     var wrappedValue: ErasedScrollAnchor? { binding.wrappedValue }
 
     @usableFromInline
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.snapshot == rhs.snapshot }
+    package static func == (lhs: Self, rhs: Self) -> Bool { lhs.snapshot == rhs.snapshot }
 }
 
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
@@ -101,7 +101,7 @@ extension EnvironmentValues {
     /// The bound anchor override for scrollables in this subtree, or `nil` when
     /// none was supplied. See ``TUIkit/View/anchorPosition(_:)``.
     @inlinable
-    var anchorPosition: AnchorPositionBinding? {
+    package var anchorPosition: AnchorPositionBinding? {
         get { self[AnchorPositionKey.self] }
         set { self[AnchorPositionKey.self] = newValue }
     }

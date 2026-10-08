@@ -197,11 +197,11 @@ func isEmptyMember(_ child: ChildView) -> Bool {
 /// A section's three parts, each a view, and the actions
 /// `.sectionActions(content:)` gave it.
 @MainActor
-struct SectionParts {
+package struct SectionParts {
     let header: any View
     let content: any View
     let footer: any View
-    var actions: (any View)?
+    package var actions: (any View)?
 
     /// The parts with a view applied to each — how a modifier written on a
     /// section reaches its parts, as one written on a `Group` reaches its
@@ -225,13 +225,13 @@ struct SectionParts {
 /// A view that is a `Section`, or a section with modifiers on it that reach
 /// its parts.
 @MainActor
-protocol SectionPartsProviding {
+package protocol SectionPartsProviding {
     /// The section's header, content and footer.
     var sectionParts: SectionParts { get }
 }
 
 extension Section: SectionPartsProviding where Parent: View, Content: View, Footer: View {
-    var sectionParts: SectionParts {
+    package var sectionParts: SectionParts {
         SectionParts(header: header, content: content, footer: footer)
     }
 }
@@ -239,7 +239,7 @@ extension Section: SectionPartsProviding where Parent: View, Content: View, Foot
 /// A modified section is still a section, its modifier on each part — the
 /// `GridRowProviding` rule.
 extension ModifiedView: SectionPartsProviding where Content: SectionPartsProviding {
-    var sectionParts: SectionParts {
+    package var sectionParts: SectionParts {
         content.sectionParts.map { part in
             @MainActor
             func modified<V: View>(_ view: V) -> any View {
@@ -251,7 +251,7 @@ extension ModifiedView: SectionPartsProviding where Content: SectionPartsProvidi
 }
 
 extension SectionPartsProviding where Self: ContentRewrapping, WrappedContent: SectionPartsProviding {
-    var sectionParts: SectionParts {
+    package var sectionParts: SectionParts {
         wrappedContent.sectionParts.map { rewrapping($0) }
     }
 }
@@ -272,7 +272,7 @@ extension ObjectEnvironmentModifier: SectionPartsProviding where Content: Sectio
 /// The parts of `child` if it is a section — through `ForEach`'s row memo,
 /// whose TYPE is asked first so only a section row is built.
 @MainActor
-func sectionParts(of child: ChildView) -> SectionParts? {
+package func sectionParts(of child: ChildView) -> SectionParts? {
     let view = child.wrappedView
     if let provider = view as? SectionPartsProviding { return provider.sectionParts }
     guard child.identityChildKey != nil, let memo = view as? any _ValueMemoWrapping,

@@ -178,7 +178,7 @@ extension EnvironmentValues {
     /// with its frame inputs, in the Lists group, which leaves the substrate
     /// at B6.
     @inlinable
-    var declaredAnchorModes: (standing: ScrollAnchorMode, opening: ScrollAnchorMode?) {
+    package var declaredAnchorModes: (standing: ScrollAnchorMode, opening: ScrollAnchorMode?) {
         (
             ScrollAnchorMode.resolved(defaultScrollAnchor: scrollAnchor(for: .sizeChanges)),
             ScrollAnchorMode.resolved(defaultScrollAnchor: scrollAnchor(for: .initialOffset))

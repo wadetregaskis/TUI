@@ -12,7 +12,7 @@
 ///
 /// Uses standard box-drawing characters (┌─┐│└─┘├─┤) with configurable
 /// ``BorderStyle`` presets (line, rounded, doubleLine, heavy).
-enum BorderRenderer {
+package enum BorderRenderer {
 
     /// The total width consumed by left + right border characters (1 + 1 = 2).
     static let borderWidthOverhead = 2
@@ -21,7 +21,7 @@ enum BorderRenderer {
     static let focusIndicator: Character = "●"
 
     /// The width of the focus indicator prefix (indicator + space).
-    static let focusIndicatorWidth = 2
+    package static let focusIndicatorWidth = 2
 }
 
 // MARK: - Focus Indicator

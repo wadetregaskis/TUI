@@ -70,14 +70,14 @@ public struct _LayoutValueView<Content: View>: View {
 /// consulted from inside a ``Layout``, which is already off the hot path that
 /// every child of every stack walks.
 @MainActor
-protocol LayoutValueProviding {
+package protocol LayoutValueProviding {
     /// The value set for `key`, or `nil` if this view (or anything it wraps)
     /// did not set one.
     func layoutValue(for key: ObjectIdentifier) -> Any?
 }
 
 extension _LayoutValueView: LayoutValueProviding {
-    func layoutValue(for key: ObjectIdentifier) -> Any? {
+    package func layoutValue(for key: ObjectIdentifier) -> Any? {
         if key == self.key { return value }
         // Chained values nest, so a wrapper that cannot answer asks the one it
         // wraps. The OUTERMOST wins for a repeated key, as with every modifier.

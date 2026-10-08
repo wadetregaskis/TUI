@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitStyling
 
 /// Tests for `InputHandler`'s five-layer key-dispatch priority chain.

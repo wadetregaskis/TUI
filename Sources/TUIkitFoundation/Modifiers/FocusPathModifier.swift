@@ -30,7 +30,7 @@ package enum FocusPathStage: Sendable {
 /// only while the focused control renders at that identity or below it. The
 /// focus-blind TUI handler is ``KeyEventModifier``; the two share the
 /// dispatcher and its per-frame lifecycle (see `InputHandler`).
-struct FocusPathModifier<Content: View>: View {
+package struct FocusPathModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -50,7 +50,21 @@ struct FocusPathModifier<Content: View>: View {
     /// took the key.
     let bind: @MainActor (RenderContext) -> (KeyEvent) -> Bool
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for a tab view's menu openers.
+    package init(
+        content: Content,
+        stage: FocusPathStage,
+        declares: ((KeyEvent) -> Bool)? = nil,
+        bind: @escaping @MainActor (RenderContext) -> (KeyEvent) -> Bool
+    ) {
+        self.content = content
+        self.stage = stage
+        self.declares = declares
+        self.bind = bind
+    }
+
+    package var body: Never {
         fatalError("FocusPathModifier renders via Renderable")
     }
 }
@@ -58,7 +72,7 @@ struct FocusPathModifier<Content: View>: View {
 // MARK: - Renderable
 
 extension FocusPathModifier: Renderable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A render-pass side effect, under the same two rules as
         // `KeyEventModifier`'s: never while measuring (a render-to-measure
         // ancestor would register twice), and always declared to a
@@ -122,7 +136,7 @@ enum FocusPathRegistrar {
 extension FocusPathModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged, so it
     /// measures as its content does.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -133,7 +147,7 @@ extension FocusPathModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
 extension FocusPathModifier: SingleContentWrapper {
-    var wrappedContent: Content { content }
+    package var wrappedContent: Content { content }
 }
 
 // MARK: - Removal Transitions

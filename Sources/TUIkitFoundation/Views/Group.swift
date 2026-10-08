@@ -30,7 +30,7 @@
 /// table rows, and it is a view exactly when what it groups is one.
 public struct Group<Content> {
     /// The grouped content.
-    let content: Content
+    package let content: Content
 
     /// Stores `content`, already built. Declared, and `fileprivate`, so that
     /// no memberwise `init(content:)` exists for a trailing closure to bind
@@ -38,6 +38,17 @@ public struct Group<Content> {
     /// with the closure itself as the content.
     fileprivate init(grouping content: Content) {
         self.content = content
+    }
+
+    /// A group of `content`, already built: `Group(grouping:)` for the
+    /// initializers other modules declare in extensions (the table columns',
+    /// table rows' and tabs', TUIkitLists'), which may not assign `content`
+    /// themselves, as an initializer in an extension in another module may not
+    /// assign a struct's stored properties. A static function, not a `package`
+    /// initializer, for the reason the initializer above is `fileprivate`: a
+    /// trailing closure could bind to one.
+    package static func grouping(_ content: Content) -> Self {
+        Self(grouping: content)
     }
 }
 
@@ -102,9 +113,9 @@ extension Group: ChildInfoProvider where Content: View {
 // IS: flattening alone hands it the rows, but not which `ForEach` made them,
 // and that is what keys them by element and carries `.onDelete` / `.onMove`.
 extension Group: ListRowsPassThrough where Content: View {
-    var listRowsContent: any View { content }
+    package var listRowsContent: any View { content }
 
-    static var listRowsContentTypes: [any View.Type] { [Content.self] }
+    package static var listRowsContentTypes: [any View.Type] { [Content.self] }
 }
 
 // MARK: - Removal Through a Group

@@ -232,7 +232,7 @@ public struct RowShortcuts: Hashable, Sendable {
 
 /// The table's rules are ``ShortcutTable``'s, kept there for every table of its kind.
 extension RowShortcuts: ShortcutTable {
-    static var modifierName: String { "rowShortcuts" }
+    package static var modifierName: String { "rowShortcuts" }
 }
 
 extension RowAction: ShortcutTableAction {}

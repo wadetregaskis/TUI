@@ -77,7 +77,7 @@ extension RenderContext {
     /// A new container's walk takes its sections apart, whatever the walk that
     /// drew it kept whole (`RenderContext.keepsSectionsWhole`): a stack in a
     /// pinned stack's row lays out its own sections' parts.
-    func publishingContainerAxis(_ axis: Axis) -> Self {
+    package func publishingContainerAxis(_ axis: Axis) -> Self {
         var copy = self
         copy.environment.containerAxis = axis
         copy.sectionWholeness = .apart

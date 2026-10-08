@@ -156,7 +156,7 @@ extension HorizontalAlignment {
 
     /// Whether this is one of the alignments the framework defines, rather
     /// than one built from an app's own ``AlignmentID``.
-    var isBuiltIn: Bool { self == .leading || self == .center || self == .trailing }
+    package var isBuiltIn: Bool { self == .leading || self == .center || self == .trailing }
 }
 
 // MARK: - Vertical Alignment
@@ -224,7 +224,7 @@ extension VerticalAlignment {
 
     /// Whether this is one of the alignments the framework defines, rather
     /// than one built from an app's own ``AlignmentID``.
-    var isBuiltIn: Bool {
+    package var isBuiltIn: Bool {
         self == .top || self == .center || self == .bottom || self == .firstTextBaseline
             || self == .lastTextBaseline
     }
@@ -289,7 +289,7 @@ extension HorizontalAlignment {
     /// TUIkit's long-standing centring. Clamped so a child is never placed
     /// outside its region, which `.trailing` on an oversized child would
     /// otherwise do.
-    func childOffset(childWidth: Int, in totalWidth: Int) -> Int {
+    package func childOffset(childWidth: Int, in totalWidth: Int) -> Int {
         let region = ViewDimensions(width: totalWidth, height: 0)
         let child = ViewDimensions(width: childWidth, height: 0)
         // `Int(clamping:)`, because both guides come from a caller-written
@@ -312,7 +312,7 @@ extension VerticalAlignment {
     /// a `totalHeight`-tall region so that its guide meets the region's.
     ///
     /// The vertical twin of ``HorizontalAlignment/childOffset(childWidth:in:)``.
-    func childOffset(childHeight: Int, in totalHeight: Int) -> Int {
+    package func childOffset(childHeight: Int, in totalHeight: Int) -> Int {
         let region = ViewDimensions(width: 0, height: totalHeight)
         let child = ViewDimensions(width: 0, height: childHeight)
         // See the horizontal twin for why the conversion clamps.

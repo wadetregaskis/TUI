@@ -19,7 +19,7 @@
     /// it is, and the values TUIkit's own `draggable(_:)` carries that have a
     /// standard representation — a string, a URL — wrapped as SwiftUI wraps
     /// a `Transferable`, so an `onDrop` hears them too.
-    enum ItemProviders {
+    package enum ItemProviders {
         static func of(_ payload: Any?) -> [NSItemProvider] {
             switch payload {
             case let provider as NSItemProvider: return [provider]
@@ -31,7 +31,7 @@
         }
 
         /// The providers of `payload` with an item conforming to one of `types`.
-        static func of(_ payload: Any?, conformingTo types: [UTType]) -> [NSItemProvider] {
+        package static func of(_ payload: Any?, conformingTo types: [UTType]) -> [NSItemProvider] {
             of(payload).filter { provider in
                 types.contains { provider.hasItemConformingToTypeIdentifier($0.identifier) }
             }

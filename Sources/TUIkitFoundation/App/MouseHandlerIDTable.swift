@@ -316,7 +316,7 @@ extension MouseEventDispatcher {
     /// Named apart from ``register(in:_:)`` rather than given a label: both take
     /// a single closure, and a trailing closure would match either.
     @MainActor
-    func registerHoverObserver(
+    package func registerHoverObserver(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
         registerInterned(handler, lane: .hoverObserver, in: context)

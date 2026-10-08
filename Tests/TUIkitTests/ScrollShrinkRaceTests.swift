@@ -24,6 +24,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 private struct RowItem: Identifiable, Sendable {
     let id: Int

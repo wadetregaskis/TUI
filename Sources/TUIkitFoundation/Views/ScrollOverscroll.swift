@@ -73,7 +73,7 @@ public struct ScrollOverscrollState: Sendable, Equatable {
     /// Re-resolves the allowance for the current viewport, and pulls an existing
     /// excursion back inside it (the terminal may have shrunk under a
     /// `.viewport`-relative allowance).
-    mutating func resolve(top: ScrollOverscroll, bottom: ScrollOverscroll, viewportHeight: Int) {
+    package mutating func resolve(top: ScrollOverscroll, bottom: ScrollOverscroll, viewportHeight: Int) {
         self.top = top.resolved(viewportHeight: viewportHeight)
         self.bottom = bottom.resolved(viewportHeight: viewportHeight)
         excursion = max(-self.top, min(self.bottom, excursion))
@@ -94,7 +94,7 @@ extension ScrollOverscrollState {
     /// describe where the content sits — so they must not travel with it, which
     /// is why `List` and `Table` collect their row lines separately, slide them
     /// here, and only then assemble.
-    func slid(_ lines: [String], blank: String) -> [String] {
+    package func slid(_ lines: [String], blank: String) -> [String] {
         guard excursion != 0, !lines.isEmpty else { return lines }
         let gap = min(abs(excursion), lines.count)
         return excursion < 0
@@ -117,7 +117,7 @@ extension ScrollOverscrollState {
     /// regions, its overlays, its claims — starts at the row's first DRAWN line,
     /// and a consumer measuring from the row's top instead lands it that many
     /// lines low (§67).
-    func slidRange(
+    package func slidRange(
         yStart: Int, height: Int, lineCount: Int
     ) -> (yStart: Int, height: Int, cutAbove: Int)? {
         guard excursion != 0 else { return (yStart, height, 0) }

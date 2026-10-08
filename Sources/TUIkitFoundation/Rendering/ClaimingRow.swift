@@ -61,7 +61,7 @@ package struct ClaimingRow: Sendable {
     /// for. The coarse track path permanently shrinks a track to a whole multiple
     /// of its quantum, and a claim must sit on what was DRAWN. Same lesson
     /// `Slider`'s right-arrow run already learned.
-    @usableFromInline var cells = 0
+    @usableFromInline package var cells = 0
 
     /// An empty row. Spelled out only so that it can be `@inlinable`: an
     /// implicit initializer cannot be.
@@ -137,7 +137,7 @@ package struct ClaimingRow: Sendable {
     /// child's rendered line whose claims travel on its own buffer — which owe no
     /// claim here because this renderer chose no colour for them.
     @inlinable
-    mutating func appendFinished(_ chunk: String, cells count: Int) {
+    package mutating func appendFinished(_ chunk: String, cells count: Int) {
         text += chunk
         cells += count
     }
@@ -151,7 +151,7 @@ package struct ClaimingRow: Sendable {
     /// Splicing it here keeps its claims' columns this row's arithmetic, not the
     /// caller's.
     @inlinable
-    mutating func append(contentsOf row: Self) {
+    package mutating func append(contentsOf row: Self) {
         text += row.text
         for claim in row.claims { claims.appendCoalescing(claim.shifted(byX: cells, y: 0)) }
         cells += row.cells
@@ -164,7 +164,7 @@ package struct ClaimingRow: Sendable {
     /// the run beside it — a claim spanning it would state an alpha for a cell whose
     /// ink came from somewhere else entirely.
     @inlinable
-    mutating func skip(cells count: Int) {
+    package mutating func skip(cells count: Int) {
         text += String(repeating: " ", count: max(0, count))
         cells += max(0, count)
     }
@@ -208,18 +208,22 @@ package struct ClaimingRow: Sendable {
 /// line, handed to call sites that each put it at a column of their own, with
 /// nowhere for a claim to travel (§40.2). Claims in the column's own coordinates
 /// are what let each of them place the bar with one shift.
-struct ClaimingColumn {
+package struct ClaimingColumn {
     /// One finished single-cell string per line, top to bottom.
-    private(set) var lines: [String] = []
+    package private(set) var lines: [String] = []
 
     /// The cells owing a blend, in the column's own coordinates: column 0, and row
     /// N for line N. Cells stacked on one another that owe the same alphas are one
     /// rectangle — see `appendCoalescing`.
     private(set) var claims: [OpacityRegion] = []
 
-    var count: Int { lines.count }
+    /// No arguments, spelled out because the implicit initializer is internal
+    /// and TUIkitLists makes these, for a table.
+    package init() {}
 
-    var isEmpty: Bool { lines.isEmpty }
+    package var count: Int { lines.count }
+
+    package var isEmpty: Bool { lines.isEmpty }
 
     /// Appends one line: a single cell of `glyph`, painted in `ink` on `field`.
     mutating func append(_ glyph: String, ink: Color?, field: Color?) {
@@ -237,7 +241,7 @@ struct ClaimingColumn {
     /// counts are not always equal: a list pads a bar shorter than its rows with
     /// plain track, and a menu draws fewer rows than its bar is tall when it has
     /// fewer to show. Stated here so a claim cannot outlive the line it was for.
-    mutating func fit(toCount count: Int, field: Color?) {
+    package mutating func fit(toCount count: Int, field: Color?) {
         let count = max(0, count)
         if lines.count > count {
             lines.removeLast(lines.count - count)
@@ -247,7 +251,7 @@ struct ClaimingColumn {
     }
 
     /// The claims where the column is drawn: in `column`, its line 0 on `row`.
-    func claims(atColumn column: Int, row: Int = 0) -> [OpacityRegion] {
+    package func claims(atColumn column: Int, row: Int = 0) -> [OpacityRegion] {
         claims.map { $0.shifted(byX: column, y: row) }
     }
 }

@@ -276,6 +276,13 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     let layout: L
     let content: Content
 
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for the lazy grids.
+    package init(layout: L, content: Content) {
+        self.layout = layout
+        self.content = content
+    }
+
     public var body: Never {
         fatalError("_LayoutCore renders via Renderable")
     }
@@ -459,7 +466,7 @@ extension _LayoutCore: AlignmentGuideQuerying {
     /// content) { $0 }`, whose proxy's type cannot know (`Subview`'s witness is
     /// `true` for every member): the default merges only the subviews' own
     /// guides, so the answer is `nil` without the pass.
-    func explicitGuide(
+    package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         let defines =

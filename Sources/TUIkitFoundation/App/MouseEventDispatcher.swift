@@ -300,12 +300,12 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// whether a row's own text is selectable (`Text(name).textSelection(.enabled)`
     /// in a row) — the rows' environment never reaches the list. One flag,
     /// so a list in an app with no enabled scope pays one read.
-    var hasEnabledSelectionScope: Bool { enabledSelectionScopeCount > 0 }
+    package var hasEnabledSelectionScope: Bool { enabledSelectionScopeCount > 0 }
 
     /// How many enabled ``View/textSelection(_:)`` scopes have been filed this
     /// walk — read before and after a `Table` draws its cells, to learn whether
     /// they filed any.
-    private(set) var enabledSelectionScopeCount = 0
+    package private(set) var enabledSelectionScopeCount = 0
 
     /// Files a scope's answer for the region whose handler `id` names: the
     /// registration's, and its replay's from a memo's journal.
@@ -695,7 +695,7 @@ extension MouseEventDispatcher {
     /// then, or once its opener says it is closed, there is nothing of it on
     /// screen to hit-test against: the dispatcher spends those drags and that
     /// release itself.
-    func handOffGesture() {
+    package func handOffGesture() {
         gestureHandedOff = true
     }
 
@@ -709,7 +709,7 @@ extension MouseEventDispatcher {
     /// the closures' optional was four words and a typed step in every
     /// button's hash. The pop-up states that hand one out build it once
     /// (``MenuPopupState/openedPopup``).
-    final class OpenedPopup {
+    package final class OpenedPopup {
         /// Whether the pop-up is still open — which the dispatcher takes to
         /// mean drawn, once a render pass has begun since it opened, so an
         /// opener must never say open while it draws nothing (a `Picker` with
@@ -749,7 +749,7 @@ extension MouseEventDispatcher {
     ///   and its release came in one input batch — the dispatcher spends the
     ///   release and closes it, without choosing anything: the user let go
     ///   before the menu was there to see.
-    func pressOpenedPopup(_ popup: OpenedPopup) {
+    package func pressOpenedPopup(_ popup: OpenedPopup) {
         pressPopup = popup
         renderedSincePopupOpened = false
     }
@@ -1362,7 +1362,7 @@ extension MouseEventDispatcher {
     /// automatic reset would put ``View/onTapGesture(count:perform:)``
     /// with a count of three out of reach, its third click always arriving as
     /// the first of a new sequence.
-    func endMultiClickSequence() {
+    package func endMultiClickSequence() {
         lastClick = nil
     }
 

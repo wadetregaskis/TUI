@@ -9,7 +9,7 @@ import TUIkitView
 
 /// A view the enclosing ``Grid`` should treat as a row rather than a cell.
 @MainActor
-protocol GridRowProviding {
+package protocol GridRowProviding {
     /// This row's vertical alignment override, if it set one.
     var rowAlignment: VerticalAlignment? { get }
 
@@ -37,9 +37,9 @@ protocol GridRowProviding {
 /// same shape: resolve through the wrapper, then put the wrapper back around
 /// each thing that came out.
 extension ModifiedView: GridRowProviding where Content: GridRowProviding {
-    var rowAlignment: VerticalAlignment? { content.rowAlignment }
+    package var rowAlignment: VerticalAlignment? { content.rowAlignment }
 
-    func gridCells(context: RenderContext) -> [ChildView] {
+    package func gridCells(context: RenderContext) -> [ChildView] {
         content.gridCells(context: context).map { $0.modified(by: modifier) }
     }
 }
@@ -54,9 +54,9 @@ extension ModifiedView: GridRowProviding where Content: GridRowProviding {
 /// ``SingleContentWrapper`` states: a wrapper has no modifier VALUE to carry
 /// to each cell, so it re-wraps them with its own initialiser instead.
 extension GridRowProviding where Self: ContentRewrapping, WrappedContent: GridRowProviding {
-    var rowAlignment: VerticalAlignment? { wrappedContent.rowAlignment }
+    package var rowAlignment: VerticalAlignment? { wrappedContent.rowAlignment }
 
-    func gridCells(context: RenderContext) -> [ChildView] {
+    package func gridCells(context: RenderContext) -> [ChildView] {
         wrappedContent.gridCells(context: context).map { $0.rewrapped(by: self) }
     }
 }

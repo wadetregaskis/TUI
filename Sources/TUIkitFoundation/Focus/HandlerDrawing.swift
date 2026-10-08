@@ -61,20 +61,20 @@ import TUIkitView
 /// `Sendable` stated, as it was inferred while the type was not usable from
 /// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-struct HandlerDrawing: Sendable {
+package struct HandlerDrawing: Sendable {
     private let link: RenderCache.Link?
     private let identity: ViewIdentity
 
     /// The pictures of the control `context` is rendering.
     @usableFromInline
-    init(_ context: RenderContext) {
+    package init(_ context: RenderContext) {
         link = context.renderCache?.link
         identity = context.identity
     }
 
     /// Drops the control's own cached buffers and those containing it.
     @usableFromInline
-    func changed() {
+    package func changed() {
         link?.cache?.clearAffected(by: identity, keepingSizes: true, includingDescendants: false)
     }
 
@@ -86,7 +86,7 @@ struct HandlerDrawing: Sendable {
     /// row boundary a few times in the dozens of reports it makes, and each
     /// report is a walk of the whole cache.
     @inlinable
-    func reportingChanges<State: Equatable, Result>(
+    package func reportingChanges<State: Equatable, Result>(
         to state: () -> State, around body: () -> Result
     ) -> Result {
         let before = state()
@@ -107,7 +107,7 @@ struct HandlerDrawing: Sendable {
 /// compared through this, so an event that moved none of it — the pointer
 /// resting on the same cell, a click on a row — reports nothing. See
 /// ``HandlerDrawing``.
-struct DrawnScrollPosition: Equatable {
+package struct DrawnScrollPosition: Equatable {
     let offset: Int
     let subRowLines: Int
     let excursion: Int
@@ -116,7 +116,7 @@ struct DrawnScrollPosition: Equatable {
     /// `state`'s position, with `subRowLines` for a scrollable that can stop
     /// partway through a row — a `List` or `Table` with rows taller than a
     /// line.
-    init(_ state: some ScrollableOffsetState, subRowLines: Int = 0) {
+    package init(_ state: some ScrollableOffsetState, subRowLines: Int = 0) {
         offset = state.scrollOffset
         self.subRowLines = subRowLines
         excursion = state.overscrollState.excursion

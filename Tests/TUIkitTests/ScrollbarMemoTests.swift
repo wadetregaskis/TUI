@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitView
 
 /// A palette edited in place: the id stays while a colour changes, as the

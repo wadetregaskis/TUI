@@ -11,20 +11,28 @@ import TUIkitView
 
 /// One separator line as a row draws it: the rule's ink and where it starts
 /// and stops across the row's content (decisions A47).
-struct ListRowSeparatorLine: Equatable {
+package struct ListRowSeparatorLine: Equatable {
     /// The ink, or `nil` for the list's own — the border's, as a `Divider`'s.
-    var tint: Color?
+    package var tint: Color?
     /// Cells of the row's content before the rule starts: the row's own
     /// ``HorizontalAlignment/listRowSeparatorLeading``, else 0 — the
     /// content's leading edge, as a macOS list insets its hairline to it.
-    var leading = 0
+    package var leading = 0
     /// Where the rule stops, in cells from the content's leading edge: the
     /// row's own ``HorizontalAlignment/listRowSeparatorTrailing``, else `nil`
     /// — the row's trailing edge.
-    var trailing: Int?
+    package var trailing: Int?
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for its lists.
+    package init(tint: Color? = nil, leading: Int = 0, trailing: Int? = nil) {
+        self.tint = tint
+        self.leading = leading
+        self.trailing = trailing
+    }
 
     /// The rule drawn `width` cells wide (the row's content width).
-    func drawn(width: Int, palette: any Palette) -> String {
+    package func drawn(width: Int, palette: any Palette) -> String {
         let start = max(0, min(leading, width))
         let end = max(start, min(trailing ?? width, width))
         let ink = (tint ?? palette.border).resolve(with: palette).opaqueSpelling
@@ -101,7 +109,7 @@ func listRowSeparatorGuides<V: View>(of view: V, size: (width: Int, height: Int)
 /// container's `context`, against list row `row` — nothing where it sets none,
 /// which a child whose type cannot hold a guide answers with one stored flag.
 @MainActor
-func reportSeparatorGuides(of child: ChildView, size: (width: Int, height: Int), row: Int, context: RenderContext) {
+package func reportSeparatorGuides(of child: ChildView, size: (width: Int, height: Int), row: Int, context: RenderContext) {
     guard child.providesAlignmentGuide, !context.isMeasuring,
         let reports = context.environment.listRowEditRestrictions
     else { return }

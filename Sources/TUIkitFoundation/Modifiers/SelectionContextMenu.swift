@@ -24,7 +24,7 @@ import TUIkitView
 /// a menu opens or a row is activated, never while drawing, so an identity
 /// that does not change says everything a memo needs to know.
 @MainActor
-final class SelectionContextMenu {
+package final class SelectionContextMenu {
     /// The item type the modifier named, which must be the container's
     /// selection value type for the menu to be the container's.
     private(set) var itemType: Any.Type = Never.self
@@ -34,10 +34,14 @@ final class SelectionContextMenu {
     private var makeMenu: (([AnyHashable]) -> AnyView?)?
 
     /// The primary action, for rows whose ids are these.
-    private(set) var primaryAction: (([AnyHashable]) -> Void)?
+    package private(set) var primaryAction: (([AnyHashable]) -> Void)?
+
+    /// No arguments, spelled out because the implicit initializer is internal
+    /// and TUIkitLists makes these, for its lists.
+    package init() {}
 
     /// Takes the closures a body just built.
-    func refresh<Item: Hashable, Menu: View>(
+    package func refresh<Item: Hashable, Menu: View>(
         menu: @escaping (Set<Item>) -> Menu, primaryAction: ((Set<Item>) -> Void)?
     ) {
         itemType = Item.self
@@ -57,10 +61,10 @@ final class SelectionContextMenu {
     /// Whether a container whose rows are identified by `ID` is the one this
     /// menu is for. SwiftUI asks that the type named match the container's
     /// selection type; one that does not never activates.
-    func isFor<ID>(_ type: ID.Type) -> Bool { itemType == ID.self }
+    package func isFor<ID>(_ type: ID.Type) -> Bool { itemType == ID.self }
 
     /// The menu for the rows `ids` — empty for a press on no row.
-    func menu(for ids: [AnyHashable]) -> AnyView? { makeMenu?(ids) }
+    package func menu(for ids: [AnyHashable]) -> AnyView? { makeMenu?(ids) }
 }
 
 /// What the environment carries: the menu by identity, and whether it has a
@@ -72,12 +76,19 @@ final class SelectionContextMenu {
 /// `Sendable` stated, as it was inferred while the type was not usable from
 /// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-struct SelectionContextMenuReference: Equatable, Sendable {
-    let menu: SelectionContextMenu
-    let hasPrimaryAction: Bool
+package struct SelectionContextMenuReference: Equatable, Sendable {
+    package let menu: SelectionContextMenu
+    package let hasPrimaryAction: Bool
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for its lists.
+    package init(menu: SelectionContextMenu, hasPrimaryAction: Bool) {
+        self.menu = menu
+        self.hasPrimaryAction = hasPrimaryAction
+    }
 
     @usableFromInline
-    static func == (lhs: Self, rhs: Self) -> Bool {
+    package static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.menu === rhs.menu && lhs.hasPrimaryAction == rhs.hasPrimaryAction
     }
 }
@@ -101,7 +112,7 @@ extension EnvironmentValues {
     /// own. The container clears it for its rows, so a list inside a row does
     /// not take its parent's.
     @inlinable
-    var selectionContextMenu: SelectionContextMenuReference? {
+    package var selectionContextMenu: SelectionContextMenuReference? {
         get { self[SelectionContextMenuKey.self] }
         set { self[SelectionContextMenuKey.self] = newValue }
     }
@@ -113,7 +124,7 @@ extension EnvironmentValues {
     /// or table, a right-click on a row whose view has its own `.contextMenu`,
     /// or on a `TableRow` with one, shows the selection menu.
     @inlinable
-    var rowsYieldSecondaryClick: Bool {
+    package var rowsYieldSecondaryClick: Bool {
         get { self[RowsYieldSecondaryClickKey.self] }
         set { self[RowsYieldSecondaryClickKey.self] = newValue }
     }

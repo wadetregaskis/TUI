@@ -18,22 +18,22 @@ import Foundation
 /// selection value: this is the state ``DragAndDropSession`` hands from the
 /// control that started a gesture to the one that finishes it, and nothing in
 /// it — offsets and lines — needs that parameter.
-struct RowReorder: Equatable {
+package struct RowReorder: Equatable {
     /// The data offset of the row picked up on press.
-    var grabbedOffset: Int
+    package var grabbedOffset: Int
     /// Where that row sits *now*. Only ``RowReorderFeedback/live`` moves it
     /// mid-drag; the other modes leave the data alone until the drop, so
     /// this stays equal to ``grabbedOffset`` throughout.
-    var currentOffset: Int
+    package var currentOffset: Int
     /// Whether the cursor has actually moved since the press — a plain
     /// press/release with no motion is a click (selection), not a reorder.
-    var active: Bool
+    package var active: Bool
 
     /// Where the row would land if released now, or `nil` when the cursor is
     /// off the rows entirely. `.dimmed` and `.cursor` show this slot — as a
     /// copy of the row and as a gap respectively — and `nil` is what makes a
     /// drag off the list read as "release here and nothing moves".
-    var targetOffset: Int?
+    package var targetOffset: Int?
 
     /// Every row in hand, by data offset — the whole selection when the
     /// grabbed row was part of one, otherwise just that row.
@@ -43,7 +43,7 @@ struct RowReorder: Equatable {
     /// earlier would be a data change the user has not asked for yet, and
     /// could not be undone by a cancel (one `onMove` cannot scatter a block
     /// back to disjoint places).
-    var held: IndexSet
+    package var held: IndexSet
 
     /// Where `grabbedOffset` sits within ``held``, so the row the pointer
     /// took hold of stays the one it is holding after the drop.
@@ -51,9 +51,9 @@ struct RowReorder: Equatable {
     /// Stored, not derived: a `.live` block move rewrites `held` at every
     /// step, and re-deriving the rank against a `grabbedOffset` that now
     /// names a different row would drift.
-    let primaryRank: Int
+    package let primaryRank: Int
 
-    init(grabbedOffset: Int, held: IndexSet, active: Bool) {
+    package init(grabbedOffset: Int, held: IndexSet, active: Bool) {
         let held = held.isEmpty ? IndexSet(integer: grabbedOffset) : held
         self.grabbedOffset = grabbedOffset
         self.currentOffset = grabbedOffset
@@ -72,7 +72,7 @@ struct RowReorder: Equatable {
 /// screen at the moment of the event, and `ItemListHandler` is generic over its
 /// selection value. Everything asked here is about rows — offsets and lines —
 /// so none of it needs that parameter.
-protocol RowReorderHosting: AnyObject {
+package protocol RowReorderHosting: AnyObject {
     /// The gesture in flight, or `nil`. Settable because a reorder outlives the
     /// control that started it: see ``DragAndDropSession/registerReorderHost(_:)``.
     var reorder: RowReorder? { get set }
@@ -150,7 +150,7 @@ extension RowReorderHosting {
     ///   - topInset: Lines of chrome between the region's top and the first row
     ///     line — a border, a title, a `Table`'s column header and scroll
     ///     indicator.
-    func rowSpaceContentY(
+    package func rowSpaceContentY(
         x: Int, y: Int, contentColumns: Range<Int>, topInset: Int
     ) -> Int? {
         guard contentColumns.contains(x) else { return nil }

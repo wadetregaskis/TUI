@@ -130,14 +130,14 @@ extension ScrollIndicatorVisibility {
 /// `Sendable` stated, as it was inferred while the type was not usable from
 /// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-struct ResolvedScrollIndicators: Sendable {
+package struct ResolvedScrollIndicators: Sendable {
     /// A scrollbar is reserved down the trailing edge.
-    @usableFromInline let bar: Bool
+    @usableFromInline package let bar: Bool
     /// "N more above / below" lines are reserved — at the overflowing edges, or
     /// at BOTH edges at every offset under
     /// ``ScrollIndicatorVisibility/visible`` (`d1c54212`). Which of the two this
     /// is, the flag does not say: each of the three views works it out per frame.
-    @usableFromInline let text: Bool
+    @usableFromInline package let text: Bool
 
     /// Nothing is drawn: the content scrolls silently.
     @usableFromInline static let none = Self(bar: false, text: false)
@@ -180,7 +180,7 @@ struct ResolvedScrollIndicators: Sendable {
     /// is left afterwards, a `.visible` view's own two lines push it under the
     /// floor they were reserved for. `ScrollView` did exactly that: a four-line
     /// view kept the reservation, dropped the indicators and drew two lines.
-    func fitting(contentHeight: Int) -> Self {
+    package func fitting(contentHeight: Int) -> Self {
         guard text, contentHeight < Self.minimumTextHeight else { return self }
         return Self(bar: bar, text: false)
     }
@@ -197,7 +197,7 @@ extension EnvironmentValues {
     ///   takes one: only ``ScrollIndicatorVisibility/automatic`` has to know,
     ///   and finding out can mean measuring the whole content.
     @inlinable
-    func verticalScrollIndicators(
+    package func verticalScrollIndicators(
         overflowing: @autoclosure () -> Bool
     ) -> ResolvedScrollIndicators {
         guard verticalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
@@ -225,7 +225,7 @@ extension EnvironmentValues {
     /// `@inlinable` (module split step A3): `List` and `Table` read it, in the
     /// Lists group, which leaves the substrate at B6.
     @inlinable
-    var alwaysShowsVerticalTextIndicators: Bool {
+    package var alwaysShowsVerticalTextIndicators: Bool {
         verticalScrollIndicatorVisibility == .visible && scrollIndicatorStyle == .text
     }
 
@@ -430,10 +430,10 @@ struct ScrollbarCell: Equatable {
 
 /// The three colours a scrollbar draws with: the thumb (handle), the track
 /// (groove behind it), and the end arrows.
-struct ScrollbarColors {
-    let thumb: Color
-    let track: Color
-    let arrow: Color
+package struct ScrollbarColors {
+    package let thumb: Color
+    package let track: Color
+    package let arrow: Color
 
     /// The bar-relative cell the pointer is over, and the tone to draw it in —
     /// `nil` when the pointer is elsewhere.
@@ -442,6 +442,16 @@ struct ScrollbarColors {
     /// an up-arrow and a down-arrow, and lighting "the up arrow" would light
     /// the one at the far end too. Only one cell is ever under the pointer.
     var hover: (cell: Int, color: Color)?
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for the lists' and tables'
+    /// scrollbars.
+    package init(thumb: Color, track: Color, arrow: Color, hover: (cell: Int, color: Color)? = nil) {
+        self.thumb = thumb
+        self.track = track
+        self.arrow = arrow
+        self.hover = hover
+    }
 
     /// The arrow colour, in the hover tone when the pointer is on cell `index`.
     ///
@@ -673,7 +683,7 @@ struct ScrollbarColors {
     /// has no room left to breathe — which is why a focused scrollbar did not
     /// move on those profiles.
     @MainActor
-    static func track(in palette: any Palette) -> Color {
+    package static func track(in palette: any Palette) -> Color {
         ChromeTrack.track(from: palette.foregroundQuaternary, in: palette)
     }
 
@@ -749,7 +759,7 @@ struct ScrollbarPulse {
 /// partial block glyphs; a minimum thumb of one whole cell guarantees the two
 /// ends always fall in different cells, so each partial cell is cleanly anchored
 /// to one edge.
-enum ScrollbarRenderer {
+package enum ScrollbarRenderer {
     /// The `count` track cells for the given scroll metrics.
     ///
     /// - Parameters:
@@ -880,7 +890,7 @@ enum ScrollbarRenderer {
     /// line, with the claims its colours owe in the bar's own coordinates — the
     /// caller knows which column the bar lands in and shifts them there. Arrows are
     /// dropped if the bar is too short to also show a track.
-    static func verticalScrollbar(
+    package static func verticalScrollbar(
         height: Int, extent: Int, viewport: Int, offset: Int,
         arrows: ScrollbarArrows, proportional: Bool, colors: ScrollbarColors
     ) -> ClaimingColumn {

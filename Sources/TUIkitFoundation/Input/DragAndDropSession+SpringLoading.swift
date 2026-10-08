@@ -16,16 +16,24 @@ extension DragAndDropSession {
     ///
     /// The sibling of ``DragAndDropSession/Target``: a rectangle the session
     /// finds by its handler id at the pointer, and what to do there.
-    struct SpringLoadTarget {
+    package struct SpringLoadTarget {
         /// The mouse-region id whose on-screen rectangle the pause is over.
-        let handlerID: HitTestRegion.HandlerID
+        package let handlerID: HitTestRegion.HandlerID
 
         /// The control's identity, so the view the drag is carrying is never
         /// activated by a pause over its own (blank) place.
-        let identity: ViewIdentity
+        package let identity: ViewIdentity
 
         /// What a pause does: what a click on the control would do.
-        let activate: () -> Void
+        package let activate: () -> Void
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitLists makes these, for a tab bar's tabs.
+        package init(handlerID: HitTestRegion.HandlerID, identity: ViewIdentity, activate: @escaping () -> Void) {
+            self.handlerID = handlerID
+            self.identity = identity
+            self.activate = activate
+        }
     }
 
     /// The spring-loaded control the drag is over, and how long it has rested
@@ -70,7 +78,7 @@ extension DragAndDropSession {
     /// as a drop target's is: a served button that no longer registered would
     /// sit under a paused drag and do nothing.
     @MainActor
-    func registerSpringLoadTarget(_ target: SpringLoadTarget, in context: RenderContext) {
+    package func registerSpringLoadTarget(_ target: SpringLoadTarget, in context: RenderContext) {
         registerSpringLoadTarget(target)
         guard let journal = DragAndDropRegistrar.declareReplayable(in: context) else { return }
         journal.append(

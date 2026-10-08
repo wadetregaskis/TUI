@@ -12,7 +12,7 @@ import TUIkitCore
 import TUIkitStyling
 
 /// Turns a laid-out block of plain text into styled lines under a ``Paint``.
-enum PaintRenderer {
+package enum PaintRenderer {
 
     /// `lines` styled with `paint`, resolved over the block they form.
     ///
@@ -343,7 +343,7 @@ enum PaintRenderer {
     /// turns a loud gap into a silently discarded alpha (§18.3). Every arm claims
     /// now, so the flag had one value, and a flag with one value is a place for the
     /// next caller to guess wrong.
-    static func band(
+    package static func band(
         _ text: String, column: inout Int, row: Int, style: TextStyle,
         sampler: RampSampler, sequences: inout [String?], into painted: inout String
     ) {
@@ -485,7 +485,7 @@ struct StyledPiece {
 /// `(column, row)` to the geometry's own coordinates, then a ``Mapping`` from
 /// those to `t`. That is why a radial gradient costs a square root and an
 /// angular one an `atan2`, and a linear one still costs neither.
-struct RampSampler {
+package struct RampSampler {
     /// The colours an entry names. For a gradient, the quantised ramp —
     /// sampled once at the resolution it actually spans, so `quantisedRamp`'s
     /// monotonicity repair applies to the SEQUENCE. A per-cell nearest match
@@ -507,7 +507,7 @@ struct RampSampler {
     /// linear ramp, and that collapses the whole per-cell walk to one run —
     /// which matters, because "a ramp down a list" is the common ask. Every
     /// other geometry has a centre, so every other geometry varies.
-    let variesAcrossRow: Bool
+    package let variesAcrossRow: Bool
 
     /// Whether the colour changes down a column — the mirror of
     /// ``variesAcrossRow``, and false for a HORIZONTAL linear ramp.
@@ -563,7 +563,7 @@ struct RampSampler {
     ///   - cellAspect: How many columns tall one row is — ``EnvironmentValues/imageCellAspect``.
     ///     Only the geometries with a centre use it, and they use it so that a
     ///     circle looks like one.
-    init?(paint: Paint, extent: GradientFrame, depth: ColorDepth, cellAspect: Double) {
+    package init?(paint: Paint, extent: GradientFrame, depth: ColorDepth, cellAspect: Double) {
         switch paint {
         case .color:
             return nil
@@ -784,7 +784,7 @@ struct RampSampler {
     }
 
     /// The colour of a whole row, for a ramp that does not vary along one.
-    func colour(row: Int) -> Color {
+    package func colour(row: Int) -> Color {
         // The entry first: a mesh's `ramp` grows as entries are named.
         let index = entry(column: 0, rowTerm: rowTerm(row))
         return ramp[index]
@@ -918,7 +918,7 @@ struct RampSampler {
     ///     rather than claimed as a second one over the same cells: overlapping
     ///     claims multiply at the resolver, so two regions would give the same
     ///     answer at twice the count, and this path is the hot one.
-    func alphaClaims(
+    package func alphaClaims(
         row: Int, line: Int, columns: Range<Int>, fieldAlpha: UInt8 = .max
     ) -> [OpacityRegion] {
         alphaRuns(row: row, columns: columns).compactMap { run in

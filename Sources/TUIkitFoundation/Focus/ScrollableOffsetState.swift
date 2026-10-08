@@ -361,7 +361,7 @@ public struct WheelEdgeHold {
 
     /// The grace duration in nanoseconds; 0 chains immediately (the original
     /// behaviour). Synced from the environment by the owning view each frame.
-    var delayNanos: UInt64 = ScrollChainingDelayKey.defaultValue.clampedNanoseconds
+    package var delayNanos: UInt64 = ScrollChainingDelayKey.defaultValue.clampedNanoseconds
 
     /// Monotonic clock, injectable for tests.
     var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
@@ -714,7 +714,7 @@ extension ScrollableOffsetState {
     /// the write would cancel the push that made it.
     /// Those position the content precisely; leaving a leftover excursion under
     /// them would offset the very row they just aimed at.
-    func clearOverscroll() {
+    package func clearOverscroll() {
         overscrollState.excursion = 0
     }
 
@@ -936,7 +936,7 @@ extension View {
 
 extension Duration {
     /// This duration as whole nanoseconds, clamped at zero.
-    var clampedNanoseconds: UInt64 {
+    package var clampedNanoseconds: UInt64 {
         guard self > .zero else { return 0 }
         let seconds = UInt64(components.seconds) &* 1_000_000_000
         return seconds &+ UInt64(components.attoseconds / 1_000_000_000)

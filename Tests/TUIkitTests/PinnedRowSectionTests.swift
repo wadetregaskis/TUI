@@ -19,6 +19,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitView
 
 /// One section of a two-cell header and four one-cell views.

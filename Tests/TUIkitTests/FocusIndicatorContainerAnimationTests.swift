@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 @MainActor
 @Suite("Focus indicator animation: containers")

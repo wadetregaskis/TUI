@@ -120,7 +120,7 @@
 /// more. A reference type so that everything holding an answer still to be
 /// asked shares the one placement and the one set of answers.
 @MainActor
-final class FlattenedRowIDs<ID: Hashable> {
+package final class FlattenedRowIDs<ID: Hashable> {
     /// The view `children` were flattened from, walked for the placement.
     private let content: any View
 
@@ -173,7 +173,7 @@ final class FlattenedRowIDs<ID: Hashable> {
     /// The answers for `children`, which `resolveChildViews` made of `content`
     /// — keeping each `Section` whole when `sectionsWhole`, as a `List`'s walk
     /// does. Nothing is walked here; see the type's note.
-    init(content: some View, children: [ChildView], sectionsWhole: Bool = false) {
+    package init(content: some View, children: [ChildView], sectionsWhole: Bool = false) {
         self.content = content
         self.children = children
         self.sectionsWhole = sectionsWhole
@@ -193,7 +193,7 @@ final class FlattenedRowIDs<ID: Hashable> {
 
     /// ``id(ofChildAt:ordinal:)``, to be asked later — by whatever holds the
     /// row until something wants its selection value.
-    func askedID(ofChildAt index: Int, ordinal: Int) -> AskedRowID<ID> {
+    package func askedID(ofChildAt index: Int, ordinal: Int) -> AskedRowID<ID> {
         AskedRowID(rowIDs: self, child: index, ordinal: ordinal)
     }
 
@@ -451,7 +451,7 @@ final class FlattenedRowIDs<ID: Hashable> {
 /// until something wants its id, so a frame that never asks (a hug measure,
 /// or the rows no one draws) never builds a tagged row to answer.
 @MainActor
-struct AskedRowID<ID: Hashable> {
+package struct AskedRowID<ID: Hashable> {
     /// The answers of the container the row came from.
     let rowIDs: FlattenedRowIDs<ID>
     /// The row's index among that container's flattened children.
@@ -461,9 +461,9 @@ struct AskedRowID<ID: Hashable> {
 
     /// The selection value, asked now — and kept by ``rowIDs``, so a second
     /// ask costs nothing more.
-    var id: ID? { rowIDs.id(ofChildAt: child, ordinal: ordinal) }
+    package var id: ID? { rowIDs.id(ofChildAt: child, ordinal: ordinal) }
 }
 
 /// What an `OutlineGroup`'s flattened row is, whatever it outlines.
 @MainActor
-protocol OutlineRowMarking {}
+package protocol OutlineRowMarking {}

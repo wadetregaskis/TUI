@@ -156,9 +156,9 @@ extension GridRow: ChildInfoProvider {
 }
 
 extension GridRow: GridRowProviding {
-    var rowAlignment: VerticalAlignment? { alignment }
+    package var rowAlignment: VerticalAlignment? { alignment }
 
-    func gridCells(context: RenderContext) -> [ChildView] {
+    package func gridCells(context: RenderContext) -> [ChildView] {
         resolveChildViews(from: content, context: context)
     }
 }

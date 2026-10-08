@@ -55,7 +55,7 @@ package enum RowBackground {
 
         /// `line`, a row's finished line, painted this way. A fill is left in force at
         /// the end, as ``String/withPersistentBackground(_:)`` leaves it.
-        func painting(_ line: String) -> String {
+        package func painting(_ line: String) -> String {
             switch self {
             case .fill(let colour): line.withPersistentBackground(colour)
             case .reversed(let ink, let field, let bold):
@@ -65,7 +65,7 @@ package enum RowBackground {
 
         /// A row's lines this way, from a renderer that draws them over a colour:
         /// over the fill, or over none and then reversed.
-        func lines(_ render: (Color?) -> [String]) -> [String] {
+        package func lines(_ render: (Color?) -> [String]) -> [String] {
             switch self {
             case .fill(let colour): render(colour)
             case .reversed: render(nil).map(painting)
@@ -102,7 +102,7 @@ package enum RowBackground {
     /// `Palette.highlightedRowFill(appearsActive:)`'s, shared with a menu's and a
     /// drop-down's highlighted row.
     @MainActor
-    static func focusedSelection(in context: RenderContext, palette: any Palette) -> Self {
+    package static func focusedSelection(in context: RenderContext, palette: any Palette) -> Self {
         breathing(
             palette.highlightedRowFill(appearsActive: context.environment.appearsActive, reversing: true),
             in: context)
@@ -131,7 +131,7 @@ package enum RowBackground {
     /// Here rather than at the two call sites for the reason ``focusedSelection(in:palette:)``
     /// is: the twins ask one question in one place.
     @MainActor
-    static func focused(in context: RenderContext, palette: any Palette) -> Self {
+    package static func focused(in context: RenderContext, palette: any Palette) -> Self {
         breathing(
             palette.focusWashEmphasis(appearsActive: context.environment.appearsActive),
             in: context)
@@ -176,7 +176,7 @@ package enum RowBackground {
     /// it would read as a second cursor, so where its tint has no RGB it is left
     /// unfilled, its ● alone saying it is selected. `_ListCore` and `Table` both ask
     /// this for a selected row the cursor is not on.
-    static func tint(_ highlight: HighlightFill) -> Self {
+    package static func tint(_ highlight: HighlightFill) -> Self {
         guard case .fill(let color) = highlight else { return .none }
         return .fixed(color)
     }
@@ -200,7 +200,7 @@ package enum RowBackground {
     /// fills with no colour of its own — no background at all, and a reversal, which
     /// paints with the pair already in force.
     @MainActor
-    var colorNow: Color? {
+    package var colorNow: Color? {
         switch self {
         case .none, .reversed: return nil
         case .fixed(let color): return color
@@ -213,7 +213,7 @@ package enum RowBackground {
     /// Every frame of the breath, in cycle order — ``pulseColors`` as fills, or a
     /// reversing breath's frames — or `nil` when this background does not animate.
     @MainActor
-    var framePaints: [Paint]? {
+    package var framePaints: [Paint]? {
         if case .pulsingReversal(let cycle, let dim, let bright) = self {
             return cycle.brightFrames().map { $0 ? bright : dim }
         }
@@ -252,7 +252,7 @@ package enum RowBackground {
     /// (``claimableFill``) and resolved against what is behind the row, and the emitter
     /// is never handed a colour that still states one.
     @MainActor
-    func painting(_ line: String, padding: Int = 0) -> String {
+    package func painting(_ line: String, padding: Int = 0) -> String {
         if case .pulsingReversal = self, let paint = paintNow {
             return paint.painting(padding > 0 ? line + asciiSpaces(padding) : line)
         }
@@ -275,7 +275,7 @@ package enum RowBackground {
     ///
     /// - Parameter render: Draws the row's lines over the colour it is given.
     @MainActor
-    func stillLines(_ render: (Color?) -> [String]) -> [String] {
+    package func stillLines(_ render: (Color?) -> [String]) -> [String] {
         if case .pulsingReversal = self, let paint = paintNow { return paint.lines(render) }
         guard case .reversed = self else {
             return render(claimableFill?.opaqueSpelling ?? colorNow)
@@ -298,7 +298,7 @@ package enum RowBackground {
 
     /// The frame duration and clock ``pulseColors`` step on, or `nil` exactly when
     /// that is `nil`: what a run built from those colours is built with.
-    var pulseTiming: IndicatorCycleTiming? {
+    package var pulseTiming: IndicatorCycleTiming? {
         switch self {
         case .pulsing(let cycle, let dim, let bright) where cycle.isAnimating(dim: dim, bright: bright):
             return cycle.timing
@@ -312,7 +312,7 @@ package enum RowBackground {
     /// Which frame of ``pulseColors`` or ``framePaints`` the frame being rendered now
     /// shows.
     @MainActor
-    var stepNow: Int {
+    package var stepNow: Int {
         switch self {
         case .pulsing(let cycle, _, _), .pulsingReversal(let cycle, _, _):
             return cycle.frames.isEmpty ? 0 : cycle.step % cycle.frames.count
@@ -330,7 +330,7 @@ package enum RowBackground {
     /// why the pulse can be a run at all, since a run's frames must all answer to one
     /// static region.
     @MainActor
-    var claimableFill: Color? {
+    package var claimableFill: Color? {
         guard case .fixed(let color) = self else { return nil }
         return color
     }

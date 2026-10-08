@@ -22,6 +22,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 /// Apple's multidimensional-list shape: a region owns its rows, and the
 /// outer `ForEach` iterates the regions while the `List`'s rows are seas.

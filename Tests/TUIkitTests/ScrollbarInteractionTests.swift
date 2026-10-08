@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkitCore
+@testable import TUIkitLists
 
 import TUIkit
 @testable import TUIkitFoundation

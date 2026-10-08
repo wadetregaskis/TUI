@@ -15,7 +15,7 @@ import Foundation
 /// The list looks its content up as one of these; a `nil` action means that
 /// gesture is unavailable (a delete key does nothing, a row can't be dragged).
 @MainActor
-protocol DynamicViewContentActions {
+package protocol DynamicViewContentActions {
     /// The `.onMove(perform:)` reorder action: `(source offsets, destination
     /// offset)`, both measured from the data's start. `nil` if not reorderable.
     var moveAction: ((IndexSet, Int) -> Void)? { get }
@@ -31,7 +31,7 @@ protocol DynamicViewContentActions {
 }
 
 /// Which element of its `ForEach` each of a ``ListRowEditOwner``'s rows draws.
-enum ListRowElements {
+package enum ListRowElements {
     /// One row per element: a row's place among the owner's rows is its
     /// element's offset.
     case onePerRow
@@ -48,7 +48,7 @@ enum ListRowElements {
     /// keys every view of a row of several by its element) — or `nil` when a
     /// row carries no element's key in that order, and so cannot be attributed.
     @MainActor
-    static func listed(rowKeys: [String?], of loop: any KeyedLoop) -> Self? {
+    package static func listed(rowKeys: [String?], of loop: any KeyedLoop) -> Self? {
         var offsets: [Int] = []
         offsets.reserveCapacity(rowKeys.count)
         var place = 0
@@ -64,9 +64,9 @@ enum ListRowElements {
 }
 
 extension ForEach: DynamicViewContentActions where Content: View {
-    var moveAction: ((IndexSet, Int) -> Void)? { onMoveAction }
-    var deleteAction: ((IndexSet) -> Void)? { onDeleteAction }
-    var dropInsertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
+    package var moveAction: ((IndexSet, Int) -> Void)? { onMoveAction }
+    package var deleteAction: ((IndexSet) -> Void)? { onDeleteAction }
+    package var dropInsertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
         dropInsertion
     }
 }

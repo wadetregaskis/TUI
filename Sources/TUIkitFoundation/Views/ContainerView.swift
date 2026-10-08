@@ -47,7 +47,7 @@ package struct ContainerConfig: Sendable, Equatable {
     /// distinct from a `nil` ``borderStyle``, which still draws a border using
     /// the appearance default — it is the only "no border at all" path. Used by
     /// `.listStyle(.plain)` (``PlainListStyle/showsBorder`` is `false`).
-    var hasBorder: Bool
+    package var hasBorder: Bool
 
     /// Whether an over-tall BODY scrolls instead of being clipped, leaving the
     /// title and footer pinned.
@@ -101,7 +101,7 @@ package struct ContainerConfig: Sendable, Equatable {
 /// Configuration options for container appearance.
 ///
 /// Controls separators, backgrounds, and other visual aspects of containers.
-struct ContainerStyle: Sendable, Equatable {
+package struct ContainerStyle: Sendable, Equatable {
     /// Whether to show a separator line between header and body.
     var showHeaderSeparator: Bool
 
@@ -140,7 +140,7 @@ struct ContainerStyle: Sendable, Equatable {
     ///   - footerAlignment: How to align the footer (default: leading).
     ///   - hasBorder: Whether to draw a border at all (default: true).
     ///   - scrollsOverflowingBody: Whether a too-tall body scrolls (default: false).
-    init(
+    package init(
         showHeaderSeparator: Bool = true,
         showFooterSeparator: Bool = true,
         borderStyle: BorderStyle? = nil,
@@ -238,7 +238,7 @@ package func measureContainer<Content: View, Footer: View>(
 /// `containerBodyHeight` build, so they cannot disagree about its style — or
 /// about its type, which every identity inside it descends from.
 @MainActor
-func makeContainer<Content: View, Footer: View>(
+package func makeContainer<Content: View, Footer: View>(
     title: String?,
     config: ContainerConfig,
     content: Content,
@@ -298,7 +298,7 @@ func makeContainer<Content: View, Footer: View>(
 ///     }
 /// }
 /// ```
-struct ContainerView<Content: View, Footer: View>: View {
+package struct ContainerView<Content: View, Footer: View>: View {
     /// The container title (rendered in border or header section).
     let title: String?
 
@@ -342,7 +342,7 @@ struct ContainerView<Content: View, Footer: View>: View {
         self.footer = footer()
     }
 
-    var body: some View {
+    package var body: some View {
         core
     }
 
@@ -366,7 +366,7 @@ struct ContainerView<Content: View, Footer: View>: View {
     /// view's `body` (`withChildIdentity(type: Body.self)`, exactly as
     /// `renderToBuffer` does), because the footer's identity hangs off it — and
     /// with it any `@State` the footer's height depends on.
-    func bodyHeight(in context: RenderContext) -> Int {
+    package func bodyHeight(in context: RenderContext) -> Int {
         core.bodyHeight(in: context.withChildIdentity(type: Body.self))
     }
 }
@@ -436,7 +436,7 @@ extension _ContainerViewCore {
 // MARK: - Equatable Conformance
 
 extension ContainerView: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
-    static func == (lhs: ContainerView<Content, Footer>, rhs: ContainerView<Content, Footer>) -> Bool {
+    package static func == (lhs: ContainerView<Content, Footer>, rhs: ContainerView<Content, Footer>) -> Bool {
         guard lhs.title == rhs.title, lhs.titleColor == rhs.titleColor, lhs.content == rhs.content,
             lhs.footer == rhs.footer, lhs.style == rhs.style
         else { return false }
@@ -455,7 +455,7 @@ extension ContainerView where Footer == EmptyView {
     ///   - style: The container style configuration.
     ///   - padding: Inner padding for body content.
     ///   - content: The main content.
-    init(
+    package init(
         title: String? = nil,
         titleColor: Color? = nil,
         style: ContainerStyle = .default,

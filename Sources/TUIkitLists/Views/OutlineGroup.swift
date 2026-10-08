@@ -409,7 +409,7 @@ extension OutlineGroup: ListRowExtractor where Leaf: View {
     /// set, so answering it at all means walking the visible nodes — which is
     /// the same O(visible) the list was going to pay. Content is still built
     /// lazily, per row, exactly as `ForEach` does it.
-    func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
+    package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         let expansion = expansion(context: context)
         let nodes = visibleNodes(expanded: expansion.value)
         // What the list will call a row is not always what the outline calls a
@@ -715,7 +715,7 @@ extension OutlineGroup {
 extension _OutlineRow: OutlineRowMarking {}
 
 extension OutlineGroup: KeyedRowProvider where Leaf: View {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         runs.append(.outline)
     }
 }

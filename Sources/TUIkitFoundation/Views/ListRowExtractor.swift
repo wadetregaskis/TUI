@@ -17,7 +17,7 @@ import Foundation
 /// view is built and rendered only when the row is actually shown. The `id`
 /// is resolved eagerly too, except a flattened child's, which is carried
 /// still to be asked (``askedID``) — see ``id``.
-struct ListRow<ID: Hashable> {
+package struct ListRow<ID: Hashable> {
     /// The identifier the selection knows this row by, or `nil` when it has
     /// none it can express.
     ///
@@ -32,7 +32,7 @@ struct ListRow<ID: Hashable> {
     /// through ``askedID``: a looped row's answer is its loop's rule, which
     /// for a `.tag(_:)`-outermost row BUILDS the row, and the list asks for
     /// the ids of the rows it draws and the handler wants, not of every row.
-    @MainActor var id: ID? {
+    @MainActor package var id: ID? {
         if let askedID { return askedID.id }
         return knownID
     }
@@ -42,10 +42,10 @@ struct ListRow<ID: Hashable> {
 
     /// ``id``, when it is still to be asked — `nil` for every row but a
     /// flattened child's.
-    let askedID: AskedRowID<ID>?
+    package let askedID: AskedRowID<ID>?
 
     /// The lazily-rendered buffer + badge for this row.
-    let content: LazyListRowContent
+    package let content: LazyListRowContent
 
     /// The rendered content buffer for this row (forces the lazy render).
     @MainActor var buffer: FrameBuffer { content.buffer }
@@ -57,7 +57,7 @@ struct ListRow<ID: Hashable> {
     @MainActor var height: Int { content.buffer.height }
 
     /// Creates a row whose content is rendered on demand.
-    init(id: ID?, content: LazyListRowContent) {
+    package init(id: ID?, content: LazyListRowContent) {
         self.knownID = id
         self.askedID = nil
         self.content = content
@@ -101,7 +101,7 @@ struct ListRow<ID: Hashable> {
 /// `ForEach`'s rule instead, applies this rule to every other row, and withholds
 /// an ordinal that a looped row beside it already answers to.
 @MainActor
-func staticListRowID<ID: Hashable>(of view: some View, ordinal: Int, as idType: ID.Type) -> ID? {
+package func staticListRowID<ID: Hashable>(of view: some View, ordinal: Int, as idType: ID.Type) -> ID? {
     extractTagValue(from: view, as: idType) ?? (ordinal as? ID)
 }
 
@@ -112,7 +112,7 @@ func staticListRowID<ID: Hashable>(of view: some View, ordinal: Int, as idType: 
 /// Used by `Section`, whose row set is small and structured. The hot path for a
 /// large flat `List` is ``WindowedListRowExtractor`` instead.
 @MainActor
-protocol ListRowExtractor {
+package protocol ListRowExtractor {
     /// Extracts every list row eagerly, with its associated ID.
     func extractListRows<ID: Hashable>(context: RenderContext) -> [ListRow<ID>]
 }
@@ -131,7 +131,7 @@ protocol ListRowExtractor {
 ///   it probes row 0 once to decide windowability and force-unwraps the rest.
 ///   `ForEach` satisfies this (one element type, one id key-path).
 @MainActor
-protocol WindowedListRowExtractor {
+package protocol WindowedListRowExtractor {
     /// The number of rows, in O(1), without building or rendering any content.
     var listRowCount: Int { get }
 
@@ -231,7 +231,7 @@ protocol WindowedListRowExtractor {
 /// not as a conformer: its rows are its body's, which only an evaluation —
 /// with its `@State` bound — can produce. See ``listRowsBody(of:context:)``.
 @MainActor
-protocol ListRowsPassThrough {
+package protocol ListRowsPassThrough {
     /// The view whose rows these are.
     var listRowsContent: any View { get }
 
@@ -254,10 +254,10 @@ protocol ListRowsPassThrough {
 
 extension ListRowsPassThrough {
     /// No step: the wrapper renders its content at its own identity.
-    func listRowsContext(_ context: RenderContext) -> RenderContext { context }
+    package func listRowsContext(_ context: RenderContext) -> RenderContext { context }
 
     /// Nothing: a `Group` does nothing on the way through.
-    func noteLookedThrough(in context: RenderContext) {}
+    package func noteLookedThrough(in context: RenderContext) {}
 }
 
 // An `if`/`else` contributes its live arm's rows, and one thing more: the
@@ -266,14 +266,14 @@ extension ListRowsPassThrough {
 // is `identityBranchLabel`'s own, so the step taken here cannot drift from the
 // one the walk takes.
 extension ConditionalView: ListRowsPassThrough {
-    var listRowsContent: any View {
+    package var listRowsContent: any View {
         switch self {
         case .trueContent(let content): content
         case .falseContent(let content): content
         }
     }
 
-    func listRowsContext(_ context: RenderContext) -> RenderContext {
+    package func listRowsContext(_ context: RenderContext) -> RenderContext {
         identityBranchLabel.map { context.withBranchIdentity($0) } ?? context
     }
 
@@ -283,7 +283,7 @@ extension ConditionalView: ListRowsPassThrough {
     /// state: every identity under a list is retained, so an expanded row
     /// came back expanded after a flip away and back, where a conditional
     /// drawn any other way starts it afresh, as SwiftUI does.
-    func noteLookedThrough(in context: RenderContext) {
+    package func noteLookedThrough(in context: RenderContext) {
         guard !context.isMeasuring, let stateStorage = context.stateStorage else { return }
         let isTrueBranch: Bool
         switch self {
@@ -295,13 +295,13 @@ extension ConditionalView: ListRowsPassThrough {
         }
     }
 
-    static var listRowsContentTypes: [any View.Type] { [TrueContent.self, FalseContent.self] }
+    package static var listRowsContentTypes: [any View.Type] { [TrueContent.self, FalseContent.self] }
 }
 
 // MARK: - ForEach Conformance
 
 extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
-    func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
+    package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         // The row type's shape, once for every row: asked of each, it was a
         // conformance test per row of every section's loop, every frame. A
         // loop of `EmptyView` rows makes none (`.none`), as `listRowCount`
@@ -330,36 +330,36 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     /// The rows of a loop whose rows have a count (``listRowsPerElement``):
     /// one whose rows vary is read through the child walk, which builds them,
     /// and never asks.
-    var listRowCount: Int { data.count * (listRowsPerElement ?? 1) }
+    package var listRowCount: Int { data.count * (listRowsPerElement ?? 1) }
 
     /// The row type's shape in a walk that keeps sections whole, as a list's
     /// does: a section row is one (and read as a section), a row of several
     /// views is that many, and a row whose count only it knows is `nil`.
-    var listRowsPerElement: Int? { rowShape(sectionWholeness: .all).childrenPerElement }
+    package var listRowsPerElement: Int? { rowShape(sectionWholeness: .all).childrenPerElement }
 
     // `RowID`, not `ID` — `ForEach`'s own `ID` generic parameter is in scope here.
     // Resolves one row's id lazily (the windowed `List` asks only for the visible
     // window + the focused row). `nil` when the element's id can't be expressed
     // as `RowID` — exactly the row `extractListRows` draws unselectable; the
     // list probes row 0 and bails to the eager path when it's `nil`.
-    func listRowID<RowID: Hashable>(at index: Int, rowsPerElement: Int) -> RowID? {
+    package func listRowID<RowID: Hashable>(at index: Int, rowsPerElement: Int) -> RowID? {
         rowID(at: index, rowsPerElement: rowsPerElement)
     }
 
     /// The collection itself, when its elements can be compared: a `Range`,
     /// or an `Array` of `Equatable` elements. Boxed without copying.
-    var listRowsSignature: AnyEquatableBox? {
+    package var listRowsSignature: AnyEquatableBox? {
         (data as? any Equatable).map { AnyEquatableBox($0) }
     }
 
     // A static property of the row type — no element is built to answer it —
     // and a row of the app's own whose body is a section is one too
     // (`isSectionRowType(_:)`), handed over as that section by the walk.
-    var listRowsAreSections: Bool {
+    package var listRowsAreSections: Bool {
         Content.self is any SectionRowExtractor.Type || isSectionRowType(Content.self)
     }
 
-    func makeListRowContent(at index: Int, rowsPerElement: Int, context: RenderContext) -> LazyListRowContent {
+    package func makeListRowContent(at index: Int, rowsPerElement: Int, context: RenderContext) -> LazyListRowContent {
         // One of a row of several views: a list row of its own, as SwiftUI's
         // (decisions B15).
         if rowsPerElement > 1 {
@@ -617,17 +617,17 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// the same number of each element's views (a row of several, decisions
     /// B15), or as many as each element's row makes — placed by their keys,
     /// which every one of them carries — in order; see ``FlattenedRowIDs``.
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         let shape = rowShape(sectionWholeness: sectionsWhole ? .all : .apart)
         guard shape != .none else { return }
         runs.append(.loop(self, rowsPerElement: shape.childrenPerElement))
     }
 
-    var keyedElementCount: Int { data.count }
+    package var keyedElementCount: Int { data.count }
 
     /// Keyed as `makeChild(for:)` keys the row's identity — the element's key,
     /// which each of a row's several views carries too.
-    func keyedRowKey(ofElement element: Int) -> String {
+    package func keyedRowKey(ofElement element: Int) -> String {
         identityKey(elementID(of: self.element(at: element)))
     }
 
@@ -635,11 +635,11 @@ extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// fallback: a row whose element id is not the selection type is
     /// answered as such, so its container falls back to its own ordinal for it
     /// — the number it had before.
-    func keyedRowSelectionID<RowID: Hashable>(ofElement element: Int) -> RowID? {
+    package func keyedRowSelectionID<RowID: Hashable>(ofElement element: Int) -> RowID? {
         selectionID(of: self.element(at: element))
     }
 
-    func keyedRowElementID(ofElement element: Int) -> AnyHashable {
+    package func keyedRowElementID(ofElement element: Int) -> AnyHashable {
         AnyHashable(elementID(of: self.element(at: element)))
     }
 }

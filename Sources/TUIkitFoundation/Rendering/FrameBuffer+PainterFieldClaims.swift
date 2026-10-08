@@ -81,7 +81,7 @@ extension FrameBuffer {
     /// ``claimingPainterField(_:fillingStatedTerminalField:spelledAt:)`` for a painter of
     /// one colour, spelled `escape` under every cell — asked only under a field the
     /// content states.
-    func claimingPainterField(
+    package func claimingPainterField(
         _ claims: [OpacityRegion], fillingStatedTerminalField: Bool = false,
         spelled escape: @autoclosure () -> String
     ) -> [OpacityRegion] {

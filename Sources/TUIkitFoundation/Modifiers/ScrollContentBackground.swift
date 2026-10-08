@@ -68,7 +68,7 @@ extension View {
     /// - Parameter reads: `false` for a scroll view that is framework chrome
     ///   (``ScrollView/asChrome()``), which never paints. Applied either way,
     ///   so the scrollable's body has one shape whatever it is.
-    func paintingScrollContentBackground(
+    package func paintingScrollContentBackground(
         reads: Bool = true
     ) -> ModifiedView<Self, ScrollContentBackgroundModifier> {
         modifier(ScrollContentBackgroundModifier(reads: reads))
@@ -81,16 +81,16 @@ extension View {
 ///
 /// Applied by the scrollables themselves; apps use
 /// ``TUIkit/View/scrollContentBackground(_:)``.
-struct ScrollContentBackgroundModifier: BufferModifier, Equatable {
+package struct ScrollContentBackgroundModifier: BufferModifier, Equatable {
     /// Whether the environment is read at all — see
     /// ``TUIkit/View/paintingScrollContentBackground(reads:)``.
     let reads: Bool
 
-    func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+    package func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         _modify(buffer: buffer, context: context, owner: Self.self)
     }
 
-    func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
+    package func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
         guard reads, context.environment.scrollContentBackground == .visible else { return buffer }
         // The `.background(.windowBackground)` fill, keyed on the same owner, so
         // a palette change inside `withAnimation` moves as any background's does.

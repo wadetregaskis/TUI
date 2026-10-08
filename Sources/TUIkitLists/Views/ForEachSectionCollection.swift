@@ -71,7 +71,7 @@ extension ForEachSectionCollection: @MainActor RandomAccessCollection {
 extension ForEachSectionCollection: ContextResolvedCollection {
     /// The source's sections, resolved under a step of their own below the
     /// loop — see ``ForEachSubviewCollection``.
-    func resolved(in context: RenderContext) -> Self {
+    package func resolved(in context: RenderContext) -> Self {
         func resolve<V: View>(_ source: V) -> [SectionConfiguration] {
             SectionCollection(resolving: source, in: context.withChildIdentity(type: V.self, index: 0))
                 .sections

@@ -96,7 +96,7 @@ extension Subview: LayoutTraitsForwarding {
 /// at the dimensions the proxy was laid out at — which are the member's, since
 /// the proxy measures and draws it unchanged.
 extension Subview: AlignmentGuideQuerying {
-    func explicitGuide(
+    package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         child.explicitGuide(query, at: dimensions, context: context)
@@ -105,7 +105,7 @@ extension Subview: AlignmentGuideQuerying {
 
 /// The member's layout values, for the `Layout` the proxy is placed in.
 extension Subview: LayoutValueProviding {
-    func layoutValue(for key: ObjectIdentifier) -> Any? {
+    package func layoutValue(for key: ObjectIdentifier) -> Any? {
         (child.wrappedView as? LayoutValueProviding)?.layoutValue(for: key)
     }
 }

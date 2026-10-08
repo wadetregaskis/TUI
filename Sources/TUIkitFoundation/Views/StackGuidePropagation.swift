@@ -22,7 +22,7 @@ extension VStack {
 
 extension _VStackCore {
     /// See ``VStack/_providesAlignmentGuide``.
-    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+    package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
 extension _VStackCore: AlignmentGuideQuerying {
@@ -36,7 +36,7 @@ extension _VStackCore: AlignmentGuideQuerying {
     /// measured at the width it is drawn at, then the row's own guide run or
     /// the column's alignment across. A lazy column answers nothing: it draws
     /// only the rows in its window, and a guide must not move as rows scroll.
-    func explicitGuide(
+    package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         guard overflow == .clip else { return nil }
@@ -101,7 +101,7 @@ extension PaddingModifier {
 extension ModifiedView: AlignmentGuideQuerying where Modifier == PaddingModifier {
     /// The content's guide, laid out at the padded view's size less the
     /// insets, moved by the leading and top insets.
-    func explicitGuide(
+    package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         let insets = modifier.insets

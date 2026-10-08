@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitStyling
 
 @MainActor

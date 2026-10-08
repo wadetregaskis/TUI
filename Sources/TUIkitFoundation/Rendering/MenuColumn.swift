@@ -171,7 +171,7 @@ extension EnvironmentValues {
 /// One per presented menu, living on the presenter's persisted state, so the
 /// highlight survives the frames between key presses.
 @MainActor
-final class MenuPopupController {
+package final class MenuPopupController {
     /// Collects what the rows report as they render.
     let sink = MenuRowSink()
 
@@ -200,7 +200,7 @@ final class MenuPopupController {
     /// BUTTON either way, since only a Button claims one. A leading `Divider`
     /// costs nothing; a leading `.disabled()` row is caught by
     /// ``MenuHighlight/adopt(selectable:)`` as soon as the frame draws.
-    func opened(withSelection: Bool) {
+    package func opened(withSelection: Bool) {
         highlight.move(to: withSelection ? (highlight.selectable.first ?? 0) : nil)
     }
 

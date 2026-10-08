@@ -42,7 +42,7 @@ extension FrameBuffer {
     ///   - layer: What is about to land.
     ///   - position: Where it lands, in this buffer's cells.
     /// - Returns: The runs to ask a render at each step of.
-    func runsShowingThrough(_ layer: Self, at position: (x: Int, y: Int)) -> [AnimatedCellRun] {
+    package func runsShowingThrough(_ layer: Self, at position: (x: Int, y: Int)) -> [AnimatedCellRun] {
         guard !animatedCells.isEmpty, !layer.lines.isEmpty else { return [] }
         let rows = position.y..<(position.y + layer.lines.count)
         let columns = position.x..<(position.x + layer.width)

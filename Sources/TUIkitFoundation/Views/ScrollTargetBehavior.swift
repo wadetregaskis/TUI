@@ -277,7 +277,7 @@ extension EnvironmentValues {
     /// keep anything when it has not, which is the safe direction for a
     /// behaviour of an app's own.
     @inlinable
-    var scrollTargetBehavior: any ScrollTargetBehavior {
+    package var scrollTargetBehavior: any ScrollTargetBehavior {
         get { self[ScrollTargetBehaviorKey.self] }
         set { self[ScrollTargetBehaviorKey.self] = newValue }
     }

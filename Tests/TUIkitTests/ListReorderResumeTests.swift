@@ -17,6 +17,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 
 /// Counts `onMove` calls from outside the view's own state, so a move that
 /// lands somewhere nothing reads is still visible to the test.

@@ -14,7 +14,7 @@
 /// One provider's share of a flattened container's KEYED children, in the
 /// order the splice emits them.
 @MainActor
-enum KeyedRowRun {
+package enum KeyedRowRun {
     /// A `ForEach`'s rows, each keyed by its element: `rowsPerElement` of them
     /// from every element — one, or a row's several views (decisions B15) —
     /// or, `nil`, as many as each element's row makes, placed by their keys.
@@ -39,7 +39,7 @@ enum KeyedRowRun {
 /// splice stamps on the keyed rows it hands over (`ChildView.spliceSlot`) —
 /// or `nil` for one found outside any tuple.
 @MainActor
-struct KeyedRowRuns {
+package struct KeyedRowRuns {
     /// The runs, in the order the splice emits their rows.
     private(set) var runs: [KeyedRowRun] = []
 
@@ -51,7 +51,7 @@ struct KeyedRowRuns {
     fileprivate var slot: Int?
 
     /// Appends `run`, found in the slot the walk is in now.
-    mutating func append(_ run: KeyedRowRun) {
+    package mutating func append(_ run: KeyedRowRun) {
         runs.append(run)
         slots.append(slot)
     }
@@ -59,7 +59,7 @@ struct KeyedRowRuns {
 
 /// A loop, asked about its rows by the element that made them.
 @MainActor
-protocol KeyedLoop {
+package protocol KeyedLoop {
     /// How many elements the loop iterates.
     var keyedElementCount: Int { get }
 
@@ -85,7 +85,7 @@ protocol KeyedLoop {
 /// looks through every ``SingleContentWrapper`` that is also a
 /// ``ChildViewProvider``, which is exactly when the splice does.
 @MainActor
-protocol KeyedRowProvider {
+package protocol KeyedRowProvider {
     /// Appends the runs of keyed rows this view flattens, in order — with each
     /// `Section` kept whole when `sectionsWhole`, as the walk that flattened
     /// the children did (`RenderContext.keepsSectionsWhole`).
@@ -131,7 +131,7 @@ func appendKeyedRowRuns<V: View>(of view: V, to runs: inout KeyedRowRuns, sectio
 /// A tuple's runs, each in its slot: the outermost tuple's slot is the one
 /// its splice stamps on what each slot hands over, over any inner tuple's.
 extension TupleView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         let outermost = runs.slot == nil
         var slot = 0
         for child in repeat each children {
@@ -144,13 +144,13 @@ extension TupleView: KeyedRowProvider {
 }
 
 extension Group: KeyedRowProvider where Content: View {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
 extension ConditionalView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         switch self {
         case .trueContent(let content):
             TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: sectionsWhole)
@@ -163,13 +163,13 @@ extension ConditionalView: KeyedRowProvider {
 /// An `AnyView` hands its container what it erases, taken apart where that is
 /// several views, so the loops in it are runs of the container's.
 extension AnyView: KeyedRowProvider {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         TUIkitFoundation.appendKeyedRowRuns(of: erasedView, to: &runs, sectionsWhole: sectionsWhole)
     }
 }
 
 extension Optional: KeyedRowProvider where Wrapped: View {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         // A `nil` still leaving keeps a slot in its container (see
         // `Optional.childViews`), but a positional one: no keyed row.
         if case .some(let wrapped) = self {
@@ -182,7 +182,7 @@ extension Optional: KeyedRowProvider where Wrapped: View {
 /// parts' loops are runs of the container's; kept whole, it is one positional
 /// child and makes none. A collapsed section's content makes none either.
 extension Section: KeyedRowProvider where Parent: View, Content: View, Footer: View {
-    func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
+    package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         guard !sectionsWhole else { return }
         TUIkitFoundation.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)
         if showsContent { TUIkitFoundation.appendKeyedRowRuns(of: content, to: &runs, sectionsWhole: false) }

@@ -115,7 +115,7 @@ extension View {
 // MARK: - Modifier
 
 /// Presents `popover` as a bordered panel anchored to `content`.
-struct PopoverPresentationModifier<Content: View, Popover: View>: View {
+package struct PopoverPresentationModifier<Content: View, Popover: View>: View {
     let content: Content
     let isPresented: Binding<Bool>
     let popover: Popover
@@ -141,13 +141,33 @@ struct PopoverPresentationModifier<Content: View, Popover: View>: View {
     /// a popover declares, which keeps it out of every memo.
     var ownsPresentation = false
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for a tab's popovers.
+    package init(
+        content: Content,
+        isPresented: Binding<Bool>,
+        popover: Popover,
+        attachmentAnchor: PopoverAttachmentAnchor,
+        arrowEdge: Edge,
+        itemKey: String? = nil,
+        ownsPresentation: Bool = false
+    ) {
+        self.content = content
+        self.isPresented = isPresented
+        self.popover = popover
+        self.attachmentAnchor = attachmentAnchor
+        self.arrowEdge = arrowEdge
+        self.itemKey = itemKey
+        self.ownsPresentation = ownsPresentation
+    }
+
+    package var body: Never {
         fatalError("PopoverPresentationModifier renders via Renderable")
     }
 }
 
 extension PopoverPresentationModifier: Renderable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
         guard isPresented.wrappedValue else {
@@ -382,7 +402,7 @@ extension PopoverPresentationModifier: Layoutable {
     /// The popover floats over the page, so the layout footprint is the
     /// presenting content — presented or not. Forwarding also keeps the
     /// section registration on the render pass.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(
             content, proposal: proposal,
             context: context.withChildIdentity(type: Content.self, index: 0))

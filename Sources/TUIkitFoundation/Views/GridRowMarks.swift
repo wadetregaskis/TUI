@@ -18,17 +18,24 @@ import TUIkitView
 ///
 /// A plain value, equal on every walk: a per-walk token would change every
 /// frame and defeat every cell's memo.
-struct GridRowMark: Equatable {
+package struct GridRowMark: Equatable {
     /// Whether this cell is the row's first.
-    let startsRow: Bool
+    package let startsRow: Bool
 
     /// The row's vertical alignment override, if it set one.
-    let alignment: VerticalAlignment?
+    package let alignment: VerticalAlignment?
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for `Grid`.
+    package init(startsRow: Bool, alignment: VerticalAlignment?) {
+        self.startsRow = startsRow
+        self.alignment = alignment
+    }
 }
 
 /// A view carrying a ``GridRowMark``.
 @MainActor
-protocol GridRowMarking {
+package protocol GridRowMarking {
     var gridRowMark: GridRowMark { get }
 }
 
@@ -37,40 +44,47 @@ protocol GridRowMarking {
 /// other question about its content through: layout values (a cell's span,
 /// anchor and column alignment), an explicit `.id(_:)`, a guide, a z-index, a
 /// container value.
-struct _GridRowMarkView<Content: View>: View {
+package struct _GridRowMarkView<Content: View>: View {
     let mark: GridRowMark
     let content: Content
 
-    var body: some View {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for `Grid`.
+    package init(mark: GridRowMark, content: Content) {
+        self.mark = mark
+        self.content = content
+    }
+
+    package var body: some View {
         content
     }
 
     /// Size-neutral, so a guide inside the cell is the cell's.
-    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+    package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
 extension _GridRowMarkView: GridRowMarking {
-    var gridRowMark: GridRowMark { mark }
+    package var gridRowMark: GridRowMark { mark }
 }
 
 extension _GridRowMarkView: SingleContentWrapper {
-    var wrappedContent: Content { content }
+    package var wrappedContent: Content { content }
 }
 
 extension _GridRowMarkView: ContentRewrapping {
-    func rewrapping<V: View>(_ view: V) -> any View {
+    package func rewrapping<V: View>(_ view: V) -> any View {
         _GridRowMarkView<V>(mark: mark, content: view)
     }
 }
 
 extension _GridRowMarkView: LayoutValueProviding {
-    func layoutValue(for key: ObjectIdentifier) -> Any? {
+    package func layoutValue(for key: ObjectIdentifier) -> Any? {
         (content as? LayoutValueProviding)?.layoutValue(for: key)
     }
 }
 
 extension _GridRowMarkView: ExplicitIDProviding {
-    var explicitIDKey: String? {
+    package var explicitIDKey: String? {
         (content as? ExplicitIDProviding)?.explicitIDKey
     }
 }
@@ -85,7 +99,7 @@ extension _GridRowMarkView: ExplicitIDProviding {
 /// Through `ForEach`'s row memo, whose TYPE is asked first, so only a row type
 /// is built.
 @MainActor
-func wholeGridRow(
+package func wholeGridRow(
     _ child: ChildView, context: RenderContext
 ) -> (cells: [ChildView], alignment: VerticalAlignment?)? {
     let provider: GridRowProviding
@@ -143,6 +157,6 @@ func expandingWholeGridRows(
 /// A layout that lays out a grid row's cells rather than the row: the cells of
 /// a row that arrives whole are expanded into its subviews.
 @MainActor
-protocol WholeGridRowExpanding {
+package protocol WholeGridRowExpanding {
     var expandsWholeGridRows: Bool { get }
 }

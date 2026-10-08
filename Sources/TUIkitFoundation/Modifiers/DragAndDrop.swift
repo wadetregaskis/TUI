@@ -35,7 +35,7 @@ private struct DragPreviewAnchorKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// How drag previews started in this scope anchor to the cursor.
-    var dragPreviewAnchor: DragPreviewAnchor {
+    package var dragPreviewAnchor: DragPreviewAnchor {
         get { self[DragPreviewAnchorKey.self] }
         set { self[DragPreviewAnchorKey.self] = newValue }
     }
@@ -360,7 +360,7 @@ extension DropDestinationModifier: Renderable, Layoutable {
 
 /// The registration every drop destination makes: its rendered rectangle as
 /// a zone the drag session hit-tests, and the target behind it.
-enum DropZone {
+package enum DropZone {
     /// Registers `buffer`'s rectangle as a drop target for this frame.
     ///
     /// - Parameters:
@@ -379,7 +379,7 @@ enum DropZone {
     ///     be handed — for a destination that answers each move, as SwiftUI's
     ///     drop delegate does.
     @MainActor
-    static func install(
+    package static func install(
         on buffer: inout FrameBuffer, context: RenderContext,
         accepts: @escaping (Any) -> Bool,
         perform: @escaping (Any, DropInfo) -> Bool,

@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitImage
+@testable import TUIkitLists
 @testable import TUIkitStyling
 
 /// An RGB page and ink, and a terminal slot for the accent.

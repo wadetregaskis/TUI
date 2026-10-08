@@ -65,17 +65,26 @@
 @MainActor
 public struct Section<Parent, Content, Footer> {
     /// The header view displayed above the section content.
-    let header: Parent
+    package let header: Parent
 
     /// The main content of the section.
-    let content: Content
+    package let content: Content
 
     /// The footer view displayed below the section content.
-    let footer: Footer
+    package let footer: Footer
 
     /// Whether the section's content is shown, for a collapsible section
     /// (`Section(isExpanded:…)`), or `nil` for one that always shows it.
-    let isExpanded: Binding<Bool>?
+    package let isExpanded: Binding<Bool>?
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for a table's sections.
+    package init(header: Parent, content: Content, footer: Footer, isExpanded: Binding<Bool>?) {
+        self.header = header
+        self.content = content
+        self.footer = footer
+        self.isExpanded = isExpanded
+    }
 }
 
 // MARK: - A section of views
@@ -276,11 +285,18 @@ extension Section where Parent: View, Content: View, Footer: View, Footer == Emp
 /// collapsible section — the header behind a disclosure triangle, the whole of
 /// it one control that toggles the section (a ``DisclosureGroup``'s header,
 /// with nothing to disclose but the section's own content).
-struct _SectionHeader<Header: View>: View {
+package struct _SectionHeader<Header: View>: View {
     let header: Header
     let isExpanded: Binding<Bool>?
 
-    var body: some View {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for a table's sections.
+    package init(header: Header, isExpanded: Binding<Bool>?) {
+        self.header = header
+        self.isExpanded = isExpanded
+    }
+
+    package var body: some View {
         if let isExpanded {
             DisclosureGroup(isExpanded: isExpanded) {
                 EmptyView()
@@ -308,7 +324,7 @@ extension Section where Parent: View, Content: View, Footer: View {
 /// Returns `context` with `role` set as its chrome role, so a `List` section's
 /// header/footer text styles via the cascade (the ``ChromeRole`` defaults plus
 /// any `.chrome(...)` overrides) rather than being post-styled with fixed ANSI.
-func sectionChromeContext(_ context: RenderContext, _ role: ChromeRole) -> RenderContext {
+package func sectionChromeContext(_ context: RenderContext, _ role: ChromeRole) -> RenderContext {
     context.withEnvironment(context.environment.setting(\.chromeRole, to: role))
 }
 
@@ -339,7 +355,7 @@ extension EnvironmentValues {
     /// styling through this, as SwiftUI styles every section of a list.
     /// Anywhere else a section is drawn as written (decisions B16).
     @inlinable
-    var drawsListSectionChrome: Bool {
+    package var drawsListSectionChrome: Bool {
         get { self[ListSectionChromeKey.self] }
         set { self[ListSectionChromeKey.self] = newValue }
     }
@@ -352,7 +368,7 @@ extension EnvironmentValues {
 /// When a `List` contains `Section` views, it uses this protocol to extract
 /// section structure for proper rendering with headers, footers, and grouping.
 @MainActor
-protocol SectionRowExtractor {
+package protocol SectionRowExtractor {
     /// Extracts section information for list rendering.
     ///
     /// - Parameter context: The rendering context.
@@ -377,10 +393,10 @@ protocol SectionRowExtractor {
 
 /// What a `Section`'s content contributes to the enclosing `List`: its rows,
 /// and the actions of the `ForEach` that produced every one of them.
-struct SectionContentRows<RowID: Hashable> {
+package struct SectionContentRows<RowID: Hashable> {
     /// The content's rows, in order — the section's own header and footer are
     /// not among them.
-    var rows: [ListRow<RowID>]
+    package var rows: [ListRow<RowID>]
 
     /// The row-mutation actions the content carries, when the content IS an
     /// editable `ForEach`, or a `Group`, an `if`/`else` or a view of the app's
@@ -408,20 +424,20 @@ struct SectionContentRows<RowID: Hashable> {
     /// ids does know which loop made each row and at what offset; wiring the
     /// editing gestures through it (an owner per loop, with its row span) is
     /// a change of its own, and until it is made the refusal stands.
-    var actions: (any DynamicViewContentActions)?
+    package var actions: (any DynamicViewContentActions)?
 
     /// Which element of the loop each row draws, for ``actions`` — one row per
     /// element, or a row's several views (decisions B15).
-    var elements: ListRowElements = .onePerRow
+    package var elements: ListRowElements = .onePerRow
 }
 
 /// Metadata about a section for List rendering.
-struct SectionInfo {
+package struct SectionInfo {
     /// The rendered header buffer (nil if no header).
-    let headerBuffer: FrameBuffer?
+    package let headerBuffer: FrameBuffer?
 
     /// The rendered footer buffer (nil if no footer).
-    let footerBuffer: FrameBuffer?
+    package let footerBuffer: FrameBuffer?
 
     /// The whole content, rendered as one buffer.
     ///
@@ -433,16 +449,30 @@ struct SectionInfo {
     /// that render has effects beyond its buffer — every row of the section,
     /// on screen or not, is drawn, registers what it registers and marks its
     /// identity alive — and dropping it is a behaviour change of its own.
-    let contentBuffer: FrameBuffer
+    package let contentBuffer: FrameBuffer
 
     /// The section's separator preference (``View/listSectionSeparator(_:edges:)``
     /// and its tint): the line under its header is its `.top` edge, the line under
     /// its last row its `.bottom` edge (decisions A47).
-    var separator = ListSeparatorPreference()
+    package var separator = ListSeparatorPreference()
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitLists makes these, for its lists.
+    package init(
+        headerBuffer: FrameBuffer?,
+        footerBuffer: FrameBuffer?,
+        contentBuffer: FrameBuffer,
+        separator: ListSeparatorPreference = ListSeparatorPreference()
+    ) {
+        self.headerBuffer = headerBuffer
+        self.footerBuffer = footerBuffer
+        self.contentBuffer = contentBuffer
+        self.separator = separator
+    }
 }
 
 extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
-    func extractSectionContentRows<RowID: Hashable>(
+    package func extractSectionContentRows<RowID: Hashable>(
         context: RenderContext
     ) -> SectionContentRows<RowID> {
         // A collapsed section's rows leave the list.
@@ -450,7 +480,7 @@ extension Section: SectionRowExtractor where Parent: View, Content: View, Footer
         return Self.listRows(of: content, context: context)
     }
 
-    func extractSectionInfo(context: RenderContext) -> SectionInfo {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         // Header/footer render under a chrome role so their text styles through
         // the cascade (see ``ChromeRole`` / ``Text``). The styling is per-line
         // and unshifted, so overlays and hit-test regions carry through.
@@ -494,7 +524,7 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
     ///
     /// - Parameter context: The rendering context.
     /// - Returns: Array of list rows from the section's content.
-    func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
+    package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         guard showsContent else { return [] }
         return Self.listRows(of: content, context: context).rows
     }

@@ -18,7 +18,7 @@ extension Text {
     /// cascade beneath that — so `(Text("a").bold() + Text("b")).italic()`
     /// makes both italic and only the first bold, which is what the same
     /// expression does in SwiftUI.
-    struct Run: Equatable, Sendable {
+    package struct Run: Equatable, Sendable {
         /// The fragment's text — for a live fragment, as it read when built.
         let text: String
 
