@@ -64,7 +64,7 @@ extension FocusManager {
     /// NOT fixed by this: a non-modal section activated INSIDE a presented
     /// surface — a push, a split view's column click — is still taken back by
     /// the surface's presenter on the next frame.
-    func activatePresentedSection(id: String) {
+    package func activatePresentedSection(id: String) {
         if var section = activeSectionIdentifier, section != id {
             // Bounded by the table's size rather than by reaching a root: the
             // table is pruned only on dismissal, and nothing stops it holding a
@@ -116,4 +116,4 @@ extension FocusManager {
 /// presentation binding, the detent the sheet rests at — when it is called,
 /// not when it was posted: a key that moves the sheet between two frames is
 /// answered by last frame's resolver already, and never draws late.
-typealias PresentationDockResolver = @MainActor (_ contentHeight: Int) -> Int?
+package typealias PresentationDockResolver = @MainActor (_ contentHeight: Int) -> Int?

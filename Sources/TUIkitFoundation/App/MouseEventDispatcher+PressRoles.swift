@@ -33,7 +33,7 @@ import TUIkitView
 /// Control-press is the secondary click: a `.background` region is passed
 /// over for it, and held for only where nothing else took it
 /// (``MouseEventDispatcher/dispatchLeftPress(_:matching:)``).
-enum PressRole {
+package enum PressRole {
     /// A pane's background: a scroll view's viewport, a split view's column.
     case background
 
@@ -104,7 +104,7 @@ extension MouseEventDispatcher {
     /// Recorded for a value memo, as the handler registration beside it is, so
     /// a served subtree files it again.
     @MainActor
-    func filePressRole(_ role: PressRole, for id: HitTestRegion.HandlerID, in context: RenderContext) {
+    package func filePressRole(_ role: PressRole, for id: HitTestRegion.HandlerID, in context: RenderContext) {
         guard !context.isMeasuring else { return }
         pressRoles[id] = role
         context.environment.volatileReadTracker?.recordReplayableEffect()

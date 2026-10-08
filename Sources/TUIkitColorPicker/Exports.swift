@@ -12,7 +12,10 @@
 // Beside what it gives an importer, it keeps TUIkitFoundation's names, and
 // through its own re-exports the lower and side modules', in scope in every
 // file of this one, as they were while TUIkitFoundation compiled these files
-// (until step B4). The umbrella, Sources/TUIkit, re-exports this module beside
-// TUIkitFoundation.
+// (until step B4). TUIkitNavigation is the third since step B5 carved it: the
+// panels are `Dialog`s and the picker presents them through `.modal`, both
+// TUIkitPresentation's, which compiles into TUIkitNavigation until step C1.
+// The umbrella, Sources/TUIkit, re-exports this module beside TUIkitFoundation.
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
+@_exported import TUIkitNavigation

@@ -20,7 +20,7 @@ import TUIkitStyling
 /// can be grabbed has to say so in ink. The handle is purely that: the whole
 /// edge takes the drag, and the mark says where.
 @MainActor
-enum BorderGrip {
+package enum BorderGrip {
     /// How many cells of a horizontal border the handle occupies, and how many
     /// rows of a vertical one.
     ///
@@ -29,15 +29,15 @@ enum BorderGrip {
     /// three-row box has between its corners — being told an edge can be
     /// dragged matters more on a small view than the border cell of separation
     /// that used to be reserved either side.
-    enum Size {
-        static let horizontal = 7
+    package enum Size {
+        package static let horizontal = 7
         static let vertical = 3
     }
 
     /// The glyphs a handle is drawn with — chosen to stand out from the border
     /// it sits on, which is the whole job of a mark.
-    struct Glyphs {
-        let horizontal: String
+    package struct Glyphs {
+        package let horizontal: String
         let vertical: String
         let corner: String
 
@@ -59,7 +59,7 @@ enum BorderGrip {
         /// U+2550…U+256C is the Box Drawing block's double-line run — the
         /// rounded corners (U+256D…U+2570) sit just past it, and the heavy
         /// glyphs well below, so both correctly ask for doubles.
-        static func standingOut(from border: Character?) -> Self {
+        package static func standingOut(from border: Character?) -> Self {
             guard let border, ("\u{2550}"..."\u{256C}").contains(border) else { return .doubled }
             return .heavy
         }
@@ -77,7 +77,7 @@ enum BorderGrip {
     }
 
     /// What a handle is drawn in this frame.
-    struct Ink {
+    package struct Ink {
         /// The ink drawn now.
         let colour: Color
         /// The focused breath, whose run replays over the handle.
@@ -93,7 +93,7 @@ enum BorderGrip {
     /// the surface it sits on for the same reason. Focused, the handle
     /// breathes: a still highlight on a terminal reads as decoration, a
     /// breathing one reads as "this is where the keyboard is".
-    static func ink(isFocused: Bool, isHovered: Bool, environment: EnvironmentValues) -> Ink {
+    package static func ink(isFocused: Bool, isHovered: Bool, environment: EnvironmentValues) -> Ink {
         let palette = environment.palette
         let resting = palette.border
         let background = palette.background
@@ -112,7 +112,7 @@ enum BorderGrip {
     /// `size` cells of a border run `extent` long, centred between its two
     /// corners — the run is `1..<(extent - 1)` — or `nil` when there is no
     /// room for even one.
-    static func centredSpan(in extent: Int, size cap: Int) -> Range<Int>? {
+    package static func centredSpan(in extent: Int, size cap: Int) -> Range<Int>? {
         let run = extent - 2
         let size = min(cap, run)
         guard size >= 1 else { return nil }
@@ -128,7 +128,7 @@ enum BorderGrip {
     /// from those cells and lifts this one in its place, so each is claimed
     /// once; and the claim holds for every frame of the run, since the breath's
     /// ink is opaque at both ends and the field is the page's in all of them.
-    static func mark(
+    package static func mark(
         _ text: String, cells: Int, into buffer: inout FrameBuffer, at cell: (x: Int, y: Int), ink: Ink
     ) {
         var drawn = ClaimingRow()

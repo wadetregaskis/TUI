@@ -49,13 +49,13 @@ import TUIkitStyling
 /// matters beyond the row: a type that stores one, such as
 /// ``ScrollIndicatorLine``, is inferred `Sendable` only if this is.
 @usableFromInline
-struct ClaimingRow: Sendable {
+package struct ClaimingRow: Sendable {
     /// The finished ANSI row.
-    @usableFromInline var text = ""
+    @usableFromInline package var text = ""
 
     /// The cells owing a blend, in the row's own coordinates: column 0 is the
     /// first cell this row draws, whatever the caller puts to its left.
-    @usableFromInline var claims: [OpacityRegion] = []
+    @usableFromInline package var claims: [OpacityRegion] = []
 
     /// How many cells were drawn — which is not always the width that was asked
     /// for. The coarse track path permanently shrinks a track to a whole multiple
@@ -66,7 +66,7 @@ struct ClaimingRow: Sendable {
     /// An empty row. Spelled out only so that it can be `@inlinable`: an
     /// implicit initializer cannot be.
     @inlinable
-    init() {}
+    package init() {}
 
     /// Appends one run: `count` columns of `glyphs`, painted in `ink` on `field`, and
     /// emboldened if asked. `bold` is passed straight to the emitter and does not enter
@@ -85,7 +85,7 @@ struct ClaimingRow: Sendable {
     /// kind of cell, which is why it belongs here with the rest of the pairing: a caller
     /// passes the two colours it wants exchanged, already opaque, and so owes no claim.
     @inlinable
-    mutating func append(
+    package mutating func append(
         _ glyphs: String, cells count: Int, ink: Color?, field: Color? = nil, bold: Bool = false,
         inverted: Bool = false
     ) {

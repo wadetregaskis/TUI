@@ -253,7 +253,7 @@ extension EnvironmentValues {
     /// The breathing ● the first border encountered in this subtree should
     /// draw — and every frame of it, so that border can hand the run loop a
     /// run rather than have the whole page re-render per tick.
-    var focusIndicator: AnimatedColor? {
+    package var focusIndicator: AnimatedColor? {
         get { self[FocusIndicatorKey.self] }
         set { self[FocusIndicatorKey.self] = newValue }
     }

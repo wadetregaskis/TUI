@@ -38,7 +38,7 @@ extension View {
     /// Presents a popover anchored to this view. Matches SwiftUI's
     /// `popover(isPresented:attachmentAnchor:arrowEdge:content:)`.
     ///
-    /// Unlike ``sheet(isPresented:onDismiss:content:)``, which centres a panel
+    /// Unlike ``View/sheet(isPresented:onDismiss:content:)``, which centres a panel
     /// over a dimmed screen, a popover stays *next to the thing it belongs to* —
     /// a bordered panel below (or above, or beside) the presenting view, over an
     /// undimmed page. It is the same presentation `.contextMenu` and the

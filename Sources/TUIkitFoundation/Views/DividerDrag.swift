@@ -12,11 +12,11 @@ import TUIkitCore
 import TUIkitStyling
 
 /// The rule a divider is drawn as: a line one cell thick.
-enum DividerRule {
+package enum DividerRule {
     /// A rule `length` cells long, drawn in `colour`, between panes laid out
     /// along `axis`: a column of `│` between side-by-side panes, a row of `─`
     /// between stacked ones.
-    static func buffer(across axis: Axis, length: Int, colour: Color) -> FrameBuffer {
+    package static func buffer(across axis: Axis, length: Int, colour: Color) -> FrameBuffer {
         let glyph = axis == .horizontal ? "│" : "─"
         let painted = ANSIRenderer.colorize(glyph, foreground: colour.opaqueSpelling)
         return axis == .horizontal
@@ -35,9 +35,14 @@ enum DividerRule {
 /// along the divider's axis IS the signed distance moved.
 ///
 /// A struct kept in the divider's handler, which outlives the frame.
-struct DividerDrag<Base> {
+package struct DividerDrag<Base> {
     /// What the current gesture moves from, or `nil` when none is under way.
     private(set) var base: Base?
+
+    /// No gesture under way. Spelled out because the implicit initializer is
+    /// internal, and the split views and the sheet's grabber
+    /// (TUIkitNavigation) make these.
+    package init() {}
 
     /// Handles a left-button press, drag or release on the divider, reporting
     /// whether it took the event.
@@ -50,7 +55,7 @@ struct DividerDrag<Base> {
     ///     gesture moves from.
     ///   - move: Called on every drag and on the release with the distance
     ///     moved since the press (down or right is positive) and the base.
-    mutating func handle(
+    package mutating func handle(
         _ event: MouseEvent, along axis: Axis, press: () -> Base, move: (_ delta: Int, _ base: Base) -> Void
     ) -> Bool {
         guard event.button == .left else { return false }

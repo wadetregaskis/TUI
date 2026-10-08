@@ -14,7 +14,7 @@
 /// system), so Tabbing through the dialog scrolls it into view, and the wheel
 /// scrolls it too.
 @MainActor
-func renderPresentedDialog<V: View>(
+package func renderPresentedDialog<V: View>(
     _ content: V, context: RenderContext, capHeight: Int
 ) -> FrameBuffer {
     let naturalHeight = measureChild(

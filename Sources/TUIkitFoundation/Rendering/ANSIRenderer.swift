@@ -74,7 +74,7 @@ extension ANSIRenderer {
     ///   - text: The text to render.
     ///   - style: The TextStyle to apply.
     /// - Returns: The formatted string with ANSI codes.
-    static func render(_ text: String, with style: TextStyle) -> String {
+    package static func render(_ text: String, with style: TextStyle) -> String {
         wrap(text, in: styleSequence(for: style))
     }
 

@@ -32,7 +32,7 @@
 /// nothing would say so. Every slot here is cleared whether or not anything
 /// wrote it, and a slot cannot be added without joining ``allCases``, which
 /// is what the clear walks.
-enum FeatureObjectSlot: CaseIterable {
+package enum FeatureObjectSlot: CaseIterable {
     /// The enclosing `NavigationStack`'s coordinator.
     case navigationCoordinator
     /// The suppression toggle the dialogs presented in a subtree show.
@@ -86,7 +86,7 @@ extension EnvironmentValues {
     /// For the feature that owns the slot, under its typed accessor, and for
     /// ``detachedFromRuntime()``, which clears every slot; nothing else reads
     /// or writes one.
-    subscript(featureObject slot: FeatureObjectSlot) -> AnyObject? {
+    package subscript(featureObject slot: FeatureObjectSlot) -> AnyObject? {
         get {
             switch slot {
             case .navigationCoordinator: self[FeatureObjectSlotKey.NavigationCoordinatorSlot.self]

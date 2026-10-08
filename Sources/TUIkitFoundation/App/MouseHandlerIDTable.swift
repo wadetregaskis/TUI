@@ -276,7 +276,7 @@ extension MouseEventDispatcher {
     /// buffers that could not exist.
     @MainActor
     @inlinable
-    func register<Drawn: Equatable>(
+    package func register<Drawn: Equatable>(
         in context: RenderContext, reportingChangesTo drawn: @escaping () -> Drawn,
         _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
@@ -366,7 +366,7 @@ extension MouseEventDispatcher {
     /// take the observer lane from a `.help` inside; a wheel-only region is
     /// passed over for both (``matchingRegions(at:y:includingWheelOnly:)``).
     @MainActor
-    func registerWheelHandler(
+    package func registerWheelHandler(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
         registerInterned(handler, lane: .wheel, in: context)

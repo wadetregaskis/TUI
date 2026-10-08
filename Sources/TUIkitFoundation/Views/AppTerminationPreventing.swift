@@ -11,7 +11,7 @@ import TUIkitView
 
 /// Content that has said whether its presentation stops the app being quit.
 @MainActor
-protocol AppTerminationPreventing {
+package protocol AppTerminationPreventing {
     /// `true` to stop the quit key while presented, `false` to allow it, `nil`
     /// for the automatic behaviour.
     var preventsAppTermination: Bool? { get }
@@ -21,7 +21,7 @@ protocol AppTerminationPreventing {
 /// rule for several statements, where a non-`nil` one overrides `nil` and
 /// `true` takes precedence over `false`, and the automatic `nil` does not.
 @MainActor
-func presentationPreventsTermination(of content: any View) -> Bool {
+package func presentationPreventsTermination(of content: any View) -> Bool {
     presentationTraits(AppTerminationPreventing.self, of: content)
         .contains { $0.preventsAppTermination == true }
 }

@@ -6,8 +6,11 @@ what each holds. Since step A5 each module's files sit in a directory of their o
 (`Sources/TUIkitFoundation`, `Sources/TUIkitLists` …), where the module will live once a step of Phase B carves it
 out; until then the one `TUIkitFoundation` target compiles them all (since step B1; `TUIkit` is the umbrella, which
 only re-exports). Carved so far: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their own that
-TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3) and TUIkitColorPicker (step B4), targets of their
-own that depend on TUIkitFoundation and that the umbrella re-exports. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
+TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TUIkitColorPicker (step B4) and TUIkitNavigation
+(step B5), targets of their own that depend on TUIkitFoundation and that the umbrella re-exports. TUIkitNavigation is
+a **coarse group**: one target compiling two planned modules' directories, `Sources/TUIkitNavigation` and
+`Sources/TUIkitPresentation`, until step C1 peels the second into a target of its own (see
+[Coarse groups](#coarse-groups)). **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;
@@ -224,6 +227,26 @@ names: a list denies what it leaves out, and a module the index lacks would deny
 The refactor landed, or the code moved. Delete the entry, so the rules stay a list of open items. If the finding
 is still there under another key (its declaration was renamed, or an extension now opens with another member),
 give the entry the key the report now prints instead.
+
+## Coarse groups
+
+Phase B carves some planned modules as a **coarse group**: one target that compiles several modules' directories
+(`path: "Sources"`, each directory in `sources:`, in Package.swift), and phase C peels each member into a target of
+its own. Step B5's `TUIkitNavigation` compiles `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step
+C1; steps B6 (the Lists group) and B7 (the TextInput group) carve theirs the same way. Nothing here changes for a
+group, at its carve or at its peels:
+
+- `map.json` and the findings name the planned module. A file under `Sources/TUIkitPresentation` is
+  `TUIkitPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here.
+- The index records the group's target as the module of each of its files' units. The tool reads the units of every
+  module `rules.json` names, so it reads them whichever of those targets compiled them. A member's file that the
+  group's `sources:` leaves out is an `uncompiled` finding, as one TUIkitFoundation's leaves out is.
+- The checks hold the members to the planned map, as they hold the modules TUIkitFoundation still compiles
+  together. That is stricter than the build, never looser. The group's target sees everything its members' planned
+  dependencies give them (TUIkitFoundation, which still compiles TUIkitChrome, for TUIkitPresentation), so what
+  passes the checks compiles. An edge between two members compiles in the group but is still a finding, because
+  the peel would have to break it; so a peel starts with no finding to fix. Treating a group as one module would
+  let such edges in until the peel (decisions B-SPB5-1).
 
 ## The assigner
 

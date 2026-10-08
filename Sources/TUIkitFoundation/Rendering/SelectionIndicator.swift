@@ -205,7 +205,7 @@ public struct SelectionEmphasis: Equatable, Sendable {
     /// Whether this frame shows the bright end of a breath between two ends that
     /// cannot be mixed — a 16-colour breath with one end in reverse video: the steps a
     /// two-shade ramp takes (``Color/breathStep(atPhase:of:)``), whatever the depth.
-    var showsBrightEnd: Bool {
+    package var showsBrightEnd: Bool {
         // Markers, not ink: two colours told apart, never drawn.
         // swiftlint:disable:next framework_colour_literal
         let (dim, bright) = (Color.rgb(0, 0, 0), Color.rgb(255, 255, 255))

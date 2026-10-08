@@ -49,7 +49,7 @@ public final class FocusManager: @unchecked Sendable {
     static let defaultSectionID = "__default__"
 
     /// Registered focus sections in render order.
-    private(set) var sections: [FocusSection] = []
+    package private(set) var sections: [FocusSection] = []
 
     /// Sections that sit side by side as one row of columns, keyed by each member's
     /// id, in left-to-right order — so Left and Right can move between them. Posted
@@ -223,7 +223,7 @@ public final class FocusManager: @unchecked Sendable {
     /// that would otherwise treat "I am rendering" as "I am the current focus
     /// system" — the `.focused` modifiers wiring their store, above all — has
     /// to ask this first.
-    var isBackdrop = false
+    package var isBackdrop = false
 
     /// For each section that was activated *over* another, the section to revert
     /// to when it is deactivated (e.g. a modal section reverts to the page's).
@@ -345,7 +345,7 @@ public final class FocusManager: @unchecked Sendable {
     }
 
     /// The ID of the currently active section, if any.
-    var activeSectionIdentifier: String? { activeSectionID }
+    package var activeSectionIdentifier: String? { activeSectionID }
 
     /// Whether the active section belongs to a presented modal / alert — i.e. a
     /// surface that grabs input. The `InputHandler` consults this to suppress the
@@ -537,7 +537,7 @@ extension FocusManager {
     ///     there is none (an isolated render, a test).
     ///   - drawnBelow: Whether the control's focus can change what is drawn
     ///     below its identity: `false` for a ``FocusDrawnOnlyAtItself``.
-    func noteFocusIdentity(
+    package func noteFocusIdentity(
         _ identity: ViewIdentity, for focusID: String, cachedIn cache: RenderCache?, drawnBelow: Bool = true
     ) {
         renderCacheLink = cache?.link
@@ -1121,7 +1121,7 @@ extension FocusManager {
     /// The first registered section becomes the active section automatically.
     ///
     /// - Parameter id: The unique section identifier.
-    func registerSection(id: String) {
+    package func registerSection(id: String) {
         guard !sections.contains(where: { $0.id == id }) else { return }
         let section = FocusSection(id: id)
         sections.append(section)
@@ -1137,7 +1137,7 @@ extension FocusManager {
     /// input-grabbing surface). Called by the presentation modifiers each render
     /// — the set is cleared in `beginRenderPass`, so an unmarked (dismissed)
     /// modal's section naturally stops grabbing input. See ``activeSectionIsModal``.
-    func markSectionModal(id: String) {
+    package func markSectionModal(id: String) {
         modalSectionIDs.insert(id)
     }
 
@@ -1169,7 +1169,7 @@ extension FocusManager {
     ///
     /// - Parameter id: The section identifier.
     /// - Returns: The focus section, or nil.
-    func section(id: String) -> FocusSection? {
+    package func section(id: String) -> FocusSection? {
         sections.first { $0.id == id }
     }
 
@@ -1222,7 +1222,7 @@ extension FocusManager {
     ///     Tab / Shift+Tab section cycling passes this so the ring keeps
     ///     advancing; modal presentation leaves it `nil` to resume where the
     ///     user left off.
-    func activateSection(id: String, focusBoundary: FocusDirection? = nil) {
+    package func activateSection(id: String, focusBoundary: FocusDirection? = nil) {
         guard sections.contains(where: { $0.id == id }) else { return }
 
         // Re-activating the section we're already on is a no-op: leave
@@ -1552,7 +1552,7 @@ extension FocusManager {
 // MARK: - Private Helpers
 
 /// The direction in which focus moves.
-enum FocusDirection {
+package enum FocusDirection {
     case forward, backward
 }
 

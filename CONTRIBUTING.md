@@ -387,18 +387,22 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   `Tests/TUIkitTests` is for integration tests and the modules with no test
   target of their own: `TUIkitFoundation` (the modules of the split not yet
   carved into targets of their own) and those carved out of it so far,
-  `TUIkitStrings` and `TUIkitTerminalHost` (step B2), `TUIkitApp` (step B3) and
-  `TUIkitColorPicker` (step B4).
+  `TUIkitStrings` and `TUIkitTerminalHost` (step B2), `TUIkitApp` (step B3),
+  `TUIkitColorPicker` (step B4) and `TUIkitNavigation` (step B5).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
   console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
   `Terminal`, and `applyRuntimeServices(from:)`, which builds a render pass's
   environment: 300 test files import `TUIkitApp` for it alone, decisions
   B-SPB3-1), `TUIkitColorPicker` for the colour picker's grids, handlers and
-  editors, `TUIkitStrings` or `TUIkitTerminalHost` for theirs, and
-  `TUIkitFoundation` for the rest. A declaration's module is its directory's: a
-  directory under `Sources/` with a target of its own in `Package.swift` is that
-  module, and every other one is `TUIkitFoundation`.
+  editors, `TUIkitNavigation` for the navigation containers' and the
+  presentations' (crumbs, split-view widths, sheet detents, alert buttons),
+  `TUIkitStrings` or `TUIkitTerminalHost` for theirs, and `TUIkitFoundation`
+  for the rest. A declaration's module is its directory's: a directory under
+  `Sources/` with a target of its own in `Package.swift` is that module, and
+  every other one is `TUIkitFoundation`, with one exception until step C1:
+  `Sources/TUIkitPresentation` compiles into `TUIkitNavigation`, whose target
+  names both directories (a coarse group).
   `Tools/validate-test-boundaries.sh` checks the four modules' targets and runs
   in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views

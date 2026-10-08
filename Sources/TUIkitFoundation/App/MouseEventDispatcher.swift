@@ -414,7 +414,7 @@ extension MouseEventDispatcher {
     /// silent version of this is a control that stops hearing the pointer on
     /// the frames it is served.
     @MainActor
-    func requestFeature(_ feature: MouseFeature, in context: RenderContext) {
+    package func requestFeature(_ feature: MouseFeature, in context: RenderContext) {
         requestFeature(feature)
         guard !context.isMeasuring else { return }
         context.environment.volatileReadTracker?.recordReplayableEffect()

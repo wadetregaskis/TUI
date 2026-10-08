@@ -5,7 +5,7 @@ TUIkit is split into library modules for layering, test isolation and build
 time (TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage; TUIkitFoundation,
 which compiles every module of the planned split not yet carved into a target
 of its own, and the ones carved so far: TUIkitStrings and TUIkitTerminalHost
-below it, TUIkitApp and TUIkitColorPicker above it; and the TUIkit umbrella that `@_exported
+below it, TUIkitApp, TUIkitColorPicker and TUIkitNavigation above it; and the TUIkit umbrella that `@_exported
 import`s them and declares nothing). That split is OUR business, not the
 reader's: `import TUIkit` is one API, so the documentation has to be one API
 reference.
@@ -51,8 +51,8 @@ import sys
 # TUIkit) and the C image-decoder target are deliberately excluded. A module
 # carved out of TUIkitFoundation joins this set when it is carved.
 MODULES = {
-    "TUIkit", "TUIkitApp", "TUIkitColorPicker", "TUIkitFoundation", "TUIkitStrings",
-    "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
+    "TUIkit", "TUIkitApp", "TUIkitColorPicker", "TUIkitNavigation", "TUIkitFoundation",
+    "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
 }
 UMBRELLA = "TUIkit"
 

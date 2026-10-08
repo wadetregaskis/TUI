@@ -300,7 +300,7 @@ package enum FocusRegistration {
     /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
     /// reaches it (module split step A3).
     @usableFromInline
-    static func publishHelpText(context: RenderContext, focusID: String) {
+    package static func publishHelpText(context: RenderContext, focusID: String) {
         let trigger = context.environment.tooltipTrigger
         guard let text = context.environment.helpText,
             trigger != .never,
@@ -403,7 +403,7 @@ package enum FocusRegistration {
     ///   - context: The current render context.
     ///   - isFocused: Whether this control holds the focus. Unfocused controls
     ///     publish nothing, so the claim always belongs to exactly one.
-    static func publishActivationLabel(
+    package static func publishActivationLabel(
         _ label: String?, context: RenderContext, isFocused: Bool
     ) {
         guard isFocused, !context.isMeasuring, let label else { return }

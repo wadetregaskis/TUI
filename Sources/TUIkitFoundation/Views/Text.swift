@@ -61,7 +61,7 @@ public struct Text: View, Equatable {
     // boundary. Style between them left 7 undefined bytes before `runs`.
 
     /// The text to display.
-    let content: String
+    package let content: String
 
     /// The runs this text is made of, or `nil` when it is a single fragment.
     ///
@@ -539,13 +539,13 @@ extension Text {
 ///
 /// Do not widen this back to `public` to expose an attribute; add the attribute
 /// to ``StyleAttributes`` and let it cascade.
-struct TextStyle: Sendable, Equatable {
+package struct TextStyle: Sendable, Equatable {
     /// This style with both colours at full strength — what goes into the SGR
     /// bytes when a colour's alpha travels separately as an `OpacityRegion`.
     ///
     /// See `Color.opaqueSpelling`. The two halves are one claim, and the byte half
     /// is deliberately opaque so the compositor has a real colour to blend from.
-    var opaqueColours: Self {
+    package var opaqueColours: Self {
         var copy = self
         copy.foregroundColor = foregroundColor?.opaqueSpelling
         copy.backgroundColor = backgroundColor?.opaqueSpelling
@@ -583,7 +583,7 @@ struct TextStyle: Sendable, Equatable {
     private var statedLineLimit = StatedLineLimit.unstated
 
     /// The foreground color of the text.
-    var foregroundColor: Color? {
+    package var foregroundColor: Color? {
         get { statedForegroundColor.value }
         set { statedForegroundColor = StatedColor(newValue) }
     }
@@ -609,7 +609,7 @@ struct TextStyle: Sendable, Equatable {
     // value to beat.
 
     /// Whether the text is bold, or `nil` if this `Text` never said.
-    var isBold: Bool?
+    package var isBold: Bool?
 
     /// Whether the text is italic, or `nil` if this `Text` never said.
     var isItalic: Bool?
@@ -660,7 +660,7 @@ struct TextStyle: Sendable, Equatable {
     var truncatesAtWordBoundary: Bool = false
 
     /// Creates a default TextStyle with no formatting.
-    init() {}
+    package init() {}
 }
 
 // MARK: - Palette resolution

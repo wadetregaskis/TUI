@@ -21,7 +21,7 @@ extension EnvironmentValues {
     ///
     /// Set by those presenters for the content they present; a live sheet's
     /// content shares the keyboard with its page, and does not set it.
-    var isInModalPresentation: Bool {
+    package var isInModalPresentation: Bool {
         get { self[InModalPresentationKey.self] }
         set { self[InModalPresentationKey.self] = newValue }
     }

@@ -13,7 +13,7 @@
 extension FocusManager {
     /// The pane whose content is rendering now, if any — see
     /// ``beginPane(id:)``.
-    var currentPaneID: String? { panes.current }
+    package var currentPaneID: String? { panes.current }
 
     /// Starts rendering the content of pane `id`: the sections registered
     /// until ``endPane(restoring:)`` are the pane's, and so are the claims on
@@ -21,7 +21,7 @@ extension FocusManager {
     ///
     /// - Returns: The pane this one is rendered inside, if any, to hand back
     ///   to ``endPane(restoring:)``.
-    func beginPane(id: String) -> String? {
+    package func beginPane(id: String) -> String? {
         let outer = panes.current
         panes.current = id
         panes.sectionPanes[id] = id
@@ -29,7 +29,7 @@ extension FocusManager {
     }
 
     /// Ends the pane ``beginPane(id:)`` began, back in `outer`.
-    func endPane(restoring outer: String?) {
+    package func endPane(restoring outer: String?) {
         panes.current = outer
     }
 

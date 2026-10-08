@@ -17,11 +17,11 @@
 /// button, and a `NavigationStack` crumb, which had its own copy that asked for the
 /// colour drawn now and the run's frames separately — the identical pulse ramp,
 /// built twice.
-enum BreathingLabel {
+package enum BreathingLabel {
     /// A one-line label that breathes between `ends` instead of growing a bullet
     /// beside it — see `_ButtonAppearance.indicatesFocusInLabel`.
     @MainActor
-    static func draw(
+    package static func draw(
         _ text: String, style: TextStyle, ends: (dim: Color, bright: Color),
         cycle: SelectionEmphasisCycle, indicating: Bool, isMeasuring: Bool
     ) -> FrameBuffer {

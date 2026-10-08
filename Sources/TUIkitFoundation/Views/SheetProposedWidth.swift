@@ -18,7 +18,7 @@ extension EnvironmentValues {
     /// when the content named a ``PresentationSizing`` that proposes one — the
     /// width twin of ``sheetDetentHeight``, consumed and cleared by the same
     /// outermost container, for the same reasons.
-    var sheetProposedWidth: Int? {
+    package var sheetProposedWidth: Int? {
         get { self[SheetProposedWidthKey.self] }
         set { self[SheetProposedWidthKey.self] = newValue }
     }

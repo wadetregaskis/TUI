@@ -31,7 +31,7 @@ extension FocusManager {
     /// column `i` and column `i + 1`. A divider is not a column: Left and Right
     /// from the columns pass over it. From the divider itself they reach the
     /// columns either side, when its own handler has not used them to resize.
-    func registerSectionGroup(_ ids: [String], dividers: [String?] = []) {
+    package func registerSectionGroup(_ ids: [String], dividers: [String?] = []) {
         guard ids.count > 1 else { return }
         let group = SectionGroup(ids: ids, end: sections.count)
         for id in ids { sectionGroups[id] = group }
@@ -72,7 +72,7 @@ extension FocusManager {
     /// `start` in this frame's ring — by a view that began rendering when `start`
     /// sections were registered and has just finished. `nil` when the keyboard
     /// is in a section registered before that, or in none.
-    func activeSectionID(registeredSince start: Int) -> String? {
+    package func activeSectionID(registeredSince start: Int) -> String? {
         guard let active = activeSectionIdentifier, start >= 0, start < sections.count,
             sections[start...].contains(where: { $0.id == active })
         else { return nil }

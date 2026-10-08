@@ -51,7 +51,7 @@ extension RenderContext {
     /// `@inlinable` (module split step A3): every container that hands its
     /// content a size calls it, in modules that leave the substrate from B5.
     @inlinable
-    func publishingContainerSize(_ size: CellSize, noting: Bool = true) -> Self {
+    package func publishingContainerSize(_ size: CellSize, noting: Bool = true) -> Self {
         var copy = self
         copy.environment.containerRelativeSize = size
         copy.environmentApplicationDepth += 1

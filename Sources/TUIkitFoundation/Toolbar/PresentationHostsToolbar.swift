@@ -28,7 +28,7 @@ extension EnvironmentValues {
     /// Its `.navigationTitle` is not the window's either
     /// (`PreferenceModifier`'s offer to the window chrome): a sheet's title is
     /// the sheet's.
-    var presentationHostsToolbar: Bool {
+    package var presentationHostsToolbar: Bool {
         get { self[PresentationHostsToolbarKey.self] }
         set { self[PresentationHostsToolbarKey.self] = newValue }
     }

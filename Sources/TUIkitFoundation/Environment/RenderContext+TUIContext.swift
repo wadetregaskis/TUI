@@ -114,7 +114,7 @@ extension RenderContext {
     /// context, so its own shortcuts and its ESC item publish exactly as
     /// before; what stops is the page underneath declaring things that outlive
     /// its own inertness.
-    func isolatedForBackground() -> Self {
+    package func isolatedForBackground() -> Self {
         var copy = withThrowawayKeyChannels()
         let backdropFocus = FocusManager()
         backdropFocus.suppressesAutoFocus = true
@@ -193,7 +193,7 @@ extension RenderContext {
     /// environment alone, so the covered root's measures gated on the LIVE
     /// tracker's counters while its reads went to the throwaway: debug builds
     /// trapped on the first push over a root with a scroll view in it.
-    func withThrowawayFrameDemand<Result>(_ body: (RenderContext) -> Result) -> Result {
+    package func withThrowawayFrameDemand<Result>(_ body: (RenderContext) -> Result) -> Result {
         var copy = self
         copy.environment.animationScheduler = AnimationScheduler()
         // Nor does it declare anything into the window's chrome. A `.toolbar`

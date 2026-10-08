@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitNavigation
 
 /// Whether the inspector shows, by reference so a frame's binding reaches it.
 private final class Shown {

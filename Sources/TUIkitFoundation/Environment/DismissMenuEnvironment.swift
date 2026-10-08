@@ -15,8 +15,15 @@ import TUIkitCore
 /// `@unchecked Sendable`: the closure is created and invoked only on the render
 /// loop's single thread — the same latitude every action closure relies on — so
 /// it can be a concurrency-safe environment default.
-struct DismissMenuAction: @unchecked Sendable {
+package struct DismissMenuAction: @unchecked Sendable {
     let action: () -> Void
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and an alert (TUIkitNavigation) makes these.
+    package init(action: @escaping () -> Void) {
+        self.action = action
+    }
+
     func callAsFunction() { action() }
 }
 
@@ -27,7 +34,7 @@ private struct DismissMenuKey: EnvironmentKey {
 extension EnvironmentValues {
     /// Closes the enclosing pop-up menu, if any. `nil` outside a menu's item
     /// subtree, so a ``Button`` elsewhere on the page is unaffected.
-    var dismissMenu: DismissMenuAction? {
+    package var dismissMenu: DismissMenuAction? {
         get { self[DismissMenuKey.self] }
         set { self[DismissMenuKey.self] = newValue }
     }
@@ -102,7 +109,7 @@ extension EnvironmentValues {
     ///
     /// Internal: SwiftUI exposes no `EnvironmentValues` member for this either,
     /// the modifier being the whole API.
-    var menuActionDismissBehavior: MenuActionDismissBehavior {
+    package var menuActionDismissBehavior: MenuActionDismissBehavior {
         get { self[MenuActionDismissBehaviorKey.self] }
         set { self[MenuActionDismissBehaviorKey.self] = newValue }
     }

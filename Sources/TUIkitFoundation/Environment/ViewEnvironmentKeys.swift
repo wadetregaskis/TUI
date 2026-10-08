@@ -92,7 +92,7 @@ extension EnvironmentValues {
     /// height would have its bottom border and last rows shaved off — reading as
     /// "clipped behind the status bar". Defaults to 24 (no chrome reserved) for
     /// isolated tests with no render loop.
-    var overlayContentHeight: Int {
+    package var overlayContentHeight: Int {
         get { self[OverlayContentHeightKey.self] }
         set { self[OverlayContentHeightKey.self] = newValue }
     }

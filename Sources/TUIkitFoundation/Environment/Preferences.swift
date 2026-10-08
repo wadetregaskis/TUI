@@ -234,8 +234,8 @@ public struct NavigationTitleKey: PreferenceKey {
 /// A preference key for the navigation subtitle: what
 /// `navigationSubtitle(_:)` publishes, read by a `NavigationStack` with the
 /// title.
-struct NavigationSubtitleKey: PreferenceKey {
-    static let defaultValue: String = ""
+package struct NavigationSubtitleKey: PreferenceKey {
+    package static let defaultValue: String = ""
 }
 
 /// A preference key for whether a pushed screen hides its Back control.

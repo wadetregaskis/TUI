@@ -690,6 +690,7 @@
   "TUIkitMenus/Views/Menu.swift": "TUIkitMenus",
   "TUIkitMenus/Views/_InlineMenuCore.swift": "TUIkitMenus",
   "TUIkitMenus/Views/_MenuPopupCore.swift": "TUIkitMenus",
+  "TUIkitNavigation/Exports.swift": "TUIkitNavigation",
   "TUIkitNavigation/Modifiers/NavigationDestinationModifier.swift": "TUIkitNavigation",
   "TUIkitNavigation/Modifiers/NavigationPresentationModifier.swift": "TUIkitNavigation",
   "TUIkitNavigation/Modifiers/NavigationSplitViewColumnWidthModifier.swift": "TUIkitNavigation",

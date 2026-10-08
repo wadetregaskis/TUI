@@ -11,7 +11,7 @@ import TUIkitView
 
 /// Content that has named its presentation's background.
 @MainActor
-protocol PresentationBackgroundProviding {
+package protocol PresentationBackgroundProviding {
     /// `view`, with the background behind it.
     func presentationBackground<V: View>(behind view: V) -> AnyView
 }

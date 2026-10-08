@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitNavigation
 
 /// SwiftUI's shape of a custom style: a built-in's body, decorated.
 private struct FramedBalancedStyle: NavigationSplitViewStyle {

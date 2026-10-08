@@ -193,7 +193,7 @@ extension View {
     ///
     /// ## Available Styles
     ///
-    /// - ``AutomaticNavigationSplitViewStyle/automatic``: Resolves based on context.
+    /// - ``NavigationSplitViewStyle/automatic``: Resolves based on context.
     /// - ``BalancedNavigationSplitViewStyle/balanced``: Columns share space proportionally.
     /// - ``ProminentDetailNavigationSplitViewStyle/prominentDetail``: Detail gets more space.
     ///

@@ -44,7 +44,7 @@ extension EnvironmentValues {
     /// detent — is what this replaced: those rows were blank, unstyled and
     /// *opaque*, so they punched a hole through the dialog's page rather than
     /// belonging to anything.
-    var sheetDetentHeight: Int? {
+    package var sheetDetentHeight: Int? {
         get { self[SheetDetentHeightKey.self] }
         set { self[SheetDetentHeightKey.self] = newValue }
     }

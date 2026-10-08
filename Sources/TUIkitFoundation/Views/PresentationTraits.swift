@@ -28,7 +28,7 @@ import TUIkitView
 /// pair the other way round would behave differently, for no reason a reader
 /// could see.
 @MainActor
-protocol PresentationTraitWrapper {
+package protocol PresentationTraitWrapper {
     /// The view directly beneath this wrapper.
     var presentationTraitContent: any View { get }
 }
@@ -37,7 +37,7 @@ protocol PresentationTraitWrapper {
 ///
 /// Each step strictly descends one wrapper, so the walk terminates on any tree.
 @MainActor
-func presentationTrait<T>(_ type: T.Type, of view: any View) -> T? {
+package func presentationTrait<T>(_ type: T.Type, of view: any View) -> T? {
     var current = view
     while true {
         if let match = current as? T { return match }
@@ -68,7 +68,7 @@ func presentationTraits<T>(_ type: T.Type, of view: any View) -> [T] {
 // own) still has to be inside the trait, which is the documented rule.
 
 extension ConditionalView: PresentationTraitWrapper {
-    var presentationTraitContent: any View {
+    package var presentationTraitContent: any View {
         switch self {
         case .trueContent(let view): view
         case .falseContent(let view): view
@@ -77,14 +77,14 @@ extension ConditionalView: PresentationTraitWrapper {
 }
 
 extension Optional: PresentationTraitWrapper where Wrapped: View {
-    var presentationTraitContent: any View { self ?? EmptyView() }
+    package var presentationTraitContent: any View { self ?? EmptyView() }
 }
 
 // MARK: - interactiveDismissDisabled()
 
 /// Content that has asked not to be dismissed by hand.
 @MainActor
-protocol InteractiveDismissDisabling {
+package protocol InteractiveDismissDisabling {
     /// Whether Escape and an outside click should stop closing the presentation.
     var interactiveDismissIsDisabled: Bool { get }
 }

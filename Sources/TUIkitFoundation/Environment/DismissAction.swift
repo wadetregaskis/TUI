@@ -70,10 +70,10 @@ public struct DismissAction: Sendable, Equatable {
     /// `@unchecked Sendable`: `action` is written and read on the main actor
     /// only — by a view's render, and by ``DismissAction/callAsFunction()``,
     /// which is main-actor isolated — and never shared mutably elsewhere.
-    final class Box: @unchecked Sendable {
-        var action: @MainActor @Sendable () -> Void
+    package final class Box: @unchecked Sendable {
+        package var action: @MainActor @Sendable () -> Void
 
-        init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
+        package init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
             self.action = action
         }
     }
@@ -94,7 +94,7 @@ public struct DismissAction: Sendable, Equatable {
     }
 
     /// The action `box` runs, equal to every other made from it.
-    init(box: Box) {
+    package init(box: Box) {
         self.box = box
     }
 
@@ -158,7 +158,7 @@ extension EnvironmentValues {
     ///
     /// A pushed ``NavigationStack`` screen reports `false`, as it does in
     /// SwiftUI: it was navigated to, not presented.
-    public internal(set) var isPresented: Bool {
+    public package(set) var isPresented: Bool {
         get { self[IsPresentedKey.self] }
         set { self[IsPresentedKey.self] = newValue }
     }

@@ -66,37 +66,37 @@ public struct FlexibleFrameView<Content: View>: View {
     }
 
     /// The minimum width in characters, or nil for no minimum.
-    var minWidth: Int? {
+    package var minWidth: Int? {
         get { FrameWord.unpack(minWidthWord) }
         set { minWidthWord = FrameWord.pack(newValue) }
     }
 
     /// The ideal width in characters, or nil to use intrinsic size.
-    var idealWidth: Int? {
+    package var idealWidth: Int? {
         get { FrameWord.unpack(idealWidthWord) }
         set { idealWidthWord = FrameWord.pack(newValue) }
     }
 
     /// The maximum width constraint, or nil for no maximum.
-    var maxWidth: FrameDimension? {
+    package var maxWidth: FrameDimension? {
         get { FrameWord.unpackDimension(maxWidthWord) }
         set { maxWidthWord = FrameWord.pack(newValue) }
     }
 
     /// The minimum height in lines, or nil for no minimum.
-    var minHeight: Int? {
+    package var minHeight: Int? {
         get { FrameWord.unpack(minHeightWord) }
         set { minHeightWord = FrameWord.pack(newValue) }
     }
 
     /// The ideal height in lines, or nil to use intrinsic size.
-    var idealHeight: Int? {
+    package var idealHeight: Int? {
         get { FrameWord.unpack(idealHeightWord) }
         set { idealHeightWord = FrameWord.pack(newValue) }
     }
 
     /// The maximum height constraint, or nil for no maximum.
-    var maxHeight: FrameDimension? {
+    package var maxHeight: FrameDimension? {
         get { FrameWord.unpackDimension(maxHeightWord) }
         set { maxHeightWord = FrameWord.pack(newValue) }
     }

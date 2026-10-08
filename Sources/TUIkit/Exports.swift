@@ -13,13 +13,16 @@
 // is built on (TUIkitStrings, TUIkitTerminalHost) comes through
 // TUIkitFoundation's own re-exports; one carved out that is built on
 // TUIkitFoundation is re-exported here: TUIkitApp (`App`, `Scene` and the run
-// loop, since step B3) and TUIkitColorPicker (`ColorPicker` and its editors,
-// since step B4). A qualified name in an app, `TUIkit.Label`, still resolves
-// through these re-exports.
+// loop, since step B3), TUIkitColorPicker (`ColorPicker` and its editors, since
+// step B4) and TUIkitNavigation (the navigation containers, and the
+// presentations until step C1 peels them into TUIkitPresentation; since step
+// B5). A qualified name in an app, `TUIkit.Label`, still resolves through these
+// re-exports.
 @_exported import TUIkitApp
 @_exported import TUIkitColorPicker
 @_exported import TUIkitCore
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
+@_exported import TUIkitNavigation
 @_exported import TUIkitStyling
 @_exported import TUIkitView

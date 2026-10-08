@@ -132,11 +132,17 @@ extension NavigationSplitViewStyle {
 public struct NavigationSplitViewStyleConfiguration {
     /// The split's columns, which read the style they are laid out by from the
     /// environment.
-    let columns: AnyView
+    package let columns: AnyView
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and `NavigationSplitView` (TUIkitNavigation) makes these.
+    package init(columns: AnyView) {
+        self.columns = columns
+    }
 
     /// The columns, laid out by `style`.
     @MainActor
-    func columns(styledBy style: some NavigationSplitViewStyle) -> some View {
+    package func columns(styledBy style: some NavigationSplitViewStyle) -> some View {
         columns.environment(\.navigationSplitViewStyle, style)
     }
 }
@@ -144,7 +150,7 @@ public struct NavigationSplitViewStyleConfiguration {
 /// The styles TUIkit ships, whose bodies are their columns laid out by their
 /// own proportions: a split under one draws its columns directly, with no
 /// body to erase.
-protocol BuiltInNavigationSplitViewStyle {}
+package protocol BuiltInNavigationSplitViewStyle {}
 
 // MARK: - AutomaticNavigationSplitViewStyle
 

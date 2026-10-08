@@ -1360,7 +1360,7 @@ extension RenderContext {
     /// from inside a scroll view is not in that scroll view's content, and
     /// told it was, it would measure every row its budget reaches rather than
     /// the sample, for a drawing that is not there.
-    mutating func leaveScrollCanvas() {
+    package mutating func leaveScrollCanvas() {
         environment.leaveScrollCanvas()
         scrollContentOriginDepth = 0
     }

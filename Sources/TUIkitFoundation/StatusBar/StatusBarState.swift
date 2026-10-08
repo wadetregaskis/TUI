@@ -179,7 +179,7 @@ public final class StatusBarState: @unchecked Sendable {
     private(set) var quitIsPrevented = false
 
     /// Records that a presentation drawn this frame prevents quitting.
-    func preventQuit() {
+    package func preventQuit() {
         quitIsPrevented = true
     }
 
@@ -189,7 +189,7 @@ public final class StatusBarState: @unchecked Sendable {
     private var quitQuestion: ((@escaping () -> Void) -> Void)?
 
     /// Has the quit key ask `question` first, this frame.
-    func askBeforeQuitting(_ question: @escaping (@escaping () -> Void) -> Void) {
+    package func askBeforeQuitting(_ question: @escaping (@escaping () -> Void) -> Void) {
         quitQuestion = question
     }
 
@@ -641,7 +641,7 @@ extension StatusBarState {
     /// - Returns: The registration's serial, for
     ///   ``replaceSectionItems(registeredAs:with:)``.
     @discardableResult
-    func registerSectionItems(
+    package func registerSectionItems(
         sectionID: String,
         items: [any StatusBarItemProtocol],
         composition: StatusBarItemComposition
@@ -659,7 +659,7 @@ extension StatusBarState {
     /// For a presenter, which registers its item before its content renders
     /// (so the content's own items into its section replace it) and knows
     /// only afterwards what its Escape does this frame.
-    func replaceSectionItems(registeredAs serial: Int, with items: [any StatusBarItemProtocol]) {
+    package func replaceSectionItems(registeredAs serial: Int, with items: [any StatusBarItemProtocol]) {
         guard let index = sectionItems.firstIndex(where: { $0.serial == serial }) else { return }
         sectionItems[index].items = items
     }

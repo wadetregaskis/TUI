@@ -305,16 +305,3 @@ struct _DismissalActions<A: View>: View, ButtonProvider {
         return buttons
     }
 }
-
-extension Button {
-    /// `button`, running `action` instead of its own.
-    init(_ button: Button, action: @escaping () -> Void) {
-        self.label = button.label
-        self.labelView = button.labelView
-        self.action = action
-        self.role = button.role
-        self.focusID = button.focusID
-        self.isDisabled = button.isDisabled
-        self.triggeredMenu = button.triggeredMenu
-    }
-}

@@ -83,7 +83,7 @@ extension KeyEventDispatcher {
     ///     section passes `nil` and is silenced whenever some section holds the
     ///     keyboard.
     ///   - handler: A closure that returns true if the key was handled.
-    func addHandler(sectionID: String? = nil, _ handler: @escaping (KeyEvent) -> Bool) {
+    package func addHandler(sectionID: String? = nil, _ handler: @escaping (KeyEvent) -> Bool) {
         handlers.append(Entry(sectionID: sectionID, handler: handler))
     }
 
@@ -104,7 +104,7 @@ extension KeyEventDispatcher {
     ///     trap.
     ///   - sectionID: As for ``addHandler(sectionID:_:)``.
     ///   - handler: A closure that returns true if the key was handled.
-    func insertHandler(
+    package func insertHandler(
         at position: Int, sectionID: String? = nil, _ handler: @escaping (KeyEvent) -> Bool
     ) {
         let index = min(max(0, position), handlers.count)
@@ -114,7 +114,7 @@ extension KeyEventDispatcher {
     /// The number of currently-registered handlers. Used by tests to assert
     /// that measure passes register nothing, and as the slot
     /// ``insertHandler(at:sectionID:_:)`` files a handler at.
-    var handlerCount: Int { handlers.count }
+    package var handlerCount: Int { handlers.count }
 
     /// How far registration has got: what ``rollBack(to:)`` returns to.
     struct Mark {
@@ -139,7 +139,7 @@ extension KeyEventDispatcher {
 
     /// Declares that `id` owns the keyboard for the rest of this frame — see
     /// ``grabbingSectionID``. Called by a presented surface as it renders.
-    func grabInput(sectionID id: String) {
+    package func grabInput(sectionID id: String) {
         grabbingSectionID = id
     }
 

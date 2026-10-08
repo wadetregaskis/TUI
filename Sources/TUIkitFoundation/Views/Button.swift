@@ -117,14 +117,14 @@ public struct Button: View {
     let labelView: AnyView?
 
     /// The action to perform when pressed.
-    let action: () -> Void
+    package let action: () -> Void
 
     /// The button's semantic role.
     ///
     /// Roles affect button ordering in alerts/dialogs and can trigger
     /// automatic styling. Cancel buttons appear on the left; destructive
     /// buttons use error coloring.
-    let role: ButtonRole?
+    package let role: ButtonRole?
 
     /// The unique focus identifier.
     ///
@@ -145,7 +145,7 @@ public struct Button: View {
     /// Whether the button is disabled.
     ///
     /// Set with the ``disabled(_:)`` modifier.
-    var isDisabled: Bool
+    package var isDisabled: Bool
 
     /// Creates a button with a localized label and an action.
     ///
@@ -312,6 +312,24 @@ public struct Button: View {
         self.role = role
         self.focusID = nil
         self.isDisabled = false
+    }
+
+    /// `button`, running `action` instead of its own: a dismissal
+    /// confirmation's buttons (`DismissalConfirmation.swift`, TUIkitNavigation)
+    /// run the pending dismissal after their own action.
+    ///
+    /// Here, not beside its caller, because an initializer in an extension
+    /// declared in another module may not assign a struct's stored properties
+    /// one by one (it has to delegate to an initializer of the type's own
+    /// module), and this one copies them all.
+    package init(_ button: Self, action: @escaping () -> Void) {
+        self.label = button.label
+        self.labelView = button.labelView
+        self.action = action
+        self.role = button.role
+        self.focusID = button.focusID
+        self.isDisabled = button.isDisabled
+        self.triggeredMenu = button.triggeredMenu
     }
 
     public var body: some View {

@@ -27,14 +27,22 @@ import Foundation
 /// or block the background.
 ///
 /// - SeeAlso: ``NotificationService``, ``View/notificationHost(width:)``
-struct NotificationHostModifier<Content: View>: View {
+package struct NotificationHostModifier<Content: View>: View {
     /// The base content to render.
     let content: Content
 
     /// The fixed width of each notification box in characters.
     let width: Int
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and `View.notificationHost(width:)` (TUIkitNavigation, with the
+    /// presentations until step C1) makes these.
+    package init(content: Content, width: Int) {
+        self.content = content
+        self.width = width
+    }
+
+    package var body: Never {
         fatalError("NotificationHostModifier renders via Renderable")
     }
 }
@@ -42,7 +50,7 @@ struct NotificationHostModifier<Content: View>: View {
 // MARK: - Renderable
 
 extension NotificationHostModifier: Renderable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let baseBuffer = TUIkitView.renderToBuffer(content, context: context)
         // Without an app there is no service, so there is nothing to show
         // over the content.
@@ -171,7 +179,7 @@ extension NotificationHostModifier: Layoutable {
     /// Notifications are transient overlays composited onto the page content
     /// (which spans the screen), so the layout footprint is the base `content`.
     /// Forwarding also keeps the animation-timer side-effect on the render pass.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

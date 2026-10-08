@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitNavigation
 
 /// Internal, not private: a value is restored by its type's name, and a
 /// private type's name carries a per-file discriminator the lookup cannot

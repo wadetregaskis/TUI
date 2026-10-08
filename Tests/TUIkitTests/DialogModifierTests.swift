@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitNavigation
 
 @MainActor
 @Suite("Dialog modifiers", .rendersEnglishUI)

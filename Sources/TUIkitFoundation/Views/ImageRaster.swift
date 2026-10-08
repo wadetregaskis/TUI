@@ -28,7 +28,7 @@
 /// every picture equal to every other — a memo above serving a stale image —
 /// or to none, a memo that never hits; a default measure or draw would draw
 /// nothing. Each would fail silently, so each conformer says what it does.
-protocol _ImageRaster: Sendable {
+package protocol _ImageRaster: Sendable {
     /// Whether `other` is the same picture: the same kind of value, naming the
     /// same source. Pixels already decoded are not part of it — they are what
     /// the source decodes to — so an image compares equal to itself before
@@ -48,7 +48,7 @@ protocol _ImageRaster: Sendable {
 
 /// What an image's own modifiers ask of its picture: everything an ``Image``
 /// stores beside its content.
-struct _ImageRasterOptions: Equatable, Sendable {
+package struct _ImageRasterOptions: Equatable, Sendable {
     /// Whether the picture draws as a template, its coverage in the foreground
     /// colour (``Image/renderingMode(_:)``).
     var isTemplate: Bool

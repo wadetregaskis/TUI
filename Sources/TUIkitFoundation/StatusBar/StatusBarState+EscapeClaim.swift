@@ -52,7 +52,7 @@ extension StatusBarState {
     ///
     /// For a surface that claims Escape only when nothing inside it has
     /// (`NavigationStack`): a claim made in another pane is not one inside it.
-    var hasEscapeClaimHere: Bool {
+    package var hasEscapeClaimHere: Bool {
         guard let pane = focusManager?.currentPaneID else { return escapeClaim != nil }
         return paneEscapeClaims[pane] != nil
     }
@@ -108,7 +108,7 @@ extension StatusBarState {
     /// key that closes the sheet (the status bar skips every Escape item while
     /// a claim stands) — or, with its dismissal disabled, for a key that does
     /// nothing at all. Anything inside it renders later, and claims again.
-    func withdrawEscapeClaim() {
+    package func withdrawEscapeClaim() {
         setEscapeClaimHere(nil)
         _ = takePendingEscapeClaimFlag()
     }

@@ -28,7 +28,7 @@ extension EnvironmentValues {
     /// Whether the enclosing view should hug its content width (see
     /// ``FixedSizeWidthKey``).
     @inlinable
-    var fixedSizeWidth: Bool {
+    package var fixedSizeWidth: Bool {
         get { self[FixedSizeWidthKey.self] }
         set { self[FixedSizeWidthKey.self] = newValue }
     }

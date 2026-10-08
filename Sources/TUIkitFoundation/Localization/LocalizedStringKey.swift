@@ -60,10 +60,10 @@ import Foundation
 /// read first. See ``LocalizationService/string(for:)-(String)``.
 public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// The lookup key: the literal, with `%@` where each interpolation was.
-    let key: String
+    package let key: String
 
     /// The interpolated values, already converted to text.
-    let arguments: [String]
+    package let arguments: [String]
 
     /// The arguments that read the clock, by their index in ``arguments`` —
     /// `\(date, style: .relative)` and the other live interpolations — whose
@@ -91,7 +91,7 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     ///
     /// - Parameter service: Where to look the key up.
     /// - Returns: The text to display.
-    func resolved(with service: LocalizationService) -> String {
+    package func resolved(with service: LocalizationService) -> String {
         let template = service.string(for: key)
         guard !arguments.isEmpty else { return template }
         return Self.substituting(arguments, into: template)

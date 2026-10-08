@@ -25,7 +25,7 @@ extension FocusManager {
     ///     docked it and did not draw it to ask why
     ///     (``settlePresentationDock(laidOutBy:in:storage:)``).
     ///   - resolver: The rows the sheet docks, asked before the next walk.
-    func notePresentationDock(
+    package func notePresentationDock(
         id: String, presenter: ViewIdentity, resolver: @escaping PresentationDockResolver
     ) {
         panes.docks[id] = PaneLedger.PostedDock(presenter: presenter, resolver: resolver)
@@ -106,7 +106,7 @@ extension FocusManager {
     /// would leave the window again, the sheet with it, and the page would
     /// grow back: the two alternated every frame, the app never idled, and the
     /// sheet lost the focus for good.
-    func presenterWentUndrawnUnderItsDock(_ id: String) -> Bool {
+    package func presenterWentUndrawnUnderItsDock(_ id: String) -> Bool {
         panes.undrawnUnderTheirDock.contains(id)
     }
 

@@ -21,15 +21,15 @@
 ///     titleColor: .cyan
 /// )
 /// ```
-struct ContainerConfig: Sendable, Equatable {
+package struct ContainerConfig: Sendable, Equatable {
     /// The border style (nil uses appearance default).
     var borderStyle: BorderStyle?
 
     /// The border color (nil uses theme default).
-    var borderColor: Color?
+    package var borderColor: Color?
 
     /// The title color (nil uses theme accent).
-    var titleColor: Color?
+    package var titleColor: Color?
 
     /// The inner padding for the body content.
     var padding: EdgeInsets
@@ -72,7 +72,7 @@ struct ContainerConfig: Sendable, Equatable {
     ///   - hasBorder: Whether to draw a border at all (default: true).
     ///   - scrollsOverflowingBody: Whether a too-tall body scrolls rather than
     ///     being clipped, with the title and footer pinned (default: false).
-    init(
+    package init(
         borderStyle: BorderStyle? = nil,
         borderColor: Color? = nil,
         titleColor: Color? = nil,
@@ -190,7 +190,7 @@ struct ContainerStyle: Sendable, Equatable {
 ///   - context: The current render context.
 /// - Returns: The rendered frame buffer.
 @MainActor
-internal func renderContainer<Content: View, Footer: View>(
+package func renderContainer<Content: View, Footer: View>(
     title: String?,
     config: ContainerConfig,
     content: Content,
@@ -221,7 +221,7 @@ internal func renderContainer<Content: View, Footer: View>(
 ///   - context: The current render context.
 /// - Returns: The size the container needs.
 @MainActor
-internal func measureContainer<Content: View, Footer: View>(
+package func measureContainer<Content: View, Footer: View>(
     title: String?,
     config: ContainerConfig,
     content: Content,

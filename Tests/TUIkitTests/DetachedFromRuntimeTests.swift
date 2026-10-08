@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitNavigation
 @testable import TUIkitStyling
 @testable import TUIkitView
 

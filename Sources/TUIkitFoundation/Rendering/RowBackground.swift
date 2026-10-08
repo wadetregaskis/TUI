@@ -21,7 +21,7 @@ import TUIkitCore
 /// rules about focus, selection and the unfocused-selection visibility, written
 /// out twice — and the two have drifted apart before. One description of what a
 /// row's background can be is one fewer thing to drift.
-enum RowBackground {
+package enum RowBackground {
     /// No background at all.
     case none
 
@@ -48,7 +48,7 @@ enum RowBackground {
     case pulsingReversal(SelectionEmphasisCycle, dim: Paint, bright: Paint)
 
     /// How one frame of a breathing row paints its line.
-    enum Paint {
+    package enum Paint {
         case fill(Color)
         /// The pair reversed; `bold` emboldens the whole row too.
         case reversed(ink: Color, field: Color, bold: Bool = false)
@@ -157,7 +157,7 @@ enum RowBackground {
     /// measured does). The one answer a list's or table's cursor row, a menu's bar and a
     /// drop-down's highlighted row all draw from.
     @MainActor
-    static func reversingEnds(of highlight: HighlightFill) -> (dim: Paint, bright: Paint)? {
+    package static func reversingEnds(of highlight: HighlightFill) -> (dim: Paint, bright: Paint)? {
         switch highlight {
         case .reversingPulse(let dim, let bright, let ink, let field):
             let reversal = Paint.reversed(ink: ink, field: field)

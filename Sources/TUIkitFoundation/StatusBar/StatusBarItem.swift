@@ -230,7 +230,7 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
     /// presses a cancel button that does not repeat
     /// (`DismissalGate.escapeRepeats`). A repeat that does not run it is
     /// still taken, as the keyboard-shortcut registry takes one.
-    var repeats = true
+    package var repeats = true
 
     /// Creates a status bar item with a localized label and an action.
     ///

@@ -18,10 +18,10 @@ import TUIkitView
 /// each render of its content, and the content's
 /// `dismissalConfirmationDialog`, if it wants to ask, sets it again.
 @MainActor
-final class DismissalGate: Equatable {
+package final class DismissalGate: Equatable {
     /// Asks before dismissing; given the dismissal to run if the answer is
     /// yes.
-    var interceptor: ((@escaping () -> Void) -> Void)?
+    package var interceptor: ((@escaping () -> Void) -> Void)?
 
     /// The cancel button the content drew last frame — a button with
     /// `.keyboardShortcut(.cancelAction)`, as a `.cancellationAction` toolbar
@@ -64,7 +64,7 @@ final class DismissalGate: Equatable {
     /// its own `.keyboardShortcut` would: otherwise it is taken and runs
     /// nothing, so a Cancel that keeps the sheet up runs once per press, not
     /// once per repeat.
-    func escape(isRepeat: Bool, _ proceed: @escaping () -> Void) {
+    package func escape(isRepeat: Bool, _ proceed: @escaping () -> Void) {
         guard escapePressesCancelButton, let cancelButton else {
             dismiss(proceed)
             return
@@ -77,13 +77,13 @@ final class DismissalGate: Equatable {
     /// this frame (``escape(isRepeat:_:)``), rather than dismissing: what the
     /// status bar calls it by — "cancel", not "dismiss", for a Cancel that may
     /// keep the presentation up.
-    var escapePressesCancelButton: Bool {
+    package var escapePressesCancelButton: Bool {
         interceptor == nil && cancelButton != nil
     }
 
     /// Whether a held Escape's repeats do what its press did: not while it
     /// presses a cancel button that does not repeat (``escape(isRepeat:_:)``).
-    var escapeRepeats: Bool {
+    package var escapeRepeats: Bool {
         guard escapePressesCancelButton, let cancelButton else { return true }
         return cancelButton.repeats
     }
@@ -91,14 +91,14 @@ final class DismissalGate: Equatable {
     /// What the status bar calls the presenter's Escape: `dismissal`, the
     /// presenter's own name for it, unless Escape presses the content's
     /// cancel button.
-    func escapeLabel(dismissal: LocalizationKey.StatusBar) -> String {
+    package func escapeLabel(dismissal: LocalizationKey.StatusBar) -> String {
         LocalizationService.shared.string(for: escapePressesCancelButton ? .cancel : dismissal)
     }
 
     /// Draws the presented content with `render`, and takes the cancel button
     /// it registered, if any, for ``escape(isRepeat:_:)``. A measurement
     /// registers nothing, and takes nothing.
-    func drawingContent<Result>(context: RenderContext, _ render: () -> Result) -> Result {
+    package func drawingContent<Result>(context: RenderContext, _ render: () -> Result) -> Result {
         guard !context.isMeasuring, let registry = context.environment.keyboardShortcutRegistry else {
             return render()
         }
@@ -108,7 +108,7 @@ final class DismissalGate: Equatable {
         return result
     }
 
-    nonisolated static func == (lhs: DismissalGate, rhs: DismissalGate) -> Bool { lhs === rhs }
+    package nonisolated static func == (lhs: DismissalGate, rhs: DismissalGate) -> Bool { lhs === rhs }
 }
 
 private struct DismissalGateKey: EnvironmentKey {
@@ -118,7 +118,7 @@ private struct DismissalGateKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The gate the nearest presentation's ways out go through — `nil` at the
     /// top level, where the quit key is the way out.
-    var dismissalGate: DismissalGate? {
+    package var dismissalGate: DismissalGate? {
         get { self[DismissalGateKey.self] }
         set { self[DismissalGateKey.self] = newValue }
     }
@@ -128,7 +128,7 @@ extension EnvironmentValues {
 /// presenter's identity, with last frame's interceptor and cancel button
 /// cleared: the content renders next and sets them again if it still has them.
 @MainActor
-func presentationDismissalGate(context: RenderContext, propertyIndex: Int) -> DismissalGate {
+package func presentationDismissalGate(context: RenderContext, propertyIndex: Int) -> DismissalGate {
     let key = StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex)
     let gate: StateBox<DismissalGate>? = context.stateStorage?.storage(for: key, default: DismissalGate())
     let resolved = gate?.value ?? DismissalGate()

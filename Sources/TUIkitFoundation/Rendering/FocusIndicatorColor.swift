@@ -28,7 +28,7 @@ extension AnimatedColor {
     /// is, so under `focusEffectDisabled` they go, and every producer asks this
     /// one function for them.
     @MainActor
-    static func activeSection(_ isActive: Bool, in environment: EnvironmentValues) -> Self? {
+    package static func activeSection(_ isActive: Bool, in environment: EnvironmentValues) -> Self? {
         guard environment.indicatesFocus(isActive) else { return nil }
         // Over the surface the section's border is drawn on, not the page:
         // inside a tab the page blend put the trough at the tab body's own

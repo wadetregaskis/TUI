@@ -92,7 +92,7 @@ public struct Image: View {
     ///
     /// They share nothing but the name: one is decoded, resampled and converted
     /// to coloured cells, the other is a single character looked up in a table.
-    enum Content: Equatable {
+    package enum Content: Equatable {
         /// A raster image: the picture the bitmap path made (``_ImageRaster``)
         /// from a file, a URL, a bundle or pixels already decoded.
         case raster(any _ImageRaster)
@@ -104,7 +104,7 @@ public struct Image: View {
         /// which leaves out pixels already decoded. Every pair spelled out,
         /// with no `default`, so a third kind of content has to say how it
         /// compares.
-        static func == (lhs: Self, rhs: Self) -> Bool {
+        package static func == (lhs: Self, rhs: Self) -> Bool {
             switch (lhs, rhs) {
             case (.raster(let lhs), .raster(let rhs)): lhs.isEqual(to: rhs)
             case (.symbol(let lhs), .symbol(let rhs)): lhs == rhs
@@ -113,7 +113,7 @@ public struct Image: View {
         }
     }
 
-    let content: Content
+    package let content: Content
 
     /// The interpolation quality ``interpolation(_:)`` set, if any.
     var interpolationQuality: Interpolation?

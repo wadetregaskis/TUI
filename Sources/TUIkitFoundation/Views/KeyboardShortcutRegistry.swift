@@ -60,7 +60,7 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// The pane whose content is rendering now, if any: set around it by
     /// `renderingPane(_:context:_:)`, so what registers meanwhile is the
     /// pane's.
-    var currentPane: String?
+    package var currentPane: String?
 
     /// How many app shortcuts this frame has registered so far: a mark a
     /// presenter takes before its content renders, and hands back to
@@ -180,7 +180,7 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///
     /// Like an app shortcut, a default registered inside a pane is the pane's
     /// (``currentPane``).
-    func registerDefault(
+    package func registerDefault(
         _ shortcut: KeyboardShortcut, holdsFocus: Bool = false, action: @escaping () -> Void
     ) {
         let trigger = shortcut.trigger

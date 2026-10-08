@@ -152,7 +152,7 @@ extension FrameBuffer {
 
     /// ``compositedCarryingClaimsOverNothing(with:at:palette:)`` in place, for a
     /// canvas many layers are folded into (``composite(with:at:)``).
-    mutating func compositeCarryingClaimsOverNothing(
+    package mutating func compositeCarryingClaimsOverNothing(
         with overlay: Self, at position: (x: Int, y: Int), palette: any Palette
     ) {
         let (base, layer, kept) = prepared(overlay, at: position, palette: palette)
