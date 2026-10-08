@@ -573,9 +573,11 @@ extension View {
     ) -> some View {
         StatusBarItemsModifier(content: self, items: items, composition: .merge, context: context)
     }
+}
 
-    // MARK: - Focus Sections
+// MARK: - Focus Sections
 
+extension View {
     /// Declares this view as a focus section.
     ///
     /// A focus section is a named, focusable area of the UI. Interactive children
