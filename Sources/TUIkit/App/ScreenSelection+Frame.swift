@@ -83,6 +83,8 @@ extension ScreenSelection {
     }
 }
 
+// MARK: - Drawing the highlight
+
 extension ScreenSelection {
     /// `buffer` with `selection`'s cells drawn in the selection colours of the
     /// text inputs (``FieldTextLayout/selectionColors(palette:background:ink:)``), reverse video

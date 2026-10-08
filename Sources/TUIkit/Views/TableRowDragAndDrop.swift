@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  TableRowDragAndDrop.swift
 //
-//  Drag and drop on a table's rows: a row that carries a payload out, a row
-//  that takes a drop onto itself, and a loop of rows that takes payloads in
-//  between its rows — and the regions a table registers for them.
+//  Drag and drop on a table's rows: the modifiers that make a row carry a
+//  payload out or take a drop onto itself, a loop of rows that takes payloads
+//  in between its rows, and the regions a table registers for them. The drop a
+//  row takes, `_TableRowDrop`, is in _TableRowDrop.swift.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

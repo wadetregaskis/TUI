@@ -402,9 +402,10 @@ struct GridTests {
     func environmentWrappedRowIsStillARow() {
         // `.tint(_:)` builds `TintModifier`, and `.environment(_:_:)` builds
         // `EnvironmentModifier` — which lives in TUIkitView, below the module
-        // `GridRowProviding` is declared in, so its conformance is written in
-        // Grid.swift. Both spellings are checked because that split is the kind
-        // of thing that leaves one of a pair behind.
+        // `GridRowProviding` is declared in, so its conformance is written
+        // beside the protocol, in GridRowProviding.swift. Both spellings are
+        // checked because that split is the kind of thing that leaves one of a
+        // pair behind.
         let plain = lines(
             Grid(alignment: .leading) {
                 GridRow { Text("aaa"); Text("b") }

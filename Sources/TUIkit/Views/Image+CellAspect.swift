@@ -55,8 +55,9 @@ extension View {
     /// - Returns: A modified view.
     public func imageCellAspect(_ ratio: Double) -> some View {
         // No `ratio > 0 ? ratio : 2.0` here any more: the environment's setter
-        // applies the converter's own rule, and a second copy of it was how
-        // this one came to admit `.infinity`.
+        // applies the one copy of the rule (TUIkitStyling's
+        // `sanitizedCellAspect`, which the converter forwards to), and a second
+        // copy of it was how this one came to admit `.infinity`.
         environment(\.imageCellAspect, ratio)
     }
 }

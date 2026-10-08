@@ -1,6 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  _TableRowDrop.swift
 //
+//  The drop a table row takes onto itself.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 

@@ -203,9 +203,11 @@ final class CursorTimer {
     /// or, for a run asking for a rate finer than the interval, sooner than the
     /// interval. Never shorter than the time to the next 1/60 s tick instant after the
     /// snapshot it was planned at (see ``advance(by:)``).
-    /// Readable rather than fully private so a test can assert that a served
-    /// animation replay re-based the sleep — the value never leaves this class
-    /// otherwise, and the run loop only ever writes it through ``advance(by:)``.
+    /// Readable so a test can assert that a served animation replay re-based the
+    /// sleep — the value never leaves this class otherwise. Settable within the
+    /// module only because the timer control in CursorTimer+Timer.swift resets it
+    /// to ``standardFrameSeconds`` (`stop()`, `restartFocusPhase()`); the run loop
+    /// only ever writes it through ``advance(by:)``.
     var sleepSeconds = CursorTimer.standardFrameSeconds
 
     /// Sets how far the next wake-up is. Takes effect after the current sleep.
