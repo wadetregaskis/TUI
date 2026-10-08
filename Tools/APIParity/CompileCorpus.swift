@@ -2821,6 +2821,92 @@ private struct FormattingControls: View {
     }
 }
 
+// MARK: - Navigation and presentation, from a module of their own
+
+/// A park, as SwiftUI's `NavigationStack` documentation names its data.
+private struct CorpusPark: Hashable, Identifiable {
+    let id: Int
+    let name: String
+}
+
+/// SwiftUI's own `NavigationStack` examples: a stack of values pushed by
+/// `NavigationLink(_:value:)`, its path bound as an array and as a
+/// `NavigationPath`. Since module split step B5 these are TUIkitNavigation's,
+/// which only the umbrella re-exports, so this is SwiftUI source reaching that
+/// module as an app does.
+@MainActor
+private struct ParkStack: View {
+    let parks: [CorpusPark]
+    @State private var presentedParks: [CorpusPark] = []
+    @State private var path = NavigationPath()
+
+    var body: some View {
+        VStack {
+            NavigationStack(path: $presentedParks) {
+                List(parks) { park in
+                    NavigationLink(park.name, value: park)
+                }
+                .navigationDestination(for: CorpusPark.self) { park in
+                    Text(park.name)
+                }
+            }
+            NavigationStack(path: $path) {
+                Button("Show Yosemite") { path.append(CorpusPark(id: 1, name: "Yosemite")) }
+                    .navigationDestination(for: CorpusPark.self) { park in Text(park.name) }
+            }
+        }
+    }
+
+    func showParks() {
+        presentedParks = [CorpusPark(id: 1, name: "Yosemite"), CorpusPark(id: 2, name: "Sequoia")]
+    }
+}
+
+/// SwiftUI's own three-column `NavigationSplitView` example, with its column
+/// visibility bound, from the same module.
+@MainActor
+private struct DepartmentSplit: View {
+    let departments: [CorpusPark]
+    @State private var departmentId: CorpusPark.ID?  // Single selection.
+    @State private var employeeIds: Set<CorpusPark.ID> = []  // Multiple selection.
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            List(departments, selection: $departmentId) { department in
+                Text(department.name)
+            }
+        } content: {
+            List(departments, selection: $employeeIds) { employee in
+                Text(employee.name)
+            }
+        } detail: {
+            Text("Select a department")
+        }
+    }
+}
+
+/// SwiftUI's own `confirmationDialog` example. The presentations compile into
+/// TUIkitNavigation too, until step C1 gives them a module of their own.
+@MainActor
+private struct ConfirmEraseItems: View {
+    @State private var isShowingDialog = false
+
+    var body: some View {
+        Button("Empty Trash") {
+            isShowingDialog = true
+        }
+        .confirmationDialog(
+            "Permanently erase the items in the Trash?",
+            isPresented: $isShowingDialog
+        ) {
+            Button("Empty Trash", role: .destructive) {
+                // Handle empty trash action.
+            }
+        }
+    }
+}
+
 /// SwiftUI's own `VisualEffect` example: an offset following the view's global
 /// position, which draws its offset now that the proxy answers `.global`.
 @MainActor

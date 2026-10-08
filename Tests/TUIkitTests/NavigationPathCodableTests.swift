@@ -88,6 +88,20 @@ struct NavigationPathCodableTests {
         #expect(try roundTrip(path) == path)
     }
 
+    @Test("A saved path holding NavigationSplitViewVisibility names TUIkitNavigation")
+    func representationNamesTheNavigationModule() throws {
+        // The one public `Codable` type of the two directories step B5 carved
+        // into TUIkitNavigation (decisions SPB5, "What an app can see"). A path
+        // holding it named TUIkitFoundation between steps B1 and B5, and one
+        // saved then no longer decodes.
+        let path = NavigationPath([NavigationSplitViewVisibility.detailOnly])
+        let data = try JSONEncoder().encode(try #require(path.codable))
+        let saved = try #require(String(bytes: data, encoding: .utf8))
+        #expect(saved.contains("TUIkitNavigation"), "\(saved)")
+        #expect(!saved.contains("TUIkitFoundation"), "\(saved)")
+        #expect(try roundTrip(path) == path)
+    }
+
     @Test("A type name this process does not know fails to decode, rather than dropping a screen")
     func unknownTypeThrows() throws {
         let data = Data(#"["NoSuchModule.NoSuchType", "{}"]"#.utf8)

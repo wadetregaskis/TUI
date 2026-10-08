@@ -30,6 +30,15 @@
 //  TUIkit), and a carve that left the module out of the umbrella's re-exports
 //  stops this file compiling.
 //
+//  Step B5 carved the Navigation group the same way: one module,
+//  TUIkitNavigation, that compiles two directories of the planned split,
+//  Sources/TUIkitNavigation and Sources/TUIkitPresentation, until step C1
+//  peels the second into a module of its own. The fifth test spells a type
+//  from each directory through the umbrella, beside an app's own `Alert` (the
+//  case an app meets: an alert model of its own), so a carve that left the
+//  module out of the umbrella's re-exports, or a directory out of the module,
+//  stops this file compiling.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -81,6 +90,21 @@ private enum Client {
     static func bothPickers(selection: TUIkit.Binding<TUIkit.Color>) -> (ColorPicker, TUIkit.ColorPicker) {
         (ColorPicker(name: "mine"), TUIkit.ColorPicker("b4", selection: selection))
     }
+
+    /// An app's own `Alert`, beside the alert view TUIkitNavigation compiles
+    /// from Sources/TUIkitPresentation.
+    struct Alert {
+        let name: String
+    }
+
+    /// Both alerts: the app's by its plain name, TUIkit's by the umbrella's,
+    /// with a TUIkitFoundation button as its action.
+    @MainActor
+    static func bothAlerts(title: String) -> (Alert, TUIkit.Alert<TUIkit.Button>) {
+        (Alert(name: "mine"), TUIkit.Alert(title: title, message: "b5 message") {
+            TUIkit.Button(action: {}, label: { TUIkit.Text(verbatim: "b5 ok") })
+        })
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -115,6 +139,12 @@ extension TUIkit.ColorPicker {
     /// A member an app adds, through the umbrella's name, to a type of
     /// TUIkitColorPicker, which the umbrella re-exports itself.
     fileprivate var b4Marker: Int { 4 }
+}
+
+extension TUIkit.NavigationPath {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitNavigation, which the umbrella re-exports itself.
+    fileprivate var b5Marker: Int { 5 + count }
 }
 
 @MainActor
@@ -186,6 +216,25 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: type(of: panel)) == "TUIkitColorPicker.ToneCurveEditorPanel")
     }
 
+    @Test("A qualified name reaches TUIkitNavigation, both of whose directories the umbrella re-exports through it")
+    func qualifiedNamesReachTheNavigationGroup() {
+        // From Sources/TUIkitNavigation: a stack, drawn, and a member an app's
+        // extension adds to its path.
+        let stack = TUIkit.NavigationStack { TUIkit.Text(verbatim: "b5 root") }
+        let lines = TUIkit.renderToBuffer(stack, context: makeRenderContext(width: 40, height: 4)).lines
+            .map(\.stripped)
+        #expect(lines.contains { $0.contains("b5 root") }, "\(lines)")
+        #expect(TUIkit.NavigationPath([1, 2]).b5Marker == 7)
+        // From Sources/TUIkitPresentation, which compiles into the same module
+        // until step C1: an alert beside an app's own `Alert`, drawn.
+        let (mine, alert) = Client.bothAlerts(title: "b5 alert")
+        #expect(mine.name == "mine")
+        let drawn = TUIkit.renderToBuffer(alert, context: makeRenderContext(width: 40, height: 8)).lines
+            .map(\.stripped).joined(separator: "\n")
+        #expect(drawn.contains("b5 alert") && drawn.contains("b5 ok"), "\(drawn)")
+        #expect(String(reflecting: type(of: alert)) == "TUIkitNavigation.Alert<TUIkitFoundation.Button>")
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -222,5 +271,14 @@ struct UmbrellaQualifiedNameTests {
         // each read `TUIkitFoundation.` between B1 and B4.
         #expect(String(reflecting: TUIkit.ColorPicker.self) == "TUIkitColorPicker.ColorPicker")
         #expect(String(reflecting: TUIkit.ColorPickerPanel.self) == "TUIkitColorPicker.ColorPickerPanel")
+        // Step B5 carved these out (decisions SPB5, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B5. A type from
+        // Sources/TUIkitPresentation names TUIkitNavigation, the module that
+        // compiles it, until step C1 gives it a module of its own.
+        #expect(String(reflecting: TUIkit.NavigationPath.self) == "TUIkitNavigation.NavigationPath")
+        #expect(
+            String(reflecting: TUIkit.NavigationSplitViewVisibility.self)
+                == "TUIkitNavigation.NavigationSplitViewVisibility")
+        #expect(String(reflecting: TUIkit.PresentationDetent.self) == "TUIkitNavigation.PresentationDetent")
     }
 }

@@ -17,6 +17,51 @@ already settle, in the format of
 - **B-SPB5-n — shipped the safe option.** Says what the other version would be, and its price.
 - **C-SPB5-n — declined.** With the reason.
 
+## What an app can see
+
+Not judgement calls: the plan (§5, row C9a) lists these for the release notes,
+and C9a writes them. They are recorded here because this step made them. Each
+name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
+
+- **Reflected names.** `String(reflecting:)`, `dump` and the debugger name a
+  moved type's new module: `TUIkitNavigation.NavigationPath`,
+  `TUIkitNavigation.NavigationSplitViewVisibility`. That includes the types
+  of `Sources/TUIkitPresentation`, which compile into TUIkitNavigation until
+  step C1: `TUIkitNavigation.Alert<TUIkitFoundation.Button>`,
+  `TUIkitNavigation.PresentationDetent`. Those names change again at C1, to
+  `TUIkitPresentation.`, so the release notes should give the C1 name for a
+  presentation type if C1 ships in the same release. `UmbrellaQualifiedNameTests`
+  pins all four.
+- **Saved navigation paths.** `NavigationSplitViewVisibility` is the one
+  public `Codable` type of the two directories. A
+  `NavigationPath.CodableRepresentation` stores each value's mangled type
+  name, so a saved path holding one names TUIkitNavigation now, and a path
+  saved between steps B1 and B5 (naming TUIkitFoundation) no longer decodes.
+  `NavigationPathCodableTests` pins the new name, and `NavigationPath.codable`'s
+  doc comment lists it among the types that moved. Paths holding only an
+  app's own types, the usual case, are unaffected.
+- **The bundle is unchanged.** Neither directory holds a resource (both hold
+  Swift files only; the alerts' and dialogs' labels come from TUIkitStrings'
+  tables through `LocalizationService`), so the bundle is still
+  `TUIkit_TUIkitStrings` (decisions SPB2).
+- **The documentation lists the group's modifiers on `View` and on the
+  group's own types, not on TUIkitFoundation's.** `symbolgraph-extract` copies
+  a protocol extension's members onto the conforming types of its own module
+  only. So `Text`'s page no longer lists `sheet(isPresented:onDismiss:content:)`
+  among its default implementations, while `View`'s and `NavigationStack`'s
+  pages still do, and so does `Text`'s for TUIkitFoundation's
+  `popover(isPresented:attachmentAnchor:arrowEdge:content:)` (checked in the
+  strict docs build's archive, 2026-10-08). The archive has 63,396 pages
+  against step B4's 69,823, on the same tree but for this step; how many of
+  the 6,427 are such copies was not counted. Two doc links had resolved only
+  through those copies and now name their declaring type
+  (`PopoverPresentationModifier.swift`, `NavigationSplitViewStyle+Variants.swift`).
+- **`import TUIkitColorPicker` brings the navigation containers too**, once
+  per-module products ship: it re-exports TUIkitNavigation, its new direct
+  dependency (its panels are `Dialog`s presented through `.modal`). After C1
+  it re-exports TUIkitPresentation instead. Under the umbrella, which is the
+  only product today, nothing changes.
+
 ## B. Shipped
 
 ### B-SPB5-1. Tools/ModuleMap checks a coarse group's members as the modules the map plans
