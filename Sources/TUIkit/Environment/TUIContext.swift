@@ -498,16 +498,3 @@ final class TUIContext: @unchecked Sendable {
         }
     }
 }
-
-// MARK: - Internal API
-
-extension TUIContext {
-    /// Resets all services to their initial state.
-    func reset() {
-        lifecycle.reset()
-        keyEventDispatcher.clearHandlers()
-        preferences.reset()
-        stateStorage.reset()
-        renderCache.reset()
-    }
-}
