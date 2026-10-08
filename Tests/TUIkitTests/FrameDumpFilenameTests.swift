@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// The debug frame dump's filename carried a locale-formatted date, and in

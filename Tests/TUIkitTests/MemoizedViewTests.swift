@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A view whose text is NOT part of its memo token, so a served entry is

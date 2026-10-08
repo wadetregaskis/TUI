@@ -45,7 +45,7 @@ extension ChromeStyle {
     /// row wraps its text to this, and `_StatusBarCore.renderBordered` lays the
     /// items out at it — so it is one function rather than the same subtraction
     /// written twice.
-    func barContentWidth(_ width: Int) -> Int {
+    package func barContentWidth(_ width: Int) -> Int {
         max(1, width - contentWidthInset - (self == .bordered ? 2 : 0))
     }
 }

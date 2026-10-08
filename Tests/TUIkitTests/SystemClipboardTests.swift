@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Drives ``SystemClipboard``'s bounded child I/O against scripted stand-ins

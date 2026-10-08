@@ -128,7 +128,7 @@ The lane is therefore **required** on released toolchains. Observed state:
 | `TUIkitImage` | failed everywhere until 2026-08-07; green on all five lanes since, `continue-on-error` removed 2026-09-04 — **binding** |
 | `TUIkitStrings`, `TUIkitTerminalHost` | carved out of TUIkitFoundation at module split step B2 (2026-10-08), on TUIkitCore alone; advisory, each with a 30-minute timeout, until CI has seen them green (no Windows build of them yet) |
 | the four modules' own test targets | advisory, each with a 30-minute timeout |
-| `TUIkit`, build-tests, test, smoke | fail until the console layer is ported |
+| `TUIkit`, build-tests, test, smoke | fail until the console layer is ported (TUIkitApp since module split step B3, which has no Windows step of its own: it is POSIX by design) |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
 point of binding the lane is that it stays true. `TUIkitImage`'s failure went

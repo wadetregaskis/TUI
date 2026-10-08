@@ -14,6 +14,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// The page under the modal. Its counter is `@State`, deliberately: the

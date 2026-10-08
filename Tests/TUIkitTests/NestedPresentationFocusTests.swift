@@ -10,6 +10,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Every presenter asks for its focus section on every frame it is up, and

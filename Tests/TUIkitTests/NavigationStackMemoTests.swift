@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A pushed `NavigationStack` under a value memo.

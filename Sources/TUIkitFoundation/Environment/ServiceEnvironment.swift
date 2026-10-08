@@ -132,7 +132,7 @@ private struct TerminalImageStoreKey: EnvironmentKey {
 extension EnvironmentValues {
 
     /// The localization service for retrieving translated strings.
-    var localizationService: LocalizationService {
+    package var localizationService: LocalizationService {
         get { self[LocalizationServiceKey.self] }
         set { self[LocalizationServiceKey.self] = newValue }
     }
@@ -143,7 +143,7 @@ extension EnvironmentValues {
     }
 
     /// View lifecycle tracking (appear, disappear, task management).
-    var lifecycle: LifecycleManager? {
+    package var lifecycle: LifecycleManager? {
         get { self[LifecycleKey.self] }
         set { self[LifecycleKey.self] = newValue }
     }
@@ -157,7 +157,7 @@ extension EnvironmentValues {
     /// Only the getter is `@inlinable` (module split step A3): the setter also
     /// writes `keyChannelToken`, which it would have to export to save one call.
     @usableFromInline
-    var keyEventDispatcher: KeyEventDispatcher? {
+    package var keyEventDispatcher: KeyEventDispatcher? {
         @inlinable get { self[KeyEventDispatcherKey.self] }
         set {
             self[KeyEventDispatcherKey.self] = newValue
@@ -168,14 +168,14 @@ extension EnvironmentValues {
     /// Dispatches a synthesised ``KeyEvent`` through the full
     /// ``InputHandler`` 5-layer chain. See
     /// ``TUIContext/synthesizeKeyEvent`` for the rationale.
-    var synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)? {
+    package var synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)? {
         get { self[SynthesizeKeyEventKey.self] }
         set { self[SynthesizeKeyEventKey.self] = newValue }
     }
 
     /// Mouse event handler registration and dispatch.
     @inlinable
-    var mouseEventDispatcher: MouseEventDispatcher? {
+    package var mouseEventDispatcher: MouseEventDispatcher? {
         get { self[MouseEventDispatcherKey.self] }
         set { self[MouseEventDispatcherKey.self] = newValue }
     }
@@ -185,34 +185,34 @@ extension EnvironmentValues {
     /// snapshot test. `nil` is not a degraded mode: an ``Image`` with nowhere
     /// to send pixels draws itself out of glyphs, which is what it has always
     /// done.
-    var terminalImageStore: TerminalImageStore? {
+    package var terminalImageStore: TerminalImageStore? {
         get { self[TerminalImageStoreKey.self] }
         set { self[TerminalImageStoreKey.self] = newValue }
     }
 
     /// The values this app last copied, or `nil` outside a live app — where a
     /// copy puts its text on the clipboard and nothing more.
-    var typedClipboard: TypedClipboard? {
+    package var typedClipboard: TypedClipboard? {
         get { self[TypedClipboardKey.self] }
         set { self[TypedClipboardKey.self] = newValue }
     }
 
     /// TUIkit's selection of what is drawn, whose context menu the window
     /// presents; `nil` outside a live app.
-    var screenSelection: ScreenSelection? {
+    package var screenSelection: ScreenSelection? {
         get { self[ScreenSelectionKey.self] }
         set { self[ScreenSelectionKey.self] = newValue }
     }
 
     /// The app-wide drag-and-drop session, or `nil` outside a live app.
     @inlinable
-    var dragAndDropSession: DragAndDropSession? {
+    package var dragAndDropSession: DragAndDropSession? {
         get { self[DragAndDropSessionKey.self] }
         set { self[DragAndDropSessionKey.self] = newValue }
     }
 
     /// The run loop's animation scheduler, or `nil` outside the live loop.
-    var animationScheduler: AnimationScheduler? {
+    package var animationScheduler: AnimationScheduler? {
         get { self[AnimationSchedulerKey.self] }
         set { self[AnimationSchedulerKey.self] = newValue }
     }
@@ -236,7 +236,7 @@ extension EnvironmentValues {
     /// render cache. Reading it records to any active ``volatileReadTracker`` so
     /// a value-memoizing view (`_MemoizedRow`) can decline to cache a subtree
     /// whose output would otherwise freeze.
-    var pulsePhase: Double {
+    package var pulsePhase: Double {
         get {
             volatileReadTracker?.recordVolatileRead()
             return self[PulsePhaseKey.self]
@@ -245,7 +245,7 @@ extension EnvironmentValues {
     }
 
     /// The cursor timer for TextField/SecureField animations.
-    var cursorTimer: CursorTimer? {
+    package var cursorTimer: CursorTimer? {
         get { self[CursorTimerKey.self] }
         set { self[CursorTimerKey.self] = newValue }
     }

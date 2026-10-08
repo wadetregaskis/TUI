@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// The startup colour exchange: which request a host is sent, how long it is

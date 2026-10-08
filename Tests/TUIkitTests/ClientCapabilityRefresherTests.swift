@@ -12,6 +12,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A mutable reference cell for test doubles. A `@Sendable` probe closure captures

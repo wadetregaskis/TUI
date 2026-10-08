@@ -98,7 +98,7 @@ enum ClipboardRoute: Equatable, Sendable {
 /// is the same whichever stands behind it: OSC 52 to a terminal that writes it
 /// by default comes first, and this clipboard only where the user is at this
 /// machine.
-protocol ClipboardBackend: Sendable {
+package protocol ClipboardBackend: Sendable {
     /// Whether there is a clipboard here to write at all: `false` where this
     /// machine has no helper to run. Asked once, when a writer is made.
     var isAvailable: Bool { get }
@@ -173,7 +173,7 @@ enum ClipboardSequence {
 ///
 /// One per ``TUIContext``, never a shared instance: two apps in one process —
 /// a test suite — must not drain each other's writes.
-final class ClipboardWriter: @unchecked Sendable {
+package final class ClipboardWriter: @unchecked Sendable {
     /// How long the status bar keeps the line about a copy.
     static let noteDuration: UInt64 = 3_000_000_000
 
@@ -301,7 +301,7 @@ final class ClipboardWriter: @unchecked Sendable {
     }
 
     /// The OSC 52 writes owed to the terminal, oldest first, and forgets them.
-    func takePendingSequences() -> String {
+    package func takePendingSequences() -> String {
         guard !pending.isEmpty else { return "" }
         defer { pending.removeAll() }
         return pending.joined()
@@ -309,7 +309,7 @@ final class ClipboardWriter: @unchecked Sendable {
 
     /// The status bar's line about the latest copy, while it is fresh: its
     /// text, and the instant it goes.
-    func statusNote(atNanos now: UInt64) -> (text: String, expiresAtNanos: UInt64)? {
+    package func statusNote(atNanos now: UInt64) -> (text: String, expiresAtNanos: UInt64)? {
         guard let note else { return nil }
         let expiry = note.postedAtNanos &+ Self.noteDuration
         guard now < expiry else {

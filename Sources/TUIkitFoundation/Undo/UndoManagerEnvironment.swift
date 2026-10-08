@@ -67,7 +67,7 @@ extension EnvironmentValues {
     /// them on macOS. Where Foundation has no `UndoManager` (Linux), TUIkit
     /// provides one with the same Swift surface. See
     /// `Documentation/Terminal-compatibility.md`, "Undo and redo".
-    public internal(set) var undoManager: UndoManager? {
+    public package(set) var undoManager: UndoManager? {
         get { self[UndoManagerKey.self] }
         set { self[UndoManagerKey.self] = newValue }
     }
@@ -75,7 +75,7 @@ extension EnvironmentValues {
     /// Where a text control leaves its steps in ``undoManager`` when it goes
     /// away, for the next frame to take out: published with the manager, and
     /// `nil` where there is none.
-    var departedUndoSteps: DepartedUndoSteps? {
+    package var departedUndoSteps: DepartedUndoSteps? {
         get { self[DepartedUndoStepsKey.self] }
         set { self[DepartedUndoStepsKey.self] = newValue }
     }

@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Identifying the host from what it answers, rather than from an environment

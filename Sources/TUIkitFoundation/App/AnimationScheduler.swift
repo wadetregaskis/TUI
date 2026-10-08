@@ -27,7 +27,7 @@ import TUIkitCore
 /// its own lattice fired (the tree renders together); a longer period just rides
 /// along on the frames it doesn't strictly need.
 @MainActor
-final class AnimationScheduler {
+package final class AnimationScheduler {
     private struct Lattice {
         let frameTicks: Int
         var liveThisFrame: Bool
@@ -41,6 +41,12 @@ final class AnimationScheduler {
     private var lattices: [String: Lattice] = [:]
     private var wakes: [String: Wake] = [:]
 
+    /// A scheduler with nothing live. Spelled out because the implicit
+    /// initializer is internal, and the run loop (TUIkitApp) makes one.
+    /// Nonisolated, as the implicit one was: a render context made off the
+    /// main actor makes one too (`RenderContext+TUIContext.swift`).
+    package nonisolated init() {}
+
     /// Whether any animation is currently live (the loop idles when this is true... none).
     var isIdle: Bool { lattices.isEmpty && wakes.isEmpty }
 
@@ -52,7 +58,7 @@ final class AnimationScheduler {
 
     /// Begins a render frame: every lattice and wake is provisionally not-live
     /// until it re-declares this frame.
-    func beginFrame() {
+    package func beginFrame() {
         for key in lattices.keys {
             lattices[key]?.liveThisFrame = false
         }
@@ -67,7 +73,7 @@ final class AnimationScheduler {
     /// Stored as declared, replacing whatever the token declared before: a
     /// lattice has no anchor, so there is nothing to keep from one frame to the
     /// next.
-    func request(_ token: String, _ request: AnimationRequest) {
+    package func request(_ token: String, _ request: AnimationRequest) {
         lattices[token] = Lattice(frameTicks: request.frameTicks, liveThisFrame: true)
     }
 
@@ -83,12 +89,12 @@ final class AnimationScheduler {
     ///
     /// Re-declared every frame like a lattice, and dropped at ``endFrame()`` when
     /// it is not — which is what lets the screen go idle again.
-    func requestWake(_ token: String, at instant: Int64) {
+    package func requestWake(_ token: String, at instant: Int64) {
         wakes[token] = Wake(instant: instant, liveThisFrame: true)
     }
 
     /// Ends the frame: drops every lattice and wake that did not re-declare.
-    func endFrame() {
+    package func endFrame() {
         lattices = lattices.filter { $0.value.liveThisFrame }
         wakes = wakes.filter { $0.value.liveThisFrame }
     }
@@ -102,7 +108,7 @@ final class AnimationScheduler {
     /// again immediately, and again on the frame after that. The view whose
     /// wake it was declares its next one during this frame. A lattice's next
     /// firing is strictly after `time` by definition.
-    func nextFiring(after time: Int64) -> Int64? {
+    package func nextFiring(after time: Int64) -> Int64? {
         var soonest: Int64?
         for lattice in lattices.values {
             soonest = min(

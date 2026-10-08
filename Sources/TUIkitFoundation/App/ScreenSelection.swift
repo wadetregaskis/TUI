@@ -37,14 +37,14 @@ import TUIkitCore
 ///
 /// Costs nothing per frame while nothing is selected but keeping a reference
 /// to the frame's lines (the array is shared, not copied).
-final class ScreenSelection: @unchecked Sendable {
+package final class ScreenSelection: @unchecked Sendable {
     // Touched from the main actor only: the dispatcher's events, the input
     // chain's keys and the run loop's frame all run there.
 
     /// A cell. The pointer's and the hit regions' are the screen's; a
     /// selection keeps its own in the content area's, the page's, so it stays
     /// on the text it selected when the bar above the page changes height.
-    struct Point: Equatable {
+    package struct Point: Equatable {
         var x: Int
         var y: Int
     }
@@ -95,7 +95,7 @@ final class ScreenSelection: @unchecked Sendable {
     }
 
     /// One selection.
-    struct Selection: Equatable {
+    package struct Selection: Equatable {
         var anchor: Point
         var head: Point
         var clip: Rect
@@ -105,7 +105,7 @@ final class ScreenSelection: @unchecked Sendable {
         var text: String
         /// Whether the highlight is drawn: while the cells under it read
         /// ``text``.
-        var isHighlighted = true
+        package var isHighlighted = true
         /// The content area the highlight was last drawn in, the screen's —
         /// what a highlight that went may come back in; `nil` once it is gone
         /// for good (``ScreenSelection/takeFrame(_:width:palette:top:underPresentation:)``).
@@ -115,7 +115,7 @@ final class ScreenSelection: @unchecked Sendable {
     }
 
     /// The selection, if there is one.
-    var current: Selection?
+    package var current: Selection?
 
     /// The last frame's composited content, each line as written: what a
     /// selection reads. A reference to the frame's own array, kept every frame.
@@ -131,15 +131,15 @@ final class ScreenSelection: @unchecked Sendable {
 
     /// Whether a drag's release copies the selection — the scene's
     /// ``Scene/textSelectionCopiesOnRelease(_:)``.
-    var copiesOnRelease = false
+    package var copiesOnRelease = false
 
     /// The key that copies: the app's ⌘C, resolved through the scene's
     /// `commandKey` (``adopt(commandKey:copiesOnRelease:)``). `nil` where the
     /// scene's ⌘ stand-in is `.unavailable`.
-    var copyTrigger: KeyboardShortcut.Trigger? = KeyboardShortcut("c", modifiers: .control).trigger
+    package var copyTrigger: KeyboardShortcut.Trigger? = KeyboardShortcut("c", modifiers: .control).trigger
 
     /// The binding ``copyTrigger`` was resolved through.
-    var adoptedCommandKey: CommandKeyBinding?
+    package var adoptedCommandKey: CommandKeyBinding?
 
     /// The open menu's highlight, kept across its frames; made when it first
     /// opens (``presentMenu(over:context:)``).
@@ -162,7 +162,7 @@ final class ScreenSelection: @unchecked Sendable {
 
     /// Where the selection's context menu was opened — the cell right-clicked
     /// inside the selection — while it is open; `nil` when it is not.
-    private(set) var menuAnchor: Point?
+    package private(set) var menuAnchor: Point?
 
     /// Whether anything is selected.
     var hasSelection: Bool { current != nil }
@@ -219,7 +219,7 @@ extension ScreenSelection {
     }
 
     /// Drops the selection, and its menu with it.
-    func clear() {
+    package func clear() {
         current = nil
         menuAnchor = nil
     }
@@ -263,7 +263,7 @@ extension ScreenSelection {
 
     /// Copies the selection's text, as Ctrl-C does. `false` with nothing
     /// selected, so the key goes on.
-    func copySelection() -> Bool {
+    package func copySelection() -> Bool {
         guard let text = current?.text else { return false }
         copy(text)
         return true

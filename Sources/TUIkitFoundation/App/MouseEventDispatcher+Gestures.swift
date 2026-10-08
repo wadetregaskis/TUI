@@ -81,7 +81,7 @@ extension MouseEventDispatcher {
     /// around it at the disable; TUIkit gives a disabled view's gestures up
     /// as it does a removed view's (decisions B-F2-2).
     @MainActor
-    func advanceGestures(nowNanos now: Int64) {
+    package func advanceGestures(nowNanos now: Int64) {
         guard !gestureArenas.isEmpty else { return }
         markDepartedGestures()
         for arena in gestureArenas { arena.process(.tick(now), dispatcher: self) }
@@ -118,7 +118,7 @@ extension MouseEventDispatcher {
     /// — what the run loop asks a wake for, so a long press ends on time with
     /// nothing else moving.
     @MainActor
-    var gestureDeadline: Int64? { gestureArenas.lazy.compactMap(\.deadline).min() }
+    package var gestureDeadline: Int64? { gestureArenas.lazy.compactMap(\.deadline).min() }
 
     /// Routes a left-button event through the gesture arena, when one is
     /// involved.

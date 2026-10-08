@@ -12,6 +12,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Renders `content` as pane `id`: its own focus section, rendered through

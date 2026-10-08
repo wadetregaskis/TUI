@@ -56,8 +56,10 @@ keeps POSIX above them: `TUIkitCore` built for wasm unchanged, and
 
 The work was above them, in what was then one module, TUIkit. Its files are
 TUIkitFoundation's since module split step B1, except the tmux queries below,
-which are TUIkitTerminalHost's since step B2. `Dispatch` does not exist on
-wasip1, and it was imported into six files — mostly to read a clock.
+which are TUIkitTerminalHost's since step B2, and the console layer below
+(`SignalManager`, the stdin notifier, `Terminal`, `SystemClipboard` and
+`SystemURLOpener`), which is TUIkitApp's since step B3. `Dispatch` does not
+exist on wasip1, and it was imported into six files — mostly to read a clock.
 `MonotonicClock` (in `TUIkitCore`) replaced
 `DispatchTime.now().uptimeNanoseconds` at a dozen call sites, which removed the
 dependency from every file that only wanted to measure an interval. What

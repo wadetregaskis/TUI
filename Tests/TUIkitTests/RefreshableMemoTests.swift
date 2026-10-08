@@ -14,6 +14,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Counts refresh runs, from whatever thread the action runs on.

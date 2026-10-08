@@ -39,7 +39,7 @@ extension FocusManager {
     ///
     /// A section's pane is known from the walk that registered it, so this is
     /// the last walk's answer between frames, when keys arrive.
-    var activePaneID: String? {
+    package var activePaneID: String? {
         guard !panes.sectionPanes.isEmpty, let activeSectionID = activeSectionIdentifier else { return nil }
         return panes.sectionPanes[activeSectionID]
     }

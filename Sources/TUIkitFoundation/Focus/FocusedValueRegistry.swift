@@ -39,7 +39,7 @@ import TUIkitView
 /// (a closure, a `Binding`) counts as unchanged while the same view publishes
 /// it — so the check cannot ask for frames forever over a closure rebuilt each
 /// render — and it is read through at the moment it is used anyway.
-final class FocusedValueRegistry {
+package final class FocusedValueRegistry {
     /// One modifier's publication. Two modifiers on one view render at one
     /// identity, so a publication is keyed by its kind as well.
     private struct Key: Hashable {
@@ -73,7 +73,7 @@ final class FocusedValueRegistry {
 
     /// Asks the app for another frame. Wired by the run loop; a test drives
     /// its own frames.
-    var requestFrame: (() -> Void)?
+    package var requestFrame: (() -> Void)?
 
     /// Starts a walk of the view tree: what it publishes replaces, view by
     /// view, what the last pass published.

@@ -130,7 +130,7 @@ enum TextUndoBridge {
 ///
 /// Locked, because a deinitialiser can run on any thread; an empty list costs
 /// a frame one lock and a check.
-final class DepartedUndoSteps: @unchecked Sendable {
+package final class DepartedUndoSteps: @unchecked Sendable {
     private let lock = NSLock()
 
     /// The marks of each control that has gone away, with the manager its
@@ -151,7 +151,7 @@ final class DepartedUndoSteps: @unchecked Sendable {
     /// Outside the lock, so that whatever letting go of a step frees can
     /// leave steps here itself.
     @MainActor
-    func takeOut() {
+    package func takeOut() {
         var taken: [(marks: [TextUndoMark], manager: UndoManager)] = []
         lock.lock()
         swap(&taken, &pending)

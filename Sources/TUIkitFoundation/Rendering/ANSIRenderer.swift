@@ -15,7 +15,7 @@ import Foundation
 /// ``colorize(_:foreground:background:bold:underline:inverted:)``: the
 /// `@inlinable` members of `ClaimingRow` call them (module split step A3).
 @usableFromInline
-enum ANSIRenderer {
+package enum ANSIRenderer {
     /// The escape character for ANSI sequences.
     static let escape = "\u{1B}"
 
@@ -23,7 +23,7 @@ enum ANSIRenderer {
     static let csi = "\(escape)["
 
     /// Reset code that clears all formatting.
-    @usableFromInline static let reset = "\(csi)0m"
+    @usableFromInline package static let reset = "\(csi)0m"
 
     /// SGR 39: the terminal's own foreground again, everything else left in
     /// force — what closes a run of ink without ending the background it is
@@ -51,18 +51,18 @@ enum ANSIRenderer {
     // MARK: - Cursor Control
 
     /// Hides the cursor.
-    static let hideCursor = "\(csi)?25l"
+    package static let hideCursor = "\(csi)?25l"
 
     /// Shows the cursor.
-    static let showCursor = "\(csi)?25h"
+    package static let showCursor = "\(csi)?25h"
 
     // MARK: - Alternate Screen Buffer
 
     /// Enters the alternate screen buffer.
-    static let enterAlternateScreen = "\(csi)?1049h"
+    package static let enterAlternateScreen = "\(csi)?1049h"
 
     /// Exits the alternate screen buffer.
-    static let exitAlternateScreen = "\(csi)?1049l"
+    package static let exitAlternateScreen = "\(csi)?1049l"
 }
 
 // MARK: - Internal API
@@ -365,7 +365,7 @@ extension ANSIRenderer {
     ///   - string: A styled line or fragment.
     ///   - restore: The sequence to re-state after each reset (a background,
     ///     a dim) — appended verbatim.
-    static func restating(_ restore: String, afterResetsIn string: String) -> String {
+    package static func restating(_ restore: String, afterResetsIn string: String) -> String {
         guard !restore.isEmpty else { return string }
         return wrapping(string, restoring: restore, opening: "", padding: 0, closing: "") ?? string
     }
@@ -505,7 +505,7 @@ extension ANSIRenderer {
     ///   - row: The row (1-based).
     ///   - column: The column (1-based).
     /// - Returns: The ANSI escape sequence.
-    static func moveCursor(toRow row: Int, column: Int) -> String {
+    package static func moveCursor(toRow row: Int, column: Int) -> String {
         "\(csi)\(row);\(column)H"
     }
 }

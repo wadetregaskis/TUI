@@ -15,6 +15,7 @@ import Testing
 #endif
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Tests for `StdinArrivalNotifier` — the main-loop "wait for stdin OR a

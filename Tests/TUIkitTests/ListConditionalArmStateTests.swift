@@ -24,6 +24,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A row that counts how often it has appeared, in its own `@State`.

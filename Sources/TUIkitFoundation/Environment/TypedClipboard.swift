@@ -16,7 +16,7 @@
 /// one string. So a copy writes its values' text there and keeps the values
 /// here; a paste that finds the same text on the clipboard takes the values,
 /// and one that finds other text — copied elsewhere since — reads that text.
-final class TypedClipboard: @unchecked Sendable {
+package final class TypedClipboard: @unchecked Sendable {
     // Touched only from the main actor (commands run from key handlers there);
     // `@unchecked` because it travels in the environment, which is `Sendable`.
     private var values: [Any] = []

@@ -9,6 +9,7 @@
 //  License: MIT
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// What a scripted terminal was sent, one entry per write.

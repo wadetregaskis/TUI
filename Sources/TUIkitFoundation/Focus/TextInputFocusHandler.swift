@@ -12,7 +12,7 @@
 /// `TextEditor`, a separate class, shipped with its keystrokes stealable by
 /// any lettered status item on the page. A new text-consuming handler adopts
 /// this protocol; it does not extend a type test.
-protocol TextInputFocusHandler: AnyObject {
+package protocol TextInputFocusHandler: AnyObject {
     /// Whether this control gives `event` up to an app's keyboard shortcut on
     /// the same chord.
     ///

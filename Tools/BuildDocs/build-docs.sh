@@ -160,11 +160,11 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # failure this script exists to prevent. Cheap to check, and it fails loudly
 # the day someone documents just one target again. `text` and `list` are
 # TUIkitFoundation's, `localizationservice` TUIkitStrings', `terminalclient`
-# TUIkitTerminalHost's (the modules step B2 carved out of it), the rest the
-# lower modules'.
+# TUIkitTerminalHost's (the modules step B2 carved out of it), `windowgroup`
+# TUIkitApp's (step B3), the rest the lower modules'.
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text list \
-    localizationservice terminalclient; do
+    localizationservice terminalclient windowgroup; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then

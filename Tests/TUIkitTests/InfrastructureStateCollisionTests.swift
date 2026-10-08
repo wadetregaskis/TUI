@@ -8,6 +8,7 @@ import Testing
 import TUIkitCore
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A composite view's `@State` binds by declaration order from index 0 at its

@@ -196,7 +196,7 @@ public final class TooltipState: @unchecked Sendable {
 
     /// Clears the per-frame focus slot. Called by the run loop before the frame,
     /// beside the status bar's own per-frame overrides.
-    func beginRenderPass() {
+    package func beginRenderPass() {
         previousFocusText = focused?.text
         previousFocusDeadline = focused?.showAtNanos ?? 0
         focused = nil
@@ -210,7 +210,7 @@ public final class TooltipState: @unchecked Sendable {
     /// text — and the caller should let the key fall through to whatever else
     /// wants it rather than swallow it.
     @discardableResult
-    func toggleKeyboardReveal(focusID: String?) -> Bool {
+    package func toggleKeyboardReveal(focusID: String?) -> Bool {
         if keyboardRevealed, revealedFocusID == focusID {
             keyboardRevealed = false
             revealedFocusID = nil
@@ -227,7 +227,7 @@ public final class TooltipState: @unchecked Sendable {
     /// Called each frame with the current focus identity. Not folded into
     /// ``beginRenderPass()``: that clears a slot the frame is about to refill,
     /// while this is a comparison against something outside this type.
-    func syncReveal(focusID: String?) {
+    package func syncReveal(focusID: String?) {
         guard keyboardRevealed, revealedFocusID != focusID else { return }
         keyboardRevealed = false
         revealedFocusID = nil
@@ -240,7 +240,7 @@ public final class TooltipState: @unchecked Sendable {
     /// - Parameter nowNanos: The frame's monotonic clock.
     /// - Returns: The text, its source, the region to anchor a popover to, and
     ///   how to present it.
-    func resolved(nowNanos: Int64) -> Resolved? {
+    package func resolved(nowNanos: Int64) -> Resolved? {
         if let hovered {
             guard nowNanos >= hovered.showAtNanos else { return nil }
             return Resolved(
@@ -257,11 +257,11 @@ public final class TooltipState: @unchecked Sendable {
     }
 
     /// The tooltip a frame is drawing.
-    struct Resolved {
-        var text: String
+    package struct Resolved {
+        package var text: String
         var source: Source
         var handlerID: HitTestRegion.HandlerID?
-        var style: TooltipStyle
+        package var style: TooltipStyle
     }
 
     /// When a tooltip that is not yet showing would appear, as a monotonic

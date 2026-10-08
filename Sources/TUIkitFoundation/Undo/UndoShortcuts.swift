@@ -52,7 +52,7 @@ public enum UndoCommand: Hashable, CaseIterable, Sendable {
     ///
     /// The input chain is not isolated to the main actor, though it only ever
     /// runs there; `UndoManager` is.
-    func perform(on manager: UndoManager) -> Bool {
+    package func perform(on manager: UndoManager) -> Bool {
         MainActor.assumeIsolated {
             switch self {
             case .undo:
@@ -211,7 +211,7 @@ extension KeyboardShortcut {
 ///
 /// One per app, held by `TUIContext`. `@unchecked Sendable` on the same footing
 /// as the dispatchers: touched only from the main run loop.
-final class AppUndoKeys: @unchecked Sendable {
+package final class AppUndoKeys: @unchecked Sendable {
     /// The table in force.
     private(set) var shortcuts = UndoShortcuts.default
 
@@ -219,17 +219,17 @@ final class AppUndoKeys: @unchecked Sendable {
     private(set) var commandKey = CommandKeyBinding.control
 
     /// What the terminal reports about the keyboard, for ``hint(for:)``.
-    var reporting = KeyboardReporting.legacy
+    package var reporting = KeyboardReporting.legacy
 
     /// ``shortcuts`` as the chord → command map a key is matched against,
     /// rebuilt only when the table changes.
     private var lookup = UndoShortcuts.default.lookup(commandKey: .control)
 
-    init() {}
+    package init() {}
 
     /// Takes the scene's table for the next keys, rebuilding the map only
     /// when it changed — the run loop calls this every frame.
-    func publish(_ shortcuts: UndoShortcuts, commandKey: CommandKeyBinding) {
+    package func publish(_ shortcuts: UndoShortcuts, commandKey: CommandKeyBinding) {
         guard shortcuts != self.shortcuts || commandKey != self.commandKey else { return }
         self.shortcuts = shortcuts
         self.commandKey = commandKey
@@ -237,7 +237,7 @@ final class AppUndoKeys: @unchecked Sendable {
     }
 
     /// The command `event` is bound to, or `nil`. A release is never one.
-    func command(for event: KeyEvent) -> UndoCommand? {
+    package func command(for event: KeyEvent) -> UndoCommand? {
         guard event.phase != .release, let trigger = KeyboardShortcut.trigger(for: event) else { return nil }
         return lookup[trigger]
     }

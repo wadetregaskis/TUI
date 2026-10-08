@@ -29,7 +29,7 @@ import TUIkitCore
 /// `@unchecked Sendable` on the same footing as the other dispatchers
 /// (`KeyEventDispatcher`, `MouseEventDispatcher`): touched only from the main
 /// run loop, by the render pass and by input dispatch.
-final class ModifierKeyMonitor: @unchecked Sendable {
+package final class ModifierKeyMonitor: @unchecked Sendable {
     /// The modifier keys held, and Caps Lock if it is on.
     private(set) var current: EventModifiers = []
 
@@ -156,7 +156,7 @@ final class ModifierKeyMonitor: @unchecked Sendable {
     ///   something from it. An observer's action asks for its own frame if it
     ///   changes state, as a key handler's does.
     @discardableResult
-    func record(_ state: ModifierKeyState) -> Bool {
+    package func record(_ state: ModifierKeyState) -> Bool {
         let old = current
         let new = EventModifiers(state)
         guard new != old else { return false }
@@ -196,7 +196,7 @@ extension EnvironmentValues {
     /// The app's modifier-key state, published only where the terminal reports
     /// modifier keys on their own; `nil` everywhere else, which is the answer
     /// "no modifier key is held, and none ever will be reported".
-    var modifierKeyMonitor: ModifierKeyMonitor? {
+    package var modifierKeyMonitor: ModifierKeyMonitor? {
         get { self[ModifierKeyMonitorKey.self] }
         set { self[ModifierKeyMonitorKey.self] = newValue }
     }

@@ -174,7 +174,7 @@ public final class FocusManager: @unchecked Sendable {
     private(set) var lastInputSource: InputSource = .keyboard
 
     /// Where an input event came from — see ``lastInputSource``.
-    enum InputSource {
+    package enum InputSource {
         case keyboard
         case pointer
     }
@@ -326,7 +326,7 @@ public final class FocusManager: @unchecked Sendable {
     /// (`RenderContext.isolatedForBackground()`): a reader on the page beneath
     /// a sheet still sees the values the live tree publishes, while the
     /// backdrop's own publishers are refused (`FocusedValueRegistrar`).
-    var focusedValues = FocusedValueRegistry()
+    package var focusedValues = FocusedValueRegistry()
 
     /// The focus scopes and default-focus preferences on screen — see
     /// `FocusScope.swift`.
@@ -361,7 +361,7 @@ public final class FocusManager: @unchecked Sendable {
     /// back at the end of the pass — visible as a flicker on the page's first
     /// control every time Tab was pressed inside a popover whose content had
     /// nothing to focus.
-    var activeSectionIsModal: Bool {
+    package var activeSectionIsModal: Bool {
         guard let activeID = activeSectionID else { return false }
         return modalSectionIDs.contains(activeID)
     }
@@ -425,7 +425,7 @@ public final class FocusManager: @unchecked Sendable {
     /// Where the focused control last rendered, if anything holds the focus:
     /// what SwiftUI's `onKeyPress` asks to decide whether the focus is inside
     /// its view.
-    var focusedIdentity: ViewIdentity? {
+    package var focusedIdentity: ViewIdentity? {
         focusedID.flatMap { focusIdentities[$0]?.identity }
     }
 
@@ -438,7 +438,7 @@ public final class FocusManager: @unchecked Sendable {
     ///
     /// When `true`, the input handler should give the focused element
     /// priority for key events before dispatching to other layers.
-    var hasTextInputFocus: Bool {
+    package var hasTextInputFocus: Bool {
         currentFocused is any TextInputFocusHandler
     }
 }
@@ -964,7 +964,7 @@ extension FocusManager {
     ///     answers whether it took it.
     /// - Returns: True if the event was handled.
     @discardableResult
-    func dispatchKeyEvent(_ event: KeyEvent, commands: ((KeyEvent) -> Bool)?) -> Bool {
+    package func dispatchKeyEvent(_ event: KeyEvent, commands: ((KeyEvent) -> Bool)?) -> Bool {
         // Dispatch to focused element first — let it handle keys like Up/Down/Left/Right.
         // If element consumes the event, stop here.
         if let focused = currentFocused {
@@ -1155,7 +1155,7 @@ extension FocusManager {
 
     /// Records which device drove the event now being dispatched. Called by the
     /// app's event funnel, before the event reaches any handler.
-    func noteInputSource(_ source: InputSource) {
+    package func noteInputSource(_ source: InputSource) {
         lastInputSource = source
     }
 
@@ -1332,7 +1332,7 @@ extension FocusManager {
     /// auto-focused.
     ///
     /// Call this at the start of each render pass instead of ``clear()``.
-    func beginRenderPass() {
+    package func beginRenderPass() {
         // Last frame's ring, kept for one frame so a LOSS can still reach its
         // element. Focus-lost moments routinely involve an element this frame
         // never registers: a modal's control at dismissal (`deactivateSection`
@@ -1372,7 +1372,7 @@ extension FocusManager {
     /// the frame rather than the walk: `previousSections` (last frame's ring,
     /// kept so a focus LOSS can still reach its element), `focusRenderGeneration`,
     /// `activeSectionID` and `focusedID` are all left alone.
-    func beginSceneRender() {
+    package func beginSceneRender() {
         sections.removeAll()
         // Modal sections are re-marked each render by the presentation modifiers;
         // clearing here means a dismissed modal (which no longer renders, so no
@@ -1404,7 +1404,7 @@ extension FocusManager {
     /// whose focus lands here — anything with no `.defaultFocus` — sits there
     /// showing no focus indicator at all until the user presses a key, and that
     /// keypress then moves focus off the element the user never saw it on.
-    func endRenderPass() {
+    package func endRenderPass() {
         let focusOnEntry = focusedID
         let sectionOnEntry = activeSectionID
         // Validate active section. If the active section vanished (e.g. a modal

@@ -257,7 +257,7 @@ extension EnvironmentValues {
     /// This machine's URL opener (``URLOpenerBackend``), published from the
     /// context each frame (``applyRuntimeServices(from:)``): this machine's
     /// `open` or `xdg-open` in a running app, memory everywhere else.
-    var urlOpener: (any URLOpenerBackend)? {
+    package var urlOpener: (any URLOpenerBackend)? {
         get { self[URLOpenerKey.self] }
         set { self[URLOpenerKey.self] = newValue }
     }

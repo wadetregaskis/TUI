@@ -160,7 +160,7 @@ extension GeometryCoordinator {
     ///   - frame: The screen as drawn, its top-left at `(0, 0)`.
     ///   - size: The screen's size.
     /// - Returns: Whether a reader must be drawn again.
-    func resolveRemaining(in frame: FrameBuffer, size: CellSize) -> Bool {
+    package func resolveRemaining(in frame: FrameBuffer, size: CellSize) -> Bool {
         guard unansweredTotal > 0 else { return false }
         var misled = false
         frame.forEachGeometryMarker { id, x, y in

@@ -15,14 +15,14 @@ import Foundation
 /// every drag flight and the auto-scroll timer at process-uptime zero; the
 /// next real frame then measured a lift as having run for the whole uptime.
 /// The default is the clock now, and the frame pacer reads the same one.
-enum FrameClock {
-    static var nowNanos: Int64 { Int64(bitPattern: MonotonicClock.nowNanoseconds) }
+package enum FrameClock {
+    package static var nowNanos: Int64 { Int64(bitPattern: MonotonicClock.nowNanoseconds) }
 
     /// The wall clock, read beside ``nowNanos`` wherever a frame is stamped: the
     /// one date a `TimelineView` resolves its schedule against in every walk of
     /// the frame, and the one its wake is counted from. See
     /// `RenderCache.frameDate`.
-    static var nowDate: Date { Date() }
+    package static var nowDate: Date { Date() }
 }
 
 /// ANSI background codes for each render surface in a frame.
@@ -30,9 +30,9 @@ enum FrameClock {
 /// Keeping these grouped avoids accidentally rendering every surface
 /// with `palette.background` and ignoring palette-specific tokens like
 /// `statusBarBackground`.
-internal struct RenderBackgroundCodes: Equatable {
+package struct RenderBackgroundCodes: Equatable {
     /// Main content area background code.
-    let content: String
+    package let content: String
 
     /// App header background code.
     let appHeader: String
@@ -40,7 +40,7 @@ internal struct RenderBackgroundCodes: Equatable {
     /// Status bar background code.
     let statusBar: String
 
-    init(palette: any Palette) {
+    package init(palette: any Palette) {
         self.content = ANSIRenderer.backgroundCode(for: palette.background)
         self.appHeader = ANSIRenderer.backgroundCode(for: palette.appHeaderBackground)
         self.statusBar = ANSIRenderer.backgroundCode(for: palette.statusBarBackground)

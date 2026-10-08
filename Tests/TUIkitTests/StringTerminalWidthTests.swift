@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 // One cohesive file of String terminal-width / ANSI-aware tests; splitting purely

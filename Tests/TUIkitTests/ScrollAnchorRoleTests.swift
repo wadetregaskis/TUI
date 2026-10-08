@@ -17,6 +17,7 @@ import Testing
 import TUIkitCore
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Where a role's anchor is written beside the unlabelled one — see

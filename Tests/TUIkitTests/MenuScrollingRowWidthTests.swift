@@ -8,6 +8,7 @@ import Testing
 import TUIkitCore
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A menu that scrolls draws its rows into one cell less than a menu that hugs:

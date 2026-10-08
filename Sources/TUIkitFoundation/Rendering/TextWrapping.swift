@@ -17,7 +17,7 @@ import TUIkitCore
 /// into the last visible line truncated with an ellipsis so the loss is shown
 /// rather than silently dropped.
 @MainActor
-enum TextWrapping {
+package enum TextWrapping {
     /// Wrapped text paired with each line's visible width in terminal cells.
     ///
     /// Word-wrapping already knows each line's width as it builds it, so the
@@ -41,7 +41,7 @@ enum TextWrapping {
     /// terminal cells. Never empty. A single word longer than `width` is placed on
     /// its own line (the caller truncates it). `width <= 0` returns the paragraphs
     /// unwrapped.
-    static func wrap(_ text: String, width: Int) -> [String] {
+    package static func wrap(_ text: String, width: Int) -> [String] {
         wrapMeasured(text, width: width).lines
     }
 

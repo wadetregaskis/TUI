@@ -49,7 +49,7 @@ import TUIkitCore
 ///   declaration is adopted again, in case the flipping was a person changing
 ///   pages faster than the guard can tell from a layout that cannot settle. A
 ///   declaration of anything else is a real change, and unpins it at once.
-final class WindowChromeState: @unchecked Sendable {
+package final class WindowChromeState: @unchecked Sendable {
     /// Which of the window's bars.
     enum Edge: CaseIterable {
         /// The top toolbar, above the page.
@@ -73,7 +73,7 @@ final class WindowChromeState: @unchecked Sendable {
     }
 
     /// One bar's reservation and the history its oscillation guard reads.
-    struct Bar: Equatable {
+    package struct Bar: Equatable {
         /// Rows of content the bar holds this frame, before its style frames
         /// them. 0 is no bar.
         var rows = 0
@@ -113,6 +113,10 @@ final class WindowChromeState: @unchecked Sendable {
     /// one second, sixty frames.
     static let pinNanos: Int64 = 1_000_000_000
 
+    /// A window with no toolbar reserved yet. Spelled out because the implicit
+    /// initializer is internal, and the run loop (TUIkitApp) makes one.
+    package init() {}
+
     /// The top toolbar's reservation.
     private(set) var top = Bar()
 
@@ -127,18 +131,18 @@ final class WindowChromeState: @unchecked Sendable {
     /// walk and put back before the second, so the second is laid out against
     /// the rows the first was and settles from where the first did — a frame
     /// adopts a change once, for the next frame, however many walks it takes.
-    var reservation: (top: Bar, bottom: Bar) {
+    package var reservation: (top: Bar, bottom: Bar) {
         get { (top, bottom) }
         set { (top, bottom) = newValue }
     }
 
     /// How every bar frames itself: the scene's `.windowToolbarStyle(_:)`,
     /// adopted each frame before anything is laid out. A box by default.
-    var style: ChromeStyle = .bordered
+    package var style: ChromeStyle = .bordered
 
     /// Whether the top bar's title slot shows ``title``: the scene's
     /// `.windowToolbarStyle(_:)` again, its `showsTitle:`.
-    var showsTitle = true
+    package var showsTitle = true
 
     /// The style the bar at `edge` frames itself in: the window's one style.
     func style(_ edge: Edge) -> ChromeStyle {
@@ -336,13 +340,13 @@ final class WindowChromeState: @unchecked Sendable {
     }
 
     /// Counts a frame. Called by the run loop before the scene is walked.
-    func beginFrame() {
+    package func beginFrame() {
         frame += 1
     }
 
     /// Forgets the toolbar items the last walk declared. Called by the run loop
     /// before every walk of the scene: what a walk declares is that walk's.
-    func beginWalk() {
+    package func beginWalk() {
         toolbarEntries.removeAll(keepingCapacity: true)
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
@@ -492,7 +496,7 @@ extension EnvironmentValues {
     /// what those rows depend on: `.toolbar`, `.toolbarVisibility(_:for:)`, and
     /// `.navigationTitle` / `.navigationSubtitle` (`PreferenceModifier`), whose
     /// title and subtitle are the top bar's rows.
-    var seedsWindowChrome: Bool {
+    package var seedsWindowChrome: Bool {
         get { self[SeedsWindowChromeKey.self] }
         set { self[SeedsWindowChromeKey.self] = newValue }
     }
@@ -502,7 +506,7 @@ extension EnvironmentValues {
     /// `nil` outside a running application, as every runtime service is — a
     /// headless render of a scene reserves no chrome and draws every bar it is
     /// handed at its own height.
-    var windowChrome: WindowChromeState? {
+    package var windowChrome: WindowChromeState? {
         get { self[WindowChromeKey.self] }
         set { self[WindowChromeKey.self] = newValue }
     }

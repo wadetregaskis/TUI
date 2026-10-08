@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// The frame-by-frame harness the render-cache contract suites drive the cache

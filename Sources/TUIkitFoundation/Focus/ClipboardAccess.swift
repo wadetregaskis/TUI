@@ -24,7 +24,7 @@ import Foundation
 /// success, since a test whose sentinel was clobbered skips instead of
 /// failing. It also keeps the suite from writing to the developer's
 /// pasteboard as a side effect of running.
-struct ClipboardAccess: Sendable {
+package struct ClipboardAccess: Sendable {
     /// Puts `text` on the clipboard, and answers what became of it; the flag
     /// is ``write(_:announcingSuccess:)``'s.
     var put: @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult
@@ -94,7 +94,7 @@ extension EnvironmentValues {
     /// another, for the reason ``ClipboardAccess`` gives. A text field or
     /// editor takes the one in its environment when it is created, and keeps
     /// it.
-    var clipboardAccess: ClipboardAccess {
+    package var clipboardAccess: ClipboardAccess {
         get { self[ClipboardAccessKey.self] }
         set { self[ClipboardAccessKey.self] = newValue }
     }

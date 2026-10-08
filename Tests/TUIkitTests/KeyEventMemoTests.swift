@@ -15,6 +15,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// What the handlers under test saw, in the order they ran.

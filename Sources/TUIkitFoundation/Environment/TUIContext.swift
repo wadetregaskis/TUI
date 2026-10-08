@@ -16,7 +16,7 @@ import Foundation
 /// Bundles lifecycle tracking, disappear callbacks, and async task management
 /// into a single cohesive manager.
 /// All mutable state is protected by `NSLock`.
-final class LifecycleManager: @unchecked Sendable {
+package final class LifecycleManager: @unchecked Sendable {
 
     /// Lock protecting all mutable state.
     private let lock = NSLock()
@@ -59,7 +59,7 @@ final class LifecycleManager: @unchecked Sendable {
     /// - Parameter firesEffects: Whether `onAppear`/`.task` effects
     ///   run (default `true`). Pass `false` for a side-effect-free
     ///   snapshot render.
-    init(firesEffects: Bool = true) {
+    package init(firesEffects: Bool = true) {
         self.firesEffects = firesEffects
     }
 }
@@ -68,14 +68,14 @@ final class LifecycleManager: @unchecked Sendable {
 
 extension LifecycleManager {
     /// Marks the start of a new render pass.
-    func beginRenderPass() {
+    package func beginRenderPass() {
         lock.lock()
         defer { lock.unlock() }
         currentRenderTokens.removeAll()
     }
 
     /// Marks the end of a render pass and triggers onDisappear for views that are no longer visible.
-    func endRenderPass() {
+    package func endRenderPass() {
         lock.lock()
         let disappeared = visibleTokens.subtracting(currentRenderTokens)
         for token in disappeared {
@@ -218,7 +218,7 @@ extension LifecycleManager {
     /// Resets all lifecycle state.
     ///
     /// Cancels all running tasks, clears all callbacks and tracking state.
-    func reset() {
+    package func reset() {
         lock.lock()
         appearedTokens.removeAll()
         visibleTokens.removeAll()
@@ -261,20 +261,20 @@ extension LifecycleManager {
 ///     }
 /// }
 /// ```
-final class TUIContext: @unchecked Sendable {
+package final class TUIContext: @unchecked Sendable {
     /// Semantic keyboard-shortcut registry (default / cancel actions),
     /// re-populated each render pass by buttons carrying a
     /// ``KeyboardShortcut`` and consulted by the input chain.
-    let keyboardShortcuts = KeyboardShortcutRegistry()
+    package let keyboardShortcuts = KeyboardShortcutRegistry()
 
     /// View lifecycle tracking (appear, disappear, task management).
-    let lifecycle: LifecycleManager
+    package let lifecycle: LifecycleManager
 
     /// Key event handler registration and dispatch.
-    let keyEventDispatcher: KeyEventDispatcher
+    package let keyEventDispatcher: KeyEventDispatcher
 
     /// Mouse event handler registration and hit-test dispatch.
-    let mouseEventDispatcher: MouseEventDispatcher
+    package let mouseEventDispatcher: MouseEventDispatcher
 
     /// The images this app has transmitted to the terminal, and the only
     /// thing that deletes one.
@@ -282,25 +282,25 @@ final class TUIContext: @unchecked Sendable {
     /// A plain stored property with no init parameter, unlike its neighbours:
     /// nothing needs to substitute one, and an image store shared between two
     /// contexts would delete one context's images out from under the other.
-    let terminalImageStore = TerminalImageStore()
+    package let terminalImageStore = TerminalImageStore()
 
     /// The help text a frame may show, and how it became the candidate.
     ///
     /// A plain stored property with no init parameter, like
     /// ``terminalImageStore``: nothing needs to substitute one, and there is no
     /// sensible meaning to two contexts sharing a tooltip.
-    let tooltipState = TooltipState()
+    package let tooltipState = TooltipState()
 
     /// The modifier keys held, as a terminal speaking the kitty keyboard
     /// protocol reports them, and the views listening for them
     /// (`onModifierKeysChanged`, `modifierKeyAlternate`). Kept by the key
     /// dispatcher, whose per-walk clear clears its listeners too.
-    var modifierKeys: ModifierKeyMonitor { keyEventDispatcher.modifierKeys }
+    package var modifierKeys: ModifierKeyMonitor { keyEventDispatcher.modifierKeys }
 
     /// The values a `copyable` or `cuttable` view last put on the clipboard,
     /// beside the text the clipboard got — so a paste in this app can have the
     /// values back. Stored as ``tooltipState`` is, and for the same reasons.
-    let typedClipboard = TypedClipboard()
+    package let typedClipboard = TypedClipboard()
 
     /// Where this app's copies go — the terminal by OSC 52, this machine's
     /// clipboard when the user is at this machine, or nowhere, said so in the
@@ -313,68 +313,68 @@ final class TUIContext: @unchecked Sendable {
     ///
     /// Settable, unlike its neighbours, so a test can hand a context a writer
     /// with its own answers to where the terminal is.
-    var clipboardWriter: ClipboardWriter {
+    package var clipboardWriter: ClipboardWriter {
         didSet { clipboardAccess = ClipboardAccess(writer: clipboardWriter) }
     }
 
     /// TUIkit's own selection of what is drawn — the one a drag that no
     /// control uses makes. See ``ScreenSelection``.
-    let screenSelection = ScreenSelection()
+    package let screenSelection = ScreenSelection()
 
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
-    private(set) lazy var clipboardAccess = ClipboardAccess(writer: clipboardWriter)
+    package private(set) lazy var clipboardAccess = ClipboardAccess(writer: clipboardWriter)
 
     /// This machine's URL opener, for an ``OpenURLAction`` that defers to the
     /// system: the one the context was made with (``init(clipboard:urlOpener:)``).
     /// The app's run loop passes the system's; every other context's keeps
     /// what it is handed in memory and launches nothing.
-    let urlOpener: any URLOpenerBackend
+    package let urlOpener: any URLOpenerBackend
 
     /// App-wide drag-and-drop state (active drag + per-frame drop targets).
-    let dragAndDropSession: DragAndDropSession
+    package let dragAndDropSession: DragAndDropSession
 
     /// Preference value collection during rendering.
-    let preferences: PreferenceStorage
+    package let preferences: PreferenceStorage
 
     /// The scene's operational state, published to `\.scenePhase` each frame.
     ///
     /// Owned here rather than by a view because only the run loop knows it:
     /// the one transition a terminal can report is suspend/resume, which the
     /// loop handles between frames. See ``ScenePhase``.
-    var scenePhase: ScenePhase = .active
+    package var scenePhase: ScenePhase = .active
 
     /// What the terminal reports about the keyboard, published to
     /// `\.keyboardReporting`. Set once, by the run loop, from the startup
     /// negotiation of the kitty keyboard protocol; ``KeyboardReporting/legacy``
     /// until then, and for a context with no terminal behind it.
-    var keyboardReporting = KeyboardReporting.legacy
+    package var keyboardReporting = KeyboardReporting.legacy
 
     /// The app's undo and redo keys, as the scene set them
     /// (`Scene.undoShortcuts(_:)`): published by the render loop each frame,
     /// read by the input chain and the status bar between frames.
-    let undoKeys = AppUndoKeys()
+    package let undoKeys = AppUndoKeys()
 
     /// The app's undo manager, published to `\.undoManager`. Made by the run
     /// loop, on the main actor, which `UndoManager` is isolated to and this
     /// context's initialiser is not; `nil` until then, and for a context with
     /// no app behind it, which is SwiftUI's answer for "a context that doesn't
     /// support undo and redo operations".
-    var undoManager: UndoManager?
+    package var undoManager: UndoManager?
 
     /// The undo steps of text controls that have gone away, which every frame
     /// takes out of ``undoManager`` as it begins (`RenderLoop.beginRenderPass()`).
-    let departedUndoSteps = DepartedUndoSteps()
+    package let departedUndoSteps = DepartedUndoSteps()
 
     /// Persistent `@State` value storage indexed by `ViewIdentity`.
-    let stateStorage: StateStorage
+    package let stateStorage: StateStorage
 
     /// Cache for memoized subtree rendering results.
     ///
     /// Stores rendered ``FrameBuffer`` output for ``EquatableView`` instances,
     /// keyed by `ViewIdentity`. Cleared on every `@State` change; entries
     /// for removed views are garbage-collected at the end of each render pass.
-    let renderCache: RenderCache
+    package let renderCache: RenderCache
 
     /// Closure that synthesises a key event through the full
     /// ``InputHandler`` 5-layer dispatch chain (text-input,
@@ -395,7 +395,7 @@ final class TUIContext: @unchecked Sendable {
     /// to reference ``TUIContext``-owned services at
     /// construction time, so the closure can only be wired up
     /// after both objects exist.
-    var synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)?
+    package var synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)?
 
     /// Creates a new TUI context with fresh instances of all services.
     ///
@@ -414,7 +414,7 @@ final class TUIContext: @unchecked Sendable {
     ///   - urlOpener: This machine's URL opener (``urlOpener``). The app's run
     ///     loop passes the system's (`SystemURLOpener`); every other context
     ///     keeps what it is handed in memory, and never launches a browser.
-    init(
+    package init(
         clipboard: any ClipboardBackend = InMemoryClipboard(),
         urlOpener: any URLOpenerBackend = InMemoryURLOpener()
     ) {
@@ -455,7 +455,7 @@ final class TUIContext: @unchecked Sendable {
     ///   - preferences: The preference storage to use.
     ///   - stateStorage: The state storage to use.
     ///   - renderCache: The render cache to use (defaults to a fresh, isolated cache).
-    init(
+    package init(
         lifecycle: LifecycleManager,
         keyEventDispatcher: KeyEventDispatcher,
         mouseEventDispatcher: MouseEventDispatcher = MouseEventDispatcher(),

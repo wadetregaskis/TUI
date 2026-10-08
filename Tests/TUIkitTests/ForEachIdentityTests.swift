@@ -14,6 +14,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A row that stamps its @State with its label on first appearance — so the

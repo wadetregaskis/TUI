@@ -116,7 +116,7 @@ extension DragAndDropSession {
     /// regions and registrations, as ``driveAutoScroll(nowNanos:)`` is: those
     /// are what is on screen, and so what the pointer is resting on. A
     /// control's activation then shows in the frame about to be drawn.
-    func driveSpringLoading(nowNanos: UInt64) -> UInt64? {
+    package func driveSpringLoading(nowNanos: UInt64) -> UInt64? {
         trackSpringLoading()
         guard var hover = springLoadHover, !hover.fired,
             let target = springLoadTargets.last(where: { $0.handlerID == hover.handlerID })

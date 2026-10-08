@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A mock terminal for testing that captures output and simulates input.

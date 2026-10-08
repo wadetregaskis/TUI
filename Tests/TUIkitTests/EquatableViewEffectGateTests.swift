@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A memoizable leaf whose body is built by a closure, so each case can put a

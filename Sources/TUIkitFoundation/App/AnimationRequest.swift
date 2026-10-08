@@ -18,7 +18,7 @@
 /// anchored where it was first asked for, with a frequency and a phase tolerance
 /// that let the scheduler lock it onto a live grid near that rate. With every
 /// request on the tick lattice there was nothing left for the lock to decide.
-struct AnimationRequest: Equatable, Sendable {
+package struct AnimationRequest: Equatable, Sendable {
     /// The ticks of 1/60 s between renders, `>= 1`.
     let frameTicks: Int
 
@@ -45,19 +45,19 @@ extension AnimationRequest {
     /// first asked, with a ±6 Hz band to lock onto a grid already running near
     /// that rate; a grid anchored anywhere else could meet the lattice only by
     /// luck.
-    static let viewAnimations = AnimationRequest(frameTicks: 2)
+    package static let viewAnimations = AnimationRequest(frameTicks: 2)
 
     /// How often a drag's lift is re-rendered while the picture travels from the
     /// row to the cursor: every 2 ticks, as a view animation is, which the lift
     /// is in all but name.
-    static let dragLift = AnimationRequest(frameTicks: 2)
+    package static let dragLift = AnimationRequest(frameTicks: 2)
 
     /// How often a cancelled drag's walk home is re-rendered: every 2 ticks, like
     /// the lift it reverses.
-    static let dragReturn = AnimationRequest(frameTicks: 2)
+    package static let dragReturn = AnimationRequest(frameTicks: 2)
 
     /// How often a drag held at a scrollable's edge is re-rendered, so it keeps
     /// scrolling while the pointer holds still: every 3 ticks, the lattice its
     /// steps are due on (`DragAndDropSession.AutoScroll.intervalTicks`).
-    static let dragAutoScroll = AnimationRequest(frameTicks: DragAndDropSession.AutoScroll.intervalTicks)
+    package static let dragAutoScroll = AnimationRequest(frameTicks: DragAndDropSession.AutoScroll.intervalTicks)
 }

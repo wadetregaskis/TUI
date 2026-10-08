@@ -97,7 +97,7 @@ public final class StatusBarState: @unchecked Sendable {
     /// The focus manager used to determine the active section.
     ///
     /// Set by `RenderLoop` at the start of each render pass.
-    weak var focusManager: FocusManager?
+    package weak var focusManager: FocusManager?
 
     /// The ID of the currently active focus section, read from the FocusManager.
     private var activeFocusSectionID: String? {
@@ -139,12 +139,12 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// The app's undo manager, whose undo and redo the bar offers; set by the
     /// run loop.
-    var undoManager: UndoManager?
+    package var undoManager: UndoManager?
 
     /// The app's undo and redo keys, which decide the key the bar names
     /// beside each: the first the terminal can deliver (``UndoShortcuts``'s
     /// hint). Set by the run loop with ``undoManager``.
-    var undoKeys = AppUndoKeys()
+    package var undoKeys = AppUndoKeys()
 
     /// Whether the bar carries an Escape entry when something claims the key.
     ///
@@ -194,7 +194,7 @@ public final class StatusBarState: @unchecked Sendable {
     }
 
     /// Quits — or asks first, if something on screen asked to be asked.
-    func requestQuit(_ quit: @escaping () -> Void) {
+    package func requestQuit(_ quit: @escaping () -> Void) {
         if let quitQuestion {
             quitQuestion(quit)
         } else {
@@ -490,7 +490,7 @@ public final class StatusBarState: @unchecked Sendable {
     /// the invocation has already happened. (The one case that does lag a frame
     /// is a help string that changes while the pointer is stationary, which is
     /// not worth a second pass.)
-    public internal(set) var tooltipLines: [String] = []
+    public package(set) var tooltipLines: [String] = []
 
     /// Whether this frame's ``tooltipLines`` are the line about a copy, shown
     /// in place of the items of the app's line of key hints
@@ -504,13 +504,13 @@ public final class StatusBarState: @unchecked Sendable {
     /// the lines, and only while the line drew a row of items the frame before
     /// (``lineShowsItems``): with none to stand in for, the note takes a row of
     /// its own, as a tooltip does.
-    var showsNoteInPlaceOfItems = false
+    package var showsNoteInPlaceOfItems = false
 
     /// Whether the app's line of key hints (``StatusBar/init()``) drew a row of
     /// items this frame — the row a line about a copy can stand in for in the
     /// next. Recorded by the line as it draws; taken, and cleared, by the run
     /// loop as it resolves the next frame's rows.
-    var lineShowsItems = false
+    package var lineShowsItems = false
 }
 
 // MARK: - Public API
@@ -590,7 +590,7 @@ extension StatusBarState {
     /// (``StatusBarItem/mayMatch(_:)``). Gathering them — sets, sorts and
     /// filters of every item — after every frame cost each app something for
     /// an answer that could only be no.
-    func takesAny(of events: [KeyEvent]) -> Bool {
+    package func takesAny(of events: [KeyEvent]) -> Bool {
         guard !itemActionsSuppressed, events.contains(where: StatusBarItem.mayMatch) else { return false }
         let items = currentItems
         return events.contains { item(taking: $0, among: items) != nil }
@@ -682,7 +682,7 @@ extension StatusBarState {
     ///
     /// One method so the render loop and a headless renderer reset the same
     /// things.
-    func beginSceneRender() {
+    package func beginSceneRender() {
         beginRenderPass()
         // The transient escape-label override is published by whichever
         // open modal surface (Picker drop-down, etc.) renders in this
@@ -787,7 +787,7 @@ extension EnvironmentValues {
     /// Set at the root by the render loop, with ``statusBar``, and replaced by
     /// nothing. `nil` outside a running app, where `StatusBar()` falls back to
     /// ``statusBar``.
-    var appStatusBar: StatusBarState? {
+    package var appStatusBar: StatusBarState? {
         get { self[AppStatusBarKey.self] }
         set { self[AppStatusBarKey.self] = newValue }
     }

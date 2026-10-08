@@ -50,7 +50,7 @@ extension String {
     ///     string already fits — used to signal that content continues
     ///     past a hard boundary (e.g. a row clipped by its container).
     /// - Returns: A string no wider than `max(0, width)` cells.
-    func truncatedToWidth(
+    package func truncatedToWidth(
         _ width: Int,
         mode: TruncationMode = .tail,
         atWordBoundary: Bool = false,

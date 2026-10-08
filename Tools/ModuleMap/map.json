@@ -39,6 +39,7 @@
   "TUIkitApp/Environment/ReduceMotion.swift": "TUIkitApp",
   "TUIkitApp/Environment/ServiceEnvironment+Runtime.swift": "TUIkitApp",
   "TUIkitApp/Environment/TUIContext+Reset.swift": "TUIkitApp",
+  "TUIkitApp/Exports.swift": "TUIkitApp",
   "TUIkitApp/Geometry/RenderContext+GeometryRoot.swift": "TUIkitApp",
   "TUIkitApp/Input/Scene+KeyNotation.swift": "TUIkitApp",
   "TUIkitApp/RenderOnce.swift": "TUIkitApp",

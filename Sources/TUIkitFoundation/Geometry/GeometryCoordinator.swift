@@ -43,7 +43,7 @@ import TUIkitView
 ///
 /// Unsynchronised, on the dispatcher's terms: it is only touched on the
 /// render path and at the end of a frame, both on the main actor.
-final class GeometryCoordinator: @unchecked Sendable {
+package final class GeometryCoordinator: @unchecked Sendable {
     init() {}
 
     // MARK: - Scroll Visibility (state; GeometryCoordinator+Visibility.swift)
@@ -178,14 +178,14 @@ final class GeometryCoordinator: @unchecked Sendable {
     }
 
     /// Counts a correction an owner of `kind` made.
-    func noteCorrection(_ kind: GeometryOwnerKind) {
+    package func noteCorrection(_ kind: GeometryOwnerKind) {
         corrections.note(kind)
     }
 
     /// Counts a reader found still wrong after its owner's correction — which
     /// one correction cannot leave if readers are greedy (the design study's
     /// one-pass convergence), so a non-zero count is a bug to look for.
-    func noteResidual() {
+    package func noteResidual() {
         corrections.residual += 1
     }
 
@@ -208,7 +208,7 @@ final class GeometryCoordinator: @unchecked Sendable {
     /// ``endFrame(frame:isRetained:)``, asking `storage` which identities are
     /// still in the tree — and only if some view vanished, since building the
     /// index is the cost.
-    func endFrame(frame: FrameBuffer, retainedBy storage: StateStorage?) {
+    package func endFrame(frame: FrameBuffer, retainedBy storage: StateStorage?) {
         var retained: RetainedSubtreeIndex?
         endFrame(frame: frame) { identity in
             guard let storage else { return false }
@@ -221,7 +221,7 @@ final class GeometryCoordinator: @unchecked Sendable {
 // MARK: - Corrections
 
 /// Which kind of view owned a coordinate space a reader asked about.
-enum GeometryOwnerKind {
+package enum GeometryOwnerKind {
     /// A ``View/coordinateSpace(_:)`` view.
     case named
     /// A scroll view, for `.scrollView` and `.scrollView(axis:)`.
@@ -265,7 +265,7 @@ package struct GeometryCorrections: Equatable, Sendable {
 extension RenderContext {
     /// The geometry coordinator of the frame being rendered, or `nil` where
     /// there is no mouse dispatcher to own one — see ``GeometryCoordinator``.
-    var geometryCoordinator: GeometryCoordinator? {
+    package var geometryCoordinator: GeometryCoordinator? {
         environment.mouseEventDispatcher?.geometry
     }
 }

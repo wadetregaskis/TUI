@@ -15,7 +15,7 @@ import TUIkitView
 ///
 /// Multiple chained `.onChange(of:)` modifiers on the same view are
 /// disambiguated via ``StateStorage/nextOnChangeIndex(for:)``.
-struct OnChangeModifier<Content: View, V: Equatable>: View {
+package struct OnChangeModifier<Content: View, V: Equatable>: View {
     /// The content view to wrap.
     let content: Content
 
@@ -28,7 +28,16 @@ struct OnChangeModifier<Content: View, V: Equatable>: View {
     /// The action to call with old and new values when a change is detected.
     let action: (V, V) -> Void
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and `Scene.onChange(of:initial:_:)` (TUIkitApp) makes these.
+    package init(content: Content, value: V, initial: Bool, action: @escaping (V, V) -> Void) {
+        self.content = content
+        self.value = value
+        self.initial = initial
+        self.action = action
+    }
+
+    package var body: Never {
         fatalError("OnChangeModifier renders via Renderable")
     }
 }
@@ -36,7 +45,7 @@ struct OnChangeModifier<Content: View, V: Equatable>: View {
 // MARK: - Renderable
 
 extension OnChangeModifier: Renderable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Pure passthrough during a measure pass: the comparison, the index
         // claim and the action are render side effects. A measure-pass render
         // (under a render-to-measure ancestor) used to fire the action a
@@ -83,7 +92,7 @@ extension OnChangeModifier: Layoutable {
     /// Renders `content` unchanged, so it measures as `content`. Forwarding is
     /// also what keeps the change-detection and `action` firing on the render
     /// pass — a measure must not observe values or fire `onChange`.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -95,7 +104,7 @@ extension OnChangeModifier: Layoutable {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 extension OnChangeModifier: SingleContentWrapper {
-    var wrappedContent: Content { content }
+    package var wrappedContent: Content { content }
 }
 
 // MARK: - Removal Transitions

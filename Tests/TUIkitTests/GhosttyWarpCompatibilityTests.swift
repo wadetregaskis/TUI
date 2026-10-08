@@ -11,6 +11,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTerminalHost

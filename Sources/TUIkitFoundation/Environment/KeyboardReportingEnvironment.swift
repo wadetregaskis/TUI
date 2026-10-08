@@ -97,7 +97,7 @@ public struct KeyboardReporting: Hashable, Sendable {
     public static let legacy = Self(flags: [])
 
     /// What a terminal that took `flags` reports.
-    init(flags: KittyKeyboardFlags) {
+    package init(flags: KittyKeyboardFlags) {
         isEnhanced = !flags.isEmpty
         disambiguatesKeys = flags.contains(.disambiguateEscapeCodes)
         reportsShiftedKeys =
@@ -125,7 +125,7 @@ extension EnvironmentValues {
     ///
     /// Published by the run loop from the startup negotiation; read-only,
     /// because no view can change what the terminal reports.
-    public internal(set) var keyboardReporting: KeyboardReporting {
+    public package(set) var keyboardReporting: KeyboardReporting {
         get { self[KeyboardReportingKey.self] }
         set { self[KeyboardReportingKey.self] = newValue }
     }

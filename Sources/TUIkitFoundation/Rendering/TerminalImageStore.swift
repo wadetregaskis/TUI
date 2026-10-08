@@ -105,7 +105,7 @@ protocol ImageStoreSignature: Equatable {
 /// actor-isolated, and from the run loop, which is — but both run on the run
 /// loop's own thread, one render pass at a time. There is no concurrency here
 /// to check; there is a compiler that cannot see that.
-final class TerminalImageStore: @unchecked Sendable {
+package final class TerminalImageStore: @unchecked Sendable {
 
     /// One image in the terminal, the cells that draw it, and who is drawing
     /// them.
@@ -157,7 +157,7 @@ final class TerminalImageStore: @unchecked Sendable {
     /// Counts every image put in the terminal or taken out of it, so the run
     /// loop can tell after a frame whether ``farewell(fitting:)`` changed
     /// without spelling it again.
-    private(set) var generation = 0
+    package private(set) var generation = 0
 
     // MARK: - Drawing
 
@@ -279,7 +279,7 @@ final class TerminalImageStore: @unchecked Sendable {
 
     /// Gives back every image, for a shutdown that wants to leave the terminal
     /// as it found it.
-    func releaseAll() {
+    package func releaseAll() {
         pending += farewell()
         images.removeAll()
         slots.removeAll()
@@ -298,7 +298,7 @@ final class TerminalImageStore: @unchecked Sendable {
     ///
     /// What a `SIGQUIT` owes the terminal too, which skips the teardown that
     /// calls ``releaseAll()`` (`Terminal.quitFarewell`).
-    func farewell(fitting limit: Int = .max) -> String {
+    package func farewell(fitting limit: Int = .max) -> String {
         var farewell = ""
         for image in images.values.sorted(by: { $0.arrival < $1.arrival }) {
             let delete = KittyGraphics.delete(id: image.id)
@@ -312,7 +312,7 @@ final class TerminalImageStore: @unchecked Sendable {
     ///
     /// Written at `beginFrame`, before the frame's cells: a placeholder naming
     /// an image the terminal has not been given yet draws nothing.
-    func takePending() -> String {
+    package func takePending() -> String {
         defer { pending = "" }
         return pending
     }

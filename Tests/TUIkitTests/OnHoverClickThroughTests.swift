@@ -8,6 +8,7 @@ import Testing
 import TUIkitCore
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A declined mouse event falls through to the region beneath — for every

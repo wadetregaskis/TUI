@@ -149,7 +149,7 @@ public struct ToggleCharacterSet: Sendable, Hashable {
         return "\u{229F}" + String(repeating: " ", count: max(0, onMark.strippedLength - 1))
     }
 
-    static func automatic(emojiChrome: Bool) -> Self {
+    package static func automatic(emojiChrome: Bool) -> Self {
         emojiChrome ? .emoji : .unicode
     }
 }
@@ -188,7 +188,7 @@ extension EnvironmentValues {
     ///
     /// Read it to pick an emoji vs. a monochrome affordance — e.g. the
     /// `.searchable` magnifier (🔎 / 🔍 by side) is drawn here and nowhere else.
-    var supportsEmojiChrome: Bool {
+    package var supportsEmojiChrome: Bool {
         get { self[SupportsEmojiChromeKey.self] }
         set { self[SupportsEmojiChromeKey.self] = newValue }
     }

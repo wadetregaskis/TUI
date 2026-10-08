@@ -42,7 +42,7 @@
 /// `@unchecked Sendable` like its sibling per-frame services
 /// (`MouseEventDispatcher`, `KeyEventDispatcher`): touched only from the
 /// main run loop (render pass registration + input dispatch).
-final class KeyboardShortcutRegistry: @unchecked Sendable {
+package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// An app shortcut's action, whether a held key's repeats run it again,
     /// and when in the frame it was registered (``registrationCount``).
     struct Entry {
@@ -82,7 +82,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     private var paneDefaults: [String: [KeyboardShortcut.Trigger: Default]] = [:]
 
     /// Clears the frame's registrations (called from the render loop).
-    func beginRenderPass() {
+    package func beginRenderPass() {
         actions.removeAll(keepingCapacity: true)
         if !paneActions.isEmpty { paneActions.removeAll() }
         currentPane = nil
@@ -207,7 +207,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///     or `nil` on the page.
     ///   - reachesPage: Whether a key equivalent the pane does not bind may
     ///     reach the page's: not while a modal section holds the focus.
-    func trigger(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
+    package func trigger(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
         let entry = appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage)
         if event.phase == .repeat, let entry, !entry.repeats { return true }
@@ -229,7 +229,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// one of its editing chords. An app shortcut on the chord takes the key
     /// instead; see
     /// ``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``.
-    func hasAppShortcut(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
+    package func hasAppShortcut(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
         return appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage) != nil
     }
@@ -244,7 +244,7 @@ final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// is set once a frame, for the whole screen, so a pane's binding masks it
     /// as the page's does. Which of them the key then reaches is the pane
     /// rule's (``trigger(for:activePane:reachesPage:)``).
-    func hasShortcut(for event: KeyEvent) -> Bool {
+    package func hasShortcut(for event: KeyEvent) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
         return actions[trigger] != nil || defaults[trigger] != nil
             || paneActions.values.contains { $0[trigger] != nil }
@@ -350,7 +350,7 @@ private struct AssignedKeyboardShortcutKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// The app's semantic-shortcut registry (nil outside a running app).
-    var keyboardShortcutRegistry: KeyboardShortcutRegistry? {
+    package var keyboardShortcutRegistry: KeyboardShortcutRegistry? {
         get { self[KeyboardShortcutRegistryKey.self] }
         set { self[KeyboardShortcutRegistryKey.self] = newValue }
     }

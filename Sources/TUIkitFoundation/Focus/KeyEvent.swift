@@ -14,7 +14,7 @@ import TUIkitCore
 /// Handlers are processed in reverse order (most recent first).
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-final class KeyEventDispatcher: @unchecked Sendable {
+package final class KeyEventDispatcher: @unchecked Sendable {
     /// One registration: the handler and the focus section it rendered in.
     private struct Entry {
         /// The focus section that was active where this handler registered, or
@@ -69,7 +69,7 @@ final class KeyEventDispatcher: @unchecked Sendable {
     let modifierKeys = ModifierKeyMonitor()
 
     /// Creates a new key event dispatcher.
-    init() {}
+    package init() {}
 }
 
 // MARK: - Internal API
@@ -144,7 +144,7 @@ extension KeyEventDispatcher {
     }
 
     /// Clears all handlers, and any input grab.
-    func clearHandlers() {
+    package func clearHandlers() {
         handlers.removeAll()
         focusPathHandlers.removeAll()
         grabbingSectionID = nil
@@ -189,7 +189,7 @@ extension KeyEventDispatcher {
     ///   - events: The keys asked about: whether a handler is declared for
     ///     any of them. One walk of the handlers for all of them.
     ///   - focusedIdentity: Where the focused control rendered.
-    func declaresFocusPathBinding(forAnyOf events: [KeyEvent], focusedIdentity: ViewIdentity) -> Bool {
+    package func declaresFocusPathBinding(forAnyOf events: [KeyEvent], focusedIdentity: ViewIdentity) -> Bool {
         focusPathHandlers.contains { entry in
             guard entry.stage == .keyPress, let declares = entry.declares,
                 grabbingSectionID == nil || entry.sectionID == grabbingSectionID,
@@ -226,7 +226,7 @@ extension KeyEventDispatcher {
     ///     the key when its scope is that identity or an ancestor of it.
     ///   - stage: Which handlers to ask.
     /// - Returns: Whether some handler took the key.
-    func dispatchFocusPath(_ event: KeyEvent, focusedIdentity: ViewIdentity, stage: FocusPathStage) -> Bool {
+    package func dispatchFocusPath(_ event: KeyEvent, focusedIdentity: ViewIdentity, stage: FocusPathStage) -> Bool {
         switch stage {
         case .keyPress:
             return firstHandling(event, focusedIdentity: focusedIdentity, stage: stage, in: focusPathHandlers)
@@ -245,7 +245,7 @@ extension KeyEventDispatcher {
     /// (`InputHandler.dispatchToDeclaredBindings(_:)`).
     ///
     /// - Returns: Whether one of them took it.
-    func dispatchDeclaredFocusPath(_ event: KeyEvent, focusedIdentity: ViewIdentity) -> Bool {
+    package func dispatchDeclaredFocusPath(_ event: KeyEvent, focusedIdentity: ViewIdentity) -> Bool {
         firstHandling(
             event, focusedIdentity: focusedIdentity, stage: .keyPress,
             in: focusPathHandlers.lazy.filter { $0.declares?(event) == true })
@@ -272,7 +272,7 @@ extension KeyEventDispatcher {
     /// - Parameter event: The key event to dispatch.
     /// - Returns: True if any handler consumed the event.
     @discardableResult
-    func dispatch(_ event: KeyEvent) -> Bool {
+    package func dispatch(_ event: KeyEvent) -> Bool {
         // Process in reverse order (most recent handlers first) — and, while a
         // surface holds the keyboard, only the handlers registered inside it.
         for entry in handlers.reversed()

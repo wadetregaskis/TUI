@@ -11,6 +11,7 @@ import Testing
 import TUIkitCore
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A hover OBSERVER — `.onHover`, `help(_:)` — hears the pointer enter and

@@ -70,11 +70,11 @@ import Foundation
 /// let phase = cursor.pulsePhase(for: .automatic)
 /// ```
 @MainActor
-final class CursorTimer {
+package final class CursorTimer {
     /// How often a view that reads the phase AS IT RENDERS is re-rendered.
     /// Taken from ``AnimationClock/standardFrameTicks`` rather than written here so
     /// there is one number, not two that can disagree.
-    nonisolated static let standardFrameSeconds = AnimationClock.seconds(forTicks: AnimationClock.standardFrameTicks)
+    package nonisolated static let standardFrameSeconds = AnimationClock.seconds(forTicks: AnimationClock.standardFrameTicks)
 
     /// The same, in whole nanoseconds, from the instant its tick begins — the lattice the
     /// focus epoch is floored to. Internal rather than private so the spec for the
@@ -84,7 +84,7 @@ final class CursorTimer {
     /// Where a wake reads the time. The clock `FrameClock` reads too, which is
     /// what makes a wake's reading and a frame's comparable at all; injectable
     /// so a test can step it, as `MouseEventDispatcher.nowNanos` is.
-    var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
+    package var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// The latest instant this timer has been shown, in nanoseconds on
     /// ``MonotonicClock``: the source of truth for both clocks.
@@ -115,7 +115,7 @@ final class CursorTimer {
     /// put many of those sums 1 ns past their tick (16,666,667 + 33,333,334 is
     /// 50,000,001), and a cursor run would change a nanosecond after the content runs
     /// beside it.
-    var focusEpochNanos: UInt64?
+    package var focusEpochNanos: UInt64?
 
     /// Shows the timer the time: a frame's `frameNow`, before anything in that
     /// frame reads a phase, or a wake's own reading.
@@ -128,7 +128,7 @@ final class CursorTimer {
     /// and because the snapshot only rises: a caller that passes a frame time
     /// EARLIER than one the timer has already seen (a test, stamping its own
     /// frames) keeps the later snapshot, and the two then differ.
-    func observe(nowNanos now: UInt64) {
+    package func observe(nowNanos now: UInt64) {
         snapshotNanos = max(snapshotNanos, now)
         if focusEpochNanos == nil {
             focusEpochNanos = snapshotNanos - snapshotNanos % Self.standardFrameNanos
@@ -148,7 +148,7 @@ final class CursorTimer {
     /// uptime. Past that, a wake landing exactly on a tick's instant can read the tick
     /// before and draw its change a tick late (real wakes are milliseconds late, so it
     /// is rare), but a render and a replay index the same `Double` and agree.
-    func elapsed(for clock: AnimationClock) -> Double {
+    package func elapsed(for clock: AnimationClock) -> Double {
         switch clock {
         case .content: Double(snapshotNanos) / 1_000_000_000
         case .cursor: focusEpochNanos.map { Double(snapshotNanos - $0) / 1_000_000_000 } ?? 0
@@ -168,7 +168,7 @@ final class CursorTimer {
 
     /// ``elapsed(for:)`` on the 50 ms step grid the phase formulas are written in.
     /// Steps, not ticks: a tick is 1/60 s, and a step is three of them.
-    func steps(for clock: AnimationClock) -> Int {
+    package func steps(for clock: AnimationClock) -> Int {
         // Through the one conversion every step boundary shares, so the phase formulas
         // and the pre-rendered runs agree on which step an instant is in — a floor in
         // seconds put a summed 0.35 s in step 6, when this clock was a sum. Clamped
@@ -182,15 +182,15 @@ final class CursorTimer {
     /// ``blinkVisible(for:)`` or ``pulsePhase(for:)`` is consulted. The run loop
     /// reads it after the frame to decide whether the cursor is still animating
     /// (a text field is focused) and the timer should keep ticking.
-    private(set) var didReadThisFrame = false
+    package private(set) var didReadThisFrame = false
 
     /// Clears the per-frame read flag. Call before each render pass.
-    func beginFrameReadTracking() {
+    package func beginFrameReadTracking() {
         didReadThisFrame = false
     }
 
     /// The running animation task, or `nil` if stopped.
-    var task: Task<Void, Never>?
+    package var task: Task<Void, Never>?
 
     /// How long the next wake-up is away.
     ///
@@ -208,7 +208,7 @@ final class CursorTimer {
     /// module only because the timer control in CursorTimer+Timer.swift resets it
     /// to ``standardFrameSeconds`` (`stop()`, `restartFocusPhase()`); the run loop
     /// only ever writes it through ``advance(by:)``.
-    var sleepSeconds = CursorTimer.standardFrameSeconds
+    package var sleepSeconds = CursorTimer.standardFrameSeconds
 
     /// Sets how far the next wake-up is. Takes effect after the current sleep.
     ///
@@ -217,7 +217,7 @@ final class CursorTimer {
     /// every wake through ``planner`` and does not depend on it.
     ///
     /// Never shorter than ``secondsToNextTick``, whatever it is asked for.
-    func advance(by seconds: Double) {
+    package func advance(by seconds: Double) {
         sleepSeconds = max(secondsToNextTick, seconds)
     }
 
@@ -256,16 +256,16 @@ final class CursorTimer {
     /// Asked here, after taking the time of the wake, the plan and the sleep are the
     /// same wake's, and no ordering between the task and the loop can come between them.
     /// `nil` leaves the sleep where ``advance(by:)`` last put it.
-    var planner: (((AnimationClock) -> Double) -> Double)?
+    package var planner: (((AnimationClock) -> Double) -> Double)?
 
     /// The render notifier to trigger re-renders.
-    weak var renderNotifier: AppState?
+    package weak var renderNotifier: AppState?
 
     /// Creates a new cursor timer.
     ///
     /// - Parameter renderNotifier: The app state to notify when a re-render
     ///   is needed. Held weakly to avoid retain cycles.
-    init(renderNotifier: AppState) {
+    package init(renderNotifier: AppState) {
         self.renderNotifier = renderNotifier
     }
 
@@ -394,7 +394,7 @@ extension CursorTimer {
     /// At ``IndicatorAnimationSpeed/automatic``, the focus emphasis's speed where
     /// nothing sets one: the seam is one value for the whole frame, and cannot see
     /// a subtree's `indicatorAnimationSpeed(_:for:)`.
-    var breathPhase: Double {
+    package var breathPhase: Double {
         pulsePhaseNow(speed: .automatic)
     }
 

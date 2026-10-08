@@ -53,13 +53,19 @@
 /// ``WindowChromeState`` in its environment — a scene rendered outside an app,
 /// which has no frames to adopt anything in — draws the content with its
 /// overlays composited, and no chrome.
-struct _WindowChromeHost<Content: View>: View, Renderable {
+package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// The window's content.
     let content: Content
 
-    var body: Never { fatalError("_WindowChromeHost renders via Renderable") }
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and `WindowGroup` (TUIkitApp) makes these.
+    package init(content: Content) {
+        self.content = content
+    }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package var body: Never { fatalError("_WindowChromeHost renders via Renderable") }
+
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         let chrome = context.environment.windowChrome

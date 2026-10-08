@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Tests for `ViewRenderer`, the one-off renderer behind `renderOnce(_:)`.

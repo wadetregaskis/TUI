@@ -36,7 +36,7 @@ public enum MouseFeature: Sendable {
 /// drag once it has captured a control.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-final class MouseEventDispatcher: @unchecked Sendable {
+package final class MouseEventDispatcher: @unchecked Sendable {
     /// The app's drag-and-drop session, when one is wired (see
     /// ``TUIContext``). The dispatcher stamps it with every press / drag /
     /// release event in ABSOLUTE coordinates before routing — a drag-captured
@@ -124,7 +124,7 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// What the views that stamp geometry markers asked, and what their
     /// owners found — see ``GeometryCoordinator``. Here because the markers'
     /// ids are, and because a dispatcher is wired wherever a frame is drawn.
-    let geometry = GeometryCoordinator()
+    package let geometry = GeometryCoordinator()
 
     /// One lane of the hover state machine: the region the pointer was last
     /// resolved against, and the closure still owed its exit across a reshape.
@@ -337,7 +337,7 @@ final class MouseEventDispatcher: @unchecked Sendable {
     /// hover that starts a tooltip's delay (`HelpModifier`). Defaults to the
     /// same clock the run loop uses; injectable for tests, and a `HeadlessApp`
     /// runs it on its caller's time.
-    var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
+    package var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     init() {}
 }
@@ -351,7 +351,7 @@ extension MouseEventDispatcher {
     /// drag-capture map (`pressedHandlers`) is intentionally *not*
     /// cleared here — captures span multiple frames, ended only by the
     /// matching `.released`.
-    func beginRenderPass() {
+    package func beginRenderPass() {
         // Retain each lane's hovered closure before the table dies — see
         // `HoverSlot.pendingExit`.
         if let exit = retainedExit(for: hover) { hover.pendingExit = exit }
@@ -437,7 +437,7 @@ extension MouseEventDispatcher {
     /// 3. Either way, per-frame feature requests are unioned on top,
     ///    so a modifier that needs `motion` always gets it
     ///    regardless of which level set the base.
-    func effectiveSupport(baseConfig: MouseSupport) -> MouseSupport {
+    package func effectiveSupport(baseConfig: MouseSupport) -> MouseSupport {
         let base = configOverride ?? baseConfig
         return base.union(with: requestedFeatures)
     }
@@ -457,7 +457,7 @@ extension MouseEventDispatcher {
     /// the AppRunner sets the frame-final effective (base ∪ per-frame feature
     /// requests) after the render — `isFrameFinal: true`, the value the
     /// terminal's reporting mode is actually switched to.
-    func setActiveSupport(_ support: MouseSupport, isFrameFinal: Bool = false) {
+    package func setActiveSupport(_ support: MouseSupport, isFrameFinal: Bool = false) {
         // A frame-final downgrade below clicks turns the terminal's button
         // reporting off — mid-gesture (a page with `.mouseSupport(.disabled)`
         // reached by keyboard while a button is held), the release that would
@@ -508,7 +508,7 @@ extension MouseEventDispatcher {
     /// The dispatcher reverses that during dispatch so the innermost
     /// matching handler wins — same intuition as a tap dispatched in a
     /// SwiftUI / AppKit view tree.
-    func setRegions(_ regions: [HitTestRegion]) {
+    package func setRegions(_ regions: [HitTestRegion]) {
         self.regions = regions
         reconcileHoverAfterReshape()
     }
@@ -847,7 +847,7 @@ extension MouseEventDispatcher {
     ///
     /// - Returns: `true` if a handler consumed the event.
     @discardableResult
-    func dispatch(_ event: MouseEvent) -> Bool {
+    package func dispatch(_ event: MouseEvent) -> Bool {
         // Diagnostic (TUIKIT_DEBUG_FOCUS=1): log every press/release
         // with the click coords (in content-area space), the
         // registered regions, and which — if any — matched. Used to

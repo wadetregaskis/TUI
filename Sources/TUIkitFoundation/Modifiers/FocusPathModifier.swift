@@ -10,7 +10,7 @@
 ///
 /// SwiftUI asks two kinds of handler along the path from the focused view to
 /// the root, at two different moments — measured on macOS 15.
-enum FocusPathStage: Sendable {
+package enum FocusPathStage: Sendable {
     /// `onKeyPress`: before the focused control has the key, outermost first.
     case keyPress
 

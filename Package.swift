@@ -106,10 +106,11 @@ let package = Package(
 
         // ── The split's carved modules ──────────────────────────────────────────────────────────────────
         // Modules of the planned split (Documentation/Historical/Module split plan, revision 4) that a step
-        // of Phase B has carved out of TUIkitFoundation into targets of their own. TUIkitFoundation depends
-        // on each and re-exports it (Sources/TUIkitFoundation/Exports.swift), so `import TUIkit` gives an
-        // app what it gave before. Tools/ModuleMap's `lower` lists (rules.json) say which lower modules
-        // each may use; its `lower` check fails CI on any other.
+        // of Phase B has carved out of TUIkitFoundation into targets of their own. A side module, below it,
+        // is one that TUIkitFoundation depends on and re-exports (Sources/TUIkitFoundation/Exports.swift); a
+        // leaf, above it, depends on TUIkitFoundation, and the umbrella re-exports it. Either way `import
+        // TUIkit` gives an app what it gave before. Tools/ModuleMap's `lower` lists (rules.json) say which
+        // lower modules each may use; its `lower` check fails CI on any other.
         //
         // Step B2's two side modules need TUIkitCore alone, so they compile beside TUIkitView, not after
         // it. TUIkitStrings is the SF Symbols name table, the inline-Markdown parser, the format styles and
@@ -130,14 +131,30 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // Step B3's leaf, the first module built ON TUIkitFoundation rather than under it: `App` and its run
+        // loop, `Scene`, `WindowGroup` and the Scene modifiers, the console layer (the `Terminal` class with
+        // its raw mode, input and replies, the signal handlers, the stdin source) and the run loop's rendering
+        // (`ViewRenderer`, `FrameDiffWriter`, `renderOnce`). Nothing in TUIkitFoundation may use it
+        // (Tools/ModuleMap's upward check), so the umbrella re-exports it, not TUIkitFoundation; it re-exports
+        // TUIkitFoundation in turn (Sources/TUIkitApp/Exports.swift). POSIX by design: no Windows step builds
+        // it (CLAUDE.md). DequeModule is its alone: only the `Terminal` files use it.
+        .target(
+            name: "TUIkitApp",
+            dependencies: [
+                "TUIkitFoundation",
+                .product(name: "DequeModule", package: "swift-collections"),
+            ],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
-        // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s TUIkitFoundation and the lower
-        // four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app
+        // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s TUIkitApp, TUIkitFoundation and
+        // the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app
         // exactly what it gave when the framework was one TUIkit module. Its directory also holds the
         // TUIkit.docc catalog. Nothing in the package depends on it but the apps and the tests.
         .target(
             name: "TUIkit",
-            dependencies: ["TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView"]
+            dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView"]
         ),
 
         // One target, many directories. The module split (Documentation/Historical/Module split plan,
@@ -151,14 +168,13 @@ let package = Package(
             name: "TUIkitFoundation",
             dependencies: [
                 "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView", "TUIkitStrings", "TUIkitTerminalHost",
-                .product(name: "DequeModule", package: "swift-collections"),
             ],
             path: "Sources",
             // Every other target's directory under Sources. One left out, or a new one, is reported by
             // SwiftPM as "found N file(s) which are unhandled" (a warning), so the list cannot go stale
             // quietly.
             exclude: [
-                "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitAppKit",
+                "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit",
                 "TUIkitCore", "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitStrings", "TUIkitStyling",
                 "TUIkitTerminalHost", "TUIkitView", "TUIkitWidthCorpus",
             ],
@@ -170,7 +186,7 @@ let package = Package(
                 "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps", "TUIkitMenus",
                 "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitLists", "TUIkitGrid",
                 "TUIkitNavigation", "TUIkitPresentation", "TUIkitForms", "TUIkitSearch", "TUIkitTables", "TUIkitTabs",
-                "TUIkitColorPicker", "TUIkitApp",
+                "TUIkitColorPicker",
             ],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
@@ -221,11 +237,12 @@ let package = Package(
         // forward (see also the per-target import guard it applies). A test
         // imports TUIkit, as an app does, and `@testable import`s
         // TUIkitFoundation where it reaches the framework's internals, or the
-        // carved module that declares them (TUIkitStrings, TUIkitTerminalHost).
+        // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
+        // TUIkitApp).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
-                "TUIkit", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitAppKit",
+                "TUIkit", "TUIkitApp", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitAppKit",
                 "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
@@ -247,7 +264,7 @@ let package = Package(
         // Linux, its `main.swift` left unrun.
         .testTarget(
             name: "ExampleTests",
-            dependencies: ["Example", "TUIkit", "TUIkitFoundation"]
+            dependencies: ["Example", "TUIkit", "TUIkitApp", "TUIkitFoundation"]
         ),
 
         // ── Per-module unit-test targets (compiler-enforced layering) ──────────────────────────────────────

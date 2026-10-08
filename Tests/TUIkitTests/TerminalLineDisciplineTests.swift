@@ -20,6 +20,7 @@ import Musl
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 @Suite("Raw mode's line discipline")

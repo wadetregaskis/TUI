@@ -178,7 +178,7 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
 /// > wins such a chord from a focused text control; see <doc:KeyboardShortcuts>.
 public struct KeyboardShortcut: Hashable, Sendable {
     /// What activates this shortcut.
-    enum Trigger: Hashable, Sendable {
+    package enum Trigger: Hashable, Sendable {
         case defaultAction
         case cancelAction
         case key(KeyEquivalent, EventModifiers)
@@ -199,7 +199,7 @@ public struct KeyboardShortcut: Hashable, Sendable {
 
     /// What activates this shortcut: ``key`` and ``modifiers`` in the one
     /// spelling an incoming event is matched against.
-    var trigger: Trigger { Self.normalised(key, modifiers) }
+    package var trigger: Trigger { Self.normalised(key, modifiers) }
 
     /// The default button: Return/Enter activates it when the focused control
     /// lets the key fall through. As in SwiftUI, it is Return with no
@@ -257,7 +257,7 @@ public struct KeyboardShortcut: Hashable, Sendable {
 
     /// This shortcut with ``EventModifiers/command`` replaced per `binding`,
     /// ready to register. Non-command shortcuts pass through untouched.
-    func resolved(commandKey binding: CommandKeyBinding) -> Self? {
+    package func resolved(commandKey binding: CommandKeyBinding) -> Self? {
         guard modifiers.contains(.command) else { return self }
         var resolved = self
         resolved.modifiers.remove(.command)
@@ -350,7 +350,7 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// the CASE, not from `event.shift`. A terminal sends a shifted printable as
     /// the shifted character with no modifier bits, so trusting the flag would
     /// make `("a", [.shift])` permanently dead and let `("a", [])` fire for "A".
-    static func trigger(for event: KeyEvent) -> Trigger? {
+    package static func trigger(for event: KeyEvent) -> Trigger? {
         let modifiers = EventModifiers(event).chordModifiers
         switch event.key {
         // A BARE Return or Escape is the semantic role — the default button,

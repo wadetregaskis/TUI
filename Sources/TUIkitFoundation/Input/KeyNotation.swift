@@ -137,7 +137,7 @@ extension EnvironmentValues {
     /// `Scene.keyNotation(_:)`. Read-only, so that a view cannot hand symbols
     /// back to a user who asked for names; read it to write a key in text of
     /// the app's own (``KeyNotation/spelling(_:)``).
-    public internal(set) var keyNotation: KeyNotation {
+    public package(set) var keyNotation: KeyNotation {
         get { self[KeyNotationKey.self] }
         set { self[KeyNotationKey.self] = newValue }
     }

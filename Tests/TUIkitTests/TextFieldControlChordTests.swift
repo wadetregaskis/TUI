@@ -20,6 +20,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// The string the control under test is bound to, read back after the keys.

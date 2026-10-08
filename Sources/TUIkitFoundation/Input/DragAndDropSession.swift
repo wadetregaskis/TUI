@@ -97,7 +97,7 @@ final class DropPayload: @unchecked Sendable, Equatable {
 /// initializer, so it cannot be formally actor-isolated.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-final class DragAndDropSession: @unchecked Sendable {
+package final class DragAndDropSession: @unchecked Sendable {
     /// One frame's registration of a drop destination.
     struct Target {
         /// The mouse-region id whose on-screen rectangle is the drop zone.
@@ -185,7 +185,7 @@ final class DragAndDropSession: @unchecked Sendable {
     }
 
     /// The drag in flight, or `nil`.
-    struct ActiveDrag {
+    package struct ActiveDrag {
         /// The dragged value, type-erased (drops re-match it by type).
         let payload: Any
 
@@ -279,7 +279,7 @@ final class DragAndDropSession: @unchecked Sendable {
     /// lifting out of the row, and a cancelled or refused drop does not fly
     /// home — the picture goes where it is and the row draws again in its
     /// place.
-    var reducesMotion = false
+    package var reducesMotion = false
 
     /// Where a change of what ``isDragSource(_:)`` answers is reported: the
     /// app's render cache's link, wired by `TUIContext` — held strongly, as a
@@ -368,7 +368,7 @@ final class DragAndDropSession: @unchecked Sendable {
     private var autoScrollOwner: ObjectIdentifier?
 
     /// The drag in flight, or `nil`.
-    private(set) var active: ActiveDrag?
+    package private(set) var active: ActiveDrag?
 
     /// The last press/drag/release event in ABSOLUTE coordinates, stamped by
     /// the dispatcher before it localises the event for the captured handler
@@ -576,7 +576,7 @@ final class DragAndDropSession: @unchecked Sendable {
     /// the clock rather than counted in frames, so a slow frame shortens the
     /// flight instead of stretching it.
     @discardableResult
-    func driveLift(nowNanos: UInt64) -> Bool {
+    package func driveLift(nowNanos: UInt64) -> Bool {
         guard var drag = active, drag.liftPhase < 1 else { return false }
         let start = drag.liftStartNanos ?? nowNanos
         let elapsed = nowNanos &- start
@@ -698,7 +698,7 @@ final class DragAndDropSession: @unchecked Sendable {
     /// float), so the driver's `active != nil` gate silently excluded the two
     /// modes people actually use: the zones were registered, the cursor was
     /// stamped, and the driver bailed on its first line.
-    private(set) var autoScrollArmed = false
+    package private(set) var autoScrollArmed = false
 
     /// A cancelled drag on its way home.
     ///
@@ -824,7 +824,7 @@ final class DragAndDropSession: @unchecked Sendable {
     /// Advances the flight and reports where to draw the preview, or `nil` when
     /// nothing is returning. Called once per frame by the render loop, which
     /// keeps asking for frames while this returns non-`nil`.
-    func driveReturnFlight(nowNanos: UInt64) -> (x: Int, y: Int, preview: FrameBuffer)? {
+    package func driveReturnFlight(nowNanos: UInt64) -> (x: Int, y: Int, preview: FrameBuffer)? {
         guard var flight = returnFlight else { return nil }
         let start = flight.startNanos ?? nowNanos
         if flight.startNanos == nil {
@@ -968,7 +968,7 @@ final class DragAndDropSession: @unchecked Sendable {
     ///
     /// - Parameter nowNanos: This frame's monotonic timestamp.
     @discardableResult
-    func driveAutoScroll(nowNanos: UInt64) -> Bool {
+    package func driveAutoScroll(nowNanos: UInt64) -> Bool {
         guard active != nil || autoScrollArmed, let dispatcher, let cursor = lastAbsoluteEvent,
             let step = bestAutoScroll(
                 cursorX: cursor.x, cursorY: cursor.y, dispatcher: dispatcher)

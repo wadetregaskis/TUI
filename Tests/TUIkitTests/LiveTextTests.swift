@@ -13,6 +13,7 @@ import Testing
 import TUIkitCore
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// Words that step every `step` seconds from `origin` — "tick 0", "tick 1", … —

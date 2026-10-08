@@ -116,7 +116,7 @@ extension GeometryCoordinator {
     /// them made one such view anywhere carry an origin through the whole
     /// tree on every frame, and every container below compute the
     /// placements that feed it, for nothing.
-    var hasReaders: Bool { keepsReaders }
+    package var hasReaders: Bool { keepsReaders }
 
     /// Whether a `coordinateSpace(_:)` declaration with nothing above it
     /// carrying an origin should start one for its content: while there are

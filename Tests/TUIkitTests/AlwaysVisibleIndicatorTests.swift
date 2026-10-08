@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// `.scrollIndicators(.visible)` with the "N more above / below" style draws both

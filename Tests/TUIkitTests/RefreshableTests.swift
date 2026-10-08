@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// `.refreshable` — SwiftUI's pull-to-refresh, minus the pull.

@@ -11,6 +11,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A row that says which prominence its content was rendered under.

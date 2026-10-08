@@ -266,7 +266,7 @@ extension DragAndDropSession {
     /// mean; a scrollable that registered no zone (`.scrollDisabled`) is not a
     /// candidate either, and a reorder inside it still falls through to
     /// ``ItemListHandler/handleDragScrollKey(_:)``.
-    func handleDragNavigator(_ event: KeyEvent) -> Bool {
+    package func handleDragNavigator(_ event: KeyEvent) -> Bool {
         guard active != nil || autoScrollArmed, let zone = zoneUnderCursor() else { return false }
         let target = zone.vertical
         let step = event.shift ? max(1, zone.shiftStep) : 1

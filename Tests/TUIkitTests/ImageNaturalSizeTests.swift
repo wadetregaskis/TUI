@@ -18,6 +18,7 @@ import TUIkitImage
 #endif
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 @MainActor

@@ -17,6 +17,7 @@ import Musl
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// What the user's quit key does when the kitty keyboard protocol reports it

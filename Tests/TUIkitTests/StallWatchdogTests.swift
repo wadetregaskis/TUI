@@ -23,6 +23,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 
 /// A watchdog over two pipes: one it watches as the terminal's input, one it

@@ -177,7 +177,7 @@ extension MouseHandlerIDTable {
 extension MouseEventDispatcher: InternedIDTable {
     /// The render cache's end-of-pass prune, forwarded to both tables: a stored
     /// buffer carries geometry markers in its regions as it carries handler ids.
-    func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) {
+    package func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) {
         handlerIDs.pruneInternedIDs(retaining: isRetained)
         geometryMarkerIDs.pruneInternedIDs(retaining: isRetained)
     }
