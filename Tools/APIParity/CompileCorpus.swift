@@ -2832,8 +2832,9 @@ private struct CorpusPark: Hashable, Identifiable {
 /// SwiftUI's own `NavigationStack` examples: a stack of values pushed by
 /// `NavigationLink(_:value:)`, its path bound as an array and as a
 /// `NavigationPath`. Since module split step B5 these are TUIkitNavigation's,
-/// which only the umbrella re-exports, so this is SwiftUI source reaching that
-/// module as an app does.
+/// which the umbrella re-exports (and, until step C1, TUIkitColorPicker, which
+/// the umbrella re-exports too), so this is SwiftUI source reaching that module
+/// as an app does: through `import TUIkit`.
 @MainActor
 private struct ParkStack: View {
     let parks: [CorpusPark]

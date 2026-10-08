@@ -32,12 +32,20 @@
 //
 //  Step B5 carved the Navigation group the same way: one module,
 //  TUIkitNavigation, that compiles two directories of the planned split,
-//  Sources/TUIkitNavigation and Sources/TUIkitPresentation, until step C1
-//  peels the second into a module of its own. The fifth test spells a type
-//  from each directory through the umbrella, beside an app's own `Alert` (the
-//  case an app meets: an alert model of its own), so a carve that left the
-//  module out of the umbrella's re-exports, or a directory out of the module,
-//  stops this file compiling.
+//  Sources/TUIkitNavigation and Sources/TUIkitPresentation, until step C1 peels
+//  the second into a module of its own. The fifth test spells a type from each
+//  directory through the umbrella, beside an app's own `Alert` (the case an app
+//  meets: an alert model of its own), so this file stops compiling if `import
+//  TUIkit` misses the types of either directory. Two holes it leaves to others.
+//  The umbrella's own `@_exported import TUIkitNavigation`: until C1,
+//  TUIkitColorPicker re-exports TUIkitNavigation too (its panels are
+//  TUIkitPresentation's `Dialog`s), and the umbrella re-exports
+//  TUIkitColorPicker, so this file compiles without that line.
+//  Tools/ModuleMap's `umbrella` check holds it: the umbrella re-exports, by
+//  name, every module built on TUIkitFoundation. And a directory left in
+//  TUIkitFoundation: its types would still compile, as TUIkitFoundation's, so
+//  the test's reflected name, `TUIkitNavigation.Alert`, catches it at run time,
+//  not the compiler.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -143,7 +151,8 @@ extension TUIkit.ColorPicker {
 
 extension TUIkit.NavigationPath {
     /// A member an app adds, through the umbrella's name, to a type of
-    /// TUIkitNavigation, which the umbrella re-exports itself.
+    /// TUIkitNavigation, which the umbrella re-exports itself (and, until step
+    /// C1, through TUIkitColorPicker as well).
     fileprivate var b5Marker: Int { 5 + count }
 }
 
