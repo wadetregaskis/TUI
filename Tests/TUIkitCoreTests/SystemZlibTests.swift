@@ -57,7 +57,10 @@ struct SystemZlibTests {
         // A ramp, as a gradient transmits one: seventeen identical rows of
         // 320 pixels.
         var row: [UInt8] = []
-        for x in 0..<320 { row += [UInt8(x * 255 / 319), UInt8(128 - x * 128 / 319), UInt8(x % 7 * 36)] }
+        for x in 0..<320 {
+            let red = UInt8(x * 255 / 319), green = UInt8(128 - x * 128 / 319), blue = UInt8(x % 7 * 36)
+            row += [red, green, blue]
+        }
         let input = Array(repeating: row, count: 17).flatMap { $0 }
         let deflated = try #require(SystemZlib.compress(input))
         #expect(deflated.count < input.count / 8, "17 identical rows: \(deflated.count) of \(input.count)")
@@ -73,7 +76,7 @@ struct SystemZlibTests {
     @Test("The level is honoured: the default deflates a repetitive payload at least as tightly as the fastest")
     func levelsAreDistinguishable() throws {
         try #require(SystemZlib.isAvailable)
-        let input = (0..<(1280 * 68)).map { UInt8(($0 / 68) % 251) }
+        let input: [UInt8] = (0..<(1280 * 68)).map { (index: Int) -> UInt8 in UInt8((index / 68) % 251) }
         let fastest = try #require(SystemZlib.compress(input, level: 1))
         let normal = try #require(SystemZlib.compress(input))
         #expect(normal.count <= fastest.count)
