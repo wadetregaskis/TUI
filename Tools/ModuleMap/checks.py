@@ -213,7 +213,7 @@ def uncompiled(M, R, asg):
     """A source in a module's directory that no target compiles (model.unit_freshness): its declarations are missing
     from the build, public API included, and nothing else need notice."""
     return [Finding('uncompiled', f, f'{f} is compiled by no target, though the last build ran after it was written: '
-                                     f'name it in Package.swift (TUIkitFoundation\'s `sources:`, or its module\'s '
+                                     f'name it in Package.swift (TUIkitFoundation\'s `directories:`, or its module\'s '
                                      f'own target once carved)', f, 1) for f in M.uncompiled]
 
 

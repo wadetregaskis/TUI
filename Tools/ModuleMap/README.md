@@ -90,14 +90,16 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 `TUIkitStrings: TUIkitStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
 
 Since step A5 the one target that compiles them (`TUIkitFoundation` since step B1) names the module directories in
-its `sources:` (Package.swift). So a module directory added to `rules.json` and not to `sources:` (nor carved into a
-target of its own) is compiled by no target, and its declarations, public API included, are simply missing. Until
+its `sources:` (Package.swift; its `directories:` since step B6, which the manifest passes to SwiftPM as `sources:`,
+with every other directory of its `sourcesDirectories` as `exclude:`). So a module directory added to `rules.json`
+and not to `directories:` (nor carved into a target of its own) is compiled by no target, and its declarations,
+public API included, are simply missing. Until
 step B2 carved it, TUIkitStrings was listed below its own directory, one entry per subdirectory and per
 `Localization/*.swift` file, because a resource may not sit under a declared source path, so a new file there was
 the same case; its own target takes every file in its directory now. SwiftPM says so only as a warning ("found N file(s) which are unhandled"), and CI does not
 fail on warnings; this check does. It reads the index: a file with no unit, older than the newest unit the store
 holds, was there when the last build compiled the others, and that build did not compile it. Name it in
-Package.swift (`TUIkitFoundation`'s `sources:`, or its module's own target once carved). A file with no unit that is
+Package.swift (`TUIkitFoundation`'s `directories:`, or its module's own target once carved). A file with no unit that is
 NEWER than the last build is only new, and is reported as stale (rebuild, then check); so is one whose build failed
 before reaching it.
 
@@ -243,17 +245,17 @@ give the entry the key the report now prints instead.
 ## Coarse groups
 
 Phase B carves some planned modules as a **coarse group**: one target that compiles several modules' directories
-(`path: "Sources"`, each directory in `sources:`, in Package.swift), and phase C peels each member into a target of
-its own. Step B5's `TUIkitNavigation` compiles `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step
-C1; step B6's `TUIkitLists` compiles `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps
-C2 to C4; step B7 (the TextInput group) carves its own the same way. Nothing here changes for a
-group, at its carve or at its peels:
+(declared with `directories:` in Package.swift: `path: "Sources"`, each of its directories in `sources:`, every other
+directory under Sources in `exclude:`), and phase C peels each member into a target of its own. Step B5's
+`TUIkitNavigation` compiles `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1; step B6's
+`TUIkitLists` compiles `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4; step
+B7 (the TextInput group) carves its own the same way. Nothing here changes for a group, at its carve or at its peels:
 
 - `map.json` and the findings name the planned module. A file under `Sources/TUIkitPresentation` is
   `TUIkitPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here.
 - The index records the group's target as the module of each of its files' units. The tool reads the units of every
   module `rules.json` names, so it reads them whichever of those targets compiled them. A member's file that the
-  group's `sources:` leaves out is an `uncompiled` finding, as one TUIkitFoundation's leaves out is.
+  group's `directories:` leaves out is an `uncompiled` finding, as one TUIkitFoundation's leaves out is.
 - The checks hold the members to the planned map, as they hold the modules TUIkitFoundation still compiles
   together. That is stricter than the build, never looser. The group's target sees everything its members' planned
   dependencies give them (TUIkitFoundation, which still compiles TUIkitChrome, for TUIkitPresentation), so what
@@ -314,8 +316,9 @@ not drag declarations down.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 **Renaming a module.** Module names live in `rules.json`, the generated `map.json` and the directory names: rename
-it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: `TUIkitFoundation`'s `sources:`, or
-the module's own target once carved), then `assign --write`. Names are free to change until per-module products
+it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: `sourcesDirectories`, and
+`TUIkitFoundation`'s or a coarse group's `directories:`, or the module's own target once carved), then
+`assign --write`. Names are free to change until per-module products
 ship.
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the
