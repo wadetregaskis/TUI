@@ -590,9 +590,9 @@ extension Color {
     /// - Parameter hex: The hex value (e.g., 0xFF5500).
     /// - Returns: The corresponding RGB color.
     public static func hex(_ hex: UInt32) -> Self {
-        let red = UInt8((hex >> 16) & 0xFF)
-        let green = UInt8((hex >> 8) & 0xFF)
-        let blue = UInt8(hex & 0xFF)
+        let red = UInt8(truncatingIfNeeded: hex >> 16)
+        let green = UInt8(truncatingIfNeeded: hex >> 8)
+        let blue = UInt8(truncatingIfNeeded: hex)
         return .rgb(red, green, blue)
     }
 

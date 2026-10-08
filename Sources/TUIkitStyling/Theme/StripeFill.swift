@@ -190,6 +190,7 @@ private struct StripeKey: Hashable {
 
     /// The colour `packed` spells, as 0xRRGGBB.
     private static func colour(_ packed: UInt32) -> Color {
-        .rgb(UInt8(packed >> 16 & 0xFF), UInt8(packed >> 8 & 0xFF), UInt8(packed & 0xFF))
+        let byte: UInt32 = 0xFF
+        return .rgb(UInt8(packed >> 16 & byte), UInt8(packed >> 8 & byte), UInt8(packed & byte))
     }
 }
