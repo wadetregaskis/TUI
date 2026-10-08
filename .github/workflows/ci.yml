@@ -837,13 +837,13 @@ jobs:
       # TUIkitColorPicker, built on TUIkitFoundation, TUIkitImage and both of
       # those, so it comes last. None imports Darwin, Glibc or Musl or calls a
       # termios, ioctl, signal or DispatchSource API, and only TUIkitLists has
-      # an `#if`: two, on `canImport(Darwin)` (a string column's default
-      # comparator) and `canImport(UniformTypeIdentifiers)` (a table row's item
-      # provider), neither around a POSIX call (checked by grep, 2026-10-08). So
-      # they are meant to build on Windows, but none can until TUIkitFoundation
-      # does: advisory until CI has seen them green, then binding like the four
-      # above. TUIkitApp, the other leaf, is POSIX by design and has no step
-      # (the umbrella's covers it).
+      # an `#if`: three, on two conditions, `canImport(Darwin)` once (a string
+      # column's default comparator) and `canImport(UniformTypeIdentifiers)`
+      # twice (a table row's item provider), none around a POSIX call (checked
+      # by grep, 2026-10-08). So they are meant to build on Windows, but none
+      # can until TUIkitFoundation does: advisory until CI has seen them green,
+      # then binding like the four above. TUIkitApp, the other leaf, is POSIX
+      # by design and has no step (the umbrella's covers it).
       - name: "Build TUIkitNavigation"
         continue-on-error: true
         timeout-minutes: 30
