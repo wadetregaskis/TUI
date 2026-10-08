@@ -14,7 +14,7 @@ import TUIkitCore
 /// already decides the label on a colour swatch button. It was black or white, in
 /// three identical copies, one in each of `_TabViewCore`, `_SwatchGridCore` and
 /// `_Color256GridCore`.
-enum ContrastingLabel {
+package enum ContrastingLabel {
     /// `readableText(on:)` for `surface`, resolved against `palette`, spent over the
     /// surface, then floored at `ViewConstants.labelContrastFloor` as drawn.
     ///
@@ -23,7 +23,7 @@ enum ContrastingLabel {
     /// two ends that disagree about alpha cannot share one claim. Floored after the
     /// spend, because the floor reads RGB, not alpha; and as drawn, because a
     /// 256-colour terminal moves the surface as well as the label.
-    static func on(_ surface: Color, palette: any Palette) -> Color {
+    package static func on(_ surface: Color, palette: any Palette) -> Color {
         let resolved = surface.resolve(with: palette)
         return palette.readableText(on: resolved).resolve(with: palette)
             .spendingAlpha(over: resolved)

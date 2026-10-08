@@ -11,6 +11,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 
 @MainActor

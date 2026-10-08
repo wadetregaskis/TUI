@@ -6,8 +6,8 @@ what each holds. Since step A5 each module's files sit in a directory of their o
 (`Sources/TUIkitFoundation`, `Sources/TUIkitLists` …), where the module will live once a step of Phase B carves it
 out; until then the one `TUIkitFoundation` target compiles them all (since step B1; `TUIkit` is the umbrella, which
 only re-exports). Carved so far: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their own that
-TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), a target of its own that depends on
-TUIkitFoundation and that the umbrella re-exports. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
+TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3) and TUIkitColorPicker (step B4), targets of their
+own that depend on TUIkitFoundation and that the umbrella re-exports. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;

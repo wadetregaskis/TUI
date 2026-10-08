@@ -161,10 +161,11 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # the day someone documents just one target again. `text` and `list` are
 # TUIkitFoundation's, `localizationservice` TUIkitStrings', `terminalclient`
 # TUIkitTerminalHost's (the modules step B2 carved out of it), `windowgroup`
-# TUIkitApp's (step B3), the rest the lower modules'.
+# TUIkitApp's (step B3), `colorpicker` TUIkitColorPicker's (step B4), the rest
+# the lower modules'.
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text list \
-    localizationservice terminalclient windowgroup; do
+    localizationservice terminalclient windowgroup colorpicker; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then

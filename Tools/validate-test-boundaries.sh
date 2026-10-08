@@ -32,10 +32,10 @@ cd "$(dirname "$0")/.."
 # TUIkitFoundation (the modules of the split not yet carved out, under the
 # TUIkit umbrella) has no row: it has no test target of its own, and its tests
 # are TUIkitTests', which this script leaves unrestricted. Nor have the modules
-# carved out of it so far, TUIkitStrings and TUIkitTerminalHost (step B2) and
-# TUIkitApp (step B3): their tests stayed in TUIkitTests, which `@testable
-# import`s them. A module that gets a
-# test target of its own gets a row here, and joins the loop below.
+# carved out of it so far, TUIkitStrings and TUIkitTerminalHost (step B2),
+# TUIkitApp (step B3) and TUIkitColorPicker (step B4): their tests stayed in
+# TUIkitTests, which `@testable import`s them. A module that gets a test target
+# of its own gets a row here, and joins the loop below.
 allowed_for() {
     case "$1" in
         TUIkitCoreTests) echo "TUIkitCore TUIkitWidthCorpus" ;;

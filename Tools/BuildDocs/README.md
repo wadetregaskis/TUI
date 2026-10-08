@@ -56,7 +56,8 @@ TUIkit is several library modules — `TUIkitCore`, `TUIkitStyling`,
 `TUIkitView`, `TUIkitImage`, `TUIkitFoundation` (which compiles every module
 of the planned split not yet carved into a target of its own), the modules
 carved out of it so far (`TUIkitStrings`, `TUIkitTerminalHost`, step B2;
-`TUIkitApp`, step B3), and the `TUIkit` umbrella that `@_exported import`s the rest and declares nothing.
+`TUIkitApp`, step B3; `TUIkitColorPicker`, step B4), and the `TUIkit` umbrella that `@_exported import`s the rest and
+declares nothing.
 That split buys layering, per-module test isolation and build time, and it is
 *ours*: a reader writing `import TUIkit` sees one API and should never have to
 learn which module happens to declare `Color`.

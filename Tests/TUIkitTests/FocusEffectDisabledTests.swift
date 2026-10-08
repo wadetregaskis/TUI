@@ -25,6 +25,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitColorPicker
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 

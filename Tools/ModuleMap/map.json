@@ -108,6 +108,7 @@
   "TUIkitChrome/Toolbar/ToolbarVisibilityModifier.swift": "TUIkitChrome",
   "TUIkitChrome/Tooltip/TooltipPopover.swift": "TUIkitChrome",
   "TUIkitChrome/Tooltip/View+TooltipStyle.swift": "TUIkitChrome",
+  "TUIkitColorPicker/Exports.swift": "TUIkitColorPicker",
   "TUIkitColorPicker/Styles/ColorSwatchButtonStyle.swift": "TUIkitColorPicker",
   "TUIkitColorPicker/Views/ChannelCurveEditorPanel.swift": "TUIkitColorPicker",
   "TUIkitColorPicker/Views/Color256Grid.swift": "TUIkitColorPicker",

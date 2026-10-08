@@ -38,7 +38,7 @@
 /// `@usableFromInline`: ``register(context:handler:focusID:)`` is `@inlinable`
 /// (module split step A3).
 @usableFromInline
-enum FocusRegistration {
+package enum FocusRegistration {
 
     /// Persists the focusID in StateStorage and returns it, without registering a handler.
     ///
@@ -55,7 +55,7 @@ enum FocusRegistration {
     ///   - defaultPrefix: The prefix for auto-generated focusIDs (e.g. `"textfield"`).
     ///   - propertyIndex: The `StateStorage` property index for persisting the focusID.
     /// - Returns: The stable focusID.
-    static func persistFocusID(
+    package static func persistFocusID(
         context: RenderContext,
         explicitFocusID: String?,
         defaultPrefix: String,
@@ -125,7 +125,7 @@ enum FocusRegistration {
     /// module calls it once per render.
     @MainActor
     @inlinable
-    static func register(context: RenderContext, handler: Focusable, focusID: String) {
+    package static func register(context: RenderContext, handler: Focusable, focusID: String) {
         guard !context.isMeasuring else { return }
         repointPersistedHandler(handler, to: focusID)
         let sectionID = context.environment.activeFocusSectionID
@@ -326,7 +326,7 @@ enum FocusRegistration {
     ///   - context: The current render context.
     ///   - focusID: The focusID to check.
     /// - Returns: `true` if the view is focused.
-    static func isFocused(context: RenderContext, focusID: String) -> Bool {
+    package static func isFocused(context: RenderContext, focusID: String) -> Bool {
         context.isMeasuring ? false : (context.environment.focusManager?.isFocused(id: focusID) ?? false)
     }
 

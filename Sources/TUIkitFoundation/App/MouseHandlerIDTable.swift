@@ -217,7 +217,7 @@ extension MouseEventDispatcher {
     /// pointer, in every module, registers through here once per render.
     @MainActor
     @inlinable
-    func register(
+    package func register(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
         registerInterned(handler, lane: .control, in: context)
@@ -332,7 +332,7 @@ extension MouseEventDispatcher {
     /// for selectable text (``PressRole/dragSource``), where a control behind
     /// it would have taken the press.
     @MainActor
-    func registerPassive(
+    package func registerPassive(
         in context: RenderContext, _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {
         registerInterned(handler, lane: .passive, in: context)

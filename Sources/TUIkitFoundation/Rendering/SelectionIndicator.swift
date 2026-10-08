@@ -375,7 +375,7 @@ public struct SelectionEmphasisCycle: Sendable, Equatable {
     /// what `Color.breathEnds(dimmedTo:over:)`, `Color.breathEnds(dim:bright:)` and
     /// `Palette.accentFillPulse(over:)` give where a side has no RGB, and a run of one
     /// picture holds the clock open for nothing.
-    func isAnimating(dim: Color, bright: Color) -> Bool {
+    package func isAnimating(dim: Color, bright: Color) -> Bool {
         isAnimating && dim != bright
     }
 

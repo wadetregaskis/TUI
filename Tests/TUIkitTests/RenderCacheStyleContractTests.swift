@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 
 // MARK: - Fixtures

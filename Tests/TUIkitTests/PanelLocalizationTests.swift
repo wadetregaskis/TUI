@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
 

@@ -166,7 +166,7 @@ extension ANSIRenderer {
     ///     through here and the two spell the same bytes.
     /// - Returns: The ANSI-formatted string.
     @usableFromInline
-    static func colorize(
+    package static func colorize(
         _ string: String,
         foreground: Color? = nil,
         background: Color? = nil,

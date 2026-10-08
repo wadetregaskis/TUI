@@ -127,8 +127,7 @@ The lane is therefore **required** on released toolchains. Observed state:
 | `TUIkitView` | passes on 6.3+; **fails on 6.2**, cause not yet diagnosed — binding except there |
 | `TUIkitImage` | failed everywhere until 2026-08-07; green on all five lanes since, `continue-on-error` removed 2026-09-04 — **binding** |
 | `TUIkitStrings`, `TUIkitTerminalHost` | carved out of TUIkitFoundation at module split step B2 (2026-10-08), on TUIkitCore alone; advisory, each with a 30-minute timeout, until CI has seen them green (no Windows build of them yet) |
-| `TUIkitFoundation` | held the console layer until module split step B3 (2026-10-08) carved it out as TUIkitApp, so the `TUIkit` step stood for it; advisory, with a 30-minute timeout, until CI has seen it green (no Windows build of it without the console layer yet) |
-| the four modules' own test targets | advisory, each with a 30-minute timeout |
+| `TUIkitFoundation` | held the console layer until module split step B3 (2026-10-08) carved it out as TUIkitApp, so the `TUIkit` step stood for it; advisory, with a 30-minute timeout, until CI has seen it green (no Windows build of it without the console layer yet) || the four modules' own test targets | advisory, each with a 30-minute timeout |
 | `TUIkit`, build-tests, test, smoke | fail until the console layer is ported (TUIkitApp since module split step B3, which has no Windows step of its own: it is POSIX by design) |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
@@ -386,13 +385,15 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   `Tests/TUIkitTests` is for integration tests and the modules with no test
   target of their own: `TUIkitFoundation` (the modules of the split not yet
   carved into targets of their own) and those carved out of it so far,
-  `TUIkitStrings` and `TUIkitTerminalHost` (step B2) and `TUIkitApp` (step B3).
+  `TUIkitStrings` and `TUIkitTerminalHost` (step B2), `TUIkitApp` (step B3) and
+  `TUIkitColorPicker` (step B4).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
   console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
   `Terminal`, and `applyRuntimeServices(from:)`, which builds a render pass's
   environment: 300 test files import `TUIkitApp` for it alone, decisions
-  B-SPB3-1), `TUIkitStrings` or `TUIkitTerminalHost` for theirs, and
+  B-SPB3-1), `TUIkitColorPicker` for the colour picker's grids, handlers and
+  editors, `TUIkitStrings` or `TUIkitTerminalHost` for theirs, and
   `TUIkitFoundation` for the rest. A declaration's module is its directory's: a
   directory under `Sources/` with a target of its own in `Package.swift` is that
   module, and every other one is `TUIkitFoundation`.

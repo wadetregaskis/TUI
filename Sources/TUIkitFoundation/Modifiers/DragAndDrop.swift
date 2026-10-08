@@ -164,14 +164,14 @@ private func isNilOptional(_ value: Any) -> Bool {
 ///
 /// Used by ``DraggableModifier`` (drag-and-drop payloads) and the gradient
 /// editor's stop chips (live reordering while the drag moves).
-enum _DragHandle {
+package enum _DragHandle {
     /// Registers the handle's handler and appends its whole-buffer region
     /// (innermost, so it claims presses ahead of the children it forwards
     /// to). Callback events are localized to the buffer's origin; a drag's
     /// events stay localized to the ORIGINAL press region even when content
     /// re-renders mid-drag (the dispatcher's press capture).
     @MainActor
-    static func install(
+    package static func install(
         on buffer: inout FrameBuffer,
         context: RenderContext,
         dispatcher: MouseEventDispatcher,

@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 
 /// A reference holder so a `Binding<Color>` can be read back in tests.

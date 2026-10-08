@@ -334,9 +334,10 @@ Sources/
 │   The framework's sources, one directory per module of the planned split
 │   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
 │   becomes a module of its own when it is carved out: TUIkitStrings and
-│   TUIkitTerminalHost are (step B2), and TUIkitApp (step B3); the rest still
-│   compile into one module, TUIkitFoundation, which re-exports the first two.
-│   TUIkitApp is built on TUIkitFoundation, and the umbrella re-exports both.
+│   TUIkitTerminalHost are (step B2), TUIkitApp (step B3) and TUIkitColorPicker
+│   (step B4); the rest still compile into one module, TUIkitFoundation, which
+│   re-exports the first two. TUIkitApp and TUIkitColorPicker are built on
+│   TUIkitFoundation, and the umbrella re-exports all three.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
 ├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
@@ -396,7 +397,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop; neither is a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and the colour editors; none of the three is a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

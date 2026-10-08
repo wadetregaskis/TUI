@@ -12,10 +12,12 @@
 // the substrate beneath it. A module already carved out that TUIkitFoundation
 // is built on (TUIkitStrings, TUIkitTerminalHost) comes through
 // TUIkitFoundation's own re-exports; one carved out that is built on
-// TUIkitFoundation (TUIkitApp: `App`, `Scene` and the run loop, since step B3)
-// is re-exported here. A qualified name in an app, `TUIkit.Label`, still
-// resolves through these re-exports.
+// TUIkitFoundation is re-exported here: TUIkitApp (`App`, `Scene` and the run
+// loop, since step B3) and TUIkitColorPicker (`ColorPicker` and its editors,
+// since step B4). A qualified name in an app, `TUIkit.Label`, still resolves
+// through these re-exports.
 @_exported import TUIkitApp
+@_exported import TUIkitColorPicker
 @_exported import TUIkitCore
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage

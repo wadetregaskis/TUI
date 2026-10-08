@@ -147,14 +147,31 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // Step B4's leaf, built on TUIkitFoundation as TUIkitApp is: `ColorPicker`, its panel and swatches, and the
+        // gradient, tone-curve and channel-curve editors. The plan's map builds it on NumericControls, TextInput,
+        // Pickers, Tabs and Presentation, which TUIkitFoundation still compiles, so it depends on TUIkitFoundation
+        // alone of the map's modules; each of those edges appears when its module is carved. Nothing in
+        // TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it. TUIkitImage
+        // is named although TUIkitFoundation re-exports it: the curve editors import it, its `ASCIIToneCurve` is in
+        // their public initializers, and TUIkitFoundation stops depending on it at step B5c. The module re-exports
+        // both (Sources/TUIkitColorPicker/Exports.swift).
+        .target(
+            name: "TUIkitColorPicker",
+            dependencies: ["TUIkitFoundation", "TUIkitImage"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
-        // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s TUIkitApp, TUIkitFoundation and
-        // the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app
+        // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
+        // TUIkitColorPicker), TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app
         // exactly what it gave when the framework was one TUIkit module. Its directory also holds the
         // TUIkit.docc catalog. Nothing in the package depends on it but the apps and the tests.
         .target(
             name: "TUIkit",
-            dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView"]
+            dependencies: [
+                "TUIkitApp", "TUIkitColorPicker", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage",
+                "TUIkitView",
+            ]
         ),
 
         // One target, many directories. The module split (Documentation/Historical/Module split plan,
@@ -175,8 +192,8 @@ let package = Package(
             // quietly.
             exclude: [
                 "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit",
-                "TUIkitCore", "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitStrings", "TUIkitStyling",
-                "TUIkitTerminalHost", "TUIkitView", "TUIkitWidthCorpus",
+                "TUIkitColorPicker", "TUIkitCore", "TUIkitImage", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitStrings",
+                "TUIkitStyling", "TUIkitTerminalHost", "TUIkitView", "TUIkitWidthCorpus",
             ],
             // The planned modules not yet carved, in rules.json's order. A Swift file no entry covers is
             // reported as unhandled, like a stray directory above, but only as a warning, which CI does not
@@ -186,7 +203,6 @@ let package = Package(
                 "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps", "TUIkitMenus",
                 "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitLists", "TUIkitGrid",
                 "TUIkitNavigation", "TUIkitPresentation", "TUIkitForms", "TUIkitSearch", "TUIkitTables", "TUIkitTabs",
-                "TUIkitColorPicker",
             ],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
@@ -238,12 +254,12 @@ let package = Package(
         // imports TUIkit, as an app does, and `@testable import`s
         // TUIkitFoundation where it reaches the framework's internals, or the
         // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
-        // TUIkitApp).
+        // TUIkitApp, TUIkitColorPicker).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
-                "TUIkit", "TUIkitApp", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitAppKit",
-                "TUIkitWidthCorpus", "CTestSupport",
+                "TUIkit", "TUIkitApp", "TUIkitColorPicker", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost",
+                "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so

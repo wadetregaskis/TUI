@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitApp
+@testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 
 // MARK: - Why these tests exist

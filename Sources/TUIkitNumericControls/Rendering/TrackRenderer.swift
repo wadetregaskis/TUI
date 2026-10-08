@@ -24,7 +24,7 @@
 ///     accentColor: palette.accent
 /// )
 /// ```
-enum TrackRenderer {
+package enum TrackRenderer {
     /// Renders a track with the specified style and colors.
     ///
     /// - Parameters:
@@ -261,7 +261,7 @@ enum TrackRenderer {
         )?.first
     }
 
-    static func gradientColor(
+    package static func gradientColor(
         _ gradient: Gradient, index: Int, span: Int, fallback: Color, depth: ColorDepth
     ) -> Color {
         guard !gradient.stops.isEmpty, span > 0 else { return fallback }
