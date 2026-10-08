@@ -143,8 +143,8 @@ struct ResolvedScrollIndicators: Sendable {
     @usableFromInline static let none = Self(bar: false, text: false)
 
     /// Spelled out, and `@inlinable`, for the `@inlinable`
-    /// `EnvironmentValues.verticalScrollIndicators(overflowing:)` (module split
-    /// step A3): an implicit memberwise initializer cannot be.
+    /// `EnvironmentValues.verticalScrollIndicators(overflowing:)`
+    /// (module split step A3): an implicit memberwise initializer cannot be.
     @inlinable
     init(bar: Bool, text: Bool) {
         self.bar = bar

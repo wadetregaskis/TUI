@@ -188,8 +188,8 @@ extension EnvironmentValues {
     /// The anchor in force for `role`: the one stated for it, or else the
     /// unlabelled one.
     ///
-    /// `@usableFromInline`: the `@inlinable` ``declaredAnchorModes`` calls it (module split step
-    /// A3).
+    /// `@usableFromInline`: the `@inlinable` ``declaredAnchorModes`` calls it
+    /// (module split step A3).
     @usableFromInline
     func scrollAnchor(for role: ScrollAnchorRole) -> UnitPoint? {
         scrollAnchorRoles[role] ?? defaultScrollAnchor

@@ -183,15 +183,15 @@ public struct Text: View, Equatable {
     ///   picks `String` — the default type for a string literal — and no literal
     ///   would ever be looked up. SwiftUI marks its own `StringProtocol`
     ///   initializer the same way, for the same reason.
-    ///
-    /// `@inlinable`, as a shim onto the concrete ``init(verbatim:)`` (module
-    /// split step A3): a caller in another module then makes the `String`
-    /// itself and calls that, instead of calling this generic initializer
-    /// unspecialised (measured by the module split plan's step 0b, probes t13b/c
-    /// and t13f/g).
     @_disfavoredOverload
     @inlinable
     public init<S: StringProtocol>(_ content: S) {
+        // `@inlinable` (module split step A3), as a shim onto the concrete
+        // `init(verbatim:)`: a caller in another module then makes the `String`
+        // itself and calls that, instead of calling this generic initializer
+        // unspecialised (measured by the module split plan's step 0b, probes
+        // t13b/c and t13f/g). A `//` comment, not `///`: this initializer is
+        // public, and a doc comment would put the note in its DocC page.
         self.init(verbatim: String(content))
     }
 
