@@ -225,6 +225,34 @@ when unset), the visual/aspect probes print to the terminal.
   encoder has written all three marks on every cell since 0d4d2015. The probe
   also reports what U+10EEEE advances the cursor by; iTerm2's line was never
   captured, so `Terminal-compatibility.md`'s advance table still omits it.
+- `hairline_probe.py` — can a Kitty **classic** placement (not a placeholder)
+  draw a line one or two pixels thick exactly on the boundary between two text
+  rows, so a list separator costs no row? Runs on the alternate screen and
+  asks ten questions: is the placement acknowledged AND drawn on the boundary
+  (Q1); does `C=1` hold the cursor (Q2); is the placement's pixel unit
+  TIOCGWINSZ's, `CSI 14 t`'s or `CSI 16 t`'s, and which crop width ends
+  exactly at the end of a run that stops short of the window's edge (Q3, which
+  then crops every later line by the unit it found); does `z=-1` show over
+  fills and under glyphs (Q4); do `ESC[2K`, an overwrite and ECH keep the line
+  (Q5); can one line be deleted by `(i, p)` and placed again without
+  re-sending (Q6); does a line moved every frame tear, with and without mode
+  2026, through `sync_probe.py`'s helpers (Q7); what `ESC[2J` and `?1049l/h`
+  do to a line, and whether the image store is one per screen or the switch
+  freed it (Q8); resize (Q9); and SGR 4 + 58 as the fallback without graphics
+  (Q10). Each pixel question is a card a person answers with `y`/`n`/`s` (Q9
+  with `y`/`m`/`g`/`s`, and Q7 adds `r` to run its animation again); Ctrl-C
+  stops a run at any point. Every reply is read with `q=0` behind a DSR fence,
+  and an id never sent is placed first as a negative control. `--auto` runs
+  the automatic checks alone, for a run nobody watches. JSON to `$PROBE_OUT`,
+  by default `data/<host>-<version>-hairline.json`, with this host's half of
+  each kill criterion in `criteria`. Refuses Apple Terminal, and sends no
+  graphics beyond the `a=q` question to a host that does not answer it (that
+  host gets the Q10 card alone). NOT YET RUN on any host (2026-10-08).
+
+  ```sh
+  python3 hairline_probe.py          # the checks, then the cards
+  python3 hairline_probe.py --auto   # the checks alone
+  ```
 - `cell_aspect_probe.py` — the terminal cell's height:width ratio (what
   `Image` needs to render undistorted), via `TIOCGWINSZ` pixel fields and
   the `CSI 14t`/`18t` escape queries. Report to `$PROBE_OUT` (default

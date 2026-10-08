@@ -182,7 +182,9 @@ jobs:
 
       # The clipboard probe's guards for the user's clipboard — what it puts
       # back, what it refuses to write over, when it takes the leak check — on
-      # a file standing in for the clipboard: no terminal, no SDK, ~0.1 s.
+      # a file standing in for the clipboard; and the hairline probe's escapes,
+      # reply and key reading, resync, restore, record naming and verdicts,
+      # on socket pairs. No terminal, no SDK, under a second.
       - name: Terminal probe tests
         run: python3 -m unittest discover -s Tools/TerminalProbes -p 'test_*.py'
 

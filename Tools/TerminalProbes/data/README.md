@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminal-compatibility.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Seven kinds of file live here:
+conditions. Seven kinds of file live here, and an eighth is to come:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -40,6 +40,21 @@ conditions. Seven kinds of file live here:
   to each command, the cursor advance over a placeholder row, and the
   human-filled `rendered`. These are what the graphics design rests on; the
   iTerm2 third-mark finding of 2026-09-03 came out of this probe.
+- **`<terminal>-<version>-hairline.json`** — HAIRLINE records
+  (`hairline_probe.py`): a Kitty CLASSIC placement used as a thin line on a
+  row boundary, on the alternate screen. Each question carries its `auto`
+  readings (every reply's code, cursor reports, the pixel-unit advances, the
+  image-store model) and its `human` answers, which say "not asked" in an
+  `--auto` run; `criteria` holds this host's half of each kill criterion.
+  `acknowledgement_control` is the reply to a placement of an id never
+  sent (`ENOENT` expected; an `OK` there voids the store readings), and
+  `missed_fences` lists each DSR fence that timed out and whether the
+  probe got back in step (a reading skipped meanwhile says `not read: out
+  of step`).
+  Only a run a person answered to the end replaces a record that holds a
+  person's answers; any other run is written beside it, as
+  `…-hairline-aborted.json` when it was stopped and `…-hairline-auto.json`
+  when it ran `--auto` or went unanswered. None yet (2026-10-08).
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of
