@@ -66,12 +66,15 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     public var data: Data
 
     /// The key path to the unique ID of each element.
-    let idKeyPath: KeyPath<Data.Element, ID>
+    ///
+    /// `@usableFromInline`, like ``directID``, for the `@inlinable`
+    /// ``init(storing:id:directID:content:)`` (module split step A3).
+    @usableFromInline let idKeyPath: KeyPath<Data.Element, ID>
 
     /// Reads an element's ID directly, when the initializer knew what the key
     /// path reads — `\.id` of an `Identifiable` element, or `\.self` — and
     /// `nil` when only the path says; see ``elementID(of:)``.
-    let directID: ((Data.Element) -> ID)?
+    @usableFromInline let directID: ((Data.Element) -> ID)?
 
     /// A function to create content on demand using the underlying data.
     public var content: (Data.Element) -> Content
@@ -92,6 +95,11 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
 
     /// Stores the loop. Every kind of content's own initializers delegate here;
     /// declared so that no memberwise initializer exists beside them.
+    ///
+    /// `@inlinable`, not only `@usableFromInline`, because it is generic: the
+    /// public initializers inlined into another module would otherwise call it
+    /// unspecialised (module split step A3).
+    @inlinable
     init(
         storing data: Data, id: KeyPath<Data.Element, ID>, directID: ((Data.Element) -> ID)? = nil,
         content: @escaping (Data.Element) -> Content
@@ -122,6 +130,7 @@ extension ForEach: View where Content: View {
     ///   - data: The collection to iterate over.
     ///   - id: The key path to the unique ID of each element.
     ///   - content: The closure that creates the view for each element.
+    @inlinable
     public init(
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
@@ -402,6 +411,7 @@ extension ForEach where Content: View, Data.Element: Identifiable, ID == Data.El
     /// - Parameters:
     ///   - data: The collection with Identifiable elements.
     ///   - content: The closure that creates the view for each element.
+    @inlinable
     public init(
         _ data: Data,
         @ViewBuilder content: @escaping (Data.Element) -> Content

@@ -251,6 +251,7 @@ extension TextField where Label == Text {
     /// - Parameters:
     ///   - titleKey: The key for the field's title, describing its purpose.
     ///   - text: The text to display and edit.
+    @inlinable
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>) {
         self.init(verbatimTitle: titleKey.localized, text: text, prompt: nil)
     }
@@ -302,6 +303,11 @@ extension TextField where Label == Text {
     /// same field whatever string type it was given. The two key initializers
     /// used to go through the generic ones, and the generic ones each spelled
     /// the fields out.
+    ///
+    /// `@usableFromInline` for the `@inlinable` ``init(_:text:)-(LocalizedStringKey,_)``
+    /// (module split step A3). It is not inlinable itself: it writes every stored
+    /// property, and those would all have to be exported.
+    @usableFromInline
     init(verbatimTitle title: String, text: Binding<String>, prompt: Text?) {
         self.label = Text(verbatim: title)
         self.text = text
