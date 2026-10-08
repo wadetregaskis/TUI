@@ -134,9 +134,9 @@ calls until tier 2. That saves nothing measurable: their bodies are 4 and 3 stat
     (`RenderContext.makeGeometryAsk(role:)`, which reads `MouseEventDispatcherKey`) is `adrp` + `add`, as before.
   - **56 functions that existed before A3 gained a call to `swift_beginAccess`**, a dynamic exclusivity check
     (the session notes' `SPA3/r1/ba2.py`, over the same disassembly):
-    - 30 are `focusID` witnesses (getter and setter) of 16 persisted focus handlers: getter 11 → 18 instructions,
-      setter 4 → 20. Another 24 such witnesses (`modify`) are new symbols. This was a new cost, and the fix round
-      removed it (below).
+    - 30 are `focusID` witnesses (getter and setter) of 15 persisted focus handlers: getter 11 → 18 instructions,
+      setter 4 → 20. Another 16 such witnesses (`modify`, one for each of those 15 and `ScrollViewHandler`) are
+      new symbols. This was a new cost, and the fix round removed it (below).
     - 15 lost a call to a TUIkit function that made the check: 14 mouse-registration paths, through
       `registerInterned` or `register<A>(in:reportingChangesTo:_:)`, and a specialisation of
       `FocusManager.register(_:inSection:)`. The check moved into the caller with the inlining, so it is not a new
@@ -171,3 +171,8 @@ calls until tier 2. That saves nothing measurable: their bodies are 4 and 3 stat
   `alwaysShowsVerticalTextIndicators`, `overscrollAllowances(overflowing:)` and `declaredAnchorModes`. Nothing
   tagged said why `alwaysShowsVerticalTextIndicators` is `@inlinable`, or why `SelectionEmphasisClock.environment`
   is `@usableFromInline`, so a grep for the tag never explained them. All five carry the tag now.
+- The commit that removed the `focusID` witnesses' checks says the 30 existing witnesses belong to 16 persisted
+  handlers, and that 24 of the 36 new symbols with a check are `focusID` `modify` witnesses. It is 15 handlers
+  and 16 witnesses. `ScrollViewHandler` has only a new `modify` witness with a check, and the other 8 of the 24
+  are specialisations of `register(context:handler:focusID:)` and its callees, which matched on the argument
+  label. The same count in this file said 16 and 24 too (`SPA3/r1/ba2.py` now prints both groups).
