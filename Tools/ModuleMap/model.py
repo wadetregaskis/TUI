@@ -81,6 +81,14 @@ def lower_owners(files, dirs, symbols):
     return owner, {u: qualified(u) for u in owner}
 
 
+def _changed(path):
+    """When `path` last changed, as far as an index unit can be stale against it: the later of its content's mtime and
+    its inode's ctime. A rename (`git mv`) keeps mtime and updates ctime, so mtime alone took a just-moved file for one
+    the last build had indexed, and `check` then called it compiled by no target until a rebuild (SPA5 review2, S3)."""
+    st = os.stat(path)
+    return max(st.st_mtime, st.st_ctime)
+
+
 def unit_freshness(files, source_mtime, unit_mtime, newest):
     """(stale, uncompiled): the `files` (rel paths) the index does not describe as they are, from each one's source
     mtime, its index unit's mtime (absent: no unit) and the newest unit the store holds for the map's modules.
@@ -201,7 +209,7 @@ class Model:
             with open(os.path.join(src, f), encoding='utf-8', errors='replace') as fh:
                 m.lexed[f] = SS.lex(fh.read())
         m.stale, m.uncompiled = unit_freshness(
-            m.files, {f: os.path.getmtime(os.path.join(src, f)) for f in m.files},
+            m.files, {f: _changed(os.path.join(src, f)) for f in m.files},
             {f: mtimes[prefix + f] for f in m.files if prefix + f in mtimes}, max(mtimes.values(), default=None))
         m.build({f: o for f, o in occ.items() if f in m.lexed})
         # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUIkitCore …)
