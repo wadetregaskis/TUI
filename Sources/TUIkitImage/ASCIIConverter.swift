@@ -1023,17 +1023,23 @@ extension ASCIIConverter {
     /// real caller nothing. What it buys is that the arithmetic downstream
     /// is bounded: an aspect of `1e300` is finite, passes a `> 0` test, and
     /// still produces a width no `Int` can hold.
-    public static let cellAspectRange: ClosedRange<Double> = 0.1...10
+    ///
+    /// TUIkitStyling's constant of the same name, re-published: the rule lives
+    /// there, below both this converter and TUIkit's `imageCellAspect`
+    /// environment value.
+    public static let cellAspectRange: ClosedRange<Double> = TUIkitStyling.cellAspectRange
 
     /// `ratio`, if it is a cell aspect the arithmetic can use; otherwise the
     /// default of `2.0`, or the nearer end of ``cellAspectRange``.
     ///
-    /// ONE implementation of the rule, shared by this function's own argument
-    /// and by the `imageCellAspect` environment value that feeds it, so the
-    /// two cannot drift. NaN, infinities and non-positive values have no
-    /// meaning as a ratio and fall back to the default rather than to a bound.
+    /// Forwards to TUIkitStyling's `sanitizedCellAspect(_:)`, the ONE
+    /// implementation of the rule, which this function's own argument and the
+    /// `imageCellAspect` environment value that feeds it share, so the two
+    /// cannot drift. NaN, infinities and non-positive values have no meaning
+    /// as a ratio and fall back to the default rather than to a bound.
     public static func sanitizedCellAspect(_ ratio: Double) -> Double {
-        guard ratio.isFinite, ratio > 0 else { return 2.0 }
-        return min(max(ratio, cellAspectRange.lowerBound), cellAspectRange.upperBound)
+        // Module-qualified: unqualified, the name finds this static method
+        // first and calls itself.
+        TUIkitStyling.sanitizedCellAspect(ratio)
     }
 }

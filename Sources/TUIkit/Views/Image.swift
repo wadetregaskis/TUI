@@ -510,11 +510,12 @@ extension EnvironmentValues {
     /// distorted. See ``View/imageCellAspect(_:)``.
     ///
     /// Sanitised on the way in, by the same rule `ASCIIConverter.targetSize`
-    /// applies to its own argument, so the environment and the converter
+    /// applies to its own argument (TUIkitStyling's `sanitizedCellAspect(_:)`,
+    /// which the converter forwards to), so the environment and the converter
     /// cannot disagree about what a usable ratio is.
     public var imageCellAspect: Double {
         get { self[ImageCellAspectKey.self] }
-        set { self[ImageCellAspectKey.self] = ASCIIConverter.sanitizedCellAspect(newValue) }
+        set { self[ImageCellAspectKey.self] = sanitizedCellAspect(newValue) }
     }
 }
 
