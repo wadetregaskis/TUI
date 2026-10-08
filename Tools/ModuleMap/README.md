@@ -126,24 +126,27 @@ There are two forms:
     members its author had in mind, and the block may hold others.
 
 The key is the block's label, which names only its first member, so each finding ends by listing every public
-member the block declares: `(public: statusBarItems(_:), focusSection(_:))`. A member counts when it is `public` or
+member the block declares: `(public: statusBarItems(_:), focusSection(_:))`, as the `.statusBarItems` block read
+before A4's S2 split it. A member counts when it is `public` or
 `open`, or has no access modifier of its own in a `public extension`; a nested type's members are named `Type.member`.
 That is what a review reads. Placing a block moves all of its public members, and the refined plan found four that
 had moved module unseen behind another block's first member (`.focusSection`, `.aspectRatio`, `.scaledToFit`,
 `.scaledToFill`); the last three sit in a block a rule places, which is why rule-placed blocks are reported too. `-v`
 prints the accepted ones.
 
-A placement you have reviewed goes into `accepted`, with the reason. The plan's own reviews are recorded there:
-`.modal`, `.listStyle`, and the ones found at 0c. An accepted entry covers the block as it changes: when a public
+A placement you have reviewed goes into `accepted`, with the reason. The plan's own reviews are recorded there: the
+ones found at 0c, and `.modal`, `.listStyle` and `.statusBarItems` until A4 gave each a file of its module (no longer
+a finding, so their reasons moved to those files' rules). An accepted entry covers the block as it changes: when a public
 member joins an accepted block, re-read the finding with `-v`.
 
 A member that does not belong with the rest of its block, and that a refactor will split out, is a `scheduled` entry:
 `from` matches the block's label, `to` the member's name as the list prints it. The finding is scheduled while a
 flagged block holds the member, and the entry goes stale once none does. It follows the member, not the block: a block
-split out but still placed above its file's module (by the assigner, or by a broad rule such as TUIkitBitmaps'
-`Views/Image.swift::…View\(ext\)`) keeps it open. Members no entry names keep an unaccepted block's finding new, so a
+split out but still placed above its file's module (by the assigner, or by a broad declarations rule, as TUIkitBitmaps'
+`Views/Image.swift::…View\(ext\)` was until A4) keeps it open. Members no entry names keep an unaccepted block's finding new, so a
 split scheduled for one member cannot hide the rest. The refined plan's S1 (the layout trio and the cell-aspect option,
-out of the image-option blocks) and S2 (`.focusSection`, out of the `.statusBarItems` block) are recorded this way.
+out of the image-option blocks) and S2 (`.focusSection`, out of the `.statusBarItems` block) were recorded this way
+until step A4 landed them.
 
 ### `posix`: a POSIX-only API outside TUIkitApp
 
@@ -254,6 +257,11 @@ After editing, run `assign`. It prints the module table and how many declaration
 member added above its first one, or that member renamed) and exactly one entry of the same name (`View(ext)`)
 no longer matches anything, that entry is taken to be its. With two such edits to one name in one file, both are
 placed by the rules. Refresh the map whenever a change adds files or moves code between them.
+
+**Every file is in one module.** Since step A4 no file holds declarations of two modules: `map.json` names one module
+per file, and a file rule places each (the declaration pins on the files A4 cut became file rules), so step A5 can
+move whole files into per-module directories. When `assign` shows a split entry again, a change has put a declaration
+of one module into a file of another: move it to a file of its own module, or start one, rather than keep the split.
 
 ## Limits
 
