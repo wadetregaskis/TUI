@@ -690,6 +690,22 @@ jobs:
       - name: "Build TUIkitImage"
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitImage"
 
+      # ── The modules carved out of TUIkitFoundation ──
+      # Module split step B2's two side modules, which need TUIkitCore alone.
+      # Their POSIX code sits in POSIX-only `#if` arms (CLAUDE.md), and
+      # TerminalHost.swift names no `pid_t` (decisions B-SPB2-1), but no
+      # Windows toolchain has built them yet: advisory until CI has seen them
+      # green, then binding like the four above.
+      - name: "Build TUIkitStrings"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitStrings"
+
+      - name: "Build TUIkitTerminalHost"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTerminalHost"
+
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they go green, then binding
@@ -793,6 +809,16 @@ jobs:
       # here too.
       - name: "Build TUIkitImage"
         run: swift build --target TUIkitImage
+
+      # Advisory, as in the container lane — see that lane.
+      - name: "Build TUIkitStrings"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitStrings
+      - name: "Build TUIkitTerminalHost"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitTerminalHost
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.
