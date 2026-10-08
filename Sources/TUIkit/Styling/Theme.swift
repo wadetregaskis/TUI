@@ -291,19 +291,6 @@ extension View {
     }
 }
 
-extension Scene {
-    /// Applies a ``Theme``'s palette (with its tint folded in) at the scene
-    /// level, so out-of-tree surfaces (app header, status bar) match — the
-    /// scene-level counterpart to ``View/theme(_:)``.
-    ///
-    /// - Note: Scene level applies the theme's **palette + tint**. To also apply
-    ///   its scoped styles, control styles, and appearance, use ``View/theme(_:)``
-    ///   on the scene's root content.
-    public func theme(_ theme: Theme) -> some Scene {
-        palette(theme.resolvedPalette)
-    }
-}
-
 // MARK: - Seeing Through the Wrapper
 
 /// - Note: An environment value reaches a subtree whether it was set one level
