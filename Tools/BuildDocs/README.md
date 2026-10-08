@@ -94,8 +94,13 @@ depend on: `docc convert --analyze` on TUIkitCore's symbol graph alone
 (2026-10-08) warns "doesn't exist" 15 times, for symbols of TUIkitView,
 TUIkitStyling, TUIkitImage and TUIkitFoundation (`View` and `Text` among
 them), and since step B3 TUIkitFoundation's links to `Scene`, its modifiers
-and `WindowGroup` (eight source lines) are more. (Links to a dependency's
-symbols are unmeasured: TUIkitCore has no dependency.) All of them resolve in
+and `WindowGroup` (eight source lines) are more. Links to a dependency's
+symbols dangle as well: the same analysis of TUIkitColorPicker's graphs alone
+(step B4, 2026-10-08) warns 32 times: 31 for symbols of the modules it is
+built on, directly or under TUIkitFoundation (`LocalizedStringKey` 14,
+TUIkitImage's `ASCIIToneCurve` 5, `Slider`, `Gradient`, `Color`,
+TUIkitCore's `OpacityRegion` …), and one for the `TUIkit/` that roots
+``TUIkit/View/colorPickerLabelWidth(_:)`` at the umbrella. All of them resolve in
 the unified build, which is the one `--strict` checks. The other way, one
 reference, needs the archive this script builds hosted somewhere and
 `.spi.yml`'s `external_links` pointed at it (decisions file
