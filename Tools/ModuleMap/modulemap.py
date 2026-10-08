@@ -2,7 +2,7 @@
 """The planned split of TUIkit into modules, checked against today's single module.
 
     python3 Tools/ModuleMap/modulemap.py check            # findings under map.json; exit 1 on a new one
-    python3 Tools/ModuleMap/modulemap.py check --github --exit-zero    # CI: annotations, warning only
+    python3 Tools/ModuleMap/modulemap.py check --github   # CI: an error annotation per new finding, and exit 1
     python3 Tools/ModuleMap/modulemap.py assign           # re-run the assigner; what would change in map.json
     python3 Tools/ModuleMap/modulemap.py assign --write   # ... and rewrite map.json
     python3 Tools/ModuleMap/modulemap.py explain REGEX    # where matching declarations go, and why
@@ -133,7 +133,9 @@ def table(M, R, asg):
 GITHUB_ANNOTATIONS = 10
 
 
-def report(findings, R, github, verbose):
+def report(findings, R, github, verbose, level='warning'):
+    """Print the findings by check; with `github`, a workflow annotation of `level` (`error` when the check gates,
+    `warning` under `--exit-zero`) for each new one. Returns the new findings."""
     by = collections.defaultdict(list)
     for x in findings: by[x.check].append(x)
     new = [x for x in findings if x.new]
@@ -160,10 +162,10 @@ def report(findings, R, github, verbose):
                 print(f'    {tag}{loc}{x.message}')
             if x.new and github and annotated < room:
                 where = f' file={R.source}/{x.file},line={x.line},' if x.file else ' '
-                print(f'::warning{where}title=ModuleMap {c}::{annotation(x.message)}')
+                print(f'::{level}{where}title=ModuleMap {c}::{annotation(x.message)}')
                 annotated += 1
     if github and annotated < len(new):
-        print(f'::warning title=ModuleMap::{len(new) - annotated} more new findings than GitHub shows as annotations: '
+        print(f'::{level} title=ModuleMap::{len(new) - annotated} more new findings than GitHub shows as annotations: '
               f'this step\'s log lists all {len(new)}')
     return new
 
@@ -179,7 +181,8 @@ def main(argv=None):
     ap.add_argument('--map', default=MAP)
     ap.add_argument('--fresh', action='store_true', help='check: run the assigner instead of reading map.json')
     ap.add_argument('--write', action='store_true', help='assign: rewrite map.json')
-    ap.add_argument('--github', action='store_true', help='check: GitHub Actions warning annotations')
+    ap.add_argument('--github', action='store_true', help='check: GitHub Actions annotations (errors; warnings with '
+                    '--exit-zero)')
     ap.add_argument('--exit-zero', action='store_true', help='check: exit 0 even with new findings (warning only)')
     ap.add_argument('-v', '--verbose', action='store_true', help='list scheduled and accepted findings too')
     a = ap.parse_intermixed_args(argv)          # options before or after the pattern
@@ -267,7 +270,7 @@ def run(a):
         print(f'modulemap: {len(unmapped)} declarations in {len(files)} files are not in map.json; placed by the '
               f'rules{f", {kept} kept an edited entry" if kept else ""} (refresh with `assign --write`)')
     findings = checks.run_all(M, R, asg, ROOT)
-    new = report(findings, R, a.github, a.verbose)
+    new = report(findings, R, a.github, a.verbose, 'warning' if a.exit_zero else 'error')
     print(f'modulemap: {len(new)} new finding{"s" if len(new) != 1 else ""} '
           f'({len(findings) - len(new)} scheduled or accepted) in {time.time() - t0:.1f} s')
     return 1 if new and not a.exit_zero else 0

@@ -791,12 +791,12 @@ class IndexStoreTests(unittest.TestCase):
 
 
 class CommandLineTests(unittest.TestCase):
-    def annotations(self, n):
+    def annotations(self, n, level='warning'):
         fs = [checks.Finding('upward', f'k{i}', f'finding {i}', 'Base/A.swift', i + 1) for i in range(n)]
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            self.assertEqual(len(modulemap.report(fs, rules(), True, False)), n)
-        return [ln for ln in out.getvalue().splitlines() if ln.startswith('::warning')]
+            self.assertEqual(len(modulemap.report(fs, rules(), True, False, level)), n)
+        return [ln for ln in out.getvalue().splitlines() if ln.startswith('::')]
 
     def test_annotations_past_github_s_ten_end_in_a_count(self):
         self.assertEqual(len(self.annotations(10)), 10)
@@ -804,6 +804,13 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(len(lines), 10)
         self.assertIn('finding 8', lines[8])
         self.assertIn('::14 more new findings', lines[9])
+
+    def test_a_gating_check_annotates_errors_and_a_warning_only_one_warnings(self):
+        # CI gates on the check (no --exit-zero) since step A4: a new finding fails the step, and its annotation says
+        # so. Under --exit-zero the same finding is a warning, as it was while the map was still being refined.
+        self.assertTrue(all(ln.startswith('::error file=') for ln in self.annotations(3, 'error')))
+        self.assertTrue(all(ln.startswith('::warning file=') for ln in self.annotations(3)))
+        self.assertTrue(self.annotations(12, 'error')[-1].startswith('::error title=ModuleMap::3 more new findings'))
 
     def test_warning_only_survives_a_libindexstore_that_will_not_load(self):
         # CI runs `check --github --exit-zero`: whatever goes wrong is one annotation, not a failed lane.

@@ -284,9 +284,10 @@ index has 18 more edges than a 6.2.4 one, all of them references to a result bui
 `ToolbarContentBuilder` …; why 6.3 records them was not investigated), and 38 more conformance records. The
 check's findings and the assignment are the same from both (measured 2026-10-07).
 
-For now it only warns: it runs with `--github --exit-zero`, and every new finding becomes a warning annotation
-(GitHub keeps 10 per step; past that, the tenth says how many more the step's log lists). With `--exit-zero`, a
-failure of the tool itself (no index store, a libIndexStore that will not load, a bug) is one warning annotation
-too, and the step has `continue-on-error` for anything that escapes Python. Once plan steps A2 (the K refactors)
-and A4 (the placement moves) have landed, drop both, so that no new upward reference can arrive during the
-migration. The parity job runs the tool's own unit tests.
+**It gates.** Plan steps A2 (the K refactors) and A4 (the file splits and placement moves) have landed, so the map
+has no new finding (what it still reports is `scheduled` or `accepted`), and the step runs `check --github`: a new
+finding fails it, so that no new upward reference can arrive during the migration. Each new finding is an error annotation (GitHub keeps 10 per step; past
+that, the tenth says how many more the step's log lists). A failure of the tool itself (no index store, a
+libIndexStore that will not load, a bug) fails the step too: nothing was checked. `--exit-zero` is still there for a
+local run that should only report: with it, new findings and a failure of the tool are warning annotations and the
+exit status is 0. The parity job runs the tool's own unit tests.

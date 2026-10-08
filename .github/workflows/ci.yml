@@ -374,16 +374,18 @@ jobs:
       # were TUIkit split as mapped today. It reads the index store the Build
       # step above wrote, so it costs no build: a few seconds on one lane,
       # because the map is the same on every Swift.
-      # Warning only (`--exit-zero`, which also turns a failure of the tool
-      # itself into an annotation, and `continue-on-error` for anything that
-      # escapes it) until the plan's refactors and placement moves (steps A2,
-      # A4) land; then drop both so it gates. A finding is an annotation
-      # saying which reference or declaration, and why;
-      # Tools/ModuleMap/README.md says how to read one and what to do.
-      - name: Module map (warning only)
+      # It gates: the plan's refactors and placement moves (steps A2, A4)
+      # have landed, so the map has no new finding (what it still reports is
+      # scheduled or accepted), and a new upward reference arriving during
+      # the migration would be a compile error, or a cycle, once the modules
+      # are real. A new finding fails the step with
+      # an error annotation saying which reference or declaration, and why,
+      # and so does a failure of the tool itself (no index store, a
+      # libIndexStore that will not load): nothing was checked.
+      # Tools/ModuleMap/README.md says how to read a finding and what to do.
+      - name: Module map
         if: matrix.module_map
-        continue-on-error: true
-        run: python3 Tools/ModuleMap/modulemap.py check --github --exit-zero
+        run: python3 Tools/ModuleMap/modulemap.py check --github
 
       # Why the suite runs through Tools/ParallelTest/parallel_test.py, in
       # several processes, rather than `$SWIFT test` in one:
