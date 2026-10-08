@@ -957,7 +957,7 @@
     },
     "DefaultPickerStyle": {
       "how": "PickerStyle.automatic / AutomaticPickerStyle",
-      "why": "Sources/TUIkit/Styles/PickerStyle.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
+      "why": "Sources/TUIkit/Styles/PickerStyle+Variants.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
     },
     "DefaultToolbarItem": {
       "how": "SystemStatusBarItem.quit / .appearance / .theme",
