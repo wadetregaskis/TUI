@@ -394,7 +394,9 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// registrations its stored subtree made, which is what keeps a memoized
     /// drop destination, auto-scroll zone or reorder host in these three lists
     /// on a frame that ran none of their bodies.
-    func beginFrame() {
+    ///
+    /// `package` for `TUIContext.reset()`, which empties them for good.
+    package func beginFrame() {
         targets.removeAll(keepingCapacity: true)
         autoScrollZones.removeAll(keepingCapacity: true)
         reorderHosts.removeAll(keepingCapacity: true)

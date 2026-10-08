@@ -158,6 +158,36 @@ struct ViewRendererTests {
         #expect(visibleWrites(mock).contains { $0.contains("hi") })
     }
 
+    /// A snapshot keeps nothing once it is drawn. What its context keeps holds
+    /// closures over that context — a `List`'s handler answers row heights
+    /// from the rows it drew, and each row's box holds the context it was built
+    /// under — and the context's environment holds the storage, the cache and
+    /// the focus manager those closures are kept in. So each was in a cycle
+    /// with what it kept, and every `renderOnce` of a list left its whole
+    /// render behind for the life of the process.
+    @Test("A snapshot's state, render cache and focus manager go with it, a list's closures over them included")
+    func snapshotKeepsNothing() {
+        weak var storage: StateStorage?
+        weak var cache: RenderCache?
+        weak var focus: FocusManager?
+        do {
+            let mock = MockTerminal()
+            mock.size = (30, 8)
+            let renderer = ViewRenderer(terminal: mock)
+            renderer.render(
+                List(selection: .constant(String?.none)) {
+                    ForEach(["one", "two", "three"], id: \.self) { Text($0) }
+                })
+            storage = renderer.context.stateStorage
+            cache = renderer.context.renderCache
+            focus = renderer.focusManager
+            #expect(visibleWrites(mock).contains { $0.contains("two") }, "the list was not drawn")
+        }
+        #expect(storage == nil, "the snapshot's state storage outlived it")
+        #expect(cache == nil, "the snapshot's render cache outlived it")
+        #expect(focus == nil, "the snapshot's focus manager outlived it")
+    }
+
     /// A snapshot is a second screen root, and the root is where a displaced
     /// drawing lands: `.offset` paints NOTHING at its natural position and puts
     /// the glyphs in an `OverlayLayer`, so a flush that walked only

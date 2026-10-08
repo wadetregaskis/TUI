@@ -54,11 +54,13 @@ final class ViewRenderer {
     /// and `write(_:)`.
     private let terminal: any TerminalProtocol
 
-    /// The private snapshot context supplying runtime services.
-    private let context: TUIContext
+    /// The private snapshot context supplying runtime services. Internal, not
+    /// private, so a test can watch it go.
+    let context: TUIContext
 
-    /// A focus manager for the snapshot (interactive views read it).
-    private let focusManager = FocusManager()
+    /// A focus manager for the snapshot (interactive views read it). Internal
+    /// for the same test.
+    let focusManager = FocusManager()
 
     /// The host's cursor-advance model.
     ///
@@ -100,7 +102,8 @@ extension ViewRenderer {
     /// Renders a view to the terminal.
     ///
     /// Queries the terminal size, renders the view into a ``FrameBuffer``,
-    /// and writes the result line-by-line to the terminal.
+    /// and writes the result line-by-line to the terminal. Keeps nothing
+    /// afterwards: the next render starts from empty state and an empty cache.
     ///
     /// - Parameters:
     ///   - view: The view to render.
@@ -160,6 +163,18 @@ extension ViewRenderer {
         // buffer comes back byte-identical.
         let composited = buffer.compositingOverlays(maxWidth: size.width, maxHeight: size.height, palette: environment.palette)
         flush(composited, atRow: row, column: column)
+        // Then nothing is kept, as `App` keeps nothing once it quits: the focus
+        // manager cleared, then the context reset, in `App.cleanup`'s order.
+        // Letting go of them is not enough. What the walk left in them holds
+        // closures over its `RenderContext` — a `List`'s handler answers row
+        // heights from the rows it drew, each row's box holds the context it
+        // was built under, the mouse dispatcher holds the row's hit-test
+        // handler — and that context's environment holds the state storage,
+        // the cache, the focus manager and the dispatcher themselves. So each
+        // was in a cycle with what it kept, and every snapshot of a list
+        // stayed alive, whole, for the life of the process.
+        focusManager.clear()
+        context.reset()
     }
 }
 
