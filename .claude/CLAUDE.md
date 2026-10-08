@@ -13,7 +13,10 @@
   whichever module they belong to — no module is reserved for them — but
   keep them isolated (in their own files, or behind `#if os(Windows)` arms
   or a small protocol) so that a port has few, obvious places to fill in,
-  and never put them in a module that builds on Windows today. See
+  and never put them in a module that builds on Windows today. The
+  console layer — the run loop, the `Terminal` class and its `termios` raw
+  mode, the signal handlers, the stdin source — is `TUIkitApp`, a module of
+  its own since module split step B3, which has no Windows build. See
   CONTRIBUTING.md for the blocker list.
 
 ### Architecture (non-negotiable)
