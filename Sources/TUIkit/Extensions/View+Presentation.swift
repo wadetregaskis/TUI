@@ -315,7 +315,7 @@ extension View {
     /// `@Environment(\.dismiss)`, or a programmatic change. Written
     /// per-spelling it was already duplicated once.
     ///
-    /// Not the always-on `modal { … }` in `View+Convenience.swift`, which
+    /// Not the always-on `modal { … }` in `View+Modal.swift`, which
     /// builds the modifier itself: it has no binding to watch and so nothing
     /// for this wiring to do.
     ///
