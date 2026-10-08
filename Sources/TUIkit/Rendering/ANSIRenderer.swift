@@ -10,6 +10,11 @@ import Foundation
 ///
 /// `ANSIRenderer` translates `TextStyle` and `Color` into the corresponding
 /// ANSI escape sequences that are understood by most terminals.
+///
+/// `@usableFromInline`, with ``reset`` and
+/// ``colorize(_:foreground:background:bold:underline:inverted:)``: the
+/// `@inlinable` members of `ClaimingRow` call them (module split step A3).
+@usableFromInline
 enum ANSIRenderer {
     /// The escape character for ANSI sequences.
     static let escape = "\u{1B}"
@@ -18,7 +23,7 @@ enum ANSIRenderer {
     static let csi = "\(escape)["
 
     /// Reset code that clears all formatting.
-    static let reset = "\(csi)0m"
+    @usableFromInline static let reset = "\(csi)0m"
 
     /// SGR 39: the terminal's own foreground again, everything else left in
     /// force — what closes a run of ink without ending the background it is
@@ -160,6 +165,7 @@ extension ANSIRenderer {
     ///     it; a run of plain characters has none to survive, so a reversed run comes
     ///     through here and the two spell the same bytes.
     /// - Returns: The ANSI-formatted string.
+    @usableFromInline
     static func colorize(
         _ string: String,
         foreground: Color? = nil,

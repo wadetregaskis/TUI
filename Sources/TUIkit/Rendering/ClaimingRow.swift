@@ -36,19 +36,32 @@ import TUIkitStyling
 /// that bookkeeping in here, which is a change to the field's cursor arithmetic
 /// wearing a refactor's clothes. It shares this type's *rule* and states it at its
 /// own declaration.
+///
+/// ## Inlinable
+///
+/// The row and every member that a feature module calls are `@inlinable`, or
+/// `@usableFromInline` where stored (module split step A3). Tracks, tabs,
+/// pickers and table rows assemble their cells through here, once per run per
+/// row, from modules that leave the substrate at B5–B7.
+@usableFromInline
 struct ClaimingRow {
     /// The finished ANSI row.
-    var text = ""
+    @usableFromInline var text = ""
 
     /// The cells owing a blend, in the row's own coordinates: column 0 is the
     /// first cell this row draws, whatever the caller puts to its left.
-    var claims: [OpacityRegion] = []
+    @usableFromInline var claims: [OpacityRegion] = []
 
     /// How many cells were drawn — which is not always the width that was asked
     /// for. The coarse track path permanently shrinks a track to a whole multiple
     /// of its quantum, and a claim must sit on what was DRAWN. Same lesson
     /// `Slider`'s right-arrow run already learned.
-    var cells = 0
+    @usableFromInline var cells = 0
+
+    /// An empty row. Spelled out only so that it can be `@inlinable`: an
+    /// implicit initializer cannot be.
+    @inlinable
+    init() {}
 
     /// Appends one run: `count` columns of `glyphs`, painted in `ink` on `field`, and
     /// emboldened if asked. `bold` is passed straight to the emitter and does not enter
@@ -66,6 +79,7 @@ struct ClaimingRow {
     /// Opacity as composition.md` §90). It is part of how the cell is PAINTED, not a second
     /// kind of cell, which is why it belongs here with the rest of the pairing: a caller
     /// passes the two colours it wants exchanged, already opaque, and so owes no claim.
+    @inlinable
     mutating func append(
         _ glyphs: String, cells count: Int, ink: Color?, field: Color? = nil, bold: Bool = false,
         inverted: Bool = false
@@ -95,6 +109,7 @@ struct ClaimingRow {
     /// The claim is the one `count`-wide rectangle that the per-cell claims coalesce
     /// into through `appendCoalescing` — one row, equal alphas, each adjacent to the
     /// last — and it meets the claim before it by the same rule they did.
+    @inlinable
     mutating func appendCells(cycling glyphs: [Character], count: Int, ink: Color?, field: Color? = nil) {
         guard count > 0, !glyphs.isEmpty else { return }
         // The very call `append` makes for one cell, once per glyph that is drawn.
@@ -116,6 +131,7 @@ struct ClaimingRow {
     /// Appends bytes that are already finished — a picture's placeholder cells, or a
     /// child's rendered line whose claims travel on its own buffer — which owe no
     /// claim here because this renderer chose no colour for them.
+    @inlinable
     mutating func appendFinished(_ chunk: String, cells count: Int) {
         text += chunk
         cells += count
@@ -129,6 +145,7 @@ struct ClaimingRow {
     /// render drew, so the piece is built once for the line and again per frame.
     /// Splicing it here keeps its claims' columns this row's arithmetic, not the
     /// caller's.
+    @inlinable
     mutating func append(contentsOf row: Self) {
         text += row.text
         for claim in row.claims { claims.appendCoalescing(claim.shifted(byX: cells, y: 0)) }
@@ -141,6 +158,7 @@ struct ClaimingRow {
     /// value. It states no colour, so it owes no claim and must not be merged into
     /// the run beside it — a claim spanning it would state an alpha for a cell whose
     /// ink came from somewhere else entirely.
+    @inlinable
     mutating func skip(cells count: Int) {
         text += String(repeating: " ", count: max(0, count))
         cells += max(0, count)
@@ -153,6 +171,7 @@ struct ClaimingRow {
     ///
     /// For a row put together from pieces of rows drawn differently — a
     /// slider's track filled from its neutral value, its disabled ends.
+    @inlinable
     func slice(_ range: Range<Int>) -> Self {
         let lower = max(0, min(cells, range.lowerBound))
         let upper = max(lower, min(cells, range.upperBound))
