@@ -5,13 +5,32 @@
 §5), 2026-10-08: the carve of TUIkitApp, the first module built on
 TUIkitFoundation rather than under it. It changed no public API: the umbrella
 re-exports TUIkitApp beside TUIkitFoundation, so `import TUIkit` gives an app
-what it gave before. This file holds the judgement calls the step reached
-that the plan did not already settle, in the format of
-[`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
+what it gave before, and an app's `TUIkit.X` reaches TUIkitApp's types through
+one re-export (`UmbrellaQualifiedNameTests`). What an app can still see is
+listed under [What an app can see](#what-an-app-can-see). This file holds the
+judgement calls the step reached that the plan did not already settle, in the
+format of [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
 
 - **A-SPB3-n — needs your decision.** Nothing has shipped for these.
 - **B-SPB3-n — shipped the safe option.** Says what the other version would be, and its price.
 - **C-SPB3-n — declined.** With the reason.
+
+## What an app can see
+
+Not judgement calls: the plan (§5, row C9a) lists these for the release notes,
+and C9a writes them. They are recorded here because this step made them. Each
+name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
+
+- **Reflected names.** `String(reflecting:)`, `dump` and the debugger name a
+  moved type's new module: `TUIkitApp.WindowGroup<TUIkitFoundation.Text>`,
+  `TUIkitApp.DefaultWindowToolbarStyle`. `UmbrellaQualifiedNameTests` pins
+  both.
+- **`renderOnce(content:)` is TUIkitApp's** (the plan names it for C9a).
+  `TUIkit.renderOnce` and the unqualified name resolve as before.
+- **The bundle and saved paths are unchanged.** TUIkitApp holds no resources,
+  so the bundle is still `TUIkit_TUIkitStrings` (decisions SPB2); and it
+  declares no `Codable` public type, so no saved
+  `NavigationPath.CodableRepresentation` changes.
 
 ## B. Shipped
 

@@ -17,6 +17,12 @@
 //  that case, and a carve that dropped a re-export below the umbrella would
 //  stop it compiling too.
 //
+//  Step B3 carved TUIkitApp out the other way: built on TUIkitFoundation,
+//  not under it, so TUIkitFoundation cannot re-export it, and the umbrella
+//  does, beside TUIkitFoundation. The third test spells its types through the
+//  umbrella, so a carve that left TUIkitApp out of the umbrella's re-exports
+//  would stop this file compiling as well.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -45,6 +51,18 @@ private enum Client {
     static func bothClients() -> (TerminalClient, TUIkit.TerminalClient.Program) {
         (TerminalClient(name: "mine"), TUIkit.TerminalClient.Program.ghostty)
     }
+
+    /// An app's own `Scene`, beside TUIkitApp's protocol.
+    struct Scene {
+        let name: String
+    }
+
+    /// Both scenes: the app's by its plain name, and a window group by the
+    /// umbrella's spelling of TUIkitApp's protocol and type.
+    @MainActor
+    static func bothScenes() -> (Scene, some TUIkit.Scene) {
+        (Scene(name: "mine"), TUIkit.WindowGroup { TUIkit.Text(verbatim: "b3") })
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -67,6 +85,12 @@ extension TUIkit.LocalizationService.Language {
     /// A member an app adds, through the umbrella's name, to a type of
     /// TUIkitStrings, which reaches the umbrella through TUIkitFoundation.
     fileprivate var b2Marker: String { "b2-\(rawValue)" }
+}
+
+extension TUIkit.WindowGroup {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitApp, which the umbrella re-exports itself.
+    fileprivate var b3Marker: Int { 3 }
 }
 
 @MainActor
@@ -104,6 +128,22 @@ struct UmbrellaQualifiedNameTests {
         #expect(TUIkit.LocalizationService.Language.allCases.contains(language))
     }
 
+    @Test("A qualified name reaches TUIkitApp, which the umbrella re-exports beside TUIkitFoundation")
+    func qualifiedNamesReachTheModuleBuiltOnFoundation() {
+        // TUIkitApp's types: a scene beside an app's own `Scene`, as an
+        // opaque `some TUIkit.Scene`, and a member an app's extension adds.
+        let (mine, group) = Client.bothScenes()
+        #expect(mine.name == "mine")
+        #expect(String(reflecting: type(of: group)) == "TUIkitApp.WindowGroup<TUIkitFoundation.Text>")
+        #expect(TUIkit.WindowGroup { TUIkit.Text(verbatim: "b3") }.b3Marker == 3)
+        // A conformance spelled through the umbrella, and a free function of
+        // TUIkitApp's as a value (never called: it writes to the terminal).
+        let style: any TUIkit.WindowToolbarStyle = TUIkit.DefaultWindowToolbarStyle()
+        #expect(style is TUIkit.DefaultWindowToolbarStyle)
+        let draw: (() -> TUIkit.Text) -> Void = TUIkit.renderOnce(content:)
+        _ = draw
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -129,5 +169,12 @@ struct UmbrellaQualifiedNameTests {
             #expect(
                 String(reflecting: TUIkit.SystemFormatStyle.Timer.self) == "TUIkitStrings.SystemFormatStyle.Timer")
         }
+        // Step B3 carved these out (decisions SPB3, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B3. A generic type of
+        // TUIkitApp names TUIkitFoundation for its argument.
+        #expect(
+            String(reflecting: TUIkit.WindowGroup<TUIkit.Text>.self)
+                == "TUIkitApp.WindowGroup<TUIkitFoundation.Text>")
+        #expect(String(reflecting: TUIkit.DefaultWindowToolbarStyle.self) == "TUIkitApp.DefaultWindowToolbarStyle")
     }
 }
