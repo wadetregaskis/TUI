@@ -109,9 +109,7 @@
     {"module": "TUIkitFoundation", "match": "^Modifiers/FocusSectionModifier\\.swift::", "why": "S2: `.focusSection(_:)` is focus API (the base module): its modifier stays here, and A4 gave the method a block of its own in View+Events.swift"},
     {"module": "TUIkitFoundation", "match": "^Rendering/FocusIndicatorColor\\.swift::RenderContext\\(ext\\)#publishSectionIndicator", "why": "S2: drawn by FocusSectionModifier"}
   ],
-  "unpin": [
-    {"match": "^App/RenderLoop\\.swift::RenderActivity$", "why": "value types in a POSIX file come down to Base"}
-  ],
+  "unpin": [],
   "scheduled": [
     {"id": "K5", "check": "upward", "from": "^App/ScreenSelection(\\+Menu)?\\.swift::", "to": "^(Rendering/TextFieldContentRenderer|Focus/WordBoundary)", "why": "ScreenSelection reads a field-text-layout protocol in Base (A2)"},
     {"id": "K6", "check": "posix", "from": "^(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^(getpid|pid_t)$", "why": "both files get a Windows arm like their WASI one, with no pid_t in its signatures (A2)"},

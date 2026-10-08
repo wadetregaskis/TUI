@@ -239,7 +239,10 @@ not drag declarations down.
   declarations. Use them for a placement decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or
   to undo an assigner drift. Where several match one declaration, the **last** wins, so a narrower rule placed after a
   broader one is an exception to it (TUIkitFoundation's three image layout keys after TUIkitBitmaps' `Image.*Key`).
-- **`unpin`**: declarations in pinned files that may move anyway. These are value types inside POSIX files.
+- **`unpin`**: declarations in pinned files that may move anyway, such as value types inside POSIX files. The list is
+  empty since step A4. A declaration that moved out of its pinned file would split that file again, and A4 left
+  every file whole: `RenderLoop.swift`'s value types went to `RenderFrameValues.swift`, and the last entry,
+  `RenderActivity`, was removed because only TUIkitApp uses it, so it never moved.
 - **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix`, `lower` or `public-above`) that a
   refactor will remove. `from` and `to` match labels (the printed label or the base label without its
   `#discriminator`); for `posix`, `to` matches the API's name, for `lower`, `Module.Type.name`, and for `public-above`,
