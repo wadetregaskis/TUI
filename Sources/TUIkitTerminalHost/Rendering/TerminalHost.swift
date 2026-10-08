@@ -260,7 +260,15 @@ enum TerminalHost {
         /// The `tmux attach` process, whose parent chain runs back through the
         /// login shell to the terminal application that owns the window — which
         /// is how a silent client is identified. `nil` if tmux did not report it.
-        let pid: pid_t?
+        ///
+        /// An `Int32`, not a `pid_t`, as are the hook builders' `pid`s below:
+        /// they are the same type on every platform with a `pid_t` (Darwin,
+        /// Glibc, Musl, WASI), and the type `ProcessInfo.processIdentifier`
+        /// has everywhere, but Windows' C runtime declares no `pid_t`, so
+        /// spelling it would keep this file from compiling there. Only the
+        /// Darwin walk in ``owningApplicationPath(ofTmuxClient:)`` reads a
+        /// `pid_t`, and it is compiled only where one exists.
+        let pid: Int32?
 
         /// tmux's ids (`%3`) of every pane in every window of the client's
         /// session, or `nil` where tmux did not list them (a tmux too old for
@@ -512,7 +520,7 @@ enum TerminalHost {
     /// is the only allowlisted terminal that answers no XTVERSION and doesn't
     /// exist off macOS. Ghostty answers on Linux, so there is nothing for the
     /// walk to add there and no `/proc` twin worth carrying.
-    static func owningApplicationPath(ofTmuxClient pid: pid_t) -> String? {
+    static func owningApplicationPath(ofTmuxClient pid: Int32) -> String? {
         #if canImport(Darwin)
         var current: pid_t? = pid
         // launchd (pid 1) roots every chain; the bound is for a pid recycled into
@@ -660,7 +668,7 @@ enum TerminalHost {
             // A tmux too old to know `client_pid` substitutes nothing for it, so
             // the pid is absent rather than wrong: identification falls back to
             // the termtype alone, which is exactly the old behaviour.
-            let pid = fields.first.flatMap { pid_t($0) }
+            let pid = fields.first.flatMap { Int32($0) }
             let panes = fields.count > 1 ? parseTmuxPaneIDs(fields[1]) : nil
             let termtype = fields.count > 2 ? String(fields[2]) : ""
             return TmuxClient(termtype: termtype, pid: pid, sessionPanes: panes)
@@ -737,7 +745,7 @@ enum TerminalHost {
     /// - **`|| tmux set-hook -gu …`**: self-cleaning. `kill` fails once the PID
     ///   is gone, and the hook removes itself on its first firing after this
     ///   app dies without running its own cleanup.
-    static func tmuxClientChangeHookArguments(pid: pid_t) -> [String] {
+    static func tmuxClientChangeHookArguments(pid: Int32) -> [String] {
         hookArguments(for: tmuxClientChangeHooks, pid: pid)
     }
 
@@ -750,7 +758,7 @@ enum TerminalHost {
     /// now (`RenderLoop.invalidateDiffCache`), which is exactly what a client's
     /// new theme needs. Zero new plumbing, and a signal whose default action is
     /// IGNORE, so a stale hook signalling a recycled PID is harmless.
-    static func tmuxThemeChangeHookArguments(pid: pid_t) -> [String] {
+    static func tmuxThemeChangeHookArguments(pid: Int32) -> [String] {
         hookArguments(for: tmuxThemeChangeHooks, pid: pid)
     }
 
@@ -758,7 +766,7 @@ enum TerminalHost {
     /// PID index. Shared by both sets rather than written twice: every clause is
     /// load-bearing in the same way for both, and two copies would be two things
     /// to keep right.
-    private static func hookArguments(for hooks: [String], pid: pid_t) -> [String] {
+    private static func hookArguments(for hooks: [String], pid: Int32) -> [String] {
         var arguments: [String] = []
         for hook in hooks {
             if !arguments.isEmpty { arguments.append(";") }
@@ -775,16 +783,16 @@ enum TerminalHost {
     /// ``tmuxClientChangeHookArguments(pid:)`` registered — ours and only ours;
     /// unsetting one array index leaves the user's other indices untouched
     /// (measured). Pure, for the same testability.
-    static func tmuxClientChangeUnhookArguments(pid: pid_t) -> [String] {
+    static func tmuxClientChangeUnhookArguments(pid: Int32) -> [String] {
         unhookArguments(for: tmuxClientChangeHooks, pid: pid)
     }
 
     /// The same removal for ``tmuxThemeChangeHooks``, ours and only ours.
-    static func tmuxThemeChangeUnhookArguments(pid: pid_t) -> [String] {
+    static func tmuxThemeChangeUnhookArguments(pid: Int32) -> [String] {
         unhookArguments(for: tmuxThemeChangeHooks, pid: pid)
     }
 
-    private static func unhookArguments(for hooks: [String], pid: pid_t) -> [String] {
+    private static func unhookArguments(for hooks: [String], pid: Int32) -> [String] {
         var arguments: [String] = []
         for hook in hooks {
             if !arguments.isEmpty { arguments.append(";") }
@@ -808,7 +816,7 @@ enum TerminalHost {
     static func installTmuxClientChangeHooks() -> Bool {
         guard isTmux else { return false }
         let pid = ProcessInfo.processInfo.processIdentifier
-        return runTmux(tmuxClientChangeHookArguments(pid: pid_t(pid))) != nil
+        return runTmux(tmuxClientChangeHookArguments(pid: pid)) != nil
     }
 
     /// Removes this process's client-change hooks; the graceful-shutdown half
@@ -818,7 +826,7 @@ enum TerminalHost {
     static func removeTmuxClientChangeHooks() {
         guard isTmux else { return }
         let pid = ProcessInfo.processInfo.processIdentifier
-        _ = runTmux(tmuxClientChangeUnhookArguments(pid: pid_t(pid)))
+        _ = runTmux(tmuxClientChangeUnhookArguments(pid: pid))
     }
 
     /// Registers the theme-change hooks for this process, so tmux pushes a
@@ -834,7 +842,7 @@ enum TerminalHost {
     static func installTmuxThemeChangeHooks() -> Bool {
         guard isTmux else { return false }
         let pid = ProcessInfo.processInfo.processIdentifier
-        return runTmux(tmuxThemeChangeHookArguments(pid: pid_t(pid))) != nil
+        return runTmux(tmuxThemeChangeHookArguments(pid: pid)) != nil
     }
 
     /// Removes this process's theme-change hooks; the graceful-shutdown half of
@@ -842,7 +850,7 @@ enum TerminalHost {
     static func removeTmuxThemeChangeHooks() {
         guard isTmux else { return }
         let pid = ProcessInfo.processInfo.processIdentifier
-        _ = runTmux(tmuxThemeChangeUnhookArguments(pid: pid_t(pid)))
+        _ = runTmux(tmuxThemeChangeUnhookArguments(pid: pid))
     }
 
     /// Registers every tmux hook this process wants: the client changes that

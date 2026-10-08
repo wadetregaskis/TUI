@@ -16,7 +16,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Foundation  // pid_t
+import Foundation
 import Testing
 
 import TUIkit

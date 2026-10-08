@@ -567,7 +567,8 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         self.assertEqual((xs['Base/T.swift::g() uses getpid'].scheduled, xs['Base/T.swift::g() uses getpid'].accepted), ('K6', None))
 
     def test_the_shipped_list_has_pid_t(self):
-        # Plan section 4's K6: Windows signatures must not use pid_t. TerminalHost (Base) has 13 unguarded uses.
+        # Plan section 4's K6: Windows signatures must not use pid_t. TerminalHost.swift had 13 unguarded uses until
+        # step B2 spelled them Int32 (decisions B-SPB2-1).
         src = 'struct H {\n    let pid: pid_t?\n}\n'
         M = model({'Base/H.swift': src}, {'Base/H.swift': [('s:H', DEF, 1, ''), ('s:H.pid', DEF, 2, 's:H'),
                                                             ('c:@T@pid_t', REF, 2, 's:H.pid')]},

@@ -39,8 +39,7 @@
   "unpin": [],
   "scheduled": [
     {"id": "K5", "check": "upward", "from": "^(TUIkitFoundation/App/ScreenSelection|TUIkitChrome/App/ScreenSelection\\+Menu)\\.swift::", "to": "^TUIkitTextInput/(Rendering/TextFieldContentRenderer|Focus/WordBoundary)", "why": "ScreenSelection reads a field-text-layout protocol in Base (A2)"},
-    {"id": "K6", "check": "posix", "from": "^TUIkitTerminalHost/(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^(getpid|pid_t)$", "why": "both files get a Windows arm like their WASI one, with no pid_t in its signatures (A2)"},
-    {"id": "K6", "check": "posix", "from": "^TUIkitTerminalHost/Rendering/TerminalHost\\.swift::", "to": "^pid_t$", "why": "found at SP0's review, beyond plan section 4's two files: the tmux client's pid and the tmux hook arguments are pid_t. A2's K6 gives them the same Windows treatment (decisions B-SP0-4)."}
+    {"id": "K6", "check": "posix", "from": "^TUIkitTerminalHost/(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^(getpid|pid_t)$", "why": "both files get a Windows arm like their WASI one, with no pid_t in its signatures (A2)"}
   ],
   "accepted": [
     {"check": "public-above", "key": "TUIkitFoundation/Localization/LocalizationExtensions.swift::LocalizationService(ext)#setLanguage(_:)", "why": "R1: setLanguage(_:) and register(translations:) are declared in the base module, beside the views whose frame they ask for, on a TUIkitStrings type"},
