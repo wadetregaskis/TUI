@@ -127,19 +127,7 @@ enum FocusRegistration {
     @inlinable
     static func register(context: RenderContext, handler: Focusable, focusID: String) {
         guard !context.isMeasuring else { return }
-        // A persisted handler was built once, from the id in force on the frame
-        // it first drew; the declaration is re-resolved on every frame. Re-point
-        // it before the ring files it, or `.focused($field, equals:)` and every
-        // other by-id lookup goes on addressing a name the view has stopped
-        // answering to.
-        // `let`, not `var`, and the difference is nothing: ``Focusable`` refines
-        // `AnyObject`, so the binding is a reference and the write lands on the
-        // handler the ring holds. Written `var` it drew a compiler warning that
-        // it was never mutated — which is exactly right, and would be a real bug
-        // rather than a warning if the protocol ever stopped being class-bound.
-        if let persisted = handler as? any PersistedFocusable, persisted.focusID != focusID {
-            persisted.focusID = focusID
-        }
+        repointPersistedHandler(handler, to: focusID)
         let sectionID = context.environment.activeFocusSectionID
         // Read BEFORE the claim below, because claiming is what consumes it.
         // `.focused($x, equals:)` offers an id to the first focusable that
@@ -177,6 +165,37 @@ enum FocusRegistration {
         // markActive is unrelated to focus (state GC) and always runs.
         context.stateStorage!.markActive(context.identity)
         publishHelpText(context: context, focusID: focusID)
+    }
+
+    /// Re-points a persisted handler at the id its control declares this frame.
+    ///
+    /// A persisted handler was built once, from the id in force on the frame it
+    /// first drew; the declaration is re-resolved on every frame. Re-point it
+    /// before the ring files it, or `.focused($field, equals:)` and every other
+    /// by-id lookup goes on addressing a name the view has stopped answering to.
+    ///
+    /// Out of line, and `@usableFromInline` rather than `@inlinable`, for the
+    /// `@inlinable` ``register(context:handler:focusID:)`` (module split step A3).
+    /// This is what keeps ``PersistedFocusable`` internal. A settable requirement
+    /// of a protocol usable from inline code hands every conformer's stored
+    /// `focusID` to callers the whole-module optimiser cannot see, so it keeps a
+    /// dynamic exclusivity check (`swift_beginAccess`) in the conformers'
+    /// `focusID` witnesses — the getter the ring reads through ``Focusable``
+    /// included. That was a runtime call per persisted control per frame, in
+    /// every app, inside one module as much as across two. The price of keeping
+    /// it out: a client module makes one call here, around a dynamic cast it
+    /// would make anyway.
+    @MainActor
+    @usableFromInline
+    static func repointPersistedHandler(_ handler: Focusable, to focusID: String) {
+        // `let`, not `var`, and the difference is nothing: ``Focusable`` refines
+        // `AnyObject`, so the binding is a reference and the write lands on the
+        // handler the ring holds. Written `var` it drew a compiler warning that
+        // it was never mutated — which is exactly right, and would be a real bug
+        // rather than a warning if the protocol ever stopped being class-bound.
+        if let persisted = handler as? any PersistedFocusable, persisted.focusID != focusID {
+            persisted.focusID = focusID
+        }
     }
 
     /// Tells a value-memoizing ancestor what this registration was: whether it

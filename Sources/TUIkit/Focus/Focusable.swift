@@ -75,9 +75,9 @@ extension Focusable {
 /// Handlers rebuilt every frame (``ActionHandler``) already agree with the
 /// declaration by construction, and deliberately do not conform.
 ///
-/// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
-/// reaches it (module split step A3).
-@usableFromInline
+/// Internal, and NOT `@usableFromInline` (module split step A3): the `@inlinable`
+/// `FocusRegistration.register(context:handler:focusID:)` reaches it only through
+/// the out-of-line `FocusRegistration.repointPersistedHandler(_:to:)`, which says why.
 protocol PersistedFocusable: Focusable {
     var focusID: String { get set }
 }
