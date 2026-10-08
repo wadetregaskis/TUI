@@ -147,6 +147,7 @@ extension View {
     ///     closure provided in `action`. Defaults to `1`.
     ///   - action: The action to perform.
     /// - Returns: The view, with the tap gesture attached.
+    @inlinable
     public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void) -> some View {
         gesture(TapGesture(count: count).onEnded { action() })
     }

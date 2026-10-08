@@ -24,6 +24,11 @@ extension EnvironmentValues {
     /// `.frame(width: 120)` in a 200-wide window a quarter is still 50), so
     /// only the containers SwiftUI names publish it. There is no safe area to
     /// subtract (decisions B6).
+    ///
+    /// `@usableFromInline`: the `@inlinable`
+    /// ``RenderContext/publishingContainerSize(_:noting:)`` sets it and names
+    /// its key path (module split step A3).
+    @usableFromInline
     var containerRelativeSize: CellSize? {
         get { self[ContainerRelativeSizeKey.self] }
         set { self[ContainerRelativeSizeKey.self] = newValue }
@@ -42,6 +47,10 @@ extension RenderContext {
     /// Noted only by a render that draws (`noting`), for `GeometryReader`'s
     /// reason: the cache answers a slot once per pass, so a measure offered
     /// some other size would be the one compared from frame to frame.
+    ///
+    /// `@inlinable` (module split step A3): every container that hands its
+    /// content a size calls it, in modules that leave the substrate from B5.
+    @inlinable
     func publishingContainerSize(_ size: CellSize, noting: Bool = true) -> Self {
         var copy = self
         copy.environment.containerRelativeSize = size
