@@ -110,7 +110,11 @@ package struct TimeSpanSpelling: Equatable, Sendable {
     /// How many consecutive units are shown at most.
     let maxFieldCount: Int
 
-    package init(units: some Collection<TimeSpanUnit>, maxFieldCount: Int) {
+    /// `units` is an array, not `some Collection`: TUIkitFoundation calls this
+    /// from another module, where a generic initializer runs unspecialised
+    /// (CONTRIBUTING.md, "Crossing a module boundary"), and every caller has an
+    /// array already.
+    package init(units: [TimeSpanUnit], maxFieldCount: Int) {
         self.units = units.sorted()
         self.maxFieldCount = max(1, maxFieldCount)
     }
