@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  FocusManagerRingQueries.swift
 //
-//  What the focus ring holds, asked of the manager: the active section's ids,
-//  and a one-line summary for diagnostics. Read-only queries over state kept in
-//  `Focus.swift`.
+//  What the focus ring holds, asked of the manager: how many sections have
+//  registered (which a split view reads each time it renders, from another
+//  module), the active section's ids, and a one-line summary for diagnostics.
+//  Read-only queries over state kept in `Focus.swift`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
