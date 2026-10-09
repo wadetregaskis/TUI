@@ -76,6 +76,20 @@ public struct Text: View, Equatable {
     /// attributes — see ``Text/+(_:_:)``.
     package var style: TextStyle
 
+    /// Whether this text draws nothing but its characters: no style or styled
+    /// runs of its own. On a table column of several lines such a text is laid
+    /// out as the string it holds, as `Text` lays itself out.
+    ///
+    /// Here, beside the two fields it reads, rather than with the table that
+    /// asks (module split): compiled in this module, the comparison calls
+    /// `TextStyle`'s synthesised `==` directly. Compiled in TUIkitLists, it
+    /// went through `Equatable`'s witness table and dispatch thunk on every
+    /// cell, as a `package` type's conformance has no witness table another
+    /// module can see into. Not `@inlinable`, for the same reason.
+    package var isUnstyled: Bool {
+        runs == nil && style == TextStyle()
+    }
+
     /// Creates a text view displaying a localized string.
     ///
     /// A string **literal** binds here, so it is treated as a lookup key and

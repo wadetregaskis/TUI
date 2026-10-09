@@ -132,13 +132,6 @@ extension Text {
     var drawsAsPlainString: Bool {
         isUnstyled && !content.containsLineFeed
     }
-
-    /// Whether this text draws nothing but its characters: no style or styled
-    /// runs of its own. On a column of several lines such a text is laid out
-    /// as the string it holds, as `Text` lays itself out.
-    var isUnstyled: Bool {
-        runs == nil && style == TextStyle()
-    }
 }
 
 extension String {
