@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// An editing command that an Emacs chord names in a text control: a letter
 /// held with Control, or B or F held with Option.
 ///

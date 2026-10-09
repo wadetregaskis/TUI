@@ -7,6 +7,7 @@
 import Foundation
 import TUIkitFoundation
 import TUIkitStyling
+import TUIkitTextInput
 
 // MARK: - Gradient Editor Panel
 

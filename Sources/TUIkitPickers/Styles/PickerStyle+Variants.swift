@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A picker style that collapses to a single line and opens a drop-down
 /// list of options when activated.
 ///

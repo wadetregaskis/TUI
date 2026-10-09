@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The placement of a search field in a view hierarchy. Mirrors SwiftUI's
 /// `SearchFieldPlacement`.
 ///

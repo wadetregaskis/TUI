@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The properties of a text editor.
 ///
 /// SwiftUI's configuration has no public members, and neither has this one: a

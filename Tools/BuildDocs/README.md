@@ -53,12 +53,13 @@ swift package generate-documentation --target TUIkit     # ← produces a BROKEN
 split step B1), and every catalog link to a symbol dangling.
 
 TUIkit is several library modules — `TUIkitCore`, `TUIkitStyling`,
-`TUIkitView`, `TUIkitImage`, `TUIkitFoundation` (which compiles every module
-of the planned split not yet carved into a target of its own), the modules
-carved out of it so far (`TUIkitStrings`, `TUIkitTerminalHost`, step B2;
+`TUIkitView`, `TUIkitImage`, `TUIkitFoundation` (which compiled every module
+of the planned split until each was carved into a target of its own), the
+modules carved out of it (`TUIkitStrings`, `TUIkitTerminalHost`, step B2;
 `TUIkitApp`, step B3; `TUIkitColorPicker`, step B4; `TUIkitNavigation`, step B5, which compiles the presentations
 too until step C1; `TUIkitLists`, step B6, which compiles the tables, tabs and grids too until steps C2 to C4;
-`TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b; `TUIkitBitmaps`, step B5c), and
+`TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b; `TUIkitBitmaps`, step B5c; `TUIkitTextInput`, step
+B7, which compiles the pickers, forms, search and numeric controls too until steps C5 to C8), and
 the `TUIkit` umbrella that `@_exported import`s the rest and declares nothing.
 That split buys layering, per-module test isolation and build time, and it is
 *ours*: a reader writing `import TUIkit` sees one API and should never have to

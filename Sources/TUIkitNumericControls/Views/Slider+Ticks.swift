@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension Slider {
     /// Creates a slider to select a value from a given range, which displays
     /// the provided labels — mirrors SwiftUI's

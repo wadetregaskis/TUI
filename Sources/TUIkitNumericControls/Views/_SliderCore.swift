@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Internal Core View
 
 /// StateStorage property indices for ``_SliderCore``. Lifted

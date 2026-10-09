@@ -117,7 +117,7 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// generic-metadata lookups in this unspecialised code: about 4% of a frame
     /// of the `scrolleager` scenario. An `Identifiable` element's `id` read
     /// directly is a witness call.
-    func elementID(of element: Data.Element) -> ID {
+    package func elementID(of element: Data.Element) -> ID {
         if let directID { return directID(element) }
         return element[keyPath: idKeyPath]
     }

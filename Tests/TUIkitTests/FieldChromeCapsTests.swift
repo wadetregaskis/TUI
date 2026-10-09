@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("A field's caps are what colorize spells, however the depth and report move")

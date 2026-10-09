@@ -879,6 +879,7 @@
   "TUIkitTextInput/Environment/FindNavigator.swift": "TUIkitTextInput",
   "TUIkitTextInput/Environment/TextContentTypeEnvironment.swift": "TUIkitTextInput",
   "TUIkitTextInput/Environment/TextCursorStyleEnvironment.swift": "TUIkitTextInput",
+  "TUIkitTextInput/Exports.swift": "TUIkitTextInput",
   "TUIkitTextInput/Focus/EditorLayout+Wrapping.swift": "TUIkitTextInput",
   "TUIkitTextInput/Focus/EditorLayout.swift": "TUIkitTextInput",
   "TUIkitTextInput/Focus/TextEditingCommand.swift": "TUIkitTextInput",

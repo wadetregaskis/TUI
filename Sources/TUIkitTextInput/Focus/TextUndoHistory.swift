@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// What a text control's undo puts back: the text as it was before each edit,
 /// and where the caret was then, newest last.

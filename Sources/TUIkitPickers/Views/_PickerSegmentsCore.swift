@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// `StateStorage` property indices for ``_PickerSegmentsCore``. Lifted out of
 /// the generic struct because Swift does not allow static stored properties in

@@ -30,6 +30,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 import TUIkitCore
 import TUIkitView

@@ -353,7 +353,7 @@ extension CursorTimer {
     /// same frame at the same instant: one layout, not two that can drift apart.
     ///
     /// `nonisolated`: it is arithmetic on constants and reads no timer.
-    nonisolated static func cycleLayout(
+    package nonisolated static func cycleLayout(
         of animation: TextCursorStyle.Animation, speed: IndicatorAnimationSpeed
     ) -> CycleLayout {
         switch animation {
@@ -375,9 +375,9 @@ extension CursorTimer {
 
     /// A cycle's frame count and the timing its frames step on. See
     /// ``cycleLayout(of:speed:)``.
-    struct CycleLayout: Equatable, Sendable {
-        let frameCount: Int
-        let timing: IndicatorCycleTiming
+    package struct CycleLayout: Equatable, Sendable {
+        package let frameCount: Int
+        package let timing: IndicatorCycleTiming
     }
 
     /// Whether the caret is visible at `frame` of a blink: the first of its two
@@ -388,7 +388,7 @@ extension CursorTimer {
     /// a live render would. Reading it does NOT mark the frame as having consulted
     /// the clock, which is what lets such a producer be replayed rather than
     /// re-rendered.
-    nonisolated static func blinkVisible(atFrame frame: Int) -> Bool {
+    package nonisolated static func blinkVisible(atFrame frame: Int) -> Bool {
         frame.isMultiple(of: 2)
     }
 
@@ -436,7 +436,7 @@ extension CursorTimer {
     /// (``Color/breathPhase(atFrame:of:)``). See
     /// ``blinkVisible(atFrame:)`` for why this is static and why reading it is not a
     /// volatile read.
-    nonisolated static func pulsePhase(atFrame frame: Int, of count: Int) -> Double {
+    package nonisolated static func pulsePhase(atFrame frame: Int, of count: Int) -> Double {
         Color.breathPhase(atFrame: frame, of: count)
     }
 }

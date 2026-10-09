@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension TextFieldHandler: TextInputFocusHandler {
     /// A field's Home and End go to the ends of its one line, so Ctrl-A and
     /// Ctrl-E give way here along with the rest. A vertical field's go to the

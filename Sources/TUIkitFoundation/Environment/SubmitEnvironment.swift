@@ -15,9 +15,9 @@ import TUIkitCore
 /// the same latitude every action closure in the framework relies on (Button,
 /// `TextField.onSubmit`, …). This lets `submitActions` be a concurrency-safe
 /// empty-array default.
-struct SubmitActionEntry: @unchecked Sendable {
-    let triggers: SubmitTriggers
-    let action: () -> Void
+package struct SubmitActionEntry: @unchecked Sendable {
+    package let triggers: SubmitTriggers
+    package let action: () -> Void
 }
 
 // MARK: - Environment keys
@@ -40,13 +40,13 @@ private struct SubmitTriggerRoleKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The cascading `.onSubmit(of:_:)` actions in scope (outer-first). Read by
     /// text fields to assemble their effective submit action.
-    var submitActions: [SubmitActionEntry] {
+    package var submitActions: [SubmitActionEntry] {
         get { self[SubmitActionsKey.self] }
         set { self[SubmitActionsKey.self] = newValue }
     }
 
     /// The submit trigger a field in this subtree represents (default ``SubmitTriggers/text``).
-    var submitTriggerRole: SubmitTriggers {
+    package var submitTriggerRole: SubmitTriggers {
         get { self[SubmitTriggerRoleKey.self] }
         set { self[SubmitTriggerRoleKey.self] = newValue }
     }

@@ -7,6 +7,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// Composes a search field above the searchable content. Pure composition — no
 /// `_*Core`, no overlay, no focus machinery (Box.swift is the reference model).
 struct SearchableModifier<Content: View>: View {

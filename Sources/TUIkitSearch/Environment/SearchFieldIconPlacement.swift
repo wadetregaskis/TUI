@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Search field icon placement
 
 /// Which side of a ``TUIkit/View/searchable(text:placement:prompt:)-(_,_,Text?)`` field its

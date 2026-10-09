@@ -194,12 +194,19 @@ public struct IndicatorAnimationSpeed: Hashable, Sendable, ExpressibleByFloatLit
 extension IndicatorAnimationSpeed {
     /// A continuous ramp's layout at a speed: how many frames it is sampled at, and how
     /// many ticks each is shown for.
-    struct RampLayout: Equatable, Sendable {
-        let frameCount: Int
+    package struct RampLayout: Equatable, Sendable {
+        package let frameCount: Int
 
         /// How many 1/60 s ticks each frame is shown for: a whole number of the ramp's
         /// lattice.
-        let frameTicks: Int
+        package let frameTicks: Int
+
+        /// The memberwise initializer, spelled out because the synthesized one is
+        /// internal and TUIkitTextInput's indeterminate progress bar makes these.
+        package init(frameCount: Int, frameTicks: Int) {
+            self.frameCount = frameCount
+            self.frameTicks = frameTicks
+        }
 
         /// The most frames a ramp's cycle is sampled at. A longer cycle keeps this
         /// many or fewer, each longer.
@@ -212,7 +219,7 @@ extension IndicatorAnimationSpeed {
         /// visibly 30 times a second. A glyph bar has at most four positions a cell
         /// (the `.gradient` motion's quarter-cell steps; a sweep has one), so a thousand
         /// frames still show every step of a bar up to 250 cells wide.
-        static let maximumFrameCount = 1000
+        package static let maximumFrameCount = 1000
     }
 
     /// How a continuous ramp (an indeterminate bar's pass, a breath) is laid out at
@@ -241,7 +248,7 @@ extension IndicatorAnimationSpeed {
     ///     zero.
     ///   - lattice: How many 1/60 s ticks a frame is, at least 1: 2 for an
     ///     indeterminate bar, 3 for a breath.
-    func rampLayout(standardCycle: TimeInterval, frameTicks lattice: Int) -> RampLayout {
+    package func rampLayout(standardCycle: TimeInterval, frameTicks lattice: Int) -> RampLayout {
         let lattice = max(1, lattice)
         let ticksPerSecond = Double(AnimationClock.ticksPerSecond)
         let cycleTicks = standardCycle * ticksPerSecond / rate

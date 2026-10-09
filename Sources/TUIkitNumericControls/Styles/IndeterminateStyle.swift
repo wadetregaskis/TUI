@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Indeterminate Style
 
 /// The visual style of an indeterminate progress animation.

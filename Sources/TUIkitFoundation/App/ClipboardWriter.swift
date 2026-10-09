@@ -10,7 +10,7 @@ import TUIkitCore
 // MARK: - What became of a copy
 
 /// What became of one copy.
-enum ClipboardWriteResult: Equatable, Sendable {
+package enum ClipboardWriteResult: Equatable, Sendable {
     /// On the user's clipboard: written by this machine's clipboard helper
     /// while the terminal is on this machine, or sent by OSC 52 to a terminal
     /// that writes it by default.

@@ -32,7 +32,7 @@ import TUIkitCore
 /// Deliberately NOT actor-isolated: it sits beside `ScrollAxis` on a
 /// `Focusable` handler, which the focus system owns and which is not isolated
 /// either. Every path that touches it is already on the main actor.
-final class MenuHighlight {
+package final class MenuHighlight {
     /// What a plain Up or Down does at the end of the list.
     enum Edge {
         /// Stop there. A pop-up `Menu`, a `.contextMenu` and a combo box's
@@ -74,7 +74,11 @@ final class MenuHighlight {
     /// menu looks (the pointer has chosen nothing yet, and a pre-selected row
     /// invites a mis-click) and how a combo box looks while the caret is still
     /// in the field.
-    private(set) var ordinal: Int?
+    package var ordinal: Int? { _ordinal }
+
+    /// ``ordinal``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _ordinal: Int?
 
     /// The ordinals that can be highlighted, in display order.
     private(set) var selectable: [Int] = []
@@ -107,7 +111,7 @@ final class MenuHighlight {
     ///
     /// The one place a wrap is right: the list is the entire interaction while
     /// it is up, so there is nothing else the keyboard could be jumped away to.
-    static func pickerDropDown() -> MenuHighlight {
+    package static func pickerDropDown() -> MenuHighlight {
         MenuHighlight(edge: .wrap, entry: .anyKey)
     }
 
@@ -118,7 +122,7 @@ final class MenuHighlight {
     /// everything else reaches the menu as soon as it is open, so Home, End and
     /// the Page keys do not depend on whether a row happens to be highlighted
     /// yet.
-    static func suggestions() -> MenuHighlight {
+    package static func suggestions() -> MenuHighlight {
         MenuHighlight(edge: .clamp, entry: .unshiftedOnly)
     }
 
@@ -129,12 +133,12 @@ final class MenuHighlight {
     func adopt(selectable: [Int]) {
         self.selectable = selectable
         guard let current = ordinal, !selectable.contains(current) else { return }
-        ordinal = selectable.first { $0 > current } ?? selectable.last
+        _ordinal = selectable.first { $0 > current } ?? selectable.last
     }
 
     /// Declares a dense list of `count` choosable rows — a `Picker`'s options or
     /// a field's completions, where every row can be picked.
-    func adopt(count: Int) {
+    package func adopt(count: Int) {
         adopt(selectable: Array(0..<max(0, count)))
     }
 
@@ -142,19 +146,19 @@ final class MenuHighlight {
 
     /// Puts the highlight on `ordinal` (or nowhere), and asks the next render to
     /// scroll it into view.
-    func move(to ordinal: Int?) {
-        self.ordinal = ordinal
+    package func move(to ordinal: Int?) {
+        _ordinal = ordinal
         followPending = ordinal != nil
     }
 
     /// Puts the highlight on `ordinal` WITHOUT asking for a scroll — for the
     /// pointer, which is already looking at the row it is over.
-    func point(at ordinal: Int?) {
-        self.ordinal = ordinal
+    package func point(at ordinal: Int?) {
+        _ordinal = ordinal
     }
 
     /// Reads and clears ``followPending``.
-    func consumeFollowPending() -> Bool {
+    package func consumeFollowPending() -> Bool {
         defer { followPending = false }
         return followPending
     }
@@ -171,7 +175,7 @@ final class MenuHighlight {
     ///   - pageSize: How far a Page key jumps — a visible page of the list.
     /// - Returns: Whether the highlight moved (or the key was one the menu
     ///   swallows regardless).
-    func handle(_ event: KeyEvent, multiplier: Int, pageSize: Int) -> Bool {
+    package func handle(_ event: KeyEvent, multiplier: Int, pageSize: Int) -> Bool {
         guard !selectable.isEmpty else { return false }
 
         guard let position = ordinal.flatMap(selectable.firstIndex(of:)) else {

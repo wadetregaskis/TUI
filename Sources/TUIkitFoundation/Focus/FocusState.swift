@@ -43,14 +43,14 @@ import TUIkitView
 /// `@usableFromInline`: the type of `EnvironmentValues.assignedFocusID`, which the
 /// `@inlinable` `FocusRegistration.register(context:handler:focusID:)` reads (module split step A3).
 @usableFromInline
-final class AssignedFocusID: @unchecked Sendable {
+package final class AssignedFocusID: @unchecked Sendable {
     /// The id `.focused(_:equals:)` forces on its target.
     let id: String
 
     /// Whose it is. `nil` until the first focusable renders below the modifier.
     private var claimant: ViewIdentity?
 
-    init(id: String) {
+    package init(id: String) {
         self.id = id
     }
 
@@ -89,7 +89,7 @@ extension EnvironmentValues {
     /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
     /// reaches it (module split step A3).
     @usableFromInline
-    var assignedFocusID: AssignedFocusID? {
+    package var assignedFocusID: AssignedFocusID? {
         get { self[AssignedFocusIDKey.self] }
         set { self[AssignedFocusIDKey.self] = newValue }
     }
@@ -107,7 +107,11 @@ public final class FocusStateStore<Value: Hashable> {
     /// Stable id derived from the owning view's render identity (set in
     /// ``FocusState/bindRenderIdentity(path:propertyIndex:)``). Empty until
     /// bound — a `@FocusState` never read or written before its view renders.
-    var storeID: String = ""
+    package var storeID: String { get { _storeID } set { _storeID = newValue } }
+
+    /// ``storeID``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _storeID = ""
 
     /// The value meaning "nothing focused".
     let emptyValue: Value
@@ -235,7 +239,7 @@ public struct FocusState<Value: Hashable>: RenderIdentityBindable {
     /// ```
     @propertyWrapper
     public struct Binding {
-        let store: FocusStateStore<Value>
+        package let store: FocusStateStore<Value>
 
         /// The focused value (same as the wrapper's `wrappedValue`).
         public var wrappedValue: Value {
@@ -329,7 +333,7 @@ extension FocusBindingRegistrar {
     /// below it: `.focused`, and `.searchFocused`, which binds the search
     /// field a `.searchable` draws.
     @MainActor
-    static func bind<Value: Hashable>(
+    package static func bind<Value: Hashable>(
         store: FocusStateStore<Value>, value: Value, focusID: String, context: RenderContext
     ) {
         guard !context.isMeasuring, let manager = context.environment.focusManager else { return }

@@ -18,6 +18,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 /// A mutable string backing a test `Binding`.
 private final class StringSink: @unchecked Sendable {

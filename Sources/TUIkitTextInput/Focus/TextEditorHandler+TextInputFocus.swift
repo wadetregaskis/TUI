@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension TextEditorHandler: TextInputFocusHandler {
     /// The editor's Home and End go to the ends of the document, so Ctrl-A and
     /// Ctrl-E are its only keys for the ends of a line, and they keep the key.

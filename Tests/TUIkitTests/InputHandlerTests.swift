@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 /// Tests for `InputHandler`'s five-layer key-dispatch priority chain.
 ///

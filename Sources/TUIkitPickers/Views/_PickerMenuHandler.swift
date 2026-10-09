@@ -9,6 +9,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// The focus and keyboard handler for a menu-style ``Picker``.
 ///

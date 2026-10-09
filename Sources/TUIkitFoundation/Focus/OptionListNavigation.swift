@@ -30,7 +30,7 @@ import TUIkitCore
 /// Controls without a scrolling viewport (a radio group) pass `pageSize == count`
 /// so Page collapses onto Home/End — the sensible reading of "page" when the
 /// whole list is always on screen.
-enum OptionListNavigation {
+package enum OptionListNavigation {
     /// The clamped destination index for a Home/End/Page/Shift-accelerated key
     /// over a `count`-item option list, or `nil` when `event` is none of those.
     ///
@@ -46,7 +46,7 @@ enum OptionListNavigation {
     ///   - multiplier: How many options a Shift-accelerated arrow jumps (≥ 1).
     ///   - pageSize: How many options PageUp/PageDown jump (≥ 1). Pass `count`
     ///     for a control with no viewport so Page == Home/End.
-    static func clampedDestination(
+    package static func clampedDestination(
         for event: KeyEvent,
         from index: Int,
         count: Int,

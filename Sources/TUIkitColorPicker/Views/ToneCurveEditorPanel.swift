@@ -7,6 +7,7 @@
 import TUIkitFoundation
 import TUIkitImage
 import TUIkitStyling
+import TUIkitTextInput
 
 // MARK: - Tone Curve Editor Panel
 

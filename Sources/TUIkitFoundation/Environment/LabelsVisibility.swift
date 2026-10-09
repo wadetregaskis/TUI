@@ -33,7 +33,7 @@ extension EnvironmentValues {
     /// same question and `.automatic` cannot come to mean different things in
     /// different controls. `.automatic` is SwiftUI's deferral to "the policies
     /// of the component", and every control here has the same policy: show it.
-    var controlLabelsAreHidden: Bool { labelsVisibility == .hidden }
+    package var controlLabelsAreHidden: Bool { labelsVisibility == .hidden }
 }
 
 extension View {

@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 extension GaugeStyle {
 
     /// Renders this style's body for `configuration` into a frame buffer. Opens

@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - GroupBox
 
 /// A stylized view, with an optional label, that visually collects a logical

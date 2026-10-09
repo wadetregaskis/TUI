@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNavigation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("A page under a wholly faded palette")

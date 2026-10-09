@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - The channel a field reads and writes
 
 /// A selection binding as a field uses it: offsets in the text, read and

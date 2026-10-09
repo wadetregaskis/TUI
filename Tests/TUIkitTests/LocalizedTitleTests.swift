@@ -25,6 +25,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNavigation
 @testable import TUIkitStrings
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("Localized titles")

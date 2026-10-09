@@ -333,16 +333,18 @@ Sources/
 │
 │   The framework's sources, one directory per module of the planned split
 │   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
-│   becomes a module of its own when it is carved out: TUIkitStrings and
-│   TUIkitTerminalHost are (step B2), TUIkitApp (step B3), TUIkitColorPicker
-│   (step B4), TUIkitNavigation (step B5, which compiles TUIkitPresentation's
-│   directory too until step C1), TUIkitLists (step B6, which compiles
-│   TUIkitTables', TUIkitTabs' and TUIkitGrid's too until steps C2 to C4),
-│   TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b), and TUIkitBitmaps
-│   (step B5c); the rest still compile into one module, TUIkitFoundation, which
-│   re-exports the first two. TUIkitApp, TUIkitColorPicker, TUIkitNavigation,
-│   TUIkitLists, TUIkitChrome, TUIkitEffects, TUIkitMenus and TUIkitBitmaps are
-│   built on TUIkitFoundation, and the umbrella re-exports all nine.
+│   became a module of its own when it was carved out of TUIkitFoundation:
+│   TUIkitStrings and TUIkitTerminalHost (step B2), which TUIkitFoundation
+│   re-exports, TUIkitApp (step B3), TUIkitColorPicker (step B4),
+│   TUIkitNavigation (step B5, which compiles TUIkitPresentation's directory too
+│   until step C1), TUIkitLists (step B6, which compiles TUIkitTables',
+│   TUIkitTabs' and TUIkitGrid's too until steps C2 to C4), TUIkitChrome,
+│   TUIkitEffects and TUIkitMenus (step B5b), TUIkitBitmaps (step B5c) and
+│   TUIkitTextInput (step B7, which compiles TUIkitPickers', TUIkitForms',
+│   TUIkitSearch's and TUIkitNumericControls' too until steps C5 to C8).
+│   TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists, TUIkitChrome,
+│   TUIkitEffects, TUIkitMenus, TUIkitBitmaps and TUIkitTextInput are built on
+│   TUIkitFoundation, and the umbrella re-exports all ten.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
 ├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
@@ -355,8 +357,10 @@ Sources/
 ├── TUIkitBitmaps/        Image from files and URLs, AsyncImage, the image options
 ├── TUIkitMenus/          Menu, ControlGroup, .contextMenu, menu styles
 ├── TUIkitNumericControls/ Slider, Stepper, Gauge, ProgressView
+│                         (compiled into TUIkitTextInput until step C7)
 ├── TUIkitTextInput/      TextField, SecureField, TextEditor
 ├── TUIkitPickers/        Picker, DatePicker, RadioButtonGroup
+│                         (compiled into TUIkitTextInput until step C8)
 ├── TUIkitLists/          List, OutlineGroup, list styles, row editing
 ├── TUIkitGrid/           Grid, LazyVGrid, LazyHGrid
 │                         (compiled into TUIkitLists until step C4)
@@ -364,7 +368,9 @@ Sources/
 ├── TUIkitPresentation/   alert, confirmationDialog, sheet, presentation modifiers
 │                         (compiled into TUIkitNavigation until step C1)
 ├── TUIkitForms/          Form, LabeledContent, GroupBox, Card, Panel
+│                         (compiled into TUIkitTextInput until step C6)
 ├── TUIkitSearch/         .searchable, search tokens and scopes
+│                         (compiled into TUIkitTextInput until step C5)
 ├── TUIkitTables/         Table, columns, rows, table styles
 │                         (compiled into TUIkitLists until step C2)
 ├── TUIkitTabs/           TabView, Tab, tab styles
@@ -406,7 +412,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and the colour editors), `TUIkitNavigation` (the navigation containers, and the presentations), `TUIkitLists` (lists, tables, tabs and grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options; none of the nine is a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and the colour editors), `TUIkitNavigation` (the navigation containers, and the presentations), `TUIkitLists` (lists, tables, tabs and grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors, pickers, forms, `.searchable` and the numeric controls; none of the ten is a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

@@ -49,7 +49,7 @@ public enum LineLimit: Sendable, Equatable {
 
     /// The cap as a row count, or `nil` for ``unlimited`` — the form the
     /// wrapping code wants.
-    var rowCount: Int? {
+    package var rowCount: Int? {
         switch self {
         case .unlimited: nil
         case .lines(let count, _): max(1, count)
@@ -59,7 +59,7 @@ public enum LineLimit: Sendable, Equatable {
 
     /// The number of lines that must be occupied however short the text is, or
     /// `nil` when it may shrink to fit.
-    var reservedLines: Int? {
+    package var reservedLines: Int? {
         switch self {
         case .lines(let count, true): max(1, count)
         case .range(let range): max(1, range.minimum)

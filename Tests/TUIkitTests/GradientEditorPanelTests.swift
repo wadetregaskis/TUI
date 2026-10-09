@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitColorPicker
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("GradientEditorPanel — stop mutations")

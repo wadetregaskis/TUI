@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 @testable import TUIkitView
 
 /// Coverage for ``Gauge``: value→bounds normalization, the label / current-value

@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - TextEditor
 
 /// A control for editing multi-line text, mirroring SwiftUI's `TextEditor`.

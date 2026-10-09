@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension TextFieldContentRenderer {
     /// What a vertical field shows: the rows its text — or, while the text is
     /// empty, its prompt — wraps into, the window of them it draws, and where

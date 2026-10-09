@@ -3,10 +3,10 @@
 
 TUIkit is split into library modules for layering, test isolation and build
 time (TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage; TUIkitFoundation,
-which compiles every module of the planned split not yet carved into a target
-of its own, and the ones carved so far: TUIkitStrings and TUIkitTerminalHost
-below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists, TUIkitChrome, TUIkitEffects, TUIkitMenus
-and TUIkitBitmaps above it; and the TUIkit umbrella that
+which compiled every module of the planned split until each was carved into a
+target of its own, and the ones carved out of it: TUIkitStrings and
+TUIkitTerminalHost below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists, TUIkitChrome,
+TUIkitEffects, TUIkitMenus, TUIkitBitmaps and TUIkitTextInput above it; and the TUIkit umbrella that
 `@_exported import`s them and declares nothing). That split is OUR business, not the
 reader's: `import TUIkit` is one API, so the documentation has to be one API
 reference.
@@ -53,8 +53,8 @@ import sys
 # carved out of TUIkitFoundation joins this set when it is carved.
 MODULES = {
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
-    "TUIkitMenus", "TUIkitNavigation", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore",
-    "TUIkitStyling", "TUIkitView", "TUIkitImage",
+    "TUIkitMenus", "TUIkitNavigation", "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost",
+    "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
 }
 UMBRELLA = "TUIkit"
 

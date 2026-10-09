@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Track Configuration
 
 /// A fully-configurable recipe for a "fill" track — the family of ``TrackStyle``

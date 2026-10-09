@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 /// One Dark's pair, as the carried-colour tests use: the terminal's colours once it
 /// has reported them.

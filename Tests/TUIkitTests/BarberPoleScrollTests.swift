@@ -12,6 +12,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 @Suite("barberPole scrolls its stripes")
 struct BarberPoleScrollTests {

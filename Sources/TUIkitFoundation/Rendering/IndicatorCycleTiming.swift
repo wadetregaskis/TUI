@@ -29,7 +29,7 @@ package struct IndicatorCycleTiming: Equatable, Sendable {
 
     /// One cursor tick a frame, on the focus-relative clock: a still cycle's timing,
     /// and a pulse's standard frame.
-    static let cursorTick = Self(frameTicks: AnimationClock.standardFrameTicks, clock: .cursor)
+    package static let cursorTick = Self(frameTicks: AnimationClock.standardFrameTicks, clock: .cursor)
 
     /// Which frame of a cycle laid out on this timing shows at `timer`'s last
     /// snapshot, or 0 without a timer.
@@ -40,7 +40,7 @@ package struct IndicatorCycleTiming: Equatable, Sendable {
     /// read: it does not mark the frame as having consulted the clock, so a producer
     /// that asks stays replayable.
     @MainActor
-    func step(on timer: CursorTimer?) -> Int {
+    package func step(on timer: CursorTimer?) -> Int {
         guard let timer else { return 0 }
         // Clamped rather than narrowed: `Int` is 32 bits on wasm32.
         return Int(
@@ -59,7 +59,7 @@ extension EnvironmentValues {
     ///
     /// Always `nil` in an app: nothing public sets it. A test sets one, to see which
     /// producer assumes a timing instead of carrying its cycle's.
-    var indicatorCycleTiming: IndicatorCycleTiming? {
+    package var indicatorCycleTiming: IndicatorCycleTiming? {
         get { self[IndicatorCycleTimingKey.self] }
         set { self[IndicatorCycleTimingKey.self] = newValue }
     }

@@ -15,12 +15,12 @@
 /// presentation publishes the closing verb once it is up — and they drifted:
 /// a `Picker` offered "open menu" and then "close drop-down menu", which reads
 /// as two different surfaces rather than one opening and shutting.
-struct MenuPresentationLabels {
+package struct MenuPresentationLabels {
     /// What Return does over the closed trigger.
-    let open: String
+    package let open: String
 
     /// What Escape does while the menu is up.
-    let close: String
+    package let close: String
 
     /// Composes the pair from the localized verb and the localized noun.
     ///
@@ -49,7 +49,7 @@ struct MenuPresentationLabels {
     // dictionary hit under a lock already taken for every other label.
 
     /// A `Picker`'s list of options, which drops out of the collapsed control.
-    static var dropDown: Self { Self(noun: .menuDropDown) }
+    package static var dropDown: Self { Self(noun: .menuDropDown) }
 
     /// A `Menu`'s pop-up, which is a menu and nothing more specific.
     static var popUp: Self { Self(noun: .menuPopUp) }

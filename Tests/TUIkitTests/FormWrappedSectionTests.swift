@@ -20,6 +20,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 @testable import TUIkitView
 
 /// Records the identity path it renders under.

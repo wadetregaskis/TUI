@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("A faded style-cascade colour, in the controls that read it")

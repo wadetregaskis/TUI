@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Suggestion Entries
 
 /// A single entry contributed to a text field's input-suggestions menu.

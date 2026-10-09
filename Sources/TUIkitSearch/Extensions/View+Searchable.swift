@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 extension View {
     /// Marks this view as searchable, presenting a search field bound to `text`.
     ///

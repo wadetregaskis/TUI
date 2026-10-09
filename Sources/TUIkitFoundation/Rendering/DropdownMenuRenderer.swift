@@ -83,7 +83,7 @@ package enum DropdownMenu {
     /// Collapses runs of adjacent dividers and drops leading/trailing ones,
     /// so conditional groups (e.g. a "recents" section that is sometimes
     /// empty) never leave a stray rule at the menu's edge.
-    static func normalizedEntries<Entry>(
+    package static func normalizedEntries<Entry>(
         _ entries: [Entry], isDivider: (Entry) -> Bool
     ) -> [Entry] {
         var result: [Entry] = []
@@ -837,7 +837,7 @@ package enum DropdownMenu {
     /// is padded so the "exactly `width`" promise holds (otherwise the row's
     /// scrollbar cell and right border shift a column left; same pattern as
     /// `_ListCore`'s row clipping).
-    static func fit(_ text: String, to width: Int) -> String {
+    package static func fit(_ text: String, to width: Int) -> String {
         // One measure, and it is bounded. This asked three times: a full
         // `strippedLength` to decide, the clip's own (which it then threw
         // away), and `padToVisibleWidth`'s. The clip cannot come back wider

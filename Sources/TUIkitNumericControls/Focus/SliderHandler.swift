@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A focus handler for slider components.
 ///
 /// `SliderHandler` manages value changes and keyboard input for `Slider`.

@@ -111,13 +111,14 @@ def unit_freshness(files, source_mtime, unit_mtime, newest):
     mtime, its index unit's mtime (absent: no unit) and the newest unit the store holds for the map's modules.
 
     STALE: the source is newer than its unit, or it has none and is newer than the last build. Rebuild, then check.
-    UNCOMPILED: it has no unit although the last build wrote one after the source was written. That build compiled
-    other files once this one existed and did not compile it, so no target does: Package.swift leaves it out. Until a
-    module is carved, TUIkitFoundation's `directories:` names its directory, so a new module directory is compiled only
-    once named there (and until step B2 TUIkitStrings was listed below its directory, file by file, because its
-    resources may not sit under a source path; its own target now takes every file in it). SwiftPM reports such a file as
-    unhandled, but only as a warning, which does not fail CI: this finding does. (A build that failed before reaching
-    a file also leaves it without a unit: build again, and the finding goes.)"""
+    UNCOMPILED: it has no unit although the last build wrote one after the source was written. That build compiled other
+    files once this one existed and did not compile it, so no target does: Package.swift leaves it out. A coarse group's
+    `directories:` names its members' directories, as TUIkitFoundation's `sources:` named every module directory it
+    compiled from step A5 to step B7, so a new member's directory is compiled only once named there (and until step B2
+    TUIkitStrings was listed below its directory, file by file, because its resources may not sit under a source path;
+    its own target now takes every file in it). SwiftPM reports such a file as unhandled, but only as a warning, which
+    does not fail CI: this finding does. (A build that failed before reaching a file also leaves it without a unit:
+    build again, and the finding goes.)"""
     stale, uncompiled = [], []
     for f in files:
         s, t = source_mtime[f], unit_mtime.get(f)

@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Environment Key
 
 /// Environment key for whether a ``Slider`` draws its trailing value read-out.

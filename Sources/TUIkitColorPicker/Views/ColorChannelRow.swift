@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitFoundation
+import TUIkitTextInput
 
 // MARK: - One channel's row
 

@@ -17,13 +17,17 @@ import Foundation
 /// history drops past its limit can leave the manager on its own
 /// (`removeAllActions(withTarget:)`), which a manager offers no other way to
 /// do.
-final class TextUndoMark: Sendable {}
+package final class TextUndoMark: Sendable {
+    /// No arguments, spelled out because the implicit initializer is internal
+    /// and TUIkitTextInput's undo histories make these.
+    package init() {}
+}
 
 // MARK: - The app's undo manager
 
 /// A text control that can take one step of its own history back or forward
 /// — the half of undo the app's undo manager calls into.
-protocol AppUndoableText: AnyObject {
+package protocol AppUndoableText: AnyObject {
     /// Takes the step `mark` back, if it is the newest of the control's
     /// history (any newest step for `nil`); `false` when it did nothing.
     func undoOwnStep(mark: TextUndoMark?) -> Bool
@@ -62,10 +66,10 @@ protocol AppUndoableText: AnyObject {
 ///
 /// The undo manager is isolated to the main actor and the controls are not,
 /// though they only ever run there.
-enum TextUndoBridge {
+package enum TextUndoBridge {
     /// Registers the step the control just recorded, against `mark`: undone,
     /// it takes the control one state back and registers its redo.
-    static func registerEdit(of control: some AppUndoableText, mark: TextUndoMark, on manager: UndoManager) {
+    package static func registerEdit(of control: some AppUndoableText, mark: TextUndoMark, on manager: UndoManager) {
         // The control is only ever touched on the main actor, where this runs;
         // the compiler cannot know that of a type that is not isolated.
         nonisolated(unsafe) let control = control
@@ -102,7 +106,7 @@ enum TextUndoBridge {
     /// the frame: the status bar went on offering the steps. A control going
     /// away does not come here: its deinitialiser promises no isolation at
     /// all, and leaves its steps to ``DepartedUndoSteps``.
-    static func forget(_ marks: [TextUndoMark], on manager: UndoManager) {
+    package static func forget(_ marks: [TextUndoMark], on manager: UndoManager) {
         guard !marks.isEmpty else { return }
         MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
     }
@@ -139,7 +143,7 @@ package final class DepartedUndoSteps: @unchecked Sendable {
 
     /// Leaves `marks`, a control's that is going away, to be taken out of
     /// `manager` at the start of the next frame. Callable from anywhere.
-    func add(_ marks: [TextUndoMark], from manager: UndoManager) {
+    package func add(_ marks: [TextUndoMark], from manager: UndoManager) {
         guard !marks.isEmpty else { return }
         lock.lock()
         pending.append((marks, manager))

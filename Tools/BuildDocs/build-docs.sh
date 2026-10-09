@@ -167,11 +167,14 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # `tabview` and `grid` TUIkitLists' (step B6: one from each of its four
 # directories, until steps C2 to C4), `statusbar` TUIkitChrome's,
 # `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step B5b),
-# `asyncimage` TUIkitBitmaps' (step B5c), the rest the lower modules'.
+# `asyncimage` TUIkitBitmaps' (step B5c), `textfield`, `picker`, `form`,
+# `searchfieldplacement` and `slider` TUIkitTextInput's (step B7: one from each
+# of its five directories, until steps C5 to C8), the rest the lower modules'.
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text \
     localizationservice terminalclient windowgroup colorpicker navigationstack alert \
-    list table tabview grid statusbar anytransition menu asyncimage; do
+    list table tabview grid statusbar anytransition menu asyncimage \
+    textfield picker form searchfieldplacement slider; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then

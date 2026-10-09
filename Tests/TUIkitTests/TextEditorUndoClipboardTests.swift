@@ -14,6 +14,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 /// The string an editor is bound to.
 private final class TextBox: @unchecked Sendable {

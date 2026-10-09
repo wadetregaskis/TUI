@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension _TextFieldCore {
     /// The rows a vertical field occupies: as many as its text wraps into, held
     /// between the line limit's floor and cap, and within `available`.

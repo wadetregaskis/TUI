@@ -72,17 +72,17 @@ extension View {
 /// this frame — whose token is therefore not recorded — has its picture freed
 /// at the end of the pass, which is the right answer for a view that stopped
 /// being a ramp.
-struct GradientGraphicsContext {
-    let store: TerminalImageStore
-    let token: String
-    let cellPixels: TerminalCellPixels
+package struct GradientGraphicsContext {
+    package let store: TerminalImageStore
+    package let token: String
+    package let cellPixels: TerminalCellPixels
     /// How many pictures the owner holds under this token — one, or a cycle
     /// of them for a moving ramp.
-    let frames: Int
+    package let frames: Int
 
     /// The store token for frame `index` of a cycle; the token itself for a
     /// single picture.
-    func token(forFrame index: Int) -> String {
+    package func token(forFrame index: Int) -> String {
         Self.token(token, forFrame: index, of: frames)
     }
 
@@ -92,7 +92,7 @@ struct GradientGraphicsContext {
     /// For an owner giving back pictures a context no longer describes: the
     /// spelling depends on the count, so a token has to be spelled with the count
     /// it was put in the store under, not the count the owner has now.
-    static func token(_ token: String, forFrame index: Int, of frames: Int) -> String {
+    package static func token(_ token: String, forFrame index: Int, of frames: Int) -> String {
         frames == 1 ? token : "\(token)/\(index)"
     }
 }
@@ -112,7 +112,7 @@ extension RenderContext {
     /// away at the guard. That was 3.8 µs a bar, 750 µs of a frame of 200
     /// progress bars. It is spelled once, after the guard, and only for a
     /// picture that will be kept.
-    func gradientGraphics(token: @autoclosure () -> String, frames: Int = 1) -> GradientGraphicsContext? {
+    package func gradientGraphics(token: @autoclosure () -> String, frames: Int = 1) -> GradientGraphicsContext? {
         guard KittyGraphics.isSupported, !isMeasuring,
             environment.terminalGraphics, environment.gradientGraphics,
             let store = environment.terminalImageStore

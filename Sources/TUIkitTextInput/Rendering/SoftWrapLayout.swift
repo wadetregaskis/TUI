@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The rows an editable text soft-wraps into at a width, in terminal cells, and
 /// the two-way mapping between a character offset — a caret, an end of a
 /// selection — and a row and a column.

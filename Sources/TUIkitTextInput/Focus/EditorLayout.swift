@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A ``TextEditor``'s document laid out: split into lines once for each text
 /// the binding holds, rather than once per use.
 ///

@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - SliderTick
 
 /// A representation of a tick in a slider, with associated value and optional

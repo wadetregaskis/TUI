@@ -476,7 +476,7 @@ package struct ScrollbarColors {
     ///   had no answer to the pointer at all — so the cell under it lifts, the
     ///   way every other control's foreground does (``Palette/hoveredForeground(_:)``).
     @MainActor
-    static func focusIndicating(
+    package static func focusIndicating(
         isFocused: Bool, hoveredCell: Int? = nil, context: RenderContext
     ) -> Self {
         let palette = context.environment.palette
@@ -701,7 +701,7 @@ package struct ScrollbarColors {
     /// REPLACE the drawn cells from the first tick, so anything the draw
     /// answered the pointer with has to be in them too.
     @MainActor
-    static func focusPulse(
+    package static func focusPulse(
         isFocused: Bool, hoveredCell: Int?, context: RenderContext
     ) -> ScrollbarPulse? {
         guard context.environment.isScrollEnabled, isFocused else { return nil }
@@ -721,7 +721,7 @@ package struct ScrollbarColors {
 /// have, these need too. Kept apart, the pointer's lift was left out of the
 /// runs and the first tick painted it away — see §9 of
 /// `Documentation/Animating your own view efficiently.md`.
-struct ScrollbarPulse {
+package struct ScrollbarPulse {
     /// The emphasis cycle, whose points become the frames.
     let cycle: SelectionEmphasisCycle
 
@@ -930,7 +930,7 @@ package enum ScrollbarRenderer {
     /// Offsets are relative to the bar's own column, row 0 — the caller knows
     /// where the bar sits and shifts them.
     @MainActor
-    static func verticalScrollbarRuns(
+    package static func verticalScrollbarRuns(
         height: Int, extent: Int, viewport: Int, offset: Int,
         arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse
     ) -> [AnimatedCellRun] {

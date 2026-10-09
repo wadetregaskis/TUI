@@ -687,7 +687,7 @@ extension TextStyle {
     ///
     /// - Parameter palette: The palette to resolve semantic colors against.
     /// - Returns: A copy with all colors resolved to concrete values.
-    func resolved(with palette: any Palette) -> TextStyle {
+    package func resolved(with palette: any Palette) -> TextStyle {
         var copy = self
         copy.foregroundColor = foregroundColor?.resolve(with: palette)
         copy.backgroundColor = backgroundColor?.resolve(with: palette)

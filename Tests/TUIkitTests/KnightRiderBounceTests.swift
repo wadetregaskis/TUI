@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 /// Reported by the owner: the lead should bounce between the ends at a uniform speed,
 /// with a tail that FOLLOWS it — so when it bounces back it runs over its fading tail,

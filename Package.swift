@@ -4,15 +4,16 @@ import CompilerPluginSupport
 import PackageDescription
 
 // ── Sources' directories ────────────────────────────────────────────────────────────────────────────────
-// Every directory under Sources, once. A target that compiles more than one of them (TUIkitFoundation, and each
-// coarse group of the module split) takes `path: "Sources"`, so it sees every file under Sources, and SwiftPM
-// reports each one it neither compiles nor excludes as unhandled ("found N file(s) which are unhandled", a warning,
-// which CI does not fail on). Such a target is declared with `directories:` (below), which excludes every directory
-// of this list it does not name. So a new directory under Sources goes in this list, beside the target that compiles
-// it (one of its own, or a `directories:` list), and no other target's list changes. A directory left out of this
-// list is reported as unhandled by each such target. One in it that no target compiles is excluded by every one of
-// them, and SwiftPM says nothing: for a module directory of the split's map (Tools/ModuleMap/rules.json),
-// ModuleMap's `uncompiled` check, which gates CI, then fails on its files; for any other directory, nothing does.
+// Every directory under Sources, once. A target that compiles more than one of them (each coarse group of the module
+// split; TUIkitFoundation too, until step B7 carved the last group out of it) takes `path: "Sources"`, so it sees
+// every file under Sources, and SwiftPM reports each one it neither compiles nor excludes as unhandled ("found N
+// file(s) which are unhandled", a warning, which CI does not fail on). Such a target is declared with `directories:`
+// (below), which excludes every directory of this list it does not name. So a new directory under Sources goes in
+// this list, beside the target that compiles it (one of its own, or a `directories:` list), and no other target's
+// list changes. A directory left out of this list is reported as unhandled by each such target. One in it that no
+// target compiles is excluded by every one of them, and SwiftPM says nothing: for a module directory of the split's
+// map (Tools/ModuleMap/rules.json), ModuleMap's `uncompiled` check, which gates CI, then fails on its files; for any
+// other directory, nothing does.
 let sourcesDirectories = [
     "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit", "TUIkitBitmaps",
     "TUIkitChrome", "TUIkitColorPicker", "TUIkitCore", "TUIkitEffects", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid",
@@ -189,16 +190,17 @@ let package = Package(
 
         // Step B4's leaf, built on TUIkitFoundation as TUIkitApp is: `ColorPicker`, its panel and swatches, and the
         // gradient, tone-curve and channel-curve editors. The plan's map builds it on NumericControls, TextInput,
-        // Pickers, Tabs and Presentation. TUIkitFoundation still compiles the first three; Presentation compiles into
-        // TUIkitNavigation since step B5, whose `Dialog` and `.modal` its panels are made of, and Tabs into
-        // TUIkitLists since step B6 (both below), whose `TabView` and `Tab` its panel is laid out with. Each other
-        // edge appears when its module is carved. Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward
-        // check), so the umbrella re-exports it. TUIkitImage is named for itself: the curve editors import it, its
-        // `ASCIIToneCurve` is in their public initializers, and TUIkitFoundation, which re-exported it until step
-        // B5c, does not depend on it since. The module re-exports all four (Sources/TUIkitColorPicker/Exports.swift).
+        // Pickers, Tabs and Presentation. Presentation compiles into TUIkitNavigation since step B5, whose `Dialog`
+        // and `.modal` its panels are made of; Tabs into TUIkitLists since step B6, whose `TabView` and `Tab` its
+        // panel is laid out with; and NumericControls, TextInput and Pickers into TUIkitTextInput since step B7
+        // (all three below), whose `Slider`s, hex `TextField` and `RadioButtonGroup`s its editors are made of.
+        // Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it.
+        // TUIkitImage is named for itself: the curve editors import it, its `ASCIIToneCurve` is in their public
+        // initializers, and TUIkitFoundation, which re-exported it until step B5c, does not depend on it since. The
+        // module re-exports all five (Sources/TUIkitColorPicker/Exports.swift).
         .target(
             name: "TUIkitColorPicker",
-            dependencies: ["TUIkitFoundation", "TUIkitImage", "TUIkitLists", "TUIkitNavigation"],
+            dependencies: ["TUIkitFoundation", "TUIkitImage", "TUIkitLists", "TUIkitNavigation", "TUIkitTextInput"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -207,14 +209,14 @@ let package = Package(
         // `NavigationPath`, `NavigationLink`, the split views and the inspector; Sources/TUIkitPresentation holds
         // `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover` and `modal`, and the presentation
         // modifiers. Step C1 peels TUIkitPresentation into a target of its own; until then its files compile into
-        // this module. So the target names its two directories in `directories:`, as TUIkitFoundation does its
-        // own, which excludes every other directory under Sources (`sourcesDirectories`, at the top of this
-        // file). It depends on TUIkitChrome too since step B5b (below), the map's edge from Presentation:
-        // a presentation draws its notifications with Chrome's `notificationHost(width:)`, and a modal docks
-        // its presenter's focus through Chrome's presentation dock. Nothing in TUIkitFoundation may use it
-        // (Tools/ModuleMap's upward check, which still checks the two directories as the two modules the map
-        // plans), so the umbrella re-exports it, and so does TUIkitColorPicker. It re-exports TUIkitFoundation
-        // and TUIkitChrome (Sources/TUIkitNavigation/Exports.swift).
+        // this module. So the target names its two directories in `directories:`, which excludes every other
+        // directory under Sources (`sourcesDirectories`, at the top of this file). It depends on TUIkitChrome too
+        // since step B5b (below), the map's edge from Presentation: a presentation draws its notifications with
+        // Chrome's `notificationHost(width:)`, and a modal docks its presenter's focus through Chrome's presentation
+        // dock. Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward check, which still checks the two
+        // directories as the two modules the map plans), so the umbrella re-exports it, and so does
+        // TUIkitColorPicker. It re-exports TUIkitFoundation and TUIkitChrome
+        // (Sources/TUIkitNavigation/Exports.swift).
         .target(
             name: "TUIkitNavigation",
             dependencies: ["TUIkitChrome", "TUIkitFoundation"],
@@ -237,6 +239,29 @@ let package = Package(
             name: "TUIkitLists",
             dependencies: ["TUIkitFoundation"],
             directories: ["TUIkitLists", "TUIkitTables", "TUIkitTabs", "TUIkitGrid"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // Step B7's leaf, built on TUIkitFoundation as the four above are, and the plan's third coarse group: one
+        // target that compiles five planned modules' directories, named after the one the peels leave. Sources/
+        // TUIkitTextInput holds `TextField`, `SecureField` and `TextEditor`, their handlers, renderer, mouse
+        // handling, editing commands, undo and suggestions; Sources/TUIkitPickers `Picker`, `RadioButtonGroup`,
+        // `DatePicker` and their styles; Sources/TUIkitForms `Form`, `LabeledContent`, `GroupBox`, `Card`, `Panel`
+        // and their styles; Sources/TUIkitSearch `.searchable`, the search tokens, scopes and placements, and
+        // `dismissSearch`; Sources/TUIkitNumericControls `Slider`, `Stepper`, `Gauge`, `ProgressView`, the track
+        // and indeterminate renderers they share, and their styles. Steps C5 to C8 peel Search, Forms,
+        // NumericControls and Pickers into targets of their own; until then their files compile into this module.
+        // The map's edges from Search to TextInput and Pickers stay inside the target, so of the map's modules it
+        // depends on TUIkitFoundation alone. Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward
+        // check, which still checks the five directories as the five modules the map plans), so the umbrella
+        // re-exports it, and so does TUIkitColorPicker. It re-exports TUIkitFoundation
+        // (Sources/TUIkitTextInput/Exports.swift).
+        .target(
+            name: "TUIkitTextInput",
+            dependencies: ["TUIkitFoundation"],
+            directories: [
+                "TUIkitTextInput", "TUIkitPickers", "TUIkitForms", "TUIkitSearch", "TUIkitNumericControls",
+            ],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -296,8 +321,8 @@ let package = Package(
 
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
-        // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation),
-        // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import
+        // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation,
+        // TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import
         // TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names TUIkitImage
         // itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the TUIkit.docc
         // catalog. Nothing in the package depends on it but the apps and the tests.
@@ -305,20 +330,18 @@ let package = Package(
             name: "TUIkit",
             dependencies: [
                 "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
-                "TUIkitMenus", "TUIkitNavigation", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage",
-                "TUIkitView",
+                "TUIkitMenus", "TUIkitNavigation", "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling",
+                "TUIkitImage", "TUIkitView",
             ]
         ),
 
-        // One target, many directories. The module split (Documentation/Historical/Module split plan,
-        // revision 4) puts each planned module's files in Sources/<module>, where the module will live
-        // once a step of Phase B carves it into a target of its own; until then this one target compiles
-        // them all, as the module TUIkitFoundation (step B1). A carve adds `.target(name: "TUIkitX", …)`
-        // at its default path and takes "TUIkitX" out of `directories:` below (as TUIkitApp, step B3,
-        // TUIkitChrome, TUIkitEffects and TUIkitMenus, step B5b, and TUIkitBitmaps, step B5c); a coarse group's
-        // carve adds one target over its modules' directories (`directories:`, as TUIkitNavigation, step B5, and
-        // TUIkitLists, step B6) and takes each of them out. When the last module has left, this target is
-        // an ordinary one at Sources/TUIkitFoundation.
+        // The substrate. The module split (Documentation/Historical/Module split plan, revision 4) put each
+        // planned module's files in Sources/<module>, and from step B1 this one target compiled them all, as the
+        // module TUIkitFoundation, until a step of Phase B carved each into a target of its own: TUIkitApp (step
+        // B3), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b) and TUIkitBitmaps (step B5c) at their
+        // default paths, and the coarse groups TUIkitNavigation (step B5), TUIkitLists (step B6) and
+        // TUIkitTextInput (step B7) over their modules' directories (`directories:`). B7 took the last of them
+        // out, so this is an ordinary target at its default path, Sources/TUIkitFoundation.
         // Tools/ModuleMap checks the map: a file's directory is its module. It depends on neither TUIkitImage nor
         // CSTBImage since step B5c took the bitmap path out (the plan's B5c row): its `lower` list in rules.json
         // names TUIkitCore, TUIkitStyling and TUIkitView, and the `lower` check fails CI on a use of any other.
@@ -326,14 +349,6 @@ let package = Package(
             name: "TUIkitFoundation",
             dependencies: [
                 "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitStrings", "TUIkitTerminalHost",
-            ],
-            // The planned modules not yet carved, in rules.json's order; every other directory under Sources
-            // is excluded (`sourcesDirectories`, at the top of this file), so a module directory left out
-            // here, and compiled by no other target, draws no SwiftPM warning: Tools/ModuleMap's `uncompiled`
-            // check, which gates CI, fails on a file of a module's directory that the build did not compile.
-            directories: [
-                "TUIkitFoundation", "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitForms",
-                "TUIkitSearch",
             ],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
@@ -389,13 +404,14 @@ let package = Package(
         // TUIkitFoundation where it reaches the framework's internals, or the
         // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
         // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists,
-        // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps).
+        // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
+        // TUIkitTextInput).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
                 "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
                 "TUIkitFoundation", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitStrings",
-                "TUIkitTerminalHost", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
+                "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so

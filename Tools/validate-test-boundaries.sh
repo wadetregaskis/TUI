@@ -29,14 +29,14 @@ cd "$(dirname "$0")/.."
 # `Color: View` moved into the module that owns `View` (see the comment on that
 # target), so a TUIkitView test may name a `Color`. TUIkitWidthCorpus is data
 # with no dependencies (the width corpus), so any layer's tests may read it.
-# TUIkitFoundation (the modules of the split not yet carved out, under the
-# TUIkit umbrella) has no row: it has no test target of its own, and its tests
-# are TUIkitTests', which this script leaves unrestricted. Nor have the modules
-# carved out of it so far, TUIkitStrings and TUIkitTerminalHost (step B2),
-# TUIkitApp (step B3), TUIkitColorPicker (step B4), TUIkitNavigation (step B5),
-# TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step
-# B5b), and TUIkitBitmaps (step B5c): their tests stayed in TUIkitTests, which
-# `@testable import`s them. A module that gets a test target of its own gets a
+# TUIkitFoundation (the substrate, under the TUIkit umbrella) has no row: it
+# has no test target of its own, and its tests are TUIkitTests', which this
+# script leaves unrestricted. Nor have the modules carved out of it,
+# TUIkitStrings and TUIkitTerminalHost (step B2), TUIkitApp (step B3),
+# TUIkitColorPicker (step B4), TUIkitNavigation (step B5), TUIkitLists (step
+# B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b), TUIkitBitmaps
+# (step B5c) and TUIkitTextInput (step B7): their tests stayed in TUIkitTests,
+# which `@testable import`s them. A module that gets a test target of its own gets a
 # row here, and joins the loop below.
 allowed_for() {
     case "$1" in

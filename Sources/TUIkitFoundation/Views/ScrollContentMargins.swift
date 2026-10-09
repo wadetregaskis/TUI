@@ -49,7 +49,7 @@ public struct ContentMarginPlacement: Hashable, Sendable {
 /// the edges it names. And per placement because the specific placement wins
 /// over `.automatic` wherever either is written (measured both ways round), so
 /// the two have to be kept apart until they are resolved.
-struct ContentMargins: Equatable, Sendable {
+package struct ContentMargins: Equatable, Sendable {
     /// One placement's stated edges; `nil` where nothing was stated.
     struct Edges: Equatable, Sendable {
         var top: Int?
@@ -74,9 +74,14 @@ struct ContentMargins: Equatable, Sendable {
     var scrollContent = Edges()
     var scrollIndicators = Edges()
 
+    /// No margins stated, spelled out because the implicit initializer is
+    /// internal and TUIkitTextInput makes these: a `Form` hands its rows a
+    /// clean slate once it has applied its own.
+    package init() {}
+
     /// Whether nothing was stated — the case every scroll view without margins
     /// is in, and tests first.
-    var isEmpty: Bool { automatic.isEmpty && scrollContent.isEmpty && scrollIndicators.isEmpty }
+    package var isEmpty: Bool { automatic.isEmpty && scrollContent.isEmpty && scrollIndicators.isEmpty }
 
     /// Records a `contentMargins` call: `edges` of `insets`, for `placement`.
     mutating func state(_ edges: Edge.Set, _ insets: EdgeInsets, for placement: ContentMarginPlacement) {
@@ -89,7 +94,7 @@ struct ContentMargins: Equatable, Sendable {
 
     /// The margins around a scroll view's content: each edge's `.scrollContent`
     /// value, else its `.automatic` one, else none. Never negative.
-    var content: EdgeInsets { resolved(scrollContent) }
+    package var content: EdgeInsets { resolved(scrollContent) }
 
     /// The margins around a scroll view's indicators, resolved the same way
     /// from `.scrollIndicators` and `.automatic`.
@@ -113,7 +118,7 @@ extension EnvironmentValues {
     ///
     /// A scroll view consumes them: its content does not inherit them, so a
     /// scroll view nested in its content has none (measured on SwiftUI).
-    var contentMargins: ContentMargins {
+    package var contentMargins: ContentMargins {
         get { self[ContentMarginsKey.self] }
         set { self[ContentMarginsKey.self] = newValue }
     }
@@ -121,7 +126,7 @@ extension EnvironmentValues {
 
 extension EdgeInsets {
     /// Whether every edge is zero — the margins that change nothing.
-    var isZero: Bool { top == 0 && leading == 0 && bottom == 0 && trailing == 0 }
+    package var isZero: Bool { top == 0 && leading == 0 && bottom == 0 && trailing == 0 }
 }
 
 // MARK: - Modifiers

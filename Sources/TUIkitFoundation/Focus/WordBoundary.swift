@@ -23,7 +23,7 @@
 /// selection's double-click selects a word by the same rule
 /// (`ScreenSelection.wordBounds(at:in:clip:)`), and TUIkitFoundation cannot
 /// see a module built on it (the module split plan's K5).
-enum WordBoundary {
+package enum WordBoundary {
 
     /// Whether `character` is part of a word — letters, digits and underscore.
     /// Everything else separates words.
@@ -36,7 +36,7 @@ enum WordBoundary {
     ///
     /// From the start of a word this lands on the start of the PREVIOUS word,
     /// which is what makes repeated Option-Left walk backwards a word at a time.
-    static func previous(in characters: [Character], from index: Int) -> Int {
+    package static func previous(in characters: [Character], from index: Int) -> Int {
         var position = min(index, characters.count)
         while position > 0, !isWordCharacter(characters[position - 1]) { position -= 1 }
         while position > 0, isWordCharacter(characters[position - 1]) { position -= 1 }
@@ -45,7 +45,7 @@ enum WordBoundary {
 
     /// The index of the end of the word at or after `index`: skip any separator
     /// run, then the word run.
-    static func next(in characters: [Character], from index: Int) -> Int {
+    package static func next(in characters: [Character], from index: Int) -> Int {
         var position = max(0, index)
         while position < characters.count, !isWordCharacter(characters[position]) {
             position += 1

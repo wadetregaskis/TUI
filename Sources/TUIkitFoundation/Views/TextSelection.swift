@@ -64,7 +64,7 @@ public struct TextSelection: Sendable, Hashable {
 
     /// The direction the caret leans, from the field's
     /// ``EnvironmentValues/textSelectionAffinity``.
-    public internal(set) var affinity: TextSelectionAffinity = .automatic
+    public package(set) var affinity: TextSelectionAffinity = .automatic
 
     /// Creates a selection that is an insertion point.
     ///
@@ -97,7 +97,7 @@ public struct TextSelection: Sendable, Hashable {
 
     /// The one range a TUIkit field selects: the range, or a multiple
     /// selection's first.
-    var firstRange: Range<String.Index>? {
+    package var firstRange: Range<String.Index>? {
         switch indices {
         case .selection(let range): range
         case .multiSelection(let ranges): ranges.ranges.first

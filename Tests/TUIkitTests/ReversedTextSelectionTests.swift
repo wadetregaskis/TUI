@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("A text selection and a caret whose colours the terminal decides")

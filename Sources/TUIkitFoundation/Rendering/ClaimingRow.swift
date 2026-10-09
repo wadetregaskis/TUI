@@ -123,7 +123,7 @@ package struct ClaimingRow: Sendable {
     /// into through `appendCoalescing` — one row, equal alphas, each adjacent to the
     /// last — and it meets the claim before it by the same rule they did.
     @inlinable
-    mutating func appendCells(cycling glyphs: [Character], count: Int, ink: Color?, field: Color? = nil) {
+    package mutating func appendCells(cycling glyphs: [Character], count: Int, ink: Color?, field: Color? = nil) {
         guard count > 0, !glyphs.isEmpty else { return }
         // The very call `append` makes for one cell, once per glyph that is drawn.
         let spelled = glyphs.prefix(count).map { glyph in
@@ -185,7 +185,7 @@ package struct ClaimingRow: Sendable {
     /// For a row put together from pieces of rows drawn differently — a
     /// slider's track filled from its neutral value, its disabled ends.
     @inlinable
-    func slice(_ range: Range<Int>) -> Self {
+    package func slice(_ range: Range<Int>) -> Self {
         let lower = max(0, min(cells, range.lowerBound))
         let upper = max(lower, min(cells, range.upperBound))
         var piece = Self()

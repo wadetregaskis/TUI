@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// What a ``ProgressView`` holds besides its fraction, in one byte.
 struct ProgressFlags: OptionSet, Sendable {

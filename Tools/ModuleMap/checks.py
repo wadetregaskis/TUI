@@ -213,8 +213,8 @@ def uncompiled(M, R, asg):
     """A source in a module's directory that no target compiles (model.unit_freshness): its declarations are missing
     from the build, public API included, and nothing else need notice."""
     return [Finding('uncompiled', f, f'{f} is compiled by no target, though the last build ran after it was written: '
-                                     f'name it in Package.swift (TUIkitFoundation\'s `directories:`, or its module\'s '
-                                     f'own target once carved)', f, 1) for f in M.uncompiled]
+                                     f'name it in Package.swift (its module\'s own target, or its coarse group\'s '
+                                     f'`directories:`)', f, 1) for f in M.uncompiled]
 
 
 def umbrella(M, R, asg):
@@ -252,12 +252,14 @@ def re_exports(M, R):
 
 
 def built_on_default(R, reexports):
-    """The modules carved out ABOVE the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation …): those
-    whose files re-export it, or re-export a module that does. A carved module re-exports the modules it is built on
-    (plan §4); one that TUIkitFoundation still compiles has no re-exports, nor a module below it (TUIkitStrings),
-    which TUIkitFoundation re-exports. TUIkitFoundation cannot re-export a module built on it, so the umbrella must,
-    by name: reaching one only through a sibling's re-export (TUIkitNavigation through TUIkitColorPicker's, until
-    step C1) compiles the same, and silently stops compiling when that sibling's dependencies change."""
+    """The modules carved out ABOVE the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation …): those whose
+    files re-export it, or re-export a module that does. A carved module re-exports the modules it is built on (plan
+    §4); a coarse group's other members (TUIkitPresentation, TUIkitTables …, until their peels) have no Exports.swift,
+    so no re-exports, as a module TUIkitFoundation compiled had none until step B7; nor does a module below it
+    (TUIkitStrings), which TUIkitFoundation re-exports. TUIkitFoundation cannot re-export a module built on it, so the
+    umbrella must, by name: reaching one only through a sibling's re-export (TUIkitNavigation through
+    TUIkitColorPicker's, until step C1) compiles the same, and silently stops compiling when that sibling's dependencies
+    change."""
     above = set()
     while True:
         more = {m for m, xs in reexports.items()

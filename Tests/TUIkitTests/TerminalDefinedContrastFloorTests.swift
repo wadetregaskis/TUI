@@ -15,6 +15,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 @testable import TUIkitView
 
 /// Grounds and an ink the terminal decides, and slots for the rest: the shape of the

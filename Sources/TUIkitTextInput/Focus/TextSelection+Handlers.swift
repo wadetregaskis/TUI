@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension TextFieldHandler {
     /// The caret and selection as character offsets: the selected range, or
     /// the empty range at the caret.

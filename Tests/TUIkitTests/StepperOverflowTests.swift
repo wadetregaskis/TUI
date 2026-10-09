@@ -20,6 +20,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("Stepper bound overflow safety")

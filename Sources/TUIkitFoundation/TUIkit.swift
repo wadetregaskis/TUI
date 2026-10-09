@@ -33,7 +33,7 @@ internal let isFocusDebugEnabled: Bool =
 /// handler", or "the binding wrote, but to the wrong @State".
 ///
 /// > Note: Internal diagnostic helper, not part of the public API.
-internal func debugFocusLog(_ message: @autoclosure () -> String) {
+package func debugFocusLog(_ message: @autoclosure () -> String) {
     guard isFocusDebugEnabled else { return }
     let stamp = ISO8601DateFormatter().string(from: Date())
     let line = "[\(stamp)] \(message())\n"

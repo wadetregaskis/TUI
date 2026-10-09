@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Text Field Mouse Handler
 
 /// Shared mouse wiring for the single-line text inputs (``TextField`` and

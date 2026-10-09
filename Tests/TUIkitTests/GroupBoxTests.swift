@@ -10,6 +10,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 /// The current box, preceded by a marker.
 private struct Marked: GroupBoxStyle {

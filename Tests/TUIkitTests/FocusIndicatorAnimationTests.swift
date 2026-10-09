@@ -27,6 +27,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitNavigation
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("Focus indicator animation")

@@ -22,6 +22,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
 @testable import TUIkitTerminalHost
+@testable import TUIkitTextInput
 
 /// One focused menu row under one of the shared palettes, as a whole app, for the run
 /// loop — the only way to ask what the loop is woken for.

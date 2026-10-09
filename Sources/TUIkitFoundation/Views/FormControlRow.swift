@@ -9,6 +9,6 @@
 /// A self-labelled control that a ``Form`` places in the control column with its
 /// own clickable label (a checkbox/radio), rather than pulling a label to the
 /// pillar. Conformed by ``Toggle`` and ``RadioButtonGroup``.
-protocol FormControlRow {}
+package protocol FormControlRow {}
 
 extension Toggle: FormControlRow {}

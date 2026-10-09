@@ -493,12 +493,12 @@ anything at run time:
   `TUIkitImageTests`) that links **only that module**, so a module test cannot
   reach across a layer boundary. Put a test in the module target it belongs to;
   `Tests/TUIkitTests` is for integration tests and the modules with no test
-  target of their own: `TUIkitFoundation` (the modules of the split not yet
-  carved into targets of their own) and those carved out of it so far,
-  `TUIkitStrings` and `TUIkitTerminalHost` (step B2), `TUIkitApp` (step B3),
-  `TUIkitColorPicker` (step B4), `TUIkitNavigation` (step B5),
-  `TUIkitLists` (step B6), `TUIkitChrome`, `TUIkitEffects` and
-  `TUIkitMenus` (step B5b), and `TUIkitBitmaps` (step B5c).
+  target of their own: `TUIkitFoundation` (the substrate) and the modules
+  carved out of it, `TUIkitStrings` and `TUIkitTerminalHost` (step B2),
+  `TUIkitApp` (step B3), `TUIkitColorPicker` (step B4), `TUIkitNavigation`
+  (step B5), `TUIkitLists` (step B6), `TUIkitChrome`, `TUIkitEffects` and
+  `TUIkitMenus` (step B5b), `TUIkitBitmaps` (step B5c) and `TUIkitTextInput`
+  (step B7).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
   console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
@@ -514,14 +514,19 @@ anything at run time:
   transitions' and the visual, scroll and colour effects', `TUIkitMenus` for
   `Menu`'s, `ControlGroup`'s and `.contextMenu`'s, `TUIkitBitmaps` for the
   bitmap path's (`_ImageCore`, `AsyncImage`'s decoding, the image options'
-  environment, asset catalogues), `TUIkitStrings` or
+  environment, asset catalogues), `TUIkitTextInput` for the text inputs',
+  pickers', forms', search's and numeric controls' (`TextFieldHandler`,
+  `TextEditorHandler`, the field renderer, `_PickerMenuCore`, the date
+  picker's model, `FormContentExtraction`, the search presentation,
+  `SliderHandler`, `TrackRenderer`), `TUIkitStrings` or
   `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: a directory under
-  `Sources/` with a target of its own in `Package.swift` is that module, and
-  every other one is `TUIkitFoundation`, with two exceptions, the coarse groups,
-  each a target that names several directories: `Sources/TUIkitPresentation`
-  compiles into `TUIkitNavigation` until step C1, and `Sources/TUIkitTables`,
-  `TUIkitTabs` and `TUIkitGrid` compile into `TUIkitLists` until steps C2 to
-  C4.
+  `Sources/` with a target of its own in `Package.swift` is that module, with
+  three exceptions, the coarse groups, each a target that names several
+  directories: `Sources/TUIkitPresentation` compiles into `TUIkitNavigation`
+  until step C1; `Sources/TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` into
+  `TUIkitLists` until steps C2 to C4; and `Sources/TUIkitPickers`,
+  `TUIkitForms`, `TUIkitSearch` and `TUIkitNumericControls` into
+  `TUIkitTextInput` until steps C5 to C8.
   `Tools/validate-test-boundaries.sh` checks the four modules' targets and runs
   in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views

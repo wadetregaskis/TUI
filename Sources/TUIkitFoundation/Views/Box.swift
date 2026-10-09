@@ -105,7 +105,7 @@ package struct Box<Content: View>: View {
     ///   - borderStyle: The border style (default: appearance borderStyle).
     ///   - color: The border color (default: theme border).
     ///   - content: The content of the box.
-    init(
+    package init(
         _ borderStyle: BorderStyle? = nil,
         color: Color? = nil,
         @ViewBuilder content: () -> Content

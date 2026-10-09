@@ -52,15 +52,24 @@ import TUIkitCore
 /// A mesh's colours come from ``MeshRaster``, the cells' own raster too, over
 /// the picture's pixels: a mesh is in the box's unit space, so it needs no
 /// aspect at all.
-enum GradientRaster {
+package enum GradientRaster {
 
     /// A picture ready to transmit.
-    struct Picture: Equatable {
-        var bytes: [UInt8]
-        var width: Int
-        var height: Int
+    package struct Picture: Equatable {
+        package var bytes: [UInt8]
+        package var width: Int
+        package var height: Int
         /// Always opaque: a ramp has no alpha to send.
-        var format: KittyGraphics.PixelFormat { .rgb }
+        package var format: KittyGraphics.PixelFormat { .rgb }
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitTextInput's track and indeterminate rasters
+        /// make these.
+        package init(bytes: [UInt8], width: Int, height: Int) {
+            self.bytes = bytes
+            self.width = width
+            self.height = height
+        }
     }
 
     /// A picture's size, known at once, and its pixels, made only when asked.
@@ -91,7 +100,7 @@ enum GradientRaster {
     ///
     /// - Returns: the picture's size and the factor, or `nil` for a box with
     ///   no pixels.
-    static func resolution(
+    package static func resolution(
         columns: Int, rows: Int, cellPixels: TerminalCellPixels
     ) -> (width: Int, height: Int, factor: Int)? {
         let fullWidth = columns * cellPixels.width

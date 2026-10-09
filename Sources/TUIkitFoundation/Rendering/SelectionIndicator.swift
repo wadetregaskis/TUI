@@ -428,7 +428,7 @@ public struct SelectionEmphasisCycle: Sendable, Equatable {
     /// The steps a two-shade ramp takes (``Color/breathStep(atPhase:of:)``), whatever
     /// the depth, and whatever this cycle does with its two ends: a blink shows each
     /// in turn, and a cycle that holds still holds its bright end.
-    func brightFrames() -> [Bool] {
+    package func brightFrames() -> [Bool] {
         frames.map(\.showsBrightEnd)
     }
 
@@ -528,7 +528,7 @@ public struct SelectionEmphasisCycle: Sendable, Equatable {
     /// The tail every `run` overload shares: the finished cells become a run,
     /// measured from what was actually drawn.
     @MainActor
-    func run(drawn: [String], offsetX: Int, offsetY: Int) -> AnimatedCellRun? {
+    package func run(drawn: [String], offsetX: Int, offsetY: Int) -> AnimatedCellRun? {
         guard let first = drawn.first else { return nil }
         return AnimatedCellRun(
             offsetX: offsetX,

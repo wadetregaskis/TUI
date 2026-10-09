@@ -26,6 +26,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 /// The string the control under test is bound to.
 private final class BoundText: @unchecked Sendable {

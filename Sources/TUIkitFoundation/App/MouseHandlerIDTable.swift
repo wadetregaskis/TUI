@@ -237,7 +237,7 @@ extension MouseEventDispatcher {
     /// enter/exit belongs to whichever region the dispatcher resolved it
     /// against, and passing it on would offer it to the control underneath.
     @MainActor
-    func register(
+    package func register(
         in context: RenderContext, hoverBox: StateBox<Bool>,
         _ handler: @escaping (MouseEvent) -> Bool
     ) -> HitTestRegion.HandlerID {

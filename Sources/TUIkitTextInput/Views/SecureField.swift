@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - SecureField
 
 /// A control for secure text entry, where the display masks the user's input.

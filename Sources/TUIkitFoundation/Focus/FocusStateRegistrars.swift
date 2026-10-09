@@ -9,7 +9,7 @@ import TUIkitView
 
 /// The one binding `.focused(_:)` / `.focused(_:equals:)` makes, shared by the
 /// live render and by a value memo replaying it — see `EffectJournal`.
-enum FocusBindingRegistrar {
+package enum FocusBindingRegistrar {
     /// The journal kind of a `@FocusState` binding.
     static let kind = EffectJournal.Kind("focusBinding")
 

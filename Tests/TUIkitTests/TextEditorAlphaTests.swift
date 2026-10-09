@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("A text editor under a faded palette")

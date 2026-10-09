@@ -10,6 +10,7 @@
 
 import Testing
 import TUIkitCore
+@testable import TUIkitTextInput
 
 import TUIkit
 @testable import TUIkitApp

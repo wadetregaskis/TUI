@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // A vertical field is a text field that wraps, and keeps a text field's keys:
 // SwiftUI's is the same AppKit field editor as a field on one line, measured on
 // macOS 15.8 — Return and Shift-Return submit, and the Emacs chords follow

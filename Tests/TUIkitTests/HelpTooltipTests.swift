@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 @MainActor
 @Suite("help(_:) and tooltip candidates")

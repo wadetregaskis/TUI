@@ -10,5 +10,5 @@ builder:
     # first; Tools/BuildDocs/check_spi_targets.py fails the docs build if not.
     # (Tools/BuildDocs/build-docs.sh builds the one-module reference instead.)
     - documentation_targets: [TUIkit, TUIkitApp, TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects,
-                              TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitFoundation, TUIkitStrings,
-                              TUIkitTerminalHost, TUIkitView, TUIkitStyling, TUIkitCore, TUIkitImage]
+                              TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitTextInput, TUIkitFoundation,
+                              TUIkitStrings, TUIkitTerminalHost, TUIkitView, TUIkitStyling, TUIkitCore, TUIkitImage]

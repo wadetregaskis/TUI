@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension TextEditorHandler {
     /// The document's rows at the width the editor last drew at, or `nil`
     /// where it scrolls sideways (``View/textEditorWrapsLines(_:)``).

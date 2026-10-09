@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The value-type-erased surface of a stepper's focus handler.
 ///
 /// This lets ``Stepper`` and `_StepperCore` stay non-generic over the value

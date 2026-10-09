@@ -30,7 +30,7 @@ package struct ClipboardAccess: Sendable {
     var put: @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult
 
     /// Reads the clipboard, or `nil` when there is nothing to read.
-    var read: @Sendable () -> String?
+    package var read: @Sendable () -> String?
 
     /// The values behind the text this app last copied, where the app keeps
     /// them — see ``TypedClipboard``. Filled in by the clipboard commands from
@@ -43,7 +43,7 @@ package struct ClipboardAccess: Sendable {
     ///   the status bar (see ``ClipboardWriter/write(_:announcingSuccess:)``):
     ///   not for a text control's copy, whose success is what was expected.
     @discardableResult
-    func write(_ text: String, announcingSuccess: Bool = false) -> ClipboardWriteResult {
+    package func write(_ text: String, announcingSuccess: Bool = false) -> ClipboardWriteResult {
         put(text, announcingSuccess)
     }
 
@@ -79,7 +79,7 @@ package struct ClipboardAccess: Sendable {
     /// be copied to anyway: there is no terminal to send OSC 52 to, and this
     /// machine's clipboard is the app layer's to reach (``ClipboardBackend``),
     /// never a stray render's. Stateless, so it answers from any thread.
-    static let unavailable = Self(
+    package static let unavailable = Self(
         put: { text, _ in text.isEmpty ? .nothingToCopy : .unavailable },
         read: { nil })
 }

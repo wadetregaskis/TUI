@@ -160,8 +160,19 @@ public struct GaugeStyleConfiguration {
     /// has none.
     public let maximumValueLabel: AnyView?
 
-    // Configurations are produced by ``Gauge`` during rendering, never by client
-    // code — the compiler-synthesized memberwise initializer (internal access
-    // level) is exactly what's needed, and matches SwiftUI, whose
-    // `GaugeStyleConfiguration` publishes no initializer either.
+    /// The memberwise initializer. Configurations are produced by ``Gauge``
+    /// during rendering, never by client code, so this is `package`, not
+    /// public, as SwiftUI's `GaugeStyleConfiguration` publishes no initializer
+    /// either; spelled out because the synthesized one is internal and `Gauge`
+    /// is TUIkitTextInput's (until step C7 peels TUIkitNumericControls).
+    package init(
+        value: Double, label: AnyView, currentValueLabel: AnyView?, minimumValueLabel: AnyView?,
+        maximumValueLabel: AnyView?
+    ) {
+        self.value = value
+        self.label = label
+        self.currentValueLabel = currentValueLabel
+        self.minimumValueLabel = minimumValueLabel
+        self.maximumValueLabel = maximumValueLabel
+    }
 }

@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Picker Option Extraction
 
 /// A picker option recovered from a tagged view, before its tag has been

@@ -20,16 +20,16 @@
 ///   ``View/tag(_:includeOptional:)``; do not instantiate directly.
 public struct _TaggedView<Content: View>: View {
     /// The tag value, type-erased.
-    let tagValue: AnyHashable
+    package let tagValue: AnyHashable
 
     /// Whether the tag also matches a selection of the tag's OPTIONAL type.
     ///
     /// See ``View/tag(_:includeOptional:)`` for what the two answers mean and
     /// why `true` is what an untagged call has always done here.
-    let includeOptional: Bool
+    package let includeOptional: Bool
 
     /// The wrapped content view.
-    let content: Content
+    package let content: Content
 
     public var body: some View {
         content
@@ -227,7 +227,7 @@ func viewTypeCarriesTag<V: View>(_ type: V.Type) -> Bool {
 /// One function rather than one rule per container: `Picker` and `List` both
 /// match tags, and the comment above is the whole of why the obvious
 /// alternative is wrong.
-func resolveTag<Value: Hashable>(
+package func resolveTag<Value: Hashable>(
     _ tag: AnyHashable, includeOptional: Bool, as valueType: Value.Type
 ) -> Value? {
     guard includeOptional || type(of: tag.base) == Value.self else { return nil }

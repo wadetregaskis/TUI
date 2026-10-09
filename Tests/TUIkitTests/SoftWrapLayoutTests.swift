@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 /// The layout of `text` at `width`, one cell per character but for CJK.
 private func layout(_ text: String, width: Int) -> SoftWrapLayout {

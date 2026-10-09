@@ -17,9 +17,14 @@
 // TUIkitPresentation's, which compiles into TUIkitNavigation until step C1.
 // TUIkitLists is the fourth since step B6 carved it: the panel lays its modes
 // out in a `TabView` of `Tab`s, TUIkitTabs', which compiles into TUIkitLists
-// until step C3. The umbrella, Sources/TUIkit, re-exports this module beside
-// TUIkitFoundation.
+// until step C3. TUIkitTextInput is the fifth since step B7 carved it: the
+// editors are made of `Slider`s (TUIkitNumericControls'), the panel's hex
+// field is a `TextField` and the channel-curve editor picks its channel with a
+// `RadioButtonGroup` (TUIkitPickers'), all three of which compile into
+// TUIkitTextInput until steps C7 and C8 peel the first and last. The umbrella,
+// Sources/TUIkit, re-exports this module beside TUIkitFoundation.
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
 @_exported import TUIkitLists
 @_exported import TUIkitNavigation
+@_exported import TUIkitTextInput

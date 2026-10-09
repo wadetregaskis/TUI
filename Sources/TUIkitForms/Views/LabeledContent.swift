@@ -7,6 +7,7 @@
 // `FormatStyle` is Foundation's, for the `value:format:` rows — the same
 // modern-Foundation dependency `Text(_:format:)` already carries.
 import Foundation
+import TUIkitFoundation
 
 // MARK: - LabeledContent
 

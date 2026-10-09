@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Track Renderer
 
 /// Utility for rendering track-based visual indicators.

@@ -25,7 +25,7 @@
 /// half-block in the terminal's foreground, by accident, and a breath from it
 /// is the same accident for half its frames. So there the caps rest in the
 /// palette's tertiary tier and, focused, hold the accent, still.
-struct ButtonCapCycle {
+package struct ButtonCapCycle {
     /// The shared focus-emphasis cycle behind every breathing indicator, so the
     /// caps keep step with list cursors and menu rows and honour
     /// `.selectionIndicatorStyle`.
@@ -62,7 +62,7 @@ struct ButtonCapCycle {
     ///   - palette: Where the accent, and on a face the terminal decides the
     ///     tertiary tier, come from.
     @MainActor
-    init(isFocused: Bool, background: Color, palette: any Palette, context: RenderContext) {
+    package init(isFocused: Bool, background: Color, palette: any Palette, context: RenderContext) {
         let cycle = context.environment.selectionEmphasis.cycle(isFocused)
         self.cycle = cycle
         // Checked, because the caps are drawn with no claim on the strength of it.
@@ -106,7 +106,7 @@ struct ButtonCapCycle {
 
     /// The colour to draw right now. A cap is a fill, so it recedes to the
     /// button's own face when unfocused rather than sitting at the accent.
-    var colorNow: Color {
+    package var colorNow: Color {
         // `breath` is the cycle's own frames coloured, so indexing it by `step`
         // is what `cycle.colorNow(dim:bright:)` would return — without building
         // a second ramp to get there.
@@ -123,7 +123,7 @@ struct ButtonCapCycle {
     /// begun eating the chrome, and a run must never outlive the cells it
     /// describes.
     @MainActor
-    func runs(width: Int) -> [AnimatedCellRun] {
+    package func runs(width: Int) -> [AnimatedCellRun] {
         guard isAnimating, width >= 2 else { return [] }
         // ONE breath spent on both caps. Asking `cycle.run(dim:bright:…)` twice
         // would build the same pulse ramp twice — the two caps are the same

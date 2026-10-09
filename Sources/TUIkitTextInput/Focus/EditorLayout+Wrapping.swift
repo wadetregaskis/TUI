@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A document's lines wrapped into rows at one width: each line's
 /// ``SoftWrapLayout``, and where each line's rows start among all of them.
 struct WrappedRows {

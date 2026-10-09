@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTextInput
 
 /// The input dispatcher's layer-0 gate: while a text-consuming handler is
 /// focused, typed keys reach it before status-bar items and `onKeyEvent`

@@ -51,18 +51,26 @@ enum _ControlLabel {
 /// HStack sibling (rather than drawing it inside the control's own core) also
 /// keeps the core's internal x-offsets — hit regions, arrow zones, track
 /// origin — measured from its own buffer, because the stack shifts them.
-struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
+package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
     let label: Label?
 
     /// The control's own `.disabled()` flag — it bypasses the environment,
     /// so the label must be told explicitly.
     let controlDisabled: Bool
 
-    var body: Never { fatalError("_CollapsingLabel renders via Renderable") }
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitTextInput's controls (sliders, steppers, pickers,
+    /// date pickers, labeled content) make these.
+    package init(label: Label?, controlDisabled: Bool) {
+        self.label = label
+        self.controlDisabled = controlDisabled
+    }
+
+    package var body: Never { fatalError("_CollapsingLabel renders via Renderable") }
 
     /// Size from one render (it drops to nothing for a blank label and adds a
     /// trailing space otherwise — both need the render), flexibility from the label.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let size = measureFixedByRendering(self, proposal: proposal, context: context)
         let labelFlexible = label.map {
             measureChild($0, proposal: proposal, context: context).isWidthFlexible
@@ -70,7 +78,7 @@ struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
         return ViewSize(width: size.width, height: size.height, isWidthFlexible: labelFlexible)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // `.labelsHidden()` collapses the label the same way an absent one
         // does — including the separating space — because the point of hiding
         // a label is that the layout closes up around it. Answered here rather

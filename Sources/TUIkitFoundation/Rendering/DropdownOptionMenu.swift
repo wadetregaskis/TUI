@@ -25,7 +25,7 @@ extension DropdownMenu {
     /// width arithmetic and the ordinal↔row mapping are all worked out from
     /// that — once, in ``attach(_:to:context:onHover:onActivate:onDismiss:)``,
     /// instead of hand-rolled identically by every control with a drop-down.
-    enum Entry {
+    package enum Entry {
         /// A pickable option. `label` is its already-rendered line (a caller
         /// renders its labels itself, because only it knows what a label IS);
         /// `isSelected` earns the ✓ marker.
@@ -42,28 +42,43 @@ extension DropdownMenu {
     /// the options, dividers not counted — because that is what a control's
     /// own state is indexed by. The row indices the renderer works in never
     /// escape this file.
-    struct OptionMenu {
+    package struct OptionMenu {
         /// The menu's entries, in display order.
-        let entries: [Entry]
+        package let entries: [Entry]
 
         /// The highlighted option's ordinal, or `nil` for none.
-        let highlightedOption: Int?
+        package let highlightedOption: Int?
 
         /// The caller-owned scroll state for the window.
-        let scroll: ScrollAxis
+        package let scroll: ScrollAxis
 
         /// Whether to scroll the window to keep the highlight visible — set
         /// after keyboard navigation moved it. See
         /// ``Configuration/followHighlight``.
-        let followHighlight: Bool
+        package let followHighlight: Bool
 
         /// A stable identity for the scrollbar's held-button auto-repeat.
-        let autoRepeatToken: String
+        package let autoRepeatToken: String
 
         /// Whether the menu answers the pointer at all. A disabled control
         /// should never have an open menu in the first place; this is the belt
         /// to that pair of braces.
-        var isEnabled = true
+        package var isEnabled = true
+
+        /// The memberwise initializer, spelled out because the synthesized one
+        /// is internal and TUIkitTextInput makes these, for a `Picker`'s menu
+        /// and a text field's suggestions.
+        package init(
+            entries: [Entry], highlightedOption: Int?, scroll: ScrollAxis, followHighlight: Bool,
+            autoRepeatToken: String, isEnabled: Bool = true
+        ) {
+            self.entries = entries
+            self.highlightedOption = highlightedOption
+            self.scroll = scroll
+            self.followHighlight = followHighlight
+            self.autoRepeatToken = autoRepeatToken
+            self.isEnabled = isEnabled
+        }
     }
 
     /// The interior width (between the borders) a menu of these entries wants.
@@ -78,7 +93,7 @@ extension DropdownMenu {
     ///
     /// Exposed because a `Picker`'s collapsed control is drawn to the same
     /// width as the menu it opens.
-    static func innerWidth(for entries: [Entry], context: RenderContext) -> Int {
+    package static func innerWidth(for entries: [Entry], context: RenderContext) -> Int {
         let maxLabelWidth =
             entries.compactMap { entry -> Int? in
                 guard case .option(let label, _) = entry else { return nil }
@@ -105,7 +120,7 @@ extension DropdownMenu {
     ///   - onActivate: Called with an option's ordinal when it is clicked.
     ///   - onDismiss: Called on a click OUTSIDE the menu.
     @MainActor
-    static func attach(
+    package static func attach(
         _ menu: OptionMenu,
         to buffer: inout FrameBuffer,
         context: RenderContext,
