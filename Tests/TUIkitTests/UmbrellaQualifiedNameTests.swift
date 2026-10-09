@@ -60,6 +60,17 @@
 //  left in TUIkitFoundation would still compile, so the reflected names, one
 //  per directory, catch it at run time.
 //
+//  Step B5b carved three leaves the same way, each a module of its own:
+//  TUIkitChrome, TUIkitEffects and TUIkitMenus. The seventh test spells and
+//  draws a type of each through the umbrella, the menu beside an app's own
+//  `Menu` (the case an app meets: a menu model of its own). The umbrella is
+//  the only module that re-exports TUIkitEffects and TUIkitMenus, so this
+//  file stops compiling without either line. TUIkitApp and TUIkitNavigation
+//  re-export TUIkitChrome, which they depend on, so the umbrella's own line
+//  for it is the `umbrella` check's, for good. A module left compiling in
+//  TUIkitFoundation would still compile here; the reflected names, one per
+//  module, catch it at run time.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -145,6 +156,18 @@ private enum Client {
     static func bothTables(rows: [Row]) -> (Table, TUIkit.Table<Row>) {
         (Table(name: "mine"), TUIkit.Table(rows) { TUIkit.TableColumn("b6 name", value: \Row.name) })
     }
+
+    /// An app's own `Menu`, beside TUIkitMenus' view.
+    struct Menu {
+        let name: String
+    }
+
+    /// Both menus: the app's by its plain name, TUIkit's by the umbrella's,
+    /// with a TUIkitFoundation button as its item.
+    @MainActor
+    static func bothMenus() -> (Menu, TUIkit.Menu<TUIkit.Text, TUIkit.Button>) {
+        (Menu(name: "mine"), TUIkit.Menu("b5b menu") { TUIkit.Button("b5b item") {} })
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -186,6 +209,19 @@ extension TUIkit.NavigationPath {
     /// TUIkitNavigation, which the umbrella re-exports itself (and, until step
     /// C1, through TUIkitColorPicker as well).
     fileprivate var b5Marker: Int { 5 + count }
+}
+
+extension TUIkit.MenuOrder {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitMenus, which only the umbrella re-exports.
+    fileprivate var b5bMarker: Int { self == .fixed ? 1 : 0 }
+}
+
+extension TUIkit.ToolbarPlacement {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitChrome, which the umbrella re-exports (and so do TUIkitApp and
+    /// TUIkitNavigation).
+    fileprivate var b5bMarker: Int { self == .bottomBar ? 2 : 0 }
 }
 
 extension TUIkit.TabViewCustomization {
@@ -318,6 +354,39 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.GridItem.self) == "TUIkitLists.GridItem")
     }
 
+    @Test("A qualified name reaches TUIkitChrome, TUIkitEffects and TUIkitMenus, which the umbrella re-exports")
+    func qualifiedNamesReachTheChromeEffectsAndMenus() {
+        func drawn(_ view: some TUIkit.View, height: Int) -> String {
+            TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
+                .map(\.stripped).joined(separator: "\n")
+        }
+        // TUIkitMenus: a menu beside an app's own `Menu`, drawn (its closed
+        // button shows its title), and a member an app's extension adds to its
+        // order.
+        let (mine, menu) = Client.bothMenus()
+        #expect(mine.name == "mine")
+        let menuLines = drawn(menu, height: 2)
+        #expect(menuLines.contains("b5b menu"), "\(menuLines)")
+        #expect(TUIkit.MenuOrder.fixed.b5bMarker == 1)
+        // TUIkitEffects: a colour effect and a transition, spelled through the
+        // umbrella, over a TUIkitFoundation text, drawn.
+        let effected = TUIkit.Text(verbatim: "b5b effect").grayscale(0.5)
+            .transition(TUIkit.AnyTransition.opacity)
+        #expect(drawn(effected, height: 1).contains("b5b effect"))
+        // TUIkitChrome: help on a text, drawn as the text (the help is a
+        // tooltip, which the window draws), and a member an app's extension
+        // adds to a toolbar placement.
+        let helped = TUIkit.Text(verbatim: "b5b help").help("b5b tip")
+        #expect(drawn(helped, height: 1).contains("b5b help"))
+        #expect(TUIkit.ToolbarPlacement.bottomBar.b5bMarker == 2)
+        // One reflected name from each module: a module left compiling in
+        // TUIkitFoundation would still build, and read `TUIkitFoundation.`
+        // here.
+        #expect(String(reflecting: type(of: menu)).hasPrefix("TUIkitMenus.Menu<"))
+        #expect(String(reflecting: TUIkit.AnyTransition.self) == "TUIkitEffects.AnyTransition")
+        #expect(String(reflecting: TUIkit.ToolbarPlacement.self) == "TUIkitChrome.ToolbarPlacement")
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -373,5 +442,11 @@ struct UmbrellaQualifiedNameTests {
             == "TUIkitLists.TableColumnCustomizationBehavior")
         #expect(String(reflecting: TUIkit.TabBarPlacement.self) == "TUIkitLists.TabBarPlacement")
         #expect(String(reflecting: TUIkit.GridItem.Size.self) == "TUIkitLists.GridItem.Size")
+        // Step B5b carved these out (decisions SPB5b, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B5b.
+        #expect(String(reflecting: TUIkit.StatusBar.self) == "TUIkitChrome.StatusBar")
+        #expect(String(reflecting: TUIkit.NotificationService.self) == "TUIkitChrome.NotificationService")
+        #expect(String(reflecting: TUIkit.ScrollTransitionPhase.self) == "TUIkitEffects.ScrollTransitionPhase")
+        #expect(String(reflecting: TUIkit.MenuOrder.self) == "TUIkitMenus.MenuOrder")
     }
 }

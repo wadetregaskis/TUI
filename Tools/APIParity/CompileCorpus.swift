@@ -2976,6 +2976,83 @@ private struct HelloWorldGrid: View {
     }
 }
 
+// MARK: - Menus, help and transitions, from modules of their own
+
+/// SwiftUI's own `Menu` examples: three buttons and a submenu under a title,
+/// and a menu whose label is a view builder. Since module split step B5b
+/// `Menu` is TUIkitMenus', `help(_:)` TUIkitChrome's and `transition(_:)`
+/// TUIkitEffects': the umbrella re-exports each (and TUIkitApp and
+/// TUIkitNavigation re-export TUIkitChrome too), so these three snippets, and
+/// the `.contextMenu`, `.toolbar` and `.scrollTransition` ones earlier in this
+/// file, are SwiftUI source reaching those modules as an app does: through
+/// `import TUIkit`.
+@MainActor
+private struct ActionsMenu: View {
+    func duplicate() {}
+    func rename() {}
+    func delete() {}
+    func copy() {}
+    func copyFormatted() {}
+    func copyPath() {}
+    func openInPreview() {}
+    func saveAsPDF() {}
+
+    var body: some View {
+        VStack {
+            Menu("Actions") {
+                Button("Duplicate", action: duplicate)
+                Button("Rename", action: rename)
+                Button("Delete…", action: delete)
+                Menu("Copy") {
+                    Button("Copy", action: copy)
+                    Button("Copy Formatted", action: copyFormatted)
+                    Button("Copy Library Path", action: copyPath)
+                }
+            }
+            Menu {
+                Button("Open in Preview", action: openInPreview)
+                Button("Save as PDF", action: saveAsPDF)
+            } label: {
+                Label("PDF", systemImage: "doc.fill")
+            }
+        }
+    }
+}
+
+/// SwiftUI's own `help(_:)` example: a help tag on a compose button.
+@MainActor
+private struct ComposeButton: View {
+    func composeMessage() {}
+
+    var body: some View {
+        Button(action: composeMessage) {
+            Image(systemName: "square.and.pencil")
+        }
+        .help("Compose a new message")
+    }
+}
+
+/// SwiftUI's own `transition(_:)` example: a view that slides in and out
+/// as a button toggles it inside `withAnimation`.
+@MainActor
+private struct SlidingDetail: View {
+    @State private var isActive = false
+
+    var body: some View {
+        VStack {
+            if isActive {
+                Text("Detail")
+                    .transition(.slide)
+            }
+            Button("Toggle") {
+                withAnimation {
+                    isActive.toggle()
+                }
+            }
+        }
+    }
+}
+
 /// SwiftUI's own `VisualEffect` example: an offset following the view's global
 /// position, which draws its offset now that the proxy answers `.global`.
 @MainActor
