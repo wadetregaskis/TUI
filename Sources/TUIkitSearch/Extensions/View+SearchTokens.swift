@@ -420,12 +420,16 @@ struct SearchTokenRow {
 struct SearchTokenChip<Label: View>: View {
     let label: Label
 
+    /// Styled, and erased, by TUIkitFoundation (`erasedForegroundStyle(_:)`):
+    /// `foregroundStyle(_:)`'s result names a type only it can see, which this
+    /// module would look up at run time on every evaluation (CONTRIBUTING.md,
+    /// "Crossing a module boundary").
     var body: some View {
         HStack(spacing: 0) {
             Text(verbatim: "[")
             label
             Text(verbatim: "]")
         }
-        .foregroundStyle(Color.palette.accent)
+        .erasedForegroundStyle(Color.palette.accent)
     }
 }

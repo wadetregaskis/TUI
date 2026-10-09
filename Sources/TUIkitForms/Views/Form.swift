@@ -293,12 +293,15 @@ private func columnsSectionRowView(_ element: _FormElement, pillar: Int, content
 /// The elements of an `if` or of an arm of an `if`/`else`
 /// (``_FormElement/group(_:branch:)``), stacked `spacing` apart as the form
 /// stacks its elements, under the arm's branch. Erased, as the element views
-/// that call it are what it draws.
+/// that call it are what it draws. TUIkitFoundation identifies and erases the
+/// stack (`erasedID(_:)`): `id(_:)`'s result names a type only it can see, which
+/// this module would look up at run time on every call (CONTRIBUTING.md,
+/// "Crossing a module boundary").
 @MainActor
 private func groupView(branch: String?, spacing: Int, @ViewBuilder _ elements: () -> some View) -> AnyView {
     let stack = VStack(alignment: .leading, spacing: spacing, content: elements)
     guard let branch else { return AnyView(stack) }
-    return AnyView(stack.id(branch))
+    return stack.erasedID(branch)
 }
 
 /// Grouped layout for one element: a section is a bordered box (its title bold
@@ -322,7 +325,11 @@ private func groupedElementView(_ element: _FormElement, pillar: Int, contentWid
                 }
                 .frame(width: contentWidth, alignment: .leading)
                 .padding(.horizontal, 1)
-                .border()
+                // Bordered, and erased, by TUIkitFoundation: `border()`'s
+                // result names a type only it can see (`groupView`). Erasing
+                // costs this box's static member count nothing: the footer
+                // beside it is an `AnyView` already.
+                .erasedBorder()
                 if let footer = section.footer { footer }
             }
         }

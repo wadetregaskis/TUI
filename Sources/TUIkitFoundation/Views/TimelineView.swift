@@ -94,6 +94,16 @@ extension TimelineView: View where Content: View {
     public var body: some View {
         _TimelineViewCore(schedule: schedule, content: content)
     }
+
+    /// What the core answers, as the default would: the core is a primitive.
+    /// Stated here so that a view of another module whose body is a timeline
+    /// view (`ProgressView`'s timer label, TUIkitTextInput's) asks this
+    /// conformance. Through the default, which that module inlines, it asked
+    /// for the body's type, whose underlying core only this module can see,
+    /// and looked it up at run time on every call (CONTRIBUTING.md, "Crossing
+    /// a module boundary"). Naming the private core keeps this witness out of
+    /// every other module.
+    public static var _handsOverChildren: Bool { _TimelineViewCore<Schedule, Content>._handsOverChildren }
 }
 
 // MARK: - Core

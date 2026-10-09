@@ -201,6 +201,7 @@
   "TUIkitFoundation/Extensions/String+ANSI.swift": "TUIkitFoundation",
   "TUIkitFoundation/Extensions/String+Truncation.swift": "TUIkitFoundation",
   "TUIkitFoundation/Extensions/View+Badge.swift": "TUIkitFoundation",
+  "TUIkitFoundation/Extensions/View+BuiltForAnotherModule.swift": "TUIkitFoundation",
   "TUIkitFoundation/Extensions/View+ClipboardCommand.swift": "TUIkitFoundation",
   "TUIkitFoundation/Extensions/View+ClipboardCommands.swift": "TUIkitFoundation",
   "TUIkitFoundation/Extensions/View+Commands.swift": "TUIkitFoundation",

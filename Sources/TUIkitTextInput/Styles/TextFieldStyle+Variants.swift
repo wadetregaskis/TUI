@@ -126,6 +126,13 @@ extension TextFieldStyle where Self == SquareBorderTextFieldStyle {
 /// context. Both cores are `Renderable & Layoutable`, which is what the
 /// constraint states. An `Animatable` core would still take the general path,
 /// for the substitution it makes.
+///
+/// The border is drawn and measured by TUIkitFoundation
+/// (``View/renderBordered(style:context:)``), not as `content.border(style:)`
+/// here: that view's type names `_BorderRings`, which only TUIkitFoundation can
+/// see, so from this module it is looked up at run time, and the lookup sat at
+/// the top of both functions, where every field, bordered or not, paid it on
+/// every frame (CONTRIBUTING.md, "Crossing a module boundary").
 struct _StyledFieldFrame<Content: View & Renderable & Layoutable>: View, Renderable, Layoutable {
     let content: Content
 
@@ -142,7 +149,7 @@ struct _StyledFieldFrame<Content: View & Renderable & Layoutable>: View, Rendera
             // the render that reached this frame applies to the same context.
             return content.renderToBuffer(context: context)
         }
-        return TUIkitView.renderToBuffer(content.border(style: border), context: context.withBranchIdentity("bordered"))
+        return content.renderBordered(style: border, context: context.withBranchIdentity("bordered"))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -156,8 +163,8 @@ struct _StyledFieldFrame<Content: View & Renderable & Layoutable>: View, Rendera
             measuring.isMeasuring = true
             return content.sizeThatFits(proposal: proposal, context: measuring)
         }
-        return measureChild(
-            content.border(style: border), proposal: proposal, context: context.withBranchIdentity("bordered"))
+        return content.measureBordered(
+            style: border, proposal: proposal, context: context.withBranchIdentity("bordered"))
     }
 }
 

@@ -71,12 +71,17 @@ struct _FindBar: View {
         LocalizationService.shared.frameworkString(for: key)
     }
 
+    /// `focused(_:)` and `onAppear(perform:)` are applied, and erased, by
+    /// TUIkitFoundation (`erasedFocused(_:)`, `erasedOnAppear(perform:)`): their
+    /// results name types only it can see, which this module would look up at
+    /// run time on every evaluation (CONTRIBUTING.md, "Crossing a module
+    /// boundary").
     var body: some View {
         let matches = FindMatches.ranges(of: query, in: text.wrappedValue)
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 1) {
                 TextField(string(LocalizationKey.Label.find.rawValue), text: $query)
-                    .focused($isQueryFocused)
+                    .erasedFocused($isQueryFocused)
                     .onSubmit { step(by: 1, in: matches) }
                 Text(matches.isEmpty ? "0/0" : "\(min(current, matches.count - 1) + 1)/\(matches.count)")
                 Button("‹") { step(by: -1, in: matches) }
@@ -93,7 +98,7 @@ struct _FindBar: View {
             }
         }
         .onExitCommand { close() }
-        .onAppear { isQueryFocused = true }
+        .erasedOnAppear { isQueryFocused = true }
         .onChange(of: query) { _, newQuery in
             current = 0
             if let first = FindMatches.ranges(of: newQuery, in: text.wrappedValue).first { select(first) }
