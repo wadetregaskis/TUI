@@ -205,9 +205,11 @@ hold only imports. And it re-exports, by name, every module carved out above `TU
 `rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
 TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
 TUIkitMenus since step B5b). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only
-through the umbrella. Reaching it through a sibling instead compiles the same: TUIkitApp and TUIkitNavigation
-re-export TUIkitChrome, which they depend on, for good. TUIkitColorPicker re-exports TUIkitNavigation until step C1, which moves its dependency to
-TUIkitPresentation, a module that does not depend on TUIkitNavigation. It re-exports TUIkitLists for good: directly
+through the umbrella. Reaching it through a sibling instead compiles the same: TUIkitApp re-exports TUIkitChrome,
+which it depends on, for good. TUIkitNavigation re-exports it only until step C1: its own map entry does not
+depend on TUIkitChrome, and its target does only because it compiles the TUIkitPresentation directory, whose entry
+does, until C1 peels that into a module of its own. TUIkitColorPicker re-exports TUIkitNavigation until step C1,
+which moves its dependency to TUIkitPresentation, a module that does not depend on TUIkitNavigation. It re-exports TUIkitLists for good: directly
 until step C3, then through TUIkitTabs, which depends on TUIkitLists and re-exports it (plan §4). So an umbrella
 without TUIkitNavigation's line still gives an app `TUIkit.NavigationStack` until C1, and one without TUIkitLists'
 line gives it `TUIkit.List` after C3 too. No build notices the missing line; this check does. A module
