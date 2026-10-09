@@ -28,7 +28,7 @@ extension FocusManager {
     package func notePresentationDock(
         id: String, presenter: ViewIdentity, resolver: @escaping PresentationDockResolver
     ) {
-        panes.docks[id] = PaneLedger.PostedDock(presenter: presenter, resolver: resolver)
+        postDock(inSection: id, presenter: presenter, resolver: resolver)
     }
 
     /// The rows a content area `contentHeight` rows tall gives up at its
@@ -50,8 +50,8 @@ extension FocusManager {
     /// presenter it did not draw was left out of a window.
     @MainActor
     func presentationDock(in contentHeight: Int, storage: StateStorage?) -> Int {
-        let dock = Self.dock(panes.previousDocks, in: contentHeight) { panes.dockedBeforeTheWalk.insert($0) }
-        storage?.notesWindowedRows = !panes.dockedBeforeTheWalk.isEmpty
+        let dock = Self.dock(previouslyPostedDocks, in: contentHeight) { noteDockedBeforeTheWalk($0) }
+        storage?.notesWindowedRows = anyDockedBeforeTheWalk
         return dock
     }
 
@@ -67,7 +67,7 @@ extension FocusManager {
     /// discarded walk.
     @MainActor
     func postedPresentationDock(in contentHeight: Int) -> Int {
-        Self.dock(panes.docks, in: contentHeight) { _ in }
+        Self.dock(postedDocks, in: contentHeight) { _ in }
     }
 
     /// After the walk, whether the next frame must be laid out at another
@@ -92,7 +92,7 @@ extension FocusManager {
     /// would not leave it out.
     @MainActor
     func settlePresentationDock(laidOutBy dock: Int, in contentHeight: Int, storage: StateStorage?) -> Bool {
-        panes.noteDocksLeftUndrawn { presenter in storage?.wasLeftOutOfAWindow(presenter) ?? false }
+        noteDocksLeftUndrawn { presenter in storage?.wasLeftOutOfAWindow(presenter) ?? false }
         return postedPresentationDock(in: contentHeight) != dock
     }
 
@@ -107,7 +107,7 @@ extension FocusManager {
     /// grow back: the two alternated every frame, the app never idled, and the
     /// sheet lost the focus for good.
     package func presenterWentUndrawnUnderItsDock(_ id: String) -> Bool {
-        panes.undrawnUnderTheirDock.contains(id)
+        isUndrawnUnderItsDock(id)
     }
 
     /// The most `resolvers` dock in a content area `contentHeight` rows tall,
