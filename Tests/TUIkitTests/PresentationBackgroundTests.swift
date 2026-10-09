@@ -99,9 +99,16 @@ struct PresentationBackgroundTests {
         let leading = cover(.bottomLeading)
         // A background's glyphs show only where the cover draws no cell, and it
         // draws every one (`background(alignment:content:)`), so the view shows
-        // as its colour: an SGR code the plain cover's bottom row lacks.
+        // as its colour: an SGR code the plain cover's bottom row lacks. The
+        // text before a row's first ESC[ is not a code, so it is dropped, not
+        // kept as one (a row that starts with text would otherwise add its
+        // leading text to the set, and a set difference could be non-empty
+        // with no code in it).
         func codes(_ line: String?) -> Set<Substring> {
-            Set((line ?? "").split(separator: "\u{1B}[").map { $0.prefix { $0 != "m" } })
+            Set(
+                (line ?? "").split(separator: "\u{1B}[", omittingEmptySubsequences: false)
+                    .dropFirst()
+                    .map { $0.prefix { $0 != "m" } })
         }
         let fill = codes(trailing.last).subtracting(codes(plain.last))
         #expect(plain.map(\.stripped) == trailing.map(\.stripped), "the text is unchanged")
