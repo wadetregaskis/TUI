@@ -488,8 +488,19 @@ jobs:
       # Release has a directory of its own under `.build`, so this shares the
       # checkouts with the Build step and disturbs nothing it built; before
       # the type-check budget, which must stay last.
+      #
+      # A limit of its own, because one way `-O` has gone wrong here is not an
+      # error but a frontend that does not finish: on 2026-09-30 a recursion
+      # handed closure literals took swift-frontend to tens of GB in release
+      # on 6.2.4 and 6.3.3, and debug was unaffected. A macOS runner swaps
+      # rather than kills, so without a limit the job would run to GitHub's
+      # six-hour default. 30 minutes is the limit of every timed build step
+      # in this workflow; every product in release took 2–4 minutes from
+      # clean at -j 3 on the shared development machine (runners:
+      # unmeasured).
       - name: Release build
         if: matrix.release_build
+        timeout-minutes: 30
         run: $SWIFT build -c release
 
       # A guard against type-check regressions that cannot flake: the library,
@@ -664,8 +675,14 @@ jobs:
       # smoke, so the two 6.3 lanes end closer together. That failure was in
       # the SIL pipeline, not the target: a reduction of it failed alike on
       # macOS arm64 and for x86_64 Linux (swift.org 6.3.3, its static SDK).
+      # The whole package built in release for aarch64 Linux the same way
+      # (swift.org 6.3.3, static SDK: musl, not this image's glibc) before
+      # this lane first ran it. The same 30-minute limit as the macOS step,
+      # for the same reason; here the container's out-of-memory kill may end
+      # a runaway frontend sooner (unmeasured).
       - name: Release build
         if: matrix.release_build
+        timeout-minutes: 30
         run: swift build -c release
 
   # ── Windows (advisory: the port is in progress) ─────────────────────────────
