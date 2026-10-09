@@ -403,6 +403,40 @@ anything at run time:
   module the initializer calls it out of line. Assign the value in each
   initializer instead; assigning it while keeping the default changes
   nothing (`ClaimingRow.claims`).
+- **Build a view in the module whose `some View` results it uses, when
+  those results name types the caller cannot see.** A function's opaque
+  result (`some View`) is concrete in a caller in another module only if
+  every type its underlying type names is `package` or public: at Swift
+  6.2.4 a client of a module not built for library evolution substitutes
+  the underlying type only when each of those types' effective access is
+  above `internal` (TypeSubstitution.cpp L925–929 and L988–994), and
+  otherwise keeps the opaque type (L1036–1047). The caller then asks the
+  runtime for the type and its conformances
+  (`swift_getOpaqueTypeMetadata2`, `swift_getOpaqueTypeConformance2`) on
+  every call, and the runtime finds the type by demangling its name each
+  time. Inside the callee's module the same call is concrete. A `some
+  View` that the result itself returns from another function counts too:
+  that function must be above `internal`, and its own underlying type is
+  checked the same way. Step B5b's carve met this: it moved the inline
+  menu's column into TUIkitMenus, where it called `bordered`, whose result
+  names the internal `_BorderRings`, and `foregroundStyle(_:)`, whose
+  result names the internal `_StyleEnvironmentView`, and resolved both on
+  every draw. The column is TUIkitFoundation's again, and
+  `_InlineMenuCore` is `package` for `InlineMenuStyle` to make. So keep
+  caller and callee in one module, or give the other module a concrete
+  entry point: a non-generic `package` function that builds the view
+  where its types are concrete. Do not widen the underlying type, nor make
+  the callee `@inlinable`, to make it visible: either lets every app see
+  through the same modifier as well, which changes the app's own code.
+  The same column showed a second class, with the same remedies: a
+  generic function (a protocol extension's method is one, generic over
+  `Self`) reaches another module only as a call to its unspecialised
+  entry, unless its body crosses too, which `@inlinable` does, and which
+  conservative cross-module optimisation does only for a small public
+  function; `bordered` is not public, so the column called it
+  unspecialised. A release `Stress` shows both (`otool -tV`): the
+  `swift_getOpaqueType…` calls in the caller, and a `bl` to the generic
+  entry where a `specialized` copy would be.
 
 ## Code Style
 
