@@ -73,12 +73,18 @@ struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundP
         fatalError("_PresentationBackgroundView renders via Renderable")
     }
 
+    /// The presented view with the fill behind it. A background view goes on
+    /// in TUIkitFoundation (`erasedBackground(alignment:_:)`): built here,
+    /// `background(alignment:content:)`'s result names a type only that module
+    /// can see, so this module would look its type up at run time on every
+    /// frame the presentation is open (CONTRIBUTING.md, "Crossing a module
+    /// boundary"). A style's background names no such type.
     func presentationBackground<V: View>(behind view: V) -> AnyView {
         switch fill {
         case .style(let style):
             AnyView(view.background(style))
         case .view(let background):
-            AnyView(view.background(alignment: alignment) { background })
+            view.erasedBackground(alignment: alignment, background)
         }
     }
 }

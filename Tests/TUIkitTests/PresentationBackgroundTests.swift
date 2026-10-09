@@ -69,6 +69,47 @@ struct PresentationBackgroundTests {
         #expect(popover(false) != popover(true))
     }
 
+    @Test("A background view is drawn behind a cover, placed by its alignment")
+    func coverBackgroundView() {
+        // A cover is the terminal's width and the content area's height, so
+        // both are this screen's.
+        var context = RenderContext(availableWidth: 40, availableHeight: 12, tuiContext: TUIContext())
+            .isolatingRenderCache()
+        context.environment.terminalWidth = 40
+        context.environment.terminalHeight = 12
+        context.environment.overlayContentHeight = 12
+        let cover = { (alignment: Alignment?) in
+            renderToBuffer(
+                Text("page").fullScreenCover(isPresented: .constant(true)) {
+                    if let alignment {
+                        Text("loading").presentationBackground(alignment: alignment) {
+                            Color.blue.frame(width: 4, height: 1)
+                        }
+                    } else {
+                        Text("loading")
+                    }
+                },
+                context: context
+            )
+            .compositingOverlays(maxWidth: 40, maxHeight: 12, palette: context.environment.palette)
+            .lines
+        }
+        let plain = cover(nil)
+        let trailing = cover(.bottomTrailing)
+        let leading = cover(.bottomLeading)
+        // A background's glyphs show only where the cover draws no cell, and it
+        // draws every one (`background(alignment:content:)`), so the view shows
+        // as its colour: an SGR code the plain cover's bottom row lacks.
+        func codes(_ line: String?) -> Set<Substring> {
+            Set((line ?? "").split(separator: "\u{1B}[").map { $0.prefix { $0 != "m" } })
+        }
+        let fill = codes(trailing.last).subtracting(codes(plain.last))
+        #expect(plain.map(\.stripped) == trailing.map(\.stripped), "the text is unchanged")
+        #expect(!fill.isEmpty, "the bottom row is filled: \(trailing.last ?? "")")
+        #expect(trailing.dropLast().allSatisfy { codes($0).isDisjoint(with: fill) }, "and no row above it")
+        #expect(trailing.last != leading.last, "where the alignment puts it")
+    }
+
     @Test("The background is found through a detent around it, and a detent through it")
     func throughOtherTraits() {
         let outer = screen(

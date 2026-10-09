@@ -23,7 +23,11 @@ import TUIkitView
 /// type is concrete. Step B7's carve of TUIkitTextInput met five such
 /// modifiers: `border`, `id`, `foregroundStyle`, `focused` and `onAppear`, whose
 /// results name `_BorderRings`, `_IDModifier`, `_StyleEnvironmentView`,
-/// `_FocusedModifier` and `OnAppearModifier`. Widening those types, or making
+/// `_FocusedModifier` and `OnAppearModifier`. TUIkitPresentation names a sixth,
+/// `background(alignment:content:)`, whose result names
+/// `BackgroundLayerModifier`: a lookup on every frame of a presentation with a
+/// background view since step B5 carved the presentations out, which the
+/// crossing predictor flagged at step C1. Widening those types, or making
 /// the modifiers `@inlinable`, would let every app see through the same public
 /// modifiers too, which changes the app's own code; these entry points change
 /// nothing outside the package.
@@ -75,5 +79,15 @@ extension View {
     /// erased.
     package func erasedOnAppear(perform action: @escaping () -> Void) -> AnyView {
         AnyView(onAppear(perform: action))
+    }
+
+    /// This view with `background` behind it, placed by `alignment`
+    /// (`background(alignment:content:)`), erased.
+    ///
+    /// For a presentation's background view (TUIkitPresentation's
+    /// `presentationBackground(alignment:content:)`), which the presenter puts
+    /// behind the presented content on every frame the presentation is open.
+    package func erasedBackground(alignment: Alignment, _ background: AnyView) -> AnyView {
+        AnyView(self.background(alignment: alignment) { background })
     }
 }
