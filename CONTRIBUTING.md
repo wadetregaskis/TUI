@@ -376,11 +376,15 @@ anything at run time:
   storage. Never mark the stored property `package` or `@usableFromInline`,
   either of which makes it visible outside the module, unless the binary
   shows every access to it is already dynamic. The optimiser decides per
-  property, all or nothing, so a property it already checks everywhere
-  (every `swift_beginAccess` in the class's functions is on it, read with
-  `otool -tV` from a release `Stress`) costs nothing more when widened, and
-  an `@inlinable` accessor over it is then how a hot read from another
-  module avoids a call. `LazyListRowContent.cached` is the one such
+  property, all or nothing, so one `swift_beginAccess` on the property in
+  its own module's functions shows that every access to it is checked
+  (read with `otool -tV` from a release `Stress` that links those
+  functions: the call's address is the object plus the property's field
+  offset). Without such a call the property is statically enforced, whether
+  or not the class's other properties are checked, and widening it adds a
+  check to every access. A property checked already costs nothing more
+  when widened, and an `@inlinable` accessor over it is then how a hot read
+  from another module avoids a call. `LazyListRowContent.cached` is the one such
   property; its doc comment holds the evidence. Struct fields are not
   affected.
   A settable property requirement of a `package` protocol hands out its

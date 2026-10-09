@@ -81,12 +81,14 @@ package final class LazyListRowContent {
     /// The row's render, once it has one: what ``buffer`` and ``badge`` lend.
     ///
     /// `@usableFromInline`, so internal rather than `private`, for those two
-    /// `@inlinable` accessors, which TUIkitLists' row code reads from 25
-    /// places, several of them per drawn row. Without their bodies each read
-    /// was a call into `buffer`'s read coroutine, which heap-allocates its
-    /// frame, copies the buffer into it and calls back to end the access:
-    /// about 3% of a `megalist` frame in the profile that found it, where
-    /// the single module read the property in place.
+    /// `@inlinable` accessors, which TUIkitLists' row code calls from 27
+    /// places in a release `Stress` (25 to ``buffer``, 2 to ``badge``),
+    /// several of them per drawn row. Without their bodies each ``buffer``
+    /// read was a call into its read coroutine, which heap-allocates its
+    /// frame, copies the buffer into it and calls back to end the access,
+    /// and each ``badge`` read was a getter call: about 3% of a `megalist`
+    /// frame in the profile that found it, where the single module read the
+    /// property in place.
     ///
     /// This is the one exception to CONTRIBUTING.md's rule "never make a
     /// class's stored property `@usableFromInline`" (in "Crossing a module
@@ -95,13 +97,14 @@ package final class LazyListRowContent {
     /// module's view of a class stored property stops the optimiser from
     /// proving its accesses free of conflict, so each keeps a run-time
     /// exclusivity check (`swift_beginAccess`). That decision is all or
-    /// nothing per property, and for this one it was "dynamic" already
-    /// inside one module: in a release `Stress`, every `swift_beginAccess`
-    /// site in this class's functions is on this property (14 in 13
-    /// functions before the change, 9 in 8 at the pre-split c181ec0f9), and
-    /// at c181ec0f9 the list's row code kept a check on each read it
-    /// inlined. So the widening adds no check. Do not copy it for a property
-    /// whose accesses are statically enforced, such as the storage under
+    /// nothing per property, so one `swift_beginAccess` on a property shows
+    /// that every access to it is checked, and this one has them inside one
+    /// module: in a release `Stress`, this class's functions check it at 14
+    /// sites in 13 functions before the change (9 in 8 at the pre-split
+    /// c181ec0f9), each at its field offset, and at c181ec0f9 the list's row
+    /// code kept a check on each read it inlined. So the widening adds no
+    /// check. Do not copy it for a property with no such check, whose
+    /// accesses are statically enforced, such as the storage under
     /// ``separatorDecider``.
     @usableFromInline var cached: (buffer: FrameBuffer, badge: BadgeValue?)?
 
