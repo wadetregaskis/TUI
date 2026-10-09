@@ -47,7 +47,12 @@ name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
   conforming types of its own module only, so `Text`'s page no longer lists
   `toolbar(content:)`, `help(_:)`, `transition(_:)`, `contextMenu(menuItems:)`
   or `menuStyle(_:)` among its default implementations, while `View`'s page
-  still does.
+  still does, and so do the new modules' own types' (`Menu`'s lists
+  `contextMenu` and `menuStyle`, `StatusBar`'s `help` and `toolbar`):
+  checked in the strict docs build's archive, 2026-10-09. The archive has
+  55,840 pages against step B6's 59,764; how many of the 3,924 are such
+  copies was not counted. No doc link had resolved only through one: the
+  strict build reports nothing.
 - **The modules' edges, which is what each import will bring once per-module
   products ship.** Each of the three depends on TUIkitFoundation alone and
   re-exports it. TUIkitApp depends on TUIkitChrome (the run loop draws the
