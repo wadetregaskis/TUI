@@ -709,9 +709,9 @@ jobs:
   # split step B3: POSIX by design, so it has no step of its own, and the
   # umbrella's step covers it. TUIkitFoundation, which held the console layer
   # until then, has a step of its own since B3 (see "Build TUIkitFoundation"),
-  # and so have TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitNavigation,
-  # TUIkitLists and TUIkitColorPicker, the leaves steps B5b, B5, B6 and B4
-  # carved out of it.
+  # and so have TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
+  # TUIkitNavigation, TUIkitLists and TUIkitColorPicker, the leaves steps B5b,
+  # B5c, B5, B6 and B4 carved out of it.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -838,24 +838,28 @@ jobs:
       # tooltips, the window chrome host), TUIkitEffects (transitions, visual,
       # scroll and colour effects) and TUIkitMenus (Menu, ControlGroup,
       # .contextMenu). They come first: TUIkitNavigation depends on
-      # TUIkitChrome. Step B5's leaf, TUIkitNavigation, built on
+      # TUIkitChrome. Step B5c's leaf, TUIkitBitmaps (Image's bitmap path,
+      # AsyncImage, the image options), built on TUIkitFoundation and
+      # TUIkitImage (which TUIkitFoundation no longer needs since B5c), comes
+      # after them. Step B5's leaf, TUIkitNavigation, built on
       # TUIkitFoundation and TUIkitChrome: the navigation containers, and the
       # presentations, whose directory it compiles too until step C1. Step
       # B6's leaf, TUIkitLists, built on TUIkitFoundation: lists, and the
       # tables, tabs and grids, whose directories it compiles too until steps
-      # C2 to C4. Step B4's leaf, TUIkitColorPicker, built on TUIkitFoundation,
-      # TUIkitImage and both of those, so it comes last. None imports Darwin,
-      # Glibc or Musl or calls a termios, ioctl, signal or DispatchSource API
-      # (checked by grep, 2026-10-08 and, for B5b's three, 2026-10-09). Two
-      # have an `#if`, none around a POSIX call: TUIkitEffects one,
-      # `canImport(Symbols)` around the `.symbolEffect` modifiers that take
-      # Apple's Symbols types (absent off macOS, as on Linux), and TUIkitLists
-      # three, on two conditions, `canImport(Darwin)` once (a string column's
-      # default comparator) and `canImport(UniformTypeIdentifiers)` twice (a
-      # table row's item provider). So they are meant to build on Windows, but
-      # none can until TUIkitFoundation does: advisory until CI has seen them
-      # green, then binding like the four above. TUIkitApp, the other leaf, is
-      # POSIX by design and has no step (the umbrella's covers it).
+      # C2 to C4. Step B4's leaf, TUIkitColorPicker, built on
+      # TUIkitFoundation, TUIkitImage and both of those, so it comes last.
+      # None imports Darwin, Glibc or Musl or calls a termios, ioctl, signal
+      # or DispatchSource API (checked by grep, 2026-10-08 and, for B5b's
+      # three and TUIkitBitmaps, 2026-10-09). Two have an `#if`, none around a
+      # POSIX call: TUIkitEffects one, `canImport(Symbols)` around the
+      # `.symbolEffect` modifiers that take Apple's Symbols types (absent off
+      # macOS, as on Linux), and TUIkitLists three, on two conditions,
+      # `canImport(Darwin)` once (a string column's default comparator) and
+      # `canImport(UniformTypeIdentifiers)` twice (a table row's item
+      # provider). So they are meant to build on Windows, but none can until
+      # TUIkitFoundation does: advisory until CI has seen them green, then
+      # binding like the four above. TUIkitApp, the other leaf, is POSIX by
+      # design and has no step (the umbrella's covers it).
       - name: "Build TUIkitChrome"
         continue-on-error: true
         timeout-minutes: 30
@@ -870,6 +874,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitMenus"
+
+      - name: "Build TUIkitBitmaps"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitBitmaps"
 
       - name: "Build TUIkitNavigation"
         continue-on-error: true
@@ -1015,6 +1024,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitMenus
+      - name: "Build TUIkitBitmaps"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitBitmaps
       - name: "Build TUIkitNavigation"
         continue-on-error: true
         timeout-minutes: 30
