@@ -38,7 +38,6 @@
   ],
   "unpin": [],
   "scheduled": [
-    {"id": "K5", "check": "upward", "from": "^(TUIkitFoundation/App/ScreenSelection|TUIkitChrome/App/ScreenSelection\\+Menu)\\.swift::", "to": "^TUIkitTextInput/(Rendering/TextFieldContentRenderer|Focus/WordBoundary)", "why": "ScreenSelection reads a field-text-layout protocol in Base (A2)"},
     {"id": "K6", "check": "posix", "from": "^TUIkitTerminalHost/(App/ClipboardLocality|Rendering/ProcessAncestry)\\.swift::", "to": "^(getpid|pid_t)$", "why": "both files get a Windows arm like their WASI one, with no pid_t in its signatures (A2)"}
   ],
   "accepted": [

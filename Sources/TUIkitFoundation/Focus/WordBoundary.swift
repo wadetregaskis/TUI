@@ -18,6 +18,11 @@
 /// The scans are pure functions of a character array and an index, which is
 /// what lets both controls share them: a `TextField` walks its whole text, a
 /// `TextEditor` walks one line, and neither cares which it is.
+///
+/// It lives in TUIkitFoundation, below the text inputs, because the screen
+/// selection's double-click selects a word by the same rule
+/// (`ScreenSelection.wordBounds(at:in:clip:)`), and TUIkitFoundation cannot
+/// see a module built on it (the module split plan's K5).
 enum WordBoundary {
 
     /// Whether `character` is part of a word — letters, digits and underscore.
