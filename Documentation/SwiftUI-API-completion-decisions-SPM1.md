@@ -53,7 +53,10 @@ The other versions, as the diagnosis priced them:
   Declined by the brief.
 
 The price of what ships: about 420 lines compile in TUIkitFoundation's job again (about 0.1 s at the carve's own
-rate), and two files depart from the plan's map.
+rate), and two files depart from the plan's map. A third part of the price comes due only when the package ships a
+product per module, which none does yet: an app that links TUIkitFoundation but not TUIkitMenus would still carry
+`_InlineMenuCore` and its specialised column, which its protocol conformance records keep from being dead-stripped.
+How many bytes that is, is unmeasured.
 
 ### B-SPM1-2. `_InlineMenuCore.swift` imports TUIkitView itself, which M1 did not ask for
 
@@ -68,13 +71,15 @@ TUIkitFoundation, and so TUIkitView. B6s's file imported only TUIkitCore, and ha
 `import TUIkitView` in that file, with a comment saying why: the replay, which runs whenever a memo serves an inline
 menu, checks the executor no more, as at 4771bb09c.
 
-The fuller version is an audit. The same rule applies to every TUIkitFoundation file that passes a closure literal
-to TUIkitView's (or TUIkitStyling's, or TUIkitCore's) API without importing that module: 117 of its 476 files
-import TUIkitView. How many of TUIkitFoundation's 607 check sites that accounts for is unmeasured, and so is
-how many of them run per frame. Its price: an import per file where the index shows such a closure, and
-Tools/ModuleMap's `imports` check, which skips TUIkitFoundation's own files today, extended to them for the lower
-modules. It is not a split regression (no carve changed those files' imports), so it belongs to a lane of its own,
-measured first.
+The fuller version is an audit. The same rule applies to every file the TUIkitFoundation target compiles that passes
+a closure literal to TUIkitView's (or TUIkitStyling's, or TUIkitCore's) API without importing that module. The target
+compiles 571 files from six directories (Sources/TUIkitFoundation and the five planned modules not yet carved:
+TUIkitNumericControls, TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch; Package.swift's `directories:`),
+and 124 of them import TUIkitView (117 of Sources/TUIkitFoundation's 476). How many of TUIkitFoundation's 607 check
+sites, a count over the whole module, that accounts for is unmeasured, and so is how many of them run per frame. Its
+price: an import per file where the index shows such a closure, and Tools/ModuleMap's `imports` check, which skips
+TUIkitFoundation's own files today, extended to them for the lower modules. It is not a split regression (no carve
+changed those files' imports), so it belongs to a lane of its own, measured first.
 
 ### B-SPM1-3. Two static totals stay above the base's: every extra site is B6s's, and none adds a check at run time
 
