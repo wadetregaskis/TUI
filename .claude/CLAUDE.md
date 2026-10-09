@@ -1,7 +1,8 @@
 ## RULES
 
 ### Compatibility (non-negotiable, with one known exception)
-- **Swift 6.2 compatible**: `swift-tools-version: 6.2`.  Readily make use of language features up to 6.2, such as nonisolated on protocols / classes / structs / enums, test scoping traits, the `@concurrent` attribute, `InlineArray`, `@Observable` types and the `Observations` struct, raw identifier display names for unit tests, default values in string interpolations, weak let, global-actor isolated conformances, isolated synchronous deinit, task naming, regex lookbehind, non-escapable types, `Span` where it's available, yielding accessors, etc.
+- **Swift 6.2 compatible**: `swift-tools-version: 6.2`.  Readily make use of language features up to 6.2, such as nonisolated on protocols / classes / structs / enums, test scoping traits, the `@concurrent` attribute, `InlineArray`, `@Observable` types and the `Observations` struct, raw identifier display names for unit tests, default values in string interpolations, weak let, global-actor isolated conformances, isolated synchronous deinit, task naming, regex lookbehind, non-escapable types, `Span` where it's available, etc.
+  For yielding accessors use the underscored `_read` and `_modify`. SE-0474's `yielding borrow` / `yielding mutate` would be the official mechanism, but no compiler supports it properly yet: 6.2 and 6.3 accept only the older `read`/`modify` spelling, and 6.4 only `yielding`, and all three only behind `-enable-experimental-feature CoroutineAccessors` (measured 2026-10-09).
 - **Cross-platform**: must build and run correctly on both macOS and Linux. CI
   tests macOS 15 and 26 (Xcode 26) and macOS 27 (Xcode 27), and Swift
   6.2/6.3/6.4 Linux containers on x86_64 plus 6.3 on arm64, with
