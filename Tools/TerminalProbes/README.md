@@ -129,7 +129,10 @@ when unset), the visual/aspect probes print to the terminal.
   ends it while a counter runs for 8 seconds: the first value seen is the
   host's timeout, read by eye or from a recording. JSON to `$PROBE_OUT`;
   `PROBE_ALT=1` for the alternate screen. NOT YET RUN on any host
-  (2026-10-05).
+  (2026-10-05). Its `leak_check` and `decrqm` have run, called by
+  `hairline_probe.py`'s Q7, in Ghostty 1.3.1 and iTerm2 3.7.3 (2026-10-08):
+  those fill the "pair prints nothing" and DECRQM cells of
+  Terminal-compatibility.md's synchronized-output table.
 - `clipboard_probe.py` — does the terminal put an application's OSC 52 write
   on the clipboard? Writes a nonce exactly as TUIkit spells it
   (`ESC ] 52 ; c ; <base64> ESC \`) and reads the clipboard back with this

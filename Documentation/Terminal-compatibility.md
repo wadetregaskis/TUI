@@ -3525,7 +3525,10 @@ size, not per frame.
 
 ### A line on a row boundary: Kitty classic placements — measured 2026-10-08, Ghostty 1.3.1 and iTerm2 3.7.3
 
-Every separator TUIkit draws costs a whole row. A Kitty **classic**
+Every separator TUIkit draws between rows costs a whole row:
+`.listRowSeparator` puts its faint `─` rule on a line of its own. (A vertical
+divider, a column of `│`, costs a column instead, and is not the question
+here.) A Kitty **classic**
 placement, drawn at the cursor and outside the cell grid (not the Unicode
 placeholders `Image` uses, whose cells hold no text), could instead draw a
 line one or two pixels thick on the boundary between two rows, at no cost in
@@ -3537,7 +3540,9 @@ alternate screen:
 - `Tools/TerminalProbes/data/ghostty-1.3.1-hairline.json` (99 × 35 cells)
 - `Tools/TerminalProbes/data/iterm2-3.7.3-hairline.json` (125 × 48 cells)
 
-The line is one 2048 × 2 px strip (raw RGB, `f=24`), sent once and placed
+The line is one 2048 × 2 px strip (raw RGB, `f=24`), sent again on each card
+(each card first deletes the previous card's lines; only Q6 places a line
+again without re-sending, because that is its question) and placed
 with `a=p,i,p,x=0,y=0,w,h=2,C=1,z,q=0` at the run's first cell on the
 **lower** row, so that the line's top edge is the boundary. `w` crops the
 strip to the run. 2 px is the probe's `max(1, cell height // 17)` at both
@@ -3547,15 +3552,19 @@ beta's (xterm.js, "Graphics").
 
 **Neither host meets a kill criterion.** On both, the line is drawn on the
 boundary (Q1), shows in some layer (Q4), is removed by its `(i, p)` (Q6) and
-stays steady with mode 2026 (Q7). The records name three changes to the plan:
-Ghostty needs `z=+1`; iTerm2 is excluded until its pixel unit is known;
-and cleanup must delete every line by id, because of iTerm2.
+stays steady with mode 2026 (Q7). The records name two changes to the plan.
+Ghostty needs `z=+1` in place of the design's `z=-1`, and so needs the host
+identified first (the record: "which needs an identity for it"). iTerm2 is
+excluded until its pixel unit is known. A third item confirms the design
+rather than changing it: cleanup must delete every line by id, which the
+design already does, because on iTerm2 a line outlives `ESC[2J` and the
+screen switch.
 
 | Question | Ghostty 1.3.1 | iTerm2 3.7.3 |
 |---|---|---|
 | Q1 placement acknowledged | `OK` | `OK` |
 | Q1 drawn, on the boundary | yes, yes | yes, yes |
-| Q1 ends at its bars, within a pixel or two | yes | **no** |
+| Q1 ends at its bars, within a pixel or two (40 columns, cropped `ws_xpixel × 40 // ws_col`) | yes, at 643 px | **no**, at 560 px |
 | Q2 `C=1` holds the cursor (DSR before and after) | yes | yes |
 | Q3 the unit, coarse | 16 px, by all three measures | **none found** |
 | Q3 a fine line ends exactly at its bar | **neither of two (OPEN, below)** | neither of two |
@@ -3582,22 +3591,40 @@ The coarse check places a line 10 cells wide by each measure with `C=0` and
 reads the cursor's advance. It catches a 2× error (points against device
 pixels). Rounding up to whole cells hides anything finer.
 
-- **Ghostty: one unit, 16 px.** The three measures agree, and a 160 px line
-  advanced the cursor 10 cells by each. `ws_xpixel` is 8 px more than the
-  1,584 px text area (99 × 16) that `CSI 14 t` reports, and `ws_ypixel` is
-  2 px more than 1,190 (35 × 34), so the ioctl's size includes padding. By
-  arithmetic, then, an n-column run is n × (`ws_xpixel` // `ws_col`) = 16n px
-  wide. The probe's crop rule, `ws_xpixel × n // ws_col`, is long by up to
-  8n/99 px. That is 3 px at Q1's 40 columns (643 against 640), which the card
-  accepted as "within a pixel or two", and 7 px at Q3's 95.
-- **OPEN, Ghostty Q3:** the person judged that neither fine line ended at its
-  bar. Line A, `ws_xpixel × 95 // ws_col`, is 1,527 px. Line B,
-  `95 × (ws_xpixel // ws_col)`, is 1,520 px, and `CSI 14 t`'s and
-  `CSI 16 t`'s measures give the same width. B should be exact: 95 cells of
-  16 px from the left edge of column 1, ending at the bar ▏ that marks the
-  right edge of column 95. Either the card's bar is off, or the unit is not
-  what it seems. This is **unresolved**. The card asks only yes or no, so the
-  record does not say whether either line fell short or ran past its bar.
+- **Ghostty: the coarse unit is 16 px; the exact width is OPEN.** The three
+  measures agree, and a 160 px line advanced the cursor 10 cells by each (the
+  record's `unit_revealed_by` is the ioctl, which the probe names whenever the
+  ioctl's measure is among those that agree, so it is no tie-break).
+  `ws_xpixel` is 8 px more than the 1,584 px text area (99 × 16) that
+  `CSI 14 t` reports, and `ws_ypixel` is 2 px more than 1,190 (35 × 34).
+  Perhaps the ioctl's size counts the window's padding; no record measures
+  padding. If a column is exactly 16 px, an n-column run is
+  n × (`ws_xpixel` // `ws_col`) = 16n px wide, and the probe's crop rule,
+  `ws_xpixel × n // ws_col`, runs long by up to 8n/99 px: 3 px at Q1's 40
+  columns (643 against 640) and 7 px at Q3's 95. That is arithmetic, not a
+  measurement, and the one direct reading of a 16n width contradicts it: Q3's
+  line B, at 1,520 px, was judged not to end at its bar (below). The only
+  "yes" on where a line ends is Q1's, for the probe's own 643 px, under a
+  question that allowed "a pixel or two". The record recommends no unit:
+  `q3_widths_ending_at_the_bar` is empty, and the probe went on cropping
+  every later card by its own rule (`crop_from_here_on`).
+- **OPEN, Ghostty Q3:** neither fine line was judged to end at its bar.
+  Line A, `ws_xpixel × 95 // ws_col`, is 1,527 px. Line B,
+  `95 × (ws_xpixel // ws_col)`, is 1,520 px, the width `CSI 14 t`'s and
+  `CSI 16 t`'s measures also give. Each line starts at column 1's left edge,
+  so with 16 px columns B ends exactly at the bar: the probe writes ▏ in
+  column 96 (`self.text(upper, run + 1, "▏")`), so the bar's left edge is
+  column 95's right edge. Three explanations fit, and
+  the records cannot tell them apart: the host draws the bar somewhere else;
+  the unit is not what it seems; or the yes/no judgement was off. Q1 asked
+  for "within a pixel or two" and was answered yes for a line that, by the
+  arithmetic above, runs 3 px past its bar, while Q3 asked for "neither short
+  of it nor past it", with no tolerance. This is **unresolved**. The card asks
+  only yes or no, so the record does not say whether either line fell short
+  or ran past its bar. Either of two things would settle it: a zoomed
+  screenshot of Q3's card on a re-run, whose pixel columns at the bar answer
+  it outright, or a Q3 card that asks "short, exact or past" in place of yes
+  or no.
 - **iTerm2: no query reveals the unit.** The coarse check names none. A
   71 px line (10 × `CSI 14 t`'s 7.08) and a 140 px line (10 × the ioctl's 14)
   each moved the cursor from column 1 of its row to column 125, the last, of
@@ -3623,9 +3650,14 @@ Every placement answered `OK` on both hosts.
 | On the boundary, wherever the line shows | yes | yes |
 
 The records do not say which band hid Ghostty's `z=-1` line. Nor do they say
-in which direction iTerm2's lowest z departs from the spec. No single z is
-right on both hosts. Ghostty needs `z=+1` (the record's plan change), so its
-line crosses the top edge of the lower row's `│ ┼ █ ▀`. iTerm2 needs `z=-1`.
+in which direction iTerm2's lowest z departs from the spec. Ghostty needs
+`z=+1` (the record's plan change, "which needs an identity for it"), so its
+line crosses the top edge of the lower row's `│ ┼ █ ▀`. On iTerm2, `z=-1` is
+the only z known to work. Its `z=+1` line was asked one thing, whether it
+draws over the glyphs (no); nobody judged whether it shows on every band. If
+it does, `z=+1` shows on every band on both hosts: over the glyphs on
+Ghostty, as its plan change accepts, and under them on iTerm2, as the design
+intends. So one z for both hosts is **untested**, not ruled out.
 
 #### Rewrites, deletes and motion (Q5–Q7)
 
@@ -3702,10 +3734,10 @@ window going from 99 × 35 to 123 × 37.
 
 | | Ghostty 1.3.1 | iTerm2 3.7.3 |
 |---|---|---|
-| z | `+1`, crossing the top of `│ ┼ █ ▀` | `-1` |
-| Crop unit | the 16 px cell, n × (`ws_xpixel` // `ws_col`), not `ws_xpixel × n // ws_col`, which counts the padding; Q3 is OPEN | none found: exclude the host until one is |
+| z | `+1`, crossing the top of `│ ┼ █ ▀`; the host must be identified first | `-1`, the only z known to show on every band (`+1` per band unmeasured) |
+| Crop unit | **OPEN**: 16n px, n × (`ws_xpixel` // `ws_col`), by arithmetic, but Q3's one direct reading of that width was "no"; Q1's "yes" was for `ws_xpixel × n // ws_col` | none found: exclude the host until one is |
 | Re-send the strip | after `ESC[2J` and after every `?1049l`/`?1049h`; send it on the alternate screen (a store per screen) | neither `ESC[2J` nor the screen switch needs it (one store, kept) |
-| Resize | not judged | the line moves: delete it and place it again |
+| Resize | not judged | the line moved (where to is not recorded); whether deleting it and placing it again puts it back is untested |
 | Cleanup | delete every line by its id | delete every line by its id; a line left behind shows on the primary screen |
 
 On both hosts, a strip with no placement left was placed again without being
@@ -5372,7 +5404,8 @@ rendered frame included.
 | Host | Implements 2026 | A hold nobody ends |
 |---|---|---|
 | Ghostty 1.3.1 | yes: its help page, and `synchronized_output = 2026` in `src/terminal/modes.zig` | ended after 1000 ms (`sync_reset_ms`, `src/termio/Thread.zig`) |
-| iTerm2, kitty, Warp | hypothesis: yes | unknown |
+| iTerm2 | hypothesis: yes; 3.7.3 recognises the mode, answering DECRQM `?2026` with `reset` (measured, below) | unknown |
+| kitty, Warp | hypothesis: yes | unknown |
 | Apple Terminal 455.1 | hypothesis: no, ignored | — |
 | tmux 3.7c | unknown, and unknown whether a pane's hold reaches the client | unknown |
 

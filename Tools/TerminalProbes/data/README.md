@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminal-compatibility.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Seven kinds of file live here, and an eighth is to come:
+conditions. Eight kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -54,7 +54,8 @@ conditions. Seven kinds of file live here, and an eighth is to come:
   Only a run a person answered to the end replaces a record that holds a
   person's answers; any other run is written beside it, as
   `…-hairline-aborted.json` when it was stopped and `…-hairline-auto.json`
-  when it ran `--auto` or went unanswered. None yet (2026-10-08).
+  when it ran `--auto` or went unanswered. Two so far, both answered to the
+  end on 2026-10-08: Ghostty 1.3.1 and iTerm2 3.7.3.
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of
