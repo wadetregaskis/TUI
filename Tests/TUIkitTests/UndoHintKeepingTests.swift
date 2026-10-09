@@ -77,10 +77,10 @@ struct UndoHintKeepingTests {
 
     /// The space bar's name is a word in the app's language (`KeySymbols.spaceBar`),
     /// which can change with no input to the hint changing — so its name is
-    /// written on each read, and only the shortcut is kept. A test cannot
-    /// switch the shared service's language under the parallel suite (it
-    /// assumes English), so this pins the text and that the table is not
-    /// worked out again.
+    /// written on each read, and only the shortcut is kept. This pins the
+    /// text the bar's own writer gives under the shared service, and that
+    /// the table is not worked out again; the language switch itself is
+    /// `spaceBarHintFollowsTheLanguage`.
     @Test("A hint on the space bar keeps its shortcut and writes the word afresh")
     func spaceBarHintIsWrittenOnRead() {
         let keys = AppUndoKeys()
@@ -91,6 +91,38 @@ struct UndoHintKeepingTests {
         #expect(keys.hint(for: .undo) == "⌥" + space)
         #expect(keys.hint(for: .redo) == "⌥_")
         #expect(keys.hintResolutions == 1)
+    }
+
+    /// The review's case (2026-10-08): the language changes under a kept
+    /// ⌥Space undo hint, and the bar must follow it, from ⌥Space to
+    /// ⌥Leertaste. The shared service's language cannot be switched under the
+    /// parallel suite, so the bar's writer is given a service of the test's
+    /// own (`AppUndoKeys(writingNamesWith:)`): the real spelling, with the
+    /// space bar's word read from that service.
+    @Test("A hint on the space bar follows the app's language, with the table kept")
+    func spaceBarHintFollowsTheLanguage() {
+        let directory = NSTemporaryDirectory() + "tuikit-undo-hint-\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: directory) }
+        let service = LocalizationService(configDirectoryPath: directory)
+        service.pinLanguageForTesting(.english)
+        var written: [String] = []
+        let keys = AppUndoKeys(writingNamesWith: { shortcut in
+            let word = service.string(for: LocalizationKey.KeyName.space.rawValue)
+            let name = KeySymbols.statusBarName(of: shortcut)?.replacingOccurrences(of: KeySymbols.spaceBar, with: word)
+            written.append(name ?? "nil")
+            return name
+        })
+        keys.publish(
+            UndoShortcuts([.undo: .only(KeyboardShortcut(.space, modifiers: .option))]), commandKey: .control)
+        #expect(keys.hint(for: .undo) == "⌥Space")
+        #expect(keys.hint(for: .redo) == "⌥_")
+        service.pinLanguageForTesting(.german)
+        #expect(keys.hint(for: .undo) == "⌥Leertaste", "the word is the language of the moment")
+        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hintResolutions == 1, "the table is worked out once")
+        // Redo's name was written once, when the hints were worked out; the
+        // space bar's on each read of it.
+        #expect(written == ["⌥_", "⌥Space", "⌥Leertaste"])
     }
 
     private final class Model {
@@ -106,7 +138,10 @@ struct UndoHintKeepingTests {
         manager.endUndoGrouping()
     }
 
-    @Test("The bar asks once across renders, and shows what it showed")
+    /// The bar asks for both hints each time it draws (`StatusBar` reads
+    /// `currentSystemItems`): three frames of the real bar show the same
+    /// hints, worked out once.
+    @Test("The bar works its hints out once across three frames, and shows what it showed")
     func statusBarAsksOnce() {
         let manager = UndoManager()
         manager.groupsByEvent = false
@@ -116,12 +151,18 @@ struct UndoHintKeepingTests {
         manager.undo()
         let statusBar = StatusBarState()
         statusBar.undoManager = manager
-        let hints = {
-            statusBar.currentSystemItems.filter { $0.order == .undo || $0.order == .redo }.map(\.shortcut)
+        let frame = {
+            let context = makeRenderContext(width: 60, height: 1) { environment, _ in
+                environment.statusBar = statusBar
+            }
+            return renderToBuffer(StatusBar(), context: context).lines.joined().stripped
         }
-        #expect(hints() == ["⌃-", "⌥_"])
-        #expect(hints() == ["⌃-", "⌥_"])
-        #expect(hints() == ["⌃-", "⌥_"])
+        for _ in 0..<3 {
+            let line = frame()
+            #expect(line.contains("⌃-") && line.contains("⌥_"), "both hints on the bar: '\(line)'")
+        }
+        let hints = statusBar.currentSystemItems.filter { $0.order == .undo || $0.order == .redo }.map(\.shortcut)
+        #expect(hints == ["⌃-", "⌥_"])
         #expect(statusBar.undoKeys.hintResolutions == 1)
     }
 }

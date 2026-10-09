@@ -227,7 +227,22 @@ package final class AppUndoKeys: @unchecked Sendable {
     /// rebuilt only when the table changes.
     private var lookup = UndoShortcuts.default.lookup(commandKey: .control)
 
-    package init() {}
+    /// Writes a key's name for ``hint(for:)``: `KeySymbols.statusBarName(of:)`,
+    /// but in a test.
+    private let writeName: (KeyboardShortcut) -> String?
+
+    package convenience init() {
+        self.init(writingNamesWith: KeySymbols.statusBarName(of:))
+    }
+
+    /// Undo keys whose hints are written by `writeName` — a parameter so a test
+    /// can switch the app's language under the space bar's name, which the
+    /// shared service holds and the parallel suite cannot switch (it assumes
+    /// English), as `StatusBarItem.keyFromShortcut(_:spaceBarName:)` takes the
+    /// name.
+    init(writingNamesWith writeName: @escaping (KeyboardShortcut) -> String?) {
+        self.writeName = writeName
+    }
 
     /// Takes the scene's table for the next keys, rebuilding the map only
     /// when it changed — the run loop calls this every frame.
@@ -252,15 +267,17 @@ package final class AppUndoKeys: @unchecked Sendable {
     /// the table, the ⌘ binding or what the terminal reports changes.
     func hint(for command: UndoCommand) -> String? {
         let key = HintKey(shortcuts: shortcuts, commandKey: commandKey, reporting: reporting)
-        if let kept = keptHints, kept.key == key { return kept[command].name }
+        if let kept = keptHints, kept.key == key { return kept[command].name(writtenWith: writeName) }
         // Both at once: the bar asks for both, so the second is then kept.
         let resolve = { (command: UndoCommand) in
-            KeptHint(key.shortcuts.hintShortcut(for: command, on: key.reporting, commandKey: key.commandKey))
+            KeptHint(
+                key.shortcuts.hintShortcut(for: command, on: key.reporting, commandKey: key.commandKey),
+                writtenWith: self.writeName)
         }
         let kept = KeptHints(key: key, undo: resolve(.undo), redo: resolve(.redo))
         keptHints = kept
         hintResolutions += 1
-        return kept[command].name
+        return kept[command].name(writtenWith: writeName)
     }
 
     // MARK: The kept hints
@@ -305,18 +322,22 @@ package final class AppUndoKeys: @unchecked Sendable {
         /// each read: the language can change with nothing here hearing of it.
         case onTheSpaceBar(KeyboardShortcut)
 
-        init(_ shortcut: KeyboardShortcut?) {
+        /// `shortcut`'s hint, its name written by `write` now unless it has
+        /// the app's language in it.
+        init(_ shortcut: KeyboardShortcut?, writtenWith write: (KeyboardShortcut) -> String?) {
             if let shortcut, KeySymbols.nameIsLocalized(shortcut) {
                 self = .onTheSpaceBar(shortcut)
             } else {
-                self = .written(shortcut.flatMap(KeySymbols.statusBarName(of:)))
+                self = .written(shortcut.flatMap(write))
             }
         }
 
-        var name: String? {
+        /// The name the bar shows: the kept one, or the space bar's written
+        /// by `write` in the language of the moment.
+        func name(writtenWith write: (KeyboardShortcut) -> String?) -> String? {
             switch self {
             case .written(let name): name
-            case .onTheSpaceBar(let shortcut): KeySymbols.statusBarName(of: shortcut)
+            case .onTheSpaceBar(let shortcut): write(shortcut)
             }
         }
     }
