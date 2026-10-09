@@ -21,6 +21,12 @@ import Testing
 /// runtime that changes what it reports fails here, on every lane.
 @Suite("A type can say what it holds without an instance")
 struct TypeWalkTests {
+    /// The two verdicts most tests here expect, as values. Written `.init(refusal:holdsFunctions:)` inside each
+    /// `#expect`, the leading-dot operand was inferred through every `==` in scope, which Swift 6.4 took several
+    /// times as long over as 6.2 did (lane TC2).
+    private static let leaf = TypeWalk.Verdict(refusal: nil, holdsFunctions: false)
+    private static let leafHoldingFunctions = TypeWalk.Verdict(refusal: nil, holdsFunctions: true)
+
     // MARK: Types that exercise the rules
 
     fileprivate protocol Payload {}
@@ -79,12 +85,12 @@ struct TypeWalkTests {
 
     @Test("POD is a leaf")
     func podIsALeaf() {
-        #expect(verdict(Plain.self) == .init(refusal: nil, holdsFunctions: false))
+        #expect(verdict(Plain.self) == Self.leaf)
     }
 
     @Test("The known leaves, AnyHashable and metatypes are leaves")
     func knownLeaves() {
-        #expect(verdict(Leaves.self) == .init(refusal: nil, holdsFunctions: false))
+        #expect(verdict(Leaves.self) == Self.leaf)
     }
 
     @Test("A Binding is refused wherever a struct or tuple holds it")
@@ -103,9 +109,9 @@ struct TypeWalkTests {
         #expect(verdict(ArraySlice<Binding<Int>>.self).refusal != nil)
         #expect(verdict([String: Binding<Int>].self).refusal != nil, "a dictionary's values")
         #expect(verdict([any Payload].self).refusal != nil, "an array of existentials")
-        #expect(verdict([Int].self) == .init(refusal: nil, holdsFunctions: false))
-        #expect(verdict(Set<String>.self) == .init(refusal: nil, holdsFunctions: false))
-        #expect(verdict([String: [Int]].self) == .init(refusal: nil, holdsFunctions: false))
+        #expect(verdict([Int].self) == Self.leaf)
+        #expect(verdict(Set<String>.self) == Self.leaf)
+        #expect(verdict([String: [Int]].self) == Self.leaf)
     }
 
     @Test("An existential is refused")
@@ -115,26 +121,26 @@ struct TypeWalkTests {
 
     @Test("A closure is allowed and noted")
     func closureNoted() {
-        #expect(verdict(HoldsClosure.self) == .init(refusal: nil, holdsFunctions: true))
+        #expect(verdict(HoldsClosure.self) == Self.leafHoldingFunctions)
     }
 
     @Test("A class is searched for source readers only")
     func classSearchedForSourceReaders() {
         #expect(
-            verdict(HoldsShared.self) == .init(refusal: nil, holdsFunctions: false),
+            verdict(HoldsShared.self) == Self.leaf,
             "a class's existential and closure are its own business")
         #expect(verdict(HoldsSharedBinding.self).refusal == .readsItsSource(path: "HoldsSharedBinding.shared.isOn"))
     }
 
     @Test("An enum is a leaf: its payloads are not visible (a documented blind spot)")
     func enumIsALeaf() {
-        #expect(verdict(HoldsCarrier.self) == .init(refusal: nil, holdsFunctions: false))
+        #expect(verdict(HoldsCarrier.self) == Self.leaf)
     }
 
     @Test("A field the runtime describes as () is refused, unless the whole value is POD")
     func voidFieldRefused() {
         #expect(verdict(HoldsVoid.self).refusal == .opaqueStorage(path: "HoldsVoid.nothing"))
-        #expect(verdict(PODVoid.self) == .init(refusal: nil, holdsFunctions: false))
+        #expect(verdict(PODVoid.self) == Self.leaf)
     }
 
     @Test("A struct or tuple that is not POD and lists no fields is refused: its field metadata was stripped")
@@ -147,10 +153,10 @@ struct TypeWalkTests {
         let tuple = (String, any Payload).self
         #expect(walk.verdict(for: tuple).refusal == .noFieldMetadata(path: "\(tuple)"))
         #expect(
-            walk.verdict(for: Plain.self) == .init(refusal: nil, holdsFunctions: false),
+            walk.verdict(for: Plain.self) == Self.leaf,
             "POD is a leaf before its fields are asked")
         #expect(
-            walk.verdict(for: Shared.self) == .init(refusal: nil, holdsFunctions: false),
+            walk.verdict(for: Shared.self) == Self.leaf,
             "a class that lists none is a leaf, as a class the runtime cannot describe is")
     }
 
@@ -172,8 +178,8 @@ struct TypeWalkTests {
 
     @Test("Recursion through a class or an array terminates")
     func recursionTerminates() {
-        #expect(verdict(Node.self) == .init(refusal: nil, holdsFunctions: false))
-        #expect(verdict(Tree.self) == .init(refusal: nil, holdsFunctions: false))
+        #expect(verdict(Node.self) == Self.leaf)
+        #expect(verdict(Tree.self) == Self.leaf)
     }
 
     @Test("A type is walked once, however often it is asked about")
@@ -190,7 +196,7 @@ struct TypeWalkTests {
     func inlineArrayByElementType() {
         if #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, *) {
             #expect(verdict(InlineArray<2, Binding<Int>>.self).refusal != nil)
-            #expect(verdict(InlineArray<2, Int>.self) == .init(refusal: nil, holdsFunctions: false))
+            #expect(verdict(InlineArray<2, Int>.self) == Self.leaf)
         }
     }
 
@@ -293,7 +299,7 @@ struct TypeWalkTests {
                 } else {
                     #expect(types.first == Void.self, "\(types)")
                 }
-                #expect(verdict(Guarded.self) == .init(refusal: nil, holdsFunctions: false), "inside a class, a leaf")
+                #expect(verdict(Guarded.self) == Self.leaf, "inside a class, a leaf")
             }
         #endif
     }
