@@ -38,4 +38,16 @@ extension FocusManager {
         }
         return parts.joined(separator: " | ")
     }
+
+    /// All registered section IDs in render order.
+    var sectionIDs: [String] {
+        sections.map(\.id)
+    }
+
+    /// Every registered focusable's id, in render order across all sections —
+    /// the ring as it actually stands this frame. Used by tests that assert
+    /// what is (and is not) reachable.
+    var focusableIDs: [String] {
+        sections.flatMap { $0.focusables.map(\.focusID) }
+    }
 }

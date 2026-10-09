@@ -366,16 +366,6 @@ public final class FocusManager: @unchecked Sendable {
         return modalSectionIDs.contains(activeID)
     }
 
-    /// All registered section IDs in render order.
-    var sectionIDs: [String] { sections.map(\.id) }
-
-    /// Every registered focusable's id, in render order across all sections —
-    /// the ring as it actually stands this frame. Used by tests that assert
-    /// what is (and is not) reachable.
-    var focusableIDs: [String] {
-        sections.flatMap { $0.focusables.map(\.focusID) }
-    }
-
     /// Whether anything registered so far can actually take the focus.
     ///
     /// The question a PROBE render asks of a throwaway manager — "did this
