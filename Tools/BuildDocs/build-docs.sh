@@ -126,7 +126,11 @@ mkdir -p "$OUTPUT"
 ARCHIVE="$OUTPUT/TUIkit.doccarchive"
 rm -rf "$ARCHIVE"
 DIAGNOSTICS="$(mktemp -t docc-diagnostics)"
-trap 'rm -f "$DIAGNOSTICS"' EXIT
+# Every temporary so far, not just this one: a `trap … EXIT` REPLACES the
+# previous one, so a trap naming only $DIAGNOSTICS left each run's unified
+# symbol graphs ($STAGED, about 400 MB) behind in $TMPDIR (53 of them, 7.3 GB,
+# by 2026-10-09).
+trap 'rm -f "$DUMP_LOG" "$DIAGNOSTICS"; rm -rf "$STAGED"' EXIT
 # `tee` rather than a plain redirect: the diagnostics still go to the console,
 # where anyone running this by hand reads them. `PIPESTATUS[0]` is docc's own
 # status, which the pipe would otherwise swallow — and `set -o pipefail` cannot
