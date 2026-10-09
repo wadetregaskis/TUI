@@ -18,6 +18,11 @@
 /// colour whose contrast with the content on top of it nobody can check. Reverse video
 /// is the one highlight a terminal paints legibly whatever colours it keeps, so that is
 /// what such a site draws instead.
+///
+/// `@usableFromInline` (the module split's tier 2): the `@inlinable`
+/// `RowBackground.tint(_:)` takes one, for every selected row a list or a table
+/// in another module draws.
+@usableFromInline
 package enum HighlightFill: Equatable, Sendable {
     /// One colour, every frame.
     case fill(Color)

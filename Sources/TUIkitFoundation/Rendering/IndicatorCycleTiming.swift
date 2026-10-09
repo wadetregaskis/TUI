@@ -15,6 +15,10 @@ import TUIkitCore
 /// which is right only while every cycle is laid out one cursor tick a frame.
 /// Nothing on a producer's side of a cycle should know what its frames are laid out
 /// on.
+///
+/// `@usableFromInline`: the type of ``SelectionEmphasisCycle``'s `timing`, which
+/// the `@inlinable` `RowBackground.pulseTiming` reads.
+@usableFromInline
 package struct IndicatorCycleTiming: Equatable, Sendable {
     /// How many ticks of 1/60 s each frame is shown for.
     package var frameTicks: Int

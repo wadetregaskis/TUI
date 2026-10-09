@@ -357,7 +357,7 @@ public struct SelectionEmphasisCycle: Sendable, Equatable {
     public var clock: AnimationClock { timing.clock }
 
     /// `frameTicks` and `clock`, as the cycle carries them.
-    let timing: IndicatorCycleTiming
+    @usableFromInline let timing: IndicatorCycleTiming
 
     /// A cycle of `frames`, showing `step` now, laid out on `timing`.
     init(frames: [SelectionEmphasis], step: Int, timing: IndicatorCycleTiming = .cursorTick) {
@@ -375,6 +375,7 @@ public struct SelectionEmphasisCycle: Sendable, Equatable {
     /// what `Color.breathEnds(dimmedTo:over:)`, `Color.breathEnds(dim:bright:)` and
     /// `Palette.accentFillPulse(over:)` give where a side has no RGB, and a run of one
     /// picture holds the clock open for nothing.
+    @usableFromInline
     package func isAnimating(dim: Color, bright: Color) -> Bool {
         isAnimating && dim != bright
     }

@@ -119,10 +119,13 @@ public struct LineRange: Sendable, Equatable {
 
 // MARK: - Environment key
 
-private struct LineLimitKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it, from every table cell in another module.
+@usableFromInline
+struct LineLimitKey: EnvironmentKey {
     /// Unlimited by default, as in SwiftUI: text wraps until something else
     /// stops it.
-    static let defaultValue: LineLimit = .unlimited
+    @usableFromInline static let defaultValue: LineLimit = .unlimited
 }
 
 extension EnvironmentValues {
@@ -130,6 +133,7 @@ extension EnvironmentValues {
     /// below obeys unless it set its own.
     ///
     /// Defaults to ``LineLimit/unlimited``.
+    @inlinable
     public var lineLimit: LineLimit {
         get { self[LineLimitKey.self] }
         set { self[LineLimitKey.self] = newValue }

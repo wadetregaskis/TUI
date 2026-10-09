@@ -21,7 +21,16 @@ import TUIkitCore
 /// rules about focus, selection and the unfocused-selection visibility, written
 /// out twice — and the two have drifted apart before. One description of what a
 /// row's background can be is one fewer thing to drift.
-package enum RowBackground {
+///
+/// `@usableFromInline` (the module split's tier 2): TUIkitLists asks
+/// ``tint(_:)``, ``claimableFill``, ``stepNow`` and ``pulseTiming`` of every row
+/// it draws, and an `@inlinable` member of a type that is only `package` is not
+/// serialized for another module to inline, whatever it says. `Sendable` stated
+/// (here and on ``Paint``), as it was inferred while the type was not usable
+/// from inline code: the compiler infers it only for types that are not, and a
+/// list row stores one.
+@usableFromInline
+package enum RowBackground: Sendable {
     /// No background at all.
     case none
 
@@ -47,8 +56,10 @@ package enum RowBackground {
     /// bright end as ``fixed(_:)`` or ``reversed(ink:field:)``.
     case pulsingReversal(SelectionEmphasisCycle, dim: Paint, bright: Paint)
 
-    /// How one frame of a breathing row paints its line.
-    package enum Paint {
+    /// How one frame of a breathing row paints its line. `@usableFromInline`, as
+    /// the type of a case of one.
+    @usableFromInline
+    package enum Paint: Sendable {
         case fill(Color)
         /// The pair reversed; `bold` emboldens the whole row too.
         case reversed(ink: Color, field: Color, bold: Bool = false)
@@ -176,6 +187,7 @@ package enum RowBackground {
     /// it would read as a second cursor, so where its tint has no RGB it is left
     /// unfilled, its ● alone saying it is selected. `_ListCore` and `Table` both ask
     /// this for a selected row the cursor is not on.
+    @inlinable
     package static func tint(_ highlight: HighlightFill) -> Self {
         guard case .fill(let color) = highlight else { return .none }
         return .fixed(color)
@@ -298,6 +310,7 @@ package enum RowBackground {
 
     /// The frame duration and clock ``pulseColors`` step on, or `nil` exactly when
     /// that is `nil`: what a run built from those colours is built with.
+    @inlinable
     package var pulseTiming: IndicatorCycleTiming? {
         switch self {
         case .pulsing(let cycle, let dim, let bright) where cycle.isAnimating(dim: dim, bright: bright):
@@ -312,6 +325,7 @@ package enum RowBackground {
     /// Which frame of ``pulseColors`` or ``framePaints`` the frame being rendered now
     /// shows.
     @MainActor
+    @inlinable
     package var stepNow: Int {
         switch self {
         case .pulsing(let cycle, _, _), .pulsingReversal(let cycle, _, _):
@@ -330,6 +344,7 @@ package enum RowBackground {
     /// why the pulse can be a run at all, since a run's frames must all answer to one
     /// static region.
     @MainActor
+    @inlinable
     package var claimableFill: Color? {
         guard case .fixed(let color) = self else { return nil }
         return color

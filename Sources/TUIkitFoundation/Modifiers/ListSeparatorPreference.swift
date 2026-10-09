@@ -30,15 +30,21 @@ import TUIkitView
 /// `.automatic` is the style's answer, and no built-in style draws separators
 /// by default yet: each costs a line of height, which a list of single-line
 /// rows doubles (decisions A47; the default is A-D6L-2's open question).
+///
+/// `@usableFromInline`, with its fields (the module split's tier 2): TUIkitLists
+/// asks ``overridden(by:)`` of every row's preference, and an `@inlinable`
+/// member of a type that is only `package` is not serialized for another module
+/// to inline, whatever it says.
+@usableFromInline
 package struct ListSeparatorPreference: Equatable, Sendable {
     /// Whether the line above shows.
-    package var top: Visibility = .automatic
+    @usableFromInline package var top: Visibility = .automatic
     /// Whether the line below shows.
-    package var bottom: Visibility = .automatic
+    @usableFromInline package var bottom: Visibility = .automatic
     /// The line above's ink, or `nil` for the style's.
-    package var topTint: Color?
+    @usableFromInline package var topTint: Color?
     /// The line below's ink, or `nil` for the style's.
-    package var bottomTint: Color?
+    @usableFromInline package var bottomTint: Color?
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitLists makes these, for its lists.
@@ -52,6 +58,7 @@ package struct ListSeparatorPreference: Equatable, Sendable {
     /// `self`, with whatever `other` states — a visibility other than
     /// `.automatic`, a tint — written over it: a row's own preference over the
     /// list-wide one.
+    @inlinable
     package func overridden(by other: Self) -> Self {
         var merged = self
         if other.top != .automatic { merged.top = other.top }

@@ -8,10 +8,13 @@ import TUIkitCore
 
 // MARK: - Environment key
 
-private struct TruncationModeKey: EnvironmentKey {
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it, from every table cell in another module.
+@usableFromInline
+struct TruncationModeKey: EnvironmentKey {
     /// Tail by default, as in SwiftUI: the start of a string is the part that
     /// identifies it, so it is the part worth keeping.
-    static let defaultValue: TruncationMode = .tail
+    @usableFromInline static let defaultValue: TruncationMode = .tail
 }
 
 extension EnvironmentValues {
@@ -22,6 +25,7 @@ extension EnvironmentValues {
     /// subtree's root decides how every piece of clipped text in it reads. A
     /// ``Text``'s own ``Text/truncationMode(_:)`` still wins for that one view.
     /// Defaults to ``TruncationMode/tail``.
+    @inlinable
     public var truncationMode: TruncationMode {
         get { self[TruncationModeKey.self] }
         set { self[TruncationModeKey.self] = newValue }
