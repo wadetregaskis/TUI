@@ -19,9 +19,10 @@
 // file of this module, through these two lines.
 //
 // Not TUIkitImage, since step B5c carved the bitmap path out into
-// TUIkitBitmaps, the one module of the framework beside TUIkitColorPicker that
-// uses it: this module no longer depends on it (Package.swift), and each of
-// the two re-exports it, as does the umbrella.
+// TUIkitBitmaps: this module no longer depends on it (Package.swift). The
+// modules that use it name it themselves: TUIkitBitmaps and TUIkitColorPicker,
+// which re-export it, as does the umbrella, and TUIkitAppKit, which builds
+// `RGBAImage` values and sits outside the split's module map.
 @_exported import TUIkitCore
 @_exported import TUIkitStrings
 @_exported import TUIkitStyling
