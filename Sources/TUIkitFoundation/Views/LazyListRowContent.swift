@@ -26,10 +26,15 @@ package final class ListRowRamp {
     /// The rectangle the ramp runs across. `nil` until the list settles it — a
     /// row rendering before then takes no placement, which is only ever the
     /// row the pitch was seeded from, and its place is the origin regardless.
-    package var frame: GradientFrame?
+    package var frame: GradientFrame? { get { _frame } set { _frame = newValue } }
 
     /// One row's height, in lines.
-    package var pitch = 1
+    package var pitch: Int { get { _pitch } set { _pitch = newValue } }
+
+    // The storage under the `package` accessors: private (CONTRIBUTING.md,
+    // "Crossing a module boundary").
+    private var _frame: GradientFrame?
+    private var _pitch = 1
 
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUIkitLists makes these, for its lists.
@@ -80,11 +85,9 @@ package final class LazyListRowContent {
     /// new value — which is why the render closure is kept after the first.
     /// A row whose buffer was handed over already rendered (chrome and the
     /// eager rows) has no render to repeat and keeps the buffer it was given.
-    package var backgroundProminence = BackgroundProminence.standard {
-        didSet {
-            guard backgroundProminence != oldValue, thunk != nil else { return }
-            cached = nil
-        }
+    package var backgroundProminence: BackgroundProminence {
+        get { _backgroundProminence }
+        set { _backgroundProminence = newValue }
     }
 
     /// The least height the list gives this row, in lines — its
@@ -92,12 +95,32 @@ package final class LazyListRowContent {
     /// section header. A shorter render is padded to it with the content
     /// centred, as a macOS list centres a row in a taller one; a row already
     /// in hand when this is set is padded then.
-    package var minimumHeight = 1 {
+    package var minimumHeight: Int { get { _minimumHeight } set { _minimumHeight = newValue } }
+
+    // The storage under this class's `package` accessors: private
+    // (CONTRIBUTING.md, "Crossing a module boundary"). The observers are the
+    // accessors' behaviour, on the storage so that this module's own writes
+    // run them too.
+    private var _backgroundProminence = BackgroundProminence.standard {
         didSet {
-            guard minimumHeight != oldValue, let cached else { return }
+            guard _backgroundProminence != oldValue, thunk != nil else { return }
+            cached = nil
+        }
+    }
+    private var _minimumHeight = 1 {
+        didSet {
+            guard _minimumHeight != oldValue, let cached else { return }
             self.cached = (paddedToMinimum(cached.buffer), cached.badge)
         }
     }
+    private var _sectionSeparator: (edge: VerticalEdge, visibility: Visibility, tint: Color?)?
+    private weak var _separatorDecider: (any ListRowSeparatorDeciding)? {
+        didSet { separatorDecided = false }
+    }
+    private var _separatorLine: ListRowSeparatorLine?
+    private var _gradientRamp: ListRowRamp?
+    private var _rowIndex = 0
+    private var _typeSelectProbe: (() -> String?)?
 
     /// `buffer` with blank lines above and below to make ``minimumHeight``,
     /// the content in the middle; `buffer` itself when it is tall enough.
@@ -115,7 +138,10 @@ package final class LazyListRowContent {
     /// one — a section's header (its `.top` edge) or its last row (its `.bottom`)
     /// — with that section's own preference for it (decisions A47). Set by the
     /// list's extraction; `nil` for every other row, whose line is its own.
-    package var sectionSeparator: (edge: VerticalEdge, visibility: Visibility, tint: Color?)?
+    package var sectionSeparator: (edge: VerticalEdge, visibility: Visibility, tint: Color?)? {
+        get { _sectionSeparator }
+        set { _sectionSeparator = newValue }
+    }
 
     /// Decides, once the row has rendered, whether it draws a separator below
     /// it — the row's own preference is only known then — and how, asked of
@@ -126,8 +152,9 @@ package final class LazyListRowContent {
     /// one every frame, and a closure capturing the index was an allocation per
     /// box per frame. Weak, as the source holds the box: a box read after its
     /// frame has no list to ask.
-    package weak var separatorDecider: (any ListRowSeparatorDeciding)? {
-        didSet { separatorDecided = false }
+    package var separatorDecider: (any ListRowSeparatorDeciding)? {
+        get { _separatorDecider }
+        set { _separatorDecider = newValue }
     }
 
     /// Whether ``separatorDecider`` has been asked about the render in hand.
@@ -136,7 +163,7 @@ package final class LazyListRowContent {
     /// The separator this row draws below its content, when it draws one: the
     /// buffer's last line is its place, so every height the list reads counts
     /// it, and the list draws the rule there (`_ListCore.renderRow`).
-    package private(set) var separatorLine: ListRowSeparatorLine?
+    package var separatorLine: ListRowSeparatorLine? { _separatorLine }
 
     /// This row's size without rendering it, when the content can answer —
     /// measured at the width the row would be rendered at, which comes back
@@ -164,10 +191,10 @@ package final class LazyListRowContent {
     /// and that is not known until the boxes exist. A row whose buffer is
     /// already in hand (section chrome) ignores it: it has nothing left to
     /// render, and was placed where it was rendered.
-    package var gradientRamp: ListRowRamp?
+    package var gradientRamp: ListRowRamp? { get { _gradientRamp } set { _gradientRamp = newValue } }
 
     /// This row's ordinal, for ``gradientRamp``.
-    package var rowIndex = 0
+    package var rowIndex: Int { get { _rowIndex } set { _rowIndex = newValue } }
 
     /// The identity the row's content is rendered under, when the row came from
     /// a `ForEach` (`nil` for chrome and the eager fallbacks, which have no
@@ -189,7 +216,7 @@ package final class LazyListRowContent {
     /// its stated equivalent, or its first line drawn as a measure — or `nil`
     /// for a row handed over already drawn, whose drawn first line is its text
     /// (``typeSelectText``).
-    package var typeSelectProbe: (() -> String?)?
+    package var typeSelectProbe: (() -> String?)? { get { _typeSelectProbe } set { _typeSelectProbe = newValue } }
 
     /// The text a typed prefix matches this row by: its stated equivalent
     /// (``View/typeSelectEquivalent(_:)-(Text?)``), else its first line of
@@ -250,7 +277,7 @@ package final class LazyListRowContent {
         }
         guard !separatorDecided, let decider = separatorDecider else { return }
         separatorDecided = true
-        separatorLine = decider.separatorLine(at: rowIndex, of: self)
+        _separatorLine = decider.separatorLine(at: rowIndex, of: self)
         if separatorLine != nil { cached!.buffer.appendVertically(FrameBuffer(lines: [""])) }
     }
 

@@ -71,10 +71,14 @@ public struct DismissAction: Sendable, Equatable {
     /// only — by a view's render, and by ``DismissAction/callAsFunction()``,
     /// which is main-actor isolated — and never shared mutably elsewhere.
     package final class Box: @unchecked Sendable {
-        package var action: @MainActor @Sendable () -> Void
+        package var action: @MainActor @Sendable () -> Void { get { _action } set { _action = newValue } }
+
+        /// ``action``'s storage: private, under the `package` accessor
+        /// (CONTRIBUTING.md, "Crossing a module boundary").
+        private var _action: @MainActor @Sendable () -> Void
 
         package init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
-            self.action = action
+            self._action = action
         }
     }
 

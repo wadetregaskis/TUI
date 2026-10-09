@@ -364,6 +364,17 @@ anything at run time:
   of such a module imports TUIkitFoundation, and any other carved module it
   uses, itself. Tools/ModuleMap's `imports` check fails CI on a file that
   does not.
+- **Widen an accessor, never a class's stored property.** A stored property
+  of a class (or a `static var`, or a global) that another module can see is
+  one the optimiser cannot prove free of overlapping accesses, so every
+  access to it keeps a run-time exclusivity check (`swift_beginAccess`), this
+  module's own included (AccessEnforcementWMO). When another module needs it,
+  keep the stored property private, as `_name`, and give that module a
+  `package` computed property (`package var name: T { get { _name } set {
+  _name = newValue } }`) or method over it, not `@inlinable`, as
+  `FocusManager.currentPaneID` does; move a property observer to the
+  storage. Never mark the stored property `package` or `@usableFromInline`:
+  either makes it visible outside the module. Struct fields are not affected.
 
 ## Code Style
 

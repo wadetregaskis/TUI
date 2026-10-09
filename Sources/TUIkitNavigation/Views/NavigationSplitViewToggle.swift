@@ -208,7 +208,7 @@ extension _NavigationSplitViewCore {
             default: SplitViewToggleState()
         ).value
         if !context.isMeasuring, let focusManager = context.environment.focusManager {
-            state.sectionsAtRenderStart = focusManager.sections.count
+            state.sectionsAtRenderStart = focusManager.sectionCount
         }
         registerSidebarChords(context: context, toggleState: state, holdsFocus: false)
         return state

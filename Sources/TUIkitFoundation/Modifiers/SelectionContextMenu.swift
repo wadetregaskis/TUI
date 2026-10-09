@@ -34,7 +34,11 @@ package final class SelectionContextMenu {
     private var makeMenu: (([AnyHashable]) -> AnyView?)?
 
     /// The primary action, for rows whose ids are these.
-    package private(set) var primaryAction: (([AnyHashable]) -> Void)?
+    package var primaryAction: (([AnyHashable]) -> Void)? { _primaryAction }
+
+    /// ``primaryAction``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _primaryAction: (([AnyHashable]) -> Void)?
 
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUIkitLists makes these, for its lists.
@@ -53,7 +57,7 @@ package final class SelectionContextMenu {
             }
             return AnyView(menu(items))
         }
-        self.primaryAction = primaryAction.map { action in
+        _primaryAction = primaryAction.map { action in
             { ids in action(Set(ids.compactMap { $0.base as? Item })) }
         }
     }

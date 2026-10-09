@@ -9,6 +9,9 @@
 //  License: MIT
 
 extension FocusManager {
+    /// How many sections are registered so far this frame.
+    package var sectionCount: Int { sections.count }
+
     /// The active section's registered focus IDs in ring order — the
     /// per-frame enumeration (§5d of "Locating things without drawing
     /// them"). Internal: tests assert exactly what the last walk registered.

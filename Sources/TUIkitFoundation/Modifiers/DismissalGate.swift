@@ -21,7 +21,11 @@ import TUIkitView
 package final class DismissalGate: Equatable {
     /// Asks before dismissing; given the dismissal to run if the answer is
     /// yes.
-    package var interceptor: ((@escaping () -> Void) -> Void)?
+    package var interceptor: ((@escaping () -> Void) -> Void)? { get { _interceptor } set { _interceptor = newValue } }
+
+    /// ``interceptor``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _interceptor: ((@escaping () -> Void) -> Void)?
 
     /// The cancel button the content drew last frame — a button with
     /// `.keyboardShortcut(.cancelAction)`, as a `.cancellationAction` toolbar

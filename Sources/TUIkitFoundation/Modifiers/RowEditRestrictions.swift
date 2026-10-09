@@ -28,13 +28,13 @@ import TUIkitView
 @usableFromInline
 package final class RowEditRestrictions {
     /// LIST ROWS that refused deletion this frame.
-    package private(set) var deleteDisabled: Set<Int> = []
+    package var deleteDisabled: Set<Int> { _deleteDisabled }
 
     /// List rows that refused to be moved this frame.
-    package private(set) var moveDisabled: Set<Int> = []
+    package var moveDisabled: Set<Int> { _moveDisabled }
 
     /// List rows that refused to be selected this frame.
-    package private(set) var selectionDisabled: Set<Int> = []
+    package var selectionDisabled: Set<Int> { _selectionDisabled }
 
     /// The LIST ROW currently rendering, stamped by the List's row
     /// materialisation just before each row renders — the only code that knows
@@ -60,7 +60,7 @@ package final class RowEditRestrictions {
     /// observed with a neighbour's value. A nested List installs its own
     /// collector for its subtree, so the inner rows stamp the inner one and
     /// the outer row's stamp stays good for the rest of its own render.
-    package var currentRowIndex: Int?
+    package var currentRowIndex: Int? { get { _currentRowIndex } set { _currentRowIndex = newValue } }
 
     /// The list row at which the `ForEach` now being extracted draws its first
     /// element — what its per-element index is counted from to reach
@@ -71,34 +71,45 @@ package final class RowEditRestrictions {
     /// row's deferred content box is built (which for a Section's rows is
     /// during that same extraction), not when the box later renders — by then
     /// another section may have moved it.
-    package var rowIndexBase = 0
+    package var rowIndexBase: Int { get { _rowIndexBase } set { _rowIndexBase = newValue } }
 
     /// Each list row's separator preference, as `.listRowSeparator(_:edges:)`
     /// and `.listRowSeparatorTint(_:edges:)` reported it while the row
     /// rendered (decisions A47) — the same collector, stamped the same way,
     /// since a separator is one more thing a row tells its list about itself.
-    package private(set) var separators: [Int: ListSeparatorPreference] = [:]
+    package var separators: [Int: ListSeparatorPreference] { _separators }
 
     /// Each list row's own separator guides
     /// (``HorizontalAlignment/listRowSeparatorLeading`` and `…Trailing`), where
     /// its view sets either, in cells from its content's leading edge.
-    package private(set) var separatorGuides: [Int: (leading: Int?, trailing: Int?)] = [:]
+    package var separatorGuides: [Int: (leading: Int?, trailing: Int?)] { _separatorGuides }
+
+    // The storage under the `package` accessors: private (CONTRIBUTING.md,
+    // "Crossing a module boundary"). The sets and tables are written here
+    // only, through the methods below.
+    private var _deleteDisabled: Set<Int> = []
+    private var _moveDisabled: Set<Int> = []
+    private var _selectionDisabled: Set<Int> = []
+    private var _currentRowIndex: Int?
+    private var _rowIndexBase = 0
+    private var _separators: [Int: ListSeparatorPreference] = [:]
+    private var _separatorGuides: [Int: (leading: Int?, trailing: Int?)] = [:]
 
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUIkitLists makes these, for its lists.
     package init() {}
 
     package func reportSeparator(row: Int, _ change: ListSeparatorChange) {
-        change.apply(to: &separators[row, default: ListSeparatorPreference()])
+        change.apply(to: &_separators[row, default: ListSeparatorPreference()])
     }
 
     func reportSeparatorGuides(row: Int, _ guides: (leading: Int?, trailing: Int?)) {
-        separatorGuides[row] = guides
+        _separatorGuides[row] = guides
     }
 
-    package func disableDelete(row: Int) { deleteDisabled.insert(row) }
-    package func disableMove(row: Int) { moveDisabled.insert(row) }
-    package func disableSelection(row: Int) { selectionDisabled.insert(row) }
+    package func disableDelete(row: Int) { _deleteDisabled.insert(row) }
+    package func disableMove(row: Int) { _moveDisabled.insert(row) }
+    package func disableSelection(row: Int) { _selectionDisabled.insert(row) }
 }
 
 extension EnvironmentValues {

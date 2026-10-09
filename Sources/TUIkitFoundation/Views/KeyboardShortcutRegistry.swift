@@ -60,7 +60,11 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// The pane whose content is rendering now, if any: set around it by
     /// `renderingPane(_:context:_:)`, so what registers meanwhile is the
     /// pane's.
-    package var currentPane: String?
+    package var currentPane: String? { get { _currentPane } set { _currentPane = newValue } }
+
+    /// ``currentPane``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _currentPane: String?
 
     /// How many app shortcuts this frame has registered so far: a mark a
     /// presenter takes before its content renders, and hands back to

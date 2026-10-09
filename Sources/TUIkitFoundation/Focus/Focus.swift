@@ -48,8 +48,10 @@ public final class FocusManager: @unchecked Sendable {
     /// The default section ID for elements registered without an explicit section.
     static let defaultSectionID = "__default__"
 
-    /// Registered focus sections in render order.
-    package private(set) var sections: [FocusSection] = []
+    /// Registered focus sections in render order. Internal, with
+    /// ``sectionCount`` for the other modules (CONTRIBUTING.md, "Crossing a
+    /// module boundary").
+    private(set) var sections: [FocusSection] = []
 
     /// Sections that sit side by side as one row of columns, keyed by each member's
     /// id, in left-to-right order — so Left and Right can move between them. Posted
@@ -223,7 +225,11 @@ public final class FocusManager: @unchecked Sendable {
     /// that would otherwise treat "I am rendering" as "I am the current focus
     /// system" — the `.focused` modifiers wiring their store, above all — has
     /// to ask this first.
-    package var isBackdrop = false
+    package var isBackdrop: Bool { get { _isBackdrop } set { _isBackdrop = newValue } }
+
+    /// ``isBackdrop``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _isBackdrop = false
 
     /// For each section that was activated *over* another, the section to revert
     /// to when it is deactivated (e.g. a modal section reverts to the page's).

@@ -372,7 +372,11 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Weak: while the gesture is away from its page this is an orphan kept
     /// alive only by the press-captured mouse closure, and the session has no
     /// business extending that.
-    package weak var reorderHandler: (any RowReorderHosting)?
+    package var reorderHandler: (any RowReorderHosting)? { get { _reorderHandler } set { _reorderHandler = newValue } }
+
+    /// ``reorderHandler``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private weak var _reorderHandler: (any RowReorderHosting)?
 
     /// This frame's spring-loaded controls, in registration (render) order —
     /// written by `DragAndDropSession+SpringLoading`, like the reorder state
@@ -773,8 +777,12 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// start and end are (``renderInvalidation``). Landing happens in the loop's
     /// `driveDragFlights`, before the frame's pass begins, so the frame that
     /// no longer shows the flight is the frame that draws the view again.
-    package private(set) var returnFlight: ReturnFlight? {
-        didSet { drawnAsGoneMoved(from: oldValue?.source, to: returnFlight?.source) }
+    package var returnFlight: ReturnFlight? { _returnFlight }
+
+    /// ``returnFlight``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _returnFlight: ReturnFlight? {
+        didSet { drawnAsGoneMoved(from: oldValue?.source, to: _returnFlight?.source) }
     }
 
     /// Where the returning preview is right now, as the render loop last
@@ -825,7 +833,7 @@ package final class DragAndDropSession: @unchecked Sendable {
         if !reducesMotion, let drag = active, let frame = previewFrame(),
             frame.x != destination.x || frame.y != destination.y || !drag.morph.isEmpty
         {
-            returnFlight = ReturnFlight(
+            _returnFlight = ReturnFlight(
                 preview: drag.preview,
                 morph: drag.morph,
                 fromX: frame.x, fromY: frame.y,
@@ -869,11 +877,11 @@ package final class DragAndDropSession: @unchecked Sendable {
         let start = flight.startNanos ?? nowNanos
         if flight.startNanos == nil {
             flight.startNanos = start
-            returnFlight = flight
+            _returnFlight = flight
         }
         let elapsed = nowNanos &- start
         guard elapsed < ReturnFlight.durationNanos else {
-            returnFlight = nil
+            _returnFlight = nil
             returnFlightFrame = nil
             return nil
         }

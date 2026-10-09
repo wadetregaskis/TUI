@@ -305,13 +305,17 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// How many enabled ``View/textSelection(_:)`` scopes have been filed this
     /// walk — read before and after a `Table` draws its cells, to learn whether
     /// they filed any.
-    package private(set) var enabledSelectionScopeCount = 0
+    package var enabledSelectionScopeCount: Int { _enabledSelectionScopeCount }
+
+    /// ``enabledSelectionScopeCount``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _enabledSelectionScopeCount = 0
 
     /// Files a scope's answer for the region whose handler `id` names: the
     /// registration's, and its replay's from a memo's journal.
     func fileSelectionScope(_ allowsSelection: Bool, for id: HitTestRegion.HandlerID) {
         selectionScopes[id] = allowsSelection
-        if allowsSelection { enabledSelectionScopeCount += 1 }
+        if allowsSelection { _enabledSelectionScopeCount += 1 }
     }
 
     /// The gestures contending for the left button, an arena per press,
@@ -365,7 +369,7 @@ extension MouseEventDispatcher {
         gestureRoles.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
         selectionScopes.removeAll(keepingCapacity: true)
-        enabledSelectionScopeCount = 0
+        _enabledSelectionScopeCount = 0
         gestureFilingsUnread = true
         regions.removeAll(keepingCapacity: true)
         // The interned ids survive this: only the per-identity slot counters

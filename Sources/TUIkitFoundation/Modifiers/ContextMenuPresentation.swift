@@ -14,20 +14,28 @@ import TUIkitCore
 @MainActor
 package final class ContextMenuState {
     /// Whether the menu is currently shown.
-    package var isOpen = false
+    package var isOpen: Bool { get { _isOpen } set { _isOpen = newValue } }
     /// The open menu's highlight and its rows — see ``MenuPopupController``.
     package let controller = MenuPopupController()
     /// The column of the click that opened it, in the modified content's local
     /// coordinate space (composition makes it absolute).
-    package var anchorX = 0
+    package var anchorX: Int { get { _anchorX } set { _anchorX = newValue } }
     /// The row of the opening click, content-local.
-    package var anchorY = 0
+    package var anchorY: Int { get { _anchorY } set { _anchorY = newValue } }
     /// Whether the keyboard opened it, which changes where it is anchored —
     /// see ``MenuAnchor/centredWithin``.
-    package var openedByKeyboard = false
+    package var openedByKeyboard: Bool { get { _openedByKeyboard } set { _openedByKeyboard = newValue } }
     /// Whether a menu was presented since the closed content last rendered, so
     /// the section it activated may be left to tear down.
-    package var needsSectionTeardown = false
+    package var needsSectionTeardown: Bool { get { _needsSectionTeardown } set { _needsSectionTeardown = newValue } }
+
+    // The storage under the `package` accessors: private (CONTRIBUTING.md,
+    // "Crossing a module boundary").
+    private var _isOpen = false
+    private var _anchorX = 0
+    private var _anchorY = 0
+    private var _openedByKeyboard = false
+    private var _needsSectionTeardown = false
 
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUIkitLists makes these, for the lists' and tabs' row menus.
@@ -43,7 +51,11 @@ package final class ContextMenuState {
     /// The menu, as the press that opens it hands it to the dispatcher for the
     /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``).
     /// Built once, weakly, as ``MenuPopupState/openedPopup`` is.
-    package private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
+    package var openedPopup: MouseEventDispatcher.OpenedPopup { _openedPopup }
+
+    /// ``openedPopup``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private lazy var _openedPopup = MouseEventDispatcher.OpenedPopup(
         isOpen: { [weak self] in self?.isOpen ?? false },
         close: { [weak self] in self?.close() })
 }
