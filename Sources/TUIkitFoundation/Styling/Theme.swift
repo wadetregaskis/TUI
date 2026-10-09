@@ -115,7 +115,16 @@ public struct ThemeModifier<Content: View>: View {
     /// singletons distinguished only by their type, so the type IS the value",
     /// which was never true of `_LinkButtonStyle` or `_ColorSwatchButtonStyle`
     /// and says nothing at all about an app's own.
-    private struct ComparableStyle: Equatable {
+    ///
+    /// `@unchecked Sendable` because ``note(_:_:)`` asks it of what it notes
+    /// (it says why), and what this holds always is: the three call sites pass
+    /// a `ButtonStyle`, `ListStyle` or `PickerStyle`, and each refines
+    /// `Sendable`. The compiler cannot see that through `Any`, and spelling the
+    /// property `(any Sendable)?` instead is NOT free: `==` then converts it to
+    /// the `Any` that `isEqual(to:)` takes, a copy the release build keeps
+    /// (31 more instructions across `==` and its closure on Xcode's 6.2.4,
+    /// measured 2026-10-08).
+    private struct ComparableStyle: Equatable, @unchecked Sendable {
         /// `Any?` rather than a generic parameter bound to `any ButtonStyle`,
         /// and that is load-bearing rather than laziness: inside a generic whose
         /// parameter is an existential, `type(of:)` answers the EXISTENTIAL
@@ -187,11 +196,24 @@ public struct ThemeModifier<Content: View>: View {
         // The three control styles are the same shape of question and get the
         // same shape of answer — `ComparableStyle`, the type first and then by
         // value where the style can answer.
+        //
+        // `& Sendable` is a workaround for one compiler, and NOT a statement
+        // that anything here crosses an actor. Swift 6.3's `-O` pipeline (and
+        // only it: 6.3's `-Onone`, Xcode's 6.2.4 and 6.4.0 build it either
+        // way) promotes the `var`s this nested function captures from their
+        // box to the stack by CLONING it, and 6.3's clone drops the function's
+        // main-actor isolation. Region isolation then sees a parameter of a
+        // nonisolated function captured by the main-actor autoclosure that
+        // `noteAppliedEnvironment` takes, and fails the release build with
+        // "sending 'value' risks causing data races". A `Sendable` value is
+        // not region-tracked, so the clone has nothing to report; every value
+        // noted here is part of a `Sendable` `Theme`, and `Sendable` is a
+        // marker protocol, so the generated code is the same.
         if let cache = context.renderCache {
             var changed = false
             var movedCells = false
             func note(
-                _ value: some Equatable, _ keyPath: PartialKeyPath<EnvironmentValues>,
+                _ value: some Equatable & Sendable, _ keyPath: PartialKeyPath<EnvironmentValues>,
                 movesCells: Bool = false
             ) {
                 if case .changed = cache.noteAppliedEnvironment(
