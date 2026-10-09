@@ -317,7 +317,7 @@ private struct _StyledControlGroup: View {
     @Environment(\.controlGroupStyleChain) private var styles
 
     @ViewBuilder var body: some View {
-        if styles.outer == nil {
+        if styles.isRoot {
             AutomaticControlGroupStyle().makeBody(configuration: configuration)
         } else {
             styles.style.makeAnyBody(configuration: configuration)

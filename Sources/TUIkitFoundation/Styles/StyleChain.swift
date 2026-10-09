@@ -67,6 +67,13 @@ struct StyleChain<Style>: Equatable, @unchecked Sendable {
         outer?.chain ?? self
     }
 
+    /// Whether this is the root chain, the environment's default: no style
+    /// was put in force over it. Asked here, where ``outer`` is, so that a
+    /// control in another module asks one question, not for the box.
+    var isRoot: Bool {
+        outer == nil
+    }
+
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard let left = lhs.style as? any Equatable, left.isEqual(to: rhs.style) else { return false }
         return lhs.outer == rhs.outer

@@ -137,7 +137,7 @@ struct _StyledLabeledContent: View {
     /// At the root — no custom style anywhere above — the automatic style is
     /// drawn unerased, which is the case nearly every row is in.
     @ViewBuilder var body: some View {
-        if styles.outer == nil {
+        if styles.isRoot {
             AutomaticLabeledContentStyle().makeBody(configuration: configuration)
         } else {
             styles.style.makeAnyBody(configuration: configuration)

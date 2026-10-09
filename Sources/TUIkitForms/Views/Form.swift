@@ -515,7 +515,7 @@ private struct _FormFieldRow: View {
     @Environment(\.labeledContentStyleChain) private var styles
 
     @ViewBuilder var body: some View {
-        if styles.outer != nil {
+        if !styles.isRoot {
             _StyledLabeledContent(
                 configuration: LabeledContentStyleConfiguration(label: label, content: content))
         } else if pillar == 0 {

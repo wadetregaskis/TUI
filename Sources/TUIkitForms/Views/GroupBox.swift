@@ -189,7 +189,7 @@ private struct _StyledGroupBox: View {
     @Environment(\.groupBoxStyleChain) private var styles
 
     @ViewBuilder var body: some View {
-        if styles.outer == nil {
+        if styles.isRoot {
             DefaultGroupBoxStyle().makeBody(configuration: configuration)
         } else {
             styles.style.makeAnyBody(configuration: configuration)

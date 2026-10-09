@@ -76,7 +76,7 @@ public struct Label<Title: View, Icon: View>: View {
                 title: AnyView(title),
                 icon: AnyView(icon),
                 iconIsVisible: iconIsVisible))
-        if styles.outer == nil {
+        if styles.isRoot {
             return body
         }
         return AnyView(body.environment(\.labelStyleChain, styles.inside))
