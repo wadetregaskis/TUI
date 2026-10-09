@@ -86,6 +86,20 @@
 //  TUIkitFoundation would still compile here; the reflected names catch it at
 //  run time.
 //
+//  Step B7 carved the TextInput group the same way as B5's and B6's: one
+//  module, TUIkitTextInput, that compiles five directories of the planned
+//  split, Sources/TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch
+//  and TUIkitNumericControls, until steps C5 to C8 peel the last four into
+//  modules of their own. It took the last directories out of
+//  TUIkitFoundation. The ninth test spells a type from each directory through
+//  the umbrella and draws it, the text field beside an app's own `TextField`
+//  (the case an app meets: a form model of its own). It leaves the same two
+//  holes to the same two guards: TUIkitColorPicker re-exports TUIkitTextInput
+//  (its editors are sliders, its hex field a text field), so the umbrella's
+//  own line is the `umbrella` check's; and a directory left compiling in
+//  TUIkitFoundation would still compile here, so the reflected names, one per
+//  directory, catch it at run time.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -198,6 +212,18 @@ private enum Client {
             TUIkit.Text(verbatim: phase.image == nil ? "b5c empty" : "b5c image")
         })
     }
+
+    /// An app's own `TextField`, beside TUIkitTextInput's view.
+    struct TextField {
+        let name: String
+    }
+
+    /// Both text fields: the app's by its plain name, TUIkit's by the
+    /// umbrella's, bound to a constant text so it draws that text.
+    @MainActor
+    static func bothTextFields(text: String) -> (TextField, TUIkit.TextField<TUIkit.Text>) {
+        (TextField(name: "mine"), TUIkit.TextField("b7 title", text: TUIkit.Binding.constant(text)))
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -258,6 +284,12 @@ extension TUIkit.ImageFitTarget {
     /// A member an app adds, through the umbrella's name, to a type of
     /// TUIkitBitmaps, which only the umbrella re-exports.
     fileprivate var b5cMarker: Int { self == .viewport ? 3 : 0 }
+}
+
+extension TUIkit.SearchFieldPlacement {
+    /// A member an app adds to TUIkitTextInput's type (Sources/TUIkitSearch,
+    /// until step C5), by the umbrella's spelling.
+    fileprivate var b7Marker: Int { self == .automatic ? 7 : 0 }
 }
 
 extension TUIkit.TabViewCustomization {
@@ -455,6 +487,46 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.ASCIIColorMode.self) == "TUIkitImage.ASCIIColorMode")
     }
 
+    @Test("A qualified name reaches TUIkitTextInput, all five of whose directories the umbrella re-exports through it")
+    func qualifiedNamesReachTheTextInputGroup() {
+        func drawn(_ view: some TUIkit.View, height: Int) -> String {
+            TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
+                .map(\.stripped).joined(separator: "\n")
+        }
+        // From Sources/TUIkitTextInput: a text field beside an app's own
+        // `TextField`, drawn.
+        let (mine, field) = Client.bothTextFields(text: "b7 text")
+        #expect(mine.name == "mine")
+        let fieldLines = drawn(field, height: 1)
+        #expect(fieldLines.contains("b7 text"), "\(fieldLines)")
+        // From Sources/TUIkitPickers (until step C8): a radio group, drawn.
+        let radios = TUIkit.RadioButtonGroup(selection: TUIkit.Binding.constant(1)) {
+            TUIkit.RadioButtonItem(1, "b7 radio")
+        }
+        let radioLines = drawn(radios, height: 1)
+        #expect(radioLines.contains("b7 radio"), "\(radioLines)")
+        // From Sources/TUIkitForms (until step C6): labeled content, drawn.
+        let labeled = TUIkit.LabeledContent("b7 label", value: "b7 value")
+        let labeledLines = drawn(labeled, height: 1)
+        #expect(labeledLines.contains("b7 label") && labeledLines.contains("b7 value"), "\(labeledLines)")
+        // From Sources/TUIkitSearch (until step C5): a member an app's
+        // extension adds to a search field placement.
+        #expect(TUIkit.SearchFieldPlacement.automatic.b7Marker == 7)
+        // From Sources/TUIkitNumericControls (until step C7): a gauge, drawn
+        // with its label.
+        let gauge = TUIkit.Gauge(value: 0.5) { TUIkit.Text(verbatim: "b7 gauge") }
+        let gaugeLines = drawn(gauge, height: 2)
+        #expect(gaugeLines.contains("b7 gauge"), "\(gaugeLines)")
+        // One reflected name from each directory: a directory left compiling
+        // in TUIkitFoundation would still build, and read
+        // `TUIkitFoundation.` here.
+        #expect(String(reflecting: type(of: field)) == "TUIkitTextInput.TextField<TUIkitFoundation.Text>")
+        #expect(String(reflecting: TUIkit.RadioButtonOrientation.self) == "TUIkitTextInput.RadioButtonOrientation")
+        #expect(String(reflecting: TUIkit.AutomaticFormStyle.self) == "TUIkitTextInput.AutomaticFormStyle")
+        #expect(String(reflecting: TUIkit.SearchFieldPlacement.self) == "TUIkitTextInput.SearchFieldPlacement")
+        #expect(String(reflecting: TUIkit.TrackStyle.self) == "TUIkitTextInput.TrackStyle")
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -520,5 +592,15 @@ struct UmbrellaQualifiedNameTests {
         // each read `TUIkitFoundation.` between B1 and B5c.
         #expect(String(reflecting: TUIkit.ImageSource.self) == "TUIkitBitmaps.ImageSource")
         #expect(String(reflecting: TUIkit.AsyncImagePhase.self) == "TUIkitBitmaps.AsyncImagePhase")
+        // Step B7 carved these out (decisions SPB7, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B7. A type from
+        // Sources/TUIkitPickers, TUIkitForms, TUIkitSearch or
+        // TUIkitNumericControls names TUIkitTextInput, the module that compiles
+        // it, until steps C5 to C8 give it a module of its own.
+        #expect(String(reflecting: TUIkit.TabWidth.self) == "TUIkitTextInput.TabWidth")
+        #expect(String(reflecting: TUIkit.DatePickerComponents.self) == "TUIkitTextInput.DatePickerComponents")
+        #expect(String(reflecting: TUIkit.GroupedFormStyle.self) == "TUIkitTextInput.GroupedFormStyle")
+        #expect(String(reflecting: TUIkit.SearchFieldIconPlacement.self) == "TUIkitTextInput.SearchFieldIconPlacement")
+        #expect(String(reflecting: TUIkit.IndeterminateStyle.self) == "TUIkitTextInput.IndeterminateStyle")
     }
 }

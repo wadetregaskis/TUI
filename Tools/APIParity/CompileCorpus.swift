@@ -3091,6 +3091,75 @@ private struct ServerIcons: View {
     }
 }
 
+// MARK: - Text inputs, pickers, forms, search and numeric controls, from a module of their own
+
+/// SwiftUI's own `Form` example, its notification and profile settings, with a
+/// text field, a stepper and a slider added to its first section and each
+/// header as a view builder (the documentation's `Section(header:)` is
+/// deprecated), and its own `searchable(text:)` example. Since module split step B7 `TextField`,
+/// `Picker`, `Form`, `.searchable`, `Stepper` and `Slider` are TUIkitTextInput's
+/// (the last five compile into it until steps C5 to C8 peel them), which the
+/// umbrella re-exports (and TUIkitColorPicker, which the umbrella re-exports
+/// too), so this, and the text input, picker, form, search and numeric snippets
+/// earlier in this file, are SwiftUI source reaching that module as an app
+/// does: through `import TUIkit`.
+@MainActor
+private struct NotificationSettingsForm: View {
+    enum NotifyMeAboutType {
+        case directMessages
+        case mentions
+        case anything
+    }
+
+    enum ProfileImageSize {
+        case large
+        case medium
+        case small
+    }
+
+    @State private var notifyMeAbout: NotifyMeAboutType = .directMessages
+    @State private var playNotificationSounds = true
+    @State private var sendReadReceipts = false
+    @State private var profileImageSize: ProfileImageSize = .medium
+    @State private var displayName = ""
+    @State private var reminderCount = 3
+    @State private var volume = 0.5
+    @State private var searchText = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Notify Me About", selection: $notifyMeAbout) {
+                        Text("Direct Messages").tag(NotifyMeAboutType.directMessages)
+                        Text("Mentions").tag(NotifyMeAboutType.mentions)
+                        Text("Anything").tag(NotifyMeAboutType.anything)
+                    }
+                    Toggle("Play notification sounds", isOn: $playNotificationSounds)
+                    Toggle("Send read receipts", isOn: $sendReadReceipts)
+                    TextField("Display name", text: $displayName)
+                    Stepper("Reminders: \(reminderCount)", value: $reminderCount, in: 0...10)
+                    Slider(value: $volume, in: 0...1) { Text("Volume") }
+                } header: {
+                    Text("Notifications")
+                }
+                Section {
+                    Picker("Profile Image Size", selection: $profileImageSize) {
+                        Text("Large").tag(ProfileImageSize.large)
+                        Text("Medium").tag(ProfileImageSize.medium)
+                        Text("Small").tag(ProfileImageSize.small)
+                    }
+                    Button("Clear Image Cache") {}
+                } header: {
+                    Text("User Profiles")
+                }
+            }
+            .navigationTitle("Searching for \(searchText)")
+        }
+        .searchable(text: $searchText)
+    }
+}
+
 /// SwiftUI's own `VisualEffect` example: an offset following the view's global
 /// position, which draws its offset now that the proxy answers `.global`.
 @MainActor
