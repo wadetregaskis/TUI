@@ -178,7 +178,7 @@ extension ScrollView {
     /// of walking them. Not `.focusable(false)`, which takes the content out of
     /// the ring with it. The wheel still scrolls it; it answers the pointer,
     /// not the focus.
-    package func withoutFocusStop() -> ScrollView<Content> {
+    func withoutFocusStop() -> ScrollView<Content> {
         var copy = self
         copy.isFocusStop = false
         return copy
@@ -207,7 +207,7 @@ extension ScrollView {
     ///   neither, and leaves them for the app's scroll views.
     ///
     /// The content inside it still reads them, for its own scrollables.
-    package func asChrome() -> ScrollView<Content> {
+    func asChrome() -> ScrollView<Content> {
         var copy = self
         copy.isChrome = true
         return copy

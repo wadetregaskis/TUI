@@ -28,9 +28,15 @@ time on every call (`swift_getOpaqueTypeConformance2`, four call sites), and it 
 generic, unspecialised. The diagnosis priced these frames at about 0.24 of B5b's menus-cold time against B6s's code
 (from profile shares, not times; net about -0.1 to +0.2 on the same path). What ships is its remedy M1: both files
 compile in TUIkitFoundation, as they did until B5b; `_InlineMenuCore` is `package` so that `InlineMenuStyle`
-(TUIkitMenus) can make it; and the five declarations the carve widened for these two files alone are internal again.
-The map follows the files (Tools/ModuleMap's map.json and the TUIkitMenus entry of rules.json). One type widens and
-five narrow; nothing becomes usable from outside the package.
+(TUIkitMenus) can make it; and the nine declarations the carve widened for these two files alone are internal again.
+Five are the diagnosis's: `View.bordered`, `EnvironmentValues.isInsideMenu` and `menuRowWidth`, `_MenuSectionedItems`
+and `_MenuItemButtonStyle`. Four more the diagnosis did not name: `ScrollView`'s `withoutFocusStop()` and
+`asChrome()`, which the column sets on its scroller, and `FocusManager.SubtreeFocusJump` and
+`moveFocus(inSubtreeAt:jump:)`, which the core's paging keys call (Page Up and Down, Home and End). The index store
+finds no file of another module that names any of the nine (session notes, `plan/overwide.py`: every `package`
+declaration of TUIkitFoundation's six directories that gained `package` since fc6f6b7db and that no other module
+references). The map follows the files (Tools/ModuleMap's map.json and the TUIkitMenus entry of rules.json). One type
+widens and nine narrow; nothing becomes usable from outside the package.
 
 The other versions, as the diagnosis priced them:
 
