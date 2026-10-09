@@ -40,11 +40,15 @@ What ships is R1 as the brief gave it. The other versions:
 The paired A/B on the layout-sensitive set (geometry, customlayout, app-shapes, deep) decides. R1 is its own commit
 for that reason.
 
-R1 also leaves two calls out of line in TUIkitLists' specialisation, per table build: `trigger` (it calls a
-private helper) and `resolved(commandKey:)`, about 20 calls each. `@inlinable` on `resolved(commandKey:)` would inline
-it, as the single module did. Its body names only public members, so nothing more needs widening. But TUIkitApp
-(`Scene+TextSelection`) and TUIkitNavigation (`NavigationSplitViewToggle`) call it too, so TUIkitApp's code would
-change again. The brief asked for `@usableFromInline`, which is what ships.
+R1 also leaves three callees out of line in TUIkitLists' specialisation that c181ec0f9's inlined or never called.
+`trigger` (it calls a private helper) has three call sites and `resolved(commandKey:)` one; with no overrides each
+runs once per default chord, 16 times per build of a list's or table's shortcut table (`RowAction`'s 14 cases bind 16
+chords). The third is `ShortcutSet.default`'s addressor, one call site (how often it runs is unmeasured: the source
+reads `.default` for each action with no override, and the optimiser may hoist the call); c181ec0f9's specialisation
+calls no addressor. `@inlinable` on `resolved(commandKey:)` would inline it, as the single module did. Its body names
+only public members, so nothing more needs widening. But TUIkitApp (`Scene+TextSelection`) and TUIkitNavigation
+(`NavigationSplitViewToggle`) call it too, so TUIkitApp's code would change again. The brief asked for
+`@usableFromInline`, which is what ships.
 
 ## C. Declined
 
@@ -52,7 +56,8 @@ change again. The brief asked for `@usableFromInline`, which is what ships.
 
 *`LazyListRowContent.__deallocating_deinit`, `Collection.map`, `ForEach.element(at:)` — no API*
 
-The profile left megalist and kitchensink with ≈+0.8–1.2% each after R1–R3, and three rows it could not explain.
+The diagnosis estimates that megalist and kitchensink keep ≈+0.8–1.2% each after R1–R3 (its section 6.1, from
+the B6h profile's shares; no profile after R1–R3 exists yet), and that profile has three rows it could not explain.
 Statically, none of them is a crossing the split added:
 
 - **The deinit's extra `swift_release`** is where a helper sits, not extra code. The deinit releases the same
