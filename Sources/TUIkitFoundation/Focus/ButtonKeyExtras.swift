@@ -34,7 +34,7 @@ import TUIkitView
 /// is: the closure is built during a render pass and called from key dispatch,
 /// both of which run on the single run loop. The `@unchecked` is what lets it
 /// sit in ``EnvironmentValues``, which every view copies.
-struct ButtonKeyExtras: @unchecked Sendable {
+package struct ButtonKeyExtras: @unchecked Sendable {
     /// The keys to intercept. Anything outside this set is not offered.
     let keys: Set<Key>
 

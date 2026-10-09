@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitChrome
 import TUIkitFoundation
 
 // MARK: - Headless App

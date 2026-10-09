@@ -30,7 +30,7 @@ extension RenderContext {
     ///     user-facing data — e.g. `"scrollbar-\(context.identity.path)"`.
     ///   - frameTicks: The ticks between renders (`>= 1`).
     @MainActor
-    func requestAnimation(token: String, frameTicks: Int) {
+    package func requestAnimation(token: String, frameTicks: Int) {
         guard !isMeasuring else { return }
         // Declare "this subtree's output is time-varying" to any value-memoizing
         // ancestor (_MemoizedRow, EquatableView). Serving a cached buffer of an
@@ -66,7 +66,7 @@ extension RenderContext {
     ///     clamped to a horizon of about three years so that a date in the
     ///     distant future cannot overflow the monotonic clock.
     @MainActor
-    func requestWake(token: String, afterSeconds delay: Double) {
+    package func requestWake(token: String, afterSeconds delay: Double) {
         let nanos = (max(0, delay) * 1_000_000_000).rounded()
         let clamped = Int64(min(nanos, Self.wakeHorizonNanos))
         requestWake(token: token, atNanos: environment.frameNowNanos &+ clamped)
@@ -90,7 +90,7 @@ extension RenderContext {
     ///   - token: A stable per-view key, from the structural identity.
     ///   - instant: When to render, on the frame clock.
     @MainActor
-    func requestWake(token: String, atNanos instant: Int64) {
+    package func requestWake(token: String, atNanos instant: Int64) {
         guard !isMeasuring else { return }
         // Same reason as `requestAnimation`: a memoizing ancestor serving a
         // cached buffer would both freeze the visible frame and skip the

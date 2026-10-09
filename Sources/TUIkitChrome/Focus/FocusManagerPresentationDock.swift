@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension FocusManager {
     /// Posts how many rows the sheet presented in section `id` docks at the
     /// bottom of the content area — asked by its presenter every frame it is

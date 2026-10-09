@@ -730,7 +730,7 @@ extension MouseEventDispatcher {
         /// Closes the pop-up, without choosing anything. Idempotent.
         let close: () -> Void
 
-        init(isOpen: @escaping () -> Bool, close: @escaping () -> Void) {
+        package init(isOpen: @escaping () -> Bool, close: @escaping () -> Void) {
             self.isOpen = isOpen
             self.close = close
         }

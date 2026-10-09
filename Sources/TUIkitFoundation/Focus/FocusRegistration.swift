@@ -366,7 +366,7 @@ package enum FocusRegistration {
     ///   - context: The publishing modifier's own context; its identity and
     ///     depth name the slot.
     ///   - contentContext: The context the content renders with.
-    static func publishIsFocused(
+    package static func publishIsFocused(
         _ isFocused: Bool?, context: RenderContext, into contentContext: inout RenderContext
     ) {
         contentContext.environmentApplicationDepth += 1

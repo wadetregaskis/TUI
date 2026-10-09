@@ -16,7 +16,7 @@
     /// The breath a symbol's glyph draws: its ink fading toward what is behind it
     /// and back, the one change a single glyph in a cell can show of SF Symbols'
     /// pulse and breathe.
-    enum SymbolBreath: Equatable, Sendable {
+    package enum SymbolBreath: Equatable, Sendable {
         /// Pulse: down to a third of the ink, as SF Symbols' pulse fades the
         /// symbol's layers.
         case pulse
@@ -37,7 +37,7 @@
 
         /// Ticks of 1/60 s each frame shows for at `speed` (SF Symbols' default 1
         /// is a breath a second), at least one.
-        static func frameTicks(speed: Double) -> Int {
+        package static func frameTicks(speed: Double) -> Int {
             guard speed.isFinite, speed > 0 else { return AnimationClock.standardFrameTicks }
             return max(1, Int((Double(AnimationClock.standardFrameTicks) / speed).rounded()))
         }
@@ -53,14 +53,14 @@
     /// The symbol effect a glyph below draws, if any — set by
     /// `symbolEffect(_:options:isActive:)` and `symbolEffect(_:options:value:)`,
     /// cleared by `symbolEffectsRemoved(_:)`.
-    enum SymbolGlyphEffect: Equatable, Sendable {
+    package enum SymbolGlyphEffect: Equatable, Sendable {
         /// Breathing for as long as it is in the environment.
         case breathing(SymbolBreath, frameTicks: Int)
         /// `cycles` breaths from `startNanos` on the frame clock, then still.
         case playing(SymbolBreath, frameTicks: Int, startNanos: Int64, cycles: Int)
 
         /// How long a play lasts, in nanoseconds.
-        static func playLength(frameTicks: Int, cycles: Int) -> Int64 {
+        package static func playLength(frameTicks: Int, cycles: Int) -> Int64 {
             AnimationClock.nanoseconds(atTick: Int64(frameTicks) * Int64(SymbolBreath.frameCount) * Int64(max(1, cycles)))
         }
     }
@@ -71,7 +71,7 @@
 
     extension EnvironmentValues {
         /// The symbol effect the SF Symbol glyphs below draw. See ``SymbolGlyphEffect``.
-        var symbolGlyphEffect: SymbolGlyphEffect? {
+        package var symbolGlyphEffect: SymbolGlyphEffect? {
             get { self[SymbolGlyphEffectKey.self] }
             set { self[SymbolGlyphEffectKey.self] = newValue }
         }

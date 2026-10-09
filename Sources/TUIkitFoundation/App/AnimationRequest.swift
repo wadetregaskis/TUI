@@ -20,7 +20,7 @@
 /// request on the tick lattice there was nothing left for the lock to decide.
 package struct AnimationRequest: Equatable, Sendable {
     /// The ticks of 1/60 s between renders, `>= 1`.
-    let frameTicks: Int
+    package let frameTicks: Int
 
     /// A render every `frameTicks` ticks of 1/60 s. `frameTicks` must be `>= 1`.
     init(frameTicks: Int) {

@@ -10,6 +10,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitMenus
 
 /// Puts the label in front of the current group.
 private struct Prefixed: ControlGroupStyle {

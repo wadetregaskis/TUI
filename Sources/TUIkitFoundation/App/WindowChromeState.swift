@@ -51,7 +51,7 @@ import TUIkitCore
 ///   declaration of anything else is a real change, and unpins it at once.
 package final class WindowChromeState: @unchecked Sendable {
     /// Which of the window's bars.
-    enum Edge: CaseIterable {
+    package enum Edge: CaseIterable {
         /// The top toolbar, above the page.
         case top
         /// The bottom toolbar, below the page.
@@ -59,17 +59,30 @@ package final class WindowChromeState: @unchecked Sendable {
     }
 
     /// A toolbar item a walk declared, as the bar draws it.
-    struct ToolbarEntry {
+    package struct ToolbarEntry {
         /// Where the item goes.
-        let placement: ToolbarItemPlacement
+        package let placement: ToolbarItemPlacement
         /// What the item draws.
-        let view: AnyView
+        package let view: AnyView
         /// The environment of the view that declared it.
-        let environment: EnvironmentValues
+        package let environment: EnvironmentValues
         /// The identity it was declared at.
-        let identity: ViewIdentity
+        package let identity: ViewIdentity
         /// Whether it is a flexible ``ToolbarSpacer``: laid out as a `Spacer`.
-        var isFlexibleSpace = false
+        package var isFlexibleSpace = false
+
+        /// The memberwise initializer, spelled out because the synthesized one is internal and the
+        /// toolbars (TUIkitChrome) declare these.
+        package init(
+            placement: ToolbarItemPlacement, view: AnyView, environment: EnvironmentValues, identity: ViewIdentity,
+            isFlexibleSpace: Bool = false
+        ) {
+            self.placement = placement
+            self.view = view
+            self.environment = environment
+            self.identity = identity
+            self.isFlexibleSpace = isFlexibleSpace
+        }
     }
 
     /// One bar's reservation and the history its oscillation guard reads.
@@ -89,7 +102,7 @@ package final class WindowChromeState: @unchecked Sendable {
     }
 
     /// What settling a bar asks of the run loop.
-    enum Settlement: Equatable {
+    package enum Settlement: Equatable {
         /// Nothing: the bar is what the content declared, or is held there.
         case settled
         /// The next frame: it draws the adopted reservation, or lets a held
@@ -153,7 +166,7 @@ package final class WindowChromeState: @unchecked Sendable {
     private var _showsTitle = true
 
     /// The style the bar at `edge` frames itself in: the window's one style.
-    func style(_ edge: Edge) -> ChromeStyle {
+    package func style(_ edge: Edge) -> ChromeStyle {
         style
     }
 
@@ -177,11 +190,15 @@ package final class WindowChromeState: @unchecked Sendable {
     /// and focus are. The line of key hints is the exception: it shows what
     /// the app's keys do NOW (the modal's, while one is up), and a click on an
     /// item there does what the key would.
-    private(set) var appLineHandlerIDs: Set<HitTestRegion.HandlerID> = []
+    package var appLineHandlerIDs: Set<HitTestRegion.HandlerID> { _appLineHandlerIDs }
+
+    /// ``appLineHandlerIDs``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _appLineHandlerIDs: Set<HitTestRegion.HandlerID> = []
 
     /// Records the regions of the app's line of key hints, drawn this walk.
-    func noteAppLine(_ buffer: FrameBuffer) {
-        for region in buffer.hitTestRegions { appLineHandlerIDs.insert(region.handlerID) }
+    package func noteAppLine(_ buffer: FrameBuffer) {
+        for region in buffer.hitTestRegions { _appLineHandlerIDs.insert(region.handlerID) }
     }
 
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
@@ -190,11 +207,11 @@ package final class WindowChromeState: @unchecked Sendable {
     ///
     /// Scene-level data: the top bar shows it in its title slot, and it is
     /// what a terminal window title (OSC 2) would be set from.
-    var title: String { titles.title }
+    package var title: String { titles.title }
 
     /// The window's subtitle: the title's own `.navigationSubtitle`, else the
     /// one that stands as a title does (see ``offer(_:as:at:)``).
-    var subtitle: String { titles.subtitle }
+    package var subtitle: String { titles.subtitle }
 
     /// The lines of the top bar's title slot, which the window's chrome takes
     /// from the views that declare them (`PreferenceModifier`).
@@ -343,7 +360,7 @@ package final class WindowChromeState: @unchecked Sendable {
     private(set) var oscillationReports: [Edge] = []
 
     /// Rows of content `edge` holds this frame.
-    func rows(_ edge: Edge) -> Int {
+    package func rows(_ edge: Edge) -> Int {
         self[edge].rows
     }
 
@@ -358,7 +375,7 @@ package final class WindowChromeState: @unchecked Sendable {
         toolbarEntries.removeAll(keepingCapacity: true)
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
-        appLineHandlerIDs.removeAll(keepingCapacity: true)
+        _appLineHandlerIDs.removeAll(keepingCapacity: true)
         titleOffers.removeAll(keepingCapacity: true)
         subtitleOffers.removeAll(keepingCapacity: true)
         chosenTitles = nil
@@ -368,38 +385,38 @@ package final class WindowChromeState: @unchecked Sendable {
     /// bar wins — the one closest to the content it wraps, since a modifier
     /// declares before its content renders — and ``Visibility/automatic``
     /// states no preference.
-    func declare(_ visibility: Visibility, for edge: Edge) {
+    package func declare(_ visibility: Visibility, for edge: Edge) {
         guard visibility != .automatic else { return }
         declaredVisibility[edge] = visibility
     }
 
     /// Whether this walk hid the bar at `edge`.
-    func isHidden(_ edge: Edge) -> Bool {
+    package func isHidden(_ edge: Edge) -> Bool {
         declaredVisibility[edge] == .hidden
     }
 
     /// Records a toolbar item the walk declared — once per identity.
-    func declare(_ entry: ToolbarEntry) {
+    package func declare(_ entry: ToolbarEntry) {
         guard declaredIdentities.insert(entry.identity).inserted else { return }
         toolbarEntries.append(entry)
     }
 
     /// The items this walk declared for the toolbar at `edge`: none while a
     /// `.toolbarVisibility(.hidden, for:)` hides it.
-    func toolbarEntries(for edge: Edge) -> [ToolbarEntry] {
+    package func toolbarEntries(for edge: Edge) -> [ToolbarEntry] {
         guard !isHidden(edge) else { return [] }
         return declaredEntries(for: edge)
     }
 
     /// The items this walk declared for the toolbar at `edge`, whether or not
     /// it is hidden.
-    func declaredEntries(for edge: Edge) -> [ToolbarEntry] {
+    package func declaredEntries(for edge: Edge) -> [ToolbarEntry] {
         toolbarEntries.filter { $0.placement.bar == edge }
     }
 
     /// Takes `rows` as `edge`'s reservation outright: what the first frame's
     /// measuring walk found the content declaring.
-    func seed(_ edge: Edge, rows: Int) {
+    package func seed(_ edge: Edge, rows: Int) {
         self[edge].rows = rows
         isSeeded = true
     }
@@ -412,7 +429,7 @@ package final class WindowChromeState: @unchecked Sendable {
     ///   - wanted: The rows of content the walk declared for it.
     ///   - nowNanos: This frame's instant on the frame clock, for a pin's lapse.
     /// - Returns: What the run loop owes the bar.
-    func settle(_ edge: Edge, wanting wanted: Int, nowNanos: Int64) -> Settlement {
+    package func settle(_ edge: Edge, wanting wanted: Int, nowNanos: Int64) -> Settlement {
         var bar = self[edge]
         defer { self[edge] = bar }
         bar.recent.removeAll { frame - $0.frame > Self.oscillationWindow }

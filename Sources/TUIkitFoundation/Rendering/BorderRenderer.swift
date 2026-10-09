@@ -15,7 +15,7 @@
 package enum BorderRenderer {
 
     /// The total width consumed by left + right border characters (1 + 1 = 2).
-    static let borderWidthOverhead = 2
+    package static let borderWidthOverhead = 2
 
     /// The breathing focus indicator character.
     static let focusIndicator: Character = "●"
@@ -142,7 +142,7 @@ extension BorderRenderer {
 
     /// The background a border's cells take, or `nil` for a style that draws
     /// only its glyph. See ``BorderStyle/paintsBackground``.
-    static func fill(_ style: BorderStyle, _ color: Color) -> Color? {
+    package static func fill(_ style: BorderStyle, _ color: Color) -> Color? {
         style.paintsBackground ? color : nil
     }
 
@@ -171,7 +171,7 @@ extension BorderRenderer {
 
     /// A horizontal rule in a style — the divider inside a menu, the chrome
     /// rule — drawn the same way the box's own top and bottom are.
-    static func rule(style: BorderStyle, width: Int, color: Color) -> String {
+    package static func rule(style: BorderStyle, width: Int, color: Color) -> String {
         band(
             String(repeating: style.horizontal, count: max(0, width)),
             style: style, color: color)
@@ -249,7 +249,7 @@ extension BorderRenderer {
         }
     }
 
-    static func opacityClaims(
+    package static func opacityClaims(
         outerWidth: Int, height: Int, style: BorderStyle, color: Color,
         title: String? = nil, titleColor: Color? = nil,
         focusIndicatorColor: Color? = nil, dividerRow: Int? = nil
@@ -364,7 +364,7 @@ extension BorderRenderer {
     ///   - focusIndicatorColor: If non-nil, renders a ● after the top-left corner
     ///     in this color. Used for the breathing focus section indicator.
     /// - Returns: A colorized top border string.
-    static func standardTopBorder(
+    package static func standardTopBorder(
         style: BorderStyle,
         innerWidth: Int,
         color: Color,
@@ -471,7 +471,7 @@ extension BorderRenderer {
     ///   - innerWidth: The content width.
     ///   - color: The border color.
     /// - Returns: A colorized bottom border string.
-    static func standardBottomBorder(
+    package static func standardBottomBorder(
         style: BorderStyle,
         innerWidth: Int,
         color: Color
@@ -520,7 +520,7 @@ extension BorderRenderer {
     ///   - color: The border color.
     ///   - backgroundColor: Optional background applied to the content area.
     /// - Returns: The bordered content line.
-    static func standardContentLine(
+    package static func standardContentLine(
         content: String,
         innerWidth: Int,
         style: BorderStyle,

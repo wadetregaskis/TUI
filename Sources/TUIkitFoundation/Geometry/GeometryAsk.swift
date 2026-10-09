@@ -12,20 +12,20 @@ import TUIkitCore
 // MARK: - Observation
 
 /// Where an owner found a view, in the owner's space.
-struct GeometryObservation: Equatable, Sendable {
+package struct GeometryObservation: Equatable, Sendable {
     /// The view's top-left cell in the space — or, where no view owning the
     /// space encloses the asking one (an unknown name, `.scrollView` with no
     /// scroll view), in the global space: SwiftUI's answer, measured.
-    var origin: CellPoint
+    package var origin: CellPoint
 
     /// The space's own size, or `nil` where no owner enclosed the view —
     /// which is when `GeometryProxy.bounds(of:)` answers `nil`.
-    var spaceSize: CellSize?
+    package var spaceSize: CellSize?
 
     /// For a scroll view's space, the axis it scrolls along — `.vertical`
     /// when it scrolls both ways — which a scroll transition naming no axis
     /// follows; `nil` for any other owner's.
-    var scrollAxis: Axis?
+    package var scrollAxis: Axis?
 }
 
 // MARK: - Ask
@@ -58,10 +58,10 @@ struct GeometryObservation: Equatable, Sendable {
 /// closure and asked later; the answer it gives then is the latest found.
 /// `@unchecked Sendable` on the coordinator's terms: render path and
 /// frame-end only, both on the main actor.
-final class GeometryAsk: @unchecked Sendable {
+package final class GeometryAsk: @unchecked Sendable {
     /// What the asking view does with the answers — which decides whether a
     /// wrong one is corrected.
-    enum Role: Equatable {
+    package enum Role: Equatable {
         /// A view whose CONTENT is built from the answers: a `GeometryReader`,
         /// a visual effect. An answer that turns out wrong was drawn, so the
         /// space's owner draws its subtree again with the right one.
@@ -75,7 +75,7 @@ final class GeometryAsk: @unchecked Sendable {
     }
 
     /// The id of the marker the asking view stamps.
-    let id: HitTestRegion.HandlerID
+    package let id: HitTestRegion.HandlerID
 
     /// The asking view, for keeping what was found across frames.
     let identity: ViewIdentity
@@ -164,7 +164,7 @@ final class GeometryAsk: @unchecked Sendable {
     ///   - space: The space asked about.
     ///   - needsSize: Whether the asker uses the space's size as well
     ///     (`GeometryProxy.bounds(of:)`), so a wrong size misleads it too.
-    func observation(in space: CoordinateSpace, needsSize: Bool = false) -> GeometryObservation? {
+    package func observation(in space: CoordinateSpace, needsSize: Bool = false) -> GeometryObservation? {
         if let found = found[space] {
             if isRecording { note(found, in: space, needsSize: needsSize) }
             return found
@@ -253,7 +253,7 @@ final class GeometryAsk: @unchecked Sendable {
     }
 
     /// Ends recording: the view has rendered.
-    func finishRecording(size: CellSize) {
+    package func finishRecording(size: CellSize) {
         isRecording = false
         self.size = size
     }

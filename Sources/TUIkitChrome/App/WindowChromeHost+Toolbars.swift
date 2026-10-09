@@ -6,6 +6,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension _WindowChromeHost {
     /// The rows a toolbar of `contentRows` rows takes in `style`, or 0 for
     /// none.

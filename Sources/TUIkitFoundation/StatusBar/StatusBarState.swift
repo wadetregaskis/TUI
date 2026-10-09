@@ -652,7 +652,7 @@ extension StatusBarState {
 
 extension StatusBarState {
     /// Sets the global user items without triggering a re-render.
-    func setItemsSilently(_ items: [any StatusBarItemProtocol]) {
+    package func setItemsSilently(_ items: [any StatusBarItemProtocol]) {
         declaredGlobalItems = items
     }
 
@@ -722,7 +722,7 @@ extension StatusBarState {
     }
 
     /// Pushes a new user context without triggering a re-render.
-    func pushSilently(context: String, items: [any StatusBarItemProtocol]) {
+    package func pushSilently(context: String, items: [any StatusBarItemProtocol]) {
         userContextStack.removeAll { $0.context == context }
         userContextStack.append((context, items))
     }

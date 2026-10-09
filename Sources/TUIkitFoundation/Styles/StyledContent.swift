@@ -20,13 +20,13 @@ public struct _StyledContent: View, ChildViewProvider {
 
     /// The content as it was written — for a control that reads structure out
     /// of what it was given, as a control group reads its label.
-    let underlying: any View
+    package let underlying: any View
 
     /// The content's views, resolved at their concrete type, which an erasure
     /// would have lost.
     private let children: @MainActor (RenderContext) -> [ChildView]
 
-    init<V: View>(_ view: V) {
+    package init<V: View>(_ view: V) {
         self.content = AnyView(view)
         self.underlying = view
         self.children = { resolveChildViews(from: view, context: $0) }

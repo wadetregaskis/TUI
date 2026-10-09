@@ -174,12 +174,14 @@ let package = Package(
         // its raw mode, input and replies, the signal handlers, the stdin source) and the run loop's rendering
         // (`ViewRenderer`, `FrameDiffWriter`, `renderOnce`). Nothing in TUIkitFoundation may use it
         // (Tools/ModuleMap's upward check), so the umbrella re-exports it, not TUIkitFoundation; it re-exports
-        // TUIkitFoundation in turn (Sources/TUIkitApp/Exports.swift). POSIX by design: no Windows step builds
-        // it (CLAUDE.md). DequeModule is its alone: only the `Terminal` files use it.
+        // TUIkitFoundation in turn (Sources/TUIkitApp/Exports.swift), and TUIkitChrome since step B5b (below):
+        // the run loop draws the window chrome, the status bar and the notifications around the content. POSIX
+        // by design: no Windows step builds it (CLAUDE.md). DequeModule is its alone: only the `Terminal` files
+        // use it.
         .target(
             name: "TUIkitApp",
             dependencies: [
-                "TUIkitFoundation",
+                "TUIkitChrome", "TUIkitFoundation",
                 .product(name: "DequeModule", package: "swift-collections"),
             ],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
@@ -207,14 +209,15 @@ let package = Package(
         // modifiers. Step C1 peels TUIkitPresentation into a target of its own; until then its files compile into
         // this module. So the target names its two directories in `directories:`, as TUIkitFoundation does its
         // own, which excludes every other directory under Sources (`sourcesDirectories`, at the top of this
-        // file). The map's edge from Presentation to TUIkitChrome stays inside
-        // TUIkitFoundation until step B5b, so of the map's modules it depends on TUIkitFoundation alone. Nothing in
-        // TUIkitFoundation may use it (Tools/ModuleMap's upward check, which still checks the two directories as the
-        // two modules the map plans), so the umbrella re-exports it, and so does TUIkitColorPicker. It re-exports
-        // TUIkitFoundation (Sources/TUIkitNavigation/Exports.swift).
+        // file). It depends on TUIkitChrome too since step B5b (below), the map's edge from Presentation:
+        // a presentation draws its notifications with Chrome's `notificationHost(width:)`, and a modal docks
+        // its presenter's focus through Chrome's presentation dock. Nothing in TUIkitFoundation may use it
+        // (Tools/ModuleMap's upward check, which still checks the two directories as the two modules the map
+        // plans), so the umbrella re-exports it, and so does TUIkitColorPicker. It re-exports TUIkitFoundation
+        // and TUIkitChrome (Sources/TUIkitNavigation/Exports.swift).
         .target(
             name: "TUIkitNavigation",
-            dependencies: ["TUIkitFoundation"],
+            dependencies: ["TUIkitChrome", "TUIkitFoundation"],
             directories: ["TUIkitNavigation", "TUIkitPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
@@ -237,17 +240,46 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // Step B5b's three leaves, each built on TUIkitFoundation alone, each a module of the plan's map of its own
+        // (no group), at its default path, Sources/<name>. TUIkitChrome is what the run loop draws around the
+        // content: the `StatusBar` view, the toolbars, the notifications, the tooltip popover and `.help`,
+        // `.statusBarItems`, the window chrome host, the overlay compositor, the screen selection's highlight
+        // and Copy menu; the status bar's STATE, the tooltip's and the window chrome's, which focus and the
+        // controls write, stay in TUIkitFoundation. TUIkitApp and TUIkitNavigation (its presentations) depend on
+        // it and re-export it. TUIkitEffects is the transitions, content transitions, `.symbolEffect`,
+        // `.visualEffect`, `.scrollTransition` and the colour effects; `TimelineView` and the symbol glyph's
+        // effect, which `Label` and `ProgressView` draw, stay. TUIkitMenus is `Menu`, `ControlGroup`,
+        // `.contextMenu`, `.menuStyle` and the menu styles, the popup and inline menu cores; the menu engine,
+        // `ContextMenuState`, the menu-row sink and `MenuStyle` stay, so no leaf depends on it. Nothing in
+        // TUIkitFoundation may use any of the three (Tools/ModuleMap's upward check), so the umbrella re-exports
+        // each. Each re-exports TUIkitFoundation (its Exports.swift).
+        .target(
+            name: "TUIkitChrome",
+            dependencies: ["TUIkitFoundation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+        .target(
+            name: "TUIkitEffects",
+            dependencies: ["TUIkitFoundation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+        .target(
+            name: "TUIkitMenus",
+            dependencies: ["TUIkitFoundation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
-        // TUIkitColorPicker, TUIkitLists, TUIkitNavigation), TUIkitFoundation and the lower four, and holds no code
-        // (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app exactly what it gave when the
-        // framework was one TUIkit module. Its directory also holds the TUIkit.docc catalog. Nothing in the package
-        // depends on it but the apps and the tests.
+        // TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation),
+        // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import
+        // TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. Its directory also
+        // holds the TUIkit.docc catalog. Nothing in the package depends on it but the apps and the tests.
         .target(
             name: "TUIkit",
             dependencies: [
-                "TUIkitApp", "TUIkitColorPicker", "TUIkitLists", "TUIkitNavigation", "TUIkitFoundation", "TUIkitCore",
-                "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitApp", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists", "TUIkitMenus",
+                "TUIkitNavigation", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -255,9 +287,10 @@ let package = Package(
         // revision 4) puts each planned module's files in Sources/<module>, where the module will live
         // once a step of Phase B carves it into a target of its own; until then this one target compiles
         // them all, as the module TUIkitFoundation (step B1). A carve adds `.target(name: "TUIkitX", …)`
-        // at its default path and takes "TUIkitX" out of `directories:` below; a coarse group's carve adds
-        // one target over its modules' directories (`directories:`, as TUIkitNavigation, step B5, and
-        // TUIkitLists, step B6) and takes each of them out. When the last module has left, this target is
+        // at its default path and takes "TUIkitX" out of `directories:` below (as TUIkitApp, step B3, and
+        // TUIkitChrome, TUIkitEffects and TUIkitMenus, step B5b); a coarse group's carve adds one target over
+        // its modules' directories (`directories:`, as TUIkitNavigation, step B5, and TUIkitLists, step B6)
+        // and takes each of them out. When the last module has left, this target is
         // an ordinary one at Sources/TUIkitFoundation.
         // Tools/ModuleMap checks the map: a file's directory is its module.
         .target(
@@ -270,8 +303,8 @@ let package = Package(
             // here, and compiled by no other target, draws no SwiftPM warning: Tools/ModuleMap's `uncompiled`
             // check, which gates CI, fails on a file of a module's directory that the build did not compile.
             directories: [
-                "TUIkitFoundation", "TUIkitChrome", "TUIkitEffects", "TUIkitBitmaps", "TUIkitMenus",
-                "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitForms", "TUIkitSearch",
+                "TUIkitFoundation", "TUIkitBitmaps", "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers",
+                "TUIkitForms", "TUIkitSearch",
             ],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
@@ -323,12 +356,14 @@ let package = Package(
         // imports TUIkit, as an app does, and `@testable import`s
         // TUIkitFoundation where it reaches the framework's internals, or the
         // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
-        // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists).
+        // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists,
+        // TUIkitChrome, TUIkitEffects, TUIkitMenus).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
-                "TUIkit", "TUIkitApp", "TUIkitColorPicker", "TUIkitFoundation", "TUIkitLists", "TUIkitNavigation",
-                "TUIkitStrings", "TUIkitTerminalHost", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
+                "TUIkit", "TUIkitApp", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitFoundation",
+                "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitStrings", "TUIkitTerminalHost",
+                "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so

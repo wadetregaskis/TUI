@@ -27,7 +27,7 @@ extension EnvironmentValues {
     /// modifier outside — would never see it.
     ///
     /// Innermost wins, because this is an ordinary environment cascade.
-    var helpText: String? {
+    package var helpText: String? {
         get { self[HelpTextKey.self] }
         set { self[HelpTextKey.self] = newValue }
     }

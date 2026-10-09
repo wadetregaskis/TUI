@@ -27,6 +27,7 @@
 
 import Foundation
 import Testing
+@testable import TUIkitChrome
 import TUIkitCore
 
 import TUIkit

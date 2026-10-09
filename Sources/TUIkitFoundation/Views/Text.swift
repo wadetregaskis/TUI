@@ -604,7 +604,7 @@ package struct TextStyle: Sendable, Equatable {
     private var statedForegroundColor = StatedColor.unstated
 
     /// The background color of the text.
-    var backgroundColor: Color? {
+    package var backgroundColor: Color? {
         get { statedBackgroundColor.value }
         set { statedBackgroundColor = StatedColor(newValue) }
     }
@@ -629,7 +629,7 @@ package struct TextStyle: Sendable, Equatable {
     var isItalic: Bool?
 
     /// Whether the text is underlined, or `nil` if this `Text` never said.
-    var isUnderlined: Bool?
+    package var isUnderlined: Bool?
 
     /// Whether the text is strikethrough, or `nil` if this `Text` never said.
     var isStrikethrough: Bool?
@@ -659,7 +659,7 @@ package struct TextStyle: Sendable, Equatable {
     var isBlink: Bool = false
 
     /// Whether foreground and background colors are inverted.
-    var isInverted: Bool = false
+    package var isInverted: Bool = false
 
     /// How the text is shortened when it cannot fit its available space, or
     /// `nil` to inherit `\.truncationMode` from the environment.

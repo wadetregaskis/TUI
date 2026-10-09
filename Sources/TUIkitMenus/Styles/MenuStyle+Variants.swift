@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 extension MenuStyle {
     /// Renders this style's body for `configuration` into a frame buffer.

@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitApp
+@testable import TUIkitChrome
 @testable import TUIkitFoundation
 
 /// Coverage for the scene-level `.appearance(_:)` override and the app-header

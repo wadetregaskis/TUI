@@ -84,7 +84,7 @@ extension TooltipTrigger {
     var revealsOnFocus: Bool { self == .onFocus }
 
     /// Whether every `help(_:)` in the subtree draws its own panel unprompted.
-    var showsEverything: Bool { self == .always }
+    package var showsEverything: Bool { self == .always }
 
     /// How a candidate published under this trigger must be presented.
     ///
@@ -93,7 +93,7 @@ extension TooltipTrigger {
     /// content from the candidate's own style, having only the root environment to
     /// read, so the override has to travel on the candidate. That is the same
     /// reason `Candidate.style` exists at all.
-    func presentation(_ style: TooltipStyle) -> TooltipStyle {
+    package func presentation(_ style: TooltipStyle) -> TooltipStyle {
         showsEverything ? .popover : style
     }
 }

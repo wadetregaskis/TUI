@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// The open/closed state of one pop-up ``Menu`` — a manual StateStorage box
 /// (not `@State`) marked active each frame, the same pattern the context menu

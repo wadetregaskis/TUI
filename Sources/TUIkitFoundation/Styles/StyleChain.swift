@@ -21,9 +21,9 @@
 /// unequal, so the render cache treats what is under it as changed every frame
 /// rather than serving it stale, the price the style protocols' documentation
 /// states.
-struct StyleChain<Style>: Equatable, @unchecked Sendable {
+package struct StyleChain<Style>: Equatable, @unchecked Sendable {
     /// The style in force.
-    let style: Style
+    package let style: Style
 
     /// The chain that was in force where ``style`` was set, or `nil` at the
     /// root — the environment's default.
@@ -44,7 +44,7 @@ struct StyleChain<Style>: Equatable, @unchecked Sendable {
     }
 
     /// A chain of one style, with nothing outside it.
-    init(_ style: Style) {
+    package init(_ style: Style) {
         self.style = style
         self.outer = nil
     }
@@ -57,24 +57,24 @@ struct StyleChain<Style>: Equatable, @unchecked Sendable {
     }
 
     /// `style` put in force over this chain.
-    func pushing(_ style: Style) -> Self {
+    package func pushing(_ style: Style) -> Self {
         Self(style, outer: self)
     }
 
     /// The chain a control drawn INSIDE ``style``'s body sees: the one outside
     /// it, or this one at the root.
-    var inside: Self {
+    package var inside: Self {
         outer?.chain ?? self
     }
 
     /// Whether this is the root chain, the environment's default: no style
     /// was put in force over it. Asked here, where ``outer`` is, so that a
     /// control in another module asks one question, not for the box.
-    var isRoot: Bool {
+    package var isRoot: Bool {
         outer == nil
     }
 
-    static func == (lhs: Self, rhs: Self) -> Bool {
+    package static func == (lhs: Self, rhs: Self) -> Bool {
         guard let left = lhs.style as? any Equatable, left.isEqual(to: rhs.style) else { return false }
         return lhs.outer == rhs.outer
     }

@@ -86,7 +86,7 @@ extension ANSIRenderer {
     ///
     /// For a caller drawing several strings in one style, which derives the
     /// sequence once instead of once per string.
-    static func wrap(_ text: String, in sequence: String?) -> String {
+    package static func wrap(_ text: String, in sequence: String?) -> String {
         guard let sequence else { return text }
         return "\(sequence)\(text)\(reset)"
     }

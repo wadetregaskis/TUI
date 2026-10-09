@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// The clock a frame is stamped with: an absolute monotonic reading, the
 /// same one every call site uses.

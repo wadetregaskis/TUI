@@ -592,7 +592,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// half-lifted picture; the alternative is a second source of truth for
     /// "where the drag is" reaching the drop path, which is not a trade worth
     /// making for a window that short.
-    func liftedPreviewFrame() -> (x: Int, y: Int, width: Int, height: Int)? {
+    package func liftedPreviewFrame() -> (x: Int, y: Int, width: Int, height: Int)? {
         guard let drag = active, let anchored = previewFrame() else { return nil }
         let lifted = Self.lerp(
             from: (drag.originX, drag.originY), to: (anchored.x, anchored.y),
@@ -604,7 +604,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// the lift has reached, or the steady picture once it has arrived.
     ///
     /// Read together with ``liftedPreviewFrame()``, which says where to put it.
-    func liftedPreviewContent() -> FrameBuffer? {
+    package func liftedPreviewContent() -> FrameBuffer? {
         guard let drag = active else { return nil }
         return Self.morphFrame(drag.morph, phase: drag.liftPhase) ?? drag.preview
     }
@@ -800,7 +800,11 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Where the returning preview is right now, as the render loop last
     /// advanced it. The scene draws THIS rather than advancing the flight
     /// itself, so the animation has exactly one clock.
-    private(set) var returnFlightFrame: (x: Int, y: Int, preview: FrameBuffer)?
+    package var returnFlightFrame: (x: Int, y: Int, preview: FrameBuffer)? { _returnFlightFrame }
+
+    /// ``returnFlightFrame``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _returnFlightFrame: (x: Int, y: Int, preview: FrameBuffer)?
 
     /// Ends the drag by sending the preview back where it came from, instead of
     /// having it vanish at the cursor.
@@ -840,7 +844,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Ends the drag by sending the picture to `destination`, playing its
     /// travel backward on the way — a row again by the time it lands.
     private func flyPreview(to destination: (x: Int, y: Int)) {
-        returnFlightFrame = nil
+        _returnFlightFrame = nil
         // Reduce motion: no flight (see `reducesMotion`).
         if !reducesMotion, let drag = active, let frame = previewFrame(),
             frame.x != destination.x || frame.y != destination.y || !drag.morph.isEmpty
@@ -894,7 +898,7 @@ package final class DragAndDropSession: @unchecked Sendable {
         let elapsed = nowNanos &- start
         guard elapsed < ReturnFlight.durationNanos else {
             _returnFlight = nil
-            returnFlightFrame = nil
+            _returnFlightFrame = nil
             return nil
         }
         let progress = Double(elapsed) / Double(ReturnFlight.durationNanos)
@@ -906,7 +910,7 @@ package final class DragAndDropSession: @unchecked Sendable {
         // Backward through the travel: `morph` runs row-layout-first, and a
         // flight is the picture on its way back to being a row.
         let content = Self.morphFrame(flight.morph, phase: 1 - eased) ?? flight.preview
-        returnFlightFrame = (x, y, content)
+        _returnFlightFrame = (x, y, content)
         return returnFlightFrame
     }
 

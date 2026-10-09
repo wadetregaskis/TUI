@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - ControlGroup
 
 /// A container view that displays semantically-related controls in a

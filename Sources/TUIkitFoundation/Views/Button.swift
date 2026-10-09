@@ -923,7 +923,7 @@ extension Button {
     ///   closes it on a held release, as the drawn menu's backdrop would have
     ///   (``MouseEventDispatcher/pressOpenedPopup(_:)``).
     /// - Returns: A button that opens its menu on the press.
-    func menuTrigger(_ menu: MouseEventDispatcher.OpenedPopup) -> Button {
+    package func menuTrigger(_ menu: MouseEventDispatcher.OpenedPopup) -> Button {
         var copy = self
         copy.triggeredMenu = menu
         return copy

@@ -15,6 +15,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitChrome
 @testable import TUIkitFoundation
 
 /// One duration the framework picks on its own, by the name the spec tracks it by.

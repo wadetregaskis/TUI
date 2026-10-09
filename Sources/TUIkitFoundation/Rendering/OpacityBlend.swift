@@ -749,7 +749,7 @@ extension FrameBuffer {
     ///
     /// Shared with `OpacityFade`, whose rewrite of a drawn line reaches the same
     /// cell (`Opacity as composition` §83).
-    static func isTheUnreportedPageOnItself(ink: Color?, field: Color) -> Bool {
+    package static func isTheUnreportedPageOnItself(ink: Color?, field: Color) -> Bool {
         guard let ink, case .terminalBackground = ink.value, case .terminalBackground = field.value else {
             return false
         }

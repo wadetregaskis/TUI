@@ -12,6 +12,7 @@
 
 import Testing
 import TUIkitCore
+@testable import TUIkitMenus
 
 import TUIkit
 @testable import TUIkitApp

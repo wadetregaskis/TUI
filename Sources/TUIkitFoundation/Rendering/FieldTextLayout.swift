@@ -19,7 +19,7 @@
 /// once, here: the screen's selection is the substrate's, and the text inputs
 /// sit above it once TUIkit is split into modules, so it must not name their
 /// renderer to borrow the look.
-protocol FieldTextLayout {}
+package protocol FieldTextLayout {}
 
 extension FieldTextLayout {
     /// The selection highlight's background and the text colour that reads on
@@ -42,7 +42,7 @@ extension FieldTextLayout {
     ///
     /// - Parameter ink: What the field draws its text in, for the reversed case.
     ///   Defaults to the palette's foreground, for a caller with no cell in hand.
-    static func selectionColors(
+    package static func selectionColors(
         palette: any Palette, background: Color?, ink: Color? = nil
     ) -> FieldSelectionStyle {
         let ground = background ?? palette.background
@@ -63,21 +63,21 @@ extension FieldTextLayout {
 
 /// What a selected cell paints: the highlight's own pair, or — where that
 /// highlight cannot be measured — the cell's pair, exchanged by reverse video.
-struct FieldSelectionStyle {
+package struct FieldSelectionStyle {
     /// The colour the selected cells are filled with. Reversed, the colour the
     /// terminal exchanges INTO them, which is the field the cell already had.
-    let background: Color
+    package let background: Color
 
     /// The colour the selected text is drawn in. Reversed, the cell's own ink.
-    let foreground: Color
+    package let foreground: Color
 
     /// Whether the pair is stated beside an SGR 7 rather than painted directly.
-    let isReversed: Bool
+    package let isReversed: Bool
 
     /// Every colour resolved against `palette`. A custom palette may state a role
     /// semantically, and ``RunAccumulator`` hands its colours to ``ANSIRenderer``
     /// as they are, which traps on `.semantic`.
-    func resolved(with palette: any Palette) -> Self {
+    package func resolved(with palette: any Palette) -> Self {
         Self(
             background: background.resolve(with: palette),
             foreground: foreground.resolve(with: palette), isReversed: isReversed)

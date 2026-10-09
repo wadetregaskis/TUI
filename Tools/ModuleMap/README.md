@@ -7,8 +7,8 @@ what each holds. Since step A5 each module's files sit in a directory of their o
 out; until then the one `TUIkitFoundation` target compiles them all (since step B1; `TUIkit` is the umbrella, which
 only re-exports). Carved so far: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their own that
 TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TUIkitColorPicker (step B4), TUIkitNavigation
-(step B5) and TUIkitLists (step B6), targets of their own that depend on TUIkitFoundation and that the umbrella
-re-exports. TUIkitNavigation and TUIkitLists are **coarse groups**: one target compiling several planned modules'
+(step B5), TUIkitLists (step B6), and TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b), targets of their own
+that depend on TUIkitFoundation and that the umbrella re-exports. TUIkitNavigation and TUIkitLists are **coarse groups**: one target compiling several planned modules'
 directories, `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peels the second into a
 target of its own, and `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4
 peel the last three (see [Coarse groups](#coarse-groups)). **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
@@ -203,9 +203,10 @@ check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file w
 The `TUIkit` umbrella re-exports and holds nothing else. No declaration may be assigned to it, and its files may
 hold only imports. And it re-exports, by name, every module carved out above `TUIkitFoundation` (the `default` in
 `rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
-TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6). TUIkitFoundation cannot re-export a
-module built on it, so `import TUIkit` has it only through the umbrella. Reaching it through a sibling instead
-compiles the same. TUIkitColorPicker re-exports TUIkitNavigation until step C1, which moves its dependency to
+TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
+TUIkitMenus since step B5b). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only
+through the umbrella. Reaching it through a sibling instead compiles the same: TUIkitApp and TUIkitNavigation
+re-export TUIkitChrome, which they depend on, for good. TUIkitColorPicker re-exports TUIkitNavigation until step C1, which moves its dependency to
 TUIkitPresentation, a module that does not depend on TUIkitNavigation. It re-exports TUIkitLists for good: directly
 until step C3, then through TUIkitTabs, which depends on TUIkitLists and re-exports it (plan §4). So an umbrella
 without TUIkitNavigation's line still gives an app `TUIkit.NavigationStack` until C1, and one without TUIkitLists'
@@ -286,7 +287,7 @@ B7 (the TextInput group) carves its own the same way. Nothing here changes for a
   group's `directories:` leaves out is an `uncompiled` finding, as one TUIkitFoundation's leaves out is.
 - The checks hold the members to the planned map, as they hold the modules TUIkitFoundation still compiles
   together. That is stricter than the build, never looser. The group's target sees everything its members' planned
-  dependencies give them (TUIkitFoundation, which still compiles TUIkitChrome, for TUIkitPresentation), so what
+  dependencies give them (TUIkitFoundation and, since step B5b, TUIkitChrome, for TUIkitPresentation), so what
   passes the checks compiles. An edge between two members compiles in the group but is still a finding, because
   the peel would have to break it; so a peel starts with no finding to fix. Treating a group as one module would
   let such edges in until the peel (decisions B-SPB5-1).

@@ -54,36 +54,36 @@ extension FocusManager {
 extension FocusManager {
     /// Posts the dock of the sheet presented in section `id`, for this walk:
     /// the ledger's ``PaneLedger/docks``.
-    func postDock(
+    package func postDock(
         inSection id: String, presenter: ViewIdentity, resolver: @escaping PresentationDockResolver
     ) {
         panes.docks[id] = PaneLedger.PostedDock(presenter: presenter, resolver: resolver)
     }
 
     /// The docks this walk posted (``PaneLedger/docks``).
-    var postedDocks: [String: PaneLedger.PostedDock] { panes.docks }
+    package var postedDocks: [String: PaneLedger.PostedDock] { panes.docks }
 
     /// The docks the last frame posted (``PaneLedger/previousDocks``).
-    var previouslyPostedDocks: [String: PaneLedger.PostedDock] { panes.previousDocks }
+    package var previouslyPostedDocks: [String: PaneLedger.PostedDock] { panes.previousDocks }
 
     /// Notes that the sheet of section `id` docked the page before this walk
     /// (``PaneLedger/dockedBeforeTheWalk``).
-    func noteDockedBeforeTheWalk(_ id: String) {
+    package func noteDockedBeforeTheWalk(_ id: String) {
         panes.dockedBeforeTheWalk.insert(id)
     }
 
     /// Whether any sheet docked the page before this walk.
-    var anyDockedBeforeTheWalk: Bool { !panes.dockedBeforeTheWalk.isEmpty }
+    package var anyDockedBeforeTheWalk: Bool { !panes.dockedBeforeTheWalk.isEmpty }
 
     /// The ledger's ``PaneLedger/noteDocksLeftUndrawn(windowedOut:)``.
-    func noteDocksLeftUndrawn(windowedOut: (ViewIdentity) -> Bool) {
+    package func noteDocksLeftUndrawn(windowedOut: (ViewIdentity) -> Bool) {
         panes.noteDocksLeftUndrawn(windowedOut: windowedOut)
     }
 
     /// Whether the sheet of section `id` docked the page last frame and that
     /// frame left its presenter out of a lazy container's window
     /// (``PaneLedger/undrawnUnderTheirDock``).
-    func isUndrawnUnderItsDock(_ id: String) -> Bool {
+    package func isUndrawnUnderItsDock(_ id: String) -> Bool {
         panes.undrawnUnderTheirDock.contains(id)
     }
 }

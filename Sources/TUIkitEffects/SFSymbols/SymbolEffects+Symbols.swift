@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 #if canImport(Symbols)
     import Foundation
     import Symbols

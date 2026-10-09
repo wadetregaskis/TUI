@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitChrome
 import TUIkitFoundation
 
 // MARK: - What the status bar shows besides its items

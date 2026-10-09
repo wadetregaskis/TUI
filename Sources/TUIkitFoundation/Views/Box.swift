@@ -89,7 +89,7 @@
 /// `Box` is purely compositional sugar and carries no rendering logic.
 ///
 /// - Note: This is an internal type. Use `.border()` modifier directly instead.
-struct Box<Content: View>: View {
+package struct Box<Content: View>: View {
     /// The content of the box.
     let content: Content
 
@@ -115,7 +115,7 @@ struct Box<Content: View>: View {
         self.borderColor = color
     }
 
-    var body: some View {
+    package var body: some View {
         content.bordered(style: borderStyle, colour: borderColor.map(AnimatedColor.init), width: 1)
     }
 }
@@ -134,7 +134,7 @@ extension Box where Content == BufferView {
     ///   - lines: Pre-styled content lines (may contain ANSI escape sequences).
     ///   - borderStyle: The border style (default: appearance borderStyle).
     ///   - color: The border color (default: theme border).
-    init(
+    package init(
         lines: [String],
         _ borderStyle: BorderStyle? = nil,
         color: Color? = nil
@@ -151,20 +151,26 @@ extension Box where Content == BufferView {
 /// content into the `Box` rendering pipeline. This lets `Box` handle border
 /// rendering (border style from the current appearance) while the content is controlled
 /// externally.
-struct BufferView: View, Renderable, Layoutable {
+package struct BufferView: View, Renderable, Layoutable {
     /// The pre-built buffer to return during rendering.
-    let buffer: FrameBuffer
+    package let buffer: FrameBuffer
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is internal and the effects
+    /// (TUIkitEffects) make these.
+    package init(buffer: FrameBuffer) {
+        self.buffer = buffer
+    }
+
+    package var body: Never {
         fatalError("BufferView renders via Renderable")
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         buffer
     }
 
     /// A pre-built buffer is exactly its own size — measured directly, no render.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(buffer.width, buffer.height)
     }
 }
@@ -172,7 +178,7 @@ struct BufferView: View, Renderable, Layoutable {
 // MARK: - Equatable Conformance
 
 extension Box: @preconcurrency Equatable where Content: Equatable {
-    static func == (lhs: Box<Content>, rhs: Box<Content>) -> Bool {
+    package static func == (lhs: Box<Content>, rhs: Box<Content>) -> Bool {
         lhs.content == rhs.content && lhs.borderStyle == rhs.borderStyle && lhs.borderColor == rhs.borderColor
     }
 }

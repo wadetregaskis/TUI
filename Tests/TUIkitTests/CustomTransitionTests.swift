@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitEffects
 @testable import TUIkitFoundation
 
 /// The values an animatable modifier was drawn at, in order.

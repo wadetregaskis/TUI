@@ -135,5 +135,5 @@ extension CoordinateSpaceModifier: DrawsContentUnchanged {}
 
 extension FrameBuffer {
     /// The buffer's size, as the cells a coordinate space spans.
-    var cellSize: CellSize { CellSize(width: width, height: height) }
+    package var cellSize: CellSize { CellSize(width: width, height: height) }
 }

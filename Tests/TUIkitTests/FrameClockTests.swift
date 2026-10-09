@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitChrome
 @testable import TUIkitFoundation
 
 /// `render(frameNowNanos:)` once defaulted its absolute clock reading to 0,

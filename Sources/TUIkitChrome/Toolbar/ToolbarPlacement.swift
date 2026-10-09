@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Bar Placement
 
 /// The placement of a bar a bar modifier refers to — mirrors SwiftUI's

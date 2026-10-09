@@ -25,8 +25,12 @@
 /// compared, no subtree inside a menu could be stored or served however
 /// comparable everything else in force was. It holds nothing, so every instance
 /// styles a row identically — see ``MenuStyle``.
-struct _MenuItemButtonStyle: ButtonStyle, Equatable {
-    func makeBody(configuration: Configuration) -> some View {
+package struct _MenuItemButtonStyle: ButtonStyle, Equatable {
+    /// No arguments: spelled out because the implicit initializer is internal and the menu
+    /// column (TUIkitMenus) makes these.
+    package init() {}
+
+    package func makeBody(configuration: Configuration) -> some View {
         _MenuItemRowBar(configuration: configuration)
     }
 }
@@ -463,7 +467,7 @@ extension EnvironmentValues {
         set { self[MenuRowInsetKey.self] = newValue }
     }
 
-    var menuRowWidth: Int? {
+    package var menuRowWidth: Int? {
         get { self[MenuRowWidthKey.self] }
         set { self[MenuRowWidthKey.self] = newValue }
     }

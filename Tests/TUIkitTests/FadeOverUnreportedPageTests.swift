@@ -16,6 +16,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitCore
+@testable import TUIkitEffects
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
 

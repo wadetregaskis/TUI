@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - The Chrome Host
 
 /// The scene-level host that lays the window out: the top bar, the content,

@@ -14,16 +14,16 @@
 ///
 /// One value, rotated and emptied by the focus manager's pass hooks, with the
 /// same current-and-previous shape as `presentationDismissals`.
-struct PaneLedger {
+package struct PaneLedger {
     /// What a live sheet's presenter posts each frame: how many rows its sheet
     /// docked at the bottom of the content area takes from the page, and who
     /// posted it.
-    struct PostedDock {
+    package struct PostedDock {
         /// The presenter's identity — to ask, should a frame docked by it not
         /// draw it, whether its own dock windowed it out
         /// (``noteDocksLeftUndrawn(windowedOut:)``).
         let presenter: ViewIdentity
-        let resolver: PresentationDockResolver
+        package let resolver: PresentationDockResolver
     }
 
     /// The dock each sheet docked live posts, by its section: posted this walk.

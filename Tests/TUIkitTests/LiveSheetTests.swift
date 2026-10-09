@@ -12,6 +12,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 

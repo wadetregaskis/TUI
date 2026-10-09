@@ -16,7 +16,13 @@ public struct MenuStyleConfiguration {
     /// A type-erased view of the menu's label — its title, or whatever the
     /// caller built with the `label:` closure.
     public struct Label: View {
-        let content: AnyView
+        package let content: AnyView
+
+        /// The memberwise initializer, spelled out because the synthesized one is internal and
+        /// ``Menu`` (TUIkitMenus) makes these.
+        package init(content: AnyView) {
+            self.content = content
+        }
 
         public var body: some View { content }
     }
@@ -24,12 +30,19 @@ public struct MenuStyleConfiguration {
     /// A type-erased view of the menu's items: the `Button`s and `Divider`s
     /// from the `content:` closure.
     public struct Content: View {
-        let content: AnyView
+        package let content: AnyView
 
         /// The items as separate children of whatever stack a style puts this
         /// in — see the ``ChildViewProvider`` conformance below. Captured in
         /// ``Menu`` where the items' concrete type is still known.
-        let children: @MainActor (RenderContext) -> [ChildView]
+        package let children: @MainActor (RenderContext) -> [ChildView]
+
+        /// The memberwise initializer, spelled out because the synthesized one is internal and
+        /// ``Menu`` (TUIkitMenus) makes these.
+        package init(content: AnyView, children: @escaping @MainActor (RenderContext) -> [ChildView]) {
+            self.content = content
+            self.children = children
+        }
 
         public var body: some View { content }
     }
@@ -45,7 +58,15 @@ public struct MenuStyleConfiguration {
     /// interaction opens it. Not public, as SwiftUI's configuration has no such
     /// member; the default style reads it, and `Menu(configuration)` carries
     /// it on.
-    var primaryAction: (() -> Void)?
+    package var primaryAction: (() -> Void)?
+
+    /// The memberwise initializer, spelled out because the synthesized one is internal and ``Menu``
+    /// (TUIkitMenus) makes these.
+    package init(label: Label, content: Content, primaryAction: (() -> Void)? = nil) {
+        self.label = label
+        self.content = content
+        self.primaryAction = primaryAction
+    }
 }
 
 /// The items flatten into whatever stack a style places them in — SwiftUI

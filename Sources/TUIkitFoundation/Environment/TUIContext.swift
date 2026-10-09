@@ -113,7 +113,7 @@ extension LifecycleManager {
     ///   - action: The onAppear action to execute.
     /// - Returns: True if this is the first appearance (action was executed).
     @discardableResult
-    func recordAppear(token: String, action: () -> Void) -> Bool {
+    package func recordAppear(token: String, action: () -> Void) -> Bool {
         lock.lock()
         currentRenderTokens.insert(token)
 
@@ -131,7 +131,7 @@ extension LifecycleManager {
     }
 
     /// Checks if a view has appeared before.
-    func hasAppeared(token: String) -> Bool {
+    package func hasAppeared(token: String) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         return appearedTokens.contains(token)
@@ -139,7 +139,7 @@ extension LifecycleManager {
 
     /// Removes the appeared state for a token so the next `recordAppear`
     /// treats it as a fresh first appearance.
-    func resetAppearance(token: String) {
+    package func resetAppearance(token: String) {
         lock.lock()
         appearedTokens.remove(token)
         lock.unlock()
@@ -177,7 +177,7 @@ extension LifecycleManager {
     ///     that and runs on the main actor, while a value forwarded from
     ///     elsewhere (what `TaskModifier` hands over) keeps whatever isolation
     ///     the app gave it.
-    func startTask(
+    package func startTask(
         token: String,
         priority: TaskPriority,
         name: String? = nil,

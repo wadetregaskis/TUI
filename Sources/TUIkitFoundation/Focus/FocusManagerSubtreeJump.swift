@@ -13,7 +13,7 @@ import Foundation
 extension FocusManager {
 
     /// Where a jump within one subtree's own focus stops lands.
-    enum SubtreeFocusJump: Equatable {
+    package enum SubtreeFocusJump: Equatable {
         /// The subtree's first stop (`Home`).
         case first
         /// Its last (`End`).
@@ -59,7 +59,7 @@ extension FocusManager {
     ///
     /// - Returns: whether the focus moved.
     @discardableResult
-    func moveFocus(inSubtreeAt path: String, jump: SubtreeFocusJump) -> Bool {
+    package func moveFocus(inSubtreeAt path: String, jump: SubtreeFocusJump) -> Bool {
         guard let section = activeSection else { return false }
         let stops = section.focusables.filter {
             // The container that HOLDS the rows is a focus stop too when its

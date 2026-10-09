@@ -6,6 +6,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Toolbar Item
 
 /// A model that represents an item which can be placed in the toolbar or

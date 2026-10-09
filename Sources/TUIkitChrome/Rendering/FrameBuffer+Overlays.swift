@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 extension FrameBuffer {
     /// Composites every accumulated ``overlays`` layer onto this buffer in

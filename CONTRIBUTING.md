@@ -454,8 +454,9 @@ anything at run time:
   target of their own: `TUIkitFoundation` (the modules of the split not yet
   carved into targets of their own) and those carved out of it so far,
   `TUIkitStrings` and `TUIkitTerminalHost` (step B2), `TUIkitApp` (step B3),
-  `TUIkitColorPicker` (step B4), `TUIkitNavigation` (step B5) and
-  `TUIkitLists` (step B6).
+  `TUIkitColorPicker` (step B4), `TUIkitNavigation` (step B5),
+  `TUIkitLists` (step B6), and `TUIkitChrome`, `TUIkitEffects` and
+  `TUIkitMenus` (step B5b).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
   console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
@@ -466,8 +467,11 @@ anything at run time:
   presentations' (crumbs, split-view widths, sheet detents, alert buttons),
   `TUIkitLists` for the lists', tables', tabs' and grids' (`ItemListHandler`,
   row bands and reordering, table columns, tab bars, grid tracks),
-  `TUIkitStrings` or `TUIkitTerminalHost` for theirs, and `TUIkitFoundation`
-  for the rest. A declaration's module is its directory's: a directory under
+  `TUIkitChrome` for the window chrome's (the status bar view, toolbars,
+  notifications, tooltips, the window chrome host), `TUIkitEffects` for the
+  transitions' and the visual, scroll and colour effects', `TUIkitMenus` for
+  `Menu`'s, `ControlGroup`'s and `.contextMenu`'s, `TUIkitStrings` or
+  `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: a directory under
   `Sources/` with a target of its own in `Package.swift` is that module, and
   every other one is `TUIkitFoundation`, with two exceptions, the coarse groups,
   each a target that names several directories: `Sources/TUIkitPresentation`

@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// The body of ``InlineMenuStyle``: the menu's label as a heading, a rule, and
 /// the items expanded beneath it, all in the same bordered column a floating

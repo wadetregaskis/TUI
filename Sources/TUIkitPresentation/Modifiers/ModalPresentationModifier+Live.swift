@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitChrome
 import TUIkitCore
 import TUIkitFoundation
 

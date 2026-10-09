@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// Renders `items` as a menu: a bordered column of rows, sized to hug its
 /// widest, scrolling inside `capHeight` if it cannot fit.

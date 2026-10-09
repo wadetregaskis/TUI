@@ -38,7 +38,7 @@ extension FocusManager {
     /// it registers, that the section holding the keyboard is only a bar. The
     /// ids name the window's two bars whatever is in them, so it never goes
     /// stale.
-    func registerPassiveSection(id: String) {
+    package func registerPassiveSection(id: String) {
         passiveSectionIDs.insert(id)
         markSectionFocusOptional(id: id)
         registerSection(id: id)

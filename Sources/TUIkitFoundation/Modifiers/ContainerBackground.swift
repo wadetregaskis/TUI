@@ -23,18 +23,18 @@ public struct ContainerBackgroundPlacement: Hashable, Sendable {
 
 /// A container background a view published: the view, and where it goes in
 /// the container.
-struct ContainerBackground {
+package struct ContainerBackground {
     /// The background, type-erased.
-    let view: AnyView
+    package let view: AnyView
 
     /// Where the background goes in the container, if it does not fill it.
-    let alignment: Alignment
+    package let alignment: Alignment
 }
 
 /// The window background the content published. The last one set wins — the
 /// default `reduce` — as SwiftUI leaves unspecified which of several does.
-struct ContainerBackgroundKey: PreferenceKey {
-    static let defaultValue: ContainerBackground? = nil
+package struct ContainerBackgroundKey: PreferenceKey {
+    package static let defaultValue: ContainerBackground? = nil
 }
 
 extension View {

@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// `content`, a buffer rendered for the scene's content area, centred in it
 /// over `background`, which fills the area or is placed in it by its

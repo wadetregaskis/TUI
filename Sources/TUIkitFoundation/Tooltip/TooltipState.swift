@@ -143,7 +143,7 @@ public final class TooltipState: @unchecked Sendable {
     ///   - handlerID: The view's hit region, for a popover to anchor to.
     ///   - nowNanos: The frame's monotonic clock, which the hover delay is
     ///     measured from.
-    func hovering(
+    package func hovering(
         _ text: String, handlerID: HitTestRegion.HandlerID?, nowNanos: Int64,
         style: TooltipStyle = .statusBar, delaySeconds: Double = 0
     ) {
@@ -165,7 +165,7 @@ public final class TooltipState: @unchecked Sendable {
     /// the child fires `.exited` for it while the pointer is still inside the
     /// container, and the container's own `.entered` may already have replaced
     /// the candidate.
-    func leaving(_ text: String) {
+    package func leaving(_ text: String) {
         guard hovered?.text == text else { return }
         hovered = nil
     }
@@ -275,7 +275,7 @@ public final class TooltipState: @unchecked Sendable {
     /// and nothing redraws for a focus that is merely still held. Hover first,
     /// matching ``resolved(nowNanos:)`` — the slot that would not be shown even
     /// once its own deadline passed is not worth waking for.
-    func pendingDeadlineNanos(nowNanos: Int64) -> Int64? {
+    package func pendingDeadlineNanos(nowNanos: Int64) -> Int64? {
         if let hovered {
             return hovered.showAtNanos > nowNanos ? hovered.showAtNanos : nil
         }

@@ -37,7 +37,7 @@
 /// button), every other placement in a row above it.
 public struct ToolbarItemPlacement: Sendable, Equatable {
     /// The roles a placement can have.
-    enum Role: Sendable, Equatable {
+    package enum Role: Sendable, Equatable {
         case automatic
         case principal
         case navigation
@@ -53,7 +53,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     }
 
     /// This placement's role.
-    let role: Role
+    package let role: Role
 
     /// The system places the item automatically, depending on many factors
     /// including the platform, size class, or presence of other items: in a
@@ -115,7 +115,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     }
 
     /// Where in its bar the item sits.
-    var region: Region {
+    package var region: Region {
         switch role {
         case .navigation, .topBarLeading: .leading
         case .principal: .principal
@@ -125,7 +125,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     }
 
     /// The regions of a bar, in the order they are laid out.
-    enum Region {
+    package enum Region {
         case leading, principal, secondary, trailing
     }
 }

@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 extension ScreenSelection {
     /// The focus section the menu presents in.

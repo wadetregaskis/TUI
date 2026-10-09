@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// A control for presenting a menu of actions — mirrors SwiftUI's `Menu`.
 ///

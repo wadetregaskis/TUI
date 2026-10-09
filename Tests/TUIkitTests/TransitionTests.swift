@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitEffects
 @testable import TUIkitFoundation
 
 /// A view that comes and goes, in a slot that survives it.

@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Testing
+@testable import TUIkitChrome
 import TUIkitCore
 
 import TUIkit

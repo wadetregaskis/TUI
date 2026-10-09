@@ -22,12 +22,12 @@
 /// a ``ScrollAxis`` for the window) and attaches the returned buffer as an
 /// ``OverlayLayer`` anchored beneath its collapsed control.
 @MainActor
-enum DropdownMenu {
+package enum DropdownMenu {
     /// The caret marking a control whose drop-down is closed (▾).
-    static let closedCaret = "\u{25BE}"
+    package static let closedCaret = "\u{25BE}"
 
     /// The caret marking a control whose drop-down is open (▴).
-    static let openCaret = "\u{25B4}"
+    package static let openCaret = "\u{25B4}"
 
     /// The marker drawn beside a menu's current value (✓).
     static let selectedMarker = "\u{2713}"

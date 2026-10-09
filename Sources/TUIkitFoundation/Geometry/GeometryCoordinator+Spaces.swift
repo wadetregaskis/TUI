@@ -46,7 +46,7 @@ extension GeometryCoordinator {
     /// A view drawn again in the same walk registers again under the same id,
     /// and replaces the first registration with what it asked the second time.
     @discardableResult
-    func register(_ ask: GeometryAsk) -> Bool {
+    package func register(_ ask: GeometryAsk) -> Bool {
         let wanted = ask.wanted.filter { $0 != .local }
         guard !wanted.isEmpty else { return false }
         if let previous = asks[ask.id] {
@@ -232,7 +232,7 @@ extension RenderContext {
     /// wired.
     ///
     /// - Parameter role: What the view does with what it is told.
-    func makeGeometryAsk(role: GeometryAsk.Role) -> GeometryAsk? {
+    package func makeGeometryAsk(role: GeometryAsk.Role) -> GeometryAsk? {
         guard !isMeasuring, let dispatcher = environment.mouseEventDispatcher else { return nil }
         let id = dispatcher.geometryMarkerID(in: self)
         let geometry = dispatcher.geometry

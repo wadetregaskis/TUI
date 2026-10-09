@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Toolbar Content
 
 /// Conforming types represent items that can be placed in various locations in
@@ -104,7 +106,7 @@ struct _ToolbarItemCollector {
     @MainActor
     mutating func step<Content: ToolbarContent>(_ index: Int, _ content: Content) {
         path.append(index)
-        TUIkitFoundation.appendToolbarItems(content, to: &self)
+        TUIkitChrome.appendToolbarItems(content, to: &self)
         path.removeLast()
     }
 }
@@ -162,7 +164,7 @@ struct _HiddenToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarC
 
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard !isHidden else { return }
-        TUIkitFoundation.appendToolbarItems(content, to: &items)
+        TUIkitChrome.appendToolbarItems(content, to: &items)
     }
 }
 
@@ -176,7 +178,7 @@ extension Optional: ToolbarContent where Wrapped: ToolbarContent {
 extension Optional: _ToolbarContentPrimitive where Wrapped: ToolbarContent {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard let self else { return }
-        TUIkitFoundation.appendToolbarItems(self, to: &items)
+        TUIkitChrome.appendToolbarItems(self, to: &items)
     }
 }
 

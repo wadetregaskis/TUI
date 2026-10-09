@@ -6,6 +6,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - StatusBar View
 
 /// A line of key hints: the keyboard shortcuts in force, and what each does.

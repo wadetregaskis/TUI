@@ -151,7 +151,7 @@ extension EnvironmentValues {
     /// deliberately absent for an inline menu, this is the plain question "is
     /// the thing around me a menu". A `Button` reads it to say what Return does
     /// here: choosing from a menu rather than activating a button on the page.
-    var isInsideMenu: Bool {
+    package var isInsideMenu: Bool {
         get { self[IsInsideMenuKey.self] }
         set { self[IsInsideMenuKey.self] = newValue }
     }
@@ -172,6 +172,10 @@ extension EnvironmentValues {
 /// highlight survives the frames between key presses.
 @MainActor
 package final class MenuPopupController {
+    /// No arguments: spelled out because the implicit initializer is internal and a
+    /// menu's popup (TUIkitMenus) makes these.
+    package init() {}
+
     /// Collects what the rows report as they render.
     let sink = MenuRowSink()
 
@@ -205,7 +209,7 @@ package final class MenuPopupController {
     }
 
     /// Records that the menu has closed.
-    func closed() {
+    package func closed() {
         highlight.move(to: nil)
     }
 

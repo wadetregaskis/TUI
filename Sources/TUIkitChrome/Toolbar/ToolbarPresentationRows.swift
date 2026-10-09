@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - The Rows
 
 /// A `.toolbar` in presented content draws its items in two rows round the view

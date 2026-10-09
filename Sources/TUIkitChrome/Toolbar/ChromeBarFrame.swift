@@ -7,6 +7,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Bar Frame
 
 /// One of the window's bars, framed: its already-rendered content inside the

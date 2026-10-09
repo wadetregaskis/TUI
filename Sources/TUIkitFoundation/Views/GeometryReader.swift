@@ -66,7 +66,7 @@ public struct GeometryProxy {
     /// proxy that can only answer its own: one made by hand, or in a measure.
     let ask: GeometryAsk?
 
-    init(width: Int, height: Int, ask: GeometryAsk? = nil) {
+    package init(width: Int, height: Int, ask: GeometryAsk? = nil) {
         self.size = CellSize(width: width, height: height)
         self.ask = ask
     }

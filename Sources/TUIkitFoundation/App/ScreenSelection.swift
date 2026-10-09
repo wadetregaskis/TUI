@@ -45,12 +45,12 @@ package final class ScreenSelection: @unchecked Sendable {
     /// selection keeps its own in the content area's, the page's, so it stays
     /// on the text it selected when the bar above the page changes height.
     package struct Point: Equatable {
-        var x: Int
-        var y: Int
+        package var x: Int
+        package var y: Int
     }
 
     /// A rectangle of cells, in the coordinates its ``Point``s are in.
-    struct Rect: Equatable {
+    package struct Rect: Equatable {
         var x: Int
         var y: Int
         var width: Int
@@ -88,7 +88,7 @@ package final class ScreenSelection: @unchecked Sendable {
 
     /// What the ends snap to: a drag's cells, a double-click's words, a
     /// triple-click's rows.
-    enum Unit: Equatable {
+    package enum Unit: Equatable {
         case character
         case word
         case row
@@ -96,22 +96,22 @@ package final class ScreenSelection: @unchecked Sendable {
 
     /// One selection.
     package struct Selection: Equatable {
-        var anchor: Point
-        var head: Point
+        package var anchor: Point
+        package var head: Point
         var clip: Rect
         var shape: Shape
-        var unit: Unit
+        package var unit: Unit
         /// The text selected, as last read.
-        var text: String
+        package var text: String
         /// Whether the highlight is drawn: while the cells under it read
         /// ``text``.
         package var isHighlighted = true
         /// The content area the highlight was last drawn in, the screen's —
         /// what a highlight that went may come back in; `nil` once it is gone
         /// for good (``ScreenSelection/takeFrame(_:width:palette:top:underPresentation:)``).
-        var shownIn: Rect?
+        package var shownIn: Rect?
         /// Whether a drag is still making it.
-        var isMaking = true
+        package var isMaking = true
     }
 
     /// The selection, if there is one.
@@ -123,15 +123,27 @@ package final class ScreenSelection: @unchecked Sendable {
 
     /// The last frame's composited content, each line as written: what a
     /// selection reads. A reference to the frame's own array, kept every frame.
-    var frameLines: [String] = []
+    package var frameLines: [String] { get { _frameLines } set { _frameLines = newValue } }
+
+    /// ``frameLines``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _frameLines: [String] = []
 
     /// The last frame's content width.
-    var frameWidth = 0
+    package var frameWidth: Int { get { _frameWidth } set { _frameWidth = newValue } }
+
+    /// ``frameWidth``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _frameWidth = 0
 
     /// The screen row the last frame's content area starts at: the rows the
     /// window's top bar takes above it. What turns the screen's coordinates,
     /// which the pointer reports, into the page's.
-    var frameTop = 0
+    package var frameTop: Int { get { _frameTop } set { _frameTop = newValue } }
+
+    /// ``frameTop``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _frameTop = 0
 
     /// Whether a drag's release copies the selection — the scene's
     /// ``Scene/textSelectionCopiesOnRelease(_:)``.
@@ -159,10 +171,18 @@ package final class ScreenSelection: @unchecked Sendable {
 
     /// The open menu's highlight, kept across its frames; made when it first
     /// opens (``presentMenu(over:context:)``).
-    var menuController: MenuPopupController?
+    package var menuController: MenuPopupController? { get { _menuController } set { _menuController = newValue } }
+
+    /// ``menuController``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _menuController: MenuPopupController?
 
     /// Whether the menu presented since its section was last taken down.
-    var menuNeedsTeardown = false
+    package var menuNeedsTeardown: Bool { get { _menuNeedsTeardown } set { _menuNeedsTeardown = newValue } }
+
+    /// ``menuNeedsTeardown``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _menuNeedsTeardown = false
 
     /// The menu, as the press that opens it hands it to the dispatcher for the
     /// rest of its gesture (``MouseEventDispatcher/pressOpenedPopup(_:)``):
@@ -188,7 +208,7 @@ package final class ScreenSelection: @unchecked Sendable {
     var hasSelection: Bool { current != nil }
 
     /// The content area of the last frame, in the screen's coordinates.
-    var contentArea: Rect { Rect(x: 0, y: frameTop, width: frameWidth, height: frameLines.count) }
+    package var contentArea: Rect { Rect(x: 0, y: frameTop, width: frameWidth, height: frameLines.count) }
 
     /// `point`, a cell of the screen, as a cell of the page.
     private func onPage(_ point: Point) -> Point { Point(x: point.x, y: point.y - frameTop) }
@@ -277,7 +297,7 @@ extension ScreenSelection {
     }
 
     /// Closes the selection's context menu, keeping the selection.
-    func closeMenu() {
+    package func closeMenu() {
         _menuAnchor = nil
     }
 
@@ -302,7 +322,7 @@ extension ScreenSelection {
 extension ScreenSelection {
     /// A line taken apart into cells: each cell's character, `nil` for the
     /// second cell of a wide one. A picture's placeholder cells read as blanks.
-    static func cells(of line: String) -> [Character?] {
+    package static func cells(of line: String) -> [Character?] {
         var cells: [Character?] = []
         line.forEachANSISegment { segment in
             guard case .visible(let character) = segment else { return true }
@@ -336,7 +356,7 @@ extension ScreenSelection {
 
     /// The columns `selection` covers on row `row`, snapped outwards to whole
     /// wide characters, or `nil` for a row it does not reach.
-    static func columns(of selection: Selection, onRow row: Int, cells: [Character?]) -> Range<Int>? {
+    package static func columns(of selection: Selection, onRow row: Int, cells: [Character?]) -> Range<Int>? {
         let (start, end) = ends(of: selection, cells: { _ in cells })
         let clip = selection.clip
         guard row >= start.y, row <= end.y else { return nil }
@@ -362,7 +382,7 @@ extension ScreenSelection {
 
     /// The selection's two ends in reading order — or, for a rectangle, its
     /// top and bottom rows — with its unit applied.
-    static func ends(of selection: Selection, cells: (Int) -> [Character?]) -> (Point, Point) {
+    package static func ends(of selection: Selection, cells: (Int) -> [Character?]) -> (Point, Point) {
         var (start, end) = (selection.anchor, selection.head)
         if selection.shape == .stream, (end.y, end.x) < (start.y, start.x) { swap(&start, &end) }
         if selection.shape == .rectangle, end.y < start.y { swap(&start.y, &end.y) }
@@ -404,7 +424,7 @@ extension ScreenSelection {
 
     /// The text `selection` covers in `lines`: wide characters once, each
     /// row's trailing blanks dropped, rows joined with line breaks.
-    static func text(of selection: Selection, in lines: [String]) -> String {
+    package static func text(of selection: Selection, in lines: [String]) -> String {
         var cache: [Int: [Character?]] = [:]
         func cellsOf(_ row: Int) -> [Character?] {
             if let cached = cache[row] { return cached }

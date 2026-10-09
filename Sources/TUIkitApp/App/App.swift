@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitChrome
 import TUIkitFoundation
 
 #if canImport(Glibc)

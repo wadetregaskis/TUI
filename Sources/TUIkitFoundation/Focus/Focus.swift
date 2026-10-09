@@ -173,7 +173,11 @@ public final class FocusManager: @unchecked Sendable {
     /// a Return both just call the action. Kept here because `FocusManager` is
     /// the object that already decides where focus lands, and every event
     /// closure that would want this already holds one.
-    private(set) var lastInputSource: InputSource = .keyboard
+    package var lastInputSource: InputSource { _lastInputSource }
+
+    /// ``lastInputSource``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _lastInputSource: InputSource = .keyboard
 
     /// Where an input event came from — see ``lastInputSource``.
     package enum InputSource {
@@ -1163,7 +1167,7 @@ extension FocusManager {
     /// Records which device drove the event now being dispatched. Called by the
     /// app's event funnel, before the event reaches any handler.
     package func noteInputSource(_ source: InputSource) {
-        lastInputSource = source
+        _lastInputSource = source
     }
 
     /// Declares that `id` may rest with nothing focused — see

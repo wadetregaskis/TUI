@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - A Bar's Items
 
 /// The items of one of the window's toolbars, laid out in a row: the leading

@@ -79,11 +79,11 @@ extension View {
 
 /// Marks everything `content` draws as translucent, for the compositor to
 /// resolve against what is behind it. See ``FrameBuffer/resolvingOpacity(over:at:surface:palette:)``.
-struct _OpacityView<Content: View>: View {
+package struct _OpacityView<Content: View>: View {
     let content: Content
     var opacity: Double
 
-    var body: Never {
+    package var body: Never {
         fatalError("_OpacityView renders via Renderable")
     }
 }
@@ -94,14 +94,14 @@ extension _OpacityView: Animatable {
     ///
     /// A `var` rather than a `let` above only so this setter has somewhere to
     /// write; nothing else mutates it.
-    var animatableData: Double {
+    package var animatableData: Double {
         get { opacity }
         set { opacity = newValue }
     }
 }
 
 extension _OpacityView: Renderable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIkitView.renderToBuffer(content, context: context)
         // `isEmpty` asks about the LINES, and a subtree can draw nothing in
         // flow while drawing plenty in an overlay: `.offset` and `.position`
@@ -190,7 +190,7 @@ extension _OpacityView: Renderable {
     /// every covering region instead, which is why this scales only `opacity` —
     /// scaling them here would double-count them there.) See
     /// ``FrameBuffer/resolvingOpacity(over:at:surface:palette:)``.
-    static func fading(
+    package static func fading(
         _ regions: [OpacityRegion], by factor: Double, cycle: OpacityCycle?,
         wholeOf buffer: FrameBuffer, appendingRectangle: Bool
     ) -> [OpacityRegion] {
@@ -269,7 +269,7 @@ extension _OpacityView {
 /// goes through here — opacity, brightness, contrast, saturation, grayscale,
 /// inversion, hue rotation, transitions' fades. Each is a function from colour
 /// to colour; none of them has to learn ANSI.
-enum SGRColorRewrite {
+package enum SGRColorRewrite {
     /// `line` with `transform` applied to every colour it names.
     ///
     /// - Parameters:
@@ -277,7 +277,7 @@ enum SGRColorRewrite {
     ///   - defaultForeground: What `39` (default foreground) means here.
     ///   - defaultBackground: What `49` (default background) means here.
     ///   - transform: The colour effect. Called with resolved colours only.
-    static func rewriting(
+    package static func rewriting(
         _ line: String, defaultForeground: Color, defaultBackground: Color,
         transform: (Color) -> Color
     ) -> String {
@@ -303,7 +303,7 @@ enum SGRColorRewrite {
     /// colour, a colon-form colour passed through as it was written, and
     /// `.reset` for SGR 0. What a later glyph is drawn in is that, not what
     /// the original sequence named.
-    static func rewritingSGR(
+    package static func rewritingSGR(
         _ sequence: String, defaultForeground: Color, defaultBackground: Color,
         transform: (Color) -> Color, emitted: (ColorSlot, Color?) -> Void = { _, _ in }
     ) -> String {
@@ -366,7 +366,7 @@ enum SGRColorRewrite {
     /// Which colour an SGR parameter set, for ``readingColors(_:_:)`` and for
     /// what ``rewritingSGR(_:defaultForeground:defaultBackground:transform:emitted:)``
     /// emits.
-    enum ColorSlot {
+    package enum ColorSlot {
         case foreground
         case background
         /// SGR 0 — both colours back to the terminal's default at once.
@@ -517,7 +517,7 @@ enum SGRColorRewrite {
 extension _OpacityView: Layoutable {
     /// Fading rewrites colours in place: same characters, same cells, same
     /// size. An invisible view still occupies its space, as in SwiftUI.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -531,9 +531,9 @@ extension _OpacityView: Layoutable {
 ///   opacity written on each member — both give rgb(156,99,53) at the centre
 ///   pixel, against rgb(255,84,62) with no opacity at all.
 extension _OpacityView: ContentRewrapping {
-    var wrappedContent: Content { content }
+    package var wrappedContent: Content { content }
 
-    func rewrapping<V: View>(_ view: V) -> any View {
+    package func rewrapping<V: View>(_ view: V) -> any View {
         _OpacityView<V>(content: view, opacity: opacity)
     }
 }

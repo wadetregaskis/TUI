@@ -28,7 +28,7 @@ extension FrameBuffer {
     /// out so a container that resolved the offset from an explicit
     /// ``View/alignmentGuide(_:computeValue:)-(VerticalAlignment,_)`` reuses the same padding
     /// and the same overlay/hit-region carry.
-    func placedVertically(inHeight height: Int, topPadding: Int) -> FrameBuffer {
+    package func placedVertically(inHeight height: Int, topPadding: Int) -> FrameBuffer {
         guard topPadding > 0 || self.height < height else { return self }
         let bottomPadding = max(0, height - self.height - topPadding)
         let emptyLine = String(repeating: " ", count: width)

@@ -44,15 +44,19 @@
 ///     triggerKeys: [.enter]  // Only Enter, not Space
 /// )
 /// ```
-final class ActionHandler: Focusable {
+package final class ActionHandler: Focusable {
     /// The unique identifier for this focusable element.
-    let focusID: String
+    package let focusID: String
 
     /// The action to execute when triggered.
     let action: () -> Void
 
     /// Whether this element can currently receive focus.
-    var canBeFocused: Bool
+    package var canBeFocused: Bool { get { _canBeFocused } set { _canBeFocused = newValue } }
+
+    /// ``canBeFocused``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _canBeFocused: Bool
 
     /// The keys that trigger the action.
     let triggerKeys: Set<Key>
@@ -76,7 +80,7 @@ final class ActionHandler: Focusable {
     ///   - triggerKeys: The keys that trigger the action. Defaults to Enter and Space.
     ///   - extras: Extra keys supplied by an enclosing control, if any.
     ///   - repeats: Whether a held trigger key's repeats run the action again.
-    init(
+    package init(
         focusID: String,
         action: @escaping () -> Void,
         canBeFocused: Bool = true,
@@ -86,7 +90,7 @@ final class ActionHandler: Focusable {
     ) {
         self.focusID = focusID
         self.action = action
-        self.canBeFocused = canBeFocused
+        self._canBeFocused = canBeFocused
         self.triggerKeys = triggerKeys
         self.extras = extras
         self.repeats = repeats
@@ -96,7 +100,7 @@ final class ActionHandler: Focusable {
 // MARK: - Key Event Handling
 
 extension ActionHandler {
-    func handleKeyEvent(_ event: KeyEvent) -> Bool {
+    package func handleKeyEvent(_ event: KeyEvent) -> Bool {
         // Extras first, and only for keys they claimed: a control that composes
         // a button is more specific than the button, and this is the one place
         // that can tell the difference. They never see Return or Space unless
