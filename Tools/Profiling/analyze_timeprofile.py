@@ -14,13 +14,29 @@ then aggregates CPU time by:
                  TUIkit + Example, so your own hot code stands out
 
 Why not just use DuckDB / the instruments-analyzer skill? Instruments'
-XML dedups recurring stack frames with an id/ref scheme: the first
-occurrence of `swift_release` is `<frame id="11" name="swift_release">`,
-every later occurrence is `<frame ref="11"/>` with NO name. Parsers that
-don't resolve those frame refs drop the name on every repeat — which
-silently undercounts the hottest (most-repeated) functions. This script
-resolves them, so a function that recurs across thousands of samples is
-attributed correctly.
+XML writes everything it has written before as a reference, at two levels:
+
+  • a frame: the first occurrence of `swift_release` is
+    `<frame id="11" name="swift_release">`, every later one `<frame ref="11"/>`
+    with NO name;
+  • a whole stack: the first sample with a given stack carries
+    `<backtrace id="10">` and its frames, every later sample with that same
+    stack only `<backtrace ref="10"/>`, with NO frames at all.
+
+(Binaries, threads, processes, states and weights work the same way.) A
+parser that misses either kind loses exactly the work that repeats — the
+hottest. This script resolves every `ref` it reads — a sample's weight,
+thread, process, state, stack, and the stack's frames and binaries — from
+the element its `id` defined earlier, so each sample counts once, with its
+weight: a header line says how many rows the export had and how many of them
+the filters kept. The export also writes refs for a sample's core, a
+binary's path and a process nested in a thread; no number here depends on
+them, so they are never read, and never checked.
+
+Until 2026-10-08 it resolved frame refs but NOT backtrace refs: a repeated
+stack came out empty and was skipped, so it counted each distinct stack
+once — 21-64% of the samples in that day's traces, the hottest stacks
+undercounted most. Percentages quoted from it before then are indicative.
 
 Usage:
     analyze_timeprofile.py TRACE [--run N] [--top N] [--thread main|all]
@@ -40,6 +56,14 @@ from collections import defaultdict
 
 SYSTEM_PREFIXES = ("/usr/", "/System/", "/Library/", "/var/", "/private/var/")
 UNSYMBOLICATED = "<unsymbolicated>"
+# A sample xctrace recorded without a stack — its stack column is
+# `<sentinel/>`, 2 rows of about 300,000 in twelve traces — or whose stack
+# is a `ref` to nothing written earlier. Counted under this name, as its
+# function and its module, rather than dropped, so the totals stay every
+# sample the filters keep. It is a placeholder, not a frame: no `--within`,
+# `--blame` or `--callers` pattern matches it.
+NO_BACKTRACE = "<no backtrace>"
+NO_STACK = [(NO_BACKTRACE, NO_BACKTRACE, "")]
 
 
 def export_table(trace: str, run: int, schema: str) -> str:
@@ -85,7 +109,8 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
     # Global id -> value maps. Instruments shares ONE id namespace across
     # all element types, and a `ref` always re-appears as the same element
     # type it was defined as, so per-type maps keyed by the global id are
-    # unambiguous.
+    # unambiguous. The definition always comes first in document order, so
+    # one forward pass resolves every ref it reads.
     weight_by_id, thread_by_id, state_by_id, process_by_id = {}, {}, {}, {}
     blame_ms = defaultdict(float)
     blame_n = defaultdict(int)
@@ -93,6 +118,14 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
     blame_unattributed = [0.0]
     frame_by_id = {}    # id -> (name, binary_name, binary_path)
     binary_by_id = {}   # id -> (binary_name, binary_path)
+    backtrace_by_id = {}  # id -> [frame, ...], leaf first, as resolve_frame returns
+    # Refs with no earlier definition, by element type. Zero in every export
+    # seen; anything else means the XML is not shaped the way this assumes.
+    unresolved = defaultdict(int)
+    repeated_stacks = 0  # rows whose stack was a <backtrace ref>, kept or not
+    no_stack = 0         # kept samples counted under NO_BACKTRACE
+    samples = 0          # rows the filters kept: every one is counted
+    within_samples = 0   # of those, the ones `within` kept (all, without it)
 
     self_ms, self_n = defaultdict(float), defaultdict(int)
     incl_ms = defaultdict(float)
@@ -111,10 +144,18 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
     within_re = re.compile(within) if within else None
     rows = 0
 
+    def lookup(by_id, el, default):
+        """The value of the earlier element whose `id` is `el`'s `ref`."""
+        value = by_id.get(el.get("ref"))
+        if value is None:
+            unresolved[el.tag] += 1
+            return default
+        return value
+
     def resolve_weight(el):
         ref = el.get("ref")
         if ref is not None:
-            return weight_by_id.get(ref, 0)
+            return lookup(weight_by_id, el, 0)
         val = int((el.text or "0").strip() or 0)
         if el.get("id") is not None:
             weight_by_id[el.get("id")] = val
@@ -123,7 +164,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
     def resolve_thread(el):
         ref = el.get("ref")
         if ref is not None:
-            return thread_by_id.get(ref, "")
+            return lookup(thread_by_id, el, "")
         val = el.get("fmt", "")
         if el.get("id") is not None:
             thread_by_id[el.get("id")] = val
@@ -135,7 +176,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
         # may omit it, in which case nothing is filtered out.
         ref = el.get("ref")
         if ref is not None:
-            return process_by_id.get(ref, "")
+            return lookup(process_by_id, el, "")
         val = el.get("fmt", "")
         if el.get("id") is not None:
             process_by_id[el.get("id")] = val
@@ -144,7 +185,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
     def resolve_state(el):
         ref = el.get("ref")
         if ref is not None:
-            return state_by_id.get(ref, "")
+            return lookup(state_by_id, el, "")
         val = el.get("fmt", "")
         if el.get("id") is not None:
             state_by_id[el.get("id")] = val
@@ -153,7 +194,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
     def resolve_frame(f):
         ref = f.get("ref")
         if ref is not None:
-            return frame_by_id.get(ref, (UNSYMBOLICATED, "", ""))
+            return lookup(frame_by_id, f, (UNSYMBOLICATED, "", ""))
         name = f.get("name") or UNSYMBOLICATED
         # Collapse PLT trampolines into the function they jump to, so a
         # hot cross-module call shows up as one line, not two.
@@ -162,9 +203,8 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
         bname, bpath = "", ""
         b = f.find("binary")
         if b is not None:
-            bref = b.get("ref")
-            if bref is not None:
-                bname, bpath = binary_by_id.get(bref, ("", ""))
+            if b.get("ref") is not None:
+                bname, bpath = lookup(binary_by_id, b, ("", ""))
             else:
                 bname, bpath = b.get("name", ""), b.get("path", "")
                 if b.get("id") is not None:
@@ -172,6 +212,21 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
         if f.get("id") is not None:
             frame_by_id[f.get("id")] = (name, bname, bpath)
         return (name, bname, bpath)
+
+    def resolve_backtrace(bt):
+        # The stack, leaf first. xctrace writes a stack it has already written
+        # as `<backtrace ref="N"/>` with NO <frame> children, so a repeated
+        # stack — the hottest kind — is only reachable through the map.
+        nonlocal repeated_stacks
+        if bt.get("ref") is not None:
+            repeated_stacks += 1
+            return lookup(backtrace_by_id, bt, [])
+        # Resolve every frame in document order (defs precede refs) so the
+        # id maps stay correct even when we later .clear() the element.
+        frames = [resolve_frame(f) for f in bt.findall("frame")]
+        if bt.get("id") is not None:
+            backtrace_by_id[bt.get("id")] = frames
+        return frames
 
     # Stream the (potentially large) XML row by row.
     for _event, el in ET.iterparse(io.StringIO(xml), events=("end",)):
@@ -198,10 +253,10 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
         pr_el = el.find("process")
         process = resolve_process(pr_el) if pr_el is not None else ""
 
+        # Resolved before the filters below, which may skip this row: a
+        # later row's refs can point into it.
         bt = el.find("backtrace")
-        # Resolve every frame in document order (defs precede refs) so the
-        # id maps stay correct even when we later .clear() the element.
-        frames = [resolve_frame(f) for f in bt.findall("frame")] if bt is not None else []
+        frames = resolve_backtrace(bt) if bt is not None else []
         el.clear()
 
         if state_filter == "running" and state != "Running":
@@ -210,17 +265,24 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
             continue
         if process_filter is not None and process_filter not in process:
             continue
+        # Every sample the filters keep is counted, with its weight. Skipping
+        # one with no frames here is how every repeated stack used to vanish.
+        samples += 1
         if not frames:
-            continue
+            no_stack += 1
 
         all_ms += ms
+        thread_ms[thread.split(" (")[0] or "?"] += ms
+        # The patterns below see only `frames`, which is empty for a sample
+        # with no stack; the tables see `stack`, which names it NO_BACKTRACE.
         if within_re is not None and not any(within_re.search(name) for name, _bn, _bp in frames):
             continue
+        stack = frames or NO_STACK
+        within_samples += 1
         total_ms += ms
-        thread_ms[thread.split(" (")[0] or "?"] += ms
 
-        leaf_name, _leaf_bn, leaf_bp = frames[0]
-        if blame is not None and (not blame or re.search(blame, leaf_name)):
+        leaf_name, leaf_bn, leaf_bp = stack[0]
+        if blame is not None and (not blame or (frames and re.search(blame, leaf_name))):
             # BLAME: credit this sample to the nearest frame that is OUR code.
             #
             # Self time answers "where was the CPU", and for this framework the
@@ -240,7 +302,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
                 blame_unattributed[0] += ms
         self_ms[leaf_name] += ms
         self_n[leaf_name] += 1
-        mod_ms[frames[0][1] or "<unknown>"] += ms
+        mod_ms[leaf_bn or "<unknown>"] += ms
         if is_app(leaf_bp):
             app_self_ms[leaf_name] += ms
 
@@ -258,7 +320,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
                     callers_ms[caller] += ms
 
         seen, seen_app = set(), set()
-        for name, _bn, bp in frames:
+        for name, _bn, bp in stack:
             if name in seen:
                 continue
             seen.add(name)
@@ -274,7 +336,9 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
         "callers_ms": callers_ms, "callers_matched_ms": callers_matched_ms,
         "blame_ms": blame_ms, "blame_n": blame_n,
         "blame_matched_ms": blame_matched[0], "blame_unattributed_ms": blame_unattributed[0],
-        "top": top,
+        "top": top, "samples": samples, "within_samples": within_samples,
+        "repeated_stacks": repeated_stacks,
+        "no_stack": no_stack, "unresolved": dict(unresolved),
     }
 
 
@@ -333,16 +397,29 @@ def main():
 
     print("=" * 78)
     print(f"Time Profiler analysis: {args.trace}")
-    print(f"samples={r['rows']:,}  on-CPU≈{r['total_ms']:.0f} ms  "
-          f"thread={args.thread}  state={args.state}")
+    # `rows` is every sample in the export, of which so many repeat an earlier
+    # stack (a <backtrace ref>); `counted` is the ones the filters kept, each
+    # with its weight — all of them under `--state all` with no --thread main
+    # or --process. These two lines are the denominator, so --within leaves
+    # them alone and says on a line of its own what it kept.
+    print(f"rows={r['rows']:,} ({r['repeated_stacks']:,} repeat an earlier stack)  "
+          f"counted={r['samples']:,}  on-CPU≈{r['all_ms']:.0f} ms  "
+          f"thread={args.thread}  state={args.state}"
+          + (f"  no stack={r['no_stack']:,}" if r["no_stack"] else ""))
     print("per-thread on-CPU ms: " + ", ".join(
         f"{t}={ms:.0f}" for t, ms in
         sorted(r["thread_ms"].items(), key=lambda kv: kv[1], reverse=True)[:6]))
     if args.within is not None:
         share = (r["total_ms"] / r["all_ms"] * 100) if r["all_ms"] else 0
-        print(f"within {args.within!r}: {r['total_ms']:.0f} ms of {r['all_ms']:.0f} ms "
+        print(f"within {args.within!r}: {r['within_samples']:,} of the {r['samples']:,} "
+              f"counted samples, {r['total_ms']:.0f} ms of {r['all_ms']:.0f} ms "
               f"({share:.1f}%); percentages below are of the whole {r['all_ms']:.0f} ms")
     print("=" * 78)
+    if r["unresolved"]:
+        refs = ", ".join(f"<{tag}> {n:,}" for tag, n in sorted(r["unresolved"].items()))
+        print(f"warning: refs with no earlier definition: {refs}. The export is not "
+              f"shaped the way this script assumes; an unresolved stack is counted as "
+              f"{NO_BACKTRACE}, a frame as {UNSYMBOLICATED}.", file=sys.stderr)
 
     t = r["all_ms"] if args.within is not None else r["total_ms"]
     print_table("Self time — leaf frames (where the CPU actually was)",

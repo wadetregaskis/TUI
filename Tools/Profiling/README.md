@@ -336,14 +336,41 @@ python3 Tools/Profiling/analyze_timeprofile.py TRACE --state all   # include off
 python3 Tools/Profiling/analyze_timeprofile.py TRACE --process Stress  # one process of an --all-processes trace
 ```
 
-**Why a custom parser instead of DuckDB?** Instruments' XML dedups
-recurring stack frames with an id/ref scheme — the first
-`<frame id="11" name="swift_release">`, every repeat `<frame ref="11"/>`
-with no name. Tools that don't resolve frame refs (including the
-common DuckDB exporter) drop the name on every repeat, which silently
-**undercounts the hottest, most-repeated functions** and breaks the
-inclusive roll-up. This parser resolves them, so the inclusive view
-correctly attributes ~85% to `RenderLoop.renderScene → renderToBuffer`.
+**What a percentage is a share of:** every sample the filters keep
+(`--state`, `--thread`, `--process`), each with its weight, which is 1 ms per
+sample in a Time Profiler recording. The header gives the counts. `rows=` is
+every sample in the export, and `counted=` is the ones the filters kept; under
+`--state all` with no other filter the two are equal. `--within` keeps that
+denominator and narrows only the numerators. So the header, threads
+included, still counts every sample the filters kept, and the `within` line
+says how many of them had a matching frame.
+
+**Why a custom parser instead of DuckDB?** Instruments' XML writes anything it
+has written before as a reference, at two levels. For a frame, the first
+occurrence is `<frame id="11" name="swift_release">` and every repeat is
+`<frame ref="11"/>`, with no name. For a whole stack, the first sample with it
+carries `<backtrace id="10">` and its frames, and every later sample with the
+same stack carries only `<backtrace ref="10"/>`, with no frames at all. A tool
+that misses either kind (the common DuckDB exporter misses frame refs)
+**undercounts exactly what repeats, which is the hottest work**. This parser
+resolves every ref it reads (a sample's weight, thread, process, state and
+stack, and the stack's frames and binaries), so each sample counts once with
+its weight, and it reports on stderr any of those refs it cannot resolve. The
+export's refs for a sample's core, a binary's path and a process nested in a
+thread feed no number, so it does not read them. A sample xctrace recorded
+with no stack (`<sentinel/>`; 2 rows of about 300,000 in twelve traces) is
+counted as `<no backtrace>`, which stands for both its function and its
+module. It is a placeholder, so no `--within`, `--blame` or `--callers`
+pattern matches it.
+
+> **Shares quoted before 2026-10-08 count each distinct stack once.** Until
+> then this parser resolved frame refs but not backtrace refs. A repeated
+> stack came out empty and was skipped, so it kept only each stack's first
+> sample: 21–64% of the samples in that day's traces, with the hottest stacks
+> under-weighted most. In one trace of Stress's `app-shapes`, the app's own
+> sort was 19.1% inclusive before the fix and 75.2% after. The percentages in
+> earlier commit messages, and this README's examples, were computed that way.
+> Treat them as indicative; a full count may rank them differently.
 
 ### `idle_cpu.py` — idle-cost probe
 Launches the app in a PTY, waits a settle period (optionally sending keys

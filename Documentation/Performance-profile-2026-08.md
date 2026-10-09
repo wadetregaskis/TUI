@@ -31,6 +31,14 @@ on each scenario at scale 2, ~6 s of render work each, analysed with
 `Tools/Profiling/analyze_timeprofile.py`. Traces are ~15 MB each and were
 deleted after analysis; nothing was committed.
 
+> **Added 2026-10-08:** the analyzer then counted each distinct stack once. It
+> skipped every sample whose stack xctrace wrote as a `<backtrace ref>` to an
+> earlier one, which kept 21–64% of the samples in the traces measured on
+> 2026-10-08 and under-weighted the hottest stacks most. The attribution shares
+> in this document were computed that way, so treat them as indicative; a full
+> count may rank them differently. Numbers measured by other means (`--bench`
+> timings, `ps` CPU) are unaffected.
+
 > A trap worth recording: `swift build` with and without `-Xswiftc -g`
 > **removes the other product's binary**. A whole batch of traces came back
 > "malformed — run data is missing" because `xctrace --launch` was pointed at a
