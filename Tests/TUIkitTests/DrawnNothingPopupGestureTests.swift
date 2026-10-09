@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTables
 
 @Observable
 @MainActor

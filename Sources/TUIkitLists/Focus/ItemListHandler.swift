@@ -74,12 +74,39 @@ public enum SelectionMode: Sendable {
 /// list adds Ctrl+R to pick the focused row up, after which the movement keys
 /// move its landing slot and Return/Escape place it or put it back.
 /// | Escape | Exit extend mode, else clear a non-empty selection; otherwise falls through (page navigation is never blocked) |
-final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, ScrollableOffsetState {
+///
+/// The module split (step C2): a table in TUIkitTables drives this class, so
+/// what the table reaches, and what witnesses the class's protocols, is
+/// `package`. A class's stored property that another module can see keeps a
+/// run-time exclusivity check on every access, its own module's included
+/// (CONTRIBUTING.md, "Crossing a module boundary"), so such a property is
+/// private storage under a `package` accessor, not `@inlinable`. Four are
+/// `package` and stored: ``tableRowMemo`` and ``returningRows``, which a
+/// table reads (and the first changes in place) for every row it draws, and
+/// ``reorder`` and ``outlineActivation``. A release `Stress` already checked
+/// every access to each before the step (d6bf4600d: `swift_beginAccess` at
+/// the property's field offset, in this module's own functions), and the
+/// optimiser decides per property, all or nothing, so widening them adds no
+/// check where they are used, and both modules read them in place rather
+/// than through a call. Each says so, with its count. Do not copy them for a
+/// property with no such check. Nor, without measuring, for one with it: a
+/// widened stored property also gets a getter, setter and `modify` of its
+/// own, for its property descriptor, each with a check of its own (nothing
+/// calls them, but they are code), while private storage under an accessor
+/// is usually statically enforced. Of twelve such properties of this class
+/// that step C2 tried both ways, ten lost every check; ``reorder`` and
+/// ``outlineActivation`` kept theirs, in their accessors, which this module
+/// then called where it had read them in place, so they are stored.
+package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, ScrollableOffsetState {
     /// The unique identifier for this focusable element.
-    var focusID: String
+    package var focusID: String { get { _focusID } set { _focusID = newValue } }
+
+    /// ``focusID``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _focusID: String
 
     /// ``PersistedFocusable``: answers to `focusID` from now on.
-    func repoint(focusID: String) { self.focusID = focusID }
+    package func repoint(focusID: String) { self.focusID = focusID }
 
     /// The total number of items in the list.
     ///
@@ -91,7 +118,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// syncs a freshly-shrunk count (rows removed by an async reload) leaves
     /// a scrolled-near-the-end offset pointing past the data, and range /
     /// `data[index]` math downstream traps.
-    var itemCount: Int {
+    package var itemCount: Int { get { _itemCount } set { _itemCount = newValue } }
+
+    /// ``itemCount``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _itemCount: Int {
         didSet {
             let bound = max(0, itemCount - 1)
             if scrollOffset > bound {
@@ -110,7 +141,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// ``rowsBelow``, ``maxOffset``) is derived from it, so keeping
     /// it equal to the rows on screen is what makes the indicators
     /// line up exactly with the content area.
-    var viewportHeight: Int
+    package var viewportHeight: Int { get { _viewportHeight } set { _viewportHeight = newValue } }
+
+    /// ``viewportHeight``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _viewportHeight: Int
 
     /// How many rows a Shift-accelerated Up/Down moves the focus cursor. Set from
     /// `environment.shiftStepMultiplier` during render (default 5); a plain arrow
@@ -125,7 +160,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// every frame under the approximate mode, and EVERY row under the exact one
     /// — each of which costs a wrap (a Table) or a row materialisation (a List)
     /// to ask.
-    var extentProfileCache: (signature: Int, profile: ScrollExtentProfile)?
+    package var extentProfileCache: (signature: Int, profile: ScrollExtentProfile)? { get { _extentProfileCache } set { _extentProfileCache = newValue } }
+
+    /// ``extentProfileCache``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _extentProfileCache: (signature: Int, profile: ScrollExtentProfile)?
 
     /// The vertical scrollbar a `List` drew last time, with everything it was
     /// drawn from — `ScrollViewHandler.verticalScrollbarMemo`'s twin, kept the
@@ -147,7 +186,14 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// on. This store is keyed on the row's own inputs instead, so it does not
     /// need the sweep to be correct — and a `List` does not use it, because a
     /// `List`'s rows are views whose closures can capture anything.
-    var tableRowMemo = TableRowMemoStore<SelectionValue>()
+    ///
+    /// `package` and stored, not under an accessor: every access to it is
+    /// dynamically enforced already, at least 6 `swift_beginAccess` sites in a
+    /// release `Stress` before step C2 (d6bf4600d; see this class's note on the
+    /// module split). A table in TUIkitTables asks and changes it for every row it
+    /// draws, in place; under a getter and setter each change would copy the
+    /// store's dictionary.
+    package var tableRowMemo = TableRowMemoStore<SelectionValue>()
 
     /// The chord → action map this list's keys dispatch through, resolved from
     /// `environment.rowShortcuts` during render (see ``RowShortcuts``). Captured
@@ -183,7 +229,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// reservation itself and ``viewportHeight`` is the literal
     /// visible-row count (the original behaviour, still used by the
     /// handler's own unit tests).
-    var contentHeight: Int?
+    package var contentHeight: Int? { get { _contentHeight } set { _contentHeight = newValue } }
+
+    /// ``contentHeight``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _contentHeight: Int?
 
     /// Whether the owning view draws a scrollbar instead of the "N more
     /// above/below" text indicators.
@@ -195,7 +245,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// indicator that a scrollbar list never draws, which over-scrolls the
     /// bottom by one row and leaves a blank remainder (one blank line per
     /// row-height). With this set, that reservation is skipped.
-    var showsScrollbar = false
+    package var showsScrollbar: Bool { get { _showsScrollbar } set { _showsScrollbar = newValue } }
+
+    /// ``showsScrollbar``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _showsScrollbar = false
 
     /// Whether a drag hovering this control is drawing a landing slot that
     /// NOTHING left the control to make room for — so the rows plus the slot
@@ -224,14 +278,22 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// the `externalDropSlot` clamp, the keyboard-move clamps — is defined
     /// against it. A phantom row there would let a drop name an index the data
     /// has no room for.
-    var dropSlotAddsRow = false
+    package var dropSlotAddsRow: Bool { get { _dropSlotAddsRow } set { _dropSlotAddsRow = newValue } }
+
+    /// ``dropSlotAddsRow``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _dropSlotAddsRow = false
 
     /// Whether this frame's render spends content lines on "▲/▼ N more"
     /// indicators. Synced by the owning view, because only it knows: a `List`
     /// swaps its indicators for a scrollbar, while a `Table` draws both (the bar
     /// takes a column, the indicators take lines). The reveal budgets rows
     /// against `contentHeight` MINUS these — see ``rowLineBudget``.
-    var drawsScrollIndicators = true
+    package var drawsScrollIndicators: Bool { get { _drawsScrollIndicators } set { _drawsScrollIndicators = newValue } }
+
+    /// ``drawsScrollIndicators``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _drawsScrollIndicators = true
 
     /// Whether a "▲/▼ N more" line comes out of the content area this frame.
     ///
@@ -249,7 +311,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// stops depending on where the viewport is, which is the whole point of
     /// `.visible`, and every one of those bounds has to say so or the view can
     /// scroll a line past its own last row.
-    var alwaysReservesIndicatorLines = false
+    package var alwaysReservesIndicatorLines: Bool { get { _alwaysReservesIndicatorLines } set { _alwaysReservesIndicatorLines = newValue } }
+
+    /// ``alwaysReservesIndicatorLines``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _alwaysReservesIndicatorLines = false
 
     /// How many lines the "N more" chrome takes out of the content area.
     ///
@@ -308,7 +374,7 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// this asks with ``scrollOffset``. A mover that wants to go somewhere else
     /// must ask about *that* offset, or it will be clamped by a bound computed
     /// for the position it is leaving.
-    var maxOffset: Int { resolvedMaxOffset(reaching: scrollOffset) }
+    package var maxOffset: Int { resolvedMaxOffset(reaching: scrollOffset) }
 
     /// The largest valid scroll offset, in rows, resolved precisely enough to
     /// clamp `offset`.
@@ -332,7 +398,7 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// reserved, so a jump that clamps against it lands a row short of the
     /// bottom and needs a second press to arrive. That is what
     /// ``settledMaxOffset`` and the `offset`-driven clamps exist to prevent.
-    func resolvedMaxOffset(reaching offset: Int) -> Int {
+    package func resolvedMaxOffset(reaching offset: Int) -> Int {
         guard let contentHeight, contentHeight > 0, rowHeight != nil else {
             return max(0, extent - viewportEntries)
         }
@@ -413,18 +479,30 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// of toggling selection — Space still toggles — matching the
     /// file-browser convention (and AppKit's action/doubleAction split). `nil`
     /// keeps the original behaviour: Enter and Space both toggle selection.
-    var primaryAction: ((SelectionValue) -> Void)?
+    package var primaryAction: ((SelectionValue) -> Void)? { get { _primaryAction } set { _primaryAction = newValue } }
+
+    /// ``primaryAction``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _primaryAction: ((SelectionValue) -> Void)?
 
     /// Opens the container's row menu on the cursor row — Shift+F10 or the
     /// Menu key (``KeyEvent/opensContextMenu``) — and answers whether one
     /// opened. `nil` where the container has no menu, so the key falls
     /// through.
-    var openContextMenu: (() -> Bool)?
+    package var openContextMenu: (() -> Bool)? { get { _openContextMenu } set { _openContextMenu = newValue } }
+
+    /// ``openContextMenu``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _openContextMenu: (() -> Bool)?
 
     /// What a `Table`'s column keys reach — set each frame by a table a user
     /// may customize, `nil` for a `List` and for a table with no
     /// customization binding. See ``TableColumnEditing``.
-    var columnEditing: TableColumnEditing?
+    package var columnEditing: TableColumnEditing? { get { _columnEditing } set { _columnEditing = newValue } }
+
+    /// ``columnEditing``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _columnEditing: TableColumnEditing?
 
     /// Where a `Table`'s header drew each column on the last frame, by its
     /// customization identifier and its place among the declared columns —
@@ -433,20 +511,39 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// only: a move or a resize earlier in the same batch of input has changed
     /// the customization and not this, so a reader lays the columns out again
     /// from the customization (the table's `liveHeaderColumns`).
-    var headerColumns: [(id: String?, declaration: Int, x: Range<Int>)] = []
+    package var headerColumns: [(id: String?, declaration: Int, x: Range<Int>)] { get { _headerColumns } set { _headerColumns = newValue } }
+
+    /// ``headerColumns``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _headerColumns: [(id: String?, declaration: Int, x: Range<Int>)] = []
 
     /// The widest a `Table`'s column may be made, on the last frame: its row
     /// content's width.
-    var headerColumnsWidest = 1
+    package var headerColumnsWidest: Int { get { _headerColumnsWidest } set { _headerColumnsWidest = newValue } }
+
+    /// ``headerColumnsWidest``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _headerColumnsWidest = 1
 
     /// The column picked for the keyboard's customization (``RowAction/customizeColumns``),
     /// by identifier, or `nil` when none is. Persisted with the handler, and
     /// let go with the focus.
-    var columnFocus: String?
+    package var columnFocus: String? { get { _columnFocus } set { _columnFocus = newValue } }
+
+    /// ``columnFocus``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _columnFocus: String?
 
     /// The tree inside this list, when there is one — see
     /// ``OutlineRowActivating``. Left and Right collapse and expand through it.
-    var outlineActivation: (any OutlineRowActivating)?
+    ///
+    /// `package` and stored, not under an accessor: every access to it is
+    /// dynamically enforced already, at least 6 `swift_beginAccess` sites in a
+    /// release `Stress` before step C2 (d6bf4600d; see this class's note on the
+    /// module split). A list and a table set it on every frame; as private storage
+    /// under an accessor it kept its check, in the accessor, and those writes
+    /// became calls.
+    package var outlineActivation: (any OutlineRowActivating)?
 
     /// Opens or closes the branch the cursor is on.
     ///
@@ -649,7 +746,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// a row named here, so a `.selectionDisabled()` row that has rendered at
     /// least once is skipped by Up/Down/Page Up/Page Down, in addition to
     /// refusing Enter/Space and a click (``toggleSelectionAtFocusedIndex()``).
-    var selectionDisabledRows: Set<Int> = []
+    package var selectionDisabledRows: Set<Int> { get { _selectionDisabledRows } set { _selectionDisabledRows = newValue } }
+
+    /// ``selectionDisabledRows``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _selectionDisabledRows: Set<Int> = []
 
     /// The `.onDelete(perform:)` action from an editable `ForEach`, if any:
     /// pressing Delete / Backspace on the focused row invokes it with that
@@ -677,7 +778,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// ``onDelete``: a list can hold several editable `ForEach`es, one per
     /// `Section`, and only the installer knows which collection a row belongs
     /// to. It does the subtraction; see ``movableSpan(of:)``.
-    var onMove: ((IndexSet, Int) -> Void)?
+    package var onMove: ((IndexSet, Int) -> Void)? { get { _onMove } set { _onMove = newValue } }
+
+    /// ``onMove``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _onMove: ((IndexSet, Int) -> Void)?
 
     /// Which rows a given row can be moved among, and so which collection a
     /// reorder's offsets address. Installed by `_ListCore` every frame; `nil`
@@ -702,11 +807,22 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// Set every frame beside ``onMove``, at BOTH `_TableCore` viewports: it
     /// closes over that frame's binding, while the handler persists at one
     /// identity across frames and across a switch between the two paths.
-    var onSort: ((RowAction) -> Void)?
+    package var onSort: ((RowAction) -> Void)? { get { _onSort } set { _onSort = newValue } }
+
+    /// ``onSort``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _onSort: ((RowAction) -> Void)?
 
     /// The state of an in-flight mouse reorder drag, or `nil`. See
     /// ``ItemListHandler/dragReorder(toContentY:)`` for the state machine.
-    var reorder: RowReorder?
+    ///
+    /// `package` and stored, not under an accessor: every access to it is
+    /// dynamically enforced already, at least 36 `swift_beginAccess` sites in a
+    /// release `Stress` before step C2 (d6bf4600d; see this class's note on the
+    /// module split). TUIkitLists reads it in place on every frame (List's and a
+    /// table's row composition); as private storage under an accessor it kept its
+    /// check, in the accessor, and those reads became calls.
+    package var reorder: RowReorder?
 
     /// What a reorder drag shows, synced from `environment.rowReorderFeedback`
     /// during render; read at event time, when the environment is out of reach.
@@ -721,7 +837,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
 
     /// Whether the reorder in flight was started from the KEYBOARD (see
     /// ``ItemListHandler/beginKeyboardMove()``) rather than by a drag.
-    var isKeyboardMove = false
+    package var isKeyboardMove: Bool { get { _isKeyboardMove } set { _isKeyboardMove = newValue } }
+
+    /// ``isKeyboardMove``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _isKeyboardMove = false
 
     /// The row the last left release landed on — the identity half of the
     /// multi-click question. See ``completesMultiClick(on:clickCount:)``.
@@ -789,25 +909,41 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     let selectionMode: SelectionMode
 
     /// Whether this element can currently receive focus.
-    var canBeFocused: Bool
+    package var canBeFocused: Bool { get { _canBeFocused } set { _canBeFocused = newValue } }
+
+    /// ``canBeFocused``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _canBeFocused: Bool
 
     /// The currently focused item index (keyboard cursor).
-    var focusedIndex: Int = 0
+    package var focusedIndex: Int { get { _focusedIndex } set { _focusedIndex = newValue } }
+
+    /// ``focusedIndex``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _focusedIndex: Int = 0
 
     /// The identity of the row last drawn over a raised background — the
     /// focused, selected row of a `List` — or `nil` when there was none. Kept
     /// so the frame that moves the raise can clear both rows' cached renders:
     /// the raise reaches the row's content through its environment, which no
     /// memo below the row compares (``BackgroundProminence``).
-    var raisedProminenceRow: ViewIdentity?
+    package var raisedProminenceRow: ViewIdentity? { get { _raisedProminenceRow } set { _raisedProminenceRow = newValue } }
+
+    /// ``raisedProminenceRow``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _raisedProminenceRow: ViewIdentity?
 
     /// The row a drag is over that takes it onto itself — a table row's
     /// `.dropDestination(for:action:)` — drawn as a selected row is meanwhile.
-    var rowDropTarget: Int?
+    package var rowDropTarget: Int? { get { _rowDropTarget } set { _rowDropTarget = newValue } }
+
+    /// ``rowDropTarget``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _rowDropTarget: Int?
 
     /// Whether the row at `index` is drawn as selected: it is, or a drag it
     /// would take is over it (``rowDropTarget``).
-    func drawsSelected(at index: Int) -> Bool {
+    package func drawsSelected(at index: Int) -> Bool {
         rowDropTarget == index || isSelected(at: index)
     }
 
@@ -844,7 +980,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// auto-repeated keys before it renders, and `pageDelta(_:)` subtracting a
     /// several-page-old origin turned the second Page Down of a held key into
     /// a scroll UP, pinning the viewport one page from the top.
-    var scrollOffset: Int = 0 {
+    package var scrollOffset: Int { get { _scrollOffset } set { _scrollOffset = newValue } }
+
+    /// ``scrollOffset``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _scrollOffset: Int = 0 {
         didSet {
             if scrollOffset != oldValue { drawnWindowOffset = nil }
         }
@@ -862,7 +1002,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// (``scrollFine(by:)``), but a reveal or a centred anchor may still set
     /// it: those position the viewport on a row the user chose, and forcing
     /// them onto a row boundary moves the row off the position they computed.
-    var scrollTopClipLines: Int = 0
+    package var scrollTopClipLines: Int { get { _scrollTopClipLines } set { _scrollTopClipLines = newValue } }
+
+    /// ``scrollTopClipLines``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _scrollTopClipLines: Int = 0
 
     /// How the scroll target behaviour in force applies to this list — synced
     /// from `environment.scrollTargetBehavior` during render (line steps, with
@@ -878,20 +1022,40 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     }
 
     /// Grab point within the thumb during a scrollbar drag (``ScrollableOffsetState``).
-    var scrollbarDragGrab: Int?
+    package var scrollbarDragGrab: Int? { get { _scrollbarDragGrab } set { _scrollbarDragGrab = newValue } }
+
+    /// ``scrollbarDragGrab``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _scrollbarDragGrab: Int?
 
     /// Held arrow/track auto-repeat action (``ScrollableOffsetState``).
-    var scrollbarRepeat: ScrollbarRepeat?
+    package var scrollbarRepeat: ScrollbarRepeat? { get { _scrollbarRepeat } set { _scrollbarRepeat = newValue } }
+
+    /// ``scrollbarRepeat``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _scrollbarRepeat: ScrollbarRepeat?
 
     /// Wheel-chaining grace state (``ScrollableOffsetState``).
-    var wheelEdgeHold = WheelEdgeHold()
+    package var wheelEdgeHold: WheelEdgeHold { get { _wheelEdgeHold } set { _wheelEdgeHold = newValue } }
+
+    /// ``wheelEdgeHold``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _wheelEdgeHold = WheelEdgeHold()
 
     /// Overscroll excursion + allowance (``ScrollableOffsetState``), resolved
     /// from the environment each render.
-    var overscrollState = ScrollOverscrollState()
+    package var overscrollState: ScrollOverscrollState { get { _overscrollState } set { _overscrollState = newValue } }
+
+    /// ``overscrollState``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _overscrollState = ScrollOverscrollState()
 
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
-    var isAutoScrolling = false
+    package var isAutoScrolling: Bool { get { _isAutoScrolling } set { _isAutoScrolling = newValue } }
+
+    /// ``isAutoScrolling``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _isAutoScrolling = false
 
     /// The content Y the reorder drag last saw, so the drop target can be
     /// recomputed when edge auto-scroll moves the rows under a still pointer.
@@ -902,7 +1066,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     ///
     /// Draws the same gap a `.cursor` reorder shows, because it means the same
     /// thing: let go here and the rows arrive at this place.
-    var externalDropSlot: Int? {
+    package var externalDropSlot: Int? { get { _externalDropSlot } set { _externalDropSlot = newValue } }
+
+    /// ``externalDropSlot``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _externalDropSlot: Int? {
         didSet {
             // The remembered pointer position belongs to the slot: when the slot
             // goes, so does it.
@@ -956,7 +1124,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// hold the focus — the one a drag from elsewhere is aimed at — is stored
     /// by the row around it, as it was drawn before the move, and was then
     /// served with the gap where the retarget had just moved it from.
-    var drawing: HandlerDrawing?
+    package var drawing: HandlerDrawing? { get { _drawing } set { _drawing = newValue } }
+
+    /// ``drawing``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _drawing: HandlerDrawing?
 
     /// Rows whose picture is still flying home, drawn BLANK where they belong.
     ///
@@ -976,7 +1148,12 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// Cleared by the owning view on any frame with no flight in the air, which
     /// makes it self-limiting: a path that sets it without starting a flight
     /// loses it on the very next render rather than blanking a row for ever.
-    var returningRows: IndexSet = []
+    ///
+    /// `package` and stored, not under an accessor: every access to it is
+    /// dynamically enforced already, at least 8 `swift_beginAccess` sites in a
+    /// release `Stress` before step C2 (d6bf4600d; see this class's note on the
+    /// module split). A table in TUIkitTables asks it for every row it draws.
+    package var returningRows: IndexSet = []
 
     /// Drops any blanking left over from a flight that has already landed.
     ///
@@ -984,13 +1161,17 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// which is why it is a method rather than the two lines it replaces: the
     /// rule is "a row blanks itself only while a picture is walking back to
     /// it", and a path that forgot to say so left a row blank for good.
-    func syncReturningRows(with session: DragAndDropSession?) {
+    package func syncReturningRows(with session: DragAndDropSession?) {
         if session?.returnFlight == nil { returningRows = [] }
     }
 
     /// Set when Escape cancels a drag whose button is still down: the release
     /// that follows must be swallowed rather than read as a click.
-    var reorderCancelled = false
+    package var reorderCancelled: Bool { get { _reorderCancelled } set { _reorderCancelled = newValue } }
+
+    /// ``reorderCancelled``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _reorderCancelled = false
 
     /// The drag session, captured at render, so a cancel can take the floating
     /// preview down without waiting for the release that ends the gesture.
@@ -1000,14 +1181,26 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// `environment.isScrollEnabled` each render. Selection movement is NOT
     /// gated by it — moving a cursor is not adjusting a scroll position, and the
     /// reveal that keeps the cursor on screen is a framework guarantee.
-    var isScrollEnabled = true
+    package var isScrollEnabled: Bool { get { _isScrollEnabled } set { _isScrollEnabled = newValue } }
+
+    /// ``isScrollEnabled``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _isScrollEnabled = true
 
     /// The scrollbar cell under the pointer (``ScrollableOffsetState``).
-    var hoveredBarCell: Int?
+    package var hoveredBarCell: Int? { get { _hoveredBarCell } set { _hoveredBarCell = newValue } }
+
+    /// ``hoveredBarCell``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _hoveredBarCell: Int?
     /// Bound `.anchorPosition` override, captured each render so a USER scroll
     /// can release it to `.window` at event time. See
     /// `ScrollableOffsetState.releaseAnchorOnUserScroll()`.
-    var anchorPositionBinding: Binding<ScrollAnchor<AnyHashable>?>?
+    package var anchorPositionBinding: Binding<ScrollAnchor<AnyHashable>?>? { get { _anchorPositionBinding } set { _anchorPositionBinding = newValue } }
+
+    /// ``anchorPositionBinding``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _anchorPositionBinding: Binding<ScrollAnchor<AnyHashable>?>?
 
     /// The anchor mode the view DECLARED (from `defaultScrollAnchor`), synced
     /// each render. Read by ``anchorOnSelection(at:)`` to scope the §1.2
@@ -1035,7 +1228,7 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// The declared anchor as an EDGE, for the shared user-scroll path
     /// (``ScrollableOffsetState/declaredEdgeAnchor``). Row and Window name no
     /// edge, so they answer `nil`.
-    var declaredEdgeAnchor: ScrollAnchor<AnyHashable>? {
+    package var declaredEdgeAnchor: ScrollAnchor<AnyHashable>? {
         switch declaredAnchorMode {
         case .top: return .top
         case .bottom: return .bottom
@@ -1111,10 +1304,18 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     var isFocusEngaged = false
 
     /// Binding for single selection mode (optional ID).
-    var singleSelection: Binding<SelectionValue?>?
+    package var singleSelection: Binding<SelectionValue?>? { get { _singleSelection } set { _singleSelection = newValue } }
+
+    /// ``singleSelection``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _singleSelection: Binding<SelectionValue?>?
 
     /// Binding for multi-selection mode (Set of IDs).
-    var multiSelection: Binding<Set<SelectionValue>>?
+    package var multiSelection: Binding<Set<SelectionValue>>? { get { _multiSelection } set { _multiSelection = newValue } }
+
+    /// ``multiSelection``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _multiSelection: Binding<Set<SelectionValue>>?
 
     /// Maps item indices to their IDs for selection management.
     ///
@@ -1133,7 +1334,7 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// May be handed over UNSETTLED, with ``selectableIndices``, by
     /// ``answerRowsWhenAsked(idAt:settling:)``: then the first read of either
     /// settles both, and so does a write, before it lands.
-    var itemIDs: [SelectionValue?] {
+    package var itemIDs: [SelectionValue?] {
         get {
             settleRowAnswers()
             return settledItemIDs
@@ -1158,7 +1359,11 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// for the eager paths, which use ``itemIDs`` — except one that hands its
     /// answers over unsettled (``answerRowsWhenAsked(idAt:settling:)``), whose
     /// ids are asked here one row at a time for the same reason.
-    var idAt: ((Int) -> SelectionValue?)?
+    package var idAt: ((Int) -> SelectionValue?)? { get { _idAt } set { _idAt = newValue } }
+
+    /// ``idAt``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _idAt: ((Int) -> SelectionValue?)?
 
     /// The set of indices that can be selected and focused.
     ///
@@ -1200,18 +1405,18 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     ///   - viewportHeight: The number of visible items.
     ///   - selectionMode: Single or multi-selection mode.
     ///   - canBeFocused: Whether this element can receive focus.
-    init(
+    package init(
         focusID: String,
         itemCount: Int,
         viewportHeight: Int,
         selectionMode: SelectionMode,
         canBeFocused: Bool = true
     ) {
-        self.focusID = focusID
-        self.itemCount = itemCount
-        self.viewportHeight = viewportHeight
+        self._focusID = focusID
+        self._itemCount = itemCount
+        self._viewportHeight = viewportHeight
         self.selectionMode = selectionMode
-        self.canBeFocused = canBeFocused
+        self._canBeFocused = canBeFocused
     }
 }
 
@@ -1234,7 +1439,7 @@ extension ItemListHandler {
     /// looped rows beside it (`FlattenedRowIDs`), in order up to the first
     /// that answers it — every one of them where none does, a build per
     /// tagged one.
-    func id(at index: Int) -> SelectionValue? {
+    package func id(at index: Int) -> SelectionValue? {
         guard index >= 0 else { return nil }
         if let idAt {
             guard index < itemCount else { return nil }
@@ -1367,7 +1572,7 @@ extension ItemListHandler {
 // MARK: - Focus Lifecycle
 
 extension ItemListHandler {
-    func onFocusLost() {
+    package func onFocusLost() {
         // Extend mode is a transient interaction state of THIS focus tenure —
         // arrows silently extending the selection after tabbing away and back
         // would be a surprise.
@@ -1416,7 +1621,7 @@ extension ItemListHandler {
         // the comment above actually cares.
     }
 
-    func onFocusReceived() {
+    package func onFocusReceived() {
         // Ensure the focused item is visible when focus is received
         ensureFocusedItemVisible()
     }

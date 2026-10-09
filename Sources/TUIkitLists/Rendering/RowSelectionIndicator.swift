@@ -16,7 +16,7 @@ import TUIkitFoundation
 /// those are: a `List` and a `Table` run the same rules about focus, selection and
 /// visibility, they have drifted apart before, and "which cells of a row owe a blend"
 /// is one more rule that must not be written out twice.
-enum SelectableRowClaims {
+package enum SelectableRowClaims {
     /// - Parameters:
     ///   - line: Which of the row's lines this is, in the row's own coordinates.
     ///   - width: The row's full width — what a background fill covers.
@@ -44,7 +44,7 @@ enum SelectableRowClaims {
     /// which a blank does not show and the resolution reads as the cell's field
     /// (`OpacityBlend.displayedInk(of:defaultForeground:)`). An ink claim on such a
     /// cell lets what is behind it through where the row drew a pad.
-    static func claims(
+    package static func claims(
         line: Int, width: Int, cells: Range<Int>, ink: Color?, mark: Color?, fill: Color?
     ) -> [OpacityRegion] {
         // Asked first, so an opaque row — every row of nearly every table — pays three
@@ -89,16 +89,16 @@ enum SelectableRowClaims {
 /// the control draws a mark at all (``RowBackground/focused(in:palette:)``).
 /// So a control with no selection at all draws no glyph on any row, which is
 /// what a plain `List` looked like before this existed and still looks like now.
-struct RowSelectionIndicator: Equatable {
+package struct RowSelectionIndicator: Equatable {
     /// Exactly one cell wide, always — the gutter is reserved whether or not
     /// there is anything to put in it, so a blank is a space rather than an
     /// empty string. A row whose glyph changed width would move its content.
-    let glyph: String
+    package let glyph: String
 
     /// The colour to draw ``glyph`` in. Meaningless for a blank, and set to the
     /// same tertiary the `Table` has always used there rather than to `nil`, so
     /// callers need no optional they would only ever pass through.
-    let color: Color
+    package let color: Color
 
     /// Whether anything is actually drawn — for a caller that can skip work
     /// when the answer is a space.
@@ -129,7 +129,7 @@ struct RowSelectionIndicator: Equatable {
     /// - Parameters:
     ///   - hasSelection: Whether the control has a selection binding at all.
     ///   - environment: For ``EnvironmentValues/rowSelectionIndicator``.
-    static func isReserved(hasSelection: Bool, environment: EnvironmentValues) -> Bool {
+    package static func isReserved(hasSelection: Bool, environment: EnvironmentValues) -> Bool {
         hasSelection && environment.rowSelectionIndicator != .hidden
     }
 
@@ -141,7 +141,7 @@ struct RowSelectionIndicator: Equatable {
     ///   - context: For ``EnvironmentValues/unfocusedSelectionVisibility``.
     ///   - palette: The colours to draw from.
     @MainActor
-    static func forRow(
+    package static func forRow(
         isFocused: Bool, isSelected: Bool, context: RenderContext, palette: any Palette
     ) -> Self {
         let blank = Self(glyph: " ", color: palette.foregroundTertiary)

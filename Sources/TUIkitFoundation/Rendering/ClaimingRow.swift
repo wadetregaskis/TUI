@@ -226,7 +226,7 @@ package struct ClaimingColumn {
     private(set) var claims: [OpacityRegion] = []
 
     /// No arguments, spelled out because the implicit initializer is internal
-    /// and TUIkitLists makes these, for a table.
+    /// and TUIkitTables makes these, for a table.
     package init() {}
 
     package var count: Int { lines.count }

@@ -66,7 +66,7 @@ extension ItemListHandler {
     ///     lazily and per index, so only a viewport's worth is ever asked for.
     ///     Assigned before any clamp, so this frame's clamp uses this frame's
     ///     rows.
-    func syncFrameInputs(
+    package func syncFrameInputs(
         environment: EnvironmentValues,
         reorderFeedback: RowReorderFeedback,
         keyboardMoveIsLive: Bool,

@@ -41,12 +41,12 @@ public struct Group<Content> {
     }
 
     /// A group of `content`, already built: `Group(grouping:)` for the
-    /// initializers other modules declare in extensions (the table columns',
-    /// table rows' and tabs', TUIkitLists'), which may not assign `content`
-    /// themselves, as an initializer in an extension in another module may not
-    /// assign a struct's stored properties. A static function, not a `package`
-    /// initializer, for the reason the initializer above is `fileprivate`: a
-    /// trailing closure could bind to one.
+    /// initializers other modules declare in extensions (the table columns'
+    /// and table rows', TUIkitTables', and the tabs', TUIkitLists'), which may
+    /// not assign `content` themselves, as an initializer in an extension in
+    /// another module may not assign a struct's stored properties. A static
+    /// function, not a `package` initializer, for the reason the initializer
+    /// above is `fileprivate`: a trailing closure could bind to one.
     package static func grouping(_ content: Content) -> Self {
         Self(grouping: content)
     }

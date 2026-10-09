@@ -388,9 +388,16 @@ anything at run time:
   or not the class's other properties are checked, and widening it adds a
   check to every access. A property checked already costs nothing more
   when widened, and an `@inlinable` accessor over it is then how a hot read
-  from another module avoids a call. `LazyListRowContent.cached` is the one such
-  property; its doc comment holds the evidence. Struct fields are not
-  affected.
+  from another module avoids a call. `LazyListRowContent.cached` is one such
+  property, and four of `ItemListHandler`'s are more (step C2: `tableRowMemo`
+  and `returningRows`, which a table in TUIkitTables reads for every row it
+  draws, `reorder` and `outlineActivation`); each one's doc comment holds the
+  evidence. Even so, measure before widening one: a widened stored property
+  also gets a getter, setter and `modify` of its own, for its property
+  descriptor, each with a check (code nothing calls), where private storage
+  under an accessor is usually statically enforced (ten of the twelve
+  `ItemListHandler` properties step C2 tried both ways lost every check).
+  Struct fields are not affected.
   A settable property requirement of a `package` protocol hands out its
   class conformers' stored properties the same way; ask for a method that
   sets it instead (`PersistedFocusable.repoint(focusID:)`).
@@ -538,11 +545,12 @@ anything at run time:
   `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: a directory under
   `Sources/` with a target of its own in `Package.swift` is that module, with
   two exceptions, the coarse groups, each a target that names several
-  directories: `Sources/TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` compile
-  into `TUIkitLists` until steps C2 to C4; and `Sources/TUIkitPickers`,
+  directories: `Sources/TUIkitTabs` and `TUIkitGrid` compile into
+  `TUIkitLists` until steps C3 and C4; and `Sources/TUIkitPickers`,
   `TUIkitForms`, `TUIkitSearch` and `TUIkitNumericControls` into
   `TUIkitTextInput` until steps C5 to C8. (`Sources/TUIkitPresentation`
-  compiled into `TUIkitNavigation` from step B5 until step C1.)
+  compiled into `TUIkitNavigation` from step B5 until step C1, and
+  `Sources/TUIkitTables` into `TUIkitLists` from step B6 until step C2.)
   `Tools/validate-test-boundaries.sh` checks the four modules' targets and runs
   in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views

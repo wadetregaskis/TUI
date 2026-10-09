@@ -19,7 +19,7 @@ import TUIkitFoundation
 /// which is the documented trade for the mean and holds identically for the
 /// sums — both ends of the thumb's travel are pinned by construction
 /// (``ScrollExtentPrecision``), so only the middle can drift.
-enum ScrollExtentProfile: Sendable, Equatable {
+package enum ScrollExtentProfile: Sendable, Equatable {
     /// The mean height of the sample, under ``ScrollExtentPrecision/approximate``.
     case mean(Double)
 
@@ -44,7 +44,7 @@ enum ScrollExtentProfile: Sendable, Equatable {
 /// are clipped above the fold — and want the same two numbers back. Keeping the
 /// arithmetic in one place is what stops the twins drifting apart yet again;
 /// see the divergence history in `List`/`Table`'s scroll rules.
-enum ScrollExtentEstimator {
+package enum ScrollExtentEstimator {
 
     /// The scrollbar's `extent` (total content lines) and `offset` (lines above
     /// the viewport) for a run of variable-height rows.
@@ -84,7 +84,7 @@ enum ScrollExtentEstimator {
     ///     accepted, because the mean only bends the MIDDLE of the thumb's
     ///     travel (both ends are pinned by construction, the property the type
     ///     doc calls out) and the estimate was already approximate.
-    static func lineMetrics(
+    package static func lineMetrics(
         visible: Range<Int>,
         count: Int,
         topClip: Int,

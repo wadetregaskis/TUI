@@ -194,7 +194,7 @@ extension ItemListHandler {
     ///   - firstRowHeight: The first row's height in lines, `@autoclosure` for the
     ///     reason the snap's own parameter is: a `List` resolves it by building
     ///     the row.
-    func settleScrollPosition(
+    package func settleScrollPosition(
         measuring: Bool,
         overflowing: Bool,
         drawsTextIndicators: Bool,
@@ -231,7 +231,7 @@ extension ItemListHandler {
     ///   - environment: This frame's environment, for the two allowances.
     ///   - contentHeight: The content area, in lines.
     ///   - contentHeight: The content area, in lines.
-    func resolveOverscroll(environment: EnvironmentValues, contentHeight: Int) {
+    package func resolveOverscroll(environment: EnvironmentValues, contentHeight: Int) {
         // ``reservedIndicatorLines`` rather than a Bool the caller passes:
         // a scrollbar costs a column rather than a line, a view whose content
         // fits draws no indicator at all, and under `.visible` BOTH lines are

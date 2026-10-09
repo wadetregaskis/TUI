@@ -11,6 +11,7 @@
 
 import TUIkitCore
 import TUIkitFoundation
+import TUIkitLists
 import TUIkitView
 
 #if canImport(UniformTypeIdentifiers)

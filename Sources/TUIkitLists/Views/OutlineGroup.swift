@@ -121,16 +121,16 @@ import TUIkitView
 public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf> {
     /// The top-level elements, flattened out of whichever initializer was used
     /// so one implementation serves both the `root` and the collection forms.
-    let roots: [Data.Element]
+    package let roots: [Data.Element]
 
     /// Each element's stable identity.
     let idKeyPath: KeyPath<Data.Element, ID>
 
     /// Each element's children — `nil` for a leaf.
-    let childrenKeyPath: KeyPath<Data.Element, Data?>
+    package let childrenKeyPath: KeyPath<Data.Element, Data?>
 
     /// Builds a node's label.
-    let content: (Data.Element) -> Leaf
+    package let content: (Data.Element) -> Leaf
 
     /// The bridge a hierarchical ``List`` drives the disclosure through.
     ///
@@ -165,7 +165,7 @@ extension OutlineGroup: View where Leaf: View {
 /// `primaryAction` is a plain closure: key dispatch reaches the handler from a
 /// nonisolated context, and rendering — the only thing that ever writes here —
 /// is single-threaded on the run loop.
-protocol OutlineRowActivating {
+package protocol OutlineRowActivating {
     /// Opens, closes or toggles the node with this id.
     ///
     /// - Parameters:
@@ -390,14 +390,14 @@ extension OutlineGroup: OutlineRowActivating where Leaf: View {
     /// outside the main actor, and everything it touches — a `let` reference
     /// and the closure inside it — is written only by the render loop.
     @discardableResult
-    nonisolated func setRowExpanded(
+    package nonisolated func setRowExpanded(
         _ id: AnyHashable, to target: Bool?, includingDescendants: Bool
     ) -> Bool {
         activation.apply?(id, target, includingDescendants) ?? false
     }
 
     /// Also `nonisolated`, and for the same reason.
-    nonisolated func parentRowID(of id: AnyHashable) -> AnyHashable? {
+    package nonisolated func parentRowID(of id: AnyHashable) -> AnyHashable? {
         activation.parentOf?(id)
     }
 }
@@ -700,7 +700,7 @@ extension OutlineGroup where Leaf: View {
 extension OutlineGroup {
     /// The one designated initializer every public one funnels through, for
     /// views and for table rows alike.
-    init(
+    package init(
         roots: [Data.Element],
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,

@@ -236,20 +236,33 @@ let package = Package(
         ),
 
         // Step B6's leaf, built on TUIkitFoundation as the three above are, and the plan's second coarse group: one
-        // target that compiles four planned modules' directories. Sources/TUIkitLists holds `List` and its core,
+        // target that compiles three planned modules' directories. Sources/TUIkitLists holds `List` and its core,
         // handler and styles, the rows' separators, insets, backgrounds, reordering and shortcuts, `OutlineGroup`
-        // and `EditMode`; Sources/TUIkitTables holds `Table`, its columns, rows, builders and styles;
-        // Sources/TUIkitTabs `TabView`, `Tab`, `TabSection` and the tab styles; Sources/TUIkitGrid `Grid`,
-        // `GridRow`, `LazyVGrid` and `LazyHGrid`. Steps C2, C3 and C4 peel Tables, Tabs and Grid into targets of
-        // their own; until then their files compile into this module. The map's edges from Tables and Tabs to
-        // Lists stay inside the target, so of the map's modules it depends on TUIkitFoundation alone. Nothing in
-        // TUIkitFoundation may use it (Tools/ModuleMap's upward check, which still checks the four directories as
-        // the four modules the map plans), so the umbrella re-exports it, and so does TUIkitColorPicker. It
-        // re-exports TUIkitFoundation (Sources/TUIkitLists/Exports.swift).
+        // and `EditMode`, and the row memo a table keeps; Sources/TUIkitTabs `TabView`, `Tab`, `TabSection` and
+        // the tab styles; Sources/TUIkitGrid `Grid`, `GridRow`, `LazyVGrid` and `LazyHGrid`. It compiled
+        // Sources/TUIkitTables too until step C2 (below); steps C3 and C4 peel Tabs and Grid into targets of their
+        // own, and until then their files compile into this module. The map's edge from Tabs to Lists stays inside
+        // the target, so of the map's modules it depends on TUIkitFoundation alone. Nothing in TUIkitFoundation may
+        // use it (Tools/ModuleMap's upward check, which still checks the three directories as the three modules the
+        // map plans), so the umbrella re-exports it, and so do TUIkitColorPicker and TUIkitTables. It re-exports
+        // TUIkitFoundation (Sources/TUIkitLists/Exports.swift).
         .target(
             name: "TUIkitLists",
             dependencies: ["TUIkitFoundation"],
-            directories: ["TUIkitLists", "TUIkitTables", "TUIkitTabs", "TUIkitGrid"],
+            directories: ["TUIkitLists", "TUIkitTabs", "TUIkitGrid"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // Step C2's peel, out of the Lists group above: `Table`, its columns, rows, builders and customization, the
+        // outline rows, the table styles and row drag and drop (Sources/TUIkitTables). Built on TUIkitFoundation and
+        // TUIkitLists, the map's edge: a table's rows run on the list's row engine (`ItemListHandler`, the row
+        // memo, row selection, reorder and context menus), which stays in TUIkitLists for `List`. TUIkitLists does
+        // not depend on it, nor does anything in TUIkitFoundation (Tools/ModuleMap's upward check), so the umbrella
+        // re-exports it. It re-exports TUIkitFoundation and TUIkitLists (Sources/TUIkitTables/Exports.swift), so an
+        // app that imports it has `List` too (plan §4).
+        .target(
+            name: "TUIkitTables",
+            dependencies: ["TUIkitFoundation", "TUIkitLists"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -333,7 +346,7 @@ let package = Package(
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation,
-        // TUIkitPresentation, TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code
+        // TUIkitPresentation, TUIkitTables, TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code
         // (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app exactly what it gave when the framework
         // was one TUIkit module. It names TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it.
         // Its directory also holds the TUIkit.docc catalog. Nothing in the package depends on it but the apps and the
@@ -342,8 +355,8 @@ let package = Package(
             name: "TUIkit",
             dependencies: [
                 "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
-                "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTextInput", "TUIkitFoundation",
-                "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTables", "TUIkitTextInput",
+                "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -353,7 +366,7 @@ let package = Package(
         // B3), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b) and TUIkitBitmaps (step B5c) at their
         // default paths, and the coarse groups TUIkitNavigation (step B5), TUIkitLists (step B6) and
         // TUIkitTextInput (step B7) over their modules' directories (`directories:`), whose members phase C peels
-        // into targets of their own (TUIkitPresentation, step C1). B7 took the last of them out, so this is an
+        // into targets of their own (TUIkitPresentation, step C1; TUIkitTables, step C2). B7 took the last of them out, so this is an
         // ordinary target at its default path, Sources/TUIkitFoundation.
         // Tools/ModuleMap checks the map: a file's directory is its module. It depends on neither TUIkitImage nor
         // CSTBImage since step B5c took the bitmap path out (the plan's B5c row): its `lower` list in rules.json
@@ -418,14 +431,14 @@ let package = Package(
         // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
         // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists,
         // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
-        // TUIkitTextInput, TUIkitPresentation).
+        // TUIkitTextInput, TUIkitPresentation, TUIkitTables).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
                 "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
                 "TUIkitFoundation", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation",
-                "TUIkitStrings", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit", "TUIkitWidthCorpus",
-                "CTestSupport",
+                "TUIkitStrings", "TUIkitTables", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
+                "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so

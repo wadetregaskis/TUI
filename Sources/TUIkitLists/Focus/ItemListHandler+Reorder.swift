@@ -22,14 +22,14 @@ import TUIkitFoundation
 /// session resolves gestures through needs only the writers it asks for in
 /// place of settable requirements.
 extension ItemListHandler: RowReorderHosting {
-    func adoptReorder(_ reorder: RowReorder, isKeyboardMove: Bool) {
+    package func adoptReorder(_ reorder: RowReorder, isKeyboardMove: Bool) {
         self.reorder = reorder
         self.isKeyboardMove = isKeyboardMove
     }
 
-    func relinquishReorder() { reorder = nil }
+    package func relinquishReorder() { reorder = nil }
 
-    func noteReorderCancelled(_ cancelled: Bool) { reorderCancelled = cancelled }
+    package func noteReorderCancelled(_ cancelled: Bool) { reorderCancelled = cancelled }
 }
 
 extension ItemListHandler {
@@ -144,7 +144,7 @@ extension ItemListHandler {
     /// The lines of the CONTENT row covering `contentY`, in the same space, or
     /// `nil` for a section header, the reorder slot or a line no row occupies:
     /// the row a selection of its text keeps to.
-    func contentRowLines(atContentY contentY: Int) -> Range<Int>? {
+    package func contentRowLines(atContentY contentY: Int) -> Range<Int>? {
         guard let band = band(atContentY: contentY), band.isContent else { return nil }
         return band.yStart..<(band.yStart + band.height)
     }
@@ -224,7 +224,7 @@ extension ItemListHandler {
     /// the answer FEEDS the budget this frame's window is computed from. The
     /// two agree except at the boundary, where being one row out costs one
     /// reserved line, a state the overflow machinery already expresses.
-    var reorderSlotNeedsALine: Bool {
+    package var reorderSlotNeedsALine: Bool {
         guard reorderDrawsSlot else { return false }
         let window = visibleRange
         return !reorderRemovedRows.contains(where: window.contains)
@@ -235,7 +235,7 @@ extension ItemListHandler {
     /// grabbed, which is what the float and the faint copy show; this is what
     /// the drawing and the index arithmetic have to work from, or a multi-row
     /// drag draws rows it is carrying.
-    var reorderRemovedRows: IndexSet {
+    package var reorderRemovedRows: IndexSet {
         guard reorderRemovedRow != nil, let reorder else { return IndexSet() }
         return reorder.held
     }
@@ -289,7 +289,7 @@ extension ItemListHandler {
     /// row where it would land) in the one place that is left to show it. The
     /// alternative, an empty gap and a row that is nowhere at all, would just
     /// look like the row had been deleted.
-    var effectiveReorderFeedback: RowReorderFeedback {
+    package var effectiveReorderFeedback: RowReorderFeedback {
         // A move started from the KEYBOARD always previews dimmed, whatever the
         // view asked for. A mouse drag needs no mode indicator — the pointer is
         // one — but Ctrl-R puts the control into a state the user cannot see
@@ -608,7 +608,7 @@ extension ItemListHandler {
     // MARK: - What to draw
 
     /// One entry in the order a view actually draws during a reorder drag.
-    enum DrawnRow: Equatable {
+    package enum DrawnRow: Equatable {
         /// A real row, by data offset.
         case row(Int)
 
@@ -683,7 +683,7 @@ extension ItemListHandler {
     /// witnesses. Not `@inlinable` either, which needs this class
     /// `@usableFromInline` and so every member that witnesses one of its
     /// protocols' requirements, its stored properties among them.
-    func reorderDrawnRows(_ visible: Range<Int>) -> [DrawnRow] {
+    package func reorderDrawnRows(_ visible: Range<Int>) -> [DrawnRow] {
         reorderDrawnRows(visible, excluding: nil)
     }
 
@@ -816,7 +816,7 @@ extension ItemListHandler {
     /// ``moveHeldRow(to:)``): the scroll-follow machinery reasons in data
     /// indices and a slot has no data behind it. Highlighting straight from
     /// `focusedIndex` is what put the cursor one row BELOW the row being moved.
-    func isCursorRow(_ index: Int) -> Bool {
+    package func isCursorRow(_ index: Int) -> Bool {
         reorderRemovedRow == nil && isFocused(at: index)
     }
 
@@ -838,7 +838,7 @@ extension ItemListHandler {
     ///
     /// `nil` for a mouse drag whatever it is holding: the pointer says where
     /// the rows are, and there is no keyboard cursor in play to lose.
-    var reorderPrimaryHeldRow: Int? {
+    package var reorderPrimaryHeldRow: Int? {
         guard isKeyboardMove, let reorder, reorder.held.count > 1 else { return nil }
         return reorder.grabbedOffset
     }
@@ -848,9 +848,9 @@ extension ItemListHandler {
     static var reorderSlotRowIndex: Int { -1 }
 
     /// One drawn entry's extent on screen, as a view reports it.
-    struct DrawnBand {
+    package struct DrawnBand {
         /// What occupies a drawn line, for band purposes.
-        enum Content {
+        package enum Content {
             /// A real, selectable data row.
             case row(Int)
             /// The reorder drop slot: a drop target with no data behind it.
@@ -861,7 +861,7 @@ extension ItemListHandler {
         }
 
         /// What is drawn there.
-        var entry: Content
+        package var entry: Content
         /// Its first line, counted from the first CONTENT line of the interior,
         /// with the "N more above" indicator's offset and any overscroll slide
         /// already in: this is the space the mouse handler works in.
@@ -873,9 +873,9 @@ extension ItemListHandler {
         /// ranges (`_ListCore.slidRanges`) and adds the indicator's offset in
         /// `slideAndWrap`; `Table`'s three publishers sum the same two terms
         /// (`Table.publishRowBands`, `Table.multiLineRowBands`).
-        var yStart: Int
+        package var yStart: Int
         /// How many lines it occupies (a clipped row counts what is shown).
-        var height: Int
+        package var height: Int
     }
 
     /// Hands this frame's drawn row geometry to the drag, applying the
@@ -901,7 +901,7 @@ extension ItemListHandler {
     /// The pointer is not moving, so the slot must not either. Advance the
     /// target by however far the rows have scrolled since the bands were
     /// published, which is exactly what keeps it on the same line.
-    func carryReorderTargetThroughAutoScroll() {
+    package func carryReorderTargetThroughAutoScroll() {
         guard isAutoScrolling, var reorder, reorder.active, let target = reorder.targetOffset
         else { return }
         let delta = scrollOffset - visibleRowBandsOffset
@@ -941,7 +941,7 @@ extension ItemListHandler {
     ///   - budget: How many it may keep.
     ///   - endsWithSlot: Whether the last drawn entry is the drop slot.
     /// - Returns: Lines to drop from each end. At most one is non-zero.
-    static func reorderOverrun(
+    package static func reorderOverrun(
         lineCount: Int, budget: Int, endsWithSlot: Bool
     ) -> (front: Int, back: Int) {
         let overrun = lineCount - budget
@@ -984,7 +984,7 @@ extension ItemListHandler {
     ///   - lineCount: how many lines the row area actually has, so a band slid
     ///     or clipped past either edge is trimmed to what is on screen and
     ///     dropped when nothing of it is.
-    static func drawnBands(
+    package static func drawnBands(
         _ drawn: [(entry: DrawnBand.Content, height: Int)],
         slide: Int,
         rowsTop: Int,
@@ -1014,7 +1014,7 @@ extension ItemListHandler {
         }
     }
 
-    func publishRowBands(_ bands: [DrawnBand]) {
+    package func publishRowBands(_ bands: [DrawnBand]) {
         defer { retargetForAutoScroll() }
         visibleRowBandsOffset = scrollOffset
         let placeholder = reorderPlaceholder
@@ -1085,7 +1085,7 @@ extension ItemListHandler {
 
     /// Whether a reorder drag is in flight *and* has moved — the test that
     /// separates a reorder from a plain click.
-    var isReordering: Bool { reorder?.active == true }
+    package var isReordering: Bool { reorder?.active == true }
 
     /// The row a non-`.live` drag has hold of. `nil` when nothing is dragging
     /// or when `.live` is moving the data instead.
@@ -1115,7 +1115,7 @@ extension ItemListHandler {
     /// room for. One row is the ordinary case; a multi-row gesture carries the
     /// whole selection, and showing only the grabbed one of them looked exactly
     /// like the rest had been deleted.
-    var reorderFloatingRows: [Int] {
+    package var reorderFloatingRows: [Int] {
         guard effectiveReorderFeedback == .cursor else { return [] }
         return Array(reorderRemovedRows)
     }
@@ -1124,7 +1124,7 @@ extension ItemListHandler {
     /// of the floating stack drawn before it, and so the distance the grab
     /// point moves down within the stack. Without it a multi-row drag hangs
     /// from its first row however far down the block you took hold.
-    var reorderHeldRowsAboveGrab: [Int] {
+    package var reorderHeldRowsAboveGrab: [Int] {
         guard let reorder else { return [] }
         return reorder.held.filter { $0 < reorder.grabbedOffset }
     }
@@ -1157,7 +1157,7 @@ extension ItemListHandler {
     ///
     /// The row also takes the keyboard cursor, so the user can see what they
     /// have hold of before moving anything.
-    func beginReorder(grabbing offset: Int) {
+    package func beginReorder(grabbing offset: Int) {
         // `.moveDisabled()` on the row: no gesture starts, so there is no
         // floating preview and nothing to release. The focus still moves,
         // because a press is also a click and clicking a locked row should
@@ -1189,7 +1189,7 @@ extension ItemListHandler {
     /// an empty-handed drag auto-scroll the list from its edges. One helper
     /// rather than a guard in each press path, so the `List`/`Table` twins
     /// cannot drift on it.
-    func armReorderSession(_ session: DragAndDropSession?, focusID: String) {
+    package func armReorderSession(_ session: DragAndDropSession?, focusID: String) {
         guard reorder != nil else { return }
         session?.beginReorder(focusID: focusID, handler: self)
     }
@@ -1241,7 +1241,7 @@ extension ItemListHandler {
     /// INSIDE the row space (the "N more" indicator the hot margin sits on) and
     /// wrong for a cursor that has left the control, where it resurrected a drop
     /// slot nowhere near the pointer and let a release outside land at an edge.
-    func rowSpaceContentY(_ contentY: Int) -> Int? {
+    package func rowSpaceContentY(_ contentY: Int) -> Int? {
         guard contentY >= 0 else { return nil }
         // No content height means the owner reserves its own lines and cannot
         // say where its row space ends (the handler's own unit tests).
@@ -1256,7 +1256,7 @@ extension ItemListHandler {
     /// Under ``RowReorderFeedback/live`` this moves the row *now*, one `onMove`
     /// per slot crossed, so the list itself is the preview. The other modes
     /// only move the cursor to mark where the drop would land.
-    func dragReorder(toContentY contentY: Int?) {
+    package func dragReorder(toContentY contentY: Int?) {
         guard onMove != nil else { return }
         // Where the POINTER is, kept so the target can be recomputed when the
         // rows move under a motionless one — see `retargetForAutoScroll`, which
@@ -1340,7 +1340,7 @@ extension ItemListHandler {
     /// ``RowReorderFeedback/live`` has already moved the row; the others move
     /// it exactly once, here.
     @discardableResult
-    func dropReorder(atContentY contentY: Int?) -> Bool {
+    package func dropReorder(atContentY contentY: Int?) -> Bool {
         guard let reorder, reorder.active, onMove != nil else {
             self.reorder = nil
             return false
@@ -1425,7 +1425,7 @@ extension ItemListHandler {
     /// shown. `.cursor` floats a copy at the pointer and drops its slot the
     /// moment the pointer leaves, so out there it is holding the rows over
     /// nothing and releasing is the cancel, as it is on macOS.
-    var commitsReorderReleasedOutside: Bool { effectiveReorderFeedback != .cursor }
+    package var commitsReorderReleasedOutside: Bool { effectiveReorderFeedback != .cursor }
 
     /// Whether a release at `contentY` would put the rows anywhere.
     ///
@@ -1434,13 +1434,13 @@ extension ItemListHandler {
     /// keeps x inside the columns, and reading it that way said "landed
     /// somewhere" while the row vanished. `List` and `Table` asked this
     /// identically before their drops; it belongs beside the drop.
-    func reorderLandsNowhere(atContentY contentY: Int?) -> Bool {
+    package func reorderLandsNowhere(atContentY contentY: Int?) -> Bool {
         let slot: Int? = contentY.flatMap { dropTarget(atContentY: $0) } ?? reorderPlaceholder?.slot
         return slot == nil
     }
 
     /// Drops any in-flight reorder without moving anything.
-    func cancelReorder() {
+    package func cancelReorder() {
         // The rows the floating picture is about to walk back to: they draw
         // blank until it lands, so the row is on screen once rather than twice
         // for the length of the flight (see ``returningRows``).

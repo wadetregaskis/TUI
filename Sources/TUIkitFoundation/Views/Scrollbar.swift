@@ -444,8 +444,8 @@ package struct ScrollbarColors {
     var hover: (cell: Int, color: Color)?
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for the lists' and tables'
-    /// scrollbars.
+    /// internal and TUIkitLists and TUIkitTables make these, for the lists'
+    /// and tables' scrollbars.
     package init(thumb: Color, track: Color, arrow: Color, hover: (cell: Int, color: Color)? = nil) {
         self.thumb = thumb
         self.track = track

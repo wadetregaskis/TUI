@@ -25,7 +25,7 @@ extension ItemListHandler {
     /// shrank under the pointer cannot strand it, and the line is kept so
     /// ``publishRowBands(_:)`` can ask the question again against the next
     /// frame's rows.
-    func hoverExternalDrop(atContentY contentY: Int) {
+    package func hoverExternalDrop(atContentY contentY: Int) {
         lastExternalDropContentY = contentY
         // Past the rows, a pointer that is simply resting there means "append"
         // — the conventional answer, and the one a short list has always given.
@@ -125,7 +125,7 @@ extension ItemListHandler {
     /// view taking the item, the drag's own source removing it. The documented
     /// use of this index is `insert(contentsOf:at:)`, which traps rather than
     /// clamping, so the read side has to be sure on its own.
-    func takeExternalDropSlot() -> Int {
+    package func takeExternalDropSlot() -> Int {
         let slot = externalDropSlot ?? itemCount
         externalDropSlot = nil
         return min(max(0, slot), itemCount)

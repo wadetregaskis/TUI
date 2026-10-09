@@ -11,7 +11,7 @@ import TUIkitCore
 import TUIkitFoundation
 
 extension ItemListHandler: TypeSelectingFocusHandler {
-    var isTypeSelecting: Bool {
+    package var isTypeSelecting: Bool {
         guard !typeSelectPrefix.isEmpty, let last = typeSelectLastKey else { return false }
         return ContinuousClock.now - last <= Self.typeSelectTimeout
     }
@@ -70,7 +70,7 @@ extension ItemListHandler {
     /// Resolves a typed prefix, if one is waiting: moves the cursor to the row
     /// it names and brings that row into view. Called by the render, with the
     /// rows' text; a measure pass leaves the prefix for the render.
-    func resolvePendingTypeSelect(measuring: Bool, text: (Int) -> String?) {
+    package func resolvePendingTypeSelect(measuring: Bool, text: (Int) -> String?) {
         guard !measuring, let prefix = pendingTypeSelect else { return }
         pendingTypeSelect = nil
         guard let match = typeSelectMatch(prefix, text: text) else { return }

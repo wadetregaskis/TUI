@@ -60,8 +60,8 @@ SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 # of TUIkitFoundation, or peeled out of a coarse group, joins this list then.
 TUIKIT_MODULES = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
-    "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings",
-    "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitAppKit",
+    "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTables", "TUIkitTextInput", "TUIkitFoundation",
+    "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitAppKit",
 ]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are

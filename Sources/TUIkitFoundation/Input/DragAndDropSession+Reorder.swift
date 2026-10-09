@@ -43,8 +43,8 @@ extension DragAndDropSession {
         package let handler: any RowReorderHosting
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitLists makes these, for the lists, tables and
-        /// tab bars.
+        /// is internal and TUIkitLists makes these, for the lists and tab bars,
+        /// and TUIkitTables, for the tables.
         package init(
             focusID: String,
             handlerID: HitTestRegion.HandlerID,

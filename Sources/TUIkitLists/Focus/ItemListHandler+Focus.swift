@@ -51,7 +51,7 @@ extension ItemListHandler {
     /// `Focusable`, so it can only be built where the render walk runs.
     @MainActor
     @discardableResult
-    func engageFocus(context: RenderContext, focusID: String) -> Bool {
+    package func engageFocus(context: RenderContext, focusID: String) -> Bool {
         FocusRegistration.register(context: context, handler: self, focusID: focusID)
         let hasFocus = FocusRegistration.isFocused(context: context, focusID: focusID)
         publishEscapeClaim(context: context, isFocused: hasFocus)

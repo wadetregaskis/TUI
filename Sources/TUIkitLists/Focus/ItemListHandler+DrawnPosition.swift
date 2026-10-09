@@ -10,7 +10,7 @@ import TUIkitView
 extension ItemListHandler {
     /// This list's or table's ``DrawnScrollPosition``, the lines scrolled off
     /// its top row included.
-    var drawnPosition: DrawnScrollPosition {
+    package var drawnPosition: DrawnScrollPosition {
         DrawnScrollPosition(self, subRowLines: scrollTopClipLines)
     }
 }

@@ -15,7 +15,7 @@ import TUIkitFoundation
 // MARK: - Key Event Handling
 
 extension ItemListHandler {
-    func handleKeyEvent(_ event: KeyEvent) -> Bool {
+    package func handleKeyEvent(_ event: KeyEvent) -> Bool {
         guard itemCount > 0 else { return false }
 
         // The row menu, on the cursor row — Shift+F10 or the Menu key, the
@@ -368,7 +368,7 @@ extension ItemListHandler {
     /// handled by the protocol's ``handleWheelEvent(_:
     /// linesPerTick:)``. See the protocol comment for why
     /// these moved out of this class.)
-    var extent: Int { itemCount + (dropSlotAddsRow ? 1 : 0) }
+    package var extent: Int { itemCount + (dropSlotAddsRow ? 1 : 0) }
 
     /// The "▼ N more rows below" indicator's subject, which is ROWS THE USER
     /// CANNOT SEE — so it counts the data, never the line a hovering drag
@@ -402,7 +402,7 @@ extension ItemListHandler {
     /// the three must agree — `PageDistanceTests` renders a real list and
     /// checks this against the rows actually drawn, at every offset, so a
     /// change to one of the others cannot quietly drift from this.
-    var pageDistance: Int {
+    package var pageDistance: Int {
         // No content height means the owner reserves indicator lines itself and
         // `viewportHeight` is the literal visible count (the handler's own unit
         // tests, and any caller following that contract).
@@ -473,7 +473,7 @@ extension ItemListHandler {
     /// here, via ``ScrollableOffsetState/pageDelta(_:)``, so that one Page Down
     /// from two identical-looking screens goes to the same place. Steps are
     /// not, and must not be — see that method.
-    var drawnOffset: Int {
+    package var drawnOffset: Int {
         get { drawnWindowOffset ?? scrollOffset }
         set { drawnWindowOffset = newValue }
     }
@@ -484,7 +484,7 @@ extension ItemListHandler {
     /// borrowed line is the landing slot, and there is nothing to subscript
     /// for it. (`List` never exposed this — it reads rows through a window it
     /// computed itself — so the trap only bites the `Table`.)
-    var visibleRange: Range<Int> {
+    package var visibleRange: Range<Int> {
         guard itemCount > 0 else { return 0..<0 }
         let start = max(0, min(scrollOffset, itemCount - 1))
         return start..<min(itemCount, start + max(0, viewportHeight))
@@ -496,7 +496,7 @@ extension ItemListHandler {
     /// side, and *the indicators count from `drawnOffset`*; the two differ
     /// only at offset 1 under text indicators, which survives to render
     /// exactly while steering.
-    var drawnVisibleRange: Range<Int> {
+    package var drawnVisibleRange: Range<Int> {
         guard itemCount > 0 else { return 0..<0 }
         let start = max(0, min(drawnOffset, itemCount - 1))
         return start..<min(itemCount, start + max(0, viewportHeight))
@@ -511,7 +511,7 @@ extension ItemListHandler {
     /// row-stepping default. Only the touched rows' heights are queried, so
     /// the cost is O(delta), independent of list size.
     @discardableResult
-    func scrollFine(by delta: Int) -> Bool {
+    package func scrollFine(by delta: Int) -> Bool {
         guard scrollStepUnit == .line, let rowHeight else {
             let before = (scrollOffset, scrollTopClipLines)
             // Row granularity is a promise about this gesture: a step lands on
@@ -567,7 +567,7 @@ extension ItemListHandler {
     /// `.viewAligned`, as many rows as its limit allows — a step is already
     /// rows there (``scrollFine(by:)``); and `delta` otherwise, a behaviour of
     /// the app's own included (``ListScrollTargeting``).
-    func userScrollStep(_ delta: Int) -> Int {
+    package func userScrollStep(_ delta: Int) -> Int {
         guard delta != 0 else { return 0 }
         if scrollTargeting.pages {
             return pageDelta(delta > 0 ? pageDistance : -pageDistance)
@@ -582,7 +582,7 @@ extension ItemListHandler {
     /// Settles a released scrollbar thumb or page track
     /// (``ScrollableOffsetState`` requirement): under whole-row steps the top
     /// row is shown whole, as a step would leave it.
-    func settleUserScroll() {
+    package func settleUserScroll() {
         guard scrollTargeting.unit == .row, scrollTopClipLines > 0 else { return }
         scrollTopClipLines = 0
     }
@@ -593,7 +593,7 @@ extension ItemListHandler {
     /// system's section scroll, a mid-drag navigator — jumped the OFFSET to 0
     /// but left ``scrollTopClipLines`` where the wheel had put it, showing
     /// row 0 with its first lines still scrolled off at the very top.
-    func scrollToOffset(_ offset: Int) {
+    package func scrollToOffset(_ offset: Int) {
         scrollOffset = max(0, min(resolvedMaxOffset(reaching: offset), offset))
         scrollTopClipLines = 0
     }

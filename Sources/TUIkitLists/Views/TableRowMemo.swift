@@ -65,15 +65,15 @@ import TUIkitView
 /// than the memo saved on the tables it could not serve. A frame whose key
 /// differs from the last one drops the whole store, which is correct and is
 /// also the common case whenever anything about the table's shape moves.
-struct TableRowFrameKey: Equatable {
-    let columnWidths: [Int]
-    let columnSpacing: Int
-    let gutter: Int
-    let rowWidth: Int
+package struct TableRowFrameKey: Equatable {
+    package let columnWidths: [Int]
+    package let columnSpacing: Int
+    package let gutter: Int
+    package let rowWidth: Int
     /// The colour a cell's text resolves to, which the environment and the
     /// palette both reach. Resolved rather than named, so a palette that
     /// changed what `foreground` means changes this.
-    let ink: Color
+    package let ink: Color
     /// What the gutter of a row the cursor is not on draws, selected and not: an
     /// unfocused selection's ● — the accent dimmed over the page, or a blank under
     /// `.unfocusedSelectionVisibility(.hidden)` — and the blank every other row
@@ -83,8 +83,8 @@ struct TableRowFrameKey: Equatable {
     /// text and another accent — Silver Aerogel to Solid Colors, neighbours in the
     /// palette cycle — went on serving the old ● on every kept selected row, and
     /// hiding the unfocused selection left the marks it had.
-    let selectedMark: RowSelectionIndicator
-    let unselectedMark: RowSelectionIndicator
+    package let selectedMark: RowSelectionIndicator
+    package let unselectedMark: RowSelectionIndicator
     /// What a striped row paints behind itself (``RowBackground/alternatingStripe(palette:over:)``),
     /// or `nil` for no stripe. Resolved, as `ink` is, because the accent, the
     /// depth AND the surface the table sits on all reach it
@@ -92,16 +92,40 @@ struct TableRowFrameKey: Equatable {
     /// else this key carries: a table whose surface moved under it — a palette
     /// that changed only the tone a `TabView` lifts its body onto — went on
     /// serving every kept striped row in the old surface's stripe.
-    let stripe: Color?
-    let alignments: [HorizontalAlignment]
-    let truncations: [TruncationMode]
-    let lineLimits: [Int]
+    package let stripe: Color?
+    package let alignments: [HorizontalAlignment]
+    package let truncations: [TruncationMode]
+    package let lineLimits: [Int]
     /// How many colour channels a cell's SGR will be spelled in. Not covered by
     /// `ink`: the same `Color` renders to different bytes at a different depth,
     /// and unlike the two generations below there is no counter for it.
-    let colorDepth: ColorDepth
-    let colorGeneration: Int
-    let widthGeneration: Int
+    package let colorDepth: ColorDepth
+    package let colorGeneration: Int
+    package let widthGeneration: Int
+
+    /// The memberwise initializer, written out: a synthesized one is internal,
+    /// and a table in TUIkitTables makes these (module split, step C2).
+    package init(
+        columnWidths: [Int], columnSpacing: Int, gutter: Int, rowWidth: Int, ink: Color,
+        selectedMark: RowSelectionIndicator, unselectedMark: RowSelectionIndicator, stripe: Color?,
+        alignments: [HorizontalAlignment], truncations: [TruncationMode], lineLimits: [Int], colorDepth: ColorDepth,
+        colorGeneration: Int, widthGeneration: Int
+    ) {
+        self.columnWidths = columnWidths
+        self.columnSpacing = columnSpacing
+        self.gutter = gutter
+        self.rowWidth = rowWidth
+        self.ink = ink
+        self.selectedMark = selectedMark
+        self.unselectedMark = unselectedMark
+        self.stripe = stripe
+        self.alignments = alignments
+        self.truncations = truncations
+        self.lineLimits = lineLimits
+        self.colorDepth = colorDepth
+        self.colorGeneration = colorGeneration
+        self.widthGeneration = widthGeneration
+    }
 }
 
 // MARK: - The row's half, and what was kept
@@ -113,7 +137,7 @@ struct TableRowFrameKey: Equatable {
 /// builds, challenges and re-draws one of these for every row it draws, and
 /// across the module boundary each of those would otherwise be a call.
 @usableFromInline
-struct TableRowMemoLine {
+package struct TableRowMemoLine {
     /// The row this line was last PROVED to answer for, when its type could be
     /// compared at all. `nil` for a row type that is not `Equatable`, which
     /// `Table` does not require — those rows are answered by their CELLS alone.
@@ -123,7 +147,7 @@ struct TableRowMemoLine {
     /// fails the row test, and leaving it pointing at the row the line was
     /// COMPOSED for would fail that test again every frame thereafter. See the
     /// note on `refresh`.
-    @usableFromInline var row: AnyEquatableBox?
+    @usableFromInline package var row: AnyEquatableBox?
     /// What every column produced for this row, in column order.
     ///
     /// The soundness of a closure column rests entirely on this. A closure may
@@ -132,7 +156,7 @@ struct TableRowMemoLine {
     /// the closure has RUN, what it produced is not a proxy for the text: it IS
     /// the text, and a line built from equal cells under an equal frame key is
     /// the same line.
-    @usableFromInline let cells: [String]
+    @usableFromInline package let cells: [String]
     /// Whether the row was selected. Not whether it was the cursor: the cursor
     /// row of a focused table is never kept (see `Table.renderRow`), so every
     /// entry is a row the cursor was not on.
@@ -217,9 +241,9 @@ struct TableRowMemoLine {
 ///
 /// `@usableFromInline`, as ``TableRowMemoLine`` is (module split, set T).
 @usableFromInline
-struct TableRowDrawnLine {
-    @usableFromInline let line: String
-    @usableFromInline let claims: [OpacityRegion]
+package struct TableRowDrawnLine {
+    @usableFromInline package let line: String
+    @usableFromInline package let claims: [OpacityRegion]
 
     /// The memberwise initializer, written out: a synthesized one is internal,
     /// and a table's row code in TUIkitTables builds one per row it keeps.
@@ -242,7 +266,7 @@ struct TableRowDrawnLine {
 /// (module split, set T): ``keep(_:for:)``, ``entry(for:)`` and
 /// ``refresh(row:for:)``. ``lines`` is `@usableFromInline` for them.
 @usableFromInline
-struct TableRowMemoStore<ID: Hashable> {
+package struct TableRowMemoStore<ID: Hashable> {
     /// Whether this frame may keep rows at all, settled ONCE by `begin` rather
     /// than per row.
     ///
@@ -252,11 +276,11 @@ struct TableRowMemoStore<ID: Hashable> {
     /// six-column table and showed up as 20% of the frame in `renderRow` even
     /// when 98% of its rows were being served. The answer cannot change within
     /// a frame; asking it once is the whole fix.
-    private(set) var isOpen = false
+    package private(set) var isOpen = false
     /// Whether every column names its value, settled once by `begin` for the
     /// same reason `isOpen` is: asking it reads a `TableColumn` per column, and
     /// a `TableColumn` holds closures and strings.
-    private(set) var namesItsValues = false
+    package private(set) var namesItsValues = false
     private(set) var frameKey: TableRowFrameKey?
     /// Internal and `@usableFromInline`, not private, for the `@inlinable`
     /// members.
@@ -267,7 +291,7 @@ struct TableRowMemoStore<ID: Hashable> {
 
     /// Prepares the store for a frame, dropping everything if the frame's own
     /// inputs moved.
-    mutating func begin(frame key: TableRowFrameKey, viewportHeight: Int, namesItsValues: Bool) {
+    package mutating func begin(frame key: TableRowFrameKey, viewportHeight: Int, namesItsValues: Bool) {
         isOpen = true
         self.namesItsValues = namesItsValues
         if frameKey != key {
@@ -312,7 +336,7 @@ struct TableRowMemoStore<ID: Hashable> {
         lines[id]?.row = row
     }
 
-    mutating func removeAll() {
+    package mutating func removeAll() {
         isOpen = false
         namesItsValues = false
         lines.removeAll(keepingCapacity: true)

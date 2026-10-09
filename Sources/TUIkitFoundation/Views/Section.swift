@@ -78,7 +78,7 @@ public struct Section<Parent, Content, Footer> {
     package let isExpanded: Binding<Bool>?
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for a table's sections.
+    /// internal and TUIkitTables makes these, for a table's sections.
     package init(header: Parent, content: Content, footer: Footer, isExpanded: Binding<Bool>?) {
         self.header = header
         self.content = content
@@ -290,7 +290,7 @@ package struct _SectionHeader<Header: View>: View {
     let isExpanded: Binding<Bool>?
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for a table's sections.
+    /// internal and TUIkitTables makes these, for a table's sections.
     package init(header: Header, isExpanded: Binding<Bool>?) {
         self.header = header
         self.isExpanded = isExpanded

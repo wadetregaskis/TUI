@@ -49,5 +49,6 @@
 @_exported import TUIkitNavigation
 @_exported import TUIkitPresentation
 @_exported import TUIkitStyling
+@_exported import TUIkitTables
 @_exported import TUIkitTextInput
 @_exported import TUIkitView

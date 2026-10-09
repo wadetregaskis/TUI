@@ -22,7 +22,7 @@ import TUIkitView
 /// already guarantees on every palette and at every depth it measures: a
 /// surface visibly off what it sits on, in the palette's own direction, and
 /// never walked so far toward the text that the text stops being readable.
-struct CollectionSurface: Equatable {
+package struct CollectionSurface: Equatable {
     /// What the rows sit on: one plane's step off what the collection sits on.
     let body: Color
     /// What the header sits on: one step further.
@@ -74,7 +74,7 @@ struct CollectionSurface: Equatable {
     /// re-applied after each of a line's resets, as `.background(_:)`'s is —
     /// comes before the header's on those lines and loses to it.
     @MainActor
-    func painted(_ buffer: FrameBuffer, headerLines: Range<Int>, context: RenderContext) -> FrameBuffer {
+    package func painted(_ buffer: FrameBuffer, headerLines: Range<Int>, context: RenderContext) -> FrameBuffer {
         guard !buffer.isEmpty else { return buffer }
         var buffer = buffer
         if !headerLines.isEmpty {
@@ -95,7 +95,7 @@ extension CollectionSurface {
     /// `context` drawn on the tones a collection in it takes, and the tones,
     /// when `applies` — a `.surface` list or table; `context` and `nil` when it
     /// does not.
-    static func drawing(_ context: RenderContext, when applies: Bool) -> (RenderContext, Self?) {
+    package static func drawing(_ context: RenderContext, when applies: Bool) -> (RenderContext, Self?) {
         guard applies else { return (context, nil) }
         let tones = Self(context.environment)
         return (context.onSurface(tones), tones)

@@ -62,7 +62,7 @@ extension EnvironmentValues {
     ///   they have selected at all times.
     ///
     /// Set via ``View/unfocusedSelectionVisibility(_:)``.
-    var unfocusedSelectionVisibility: Visibility {
+    package var unfocusedSelectionVisibility: Visibility {
         get { self[UnfocusedSelectionVisibilityKey.self] }
         set { self[UnfocusedSelectionVisibilityKey.self] = newValue }
     }

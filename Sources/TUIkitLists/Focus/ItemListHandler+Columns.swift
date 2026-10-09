@@ -16,30 +16,44 @@ import TUIkitFoundation
 /// A table's column customization as the keyboard reaches it: built each frame
 /// by a table bound to a ``TableColumnCustomization``, from the columns it is
 /// showing.
-struct TableColumnEditing {
+package struct TableColumnEditing {
     /// The shown columns a user may customize, by identifier, in the order
     /// they are shown — as they stand now, asked of the customization: a key
     /// earlier in the same batch of input may have moved or hidden one since
     /// the frame was drawn.
-    var columns: [String] { currentColumns() }
+    package var columns: [String] { currentColumns() }
 
     /// Lists ``columns``.
-    let currentColumns: () -> [String]
+    package let currentColumns: () -> [String]
 
     /// Moves a column one place among the shown ones — `-1` left, `+1` right —
     /// when it and its neighbour may move.
-    let move: (_ id: String, _ delta: Int) -> Void
+    package let move: (_ id: String, _ delta: Int) -> Void
 
     /// Resizes a column by `delta` cells, within its bounds, when it may be
     /// resized.
-    let resize: (_ id: String, _ delta: Int) -> Void
+    package let resize: (_ id: String, _ delta: Int) -> Void
 
     /// Opens the column menu on a column, under its header.
-    let openMenu: (_ id: String) -> Void
+    package let openMenu: (_ id: String) -> Void
 
     /// Whether the column menu is open — the mode's own menu, which takes
     /// the focus without ending the mode.
-    let menuIsOpen: () -> Bool
+    package let menuIsOpen: () -> Bool
+
+    /// The memberwise initializer, written out: a synthesized one is internal,
+    /// and a table in TUIkitTables makes these (module split, step C2).
+    package init(
+        currentColumns: @escaping () -> [String], move: @escaping (_ id: String, _ delta: Int) -> Void,
+        resize: @escaping (_ id: String, _ delta: Int) -> Void, openMenu: @escaping (_ id: String) -> Void,
+        menuIsOpen: @escaping () -> Bool
+    ) {
+        self.currentColumns = currentColumns
+        self.move = move
+        self.resize = resize
+        self.openMenu = openMenu
+        self.menuIsOpen = menuIsOpen
+    }
 }
 
 // MARK: - The keys

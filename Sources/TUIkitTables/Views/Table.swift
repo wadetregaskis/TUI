@@ -13,6 +13,7 @@
 
 import Foundation
 import TUIkitFoundation
+import TUIkitLists
 // swiftlint:disable file_length
 
 // MARK: - Table

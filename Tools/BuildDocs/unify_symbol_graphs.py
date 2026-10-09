@@ -53,8 +53,8 @@ import sys
 # carved out of TUIkitFoundation, or peeled out of a coarse group, joins this set then.
 MODULES = {
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
-    "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings",
-    "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
+    "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTables", "TUIkitTextInput", "TUIkitFoundation",
+    "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
 }
 UMBRELLA = "TUIkit"
 

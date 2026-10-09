@@ -147,12 +147,12 @@ extension ItemListHandler {
     /// tall, so two quick clicks on ADJACENT rows arrived stamped 1 and 2:
     /// the second row opened from two clicks that each landed once. The row
     /// identity lives here, where rows exist, shared by both twins.
-    func completesMultiClick(on row: Int, clickCount: Int) -> Bool {
+    package func completesMultiClick(on row: Int, clickCount: Int) -> Bool {
         defer { lastClickedRow = row }
         return clickCount >= 2 && lastClickedRow == row
     }
 
-    func handleClickSelection(at index: Int, event: MouseEvent) {
+    package func handleClickSelection(at index: Int, event: MouseEvent) {
         defer { anchorOnSelection(at: index) }
         focusedIndex = index
         // A click is a pointer gesture with its own selection semantics —
@@ -234,7 +234,7 @@ extension ItemListHandler {
     ///
     /// - Parameter index: The item index.
     /// - Returns: True if the item is selected.
-    func isSelected(at index: Int) -> Bool {
+    package func isSelected(at index: Int) -> Bool {
         guard let itemID = id(at: index) else { return false }
 
         switch selectionMode {
@@ -249,7 +249,7 @@ extension ItemListHandler {
     ///
     /// - Parameter index: The item index.
     /// - Returns: True if the item is focused.
-    func isFocused(at index: Int) -> Bool {
+    package func isFocused(at index: Int) -> Bool {
         focusedIndex == index
     }
 }

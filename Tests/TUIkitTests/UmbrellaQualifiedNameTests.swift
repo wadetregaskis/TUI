@@ -70,6 +70,13 @@
 //  left in TUIkitFoundation would still compile, so the reflected names, one
 //  per directory, catch it at run time.
 //
+//  Step C2 peeled Sources/TUIkitTables out of that group into a module of its
+//  own, TUIkitTables, built on TUIkitLists, which it re-exports. The sixth
+//  test's table, and the column customization behaviour among the reflected
+//  names, read `TUIkitTables.` since; they read `TUIkitLists.` from B6 to C2.
+//  Nothing but the umbrella re-exports TUIkitTables, so this file stops
+//  compiling without the umbrella's line for it.
+//
 //  Step B5b carved three leaves the same way, each a module of its own:
 //  TUIkitChrome, TUIkitEffects and TUIkitMenus. The seventh test spells and
 //  draws a type of each through the umbrella, the menu beside an app's own
@@ -178,8 +185,8 @@ private enum Client {
         })
     }
 
-    /// An app's own `Table`, beside the table view TUIkitLists compiles from
-    /// Sources/TUIkitTables.
+    /// An app's own `Table`, beside TUIkitTables' table view (which
+    /// TUIkitLists compiled from Sources/TUIkitTables until step C2).
     struct Table {
         let name: String
     }
@@ -400,7 +407,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: type(of: alert)) == "TUIkitPresentation.Alert<TUIkitFoundation.Button>")
     }
 
-    @Test("A qualified name reaches TUIkitLists, all four of whose directories the umbrella re-exports through it")
+    @Test("A qualified name reaches TUIkitLists, whose three directories the umbrella re-exports, and TUIkitTables")
     func qualifiedNamesReachTheListsGroup() {
         func drawn(_ view: some TUIkit.View, height: Int) -> String {
             TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
@@ -409,8 +416,9 @@ struct UmbrellaQualifiedNameTests {
         // From Sources/TUIkitLists: a list, drawn.
         let list = TUIkit.List { TUIkit.Text(verbatim: "b6 row") }
         #expect(drawn(list, height: 4).contains("b6 row"))
-        // From Sources/TUIkitTables, which compiles into the same module until
-        // step C2: a table beside an app's own `Table`, drawn.
+        // From Sources/TUIkitTables, which compiled into the same module until
+        // step C2 peeled it into TUIkitTables: a table beside an app's own
+        // `Table`, drawn.
         let (mine, table) = Client.bothTables(rows: [Client.Row(id: 1, name: "b6 cell")])
         #expect(mine.name == "mine")
         let tableLines = drawn(table, height: 6)
@@ -428,7 +436,7 @@ struct UmbrellaQualifiedNameTests {
         // One reflected name from each directory: a directory left compiling
         // in TUIkitFoundation would still build, and read
         // `TUIkitFoundation.` here.
-        #expect(String(reflecting: type(of: table)).hasPrefix("TUIkitLists.Table<"))
+        #expect(String(reflecting: type(of: table)).hasPrefix("TUIkitTables.Table<"))
         #expect(String(reflecting: TUIkit.EditMode.self) == "TUIkitLists.EditMode")
         #expect(String(reflecting: TUIkit.TabViewCustomization.self) == "TUIkitLists.TabViewCustomization")
         #expect(String(reflecting: TUIkit.GridItem.self) == "TUIkitLists.GridItem")
@@ -588,12 +596,13 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.PresentationDetent.self) == "TUIkitPresentation.PresentationDetent")
         // Step B6 carved these out (decisions SPB6, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B6. A type from
-        // Sources/TUIkitTables, TUIkitTabs or TUIkitGrid names TUIkitLists,
-        // the module that compiles it, until steps C2 to C4 give it a module
-        // of its own.
+        // Sources/TUIkitTabs or TUIkitGrid names TUIkitLists, the module that
+        // compiles it, until steps C3 and C4 give it a module of its own; one
+        // from Sources/TUIkitTables names TUIkitTables since step C2 (decisions
+        // SPC2, "What an app can see"), and read `TUIkitLists.` from B6 to C2.
         #expect(String(reflecting: TUIkit.SidebarListStyle.self) == "TUIkitLists.SidebarListStyle")
         #expect(String(reflecting: TUIkit.TableColumnCustomizationBehavior.self)
-            == "TUIkitLists.TableColumnCustomizationBehavior")
+            == "TUIkitTables.TableColumnCustomizationBehavior")
         #expect(String(reflecting: TUIkit.TabBarPlacement.self) == "TUIkitLists.TabBarPlacement")
         #expect(String(reflecting: TUIkit.GridItem.Size.self) == "TUIkitLists.GridItem.Size")
         // Step B5b carved these out (decisions SPB5b, "What an app can see");

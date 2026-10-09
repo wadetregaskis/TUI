@@ -36,7 +36,7 @@ public struct AlternatingRowBackgroundBehavior: Hashable, Sendable {
     public static let disabled = Self(kind: .disabled)
 
     /// Whether rows stripe, given what the component does on its own.
-    func stripes(byDefault componentDefault: Bool) -> Bool {
+    package func stripes(byDefault componentDefault: Bool) -> Bool {
         switch kind {
         case .automatic: componentDefault
         case .enabled: true
@@ -54,7 +54,7 @@ private struct AlternatingRowBackgroundsKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// Whether the lists and tables in this subtree stripe their rows.
-    var alternatingRowBackgrounds: AlternatingRowBackgroundBehavior {
+    package var alternatingRowBackgrounds: AlternatingRowBackgroundBehavior {
         get { self[AlternatingRowBackgroundsKey.self] }
         set { self[AlternatingRowBackgroundsKey.self] = newValue }
     }

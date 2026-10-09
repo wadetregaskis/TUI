@@ -15,7 +15,7 @@ import TUIkitView
 // MARK: - State
 
 /// What a row menu was opened on.
-enum RowMenuTarget {
+package enum RowMenuTarget {
     /// The selection menu, for these rows' ids — none for empty space.
     case selection([AnyHashable])
 
@@ -30,12 +30,16 @@ enum RowMenuTarget {
 /// holding the closed container, as ``ContextMenuState``'s is for
 /// `.contextMenu`, whose presentation this shares.
 @MainActor
-final class RowMenuState {
+package final class RowMenuState {
     /// Open, anchor, the menu's highlight: the context menu's own state.
-    let menu = ContextMenuState()
+    package let menu = ContextMenuState()
 
     /// What the open menu acts on.
-    var target: RowMenuTarget = .selection([])
+    package var target: RowMenuTarget { get { _target } set { _target = newValue } }
+
+    /// ``target``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _target: RowMenuTarget = .selection([])
 }
 
 // MARK: - The host
@@ -44,18 +48,18 @@ final class RowMenuState {
 /// so the two resolve a press, anchor a menu and give the keyboard back
 /// identically.
 @MainActor
-enum RowContextMenuHost {
+package enum RowContextMenuHost {
     /// Whether `event` is a secondary click: the right button, or Ctrl with the
     /// left where a terminal keeps the right button for itself — the
     /// `.contextMenu` rule.
-    static func isSecondary(_ event: MouseEvent) -> Bool {
+    package static func isSecondary(_ event: MouseEvent) -> Bool {
         event.button == .right || (event.button == .left && event.ctrl)
     }
 
     /// The selection menu around a container whose rows are identified by
     /// `ID`, when it is that container's: SwiftUI's never activates on a
     /// container whose selection type is not the one it names.
-    static func selectionMenu<ID>(
+    package static func selectionMenu<ID>(
         in environment: EnvironmentValues, rowsIdentifiedBy type: ID.Type
     ) -> SelectionContextMenu? {
         guard let reference = environment.selectionContextMenu, reference.menu.isFor(type)
@@ -64,7 +68,7 @@ enum RowContextMenuHost {
     }
 
     /// The row menu's state, at the container's identity and `propertyIndex`.
-    static func stateBox(_ context: RenderContext, propertyIndex: Int) -> StateBox<RowMenuState>? {
+    package static func stateBox(_ context: RenderContext, propertyIndex: Int) -> StateBox<RowMenuState>? {
         context.stateStorage?.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex),
             default: RowMenuState())
@@ -79,7 +83,7 @@ enum RowContextMenuHost {
     /// another item type or around a list with no selection binding, never
     /// activates, and leaves the rows' own menus be. Written only where a menu
     /// is present, so a container without one pays one read.
-    static func yieldSecondaryClicks<ID>(
+    package static func yieldSecondaryClicks<ID>(
         in environment: inout EnvironmentValues, rowsIdentifiedBy type: ID.Type, takesMenu: Bool = true
     ) {
         guard let reference = environment.selectionContextMenu else { return }
@@ -94,7 +98,7 @@ enum RowContextMenuHost {
     /// The action is read when a row is activated, not when this is built:
     /// the menu is the modifier's state, refreshed by every body, and the
     /// closure it holds then is the latest one.
-    static func activation<ID: Hashable>(
+    package static func activation<ID: Hashable>(
         for handler: ItemListHandler<ID>, selection: SelectionContextMenu?
     ) -> ((ID) -> Void)? {
         guard let selection, selection.primaryAction != nil else { return nil }
@@ -112,7 +116,7 @@ enum RowContextMenuHost {
     /// row. Measured on macOS for the menu; the primary action follows the
     /// same rule, so Return on a row the selection does not include acts on
     /// the row the cursor marks.
-    static func targets<ID: Hashable>(
+    package static func targets<ID: Hashable>(
         ofRow index: Int?, in handler: ItemListHandler<ID>
     ) -> [AnyHashable] {
         guard let index, let id = handler.id(at: index) else { return [] }
@@ -127,25 +131,40 @@ enum RowContextMenuHost {
 
     /// A container's row menu as its mouse handler reaches it: built once a
     /// frame, for a container that has a menu to open.
-    struct PointerMenu {
+    package struct PointerMenu {
         /// Opens the menu on a row — or on none — at a press's cell,
         /// answering whether one opened.
         let open: @MainActor (_ row: Int?, _ x: Int, _ y: Int) -> Bool
 
         /// Whether the menu is open.
-        let isOpen: @MainActor () -> Bool
+        package let isOpen: @MainActor () -> Bool
 
         /// The columns the rows occupy: a press on the border opens nothing.
-        let contentColumns: Range<Int>
+        package let contentColumns: Range<Int>
 
         /// The lines the rows occupy: a press on a table's column header opens
         /// nothing — measured on macOS 15.8, SwiftUI's header takes no menu of
         /// the table's, and a right-click there goes on to a menu around the
         /// table. Every line, for a list, which has no header.
-        var contentLines: Range<Int> = 0..<Int.max
+        package var contentLines: Range<Int>
 
         /// What a press that opened the menu does besides: focus the container.
-        let opened: @MainActor () -> Void
+        package let opened: @MainActor () -> Void
+
+        /// The memberwise initializer, written out: a synthesized one is
+        /// internal, and a table in TUIkitTables makes these (module split,
+        /// step C2).
+        package init(
+            open: @escaping @MainActor (_ row: Int?, _ x: Int, _ y: Int) -> Bool,
+            isOpen: @escaping @MainActor () -> Bool, contentColumns: Range<Int>,
+            contentLines: Range<Int> = 0..<Int.max, opened: @escaping @MainActor () -> Void
+        ) {
+            self.open = open
+            self.isOpen = isOpen
+            self.contentColumns = contentColumns
+            self.contentLines = contentLines
+            self.opened = opened
+        }
     }
 
     /// The events a container's mouse handler answers before its own clicks:
@@ -162,7 +181,7 @@ enum RowContextMenuHost {
     ///   then goes on to a menu around the container; `nil` for an event the
     ///   container's own handling answers — any other, and a Ctrl-click with
     ///   nothing to open, which is still a click.
-    static func preflight(
+    package static func preflight(
         _ event: MouseEvent, wheel: (MouseEvent) -> Bool, menu: PointerMenu?, row: () -> Int?
     ) -> Bool? {
         if wheel(event) { return true }
@@ -194,7 +213,7 @@ enum RowContextMenuHost {
     /// moves and lets go before a frame has drawn the menu closes it, as it
     /// would have closed the drawn menu wherever it let go
     /// (``MouseEventDispatcher/pressOpenedPopup(_:)``).
-    static func openByPointer(
+    package static func openByPointer(
         _ stateBox: StateBox<RowMenuState>, target: RowMenuTarget, x: Int, y: Int,
         dispatcher: MouseEventDispatcher, onOpen: MenuOpenAction?
     ) {
@@ -213,7 +232,7 @@ enum RowContextMenuHost {
 
     /// Opens the menu from the keyboard: on its first item, anchored under the
     /// cursor row when it is drawn (see ``present(items:over:stateBox:sectionID:keyboardAnchor:context:)``).
-    static func openByKeyboard(
+    package static func openByKeyboard(
         _ stateBox: StateBox<RowMenuState>, target: RowMenuTarget, onOpen: MenuOpenAction?
     ) {
         let state = stateBox.value
@@ -238,7 +257,7 @@ enum RowContextMenuHost {
     ///   - keyboardAnchor: Where a menu opened from the keyboard hangs: under
     ///     the cursor row's lines (`x`, the row's top `y`, its `height`), or
     ///     `nil` when the row is not drawn, which hangs it under the container.
-    static func present(
+    package static func present(
         items: @autoclosure () -> AnyView?, over buffer: inout FrameBuffer,
         stateBox: StateBox<RowMenuState>, sectionID: String,
         keyboardAnchor: (x: Int, y: Int, height: Int)?, context: RenderContext

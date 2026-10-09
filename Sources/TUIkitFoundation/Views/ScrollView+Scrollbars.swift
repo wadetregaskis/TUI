@@ -562,8 +562,7 @@ package struct ScrollbarMemo<Bar> {
         package let cycle: SelectionEmphasisCycle?
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitLists makes these, for the lists' and tables'
-        /// scrollbars.
+        /// is internal and TUIkitLists makes these, for the lists' scrollbars.
         package init(
             length: Int,
             extent: Int,
@@ -600,8 +599,7 @@ package struct ScrollbarMemo<Bar> {
     package let runs: [AnimatedCellRun]
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for the lists' and tables'
-    /// scrollbars.
+    /// internal and TUIkitLists makes these, for the lists' scrollbars.
     package init(key: Key, bar: Bar, runs: [AnimatedCellRun]) {
         self.key = key
         self.bar = bar

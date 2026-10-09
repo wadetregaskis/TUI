@@ -25,9 +25,9 @@ import TUIkitFoundation
 /// The rule: put the top row's hidden lines outside the viewport, take a line for
 /// an "above" indicator if one will be drawn, fill, and — if rows remain past
 /// that window — take another for the "below" indicator and fill again.
-struct ScrollRowWindow {
+package struct ScrollRowWindow {
     /// The rows on screen.
-    let range: Range<Int>
+    package let range: Range<Int>
     /// Whether anything is hidden above the window. A line-granularity top clip
     /// counts: the first row is partially hidden, which is content above even
     /// though no whole row is.
@@ -35,11 +35,11 @@ struct ScrollRowWindow {
     /// NOT gated on whether indicators are drawn — a scrollbar wants to know
     /// this too. What the gate decides is the RESERVATION, which is already
     /// applied to ``range``.
-    let showsAbove: Bool
+    package let showsAbove: Bool
     /// Whether anything is hidden below it.
-    let showsBelow: Bool
+    package let showsBelow: Bool
     /// Lines of the top row hidden above the viewport, after any absorb.
-    let topClip: Int
+    package let topClip: Int
     /// Whether a line was taken out of the content area for an "N more above"
     /// indicator — and therefore whether one must be DRAWN.
     ///
@@ -51,9 +51,9 @@ struct ScrollRowWindow {
     /// affordance rather than for a hint. Reserved and drawn are ONE answer, so
     /// they cannot disagree — which is the shape of every off-by-one this rule
     /// has produced (`f55a9f92`, and a blank line at the bottom of a table).
-    let reservesAbove: Bool
+    package let reservesAbove: Bool
     /// The same for the "N more below" line.
-    let reservesBelow: Bool
+    package let reservesBelow: Bool
 
     /// Resolves the window.
     ///
@@ -94,7 +94,7 @@ struct ScrollRowWindow {
     /// with the same closure-per-row shape as the value memo's; inlined, every
     /// list and table shape measures indistinguishable.
     @inline(__always)
-    static func resolve(
+    package static func resolve(
         scrollOffset: Int,
         count: Int,
         contentHeight: Int,
