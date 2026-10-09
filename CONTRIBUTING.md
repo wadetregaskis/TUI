@@ -52,6 +52,17 @@ Linux additionally runs Swift 6.3 on arm64, and lint runs on Linux only — it
 gates everything else, so a style slip fails in a minute rather than after
 eighteen builds.
 
+Three checks run on chosen lanes only:
+
+| Check | Lanes | What it catches |
+|-------|-------|-----------------|
+| Release build (`swift build -c release`: every library target, Stress, Example and the tools; no tests) | `macOS 26 · Swift 6.4`, `Linux · Swift 6.3 · arm64` | Failures that exist only under `-O`. Every other build in CI is debug; on 2026-10-08 Swift 6.3.3 could not build the library in release while every lane was green. |
+| Type-check budget (the library rebuilt with every expression capped at a number of solver scopes, `-solver-scope-threshold`) | `macOS 15 · Xcode 26` (6.2.4) at 2,000; `macOS 26 · Swift 6.4` at 1,500 | An expression that has become expensive to type-check, as a count rather than a time, so a slow runner cannot fail it. The count belongs to the compiler, so each lane's cap sits just above its own compiler's worst expression. |
+| Module map (`Tools/ModuleMap`) | `macOS 15 · Xcode 26` | A reference that would cross a planned module boundary upward. It reads the index store the build wrote, and the map is the same on every Swift. |
+
+The workflow's comment on each step has the measurements behind it and says
+how to read a failure.
+
 Nightly-toolchain lanes are **advisory** (`continue-on-error`): visible, but
 unable to block a merge, because they break for reasons that have nothing to do
 with this package. Everything on a released toolchain — including Windows —

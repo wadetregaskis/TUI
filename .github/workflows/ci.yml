@@ -236,10 +236,11 @@ jobs:
             development: false
             smoke: quick
             experimental: false
-            # The type-check budget at the end of the job runs here only: see
-            # that step.
-            typecheck_guard: true
-            # So does the module map: see that step.
+            # The type-check budget at the end of the job, at this lane's
+            # Swift's cap (see that step); it runs here and on the swift.org
+            # 6.4 lane, each at its own compiler's cap.
+            solver_scopes: 2000
+            # The module map runs here only: see that step.
             module_map: true
           - name: "macOS 26 · Xcode 26"
             runner: macos-26
@@ -259,6 +260,11 @@ jobs:
             development: false
             smoke: quick
             experimental: false
+            # 6.4.0 counts scopes far lower than 6.2 does for ordinary code,
+            # so 6.2's 2,000 bounds it only loosely: see the step.
+            solver_scopes: 1500
+            # The release build at the end of the job: see that step.
+            release_build: true
           # Trunk only. "latest" (with `development`) was the newest snapshot
           # on ANY branch, ranked by date, and on 2026-09-28 that was
           # `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-09-26-a`, not trunk's
@@ -470,36 +476,71 @@ jobs:
         if: matrix.smoke == 'full'
         run: python3 -m unittest discover -s Tools/Profiling -p 'test_*.py'
 
+      # The package's products in RELEASE — every library target, Stress,
+      # Example and the tools. Every other build in this workflow is debug, and
+      # some failures exist only under `-O`: on 2026-10-08 Swift 6.3.3 could
+      # not build TUIkitFoundation in release ("sending 'value' risks causing
+      # data races", Theme.swift; a 6.3 optimiser clone that loses a function's
+      # actor isolation, see the comment there) while every lane here was
+      # green. On two lanes, one per compiler that matters most: this one
+      # (swift.org's 6.4, the main target) and Linux's 6.3 on arm64 (see that
+      # step). No tests in release: the suite runs once, in debug, above.
+      # Release has a directory of its own under `.build`, so this shares the
+      # checkouts with the Build step and disturbs nothing it built; before
+      # the type-check budget, which must stay last.
+      - name: Release build
+        if: matrix.release_build
+        run: $SWIFT build -c release
+
       # A guard against type-check regressions that cannot flake: the library,
       # and the swift-collections modules it builds on, rebuilt with every
-      # expression's constraint system capped at 2,000 solver scopes. A count,
-      # not a time, so a slow runner cannot fail it — and why it runs on ONE
-      # lane: the count belongs to the compiler. 2,000 sits just above the worst
-      # expressions on this lane's Swift (Xcode 26.3's 6.2.4) on 2026-10-07:
-      # swift-collections' UniqueDeque.swift:240, between 1,850 and 1,900
-      # scopes, and TUIkitCore's Animation.swift:586, between 1,800 and 1,900
-      # (not tried at 1,850); TUIkit's own worst was ScrollTransition.swift:218,
-      # 1,700–1,800. The cap was measured with the debug and the release defines
-      # alike; this step builds debug on macOS, so code compiled only in release
+      # expression's constraint system capped at `matrix.solver_scopes` solver
+      # scopes. A count, not a time, so a slow runner cannot fail it — and why
+      # each lane that runs it has a cap of its own: the count belongs to the
+      # compiler. It runs on two lanes, each capped just above its compiler's
+      # worst expression:
+      #
+      # * macOS 15 (Xcode 26.3's 6.2.4), 2,000. On 2026-10-07 the worst were
+      #   swift-collections' UniqueDeque.swift:240, between 1,850 and 1,900
+      #   scopes, and TUIkitCore's Animation.swift:586, between 1,800 and 1,900
+      #   (not tried at 1,850); TUIkit's own worst was
+      #   ScrollTransition.swift:218, 1,700–1,800.
+      # * macOS 26 with swift.org's 6.4, 1,500. 6.4.0 counts ordinary code far
+      #   lower than 6.2 does (6.2's two worst are under 300 on 6.4) and literal
+      #   tables about the same, so 6.2's cap bounds 6.4 only loosely, and an
+      #   expression 6.4's solver handles badly and 6.2's does not would pass
+      #   it. On 2026-10-08 6.4.0's worst was a generated table,
+      #   CombiningMarkRanges.generated.swift:25, between 1,250 and 1,500; the
+      #   next was ImageGlyphCalibration.generated.swift:18 (1,100–1,250), and
+      #   at no cap from 1,000 up did anything fail on 6.4 that passed on 6.2;
+      #   main (18325a175 and the Theme fix) built at 1,500 on 6.4.0 that day.
+      #   A tighter cap would need the generators to stop emitting one literal,
+      #   which changes `-O` code, so it stays here. The lane takes the newest
+      #   6.4.x, and a patch release may move the counts.
+      #
+      # The caps were measured with the debug and the release defines alike;
+      # this step builds debug on macOS, so code compiled only in release
       # (today one line, SoftTrap.report's `log.report`), only on another
       # platform, or only under an opt-in define such as
       # TUIKIT_VALUE_HASH_CENSUS is not counted here. Set on the command line
       # only: in Package.swift it would need `unsafeFlags`, which a package used
-      # as a dependency may not use. Last in the job, because it rebuilds those
-      # modules with a different command line.
+      # as a dependency may not use. Swift Build (6.4's default) passes
+      # `-Xswiftc -Xfrontend` through as the native build system does. Last in
+      # the job, because it rebuilds those modules with a different command
+      # line.
       #
       # Reading a failure: "the compiler is unable to type-check this expression
       # in reasonable time" at a file and line names an expression that now
-      # needs more than 2,000 scopes. Rewrite it rather than raising the cap:
+      # needs more than the lane's cap. Rewrite it rather than raising the cap:
       # give closure parameters and results their types, name intermediate
       # results with explicit types (`let total: Int = xs.reduce(0, +)`), turn a
       # `&&` chain of `==` into a guard list (the type-check commits of
-      # 2026-10-07 show each). If the lane's Xcode moved to a newer Swift and
+      # 2026-10-07 show each). If the lane's Swift moved to a newer release and
       # unchanged code fails, the compiler's counts moved: find the worst site
       # again (bisect the cap) and set the cap just above it.
       - name: Type-check budget (solver scopes)
-        if: matrix.typecheck_guard
-        run: $SWIFT build --target TUIkit -Xswiftc -Xfrontend -Xswiftc -solver-scope-threshold=2000
+        if: matrix.solver_scopes
+        run: $SWIFT build --target TUIkit -Xswiftc -Xfrontend -Xswiftc -solver-scope-threshold=${{ matrix.solver_scopes }}
 
   # ── Linux ──────────────────────────────────────────────────────────────────
   linux:
@@ -528,6 +569,8 @@ jobs:
             image: "swift:6.3-noble"
             smoke: quick
             experimental: false
+            # The release build at the end of the job: see that step.
+            release_build: true
           # Was `swiftlang/swift:nightly-6.4.x-noble`, advisory, until 6.4.0
           # shipped.
           - name: "Linux · Swift 6.4 · x86_64"
@@ -593,6 +636,16 @@ jobs:
 
       - name: Smoke — drive both apps in a real PTY (${{ matrix.smoke }})
         run: ./Tools/Smoke/ci-pty-smoke.sh ${{ matrix.smoke }}
+
+      # The macOS job's "Release build" step says why. 6.3's lane, because
+      # 6.3 is the Swift whose `-O` pipeline broke on 2026-10-08 while its
+      # debug build was clean; arm64, because x86_64 already runs the full PTY
+      # smoke, so the two 6.3 lanes end closer together. That failure was in
+      # the SIL pipeline, not the target: a reduction of it failed alike on
+      # macOS arm64 and for x86_64 Linux (swift.org 6.3.3, its static SDK).
+      - name: Release build
+        if: matrix.release_build
+        run: swift build -c release
 
   # ── Windows (advisory: the port is in progress) ─────────────────────────────
   #
