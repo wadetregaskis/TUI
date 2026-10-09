@@ -373,11 +373,11 @@ anything at run time:
   `package` computed property (`package var name: T { get { _name } set {
   _name = newValue } }`) or method over it, not `@inlinable`, as
   `FocusManager.currentPaneID` does; move a property observer to the
-  storage. Never mark the stored property `package` or `@usableFromInline`:
-  either makes it visible outside the module, unless the binary shows every
-  access to it is already dynamic. The optimiser decides per property, all
-  or nothing, so a property it already checks everywhere (every
-  `swift_beginAccess` in the class's functions is on it, read with
+  storage. Never mark the stored property `package` or `@usableFromInline`,
+  either of which makes it visible outside the module, unless the binary
+  shows every access to it is already dynamic. The optimiser decides per
+  property, all or nothing, so a property it already checks everywhere
+  (every `swift_beginAccess` in the class's functions is on it, read with
   `otool -tV` from a release `Stress`) costs nothing more when widened, and
   an `@inlinable` accessor over it is then how a hot read from another
   module avoids a call. `LazyListRowContent.cached` is the one such
