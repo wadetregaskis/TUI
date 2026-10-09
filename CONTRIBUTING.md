@@ -378,6 +378,12 @@ anything at run time:
   A settable property requirement of a `package` protocol hands out its
   class conformers' stored properties the same way; ask for a method that
   sets it instead (`PersistedFocusable.repoint(focusID:)`).
+- **No stored-property default under an `@inlinable` initializer** whose
+  value is more than a literal scalar (an empty array, say): a default is a
+  function of its own that every initializer runs, and inlined into another
+  module the initializer calls it out of line. Assign the value in each
+  initializer instead; assigning it while keeping the default changes
+  nothing (`ClaimingRow.claims`).
 
 ## Code Style
 

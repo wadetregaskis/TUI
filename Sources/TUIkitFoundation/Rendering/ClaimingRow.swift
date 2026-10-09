@@ -55,7 +55,15 @@ package struct ClaimingRow: Sendable {
 
     /// The cells owing a blend, in the row's own coordinates: column 0 is the
     /// first cell this row draws, whatever the caller puts to its left.
-    @usableFromInline package var claims: [OpacityRegion] = []
+    ///
+    /// No default value, unlike its neighbours: ``init()`` assigns it. A
+    /// default is a stored-property initializer, a function of its own that
+    /// every initializer runs, and an `@inlinable` initializer inlined into
+    /// another module called this one out of line (the empty array's; `""` and
+    /// `0` were inlined), on every row the feature modules assemble. Assigning
+    /// it in the initializer while keeping the default would not remove the
+    /// call: the default runs first either way.
+    @usableFromInline package var claims: [OpacityRegion]
 
     /// How many cells were drawn — which is not always the width that was asked
     /// for. The coarse track path permanently shrinks a track to a whole multiple
@@ -63,10 +71,10 @@ package struct ClaimingRow: Sendable {
     /// `Slider`'s right-arrow run already learned.
     @usableFromInline package var cells = 0
 
-    /// An empty row. Spelled out only so that it can be `@inlinable`: an
-    /// implicit initializer cannot be.
+    /// An empty row. Spelled out so that it can be `@inlinable`, which an
+    /// implicit initializer cannot be, and so that it can assign ``claims``.
     @inlinable
-    package init() {}
+    package init() { claims = [] }
 
     /// Appends one run: `count` columns of `glyphs`, painted in `ink` on `field`, and
     /// emboldened if asked. `bold` is passed straight to the emitter and does not enter
