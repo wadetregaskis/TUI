@@ -3352,7 +3352,7 @@ host-named file links on iTerm2 is established.
 
 ---
 
-## Graphics protocols, and a parser gap — measured 2026-09-02, iTerm2's placeholders 2026-09-03
+## Graphics protocols, and a parser gap — measured 2026-09-02, iTerm2's placeholders 2026-09-03, classic placements 2026-10-08
 
 Full treatment, including what TUIkit should do about it, is in
 `Documentation/Terminal graphics protocols.md`. Two facts belong here because
@@ -3522,6 +3522,194 @@ size, not per frame.
 > command is acknowledged with `ESC_G…;OK ESC\` unless suppressed, and in an
 > application those bytes arrive on **stdin**, where the input parser reads
 > them as keystrokes. Anything on a render path sets `q=2`.
+
+### A line on a row boundary: Kitty classic placements — measured 2026-10-08, Ghostty 1.3.1 and iTerm2 3.7.3
+
+Every separator TUIkit draws costs a whole row. A Kitty **classic**
+placement, drawn at the cursor and outside the cell grid (not the Unicode
+placeholders `Image` uses, whose cells hold no text), could instead draw a
+line one or two pixels thick on the boundary between two rows, at no cost in
+rows. `Tools/TerminalProbes/hairline_probe.py` asks whether it can. Its
+docstring states the plan and the kill criteria. The owner ran it
+interactively, with every card answered, on macOS 15.8.1 (arm64), on the
+alternate screen:
+
+- `Tools/TerminalProbes/data/ghostty-1.3.1-hairline.json` (99 × 35 cells)
+- `Tools/TerminalProbes/data/iterm2-3.7.3-hairline.json` (125 × 48 cells)
+
+The line is one 2048 × 2 px strip (raw RGB, `f=24`), sent once and placed
+with `a=p,i,p,x=0,y=0,w,h=2,C=1,z,q=0` at the run's first cell on the
+**lower** row, so that the line's top edge is the boundary. `w` crops the
+strip to the run. 2 px is the probe's `max(1, cell height // 17)` at both
+hosts' 34 px cell. Both hosts answered `a=q` with `OK`, and a placement of an
+id never sent with `ENOENT`. So their `OK`s are evidence, unlike the xterm.js
+beta's (xterm.js, "Graphics").
+
+**Neither host meets a kill criterion.** On both, the line is drawn on the
+boundary (Q1), shows in some layer (Q4), is removed by its `(i, p)` (Q6) and
+stays steady with mode 2026 (Q7). The records name three changes to the plan:
+Ghostty needs `z=+1`; iTerm2 is excluded until its pixel unit is known;
+and cleanup must delete every line by id, because of iTerm2.
+
+| Question | Ghostty 1.3.1 | iTerm2 3.7.3 |
+|---|---|---|
+| Q1 placement acknowledged | `OK` | `OK` |
+| Q1 drawn, on the boundary | yes, yes | yes, yes |
+| Q1 ends at its bars, within a pixel or two | yes | **no** |
+| Q2 `C=1` holds the cursor (DSR before and after) | yes | yes |
+| Q3 the unit, coarse | 16 px, by all three measures | **none found** |
+| Q3 a fine line ends exactly at its bar | **neither of two (OPEN, below)** | neither of two |
+| Q4 layering | `z=-1` not on every band; `z=+1` over the glyphs | `z=-1` on every band, under the glyphs; `z=+1` not over them |
+| Q5 the line survives `ESC[2K` + text, overwriting, ECH + text | yes, all three | yes, all three |
+| Q6 delete one by `(i, p)`, re-place without re-sending | yes | yes |
+| Q7 steady at 60 Hz, without and with mode 2026 | yes, yes | yes, yes |
+| Q8 after `ESC[2J` | line gone, strip freed | line gone, strip kept |
+| Q8 after `?1049l`, then `?1049h` | line gone, strip freed | **line shown on the primary screen** and after the return; strip kept |
+| Q8 image store | one per screen | one for both screens |
+| Q9 resize | not judged | the line moved |
+| Q10 SGR 4 + 58 underline colour; SGR 53 overline | grey; drawn | grey; **not drawn** |
+
+#### The pixel unit, and where the line ends (Q1, Q3)
+
+| | Ghostty 1.3.1 | iTerm2 3.7.3 |
+|---|---|---|
+| `TIOCGWINSZ` | 1592 × 1192 px | 1750 × 1632 px |
+| `CSI 14 t` text area | 1584 × 1190 | 885 × 849 |
+| `CSI 16 t` cell | 16 × 34 | no answer |
+| Cell width: ioctl (integer), `CSI 14 t` ÷ columns, `CSI 16 t` | 16, 16.0, 16 | 14, 7.08, — |
+
+The coarse check places a line 10 cells wide by each measure with `C=0` and
+reads the cursor's advance. It catches a 2× error (points against device
+pixels). Rounding up to whole cells hides anything finer.
+
+- **Ghostty: one unit, 16 px.** The three measures agree, and a 160 px line
+  advanced the cursor 10 cells by each. `ws_xpixel` is 8 px more than the
+  1,584 px text area (99 × 16) that `CSI 14 t` reports, and `ws_ypixel` is
+  2 px more than 1,190 (35 × 34), so the ioctl's size includes padding. By
+  arithmetic, then, an n-column run is n × (`ws_xpixel` // `ws_col`) = 16n px
+  wide. The probe's crop rule, `ws_xpixel × n // ws_col`, is long by up to
+  8n/99 px. That is 3 px at Q1's 40 columns (643 against 640), which the card
+  accepted as "within a pixel or two", and 7 px at Q3's 95.
+- **OPEN, Ghostty Q3:** the person judged that neither fine line ended at its
+  bar. Line A, `ws_xpixel × 95 // ws_col`, is 1,527 px. Line B,
+  `95 × (ws_xpixel // ws_col)`, is 1,520 px, and `CSI 14 t`'s and
+  `CSI 16 t`'s measures give the same width. B should be exact: 95 cells of
+  16 px from the left edge of column 1, ending at the bar ▏ that marks the
+  right edge of column 95. Either the card's bar is off, or the unit is not
+  what it seems. This is **unresolved**. The card asks only yes or no, so the
+  record does not say whether either line fell short or ran past its bar.
+- **iTerm2: no query reveals the unit.** The coarse check names none. A
+  71 px line (10 × `CSI 14 t`'s 7.08) and a 140 px line (10 × the ioctl's 14)
+  each moved the cursor from column 1 of its row to column 125, the last, of
+  the next row. The record files that as "12.40x: unexplained". `ws_xpixel`
+  is exactly 125 × 14, yet no line ended at its bars: not Q1's 560 px
+  (40 × 14), not Q3's A at 1,694 px (121 × 14, which the ioctl's rule and its
+  integer cell both give), and not B at 856 px (`CSI 14 t`'s measure). The
+  record's plan change is to exclude this host.
+
+#### Layering (Q4)
+
+The card has four bands: the default background, a grey fill, a stripe and a
+selection colour. Each band is a row of `gjpqy` over a row of
+`│┼█▀ ÉÅ 😀`, with a line along the top of the lower row at three z values.
+Every placement answered `OK` on both hosts.
+
+| | Ghostty 1.3.1 | iTerm2 3.7.3 |
+|---|---|---|
+| `z=-1` shows on all four bands | **no** | yes |
+| `z=-1`: `│ ┼ █ ▀` draw over the line | yes | yes |
+| `z=+1` draws over those glyphs | yes | **no** |
+| `z=-1073741825` (below INT32_MIN/2) shows on the default band only, as the spec says | yes | **no** |
+| On the boundary, wherever the line shows | yes | yes |
+
+The records do not say which band hid Ghostty's `z=-1` line. Nor do they say
+in which direction iTerm2's lowest z departs from the spec. No single z is
+right on both hosts. Ghostty needs `z=+1` (the record's plan change), so its
+line crosses the top edge of the lower row's `│ ┼ █ ▀`. iTerm2 needs `z=-1`.
+
+#### Rewrites, deletes and motion (Q5–Q7)
+
+- **Rewrites keep the line on both hosts:** `ESC[2K` then text (the way every
+  whole-line rewrite TUIkit sends begins), text written over it, and ECH then
+  text. The untouched control row kept its line too.
+- **Delete and re-place, both hosts.** `a=d,d=i,i,p` removes that one line
+  and leaves the other. The same `(i, p)` placed again without re-sending the
+  strip draws it back. That also works after both lines are deleted and the
+  strip has no placement left, so neither host freed a strip for having no
+  placement. The probe puts no quota pressure on the store, so this says
+  nothing about eviction. Uppercase `d=I` frees the data: a placement after
+  it answers `ENOENT`. Both hosts acknowledge that delete with silence, even
+  at `q=0`.
+- **Motion.** Both answer DECRQM `?2026` with `reset` (recognised, off), and
+  `?2026h ?2026l` leaves the cursor where it was. Two coloured rows moved
+  down and back three times at 60 Hz, 23 rows on Ghostty and 30 on iTerm2,
+  one row per frame: the text first, then the same `(i, p)` placed again
+  (`q=2`). The line stayed on its seam with no flicker, gap or tearing on
+  both hosts, both with mode 2026 and without it.
+
+#### `ESC[2J`, the alternate screen, and the image store (Q8)
+
+| | Ghostty 1.3.1 | iTerm2 3.7.3 |
+|---|---|---|
+| After `ESC[2J`: the line visible | no | no |
+| After `ESC[2J`: the strip re-placed by id | **`ENOENT`** (freed) | `OK` |
+| After `?1049l`: the line visible on the primary screen | no | **yes** |
+| After `?1049h`, back: the line visible | no | yes |
+| After the round trip: the strip re-placed by id | **`ENOENT`** (freed) | `OK` |
+| The strip sent again and placed | drawn | drawn |
+| An image sent on the primary screen, placed from the alternate | `ENOENT` (`OK` back on the primary) | `OK` |
+| Store | one per screen | one for both screens |
+
+On Ghostty, `ESC[2J` and a screen round trip each take both the line and the
+strip, and the strip has to be sent again on the alternate screen. On
+iTerm2, `ESC[2J` hides the line and keeps the strip. A line placed on the
+alternate screen shows on the primary one after `?1049l`, and is still there
+after `?1049h`. So a line TUIkit fails to delete by id is left on the shell's
+screen.
+
+#### Resize (Q9)
+
+iTerm2 went from 125 × 48 to 108 × 48 (`ws_xpixel` 1750 → 1512), and the
+line **moved**. The card offered three answers: stayed on its boundary,
+moved, or gone. The record does not say where the line went. On Ghostty the
+card was skipped, so nothing was judged, although the readings show the
+window going from 99 × 35 to 123 × 37.
+
+#### Without graphics: SGR 4 + 58, and SGR 53 (Q10)
+
+| | Ghostty 1.3.1 | iTerm2 3.7.3 |
+|---|---|---|
+| SGR 4 + `58;2;150;150;160`: a grey underline, not the text's colour | yes | yes |
+| The colon form, `4:1` + `58:2::150:150:160` | yes | yes |
+| That underline within a couple of pixels of the row below | can't tell | **no** |
+| SGR 53: an overline along the top of the lower row | yes | **no** |
+| Stray characters or styling (58 misread) | none | none |
+
+#### Replies a parser must allow for
+
+- iTerm2 answers the strip's chunked transmit, whose control keys ride on the
+  first chunk only, with `i=0;OK` instead of the strip's id, so the records
+  file those transmits as `silent`. It answers single-chunk transmits (the
+  4 × 1 px scratch and store images) with their own id. Ghostty answers the
+  strip with its id.
+- Within a single run, iTerm2 writes a reply's keys in either order:
+  `i=…,p=…` or `p=…,i=…`.
+- The error text differs. Ghostty says `ENOENT: image not found`. iTerm2 says
+  `ENOENT:Put command refers to non-existent image with id: … and number: 0`.
+  Only the code before the colon is shared.
+
+#### What a hairline layer needs on each host
+
+| | Ghostty 1.3.1 | iTerm2 3.7.3 |
+|---|---|---|
+| z | `+1`, crossing the top of `│ ┼ █ ▀` | `-1` |
+| Crop unit | the 16 px cell, n × (`ws_xpixel` // `ws_col`), not `ws_xpixel × n // ws_col`, which counts the padding; Q3 is OPEN | none found: exclude the host until one is |
+| Re-send the strip | after `ESC[2J` and after every `?1049l`/`?1049h`; send it on the alternate screen (a store per screen) | neither `ESC[2J` nor the screen switch needs it (one store, kept) |
+| Resize | not judged | the line moves: delete it and place it again |
+| Cleanup | delete every line by its id | delete every line by its id; a line left behind shows on the primary screen |
+
+On both hosts, a strip with no placement left was placed again without being
+re-sent (Q6), and `d=I` frees a strip's data.
 
 ---
 
@@ -5131,7 +5319,7 @@ until that run records it, with the host's version.
 | Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | tmux inside each, `focus-events` on and off | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 
-## Synchronized output (mode 2026) — sent since 2026-10-05, NOT yet measured
+## Synchronized output (mode 2026) — sent since 2026-10-05, mostly NOT yet measured
 
 A terminal that implements DEC mode 2026 holds its display between
 `CSI ? 2026 h` and `CSI ? 2026 l`, so a frame that reaches it in several reads
@@ -5228,11 +5416,18 @@ off wrote 211 KB, the drag's frame count moving with its timing.
 | Host | Pair prints nothing | DECRQM `?2026` | Hold timeout | Tearing on `splitdrag`, off → on |
 |---|---|---|---|---|
 | Apple Terminal | UNMEASURED | not asked | UNMEASURED | UNMEASURED |
-| iTerm2 | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
-| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| iTerm2 | clean, 3.7.3 | `reset`, 3.7.3 | UNMEASURED | UNMEASURED |
+| Ghostty | clean, 1.3.1 | `reset`, 1.3.1 | UNMEASURED | UNMEASURED |
 | Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED (the pane's) | UNMEASURED | UNMEASURED |
+
+iTerm2's and Ghostty's first two cells were read on 2026-10-08 by
+`hairline_probe.py`'s Q7, which calls this probe's own `leak_check` and
+`decrqm` (`Tools/TerminalProbes/data/*-hairline.json`). The same run found a
+Kitty graphics line, re-placed every frame, steady with the mode and without
+it ("A line on a row boundary", under the graphics protocols), which is a
+different test from the `splitdrag` column's.
 
 ## OSC 52 clipboard writes — sent since 2026-10-05; tmux measured, the hosts NOT yet
 

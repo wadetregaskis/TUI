@@ -247,7 +247,11 @@ when unset), the visual/aspect probes print to the terminal.
   by default `data/<host>-<version>-hairline.json`, with this host's half of
   each kill criterion in `criteria`. Refuses Apple Terminal, and sends no
   graphics beyond the `a=q` question to a host that does not answer it (that
-  host gets the Q10 card alone). NOT YET RUN on any host (2026-10-08).
+  host gets the Q10 card alone). Run 2026-10-08 in Ghostty 1.3.1 and iTerm2
+  3.7.3 (`data/ghostty-1.3.1-hairline.json`, `data/iterm2-3.7.3-hairline.json`):
+  neither host meets a kill criterion. Ghostty needs `z=+1`, iTerm2's pixel
+  unit is unknown, and one Ghostty question is OPEN. The findings are in
+  `Terminal-compatibility.md`, "A line on a row boundary".
 
   ```sh
   python3 hairline_probe.py          # the checks, then the cards

@@ -1,0 +1,618 @@
+{
+  "probe": "hairline_probe",
+  "measured": "2026-10-08T23:03:27-07:00",
+  "screen": "alternate",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+    "TERM": "xterm-ghostty",
+    "TERM_PROGRAM": "ghostty",
+    "TERM_PROGRAM_VERSION": "1.3.1",
+    "COLORTERM": "truecolor",
+    "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+    "__CFBundleIdentifier": "com.mitchellh.ghostty",
+    "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty"
+  },
+  "mode_2027_grapheme_clustering": "set",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "mode": "interactive",
+  "went_automatic_at": null,
+  "aborted": null,
+  "host": "ghostty-1.3.1",
+  "host_named_from": "TERM_PROGRAM",
+  "xtversion": "ghostty 1.3.1",
+  "geometry": {
+    "rows": 35,
+    "columns": 99,
+    "xpixel": 1592,
+    "ypixel": 1192,
+    "xtwinops": {
+      "csi_14t_text_area_px": [
+        1190,
+        1584
+      ],
+      "csi_16t_cell_px": [
+        34,
+        16
+      ],
+      "csi_18t_text_area_cells": [
+        35,
+        99
+      ]
+    },
+    "cell_widths": {
+      "ioctl": 16,
+      "csi_14t": 16.0,
+      "csi_16t": 16
+    }
+  },
+  "line": {
+    "rgb": [
+      230,
+      30,
+      160
+    ],
+    "thickness_px": 2,
+    "crop_rule": "ws_xpixel * columns // ws_col",
+    "crop_unit": "ioctl",
+    "strip": {
+      "id": 16777200,
+      "width_px": 2048,
+      "height_px": 2,
+      "format": "f=24 (RGB), raw"
+    },
+    "ids": {
+      "strip": 16777200,
+      "scratch": 16777201,
+      "store": 16777202,
+      "query": 16777203,
+      "never_sent": 16777204
+    }
+  },
+  "graphics_query": {
+    "reply": "<ESC>_Gi=16777203;OK<ESC>\\",
+    "status": "OK"
+  },
+  "acknowledgement_control": {
+    "reply": "<ESC>_Gi=16777204,p=1;ENOENT: image not found<ESC>\\",
+    "status": "ENOENT",
+    "placed": "an id never sent (16777204)",
+    "expected": "ENOENT",
+    "acknowledges_everything": false
+  },
+  "missed_fences": [],
+  "questions": {
+    "Q1": {
+      "what": "Is a classic placement acknowledged, and drawn on the row boundary?",
+      "auto": {
+        "transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "place": {
+          "reply": "<ESC>_Gi=16777200,p=1;OK<ESC>\\",
+          "status": "OK"
+        }
+      },
+      "human": {
+        "visible": {
+          "question": "Is there a thin coloured line near the rows marked ▲ and ▼?",
+          "answer": "yes"
+        },
+        "on_boundary": {
+          "question": "Is it exactly on the boundary between rows 8 (▲) and 9 (▼): along the top edge of the ▼ row, not through the middle of either row?",
+          "answer": "yes"
+        },
+        "ends": {
+          "question": "Does it start at the bar ▕ (the left edge of column 11) and end at the bar ▏ (the right edge of column 50), within a pixel or two at each end?",
+          "answer": "yes"
+        }
+      }
+    },
+    "Q2": {
+      "what": "Does C=1 leave the cursor where it was?",
+      "auto": {
+        "cursor_before": [
+          9,
+          11
+        ],
+        "cursor_after": [
+          9,
+          11
+        ],
+        "held": true
+      },
+      "human": "no card: the cursor report is the answer"
+    },
+    "Q3": {
+      "what": "What is the placement's pixel unit, to the pixel?",
+      "auto": {
+        "transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "coarse": {
+          "csi_14t": {
+            "cell_width": 16.0,
+            "width_px": 160,
+            "status": "OK",
+            "reply": "<ESC>_Gi=16777200,p=31;OK<ESC>\\",
+            "cursor_before": [
+              7,
+              1
+            ],
+            "cursor_after": [
+              7,
+              11
+            ],
+            "advance": 10,
+            "reading": "same unit"
+          },
+          "csi_16t": {
+            "cell_width": 16,
+            "width_px": 160,
+            "status": "OK",
+            "reply": "<ESC>_Gi=16777200,p=32;OK<ESC>\\",
+            "cursor_before": [
+              8,
+              1
+            ],
+            "cursor_after": [
+              8,
+              11
+            ],
+            "advance": 10,
+            "reading": "same unit"
+          },
+          "ioctl": {
+            "cell_width": 16,
+            "width_px": 160,
+            "status": "OK",
+            "reply": "<ESC>_Gi=16777200,p=33;OK<ESC>\\",
+            "cursor_before": [
+              9,
+              1
+            ],
+            "cursor_after": [
+              9,
+              11
+            ],
+            "advance": 10,
+            "reading": "same unit"
+          }
+        },
+        "unit_revealed_by": "ioctl",
+        "crop_from_here_on": {
+          "unit": "ioctl",
+          "rule": "ws_xpixel * columns // ws_col"
+        },
+        "fine_run_columns": 95,
+        "fine_widths": {
+          "A": {
+            "rule": "ws_xpixel x 95 // ws_col",
+            "width_px": 1527
+          },
+          "B": {
+            "rule": "95 x (ws_xpixel // ws_col)",
+            "width_px": 1520
+          }
+        },
+        "fine_transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "fine_A": {
+          "reply": "<ESC>_Gi=16777200,p=34;OK<ESC>\\",
+          "status": "OK"
+        },
+        "fine_B": {
+          "reply": "<ESC>_Gi=16777200,p=35;OK<ESC>\\",
+          "status": "OK"
+        }
+      },
+      "human": {
+        "ends_at_bar_A": {
+          "question": "Line A (ws_xpixel x 95 // ws_col): does its right end line up with the left edge of the bar ▏ above it, neither short of it nor past it?",
+          "answer": "no"
+        },
+        "ends_at_bar_B": {
+          "question": "Line B (95 x (ws_xpixel // ws_col)): does its right end line up with the left edge of the bar ▏ above it, neither short of it nor past it?",
+          "answer": "no"
+        }
+      }
+    },
+    "Q4": {
+      "what": "Is the line on the boundary, and in the right layer?",
+      "auto": {
+        "placements": {
+          "default, z=-1": {
+            "reply": "<ESC>_Gi=16777200,p=41;OK<ESC>\\",
+            "status": "OK"
+          },
+          "default, z=+1": {
+            "reply": "<ESC>_Gi=16777200,p=42;OK<ESC>\\",
+            "status": "OK"
+          },
+          "default, z<INT32_MIN/2": {
+            "reply": "<ESC>_Gi=16777200,p=43;OK<ESC>\\",
+            "status": "OK"
+          },
+          "grey fill, z=-1": {
+            "reply": "<ESC>_Gi=16777200,p=44;OK<ESC>\\",
+            "status": "OK"
+          },
+          "grey fill, z=+1": {
+            "reply": "<ESC>_Gi=16777200,p=45;OK<ESC>\\",
+            "status": "OK"
+          },
+          "grey fill, z<INT32_MIN/2": {
+            "reply": "<ESC>_Gi=16777200,p=46;OK<ESC>\\",
+            "status": "OK"
+          },
+          "stripe, z=-1": {
+            "reply": "<ESC>_Gi=16777200,p=47;OK<ESC>\\",
+            "status": "OK"
+          },
+          "stripe, z=+1": {
+            "reply": "<ESC>_Gi=16777200,p=48;OK<ESC>\\",
+            "status": "OK"
+          },
+          "stripe, z<INT32_MIN/2": {
+            "reply": "<ESC>_Gi=16777200,p=49;OK<ESC>\\",
+            "status": "OK"
+          },
+          "selection, z=-1": {
+            "reply": "<ESC>_Gi=16777200,p=50;OK<ESC>\\",
+            "status": "OK"
+          },
+          "selection, z=+1": {
+            "reply": "<ESC>_Gi=16777200,p=51;OK<ESC>\\",
+            "status": "OK"
+          },
+          "selection, z<INT32_MIN/2": {
+            "reply": "<ESC>_Gi=16777200,p=52;OK<ESC>\\",
+            "status": "OK"
+          }
+        },
+        "crop": {
+          "unit": "ioctl",
+          "column_cells": 16,
+          "column_px": 257
+        }
+      },
+      "human": {
+        "under_text_on_every_band": {
+          "question": "Column z=-1: is the line visible on all four bands (default, grey fill, stripe, selection)?",
+          "answer": "no"
+        },
+        "glyphs_over_line": {
+          "question": "Column z=-1: where │ ┼ █ ▀ (and É Å 😀, if they reach the top of the cell) meet the line, do they draw OVER it?",
+          "answer": "yes"
+        },
+        "over_text_crosses_glyphs": {
+          "question": "Column z=+1: is the line drawn OVER those glyphs, visible across │ ┼ █ ▀?",
+          "answer": "yes"
+        },
+        "under_fills_default_only": {
+          "question": "Column z<INT32_MIN/2: is the line visible on the default band ONLY, hidden under the three painted bands?",
+          "answer": "yes"
+        },
+        "on_boundary": {
+          "question": "Wherever a line shows, is it on the boundary between its band's two rows: below the descenders of gjpqy, along the top of the lower row?",
+          "answer": "yes"
+        }
+      }
+    },
+    "Q5": {
+      "what": "Do rewrites of the row the line sits on keep it?",
+      "auto": {
+        "A": {
+          "reply": "<ESC>_Gi=16777200,p=61;OK<ESC>\\",
+          "status": "OK"
+        },
+        "B": {
+          "reply": "<ESC>_Gi=16777200,p=62;OK<ESC>\\",
+          "status": "OK"
+        },
+        "C": {
+          "reply": "<ESC>_Gi=16777200,p=63;OK<ESC>\\",
+          "status": "OK"
+        },
+        "D": {
+          "reply": "<ESC>_Gi=16777200,p=64;OK<ESC>\\",
+          "status": "OK"
+        }
+      },
+      "human": {
+        "kept_A": {
+          "question": "Row A (left alone (the control)): is its line still there, along the top edge of the grey row?",
+          "answer": "yes"
+        },
+        "kept_B": {
+          "question": "Row B (ESC[2K, then written again): is its line still there, along the top edge of the grey row?",
+          "answer": "yes"
+        },
+        "kept_C": {
+          "question": "Row C (written over, nothing erased): is its line still there, along the top edge of the grey row?",
+          "answer": "yes"
+        },
+        "kept_D": {
+          "question": "Row D (ECH, then written): is its line still there, along the top edge of the grey row?",
+          "answer": "yes"
+        }
+      }
+    },
+    "Q6": {
+      "what": "Can one line be deleted by (i, p), and placed again without re-sending the strip?",
+      "auto": {
+        "transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "place_1": {
+          "reply": "<ESC>_Gi=16777200,p=71;OK<ESC>\\",
+          "status": "OK"
+        },
+        "place_2": {
+          "reply": "<ESC>_Gi=16777200,p=72;OK<ESC>\\",
+          "status": "OK"
+        },
+        "delete_1": {
+          "reply": "<silent>",
+          "status": "silent"
+        },
+        "replace_1": {
+          "reply": "<ESC>_Gi=16777200,p=71;OK<ESC>\\",
+          "status": "OK"
+        },
+        "replace_1_after_none_left": {
+          "reply": "<ESC>_Gi=16777200,p=71;OK<ESC>\\",
+          "status": "OK"
+        },
+        "scratch_transmit": {
+          "reply": "<ESC>_Gi=16777201;OK<ESC>\\",
+          "status": "OK"
+        },
+        "scratch_place": {
+          "reply": "<ESC>_Gi=16777201,p=1;OK<ESC>\\",
+          "status": "OK"
+        },
+        "scratch_free": {
+          "reply": "<silent>",
+          "status": "silent"
+        },
+        "scratch_place_after_free": {
+          "reply": "<ESC>_Gi=16777201,p=1;ENOENT: image not found<ESC>\\",
+          "status": "ENOENT"
+        },
+        "readings": {
+          "lowercase_delete_keeps_data": true,
+          "data_kept_with_no_placement": true,
+          "uppercase_delete_frees": true
+        }
+      },
+      "human": {
+        "both_shown": {
+          "question": "Are there two lines: line 1 (between rows 7 and 8) and line 2 (between rows 10 and 11)?",
+          "answer": "yes"
+        },
+        "one_removed": {
+          "question": "Line 1 was deleted by its (i, p). Has line 1 gone, with line 2 still there?",
+          "answer": "yes"
+        },
+        "replaced": {
+          "question": "Line 1 was placed again without re-sending the strip. Is it back, in the same place?",
+          "answer": "yes"
+        },
+        "replaced_after_none_left": {
+          "question": "Both lines were deleted, leaving the strip with no placement; then line 1 was placed again without re-sending it. Is line 1 back?",
+          "answer": "yes"
+        },
+        "line_2_still_gone": {
+          "question": "And is line 2 still gone?",
+          "answer": "yes"
+        }
+      }
+    },
+    "Q7": {
+      "what": "Does a line re-placed every frame flicker or tear against its text, with and without mode 2026?",
+      "auto": {
+        "decrqm_2026": "reset",
+        "leak": {
+          "before": [
+            32,
+            1
+          ],
+          "after": [
+            32,
+            1
+          ],
+          "clean": true
+        },
+        "travel_rows": 23,
+        "frame_seconds": 0.0167
+      },
+      "human": {
+        "steady_without_2026": {
+          "question": "Without mode 2026: did the line stay on the seam between the two coloured rows at every step, with no flicker, gap or tearing?",
+          "answer": "yes"
+        },
+        "steady_with_2026": {
+          "question": "With mode 2026: did the line stay on the seam between the two coloured rows at every step, with no flicker, gap or tearing?",
+          "answer": "yes"
+        }
+      }
+    },
+    "Q8": {
+      "what": "What do ESC[2J and the alternate-screen switch do to a line and its strip?",
+      "auto": {
+        "ed2_transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "ed2_place": {
+          "reply": "<ESC>_Gi=16777200,p=91;OK<ESC>\\",
+          "status": "OK"
+        },
+        "ed2_replace": {
+          "reply": "<ESC>_Gi=16777200,p=91;ENOENT: image not found<ESC>\\",
+          "status": "ENOENT"
+        },
+        "switch_transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "switch_place": {
+          "reply": "<ESC>_Gi=16777200,p=92;OK<ESC>\\",
+          "status": "OK"
+        },
+        "switch_replace": {
+          "reply": "<ESC>_Gi=16777200,p=92;ENOENT: image not found<ESC>\\",
+          "status": "ENOENT"
+        },
+        "switch_retransmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "switch_place_after_retransmit": {
+          "reply": "<ESC>_Gi=16777200,p=92;OK<ESC>\\",
+          "status": "OK"
+        },
+        "store_transmit_on_primary": {
+          "reply": "<ESC>_Gi=16777202;OK<ESC>\\",
+          "status": "OK"
+        },
+        "store_lookup_on_alternate": {
+          "reply": "<ESC>_Gi=16777202,p=1;ENOENT: image not found<ESC>\\",
+          "status": "ENOENT"
+        },
+        "store_lookup_on_primary": {
+          "reply": "<ESC>_Gi=16777202,p=1;OK<ESC>\\",
+          "status": "OK"
+        },
+        "readings": {
+          "store": "per_screen",
+          "store_meaning": "a store per screen: the image stayed in the primary's store",
+          "ed2_keeps_data": false,
+          "screen_round_trip_keeps_data": false
+        }
+      },
+      "human": {
+        "visible_after_ed2": {
+          "question": "Is a thin coloured line still visible between rows 8 and 9, where one was placed before the clear?",
+          "answer": "no"
+        },
+        "visible_on_primary": {
+          "question": "On your primary screen just now (?1049l): was a thin coloured line visible anywhere on it?",
+          "answer": "no"
+        },
+        "visible_after_return": {
+          "question": "Is the line placed before the switch visible between rows 8 and 9 now?",
+          "answer": "no"
+        },
+        "visible_after_resend": {
+          "question": "The strip was sent again and the line placed again. Is there a line between rows 8 and 9 now?",
+          "answer": "yes"
+        }
+      }
+    },
+    "Q9": {
+      "what": "Where does the line go when the window is resized?",
+      "auto": {
+        "transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "place": {
+          "reply": "<ESC>_Gi=16777200,p=95;OK<ESC>\\",
+          "status": "OK"
+        },
+        "size_before": {
+          "rows": 35,
+          "columns": 99,
+          "xpixel": 1592,
+          "ypixel": 1192
+        },
+        "size_after": {
+          "rows": 37,
+          "columns": 123,
+          "xpixel": 1974,
+          "ypixel": 1266
+        }
+      },
+      "human": {
+        "after_resize": {
+          "question": "After resizing: where is the line that was between the ▲ and ▼ rows? (s if you did not resize)",
+          "answer": "skipped"
+        }
+      }
+    },
+    "Q10": {
+      "what": "Without graphics: can an underline in a colour of its own (SGR 4 + 58) stand in for the line?",
+      "auto": {
+        "transmit": {
+          "reply": "<ESC>_Gi=16777200;OK<ESC>\\",
+          "status": "OK"
+        },
+        "reference_line": {
+          "reply": "<ESC>_Gi=16777200,p=99;OK<ESC>\\",
+          "status": "OK"
+        }
+      },
+      "human": {
+        "a_grey": {
+          "question": "Row A (SGR 4 + 58;2;150;150;160): is the underline GREY, a different colour from the row's text?",
+          "answer": "yes"
+        },
+        "b_grey": {
+          "question": "Row B (SGR 4:1 + 58:2::150:150:160, the colon form): is the underline GREY, a different colour from the row's text?",
+          "answer": "yes"
+        },
+        "near_boundary": {
+          "question": "Rows A and B: is the underline at the very bottom of its row, within a couple of pixels of the row below? (Row E's line is on the boundary itself.)",
+          "answer": "can't tell"
+        },
+        "overline": {
+          "question": "Row C: is there a line along the TOP edge of the lower row?",
+          "answer": "yes"
+        },
+        "stray": {
+          "question": "Did any row show stray characters, faint text, or styling nobody asked for (58 misread as other SGR codes)?",
+          "answer": "no"
+        }
+      }
+    }
+  },
+  "criteria": {
+    "kill_inputs": {
+      "q1_placed_and_drawn": true,
+      "q4_on_boundary_in_a_layer_that_shows": true,
+      "q6_removed_by_id": true,
+      "q7_steady_with_2026": true
+    },
+    "kills_need": "Ghostty AND iTerm2 both failing Q1 or Q4, or neither passing Q6; or both failing Q7 with mode 2026 on",
+    "plan_changes": [
+      "Q4: z=-1 does not show over every fill here and z=+1 does: z=+1 on this host, which needs an identity for it"
+    ],
+    "unjudged": [],
+    "q3_widths_ending_at_the_bar": [],
+    "auto_signals": {
+      "q1_acknowledged": true,
+      "acknowledges_everything": false,
+      "q2_cursor_held": true,
+      "q3_unit_revealed_by": "ioctl",
+      "q6": {
+        "lowercase_delete_keeps_data": true,
+        "data_kept_with_no_placement": true,
+        "uppercase_delete_frees": true
+      },
+      "q7_decrqm_2026": "reset",
+      "q8": {
+        "store": "per_screen",
+        "store_meaning": "a store per screen: the image stayed in the primary's store",
+        "ed2_keeps_data": false,
+        "screen_round_trip_keeps_data": false
+      }
+    }
+  }
+}
