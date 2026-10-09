@@ -378,16 +378,11 @@ anything at run time:
   A settable property requirement of a `package` protocol hands out its
   class conformers' stored properties the same way; ask for a method that
   sets it instead (`PersistedFocusable.repoint(focusID:)`).
-  The tree does not comply yet. What steps B4 to B6 widened does, but steps
-  B2 and B3 predate the rule and left `package` stored properties behind:
-  those of TUIkitFoundation's `CursorTimer`, `ScreenSelection`,
-  `WindowChromeState`, `TUIContext`, `FocusManager` (`focusedValues`),
-  `FocusedValueRegistry`, `DragAndDropSession`, `TerminalImageStore`,
-  `StatusBarState` and `AppUndoKeys`, for TUIkitApp, and
-  TUIkitTerminalHost's `TerminalIdentity.startupIdentity` and
-  `TerminalURLOpening.isEnabled`, for TUIkitFoundation. Others were
-  `package` before the split began, most of them `RenderCache`'s in
-  TUIkitView. They are owed the same conversion; do not copy one.
+  What the split widened complies, steps B2 and B3's included, which
+  predate the rule and were converted after it. Some class stored
+  properties were `package` before the split began, most of them
+  `RenderCache`'s in TUIkitView: they are owed the same conversion; do not
+  copy one.
 - **No stored-property default under an `@inlinable` initializer** whose
   value is more than a literal scalar (an empty array, say): a default is a
   function of its own that every initializer runs, and inlined into another

@@ -84,7 +84,11 @@ package final class CursorTimer {
     /// Where a wake reads the time. The clock `FrameClock` reads too, which is
     /// what makes a wake's reading and a frame's comparable at all; injectable
     /// so a test can step it, as `MouseEventDispatcher.nowNanos` is.
-    package var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
+    package var nowNanos: () -> UInt64 { get { _nowNanos } set { _nowNanos = newValue } }
+
+    /// ``nowNanos``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// The latest instant this timer has been shown, in nanoseconds on
     /// ``MonotonicClock``: the source of truth for both clocks.
@@ -115,7 +119,11 @@ package final class CursorTimer {
     /// put many of those sums 1 ns past their tick (16,666,667 + 33,333,334 is
     /// 50,000,001), and a cursor run would change a nanosecond after the content runs
     /// beside it.
-    package var focusEpochNanos: UInt64?
+    package var focusEpochNanos: UInt64? { get { _focusEpochNanos } set { _focusEpochNanos = newValue } }
+
+    /// ``focusEpochNanos``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _focusEpochNanos: UInt64?
 
     /// Shows the timer the time: a frame's `frameNow`, before anything in that
     /// frame reads a phase, or a wake's own reading.
@@ -182,15 +190,23 @@ package final class CursorTimer {
     /// ``blinkVisible(for:)`` or ``pulsePhase(for:)`` is consulted. The run loop
     /// reads it after the frame to decide whether the cursor is still animating
     /// (a text field is focused) and the timer should keep ticking.
-    package private(set) var didReadThisFrame = false
+    package var didReadThisFrame: Bool { _didReadThisFrame }
+
+    /// ``didReadThisFrame``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _didReadThisFrame = false
 
     /// Clears the per-frame read flag. Call before each render pass.
     package func beginFrameReadTracking() {
-        didReadThisFrame = false
+        _didReadThisFrame = false
     }
 
     /// The running animation task, or `nil` if stopped.
-    package var task: Task<Void, Never>?
+    package var task: Task<Void, Never>? { get { _task } set { _task = newValue } }
+
+    /// ``task``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _task: Task<Void, Never>?
 
     /// How long the next wake-up is away.
     ///
@@ -208,7 +224,11 @@ package final class CursorTimer {
     /// module only because the timer control in CursorTimer+Timer.swift resets it
     /// to ``standardFrameSeconds`` (`stop()`, `restartFocusPhase()`); the run loop
     /// only ever writes it through ``advance(by:)``.
-    package var sleepSeconds = CursorTimer.standardFrameSeconds
+    package var sleepSeconds: Double { get { _sleepSeconds } set { _sleepSeconds = newValue } }
+
+    /// ``sleepSeconds``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _sleepSeconds = CursorTimer.standardFrameSeconds
 
     /// Sets how far the next wake-up is. Takes effect after the current sleep.
     ///
@@ -256,21 +276,29 @@ package final class CursorTimer {
     /// Asked here, after taking the time of the wake, the plan and the sleep are the
     /// same wake's, and no ordering between the task and the loop can come between them.
     /// `nil` leaves the sleep where ``advance(by:)`` last put it.
-    package var planner: (((AnimationClock) -> Double) -> Double)?
+    package var planner: (((AnimationClock) -> Double) -> Double)? { get { _planner } set { _planner = newValue } }
+
+    /// ``planner``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _planner: (((AnimationClock) -> Double) -> Double)?
 
     /// The render notifier to trigger re-renders.
-    package weak var renderNotifier: AppState?
+    package var renderNotifier: AppState? { get { _renderNotifier } set { _renderNotifier = newValue } }
+
+    /// ``renderNotifier``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private weak var _renderNotifier: AppState?
 
     /// Creates a new cursor timer.
     ///
     /// - Parameter renderNotifier: The app state to notify when a re-render
     ///   is needed. Held weakly to avoid retain cycles.
     package init(renderNotifier: AppState) {
-        self.renderNotifier = renderNotifier
+        self._renderNotifier = renderNotifier
     }
 
     deinit {
-        task?.cancel()
+        _task?.cancel()
     }
 }
 
@@ -282,7 +310,7 @@ extension CursorTimer {
     /// - Parameter speed: The speed of the indicator that blinks.
     /// - Returns: `true` if the blink is visible, `false` if hidden.
     func blinkVisible(for speed: IndicatorAnimationSpeed) -> Bool {
-        didReadThisFrame = true
+        _didReadThisFrame = true
         return Self.blinkVisible(atFrame: Self.cycleLayout(of: .blink, speed: speed).timing.step(on: self))
     }
 
@@ -379,7 +407,7 @@ extension CursorTimer {
     /// - Parameter speed: The speed of the indicator that pulses.
     /// - Returns: Phase value between 0 and 1.
     func pulsePhase(for speed: IndicatorAnimationSpeed) -> Double {
-        didReadThisFrame = true
+        _didReadThisFrame = true
         return pulsePhaseNow(speed: speed)
     }
 

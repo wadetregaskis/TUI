@@ -97,7 +97,11 @@ public final class StatusBarState: @unchecked Sendable {
     /// The focus manager used to determine the active section.
     ///
     /// Set by `RenderLoop` at the start of each render pass.
-    package weak var focusManager: FocusManager?
+    package var focusManager: FocusManager? { get { _focusManager } set { _focusManager = newValue } }
+
+    /// ``focusManager``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private weak var _focusManager: FocusManager?
 
     /// The ID of the currently active focus section, read from the FocusManager.
     private var activeFocusSectionID: String? {
@@ -139,12 +143,20 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// The app's undo manager, whose undo and redo the bar offers; set by the
     /// run loop.
-    package var undoManager: UndoManager?
+    package var undoManager: UndoManager? { get { _undoManager } set { _undoManager = newValue } }
+
+    /// ``undoManager``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _undoManager: UndoManager?
 
     /// The app's undo and redo keys, which decide the key the bar names
     /// beside each: the first the terminal can deliver (``UndoShortcuts``'s
     /// hint). Set by the run loop with ``undoManager``.
-    package var undoKeys = AppUndoKeys()
+    package var undoKeys: AppUndoKeys { get { _undoKeys } set { _undoKeys = newValue } }
+
+    /// ``undoKeys``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _undoKeys = AppUndoKeys()
 
     /// Whether the bar carries an Escape entry when something claims the key.
     ///
@@ -504,13 +516,21 @@ public final class StatusBarState: @unchecked Sendable {
     /// the lines, and only while the line drew a row of items the frame before
     /// (``lineShowsItems``): with none to stand in for, the note takes a row of
     /// its own, as a tooltip does.
-    package var showsNoteInPlaceOfItems = false
+    package var showsNoteInPlaceOfItems: Bool { get { _showsNoteInPlaceOfItems } set { _showsNoteInPlaceOfItems = newValue } }
+
+    /// ``showsNoteInPlaceOfItems``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _showsNoteInPlaceOfItems = false
 
     /// Whether the app's line of key hints (``StatusBar/init()``) drew a row of
     /// items this frame — the row a line about a copy can stand in for in the
     /// next. Recorded by the line as it draws; taken, and cleared, by the run
     /// loop as it resolves the next frame's rows.
-    package var lineShowsItems = false
+    package var lineShowsItems: Bool { get { _lineShowsItems } set { _lineShowsItems = newValue } }
+
+    /// ``lineShowsItems``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _lineShowsItems = false
 }
 
 // MARK: - Public API

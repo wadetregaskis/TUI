@@ -341,7 +341,11 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// hover that starts a tooltip's delay (`HelpModifier`). Defaults to the
     /// same clock the run loop uses; injectable for tests, and a `HeadlessApp`
     /// runs it on its caller's time.
-    package var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
+    package var nowNanos: () -> UInt64 { get { _nowNanos } set { _nowNanos = newValue } }
+
+    /// ``nowNanos``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     init() {}
 }

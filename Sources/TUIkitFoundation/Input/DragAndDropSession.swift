@@ -317,7 +317,11 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// lifting out of the row, and a cancelled or refused drop does not fly
     /// home — the picture goes where it is and the row draws again in its
     /// place.
-    package var reducesMotion = false
+    package var reducesMotion: Bool { get { _reducesMotion } set { _reducesMotion = newValue } }
+
+    /// ``reducesMotion``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _reducesMotion = false
 
     /// Where a change of what ``isDragSource(_:)`` answers is reported: the
     /// app's render cache's link, wired by `TUIContext` — held strongly, as a
@@ -410,7 +414,11 @@ package final class DragAndDropSession: @unchecked Sendable {
     private var autoScrollOwner: ObjectIdentifier?
 
     /// The drag in flight, or `nil`.
-    package private(set) var active: ActiveDrag?
+    package var active: ActiveDrag? { _active }
+
+    /// ``active``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _active: ActiveDrag?
 
     /// The last press/drag/release event in ABSOLUTE coordinates, stamped by
     /// the dispatcher before it localises the event for the captured handler
@@ -541,7 +549,7 @@ package final class DragAndDropSession: @unchecked Sendable {
         let morph = morph.map { $0.trimmingTrailingBlankCells() }
         // Clamped AFTER the trim: a press in the padding must still anchor the
         // image to the cursor, not to a column the preview no longer has.
-        active = ActiveDrag(
+        _active = ActiveDrag(
             payload: payload, preview: preview, morph: morph,
             grabX: min(max(0, grabX), max(0, preview.width - 1)),
             grabY: min(max(0, grabY), max(0, preview.height - 1)),
@@ -550,11 +558,11 @@ package final class DragAndDropSession: @unchecked Sendable {
         if let drag = active {
             let press = pressAbsoluteEvent ?? event
             let home = Self.previewOrigin(cursorX: press.x, cursorY: press.y, drag: drag)
-            active?.originX = home.x
-            active?.originY = home.y
+            _active?.originX = home.x
+            _active?.originY = home.y
         }
         // Reduce motion: the lift is already over (see `reducesMotion`).
-        if reducesMotion { active?.liftPhase = 1 }
+        if reducesMotion { _active?.liftPhase = 1 }
         dragMoved()
     }
 
@@ -627,14 +635,14 @@ package final class DragAndDropSession: @unchecked Sendable {
         drag.liftStartNanos = start
         guard elapsed < ActiveDrag.liftDurationNanos else {
             drag.liftPhase = 1
-            active = drag
+            _active = drag
             return false
         }
         let progress = Double(elapsed) / Double(ActiveDrag.liftDurationNanos)
         // Ease out, exactly as the walk home does: most of the distance early,
         // so the row reads as being picked UP rather than drifting off.
         drag.liftPhase = 1 - (1 - progress) * (1 - progress)
-        active = drag
+        _active = drag
         return true
     }
 
@@ -682,7 +690,7 @@ package final class DragAndDropSession: @unchecked Sendable {
         // captured region id the drop's coordinate localisation relies on.
         drag.targetedID = newTarget?.handlerID
         drag.targeted = newTarget
-        active = drag
+        _active = drag
 
         // A destination that draws a landing slot needs the pointer, not just
         // "you are being hovered" — localised to its own top-left, since that
@@ -742,7 +750,11 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// float), so the driver's `active != nil` gate silently excluded the two
     /// modes people actually use: the zones were registered, the cursor was
     /// stamped, and the driver bailed on its first line.
-    package private(set) var autoScrollArmed = false
+    package var autoScrollArmed: Bool { _autoScrollArmed }
+
+    /// ``autoScrollArmed``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _autoScrollArmed = false
 
     /// A cancelled drag on its way home.
     ///
@@ -906,7 +918,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     ///   away under a drag that could never land there is just the view running
     ///   off.
     func armAutoScroll(owner: (any ScrollableOffsetState)? = nil) {
-        autoScrollArmed = true
+        _autoScrollArmed = true
         autoScrollOwner = owner.map(ObjectIdentifier.init)
     }
 
@@ -938,7 +950,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// only runs when the gesture actually reordered something.
     package func disarmAutoScroll() {
         guard active == nil else { return }  // a real drag is still in flight
-        autoScrollArmed = false
+        _autoScrollArmed = false
         autoScrollOwner = nil
         autoScrollEngagedSinceNanos = nil
         releaseAutoScrollFlags()
@@ -946,10 +958,10 @@ package final class DragAndDropSession: @unchecked Sendable {
 
     func end() {
         active?.targeted?.setTargeted(false)
-        active = nil
+        _active = nil
         source = nil
         springLoadHover = nil
-        autoScrollArmed = false
+        _autoScrollArmed = false
         autoScrollOwner = nil
         autoScrollEngagedSinceNanos = nil
         releaseAutoScrollFlags()

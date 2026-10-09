@@ -221,7 +221,11 @@ package final class AppUndoKeys: @unchecked Sendable {
     private(set) var commandKey = CommandKeyBinding.control
 
     /// What the terminal reports about the keyboard, for ``hint(for:)``.
-    package var reporting = KeyboardReporting.legacy
+    package var reporting: KeyboardReporting { get { _reporting } set { _reporting = newValue } }
+
+    /// ``reporting``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _reporting = KeyboardReporting.legacy
 
     /// ``shortcuts`` as the chord → command map a key is matched against,
     /// rebuilt only when the table changes.

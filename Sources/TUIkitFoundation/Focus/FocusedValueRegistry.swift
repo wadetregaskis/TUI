@@ -73,7 +73,11 @@ package final class FocusedValueRegistry {
 
     /// Asks the app for another frame. Wired by the run loop; a test drives
     /// its own frames.
-    package var requestFrame: (() -> Void)?
+    package var requestFrame: (() -> Void)? { get { _requestFrame } set { _requestFrame = newValue } }
+
+    /// ``requestFrame``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _requestFrame: (() -> Void)?
 
     /// Starts a walk of the view tree: what it publishes replaces, view by
     /// view, what the last pass published.

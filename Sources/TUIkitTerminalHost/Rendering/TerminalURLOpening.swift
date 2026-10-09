@@ -17,10 +17,14 @@ import TUIkitCore
 package enum TerminalURLOpening {
     /// `false` unless something turned it on. See ``TerminalClient/urlOpeningSupport``.
     ///
-    /// `nonisolated(unsafe)` for the reason `TerminalHyperlink.isSupported` is:
+    /// Its storage is `nonisolated(unsafe)` for the reason `TerminalHyperlink.isSupported` is:
     /// written once at startup, before anything renders, and read from paths
     /// that have no actor.
-    package nonisolated(unsafe) static var isEnabled = false
+    package static var isEnabled: Bool { get { _isEnabled } set { _isEnabled = newValue } }
+
+    /// ``isEnabled``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    nonisolated(unsafe) private static var _isEnabled = false
 
     /// The opener of the app this process is running, for an action no
     /// environment handed one: an ``OpenURLAction`` the app made itself

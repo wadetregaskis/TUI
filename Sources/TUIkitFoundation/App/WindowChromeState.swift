@@ -138,11 +138,19 @@ package final class WindowChromeState: @unchecked Sendable {
 
     /// How every bar frames itself: the scene's `.windowToolbarStyle(_:)`,
     /// adopted each frame before anything is laid out. A box by default.
-    package var style: ChromeStyle = .bordered
+    package var style: ChromeStyle { get { _style } set { _style = newValue } }
+
+    /// ``style``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _style: ChromeStyle = .bordered
 
     /// Whether the top bar's title slot shows ``title``: the scene's
     /// `.windowToolbarStyle(_:)` again, its `showsTitle:`.
-    package var showsTitle = true
+    package var showsTitle: Bool { get { _showsTitle } set { _showsTitle = newValue } }
+
+    /// ``showsTitle``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _showsTitle = true
 
     /// The style the bar at `edge` frames itself in: the window's one style.
     func style(_ edge: Edge) -> ChromeStyle {

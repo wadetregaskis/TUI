@@ -332,7 +332,11 @@ public final class FocusManager: @unchecked Sendable {
     /// (`RenderContext.isolatedForBackground()`): a reader on the page beneath
     /// a sheet still sees the values the live tree publishes, while the
     /// backdrop's own publishers are refused (`FocusedValueRegistrar`).
-    package var focusedValues = FocusedValueRegistry()
+    package var focusedValues: FocusedValueRegistry { get { _focusedValues } set { _focusedValues = newValue } }
+
+    /// ``focusedValues``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _focusedValues = FocusedValueRegistry()
 
     /// The focus scopes and default-focus preferences on screen — see
     /// `FocusScope.swift`.

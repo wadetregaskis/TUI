@@ -132,5 +132,12 @@ extension TerminalHost {
     ///
     /// Written once, by the app's startup (`identify(using:)`, beside its
     /// only caller in App.swift), before anything reads it.
-    @MainActor package static var startupIdentity: TerminalIdentity?
+    @MainActor package static var startupIdentity: TerminalIdentity? {
+        get { _startupIdentity }
+        set { _startupIdentity = newValue }
+    }
+
+    /// ``startupIdentity``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    @MainActor private static var _startupIdentity: TerminalIdentity?
 }

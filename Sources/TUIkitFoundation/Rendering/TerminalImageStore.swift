@@ -157,7 +157,11 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// Counts every image put in the terminal or taken out of it, so the run
     /// loop can tell after a frame whether ``farewell(fitting:)`` changed
     /// without spelling it again.
-    package private(set) var generation = 0
+    package var generation: Int { _generation }
+
+    /// ``generation``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _generation = 0
 
     // MARK: - Drawing
 
@@ -284,7 +288,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         images.removeAll()
         slots.removeAll()
         entries.removeAll()
-        generation += 1
+        _generation += 1
     }
 
     /// What ``releaseAll()`` would write, without releasing anything: a delete
@@ -350,13 +354,13 @@ package final class TerminalImageStore: @unchecked Sendable {
     private func file(_ image: Image) {
         images[image.id] = image
         slots[image.slot, default: []].append(image.id)
-        generation += 1
+        _generation += 1
     }
 
     @discardableResult
     private func unfile(_ id: KittyGraphics.ImageID) -> Image? {
         guard let image = images.removeValue(forKey: id) else { return nil }
-        generation += 1
+        _generation += 1
         slots[image.slot]?.removeAll { $0 == id }
         if slots[image.slot]?.isEmpty == true { slots.removeValue(forKey: image.slot) }
         return image

@@ -115,7 +115,11 @@ package final class ScreenSelection: @unchecked Sendable {
     }
 
     /// The selection, if there is one.
-    package var current: Selection?
+    package var current: Selection? { get { _current } set { _current = newValue } }
+
+    /// ``current``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _current: Selection?
 
     /// The last frame's composited content, each line as written: what a
     /// selection reads. A reference to the frame's own array, kept every frame.
@@ -131,15 +135,27 @@ package final class ScreenSelection: @unchecked Sendable {
 
     /// Whether a drag's release copies the selection — the scene's
     /// ``Scene/textSelectionCopiesOnRelease(_:)``.
-    package var copiesOnRelease = false
+    package var copiesOnRelease: Bool { get { _copiesOnRelease } set { _copiesOnRelease = newValue } }
+
+    /// ``copiesOnRelease``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _copiesOnRelease = false
 
     /// The key that copies: the app's ⌘C, resolved through the scene's
     /// `commandKey` (``adopt(commandKey:copiesOnRelease:)``). `nil` where the
     /// scene's ⌘ stand-in is `.unavailable`.
-    package var copyTrigger: KeyboardShortcut.Trigger? = KeyboardShortcut("c", modifiers: .control).trigger
+    package var copyTrigger: KeyboardShortcut.Trigger? { get { _copyTrigger } set { _copyTrigger = newValue } }
+
+    /// ``copyTrigger``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _copyTrigger: KeyboardShortcut.Trigger? = KeyboardShortcut("c", modifiers: .control).trigger
 
     /// The binding ``copyTrigger`` was resolved through.
-    package var adoptedCommandKey: CommandKeyBinding?
+    package var adoptedCommandKey: CommandKeyBinding? { get { _adoptedCommandKey } set { _adoptedCommandKey = newValue } }
+
+    /// ``adoptedCommandKey``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _adoptedCommandKey: CommandKeyBinding?
 
     /// The open menu's highlight, kept across its frames; made when it first
     /// opens (``presentMenu(over:context:)``).
@@ -162,7 +178,11 @@ package final class ScreenSelection: @unchecked Sendable {
 
     /// Where the selection's context menu was opened — the cell right-clicked
     /// inside the selection — while it is open; `nil` when it is not.
-    package private(set) var menuAnchor: Point?
+    package var menuAnchor: Point? { _menuAnchor }
+
+    /// ``menuAnchor``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _menuAnchor: Point?
 
     /// Whether anything is selected.
     var hasSelection: Bool { current != nil }
@@ -221,7 +241,7 @@ extension ScreenSelection {
     /// Drops the selection, and its menu with it.
     package func clear() {
         current = nil
-        menuAnchor = nil
+        _menuAnchor = nil
     }
 
     /// Whether `point`, a cell of the screen, is one of the cells the highlight
@@ -245,7 +265,7 @@ extension ScreenSelection {
     /// Elsewhere the press is someone else's — an app's own `.contextMenu`.
     func openMenu(at point: Point) -> Bool {
         guard highlights(point) else { return false }
-        menuAnchor = onPage(point)
+        _menuAnchor = onPage(point)
         return true
     }
 
@@ -258,7 +278,7 @@ extension ScreenSelection {
 
     /// Closes the selection's context menu, keeping the selection.
     func closeMenu() {
-        menuAnchor = nil
+        _menuAnchor = nil
     }
 
     /// Copies the selection's text, as Ctrl-C does. `false` with nothing

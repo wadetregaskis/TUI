@@ -313,8 +313,12 @@ package final class TUIContext: @unchecked Sendable {
     ///
     /// Settable, unlike its neighbours, so a test can hand a context a writer
     /// with its own answers to where the terminal is.
-    package var clipboardWriter: ClipboardWriter {
-        didSet { clipboardAccess = ClipboardAccess(writer: clipboardWriter) }
+    package var clipboardWriter: ClipboardWriter { get { _clipboardWriter } set { _clipboardWriter = newValue } }
+
+    /// ``clipboardWriter``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _clipboardWriter: ClipboardWriter {
+        didSet { _clipboardAccess = ClipboardAccess(writer: _clipboardWriter) }
     }
 
     /// TUIkit's own selection of what is drawn — the one a drag that no
@@ -323,7 +327,11 @@ package final class TUIContext: @unchecked Sendable {
 
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
-    package private(set) lazy var clipboardAccess = ClipboardAccess(writer: clipboardWriter)
+    package var clipboardAccess: ClipboardAccess { _clipboardAccess }
+
+    /// ``clipboardAccess``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private lazy var _clipboardAccess = ClipboardAccess(writer: _clipboardWriter)
 
     /// This machine's URL opener, for an ``OpenURLAction`` that defers to the
     /// system: the one the context was made with (``init(clipboard:urlOpener:)``).
@@ -342,13 +350,21 @@ package final class TUIContext: @unchecked Sendable {
     /// Owned here rather than by a view because only the run loop knows it:
     /// the one transition a terminal can report is suspend/resume, which the
     /// loop handles between frames. See ``ScenePhase``.
-    package var scenePhase: ScenePhase = .active
+    package var scenePhase: ScenePhase { get { _scenePhase } set { _scenePhase = newValue } }
+
+    /// ``scenePhase``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _scenePhase: ScenePhase = .active
 
     /// What the terminal reports about the keyboard, published to
     /// `\.keyboardReporting`. Set once, by the run loop, from the startup
     /// negotiation of the kitty keyboard protocol; ``KeyboardReporting/legacy``
     /// until then, and for a context with no terminal behind it.
-    package var keyboardReporting = KeyboardReporting.legacy
+    package var keyboardReporting: KeyboardReporting { get { _keyboardReporting } set { _keyboardReporting = newValue } }
+
+    /// ``keyboardReporting``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _keyboardReporting = KeyboardReporting.legacy
 
     /// The app's undo and redo keys, as the scene set them
     /// (`Scene.undoShortcuts(_:)`): published by the render loop each frame,
@@ -360,7 +376,11 @@ package final class TUIContext: @unchecked Sendable {
     /// context's initialiser is not; `nil` until then, and for a context with
     /// no app behind it, which is SwiftUI's answer for "a context that doesn't
     /// support undo and redo operations".
-    package var undoManager: UndoManager?
+    package var undoManager: UndoManager? { get { _undoManager } set { _undoManager = newValue } }
+
+    /// ``undoManager``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _undoManager: UndoManager?
 
     /// The undo steps of text controls that have gone away, which every frame
     /// takes out of ``undoManager`` as it begins (`RenderLoop.beginRenderPass()`).
@@ -395,7 +415,11 @@ package final class TUIContext: @unchecked Sendable {
     /// to reference ``TUIContext``-owned services at
     /// construction time, so the closure can only be wired up
     /// after both objects exist.
-    package var synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)?
+    package var synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)? { get { _synthesizeKeyEvent } set { _synthesizeKeyEvent = newValue } }
+
+    /// ``synthesizeKeyEvent``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _synthesizeKeyEvent: (@MainActor (KeyEvent) -> Void)?
 
     /// Creates a new TUI context with fresh instances of all services.
     ///
@@ -418,7 +442,7 @@ package final class TUIContext: @unchecked Sendable {
         clipboard: any ClipboardBackend = InMemoryClipboard(),
         urlOpener: any URLOpenerBackend = InMemoryURLOpener()
     ) {
-        self.clipboardWriter = ClipboardWriter(system: clipboard)
+        self._clipboardWriter = ClipboardWriter(system: clipboard)
         self.urlOpener = urlOpener
         self.lifecycle = LifecycleManager()
         self.keyEventDispatcher = KeyEventDispatcher()
@@ -465,7 +489,7 @@ package final class TUIContext: @unchecked Sendable {
     ) {
         // A snapshot's or a test's: its copies and URLs stay in memory (see
         // init(clipboard:urlOpener:)).
-        self.clipboardWriter = ClipboardWriter(system: InMemoryClipboard())
+        self._clipboardWriter = ClipboardWriter(system: InMemoryClipboard())
         self.urlOpener = InMemoryURLOpener()
         self.lifecycle = lifecycle
         self.keyEventDispatcher = keyEventDispatcher
