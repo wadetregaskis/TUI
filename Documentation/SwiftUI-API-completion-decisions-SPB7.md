@@ -78,7 +78,7 @@ name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
 
 ## B. Shipped
 
-### B-SPB7-1. TUIkitFoundation builds the five views whose types TUIkitTextInput cannot see, two drawn in place and five erased
+### B-SPB7-1. TUIkitFoundation applies the five modifiers whose result types TUIkitTextInput cannot see, in seven methods: two draw in place and five erase
 
 *Sources/TUIkitFoundation/Extensions/View+BuiltForAnotherModule.swift — no public API*
 

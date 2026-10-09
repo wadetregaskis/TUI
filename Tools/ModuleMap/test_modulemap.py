@@ -606,8 +606,8 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         self.assertEqual(keys('@_exported import Base\n'),
                          ['X does not re-export App', 'X does not re-export Lists', 'X does not re-export Tables'])
         self.assertEqual(keys('@_exported import App\n@_exported import Lists\n@_exported import Tables\n'), [])
-        # A module with no Exports.swift re-exports nothing, and is not asked for (a coarse group's other member, as a
-        # module the default compiled was until step B7); nor is the default itself.
+        # A module whose Exports.swift has no re-export line re-exports nothing, and is not asked for (a coarse group's
+        # other member, as a module the default compiled was until step B7); nor is the default itself.
         self.assertEqual(keys('@_exported import App\n@_exported import Tables\n', lists='func l() {}\n'), [])
         # Step C3's shape, which lasts: App re-exports Tables, and Tables only Lists, its own dependency (as
         # TUIkitColorPicker will re-export TUIkitTabs, which re-exports TUIkitLists). Two hops from Base, both are
@@ -951,10 +951,10 @@ class IndexStoreTests(unittest.TestCase):
 
 
 class UncompiledTests(unittest.TestCase):
-    """A coarse group's `directories:` names its members' directories, as TUIkitFoundation's `sources:` named every
-    module directory it compiled from A5 to B7 (and until B2 TUIkitStrings' files below its own), so a file can sit in a
-    module's directory and be compiled by no target. SwiftPM only warns about it, and CI does not fail on that warning;
-    the module map, which reads what the build compiled, does."""
+    """A coarse group's `directories:` names its members' directories, as the one target that compiled them (TUIkit's,
+    TUIkitFoundation from B1) named every module directory in its `sources:` from A5 to B7 (and until B2 TUIkitStrings'
+    files below its own), so a file can sit in a module's directory and be compiled by no target. SwiftPM only warns
+    about it, and CI does not fail on that warning; the module map, which reads what the build compiled, does."""
 
     def test_a_source_the_last_build_passed_over_is_uncompiled_and_one_newer_than_it_is_stale(self):
         src = {'Base/A.swift': 100.0, 'Base/Edited.swift': 300.0, 'Base/Left.swift': 100.0, 'Base/New.swift': 300.0}

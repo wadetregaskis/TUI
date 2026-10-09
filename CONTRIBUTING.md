@@ -435,24 +435,26 @@ anything at run time:
   it modifies is one of the caller's own types, which the callee's module
   cannot name, the entry point is generic over it: a `package` method on
   `View`, as step B7's are (TUIkitFoundation's
-  View+BuiltForAnotherModule.swift, for a text field's frame, a form's rows,
-  a search token and a text editor's find bar). The caller then reaches it
-  unspecialised (the second class, below), and one that returns an `AnyView`
-  boxes its result on every call: cheaper than the lookup, which demangles a
-  name (unmeasured per call; the carve's A/B prices it), but a call on every
-  render pass, so the commit names the scenarios that reach it. Do not widen
-  the underlying type, nor make the callee `@inlinable`, to make it
-  visible: either lets every app see through the same modifier as well,
-  which changes the app's own code. The same column showed a second class,
-  with the same remedies: a generic function (a protocol extension's
-  method is one, generic over `Self`) reaches another module only as a
-  call to its unspecialised entry, unless its body crosses too, which
-  `@inlinable` does, and which conservative cross-module optimisation does
-  only for a small public function; `bordered` is not public, so the
-  column called it unspecialised. A release `Stress` shows both
-  (`otool -tV`): the `swift_getOpaqueType…` calls, in the caller (each
-  call pays) or in a `…Wl` accessor (once), and a `bl` to the generic
-  entry where a `specialized` copy would be.
+  View+BuiltForAnotherModule.swift, for a text field's frame, a form's `if`
+  groups and grouped section boxes, a search token and a text editor's find
+  bar). The caller then reaches it unspecialised (the second class, below),
+  and one that returns an `AnyView` boxes its result on every call, and the
+  `AnyView` probes the render cache on each draw and measure of it
+  (TUIkitView's `contentContext(noting:)`). That is likely cheaper than the
+  lookup, which demangles a name, but unmeasured per call (the carve's A/B
+  prices it), and it is paid on every render pass, so the commit names the
+  scenarios that reach it. Do not widen the underlying type, nor make the
+  callee `@inlinable`, to make it visible: either lets every app see through
+  the same modifier as well, which changes the app's own code. The same
+  column showed a second class, with the same remedies: a generic function
+  (a protocol extension's method is one, generic over `Self`) reaches
+  another module only as a call to its unspecialised entry, unless its body
+  crosses too, which `@inlinable` does, and which conservative cross-module
+  optimisation does only for a small public function; `bordered` is not
+  public, so the column called it unspecialised. A release `Stress` shows
+  both (`otool -tV`): the `swift_getOpaqueType…` calls, in the caller (each
+  call pays) or in a `…Wl` accessor (once), and a `bl` to the generic entry
+  where a `specialized` copy would be.
 
 ## Code Style
 

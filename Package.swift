@@ -322,10 +322,10 @@ let package = Package(
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation,
-        // TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import
-        // TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names TUIkitImage
-        // itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the TUIkit.docc
-        // catalog. Nothing in the package depends on it but the apps and the tests.
+        // TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella`
+        // check), so `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It
+        // names TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds
+        // the TUIkit.docc catalog. Nothing in the package depends on it but the apps and the tests.
         .target(
             name: "TUIkit",
             dependencies: [

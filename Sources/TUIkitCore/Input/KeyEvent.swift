@@ -348,8 +348,8 @@ extension KeyEvent {
             // driver turns into SIGQUIT while TUIkit's raw mode leaves it live,
             // so it arrives as a byte only where the driver lets it — the
             // user turned the quit key off or moved it, or the app binds a
-            // chord it could be and the run loop's line discipline (TUIkitApp,
-            // which TUIkitFoundation compiles) masked the driver's quit. Some
+            // chord it could be and the run loop's line discipline (in
+            // TUIkitApp) masked the driver's quit. Some
             // terminals send it for Ctrl-4 and Ctrl-| as well; Ctrl-\ is the
             // canonical reading, as Backspace is 0x08's, and the input chain
             // tries the others after it.
