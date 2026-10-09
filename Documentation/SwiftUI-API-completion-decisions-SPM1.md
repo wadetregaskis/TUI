@@ -48,3 +48,69 @@ The other versions, as the diagnosis priced them:
 
 The price of what ships: about 420 lines compile in TUIkitFoundation's job again (about 0.1 s at the carve's own
 rate), and two files depart from the plan's map.
+
+### B-SPM1-2. `_InlineMenuCore.swift` imports TUIkitView itself, which M1 did not ask for
+
+*Sources/TUIkitFoundation/Rendering/_InlineMenuCore.swift — no API*
+
+Back in TUIkitFoundation, the inline menu's paging-key replay closure carried a `swift_task_isCurrentExecutor`
+check that it had not carried in TUIkitMenus. Swift 6.2.4 marks a closure literal for that check unless the callee's
+module is one the calling file imports and is concurrency-checked, or is the caller's own module (CSApply.cpp
+L6283-6299). The closure goes to `EffectJournal.Entry` (TUIkitView), and TUIkitFoundation reaches TUIkitView only
+through its Exports.swift's `@_exported import`, which counts for no other file. The file in TUIkitMenus imported
+TUIkitFoundation, and so TUIkitView. B6s's file imported only TUIkitCore, and had the check too. What ships is one
+`import TUIkitView` in that file, with a comment saying why: the replay, which runs whenever a memo serves an inline
+menu, checks the executor no more, as at 4771bb09c.
+
+The fuller version is an audit. The same rule applies to every TUIkitFoundation file that passes a closure literal
+to TUIkitView's (or TUIkitStyling's, or TUIkitCore's) API without importing that module: 117 of its 476 files
+import TUIkitView. How many of TUIkitFoundation's 607 check sites that accounts for is unmeasured, and so is
+how many of them run per frame. Its price: an import per file where the index shows such a closure, and
+Tools/ModuleMap's `imports` check, which skips TUIkitFoundation's own files today, extended to them for the lower
+modules. It is not a split regression (no carve changed those files' imports), so it belongs to a lane of its own,
+measured first.
+
+### B-SPM1-3. Two static totals stay above the base's: every extra site is B6s's, and none adds a check at run time
+
+*`View.bordered`, `renderMenuColumn`, `_InlineMenuCore.registerPagingKeys` — no API*
+
+The brief's gate asks that `swift_task_isCurrentExecutor`, `swift_beginAccess` and stored-property initialiser sites
+not exceed 4771bb09c's (1,398, 4,061, 60). After M1 and B-SPM1-2 they are 1,401, 4,063 and 60. Each extra site is in
+a function that xc-spB6s, step B6's binary (before B5b), has with the same site:
+
+- **Two executor checks, in `bordered`'s two specialisations,** which M1 brings back. Each copies the generic
+  entry's check, which guards the `reduce` closure that nests a second ring around the first. That closure runs only
+  for a border wider than one cell, so no menu reaches it.
+- **One executor check, in the scrolled branch of `renderMenuColumn`:** `View.frame(width:height:alignment:)`'s
+  own check, inlined. 4771bb09c called `frame` out of line and ran the same check inside it.
+- **Two exclusivity checks, in `registerPagingKeys` and its replay closure:**
+  `KeyEventDispatcher.addHandler(sectionID:_:)`, inlined. 4771bb09c called it out of line and ran the same accesses
+  inside it.
+
+What ships leaves them. The other version: `bordered` nests its rings in a loop rather than through `reduce`, which
+removes the check from the generic entry and both specialisations (-3: 1,398 in all). The price is a change to code
+that every app's `.border()` and `Box` run, made for a static count, with a run-time effect only on borders wider
+than one cell. The inlined checks could go only by calling `frame` and `addHandler` out of line again, which is the
+kind of cost M1 removes.
+
+## C. Declined
+
+### C-SPM1-1. Two other opaque results the carved modules resolve at run time
+
+*TUIkitChrome's `_ToolbarModifier.presentationEntries(depth:context:)`, TUIkitMenus' `_MenuPopupCore` — no API*
+
+The predictor fix this lane made (session notes, `plan/crossing_hazards.py`, called by the newest carve predictor
+`SPB5c/predict.py` and crossing report `SPB5c/xings_b5c.py`) flags, over B5b's and B5c's four modules after M1, two
+callees besides the column's:
+
+- **`keyboardShortcut(_:)`**, whose result names the internal `KeyboardShortcutModifier`, from the toolbar rows of a
+  presentation (`ToolbarPresentationRows.swift`, a confirmation or cancellation item). The release binary confirms
+  one `swift_getOpaqueTypeConformance2` site in `presentationEntries`, which runs whenever that function builds
+  such an item's row. Stress uses neither placement, so no benchmark scenario reaches it; how often an app does is
+  unmeasured.
+- **`focusable(_:)`**, whose result names the internal `FocusableModifier`, from `_MenuPopupCore`. The binary calls
+  the runtime only from a lazy witness-table accessor, which caches what it finds, so the lookup happens once per
+  process.
+
+Neither is changed here: the first is the same class as M1's, but on no measured path (the remedy would be M1's
+pattern, a concrete entry in TUIkitFoundation), and the second costs nothing per call.
