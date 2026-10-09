@@ -151,10 +151,10 @@ def swift_goldens():
         reported = ('[\n            ' + ', '.join(slot_hex[:8]) + ',\n            ' + ', '.join(slot_hex[8:]) + ',\n        ]'
                     if 'table' in p else 'nil')
 
-        lines.append(f"    RowFillGolden(\"{p['name']}\", page: 0x{p['page']}, text: 0x{p['text']}, "
+        lines.append(f"    goldens.append(RowFillGolden(\"{p['name']}\", page: 0x{p['page']}, text: 0x{p['text']}, "
                      f"secondary: 0x{p['secondary']}, accent: 0x{p['accent']}, live: {'true' if p['live'] else 'false'},\n"
                      f"        truecolour: ({hexes(ends(true))}), cube: ({indices}), sixteen: ({slots}),\n"
-                     f"        table: {reported}),")
+                     f"        table: {reported}))")
     return GOLDENS_TEMPLATE.replace('COUNT', str(len(palettes))).replace('LINES', '\n'.join(lines))
 
 
@@ -199,9 +199,17 @@ struct RowFillGolden: Sendable, CustomTestStringConvertible {
 }
 
 /// rule.py's answers for the COUNT palettes in runtime_palettes.json.
-let rowFillRuleGoldens: [RowFillGolden] = [
+let rowFillRuleGoldens: [RowFillGolden] = makeRowFillRuleGoldens()
+
+/// One `append` per golden, not one array literal: as a literal of COUNT initializer calls the table was a single
+/// expression, which took 379 ms to type-check on Swift 6.2.4 and 438 ms on 6.4.0 (lane TC2); each `append` is a
+/// statement of its own, type-checked alone. Generated data, so the body is as long as the table.
+private func makeRowFillRuleGoldens() -> [RowFillGolden] {  // swiftlint:disable:this function_body_length
+    var goldens: [RowFillGolden] = []
+    goldens.reserveCapacity(COUNT)
 LINES
-]
+    return goldens
+}
 '''
 
 
