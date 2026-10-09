@@ -17,9 +17,13 @@
 // step B4), TUIkitNavigation (the navigation containers, and the presentations
 // until step C1 peels them into TUIkitPresentation; since step B5) and
 // TUIkitLists (lists, and tables, tabs and grids until steps C2 to C4 peel
-// them; since step B6), and TUIkitChrome (the window chrome), TUIkitEffects
+// them; since step B6), TUIkitChrome (the window chrome), TUIkitEffects
 // (transitions and visual effects) and TUIkitMenus (`Menu`, `.contextMenu`;
-// all three since step B5b). Each by name, though TUIkitColorPicker
+// all three since step B5b), and TUIkitBitmaps (`Image`'s bitmap path,
+// `AsyncImage` and the `.image*` options; since step B5c, which also took
+// TUIkitImage out of TUIkitFoundation's re-exports, so the line for it below
+// is what gives an app `ASCIIConverter` and the rest; TUIkitBitmaps and
+// TUIkitColorPicker re-export it too). Each by name, though TUIkitColorPicker
 // re-exports TUIkitNavigation until C1, and TUIkitLists for good (directly
 // until C3, then through TUIkitTabs, which depends on it), and TUIkitApp and
 // TUIkitNavigation re-export TUIkitChrome: the `umbrella` check asks for
@@ -27,6 +31,7 @@
 // file leaves out while a sibling's re-export still reaches it. A qualified
 // name in an app, `TUIkit.Label`, still resolves through these re-exports.
 @_exported import TUIkitApp
+@_exported import TUIkitBitmaps
 @_exported import TUIkitChrome
 @_exported import TUIkitColorPicker
 @_exported import TUIkitCore

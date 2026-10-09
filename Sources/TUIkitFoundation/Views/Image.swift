@@ -141,7 +141,7 @@ public struct Image: View {
     /// initialisers and ``AsyncImage`` make their images with. They live
     /// beside the bitmap path (`Image+Raster.swift`), which `Image` does not
     /// name — see ``_ImageRaster``.
-    init(raster: any _ImageRaster) {
+    package init(raster: any _ImageRaster) {
         self.content = .raster(raster)
     }
 

@@ -11,6 +11,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
 

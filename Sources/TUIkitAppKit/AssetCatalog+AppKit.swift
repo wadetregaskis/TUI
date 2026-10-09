@@ -10,6 +10,7 @@
 
 #if canImport(AppKit)
     import AppKit
+    import TUIkitBitmaps
     import TUIkitFoundation
 
     // Each initializer here is TUIkit's of the same name with one more place

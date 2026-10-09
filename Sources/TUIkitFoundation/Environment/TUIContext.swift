@@ -150,7 +150,7 @@ extension LifecycleManager {
     /// - Parameters:
     ///   - token: Unique identifier for the view.
     ///   - action: The onDisappear action to execute.
-    func registerDisappear(token: String, action: @escaping () -> Void) {
+    package func registerDisappear(token: String, action: @escaping () -> Void) {
         lock.lock()
         defer { lock.unlock() }
         disappearCallbacks[token] = action
@@ -208,7 +208,7 @@ extension LifecycleManager {
     }
 
     /// Cancels and removes the task associated with the given token.
-    func cancelTask(token: String) {
+    package func cancelTask(token: String) {
         lock.lock()
         tasks[token]?.cancel()
         tasks.removeValue(forKey: token)

@@ -7,6 +7,9 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+import TUIkitImage
+
 // MARK: - Render Cache
 
 /// Cached ASCII conversion output along with the input parameters that

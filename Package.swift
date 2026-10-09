@@ -193,9 +193,9 @@ let package = Package(
         // TUIkitNavigation since step B5, whose `Dialog` and `.modal` its panels are made of, and Tabs into
         // TUIkitLists since step B6 (both below), whose `TabView` and `Tab` its panel is laid out with. Each other
         // edge appears when its module is carved. Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward
-        // check), so the umbrella re-exports it. TUIkitImage is named although TUIkitFoundation re-exports it: the
-        // curve editors import it, its `ASCIIToneCurve` is in their public initializers, and TUIkitFoundation stops
-        // depending on it at step B5c. The module re-exports all four (Sources/TUIkitColorPicker/Exports.swift).
+        // check), so the umbrella re-exports it. TUIkitImage is named for itself: the curve editors import it, its
+        // `ASCIIToneCurve` is in their public initializers, and TUIkitFoundation, which re-exported it until step
+        // B5c, does not depend on it since. The module re-exports all four (Sources/TUIkitColorPicker/Exports.swift).
         .target(
             name: "TUIkitColorPicker",
             dependencies: ["TUIkitFoundation", "TUIkitImage", "TUIkitLists", "TUIkitNavigation"],
@@ -269,17 +269,37 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // Step B5c's leaf, built on TUIkitFoundation as B5b's three are, a module of the plan's map of its own at its
+        // default path: `Image`'s bitmap path. `Image(_:)` from a file or URL and `Image(_:bundle:)`, `AsyncImage`,
+        // `_ImageCore` with its render cache, templates, resizing and orientation, `.terminalGraphics(_:)` and the
+        // `.image*` rendering options, asset catalogues and `Color(_:bundle:)`, the `image:` initialisers of `Label`
+        // and `ContentUnavailableView`. `Image` itself, `Image(systemName:)` and the raster seam the bitmap path
+        // draws through (`_ImageRaster`, step A2's R2), `.aspectRatio`, `.scaledToFit`, `.scaledToFill` and
+        // `.imageCellAspect` (A4's S1) stay. It and TUIkitColorPicker are the framework's only modules that depend
+        // on TUIkitImage (the decoders, `ASCIIConverter`, `RGBAImage`); TUIkitFoundation does not since this step,
+        // so once per-module products ship, an app that uses neither links neither TUIkitImage nor CSTBImage.
+        // Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it,
+        // and no other leaf depends on it. It re-exports TUIkitFoundation and TUIkitImage
+        // (Sources/TUIkitBitmaps/Exports.swift).
+        .target(
+            name: "TUIkitBitmaps",
+            dependencies: ["TUIkitFoundation", "TUIkitImage"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
-        // TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation),
+        // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so `import
-        // TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. Its directory also
-        // holds the TUIkit.docc catalog. Nothing in the package depends on it but the apps and the tests.
+        // TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names TUIkitImage
+        // itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the TUIkit.docc
+        // catalog. Nothing in the package depends on it but the apps and the tests.
         .target(
             name: "TUIkit",
             dependencies: [
-                "TUIkitApp", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists", "TUIkitMenus",
-                "TUIkitNavigation", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
+                "TUIkitMenus", "TUIkitNavigation", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage",
+                "TUIkitView",
             ]
         ),
 
@@ -287,24 +307,26 @@ let package = Package(
         // revision 4) puts each planned module's files in Sources/<module>, where the module will live
         // once a step of Phase B carves it into a target of its own; until then this one target compiles
         // them all, as the module TUIkitFoundation (step B1). A carve adds `.target(name: "TUIkitX", …)`
-        // at its default path and takes "TUIkitX" out of `directories:` below (as TUIkitApp, step B3, and
-        // TUIkitChrome, TUIkitEffects and TUIkitMenus, step B5b); a coarse group's carve adds one target over
-        // its modules' directories (`directories:`, as TUIkitNavigation, step B5, and TUIkitLists, step B6)
-        // and takes each of them out. When the last module has left, this target is
+        // at its default path and takes "TUIkitX" out of `directories:` below (as TUIkitApp, step B3,
+        // TUIkitChrome, TUIkitEffects and TUIkitMenus, step B5b, and TUIkitBitmaps, step B5c); a coarse group's
+        // carve adds one target over its modules' directories (`directories:`, as TUIkitNavigation, step B5, and
+        // TUIkitLists, step B6) and takes each of them out. When the last module has left, this target is
         // an ordinary one at Sources/TUIkitFoundation.
-        // Tools/ModuleMap checks the map: a file's directory is its module.
+        // Tools/ModuleMap checks the map: a file's directory is its module. It depends on neither TUIkitImage nor
+        // CSTBImage since step B5c took the bitmap path out (the plan's B5c row): its `lower` list in rules.json
+        // names TUIkitCore, TUIkitStyling and TUIkitView, and the `lower` check fails CI on a use of any other.
         .target(
             name: "TUIkitFoundation",
             dependencies: [
-                "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView", "TUIkitStrings", "TUIkitTerminalHost",
+                "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitStrings", "TUIkitTerminalHost",
             ],
             // The planned modules not yet carved, in rules.json's order; every other directory under Sources
             // is excluded (`sourcesDirectories`, at the top of this file), so a module directory left out
             // here, and compiled by no other target, draws no SwiftPM warning: Tools/ModuleMap's `uncompiled`
             // check, which gates CI, fails on a file of a module's directory that the build did not compile.
             directories: [
-                "TUIkitFoundation", "TUIkitBitmaps", "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers",
-                "TUIkitForms", "TUIkitSearch",
+                "TUIkitFoundation", "TUIkitNumericControls", "TUIkitTextInput", "TUIkitPickers", "TUIkitForms",
+                "TUIkitSearch",
             ],
             // A member is visible in a file only if that file imports the
             // module declaring it. Without this, every extension member of
@@ -319,12 +341,15 @@ let package = Package(
         ),
 
         // The bridges to AppKit and Core Graphics: the one module that
-        // imports AppKit. Empty off Apple platforms. It depends on the module
-        // whose types it extends (which re-exports the lower ones), not on the
-        // umbrella, which only the apps and the tests depend on.
+        // imports AppKit. Empty off Apple platforms. It depends on the modules
+        // whose types it extends (which re-export the lower ones), not on the
+        // umbrella, which only the apps and the tests depend on: since step
+        // B5c TUIkitBitmaps too, whose bitmap path an image made from a
+        // `CGImage` or an `NSImage`, or a compiled asset catalogue's, draws
+        // through.
         .target(
             name: "TUIkitAppKit",
-            dependencies: ["TUIkitFoundation", "TUIkitImage"],
+            dependencies: ["TUIkitBitmaps", "TUIkitFoundation", "TUIkitImage"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -357,13 +382,13 @@ let package = Package(
         // TUIkitFoundation where it reaches the framework's internals, or the
         // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
         // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists,
-        // TUIkitChrome, TUIkitEffects, TUIkitMenus).
+        // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
-                "TUIkit", "TUIkitApp", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitFoundation",
-                "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitStrings", "TUIkitTerminalHost",
-                "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
+                "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
+                "TUIkitFoundation", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitStrings",
+                "TUIkitTerminalHost", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so

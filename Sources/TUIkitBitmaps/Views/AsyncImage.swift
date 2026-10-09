@@ -9,6 +9,7 @@
 
 import Foundation
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitImage
 import TUIkitView
 

@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 /// A raster image drawn as a label's icon: in the two cells a symbol takes.

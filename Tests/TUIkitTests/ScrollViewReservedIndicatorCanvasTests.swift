@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Testing
+@testable import TUIkitBitmaps
 import TUIkitImage
 
 import TUIkit

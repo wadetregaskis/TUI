@@ -10,6 +10,7 @@
 
 #if canImport(AppKit)
     import AppKit
+    import TUIkitBitmaps
     import TUIkitFoundation
 
     extension Image {

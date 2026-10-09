@@ -34,8 +34,8 @@ cd "$(dirname "$0")/.."
 # are TUIkitTests', which this script leaves unrestricted. Nor have the modules
 # carved out of it so far, TUIkitStrings and TUIkitTerminalHost (step B2),
 # TUIkitApp (step B3), TUIkitColorPicker (step B4), TUIkitNavigation (step B5),
-# TUIkitLists (step B6), and TUIkitChrome, TUIkitEffects and TUIkitMenus (step
-# B5b): their tests stayed in TUIkitTests, which
+# TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step
+# B5b), and TUIkitBitmaps (step B5c): their tests stayed in TUIkitTests, which
 # `@testable import`s them. A module that gets a test target of its own gets a
 # row here, and joins the loop below.
 allowed_for() {

@@ -58,7 +58,7 @@ of the planned split not yet carved into a target of its own), the modules
 carved out of it so far (`TUIkitStrings`, `TUIkitTerminalHost`, step B2;
 `TUIkitApp`, step B3; `TUIkitColorPicker`, step B4; `TUIkitNavigation`, step B5, which compiles the presentations
 too until step C1; `TUIkitLists`, step B6, which compiles the tables, tabs and grids too until steps C2 to C4;
-`TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b), and
+`TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b; `TUIkitBitmaps`, step B5c), and
 the `TUIkit` umbrella that `@_exported import`s the rest and declares nothing.
 That split buys layering, per-module test isolation and build time, and it is
 *ours*: a reader writing `import TUIkit` sees one API and should never have to

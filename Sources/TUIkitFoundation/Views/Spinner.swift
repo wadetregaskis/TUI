@@ -116,7 +116,7 @@ public enum SpinnerStyle: Sendable {
     case custom(String)
 
     /// The animation frames for frame-based styles.
-    var frames: [String] {
+    package var frames: [String] {
         switch self {
         case .dots:
             return ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]

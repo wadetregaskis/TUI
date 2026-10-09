@@ -194,7 +194,7 @@ func naturalExtentStartingBudget(forVisible extent: Int) -> Int {
 /// stopped answering for its rows out of sight. Half the floor is still two
 /// thousand cells, which no terminal is.
 @MainActor
-func isNaturalExtentBudget(_ budget: Int) -> Bool {
+package func isNaturalExtentBudget(_ budget: Int) -> Bool {
     budget >= naturalExtentStartingBudget(forVisible: 0) / 2
 }
 
@@ -226,7 +226,7 @@ extension EnvironmentValues {
     /// while the canvas was sized by every row. Set by the scroll view for its
     /// content, and to `false` by one that does not scroll horizontally, since
     /// its content's width is its own viewport's question.
-    var asksWholeContentWidth: Bool {
+    package var asksWholeContentWidth: Bool {
         get { self[AsksWholeContentWidthKey.self] }
         set { self[AsksWholeContentWidthKey.self] = newValue }
     }

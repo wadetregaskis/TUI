@@ -10,6 +10,7 @@
 //  License: MIT
 
 import Testing
+@testable import TUIkitBitmaps
 import TUIkitImage
 
 #if canImport(AppKit)

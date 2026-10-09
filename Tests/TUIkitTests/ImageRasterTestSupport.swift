@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkit
+@testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 
 extension Image {

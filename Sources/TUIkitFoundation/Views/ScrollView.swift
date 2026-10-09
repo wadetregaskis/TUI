@@ -1272,9 +1272,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
 /// itself relative to the *visible* area rather than the (deliberately unbounded
 /// on the scroll axis) proposed size. ``Image`` consumes it for
 /// ``ImageFitTarget/viewport``. `nil` when there is no enclosing scroll view.
-struct ScrollViewportSize: Sendable, Hashable {
-    var width: Int
-    var height: Int
+package struct ScrollViewportSize: Sendable, Hashable {
+    package var width: Int
+    package var height: Int
 }
 
 private struct ScrollViewportSizeKey: EnvironmentKey {
@@ -1290,7 +1290,7 @@ extension EnvironmentValues {
     /// viewport, and under a two-axis view the extent they do key on can stay
     /// put while it moves — a resize, or the column a vertical bar takes.
     /// Only a view that sizes itself to the viewport reads it.
-    var scrollViewportSize: ScrollViewportSize? {
+    package var scrollViewportSize: ScrollViewportSize? {
         get {
             volatileReadTracker?.recordUnkeyedRead()
             return self[ScrollViewportSizeKey.self]

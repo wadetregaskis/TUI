@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
 import TUIkitImage
 
 extension RGBAImage {

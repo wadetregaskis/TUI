@@ -7,6 +7,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 extension Color {
     /// Creates a color from a color set that you indicate by name — mirrors

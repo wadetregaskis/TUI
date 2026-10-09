@@ -56,7 +56,7 @@ public struct Label<Title: View, Icon: View>: View {
 
     /// Internal designated initializer; lets ``init(_:systemImage:)-(LocalizedStringKey,_)`` suppress
     /// the icon when the symbol can't be resolved.
-    init(title: Title, icon: Icon, iconIsVisible: Bool) {
+    package init(title: Title, icon: Icon, iconIsVisible: Bool) {
         self.title = title
         self.icon = icon
         self.iconIsVisible = iconIsVisible

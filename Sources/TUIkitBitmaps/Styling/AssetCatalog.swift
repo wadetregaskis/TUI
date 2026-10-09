@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// The named colours and images of the uncompiled asset catalogues a bundle
 /// carries — `Assets.xcassets` copied as a resource.

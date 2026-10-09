@@ -5,6 +5,8 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
+import TUIkitImage
 
 // MARK: - What decides whether a picture has changed
 

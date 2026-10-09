@@ -7,8 +7,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkitImage
-
 extension Image {
     /// The orientation of an image — mirrors SwiftUI's `Image.Orientation`.
     ///

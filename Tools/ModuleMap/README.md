@@ -7,8 +7,8 @@ what each holds. Since step A5 each module's files sit in a directory of their o
 out; until then the one `TUIkitFoundation` target compiles them all (since step B1; `TUIkit` is the umbrella, which
 only re-exports). Carved so far: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their own that
 TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TUIkitColorPicker (step B4), TUIkitNavigation
-(step B5), TUIkitLists (step B6), and TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b), targets of their own
-that depend on TUIkitFoundation and that the umbrella re-exports. TUIkitNavigation and TUIkitLists are **coarse groups**: one target compiling several planned modules'
+(step B5), TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b), and TUIkitBitmaps (step
+B5c), targets of their own that depend on TUIkitFoundation and that the umbrella re-exports. TUIkitNavigation and TUIkitLists are **coarse groups**: one target compiling several planned modules'
 directories, `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peels the second into a
 target of its own, and `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4
 peel the last three (see [Coarse groups](#coarse-groups)). **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
@@ -204,7 +204,7 @@ The `TUIkit` umbrella re-exports and holds nothing else. No declaration may be a
 hold only imports. And it re-exports, by name, every module carved out above `TUIkitFoundation` (the `default` in
 `rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
 TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
-TUIkitMenus since step B5b). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only
+TUIkitMenus since step B5b, TUIkitBitmaps since step B5c). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only
 through the umbrella. Reaching it through a sibling instead compiles the same: TUIkitApp re-exports TUIkitChrome,
 which it depends on, for good. TUIkitNavigation re-exports it only until step C1: its own map entry does not
 depend on TUIkitChrome, and its target does only because it compiles the TUIkitPresentation directory, whose entry

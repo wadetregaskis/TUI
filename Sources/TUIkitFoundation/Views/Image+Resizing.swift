@@ -7,8 +7,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkitImage
-
 extension Image {
     /// The modes that SwiftUI uses to resize an image to fit within its
     /// containing view — mirrors SwiftUI's `Image.ResizingMode`.
@@ -67,13 +65,13 @@ extension Image {
 }
 
 /// How ``Image/resizable(capInsets:resizingMode:)`` said to resize an image.
-struct _ImageResizing: Equatable, Sendable {
-    var capInsets: EdgeInsets
-    var mode: Image.ResizingMode
+package struct _ImageResizing: Equatable, Sendable {
+    package var capInsets: EdgeInsets
+    package var mode: Image.ResizingMode
 
     /// Whether the image is drawn in slices rather than resampled whole: it
     /// has caps to keep, or it tiles.
-    var slices: Bool {
+    package var slices: Bool {
         mode == .tile || capInsets != EdgeInsets()
     }
 }
@@ -81,5 +79,5 @@ struct _ImageResizing: Equatable, Sendable {
 extension _ImageResizing {
     /// A plain stretch to the box — what an image at its natural size draws
     /// with, its box being its own shape.
-    static let filling = Self(capInsets: EdgeInsets(), mode: .stretch)
+    package static let filling = Self(capInsets: EdgeInsets(), mode: .stretch)
 }

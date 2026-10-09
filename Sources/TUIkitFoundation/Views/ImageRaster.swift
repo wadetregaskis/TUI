@@ -51,16 +51,16 @@ package protocol _ImageRaster: Sendable {
 package struct _ImageRasterOptions: Equatable, Sendable {
     /// Whether the picture draws as a template, its coverage in the foreground
     /// colour (``Image/renderingMode(_:)``).
-    var isTemplate: Bool
+    package var isTemplate: Bool
 
     /// How the picture fills its frame, or `nil` for an image that was not
     /// made resizable (``Image/resizable(capInsets:resizingMode:)``).
-    var resizing: _ImageResizing?
+    package var resizing: _ImageResizing?
 
     /// The supersampling factor ``Image/interpolation(_:)`` or
     /// ``Image/antialiased(_:)`` asks for, or `nil` to take the environment's
     /// (``View/imageSupersampling(_:)``).
-    var samplingFactor: Int?
+    package var samplingFactor: Int?
 }
 
 // MARK: - The host

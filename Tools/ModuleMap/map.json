@@ -62,6 +62,7 @@
   "TUIkitApp/Rendering/ViewRenderer.swift": "TUIkitApp",
   "TUIkitApp/Styling/Scene+Theme.swift": "TUIkitApp",
   "TUIkitApp/Undo/Scene+UndoShortcuts.swift": "TUIkitApp",
+  "TUIkitBitmaps/Exports.swift": "TUIkitBitmaps",
   "TUIkitBitmaps/Rendering/TerminalImageSignature.swift": "TUIkitBitmaps",
   "TUIkitBitmaps/Styling/AssetCatalog.swift": "TUIkitBitmaps",
   "TUIkitBitmaps/Styling/Color+Bundle.swift": "TUIkitBitmaps",

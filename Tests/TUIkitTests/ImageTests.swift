@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 
 // MARK: - RGBA Tests

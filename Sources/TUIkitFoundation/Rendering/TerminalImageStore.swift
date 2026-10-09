@@ -47,7 +47,7 @@ struct AnyImageSignature: Equatable {
 /// fields that `==` compares with their own synthesised equality, it holds by
 /// construction. A field left out only makes a bucket hold more pictures, and
 /// a bucket every picture shares makes each lookup a search of them all.
-protocol ImageStoreSignature: Equatable {
+package protocol ImageStoreSignature: Equatable {
     associatedtype StoreBucket: Hashable
     /// Some of the fields `==` compares, as a key the store can hash.
     var storeBucket: StoreBucket { get }
@@ -189,7 +189,7 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// - Returns: the rows, or `nil` for a request the protocol cannot express
     ///   — at which point the caller draws the picture out of glyphs, as it
     ///   always has.
-    func placeholderRows<Signature: ImageStoreSignature>(
+    package func placeholderRows<Signature: ImageStoreSignature>(
         token: String, signature: Signature,
         columns: Int, rows: Int,
         pixels: () -> (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
@@ -276,7 +276,7 @@ package final class TerminalImageStore: @unchecked Sendable {
     ///
     /// Called from the view's disappear handler, which is the only moment
     /// anything knows the picture is not coming back.
-    func release(token: String) {
+    package func release(token: String) {
         guard let id = entries.removeValue(forKey: token) else { return }
         letGo(of: id, by: token)
     }

@@ -15,6 +15,7 @@ import Foundation
 import Testing
 
 import TUIkit
+@testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 
 #if canImport(AppKit)

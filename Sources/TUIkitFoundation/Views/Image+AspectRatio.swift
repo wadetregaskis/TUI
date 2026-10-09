@@ -23,7 +23,7 @@ private struct ImageAspectRatioKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The content mode for image scaling: the one
     /// ``View/aspectRatio(_:contentMode:)`` set, or `.fit`.
-    var imageContentMode: ContentMode {
+    package var imageContentMode: ContentMode {
         get { self[ImageContentModeKey.self] ?? .fit }
         set { self[ImageContentModeKey.self] = newValue }
     }
@@ -31,14 +31,14 @@ extension EnvironmentValues {
     /// The content mode a modifier set, or `nil` where none did: a resizable
     /// image stretches to its frame unless one did — see
     /// ``Image/resizable(capInsets:resizingMode:)``.
-    var imageExplicitContentMode: ContentMode? {
+    package var imageExplicitContentMode: ContentMode? {
         self[ImageContentModeKey.self]
     }
 
     /// An explicit aspect ratio override for images (width/height).
     ///
     /// When `nil`, the source image's natural aspect ratio is used.
-    var imageAspectRatio: Double? {
+    package var imageAspectRatio: Double? {
         get { self[ImageAspectRatioKey.self] }
         set { self[ImageAspectRatioKey.self] = newValue }
     }

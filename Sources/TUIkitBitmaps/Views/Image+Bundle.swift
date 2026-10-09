@@ -8,6 +8,8 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
+import TUIkitImage
 
 extension Image {
     /// Creates a labeled image that you can use as content for controls —

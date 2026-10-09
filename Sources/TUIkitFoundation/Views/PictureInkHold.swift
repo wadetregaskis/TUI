@@ -31,11 +31,11 @@
 /// current frame's colour exactly from the breath's: that picture takes ``held``
 /// in that one frame's render and its own ink in the others, and re-sends
 /// between them.
-struct PictureInkHold: Equatable, Sendable {
+package struct PictureInkHold: Equatable, Sendable {
     /// The ink this render of the label breathes in.
-    let breath: Color
+    package let breath: Color
     /// The ink a picture keeps instead.
-    let held: Color
+    package let held: Color
 }
 
 private struct PictureInkHoldKey: EnvironmentKey {
@@ -45,7 +45,7 @@ private struct PictureInkHoldKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The hold a breathing label publishes to the pictures in it, or `nil`
     /// outside a breath. See ``PictureInkHold``.
-    var pictureInkHold: PictureInkHold? {
+    package var pictureInkHold: PictureInkHold? {
         get { self[PictureInkHoldKey.self] }
         set { self[PictureInkHoldKey.self] = newValue }
     }

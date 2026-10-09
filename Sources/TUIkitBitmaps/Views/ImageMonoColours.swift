@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+import TUIkitImage
+
 // MARK: - Mono's two colours
 
 /// The ink and paper a ``ASCIIColorMode/mono`` picture is drawn in, derived in
