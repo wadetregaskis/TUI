@@ -4358,7 +4358,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     if dragSession?.consumeReorderCancellation() == true { return true }
                     let releasing = dragSession?.reorderHandler ?? captureHandler
                     if releasing.reorderCancelled {
-                        releasing.reorderCancelled = false
+                        releasing.noteReorderCancelled(false)
                         return true
                     }
 

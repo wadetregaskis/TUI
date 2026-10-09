@@ -375,6 +375,9 @@ anything at run time:
   `FocusManager.currentPaneID` does; move a property observer to the
   storage. Never mark the stored property `package` or `@usableFromInline`:
   either makes it visible outside the module. Struct fields are not affected.
+  A settable property requirement of a `package` protocol hands out its
+  class conformers' stored properties the same way; ask for a method that
+  sets it instead (`PersistedFocusable.repoint(focusID:)`).
 
 ## Code Style
 

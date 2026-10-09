@@ -78,6 +78,9 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// The unique focus identifier for this scroll view.
     public var focusID: String
 
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    package func repoint(focusID: String) { self.focusID = focusID }
+
     /// Whether this scroll view can currently receive focus.
     ///
     /// Disabled scroll views still scroll on wheel input (clicks

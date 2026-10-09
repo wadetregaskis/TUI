@@ -856,6 +856,10 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
 /// whose cursor wraps.
 final class RadioButtonGroupHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var selection: Binding<AnyHashable>
     var itemValues: [AnyHashable]
     /// Mutable because the handler persists across renders while a responsive

@@ -19,6 +19,10 @@ import Foundation
 /// the document again until the app replaces it.
 final class TextEditorHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused: Bool
     var text: Binding<String>
 

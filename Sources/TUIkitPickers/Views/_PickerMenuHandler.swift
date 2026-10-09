@@ -19,6 +19,10 @@ import TUIkitCore
 /// the selection.
 final class _PickerMenuHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var selection: Binding<AnyHashable>
     var itemValues: [AnyHashable]
     var canBeFocused: Bool

@@ -25,6 +25,9 @@ final class SliderHandler<V: BinaryFloatingPoint>: PersistedFocusable where V.St
     /// The unique identifier for this focusable element.
     var focusID: String
 
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     /// The binding to the current value.
     var value: Binding<V>
 

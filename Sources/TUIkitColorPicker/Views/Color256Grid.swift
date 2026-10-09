@@ -174,6 +174,10 @@ enum Palette256Layout {
 /// the gaps between sections.
 final class Color256GridHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused: Bool
 
     /// The cursor's palette index, 0–255.

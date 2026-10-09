@@ -24,6 +24,10 @@ private enum SwatchGridStateIndex {
 /// re-commit the current cell.
 final class SwatchGridHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused: Bool
 
     /// The cursor's index into ``entries``.

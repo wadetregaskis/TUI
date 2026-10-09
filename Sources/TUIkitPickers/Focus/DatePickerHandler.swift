@@ -20,6 +20,10 @@ import Foundation
 /// ``DateFieldModel``.
 final class DatePickerHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused: Bool
     var selection: Binding<Date>
     var model: DateFieldModel

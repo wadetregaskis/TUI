@@ -13,6 +13,10 @@ import TUIkitFoundation
 /// wrapped strip, to the tab nearest above/below the current one's centre.
 final class TabStripHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused: Bool
     var selection: Binding<AnyHashable>
     var values: [AnyHashable]

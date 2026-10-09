@@ -19,8 +19,18 @@ import Foundation
 import TUIkitFoundation
 
 /// The handler *is* the reorder state machine, so the protocol the drag-and-drop
-/// session resolves gestures through needs nothing added.
-extension ItemListHandler: RowReorderHosting {}
+/// session resolves gestures through needs only the writers it asks for in
+/// place of settable requirements.
+extension ItemListHandler: RowReorderHosting {
+    func adoptReorder(_ reorder: RowReorder, isKeyboardMove: Bool) {
+        self.reorder = reorder
+        self.isKeyboardMove = isKeyboardMove
+    }
+
+    func relinquishReorder() { reorder = nil }
+
+    func noteReorderCancelled(_ cancelled: Bool) { reorderCancelled = cancelled }
+}
 
 extension ItemListHandler {
 

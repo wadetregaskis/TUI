@@ -78,6 +78,9 @@ final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, Scrol
     /// The unique identifier for this focusable element.
     var focusID: String
 
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     /// The total number of items in the list.
     ///
     /// Shrinking the count immediately re-bounds ``scrollOffset`` to the last

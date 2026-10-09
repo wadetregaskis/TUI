@@ -73,16 +73,32 @@ package struct RowReorder: Equatable {
 /// selection value. Everything asked here is about rows — offsets and lines —
 /// so none of it needs that parameter.
 package protocol RowReorderHosting: AnyObject {
-    /// The gesture in flight, or `nil`. Settable because a reorder outlives the
-    /// control that started it: see ``DragAndDropSession/registerReorderHost(_:)``.
-    var reorder: RowReorder? { get set }
+    /// The gesture in flight, or `nil`.
+    var reorder: RowReorder? { get }
 
     /// Whether the gesture was started from the keyboard rather than the mouse.
-    var isKeyboardMove: Bool { get set }
+    var isKeyboardMove: Bool { get }
 
     /// Whether a release has already been answered by a cancel, so the release
     /// that follows is the tail of a cancelled gesture rather than a click.
-    var reorderCancelled: Bool { get set }
+    var reorderCancelled: Bool { get }
+
+    // The three are written through the methods below, not settable
+    // requirements: a settable requirement of a protocol other modules see
+    // hands each conformer's stored property to callers the optimiser cannot
+    // see, which keeps a run-time exclusivity check on every access to it
+    // (CONTRIBUTING.md, "Crossing a module boundary").
+
+    /// Takes over `reorder`, the gesture in flight, from the control that
+    /// started it: a reorder outlives that control; see
+    /// ``DragAndDropSession/registerReorderHost(_:)``.
+    func adoptReorder(_ reorder: RowReorder, isKeyboardMove: Bool)
+
+    /// Lets go of the gesture in flight: another control has taken it over.
+    func relinquishReorder()
+
+    /// Sets ``reorderCancelled``.
+    func noteReorderCancelled(_ cancelled: Bool)
 
     /// Whether a gesture has actually become a reorder (the pointer moved).
     var isReordering: Bool { get }

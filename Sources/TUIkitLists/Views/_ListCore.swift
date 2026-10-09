@@ -3451,7 +3451,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     if dragSession?.consumeReorderCancellation() == true { return true }
                     let releasing = dragSession?.reorderHandler ?? captureHandler
                     if releasing.reorderCancelled {
-                        releasing.reorderCancelled = false
+                        releasing.noteReorderCancelled(false)
                         return true
                     }
                     // A reorder drop, if this gesture was one. `.live` has

@@ -149,6 +149,10 @@ extension SplitPaneBounds {
 /// one after it.
 final class _SplitPaneDividerHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused = true
     let axis: Axis
     let index: Int

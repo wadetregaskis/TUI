@@ -176,25 +176,24 @@ package enum FocusRegistration {
     ///
     /// Out of line, and `@usableFromInline` rather than `@inlinable`, for the
     /// `@inlinable` ``register(context:handler:focusID:)`` (module split step A3).
-    /// This is what keeps ``PersistedFocusable`` internal. A settable requirement
-    /// of a protocol usable from inline code hands every conformer's stored
-    /// `focusID` to callers the whole-module optimiser cannot see, so it keeps a
-    /// dynamic exclusivity check (`swift_beginAccess`) in the conformers'
-    /// `focusID` witnesses — the getter the ring reads through ``Focusable``
-    /// included. That was a runtime call per persisted control per frame, in
-    /// every app, inside one module as much as across two. The price of keeping
-    /// it out: a client module makes one call here, around a dynamic cast it
+    /// This is what keeps ``PersistedFocusable`` out of inline code. A settable
+    /// requirement of a protocol other modules can see hands every conformer's
+    /// stored `focusID` to callers the whole-module optimiser cannot see, so it
+    /// keeps a dynamic exclusivity check (`swift_beginAccess`) in the
+    /// conformers' `focusID` witnesses — the getter the ring reads through
+    /// ``Focusable`` included: a runtime call per persisted control per frame,
+    /// in every app. So the protocol asks for a method,
+    /// ``PersistedFocusable/repoint(focusID:)``, since step B4 made it `package`
+    /// (handlers in other modules conform), and this function stays out of line.
+    /// The price: a client module makes one call here, around a dynamic cast it
     /// would make anyway.
     @MainActor
     @usableFromInline
     static func repointPersistedHandler(_ handler: Focusable, to focusID: String) {
-        // `let`, not `var`, and the difference is nothing: ``Focusable`` refines
-        // `AnyObject`, so the binding is a reference and the write lands on the
-        // handler the ring holds. Written `var` it drew a compiler warning that
-        // it was never mutated — which is exactly right, and would be a real bug
-        // rather than a warning if the protocol ever stopped being class-bound.
+        // ``Focusable`` refines `AnyObject`, so the binding is the handler the
+        // ring holds, and `repoint` lands on it.
         if let persisted = handler as? any PersistedFocusable, persisted.focusID != focusID {
-            persisted.focusID = focusID
+            persisted.repoint(focusID: focusID)
         }
     }
 

@@ -69,6 +69,10 @@ struct _GraphicalDatePicker: View {
 /// keeps the month shown.
 final class _DatePickerCalendarHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused = true
     var selection: Binding<Date>
     var range: ClosedRange<Date>?

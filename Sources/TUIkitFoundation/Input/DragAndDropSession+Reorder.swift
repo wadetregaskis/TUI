@@ -79,9 +79,8 @@ extension DragAndDropSession {
             let origin = reorderHandler, origin !== host.handler,
             let carried = origin.reorder
         else { return }
-        host.handler.reorder = carried
-        host.handler.isKeyboardMove = origin.isKeyboardMove
-        origin.reorder = nil
+        host.handler.adoptReorder(carried, isKeyboardMove: origin.isKeyboardMove)
+        origin.relinquishReorder()
         // The gesture's own scrollable is the one thing always allowed to
         // auto-scroll under it (see `canReceiveDrag`); that permission has to
         // follow the rows, or the resumed list refuses to scroll.
@@ -224,7 +223,7 @@ extension DragAndDropSession {
         // consults an object that was never flagged, so the cancelled gesture
         // fell through to the click path anyway.
         reorderCancelledPendingRelease = true
-        reorderHandler?.reorderCancelled = true
+        reorderHandler?.noteReorderCancelled(true)
         reorderFocusID = nil
         reorderHandler = nil
         cancelReturningToOrigin()

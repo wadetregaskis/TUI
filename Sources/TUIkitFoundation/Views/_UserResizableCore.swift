@@ -18,6 +18,10 @@ import TUIkitStyling
 /// screen rather than from a stored wish the layout never honoured.
 final class _UserResizeHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused = true
 
     /// What the user has asked for, or `nil` while the layout's own size stands.

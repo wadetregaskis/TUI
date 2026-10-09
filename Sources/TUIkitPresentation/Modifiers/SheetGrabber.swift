@@ -23,6 +23,10 @@ import TUIkitStyling
 /// the press.
 final class _SheetGrabberHandler: PersistedFocusable {
     var focusID: String
+
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     var canBeFocused = true
 
     /// This frame's detents, which the keys and the pointer move the sheet

@@ -109,6 +109,9 @@ final class TextFieldHandler: PersistedFocusable {
     /// The unique identifier for this focusable element.
     var focusID: String
 
+    /// ``PersistedFocusable``: answers to `focusID` from now on.
+    func repoint(focusID: String) { self.focusID = focusID }
+
     /// The binding to the text content.
     var text: Binding<String>
 

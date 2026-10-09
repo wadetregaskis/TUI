@@ -63,7 +63,7 @@ extension Focusable {
 /// A ``Focusable`` that is kept in `StateStorage` and so outlives the frame
 /// that built it.
 ///
-/// Its ``Focusable/focusID`` is settable for exactly one reason. A control
+/// Its ``Focusable/focusID`` can be repointed for exactly one reason. A control
 /// re-resolves its declared id every frame — `.focusID(_:)` is an ordinary
 /// modifier and its argument may be computed from state — while a persisted
 /// handler is built ONCE, inside a `storage(for:default:)` autoclosure, from
@@ -75,12 +75,21 @@ extension Focusable {
 /// Handlers rebuilt every frame (``ActionHandler``) already agree with the
 /// declaration by construction, and deliberately do not conform.
 ///
-/// `package`, since TUIkitColorPicker's grid handlers conform to it (module split
-/// step B4), and NOT `@usableFromInline` (step A3): the `@inlinable`
+/// `package`, since handlers in other modules conform to it (TUIkitColorPicker's
+/// grids since module split step B4, and TUIkitNavigation's and TUIkitLists'),
+/// and NOT `@usableFromInline` (step A3): the `@inlinable`
 /// `FocusRegistration.register(context:handler:focusID:)` reaches it only through
 /// the out-of-line `FocusRegistration.repointPersistedHandler(_:to:)`, which says why.
+///
+/// A method, not a settable `focusID` requirement: a settable requirement of a
+/// protocol other modules can see hands every conformer's stored `focusID` to
+/// callers the whole-module optimiser cannot see, which keeps a run-time
+/// exclusivity check in each conformer's `focusID` witnesses, the getter the
+/// ring reads every frame included (CONTRIBUTING.md, "Crossing a module
+/// boundary"). A method writes the property inside the conformer's own module.
 package protocol PersistedFocusable: Focusable {
-    var focusID: String { get set }
+    /// Answers to `focusID` from now on: the id the control declares this frame.
+    func repoint(focusID: String)
 }
 
 /// A control whose focus shows only in what it draws ITSELF, never in the
