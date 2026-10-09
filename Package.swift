@@ -249,8 +249,10 @@ let package = Package(
         // it and re-export it. TUIkitEffects is the transitions, content transitions, `.symbolEffect`,
         // `.visualEffect`, `.scrollTransition` and the colour effects; `TimelineView` and the symbol glyph's
         // effect, which `Label` and `ProgressView` draw, stay. TUIkitMenus is `Menu`, `ControlGroup`,
-        // `.contextMenu`, `.menuStyle` and the menu styles, the popup and inline menu cores; the menu engine,
-        // `ContextMenuState`, the menu-row sink and `MenuStyle` stay, so no leaf depends on it. Nothing in
+        // `.contextMenu`, `.menuStyle` and the menu styles, and the popup menu's core; the menu engine,
+        // `ContextMenuState`, the menu-row sink and `MenuStyle` stay, so no leaf depends on it, and so do the
+        // inline menu's core and the column it lays out, whose `bordered` and `foregroundStyle` results name
+        // types only TUIkitFoundation can see (CONTRIBUTING.md, "Crossing a module boundary"). Nothing in
         // TUIkitFoundation may use any of the three (Tools/ModuleMap's upward check), so the umbrella re-exports
         // each. Each re-exports TUIkitFoundation (its Exports.swift).
         .target(

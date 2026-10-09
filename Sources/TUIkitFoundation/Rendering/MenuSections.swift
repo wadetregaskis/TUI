@@ -29,16 +29,10 @@ import TUIkitView
 /// footer's views, and a separator. A separator at either end, or beside
 /// another (one the app wrote too), is dropped. Every other item is handed
 /// over as it was, at the identity it had.
-package struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildViewProvider {
+struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildViewProvider {
     let items: Items
 
-    /// The memberwise initializer, spelled out because the synthesized one is internal and the menu
-    /// column (TUIkitMenus) makes these.
-    package init(items: Items) {
-        self.items = items
-    }
-
-    package var body: Never {
+    var body: Never {
         fatalError("_MenuSectionedItems renders via Renderable")
     }
 
@@ -53,7 +47,7 @@ package struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, C
         case sectionEdge(ChildView)
     }
 
-    package func childViews(context: RenderContext) -> [ChildView] {
+    func childViews(context: RenderContext) -> [ChildView] {
         // The type says whether a section can be among the items at all, so
         // a menu of buttons resolves them exactly as it always did.
         guard mayHandOver(.section, in: items) else { return resolveChildViews(from: items, context: context) }
@@ -112,11 +106,11 @@ package struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, C
         return rows
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderStackedVertically(childViews(context: context), context: context)
     }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
 }

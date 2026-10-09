@@ -151,7 +151,7 @@ extension EnvironmentValues {
     /// deliberately absent for an inline menu, this is the plain question "is
     /// the thing around me a menu". A `Button` reads it to say what Return does
     /// here: choosing from a menu rather than activating a button on the page.
-    package var isInsideMenu: Bool {
+    var isInsideMenu: Bool {
         get { self[IsInsideMenuKey.self] }
         set { self[IsInsideMenuKey.self] = newValue }
     }

@@ -118,7 +118,7 @@ extension View {
     /// type says they are one view — so a bordered view counts as one child
     /// from its type, as the view it borders does.
     @ViewBuilder
-    package func bordered(style: BorderStyle?, colour: AnimatedColor?, width: Int) -> some View {
+    func bordered(style: BorderStyle?, colour: AnimatedColor?, width: Int) -> some View {
         if width <= 0 {
             self
         } else {

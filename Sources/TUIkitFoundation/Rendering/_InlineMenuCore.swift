@@ -5,7 +5,6 @@
 //  License: MIT
 
 import TUIkitCore
-import TUIkitFoundation
 
 /// The body of ``InlineMenuStyle``: the menu's label as a heading, a rule, and
 /// the items expanded beneath it, all in the same bordered column a floating
@@ -16,11 +15,26 @@ import TUIkitFoundation
 /// that width is only known after the column has been measured hugging its
 /// content. ``renderMenuColumn(_:context:capHeight:)`` does exactly that, and
 /// is shared with the floating presentations so every menu sits on one grid.
-struct _InlineMenuCore: View, Renderable, Layoutable {
+///
+/// `package`, and in TUIkitFoundation rather than beside ``InlineMenuStyle``
+/// in TUIkitMenus, so that the column it builds is compiled where every type
+/// in it is concrete: `bordered`'s and `foregroundStyle`'s results name
+/// internal types (`_BorderRings`, `_StyleEnvironmentView`), which another
+/// module could only look up at run time, on every call, and `bordered` is a
+/// generic another module could only call unspecialised (CONTRIBUTING.md,
+/// "Crossing a module boundary").
+package struct _InlineMenuCore: View, Renderable, Layoutable {
     let label: MenuStyleConfiguration.Label
     let content: MenuStyleConfiguration.Content
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and ``InlineMenuStyle`` (TUIkitMenus) makes these.
+    package init(label: MenuStyleConfiguration.Label, content: MenuStyleConfiguration.Content) {
+        self.label = label
+        self.content = content
+    }
+
+    package var body: Never {
         fatalError("_InlineMenuCore renders via Renderable")
     }
 
@@ -33,7 +47,7 @@ struct _InlineMenuCore: View, Renderable, Layoutable {
     /// It used to be one render, discarded. That is the difference between four
     /// walks of a menu's tree per frame and three: the parent stack measures
     /// this view before it renders it, and both used to draw the whole column.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         var measureContext = context
         measureContext.isMeasuring = true
         // The same preparation `measureFixedByRendering` did before rendering:
@@ -49,7 +63,7 @@ struct _InlineMenuCore: View, Renderable, Layoutable {
             column, context: measureContext, capHeight: measureContext.availableHeight)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Capped at the height it was offered: a menu with more items than the
         // terminal has rows scrolls inside its border rather than running off
         // the bottom, and the focus reveal keeps the focused item in view as
