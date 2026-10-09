@@ -143,8 +143,9 @@ struct CompositeMembersTests {
     func stacks() {
         #expect(lines(HStack(spacing: 1) { Pair(tag: "r"); Text("c") }).first == "ra rb c")
         #expect(lines(HStack(spacing: 1) { Loop() }).first == "l0 l1 l2")
-        #expect(Array(lines(VStack(alignment: .leading, spacing: 1) { Pair(tag: "r"); Text("c") }).prefix(5))
-            == ["ra", "", "rb", "", "c"])
+        let stacked = VStack(alignment: .leading, spacing: 1) { Pair(tag: "r"); Text("c") }
+        let stackedLines: [String] = Array(lines(stacked).prefix(5))
+        #expect(stackedLines == ["ra", "", "rb", "", "c"])
     }
 
     @Test("A List draws each of a body's views as a row")

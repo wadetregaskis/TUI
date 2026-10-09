@@ -189,7 +189,8 @@ struct GradientEditorPanelMutationTests {
     func recentsMigrateByBeingRead() {
         let decoded = Panel.decodeRecents("FF0000,00FF00,0000FF;112233,445566")
         #expect(decoded.count == 2)
-        #expect(colours(decoded[0]) == [.rgb(255, 0, 0), .rgb(0, 255, 0), .rgb(0, 0, 255)])
+        let primaries: [Color] = [.rgb(255, 0, 0), .rgb(0, 255, 0), .rgb(0, 0, 255)]
+        #expect(colours(decoded[0]) == primaries)
         #expect(locations(decoded[0]) == [0, 0.5, 1], "even spacing is what the old format meant")
         #expect(locations(decoded[1]) == [0, 1])
     }
@@ -407,28 +408,22 @@ struct GradientEditorPanelRenderTests {
         // Re-render between events, exactly like the live loop (consumed
         // events request a render); the drag's coordinates stay anchored to
         // the pressed chip's original region (press capture) throughout.
+        let redSecond: [Color] = [.rgb(0, 255, 0), .rgb(255, 0, 0), .rgb(0, 0, 255)]
+        let redLast: [Color] = [.rgb(0, 255, 0), .rgb(0, 0, 255), .rgb(255, 0, 0)]
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: columns[0] + 1, y: y))
         (y, columns) = renderFrame()
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: columns[1] + 1, y: y))
-        #expect(
-            ramp.stops.map(\.color) == [.rgb(0, 255, 0), .rgb(255, 0, 0), .rgb(0, 0, 255)],
-            "reaching slot 2 moves the stop immediately, mid-drag")
+        #expect(ramp.stops.map(\.color) == redSecond, "reaching slot 2 moves the stop immediately, mid-drag")
         (y, columns) = renderFrame()
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: columns[2] + 1, y: y))
-        #expect(
-            ramp.stops.map(\.color) == [.rgb(0, 255, 0), .rgb(0, 0, 255), .rgb(255, 0, 0)],
-            "following the cursor to slot 3, still mid-drag")
+        #expect(ramp.stops.map(\.color) == redLast, "following the cursor to slot 3, still mid-drag")
         (y, columns) = renderFrame()
         // Dragging far PAST the strip's right edge holds the end slot, and
         // a wild Y is clamped to the (single) row — tolerance by design.
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: columns[2] + 30, y: y + 7))
-        #expect(
-            ramp.stops.map(\.color) == [.rgb(0, 255, 0), .rgb(0, 0, 255), .rgb(255, 0, 0)],
-            "end slot held")
+        #expect(ramp.stops.map(\.color) == redLast, "end slot held")
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: columns[2] + 1, y: y))
-        #expect(
-            ramp.stops.map(\.color) == [.rgb(0, 255, 0), .rgb(0, 0, 255), .rgb(255, 0, 0)],
-            "release keeps the live order")
+        #expect(ramp.stops.map(\.color) == redLast, "release keeps the live order")
 
         // The selection followed the dragged stop to the end.
         (y, columns) = renderFrame()

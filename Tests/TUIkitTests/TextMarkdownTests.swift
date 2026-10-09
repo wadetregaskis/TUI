@@ -121,10 +121,14 @@ struct TextMarkdownTests {
     @Test("A value takes the style of where it stands")
     func valueTakesItsPlacesStyle() {
         let count = 3
-        #expect(runs(Text("Saved **\(count)** files")) == ["Saved ", "3|b", " files"])
+        let saved = Text("Saved **\(count)** files")
+        let savedRuns: [String] = ["Saved ", "3|b", " files"]
+        #expect(runs(saved) == savedRuns)
         // Even a value whose spaces would stop `** x **` being strong.
         let spaced = " x "
-        #expect(runs(Text("**\(spaced)**")) == [" x |b"])
+        let strong = Text("**\(spaced)**")
+        let strongRuns: [String] = [" x |b"]
+        #expect(runs(strong) == strongRuns)
     }
 
     @Test("A value is drawn as written, never parsed")
@@ -145,7 +149,9 @@ struct TextMarkdownTests {
     @Test("A value can complete a link's destination")
     func valueInDestination() {
         let id = 42
-        #expect(runs(Text("[ticket](https://example.com/t/\(id))")) == ["ticket|→https://example.com/t/42"])
+        let link = Text("[ticket](https://example.com/t/\(id))")
+        let linkRuns: [String] = ["ticket|→https://example.com/t/42"]
+        #expect(runs(link) == linkRuns)
     }
 
     @Test("Percent signs read as they do without Markdown")
@@ -184,10 +190,14 @@ struct TextMarkdownTests {
     @Test("One template's kept parse takes each build's own values")
     func keptParseTakesEachValue() {
         for (name, status) in [("ann", "ok"), ("bo", "failed"), ("*c*", "`x`")] {
-            #expect(runs(Text("**\(name)** in `\(status)`")) == ["\(name)|b", " in \(status)"])
+            let text = Text("**\(name)** in `\(status)`")
+            let expected: [String] = ["\(name)|b", " in \(status)"]
+            #expect(runs(text) == expected)
         }
         for id in [42, 7] {
-            #expect(runs(Text("[ticket](https://example.com/t/\(id))")) == ["ticket|→https://example.com/t/\(id)"])
+            let link = Text("[ticket](https://example.com/t/\(id))")
+            let expected: [String] = ["ticket|→https://example.com/t/\(id)"]
+            #expect(runs(link) == expected)
         }
     }
 
@@ -197,7 +207,9 @@ struct TextMarkdownTests {
         let due = Date(timeIntervalSinceNow: 7200)
         #expect(Text("Due **\(due, style: .relative)**").runs?.last?.live != nil)
         let name = "Friday"
-        #expect(runs(Text("Due **\(name)**")) == ["Due ", "Friday|b"])
+        let named = Text("Due **\(name)**")
+        let namedRuns: [String] = ["Due ", "Friday|b"]
+        #expect(runs(named) == namedRuns)
         #expect(Text("Due **\(due, style: .relative)**").runs?.last?.live != nil)
     }
 

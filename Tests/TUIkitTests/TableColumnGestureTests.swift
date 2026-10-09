@@ -195,6 +195,12 @@ private final class Harness {
     }
 }
 
+/// The header orders the tests expect, typed once: an array literal inside each `#expect`, beside its
+/// interpolated message, made each of those lines cost about 50 ms to type-check (lane TC2).
+private let alphabetical: [String] = ["Alpha", "Beta", "Gamma", "Delta"]
+private let betaFirst: [String] = ["Beta", "Alpha", "Gamma", "Delta"]
+private let alphaHidden: [String] = ["Beta", "Gamma", "Delta"]
+
 @MainActor
 @Suite("Column customization gestures")
 struct TableColumnGestureTests {
@@ -236,14 +242,14 @@ struct TableColumnGestureTests {
         let alpha = try #require(harness.column(of: "Alpha", on: y))
         let beta = try #require(harness.column(of: "Beta", on: y))
         harness.drag(from: (alpha + 1, y), toX: beta + 6)
-        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == betaFirst, "\(harness.screen)")
         #expect(harness.columns.sortOrder == [KeyPathComparator(\Entry.alpha)], "a drag must not sort")
         let encoded = String(bytes: try JSONEncoder().encode(harness.columns.customization), encoding: .utf8) ?? ""
         #expect(encoded.contains("\"order\""), "\(encoded)")
         // Gamma may not move: a drag over it moves nothing.
         let gamma = try #require(harness.column(of: "Gamma", on: y))
         harness.drag(from: (gamma + 1, y), toX: gamma - 6)
-        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == betaFirst, "\(harness.screen)")
     }
 
     @Test("A click on a title still sorts")
@@ -295,7 +301,7 @@ struct TableColumnGestureTests {
         let beta = try #require(harness.column(of: "Beta", on: y))
         harness.key(KeyEvent(key: .character("k"), ctrl: true))
         harness.key(KeyEvent(key: .character(">")))
-        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == betaFirst, "\(harness.screen)")
         harness.key(KeyEvent(key: .character("+")))
         harness.key(KeyEvent(key: .character("+")))
         let alphaWidth = try #require(harness.columns.customization[width: "alpha"])
@@ -313,11 +319,11 @@ struct TableColumnGestureTests {
         #expect(harness.shows("stop editing columns"), "\(harness.screen)")
         harness.key(KeyEvent(key: .left))
         harness.key(KeyEvent(key: .character("<")))
-        #expect(harness.headerOrder == ["Alpha", "Beta", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == alphabetical, "\(harness.screen)")
         // Escape lets the column go: ">" moves nothing now.
         harness.key(KeyEvent(key: .escape))
         harness.key(KeyEvent(key: .character(">")))
-        #expect(harness.headerOrder == ["Alpha", "Beta", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == alphabetical, "\(harness.screen)")
         _ = beta
     }
 
@@ -340,7 +346,7 @@ struct TableColumnGestureTests {
         #expect(harness.columns.selection == [2], "Escape went on to the rows and cleared the selection")
         // And the mode is off: `>` moves nothing.
         harness.key(KeyEvent(key: .character(">")))
-        #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == alphaHidden, "\(harness.screen)")
     }
 
     // MARK: A batch of input between two frames
@@ -358,7 +364,7 @@ struct TableColumnGestureTests {
         harness.app.send(MouseEvent(button: .left, phase: .dragged, x: beta + 7, y: y))
         harness.frame()
         harness.send(MouseEvent(button: .left, phase: .released, x: beta + 7, y: y))
-        #expect(harness.headerOrder == ["Beta", "Alpha", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == betaFirst, "\(harness.screen)")
     }
 
     @Test("Column keys in one batch each act on what the one before left")
@@ -369,7 +375,7 @@ struct TableColumnGestureTests {
         harness.app.send(KeyEvent(key: .character(">")))
         harness.app.send(KeyEvent(key: .character("<")))
         harness.frame()
-        #expect(harness.headerOrder == ["Alpha", "Beta", "Gamma", "Delta"], "\(harness.screen)")
+        #expect(harness.headerOrder == alphabetical, "\(harness.screen)")
         // `+` twice: two cells wider.
         let y = try #require(harness.headerY)
         let width = try #require(harness.column(of: "Beta", on: y)) - 2
@@ -394,7 +400,7 @@ struct TableColumnGestureTests {
         #expect(!harness.shows("Hide “"), "Return opened a menu on a column the user had not seen picked")
         #expect(harness.columns.selection == [2], "a column key went on to the rows")
         harness.key(KeyEvent(key: .character(">")))
-        #expect(harness.headerOrder == ["Beta", "Gamma", "Delta"], "the mode outlived Escape:\n\(harness.screen)")
+        #expect(harness.headerOrder == alphaHidden, "the mode outlived Escape:\n\(harness.screen)")
     }
 
     @Test(

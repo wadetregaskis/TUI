@@ -70,7 +70,8 @@ struct TerminalExchangeTests {
         let placement = "\u{1B}_Gi=\(TerminalGraphicsQuery.probeID);OK\u{1B}\\"
         let compression = "\u{1B}_Gi=\(TerminalGraphicsQuery.compressionProbeID);OK\u{1B}\\"
         let (terminal, script) = makeTerminal(reads: [placement, compression + Self.fence])
-        #expect(terminal.askGraphicsSupport(timeout: 5) == .init(placement: true, compression: true))
+        let both = TerminalGraphicsQuery.Answers(placement: true, compression: true)
+        #expect(terminal.askGraphicsSupport(timeout: 5) == both)
         #expect(script.requests == [TerminalGraphicsQuery.request])
     }
 

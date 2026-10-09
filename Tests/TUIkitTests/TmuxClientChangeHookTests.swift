@@ -31,14 +31,14 @@ struct TmuxClientChangeHookTests {
 
         // One set-hook per hook, ';'-separated into a single tmux invocation
         // (one fork registers everything).
-        #expect(arguments.filter { $0 == "set-hook" }.count == 3)
-        #expect(arguments.filter { $0 == ";" }.count == 2)
+        #expect(count(of: "set-hook", in: arguments) == 3)
+        #expect(count(of: ";", in: arguments) == 2)
 
         // GLOBAL, never session-scoped: a session-scoped hook shadows the
         // user's entire global array for that hook name (measured), silently
         // disabling their config while the app runs. Global hooks at distinct
         // indices coexist with theirs.
-        #expect(arguments.filter { $0 == "-g" }.count == 3)
+        #expect(count(of: "-g", in: arguments) == 3)
         #expect(!arguments.contains("-t"))
 
         // PID-indexed, so several TUIkit apps on one server can't collide.
@@ -71,7 +71,7 @@ struct TmuxClientChangeHookTests {
     @Test("Unhooking removes exactly our indices, nothing of the user's")
     func unhookShape() {
         let arguments = TerminalHost.tmuxClientChangeUnhookArguments(pid: 12345)
-        #expect(arguments.filter { $0 == "-gu" }.count == 3)
+        #expect(count(of: "-gu", in: arguments) == 3)
         for hook in TerminalHost.tmuxClientChangeHooks {
             #expect(arguments.contains("\(hook)[12345]"))
         }
@@ -118,14 +118,14 @@ struct TmuxThemeChangeHookTests {
     func hookRegistrationShape() {
         let arguments = TerminalHost.tmuxThemeChangeHookArguments(pid: 12345)
 
-        #expect(arguments.filter { $0 == "set-hook" }.count == 2)
-        #expect(arguments.filter { $0 == ";" }.count == 1)
+        #expect(count(of: "set-hook", in: arguments) == 2)
+        #expect(count(of: ";", in: arguments) == 1)
 
         // Global at a PID index, for the reasons the client-change hooks give:
         // a session-scoped hook shadows the user's whole global array for that
         // name, and the index keeps several TUIkit apps out of each other's
         // slots.
-        #expect(arguments.filter { $0 == "-g" }.count == 2)
+        #expect(count(of: "-g", in: arguments) == 2)
         #expect(!arguments.contains("-t"))
         for hook in TerminalHost.tmuxThemeChangeHooks {
             #expect(arguments.contains("\(hook)[12345]"), "\(hook) must be registered")
@@ -164,7 +164,7 @@ struct TmuxThemeChangeHookTests {
     @Test("Unhooking removes exactly our indices, nothing of the user's")
     func unhookShape() {
         let arguments = TerminalHost.tmuxThemeChangeUnhookArguments(pid: 12345)
-        #expect(arguments.filter { $0 == "-gu" }.count == 2)
+        #expect(count(of: "-gu", in: arguments) == 2)
         for hook in TerminalHost.tmuxThemeChangeHooks {
             #expect(arguments.contains("\(hook)[12345]"))
             #expect(!arguments.contains(hook), "must unset our index, not the whole \(hook) array")
@@ -186,4 +186,10 @@ struct TmuxThemeChangeHookTests {
         TerminalHost.installTmuxHooks()  // must not trap or fork
         TerminalHost.removeTmuxHooks()
     }
+}
+
+/// How many times `word` appears among `arguments`. A helper rather than a `filter` closure inside each `#expect`:
+/// the closure, type-checked inside the macro's expansion, made each of those lines cost 50–60 ms (lane TC2).
+private func count(of word: String, in arguments: [String]) -> Int {
+    arguments.filter { $0 == word }.count
 }

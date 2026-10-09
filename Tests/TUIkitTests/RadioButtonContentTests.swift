@@ -172,6 +172,7 @@ struct RadioButtonContentTests {
         }
         _ = renderToBuffer(plain, context: context)
         let lines = renderToBuffer(plain, context: context).lines.map(\.stripped)
-        #expect(lines == ["\(unselected) Alpha", "\(selected) Bravo"])
+        let expected: [String] = ["\(unselected) Alpha", "\(selected) Bravo"]
+        #expect(lines == expected)
     }
 }

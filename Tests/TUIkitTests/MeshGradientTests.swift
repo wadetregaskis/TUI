@@ -122,7 +122,8 @@ struct MeshGradientValueTests {
             resolvedColors: [Color.Resolved(red: 1, green: 0, blue: 0), .init(red: 0, green: 1, blue: 0),
                              .init(red: 0, green: 0, blue: 1), .init(red: 1, green: 1, blue: 1)])
         let paint = try #require(meshPaint(mesh))
-        #expect(paint.colors == [.rgb(255, 0, 0), .rgb(0, 255, 0), .rgb(0, 0, 255), .rgb(255, 255, 255)])
+        let painted: [Color] = [.rgb(255, 0, 0), .rgb(0, 255, 0), .rgb(0, 0, 255), .rgb(255, 255, 255)]
+        #expect(paint.colors == painted)
     }
 }
 

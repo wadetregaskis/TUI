@@ -179,7 +179,8 @@ struct TableColumnContentTests {
         #expect(model.primaryOrder(columns[0].sortComparator!) == nil)
         // A click on Name makes it primary, ascending, with Size behind it.
         model.toggle(columns[0].sortComparator!)
-        #expect(order == [SortDescriptor(\Row.name), SortDescriptor(\Row.size)])
+        let nameThenSize = [SortDescriptor(\Row.name), SortDescriptor(\Row.size)]
+        #expect(order == nameThenSize)
         // A second click reverses it.
         model.toggle(columns[0].sortComparator!)
         #expect(order.first?.order == .reverse)
