@@ -711,7 +711,8 @@ jobs:
   # until then, has a step of its own since B3 (see "Build TUIkitFoundation"),
   # and so have TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
   # TUIkitNavigation, TUIkitLists, TUIkitTextInput and TUIkitColorPicker, the
-  # leaves steps B5b, B5c, B5, B6, B7 and B4 carved out of it.
+  # leaves steps B5b, B5c, B5, B6, B7 and B4 carved out of it, and
+  # TUIkitPresentation, which step C1 peeled out of TUIkitNavigation.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -837,23 +838,25 @@ jobs:
       # alone: TUIkitChrome (the status bar view, toolbars, notifications,
       # tooltips, the window chrome host), TUIkitEffects (transitions, visual,
       # scroll and colour effects) and TUIkitMenus (Menu, ControlGroup,
-      # .contextMenu). They come first: TUIkitNavigation depends on
+      # .contextMenu). They come first: TUIkitPresentation depends on
       # TUIkitChrome. Step B5c's leaf, TUIkitBitmaps (Image's bitmap path,
       # AsyncImage, the image options), built on TUIkitFoundation and
       # TUIkitImage (which TUIkitFoundation no longer needs since B5c), comes
       # after them. Step B5's leaf, TUIkitNavigation, built on
-      # TUIkitFoundation and TUIkitChrome: the navigation containers, and the
-      # presentations, whose directory it compiles too until step C1. Step
-      # B6's leaf, TUIkitLists, built on TUIkitFoundation: lists, and the
-      # tables, tabs and grids, whose directories it compiles too until steps
-      # C2 to C4. Step B7's leaf, TUIkitTextInput, built on TUIkitFoundation:
-      # the text inputs, and the pickers, forms, search and numeric controls,
-      # whose directories it compiles too until steps C5 to C8. Step B4's
-      # leaf, TUIkitColorPicker, built on TUIkitFoundation, TUIkitImage and
-      # the last three, so it comes last. None imports Darwin, Glibc or Musl
-      # or calls a termios, ioctl, signal or DispatchSource API (checked by
-      # grep, 2026-10-08 and, for B5b's three, TUIkitBitmaps and
-      # TUIkitTextInput, 2026-10-09). Two have an `#if`, none around a
+      # TUIkitFoundation: the navigation containers. Step C1's,
+      # TUIkitPresentation, which it peeled out of TUIkitNavigation, built on
+      # TUIkitFoundation and TUIkitChrome: the presentations. Step B6's leaf,
+      # TUIkitLists, built on TUIkitFoundation: lists, and the tables, tabs
+      # and grids, whose directories it compiles too until steps C2 to C4.
+      # Step B7's leaf, TUIkitTextInput, built on TUIkitFoundation: the text
+      # inputs, and the pickers, forms, search and numeric controls, whose
+      # directories it compiles too until steps C5 to C8. Step B4's leaf,
+      # TUIkitColorPicker, built on TUIkitFoundation, TUIkitImage,
+      # TUIkitPresentation, TUIkitLists and TUIkitTextInput, so it comes last.
+      # None imports Darwin, Glibc or Musl or calls a termios, ioctl, signal
+      # or DispatchSource API (checked by grep, 2026-10-08 and, for B5b's
+      # three, TUIkitBitmaps, TUIkitTextInput, TUIkitNavigation and
+      # TUIkitPresentation, 2026-10-09). Two have an `#if`, none around a
       # POSIX call: TUIkitEffects one, `canImport(Symbols)` around the
       # `.symbolEffect` modifiers that take Apple's Symbols types (absent off
       # macOS, as on Linux), and TUIkitLists three, on two conditions,
@@ -887,6 +890,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitNavigation"
+
+      - name: "Build TUIkitPresentation"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitPresentation"
 
       - name: "Build TUIkitLists"
         continue-on-error: true
@@ -1040,6 +1048,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitNavigation
+      - name: "Build TUIkitPresentation"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitPresentation
       - name: "Build TUIkitLists"
         continue-on-error: true
         timeout-minutes: 30
