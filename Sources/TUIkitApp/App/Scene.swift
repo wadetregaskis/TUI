@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The base protocol for scenes in TUIkit.
 ///
 /// A scene represents a distinct region of the app's user interface,

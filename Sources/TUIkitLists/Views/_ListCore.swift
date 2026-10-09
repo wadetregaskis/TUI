@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 // `_ListCore` is a single cohesive render core (the windowed row source, the
 // list core, and the content view that draws it) whose pieces are tightly

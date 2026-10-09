@@ -11,6 +11,7 @@
 
 import Foundation
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 // MARK: - The app's setting

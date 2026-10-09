@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - The terminal's size and cell geometry, each frame
 
 /// Separate from `RenderLoop.swift` because that file is at its length limit,

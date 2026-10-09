@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // `Tab`, `TabSection` and the `TabContent` they are written in live in
 // `Tab.swift`, `TabSection.swift` and `TabContent.swift`; the style protocol
 // and its built-in styles in `Styles/TabViewStyle.swift`.

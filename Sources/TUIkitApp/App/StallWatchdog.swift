@@ -9,6 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // Threads, `poll` and a pipe are POSIX; wasip1 has no driver to hand the key
 // back to.
 #if !canImport(WASILibc)

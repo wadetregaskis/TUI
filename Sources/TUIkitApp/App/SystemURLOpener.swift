@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// This machine's URL opener — `open` on macOS, `xdg-open` on Linux — behind
 /// the substrate's ``URLOpenerBackend``: what the app's run loop installs into

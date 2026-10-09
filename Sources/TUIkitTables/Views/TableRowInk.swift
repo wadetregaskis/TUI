@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
 import TUIkitStyling
 
 /// Writes one line of a table row's ink: the selection mark in its colour, then

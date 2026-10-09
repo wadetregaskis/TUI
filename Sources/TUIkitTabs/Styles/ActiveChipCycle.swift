@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The active tab chip's LABEL colour, as a whole cycle. When the strip is
 /// focused the label breathes toward the accent so the active tab is easy to
 /// find on a busy screen; otherwise it rests at a quiet, readable tone. The

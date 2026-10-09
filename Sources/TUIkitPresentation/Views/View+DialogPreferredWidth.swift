@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension View {
     /// Sets the width a dialog prefers for its body before it will use more of
     /// the screen.

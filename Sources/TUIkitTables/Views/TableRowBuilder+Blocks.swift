@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // SwiftUI's builder spells out every arity to ten, and each arity's result
 // carries a tuple of that many row types — so the longest signatures here
 // have ten parameters and a ten-member tuple by design.

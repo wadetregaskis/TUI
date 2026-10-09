@@ -9,6 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Whether the driver keeps the quit key
 
 /// Which of the chords the user's quit key's byte could be the app declares a

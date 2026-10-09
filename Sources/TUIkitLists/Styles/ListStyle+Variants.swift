@@ -12,6 +12,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Bordered
 
 /// The list style that describes the behavior and appearance of a list with

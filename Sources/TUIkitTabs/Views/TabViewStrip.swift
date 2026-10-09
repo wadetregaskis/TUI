@@ -9,6 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension _TabViewCore {
 
     /// Lays out the wrapped, aligned compact chip rows. Returns the lines (each

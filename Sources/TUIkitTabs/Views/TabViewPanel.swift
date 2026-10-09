@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension _TabViewCore {
 
     /// One row of a tab's panel: a line of the selected tab's content, `leftPad`

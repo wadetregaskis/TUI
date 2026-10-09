@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Focus handler
 
 /// Switches the active tab with the arrow keys when the strip is focused:

@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A button that toggles the environment's edit mode. Mirrors SwiftUI's
 /// `EditButton`.
 ///

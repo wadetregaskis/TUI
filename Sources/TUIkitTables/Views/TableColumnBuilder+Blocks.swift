@@ -6,6 +6,7 @@
 
 // `SortComparator` is Foundation's.
 import Foundation
+import TUIkitFoundation
 
 // SwiftUI's builder spells out every arity to ten as a pair of overloads, and
 // each arity's result carries a tuple of that many column types — so the

@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Window Toolbar Style
 
 /// A specification for the appearance and behavior of a window's toolbar —

@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A modifier that presents an alert dialog when a binding is true.
 ///
 /// This modifier mirrors SwiftUI's `.alert(isPresented:)` API. When `isPresented`

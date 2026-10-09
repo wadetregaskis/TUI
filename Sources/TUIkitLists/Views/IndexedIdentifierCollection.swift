@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A collection of the positions of another collection, each with the
 /// identity of the element at it.
 ///

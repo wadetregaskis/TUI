@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - TableRowHeights
 
 /// How a ``Table``'s rows are given their heights.

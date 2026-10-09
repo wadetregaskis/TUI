@@ -6,6 +6,7 @@
 
 import DequeModule
 import Foundation
+import TUIkitFoundation
 
 // MARK: - Turning bytes from stdin into events
 

@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - NavigationSplitViewVisibility
 
 /// The visibility of the leading columns in a navigation split view.

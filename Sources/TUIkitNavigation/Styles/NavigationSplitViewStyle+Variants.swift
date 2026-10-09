@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// What a ``NavigationSplitView``'s body is: the columns, drawn through the
 /// style in the environment.
 struct _NavigationSplitViewStyleHost<Columns: View>: View {

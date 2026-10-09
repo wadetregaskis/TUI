@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The run loop's frame pacing: whether a frame is due now, and how long the
 /// loop may sleep before the next one.
 ///

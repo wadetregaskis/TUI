@@ -7,6 +7,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 extension ModalPresentationModifier {
     /// The context the presented content renders in.
     func presentedContext(

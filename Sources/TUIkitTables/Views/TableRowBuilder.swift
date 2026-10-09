@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Table Row Builder
 
 /// A result builder that creates table row content from closures.

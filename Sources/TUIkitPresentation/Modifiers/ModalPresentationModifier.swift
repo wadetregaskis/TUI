@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A modifier that presents content as a centered modal overlay when a binding is true.
 ///
 /// This is a generic presentation modifier that dims the base content and shows

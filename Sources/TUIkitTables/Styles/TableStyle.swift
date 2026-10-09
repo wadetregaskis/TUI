@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - TableStyle
 
 /// A type that applies a custom appearance to all tables within a view.

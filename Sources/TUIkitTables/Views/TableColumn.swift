@@ -8,6 +8,7 @@
 // modern-Foundation generation as the `FormatStyle` `Text(_:format:)` already
 // depends on, and present on every platform TUIkit builds for.
 import Foundation
+import TUIkitFoundation
 
 // MARK: - Table Column
 

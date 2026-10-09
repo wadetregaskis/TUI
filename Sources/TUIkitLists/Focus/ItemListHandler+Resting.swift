@@ -6,6 +6,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension ItemListHandler {
 
     /// Snaps the viewport off a resting offset of 1, where an "▲ 1 more row

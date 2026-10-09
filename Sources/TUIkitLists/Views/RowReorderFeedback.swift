@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Feedback Mode
 
 /// What a `List` shows while a row is being dragged to a new position.

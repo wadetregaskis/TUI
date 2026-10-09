@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // SwiftUI's builder spells out every arity to ten; so do these, and the
 // longest signatures have ten parameters by design.
 // swiftlint:disable function_parameter_count

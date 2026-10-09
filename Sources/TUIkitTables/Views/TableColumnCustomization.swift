@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - TableColumnCustomization
 
 /// A representation of the state of the columns in a table.

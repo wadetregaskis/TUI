@@ -6,6 +6,7 @@
 
 // `SortComparator` is Foundation's.
 import Foundation
+import TUIkitFoundation
 
 // MARK: - Table Column Builder
 

@@ -13,6 +13,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 extension ItemListHandler {

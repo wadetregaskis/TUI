@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - TabViewStyle
 
 /// A specification for the appearance and interaction of a ``TabView``.

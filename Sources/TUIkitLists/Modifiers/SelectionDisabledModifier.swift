@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A modifier that disables selection for a view within a List.
 ///
 /// When applied to a list row, `.selectionDisabled()` refuses to let that row

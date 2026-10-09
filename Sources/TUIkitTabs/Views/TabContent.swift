@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - TabContent
 
 /// A type that provides content for programmatically selectable tabs in a

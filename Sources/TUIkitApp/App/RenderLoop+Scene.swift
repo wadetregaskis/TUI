@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - What the scene configures, each frame
 
 /// The run loop's reading of the scene's own configuration — the modifiers

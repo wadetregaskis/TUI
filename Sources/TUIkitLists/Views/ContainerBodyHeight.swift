@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The height a container built by `renderContainer` offers its body.
 ///
 /// For a view that decides how much content to make before handing it over. A

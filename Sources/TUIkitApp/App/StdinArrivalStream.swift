@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 // A readiness source is the POSIX half of this file. WebAssembly's wasip1 has
 // no libdispatch to hold one — but it does have `poll`, which answers the very

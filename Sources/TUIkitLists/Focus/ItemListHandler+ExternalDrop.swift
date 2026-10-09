@@ -13,6 +13,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 extension ItemListHandler {
     /// Points the incoming-drop slot at `contentY`, and remembers the line.
     ///

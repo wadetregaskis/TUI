@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 /// The wrapper ``View/interactiveDismissDisabled(_:)`` produces. Renders and

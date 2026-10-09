@@ -9,6 +9,7 @@
 
 // `SortComparator` / `SortOrder` / `KeyPathComparator` are Foundation's.
 import Foundation
+import TUIkitFoundation
 
 // MARK: - Column spec
 

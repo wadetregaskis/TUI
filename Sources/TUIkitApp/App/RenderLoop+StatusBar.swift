@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - What the status bar shows besides its items
 
 /// The rows a frame adds to the status bar above its items.

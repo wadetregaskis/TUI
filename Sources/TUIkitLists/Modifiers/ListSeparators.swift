@@ -12,6 +12,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 /// The separator preferences written OUTSIDE any list row — on a `List`, or

@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 #if canImport(CoreGraphics)
     import CoreGraphics

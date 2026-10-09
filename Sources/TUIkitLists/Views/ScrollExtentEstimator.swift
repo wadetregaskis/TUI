@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - ScrollExtentProfile
 
 /// What a previous ``ScrollExtentEstimator/lineMetrics(visible:count:topClip:precision:cached:height:)``

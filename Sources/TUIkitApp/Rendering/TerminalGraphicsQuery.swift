@@ -6,6 +6,7 @@
 
 import Foundation
 import TUIkitCore
+import TUIkitFoundation
 
 #if canImport(Darwin)
 import Darwin

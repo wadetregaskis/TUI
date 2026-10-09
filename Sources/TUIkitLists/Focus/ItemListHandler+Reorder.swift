@@ -16,6 +16,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// The handler *is* the reorder state machine, so the protocol the drag-and-drop
 /// session resolves gestures through needs nothing added.

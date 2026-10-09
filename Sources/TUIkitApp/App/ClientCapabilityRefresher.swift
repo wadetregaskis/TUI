@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 @MainActor
 internal final class ClientCapabilityRefresher {
     /// The last probe's answer; `nil` only before ``resolve()`` first seeds it.

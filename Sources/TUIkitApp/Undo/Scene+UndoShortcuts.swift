@@ -6,6 +6,7 @@
 
 import Foundation
 import TUIkitCore
+import TUIkitFoundation
 
 // MARK: - Environment and the scene modifier
 

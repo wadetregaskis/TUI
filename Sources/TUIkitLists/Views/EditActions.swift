@@ -7,6 +7,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 /// The edits a ``ForEach`` will make to the collection it is bound to.

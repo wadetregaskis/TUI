@@ -5,6 +5,8 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
+import TUIkitNavigation
 
 /// The chrome every live-editing panel shares: a ``Dialog``, a Cancel / Done
 /// footer, and **revert on anything but Done**.

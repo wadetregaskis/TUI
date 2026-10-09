@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - ColumnWidth
 
 /// The two TUI-only ways to size a table column, beyond SwiftUI's

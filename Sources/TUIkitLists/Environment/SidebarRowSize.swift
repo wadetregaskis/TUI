@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The standard sizes of sidebar rows.
 ///
 /// On macOS, sidebar rows have three sizes, chosen by the "Sidebar icon size"

@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // The TUI-specific environment modifiers for ``TabView`` (header alignment,
 // header wrapping, content sizing, content padding). SwiftUI has no equivalent
 // for any of these, so they are kept separate from the SwiftUI-parity

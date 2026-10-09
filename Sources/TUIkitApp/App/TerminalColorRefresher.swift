@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// What the terminal says about its colours after the startup exchange has
 /// closed, published to `TerminalColors.current` and repainted.

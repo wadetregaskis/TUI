@@ -9,6 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - What the keys reach
 
 /// A table's column customization as the keyboard reaches it: built each frame

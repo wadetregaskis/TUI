@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Column Width Preference
 
 /// A preference key for column width values.

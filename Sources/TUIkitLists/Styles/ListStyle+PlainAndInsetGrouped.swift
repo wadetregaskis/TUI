@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 extension ListStyle {
     /// The cells a list in this style spends across its width on chrome: the
     /// two border columns when it draws a border, and its row padding either

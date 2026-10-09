@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// Renders `content` as the content of pane `id`, with the focus manager and
 /// the shortcut registry told so for as long as it renders — see
 /// ``FocusManager/beginPane(id:)``.

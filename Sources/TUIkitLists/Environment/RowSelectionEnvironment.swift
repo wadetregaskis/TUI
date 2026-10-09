@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 // MARK: - Row Selection Indicator Environment Key
 

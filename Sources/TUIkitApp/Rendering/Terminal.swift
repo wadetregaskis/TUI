@@ -6,6 +6,7 @@
 
 import DequeModule
 import Foundation
+import TUIkitFoundation
 
 #if canImport(Glibc)
     import Glibc

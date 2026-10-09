@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 extension Terminal {
     /// Writes the raw ANSI bytes of the last completed frame to a

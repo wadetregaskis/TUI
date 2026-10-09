@@ -10,6 +10,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 #if canImport(UniformTypeIdentifiers)

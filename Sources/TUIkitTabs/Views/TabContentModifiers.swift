@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - The modifier
 
 /// Tab content with something said about each of its tabs: its badge, whether

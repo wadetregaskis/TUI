@@ -6,6 +6,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - ⌃\'s byte, and the chords that may share it
 
 extension TerminalClient {

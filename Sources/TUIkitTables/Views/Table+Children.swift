@@ -9,6 +9,7 @@
 
 // `SortComparator` is Foundation's.
 import Foundation
+import TUIkitFoundation
 
 extension Table {
     /// Creates a hierarchical table that computes its rows based on a

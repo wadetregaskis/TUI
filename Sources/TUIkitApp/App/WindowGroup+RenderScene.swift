@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - WindowGroup
 
 /// The bridge from the `Scene` hierarchy to `View` rendering: the window

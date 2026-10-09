@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Cell Geometry
 
 /// A terminal that can say how big its cells are in pixels.

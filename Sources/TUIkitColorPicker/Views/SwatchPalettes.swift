@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
 import TUIkitStyling
 
 /// Curated colour sets shown as swatch grids in ``ColorPickerPanel`` (and usable

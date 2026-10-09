@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // Signals are POSIX; wasip1 has no process group to signal, and no driver to
 // stand in for.
 #if !canImport(WASILibc)

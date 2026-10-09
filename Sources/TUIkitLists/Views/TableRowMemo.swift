@@ -52,6 +52,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitStyling
 import TUIkitView
 

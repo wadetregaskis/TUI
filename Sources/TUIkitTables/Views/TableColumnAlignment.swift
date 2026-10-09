@@ -6,6 +6,7 @@
 
 // `Locale.NumberingSystem` is Foundation's.
 import Foundation
+import TUIkitFoundation
 
 // MARK: - TableColumnAlignment
 

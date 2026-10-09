@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Dialog Drag
 
 /// Makes a presented dialog draggable by its title bar and border.

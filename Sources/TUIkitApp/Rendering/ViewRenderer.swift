@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// Convenience class for standalone one-off view rendering.
 ///
 /// `ViewRenderer` wraps the free function ``renderToBuffer(_:context:)``

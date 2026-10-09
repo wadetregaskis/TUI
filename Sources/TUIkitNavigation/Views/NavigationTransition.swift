@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 /// A type that defines the transition to use when navigating to a view.

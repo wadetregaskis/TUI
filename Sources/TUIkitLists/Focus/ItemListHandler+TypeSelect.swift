@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 extension ItemListHandler: TypeSelectingFocusHandler {
     var isTypeSelecting: Bool {

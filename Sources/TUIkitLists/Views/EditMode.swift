@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// The editing state of a view hierarchy. Mirrors SwiftUI's `EditMode`.
 ///
 /// Views that support editing — an editable `List`, an `EditButton` — read the

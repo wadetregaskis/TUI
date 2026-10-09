@@ -12,6 +12,7 @@
 // is disabled project-wide and `_ListCore` keeps its `file_length` disable.
 
 import Foundation
+import TUIkitFoundation
 // swiftlint:disable file_length
 
 // MARK: - Table

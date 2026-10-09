@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // Each overload is the matching data-driven initializer with an editable
 // `ForEach` inside — `ForEach(_:editActions:content:)`, whose loop reorders and
 // removes through the binding — so the rows, the windowing and the editing

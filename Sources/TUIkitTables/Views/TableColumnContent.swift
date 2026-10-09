@@ -9,6 +9,7 @@
 
 // `SortComparator` is Foundation's.
 import Foundation
+import TUIkitFoundation
 
 // MARK: - TableColumnContent
 

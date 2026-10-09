@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// Asking a terminal whether a DEC private mode is set, and reading the answer.
 ///

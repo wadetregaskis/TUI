@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // wasip1 has no termios: a wasm program is handed a stream of bytes, with no
 // line discipline in front of it.
 #if !canImport(WASILibc)

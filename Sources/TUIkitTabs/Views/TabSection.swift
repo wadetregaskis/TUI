@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A container that you can use to add hierarchy within a tab view.
 ///
 /// ```swift

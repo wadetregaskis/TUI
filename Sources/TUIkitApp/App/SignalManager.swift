@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // Signals, and the sources that watch them, are POSIX. WebAssembly's wasip1
 // has neither — no `signal`, no libdispatch, and no process to send one — so
 // the file splits here rather than at a dozen call sites, and the arm at the

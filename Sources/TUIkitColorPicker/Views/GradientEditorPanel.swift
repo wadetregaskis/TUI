@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 import TUIkitStyling
 
 // MARK: - Gradient Editor Panel

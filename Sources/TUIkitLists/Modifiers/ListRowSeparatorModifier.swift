@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// Carries ``View/listRowSeparator(_:edges:)``'s arguments to the list the row
 /// is in, and renders its content unchanged.
 ///

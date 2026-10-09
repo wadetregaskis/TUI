@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitFoundation
 
 /// The width an indicator line draws, without drawing it — for `Table`'s measure,
 /// which used to render the whole line to read its `strippedLength`: a colour

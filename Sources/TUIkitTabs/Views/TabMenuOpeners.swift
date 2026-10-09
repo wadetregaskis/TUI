@@ -10,6 +10,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 // MARK: - Where Shift+F10 finds a tab's menu

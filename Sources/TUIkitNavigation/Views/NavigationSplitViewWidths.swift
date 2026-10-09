@@ -12,6 +12,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Column Measurement
 
 /// What one column contributes to the width calculation.

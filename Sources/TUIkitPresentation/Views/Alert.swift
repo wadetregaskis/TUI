@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// A modal alert view that displays a title, message, and optional action buttons.
 ///
 /// `Alert` draws the panel. **Presenting it is a separate job**, and the way to

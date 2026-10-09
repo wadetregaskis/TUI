@@ -7,6 +7,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 /// StateStorage property indices for ``ModalPresentationModifier``. A free enum
 /// because the modifier is generic (which can't hold static stored properties).
 enum ModalPresentationStateIndex {

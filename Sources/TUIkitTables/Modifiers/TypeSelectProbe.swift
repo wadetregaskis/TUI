@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 /// Whether a render is asking a table's view cell for its type-select text:

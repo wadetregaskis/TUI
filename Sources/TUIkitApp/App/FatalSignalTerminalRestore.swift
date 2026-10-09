@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // Signal handlers are POSIX; wasip1 has none, and no crash to survive.
 #if !canImport(WASILibc)
 

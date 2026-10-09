@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - One channel's row
 
 /// A labelled slider plus editable read-outs for one channel of a colour.

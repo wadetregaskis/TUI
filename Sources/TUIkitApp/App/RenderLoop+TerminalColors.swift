@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - What the terminal says about its colours, once the app is drawing
 
 /// The run loop's side of the two objects that keep the record of what the

@@ -7,6 +7,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Preset Alert Styles
 
 // Each preset is THREE overloads, not two. The key one keeps its defaulted

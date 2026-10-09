@@ -12,6 +12,8 @@
 //  License: MIT
 // MARK: - Which clocks a replay can serve
 
+import TUIkitFoundation
+
 /// The replay's half of ``RenderActivity``: whether the frame on screen can be
 /// patched forward for a clock that ticked, or only a render can serve it. Kept
 /// beside the replay it gates rather than beside the struct's properties, which

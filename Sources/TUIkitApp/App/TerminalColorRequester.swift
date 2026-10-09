@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 /// When the terminal is asked what colours it paints, after the startup
 /// exchange has closed.
 ///

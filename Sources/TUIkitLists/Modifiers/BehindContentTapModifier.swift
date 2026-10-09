@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 /// A left-click target BEHIND its content rather than in front of it.
 ///

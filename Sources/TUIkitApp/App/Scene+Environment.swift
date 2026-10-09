@@ -10,6 +10,7 @@
 
 import Observation
 import TUIkitCore
+import TUIkitFoundation
 import TUIkitView
 
 // MARK: - Public Modifiers

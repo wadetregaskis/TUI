@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 // MARK: - AlternatingRowBackgroundBehavior
 

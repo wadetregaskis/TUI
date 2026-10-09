@@ -4,6 +4,8 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Root Palette Discovery
 
 /// Type-erased access to `EnvironmentModifier` internals.

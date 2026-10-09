@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
+import TUIkitFoundation
 
 // MARK: - What a selectable row's line owes
 

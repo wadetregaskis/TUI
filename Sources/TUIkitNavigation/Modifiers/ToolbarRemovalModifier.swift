@@ -9,6 +9,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - Toolbar Default Item Kind
 
 /// A kind of control the framework provides by default, which
