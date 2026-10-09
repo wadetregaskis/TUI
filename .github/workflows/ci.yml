@@ -506,17 +506,25 @@ jobs:
       #   (not tried at 1,850); TUIkit's own worst was
       #   ScrollTransition.swift:218, 1,700–1,800.
       # * macOS 26 with swift.org's 6.4, 1,500. 6.4.0 counts ordinary code far
-      #   lower than 6.2 does (6.2's two worst are under 300 on 6.4) and literal
-      #   tables about the same, so 6.2's cap bounds 6.4 only loosely, and an
-      #   expression 6.4's solver handles badly and 6.2's does not would pass
-      #   it. On 2026-10-08 6.4.0's worst was a generated table,
-      #   CombiningMarkRanges.generated.swift:25, between 1,250 and 1,500; the
-      #   next was ImageGlyphCalibration.generated.swift:18 (1,100–1,250), and
-      #   at no cap from 1,000 up did anything fail on 6.4 that passed on 6.2;
-      #   main (18325a175 and the Theme fix) built at 1,500 on 6.4.0 that day.
-      #   A tighter cap would need the generators to stop emitting one literal,
-      #   which changes `-O` code, so it stays here. The lane takes the newest
-      #   6.4.x, and a patch release may move the counts.
+      #   lower than 6.2 does (6.2's two worst are under 300 on 6.4), so 6.2's
+      #   cap bounds 6.4 only loosely, and an expression 6.4's solver handles
+      #   badly and 6.2's does not would pass it. On 2026-10-08 nothing failed
+      #   on 6.4.0 at any cap from 1,000 up that passed on 6.2, and main
+      #   (18325a175 and the Theme fix) built at 1,500. What binds this cap is
+      #   not hand-written code, which first fails between 500 and 750, but
+      #   the generated tables, one array literal each. Measured a file at a
+      #   time (the command under "Reading a failure"), and alike on 6.2.4
+      #   and 6.4.0, CombiningMarkRanges.generated.swift needs 1,450 — 4
+      #   scopes for each of its 362 ranges, plus 2 — and
+      #   ImageGlyphCalibration.generated.swift 1,157; RowFillTable.swift is
+      #   between 750 and 1,000 (TC2, in the package). So the combining-mark
+      #   table has room for 12 more ranges under 1,500, and a new Unicode
+      #   release can add more than that. Spelling
+      #   its literals `0x300 as UInt32` costs MORE (2,174 on 6.4.0); a cap
+      #   the tables did not bind would need the generators to emit several
+      #   literals joined at run time, which changes `-O` code, so the cap
+      #   stays here. The lane takes the newest 6.4.x, and a patch release may
+      #   move the counts.
       #
       # The caps were measured with the debug and the release defines alike;
       # this step builds debug on macOS, so code compiled only in release
@@ -531,13 +539,26 @@ jobs:
       #
       # Reading a failure: "the compiler is unable to type-check this expression
       # in reasonable time" at a file and line names an expression that now
-      # needs more than the lane's cap. Rewrite it rather than raising the cap:
-      # give closure parameters and results their types, name intermediate
-      # results with explicit types (`let total: Int = xs.reduce(0, +)`), turn a
-      # `&&` chain of `==` into a guard list (the type-check commits of
-      # 2026-10-07 show each). If the lane's Swift moved to a newer release and
-      # unchanged code fails, the compiler's counts moved: find the worst site
-      # again (bisect the cap) and set the cap just above it.
+      # needs more than the lane's cap. What to do depends on the expression:
+      #
+      # * Hand-written code: rewrite it rather than raising the cap. Give
+      #   closure parameters and results their types, name intermediate
+      #   results with explicit types (`let total: Int = xs.reduce(0, +)`),
+      #   turn a `&&` chain of `==` into a guard list (the type-check commits
+      #   of 2026-10-07 show each).
+      # * A generated table (`*.generated.swift`): it grew when it was
+      #   regenerated. That is not a regression, and a generated file is not
+      #   rewritten by hand, so in the commit that regenerates it, set the cap
+      #   of each lane it now exceeds just above what it needs, and update the
+      #   numbers above. What a table needs is the smallest N for which
+      #     swiftc -typecheck -Xfrontend -solver-scope-threshold=N FILE
+      #   succeeds (bisect N): for the combining-mark table, 4 × its ranges +
+      #   2. That works for the two tables that need only the standard
+      #   library; RowFillTable.swift needs TUIkitStyling, so bisect this
+      #   step's cap instead.
+      # * Unchanged code, after the lane's Swift moved to a newer release: the
+      #   compiler's counts moved. Find the worst site again (bisect the cap)
+      #   and set the cap just above it.
       - name: Type-check budget (solver scopes)
         if: matrix.solver_scopes
         run: $SWIFT build --target TUIkit -Xswiftc -Xfrontend -Xswiftc -solver-scope-threshold=${{ matrix.solver_scopes }}

@@ -17,6 +17,12 @@ the Swift rule to: change the rule in both places, re-run this, and commit all t
 `cube_ramp` below is the reference for `Color.cubeRamp(from:to:)`: the steps every caller draws
 between two cube entries. It uses the same colour maths as TUIkitStyling (WCAG luminance, CIE L*,
 OKLab), so the two agree to the bit on the shipped breaths.
+
+The table is one array literal, and CI's type-check budget counts it like any expression: between
+750 and 1,000 solver scopes for the sixteen palettes on Swift 6.4.0 (2026-10-08, bisected in the
+package), under the "macOS 26 · Swift 6.4" lane's cap of 1,500. A palette added here that takes it
+past a lane's cap raises that cap in the same commit; the "Type-check budget" step in
+.github/workflows/ci.yml says how.
 """
 import json
 import math
