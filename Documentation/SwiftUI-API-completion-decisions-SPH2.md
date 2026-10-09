@@ -69,33 +69,21 @@ and presentation modifiers' renders. The options:
   `FeatureObjectSlot`'s fixed set means nothing else can write it, so the object is always of the accessor's type; a
   debug build would still check. It removes the cast in release, at the price of trusting that invariant.
 
-### A-SPH2-3. A list row's buffer is borrowed through an out-of-line coroutine
+### A-SPH2-3. A list row's buffer is borrowed through an out-of-line coroutine — superseded
 
 *Sources/TUIkitFoundation/Views/LazyListRowContent.swift (`buffer`), TUIkitLists' row code — no API*
 
-`LazyListRowContent.buffer` is a `_read` accessor, deliberately: it lends the row's `FrameBuffer` rather than copying
-it, because a copy (six arrays retained and released) was 1.7% of a `megalist` frame (its doc comment). Inside one
-module the accessor inlined. Since step B6 the list's row code is in TUIkitLists, and each read calls the read
-coroutine and then its continuation: 25 call sites now, 1 at c181ec0f9, among them `_ListCore.renderRow` (3),
-`attachRowPayloads` (5), and the scrollbar, width and overflow walks. Several run per drawn row, on `megalist`'s path.
+**Superseded on 2026-10-08: fixed, not accepted.** This entry recommended accepting the 25 read-coroutine calls step
+B6 left in TUIkitLists' row code, and priced them at two calls per read. That price was wrong. Each read also
+heap-allocated the coroutine's 88-byte frame, copied the 64-byte `FrameBuffer` into it, and freed it in the
+continuation, and the callers added outlined `FrameBuffer` copies. The profile that found it estimated the cost at
+about 3% of a `megalist` frame and 2.3% of a `kitchensink` one.
 
-The toolbox does not reach it. `@inlinable` on the accessor needs the row's cache (`cached`, a class's private stored
-property) usable from inline code, which the diagnosis's first rule forbids. It would also buy nothing: a read from
-another module would then pay `swift_beginAccess` and `swift_endAccess`, two calls, the coroutine's count. The
-options:
-
-- **Accept it** (what ships).
-- **Fewer reads.** Each per-row function in TUIkitLists reads its row's buffer once, binding what it uses (`lines`,
-  `height`). That is a change to the row code, and each bound array costs a retain.
-- **Package queries for the common reads**, such as the height and width, out of line but one call instead of two;
-  `renderRow`'s reads of the lines still borrow.
-- **Untracked storage** for the resolved buffer (a `ManagedBuffer`, or a pointer), which no exclusivity check covers:
-  unsafe, and a design change.
-
-The lane's notes (`SPH2/remaining-cross.txt`) list every call site the release Stress has from one module into
-another that c181ec0f9 did not have, with callers matched by name; this and A-SPH2-1's addressors are the largest on
-the row paths that no annotation removes. `ANSIRenderer.colorize` (31 sites from TUIkitLists) is B-SPH-1's, priced
-there.
+The owner approved the remedy. `buffer` and `badge` are `@inlinable` over a `@usableFromInline` `cached` and
+`resolveIfNeeded()`, so TUIkitLists calls `resolveIfNeeded()` directly, as c181ec0f9's list code did. It is the one
+exception to CONTRIBUTING.md's rule on class stored properties ("Crossing a module boundary"), allowed because every
+access to `cached` was already dynamic. `LazyListRowContent.cached`'s doc comment holds the evidence.
+`ANSIRenderer.colorize` (31 sites from TUIkitLists), which this entry also mentioned, is B-SPH-1's, priced there.
 
 ## C. Declined
 

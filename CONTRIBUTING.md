@@ -374,7 +374,15 @@ anything at run time:
   _name = newValue } }`) or method over it, not `@inlinable`, as
   `FocusManager.currentPaneID` does; move a property observer to the
   storage. Never mark the stored property `package` or `@usableFromInline`:
-  either makes it visible outside the module. Struct fields are not affected.
+  either makes it visible outside the module, unless the binary shows every
+  access to it is already dynamic. The optimiser decides per property, all
+  or nothing, so a property it already checks everywhere (every
+  `swift_beginAccess` in the class's functions is on it, read with
+  `otool -tV` from a release `Stress`) costs nothing more when widened, and
+  an `@inlinable` accessor over it is then how a hot read from another
+  module avoids a call. `LazyListRowContent.cached` is the one such
+  property; its doc comment holds the evidence. Struct fields are not
+  affected.
   A settable property requirement of a `package` protocol hands out its
   class conformers' stored properties the same way; ask for a method that
   sets it instead (`PersistedFocusable.repoint(focusID:)`).

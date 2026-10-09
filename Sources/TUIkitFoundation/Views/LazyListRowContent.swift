@@ -69,10 +69,41 @@ package protocol ListRowSeparatorDeciding: AnyObject {
 /// Rendering runs the view pipeline, which is `@MainActor`, so this box is
 /// `@MainActor` too. That also makes it `Sendable`, which is what lets
 /// ``SelectableListRow`` remain `Sendable` while carrying deferred content.
+///
+/// `@usableFromInline` for the `@inlinable` ``buffer`` and ``badge``: a
+/// member is no more visible than its class, and the compiler serialises no
+/// body for one that is not (module split).
 @MainActor
+@usableFromInline
 package final class LazyListRowContent {
     private var thunk: ((GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: BadgeValue?))?
-    private var cached: (buffer: FrameBuffer, badge: BadgeValue?)?
+
+    /// The row's render, once it has one: what ``buffer`` and ``badge`` lend.
+    ///
+    /// `@usableFromInline`, so internal rather than `private`, for those two
+    /// `@inlinable` accessors, which TUIkitLists' row code reads from 25
+    /// places, several of them per drawn row. Without their bodies each read
+    /// was a call into `buffer`'s read coroutine, which heap-allocates its
+    /// frame, copies the buffer into it and calls back to end the access:
+    /// about 3% of a `megalist` frame in the profile that found it, where
+    /// the single module read the property in place.
+    ///
+    /// This is the one exception to CONTRIBUTING.md's rule "never make a
+    /// class's stored property `@usableFromInline`" (in "Crossing a module
+    /// boundary"), which allows it only where the binary shows every access
+    /// to the property is already dynamic. The rule exists because another
+    /// module's view of a class stored property stops the optimiser from
+    /// proving its accesses free of conflict, so each keeps a run-time
+    /// exclusivity check (`swift_beginAccess`). That decision is all or
+    /// nothing per property, and for this one it was "dynamic" already
+    /// inside one module: in a release `Stress`, every `swift_beginAccess`
+    /// site in this class's functions is on this property (14 in 13
+    /// functions before the change, 9 in 8 at the pre-split c181ec0f9), and
+    /// at c181ec0f9 the list's row code kept a check on each read it
+    /// inlined. So the widening adds no check. Do not copy it for a property
+    /// whose accesses are statically enforced, such as the storage under
+    /// ``separatorDecider``.
+    @usableFromInline var cached: (buffer: FrameBuffer, badge: BadgeValue?)?
 
     /// The prominence of the background the list paints under this row — raised
     /// for the focused, selected row, whose content then renders with
@@ -265,7 +296,12 @@ package final class LazyListRowContent {
     /// Renders the row if it has not been rendered, leaving the answer in
     /// ``cached``. Separate from the two accessors below so that neither has to
     /// hand back a COPY of the pair to read one half of it.
-    private func resolveIfNeeded() {
+    ///
+    /// `@usableFromInline`, so internal rather than `private`, for those two
+    /// `@inlinable` accessors; not `@inlinable` itself, so a read in another
+    /// module is one call to it, as it was inside one module.
+    @usableFromInline
+    func resolveIfNeeded() {
         guard cached == nil || !separatorDecided && separatorDecider != nil else { return }
         // Kept after the render, for a row whose ``backgroundProminence`` the
         // list raises after something has already rendered it. A box lives for
@@ -290,6 +326,13 @@ package final class LazyListRowContent {
     /// the badge away. A `List` frame reads it several times per drawn row, and
     /// `outlined init with copy of (buffer:badge:)` was 1.7% of a `megalist`
     /// frame with nothing else to show for it.
+    ///
+    /// `@inlinable` because TUIkitLists reads it (module split): a reader
+    /// that cannot see the body calls the read coroutine, which allocates its
+    /// frame on the heap and copies the buffer into it, where an inlined read
+    /// borrows ``cached`` in place (see there for why that property may be
+    /// `@usableFromInline`).
+    @inlinable
     package var buffer: FrameBuffer {
         _read {
             resolveIfNeeded()
@@ -297,6 +340,9 @@ package final class LazyListRowContent {
         }
     }
 
+    /// The row's badge, rendering the row first if need be. `@inlinable`
+    /// for TUIkitLists, as ``buffer`` is.
+    @inlinable
     package var badge: BadgeValue? {
         resolveIfNeeded()
         return cached!.badge
