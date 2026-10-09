@@ -349,6 +349,22 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
 - Search the codebase for similar patterns before implementing anything new
 - Consolidate and reuse before adding new functions or types
 
+### Crossing a module boundary
+
+The module split (Documentation/Historical/Module split plan, revision 4) puts
+code that was one module into several, and a call between two of them is
+compiled differently from a call inside one. These rules keep that from costing
+anything at run time:
+
+- **Import what a file uses, in the file.** A module carved out above
+  TUIkitFoundation re-exports it from its `Exports.swift`, which is enough to
+  compile, but Swift gives every closure passed to a module that the calling
+  FILE does not import (directly, or through a module it imports that
+  re-exports it) a run-time check that it runs on the main actor. So each file
+  of such a module imports TUIkitFoundation, and any other carved module it
+  uses, itself. Tools/ModuleMap's `imports` check fails CI on a file that
+  does not.
+
 ## Code Style
 
 - Line length: 160 characters (warning), 200 (error)

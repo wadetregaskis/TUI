@@ -54,6 +54,23 @@ def visible_modules(top, me, lexed):
     return seen
 
 
+def reexports_of(dirs):
+    """{module: the modules its sources `@_exported import`} for {module: source directory}: what `import module`
+    makes visible besides the module itself (the `imports` check follows it transitively)."""
+    out = {}
+    for mod, d in dirs.items():
+        xs = set()
+        for dp, _, fs in os.walk(d):
+            for f in fs:
+                if not f.endswith('.swift'): continue
+                with open(os.path.join(dp, f), encoding='utf-8', errors='replace') as fh:
+                    for s in fh:
+                        x = SS.import_of(s.strip())
+                        if x and x[1]: xs.add(x[0])
+        out[mod] = xs
+    return out
+
+
 def lower_owners(files, dirs, symbols):
     """({usr: module}, {usr: qualified name}) for every symbol the lower modules define, from their occurrences
     ({path: [(usr, roles, line, container)]}) and symbols ({usr: (name, kind, subkind)}), as indexstore.read gives
@@ -141,6 +158,8 @@ class Model:
         self.lower_name = {}            # usr -> its name qualified by its types in that module (`AppState.shared`)
         self.lower_visible = set()      # the lower modules this module's sources can see (visible_modules)
         self.lower_modules = set()      # the lower modules whose definitions were read
+        self.lower_reexports = {}       # lower module -> the modules its sources `@_exported import`
+        self.target = {}                # rel path -> the module its index unit names: the target that compiled it
         self.public_members = {}        # node -> names of the public API it declares, in source order
         self.stale = []                 # rel paths whose source is newer than its index unit, or than the build
         self.uncompiled = []            # rel paths no target compiles (unit_freshness)
@@ -196,10 +215,10 @@ class Model:
         def prefixes(base):
             return tuple(os.path.join(base, source_dir, d).rstrip('/') + '/' for d in mine)
         prefix = os.path.join(os.path.realpath(root), source_dir) + '/'
-        files, symbols, mtimes = IX.read(store, names, prefixes(os.path.realpath(root)), lib)
+        files, symbols, mtimes, units = IX.read(store, names, prefixes(os.path.realpath(root)), lib)
         if not files:                    # the store may have recorded the unresolved path
             prefix = os.path.join(root, source_dir) + '/'
-            files, symbols, mtimes = IX.read(store, names, prefixes(root), lib)
+            files, symbols, mtimes, units = IX.read(store, names, prefixes(root), lib)
         occ = {p[len(prefix):]: o for p, o in files.items()}
         m = cls()
         m.symbols = symbols
@@ -212,6 +231,7 @@ class Model:
         m.stale, m.uncompiled = unit_freshness(
             m.files, {f: _changed(os.path.join(src, f)) for f in m.files},
             {f: mtimes[prefix + f] for f in m.files if prefix + f in mtimes}, max(mtimes.values(), default=None))
+        m.target = {f: units[prefix + f] for f in m.files if prefix + f in units}
         m.build({f: o for f, o in occ.items() if f in m.lexed})
         # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUIkitCore …)
         # and that this module's sources can see, read in one more pass over the store's units. The `lower` check asks
@@ -222,8 +242,9 @@ class Model:
             top, me = os.path.split(prefix.rstrip('/'))
         dirs = {d: os.path.join(top, d) + '/' for d in sorted(visible_modules(top, me, m.lexed.values()))}
         m.lower_visible = set(dirs)
+        m.lower_reexports = reexports_of(dirs)
         if dirs:
-            lower, lsyms, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
+            lower, lsyms, _, _ = IX.read(store, set(dirs), tuple(dirs.values()), lib)
             m.lower_owner, m.lower_name = lower_owners(lower, dirs, lsyms)
             m.lower_modules = set(m.lower_owner.values())
         return m

@@ -86,14 +86,15 @@ def find_store(root):
 
 
 def newest_units(infos, module, source_prefix):
-    """{main file: (mtime, unit name)}: the newest unit of each main file of `module` under `source_prefix`, from
-    (unit name, module, main file, mtime) for every unit in the store; where a file has several units, the newest wins.
-    `module` may be a set of names and `source_prefix` a tuple of prefixes, as `read` takes them."""
+    """{main file: (mtime, unit name, module)}: the newest unit of each main file of `module` under `source_prefix`,
+    from (unit name, module, main file, mtime) for every unit in the store; where a file has several units, the newest
+    wins. `module` may be a set of names and `source_prefix` a tuple of prefixes, as `read` takes them. The module is
+    the unit's: the target that compiled the file (a coarse group's target for each of its directories)."""
     modules = {module} if isinstance(module, str) else set(module)
     newest = {}
     for u, mod, main, t in infos:
         if mod in modules and main.startswith(source_prefix) and (main not in newest or t > newest[main][0]):
-            newest[main] = (t, u)
+            newest[main] = (t, u, mod)
     return newest
 
 
@@ -101,12 +102,13 @@ def read(store_path, module, source_prefix, lib_path=None):
     """Occurrences of every file of `module` under `source_prefix`, from the newest unit for each file. `module` may be
     a set of module names and `source_prefix` a tuple of prefixes, to read several modules in one pass over the units.
 
-    Returns (files, symbols, unit_mtimes):
+    Returns (files, symbols, unit_mtimes, unit_modules):
       files        {path: [(usr, roles, line, container_usr)]}; the container is the symbol the occurrence's
                    strongest relation names (contained-by / called-by / child-of / accessor-of, else base-of /
                    extended-by), or '' when it has none
       symbols      {usr: (name, kind, subkind)}
       unit_mtimes  {path: seconds} when each file's unit was written
+      unit_modules {path: module} the module each file's unit names: the target that compiled it
     """
     L = ctypes.CDLL(lib_path or find_libindexstore())
     vp = ctypes.c_void_p
@@ -175,7 +177,7 @@ def read(store_path, module, source_prefix, lib_path=None):
     newest = newest_units(infos, module, source_prefix)
 
     files, symbols = {}, {}
-    for main, (t, u) in newest.items():
+    for main, (t, u, _) in newest.items():
         ur = L.indexstore_unit_reader_create(store, u.encode(), ctypes.byref(err))
         records = []
 
@@ -218,4 +220,4 @@ def read(store_path, module, source_prefix, lib_path=None):
             L.indexstore_record_reader_occurrences_apply_f(rr, None, occ_cb)
             L.indexstore_record_reader_dispose(rr)
         files[main] = occs
-    return files, symbols, {m: t for m, (t, _) in newest.items()}
+    return files, symbols, {m: t for m, (t, _, _) in newest.items()}, {m: mod for m, (_, _, mod) in newest.items()}

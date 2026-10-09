@@ -782,7 +782,7 @@ class LowerTests(unittest.TestCase):
 
             def read(store, modules, prefixes, lib=None):
                 calls.append((modules, prefixes))
-                return {}, {}, {}
+                return {}, {}, {}, {}
             with mock.patch.object(model_mod.IX, 'read', side_effect=read):
                 M = Model.load(root, 'Sources', '/store', modules=['Base', 'Lists', 'Tables', 'App', 'X'])
             self.assertEqual(M.files, ['Base/Views/A.swift', 'Lists/Views/L.swift', 'X/Exports.swift'])
@@ -792,6 +792,7 @@ class LowerTests(unittest.TestCase):
             self.assertEqual(sorted(p[len(os.path.realpath(root)):] for p in prefixes),
                              ['/Sources/Base/', '/Sources/Lists/', '/Sources/X/'])
             self.assertEqual(M.lower_visible, {'Core'})
+            self.assertEqual(M.lower_reexports, {'Core': set()})
 
     def test_a_lower_list_naming_no_module_the_index_knows_is_an_error(self):
         M, asg = lower_model()
@@ -818,6 +819,72 @@ class LowerTests(unittest.TestCase):
                 modulemap.main(['check'])
             M.lower_modules = set(M.lower_visible)
             self.assertEqual(modulemap.main(['check']), 1)       # read: the check runs (AppState in Base is new)
+
+
+def imports_model(**sources):
+    """Base/B.swift's B (with `run(_:)`) and Lists/L.swift's L, which calls it. Lists and App are carved above Base
+    (their Exports.swift re-export it); Tables/T.swift compiles into Lists' target, as a coarse group's member does.
+    TUIkitCore's Lock is a lower module's, which TUIkitView and Base re-export. `sources` replaces a file's text (its
+    imports): the occurrences stay."""
+    srcs = {'Base/B.swift': 'struct B {\n    func run(_ f: () -> Void) {}\n}\n',
+            'Base/Exports.swift': '@_exported import TUIkitView\n',
+            'Lists/Exports.swift': '@_exported import Base\n',
+            'Lists/L.swift': 'struct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
+            'Tables/T.swift': 'struct T {\n    func h() { L().g(); B().run {} }\n}\n',
+            'App/Exports.swift': '@_exported import Base\n',
+            'App/A.swift': 'import Base\nstruct A {\n    func i() { L().g() }\n}\n'}
+    srcs.update({f.replace('_', '/', 1) + '.swift': t for f, t in sources.items()})
+    occ = {'Base/B.swift': [('s:B', DEF, 1, ''), ('s:B.run', DEF, 2, 's:B')],
+           'Lists/L.swift': [('s:L', DEF, 1, ''), ('s:L.g', DEF, 2, 's:L'), ('s:B', REF, 2, 's:L.g'),
+                             ('s:B.run', REF, 2, 's:L.g'), ('s:Core.Lock', REF, 2, 's:L.g')],
+           'Tables/T.swift': [('s:T', DEF, 1, ''), ('s:T.h', DEF, 2, 's:T'), ('s:L', REF, 2, 's:T.h'),
+                              ('s:L.g', REF, 2, 's:T.h'), ('s:B', REF, 2, 's:T.h'), ('s:B.run', REF, 2, 's:T.h')],
+           'App/A.swift': [('s:A', DEF, 2, ''), ('s:A.i', DEF, 3, 's:A'), ('s:L', REF, 3, 's:A.i'),
+                           ('s:L.g', REF, 3, 's:A.i')]}
+    sym = {'s:B': ('B', IX.K_STRUCT), 's:B.run': ('run(_:)', 16), 's:L': ('L', IX.K_STRUCT), 's:L.g': ('g()', 16),
+           's:T': ('T', IX.K_STRUCT), 's:T.h': ('h()', 16), 's:A': ('A', IX.K_STRUCT), 's:A.i': ('i()', 16),
+           's:Core.Lock': ('Lock', IX.K_STRUCT)}
+    M = model(srcs, occ, sym)
+    M.target = {f: {'Tables': 'Lists'}.get(f.split('/')[0], f.split('/')[0]) for f in srcs}
+    M.lower_owner = {'s:Core.Lock': 'TUIkitCore'}
+    M.lower_name = {'s:Core.Lock': 'Lock'}
+    M.lower_reexports = {'TUIkitView': {'TUIkitCore'}, 'TUIkitCore': set()}
+    return M
+
+
+class ImportsTests(unittest.TestCase):
+    """A file of a module carved above the default one must import what it uses, not lean on its module's
+    Exports.swift: the compiler gives every closure passed to a module the FILE does not import a run-time MainActor
+    check (SPB5's diagnosis §3.4)."""
+
+    def keys(self, M):
+        return [(x.key, x.weight, x.line) for x in checks.imports(M, rules())]
+
+    def test_a_file_that_leans_on_its_modules_re_export(self):
+        # L uses B and B.run (Base) and Lock (TUIkitCore) with no import; T uses Base the same way, and L in its own
+        # target (Tables compiles into Lists), which needs none. A imports Base but uses Lists, which it does not.
+        # Base's own files are not checked.
+        self.assertEqual(self.keys(imports_model()), [
+            ('App/A.swift uses Lists', 2, 3), ('Lists/L.swift uses Base', 2, 2), ('Lists/L.swift uses TUIkitCore', 1, 2),
+            ('Tables/T.swift uses Base', 2, 2)])
+        x = checks.imports(imports_model(), rules())[1]
+        self.assertIn('(B; 2 references)', x.message)          # named by declaration: B for B and B.run
+        self.assertIn('add `import Base`', x.message)
+
+    def test_an_import_or_a_module_that_re_exports_it_answers(self):
+        # Base re-exports TUIkitView, which re-exports TUIkitCore: `import Base` answers Lock too, transitively, as
+        # the compiler's ValueDecl::findImport does. An `@_exported import` in the file itself is an import of it.
+        M = imports_model(Lists_L='import Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
+                          Tables_T='@_exported import Base\nstruct T {}\n',
+                          App_A='import Base\nimport Lists\nstruct A {}\n')
+        self.assertEqual(self.keys(M), [])
+
+    def test_a_file_with_no_unit_is_not_judged(self):
+        # Nor is a reference to its declarations: which target compiled them is unknown (a stale or uncompiled file,
+        # which those checks report).
+        M = imports_model()
+        del M.target['Lists/L.swift']
+        self.assertEqual([k for k, _, _ in self.keys(M)], ['Tables/T.swift uses Base'])
 
 
 class IndexStoreTests(unittest.TestCase):
@@ -855,9 +922,10 @@ class IndexStoreTests(unittest.TestCase):
                  ('u6', 'Core', '/elsewhere/Core/C.swift', 50.0),       # outside the prefixes
                  ('u7', 'Core', '/p/View/Odd.swift', 60.0)]             # under another asked-for module's prefix
         got = IX.newest_units(infos, {'Core', 'View'}, ('/p/Core/', '/p/View/'))
-        self.assertEqual(got, {'/p/Core/A.swift': (20.0, 'u2'), '/p/View/B.swift': (30.0, 'u3'),
-                               '/p/View/Odd.swift': (60.0, 'u7')})
-        self.assertEqual(IX.newest_units(infos, 'Core', '/p/Core/'), {'/p/Core/A.swift': (20.0, 'u2')})
+        # Each with the module its unit names: the target that compiled it, whatever its directory says.
+        self.assertEqual(got, {'/p/Core/A.swift': (20.0, 'u2', 'Core'), '/p/View/B.swift': (30.0, 'u3', 'View'),
+                               '/p/View/Odd.swift': (60.0, 'u7', 'Core')})
+        self.assertEqual(IX.newest_units(infos, 'Core', '/p/Core/'), {'/p/Core/A.swift': (20.0, 'u2', 'Core')})
 
     def test_swift_build_s_store_is_found(self):
         # `--build-system swiftbuild` (SwiftPM 6.4's default) writes the store into .build/out.

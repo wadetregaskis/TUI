@@ -266,6 +266,71 @@ def built_on_default(R, reexports):
         above |= more
 
 
+def imports(M, R):
+    """A file of a module carved out above the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation,
+    TUIkitLists …) that uses another of the package's modules without importing it: neither directly nor through a
+    module it imports that re-exports it. It compiles, because its module's Exports.swift re-exports TUIkitFoundation
+    to every file of the module. But the compiler decides whether a closure passed to a function needs a run-time
+    MainActor check by the calling FILE's imports (CSApply.cpp, closuresRequireDynamicIsolationChecking, through
+    ValueDecl::findImport): a callee from a module the file does not import, directly or through that import's
+    re-exports, gets one in every closure passed to it. One finding per file and module, weighed by its references.
+
+    The modules are the targets that compiled the files, as their index units name them (a coarse group's target for
+    each of its directories), and the lower modules (TUIkitCore, TUIkitView …). A reference inside the file's own
+    target needs no import; one to the SDK is not this check's business. Not checked: TUIkitFoundation's own files and
+    the side modules below it, whose references to the lower modules each module's own imports have always carried."""
+    rex = collections.defaultdict(set)
+    for f in M.files:
+        t = M.target.get(f)
+        if t is None: continue
+        for s in M.lexed[f].stripped:
+            imp = SS.import_of(s.strip())
+            if imp and imp[1]: rex[t].add(imp[0])
+    for m, xs in M.lower_reexports.items(): rex[m] |= xs
+    above = built_on_default(R, rex)
+    seen_vis = {}
+
+    def visible(f):
+        if f not in seen_vis:
+            todo = {x[0] for x in map(SS.import_of, (s.strip() for s in M.lexed[f].stripped)) if x}
+            vis = set()
+            while todo:
+                m = todo.pop()
+                if m in vis: continue
+                vis.add(m); todo |= rex.get(m, set())
+            seen_vis[f] = vis
+        return seen_vis[f]
+    found = {}
+
+    def note(f, mod, name, k, ln):
+        x = found.get((f, mod))
+        if x is None:
+            x = found[(f, mod)] = Finding('imports', f'{f} uses {mod}', None, f, ln)
+            x.weight, x.names = 0, []
+        x.weight += k
+        x.line = min(x.line, ln)
+        if name not in x.names: x.names.append(name)
+    for a in M.nodes:
+        f = M.file[a]
+        t = M.target.get(f)
+        if t not in above: continue
+        for b, (k, (_, ln)) in M.edges.get(a, {}).items():
+            tb = M.target.get(M.file[b])
+            if tb is not None and tb != t and tb not in visible(f): note(f, tb, M.name[b], k, ln)
+    for src, usr, f, ln in M.foreign_refs:
+        if M.target.get(f) not in above: continue
+        lm = M.lower_module(usr)
+        if lm is not None and lm not in visible(f):
+            note(f, lm, M.lower_name.get(usr) or M.symbols.get(usr, ('?',))[0], 1, ln)
+    out = sorted(found.values(), key=lambda x: x.key)
+    for x in out:
+        names = ', '.join(x.names[:4]) + (' …' if len(x.names) > 4 else '')
+        x.message = (f'{x.file} uses {x.key.rsplit(" ", 1)[1]} ({names}; {x.weight} reference'
+                     f'{"s" if x.weight != 1 else ""}) without importing it, so every closure it passes to that module '
+                     f'gets a run-time MainActor check: add `import {x.key.rsplit(" ", 1)[1]}` to the file')
+    return out
+
+
 def lower(M, R, asg):
     """A reference to a lower module (TUIkitCore, TUIkitView …: a module outside the map) that its declaration's
     module may not use: one its `lower` list in rules.json does not name. A module with no list may use them all.
@@ -315,7 +380,7 @@ def run_all(M, R, asg, root):
     for p, qs in R.witness_pairs.items(): pairs[p] |= qs
     for p, qs in derived_witness_pairs(root).items(): pairs[p] |= qs
     findings = (uncompiled(M, R, asg) + upward(M, R, asg) + owns_neither(M, R, asg) + witnesses(M, R, asg, pairs)
-                + public_above(M, R, asg) + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg))
+                + public_above(M, R, asg) + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg) + imports(M, R))
     for x in findings:
         a = R.accepted.get((x.check, x.key))
         if a: x.accepted = a.get('why', 'accepted')

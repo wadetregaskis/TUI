@@ -240,6 +240,28 @@ about 0.3 s on a `swift build --build-tests` store (measured on HEAD c181ec0f9; 
 list naming a module that is not one of these, and an index with no definitions of one of these (even one no list
 names: a list denies what it leaves out, and a module the index lacks would deny nothing).
 
+### `imports`: a file of a carved module that uses another module without importing it
+
+`TUIkitLists/Views/Foo.swift uses TUIkitFoundation (RowBackground, ANSIRenderer; 3 references) without importing it, …`
+
+Unlike the checks above, this one is about the build as it is, not the map. A module carved out above
+TUIkitFoundation (TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists …) re-exports it from its
+`Exports.swift`, so every one of its files can name TUIkitFoundation's declarations without importing it, and
+compiles. But Swift decides whether a closure passed to a function needs a run-time check that it runs on the main
+actor by the calling **file's** imports (`CSApply.cpp`, `closuresRequireDynamicIsolationChecking`, through
+`ValueDecl::findImport`, Swift 6.2.4): a callee from a module the file imports, directly or through the re-exports of
+a module it imports, is trusted; one from a module it reaches only through another file's `@_exported import` is
+not, and every closure passed to it gets a `swift_task_isCurrentExecutor` call: steps B4 to B6 added 190 of them
+to a release Stress (1,482 call sites at B3, 1,672 at B6). So a file of such a module must import, itself, every module whose
+declarations it uses: TUIkitFoundation (whose re-exports bring the lower modules and the side modules), and any other
+carved module (a ColorPicker file that lays out a `TabView` imports TUIkitLists).
+
+The modules are the targets as the build compiled them: the index unit of each file names its target, so a file of
+`Sources/TUIkitTables` is TUIkitLists' until step C2, and needs no import to use `List`. A reference to a lower
+module (TUIkitCore, TUIkitView …) counts too; any import that re-exports it answers it. One finding per file and
+module, with the declarations it names and the references counted. TUIkitFoundation's own files and the side
+modules below it are not checked: no carve changed what they import. Fix it by adding the `import` to the file.
+
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 
 The refactor landed, or the code moved. Delete the entry, so the rules stay a list of open items. If the finding
@@ -343,7 +365,8 @@ own module, or start one, rather than keep the split (a carve could not compile 
 
 - The index records only the code macOS compiles. A reference inside a `#if os(Linux)` or `#if os(Windows)` arm is
   invisible to every check that reads references: `upward`, `lower` (a Linux-only use of a lower module a list leaves
-  out), `posix`, `owns-neither` and `witness`. The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7).
+  out), `posix`, `owns-neither`, `witness` and `imports` (a Linux-only closure into a module the file does not
+  import). The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7).
   The refined plan's correction 2 was this class (a Linux-only call the index never saw), so every carve also runs its
   inactive-arm scan and the Linux cross-compile before landing.
 - Only the map's directories (`Sources/<module>` for each module in `rules.json`) are mapped. Tests, Example and
