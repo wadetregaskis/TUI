@@ -117,13 +117,27 @@ public struct ThemeModifier<Content: View>: View {
     /// and says nothing at all about an app's own.
     ///
     /// `@unchecked Sendable` because ``note(_:_:)`` asks it of what it notes
-    /// (it says why), and what this holds always is: the three call sites pass
-    /// a `ButtonStyle`, `ListStyle` or `PickerStyle`, and each refines
-    /// `Sendable`. The compiler cannot see that through `Any`, and spelling the
-    /// property `(any Sendable)?` instead is NOT free: `==` then converts it to
-    /// the `Any` that `isEqual(to:)` takes, a copy the release build keeps
-    /// (31 more instructions across `==` and its closure on Xcode's 6.2.4,
-    /// measured 2026-10-08).
+    /// (it says why), and what this holds always is: its only initialisers
+    /// take a `ButtonStyle`, a `ListStyle` or a `PickerStyle`, and each of
+    /// those protocols refines `Sendable`. So the compiler checks the claim
+    /// where a value comes IN, though it cannot see it through the `Any` the
+    /// value is kept in. That is why there are three typed initialisers and not
+    /// one taking `Any?`: with that one, any later caller could wrap a value of
+    /// any type — a style whose protocol does not refine `Sendable` among them
+    /// — and `@unchecked` would wave it through. A fourth style gets a fourth
+    /// initialiser, and only if its protocol refines `Sendable`. Checked by
+    /// hand once (2026-10-08), with a throwaway
+    /// `note(ComparableStyle(NotSendable()), …)` for a `final class
+    /// NotSendable {}`: it compiled silently against `init(_: Any?)`, and
+    /// against these it fails with "no exact matches in call to initializer".
+    /// Recorded here rather than tested, because the type is private and a
+    /// file whose purpose is to fail to compile cannot live in a target that
+    /// has to build (`StorageSendabilityTests` says the same of its own).
+    ///
+    /// Spelling the property `(any Sendable)?` instead is NOT free: `==` then
+    /// converts it to the `Any` that `isEqual(to:)` takes, a copy the release
+    /// build keeps (31 more instructions across `==` and its closure on
+    /// Xcode's 6.2.4, measured 2026-10-08).
     private struct ComparableStyle: Equatable, @unchecked Sendable {
         /// `Any?` rather than a generic parameter bound to `any ButtonStyle`,
         /// and that is load-bearing rather than laziness: inside a generic whose
@@ -136,9 +150,22 @@ public struct ThemeModifier<Content: View>: View {
         /// by value, which is the arm where only the type answers.)
         let style: Any?
 
-        init(_ style: Any?) {
-            self.style = style
-        }
+        // The same `Any?` store from each: one existential conversion, the one
+        // the call sites made themselves when this took `Any?`, and the
+        // spelling is what keeps it that cheap. An initialiser's parameter is
+        // OWNED unless it says otherwise, so `init(_ style: (any
+        // ButtonStyle)?)` made each call site copy the theme's style to pass
+        // it, and the body copy it again into the box and destroy the
+        // original; left out of line, Xcode's 6.2.4 `-O` also merged the
+        // three into one function. `borrowing` passes the theme's own style
+        // and `copy` makes the one copy, and `@inline(__always)` keeps that
+        // at the call site: the release object's code is then the same as
+        // with `init(_ style: Any?)` but for the source line numbers in its
+        // traps (Theme.swift.o, otool, 2026-10-08; the owned spelling made
+        // about three more calls per style, inlined or not).
+        @inline(__always) init(_ style: borrowing (any ButtonStyle)?) { self.style = copy style }
+        @inline(__always) init(_ style: borrowing (any ListStyle)?) { self.style = copy style }
+        @inline(__always) init(_ style: borrowing (any PickerStyle)?) { self.style = copy style }
 
         static func == (lhs: Self, rhs: Self) -> Bool {
             switch (lhs.style, rhs.style) {
