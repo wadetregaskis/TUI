@@ -135,5 +135,9 @@ extension CoordinateSpaceModifier: DrawsContentUnchanged {}
 
 extension FrameBuffer {
     /// The buffer's size, as the cells a coordinate space spans.
+    ///
+    /// `@inlinable`: a scroll transition (TUIkitEffects) asks it of each row it
+    /// draws, and the body names only public API.
+    @inlinable
     package var cellSize: CellSize { CellSize(width: width, height: height) }
 }
