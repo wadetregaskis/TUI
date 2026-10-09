@@ -3053,6 +3053,44 @@ private struct SlidingDetail: View {
     }
 }
 
+// MARK: - Bitmaps, from a module of their own
+
+/// SwiftUI's own `AsyncImage` examples: an icon from a server in a fixed frame,
+/// the same made resizable under a `ProgressView` placeholder, and a phase
+/// closure that shows a colour for the error and for the wait. Since module
+/// split step B5c `AsyncImage`, `Image(_:bundle:)` and the image options are
+/// TUIkitBitmaps', which only the umbrella re-exports, so these, and the
+/// bitmap snippets earlier in this file, are SwiftUI source reaching it as an
+/// app does: through `import TUIkit`. `resizable()` and `aspectRatio` stay
+/// TUIkitFoundation's.
+@MainActor
+private struct ServerIcons: View {
+    var body: some View {
+        VStack {
+            AsyncImage(url: URL(string: "https://example.com/icon.png"))
+                .frame(width: 200, height: 200)
+            AsyncImage(url: URL(string: "https://example.com/icon.png")) { image in
+                image.resizable()
+            } placeholder: {
+                ProgressView()
+            }
+            .frame(width: 50, height: 50)
+            AsyncImage(url: URL(string: "https://example.com/icon.png")) { phase in
+                if let image = phase.image {
+                    image // Displays the loaded image.
+                } else if phase.error != nil {
+                    Color.red // Indicates an error.
+                } else {
+                    Color.blue // Acts as a placeholder.
+                }
+            }
+            Image("Landscape_4", bundle: nil)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        }
+    }
+}
+
 /// SwiftUI's own `VisualEffect` example: an offset following the view's global
 /// position, which draws its offset now that the proxy answers `.global`.
 @MainActor

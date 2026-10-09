@@ -71,6 +71,19 @@
 //  TUIkitFoundation would still compile here; the reflected names, one per
 //  module, catch it at run time.
 //
+//  Step B5c carved TUIkitBitmaps the same way, `Image`'s bitmap path, and took
+//  TUIkitImage out of TUIkitFoundation's re-exports. The eighth test spells
+//  and draws its types through the umbrella, an `AsyncImage` beside an app's
+//  own `AsyncImage` (the case an app meets: an image loader of its own), and
+//  one of its image options over a text, which takes TUIkitImage's
+//  `ASCIIColorMode`. The umbrella is the only module that re-exports
+//  TUIkitBitmaps, so this file stops compiling without its line. TUIkitImage
+//  has three: the umbrella's own, TUIkitBitmaps' and TUIkitColorPicker's
+//  (their direct dependency); nothing checks the umbrella's line for it, but
+//  an app would lose `ASCIIColorMode` only with all three gone. A module left
+//  compiling in TUIkitFoundation would still compile here; the reflected
+//  names catch it at run time.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -168,6 +181,21 @@ private enum Client {
     static func bothMenus() -> (Menu, TUIkit.Menu<TUIkit.Text, TUIkit.Button>) {
         (Menu(name: "mine"), TUIkit.Menu("b5b menu") { TUIkit.Button("b5b item") {} })
     }
+
+    /// An app's own `AsyncImage`, beside TUIkitBitmaps' view.
+    struct AsyncImage {
+        let name: String
+    }
+
+    /// Both async images: the app's by its plain name, TUIkit's by the
+    /// umbrella's, with no URL, so it stays in its empty phase and draws what
+    /// its content makes of that.
+    @MainActor
+    static func bothAsyncImages() -> (AsyncImage, TUIkit.AsyncImage<TUIkit.Text>) {
+        (AsyncImage(name: "mine"), TUIkit.AsyncImage(url: nil) { phase in
+            TUIkit.Text(verbatim: phase.image == nil ? "b5c empty" : "b5c image")
+        })
+    }
 }
 
 /// A style conforming through the umbrella's spelling of the protocol.
@@ -222,6 +250,12 @@ extension TUIkit.ToolbarPlacement {
     /// TUIkitChrome, which the umbrella re-exports (and so do TUIkitApp and
     /// TUIkitNavigation).
     fileprivate var b5bMarker: Int { self == .bottomBar ? 2 : 0 }
+}
+
+extension TUIkit.ImageFitTarget {
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitBitmaps, which only the umbrella re-exports.
+    fileprivate var b5cMarker: Int { self == .viewport ? 3 : 0 }
 }
 
 extension TUIkit.TabViewCustomization {
@@ -387,6 +421,30 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.ToolbarPlacement.self) == "TUIkitChrome.ToolbarPlacement")
     }
 
+    @Test("A qualified name reaches TUIkitBitmaps, which the umbrella re-exports, and TUIkitImage beside it")
+    func qualifiedNamesReachTheBitmaps() {
+        func drawn(_ view: some TUIkit.View) -> String {
+            TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: 1)).lines
+                .map(\.stripped).joined(separator: "\n")
+        }
+        // An async image beside an app's own `AsyncImage`, drawn: with no URL
+        // it stays empty, and its content says so.
+        let (mine, image) = Client.bothAsyncImages()
+        #expect(mine.name == "mine")
+        #expect(drawn(image).contains("b5c empty"))
+        // An image option of TUIkitBitmaps, spelled through the umbrella, with
+        // TUIkitImage's colour mode, over a TUIkitFoundation text: drawn as the
+        // text (the option is read by a bitmap only).
+        let optioned = TUIkit.Text(verbatim: "b5c option").imageColorMode(TUIkit.ASCIIColorMode.mono)
+        #expect(drawn(optioned).contains("b5c option"))
+        #expect(TUIkit.ImageFitTarget.viewport.b5cMarker == 3)
+        // The reflected names: a module left compiling in TUIkitFoundation
+        // would still build, and read `TUIkitFoundation.` here.
+        #expect(String(reflecting: type(of: image)) == "TUIkitBitmaps.AsyncImage<TUIkitFoundation.Text>")
+        #expect(String(reflecting: TUIkit.ImageFitTarget.self) == "TUIkitBitmaps.ImageFitTarget")
+        #expect(String(reflecting: TUIkit.ASCIIColorMode.self) == "TUIkitImage.ASCIIColorMode")
+    }
+
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
     func reflectedNamesNameTheDeclaringModule() {
         // So `String(reflecting:)`, `dump` and the debugger say
@@ -448,5 +506,9 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.NotificationService.self) == "TUIkitChrome.NotificationService")
         #expect(String(reflecting: TUIkit.ScrollTransitionPhase.self) == "TUIkitEffects.ScrollTransitionPhase")
         #expect(String(reflecting: TUIkit.MenuOrder.self) == "TUIkitMenus.MenuOrder")
+        // Step B5c carved these out (decisions SPB5c, "What an app can see");
+        // each read `TUIkitFoundation.` between B1 and B5c.
+        #expect(String(reflecting: TUIkit.ImageSource.self) == "TUIkitBitmaps.ImageSource")
+        #expect(String(reflecting: TUIkit.AsyncImagePhase.self) == "TUIkitBitmaps.AsyncImagePhase")
     }
 }
