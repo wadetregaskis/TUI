@@ -1119,6 +1119,11 @@ colour changes along the row. That path goes through `PaintRenderer.band`, the
 same per-cell walk `Text` uses, so a table row and a line of text cannot
 disagree about where a colour changes.
 
+> **Added 2026-10-08:** the 18.1% is `Tools/Profiling/analyze_timeprofile.py`'s
+> output, quoted in `12f85f04d` (2026-08-13). Until 2026-10-08 that analyzer
+> counted each distinct stack once, under-weighting the hottest, so treat the
+> share as indicative. `Tools/Profiling/README.md` has the details.
+
 The sampler is built **once per frame**, not once per row: constructing one
 quantises the ramp into an array, and a row must not allocate. It is hoisted
 above each of the three row loops.

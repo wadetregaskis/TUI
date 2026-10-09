@@ -43,6 +43,21 @@ and fixed what could be fixed without changing behaviour: fifteen commits,
   full suite on 6.2.4 (`parallel_test.py`), SwiftLint `--strict`, and
   `Stress --selfcheck`.
 
+> **Added 2026-10-08:** the profile shares in this document were read with
+> `Tools/Profiling/analyze_timeprofile.py`; §8's 16.6% is its `--callers`
+> output, quoted in `80d53ccd4`. Until 2026-10-08 that analyzer counted each
+> distinct stack once. It skipped every sample whose stack xctrace wrote as a
+> `<backtrace ref>` to an earlier one, which kept 21–64% of the samples in the
+> traces measured on 2026-10-08 and under-weighted the hottest stacks most.
+> That covers the per-function µs that the attribution above derives from a
+> share, §5's 7 µs/frame, "about 9%" and "about 5%", and §8's 16.6% (base
+> 14.5%) and 9%. Treat them as indicative, since a full count may rank them
+> differently. A count like that gives every distinct stack the same single
+> sample, however often it ran. Whether that is part of why §5's shares
+> pointed at costs the A/B did not find has not been re-measured. The A/B
+> results, the bisections and the byte-identity checks were measured by other
+> means and are unaffected.
+
 A read-only survey of the diff (six agents, 46 findings) said where to look
 first. Its high-severity finding was right. Several of its medium findings
 measured as nothing (§5).

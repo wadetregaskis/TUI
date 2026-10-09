@@ -294,6 +294,8 @@ the previous step's.
 > On the `menu` tree the leaf view said 55% libswiftCore and named nothing
 > actionable; `--blame` said environment access 15.8%, `AnyIterator.next()`
 > 9.2%, identity nodes 3.8%, string building 3.3% and array regrowth 3.0%.
+> Those shares were taken before 2026-10-08, so they count each distinct stack
+> once; see "Shares quoted before 2026-10-08" below.
 
 **`--within PATTERN`** is the other way round: it keeps only the samples with
 a frame matching PATTERN (a regex) somewhere on the stack, and ranks what
@@ -310,7 +312,8 @@ hash's 422 — more than half — was the main actor's executor check
 (`swift_task_isCurrentExecutor`, `Actor.unownedExecutor`, `MainActor.shared`,
 the metadata accessors under them), which the inclusive view spreads across
 every closure the hash passes to `withUnsafeBytes`, and no leaf ranking puts
-together.
+together. Those milliseconds were taken before 2026-10-08, so they count each
+distinct stack once; see "Shares quoted before 2026-10-08" below.
 
 **Profiling the live app, emission included.** Instruments cannot `--launch`
 a PTY app and `--attach` is denied here, but `xcrun xctrace record

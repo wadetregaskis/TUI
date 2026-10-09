@@ -74,6 +74,15 @@ the `nested`/`textwall` trees), and it is slow **only** on styled lines — the
 ESC-scanning state machine `forEachVisibleANSIRun`. On plain lines it takes
 the byte/ASCII fast path (`visibleRunWidth`).
 
+> **Added 2026-10-08:** the ~20–23% comes from Time Profiler traces read with
+> `Tools/Profiling/analyze_timeprofile.py` (`1d5066a8c` quotes ~23% for the
+> `nested` tree). Until 2026-10-08 that analyzer counted each distinct stack
+> once, under-weighting the hottest. Treat this share as indicative, and the
+> same for its repeat in §5.2 and the "current ~20%+" in §7.4's CPU gate. A
+> gate run should measure its own before and after with the same analyzer
+> rather than compare against these figures. `Tools/Profiling/README.md` has
+> the details.
+
 ### 1.2 The wide-char bug class — already paid down
 
 Terminal layout math done in `String.count`/`prefix`/padding rather than

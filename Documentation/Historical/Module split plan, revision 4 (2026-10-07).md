@@ -246,6 +246,15 @@ The r4 pins hand back 0.04 s in all (measured on the model), which changes no to
 | 7 | **The Scene family and the run-loop rendering → App** | 53 / 2,219 | 0.31 / 0.30 s | **None, and K3 is dropped.** `ViewRenderer` and `FrameDiffWriter` move with `renderOnce`, so ViewRenderer needs no `any TerminalProtocol` parameter. App gains the DequeModule dependency (B3). | 172 App→Base sites, per frame. Hottest: the environment accessors (`mouseEventDispatcher` 1.24%, `preferenceStorage` 0.94%), tier 1 and E1. FrameDiffWriter's `TerminalProtocol` calls are existential already; its ANSI clip and compensation helpers are in TUIkitCore today. B3 adds an emission bench. | B3 | −0.25 d (no K3) |
 | in | **Link, LinkDisplay, HelpLink, PasteButton, RenameButton, `.refreshIndicator`, `.shiftStepMultiplier`**, from the plan's Controls into Base | 26 / 884 | −0.20 s | **None.** Removes crossings. | — | — | — |
 
+> **Added 2026-10-08:** the profiled shares in the Runtime column, each cut's
+> hottest callee and "none ≥ 0.3% in any profile", were read with
+> `Tools/Profiling/analyze_timeprofile.py`. Until 2026-10-08 that analyzer
+> counted each distinct stack once, under-weighting the hottest. Treat the
+> shares as indicative, since a full count may name a different hottest
+> callee. The A/Bs the A/B column schedules time binaries, so they are
+> unaffected.
+> `Tools/Profiling/README.md` has the details.
+
 **R2 in detail** (from slimbase, with judge-risk's conditions):
 - **What stays in Base.** `Image` stays one public type in Base, with `Image(systemName:)`.
 - **The raster content becomes a value the leaf constructs.** `Image(_:)` and `Image(_:bundle:)` become extensions in
