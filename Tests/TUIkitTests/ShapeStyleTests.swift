@@ -400,8 +400,8 @@ struct ShapeStyleTests {
 
     @Test("A paint collapses to one colour where a gradient cannot go")
     func collapsing() {
-        #expect(Paint.color(.rgb(4, 5, 6)).representative == .rgb(4, 5, 6))
-        #expect(Paint.color(.rgb(4, 5, 6)).solid == .rgb(4, 5, 6))
+        #expect(Paint.color(.rgb(4, 5, 6)).representative == Color.rgb(4, 5, 6))
+        #expect(Paint.color(.rgb(4, 5, 6)).solid == Color.rgb(4, 5, 6))
         let gradient = Gradient(colors: [.rgb(0, 0, 0), .rgb(255, 255, 255)])
         let ramp = Paint.gradient(GradientPaint(gradient, .linear(from: .top, to: .bottom)))
         #expect(ramp.solid == nil, "a ramp is not a solid colour")

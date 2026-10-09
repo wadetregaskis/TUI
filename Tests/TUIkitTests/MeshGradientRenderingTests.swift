@@ -180,7 +180,7 @@ struct MeshGradientRenderingTests {
             Issue.record("not a mesh")
             return
         }
-        #expect(Paint.mesh(paint).representative == .rgb(255, 255, 255), "the middle vertex is white")
+        #expect(Paint.mesh(paint).representative == Color.rgb(255, 255, 255), "the middle vertex is white")
         #expect(paint.isOpaqueThroughout, "a clear background behind a mesh that covers its box shows nowhere")
 
         var inset = paint
@@ -214,7 +214,7 @@ struct MeshGradientRenderingTests {
         for (width, height) in [(80, 24), (37, 11), (300, 150)] {
             let colours = MeshRaster(paint: paint, offset: .zero, extent: SIMD2(Double(width), Double(height)))
                 .colours(columns: 0..<width, rows: 0..<height)
-            let holes = colours.filter { $0 == .rgb(0, 0, 255) }.count
+            let holes = colours.filter { $0 == Color.rgb(0, 0, 255) }.count
             #expect(holes == 0, "\(holes) of \(width) × \(height) samples fell through")
         }
     }

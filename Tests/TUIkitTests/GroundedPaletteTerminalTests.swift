@@ -151,7 +151,7 @@ struct GroundedPaletteTerminalTests {
 
             // TranslucentGroundTests' ground: alpha 128, which keeps the colour.
             let half = stored(RolePalette().with("background", Color.rgb(10, 10, 20).opacity(0.5)))
-            #expect(half.background == .rgb(10, 10, 20))
+            #expect(half.background == Color.rgb(10, 10, 20))
         }
     }
 
@@ -168,9 +168,9 @@ struct GroundedPaletteTerminalTests {
     func partialRootSpendsOverTheReportedPage() {
         TerminalColors.withCurrent(Self.reported) {
             let seen = stored(RolePalette().with("background", Color.rgb(10, 10, 20).opacity(0.5)))
-            #expect(seen.background == .rgb(25, 27, 36))
+            #expect(seen.background == Color.rgb(25, 27, 36))
             let quarter = stored(RolePalette().with("background", Color.rgb(10, 10, 20).opacity(64.0 / 255)))
-            #expect(quarter.background == .rgb(32, 35, 44))
+            #expect(quarter.background == Color.rgb(32, 35, 44))
             let clear = stored(RolePalette().with("background", .clear))
             #expect(clear.background == Self.page)
         }
@@ -283,8 +283,8 @@ struct GroundedPaletteTerminalTests {
         }
         TerminalColors.withCurrent(Self.reported) {
             let seen = stored(Stated())
-            #expect(seen.focusBackground == .rgb(1, 2, 3))
-            #expect(seen.fieldBackground == .rgb(4, 5, 6))
+            #expect(seen.focusBackground == Color.rgb(1, 2, 3))
+            #expect(seen.fieldBackground == Color.rgb(4, 5, 6))
         }
     }
 

@@ -57,13 +57,13 @@ struct ColorResolvedTests {
 
     @Test("The component initialisers make the 8-bit colour SwiftUI's resolves to")
     func componentInitialisers() {
-        #expect(Color(red: 0.2, green: 0.4, blue: 0.6) == .rgb(0x33, 0x66, 0x99))
+        #expect(Color(red: 0.2, green: 0.4, blue: 0.6) == Color.rgb(0x33, 0x66, 0x99))
         #expect(Color(red: 0.2, green: 0.4, blue: 0.6).description == "#336699FF")
-        #expect(Color(hue: 0.5, saturation: 1, brightness: 1) == .rgb(0, 255, 255))
+        #expect(Color(hue: 0.5, saturation: 1, brightness: 1) == Color.rgb(0, 255, 255))
         #expect(Color(white: 0.5, opacity: 0.5) == Color.rgb(128, 128, 128).opacity(0.5))
-        #expect(Color(.sRGBLinear, white: 0.5) == .rgb(188, 188, 188))
+        #expect(Color(.sRGBLinear, white: 0.5) == Color.rgb(188, 188, 188))
         // Out of range clamps: a terminal shows 8-bit sRGB.
-        #expect(Color(red: 1.5, green: -0.2, blue: 0.5) == .rgb(255, 0, 128))
+        #expect(Color(red: 1.5, green: -0.2, blue: 0.5) == Color.rgb(255, 0, 128))
     }
 
     @Test("A colour made from a resolved one keeps its numbers to the byte")

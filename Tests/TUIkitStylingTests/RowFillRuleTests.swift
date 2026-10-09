@@ -118,7 +118,7 @@ struct RowFillRuleTests {
         var palette = Self.dusk
         palette.wash = .rgb(0x30, 0x24, 0x40)
         let fills = try #require(palette.rowFills(at: .truecolor))
-        #expect(fills.focusDim == .rgb(0x30, 0x24, 0x40))
+        #expect(fills.focusDim == Color.rgb(0x30, 0x24, 0x40))
         #expect(fills.focusBright == palette.washPulse(.rgb(0x30, 0x24, 0x40)).bright)
         let look = Self.look(palette)
         #expect(fills.selection == look.selection.color)

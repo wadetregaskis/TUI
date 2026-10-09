@@ -60,7 +60,7 @@ struct Color256GridHandlerTests {
         let handler = Color256GridHandler(focusID: "g", cursor: 0, selection: box.binding)
         handler.commit(to: 5)
         #expect(handler.cursor == 5)
-        #expect(box.color == .palette256(5))
+        #expect(box.color == Color.palette256(5))
         handler.commit(to: 999)
         #expect(handler.cursor == 255)
         handler.commit(to: -3)
@@ -77,7 +77,7 @@ struct Color256GridHandlerTests {
         // 16 is the top-left of the cube's first red slice (green 0, blue 0).
         #expect(handler.handleKeyEvent(KeyEvent(key: .down)))   // → green 1 (index 22)
         #expect(handler.cursor == 22)
-        #expect(box.color == .palette256(22))
+        #expect(box.color == Color.palette256(22))
         #expect(handler.handleKeyEvent(KeyEvent(key: .right)))  // → blue 1 (index 23)
         #expect(handler.cursor == 23)
         #expect(handler.handleKeyEvent(KeyEvent(key: .up)))     // → green 0, blue 1 (index 17)
@@ -210,9 +210,9 @@ struct Color256GridFocusTests {
         // The cursor seeds at black's nearest cube cell (index 16). Down a green
         // step → 22, then right a blue step → 23.
         #expect(focusManager.dispatchKeyEvent(KeyEvent(key: .down)))
-        #expect(box.color == .palette256(22))
+        #expect(box.color == Color.palette256(22))
         #expect(focusManager.dispatchKeyEvent(KeyEvent(key: .right)))
-        #expect(box.color == .palette256(23))
+        #expect(box.color == Color.palette256(23))
     }
 
     @Test("Clicking a swatch commits that palette index (the grid responds to the mouse)")
@@ -252,7 +252,7 @@ struct Color256GridFocusTests {
             MouseEvent(button: .left, phase: .pressed, x: target.x, y: target.y))
         _ = tui.mouseEventDispatcher.dispatch(
             MouseEvent(button: .left, phase: .released, x: target.x, y: target.y))
-        #expect(box.color == .palette256(255), "the clicked swatch is selected, got \(box.color)")
+        #expect(box.color == Color.palette256(255), "the clicked swatch is selected, got \(box.color)")
     }
 
     /// Arrow-keying around the swatches must scroll the enclosing ScrollView to

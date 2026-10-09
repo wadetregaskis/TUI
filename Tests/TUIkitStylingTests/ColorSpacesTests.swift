@@ -16,11 +16,11 @@ struct ColorSpacesTests {
 
     @Test("HSL primaries resolve to the expected RGB")
     func hslPrimaries() {
-        #expect(Color.hsl(0, 100, 50) == .rgb(255, 0, 0))
-        #expect(Color.hsl(120, 100, 50) == .rgb(0, 255, 0))
-        #expect(Color.hsl(240, 100, 50) == .rgb(0, 0, 255))
+        #expect(Color.hsl(0, 100, 50) == Color.rgb(255, 0, 0))
+        #expect(Color.hsl(120, 100, 50) == Color.rgb(0, 255, 0))
+        #expect(Color.hsl(240, 100, 50) == Color.rgb(0, 0, 255))
         // Lightness 100 is white regardless of hue — the key HSL/HSB difference.
-        #expect(Color.hsl(0, 100, 100) == .rgb(255, 255, 255))
+        #expect(Color.hsl(0, 100, 100) == Color.rgb(255, 255, 255))
     }
 
     @Test("An HSL hue off the 0..<360 circle draws the colour of its turn-equivalent")
@@ -48,30 +48,30 @@ struct ColorSpacesTests {
         }
         // What `.hueRotation(.degrees(-300))` hands over for a hue-0 pale red:
         // blue came out 0 instead of the lightness's 128.
-        #expect(Color.hsl(-300, 100, 75) == .rgb(255, 255, 128))
+        #expect(Color.hsl(-300, 100, 75) == Color.rgb(255, 255, 128))
     }
 
     // MARK: - HSB / HSV
 
     @Test("HSB primaries resolve to the expected RGB")
     func hsbPrimaries() {
-        #expect(Color.hsb(0, 100, 100) == .rgb(255, 0, 0))
-        #expect(Color.hsb(120, 100, 100) == .rgb(0, 255, 0))
-        #expect(Color.hsb(240, 100, 100) == .rgb(0, 0, 255))
-        #expect(Color.hsb(60, 100, 100) == .rgb(255, 255, 0))
-        #expect(Color.hsb(180, 100, 100) == .rgb(0, 255, 255))
-        #expect(Color.hsb(300, 100, 100) == .rgb(255, 0, 255))
+        #expect(Color.hsb(0, 100, 100) == Color.rgb(255, 0, 0))
+        #expect(Color.hsb(120, 100, 100) == Color.rgb(0, 255, 0))
+        #expect(Color.hsb(240, 100, 100) == Color.rgb(0, 0, 255))
+        #expect(Color.hsb(60, 100, 100) == Color.rgb(255, 255, 0))
+        #expect(Color.hsb(180, 100, 100) == Color.rgb(0, 255, 255))
+        #expect(Color.hsb(300, 100, 100) == Color.rgb(255, 0, 255))
     }
 
     @Test("HSB brightness and saturation extremes")
     func hsbExtremes() {
         // Brightness 100 / saturation 0 is white; HSL lightness 100 is also white,
         // but HSB brightness 100 with full saturation is a vivid hue (above).
-        #expect(Color.hsb(0, 0, 100) == .rgb(255, 255, 255))
+        #expect(Color.hsb(0, 0, 100) == Color.rgb(255, 255, 255))
         // Brightness 0 is black regardless of hue/saturation.
-        #expect(Color.hsb(200, 100, 0) == .rgb(0, 0, 0))
+        #expect(Color.hsb(200, 100, 0) == Color.rgb(0, 0, 0))
         // Saturation 0 is a pure gray at the brightness level.
-        #expect(Color.hsb(123, 0, 50) == .rgb(128, 128, 128))
+        #expect(Color.hsb(123, 0, 50) == Color.rgb(128, 128, 128))
     }
 
     @Test("rgbToHSB reports the expected components")
@@ -92,7 +92,7 @@ struct ColorSpacesTests {
             let (r, g, b) = (UInt8(rgb.0), UInt8(rgb.1), UInt8(rgb.2))
             let hsb = Color.rgbToHSB(red: r, green: g, blue: b)
             let back = Color.hsb(hsb.hue, hsb.saturation, hsb.brightness)
-            #expect(back == .rgb(r, g, b), "HSB round-trip failed for \(rgb): got \(back)")
+            #expect(back == Color.rgb(r, g, b), "HSB round-trip failed for \(rgb): got \(back)")
         }
     }
 
@@ -168,11 +168,11 @@ struct ColorSpacesTests {
 
     @Test("CMYK primaries resolve to the expected RGB")
     func cmykPrimaries() {
-        #expect(Color.cmyk(0, 0, 0, 0) == .rgb(255, 255, 255))
-        #expect(Color.cmyk(0, 0, 0, 100) == .rgb(0, 0, 0))
-        #expect(Color.cmyk(100, 0, 0, 0) == .rgb(0, 255, 255))
-        #expect(Color.cmyk(0, 100, 0, 0) == .rgb(255, 0, 255))
-        #expect(Color.cmyk(0, 0, 100, 0) == .rgb(255, 255, 0))
+        #expect(Color.cmyk(0, 0, 0, 0) == Color.rgb(255, 255, 255))
+        #expect(Color.cmyk(0, 0, 0, 100) == Color.rgb(0, 0, 0))
+        #expect(Color.cmyk(100, 0, 0, 0) == Color.rgb(0, 255, 255))
+        #expect(Color.cmyk(0, 100, 0, 0) == Color.rgb(255, 0, 255))
+        #expect(Color.cmyk(0, 0, 100, 0) == Color.rgb(255, 255, 0))
     }
 
     @Test("rgbToCMYK reports the expected components")
@@ -197,7 +197,7 @@ struct ColorSpacesTests {
             let (r, g, b) = (UInt8(rgb.0), UInt8(rgb.1), UInt8(rgb.2))
             let cmyk = Color.rgbToCMYK(red: r, green: g, blue: b)
             let back = Color.cmyk(cmyk.cyan, cmyk.magenta, cmyk.yellow, cmyk.black)
-            #expect(back == .rgb(r, g, b), "CMYK round-trip failed for \(rgb): got \(back)")
+            #expect(back == Color.rgb(r, g, b), "CMYK round-trip failed for \(rgb): got \(back)")
         }
     }
 

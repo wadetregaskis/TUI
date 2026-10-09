@@ -119,8 +119,8 @@ struct UnreportedANSISlotTests {
     func contrastFloor() {
         let paper = Color.rgb(250, 250, 250)
         TerminalColors.withCurrent(.unknown) {
-            #expect(Color.ansi(.brightWhite).ensuringContrast(atLeast: 4.5, against: paper) == .ansi(.brightWhite))
-            #expect(Color.rgb(200, 200, 200).ensuringContrast(atLeast: 4.5, against: .ansi(.white)) == .rgb(200, 200, 200))
+            #expect(Color.ansi(.brightWhite).ensuringContrast(atLeast: 4.5, against: paper) == Color.ansi(.brightWhite))
+            #expect(Color.rgb(200, 200, 200).ensuringContrast(atLeast: 4.5, against: .ansi(.white)) == Color.rgb(200, 200, 200))
         }
         TerminalColors.withCurrent(Self.appleTerminal) {
             #expect(
@@ -136,18 +136,18 @@ struct UnreportedANSISlotTests {
     func blendSnaps() {
         let blue = Color.rgb(0, 0, 255)
         TerminalColors.withCurrent(.unknown) {
-            #expect(Color.lerp(.ansi(.red), blue, phase: 0.4) == .ansi(.red))
+            #expect(Color.lerp(.ansi(.red), blue, phase: 0.4) == Color.ansi(.red))
             #expect(Color.lerp(.ansi(.red), blue, phase: 0.6) == blue)
-            #expect(Color.ansi(.red).mix(with: blue, by: 0.4) == .ansi(.red))
-            #expect(Color.ansi(.red).opacity(0.5, over: Self.page) == .ansi(.red))
+            #expect(Color.ansi(.red).mix(with: blue, by: 0.4) == Color.ansi(.red))
+            #expect(Color.ansi(.red).opacity(0.5, over: Self.page) == Color.ansi(.red))
             #expect(Color.ansi(.red).opacity(0.4, over: Self.page) == Self.page)
         }
         TerminalColors.withCurrent(Self.appleTerminal) {
-            #expect(Color.lerp(.ansi(.red), blue, phase: 0) == .ansi(.red))
+            #expect(Color.lerp(.ansi(.red), blue, phase: 0) == Color.ansi(.red))
             #expect(Color.lerp(.ansi(.red), blue, phase: 1) == blue)
             // (153, 0, 0) halfway to (0, 0, 255), rounded to nearest.
-            #expect(Color.lerp(.ansi(.red), blue, phase: 0.5) == .rgb(77, 0, 128))
-            #expect(Color.ansi(.red).opacity(0.4, over: Self.page) == .rgb(73, 12, 18))
+            #expect(Color.lerp(.ansi(.red), blue, phase: 0.5) == Color.rgb(77, 0, 128))
+            #expect(Color.ansi(.red).opacity(0.4, over: Self.page) == Color.rgb(73, 12, 18))
         }
     }
 
@@ -202,14 +202,14 @@ struct UnreportedANSISlotTests {
         typealias Effect = _ColorEffect
         let orange = Color.rgb(200, 100, 50)
         TerminalColors.withCurrent(.unknown) {
-            #expect(Effect.hueRotation.applied(to: .ansi(.red), amount: 90) == .ansi(.red))
-            #expect(Effect.brightness.applied(to: .ansi(.red), amount: 0.2) == .ansi(.red))
+            #expect(Effect.hueRotation.applied(to: .ansi(.red), amount: 90) == Color.ansi(.red))
+            #expect(Effect.brightness.applied(to: .ansi(.red), amount: 0.2) == Color.ansi(.red))
             #expect(Effect.multiply(.ansi(.red)).applied(to: orange, amount: 1) == orange)
         }
         TerminalColors.withCurrent(Self.appleTerminal) {
             #expect(Self.isRGB(Effect.hueRotation.applied(to: .ansi(.red), amount: 90)))
             // (200, 100, 50) × (153, 0, 0) / 255, rounded.
-            #expect(Effect.multiply(.ansi(.red)).applied(to: orange, amount: 1) == .rgb(120, 0, 0))
+            #expect(Effect.multiply(.ansi(.red)).applied(to: orange, amount: 1) == Color.rgb(120, 0, 0))
         }
     }
 
@@ -233,19 +233,19 @@ struct UnreportedANSISlotTests {
         let palette = SlotAccentPalette()
         TerminalColors.withCurrent(.unknown) {
             let ends = Color.ansi(.blue).breathEnds(dimmedTo: 0.2, over: Self.page)
-            #expect(ends.dim == .ansi(.blue) && ends.bright == .ansi(.blue), "\(ends)")
+            #expect(ends.dim == Color.ansi(.blue) && ends.bright == Color.ansi(.blue), "\(ends)")
             let fill = palette.accentFillPulse()
             #expect(fill.dim == fill.bright, "\(fill)")
             let apart = Color.breathEnds(dim: palette.foreground, bright: .ansi(.blue))
-            #expect(apart.dim == .ansi(.blue) && apart.bright == .ansi(.blue), "\(apart)")
+            #expect(apart.dim == Color.ansi(.blue) && apart.bright == Color.ansi(.blue), "\(apart)")
         }
         TerminalColors.withCurrent(Self.appleTerminal) {
             let ends = Color.ansi(.blue).breathEnds(dimmedTo: 0.2, over: Self.page)
-            #expect(Self.isRGB(ends.dim) && ends.bright == .ansi(.blue), "\(ends)")
+            #expect(Self.isRGB(ends.dim) && ends.bright == Color.ansi(.blue), "\(ends)")
             let fill = palette.accentFillPulse()
             #expect(fill.dim != fill.bright, "\(fill)")
             let apart = Color.breathEnds(dim: palette.foreground, bright: .ansi(.blue))
-            #expect(apart.dim == palette.foreground && apart.bright == .ansi(.blue), "\(apart)")
+            #expect(apart.dim == palette.foreground && apart.bright == Color.ansi(.blue), "\(apart)")
         }
     }
 
@@ -269,8 +269,8 @@ struct UnreportedANSISlotTests {
     @Test("Lighter and darker leave an unreported slot unchanged, and step from a reported one")
     func lighterAndDarker() {
         TerminalColors.withCurrent(.unknown) {
-            #expect(Color.ansi(.red).lighter() == .ansi(.red))
-            #expect(Color.ansi(.red).darker() == .ansi(.red))
+            #expect(Color.ansi(.red).lighter() == Color.ansi(.red))
+            #expect(Color.ansi(.red).darker() == Color.ansi(.red))
         }
         TerminalColors.withCurrent(Self.appleTerminal) {
             #expect(Color.ansi(.red).lighter() == Self.reportedColour(.red).lighter())
@@ -344,17 +344,17 @@ struct UnreportedANSISlotTests {
         TerminalColors.withCurrent(.unknown) {
             for slot in ANSIColor.allCases {
                 let rgb = slot.xtermRGB
-                #expect(Color.rgb(rgb.red, rgb.green, rgb.blue).downsampledToANSI16() == .ansi(slot), "\(slot)")
+                #expect(Color.rgb(rgb.red, rgb.green, rgb.blue).downsampledToANSI16() == Color.ansi(slot), "\(slot)")
             }
-            #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == .ansi(.red))
+            #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == Color.ansi(.red))
         }
         TerminalColors.withCurrent(Self.appleTerminal) {
             for slot in ANSIColor.allCases {
                 let rgb = Self.reported(slot)
-                #expect(Color.rgb(rgb.red, rgb.green, rgb.blue).downsampledToANSI16() == .ansi(slot), "\(slot)")
+                #expect(Color.rgb(rgb.red, rgb.green, rgb.blue).downsampledToANSI16() == Color.ansi(slot), "\(slot)")
             }
             // Nearer xterm's red (205) and nearer Apple Terminal's bright red (230).
-            #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == .ansi(.brightRed))
+            #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == Color.ansi(.brightRed))
         }
     }
 }

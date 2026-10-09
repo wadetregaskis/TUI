@@ -167,12 +167,12 @@ struct ColorTests {
     @Test("lerp rounds to nearest")
     func lerpRounds() {
         // 0…255 halved is 127.5, which truncates to 127 and rounds to 128.
-        #expect(Color.lerp(.rgb(0, 0, 0), .rgb(255, 255, 255), phase: 0.5) == .rgb(128, 128, 128))
+        #expect(Color.lerp(.rgb(0, 0, 0), .rgb(255, 255, 255), phase: 0.5) == Color.rgb(128, 128, 128))
         // …and a value that is already below the halfway point still goes down.
-        #expect(Color.lerp(.rgb(0, 0, 0), .rgb(254, 254, 254), phase: 0.5) == .rgb(127, 127, 127))
+        #expect(Color.lerp(.rgb(0, 0, 0), .rgb(254, 254, 254), phase: 0.5) == Color.rgb(127, 127, 127))
         // The ends stay exact, which truncation could not always promise.
-        #expect(Color.lerp(.rgb(1, 2, 3), .rgb(250, 251, 252), phase: 1) == .rgb(250, 251, 252))
-        #expect(Color.lerp(.rgb(1, 2, 3), .rgb(250, 251, 252), phase: 0) == .rgb(1, 2, 3))
+        #expect(Color.lerp(.rgb(1, 2, 3), .rgb(250, 251, 252), phase: 1) == Color.rgb(250, 251, 252))
+        #expect(Color.lerp(.rgb(1, 2, 3), .rgb(250, 251, 252), phase: 0) == Color.rgb(1, 2, 3))
     }
 
     /// The mean error over every pair of endpoints and a sweep of phases: half

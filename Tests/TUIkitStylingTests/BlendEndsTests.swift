@@ -352,7 +352,7 @@ struct BlendEndsTests {
             }
             // Two RGB ends move, whatever the terminal has said.
             let rgb = Color.breathEnds(dim: label, bright: .rgb(0, 122, 255))
-            #expect(rgb.dim == label && rgb.bright == .rgb(0, 122, 255), "\(rgb)")
+            #expect(rgb.dim == label && rgb.bright == Color.rgb(0, 122, 255), "\(rgb)")
             // A semantic end is left alone: its blend is already `from` at every phase.
             let semantic = Color.breathEnds(dim: Self.ink, bright: .palette.accent)
             #expect(semantic.dim == Self.ink && semantic.bright == .palette.accent, "\(semantic)")

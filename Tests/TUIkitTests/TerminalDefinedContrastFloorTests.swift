@@ -107,7 +107,7 @@ struct TerminalDefinedContrastFloorTests {
             #expect(palette.foreground == .terminalForeground, "the fixture: 39 as the ink")
             let colours = TextFieldContentRenderer.selectionColors(palette: palette, background: nil)
             // Slot 4, (0, 0, 179), at 0.6 over the white page.
-            #expect(colours.background == .rgb(102, 102, 209))
+            #expect(colours.background == Color.rgb(102, 102, 209))
             #expect(colours.foreground == .terminalForeground, "\(colours.foreground)")
             #expect(abs(Self.ratio(colours.foreground, on: colours.background) - 4.3862) < 0.0001)
             // What it was: the page reads better as ink, but the foreground slot spells it
@@ -149,22 +149,22 @@ struct TerminalDefinedContrastFloorTests {
         TerminalColors.withCurrent(Self.apple) {
             let white = Color.terminalBackground
             // Itself: slot 3 reads at 3.04 on the white page.
-            #expect(Color.ansi(.yellow).ensuringContrast(atLeast: 3, against: white) == .ansi(.yellow))
+            #expect(Color.ansi(.yellow).ensuringContrast(atLeast: 3, against: white) == Color.ansi(.yellow))
             // Slot 7 at 1.84 and slot 6 at 2.96; their twins read worse, so 39, black here.
             #expect(Color.ansi(.white).ensuringContrast(atLeast: 3, against: white) == .terminalForeground)
             #expect(Color.ansi(.cyan).ensuringContrast(atLeast: 3, against: white) == .terminalForeground)
             // Its twin: on slot 0, slot 1 reads at 2.35 and slot 9 at 4.37.
-            #expect(Color.ansi(.red).ensuringContrast(atLeast: 3, against: .ansi(.black)) == .ansi(.brightRed))
+            #expect(Color.ansi(.red).ensuringContrast(atLeast: 3, against: .ansi(.black)) == Color.ansi(.brightRed))
             // Slot 7: on slot 0, slot 4 reads at 1.65 and its twin at 2.44, and 39 and
             // slot 0 are the page's black.
-            #expect(Color.ansi(.blue).ensuringContrast(atLeast: 3, against: .ansi(.black)) == .ansi(.white))
+            #expect(Color.ansi(.blue).ensuringContrast(atLeast: 3, against: .ansi(.black)) == Color.ansi(.white))
             // Slot 15: on a mid grey, 39, slot 0 and slot 7 read at 3.55, 3.55 and 3.22.
             #expect(
                 Color.ansi(.brightBlack).ensuringContrast(atLeast: 4.5, against: .rgb(100, 100, 100))
-                    == .ansi(.brightWhite))
+                    == Color.ansi(.brightWhite))
             // Spelled by index, the names stay spelled by index.
-            #expect(Color.palette256(1).ensuringContrast(atLeast: 3, against: .palette256(0)) == .palette256(9))
-            #expect(Color.palette256(4).ensuringContrast(atLeast: 3, against: .palette256(0)) == .palette256(7))
+            #expect(Color.palette256(1).ensuringContrast(atLeast: 3, against: .palette256(0)) == Color.palette256(9))
+            #expect(Color.palette256(4).ensuringContrast(atLeast: 3, against: .palette256(0)) == Color.palette256(7))
         }
     }
 
@@ -216,7 +216,7 @@ struct TerminalDefinedContrastFloorTests {
         // The pair and no slots: a slot is still unmeasured, and 39 has no other name to
         // measure against, so both stay.
         TerminalColors.withCurrent(Self.pairOnly) {
-            #expect(Color.ansi(.yellow).ensuringContrast(atLeast: 4.5, against: .rgb(250, 250, 250)) == .ansi(.yellow))
+            #expect(Color.ansi(.yellow).ensuringContrast(atLeast: 4.5, against: .rgb(250, 250, 250)) == Color.ansi(.yellow))
             #expect(Color.terminalForeground.ensuringContrast(atLeast: 4.5, against: .rgb(20, 20, 30)) == .terminalForeground)
         }
     }

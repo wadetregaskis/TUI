@@ -221,8 +221,8 @@ struct ColorPickerGreyscaleTabTests {
     func ramp() {
         let greys = SwatchPalettes.greyscale
         #expect(greys.count == 32)
-        #expect(greys.first == .rgb(0, 0, 0), "starts at black")
-        #expect(greys.last == .rgb(255, 255, 255), "ends at white")
+        #expect(greys.first == Color.rgb(0, 0, 0), "starts at black")
+        #expect(greys.last == Color.rgb(255, 255, 255), "ends at white")
         // Every entry is a true grey (R == G == B).
         #expect(greys.allSatisfy { c in
             let rgb = c.rgbComponents!

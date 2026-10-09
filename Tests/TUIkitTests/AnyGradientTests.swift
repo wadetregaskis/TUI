@@ -62,8 +62,8 @@ struct AnyGradientTests {
     @Test("A colour at full lightness has nowhere to go, and stays")
     func whiteDerivesToItself() {
         let stops = Color.rgb(255, 255, 255).gradient.gradient(in: environment()).stops
-        #expect(stops.first?.color == .rgb(255, 255, 255), "\(stops)")
-        #expect(stops.last?.color == .rgb(255, 255, 255), "\(stops)")
+        #expect(stops.first?.color == Color.rgb(255, 255, 255), "\(stops)")
+        #expect(stops.last?.color == Color.rgb(255, 255, 255), "\(stops)")
     }
 
     /// A palette role is a reference, not a colour: there is nothing to lighten
@@ -124,9 +124,9 @@ struct AnyGradientTests {
     func theDefaultsDiffer() {
         let red = Color.rgb(255, 0, 0)
         let blue = Color.rgb(0, 0, 255)
-        #expect(red.mix(with: blue, by: 0.5, in: .device) == .rgb(128, 0, 128))
-        #expect(red.mix(with: blue, by: 0.5) == .rgb(140, 83, 162))
-        #expect(Gradient(colors: [red, blue]).color(at: 0.5) == .rgb(128, 0, 128))
+        #expect(red.mix(with: blue, by: 0.5, in: .device) == Color.rgb(128, 0, 128))
+        #expect(red.mix(with: blue, by: 0.5) == Color.rgb(140, 83, 162))
+        #expect(Gradient(colors: [red, blue]).color(at: 0.5) == Color.rgb(128, 0, 128))
     }
 
     @Test("Color.mix clamps outside 0…1")

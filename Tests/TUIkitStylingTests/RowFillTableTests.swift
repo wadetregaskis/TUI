@@ -72,8 +72,8 @@ struct RowFillTableTests {
         let violet = try #require(shipped.first { $0.name == "Violet" })
         let onXterm = try #require(TerminalColors.withCurrent(.unknown) { violet.rowFills(at: .basic16) })
         // xterm: (10, 2, 7, 3, 6).
-        #expect(onXterm.selection == .ansi(.brightGreen))
-        #expect(onXterm.focusDim == .ansi(.green) && onXterm.focusBright == .ansi(.white))
+        #expect(onXterm.selection == Color.ansi(.brightGreen))
+        #expect(onXterm.focusDim == Color.ansi(.green) && onXterm.focusBright == Color.ansi(.white))
         #expect(onXterm.reversedFocusEnd == nil && onXterm.reversedEmphasisEnd == nil)
 
         let apple = TerminalColors(
@@ -84,10 +84,10 @@ struct RowFillTableTests {
                 }))
         let onApple = try #require(TerminalColors.withCurrent(apple) { violet.rowFills(at: .basic16) })
         // Apple: (1, 4, -1, 13, 4).
-        #expect(onApple.selection == .ansi(.red))
+        #expect(onApple.selection == Color.ansi(.red))
         #expect(onApple.reversedFocusEnd == .top)
-        #expect(onApple.focusDim == .ansi(.blue) && onApple.focusBright == .ansi(.blue))
-        #expect(onApple.emphasisDim == .ansi(.brightMagenta) && onApple.emphasisBright == .ansi(.blue))
+        #expect(onApple.focusDim == Color.ansi(.blue) && onApple.focusBright == Color.ansi(.blue))
+        #expect(onApple.emphasisDim == Color.ansi(.brightMagenta) && onApple.emphasisBright == Color.ansi(.blue))
     }
 
     @Test("An accent one channel off still finds the entry; a different accent does not")

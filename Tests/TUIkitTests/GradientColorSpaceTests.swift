@@ -89,7 +89,7 @@ struct GradientColorSpaceTests {
         // r == g == b, so the colour has no chroma by definition; the measured
         // value is 2.2e-08 rather than a hard zero, which is the transform's
         // own arithmetic and not a property of the colour.
-        #expect(device.color(at: 0.5) == .rgb(128, 128, 128), "\(device.color(at: 0.5))")
+        #expect(device.color(at: 0.5) == Color.rgb(128, 128, 128), "\(device.color(at: 0.5))")
         #expect(chroma(device.color(at: 0.5)) < 1e-6)
 
         let perceptual = Gradient(colors: [blue, yellow], colorSpace: .perceptual)
@@ -124,7 +124,7 @@ struct GradientColorSpaceTests {
 
         let erased: AnyGradient = Gradient(colors: [red, blue]).colorSpace(.perceptual)
         #expect(erased.gradient(in: environment).colorSpace == .perceptual)
-        #expect(erased.gradient(in: environment).color(at: 0.5) == .rgb(140, 83, 162))
+        #expect(erased.gradient(in: environment).color(at: 0.5) == Color.rgb(140, 83, 162))
 
         // …and again on an AnyGradient, which is SwiftUI's other spelling.
         #expect(erased.colorSpace(.device).gradient(in: environment).colorSpace == .device)
@@ -146,7 +146,7 @@ struct GradientColorSpaceTests {
             return
         }
         #expect(painted.gradient.colorSpace == .perceptual)
-        #expect(painted.gradient.color(at: 0.5) == .rgb(140, 83, 162))
+        #expect(painted.gradient.color(at: 0.5) == Color.rgb(140, 83, 162))
     }
 
     /// A colour derived from another (`Color.gradient`) can be told a space

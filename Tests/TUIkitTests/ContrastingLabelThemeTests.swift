@@ -22,12 +22,12 @@ struct ContrastingLabelThemeTests {
 
     @Test("A dark surface takes the palette's foreground")
     func darkSurfaceTakesTheForeground() {
-        #expect(ContrastingLabel.on(.rgb(10, 10, 10), palette: ThemeProbePalette()) == .rgb(220, 220, 220))
+        #expect(ContrastingLabel.on(.rgb(10, 10, 10), palette: ThemeProbePalette()) == Color.rgb(220, 220, 220))
     }
 
     @Test("A light surface takes the palette's background")
     func lightSurfaceTakesTheBackground() {
-        #expect(ContrastingLabel.on(.rgb(250, 250, 250), palette: ThemeProbePalette()) == .rgb(10, 10, 10))
+        #expect(ContrastingLabel.on(.rgb(250, 250, 250), palette: ThemeProbePalette()) == Color.rgb(10, 10, 10))
     }
 
     /// A pin, not a red: `readableText(on:)` and the contrast floor already hand back
@@ -39,11 +39,11 @@ struct ContrastingLabelThemeTests {
         TerminalColors.withCurrent(.unknown) {
             for surface in [Color(value: .terminalBackground), .default] {
                 #expect(
-                    ContrastingLabel.on(surface, palette: ThemeProbePalette()) == .rgb(220, 220, 220),
+                    ContrastingLabel.on(surface, palette: ThemeProbePalette()) == Color.rgb(220, 220, 220),
                     "on \(surface)")
                 #expect(
                     _SwatchGridCore.markEnds(for: surface, palette: ThemeProbePalette()).bright
-                        == .rgb(220, 220, 220), "a swatch of \(surface)")
+                        == Color.rgb(220, 220, 220), "a swatch of \(surface)")
             }
         }
     }

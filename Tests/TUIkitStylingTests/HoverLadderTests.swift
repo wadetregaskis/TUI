@@ -81,8 +81,8 @@ struct HoverLadderTests {
                         #expect(byName == .default, "\(slot) on \(page)")
                         #expect(byIndex == .default, "palette \(slot.rawValue) on \(page)")
                     } else {
-                        #expect(byName == .ansi(slot.brightTwin), "\(slot) on \(page)")
-                        #expect(byIndex == .palette256(slot.rawValue | 8), "palette \(slot.rawValue) on \(page)")
+                        #expect(byName == Color.ansi(slot.brightTwin), "\(slot) on \(page)")
+                        #expect(byIndex == Color.palette256(slot.rawValue | 8), "palette \(slot.rawValue) on \(page)")
                     }
                 }
                 // 39 as ink, spelled either way: no rung above it.
@@ -100,7 +100,7 @@ struct HoverLadderTests {
     func ladderCarriesAlpha() {
         TerminalColors.withCurrent(.unknown) {
             let palette = LadderPalette(background: Self.paper)
-            #expect(palette.hoveredForeground(.ansi(.red).opacity(0.5)) == .ansi(.brightRed).opacity(0.5))
+            #expect(palette.hoveredForeground(.ansi(.red).opacity(0.5)) == Color.ansi(.brightRed).opacity(0.5))
             #expect(palette.hoveredForeground(.ansi(.brightRed).opacity(0.5)) == Color.default.opacity(0.5))
         }
     }
@@ -117,7 +117,7 @@ struct HoverLadderTests {
             #expect(palette.hoveredForeground(.ansi(.red)) == .default)
             #expect(palette.hoveredForeground(.ansi(.white)) == .default)
             #expect(palette.hoveredForeground(.ansi(.brightBlack)) == .default)
-            #expect(palette.hoveredForeground(.ansi(.black)) == .ansi(.black))
+            #expect(palette.hoveredForeground(.ansi(.black)) == Color.ansi(.black))
             #expect(palette.hoveredForeground(.default) == .default)
             // 39 measured is still no rung above itself.
             let ink = Color(value: .terminalForeground)
@@ -129,14 +129,14 @@ struct HoverLadderTests {
     func reportedLadderOnADarkPage() {
         TerminalColors.withCurrent(Self.appleSlotsWhiteInk) {
             let palette = LadderPalette(background: Self.dark)
-            #expect(palette.hoveredForeground(.ansi(.red)) == .ansi(.brightRed))
-            #expect(palette.hoveredForeground(.palette256(1)) == .palette256(9))
+            #expect(palette.hoveredForeground(.ansi(.red)) == Color.ansi(.brightRed))
+            #expect(palette.hoveredForeground(.palette256(1)) == Color.palette256(9))
             #expect(palette.hoveredForeground(.ansi(.brightRed)) == .default)
         }
         // Black 39 on a dark page is harder to read than slot 9, so nothing is taken.
         TerminalColors.withCurrent(Self.appleTerminal) {
             let palette = LadderPalette(background: Self.dark)
-            #expect(palette.hoveredForeground(.ansi(.brightRed)) == .ansi(.brightRed))
+            #expect(palette.hoveredForeground(.ansi(.brightRed)) == Color.ansi(.brightRed))
         }
     }
 

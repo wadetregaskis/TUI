@@ -165,7 +165,7 @@ struct PulseRampTests {
     /// be the cube's darkest tinted entry, where the selected row sits.
     @Test("A grey end and a hued one breathe with no middle step")
     func greyToHueHasNoMiddle() {
-        #expect(Color.cubeRamp(from: 236, to: 28) == [.palette256(236), .palette256(28)])
-        #expect(Color.cubeRamp(from: 28, to: 28) == [.palette256(28)])
+        #expect(Color.cubeRamp(from: 236, to: 28) == [Color.palette256(236), .palette256(28)])
+        #expect(Color.cubeRamp(from: 28, to: 28) == [Color.palette256(28)])
     }
 }

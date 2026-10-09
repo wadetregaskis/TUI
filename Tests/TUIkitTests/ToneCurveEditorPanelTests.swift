@@ -332,7 +332,7 @@ struct ToneCurveEditorPanelTests {
             Panel.column(forTone: Panel.position(of: list[1]))
                 == Panel.column(forTone: 0.5) + 6,
             "the stop did not follow: \(list.map { Panel.position(of: $0) })")
-        #expect(list[1].to == .rgb(128, 0, 0), "the drag changed the colour")
+        #expect(list[1].to == Color.rgb(128, 0, 0), "the drag changed the colour")
     }
 
     /// Every row of the diagram is the same axis, so pressing the OUT strip

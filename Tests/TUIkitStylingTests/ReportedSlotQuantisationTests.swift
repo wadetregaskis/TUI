@@ -74,10 +74,10 @@ struct ReportedSlotQuantisationTests {
             TerminalColors.withCurrent(terminal) {
                 for slot in ANSIColor.allCases {
                     let xterm = slot.xtermRGB
-                    #expect(Color.rgb(xterm.red, xterm.green, xterm.blue).downsampledToANSI16() == .ansi(slot), "\(slot)")
+                    #expect(Color.rgb(xterm.red, xterm.green, xterm.blue).downsampledToANSI16() == Color.ansi(slot), "\(slot)")
                 }
-                #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == .ansi(.red))
-                #expect(Color.rgb(0, 0, 255).downsampledToANSI16() == .ansi(.blue))
+                #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == Color.ansi(.red))
+                #expect(Color.rgb(0, 0, 255).downsampledToANSI16() == Color.ansi(.blue))
                 #expect(Color.rgb(0, 0, 255).foregroundCodes(depth: .basic16) == ["34"])
             }
         }
@@ -89,18 +89,18 @@ struct ReportedSlotQuantisationTests {
             for (index, slot) in ANSIColor.allCases.enumerated() {
                 let reported = Self.appleBasic[index]
                 let colour = Color.rgb(reported.red, reported.green, reported.blue)
-                #expect(colour.downsampledToANSI16() == .ansi(slot), "\(slot)")
+                #expect(colour.downsampledToANSI16() == Color.ansi(slot), "\(slot)")
                 #expect(colour.foregroundCodes(depth: .basic16) == ["\(slot.foregroundCode)"], "\(slot)")
                 #expect(colour.backgroundCodes(depth: .basic16) == ["\(slot.backgroundCode)"], "\(slot)")
             }
-            #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == .ansi(.brightRed))
+            #expect(Color.rgb(220, 0, 0).downsampledToANSI16() == Color.ansi(.brightRed))
             #expect(Color.rgb(220, 0, 0).foregroundCodes(depth: .basic16) == ["91"])
-            #expect(Color.rgb(0, 0, 255).downsampledToANSI16() == .ansi(.brightBlue))
+            #expect(Color.rgb(0, 0, 255).downsampledToANSI16() == Color.ansi(.brightBlue))
             #expect(Color.rgb(0, 0, 255).backgroundCodes(depth: .basic16) == ["104"])
             // A 256-colour index above the sixteen goes through its RGB: 21 is (0, 0, 255).
-            #expect(Color.palette256(21).downsampledToANSI16() == .ansi(.brightBlue))
+            #expect(Color.palette256(21).downsampledToANSI16() == Color.ansi(.brightBlue))
             // The slots below 16 are the slots themselves, whatever the report.
-            #expect(Color.palette256(4).downsampledToANSI16() == .ansi(.blue))
+            #expect(Color.palette256(4).downsampledToANSI16() == Color.ansi(.blue))
             // The colour's alpha is carried, as by every other derivation.
             var faded = Color.rgb(220, 0, 0)
             faded.alpha = 128
@@ -121,7 +121,7 @@ struct ReportedSlotQuantisationTests {
                         for blue in levels {
                             let expected = Self.nearestSlot(to: (red, green, blue), among: table)
                             let actual = Color.rgb(red, green, blue).downsampledToANSI16()
-                            if actual != .ansi(expected) {
+                            if actual != Color.ansi(expected) {
                                 mismatches.append("(\(red), \(green), \(blue)) -> \(actual), not \(expected)")
                             }
                         }
@@ -153,7 +153,7 @@ struct ReportedSlotQuantisationTests {
         let grey = Self.rgb(128, 128, 128)
         TerminalColors.withCurrent(TerminalColors(slots: TerminalColors.Slots(repeating: grey))) {
             for colour in [Color.rgb(255, 0, 0), .rgb(0, 0, 0), .rgb(255, 255, 255), .palette256(196)] {
-                #expect(colour.downsampledToANSI16() == .ansi(.black), "\(colour)")
+                #expect(colour.downsampledToANSI16() == Color.ansi(.black), "\(colour)")
             }
         }
     }

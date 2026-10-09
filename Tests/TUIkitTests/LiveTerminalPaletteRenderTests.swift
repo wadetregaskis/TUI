@@ -155,7 +155,7 @@ struct LiveTerminalPaletteRenderTests {
             #expect(palette.restingControlFace == Self.page)
             #expect(palette.hoveredControlFace == palette.restingControlFace)
             // The ink lifts instead, up the ladder of names: the accent's bright twin.
-            #expect(palette.hoveredForeground(palette.accent) == .ansi(.brightBlue))
+            #expect(palette.hoveredForeground(palette.accent) == Color.ansi(.brightBlue))
             #expect(palette.hoveredLabel(palette.foreground).isTerminalDefined)
         }
     }

@@ -38,7 +38,7 @@ struct GradientTests {
     @Test("One colour is a flat ramp; none is black rather than a trap")
     func degenerateRamps() {
         #expect(Gradient(colors: [red]).color(at: 0.7) == red)
-        #expect(Gradient(colors: []).color(at: 0.5) == .rgb(0, 0, 0))
+        #expect(Gradient(colors: []).color(at: 0.5) == Color.rgb(0, 0, 0))
         #expect(Gradient(stops: []).sampled(count: 3).count == 3)
     }
 
@@ -159,9 +159,9 @@ struct GradientTests {
     @Test("The least-contrasting stop is the one a floor must answer for")
     func leastContrastingPicksTheWorstStop() {
         let onBlack = Gradient(colors: [.rgb(255, 255, 255), .rgb(20, 20, 20)])
-        #expect(onBlack.leastContrasting(against: .rgb(0, 0, 0)) == .rgb(20, 20, 20))
+        #expect(onBlack.leastContrasting(against: .rgb(0, 0, 0)) == Color.rgb(20, 20, 20))
         let onWhite = Gradient(colors: [.rgb(255, 255, 255), .rgb(20, 20, 20)])
-        #expect(onWhite.leastContrasting(against: .rgb(255, 255, 255)) == .rgb(255, 255, 255))
-        #expect(Gradient(colors: []).leastContrasting(against: .rgb(0, 0, 0)) == .rgb(0, 0, 0))
+        #expect(onWhite.leastContrasting(against: .rgb(255, 255, 255)) == Color.rgb(255, 255, 255))
+        #expect(Gradient(colors: []).leastContrasting(against: .rgb(0, 0, 0)) == Color.rgb(0, 0, 0))
     }
 }

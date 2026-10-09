@@ -47,7 +47,7 @@ struct DownsampleToPalette256Tests {
             (Color.rgb(135, 175, 215), 110),  // exact cube levels 2,3,4
         ])
     func rgbToNearestIndex(_ input: Color, _ index: Int) {
-        #expect(input.downsampledToPalette256() == .palette256(UInt8(index)))
+        #expect(input.downsampledToPalette256() == Color.palette256(UInt8(index)))
     }
 }
 

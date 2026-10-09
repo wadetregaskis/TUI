@@ -497,7 +497,7 @@ struct ColorPickerPanelCrashSafetyTests {
         _ = fm.dispatchKeyEvent(KeyEvent(key: .tab)); render()   // hex field → strip
         _ = fm.dispatchKeyEvent(KeyEvent(key: .tab)); render()   // strip → R slider
         _ = fm.dispatchKeyEvent(KeyEvent(key: .end)); render()   // R → max
-        #expect(box.color != .rgb(200, 100, 50),
+        #expect(box.color != Color.rgb(200, 100, 50),
                 "reached and edited a channel, got \(box.color.rgbComponents!)")
 
         // Then cycle focus through tabs / channels / grid and drive every kind of
@@ -629,7 +629,7 @@ struct ColorPickerPanelCrashSafetyTests {
         // consumer that reads `palette.accent` directly).
         #expect(!everSemantic, "the selection never becomes a semantic reference")
         #expect(holder.color.rgbComponents != nil, "selection resolved to a concrete colour")
-        #expect(holder.color != .rgb(0, 0, 255), "clicking a role actually changed the selection")
+        #expect(holder.color != Color.rgb(0, 0, 255), "clicking a role actually changed the selection")
     }
 }
 

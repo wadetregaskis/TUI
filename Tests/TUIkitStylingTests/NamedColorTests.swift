@@ -74,7 +74,7 @@ struct NamedColorTests {
     @Test("Red is Apple's red, not the terminal's")
     func redIsApples() {
         #expect(Color.red.foregroundCodes(depth: .truecolor) == ["38", "2", "255", "59", "48"])
-        #expect(Color.red != .ansi(.red))
+        #expect(Color.red != Color.ansi(.red))
     }
 
     /// At sixteen colours a named colour becomes the nearest slot by xterm's

@@ -69,12 +69,12 @@ struct LiveTerminalPaletteTests {
     @Test("The accent, the status roles and the border are the terminal's slots")
     func accentAndStatusRolesAreSlots() throws {
         let palette = try live()
-        #expect(palette.accent == .ansi(.blue))
-        #expect(palette.success == .ansi(.green))
-        #expect(palette.warning == .ansi(.yellow))
-        #expect(palette.error == .ansi(.red))
-        #expect(palette.info == .ansi(.cyan))
-        #expect(palette.border == .ansi(.brightBlack))
+        #expect(palette.accent == Color.ansi(.blue))
+        #expect(palette.success == Color.ansi(.green))
+        #expect(palette.warning == Color.ansi(.yellow))
+        #expect(palette.error == Color.ansi(.red))
+        #expect(palette.info == Color.ansi(.cyan))
+        #expect(palette.border == Color.ansi(.brightBlack))
         // Not stated, so `Palette`'s own default: the accent.
         #expect(palette.cursorColor == palette.accent)
     }
