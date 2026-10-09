@@ -8,12 +8,13 @@ from step B1 the one `TUIkitFoundation` target compiled them all (`TUIkit` is th
 until step B7 carved the last of them out. Carved: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their
 own that TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TUIkitColorPicker (step B4),
 TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b),
-TUIkitBitmaps (step B5c) and TUIkitTextInput (step B7), targets of their own that depend on TUIkitFoundation and that
-the umbrella re-exports. TUIkitNavigation, TUIkitLists and TUIkitTextInput are **coarse groups**: one target compiling
-several planned modules' directories, `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peels
-the second into a target of its own, `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps
-C2 to C4 peel the last three, and `Sources/TUIkitTextInput`, `TUIkitPickers`, `TUIkitForms`, `TUIkitSearch` and
-`TUIkitNumericControls` until steps C5 to C8 peel the last four (see [Coarse groups](#coarse-groups)).
+TUIkitBitmaps (step B5c), TUIkitTextInput (step B7) and TUIkitPresentation (step C1), targets of their own that depend
+on TUIkitFoundation and that the umbrella re-exports. TUIkitLists and TUIkitTextInput are **coarse groups**: one target
+compiling several planned modules' directories, `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
+until steps C2 to C4 peel the last three, and `Sources/TUIkitTextInput`, `TUIkitPickers`, `TUIkitForms`,
+`TUIkitSearch` and `TUIkitNumericControls` until steps C5 to C8 peel the last four; TUIkitNavigation was one, over
+`Sources/TUIkitNavigation` and `Sources/TUIkitPresentation`, until step C1 peeled the second into a target of its own
+(see [Coarse groups](#coarse-groups)).
 `TUIkitFoundation` is an ordinary target at `Sources/TUIkitFoundation` since step B7. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
@@ -206,17 +207,18 @@ The `TUIkit` umbrella re-exports and holds nothing else. No declaration may be a
 hold only imports. And it re-exports, by name, every module carved out above `TUIkitFoundation` (the `default` in
 `rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
 TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
-TUIkitMenus since step B5b, TUIkitBitmaps since step B5c, TUIkitTextInput since step B7). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only
-through the umbrella. Reaching it through a sibling instead compiles the same: TUIkitApp re-exports TUIkitChrome,
-which it depends on, for good. TUIkitNavigation re-exports it only until step C1: its own map entry does not
-depend on TUIkitChrome, and its target does only because it compiles the TUIkitPresentation directory, whose entry
-does, until C1 peels that into a module of its own. TUIkitColorPicker re-exports TUIkitNavigation until step C1,
-which moves its dependency to TUIkitPresentation, a module that does not depend on TUIkitNavigation. It re-exports TUIkitLists for good: directly
-until step C3, then through TUIkitTabs, which depends on TUIkitLists and re-exports it (plan §4). So an umbrella
-without TUIkitNavigation's line still gives an app `TUIkit.NavigationStack` until C1, and one without TUIkitLists'
-line gives it `TUIkit.List` after C3 too. No build notices the missing line; this check does. A coarse group's other
-members (TUIkitPresentation, TUIkitTables and the rest, until their peels) have no Exports.swift, so they re-export
-nothing and are not asked for, as a module TUIkitFoundation compiled was not until step B7; nor is a module below
+TUIkitMenus since step B5b, TUIkitBitmaps since step B5c, TUIkitTextInput since step B7, TUIkitPresentation since
+step C1). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only through the umbrella.
+Reaching it through a sibling instead compiles the same: TUIkitApp and TUIkitPresentation re-export TUIkitChrome,
+which they depend on, for good (TUIkitNavigation did from step B5b until step C1, only because its target compiled
+the TUIkitPresentation directory, whose entry depends on TUIkitChrome). TUIkitColorPicker re-exports
+TUIkitPresentation since step C1 (TUIkitNavigation from B5 until then; it used nothing of the navigation
+containers'), so an umbrella without TUIkitPresentation's line still gives an app `TUIkit.Alert`, and only the
+umbrella re-exports TUIkitNavigation now. It re-exports TUIkitLists for good: directly until step C3, then through
+TUIkitTabs, which depends on TUIkitLists and re-exports it (plan §4). So an umbrella without TUIkitLists' line gives an
+app `TUIkit.List` after C3 too. No build notices the missing line; this check does. A coarse group's other members
+(TUIkitTables and the rest, until their peels) have no Exports.swift, so they re-export nothing and are not asked for,
+as a module TUIkitFoundation compiled was not until step B7; nor is a module below
 TUIkitFoundation (TUIkitStrings), which TUIkitFoundation re-exports. Fix it by adding `@_exported import` of the
 module to `Sources/TUIkit/Exports.swift`.
 
@@ -281,21 +283,25 @@ give the entry the key the report now prints instead.
 Phase B carves some planned modules as a **coarse group**: one target that compiles several modules' directories
 (declared with `directories:` in Package.swift: `path: "Sources"`, each of its directories in `sources:`, every other
 directory under Sources in `exclude:`), and phase C peels each member into a target of its own. Step B5's
-`TUIkitNavigation` compiles `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1; step B6's
+`TUIkitNavigation` compiled `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peeled the
+second into `TUIkitPresentation`, which left `TUIkitNavigation` an ordinary target at its default path; step B6's
 `TUIkitLists` compiles `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4; step
 B7's `TUIkitTextInput` compiles `Sources/TUIkitTextInput`, `TUIkitPickers`, `TUIkitForms`, `TUIkitSearch` and
 `TUIkitNumericControls` until steps C5 to C8. Nothing here changes for a group, at its carve or at its peels:
 
 - `map.json` and the findings name the planned module. A file under `Sources/TUIkitPresentation` is
-  `TUIkitPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here.
+  `TUIkitPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here: at step
+  C1, `map.json` gained the new module's Exports.swift (`assign --write`) and nothing else, and no declaration
+  changed module.
 - The index records the group's target as the module of each of its files' units. The tool reads the units of every
   module `rules.json` names, so it reads them whichever of those targets compiled them. A member's directory that the
   group's `directories:` leaves out is compiled by no target, so each of its files is an `uncompiled` finding.
 - The checks hold the members to the planned map, as they held the modules TUIkitFoundation compiled together until
   step B7. That is stricter than the build, never looser. The group's target sees everything its members' planned
-  dependencies give them (TUIkitFoundation and, since step B5b, TUIkitChrome, for TUIkitPresentation), so what passes
-  the checks compiles. An edge between two members compiles in the group but is still a finding, because the peel
-  would have to break it; so a peel starts with no finding to fix. Treating a group as one module would let such edges
+  dependencies give them (TUIkitFoundation, and TUIkitChrome for TUIkitPresentation from step B5b until C1), so what
+  passes the checks compiles. An edge between two members compiles in the group but is still a finding, because the
+  peel would have to break it; so a peel starts with no finding to fix. Step C1 did: `check` reported 0 findings
+  before and after it, and the build needed no declaration widened. Treating a group as one module would let such edges
   in until the peel (decisions B-SPB5-1).
 
 ## The assigner

@@ -2832,9 +2832,9 @@ private struct CorpusPark: Hashable, Identifiable {
 /// SwiftUI's own `NavigationStack` examples: a stack of values pushed by
 /// `NavigationLink(_:value:)`, its path bound as an array and as a
 /// `NavigationPath`. Since module split step B5 these are TUIkitNavigation's,
-/// which the umbrella re-exports (and, until step C1, TUIkitColorPicker, which
-/// the umbrella re-exports too), so this is SwiftUI source reaching that module
-/// as an app does: through `import TUIkit`.
+/// which the umbrella re-exports (only the umbrella since step C1;
+/// TUIkitColorPicker did too from B5 until then), so this is SwiftUI source
+/// reaching that module as an app does: through `import TUIkit`.
 @MainActor
 private struct ParkStack: View {
     let parks: [CorpusPark]
@@ -2887,8 +2887,10 @@ private struct DepartmentSplit: View {
     }
 }
 
-/// SwiftUI's own `confirmationDialog` example. The presentations compile into
-/// TUIkitNavigation too, until step C1 gives them a module of their own.
+/// SwiftUI's own `confirmationDialog` example. The presentations are
+/// TUIkitPresentation's since module split step C1 (they compiled into
+/// TUIkitNavigation from step B5 until then), which the umbrella re-exports,
+/// and so does TUIkitColorPicker.
 @MainActor
 private struct ConfirmEraseItems: View {
     @State private var isShowingDialog = false
@@ -2982,7 +2984,7 @@ private struct HelloWorldGrid: View {
 /// and a menu whose label is a view builder. Since module split step B5b
 /// `Menu` is TUIkitMenus', `help(_:)` TUIkitChrome's and `transition(_:)`
 /// TUIkitEffects': the umbrella re-exports each (and TUIkitApp and
-/// TUIkitNavigation re-export TUIkitChrome too), so these three snippets, and
+/// TUIkitPresentation re-export TUIkitChrome too), so these three snippets, and
 /// the `.contextMenu`, `.toolbar` and `.scrollTransition` ones earlier in this
 /// file, are SwiftUI source reaching those modules as an app does: through
 /// `import TUIkit`.

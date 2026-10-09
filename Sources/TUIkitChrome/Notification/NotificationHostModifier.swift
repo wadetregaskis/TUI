@@ -36,8 +36,8 @@ package struct NotificationHostModifier<Content: View>: View {
     let width: Int
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and `View.notificationHost(width:)` (TUIkitNavigation, with the
-    /// presentations until step C1) makes these.
+    /// internal and `View.notificationHost(width:)` (TUIkitPresentation) makes
+    /// these.
     package init(content: Content, width: Int) {
         self.content = content
         self.width = width

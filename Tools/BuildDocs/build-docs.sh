@@ -162,8 +162,8 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # TUIkitFoundation's, `localizationservice` TUIkitStrings', `terminalclient`
 # TUIkitTerminalHost's (the modules step B2 carved out of it), `windowgroup`
 # TUIkitApp's (step B3), `colorpicker` TUIkitColorPicker's (step B4),
-# `navigationstack` and `alert` TUIkitNavigation's (step B5: one from each of
-# the two directories that target compiles until step C1), `list`, `table`,
+# `navigationstack` TUIkitNavigation's (step B5), `alert` TUIkitPresentation's
+# (TUIkitNavigation's from step B5 until step C1 peeled it out), `list`, `table`,
 # `tabview` and `grid` TUIkitLists' (step B6: one from each of its four
 # directories, until steps C2 to C4), `statusbar` TUIkitChrome's,
 # `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step B5b),

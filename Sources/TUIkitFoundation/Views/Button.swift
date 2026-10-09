@@ -315,7 +315,7 @@ public struct Button: View {
     }
 
     /// `button`, running `action` instead of its own: a dismissal
-    /// confirmation's buttons (`DismissalConfirmation.swift`, TUIkitNavigation)
+    /// confirmation's buttons (`DismissalConfirmation.swift`, TUIkitPresentation)
     /// run the pending dismissal after their own action.
     ///
     /// Here, not beside its caller, because an initializer in an extension

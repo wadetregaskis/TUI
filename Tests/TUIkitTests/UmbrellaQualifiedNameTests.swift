@@ -47,6 +47,16 @@
 //  the test's reflected name, `TUIkitNavigation.Alert`, catches it at run time,
 //  not the compiler.
 //
+//  Step C1 peeled Sources/TUIkitPresentation out of that group into a module
+//  of its own, TUIkitPresentation, the first peel. The fifth test's alert,
+//  and the detent among the reflected names, read `TUIkitPresentation.` since;
+//  they read `TUIkitNavigation.` from B5 to C1, so a peel renames what an app
+//  sees of each type it moves, as a carve does. The same two holes, the same
+//  two guards: TUIkitColorPicker re-exports TUIkitPresentation (its panels are
+//  `Dialog`s) in place of TUIkitNavigation, so the umbrella's own line for
+//  each is the `umbrella` check's; and a directory left compiling in
+//  TUIkitNavigation would still compile here, so the reflected names catch it.
+//
 //  Step B6 carved the Lists group the same way: one module, TUIkitLists, that
 //  compiles four directories of the planned split, Sources/TUIkitLists,
 //  TUIkitTables, TUIkitTabs and TUIkitGrid, until steps C2 to C4 peel the last
@@ -66,8 +76,9 @@
 //  `Menu` (the case an app meets: a menu model of its own). The umbrella is
 //  the only module that re-exports TUIkitEffects and TUIkitMenus, so this
 //  file stops compiling without either line. TUIkitApp and TUIkitNavigation
-//  re-export TUIkitChrome, which they depend on, so the umbrella's own line
-//  for it is the `umbrella` check's, for good. A module left compiling in
+//  (TUIkitPresentation since step C1) re-export TUIkitChrome, which they
+//  depend on, so the umbrella's own line for it is the `umbrella` check's, for
+//  good. A module left compiling in
 //  TUIkitFoundation would still compile here; the reflected names, one per
 //  module, catch it at run time.
 //
@@ -152,8 +163,8 @@ private enum Client {
         (ColorPicker(name: "mine"), TUIkit.ColorPicker("b4", selection: selection))
     }
 
-    /// An app's own `Alert`, beside the alert view TUIkitNavigation compiles
-    /// from Sources/TUIkitPresentation.
+    /// An app's own `Alert`, beside TUIkitPresentation's alert view (which
+    /// TUIkitNavigation compiled from step B5 until step C1).
     struct Alert {
         let name: String
     }
@@ -262,8 +273,8 @@ extension TUIkit.ColorPicker {
 
 extension TUIkit.NavigationPath {
     /// A member an app adds, through the umbrella's name, to a type of
-    /// TUIkitNavigation, which the umbrella re-exports itself (and, until step
-    /// C1, through TUIkitColorPicker as well).
+    /// TUIkitNavigation, which only the umbrella re-exports since step C1
+    /// (TUIkitColorPicker did too, from step B5 until then).
     fileprivate var b5Marker: Int { 5 + count }
 }
 
@@ -276,7 +287,7 @@ extension TUIkit.MenuOrder {
 extension TUIkit.ToolbarPlacement {
     /// A member an app adds, through the umbrella's name, to a type of
     /// TUIkitChrome, which the umbrella re-exports (and so do TUIkitApp and
-    /// TUIkitNavigation).
+    /// TUIkitPresentation; TUIkitNavigation did until step C1).
     fileprivate var b5bMarker: Int { self == .bottomBar ? 2 : 0 }
 }
 
@@ -369,7 +380,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: type(of: panel)) == "TUIkitColorPicker.ToneCurveEditorPanel")
     }
 
-    @Test("A qualified name reaches TUIkitNavigation, both of whose directories the umbrella re-exports through it")
+    @Test("A qualified name reaches TUIkitNavigation and TUIkitPresentation, which the umbrella re-exports")
     func qualifiedNamesReachTheNavigationGroup() {
         // From Sources/TUIkitNavigation: a stack, drawn, and a member an app's
         // extension adds to its path.
@@ -378,14 +389,15 @@ struct UmbrellaQualifiedNameTests {
             .map(\.stripped)
         #expect(lines.contains { $0.contains("b5 root") }, "\(lines)")
         #expect(TUIkit.NavigationPath([1, 2]).b5Marker == 7)
-        // From Sources/TUIkitPresentation, which compiles into the same module
-        // until step C1: an alert beside an app's own `Alert`, drawn.
+        // From Sources/TUIkitPresentation, which compiled into the same module
+        // from step B5 until step C1 peeled it into a module of its own: an
+        // alert beside an app's own `Alert`, drawn.
         let (mine, alert) = Client.bothAlerts(title: "b5 alert")
         #expect(mine.name == "mine")
         let drawn = TUIkit.renderToBuffer(alert, context: makeRenderContext(width: 40, height: 8)).lines
             .map(\.stripped).joined(separator: "\n")
         #expect(drawn.contains("b5 alert") && drawn.contains("b5 ok"), "\(drawn)")
-        #expect(String(reflecting: type(of: alert)) == "TUIkitNavigation.Alert<TUIkitFoundation.Button>")
+        #expect(String(reflecting: type(of: alert)) == "TUIkitPresentation.Alert<TUIkitFoundation.Button>")
     }
 
     @Test("A qualified name reaches TUIkitLists, all four of whose directories the umbrella re-exports through it")
@@ -565,13 +577,15 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.ColorPickerPanel.self) == "TUIkitColorPicker.ColorPickerPanel")
         // Step B5 carved these out (decisions SPB5, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B5. A type from
-        // Sources/TUIkitPresentation names TUIkitNavigation, the module that
-        // compiles it, until step C1 gives it a module of its own.
+        // Sources/TUIkitPresentation named TUIkitNavigation, the module that
+        // compiled it, until step C1 gave it a module of its own (decisions
+        // SPC1, "What an app can see"): it read `TUIkitNavigation.` from B5 to
+        // C1.
         #expect(String(reflecting: TUIkit.NavigationPath.self) == "TUIkitNavigation.NavigationPath")
         #expect(
             String(reflecting: TUIkit.NavigationSplitViewVisibility.self)
                 == "TUIkitNavigation.NavigationSplitViewVisibility")
-        #expect(String(reflecting: TUIkit.PresentationDetent.self) == "TUIkitNavigation.PresentationDetent")
+        #expect(String(reflecting: TUIkit.PresentationDetent.self) == "TUIkitPresentation.PresentationDetent")
         // Step B6 carved these out (decisions SPB6, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B6. A type from
         // Sources/TUIkitTables, TUIkitTabs or TUIkitGrid names TUIkitLists,

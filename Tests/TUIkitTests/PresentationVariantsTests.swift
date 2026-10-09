@@ -8,7 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
-@testable import TUIkitNavigation
+@testable import TUIkitPresentation
 
 /// The three presentations that are not a plain sheet: an anchored `popover`, a
 /// `fullScreenCover`, and the `presentationDetents` that decide a sheet's height.

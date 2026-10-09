@@ -594,7 +594,7 @@ class PosixAndUmbrellaTests(unittest.TestCase):
 
     def test_the_umbrella_re_exports_every_module_carved_above_the_default_by_name(self):
         # Step B5's shape: Lists and App are carved out above Base, and Tables above Lists, re-exporting it (as
-        # TUIkitColorPicker re-exports TUIkitNavigation until step C1). An umbrella without Lists still reaches it,
+        # TUIkitColorPicker re-exports TUIkitNavigation from step B5 until step C1). An umbrella without Lists still reaches it,
         # through Tables, so nothing fails to compile: only this check notices, and it names the module.
         def keys(umbrella, lists='@_exported import Base\n'):
             srcs = {'Exports.swift': umbrella, 'Lists/Exports.swift': lists,

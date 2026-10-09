@@ -40,8 +40,8 @@ package struct DividerDrag<Base> {
     private(set) var base: Base?
 
     /// No gesture under way. Spelled out because the implicit initializer is
-    /// internal, and the split views and the sheet's grabber
-    /// (TUIkitNavigation) make these.
+    /// internal, and the split views (TUIkitNavigation) and the sheet's
+    /// grabber (TUIkitPresentation) make these.
     package init() {}
 
     /// Handles a left-button press, drag or release on the divider, reporting

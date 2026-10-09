@@ -18,7 +18,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
-@testable import TUIkitNavigation
+@testable import TUIkitPresentation
 @testable import TUIkitStrings
 
 @MainActor

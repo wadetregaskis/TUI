@@ -19,7 +19,7 @@ package struct DismissMenuAction: @unchecked Sendable {
     let action: () -> Void
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and an alert (TUIkitNavigation) makes these.
+    /// internal and an alert (TUIkitPresentation) makes these.
     package init(action: @escaping () -> Void) {
         self.action = action
     }

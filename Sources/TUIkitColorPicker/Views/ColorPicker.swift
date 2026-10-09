@@ -5,7 +5,7 @@
 //  License: MIT
 
 import TUIkitFoundation
-import TUIkitNavigation
+import TUIkitPresentation
 import TUIkitTextInput
 
 // MARK: - Color Picker

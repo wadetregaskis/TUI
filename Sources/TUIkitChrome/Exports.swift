@@ -14,6 +14,7 @@
 // TUIkitFoundation compiled these files (until step B5b); each file imports
 // TUIkitFoundation itself as well (CONTRIBUTING.md, "Crossing a module
 // boundary"). The umbrella, Sources/TUIkit, re-exports this module beside
-// TUIkitFoundation, and so do TUIkitApp and TUIkitNavigation, which depend on
-// it.
+// TUIkitFoundation, and so do TUIkitApp and TUIkitPresentation, which depend on
+// it (and TUIkitNavigation did, from step B5b until step C1 peeled the
+// presentations out of it).
 @_exported import TUIkitFoundation

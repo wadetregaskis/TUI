@@ -5,8 +5,8 @@ TUIkit is split into library modules for layering, test isolation and build
 time (TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage; TUIkitFoundation,
 which compiled every module of the planned split until each was carved into a
 target of its own, and the ones carved out of it: TUIkitStrings and
-TUIkitTerminalHost below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists, TUIkitChrome,
-TUIkitEffects, TUIkitMenus, TUIkitBitmaps and TUIkitTextInput above it; and the TUIkit umbrella that
+TUIkitTerminalHost below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitPresentation, TUIkitLists,
+TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps and TUIkitTextInput above it; and the TUIkit umbrella that
 `@_exported import`s them and declares nothing). That split is OUR business, not the
 reader's: `import TUIkit` is one API, so the documentation has to be one API
 reference.
@@ -50,11 +50,11 @@ import sys
 # The library modules that make up the public API surface. Test targets, the
 # example apps, the AppKit bridges (a product of their own, imported beside
 # TUIkit) and the C image-decoder target are deliberately excluded. A module
-# carved out of TUIkitFoundation joins this set when it is carved.
+# carved out of TUIkitFoundation, or peeled out of a coarse group, joins this set then.
 MODULES = {
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitLists",
-    "TUIkitMenus", "TUIkitNavigation", "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost",
-    "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
+    "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings",
+    "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
 }
 UMBRELLA = "TUIkit"
 
