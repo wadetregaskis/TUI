@@ -314,6 +314,8 @@ def imports(M, R):
         f = M.file[a]
         t = M.target.get(f)
         if t not in above: continue
+        # The edge's first site is in `f`, the node's own file: a node is one top-level declaration, and `top()`
+        # follows lexical containers, so every reference a node makes is in the file that declares it.
         for b, (k, (_, ln)) in M.edges.get(a, {}).items():
             tb = M.target.get(M.file[b])
             if tb is not None and tb != t and tb not in visible(f): note(f, tb, M.name[b], k, ln)

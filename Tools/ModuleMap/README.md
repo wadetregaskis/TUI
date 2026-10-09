@@ -258,7 +258,9 @@ carved module (a ColorPicker file that lays out a `TabView` imports TUIkitLists)
 
 The modules are the targets as the build compiled them: the index unit of each file names its target, so a file of
 `Sources/TUIkitTables` is TUIkitLists' until step C2, and needs no import to use `List`. A reference to a lower
-module (TUIkitCore, TUIkitView …) counts too; any import that re-exports it answers it. One finding per file and
+module (TUIkitCore, TUIkitView …) counts too; any import that re-exports it answers it. Today that is
+`import TUIkitFoundation`, whose `Exports.swift` re-exports every lower and side module: no lower module re-exports
+another in this tree, though the check would follow one that did (`reexports_of`). One finding per file and
 module, with the declarations it names and the references counted. TUIkitFoundation's own files and the side
 modules below it are not checked: no carve changed what they import. Fix it by adding the `import` to the file.
 

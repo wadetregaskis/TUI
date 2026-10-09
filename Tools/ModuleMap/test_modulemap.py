@@ -824,8 +824,10 @@ class LowerTests(unittest.TestCase):
 def imports_model(**sources):
     """Base/B.swift's B (with `run(_:)`) and Lists/L.swift's L, which calls it. Lists and App are carved above Base
     (their Exports.swift re-export it); Tables/T.swift compiles into Lists' target, as a coarse group's member does.
-    TUIkitCore's Lock is a lower module's, which TUIkitView and Base re-export. `sources` replaces a file's text (its
-    imports): the occurrences stay."""
+    TUIkitCore's Lock is a lower module's, which Base reaches only through TUIkitView's re-export of it. No lower
+    module re-exports another in the real tree (TUIkitFoundation's Exports.swift re-exports each one itself), so this
+    exercises the transitive path `reexports_of` would feed; `test_the_trees_shape` has the real one. `sources`
+    replaces a file's text (its imports): the occurrences stay."""
     srcs = {'Base/B.swift': 'struct B {\n    func run(_ f: () -> Void) {}\n}\n',
             'Base/Exports.swift': '@_exported import TUIkitView\n',
             'Lists/Exports.swift': '@_exported import Base\n',
@@ -878,6 +880,18 @@ class ImportsTests(unittest.TestCase):
                           Tables_T='@_exported import Base\nstruct T {}\n',
                           App_A='import Base\nimport Lists\nstruct A {}\n')
         self.assertEqual(self.keys(M), [])
+
+    def test_the_trees_shape(self):
+        # As in the real tree: no lower module re-exports another, and Base's own Exports.swift re-exports the lower
+        # modules. `import Base` answers Lock through Base's re-export of TUIkitCore, and does not without it.
+        M = imports_model(Lists_L='import Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
+                          Base_Exports='@_exported import TUIkitView\n@_exported import TUIkitCore\n')
+        M.lower_reexports = {'TUIkitView': set(), 'TUIkitCore': set()}
+        self.assertEqual([k for k, _, _ in self.keys(M)], ['App/A.swift uses Lists', 'Tables/T.swift uses Base'])
+        M = imports_model(Lists_L='import Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n')
+        M.lower_reexports = {'TUIkitView': set(), 'TUIkitCore': set()}
+        self.assertEqual([k for k, _, _ in self.keys(M)],
+                         ['App/A.swift uses Lists', 'Lists/L.swift uses TUIkitCore', 'Tables/T.swift uses Base'])
 
     def test_a_file_with_no_unit_is_not_judged(self):
         # Nor is a reference to its declarations: which target compiled them is unknown (a stale or uncompiled file,
