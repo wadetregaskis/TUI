@@ -5,6 +5,11 @@
 //  License: MIT
 
 import TUIkitCore
+// Imported here, not only through this module's Exports.swift: the paging
+// keys' replay closure goes to `EffectJournal.Entry`, and Swift gives a
+// closure passed to a module the calling FILE does not import a run-time
+// main-actor check (CONTRIBUTING.md, "Crossing a module boundary").
+import TUIkitView
 
 /// The body of ``InlineMenuStyle``: the menu's label as a heading, a rule, and
 /// the items expanded beneath it, all in the same bordered column a floating
