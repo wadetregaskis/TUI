@@ -165,6 +165,7 @@ func naturalExtent<V: View>(
 /// no longer a ceiling — content taller than this now grows past it instead of
 /// being cut off at it.
 @MainActor
+@inlinable
 func naturalExtentStartingBudget(forVisible extent: Int) -> Int {
     max(extent * 64, 4096)
 }
@@ -193,7 +194,13 @@ func naturalExtentStartingBudget(forVisible extent: Int) -> Int {
 /// width, by this test — and a padded stack in a pane up to 64 columns wide
 /// stopped answering for its rows out of sight. Half the floor is still two
 /// thousand cells, which no terminal is.
+///
+/// `@inlinable`, with ``naturalExtentStartingBudget(forVisible:)``: an image
+/// (TUIkitBitmaps' `_ImageCore`, since module split step B5c) asks it of each
+/// axis it measures and draws, every frame, and the two fold to one compare
+/// with a constant, cheaper than the call.
 @MainActor
+@inlinable
 package func isNaturalExtentBudget(_ budget: Int) -> Bool {
     budget >= naturalExtentStartingBudget(forVisible: 0) / 2
 }

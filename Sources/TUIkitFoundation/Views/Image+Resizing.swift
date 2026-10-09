@@ -65,12 +65,28 @@ extension Image {
 }
 
 /// How ``Image/resizable(capInsets:resizingMode:)`` said to resize an image.
+///
+/// `@usableFromInline`, with its fields, so that ``slices`` and ``filling``
+/// inline into TUIkitBitmaps (module split step B5c), whose `_ImageCore` asks
+/// them of every image it draws, every frame: each is less work than the call.
+/// An `@inlinable` member of a type that is only `package` is not serialized
+/// for another module to inline.
+@usableFromInline
 package struct _ImageResizing: Equatable, Sendable {
-    package var capInsets: EdgeInsets
-    package var mode: Image.ResizingMode
+    @usableFromInline package var capInsets: EdgeInsets
+    @usableFromInline package var mode: Image.ResizingMode
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal, and ``filling`` makes one inline.
+    @inlinable
+    package init(capInsets: EdgeInsets, mode: Image.ResizingMode) {
+        self.capInsets = capInsets
+        self.mode = mode
+    }
 
     /// Whether the image is drawn in slices rather than resampled whole: it
     /// has caps to keep, or it tiles.
+    @inlinable
     package var slices: Bool {
         mode == .tile || capInsets != EdgeInsets()
     }
@@ -79,5 +95,10 @@ package struct _ImageResizing: Equatable, Sendable {
 extension _ImageResizing {
     /// A plain stretch to the box — what an image at its natural size draws
     /// with, its box being its own shape.
-    package static let filling = Self(capInsets: EdgeInsets(), mode: .stretch)
+    ///
+    /// Computed rather than a `static let`: read from another module, a
+    /// stored static is a call to its addressor, where this folds to the
+    /// constant.
+    @inlinable
+    package static var filling: Self { Self(capInsets: EdgeInsets(), mode: .stretch) }
 }
