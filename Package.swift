@@ -281,16 +281,16 @@ let package = Package(
         // content: the `StatusBar` view, the toolbars, the notifications, the tooltip popover and `.help`,
         // `.statusBarItems`, the window chrome host, the overlay compositor, the screen selection's highlight
         // and Copy menu; the status bar's STATE, the tooltip's and the window chrome's, which focus and the
-        // controls write, stay in TUIkitFoundation. TUIkitApp and TUIkitPresentation (TUIkitNavigation, from
-        // B5b until step C1 peeled the presentations out of it) depend on it and re-export it. TUIkitEffects is the transitions, content transitions, `.symbolEffect`,
-        // `.visualEffect`, `.scrollTransition` and the colour effects; `TimelineView` and the symbol glyph's
-        // effect, which `Label` and `ProgressView` draw, stay. TUIkitMenus is `Menu`, `ControlGroup`,
-        // `.contextMenu`, `.menuStyle` and the menu styles, and the popup menu's core; the menu engine,
-        // `ContextMenuState`, the menu-row sink and `MenuStyle` stay, so no leaf depends on it, and so do the
-        // inline menu's core and the column it lays out, whose `bordered` and `foregroundStyle` results name
-        // types only TUIkitFoundation can see (CONTRIBUTING.md, "Crossing a module boundary"). Nothing in
-        // TUIkitFoundation may use any of the three (Tools/ModuleMap's upward check), so the umbrella re-exports
-        // each. Each re-exports TUIkitFoundation (its Exports.swift).
+        // controls write, stay in TUIkitFoundation. TUIkitApp and TUIkitPresentation (TUIkitNavigation, from B5b until
+        // step C1 peeled the presentations out of it) depend on it and re-export it. TUIkitEffects is the transitions,
+        // content transitions, `.symbolEffect`, `.visualEffect`, `.scrollTransition` and the colour effects;
+        // `TimelineView` and the symbol glyph's effect, which `Label` and `ProgressView` draw, stay. TUIkitMenus is
+        // `Menu`, `ControlGroup`, `.contextMenu`, `.menuStyle` and the menu styles, and the popup menu's core; the menu
+        // engine, `ContextMenuState`, the menu-row sink and `MenuStyle` stay, so no leaf depends on it, and so do the
+        // inline menu's core and the column it lays out, whose `bordered` and `foregroundStyle` results name types only
+        // TUIkitFoundation can see (CONTRIBUTING.md, "Crossing a module boundary"). Nothing in TUIkitFoundation may use
+        // any of the three (Tools/ModuleMap's upward check), so the umbrella re-exports each. Each re-exports
+        // TUIkitFoundation (its Exports.swift).
         .target(
             name: "TUIkitChrome",
             dependencies: ["TUIkitFoundation"],
@@ -333,10 +333,11 @@ let package = Package(
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitLists, TUIkitMenus, TUIkitNavigation,
-        // TUIkitPresentation, TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella`
-        // check), so `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It
-        // names TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds
-        // the TUIkit.docc catalog. Nothing in the package depends on it but the apps and the tests.
+        // TUIkitPresentation, TUIkitTextInput), TUIkitFoundation and the lower four, and holds no code
+        // (Tools/ModuleMap's `umbrella` check), so `import TUIkit` gives an app exactly what it gave when the framework
+        // was one TUIkit module. It names TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it.
+        // Its directory also holds the TUIkit.docc catalog. Nothing in the package depends on it but the apps and the
+        // tests.
         .target(
             name: "TUIkit",
             dependencies: [
