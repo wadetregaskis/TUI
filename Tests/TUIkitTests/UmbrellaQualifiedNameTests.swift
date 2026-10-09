@@ -75,14 +75,16 @@
 //  TUIkitImage out of TUIkitFoundation's re-exports. The eighth test spells
 //  and draws its types through the umbrella, an `AsyncImage` beside an app's
 //  own `AsyncImage` (the case an app meets: an image loader of its own), and
-//  one of its image options over a text, which takes TUIkitImage's
-//  `ASCIIColorMode`. The umbrella is the only module that re-exports
-//  TUIkitBitmaps, so this file stops compiling without its line. TUIkitImage
-//  has three: the umbrella's own, TUIkitBitmaps' and TUIkitColorPicker's
-//  (their direct dependency); nothing checks the umbrella's line for it, but
-//  an app would lose `ASCIIColorMode` only with all three gone. A module left
-//  compiling in TUIkitFoundation would still compile here; the reflected
-//  names catch it at run time.
+//  three of its image options on an image still loading: one that takes
+//  TUIkitImage's `ASCIIColorMode`, and a caption with the spinner off, which
+//  the loading image draws, so the drawing shows the options reach it. The
+//  umbrella is the only module that re-exports TUIkitBitmaps, so this file
+//  stops compiling without its line. TUIkitImage has three: the umbrella's
+//  own, TUIkitBitmaps' and TUIkitColorPicker's (their direct dependency);
+//  nothing checks the umbrella's line for it, but an app would lose
+//  `ASCIIColorMode` only with all three gone. A module left compiling in
+//  TUIkitFoundation would still compile here; the reflected names catch it at
+//  run time.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -432,11 +434,19 @@ struct UmbrellaQualifiedNameTests {
         let (mine, image) = Client.bothAsyncImages()
         #expect(mine.name == "mine")
         #expect(drawn(image).contains("b5c empty"))
-        // An image option of TUIkitBitmaps, spelled through the umbrella, with
-        // TUIkitImage's colour mode, over a TUIkitFoundation text: drawn as the
-        // text (the option is read by a bitmap only).
-        let optioned = TUIkit.Text(verbatim: "b5c option").imageColorMode(TUIkit.ASCIIColorMode.mono)
-        #expect(drawn(optioned).contains("b5c option"))
+        // Image options of TUIkitBitmaps, spelled through the umbrella, on an
+        // image of a file that is not there, so it is still loading when it is
+        // drawn: TUIkitImage's colour mode, which only a decoded picture reads
+        // (so here it is checked for compiling only), and a caption without a
+        // spinner, which the loading image draws instead of "Loading...", so
+        // the drawing shows the options reach the image.
+        let caption = "b5c option"
+        let optioned = TUIkit.Image(TUIkit.ImageSource.file("/b5c/missing.png"))
+            .imageColorMode(TUIkit.ASCIIColorMode.mono)
+            .imagePlaceholder(caption)
+            .imagePlaceholderSpinner(false)
+        let optionedLines = drawn(optioned)
+        #expect(optionedLines.contains(caption), "\(optionedLines)")
         #expect(TUIkit.ImageFitTarget.viewport.b5cMarker == 3)
         // The reflected names: a module left compiling in TUIkitFoundation
         // would still build, and read `TUIkitFoundation.` here.
