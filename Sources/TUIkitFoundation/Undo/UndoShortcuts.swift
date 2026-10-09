@@ -159,6 +159,9 @@ public struct UndoShortcuts: Hashable, Sendable {
 }
 
 extension UndoShortcuts: ShortcutTable {
+    // `@usableFromInline`, as a requirement of the `@usableFromInline`
+    // `ShortcutTable` must be.
+    @usableFromInline
     package static var modifierName: String { "undoShortcuts" }
 }
 

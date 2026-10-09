@@ -8,6 +8,10 @@
 
 /// An action a shortcut table binds keys to, with the keys TUIkit binds it to
 /// out of the box.
+///
+/// `@usableFromInline`, as ``ShortcutTable`` is, for the `@inlinable`
+/// ``ShortcutTable/triggerTable(commandKey:onClash:)``, whose `Action` this is.
+@usableFromInline
 package protocol ShortcutTableAction: Hashable, CaseIterable, Sendable {
     /// What TUIkit binds this action to out of the box.
     var defaultShortcuts: Set<KeyboardShortcut> { get }
@@ -17,6 +21,12 @@ package protocol ShortcutTableAction: Hashable, CaseIterable, Sendable {
 /// action's value a ``ShortcutSet`` over TUIkit's defaults — ``RowShortcuts``
 /// is the model, and the rules below are its, kept once so a second table
 /// cannot read them differently.
+///
+/// `@usableFromInline` so that ``triggerTable(commandKey:onClash:)``, an
+/// `@inlinable` member of this protocol's extension, has a body another
+/// module can read: an extension member is no more visible than the protocol
+/// it extends, and the compiler serialises no body for one that is not.
+@usableFromInline
 package protocol ShortcutTable {
     associatedtype Action: ShortcutTableAction
 
@@ -36,6 +46,17 @@ extension ShortcutTable {
     /// Two overrides on one chord are reported through `report`, and the
     /// action `Action` declares first keeps the chord, whatever order the
     /// dictionary was written in.
+    ///
+    /// `@inlinable` so that the module that owns a table's `Self` and `Action`
+    /// (TUIkitLists, for ``RowShortcuts``) specialises it for them (module
+    /// split). Without a body there, TUIkitLists could only call the generic
+    /// entry, which binds both through metadata and witness tables and runs
+    /// the dictionary code unspecialised, once per list or table on every
+    /// frame that builds its handler. The `package` names the body uses are
+    /// `@usableFromInline` for it: ``KeyboardShortcut/trigger``,
+    /// ``KeyboardShortcut/resolved(commandKey:)`` and
+    /// ``KeyboardShortcut/Trigger``.
+    @inlinable
     package func triggerTable(
         commandKey: CommandKeyBinding, onClash report: (String) -> Void
     ) -> [KeyboardShortcut.Trigger: Action] {

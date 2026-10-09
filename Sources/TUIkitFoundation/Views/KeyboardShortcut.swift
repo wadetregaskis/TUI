@@ -178,6 +178,10 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
 /// > wins such a chord from a focused text control; see <doc:KeyboardShortcuts>.
 public struct KeyboardShortcut: Hashable, Sendable {
     /// What activates this shortcut.
+    ///
+    /// `@usableFromInline` for the `@inlinable`
+    /// ``ShortcutTable/triggerTable(commandKey:onClash:)``, whose keys these are.
+    @usableFromInline
     package enum Trigger: Hashable, Sendable {
         case defaultAction
         case cancelAction
@@ -199,6 +203,11 @@ public struct KeyboardShortcut: Hashable, Sendable {
 
     /// What activates this shortcut: ``key`` and ``modifiers`` in the one
     /// spelling an incoming event is matched against.
+    ///
+    /// `@usableFromInline` for the `@inlinable`
+    /// ``ShortcutTable/triggerTable(commandKey:onClash:)``, which calls it; not
+    /// `@inlinable` itself, as it calls the private `normalised(_:_:)`.
+    @usableFromInline
     package var trigger: Trigger { Self.normalised(key, modifiers) }
 
     /// The default button: Return/Enter activates it when the focused control
@@ -257,6 +266,10 @@ public struct KeyboardShortcut: Hashable, Sendable {
 
     /// This shortcut with ``EventModifiers/command`` replaced per `binding`,
     /// ready to register. Non-command shortcuts pass through untouched.
+    ///
+    /// `@usableFromInline` for the `@inlinable`
+    /// ``ShortcutTable/triggerTable(commandKey:onClash:)``, which calls it.
+    @usableFromInline
     package func resolved(commandKey binding: CommandKeyBinding) -> Self? {
         guard modifiers.contains(.command) else { return self }
         var resolved = self

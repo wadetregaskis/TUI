@@ -233,6 +233,9 @@ public struct RowShortcuts: Hashable, Sendable {
 
 /// The table's rules are ``ShortcutTable``'s, kept there for every table of its kind.
 extension RowShortcuts: ShortcutTable {
+    // `@usableFromInline`, as a requirement of the `@usableFromInline`
+    // `ShortcutTable` must be.
+    @usableFromInline
     package static var modifierName: String { "rowShortcuts" }
 }
 
