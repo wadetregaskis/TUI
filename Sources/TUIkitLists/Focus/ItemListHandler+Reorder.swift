@@ -672,6 +672,21 @@ extension ItemListHandler {
         return drawn
     }
 
+    /// ``reorderDrawnRows(_:excluding:)`` for a window of consecutive rows,
+    /// which is what a `Table` asks with, on every frame.
+    ///
+    /// A concrete entry, not generic, so that it is specialised here: a
+    /// generic function reaches another module only as its unspecialised
+    /// entry unless its body crosses too (CONTRIBUTING.md, "Crossing a module
+    /// boundary"), and a table's row code is in TUIkitTables, where this
+    /// one's would step through the window row by row through `Sequence`'s
+    /// witnesses. Not `@inlinable` either, which needs this class
+    /// `@usableFromInline` and so every member that witnesses one of its
+    /// protocols' requirements, its stored properties among them.
+    func reorderDrawnRows(_ visible: Range<Int>) -> [DrawnRow] {
+        reorderDrawnRows(visible, excluding: nil)
+    }
+
     /// Re-reads the drop target from the bands just published, while edge
     /// auto-scroll is driving THIS list.
     ///

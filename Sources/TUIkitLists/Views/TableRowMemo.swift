@@ -107,6 +107,12 @@ struct TableRowFrameKey: Equatable {
 // MARK: - The row's half, and what was kept
 
 /// One row's composed line, and the row state it was composed for.
+///
+/// `@usableFromInline`, with its stored properties, and its members
+/// `@inlinable` (module split, set T): a table's row code in TUIkitTables
+/// builds, challenges and re-draws one of these for every row it draws, and
+/// across the module boundary each of those would otherwise be a call.
+@usableFromInline
 struct TableRowMemoLine {
     /// The row this line was last PROVED to answer for, when its type could be
     /// compared at all. `nil` for a row type that is not `Equatable`, which
@@ -117,7 +123,7 @@ struct TableRowMemoLine {
     /// fails the row test, and leaving it pointing at the row the line was
     /// COMPOSED for would fail that test again every frame thereafter. See the
     /// note on `refresh`.
-    var row: AnyEquatableBox?
+    @usableFromInline var row: AnyEquatableBox?
     /// What every column produced for this row, in column order.
     ///
     /// The soundness of a closure column rests entirely on this. A closure may
@@ -126,14 +132,14 @@ struct TableRowMemoLine {
     /// the closure has RUN, what it produced is not a proxy for the text: it IS
     /// the text, and a line built from equal cells under an equal frame key is
     /// the same line.
-    let cells: [String]
+    @usableFromInline let cells: [String]
     /// Whether the row was selected. Not whether it was the cursor: the cursor
     /// row of a focused table is never kept (see `Table.renderRow`), so every
     /// entry is a row the cursor was not on.
-    let isSelected: Bool
+    @usableFromInline let isSelected: Bool
     /// Whether the row drew faint, refusing selection
     /// (`.selectionDisabled()`), which its cells do not say.
-    let isDimmed: Bool
+    @usableFromInline let isDimmed: Bool
     /// The row as drawn without a stripe and with one, each kept once the row
     /// has been drawn at that parity: composed there, or drawn there again
     /// from ``cells`` (`Table.renderRow`'s `atParity`).
@@ -155,14 +161,18 @@ struct TableRowMemoLine {
     /// most never do. The cells are kept anyway (they are what ``answers(cells:isSelected:isDimmed:)``
     /// compares), and a line drawn from them is the line a compose of them
     /// draws, by construction.
-    private var plain: TableRowDrawnLine?
-    private var striped: TableRowDrawnLine?
+    ///
+    /// Internal and `@usableFromInline`, not private, for the `@inlinable`
+    /// members below.
+    @usableFromInline var plain: TableRowDrawnLine?
+    @usableFromInline var striped: TableRowDrawnLine?
 
     /// - Parameters:
     ///   - isStriped: Whether `drawn` wears the stripe — which of the two
     ///     parities it is kept as.
     ///   - drawn: The row as composed.
-    init(
+    @inlinable
+    package init(
         row: AnyEquatableBox?, cells: [String], isSelected: Bool, isStriped: Bool, isDimmed: Bool,
         drawn: TableRowDrawnLine
     ) {
@@ -175,34 +185,49 @@ struct TableRowMemoLine {
 
     /// The row as kept at this parity, or `nil` where it has not been drawn
     /// there yet.
-    func drawn(striped isStriped: Bool) -> TableRowDrawnLine? {
+    @inlinable
+    package func drawn(striped isStriped: Bool) -> TableRowDrawnLine? {
         isStriped ? striped : plain
     }
 
     /// Keeps `drawn` as the row at this parity too.
-    mutating func keep(_ drawn: TableRowDrawnLine, striped isStriped: Bool) {
+    @inlinable
+    package mutating func keep(_ drawn: TableRowDrawnLine, striped isStriped: Bool) {
         if isStriped { striped = drawn } else { plain = drawn }
     }
 
     /// Whether this entry answers for a row whose cells are `cells`, at either
     /// parity (see ``drawn(striped:)``).
-    func answers(cells other: [String], isSelected: Bool, isDimmed: Bool) -> Bool {
+    @inlinable
+    package func answers(cells other: [String], isSelected: Bool, isDimmed: Bool) -> Bool {
         self.isSelected == isSelected && self.isDimmed == isDimmed && cells == other
     }
 
     /// Whether this entry answers for `row` WITHOUT computing its cells — only
     /// for a table whose every column names its value, where the cells are a
     /// pure function of the row. At either parity, as the cell test.
-    func answers(row other: AnyEquatableBox, isSelected: Bool, isDimmed: Bool) -> Bool {
+    @inlinable
+    package func answers(row other: AnyEquatableBox, isSelected: Bool, isDimmed: Bool) -> Bool {
         self.isSelected == isSelected && self.isDimmed == isDimmed && self.row == other
     }
 }
 
 /// One parity's drawing of a kept table row: the line, and the claims it owes
 /// (``SelectableRowClaims``). See ``TableRowMemoLine``.
+///
+/// `@usableFromInline`, as ``TableRowMemoLine`` is (module split, set T).
+@usableFromInline
 struct TableRowDrawnLine {
-    let line: String
-    let claims: [OpacityRegion]
+    @usableFromInline let line: String
+    @usableFromInline let claims: [OpacityRegion]
+
+    /// The memberwise initializer, written out: a synthesized one is internal,
+    /// and a table's row code in TUIkitTables builds one per row it keeps.
+    @inlinable
+    package init(line: String, claims: [OpacityRegion]) {
+        self.line = line
+        self.claims = claims
+    }
 }
 
 /// A table's kept row lines, and the frame key they were composed under.
@@ -212,6 +237,11 @@ struct TableRowDrawnLine {
 /// dropped whole once it holds far more rows than a screenful, which costs one
 /// frame of re-composition and is simpler than an eviction order nobody would
 /// ever read.
+///
+/// `@usableFromInline`, with the members a table asks per row `@inlinable`
+/// (module split, set T): ``keep(_:for:)``, ``entry(for:)`` and
+/// ``refresh(row:for:)``. ``lines`` is `@usableFromInline` for them.
+@usableFromInline
 struct TableRowMemoStore<ID: Hashable> {
     /// Whether this frame may keep rows at all, settled ONCE by `begin` rather
     /// than per row.
@@ -228,7 +258,9 @@ struct TableRowMemoStore<ID: Hashable> {
     /// a `TableColumn` holds closures and strings.
     private(set) var namesItsValues = false
     private(set) var frameKey: TableRowFrameKey?
-    private var lines: [ID: TableRowMemoLine] = [:]
+    /// Internal and `@usableFromInline`, not private, for the `@inlinable`
+    /// members.
+    @usableFromInline var lines: [ID: TableRowMemoLine] = [:]
 
     /// How many rows may be kept, as a multiple of what is on screen.
     private static var slack: Int { 8 }
@@ -250,9 +282,12 @@ struct TableRowMemoStore<ID: Hashable> {
 
     /// The kept entry for `id`, whatever it holds — the caller decides how to
     /// challenge it.
-    func entry(for id: ID) -> TableRowMemoLine? { lines[id] }
+    @inlinable
+    package func entry(for id: ID) -> TableRowMemoLine? { lines[id] }
 
-    mutating func keep(_ entry: TableRowMemoLine, for id: ID) {
+    /// Keeps `entry` as the row `id` draws.
+    @inlinable
+    package mutating func keep(_ entry: TableRowMemoLine, for id: ID) {
         lines[id] = entry
     }
 
@@ -272,7 +307,8 @@ struct TableRowMemoStore<ID: Hashable> {
     /// was built from cells equal to this row's under this frame key, and under
     /// `namesItsValues` the cells are a pure function of the row — so any later
     /// row equal to this one produces those cells and therefore that line.
-    mutating func refresh(row: AnyEquatableBox, for id: ID) {
+    @inlinable
+    package mutating func refresh(row: AnyEquatableBox, for id: ID) {
         lines[id]?.row = row
     }
 
