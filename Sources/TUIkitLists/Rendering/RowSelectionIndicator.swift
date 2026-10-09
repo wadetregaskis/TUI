@@ -16,6 +16,10 @@ import TUIkitFoundation
 /// those are: a `List` and a `Table` run the same rules about focus, selection and
 /// visibility, they have drifted apart before, and "which cells of a row owe a blend"
 /// is one more rule that must not be written out twice.
+///
+/// `@usableFromInline`: ``claims(line:width:cells:ink:mark:fill:)`` is
+/// `@inlinable` (module split, step C2).
+@usableFromInline
 package enum SelectableRowClaims {
     /// - Parameters:
     ///   - line: Which of the row's lines this is, in the row's own coordinates.
@@ -44,6 +48,13 @@ package enum SelectableRowClaims {
     /// which a blank does not show and the resolution reads as the cell's field
     /// (`OpacityBlend.displayedInk(of:defaultForeground:)`). An ink claim on such a
     /// cell lets what is behind it through where the row drew a pad.
+    ///
+    /// `@inlinable`, and only the opaque test (module split, step C2): a table
+    /// in TUIkitTables asks this for every row it composes, and nearly every
+    /// row is opaque, so its caller answers that in place, as it did while
+    /// one module compiled both; a translucent row calls
+    /// ``translucentClaims(line:width:cells:ink:mark:fill:)``.
+    @inlinable
     package static func claims(
         line: Int, width: Int, cells: Range<Int>, ink: Color?, mark: Color?, fill: Color?
     ) -> [OpacityRegion] {
@@ -51,6 +62,15 @@ package enum SelectableRowClaims {
         // alpha compares and allocates nothing.
         guard ink?.isOpaque == false || mark?.isOpaque == false || fill?.isOpaque == false
         else { return [] }
+        return translucentClaims(line: line, width: width, cells: cells, ink: ink, mark: mark, fill: fill)
+    }
+
+    /// The claims of a row that painted at least one translucent colour: the
+    /// rest of ``claims(line:width:cells:ink:mark:fill:)``, out of line.
+    @usableFromInline
+    static func translucentClaims(
+        line: Int, width: Int, cells: Range<Int>, ink: Color?, mark: Color?, fill: Color?
+    ) -> [OpacityRegion] {
         var claims: [OpacityRegion] = []
         if let mark, let claim = OpacityRegion.claim(
             offsetX: 0, offsetY: line, width: 1, height: 1, ink: mark)
