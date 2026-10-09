@@ -115,10 +115,17 @@ CELLS_RE = re.compile(r"cell values/frame: ([0-9.]+)")
 
 
 def run(binary, scenario, scale, iterations, cols, rows, cold=False):
-    """One bench run; returns (wall_us, cpu_us, peak_rss_mb, work)."""
+    """One bench run; returns (wall_us, cpu_us, peak_rss_mb, work).
+
+    A scenario id written `scenario/variant` (as `Stress --variants` and the
+    selfcheck name them, e.g. `modifiers/color-effects`) runs that variant of
+    the scenario: `--scenario modifiers --variant color-effects`.
+    """
+    scenario_id, _, variant = scenario.partition("/")
     out = subprocess.run(
-        [binary, "--bench", "--scenario", scenario, "--scale", str(scale),
+        [binary, "--bench", "--scenario", scenario_id, "--scale", str(scale),
          "--iterations", str(iterations), "--cols", str(cols), "--rows", str(rows)]
+        + (["--variant", variant] if variant else [])
         + (["--cold"] if cold else []),
         capture_output=True, text=True, check=True).stdout
     wall = WALL_RE.search(out)
@@ -182,7 +189,9 @@ def main():
     parser.add_argument("new")
     parser.add_argument("--scenarios", nargs="*", default=None,
                         help="scenario ids (default: every one the binary has, "
-                             "less the frame-counter-driven pair)")
+                             "less the frame-counter-driven pair); "
+                             "`scenario/variant` runs one variant "
+                             "(`Stress --variants` lists them)")
     parser.add_argument("--quick", action="store_true",
                         help="six representative scenarios at 12 reps — about "
                              "four minutes instead of twenty-five. For iterating; "
