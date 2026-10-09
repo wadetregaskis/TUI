@@ -275,12 +275,17 @@ let package = Package(
         // `.image*` rendering options, asset catalogues and `Color(_:bundle:)`, the `image:` initialisers of `Label`
         // and `ContentUnavailableView`. `Image` itself, `Image(systemName:)` and the raster seam the bitmap path
         // draws through (`_ImageRaster`, step A2's R2), `.aspectRatio`, `.scaledToFit`, `.scaledToFill` and
-        // `.imageCellAspect` (A4's S1) stay. It and TUIkitColorPicker are the framework's only modules that depend
-        // on TUIkitImage (the decoders, `ASCIIConverter`, `RGBAImage`); TUIkitFoundation does not since this step,
-        // so once per-module products ship, an app that uses neither links neither TUIkitImage nor CSTBImage.
-        // Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it,
-        // and no other leaf depends on it. It re-exports TUIkitFoundation and TUIkitImage
-        // (Sources/TUIkitBitmaps/Exports.swift).
+        // `.imageCellAspect` (A4's S1) stay. Nothing in TUIkitFoundation may use this module (Tools/ModuleMap's
+        // upward check), so the umbrella re-exports it; no other leaf depends on it, and beside the umbrella and
+        // the tests only TUIkitAppKit, which is no module of the map, does. It re-exports TUIkitFoundation and
+        // TUIkitImage (Sources/TUIkitBitmaps/Exports.swift).
+        //
+        // TUIkitImage (the decoders, `ASCIIConverter`, `RGBAImage`) is a dependency of this module and of
+        // TUIkitColorPicker, the only two leaves that name it. Of the framework's other modules only the umbrella,
+        // which re-exports it, and TUIkitAppKit, whose `CGImage` and `NSImage` bridges make an `RGBAImage`, name
+        // it; the tests and tools aside, nothing else does. TUIkitFoundation does not depend on it since this step,
+        // so once per-module products ship, an app that uses none of TUIkitBitmaps, TUIkitColorPicker and
+        // TUIkitAppKit links neither TUIkitImage nor CSTBImage.
         .target(
             name: "TUIkitBitmaps",
             dependencies: ["TUIkitFoundation", "TUIkitImage"],
