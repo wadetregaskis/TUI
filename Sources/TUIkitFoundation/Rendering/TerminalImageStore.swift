@@ -17,15 +17,24 @@ import TUIkitCore
 /// enum, keeps each caller's signature its own ordinary struct: every field
 /// that decides a picture is still a typed, `Equatable` field on a type that
 /// says what it is for.
+///
+/// `@usableFromInline`, with its fields, and its initializer `@inlinable`:
+/// ``TerminalImageStore/placeholderRows(token:signature:columns:rows:pixels:)``
+/// erases its caller's signature into one of these in the caller's module,
+/// where the signature's type is known (see that method), and no module but
+/// this one can name it.
+@usableFromInline
 struct AnyImageSignature: Equatable {
-    private let value: Any
-    private let equals: (Any) -> Bool
+    @usableFromInline let value: Any
+    @usableFromInline let equals: (Any) -> Bool
 
+    @inlinable
     init<S: Equatable>(_ value: S) {
         self.value = value
         self.equals = { ($0 as? S) == value }
     }
 
+    @usableFromInline
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.equals(rhs.value) }
 }
 
@@ -47,6 +56,10 @@ struct AnyImageSignature: Equatable {
 /// fields that `==` compares with their own synthesised equality, it holds by
 /// construction. A field left out only makes a bucket hold more pictures, and
 /// a bucket every picture shares makes each lookup a search of them all.
+///
+/// `@usableFromInline` for the same reason as ``AnyImageSignature``: the
+/// inlinable `placeholderRows` is generic over it.
+@usableFromInline
 package protocol ImageStoreSignature: Equatable {
     associatedtype StoreBucket: Hashable
     /// Some of the fields `==` compares, as a key the store can hash.
@@ -105,6 +118,7 @@ package protocol ImageStoreSignature: Equatable {
 /// actor-isolated, and from the run loop, which is — but both run on the run
 /// loop's own thread, one render pass at a time. There is no concurrency here
 /// to check; there is a compiler that cannot see that.
+@usableFromInline
 package final class TerminalImageStore: @unchecked Sendable {
 
     /// One image in the terminal, the cells that draw it, and who is drawing
@@ -189,8 +203,36 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// - Returns: the rows, or `nil` for a request the protocol cannot express
     ///   — at which point the caller draws the picture out of glyphs, as it
     ///   always has.
+    ///
+    /// Generic in name only: all it does with `Signature` is erase it, here,
+    /// and hand the rest to the non-generic
+    /// ``placeholderRows(token:signature:bucket:columns:rows:pixels:)``.
+    /// `@inlinable`, so the erasure happens in the caller's module, specialised
+    /// for its signature: a picture's (`_ImageCore`, TUIkitBitmaps since module
+    /// split step B5c) runs once a frame for every image drawn with terminal
+    /// graphics, and a call to a generic method in another module would run
+    /// unspecialised, the erasure through the signature's metadata. The class,
+    /// ``AnyImageSignature`` and ``ImageStoreSignature`` are
+    /// `@usableFromInline` for it: an `@inlinable` member of a type that is
+    /// only `package` is not serialized for another module to inline.
+    @inlinable
     package func placeholderRows<Signature: ImageStoreSignature>(
         token: String, signature: Signature,
+        columns: Int, rows: Int,
+        pixels: () -> (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
+    ) -> [String]? {
+        placeholderRows(
+            token: token, signature: AnyImageSignature(signature), bucket: { AnyHashable(signature.storeBucket) },
+            columns: columns, rows: rows, pixels: pixels)
+    }
+
+    /// ``placeholderRows(token:signature:columns:rows:pixels:)``, with the
+    /// signature already erased (`wanted`) and the bucket it files under asked
+    /// for only when the picture is not this token's already (`bucket`, the
+    /// signature's ``ImageStoreSignature/storeBucket``).
+    @usableFromInline
+    func placeholderRows(
+        token: String, signature wanted: AnyImageSignature, bucket: () -> AnyHashable,
         columns: Int, rows: Int,
         pixels: () -> (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
     ) -> [String]? {
@@ -198,7 +240,6 @@ package final class TerminalImageStore: @unchecked Sendable {
             columns <= KittyGraphics.maximumCellExtent,
             rows <= KittyGraphics.maximumCellExtent
         else { return nil }
-        let wanted = AnyImageSignature(signature)
 
         // The token's own image, if it still is this picture.
         if let id = entries[token], let image = images[id], image.signature == wanted {
@@ -223,7 +264,7 @@ package final class TerminalImageStore: @unchecked Sendable {
 
         // Somebody else's image of exactly this picture in exactly this box:
         // share it, and let go of whatever this token was drawing before.
-        let slot = Slot(bucket: AnyHashable(signature.storeBucket), columns: columns, rows: rows)
+        let slot = Slot(bucket: bucket(), columns: columns, rows: rows)
         if let id = sharedImage(of: wanted, in: slot) {
             if entries[token] != id { release(token: token) }
             // `release` frees only an image this token was drawing, and this
