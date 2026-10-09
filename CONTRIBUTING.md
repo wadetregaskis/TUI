@@ -431,7 +431,16 @@ anything at run time:
   TUIkitFoundation's again, and `_InlineMenuCore` is `package` for
   `InlineMenuStyle` to make. So keep caller and callee in one module, or
   give the other module a concrete entry point: a non-generic `package`
-  function that builds the view where its types are concrete. Do not widen
+  function that builds the view where its types are concrete. When the view
+  it modifies is one of the caller's own types, which the callee's module
+  cannot name, the entry point is generic over it: a `package` method on
+  `View`, as step B7's are (TUIkitFoundation's
+  View+BuiltForAnotherModule.swift, for a text field's frame, a form's rows,
+  a search token and a text editor's find bar). The caller then reaches it
+  unspecialised (the second class, below), and one that returns an `AnyView`
+  boxes its result on every call: cheaper than the lookup, which demangles a
+  name (unmeasured per call; the carve's A/B prices it), but a call on every
+  render pass, so the commit names the scenarios that reach it. Do not widen
   the underlying type, nor make the callee `@inlinable`, to make it
   visible: either lets every app see through the same modifier as well,
   which changes the app's own code. The same column showed a second class,
