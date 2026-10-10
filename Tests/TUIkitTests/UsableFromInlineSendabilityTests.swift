@@ -1,8 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  UsableFromInlineSendabilityTests.swift
 //
-//  The value types that module split step A3 made `@usableFromInline` are still
-//  `Sendable`.
+//  The value types that module split steps A3 and C2 made `@usableFromInline`
+//  are still `Sendable`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

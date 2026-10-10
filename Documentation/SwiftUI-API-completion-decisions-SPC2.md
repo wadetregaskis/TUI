@@ -47,8 +47,9 @@ B1, and `TUIkit`'s in v0.6.0.
   none of them saved).
 - **The bundle is unchanged.** The directory holds Swift files only, so the
   bundle is still `TUIkit_TUIkitStrings` (decisions SPB2).
-- **The documentation lists each module's modifiers on `View` and on that
-  module's own types only.** `symbolgraph-extract` copies a protocol
+- **The documentation lists each module's modifiers on `View`, on that
+  module's own types, and on those of the modules built on it, not on a
+  sibling's.** `symbolgraph-extract` copies a protocol
   extension's members onto the conforming types of its own module only
   (decisions SPC1), and lists and tables are two modules now: `List`'s,
   `TabView`'s and `Grid`'s pages list neither `tableStyle` nor
