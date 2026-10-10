@@ -59,8 +59,8 @@ package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
     let controlDisabled: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitTextInput's controls (sliders, steppers, pickers,
-    /// date pickers, labeled content) make these.
+    /// internal and TUIkitTextInput's sliders and steppers, TUIkitPickers'
+    /// pickers and date pickers, and TUIkitForms' labeled content make these.
     package init(label: Label?, controlDisabled: Bool) {
         self.label = label
         self.controlDisabled = controlDisabled

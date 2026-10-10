@@ -66,8 +66,8 @@ extension DropdownMenu {
         package var isEnabled = true
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitTextInput makes these, for a `Picker`'s menu
-        /// and a text field's suggestions.
+        /// is internal and TUIkitPickers makes these, for a `Picker`'s menu,
+        /// and TUIkitTextInput, for a text field's suggestions.
         package init(
             entries: [Entry], highlightedOption: Int?, scroll: ScrollAxis, followHighlight: Bool,
             autoRepeatToken: String, isEnabled: Bool = true

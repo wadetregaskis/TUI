@@ -9,6 +9,7 @@
 
 import TUIkitCore
 import TUIkitFoundation
+import TUIkitPickers
 import TUIkitTextInput
 import TUIkitView
 

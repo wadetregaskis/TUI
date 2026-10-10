@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitPickers
 @testable import TUIkitTextInput
 
 /// Regression guard (and diagnostic) for the measure-pass correctness work.

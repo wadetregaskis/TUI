@@ -19,14 +19,16 @@
 // TUIkitTabs is the fourth since step C3 peeled it out of TUIkitLists, which
 // was the fourth from step B6: the panel lays its modes out in a `TabView` of
 // `Tab`s; nothing of the lists'. TUIkitTextInput is the fifth since step B7
-// carved it: the editors are made of `Slider`s (TUIkitNumericControls'), the
-// panel's hex field is a `TextField` and the channel-curve editor picks its
-// channel with a `RadioButtonGroup` (TUIkitPickers'), all three of which
-// compile into TUIkitTextInput until steps C7 and C8 peel the first and last.
+// carved it: the editors are made of `Slider`s (TUIkitNumericControls', which
+// compiles into TUIkitTextInput until step C7 peels it) and the panel's hex
+// field is a `TextField`. TUIkitPickers is the sixth since step C8 peeled it
+// out of TUIkitTextInput, which gave the picker it from step B7: the
+// channel-curve editor picks its channel with a `RadioButtonGroup`.
 // The umbrella, Sources/TUIkit, re-exports this module beside
 // TUIkitFoundation.
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
+@_exported import TUIkitPickers
 @_exported import TUIkitPresentation
 @_exported import TUIkitTabs
 @_exported import TUIkitTextInput

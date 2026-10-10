@@ -6,6 +6,7 @@
 
 import TUIkitFoundation
 import TUIkitImage
+import TUIkitPickers
 import TUIkitStyling
 import TUIkitTextInput
 

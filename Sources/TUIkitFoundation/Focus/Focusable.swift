@@ -77,7 +77,7 @@ extension Focusable {
 ///
 /// `package`, since handlers in other modules conform to it (TUIkitColorPicker's
 /// grids since module split step B4, and TUIkitNavigation's, TUIkitPresentation's,
-/// TUIkitLists', TUIkitTabs' and TUIkitTextInput's), and NOT `@usableFromInline`
+/// TUIkitLists', TUIkitTabs', TUIkitTextInput's and TUIkitPickers'), and NOT `@usableFromInline`
 /// (step A3): the `@inlinable`
 /// `FocusRegistration.register(context:handler:focusID:)` reaches it only through
 /// the out-of-line `FocusRegistration.repointPersistedHandler(_:to:)`, which says why.

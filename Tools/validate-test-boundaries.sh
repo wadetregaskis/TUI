@@ -37,9 +37,9 @@ cd "$(dirname "$0")/.."
 # TUIkitEffects and TUIkitMenus (step B5b), TUIkitBitmaps (step B5c) and
 # TUIkitTextInput (step B7), and TUIkitPresentation, peeled out of
 # TUIkitNavigation (step C1), TUIkitTables, TUIkitTabs and TUIkitGrid, peeled
-# out of TUIkitLists (steps C2 to C4), and TUIkitForms and TUIkitSearch,
-# peeled out of TUIkitTextInput (steps C6 and C5): their tests stayed in
-# TUIkitTests, which
+# out of TUIkitLists (steps C2 to C4), and TUIkitForms, TUIkitSearch and
+# TUIkitPickers, peeled out of TUIkitTextInput (steps C6, C5 and C8): their
+# tests stayed in TUIkitTests, which
 # `@testable import`s them. A module that gets a test target of its own gets a
 # row here, and joins the loop below.
 allowed_for() {

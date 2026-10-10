@@ -122,8 +122,9 @@
 //  module, TUIkitTextInput, that compiled five directories of the planned
 //  split, Sources/TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch
 //  and TUIkitNumericControls, until steps C5 to C8 peel the last four into
-//  modules of their own (steps C6 and C5 have peeled the forms and search,
-//  below). It took the last directories out of TUIkitFoundation. The ninth
+//  modules of their own (steps C6, C5 and C8 have peeled the forms, search
+//  and the pickers, below). It took the last directories out of
+//  TUIkitFoundation. The ninth
 //  test spells a type from each directory through the umbrella and draws it,
 //  the text field beside an app's own `TextField` (the case an app meets: a
 //  form model of its own). It leaves the same two holes to the same two
@@ -147,6 +148,15 @@
 //  they read `TUIkitTextInput.` from B7 to C5. Nothing but the umbrella
 //  re-exports TUIkitSearch, so this file stops compiling without the
 //  umbrella's line for it.
+//
+//  Step C8 peeled Sources/TUIkitPickers out of the group into TUIkitPickers,
+//  built on TUIkitFoundation alone. The ninth test's radio group, and the
+//  date picker's components among the reflected names, read `TUIkitPickers.`
+//  since; they read `TUIkitTextInput.` from B7 to C8. TUIkitColorPicker and
+//  TUIkitSearch re-export TUIkitPickers too (a radio group picks a curve
+//  editor's channel, a segmented picker is the scope bar), so the umbrella's
+//  own line for it is the `umbrella` check's, and the reflected names catch
+//  a directory left compiling in TUIkitTextInput.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -553,7 +563,8 @@ struct UmbrellaQualifiedNameTests {
         #expect(mine.name == "mine")
         let fieldLines = drawn(field, height: 1)
         #expect(fieldLines.contains("b7 text"), "\(fieldLines)")
-        // From Sources/TUIkitPickers (until step C8): a radio group, drawn.
+        // From Sources/TUIkitPickers, which compiled into the same module until
+        // step C8 peeled it into TUIkitPickers: a radio group, drawn.
         let radios = TUIkit.RadioButtonGroup(selection: TUIkit.Binding.constant(1)) {
             TUIkit.RadioButtonItem(1, "b7 radio")
         }
@@ -577,7 +588,7 @@ struct UmbrellaQualifiedNameTests {
         // in TUIkitFoundation would still build, and read
         // `TUIkitFoundation.` here.
         #expect(String(reflecting: type(of: field)) == "TUIkitTextInput.TextField<TUIkitFoundation.Text>")
-        #expect(String(reflecting: TUIkit.RadioButtonOrientation.self) == "TUIkitTextInput.RadioButtonOrientation")
+        #expect(String(reflecting: TUIkit.RadioButtonOrientation.self) == "TUIkitPickers.RadioButtonOrientation")
         #expect(String(reflecting: TUIkit.AutomaticFormStyle.self) == "TUIkitForms.AutomaticFormStyle")
         #expect(String(reflecting: TUIkit.SearchFieldPlacement.self) == "TUIkitSearch.SearchFieldPlacement")
         #expect(String(reflecting: TUIkit.TrackStyle.self) == "TUIkitTextInput.TrackStyle")
@@ -654,14 +665,15 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.AsyncImagePhase.self) == "TUIkitBitmaps.AsyncImagePhase")
         // Step B7 carved these out (decisions SPB7, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B7. A type from
-        // Sources/TUIkitPickers or TUIkitNumericControls names TUIkitTextInput,
-        // the module that compiles it, until steps C7 and C8 give it a module
-        // of its own; one from Sources/TUIkitForms names TUIkitForms since step
-        // C6, and one from Sources/TUIkitSearch TUIkitSearch since step C5
-        // (decisions SPC5, "What an app can see"): each read
-        // `TUIkitTextInput.` from B7 until its peel.
+        // Sources/TUIkitNumericControls names TUIkitTextInput, the module that
+        // compiles it, until step C7 gives it a module of its own; one from
+        // Sources/TUIkitForms names TUIkitForms since step C6, one from
+        // Sources/TUIkitSearch TUIkitSearch since step C5 (decisions SPC5,
+        // "What an app can see"), and one from Sources/TUIkitPickers
+        // TUIkitPickers since step C8 (decisions SPC7, "What an app can see"):
+        // each read `TUIkitTextInput.` from B7 until its peel.
         #expect(String(reflecting: TUIkit.TabWidth.self) == "TUIkitTextInput.TabWidth")
-        #expect(String(reflecting: TUIkit.DatePickerComponents.self) == "TUIkitTextInput.DatePickerComponents")
+        #expect(String(reflecting: TUIkit.DatePickerComponents.self) == "TUIkitPickers.DatePickerComponents")
         #expect(String(reflecting: TUIkit.GroupedFormStyle.self) == "TUIkitForms.GroupedFormStyle")
         #expect(String(reflecting: TUIkit.SearchFieldIconPlacement.self) == "TUIkitSearch.SearchFieldIconPlacement")
         #expect(String(reflecting: TUIkit.IndeterminateStyle.self) == "TUIkitTextInput.IndeterminateStyle")

@@ -8,7 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
-@testable import TUIkitTextInput
+@testable import TUIkitPickers
 
 // MARK: - Test Helpers
 

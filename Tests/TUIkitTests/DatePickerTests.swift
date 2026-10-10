@@ -9,7 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
-@testable import TUIkitTextInput
+@testable import TUIkitPickers
 @testable import TUIkitView
 
 /// A mutable date backing a test `Binding`.

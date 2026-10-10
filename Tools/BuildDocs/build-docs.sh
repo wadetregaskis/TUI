@@ -182,11 +182,11 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # `table` TUIkitTables', `tabview` TUIkitTabs' and `grid` TUIkitGrid's
 # (TUIkitLists' from step B6 until steps C2 to C4 peeled them out), `statusbar`
 # TUIkitChrome's, `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step
-# B5b), `asyncimage` TUIkitBitmaps' (step B5c), `textfield`, `picker` and
-# `slider` TUIkitTextInput's (step B7: one from each of its directories, until
-# steps C7 and C8), `form` TUIkitForms' and `searchfieldplacement`
-# TUIkitSearch's (TUIkitTextInput's from step B7 until steps C6 and C5 peeled
-# them out), the rest the lower modules'.
+# B5b), `asyncimage` TUIkitBitmaps' (step B5c), `textfield` and `slider`
+# TUIkitTextInput's (step B7: one from each of its directories, until step
+# C7), `form` TUIkitForms', `searchfieldplacement` TUIkitSearch's and `picker`
+# TUIkitPickers' (TUIkitTextInput's from step B7 until steps C6, C5 and C8
+# peeled them out), the rest the lower modules'.
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text \
     localizationservice terminalclient windowgroup colorpicker navigationstack alert \
