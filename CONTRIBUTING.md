@@ -527,11 +527,26 @@ anything at run time:
 - **Numbers** in rendered chrome are grouped by `\.locale`, which is republished
   from the app language every frame. A test asserting "4,994" pins
   `environment.locale` explicitly rather than relying on the default.
-- Test files mirror source structure in `Tests/TUIkitTests/`
-- The helpers, mocks and fixtures that the suite's test files share live in
-  `Tests/TUIkitTestSupport`, a plain target. Every test file of
-  `Tests/TUIkitTests` has `@testable import TUIkitTestSupport`, so give a new
-  one that line too. Every file of the support target is wrapped in
+- The suite's tests that are not one module's unit tests (below) are four
+  test targets, one per area, with the same dependencies:
+  `Tests/TUIkitTests` (views, layout, styling, rendering, animation, the
+  environment), `Tests/TUIkitCollectionTests` (lists, tables, tabs, grids,
+  sections, rows, `ForEach`, scrolling, lazy stacks),
+  `Tests/TUIkitControlTests` (text input, pickers, forms, search, the numeric
+  controls, the colour picker, buttons, toggles, links, focus) and
+  `Tests/TUIkitAppTests` (the App and the run loop, the terminal, input, the
+  clipboard, chrome, menus, navigation, presentation, gestures, drag and drop,
+  storage). Put a new test file in the target of the area it tests, and in
+  `TUIkitTests` when it is of none of them. They are four so that an edit
+  rebuilds a quarter of the suite (`Package.swift` says more). A test target
+  cannot see another's declarations: a test that needs one goes in that
+  target, or the declaration moves to `Tests/TUIkitTestSupport`.
+- The helpers, mocks and fixtures that the four share live in
+  `Tests/TUIkitTestSupport`, a plain target. A helper that only one target's
+  files use stays in that target (`TestHelpers/WidthCorpus.swift` is
+  `TUIkitAppTests`'). Every test file of the four has
+  `@testable import TUIkitTestSupport`, so give a new one that line too.
+  Every file of the support target is wrapped in
   `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, under a comment that says
   why; copy both into a new file there. `swift build -c release` builds the
   target too, without testability, so it must compile empty there
@@ -542,7 +557,7 @@ anything at run time:
   (`TUIkitCoreTests`, `TUIkitStylingTests`, `TUIkitViewTests`,
   `TUIkitImageTests`) that links **only that module**, so a module test cannot
   reach across a layer boundary. Put a test in the module target it belongs to;
-  `Tests/TUIkitTests` is for integration tests and the modules with no test
+  the four targets above are for integration tests and the modules with no test
   target of their own: `TUIkitFoundation` (the substrate) and the modules
   carved out of it, `TUIkitStrings` and `TUIkitTerminalHost` (step B2),
   `TUIkitApp` (step B3), `TUIkitColorPicker` (step B4), `TUIkitNavigation`

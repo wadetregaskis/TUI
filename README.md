@@ -381,9 +381,14 @@ Sources/
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
 
 Tests/                    ~6,300 tests across ~900 suites in ~680 files
-├── TUIkitTests/          The framework's suite (incl. i18n consistency,
-│                         localization & golden-snapshot tests)
-├── TUIkitTestSupport/    The helpers, mocks, fixtures and golden snapshots it shares
+├── TUIkitTests/          The framework's suite, in four targets by area: views, layout,
+│                         styling, rendering (incl. i18n consistency, localization &
+│                         golden-snapshot tests)
+├── TUIkitCollectionTests/  … lists, tables, tabs, grids, scrolling
+├── TUIkitControlTests/   … text input, pickers, forms, numeric controls, buttons, focus
+├── TUIkitAppTests/       … the App and run loop, terminal, input, chrome, menus,
+│                         navigation, presentation, gestures, storage
+├── TUIkitTestSupport/    The helpers, mocks, fixtures and golden snapshots the four share
 ├── TUIkitCoreTests/      One suite per library module, so a module's tests
 ├── TUIkitStylingTests/   cannot lean on the umbrella's API — the boundary is
 ├── TUIkitViewTests/      enforced by Tools/validate-test-boundaries.sh

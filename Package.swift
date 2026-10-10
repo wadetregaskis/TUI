@@ -3,7 +3,7 @@
 import CompilerPluginSupport
 import PackageDescription
 
-/// What the umbrella suite's test target and its support target, TUIkitTestSupport, depend on.
+/// What the umbrella suite's four test targets and their support target, TUIkitTestSupport, depend on.
 let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
     "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
@@ -466,9 +466,28 @@ let package = Package(
             dependencies: ["TUIkit"],
             resources: [.copy("Resources")]
         ),
-        // The umbrella test target: integration tests + every test that exercises
+        // The umbrella suite: integration tests + every test that exercises
         // a control, the App/run loop, focus, or the shared render helpers (which
-        // live in TUIkitTestSupport, below). Module-specific *unit* tests live in the
+        // live in TUIkitTestSupport, below). It is four test targets of one kind,
+        // with the same dependencies, whose every file `@testable import`s
+        // TUIkitTestSupport:
+        // - TUIkitTests: views, layout, styling, rendering, animation, the
+        //   environment, and any test that is of none of the areas below;
+        // - TUIkitCollectionTests: lists, tables, tabs, grids, sections, rows,
+        //   ForEach, scrolling and lazy stacks;
+        // - TUIkitControlTests: text input, pickers, forms, search, the numeric
+        //   controls, the colour picker, buttons, toggles, links and focus;
+        // - TUIkitAppTests: the App and the run loop, the terminal, input, the
+        //   clipboard, chrome, menus, navigation, presentation, gestures, drag
+        //   and drop, and storage.
+        // Four rather than one because a test target is one module, whose
+        // interface is emitted by one serial job whatever the -j, and every
+        // edit to any of its files waits for that job: dividing it makes an
+        // edit re-emit a quarter of the suite, and the four compile in
+        // parallel (the commit that divided it records the times). Each holds
+        // under 8,000 `#expect`s. A test that needs a declaration of another
+        // of the four moves to that target, or the declaration moves to
+        // TUIkitTestSupport. Module-specific *unit* tests live in the
         // per-module test targets below, which link ONLY their module (+ its
         // real deps) so a test that reaches across a module boundary fails to
         // compile. `swift test` runs every target, so the full suite is
@@ -490,6 +509,9 @@ let package = Package(
             // them from the build rather than declaring them as resources.
             exclude: ["__Fixtures__"]
         ),
+        .testTarget(name: "TUIkitCollectionTests", dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"]),
+        .testTarget(name: "TUIkitControlTests", dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"]),
+        .testTarget(name: "TUIkitAppTests", dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"]),
         // The helpers, mocks and fixtures the umbrella suite's files share. Every
         // file there `@testable import`s it, and its own declarations stay
         // internal. A plain target, as CTestSupport is, which `swift build`
