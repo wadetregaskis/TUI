@@ -7,7 +7,9 @@
 # fails to compile. This script is the fast, human-readable guard for that
 # property: it flags a module test target importing a module outside its
 # dependency closure BEFORE a full build would, with a clear message. The
-# umbrella `TUIkitTests` target is unrestricted (integration tests live there).
+# umbrella suite's four test targets (TUIkitTests, TUIkitCollectionTests,
+# TUIkitControlTests, TUIkitAppTests) and their TUIkitTestSupport are
+# unrestricted (integration tests live there).
 #
 # `swift test` already builds every target, so SPM enforces this at compile
 # time too; this script exists so the rule is explicit, documented, and catches
@@ -30,7 +32,7 @@ cd "$(dirname "$0")/.."
 # target), so a TUIkitView test may name a `Color`. TUIkitWidthCorpus is data
 # with no dependencies (the width corpus), so any layer's tests may read it.
 # TUIkitFoundation (the substrate, under the TUIkit umbrella) has no row: it has
-# no test target of its own, and its tests are TUIkitTests', which this script
+# no test target of its own, and its tests are the umbrella suite's, which this script
 # leaves unrestricted. Nor have the modules carved out of it, TUIkitStrings and
 # TUIkitTerminalHost (step B2), TUIkitApp (step B3), TUIkitColorPicker (step
 # B4), TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome,
@@ -39,7 +41,7 @@ cd "$(dirname "$0")/.."
 # TUIkitNavigation (step C1), TUIkitTables, TUIkitTabs and TUIkitGrid, peeled
 # out of TUIkitLists (steps C2 to C4), and TUIkitForms, TUIkitSearch,
 # TUIkitPickers and TUIkitNumericControls, peeled out of TUIkitTextInput
-# (steps C5 to C8): their tests stayed in TUIkitTests, which
+# (steps C5 to C8): their tests stayed in the umbrella suite, which
 # `@testable import`s them. A module that gets a test target of its own gets a
 # row here, and joins the loop below.
 allowed_for() {
@@ -69,8 +71,9 @@ for target in TUIkitCoreTests TUIkitStylingTests TUIkitViewTests TUIkitImageTest
         case "$module" in TUIkit*) ;; *) continue ;; esac
         if [[ "$allowed" != *" $module "* ]]; then
             echo "✘ $file:$lineno imports '$module', which is outside $target's layer."
-            echo "    Allowed: $(allowed_for "$target"). Move this test to Tests/TUIkitTests/"
-            echo "    (the umbrella integration target) or drop the cross-module dependency."
+            echo "    Allowed: $(allowed_for "$target"). Move this test to one of the umbrella suite's"
+            echo "    four targets (Tests/TUIkitTests, TUIkitCollectionTests, TUIkitControlTests,"
+            echo "    TUIkitAppTests; CONTRIBUTING.md says which) or drop the cross-module dependency."
             violations=$((violations + 1))
         fi
     done < <(grep -rnE '^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+TUIkit' "$dir" 2>/dev/null || true)

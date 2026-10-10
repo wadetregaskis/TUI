@@ -738,7 +738,7 @@ class TestAnnotationMessage(unittest.TestCase):
         self.assertEqual(pt.gh_annotation_message("a\r\nb%0A"), "a%0D%0Ab%250A")
 
     def test_ordinary_text_is_unchanged(self):
-        t = "TUIkitTests.ListTests/rowsScroll()"
+        t = "TUIkitCollectionTests.ListTests/rowsScroll()"
         self.assertEqual(pt.gh_annotation_message(t), t)
 
 

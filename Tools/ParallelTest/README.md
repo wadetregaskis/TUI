@@ -129,6 +129,12 @@ when the suite has grown a lot, but it is not required for correctness: the
 groups are always derived at runtime from `--list-tests`, and a test the cache
 has never seen is given the median weight and runs anyway.
 
+The weights are keyed by test ID, and an ID names its module
+(`Module.Suite/test()`), so a suite that moves to another test target is a
+new suite to the cache, priced at the median until `--calibrate` runs again.
+Dividing the umbrella suite into four test targets (2026-10-10) moved 6,628
+tests out of `TUIkitTests` that way: recalibrate a cache made before it.
+
 ## One run at a time
 
 A run takes a machine-wide lock (`/tmp/tuikit-parallel-test.lock`, or
@@ -252,9 +258,9 @@ serially at this HEAD:
 
 | test | cost alone |
 |---|---:|
-| `TUIkitTests.MenuHeightCeilingTests/popUpReachesItsLastRowAtItsLongest(count:)` | 3.85 s |
-| `TUIkitTests.ColorPickerPanelCrashSafetyTests/keyEventMonkeyDoesNotTrap()` | 3.79 s |
-| `TUIkitTests.MenuMeasureParityTests/everyWidthAgrees(rows:)` | 3.79 s |
+| `TUIkitAppTests.MenuHeightCeilingTests/popUpReachesItsLastRowAtItsLongest(count:)` | 3.85 s |
+| `TUIkitControlTests.ColorPickerPanelCrashSafetyTests/keyEventMonkeyDoesNotTrap()` | 3.79 s |
+| `TUIkitAppTests.MenuMeasureParityTests/everyWidthAgrees(rows:)` | 3.79 s |
 
 Against 104.9 s of total serial work, that floor binds at about `-j 28`; beyond
 it the extra processes finish early and wait. The harness prints the floor and
@@ -467,7 +473,7 @@ evidence is the SwiftPM source above and CI.
 **One test binary or several.** SwiftPM's native build system makes one test
 product for the package (`TUIkitPackageTests`). swift-build — the default from
 6.4 (`swift build --help`: "default: swiftbuild"), so on CI's 6.4 and trunk
-lanes — makes one per test TARGET: six here. On macOS each is
+lanes — makes one per test TARGET: ten here since the umbrella suite became four (a 6.4.0 build, 2026-10-10). On macOS each is
 `<name>.xctest/Contents/MacOS/<name>`, as before; on Linux, native builds
 produce `<name>.xctest` as an executable file and swift-build a
 `<name>-test-runner` launcher beside `<name>.so` (CI's 6.4 build log links
