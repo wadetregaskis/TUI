@@ -37,9 +37,14 @@ B1, and `TUIkit`'s in v0.6.0.
   identifier, their order and their widths, and no type name
   (`TableColumnCustomization.swift`, `encode(to:)`), so a customization an app
   saved through `@SceneStorage` or `@AppStorage` decodes as before. No
-  declaration of the directory is something a `NavigationPath` stores by name
-  (checked by grep, 2026-10-09: no `_mangledTypeName`, `String(reflecting:)`
-  or `String(describing:)` of a type in the directory).
+  declaration of the directory is something a `NavigationPath` stores by name,
+  and nothing in the directory saves a type's name (checked by grep,
+  2026-10-09, again 2026-10-10: no `_mangledTypeName` or
+  `String(reflecting:)`; the four `"\(Self.self)"` interpolations, which are
+  `String(describing:)` and give the unqualified name, label a fit-width memo
+  and a served row for the render cache's verifier, `Table.swift`, and two
+  assertion messages, `TableColumnContent.swift` and `TableRowContent.swift`,
+  none of them saved).
 - **The bundle is unchanged.** The directory holds Swift files only, so the
   bundle is still `TUIkit_TUIkitStrings` (decisions SPB2).
 - **The documentation lists each module's modifiers on `View` and on that
@@ -50,7 +55,15 @@ B1, and `TUIkit`'s in v0.6.0.
   `tableColumnHeaders` among their default implementations, while `View`'s
   lists both (checked in the strict docs build's archive, 2026-10-09).
   `Table`'s page still lists TUIkitLists' `listStyle` and
-  `listRowSeparator`. The archive has 46,817 pages against step C1's 46,868.
+  `listRowSeparator`. "Its own module" qualifies the conforming types, not the
+  extension: TUIkitTables imports TUIkitLists (and re-exports it, below), so
+  TUIkitLists' `View` extension is loaded when TUIkitTables' graph is
+  extracted, and its members are copied onto `Table`, a type of TUIkitTables'
+  own (`Table/listStyle(_:)` is in `TUIkitTables.symbols.json`, extracted
+  with Xcode's `swift-symbolgraph-extract`, 2026-10-10). TUIkitLists loads
+  nothing of the tables', so its types get no copy of theirs. Whether an
+  import that does not re-export would do the same is unmeasured. The archive
+  has 46,817 pages against step C1's 46,868.
   No doc link had resolved only through such a copy: the strict build
   reports nothing.
 - **`import TUIkitTables` brings lists too**, once per-module products ship:
