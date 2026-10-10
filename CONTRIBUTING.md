@@ -415,6 +415,18 @@ anything at run time:
   module the initializer calls it out of line. Assign the value in each
   initializer instead; assigning it while keeping the default changes
   nothing (`ClaimingRow.claims`).
+- **An `@inlinable` member needs a type the other module can name.** A
+  member of a type that is only `package` gets no body another module can
+  inline (the client sees it as `package_external`) and is called out of
+  line whatever its attribute says. So the type is `@usableFromInline`, as
+  are the stored properties the body touches, and it states `Sendable`
+  itself: the compiler infers `Sendable` only for a type that is not usable
+  from inline code (UsableFromInlineSendabilityTests pins each one).
+  `@inline(__always)` alone does not cross a module either: it reaches only
+  callers in the declaring module, so a `package` function that was always
+  inlined becomes an out-of-line call from the module that a split moves its
+  caller to. Make it `@inlinable` too (step C2: `ScrollRowWindow.resolve`,
+  which a table calls every frame with a per-row closure).
 - **Build a view in the module whose `some View` results it uses, when
   those results name types the caller cannot see.** A function's opaque
   result (`some View`) is concrete in a caller in another module only if
