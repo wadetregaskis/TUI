@@ -26,20 +26,21 @@
 // options; since step B5c, which also took TUIkitImage out of
 // TUIkitFoundation's re-exports, so the line for it below is what gives an app
 // `ASCIIConverter` and the rest; TUIkitBitmaps and TUIkitColorPicker re-export
-// it too), TUIkitTextInput (the text inputs, and the pickers, search and
-// numeric controls until steps C5, C7 and C8 peel them; since step B7), and
-// TUIkitForms (forms and the view groupings, since step C6, which
-// TUIkitTextInput compiled until then). Each by name, though TUIkitColorPicker
-// re-exports TUIkitPresentation
-// (TUIkitNavigation from B5 until C1), TUIkitTabs, and through it TUIkitLists
-// (directly until C3), and TUIkitTextInput for good (directly until the peels,
-// then through the modules they make, TUIkitTextInput's own among them), and
-// TUIkitApp and TUIkitPresentation re-export TUIkitChrome (TUIkitNavigation did
-// from B5b until C1), and TUIkitTables and TUIkitTabs TUIkitLists: the
-// `umbrella` check asks for every module built on TUIkitFoundation, because no
-// build notices one this file leaves out while a sibling's re-export still
-// reaches it. A qualified name in an app, `TUIkit.Label`, still resolves
-// through these re-exports.
+// it too), TUIkitTextInput (the text inputs, and the pickers and numeric
+// controls until steps C7 and C8 peel them; since step B7), TUIkitForms (forms
+// and the view groupings, since step C6) and TUIkitSearch (`.searchable` with
+// its tokens and scopes, since step C5), both of which TUIkitTextInput
+// compiled until then. Each by name, though TUIkitColorPicker re-exports
+// TUIkitPresentation (TUIkitNavigation from B5 until C1), TUIkitTabs, and
+// through it TUIkitLists (directly until C3), and TUIkitTextInput for good
+// (directly until the peels, then through the modules they make,
+// TUIkitTextInput's own among them), and TUIkitApp and TUIkitPresentation
+// re-export TUIkitChrome (TUIkitNavigation did from B5b until C1), TUIkitTables
+// and TUIkitTabs TUIkitLists, and TUIkitSearch TUIkitTextInput: the `umbrella`
+// check asks for every module built on TUIkitFoundation, because no build
+// notices one this file leaves out while a sibling's re-export still reaches
+// it. A qualified name in an app, `TUIkit.Label`, still resolves through these
+// re-exports.
 @_exported import TUIkitApp
 @_exported import TUIkitBitmaps
 @_exported import TUIkitChrome
@@ -54,6 +55,7 @@
 @_exported import TUIkitMenus
 @_exported import TUIkitNavigation
 @_exported import TUIkitPresentation
+@_exported import TUIkitSearch
 @_exported import TUIkitStyling
 @_exported import TUIkitTables
 @_exported import TUIkitTabs

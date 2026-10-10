@@ -9,6 +9,7 @@
 
 import TUIkitCore
 import TUIkitFoundation
+import TUIkitTextInput
 import TUIkitView
 
 // MARK: - SearchScopeActivation

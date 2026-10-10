@@ -11,5 +11,5 @@ builder:
     # (Tools/BuildDocs/build-docs.sh builds the one-module reference instead.)
     - documentation_targets: [TUIkit, TUIkitApp, TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects,
                               TUIkitForms, TUIkitGrid, TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitPresentation,
-                              TUIkitTables, TUIkitTabs, TUIkitTextInput, TUIkitFoundation, TUIkitStrings,
+                              TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput, TUIkitFoundation, TUIkitStrings,
                               TUIkitTerminalHost, TUIkitView, TUIkitStyling, TUIkitCore, TUIkitImage]

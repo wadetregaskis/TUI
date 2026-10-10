@@ -9,7 +9,7 @@ import TUIkitFoundation
 // MARK: - Suggestion Entries
 
 /// A single entry contributed to a text field's input-suggestions menu.
-enum _TextSuggestionEntry {
+package enum _TextSuggestionEntry {
     /// A pickable suggestion. `completion` is the text inserted into the
     /// field when it is picked; `nil` derives it from the label's rendered
     /// text at render time (the common `Text("…")` case).
@@ -142,6 +142,14 @@ public struct _SearchTokenCompletionView<Content: View, Token: Identifiable>: Vi
     /// The suggestion's label view.
     let content: Content
 
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitSearch makes these (`searchCompletion(_:)` given a
+    /// token).
+    package init(token: Token, content: Content) {
+        self.token = token
+        self.content = content
+    }
+
     public var body: some View {
         content
     }
@@ -183,9 +191,9 @@ extension View {
 /// offering nothing this frame, because its builder filtered everything out.
 ///
 /// Compared by presence and emptiness alone — see `==`.
-struct TextSuggestions: Equatable {
+package struct TextSuggestions: Equatable {
     /// The normalized entries, in menu order.
-    let entries: [_TextSuggestionEntry]
+    package let entries: [_TextSuggestionEntry]
 
     /// Whether a suggestions modifier put these here, as opposed to the key's
     /// default.
@@ -201,10 +209,10 @@ struct TextSuggestions: Equatable {
     /// Computed rather than stored, as are the keys' defaults built from it: a
     /// token entry holds its token as `Any`, so this type is not `Sendable`
     /// and cannot be a stored static.
-    static var none: Self { Self(entries: [], isPresent: false) }
+    package static var none: Self { Self(entries: [], isPresent: false) }
 
     /// What a suggestions modifier offers.
-    static func offering(_ entries: [_TextSuggestionEntry], tokenSink: SearchTokenSink? = nil) -> Self {
+    package static func offering(_ entries: [_TextSuggestionEntry], tokenSink: SearchTokenSink? = nil) -> Self {
         Self(entries: entries, isPresent: true, tokenSink: tokenSink)
     }
 
@@ -249,7 +257,7 @@ struct TextSuggestions: Equatable {
     ///
     /// The token sink is left out for the same reason: closures over the
     /// searchable's binding, read only by that same field.
-    static func == (lhs: Self, rhs: Self) -> Bool {
+    package static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.isPresent == rhs.isPresent && lhs.entries.isEmpty == rhs.entries.isEmpty
     }
 }
@@ -272,11 +280,17 @@ enum TextSuggestionChoice {
 
 /// A searchable's token collection, type-erased for the suggestions menu: what
 /// choosing a token entry does.
-struct SearchTokenSink {
+package struct SearchTokenSink {
     /// For a token of the collection's element type, whether it is already
     /// among the tokens, and how to add it; `nil` for a token of any other
     /// type, which this searchable cannot take.
     let choice: @MainActor (Any) -> (isChosen: Bool, choose: () -> Void)?
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitSearch makes these, for a searchable with tokens.
+    package init(choice: @escaping @MainActor (Any) -> (isChosen: Bool, choose: () -> Void)?) {
+        self.choice = choice
+    }
 }
 
 /// Environment key carrying the extracted suggestion entries down to the
@@ -288,7 +302,7 @@ private struct TextInputSuggestionsKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The input suggestions available to text fields in this subtree.
     /// Set via ``View/textInputSuggestions(_:)``.
-    var textInputSuggestions: TextSuggestions {
+    package var textInputSuggestions: TextSuggestions {
         get { self[TextInputSuggestionsKey.self] }
         set { self[TextInputSuggestionsKey.self] = newValue }
     }
@@ -384,7 +398,7 @@ extension View {
 /// adjacent and edge dividers are collapsed so conditional groups never leave
 /// a stray rule in the menu.
 @MainActor
-func extractTextSuggestions<S: View>(_ view: S) -> [_TextSuggestionEntry] {
+package func extractTextSuggestions<S: View>(_ view: S) -> [_TextSuggestionEntry] {
     guard let provider = view as? TextSuggestionProvider else { return [] }
     return DropdownMenu.normalizedEntries(provider.textSuggestions()) { entry in
         if case .divider = entry { return true }

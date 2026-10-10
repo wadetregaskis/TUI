@@ -792,6 +792,7 @@
   "TUIkitSearch/Environment/SearchFieldIconPlacement.swift": "TUIkitSearch",
   "TUIkitSearch/Environment/SearchPresentation.swift": "TUIkitSearch",
   "TUIkitSearch/Environment/SearchScopes.swift": "TUIkitSearch",
+  "TUIkitSearch/Exports.swift": "TUIkitSearch",
   "TUIkitSearch/Extensions/View+SearchTokens.swift": "TUIkitSearch",
   "TUIkitSearch/Extensions/View+Searchable.swift": "TUIkitSearch",
   "TUIkitSearch/Modifiers/SearchableModifier.swift": "TUIkitSearch",

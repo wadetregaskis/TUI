@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUIkitFoundation
+import TUIkitTextInput
 
 /// Composes a search field above the searchable content. Pure composition — no
 /// `_*Core`, no overlay, no focus machinery (Box.swift is the reference model).

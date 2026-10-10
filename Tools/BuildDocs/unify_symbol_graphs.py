@@ -7,8 +7,9 @@ compiled every module of the planned split until each was carved into a target
 of its own, and the ones carved out of it: TUIkitStrings and TUIkitTerminalHost
 below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitPresentation,
 TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome, TUIkitEffects,
-TUIkitMenus, TUIkitBitmaps, TUIkitTextInput and TUIkitForms above it; and the
-TUIkit umbrella that `@_exported import`s them and declares nothing). That
+TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms and TUIkitSearch above
+it; and the TUIkit umbrella that `@_exported import`s them and declares
+nothing). That
 split is OUR business, not the reader's: `import TUIkit` is one API, so the
 documentation has to be one API reference.
 
@@ -54,9 +55,9 @@ import sys
 # carved out of TUIkitFoundation, or peeled out of a coarse group, joins this set then.
 MODULES = {
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitForms",
-    "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitTables", "TUIkitTabs",
-    "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling",
-    "TUIkitView", "TUIkitImage",
+    "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitPresentation", "TUIkitSearch",
+    "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost",
+    "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
 }
 UMBRELLA = "TUIkit"
 

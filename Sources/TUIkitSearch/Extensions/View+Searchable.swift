@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitFoundation
+import TUIkitTextInput
 
 extension View {
     /// Marks this view as searchable, presenting a search field bound to `text`.

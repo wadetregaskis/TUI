@@ -122,22 +122,30 @@
 //  module, TUIkitTextInput, that compiled five directories of the planned
 //  split, Sources/TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch
 //  and TUIkitNumericControls, until steps C5 to C8 peel the last four into
-//  modules of their own (step C6 has peeled the forms, below). It took the
-//  last directories out of
-//  TUIkitFoundation. The ninth test spells a type from each directory through
-//  the umbrella and draws it, the text field beside an app's own `TextField`
-//  (the case an app meets: a form model of its own). It leaves the same two
-//  holes to the same two guards: TUIkitColorPicker re-exports TUIkitTextInput
-//  (its editors are sliders, its hex field a text field), so the umbrella's
-//  own line is the `umbrella` check's; and a directory left compiling in
-//  TUIkitFoundation would still compile here, so the reflected names, one per
-//  directory, catch it at run time.
+//  modules of their own (steps C6 and C5 have peeled the forms and search,
+//  below). It took the last directories out of TUIkitFoundation. The ninth
+//  test spells a type from each directory through the umbrella and draws it,
+//  the text field beside an app's own `TextField` (the case an app meets: a
+//  form model of its own). It leaves the same two holes to the same two
+//  guards: TUIkitColorPicker re-exports TUIkitTextInput (its editors are
+//  sliders, its hex field a text field), so the umbrella's own line is the
+//  `umbrella` check's; and a directory left compiling in TUIkitFoundation
+//  would still compile here, so the reflected names, one per directory,
+//  catch it at run time.
 //
 //  Step C6 peeled Sources/TUIkitForms out of the group into TUIkitForms,
 //  built on TUIkitFoundation alone. The ninth test's labeled content, and the
 //  form styles among the reflected names, read `TUIkitForms.` since; they
 //  read `TUIkitTextInput.` from B7 to C6. Nothing but the umbrella
 //  re-exports TUIkitForms, so this file stops compiling without the
+//  umbrella's line for it.
+//
+//  Step C5 peeled Sources/TUIkitSearch out of the group into TUIkitSearch,
+//  built on TUIkitTextInput, which it re-exports (a search field is a
+//  `TextField`). The search field's placements among the reflected names, and
+//  the type the ninth test's member is added to, read `TUIkitSearch.` since;
+//  they read `TUIkitTextInput.` from B7 to C5. Nothing but the umbrella
+//  re-exports TUIkitSearch, so this file stops compiling without the
 //  umbrella's line for it.
 //
 //  Created by Wade Tregaskis
@@ -327,8 +335,9 @@ extension TUIkit.ImageFitTarget {
 }
 
 extension TUIkit.SearchFieldPlacement {
-    /// A member an app adds to TUIkitTextInput's type (Sources/TUIkitSearch,
-    /// until step C5), by the umbrella's spelling.
+    /// A member an app adds, through the umbrella's name, to a type of
+    /// TUIkitSearch (TUIkitTextInput's from step B7 until step C5), which only
+    /// the umbrella re-exports.
     fileprivate var b7Marker: Int { self == .automatic ? 7 : 0 }
 }
 
@@ -532,7 +541,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.ASCIIColorMode.self) == "TUIkitImage.ASCIIColorMode")
     }
 
-    @Test("A qualified name reaches TUIkitTextInput and the module peeled out of it, through the umbrella")
+    @Test("A qualified name reaches TUIkitTextInput and the modules peeled out of it, through the umbrella")
     func qualifiedNamesReachTheTextInputGroup() {
         func drawn(_ view: some TUIkit.View, height: Int) -> String {
             TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
@@ -555,8 +564,9 @@ struct UmbrellaQualifiedNameTests {
         let labeled = TUIkit.LabeledContent("b7 label", value: "b7 value")
         let labeledLines = drawn(labeled, height: 1)
         #expect(labeledLines.contains("b7 label") && labeledLines.contains("b7 value"), "\(labeledLines)")
-        // From Sources/TUIkitSearch (until step C5): a member an app's
-        // extension adds to a search field placement.
+        // From Sources/TUIkitSearch, which compiled into the same module until
+        // step C5 peeled it into TUIkitSearch: a member an app's extension adds
+        // to a search field placement.
         #expect(TUIkit.SearchFieldPlacement.automatic.b7Marker == 7)
         // From Sources/TUIkitNumericControls (until step C7): a gauge, drawn
         // with its label.
@@ -569,7 +579,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: type(of: field)) == "TUIkitTextInput.TextField<TUIkitFoundation.Text>")
         #expect(String(reflecting: TUIkit.RadioButtonOrientation.self) == "TUIkitTextInput.RadioButtonOrientation")
         #expect(String(reflecting: TUIkit.AutomaticFormStyle.self) == "TUIkitForms.AutomaticFormStyle")
-        #expect(String(reflecting: TUIkit.SearchFieldPlacement.self) == "TUIkitTextInput.SearchFieldPlacement")
+        #expect(String(reflecting: TUIkit.SearchFieldPlacement.self) == "TUIkitSearch.SearchFieldPlacement")
         #expect(String(reflecting: TUIkit.TrackStyle.self) == "TUIkitTextInput.TrackStyle")
     }
 
@@ -644,15 +654,16 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.AsyncImagePhase.self) == "TUIkitBitmaps.AsyncImagePhase")
         // Step B7 carved these out (decisions SPB7, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B7. A type from
-        // Sources/TUIkitPickers, TUIkitSearch or TUIkitNumericControls names
-        // TUIkitTextInput, the module that compiles it, until steps C5, C7 and
-        // C8 give it a module of its own; one from Sources/TUIkitForms names
-        // TUIkitForms since step C6 (decisions SPC5, "What an app can see"),
-        // and read `TUIkitTextInput.` from B7 until then.
+        // Sources/TUIkitPickers or TUIkitNumericControls names TUIkitTextInput,
+        // the module that compiles it, until steps C7 and C8 give it a module
+        // of its own; one from Sources/TUIkitForms names TUIkitForms since step
+        // C6, and one from Sources/TUIkitSearch TUIkitSearch since step C5
+        // (decisions SPC5, "What an app can see"): each read
+        // `TUIkitTextInput.` from B7 until its peel.
         #expect(String(reflecting: TUIkit.TabWidth.self) == "TUIkitTextInput.TabWidth")
         #expect(String(reflecting: TUIkit.DatePickerComponents.self) == "TUIkitTextInput.DatePickerComponents")
         #expect(String(reflecting: TUIkit.GroupedFormStyle.self) == "TUIkitForms.GroupedFormStyle")
-        #expect(String(reflecting: TUIkit.SearchFieldIconPlacement.self) == "TUIkitTextInput.SearchFieldIconPlacement")
+        #expect(String(reflecting: TUIkit.SearchFieldIconPlacement.self) == "TUIkitSearch.SearchFieldIconPlacement")
         #expect(String(reflecting: TUIkit.IndeterminateStyle.self) == "TUIkitTextInput.IndeterminateStyle")
     }
 }

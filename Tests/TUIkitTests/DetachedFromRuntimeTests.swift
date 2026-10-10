@@ -16,8 +16,8 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNavigation
 @testable import TUIkitPresentation
+@testable import TUIkitSearch
 @testable import TUIkitStyling
-@testable import TUIkitTextInput
 @testable import TUIkitView
 
 @MainActor
