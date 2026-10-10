@@ -14,10 +14,10 @@
 
 import Testing
 import TUIkitCore
-@testable import TUIkitLists
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitGrid
 
 @MainActor
 @Suite("Flowing grids")

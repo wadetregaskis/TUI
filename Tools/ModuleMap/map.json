@@ -623,6 +623,7 @@
   "TUIkitFoundation/Views/ZStack.swift": "TUIkitFoundation",
   "TUIkitFoundation/Views/_ToggleCore.swift": "TUIkitFoundation",
   "TUIkitFoundation/Views/_UserResizableCore.swift": "TUIkitFoundation",
+  "TUIkitGrid/Exports.swift": "TUIkitGrid",
   "TUIkitGrid/Views/Alignment+UnitPoint.swift": "TUIkitGrid",
   "TUIkitGrid/Views/Grid.swift": "TUIkitGrid",
   "TUIkitGrid/Views/GridItem.swift": "TUIkitGrid",

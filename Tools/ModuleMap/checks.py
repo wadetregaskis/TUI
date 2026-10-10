@@ -254,7 +254,7 @@ def re_exports(M, R):
 def built_on_default(R, reexports):
     """The modules carved out ABOVE the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation …): those whose
     files re-export it, or re-export a module that does. A carved module re-exports the modules it is built on (plan
-    §4); a coarse group's other members (TUIkitGrid …, until their peels) have no Exports.swift,
+    §4); a coarse group's other members (TUIkitPickers …, until their peels) have no Exports.swift,
     so no re-exports, as a module TUIkitFoundation compiled had none until step B7; nor does a module below it
     (TUIkitStrings), which TUIkitFoundation re-exports. TUIkitFoundation cannot re-export a module built on it, so the
     umbrella must, by name: reaching one only through a sibling's re-export (TUIkitPresentation through

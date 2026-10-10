@@ -161,18 +161,17 @@ echo "==> $ARCHIVE ($PAGES pages)"
 
 # A regression guard with teeth: these types live in the modules the umbrella
 # re-exports (it declares nothing itself), and their absence is the exact
-# failure this script exists to prevent. Cheap to check, and it fails loudly
-# the day someone documents just one target again. `text` is
-# TUIkitFoundation's, `localizationservice` TUIkitStrings', `terminalclient`
-# TUIkitTerminalHost's (the modules step B2 carved out of it), `windowgroup`
-# TUIkitApp's (step B3), `colorpicker` TUIkitColorPicker's (step B4),
-# `navigationstack` TUIkitNavigation's (step B5), `alert` TUIkitPresentation's
-# (TUIkitNavigation's from step B5 until step C1 peeled it out), `list` and
-# `grid` TUIkitLists' (step B6: one from each of its directories, until step
-# C4), `table` TUIkitTables' and `tabview` TUIkitTabs' (TUIkitLists' from step
-# B6 until steps C2 and C3 peeled them out), `statusbar` TUIkitChrome's,
-# `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step B5b),
-# `asyncimage` TUIkitBitmaps' (step B5c), `textfield`, `picker`, `form`,
+# failure this script exists to prevent. Cheap to check, and it fails loudly the
+# day someone documents just one target again. `text` is TUIkitFoundation's,
+# `localizationservice` TUIkitStrings', `terminalclient` TUIkitTerminalHost's
+# (the modules step B2 carved out of it), `windowgroup` TUIkitApp's (step B3),
+# `colorpicker` TUIkitColorPicker's (step B4), `navigationstack`
+# TUIkitNavigation's (step B5), `alert` TUIkitPresentation's (TUIkitNavigation's
+# from step B5 until step C1 peeled it out), `list` TUIkitLists' (step B6),
+# `table` TUIkitTables', `tabview` TUIkitTabs' and `grid` TUIkitGrid's
+# (TUIkitLists' from step B6 until steps C2 to C4 peeled them out), `statusbar`
+# TUIkitChrome's, `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step
+# B5b), `asyncimage` TUIkitBitmaps' (step B5c), `textfield`, `picker`, `form`,
 # `searchfieldplacement` and `slider` TUIkitTextInput's (step B7: one from each
 # of its five directories, until steps C5 to C8), the rest the lower modules'.
 MISSING=()

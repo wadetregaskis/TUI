@@ -521,8 +521,8 @@ anything at run time:
   (step B5), `TUIkitLists` (step B6), `TUIkitChrome`, `TUIkitEffects` and
   `TUIkitMenus` (step B5b), `TUIkitBitmaps` (step B5c), `TUIkitTextInput`
   (step B7), `TUIkitPresentation` (step C1, peeled out of
-  `TUIkitNavigation`), and `TUIkitTables` and `TUIkitTabs` (steps C2 and C3,
-  peeled out of `TUIkitLists`).
+  `TUIkitNavigation`), and `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
+  (steps C2 to C4, peeled out of `TUIkitLists`).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
   console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
@@ -533,9 +533,9 @@ anything at run time:
   split-view widths, the inspector), `TUIkitPresentation` for the
   presentations' (sheet detents and sizing, alert buttons, dialog
   suppression),
-  `TUIkitLists` for the lists' and grids' (`ItemListHandler`, row bands and
-  reordering, grid tracks), `TUIkitTables` for the tables' (table columns),
-  `TUIkitTabs` for the tabs' (tab bars),
+  `TUIkitLists` for the lists' (`ItemListHandler`, row bands and
+  reordering), `TUIkitTables` for the tables' (table columns), `TUIkitTabs`
+  for the tabs' (tab bars), `TUIkitGrid` for the grids' (grid tracks),
   `TUIkitChrome` for the window chrome's (the status bar view, toolbars,
   notifications, tooltips, the window chrome host), `TUIkitEffects` for the
   transitions' and the visual, scroll and colour effects', `TUIkitMenus` for
@@ -548,14 +548,12 @@ anything at run time:
   `SliderHandler`, `TrackRenderer`), `TUIkitStrings` or
   `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: a directory under
   `Sources/` with a target of its own in `Package.swift` is that module, with
-  two exceptions, the coarse groups, each a target that names several
-  directories: `Sources/TUIkitGrid` compiles into `TUIkitLists` until
-  step C4; and `Sources/TUIkitPickers`,
-  `TUIkitForms`, `TUIkitSearch` and `TUIkitNumericControls` into
-  `TUIkitTextInput` until steps C5 to C8. (`Sources/TUIkitPresentation`
-  compiled into `TUIkitNavigation` from step B5 until step C1, and
-  `Sources/TUIkitTables` and `TUIkitTabs` into `TUIkitLists` from step B6
-  until steps C2 and C3.)
+  one exception, the coarse group, a target that names several directories:
+  `Sources/TUIkitPickers`, `TUIkitForms`, `TUIkitSearch` and
+  `TUIkitNumericControls` compile into `TUIkitTextInput` until steps C5 to
+  C8. (`Sources/TUIkitPresentation` compiled into `TUIkitNavigation` from
+  step B5 until step C1, and `Sources/TUIkitTables`, `TUIkitTabs` and
+  `TUIkitGrid` into `TUIkitLists` from step B6 until steps C2 to C4.)
   `Tools/validate-test-boundaries.sh` checks the four modules' targets and runs
   in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views

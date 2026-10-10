@@ -8,14 +8,14 @@ from step B1 the one `TUIkitFoundation` target compiled them all (`TUIkit` is th
 until step B7 carved the last of them out. Carved: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their
 own that TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TUIkitColorPicker (step B4),
 TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b),
-TUIkitBitmaps (step B5c), TUIkitTextInput (step B7), TUIkitPresentation (step C1), and TUIkitTables and TUIkitTabs
-(steps C2 and C3, which also depend on TUIkitLists), targets of their own that depend on TUIkitFoundation and that the
-umbrella re-exports. TUIkitLists and TUIkitTextInput are **coarse groups**: one target compiling several planned
-modules' directories, `Sources/TUIkitLists` and `TUIkitGrid` until step C4 peels the second (it compiled
-`Sources/TUIkitTables` and `TUIkitTabs` too until steps C2 and C3), and `Sources/TUIkitTextInput`, `TUIkitPickers`, `TUIkitForms`,
-`TUIkitSearch` and `TUIkitNumericControls` until steps C5 to C8 peel the last four; TUIkitNavigation was one, over
-`Sources/TUIkitNavigation` and `Sources/TUIkitPresentation`, until step C1 peeled the second into a target of its own
-(see [Coarse groups](#coarse-groups)).
+TUIkitBitmaps (step B5c), TUIkitTextInput (step B7), TUIkitPresentation (step C1), TUIkitTables and TUIkitTabs
+(steps C2 and C3, which also depend on TUIkitLists) and TUIkitGrid (step C4), targets of their own that depend on
+TUIkitFoundation and that the umbrella re-exports. TUIkitTextInput is a **coarse group**: one target compiling several
+planned modules' directories, `Sources/TUIkitTextInput`, `TUIkitPickers`, `TUIkitForms`, `TUIkitSearch` and
+`TUIkitNumericControls`, until steps C5 to C8 peel the last four. TUIkitNavigation was one, over
+`Sources/TUIkitNavigation` and `Sources/TUIkitPresentation`, until step C1 peeled the second into a target of its own,
+and TUIkitLists another, over `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`, until steps C2 to
+C4 peeled the last three (see [Coarse groups](#coarse-groups)).
 `TUIkitFoundation` is an ordinary target at `Sources/TUIkitFoundation` since step B7. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
@@ -209,7 +209,7 @@ hold only imports. And it re-exports, by name, every module carved out above `TU
 `rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
 TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
 TUIkitMenus since step B5b, TUIkitBitmaps since step B5c, TUIkitTextInput since step B7, TUIkitPresentation since
-step C1, TUIkitTables since step C2, TUIkitTabs since step C3). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only through the umbrella.
+step C1, TUIkitTables since step C2, TUIkitTabs since step C3, TUIkitGrid since step C4). TUIkitFoundation cannot re-export a module built on it, so `import TUIkit` has it only through the umbrella.
 Reaching it through a sibling instead compiles the same: TUIkitApp and TUIkitPresentation re-export TUIkitChrome,
 which they depend on, for good (TUIkitNavigation did from step B5b until step C1, only because its target compiled
 the TUIkitPresentation directory, whose entry depends on TUIkitChrome). TUIkitColorPicker re-exports
@@ -218,9 +218,9 @@ containers'), so an umbrella without TUIkitPresentation's line still gives an ap
 umbrella re-exports TUIkitNavigation now. It re-exports TUIkitTabs since step C3, which depends on TUIkitLists and
 re-exports it (plan §4), as TUIkitColorPicker did directly from step B6 until then. So an umbrella without TUIkitTabs'
 line still gives an app `TUIkit.TabView`, and without TUIkitLists' line `TUIkit.List`; TUIkitTables re-exports
-TUIkitLists too since step C2. Nothing but the umbrella re-exports TUIkitTables. No build notices a missing line; this
-check does. A coarse group's other members (TUIkitGrid and the rest, until their peels) have no Exports.swift, so they
-re-export nothing and are not asked for,
+TUIkitLists too since step C2. Nothing but the umbrella re-exports TUIkitTables or TUIkitGrid. No build notices a
+missing line; this check does. A coarse group's other members (TUIkitPickers and the rest, until their peels) have no
+Exports.swift, so they re-export nothing and are not asked for,
 as a module TUIkitFoundation compiled was not until step B7; nor is a module below
 TUIkitFoundation (TUIkitStrings), which TUIkitFoundation re-exports. Fix it by adding `@_exported import` of the
 module to `Sources/TUIkit/Exports.swift`.
@@ -268,9 +268,9 @@ declarations it uses: TUIkitFoundation (whose re-exports bring the lower modules
 carved module (a ColorPicker file that lays out a `TabView` imports TUIkitTabs).
 
 The modules are the targets as the build compiled them: the index unit of each file names its target, so a file of
-`Sources/TUIkitGrid` is TUIkitLists' until step C4, and would need no import to use a list's declaration (as a file
-of `Sources/TUIkitTables` or `TUIkitTabs` was until step C2 or C3; since then each imports TUIkitLists where it uses
-it). A reference to a lower
+`Sources/TUIkitPickers` is TUIkitTextInput's until step C8, and needs no import to use a declaration of
+`Sources/TUIkitTextInput` (as a file of `Sources/TUIkitTables` or `TUIkitTabs` was TUIkitLists' until step C2 or C3; since then each imports
+TUIkitLists where it uses it). A reference to a lower
 module (TUIkitCore, TUIkitView …) counts too; any import that re-exports it answers it. Today that is
 `import TUIkitFoundation`, whose `Exports.swift` re-exports every lower and side module: no lower module re-exports
 another in this tree, though the check would follow one that did (`reexports_of`). One finding per file and
@@ -290,9 +290,9 @@ Phase B carves some planned modules as a **coarse group**: one target that compi
 directory under Sources in `exclude:`), and phase C peels each member into a target of its own. Step B5's
 `TUIkitNavigation` compiled `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peeled the
 second into `TUIkitPresentation`, which left `TUIkitNavigation` an ordinary target at its default path; step B6's
-`TUIkitLists` compiles `Sources/TUIkitLists` and `TUIkitGrid` until step C4 (and compiled `Sources/TUIkitTables`
-and `TUIkitTabs` until steps C2 and C3 peeled them into `TUIkitTables` and `TUIkitTabs`, each built on
-`TUIkitLists`); step
+`TUIkitLists` compiled `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4
+peeled the last three into `TUIkitTables` and `TUIkitTabs`, each built on `TUIkitLists`, and `TUIkitGrid`, which left
+`TUIkitLists` an ordinary target at its default path; step
 B7's `TUIkitTextInput` compiles `Sources/TUIkitTextInput`, `TUIkitPickers`, `TUIkitForms`, `TUIkitSearch` and
 `TUIkitNumericControls` until steps C5 to C8. Nothing here changes for a group, at its carve or at its peels:
 

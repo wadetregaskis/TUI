@@ -26,7 +26,7 @@ package struct GridRowMark: Equatable {
     package let alignment: VerticalAlignment?
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for `Grid`.
+    /// internal and TUIkitGrid makes these, for `Grid`.
     package init(startsRow: Bool, alignment: VerticalAlignment?) {
         self.startsRow = startsRow
         self.alignment = alignment
@@ -49,7 +49,7 @@ package struct _GridRowMarkView<Content: View>: View {
     let content: Content
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for `Grid`.
+    /// internal and TUIkitGrid makes these, for `Grid`.
     package init(mark: GridRowMark, content: Content) {
         self.mark = mark
         self.content = content
