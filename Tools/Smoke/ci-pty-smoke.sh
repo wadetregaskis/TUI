@@ -93,6 +93,15 @@ cd "$REPO"
 walk Example "$EXAMPLE_ITEMS"
 walk Stress  "$STRESS_ITEMS"
 
+# A program shipped as one file, without TUIkit's resource bundle beside it:
+# SwiftPM's `Bundle.module` stopped every such program at launch, and every
+# other check here runs the program beside its build's bundle. Stress copied
+# out alone must run in English (asked for German, which is in the bundle), and
+# beside a copy of the bundle, directly or through a symbolic link, in German.
+# Headless, no pyte: three runs, a few seconds.
+echo "── without its resource bundle: runs, in English ──"
+"$VENV/bin/python" "$HERE/bundleless_smoke.py" "$REPO/$BUILD_DIR"
+
 # The arrows as a terminal left in application cursor-key mode sends them
 # (`ESC O B`): a killed vim or less leaves DECCKM on, and the parser read only
 # F1–F4 in that spelling, so the app's arrows were dead. A walk with dead arrows

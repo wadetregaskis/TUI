@@ -18,6 +18,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitStrings
 @testable import TUIkitTestSupport
 
 @Suite("Bundled VERSION resource")
@@ -54,5 +55,21 @@ struct VersionResourceTests {
         let onDisk = try String(contentsOf: Self.versionFile, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         #expect(tuiKitVersion == onDisk)
+    }
+
+    @Test("A program without the bundle reads the version as unknown")
+    func noBundleReadsUnknown() {
+        #expect(readTUIkitVersion(from: .absent) == "unknown")
+    }
+
+    @Test("The version is read from whichever bundle is found, trimmed")
+    func readsTheFoundBundle() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tuikit-version-\(UUID().uuidString)", isDirectory: true)
+        let bundle = directory.appendingPathComponent("TUIkit_TUIkitStrings.resources", isDirectory: true)
+        try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Data(" 9.8.7\n".utf8).write(to: bundle.appendingPathComponent("VERSION"))
+        #expect(readTUIkitVersion(from: ModuleResources(searching: [directory])) == "9.8.7")
     }
 }

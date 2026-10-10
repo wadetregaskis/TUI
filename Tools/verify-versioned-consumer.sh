@@ -11,17 +11,18 @@
 # The consumer here does not merely compile — it RUNS, and checks two things
 # that only exist at runtime:
 #
-#   tuiKitVersion                  reads Sources/TUIkitStrings/VERSION via
-#                                  Bundle.module, and answers "unknown" if the
-#                                  bundle cannot be found. A compile-only check
-#                                  would sail straight past that.
+#   tuiKitVersion                  reads Sources/TUIkitStrings/VERSION from
+#                                  TUIkit's resource bundle, and answers
+#                                  "unknown" if the bundle cannot be found. A
+#                                  compile-only check would sail straight past
+#                                  that.
 #   LocalizationService().string   reads Localization/translations the same way.
-#                                  A miss returns the key unchanged, so asking
-#                                  for a key whose value differs from it proves
-#                                  the directory resolved.
+#                                  A miss reads English, which is compiled in,
+#                                  so the run asks for German, and a German
+#                                  word proves the directory resolved.
 #
 # Both would fail silently in a real app — wrong version in a status bar,
-# every string falling back to its dotted key — which is precisely the class of
+# every string in English whatever the user asked for — which is precisely the class of
 # failure worth a gate.
 #
 # What it tests is the CURRENT TREE as a dependency, not a published tag: the
@@ -115,25 +116,27 @@ import TUIkit
 
 var failures: [String] = []
 
-// Resolves Sources/TUIkitStrings/VERSION through Bundle.module, or answers "unknown".
+// Resolves Sources/TUIkitStrings/VERSION from TUIkit's resource bundle, or answers "unknown".
 if tuiKitVersion == "unknown" || tuiKitVersion.isEmpty {
     failures.append(
         """
         tuiKitVersion is "\(tuiKitVersion)".
-        The VERSION resource did not resolve through Bundle.module when TUIkit was
+        The VERSION resource did not resolve from TUIkit's resource bundle when TUIkit was
         built as a dependency. Check the `resources:` entry for the TUIkitStrings
         target, whose bundle (TUIkit_TUIkitStrings) holds it.
         """)
 }
 
-// Resolves Localization/translations the same way. A miss returns the key.
-let ok = LocalizationService().string(for: "button.ok")
-if ok == "button.ok" {
+// Resolves Localization/translations the same way. A miss reads English, which
+// is compiled in, so this run asks for German (LANGUAGE=de, below): only the
+// bundle has it.
+let cancel = LocalizationService().string(for: "button.cancel")
+if cancel != "Abbrechen" {
     failures.append(
         """
-        LocalizationService returned the key "button.ok" unchanged.
+        LocalizationService read "button.cancel" as "\(cancel)", not German's "Abbrechen".
         The bundled translations did not resolve, so every framework string would
-        fall back to its dotted key in a consumer's app.
+        read in English in a consumer's app, whatever language its user asked for.
         """)
 }
 
@@ -142,7 +145,7 @@ guard failures.isEmpty else {
     exit(1)
 }
 
-print("versioned consumer OK — TUIkit \(tuiKitVersion), button.ok = \(ok)")
+print("versioned consumer OK — TUIkit \(tuiKitVersion), button.cancel = \(cancel)")
 EOF
 
 printf '── Resolving\n'
@@ -152,6 +155,8 @@ printf '── Building\n'
 swift build --package-path "$CONSUMER_DIR"
 
 printf '── Running\n'
-swift run --package-path "$CONSUMER_DIR" Consumer
+# German, for the translation check; and a config directory of its own, so no
+# language a user once chose (which outranks the environment) is read.
+LANGUAGE=de TUIKIT_CONFIG_DIR="$TEMP_DIR/config" swift run --package-path "$CONSUMER_DIR" Consumer
 
 printf '\nVersioned consumer gate passed\n'

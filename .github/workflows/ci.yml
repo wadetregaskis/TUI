@@ -1287,10 +1287,10 @@ jobs:
   # ── Versioned consumer ─────────────────────────────────────────────────────
   # Tags only. Everything else in this file builds the package as ITSELF; this
   # builds it as somebody else's dependency, resolved by exact version, and
-  # RUNS the result so that the two resources read through `Bundle.module` —
+  # RUNS the result so that the two resources read from TUIkit's bundle —
   # VERSION and the localization tables — have to actually resolve. Both fail
   # silently in a real app (wrong version in a status bar, every framework
-  # string falling back to its dotted key), which is what makes them worth a
+  # string in English whatever the user asked for), which is what makes them worth a
   # gate rather than a test.
   #
   # A tag is the right moment: it is the last point before something is

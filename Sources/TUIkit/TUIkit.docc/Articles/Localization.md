@@ -340,7 +340,9 @@ something to display, even with incomplete translations.
 
 TUIkit's own English is compiled in as well as bundled, so where its
 translation files cannot be read its words still read in English, not as their
-keys.
+keys. The files are in TUIkit's resource bundle (`TUIkit_TUIkitStrings`), which
+`swift build` puts beside your executable; a program shipped without it runs,
+with TUIkit's words in English whatever language the user asks for.
 
 Within each language, who is asking decides the order:
 

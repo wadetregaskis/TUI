@@ -193,6 +193,12 @@ Then add it to your target:
 
 > **Tip:** `import TUIkit` re-exports all sub-modules. For finer control you can import individual modules: `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, or `TUIkitImage`.
 
+### Shipping a program
+
+`swift build` puts TUIkit's resource bundle beside your executable: `TUIkit_TUIkitStrings.bundle` on macOS, `TUIkit_TUIkitStrings.resources` elsewhere. It holds the translations of TUIkit's own words (German, French, Italian, Spanish, Chinese and Japanese) and TUIkit's version. Copy it beside the executable wherever you install it — a release archive, an installer, a Homebrew formula that links the executable into `bin` (TUIkit looks beside the real file too) — and TUIkit's words follow the user's language.
+
+The bundle is optional. A program shipped as the executable alone runs: TUIkit's words read in English, which is compiled in, whatever language the user asks for, and `tuiKitVersion` reads `unknown`. A copied executable does not read the bundle it left in `.build`, so it behaves the same on the machine that built it as on any other. Your own targets' resources are bundles of their own, which SwiftPM's `Bundle.module` still requires wherever your code reads it.
+
 ### Build time
 
 A clean release build of TUIkit takes minutes, not seconds. Two things decide most of it (measured 2026-10-07 on a 12-core arm64 Mac VM, Swift 6.2.4):

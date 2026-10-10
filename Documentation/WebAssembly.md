@@ -165,4 +165,6 @@ build directory, because SwiftPM compiles the bundle's location into the binary
 and there is no way to ask it to look elsewhere — the manifest is regenerated on
 every build, so it stays true, but a site built on one machine will not find its
 resources on another. Anyone shipping this properly should embed the resources
-instead.
+instead. (Elsewhere TUIkit looks for its own bundle itself, beside the program,
+and runs in English without it; on WebAssembly it still asks `Bundle.module`,
+because both places that looks are compiled in — decisions BNDL, B-BNDL-4.)
