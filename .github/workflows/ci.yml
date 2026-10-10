@@ -713,7 +713,8 @@ jobs:
   # TUIkitNavigation, TUIkitLists, TUIkitTextInput and TUIkitColorPicker, the
   # leaves steps B5b, B5c, B5, B6, B7 and B4 carved out of it, and
   # TUIkitPresentation, which step C1 peeled out of TUIkitNavigation, and
-  # TUIkitTables, which step C2 peeled out of TUIkitLists.
+  # TUIkitTables and TUIkitTabs, which steps C2 and C3 peeled out of
+  # TUIkitLists.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -847,29 +848,29 @@ jobs:
       # TUIkitFoundation: the navigation containers. Step C1's,
       # TUIkitPresentation, which it peeled out of TUIkitNavigation, built on
       # TUIkitFoundation and TUIkitChrome: the presentations. Step B6's leaf,
-      # TUIkitLists, built on TUIkitFoundation: lists, and the tabs and grids,
-      # whose directories it compiles too until steps C3 and C4. Step C2's,
-      # TUIkitTables, which it peeled out of TUIkitLists, built on
-      # TUIkitFoundation and TUIkitLists, so it comes after it: the tables.
-      # Step B7's leaf, TUIkitTextInput, built on TUIkitFoundation: the text
-      # inputs, and the pickers, forms, search and numeric controls, whose
-      # directories it compiles too until steps C5 to C8. Step B4's leaf,
-      # TUIkitColorPicker, built on TUIkitFoundation, TUIkitImage,
-      # TUIkitPresentation, TUIkitLists and TUIkitTextInput, so it comes last.
-      # None imports Darwin, Glibc or Musl or calls a termios, ioctl, signal
-      # or DispatchSource API (checked by grep, 2026-10-08 and, for B5b's
-      # three, TUIkitBitmaps, TUIkitTextInput, TUIkitNavigation,
-      # TUIkitPresentation and TUIkitTables, 2026-10-09). Two have an `#if`,
-      # none around a POSIX call: TUIkitEffects one, `canImport(Symbols)`
-      # around the `.symbolEffect` modifiers that take Apple's Symbols types
-      # (absent off macOS, as on Linux), and TUIkitTables three (TUIkitLists'
-      # until step C2), on two conditions, `canImport(Darwin)` once (a string
-      # column's default comparator) and `canImport(UniformTypeIdentifiers)`
-      # twice (a table row's item provider). So they are meant to build on
-      # Windows, but none can until TUIkitFoundation does: advisory until CI
-      # has seen them green, then binding like the four above. TUIkitApp, the
-      # other leaf, is POSIX by design and has no step (the umbrella's covers
-      # it).
+      # TUIkitLists, built on TUIkitFoundation: lists, and the grids, whose
+      # directory it compiles too until step C4. Step C2's, TUIkitTables, and
+      # step C3's, TUIkitTabs, which they peeled out of TUIkitLists, each
+      # built on TUIkitFoundation and TUIkitLists, so they come after it: the
+      # tables and the tab views. Step B7's leaf, TUIkitTextInput, built on
+      # TUIkitFoundation: the text inputs, and the pickers, forms, search and
+      # numeric controls, whose directories it compiles too until steps C5 to
+      # C8. Step B4's leaf, TUIkitColorPicker, built on TUIkitFoundation,
+      # TUIkitImage, TUIkitPresentation, TUIkitTabs and TUIkitTextInput, so it
+      # comes last. None imports Darwin, Glibc or Musl or calls a termios,
+      # ioctl, signal or DispatchSource API (checked by grep, 2026-10-08 and,
+      # for B5b's three, TUIkitBitmaps, TUIkitTextInput, TUIkitNavigation,
+      # TUIkitPresentation and TUIkitTables, 2026-10-09, and TUIkitTabs,
+      # 2026-10-10). Two have an `#if`, none around a POSIX call:
+      # TUIkitEffects one, `canImport(Symbols)` around the `.symbolEffect`
+      # modifiers that take Apple's Symbols types (absent off macOS, as on
+      # Linux), and TUIkitTables three (TUIkitLists' until step C2), on two
+      # conditions, `canImport(Darwin)` once (a string column's default
+      # comparator) and `canImport(UniformTypeIdentifiers)` twice (a table
+      # row's item provider). So they are meant to build on Windows, but none
+      # can until TUIkitFoundation does: advisory until CI has seen them
+      # green, then binding like the four above. TUIkitApp, the other leaf, is
+      # POSIX by design and has no step (the umbrella's covers it).
       - name: "Build TUIkitChrome"
         continue-on-error: true
         timeout-minutes: 30
@@ -909,6 +910,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTables"
+
+      - name: "Build TUIkitTabs"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTabs"
 
       - name: "Build TUIkitTextInput"
         continue-on-error: true
@@ -1069,6 +1075,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitTables
+      - name: "Build TUIkitTabs"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitTabs
       - name: "Build TUIkitTextInput"
         continue-on-error: true
         timeout-minutes: 30
