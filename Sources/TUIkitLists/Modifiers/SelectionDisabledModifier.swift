@@ -35,10 +35,20 @@ import TUIkitFoundation
 /// ```
 public struct SelectionDisabledModifier<Content: View>: View {
     /// The content to apply selection disabled to.
-    let content: Content
+    ///
+    /// `@usableFromInline` for the `@inlinable` ``init(content:isDisabled:)``.
+    @usableFromInline let content: Content
 
     /// Whether selection is disabled.
-    let isDisabled: Bool
+    @usableFromInline let isDisabled: Bool
+
+    /// The memberwise initializer, spelled out to be `@inlinable` for
+    /// ``View/selectionDisabled(_:)``, which is (module split, step C3).
+    @inlinable
+    init(content: Content, isDisabled: Bool) {
+        self.content = content
+        self.isDisabled = isDisabled
+    }
 
     public var body: Never {
         fatalError("SelectionDisabledModifier renders via Renderable")

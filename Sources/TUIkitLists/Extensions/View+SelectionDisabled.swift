@@ -9,6 +9,11 @@ import TUIkitFoundation
 // MARK: - Selection Disabled Modifier
 
 extension View {
+    // `@inlinable`, with the modifier's initializer (module split, step C3):
+    // a sidebar tab view in TUIkitTabs calls this for every row it lists,
+    // and across the module boundary that call is generic over the row's
+    // type, so it reached this module unspecialised. The result type is
+    // public, so an app sees no more of it than it did.
     /// Disables selection for this view within a List.
     ///
     /// Applied to a list row, this row cannot become the `List`'s selection —
@@ -34,6 +39,7 @@ extension View {
     ///
     /// - Parameter isDisabled: Whether selection should be disabled. Default is `true`.
     /// - Returns: A view with selection disabled state applied.
+    @inlinable
     public func selectionDisabled(_ isDisabled: Bool = true) -> some View {
         SelectionDisabledModifier(content: self, isDisabled: isDisabled)
     }
