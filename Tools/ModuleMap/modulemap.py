@@ -142,7 +142,7 @@ def report(findings, R, github, verbose, level='warning'):
     room = len(new) if len(new) <= GITHUB_ANNOTATIONS else GITHUB_ANNOTATIONS - 1
     annotated = 0
     order = ['uncompiled', 'upward', 'owns-neither', 'witness', 'public-above', 'posix', 'umbrella', 'lower', 'imports',
-             'rules']
+             'stale-imports', 'rules']
     for c in order:
         xs = by.get(c, [])
         n_new = sum(1 for x in xs if x.new)

@@ -286,6 +286,21 @@ another in this tree, though the check would follow one that did (`reexports_of`
 module, with the declarations it names and the references counted. TUIkitFoundation's own files and the side
 modules below it are not checked: no carve changed what they import. Fix it by adding the `import` to the file.
 
+### `stale-imports`: a file of a carved module that imports a module it names nothing of
+
+`TUIkitSearch/Environment/SearchScopes.swift imports TUIkitTextInput but names nothing of it, …`
+
+The other half of `imports`. A peel moves what a dependant's file used into the peeled module, and the file's import
+of the group stays: step C8 left SearchScopes.swift importing TUIkitTextInput for a `Picker` that had moved to
+TUIkitPickers, and step C7 five TUIkitColorPicker files for `Slider`s that had moved to TUIkitNumericControls. It
+compiles, and costs nothing at run time, but the file's imports stop saying which modules it is built on. A finding
+is an `import` of one of the package's targets, in a file of a module carved out above TUIkitFoundation, when the file
+names no declaration of that module (by the index, as `imports` counts them) and the import is not the file's only
+way to a module it does use (through that module's re-exports). Not judged: the default module, which every such file
+imports (CONTRIBUTING.md, "Crossing a module boundary"); a module outside the map (an SDK module, or a lower module,
+which `import TUIkitFoundation` re-exports anyway); and a file with an `#if`, since the index holds only the branches
+the macOS build compiled. Fix it by deleting the import line.
+
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 
 The refactor landed, or the code moved. Delete the entry, so the rules stay a list of open items. If the finding
@@ -401,7 +416,8 @@ own module, or start one, rather than keep the split (a carve could not compile 
 - The index records only the code macOS compiles. A reference inside a `#if os(Linux)` or `#if os(Windows)` arm is
   invisible to every check that reads references: `upward`, `lower` (a Linux-only use of a lower module a list leaves
   out), `posix`, `owns-neither`, `witness` and `imports` (a Linux-only closure into a module the file does not
-  import). The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7).
+  import). The plan checked HEAD's 464 macOS-inactive lines by hand (§4, guard 7). For the same reason
+  `stale-imports` judges no file with an `#if`: a use in another branch would be unseen.
   The refined plan's correction 2 was this class (a Linux-only call the index never saw), so every carve also runs its
   inactive-arm scan and the Linux cross-compile before landing.
 - Only the map's directories (`Sources/<module>` for each module in `rules.json`) are mapped. Tests, Example and

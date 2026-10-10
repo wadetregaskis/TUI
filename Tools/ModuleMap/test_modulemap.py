@@ -902,6 +902,41 @@ class ImportsTests(unittest.TestCase):
         self.assertEqual([k for k, _, _ in self.keys(M)], ['Tables/T.swift uses Base'])
 
 
+class StaleImportsTests(unittest.TestCase):
+    """A file of a carved module that imports one of the package's modules and names nothing of it: a peel moves what
+    a dependant's file used to the peeled module, and the file's import of the group stays (step C8 left SearchScopes
+    importing TUIkitTextInput for a `Picker` that had moved to TUIkitPickers)."""
+
+    def keys(self, M):
+        return [(x.key, x.line) for x in checks.stale_imports(M, rules())]
+
+    def test_an_import_the_file_names_nothing_of(self):
+        # L uses Base and TUIkitCore, which `import Base` answers; App gives it nothing more. A's `import Base`, the
+        # default module's, is never judged, and T's `import Lists` is its own target's (Tables compiles into Lists).
+        M = imports_model(Lists_L='import App\nimport Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
+                          Tables_T='import Base\nimport Lists\nstruct T {}\n',
+                          App_A='import Base\nimport Lists\nstruct A {}\n')
+        self.assertEqual(self.keys(M), [('Lists/L.swift imports App', 1)])
+        x = checks.stale_imports(M, rules())[0]
+        self.assertEqual((x.check, x.file, x.new), ('stale-imports', 'Lists/L.swift', True))
+        self.assertIn('remove the import', x.message)
+
+    def test_an_import_that_alone_makes_what_the_file_uses_visible_is_not_stale(self):
+        # L names nothing of App itself, but App's re-export of Base is the file's only way to Base and TUIkitCore,
+        # which it uses: without it the `imports` check would report the file. An SDK module is not the package's.
+        M = imports_model(
+            Lists_L='import App\nimport Foundation\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n')
+        self.assertEqual(self.keys(M), [])
+
+    def test_a_file_with_an_if_is_not_judged(self):
+        # The index holds the branches the macOS build compiled: a use of App in another branch would be unseen.
+        for text in ('#if os(Linux)\nimport Glibc\n#endif\nimport App\nimport Base\nstruct L {}\n',
+                     '#if canImport(App)\nimport App\n#endif\nimport Base\nstruct L {}\n'):
+            self.assertEqual(self.keys(imports_model(Lists_L=text)), [])
+        self.assertEqual(self.keys(imports_model(Lists_L='import App\nimport Base\nstruct L {}\n')),
+                         [('Lists/L.swift imports App', 1)])
+
+
 class IndexStoreTests(unittest.TestCase):
     def test_a_string_ref_is_read_by_its_length(self):
         # libIndexStore's strings point into its buffers with a length and no NUL; `ab` here is followed by a NUL

@@ -374,7 +374,8 @@ anything at run time:
   re-exports it) a run-time check that it runs on the main actor. So each file
   of such a module imports TUIkitFoundation, and any other carved module it
   uses, itself. Tools/ModuleMap's `imports` check fails CI on a file that
-  does not.
+  does not, and its `stale-imports` check on one that still imports a
+  carved module it names nothing of (a peel leaves those behind).
 - **Widen an accessor, never a class's stored property.** A stored property
   of a class (or a `static var`, or a global) that another module can see is
   one the optimiser cannot prove free of overlapping accesses, so every

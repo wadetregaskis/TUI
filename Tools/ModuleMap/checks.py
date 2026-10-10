@@ -352,6 +352,38 @@ def imports(M, R):
     return out
 
 
+def stale_imports(M, R):
+    """A file of a module carved out above the default module that imports another of the package's modules and
+    names nothing of it, nor of a module the import alone makes visible to the file: a dependant's file that a peel
+    left importing the group although what it used moved to the peeled module (SearchScopes.swift kept `import
+    TUIkitTextInput` when its `Picker` moved to TUIkitPickers at step C8). It compiles, and costs nothing at run time,
+    but the file's imports no longer say which modules it is built on, which the `imports` check relies on them to
+    say. The default module is not judged (every file of such a module imports it, CONTRIBUTING.md, "Crossing a
+    module boundary"), nor an import of a module outside the map (the SDK's, or a lower module's), nor a file with an
+    `#if`: the index holds only the branches the macOS build compiled, so a use in another branch would be unseen."""
+    above, reach = _import_graph(M, R)
+    targets = set(M.target.values())
+    used = collections.defaultdict(set)
+    for f, mod, *_ in _file_uses(M, above): used[f].add(mod)
+    out = []
+    for f in M.files:
+        t = M.target.get(f)
+        if t not in above: continue
+        L = M.lexed[f]
+        if any(L.conds): continue
+        imps = [(imp[0], ln) for ln, imp in enumerate(SS.import_of(s.strip()) for s in L.stripped)
+                if imp and not imp[1]]
+        everything = reach(x for x, _ in imps)
+        for x, ln in imps:
+            if x not in targets or x in (t, R.default) or x in used[f]: continue
+            # What only this import makes visible: removing it loses nothing the file names.
+            if (everything - reach(y for y, _ in imps if y != x)) & used[f]: continue
+            out.append(Finding('stale-imports', f'{f} imports {x}',
+                               f'{f} imports {x} but names nothing of it, nor of a module only that import makes '
+                               f'visible to it: remove the import', f, ln))
+    return sorted(out, key=lambda x: x.key)
+
+
 def lower(M, R, asg):
     """A reference to a lower module (TUIkitCore, TUIkitView …: a module outside the map) that its declaration's
     module may not use: one its `lower` list in rules.json does not name. A module with no list may use them all.
@@ -401,7 +433,8 @@ def run_all(M, R, asg, root):
     for p, qs in R.witness_pairs.items(): pairs[p] |= qs
     for p, qs in derived_witness_pairs(root).items(): pairs[p] |= qs
     findings = (uncompiled(M, R, asg) + upward(M, R, asg) + owns_neither(M, R, asg) + witnesses(M, R, asg, pairs)
-                + public_above(M, R, asg) + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg) + imports(M, R))
+                + public_above(M, R, asg) + posix(M, R, asg) + umbrella(M, R, asg) + lower(M, R, asg) + imports(M, R)
+                + stale_imports(M, R))
     for x in findings:
         a = R.accepted.get((x.check, x.key))
         if a: x.accepted = a.get('why', 'accepted')
