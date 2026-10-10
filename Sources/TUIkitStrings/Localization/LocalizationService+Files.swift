@@ -10,12 +10,10 @@
 import Foundation
 
 extension LocalizationService {
-    /// Loads translations from bundled JSON file.
+    /// Loads TUIkit's translations into `language` from the JSON file in
+    /// ``resources``; `nil` where there is no such file, or it cannot be read.
     func loadTranslationsFromBundle(language: String) -> [String: String]? {
-        guard
-            let url = moduleResourceURL(
-                named: language, extension: "json", subdirectory: "translations")
-        else {
+        guard let url = resources.url(named: language, extension: "json", subdirectory: "translations") else {
             return nil
         }
 

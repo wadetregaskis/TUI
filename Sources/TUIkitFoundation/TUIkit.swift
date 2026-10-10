@@ -55,11 +55,15 @@ package func debugFocusLog(_ message: @autoclosure () -> String) {
 ///
 /// Read from `Sources/TUIkitStrings/VERSION` (bundled as a resource).
 /// Update the `VERSION` file to change the version number.
-public let tuiKitVersion: String = {
-    guard let url = moduleResourceURL(named: "VERSION", extension: nil),
+public let tuiKitVersion: String = readTUIkitVersion(from: .current)
+
+/// The version the `VERSION` file in `resources` names, trimmed; `"unknown"`
+/// where it cannot be read.
+package func readTUIkitVersion(from resources: ModuleResources) -> String {
+    guard let url = resources.url(named: "VERSION", extension: nil),
         let content = try? String(contentsOf: url, encoding: .utf8)
     else {
         return "unknown"
     }
     return content.trimmingCharacters(in: .whitespacesAndNewlines)
-}()
+}

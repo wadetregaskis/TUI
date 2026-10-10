@@ -77,6 +77,9 @@ public final class LocalizationService: @unchecked Sendable {
     /// `lock`.
     private let bundleTables: BundleStringTables
 
+    /// Where TUIkit's own translations are read from: its resource bundle.
+    let resources: ModuleResources
+
     /// Lock for thread-safe access
     private let lock = NSLock()
 
@@ -96,6 +99,7 @@ public final class LocalizationService: @unchecked Sendable {
     public init() {
         self.configDirectoryOverride = nil
         self.bundleTables = BundleStringTables()
+        self.resources = .current
 
         let initial = Self.initialLanguage(
             stored: Self.loadLanguagePreference(), asked: Self.systemPreferredLanguageCodes())
@@ -110,14 +114,19 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// Creates a localization service with a custom config directory.
     ///
-    /// Used for testing to isolate file system access, and to read string
-    /// tables from a bundle of the test's own in place of the main bundle.
-    /// The language is the stored one, else the one `environment` asks for
-    /// (its POSIX variables alone — never the machine's preferred languages),
-    /// else English.
-    init(configDirectoryPath: String, defaultBundle: Bundle = .main, environment: [String: String] = [:]) {
+    /// Used for testing to isolate file system access, to read string tables
+    /// from a bundle of the test's own in place of the main bundle, and to
+    /// read TUIkit's own translations from `resources` in place of its
+    /// resource bundle. The language is the stored one, else the one
+    /// `environment` asks for (its POSIX variables alone — never the machine's
+    /// preferred languages), else English.
+    init(
+        configDirectoryPath: String, defaultBundle: Bundle = .main, environment: [String: String] = [:],
+        resources: ModuleResources = .current
+    ) {
         self.configDirectoryOverride = configDirectoryPath
         self.bundleTables = BundleStringTables(defaultBundle: defaultBundle)
+        self.resources = resources
 
         let initial = Self.initialLanguage(
             stored: Self.loadLanguagePreference(from: configDirectoryPath),

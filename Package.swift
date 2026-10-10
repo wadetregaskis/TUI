@@ -124,7 +124,7 @@ let package = Package(
         // Step B2's two side modules need TUIkitCore alone, so they compile beside TUIkitView, not after
         // it. TUIkitStrings is the SF Symbols name table, the inline-Markdown parser, the format styles and
         // localization, and it holds the framework's resources: the translation tables and VERSION, read
-        // through its `moduleResourceURL`, in the bundle `TUIkit_TUIkitStrings`
+        // through its `ModuleResources`, in the bundle `TUIkit_TUIkitStrings`
         // (Tools/verify-versioned-consumer.sh runs a consumer that reads both). TUIkitTerminalHost is the
         // terminal's facts as values: the host, its identity, quirks and capabilities.
         // MemberImportVisibility as on TUIkitFoundation, which compiled their files until B2.
