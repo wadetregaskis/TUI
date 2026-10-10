@@ -388,14 +388,18 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// TUIkit's own translations in the language `code`, loaded from its JSON
     /// the first time they are asked for; empty for a language TUIkit ships
-    /// none of, which is remembered too.
+    /// none of, which is remembered too. English whose file cannot be read is
+    /// the copy compiled in (``builtInEnglish``); any other language whose
+    /// file cannot be read is empty, and falls back to English.
     ///
     /// - Important: Caller must hold `lock`.
     private func _translations(for code: String) -> [String: String] {
         if let cached = translationCache[code] {
             return cached
         }
-        let loaded = loadTranslationsFromBundle(language: code) ?? [:]
+        let loaded =
+            loadTranslationsFromBundle(language: code)
+            ?? (code == Language.english.rawValue ? Self.builtInEnglish : [:])
         translationCache[code] = loaded
         return loaded
     }

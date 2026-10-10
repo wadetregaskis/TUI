@@ -338,6 +338,10 @@ String resolution goes language by language: the languages the user asked for,
 then English, and last the key itself as-is. This ensures the UI always has
 something to display, even with incomplete translations.
 
+TUIkit's own English is compiled in as well as bundled, so where its
+translation files cannot be read its words still read in English, not as their
+keys.
+
 Within each language, who is asking decides the order:
 
 - **Your keys** — `Text("greeting")`, `LocalizedString("greeting")`,
@@ -449,6 +453,10 @@ Add the same key to all 7 translation JSON files:
 ```
 
 Similar for `fr.json`, `it.json`, `es.json`, `zh.json`, `ja.json`.
+
+Then paste `en.json` into `LocalizationService+BuiltInEnglish.swift`, between
+its `#"""` delimiters: that is the English compiled in, and
+`BuiltInEnglishTests` fails, naming the keys, until it matches the file.
 
 ### 3. Update Tests
 

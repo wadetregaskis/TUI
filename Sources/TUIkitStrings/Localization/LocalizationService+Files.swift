@@ -13,12 +13,19 @@ extension LocalizationService {
     /// Loads TUIkit's translations into `language` from the JSON file in
     /// ``resources``; `nil` where there is no such file, or it cannot be read.
     func loadTranslationsFromBundle(language: String) -> [String: String]? {
-        guard let url = resources.url(named: language, extension: "json", subdirectory: "translations") else {
+        guard let url = resources.url(named: language, extension: "json", subdirectory: "translations"),
+            let data = try? Data(contentsOf: url)
+        else {
             return nil
         }
+        return Self.translationTable(from: data)
+    }
 
+    /// A translation file's table — a JSON object of strings — or `nil` where
+    /// `data` is not one. The one parser for the bundled files and for the
+    /// English compiled in (``builtInEnglish``).
+    static func translationTable(from data: Data) -> [String: String]? {
         do {
-            let data = try Data(contentsOf: url)
             return try JSONSerialization.jsonObject(
                 with: data,
                 options: .fragmentsAllowed
