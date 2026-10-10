@@ -686,6 +686,7 @@
   "TUIkitLists/Views/ScrollRowWindow.swift": "TUIkitLists",
   "TUIkitLists/Views/SectionActionsView+Parts.swift": "TUIkitLists",
   "TUIkitLists/Views/SelectableListRow.swift": "TUIkitLists",
+  "TUIkitLists/Views/SidebarSectionList.swift": "TUIkitLists",
   "TUIkitLists/Views/TableRowMemo.swift": "TUIkitLists",
   "TUIkitLists/Views/_ListCore+RowMenu.swift": "TUIkitLists",
   "TUIkitLists/Views/_ListCore.swift": "TUIkitLists",

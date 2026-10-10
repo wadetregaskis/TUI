@@ -56,33 +56,24 @@ private struct _TabSidebarList: View {
     /// own follows.
     @Environment(\.springLoadingBehavior) private var springLoading
 
-    /// Consecutive tabs of one section — or of none — with its header.
-    private struct Run: Identifiable {
-        /// The run's place among the runs.
-        let id: Int
-        /// The section the tabs were declared in, or `nil` for none.
-        let section: Int?
-        /// The section's header.
-        let header: AnyView?
-        /// The section's actions.
-        let actions: AnyView?
-        /// The tabs, by their place in ``tabs``.
-        var indices: [Int]
-    }
-
-    /// The tabs, in runs: each section's, and each stretch between sections.
-    private var runs: [Run] {
-        var runs: [Run] = []
+    /// The tabs, in runs of consecutive tabs of one section — or of none —
+    /// each the list's section, with that section's header and actions: each
+    /// section's, and each stretch between sections. A run's rows are its
+    /// tabs' places in ``tabs``.
+    private var runs: [_SidebarSection] {
+        var runs: [_SidebarSection] = []
+        // The section the last run's tabs were declared in, `nil` for none.
+        var runSection: Int?
         for index in tabs.indices {
             let section = tabs[index].section
-            if let last = runs.last, last.section == section?.ordinal {
-                runs[runs.count - 1].indices.append(index)
+            if !runs.isEmpty, runSection == section?.ordinal {
+                runs[runs.count - 1].rows.append(index)
             } else {
                 runs.append(
-                    Run(
-                        id: runs.count, section: section?.ordinal, header: section?.header,
-                        actions: section?.actions, indices: [index]))
+                    _SidebarSection(
+                        id: runs.count, header: section?.header, actions: section?.actions, rows: [index]))
             }
+            runSection = section?.ordinal
         }
         return runs
     }
@@ -106,22 +97,13 @@ private struct _TabSidebarList: View {
             content: list, selection: selection, hasMenus: tabs.contains { $0.interactions.contextMenu != nil })
     }
 
+    /// The sidebar list, which TUIkitLists builds: a `.sidebar` `List` of the
+    /// runs, each a section under its header with its actions
+    /// (`_SidebarSectionList`, which says why it is built there).
     private var list: some View {
-        List(selection: rowSelection) {
-            ForEach(runs) { run in
-                Section {
-                    ForEach(run.indices, id: \.self) { index in
-                        row(index)
-                    }
-                } header: {
-                    run.header ?? AnyView(EmptyView())
-                }
-                .sectionActions { run.actions }
-            }
+        _SidebarSectionList(sections: runs, selection: rowSelection) { index in
+            row(index)
         }
-        // A sidebar list: no border, and a `Label` tab label's icon in the
-        // list item tint, as a macOS sidebar draws it.
-        .listStyle(.sidebar)
         // A tab's title is chrome, not text to select. Under an enabled scope
         // around the tab view, the list kept a press on one for a selection
         // (`PressRole.rows`): a click selected no tab, and a draggable tab
