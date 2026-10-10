@@ -277,7 +277,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     let content: Content
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for the lazy grids.
+    /// internal and TUIkitGrid makes these, for the lazy grids.
     package init(layout: L, content: Content) {
         self.layout = layout
         self.content = content

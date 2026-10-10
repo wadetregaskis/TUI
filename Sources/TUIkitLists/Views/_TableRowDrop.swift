@@ -21,7 +21,8 @@ package struct _TableRowDrop {
     package let perform: ([Any]) -> Void
 
     /// The memberwise initializer, written out: a synthesized one is internal,
-    /// and a table in TUIkitTables makes these (module split, step C2).
+    /// and a table in TUIkitTables makes these (module split, step C2), and a
+    /// tab's drop destination in TUIkitTabs (step C3).
     package init(accepts: @escaping (Any) -> Bool, perform: @escaping ([Any]) -> Void) {
         self.accepts = accepts
         self.perform = perform
