@@ -3102,12 +3102,13 @@ private struct ServerIcons: View {
 /// text field, a stepper and a slider added to its first section and each
 /// header as a view builder (the documentation's `Section(header:)` is
 /// deprecated), and its own `searchable(text:)` example. Since module split step B7 `TextField`,
-/// `Picker`, `Form`, `.searchable`, `Stepper` and `Slider` are TUIkitTextInput's
-/// (the last five compile into it until steps C5 to C8 peel them), which the
-/// umbrella re-exports (and TUIkitColorPicker, which the umbrella re-exports
-/// too), so this, and the text input, picker, form, search and numeric snippets
-/// earlier in this file, are SwiftUI source reaching that module as an app
-/// does: through `import TUIkit`.
+/// `Picker`, `.searchable`, `Stepper` and `Slider` are TUIkitTextInput's
+/// (the last four compile into it until steps C5, C7 and C8 peel them), which
+/// the umbrella re-exports (and TUIkitColorPicker, which the umbrella
+/// re-exports too), and `Form` is TUIkitForms' since step C6, which only the
+/// umbrella re-exports, so this, and the text input, picker, form, search and
+/// numeric snippets earlier in this file, are SwiftUI source reaching those
+/// modules as an app does: through `import TUIkit`.
 @MainActor
 private struct NotificationSettingsForm: View {
     enum NotifyMeAboutType {

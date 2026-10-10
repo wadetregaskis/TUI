@@ -119,10 +119,11 @@
 //  run time.
 //
 //  Step B7 carved the TextInput group the same way as B5's and B6's: one
-//  module, TUIkitTextInput, that compiles five directories of the planned
+//  module, TUIkitTextInput, that compiled five directories of the planned
 //  split, Sources/TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch
 //  and TUIkitNumericControls, until steps C5 to C8 peel the last four into
-//  modules of their own. It took the last directories out of
+//  modules of their own (step C6 has peeled the forms, below). It took the
+//  last directories out of
 //  TUIkitFoundation. The ninth test spells a type from each directory through
 //  the umbrella and draws it, the text field beside an app's own `TextField`
 //  (the case an app meets: a form model of its own). It leaves the same two
@@ -131,6 +132,13 @@
 //  own line is the `umbrella` check's; and a directory left compiling in
 //  TUIkitFoundation would still compile here, so the reflected names, one per
 //  directory, catch it at run time.
+//
+//  Step C6 peeled Sources/TUIkitForms out of the group into TUIkitForms,
+//  built on TUIkitFoundation alone. The ninth test's labeled content, and the
+//  form styles among the reflected names, read `TUIkitForms.` since; they
+//  read `TUIkitTextInput.` from B7 to C6. Nothing but the umbrella
+//  re-exports TUIkitForms, so this file stops compiling without the
+//  umbrella's line for it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -524,7 +532,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.ASCIIColorMode.self) == "TUIkitImage.ASCIIColorMode")
     }
 
-    @Test("A qualified name reaches TUIkitTextInput, all five of whose directories the umbrella re-exports through it")
+    @Test("A qualified name reaches TUIkitTextInput and the module peeled out of it, through the umbrella")
     func qualifiedNamesReachTheTextInputGroup() {
         func drawn(_ view: some TUIkit.View, height: Int) -> String {
             TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
@@ -542,7 +550,8 @@ struct UmbrellaQualifiedNameTests {
         }
         let radioLines = drawn(radios, height: 1)
         #expect(radioLines.contains("b7 radio"), "\(radioLines)")
-        // From Sources/TUIkitForms (until step C6): labeled content, drawn.
+        // From Sources/TUIkitForms, which compiled into the same module until
+        // step C6 peeled it into TUIkitForms: labeled content, drawn.
         let labeled = TUIkit.LabeledContent("b7 label", value: "b7 value")
         let labeledLines = drawn(labeled, height: 1)
         #expect(labeledLines.contains("b7 label") && labeledLines.contains("b7 value"), "\(labeledLines)")
@@ -559,7 +568,7 @@ struct UmbrellaQualifiedNameTests {
         // `TUIkitFoundation.` here.
         #expect(String(reflecting: type(of: field)) == "TUIkitTextInput.TextField<TUIkitFoundation.Text>")
         #expect(String(reflecting: TUIkit.RadioButtonOrientation.self) == "TUIkitTextInput.RadioButtonOrientation")
-        #expect(String(reflecting: TUIkit.AutomaticFormStyle.self) == "TUIkitTextInput.AutomaticFormStyle")
+        #expect(String(reflecting: TUIkit.AutomaticFormStyle.self) == "TUIkitForms.AutomaticFormStyle")
         #expect(String(reflecting: TUIkit.SearchFieldPlacement.self) == "TUIkitTextInput.SearchFieldPlacement")
         #expect(String(reflecting: TUIkit.TrackStyle.self) == "TUIkitTextInput.TrackStyle")
     }
@@ -635,12 +644,14 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.AsyncImagePhase.self) == "TUIkitBitmaps.AsyncImagePhase")
         // Step B7 carved these out (decisions SPB7, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B7. A type from
-        // Sources/TUIkitPickers, TUIkitForms, TUIkitSearch or
-        // TUIkitNumericControls names TUIkitTextInput, the module that compiles
-        // it, until steps C5 to C8 give it a module of its own.
+        // Sources/TUIkitPickers, TUIkitSearch or TUIkitNumericControls names
+        // TUIkitTextInput, the module that compiles it, until steps C5, C7 and
+        // C8 give it a module of its own; one from Sources/TUIkitForms names
+        // TUIkitForms since step C6 (decisions SPC5, "What an app can see"),
+        // and read `TUIkitTextInput.` from B7 until then.
         #expect(String(reflecting: TUIkit.TabWidth.self) == "TUIkitTextInput.TabWidth")
         #expect(String(reflecting: TUIkit.DatePickerComponents.self) == "TUIkitTextInput.DatePickerComponents")
-        #expect(String(reflecting: TUIkit.GroupedFormStyle.self) == "TUIkitTextInput.GroupedFormStyle")
+        #expect(String(reflecting: TUIkit.GroupedFormStyle.self) == "TUIkitForms.GroupedFormStyle")
         #expect(String(reflecting: TUIkit.SearchFieldIconPlacement.self) == "TUIkitTextInput.SearchFieldIconPlacement")
         #expect(String(reflecting: TUIkit.IndeterminateStyle.self) == "TUIkitTextInput.IndeterminateStyle")
     }

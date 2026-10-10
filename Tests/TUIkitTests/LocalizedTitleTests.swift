@@ -22,6 +22,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitChrome
+@testable import TUIkitForms
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
 @testable import TUIkitStrings

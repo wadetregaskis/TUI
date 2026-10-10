@@ -137,6 +137,7 @@
   "TUIkitEffects/Modifiers/OpacityFade.swift": "TUIkitEffects",
   "TUIkitEffects/Modifiers/VisualEffect.swift": "TUIkitEffects",
   "TUIkitEffects/SFSymbols/SymbolEffects+Symbols.swift": "TUIkitEffects",
+  "TUIkitForms/Exports.swift": "TUIkitForms",
   "TUIkitForms/Styles/FormStyle+Variants.swift": "TUIkitForms",
   "TUIkitForms/Styles/LabeledContentStyle.swift": "TUIkitForms",
   "TUIkitForms/Views/Card.swift": "TUIkitForms",

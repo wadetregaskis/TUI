@@ -291,7 +291,7 @@ package struct _SectionHeader<Header: View>: View {
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitTables makes these, for a table's sections, and
-    /// TUIkitTextInput, for a form's collapsible sections.
+    /// TUIkitForms, for a form's collapsible sections.
     package init(header: Header, isExpanded: Binding<Bool>?) {
         self.header = header
         self.isExpanded = isExpanded

@@ -36,10 +36,11 @@ cd "$(dirname "$0")/.."
 # B4), TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome,
 # TUIkitEffects and TUIkitMenus (step B5b), TUIkitBitmaps (step B5c) and
 # TUIkitTextInput (step B7), and TUIkitPresentation, peeled out of
-# TUIkitNavigation (step C1), and TUIkitTables, TUIkitTabs and TUIkitGrid,
-# peeled out of TUIkitLists (steps C2 to C4): their tests stayed in TUIkitTests,
-# which `@testable import`s them. A module that gets a test target of its own
-# gets a row here, and joins the loop below.
+# TUIkitNavigation (step C1), TUIkitTables, TUIkitTabs and TUIkitGrid, peeled
+# out of TUIkitLists (steps C2 to C4), and TUIkitForms, peeled out of
+# TUIkitTextInput (step C6): their tests stayed in TUIkitTests, which
+# `@testable import`s them. A module that gets a test target of its own gets a
+# row here, and joins the loop below.
 allowed_for() {
     case "$1" in
         TUIkitCoreTests) echo "TUIkitCore TUIkitWidthCorpus" ;;

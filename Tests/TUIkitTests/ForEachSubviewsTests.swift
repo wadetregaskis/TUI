@@ -7,6 +7,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitForms
 @testable import TUIkitFoundation
 @testable import TUIkitTextInput
 

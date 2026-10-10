@@ -26,9 +26,11 @@
 // options; since step B5c, which also took TUIkitImage out of
 // TUIkitFoundation's re-exports, so the line for it below is what gives an app
 // `ASCIIConverter` and the rest; TUIkitBitmaps and TUIkitColorPicker re-export
-// it too), and TUIkitTextInput (the text inputs, and the pickers, forms, search
-// and numeric controls until steps C5 to C8 peel them; since step B7). Each by
-// name, though TUIkitColorPicker re-exports TUIkitPresentation
+// it too), TUIkitTextInput (the text inputs, and the pickers, search and
+// numeric controls until steps C5, C7 and C8 peel them; since step B7), and
+// TUIkitForms (forms and the view groupings, since step C6, which
+// TUIkitTextInput compiled until then). Each by name, though TUIkitColorPicker
+// re-exports TUIkitPresentation
 // (TUIkitNavigation from B5 until C1), TUIkitTabs, and through it TUIkitLists
 // (directly until C3), and TUIkitTextInput for good (directly until the peels,
 // then through the modules they make, TUIkitTextInput's own among them), and
@@ -44,6 +46,7 @@
 @_exported import TUIkitColorPicker
 @_exported import TUIkitCore
 @_exported import TUIkitEffects
+@_exported import TUIkitForms
 @_exported import TUIkitFoundation
 @_exported import TUIkitGrid
 @_exported import TUIkitImage

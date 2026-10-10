@@ -75,8 +75,8 @@ package struct ContentMargins: Equatable, Sendable {
     var scrollIndicators = Edges()
 
     /// No margins stated, spelled out because the implicit initializer is
-    /// internal and TUIkitTextInput makes these: a `Form` hands its rows a
-    /// clean slate once it has applied its own.
+    /// internal and TUIkitForms makes these: a `Form` hands its rows a clean
+    /// slate once it has applied its own.
     package init() {}
 
     /// Whether nothing was stated — the case every scroll view without margins

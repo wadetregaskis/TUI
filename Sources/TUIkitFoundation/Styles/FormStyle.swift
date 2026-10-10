@@ -91,8 +91,8 @@ public struct FormStyleConfiguration {
     public let content: Content
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and `Form` (TUIkitTextInput, until step C6 peels TUIkitForms)
-    /// makes these. Not public: SwiftUI's `FormStyleConfiguration` publishes
+    /// internal and `Form` (TUIkitForms since step C6, TUIkitTextInput from
+    /// step B7 until then) makes these. Not public: SwiftUI's `FormStyleConfiguration` publishes
     /// no initializer either.
     package init(content: Content) {
         self.content = content
