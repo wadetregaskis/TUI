@@ -9,6 +9,9 @@ import TUIkitFoundation
 // MARK: - Suggestion Entries
 
 /// A single entry contributed to a text field's input-suggestions menu.
+///
+/// `@usableFromInline`, for ``TextSuggestions``' inlinable members.
+@usableFromInline
 package enum _TextSuggestionEntry {
     /// A pickable suggestion. `completion` is the text inserted into the
     /// field when it is picked; `nil` derives it from the label's rendered
@@ -191,27 +194,47 @@ extension View {
 /// offering nothing this frame, because its builder filtered everything out.
 ///
 /// Compared by presence and emptiness alone — see `==`.
+///
+/// `@usableFromInline`, with its stored properties and the types they hold,
+/// and `none`, `offering(_:tokenSink:)` and the initializer they call
+/// `@inlinable`: TUIkitSearch makes these on every evaluation of a
+/// searchable since module split step C5, and called each out of line until
+/// they were (the plan's tier 2 for that step). `tokenSink` is a `let` with
+/// no default for the same reason: an inlined initializer would call a
+/// stored property's default out of line (CONTRIBUTING.md, "Crossing a
+/// module boundary").
+@usableFromInline
 package struct TextSuggestions: Equatable {
     /// The normalized entries, in menu order.
-    package let entries: [_TextSuggestionEntry]
+    @usableFromInline package let entries: [_TextSuggestionEntry]
 
     /// Whether a suggestions modifier put these here, as opposed to the key's
     /// default.
-    let isPresent: Bool
+    @usableFromInline let isPresent: Bool
 
     /// Where a token entry's token goes when it is chosen — the token
     /// collection of the searchable whose field this is — or `nil` outside a
     /// searchable with tokens, where such an entry is left out of the menu.
-    var tokenSink: SearchTokenSink?
+    @usableFromInline let tokenSink: SearchTokenSink?
+
+    /// The memberwise initializer, spelled out to be `@inlinable`.
+    @inlinable
+    package init(entries: [_TextSuggestionEntry], isPresent: Bool, tokenSink: SearchTokenSink?) {
+        self.entries = entries
+        self.isPresent = isPresent
+        self.tokenSink = tokenSink
+    }
 
     /// No suggestions modifier in force.
     ///
     /// Computed rather than stored, as are the keys' defaults built from it: a
     /// token entry holds its token as `Any`, so this type is not `Sendable`
     /// and cannot be a stored static.
-    package static var none: Self { Self(entries: [], isPresent: false) }
+    @inlinable
+    package static var none: Self { Self(entries: [], isPresent: false, tokenSink: nil) }
 
     /// What a suggestions modifier offers.
+    @inlinable
     package static func offering(_ entries: [_TextSuggestionEntry], tokenSink: SearchTokenSink? = nil) -> Self {
         Self(entries: entries, isPresent: true, tokenSink: tokenSink)
     }
@@ -257,6 +280,7 @@ package struct TextSuggestions: Equatable {
     ///
     /// The token sink is left out for the same reason: closures over the
     /// searchable's binding, read only by that same field.
+    @usableFromInline
     package static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.isPresent == rhs.isPresent && lhs.entries.isEmpty == rhs.entries.isEmpty
     }
@@ -280,6 +304,9 @@ enum TextSuggestionChoice {
 
 /// A searchable's token collection, type-erased for the suggestions menu: what
 /// choosing a token entry does.
+///
+/// `@usableFromInline`, for ``TextSuggestions``' inlinable members.
+@usableFromInline
 package struct SearchTokenSink {
     /// For a token of the collection's element type, whether it is already
     /// among the tokens, and how to add it; `nil` for a token of any other
@@ -295,13 +322,22 @@ package struct SearchTokenSink {
 
 /// Environment key carrying the extracted suggestion entries down to the
 /// text fields in the modified subtree.
-private struct TextInputSuggestionsKey: EnvironmentKey {
-    static var defaultValue: TextSuggestions { .none }
+///
+/// `@usableFromInline package` rather than `private`, with its default
+/// `@inlinable`: the `@inlinable` accessor names it.
+@usableFromInline
+package struct TextInputSuggestionsKey: EnvironmentKey {
+    @inlinable package static var defaultValue: TextSuggestions { .none }
 }
 
 extension EnvironmentValues {
     /// The input suggestions available to text fields in this subtree.
     /// Set via ``View/textInputSuggestions(_:)``.
+    ///
+    /// `@inlinable`: a searchable's field (TUIkitSearch) writes it on every
+    /// evaluation that offers suggestions, through the key path its
+    /// `transformEnvironment(_:transform:)` takes.
+    @inlinable
     package var textInputSuggestions: TextSuggestions {
         get { self[TextInputSuggestionsKey.self] }
         set { self[TextInputSuggestionsKey.self] = newValue }
