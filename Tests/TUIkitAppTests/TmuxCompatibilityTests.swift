@@ -233,7 +233,7 @@ struct TmuxCompatibilityTests {
     @Test("The tone-base sweep record matches the model, row for row")
     func toneBaseRecordMatchesModel() throws {
         let url = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // TUIkitTests/
+            .deletingLastPathComponent()  // TUIkitAppTests/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // repository root
             .appendingPathComponent("Tools/TerminalProbes/data/tmux-3.7b-tonebases.json")

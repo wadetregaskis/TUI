@@ -91,7 +91,7 @@ struct TerminalLedgerConformanceTests {
 
     static let ledgers: [Ledger] = {
         let directory = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // TUIkitTests/
+            .deletingLastPathComponent()  // TUIkitAppTests/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // repository root
             .appendingPathComponent("Tools/TerminalProbes/data")

@@ -5079,7 +5079,7 @@ What it does not touch:
   page (rule 9), and on an unreported page that cap is 39 again. No built-in palette has
   one.
 
-`ButtonCapsOnUnmeasurableFaceTests` (TUIkitTests) pins it for a string label, a view label
+`ButtonCapsOnUnmeasurableFaceTests` (TUIkitControlTests) pins it for a string label, a view label
 and a menu picker. On an unreported page the caps are the tier at rest and when disabled,
 and the accent with no run when focused. An accent of `Color.default` gives the same caps
 on an RGB page while the terminal has not reported. (Since §80 a palette's `Color.default`
@@ -5134,7 +5134,7 @@ snapped at ½ and they alternated between their two ends. §79.1 holds them the 
 functions return what they did, byte for byte. A translucent colour below ½ spends to its
 ground (rule 9), so its steady breath is the ground; no built-in palette has one.
 
-`SteadyBreathOnUnmeasurableColourTests` (TUIkitTests) pins it for a List, a standard and
+`SteadyBreathOnUnmeasurableColourTests` (TUIkitControlTests) pins it for a List, a standard and
 a plain button, a Toggle, a radio group, a Stepper, a Slider and a TextField, over an
 accent of the terminal's foreground and over the terminal's page, both unreported. Each
 leaves no run and reads no clock, draws its `.selectionIndicatorStyle(.none)` picture at
@@ -5182,7 +5182,7 @@ could not reach the rule while its sixteen slots measured as xterm's table. Sinc
 slot the terminal has not reported has no RGB, so a cursor on slots 0 to 15 holds still
 until the terminal reports them.
 
-`SteadyBreathCopiesOnUnmeasurableColourTests` (TUIkitTests) pins it over an accent of the
+`SteadyBreathCopiesOnUnmeasurableColourTests` (TUIkitControlTests) pins it over an accent of the
 terminal's foreground and over the terminal's page, both unreported, and since §81 over a
 slot accent and for the 256-colour grid too. Where an end has no RGB, each leaves no run, reads no clock and draws its
 still picture at every point of the cycle. Where both ends are RGB, it still breathes.
@@ -5257,7 +5257,7 @@ Limits:
 - The Example's `CustomizablePalette` stores `focusBackground` from its source, so after an
   edit of a ground it no longer equals its derived default and is kept as it was.
 
-`GroundedPaletteTerminalTests` (TUIkitTests) pins the roots at alpha 0, 64 and 128 and
+`GroundedPaletteTerminalTests` (TUIkitAppTests) pins the roots at alpha 0, 64 and 128 and
 spelled `Color.default`, silent and reported, including the 49 the root spells. It pins
 each of the fifteen stated roles spelled `Color.default` on its own, the overlay's kept
 alpha, the tiers silent and reported, the derived and stated surfaces, idempotence (under
@@ -5373,7 +5373,7 @@ What it does not touch:
 
 `HoverLadderTests` (TUIkitStylingTests) pins the ladder, unreported and with Apple Terminal
 "Basic"'s and Ghostty 1.3.1's reported colours, and that no colour the terminal decides lifts
-to RGB, or to a harder read where it measures. `HoverWithoutAFillTests` (TUIkitTests) pins
+to RGB, or to a harder read where it measures. `HoverWithoutAFillTests` (TUIkitAppTests) pins
 each of the five controls, a resize grip and a scrollbar's hovered arrow, and that a built-in
 palette's hovered arrows are still the wash.
 
@@ -5570,7 +5570,7 @@ Limits:
   container's right pad cell, which a persistent background left in force used to colour by
   bleed, stays bare — as its left pad always was.
 
-`ReversedCursorRowTests` (TUIkitTests) pins it for both twins, at all three depths, with an
+`ReversedCursorRowTests` (TUIkitCollectionTests) pins it for both twins, at all three depths, with an
 `.ansi` accent over an RGB page and with the terminal's own pair: every cell of the cursor
 row from its text to the row's end carries the 7 with the palette's ink and field, the
 padding after a child's own reset included; the ● is kept; no run is left and the loop is
@@ -5754,7 +5754,7 @@ Limits:
 - What a host actually PAINTS for a reversed row is unmeasured on every terminal
   (Terminal-compatibility.md).
 
-`ReversedMenuHighlightTests` (TUIkitTests) pins it at all three depths, with an `.ansi(.blue)`
+`ReversedMenuHighlightTests` (TUIkitAppTests) pins it at all three depths, with an `.ansi(.blue)`
 accent over an RGB page and with the terminal's own pair: a focused menu row's bar and an open
 drop-down's highlighted row carry the 7 with the palette's ink and page, the ✓'s own cell
 excepted; the popup's frame does not; a drop-down windowed behind a scrollbar reverses its row
@@ -5804,7 +5804,7 @@ Limits:
 - What a host actually PAINTS for a reversed cell is unmeasured on every terminal
   (Terminal-compatibility.md).
 
-`ReversedDateComponentTests` (TUIkitTests) pins it at all three depths, with an `.ansi(.blue)`
+`ReversedDateComponentTests` (TUIkitAppTests) pins it at all three depths, with an `.ansi(.blue)`
 accent over a mid-tone RGB page and with the terminal's own pair: the active component carries
 the 7 with the palette's ink and page and its underline; the reversal is never a bare 7 and
 always states a field; the components either side are not reversed; it leaves no run and the
@@ -5856,7 +5856,7 @@ Limits:
 - What a host actually PAINTS for a reversed cell is unmeasured on every terminal
   (Terminal-compatibility.md).
 
-`ReversedSplitDividerTests` (TUIkitTests) pins it at all three depths, with an `.ansi(.blue)`
+`ReversedSplitDividerTests` (TUIkitAppTests) pins it at all three depths, with an `.ansi(.blue)`
 accent over an RGB page and with the terminal's own pair: a focused divider carries the 7 with
 the palette's ink and page down every cell of its column; a resting one carries none; it
 leaves no run and the loop is asked for no tick; the grip is where it was; and with Apple

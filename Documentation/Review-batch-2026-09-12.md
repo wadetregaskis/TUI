@@ -383,7 +383,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** `View.scrollOverscroll(top:bottom:)` is public API (ScrollOverscroll.swift:188). The excursion is produced by the ordinary public gestures — a wheel tick, an arrow key on a focused ScrollView, or a held scrollbar arrow, all of which route through `userScrollFine(by:)`. The reveal fires on any Tab / click / programmatic focus move into the scroll view's content.
 
-**Test gap.** Tests/TUIkitTests/ScrollOverscrollTests.swift has `programmaticJumpsClearIt`, but it only calls `sv.scrollToTop()` / `sv.scrollToBottom()` on a bare `ScrollViewHandler` — the two paths that DO clear. Tests/TUIkitTests/ScrollRevealTests.swift contains no occurrence of "overscroll" at all, so no reveal test ever has a non-zero excursion. Tests/TUIkitTests/ListTableOverscrollTests.swift covers the List/Table side, where the clear is present.
+**Test gap.** Tests/TUIkitCollectionTests/ScrollOverscrollTests.swift has `programmaticJumpsClearIt`, but it only calls `sv.scrollToTop()` / `sv.scrollToBottom()` on a bare `ScrollViewHandler` — the two paths that DO clear. Tests/TUIkitCollectionTests/ScrollRevealTests.swift contains no occurrence of "overscroll" at all, so no reveal test ever has a non-zero excursion. Tests/TUIkitCollectionTests/ListTableOverscrollTests.swift covers the List/Table side, where the clear is present.
 
 **Fix.** Call `handler.clearOverscroll()` at the top of the `if shouldSnap, !suppressed, …` body in `snapViewportToFocusedControl` (before the two `handler.scrollOffset` writes), matching `ItemListHandler.ensureFocusedItemVisible()`. The seek adoption at ScrollView.swift:426 and the `.edge`/`.offset` writes in `applyPositionOffset` need the same call for the same reason.
 
@@ -405,7 +405,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** `scrollOverscroll(top:bottom:)` is public; the excursion is produced by an ordinary wheel tick / arrow key / scrollbar arrow at the edge. No private API and no unusual layout beyond a sibling drawn immediately above the ScrollView.
 
-**Test gap.** Tests/TUIkitTests/ScrollOverscrollTests.swift `hitRegionsSlideWithTheContent` is the only region test, and it exercises only the direction that slides a Button INTO view (asserts it is still clickable at its new row). No ScrollView test asserts that a control slid OFF the viewport stops being clickable, and no ScrollView overscroll test composes a sibling outside the scroll view for a stale region to land on. […]
+**Test gap.** Tests/TUIkitCollectionTests/ScrollOverscrollTests.swift `hitRegionsSlideWithTheContent` is the only region test, and it exercises only the direction that slides a Button INTO view (asserts it is still clickable at its new row). No ScrollView test asserts that a control slid OFF the viewport stops being clickable, and no ScrollView overscroll test composes a sibling outside the scroll view for a stale region to land on. […]
 
 **Fix.** After the `replacingLines` in `applyOverscroll`, clip the carried geometry to the viewport the way `windowedBuffer` already does: `slid.hitTestRegions = slid.hitTestRegions.compactMap { $0.clipped(toColumns: 0..<width, rows: 0..<lines.count) }` and the same for `opacityRegions` (and drop overlays whose span no longer intersects), so the slide obeys the rule the List twin enforces through `slidRange`.
 
@@ -427,7 +427,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** `scrollIndicators(_:axes:)` and `scrollIndicatorStyle(_:)` are both public (Scrollbar.swift:321, 353); `alwaysShowsVerticalTextIndicators` is exactly `.visible` + `.text` (Scrollbar.swift:195). A 3–5 line ScrollView is ordinary — a dialog body, a split-view pane, a sidebar detail strip.
 
-**Test gap.** Tests/TUIkitTests/AlwaysVisibleIndicatorTests.swift — the suite for this exact combination — renders every arm at `height: 8` (and one case at 20). Tests/TUIkitTests/ScrollViewRenderTests.swift and ScrollViewTests.swift never combine `.scrollIndicators(.visible)` with `.scrollIndicatorStyle(.text)`; the only small-viewport ScrollView test (ScrollViewTests.swift:266, height 3) is a horizontal-axis test with default indicators. […]
+**Test gap.** Tests/TUIkitControlTests/AlwaysVisibleIndicatorTests.swift — the suite for this exact combination — renders every arm at `height: 8` (and one case at 20). Tests/TUIkitCollectionTests/ScrollViewRenderTests.swift and ScrollViewTests.swift never combine `.scrollIndicators(.visible)` with `.scrollIndicatorStyle(.text)`; the only small-viewport ScrollView test (ScrollViewTests.swift:266, height 3) is a horizontal-axis test with default indicators. […]
 
 **Fix.** Resolve the indicator decision once, before the reservation, the way `_ListCore` does: in `resolveChrome`, compute `let indicators = context.environment.verticalScrollIndicators(overflowing: true).fitting(contentHeight: viewportHeight - (bars.horizontal ? 1 : 0))` and derive both `textIndicators` and `reserves` from that, so a viewport too short for the pair reserves nothing and hands the content its full height.
 
@@ -449,7 +449,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** All public: `scrollIndicators(.visible)`, `scrollIndicatorStyle(.text)`, `scrollPosition(id:)` / `scrollPosition(_:anchor:)`, `ScrollViewProxy.scrollTo(_:anchor:)`.
 
-**Test gap.** Tests/TUIkitTests/ScrollPositionTests.swift does exercise `.scrollIndicatorStyle(.text)` (`bottomOfContentReportsTheFinalRow`, line 231) but always under the default `.automatic` visibility — the overwriting path, where the inset IS correct. […]
+**Test gap.** Tests/TUIkitCollectionTests/ScrollPositionTests.swift does exercise `.scrollIndicatorStyle(.text)` (`bottomOfContentReportsTheFinalRow`, line 231) but always under the default `.automatic` visibility — the overwriting path, where the inset IS correct. […]
 
 **Fix.** Make the inset reserve-aware at its single source, e.g. `private func edgeInset(drawsTextIndicators: Bool, reserving: Bool) -> Int { drawsTextIndicators && !reserving ? 1 : 0 }`, and pass `chrome.reservesIndicatorLines` from the two call sites (the seek stamp and the window) — the same distinction `handler.textIndicatorInset` already draws. Pass `indicatorsActive: textIndicators && !reserves` to `snapViewportToFocusedControl` for the same reason.
 
@@ -474,7 +474,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API: any `List(_:selection:content:footer:)` initializer (List.swift:187/210/232/324/345/367) whose footer view renders more than one line — a `Text` long enough to wrap at the list's interior width, a two-line `VStack`, a `ProgressView` with a label.
 
-**Test gap.** Tests/TUIkitTests/ListFooterInitTests.swift is the footer suite; every case uses the single short `Text("FOOT")` in a 26-wide, 10-high context with only 2 rows (`ListFooterInitTests.swift:26,36`), so the footer is always exactly 1 line and the list never overflows. […]
+**Test gap.** Tests/TUIkitCollectionTests/ListFooterInitTests.swift is the footer suite; every case uses the single short `Text("FOOT")` in a 26-wide, 10-high context with only 2 rows (`ListFooterInitTests.swift:26,36`), so the footer is always exactly 1 line and the list never overflows. […]
 
 **Fix.** Measure the footer instead of assuming its height: `_ListCore.renderToBuffer` already builds the same `ContainerView` via `renderContainer`, so replace `footer != nil ? 2 : 0` with `(footer.map { measureChild($0.padding(EdgeInsets(horizontal: 1, vertical: 0)), proposal: ProposedSize(width: interiorWidth, height: nil), context: context).height } ?? 0) + (footer != nil && showFooterSeparator ? 1 : 0)` — i.e. the footer's real height plus the separator — so `targetContentHeight` equals the `bodyAvailableHeight` the container will hand back.
 
@@ -496,7 +496,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Any `Table` with a `lineLimit(>1)` column that overflows its content area, under the default text indicator style — the shape `Sources/Example/Pages/TablePage.swift`'s multi-line details table and `Sources/Stress/Scenarios/MultiLineTable.swift` already have. No drag, no scroll and no special environment needed: just click the bottom indicator line.
 
-**Test gap.** Tests/TUIkitTests/TableMultiLineDragGeometryTests.swift is the only suite that checks multi-line band geometry, and it asserts the row under a pointer that is over the ROWS (it picks `sourceLine`/`targetLine` from lines that carry a row's repeated letter), never a pointer on the "▼" chrome line. […]
+**Test gap.** Tests/TUIkitCollectionTests/TableMultiLineDragGeometryTests.swift is the only suite that checks multi-line band geometry, and it asserts the row under a pointer that is over the ROWS (it picks `sourceLine`/`targetLine` from lines that carry a row's repeated letter), never a pointer on the "▼" chrome line. […]
 
 **Fix.** Feed the builder the heights actually drawn, or cap the band space at the row block: either accumulate the emitted per-row line counts in `composeMultiLineRows` and hand those back (as the single-line path does with `drawnHeights`), or pass `lineCount: indicatorLines + max(1, contentHeight - indicatorLines - (window.reservesBelow ? 1 : 0))` at Table.swift:1381 so `drawnBands`' own `end = min(lineCount, …)` trim stops before the indicator line.
 
@@ -518,7 +518,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API. `ListStyle` is a public protocol (ListStyle.swift:32) with `alternatingRowColors` as a requirement; neither built-in style enables it, so a conforming app style is the documented way in — exactly what `ListStyleTests.ZebraListStyle` does. `.listStyle(_:)` then routes it into `context.environment.listStyle`, and any list long enough to scroll shows the flip.
 
-**Test gap.** Tests/TUIkitTests/ListStyleTests.swift:191-201 is the only coverage. `alternatingRowColorsTintsRows` renders three rows (`Alpha`/`Bravo`/`Charlie`) into an unscrolled list and asserts only that the zebra render differs from the flat one and that no TEXT changed. It never scrolls, never checks WHICH rows are tinted, and no other suite touches `alternatingRowColors`.
+**Test gap.** Tests/TUIkitCollectionTests/ListStyleTests.swift:191-201 is the only coverage. `alternatingRowColorsTintsRows` renders three rows (`Alpha`/`Bravo`/`Charlie`) into an unscrolled list and asserts only that the zebra render differs from the flat one and that no TEXT changed. It never scrolls, never checks WHICH rows are tinted, and no other suite touches `alternatingRowColors`.
 
 **Fix.** Seed the counter from the row's absolute position rather than from zero. `buildPopulatedContent` holds the `RowSource`, whose `type(at:)` is O(1) and builds no content: walk back from `origin.offset` to the nearest `.header` (or index 0) counting `.content` rows, and pass that seed into both `composeRowLines` and `composeScrollbarRowLines` as the initial `sectionContentIndex`.
 
@@ -543,7 +543,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API only: `NavigationStack` + `navigationDestination(for:)` + `View.onKeyPress(keys:)`. It happens on every pushed screen, not just hidden-back ones; any screen-level Escape binding ("cancel edit", "close inspector", "confirm before leaving") is silently replaced by a pop.
 
-**Test gap.** Tests/TUIkitTests/NavigationStackTests.swift `escapePops()` (line 410) renders a stack with a bare `Text` destination and asserts `dispatcher.dispatch(KeyEvent(key: .escape)) == true` and `path.isEmpty` — it never puts a competing handler on the screen, so the ordering is not exercised. Tests/TUIkitTests/ModalEscapeRouteTests.swift covers the modal case, which is protected by `grabInput` and so cannot expose this. […]
+**Test gap.** Tests/TUIkitAppTests/NavigationStackTests.swift `escapePops()` (line 410) renders a stack with a bare `Text` destination and asserts `dispatcher.dispatch(KeyEvent(key: .escape)) == true` and `path.isEmpty` — it never puts a competing handler on the screen, so the ordering is not exercised. Tests/TUIkitAppTests/ModalEscapeRouteTests.swift covers the modal case, which is protected by `grabInput` and so cannot expose this. […]
 
 **Fix.** Register the bar's Escape handler before the destination renders (hoist the claim/registration above the `renderToBuffer(destination)` call in `renderScreen`, using the section id already computed by `enterSection`), so the screen's own handlers sit later in `handlers` and win the reversed walk. Equivalently, have the bar's closure decline when some handler registered inside the screen already claimed the key.
 
@@ -565,7 +565,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API: `ScrollView { LazyVStack { … } }` (or `VStack` on the windowed path) with focus inside the stack and a run of non-focusable rows longer than the window — `focusRingContinuations` is called unconditionally from VStack.swift:805, StackUniformWindow.swift:298 and StackAnchoredWindow.swift:475 whenever the focused row is in the stack.
 
-**Test gap.** Tests/TUIkitTests/WindowedFocusReachTests.swift `probeDoesNotDisturbTheRowsItWalks()` and Tests/TUIkitTests/FocusLifecycleCallbackTests.swift both use `onEditingChanged` as their oracle, which only covers the focus channel that was already isolated. No test puts `.onKeyPress`, `.statusBarItems` or `.keyboardShortcut` on a probed-but-undrawn row and then dispatches that key.
+**Test gap.** Tests/TUIkitCollectionTests/WindowedFocusReachTests.swift `probeDoesNotDisturbTheRowsItWalks()` and Tests/TUIkitControlTests/FocusLifecycleCallbackTests.swift both use `onEditingChanged` as their oracle, which only covers the focus channel that was already isolated. No test puts `.onKeyPress`, `.statusBarItems` or `.keyboardShortcut` on a probed-but-undrawn row and then dispatches that key.
 
 **Fix.** Give the probe the same three throwaways `isolatedForBackground()` uses — `probeContext.environment.keyEventDispatcher = KeyEventDispatcher()`, `.keyboardShortcutRegistry = KeyboardShortcutRegistry()`, `.statusBar = StatusBarState()` — or build the probe context by calling `isolatedForBackground()` and then substituting the `suppressesAutoFocus` scratch manager, so the two isolation sites cannot drift again.
 
@@ -609,7 +609,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Terminal input, which this file's own comments treat as untrusted and enumerate: "a corrupted ssh stream, `cat` of a crafted file, or another process sharing the terminal" (ASCIIDecimal.swift:12-16). The same threat model that justified the sibling fix reaches this line unchanged.
 
-**Test gap.** Tests/TUIkitCoreTests/KeyEventTests.swift:128 has a case for the `ASCIIDecimal` hardening of `extractModifiers` (the signed-modifier sequence) but no counterpart for the extended-key number; Tests/TUIkitTests/CSISequenceScanTests.swift and TerminalInputParsingTests.swift test well-formed parameter runs only, so no test feeds a signed or otherwise non-digit extended-key parameter.
+**Test gap.** Tests/TUIkitCoreTests/KeyEventTests.swift:128 has a case for the `ASCIIDecimal` hardening of `extractModifiers` (the signed-modifier sequence) but no counterpart for the extended-key number; Tests/TUIkitAppTests/CSISequenceScanTests.swift and TerminalInputParsingTests.swift test well-formed parameter runs only, so no test feeds a signed or otherwise non-digit extended-key parameter.
 
 **Fix.** Read the number with `ASCIIDecimal.value(of: numberBytes)` instead of `String(bytes:encoding:)` + `Int(_:)`, dropping the intermediate `String` as well as the sign.
 
@@ -634,7 +634,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API: any of the titled `List` initializers (`List(_ title:selection:content:)`, `List(_ titleKey:…)` — List.swift:183-594) combined with the public `.listStyle(.plain)` (`PlainListStyle.showsBorder == false`, ListStyle.swift:67). No private state involved.
 
-**Test gap.** `Tests/TUIkitTests/ListRowMouseRegionTests.swift` has `plainListRowHitAlignment` (line 199) which is exactly this test — but its `List(selection:)` has NO title, so `titleOverhead` is 0 and the bug is invisible. The other `.listStyle(.plain)` tests (`plainScrollbarRegionAlignment`, `plainSelectionBackgroundIsBounded`, `BorderAlphaTests:351`) are also untitled. […]
+**Test gap.** `Tests/TUIkitCollectionTests/ListRowMouseRegionTests.swift` has `plainListRowHitAlignment` (line 199) which is exactly this test — but its `List(selection:)` has NO title, so `titleOverhead` is 0 and the bug is invisible. The other `.listStyle(.plain)` tests (`plainScrollbarRegionAlignment`, `plainSelectionBackgroundIsBounded`, `BorderAlphaTests:351`) are also untitled. […]
 
 **Fix.** Add the borderless title line to the inset, e.g. pass the already-computed `titleOverhead` down and make line 1801 read `let topInset = (showsBorder ? 1 : 0) + (title != nil && !showsBorder ? 1 : 0) + paddingTop`, so the click/reorder/drop/overlay mapping uses the same chrome accounting as `targetContentHeight` at line 451.
 
@@ -703,7 +703,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** `View.appHeader(_:)` is public (Sources/TUIkitPresentation/Extensions/View+Presentation.swift:289) and the status bar takes arbitrary item views; `Spinner`, `ProgressView` (indeterminate) and every focus-breath producer emit `AnimatedCellRun`s. No private state is needed — two spinners, one in the header and one in the body, reproduce it.
 
-**Test gap.** `Tests/TUIkitTests/RunLoopFoldTests.swift` drives `foldPendingWork`/`serveAnimationTicks` for real, but its harness builds a bare `AppHeaderState()` (line 53) with no content, so no chrome run ever exists; `SpinningProbeApp` has only a content spinner. `Tests/TUIkitTests/RenderLoopReplayTests.swift` and `AnimationReplayTests.swift` construct `RenderActivity` values by hand and never distinguish chrome. […]
+**Test gap.** `Tests/TUIkitAppTests/RunLoopFoldTests.swift` drives `foldPendingWork`/`serveAnimationTicks` for real, but its harness builds a bare `AppHeaderState()` (line 53) with no content, so no chrome run ever exists; `SpinningProbeApp` has only a content spinner. `Tests/TUIkitAppTests/RenderLoopReplayTests.swift` and `AnimationReplayTests.swift` construct `RenderActivity` values by hand and never distinguish chrome. […]
 
 **Fix.** Keep the two sets apart on `RenderActivity`: add `chromeClocks: Set<AnimationClock>` populated from `chromeRuns` in `recordActivity`, keep `animatedClocks` as the union for the liveness test in `App.renderFrame` (line 514), and make `canReplay` return `false` for any clock in `chromeClocks` — so a frame with chrome runs always falls back to a full render, which is what 03d0a557 documented as the trade. `timeUntilNextChange` should also fold the chrome runs into its minimum so the render cadence matches their `frameDuration`.
 
@@ -908,7 +908,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API, default settings. `View.help(_:)` on any control in any app that has a status bar (the `q quit` system item is on by default, `quitBehavior = .always`). No configuration needed; `.bordered` is the default `ChromeStyle` and `.statusBar` the default `TooltipStyle`. Shipped 2026-09-09 in 9e8a8b40.
 
-**Test gap.** `Tests/TUIkitTests/HelpTooltipTests.swift` (suite "Tooltip in the status bar") constructs `StatusBar` directly and calls `renderToBuffer`, comparing `view.height` to `lines.count` — it never runs a frame through `RenderLoop.writeFrame`/`FrameDiffWriter`, so the moving `startRow` is never exercised. […]
+**Test gap.** `Tests/TUIkitAppTests/HelpTooltipTests.swift` (suite "Tooltip in the status bar") constructs `StatusBar` directly and calls `renderToBuffer`, comparing `view.height` to `lines.count` — it never runs a frame through `RenderLoop.writeFrame`/`FrameDiffWriter`, so the moving `startRow` is never exercised. […]
 
 **Fix.** Widen the invalidation from presence to geometry: remember the bar's height (or its start row) alongside `lastFrameHadStatusBar` and `diffWriter.invalidate()` whenever it changes — i.e. replace the `present != lastFrameHadStatusBar` guard at RenderLoop.swift:1122 with a comparison of the (present, statusBarHeight) pair, the same way `renderContent` already invalidates when `appHeader.height` differs from its estimate.
 
@@ -930,7 +930,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API: `View.appHeader { }` containing `Spinner()`, plus any `Spinner`/indeterminate `ProgressView` in the scene body. No flags, no configuration.
 
-**Test gap.** `Tests/TUIkitTests/RenderLoopReplayTests.swift` (`oneClockFrameStillReplays`, `phaseReaderReplaysNothing`, `stillFrameReplaysNothing`) constructs `RenderActivity` by hand, and `RenderActivity` has no field separating chrome clocks from content clocks — so the failing case cannot even be expressed in that suite. […]
+**Test gap.** `Tests/TUIkitAppTests/RenderLoopReplayTests.swift` (`oneClockFrameStillReplays`, `phaseReaderReplaysNothing`, `stillFrameReplaysNothing`) constructs `RenderActivity` by hand, and `RenderActivity` has no field separating chrome clocks from content clocks — so the failing case cannot even be expressed in that suite. […]
 
 **Fix.** Keep the two sets apart, as the commit message says they are: give `RenderActivity` a separate chrome-clock set (or make `animatedClocks` the content clocks and add `chromeClocks`), have `canReplay` consult only the content set, and have the liveness test in `AppRunner.renderFrame` (`!activity.animatedClocks.isEmpty`) consult the union.
 
@@ -952,7 +952,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Public API: `StatusBarState.showSystemItems = false` (public var) or `StatusBarState.clear()` (public func) via `@Environment(\.statusBar)`, plus `View.help(_:)`. The documented recipe for hiding the bar.
 
-**Test gap.** `Tests/TUIkitTests/HelpTooltipTests.swift` has exactly the test for this — `tooltipWithoutItems`, "A bar with no items at all still makes room for a tooltip, or the row is computed and then drawn nowhere" — but its helper builds `StatusBar(userItems: [], tooltipLines: [...])` and calls `renderToBuffer` directly. It never reaches `RenderLoop.render`, which is where the `statusBar.hasItems` gate lives, so it passes while the app path is broken.
+**Test gap.** `Tests/TUIkitAppTests/HelpTooltipTests.swift` has exactly the test for this — `tooltipWithoutItems`, "A bar with no items at all still makes room for a tooltip, or the row is computed and then drawn nowhere" — but its helper builds `StatusBar(userItems: [], tooltipLines: [...])` and calls `renderToBuffer` directly. It never reaches `RenderLoop.render`, which is where the `statusBar.hasItems` gate lives, so it passes while the app path is broken.
 
 **Fix.** Gate on the same condition the height and the core use: `statusBar.hasItems || !statusBar.tooltipLines.isEmpty ? buildStatusBarBuffer(...) : nil`.
 
@@ -1046,7 +1046,7 @@ not reproduced here; nothing below depends on them.
 
 **Reachable.** Pure public API and a standard SwiftUI shape: `.alert`/`.confirmationDialog` attached to content inside a `.sheet`/`.modal`/`.fullScreenCover` ("confirm before discarding"), a `.sheet` inside a `.sheet`, a `.popover` on a control inside a dialog, or a pop-up `Menu` / `.contextMenu` opened from inside a presented dialog (`presentMenuPopover` activates its section unconditionally too). […]
 
-**Test gap.** `ModalPresentationModifierTests.stackedModalsIsolateToTopmost` (Tests/TUIkitTests/ModalPresentationModifierTests.swift:290) builds a nested-modal tree but renders ONE frame and only clicks hit regions; the defect needs two consecutive frames to appear. `ModalFocusRestorationTests` only ever has one presentation. […]
+**Test gap.** `ModalPresentationModifierTests.stackedModalsIsolateToTopmost` (Tests/TUIkitAppTests/ModalPresentationModifierTests.swift:290) builds a nested-modal tree but renders ONE frame and only clicks hit regions; the defect needs two consecutive frames to appear. `ModalFocusRestorationTests` only ever has one presentation. […]
 
 **Fix.** Give the presenters the same guard `NavigationStack.enterSection` uses: activate only on the transition into the presentation, not on every frame. E.g. keep an `wasActivated` flag in the presenter's manual StateStorage box (or add a `FocusManager.activateSectionIfNeeded(id:)` that no-ops when `id` is already in `sections` and was activated this session) and call `registerSection` every pass but `activateSection` only when the surface has just been presented. Apply to ModalPresentationModifier.swift:138, AlertPresentationModifier.swift:129, PopoverPresentationModifier.swift:162 and MenuPopover.swift:466.
 

@@ -66,7 +66,7 @@ struct ChromeGlyphAdvanceTests {
 
     private static let records: [HostRecord] = {
         let directory = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // TUIkitTests/
+            .deletingLastPathComponent()  // TUIkitAppTests/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // repository root
             .appendingPathComponent("Tools/TerminalProbes/data")

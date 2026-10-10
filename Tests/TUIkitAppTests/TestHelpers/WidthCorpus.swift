@@ -53,7 +53,7 @@ struct WidthCorpusParityTests {
     func swiftMatchesJSON() throws {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()  // TestHelpers/
-            .deletingLastPathComponent()  // TUIkitTests/
+            .deletingLastPathComponent()  // TUIkitAppTests/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // repository root
             .appendingPathComponent("Tools/TerminalProbes/data/width-corpus.json")

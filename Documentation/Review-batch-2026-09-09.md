@@ -372,7 +372,7 @@ second pass. The DocC *link* rot is already fixed; these are the sentences.
 ### design-records-b
 
 - **`Documentation/Locating things without drawing them.md:6`** (high) — says: "**Status:** proposed. Nothing here is implemented except the prerequisite fix in §11." — reinforced by §1 ("Type this into TUIkit today … Six buttons work. The other 494 cannot be focused or Tabbed to", lines 18–31) and
-  <br>truth: Stages 1, 3, 4 and 6 of this very design have shipped, and the acceptance tests name the document and the stage: Tests/TUIkitTests/WindowedFocusReachTests.swift:4-20 is "Stage 1 acceptance of 'Locating things without drawing them' (§1, §5d): every row of a windowed lazy stack is reachable by focus", with the suite lite
+  <br>truth: Stages 1, 3, 4 and 6 of this very design have shipped, and the acceptance tests name the document and the stage: Tests/TUIkitCollectionTests/WindowedFocusReachTests.swift:4-20 is "Stage 1 acceptance of 'Locating things without drawing them' (§1, §5d): every row of a windowed lazy stack is reachable by focus", with the suite lite
 
 - **`Documentation/Parity-decisions-pending.md:153`** (high) — says: "`FocusRegistration` is not the universal seam it looks like: `NavigationSplitView.swift:768` and `Button.swift` register with the focus manager directly. Any help-on-focus mechanism routed only through `FocusRegistratio
   <br>truth: Button.swift does NOT register directly and has not since 2026-02 (`git log -S "focusManager.register" -- Sources/TUIkitFoundation/Views/Button.swift` ends at e2474a54, 2026-02-13). It goes through the seam: `FocusRegistration.register(context:handler:focusID:)` at Sources/TUIkitFoundation/Views/Button.swift:354, `FocusRegistration.isFocu
@@ -525,10 +525,10 @@ second pass. The DocC *link* rot is already fixed; these are the sentences.
 
 ### test-docs
 
-- **`Tests/TUIkitTests/TerminalLedgerConformanceTests.swift:42`** (low) — says: On iTerm2, Ghostty and Warp it equals `advance` for every corpus cluster; on Apple Terminal it diverges on 25, and the walk closes the gap per class with measured move sequences...
+- **`Tests/TUIkitAppTests/TerminalLedgerConformanceTests.swift:42`** (low) — says: On iTerm2, Ghostty and Warp it equals `advance` for every corpus cluster; on Apple Terminal it diverges on 25, and the walk closes the gap per class with measured move sequences...
   <br>truth: The committed measurement record this comment describes, Tools/TerminalProbes/data/apple-terminal-455.1-alternate-landing.json, has 28 entries where advance != landing today, not 25. The '25' was correct when this doc was written (commit ea452100b / de28a2bb8, 2026-08-26/27, when the file held 69 measurements), but com
 
-- **`Tests/TUIkitTests/TerminalLedgerConformanceTests.swift:295`** (low) — says: a backward move on Apple Terminal moves the paint position by an amount that depends on what the glyph did, so `CUB(advance − claim)` lands seven of twenty-five clusters somewhere other than the claim.
+- **`Tests/TUIkitAppTests/TerminalLedgerConformanceTests.swift:295`** (low) — says: a backward move on Apple Terminal moves the paint position by an amount that depends on what the glyph did, so `CUB(advance − claim)` lands seven of twenty-five clusters somewhere other than the claim.
   <br>truth: This is the same measurement referenced at line 42 (written in the same original commit, ea452100b, 2026-08-26, when the Apple Terminal record held 69 measurements and 25 divergences). The record has since grown to 78 measurements / 28 divergences (see finding above), so the 'twenty-five' denominator is stale in the sa
 
 ### undocumented-public-api
