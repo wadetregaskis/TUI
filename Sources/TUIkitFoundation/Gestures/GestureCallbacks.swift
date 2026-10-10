@@ -19,6 +19,7 @@ extension Gesture {
     /// - Parameter action: The action to perform when this gesture ends. The
     ///   `action` closure's parameter contains the final value of the gesture.
     /// - Returns: A gesture that triggers `action` when the gesture ends.
+    @inlinable
     public func onEnded(_ action: @escaping (Value) -> Void) -> _EndedGesture<Self> {
         _EndedGesture(content: self, action: action)
     }
@@ -71,9 +72,25 @@ extension Gesture where Value: Equatable {
 
 /// A gesture that runs an action when its content ends — what
 /// ``Gesture/onEnded(_:)`` returns.
+///
+/// ``Gesture/onEnded(_:)`` is `@inlinable` because
+/// ``View/onTapGesture(count:perform:)`` is: an app's specialised copy of
+/// the tap modifier then builds this struct itself, from metadata it caches,
+/// where calling into TUIkitFoundation's unspecialised `onEnded` looked
+/// `_EndedGesture<TapGesture>`'s metadata up at run time on every call
+/// (CONTRIBUTING.md, "Crossing a module boundary").
 public struct _EndedGesture<Content: Gesture>: Gesture {
-    let content: Content
-    let action: (Content.Value) -> Void
+    @usableFromInline let content: Content
+    @usableFromInline let action: (Content.Value) -> Void
+
+    /// The memberwise initializer, spelled out to be `@inlinable` for
+    /// ``Gesture/onEnded(_:)``: the synthesized one cannot carry the
+    /// attribute, and a call to it would bring the metadata lookup back.
+    @inlinable
+    init(content: Content, action: @escaping (Content.Value) -> Void) {
+        self.content = content
+        self.action = action
+    }
 
     public typealias Value = Content.Value
     public typealias Body = Never
