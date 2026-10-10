@@ -37,4 +37,12 @@ struct UsableFromInlineSendabilityTests {
         requireSendable(ResolvedScrollIndicators.self)
         requireSendable(SelectionContextMenuReference.self)
     }
+
+    /// Module split step C2 made ``ScrollRowWindow`` `@usableFromInline`, for a
+    /// `Table` in TUIkitTables to inline its resolver, and stated `Sendable` with
+    /// it.
+    @Test("The scroll row window step C2 made @usableFromInline is still Sendable")
+    func scrollRowWindowStaysSendable() {
+        requireSendable(ScrollRowWindow.self)
+    }
 }

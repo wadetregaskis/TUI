@@ -248,6 +248,12 @@ extension ItemListHandler {
 /// and `Table` so it cannot drift between them (the `Table`'s window resolver
 /// learned it first, and the `List` spent a line on "▲ 1 more row above"
 /// hiding the very line it was reporting until it learned it too).
+///
+/// `@usableFromInline`, and ``absorbing(offset:topClip:firstRowHeight:)``
+/// `@inlinable`, for
+/// ``ScrollRowWindow/resolve(scrollOffset:count:contentHeight:topClip:drawsTextIndicators:alwaysDrawsIndicators:height:)``,
+/// which a `Table` in TUIkitTables inlines (module split step C2).
+@usableFromInline
 enum ScrollWindowOrigin {
 
     /// The origin a viewport is DRAWN from: the offset and top clip after
@@ -285,6 +291,7 @@ enum ScrollWindowOrigin {
     /// - Parameter firstRowHeight: Row 0's height in lines, consulted only at
     ///   offset 1, hence `@autoclosure`: a `List` resolves it by building the row,
     ///   which is not worth doing on the frames that fail the offset test first.
+    @inlinable
     static func absorbing(
         offset: Int, topClip: Int, firstRowHeight: @autoclosure () -> Int
     ) -> (offset: Int, topClip: Int) {

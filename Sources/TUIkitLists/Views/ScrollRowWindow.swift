@@ -25,9 +25,18 @@ import TUIkitFoundation
 /// The rule: put the top row's hidden lines outside the viewport, take a line for
 /// an "above" indicator if one will be drawn, fill, and — if rows remain past
 /// that window — take another for the "below" indicator and fill again.
-package struct ScrollRowWindow {
+///
+/// `@usableFromInline`, with its fields and an explicit initializer, so that
+/// ``resolve(scrollOffset:count:contentHeight:topClip:drawsTextIndicators:alwaysDrawsIndicators:height:)``
+/// can be `@inlinable`: a `Table` in TUIkitTables calls it (module split step
+/// C2), and an `@inlinable` member of a type that is only `package` gets no
+/// body another module can inline (CONTRIBUTING.md, "Crossing a module
+/// boundary"). `Sendable` is stated, since the compiler infers it only for a
+/// type that is not usable from inline code.
+@usableFromInline
+package struct ScrollRowWindow: Sendable {
     /// The rows on screen.
-    package let range: Range<Int>
+    @usableFromInline package let range: Range<Int>
     /// Whether anything is hidden above the window. A line-granularity top clip
     /// counts: the first row is partially hidden, which is content above even
     /// though no whole row is.
@@ -35,11 +44,11 @@ package struct ScrollRowWindow {
     /// NOT gated on whether indicators are drawn — a scrollbar wants to know
     /// this too. What the gate decides is the RESERVATION, which is already
     /// applied to ``range``.
-    package let showsAbove: Bool
+    @usableFromInline package let showsAbove: Bool
     /// Whether anything is hidden below it.
-    package let showsBelow: Bool
+    @usableFromInline package let showsBelow: Bool
     /// Lines of the top row hidden above the viewport, after any absorb.
-    package let topClip: Int
+    @usableFromInline package let topClip: Int
     /// Whether a line was taken out of the content area for an "N more above"
     /// indicator — and therefore whether one must be DRAWN.
     ///
@@ -51,9 +60,25 @@ package struct ScrollRowWindow {
     /// affordance rather than for a hint. Reserved and drawn are ONE answer, so
     /// they cannot disagree — which is the shape of every off-by-one this rule
     /// has produced (`f55a9f92`, and a blank line at the bottom of a table).
-    package let reservesAbove: Bool
+    @usableFromInline package let reservesAbove: Bool
     /// The same for the "N more below" line.
-    package let reservesBelow: Bool
+    @usableFromInline package let reservesBelow: Bool
+
+    /// The memberwise initializer, written out: a synthesized one is internal,
+    /// and ``resolve(scrollOffset:count:contentHeight:topClip:drawsTextIndicators:alwaysDrawsIndicators:height:)``,
+    /// inlined into a `Table` in TUIkitTables, makes the value there.
+    @inlinable
+    package init(
+        range: Range<Int>, showsAbove: Bool, showsBelow: Bool, topClip: Int,
+        reservesAbove: Bool, reservesBelow: Bool
+    ) {
+        self.range = range
+        self.showsAbove = showsAbove
+        self.showsBelow = showsBelow
+        self.topClip = topClip
+        self.reservesAbove = reservesAbove
+        self.reservesBelow = reservesBelow
+    }
 
     /// Resolves the window.
     ///
@@ -93,6 +118,15 @@ package struct ScrollRowWindow {
     /// line it cost `kitchensink` +1.3% (`+0.4% … +3.0%`) and `megalist` +0.7%,
     /// with the same closure-per-row shape as the value memo's; inlined, every
     /// list and table shape measures indistinguishable.
+    ///
+    /// `@inlinable` too, since module split step C2 put two of the three call
+    /// sites, a `Table`'s, in TUIkitTables: `@inline(__always)` alone does not
+    /// cross a module boundary, so each table frame called this out of line and
+    /// its `height` closure indirectly for every row entering the window (a
+    /// release `Stress` showed both call sites in `_TableCore`). Everything the
+    /// body names is `@usableFromInline` for it: this type, its initializer
+    /// and ``ScrollWindowOrigin``.
+    @inlinable
     @inline(__always)
     package static func resolve(
         scrollOffset: Int,
