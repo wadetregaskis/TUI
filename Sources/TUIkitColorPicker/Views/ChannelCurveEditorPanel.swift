@@ -9,7 +9,6 @@ import TUIkitImage
 import TUIkitNumericControls
 import TUIkitPickers
 import TUIkitStyling
-import TUIkitTextInput
 
 // MARK: - Channel Curve Editor Panel
 

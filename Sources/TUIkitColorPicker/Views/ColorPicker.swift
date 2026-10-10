@@ -7,7 +7,6 @@
 import TUIkitFoundation
 import TUIkitNumericControls
 import TUIkitPresentation
-import TUIkitTextInput
 
 // MARK: - Color Picker
 

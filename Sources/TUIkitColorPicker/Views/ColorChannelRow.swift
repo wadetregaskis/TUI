@@ -9,7 +9,6 @@
 
 import TUIkitFoundation
 import TUIkitNumericControls
-import TUIkitTextInput
 
 // MARK: - One channel's row
 
