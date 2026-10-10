@@ -164,7 +164,7 @@ public struct GaugeStyleConfiguration {
     /// during rendering, never by client code, so this is `package`, not
     /// public, as SwiftUI's `GaugeStyleConfiguration` publishes no initializer
     /// either; spelled out because the synthesized one is internal and `Gauge`
-    /// is TUIkitTextInput's (until step C7 peels TUIkitNumericControls).
+    /// is TUIkitNumericControls' (TUIkitTextInput's from step B7 until step C7).
     package init(
         value: Double, label: AnyView, currentValueLabel: AnyView?, minimumValueLabel: AnyView?,
         maximumValueLabel: AnyView?

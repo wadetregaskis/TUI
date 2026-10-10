@@ -10,14 +10,14 @@ own that TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TU
 TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b),
 TUIkitBitmaps (step B5c), TUIkitTextInput (step B7), TUIkitPresentation (step C1), TUIkitTables and TUIkitTabs
 (steps C2 and C3, which also depend on TUIkitLists), TUIkitGrid (step C4), TUIkitForms (step C6), TUIkitSearch
-(step C5, which also depends on TUIkitTextInput and TUIkitPickers) and TUIkitPickers (step C8), targets of their own
-that depend on TUIkitFoundation and that the umbrella re-exports. TUIkitTextInput is a **coarse group**: one target
-compiling several planned modules' directories, `Sources/TUIkitTextInput` and `TUIkitNumericControls`, until step C7
-peels the second (and `TUIkitForms`, `TUIkitSearch` and `TUIkitPickers` until steps C6, C5 and C8 peeled them).
-TUIkitNavigation was one, over
-`Sources/TUIkitNavigation` and `Sources/TUIkitPresentation`, until step C1 peeled the second into a target of its own,
-and TUIkitLists another, over `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`, until steps C2 to
-C4 peeled the last three (see [Coarse groups](#coarse-groups)).
+(step C5, which also depends on TUIkitTextInput and TUIkitPickers), TUIkitPickers (step C8) and TUIkitNumericControls
+(step C7), targets of their own that depend on TUIkitFoundation and that the umbrella re-exports. Every planned module
+is a target of its own since step C7, at its default path. Three were **coarse groups** until then, one target
+compiling several planned modules' directories: TUIkitNavigation over `Sources/TUIkitNavigation` and
+`Sources/TUIkitPresentation` until step C1 peeled the second into a target of its own, TUIkitLists over
+`Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4 peeled the last three, and
+TUIkitTextInput over `Sources/TUIkitTextInput`, `TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and
+`TUIkitNumericControls` until steps C5 to C8 peeled the last four (see [Coarse groups](#coarse-groups)).
 `TUIkitFoundation` is an ordinary target at `Sources/TUIkitFoundation` since step B7. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
@@ -97,18 +97,19 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 `TUIkitStrings: TUIkitStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
 
 From step A5 to step B7 the one target that compiled them (`TUIkitFoundation` from step B1) named the module
-directories in its `sources:` (Package.swift; its `directories:` from step B6, which the manifest passes to SwiftPM
-as `sources:`, with every other directory of the manifest's `sourcesDirectories` list as `exclude:`); a coarse group
-still does. So a module directory added to `rules.json` and to no target (its own, or a group's `directories:`) is
-compiled by no target, and its declarations, public API included, are simply missing. Until step B2 carved it, TUIkitStrings was listed below its
+directories in its `sources:` (Package.swift; its `directories:` from step B6, which the manifest passed to SwiftPM
+as `sources:`, with every other directory of the manifest's `sourcesDirectories` list as `exclude:`), and a coarse
+group did until step C7. Since then every module is a target at its default path, `Sources/<module>`. So a module
+directory added to `rules.json` and to no target is compiled by no target, and its declarations, public API
+included, are simply missing. Until step B2 carved it, TUIkitStrings was listed below its
 own directory, one entry per subdirectory and per `Localization/*.swift` file, because a resource may not sit under
 a declared source path, so a new file there was the same case; its own target takes every file in its directory now.
-SwiftPM says nothing about such a directory once it is in `sourcesDirectories`, as the manifest asks of every
-directory under Sources: each target over several directories then excludes it. Left out of that list, it is
-reported, but only as a warning ("found N file(s) which are unhandled"), and CI does not fail on warnings. This
-check fails either way, and in the first case it is the only signal. It reads the index: a file with no unit, older
-than the newest unit the store holds, was there when the last build compiled the others, and that build did not
-compile it. Name it in Package.swift (its module's own target, or its coarse group's `directories:`). A file with no unit that is NEWER than the last build is only new, and is reported as stale
+SwiftPM says nothing about such a directory: no target's path covers it (while a target over several directories
+took `path: "Sources"`, it was reported, but only as a warning, "found N file(s) which are unhandled", and CI does not
+fail on warnings). This check is the only signal. It reads the index: a file with no unit, older than the newest unit
+the store holds, was there when the last build compiled the others, and that build did not compile it. Give its
+module a target of its own in Package.swift. A file with no unit that is NEWER than the last build is only new, and
+is reported as stale
 (rebuild, then check); so is one whose build failed before reaching it.
 
 ### `upward`: a reference its module cannot see
@@ -212,8 +213,8 @@ hold only imports. And it re-exports, by name, every module carved out above `TU
 TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
 TUIkitMenus since step B5b, TUIkitBitmaps since step B5c, TUIkitTextInput since step B7, TUIkitPresentation since
 step C1, TUIkitTables since step C2, TUIkitTabs since step C3, TUIkitGrid since step C4, TUIkitForms since step
-C6, TUIkitSearch since step C5, TUIkitPickers since step C8). TUIkitFoundation cannot re-export a module built on
-it, so `import TUIkit` has it
+C6, TUIkitSearch since step C5, TUIkitPickers since step C8, TUIkitNumericControls since step C7). TUIkitFoundation
+cannot re-export a module built on it, so `import TUIkit` has it
 only through the umbrella.
 Reaching it through a sibling instead compiles the same: TUIkitApp and TUIkitPresentation re-export TUIkitChrome,
 which they depend on, for good (TUIkitNavigation did from step B5b until step C1, only because its target compiled
@@ -223,11 +224,12 @@ containers'), so an umbrella without TUIkitPresentation's line still gives an ap
 umbrella re-exports TUIkitNavigation now. It re-exports TUIkitTabs since step C3, which depends on TUIkitLists and
 re-exports it (plan §4), as TUIkitColorPicker did directly from step B6 until then. So an umbrella without TUIkitTabs'
 line still gives an app `TUIkit.TabView`, and without TUIkitLists' line `TUIkit.List`; TUIkitTables re-exports
-TUIkitLists too since step C2, TUIkitSearch re-exports TUIkitTextInput since step C5, and TUIkitSearch and
-TUIkitColorPicker re-export TUIkitPickers since step C8. Nothing but the umbrella re-exports TUIkitTables,
-TUIkitGrid, TUIkitForms or TUIkitSearch. No build notices a missing line; this check does.
-A coarse group's other members (TUIkitNumericControls, until its peel) have no Exports.swift, so they
-re-export nothing and are not asked for,
+TUIkitLists too since step C2, TUIkitSearch re-exports TUIkitTextInput since step C5, TUIkitSearch and
+TUIkitColorPicker re-export TUIkitPickers since step C8, and TUIkitColorPicker re-exports TUIkitNumericControls since
+step C7. Nothing but the umbrella re-exports TUIkitTables, TUIkitGrid, TUIkitForms or TUIkitSearch. No build notices
+a missing line; this check does.
+A coarse group's other members had no Exports.swift until their peels (the last at step C7), so they re-exported
+nothing and were not asked for,
 as a module TUIkitFoundation compiled was not until step B7; nor is a module below
 TUIkitFoundation (TUIkitStrings), which TUIkitFoundation re-exports. Fix it by adding `@_exported import` of the
 module to `Sources/TUIkit/Exports.swift`.
@@ -274,10 +276,10 @@ to a release Stress (1,482 call sites at B3, 1,672 at B6). So a file of such a m
 declarations it uses: TUIkitFoundation (whose re-exports bring the lower modules and the side modules), and any other
 carved module (a ColorPicker file that lays out a `TabView` imports TUIkitTabs).
 
-The modules are the targets as the build compiled them: the index unit of each file names its target, so a file of
-`Sources/TUIkitNumericControls` is TUIkitTextInput's until step C7, and needs no import to use a declaration of
-`Sources/TUIkitTextInput` (as a file of `Sources/TUIkitTables` or `TUIkitTabs` was TUIkitLists' until step C2 or C3; since then each imports
-TUIkitLists where it uses it). A reference to a lower
+The modules are the targets as the build compiled them: the index unit of each file names its target, so a file of a
+coarse group's member was the group's until its peel, and needed no import to use a declaration of the group's own
+directory (as a file of `Sources/TUIkitTables` or `TUIkitTabs` was TUIkitLists' until step C2 or C3; since then each
+imports TUIkitLists where it uses it). Since step C7 each module's files are its own target's. A reference to a lower
 module (TUIkitCore, TUIkitView …) counts too; any import that re-exports it answers it. Today that is
 `import TUIkitFoundation`, whose `Exports.swift` re-exports every lower and side module: no lower module re-exports
 another in this tree, though the check would follow one that did (`reexports_of`). One finding per file and
@@ -292,9 +294,9 @@ give the entry the key the report now prints instead.
 
 ## Coarse groups
 
-Phase B carves some planned modules as a **coarse group**: one target that compiles several modules' directories
+Phase B carved some planned modules as a **coarse group**: one target that compiled several modules' directories
 (declared with `directories:` in Package.swift: `path: "Sources"`, each of its directories in `sources:`, every other
-directory under Sources in `exclude:`), and phase C peels each member into a target of its own. Step B5's
+directory under Sources in `exclude:`), and phase C peeled each member into a target of its own. Step B5's
 `TUIkitNavigation` compiled `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peeled the
 second into `TUIkitPresentation`, which left `TUIkitNavigation` an ordinary target at its default path; step B6's
 `TUIkitLists` compiled `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4
@@ -302,9 +304,11 @@ peeled the last three into `TUIkitTables` and `TUIkitTabs`, each built on `TUIki
 `TUIkitLists` an ordinary target at its default path; step
 B7's `TUIkitTextInput` compiled `Sources/TUIkitForms` until step C6 peeled it into `TUIkitForms`, built on
 `TUIkitFoundation` alone, `Sources/TUIkitSearch` until step C5 peeled it into `TUIkitSearch`, built on
-`TUIkitTextInput`, and `Sources/TUIkitPickers` until step C8 peeled it into `TUIkitPickers`, built on
-`TUIkitFoundation` alone, and compiles `Sources/TUIkitTextInput` and `TUIkitNumericControls` until step C7. Nothing
-here changes for a group, at its carve or at its peels:
+`TUIkitTextInput`, `Sources/TUIkitPickers` until step C8 peeled it into `TUIkitPickers`, built on `TUIkitFoundation`
+alone, and `Sources/TUIkitNumericControls` until step C7 peeled it into `TUIkitNumericControls`, built on
+`TUIkitFoundation` alone, which left `TUIkitTextInput` an ordinary target at its default path, the last: Package.swift
+lost its `directories:` helper and its `sourcesDirectories` list with it. Nothing here changed for a group, at its
+carve or at its peels:
 
 - `map.json` and the findings name the planned module. A file under `Sources/TUIkitPresentation` is
   `TUIkitPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here: at step
@@ -312,7 +316,7 @@ here changes for a group, at its carve or at its peels:
   changed module.
 - The index records the group's target as the module of each of its files' units. The tool reads the units of every
   module `rules.json` names, so it reads them whichever of those targets compiled them. A member's directory that the
-  group's `directories:` leaves out is compiled by no target, so each of its files is an `uncompiled` finding.
+  group's `directories:` left out was compiled by no target, so each of its files was an `uncompiled` finding.
 - The checks hold the members to the planned map, as they held the modules TUIkitFoundation compiled together until
   step B7. That is stricter than the build, never looser. The group's target sees everything its members' planned
   dependencies give them (TUIkitFoundation, and TUIkitChrome for TUIkitPresentation from step B5b until C1), so what
@@ -374,8 +378,7 @@ not drag declarations down.
 - **`accepted`**: `{check, key, why}`. A reviewed finding that stays. The key is what the report prints.
 
 **Renaming a module.** Module names live in `rules.json`, the generated `map.json` and the directory names: rename
-it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: `sourcesDirectories`, and the module's
-own target, or its coarse group's `directories:`), then
+it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: the module's own target), then
 `assign --write`. Names are free to change until per-module products
 ship.
 

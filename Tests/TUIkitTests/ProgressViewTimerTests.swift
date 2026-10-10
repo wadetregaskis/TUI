@@ -13,7 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
-@testable import TUIkitTextInput
+@testable import TUIkitNumericControls
 
 @MainActor
 @Suite("ProgressView(timerInterval:)")

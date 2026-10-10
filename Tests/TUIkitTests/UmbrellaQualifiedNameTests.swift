@@ -121,9 +121,8 @@
 //  Step B7 carved the TextInput group the same way as B5's and B6's: one
 //  module, TUIkitTextInput, that compiled five directories of the planned
 //  split, Sources/TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch
-//  and TUIkitNumericControls, until steps C5 to C8 peel the last four into
-//  modules of their own (steps C6, C5 and C8 have peeled the forms, search
-//  and the pickers, below). It took the last directories out of
+//  and TUIkitNumericControls, until steps C5 to C8 peeled the last four into
+//  modules of their own (below). It took the last directories out of
 //  TUIkitFoundation. The ninth
 //  test spells a type from each directory through the umbrella and draws it,
 //  the text field beside an app's own `TextField` (the case an app meets: a
@@ -157,6 +156,14 @@
 //  editor's channel, a segmented picker is the scope bar), so the umbrella's
 //  own line for it is the `umbrella` check's, and the reflected names catch
 //  a directory left compiling in TUIkitTextInput.
+//
+//  Step C7 peeled Sources/TUIkitNumericControls, the group's last member, out
+//  into TUIkitNumericControls, built on TUIkitFoundation alone, which left
+//  TUIkitTextInput compiling its own directory alone. The ninth test's gauge,
+//  and the track and indeterminate styles among the reflected names, read
+//  `TUIkitNumericControls.` since; they read `TUIkitTextInput.` from B7 to
+//  C7. TUIkitColorPicker re-exports TUIkitNumericControls too (its editors are
+//  sliders), so the umbrella's own line for it is the `umbrella` check's.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -579,8 +586,9 @@ struct UmbrellaQualifiedNameTests {
         // step C5 peeled it into TUIkitSearch: a member an app's extension adds
         // to a search field placement.
         #expect(TUIkit.SearchFieldPlacement.automatic.b7Marker == 7)
-        // From Sources/TUIkitNumericControls (until step C7): a gauge, drawn
-        // with its label.
+        // From Sources/TUIkitNumericControls, which compiled into the same
+        // module until step C7 peeled it into TUIkitNumericControls: a gauge,
+        // drawn with its label.
         let gauge = TUIkit.Gauge(value: 0.5) { TUIkit.Text(verbatim: "b7 gauge") }
         let gaugeLines = drawn(gauge, height: 2)
         #expect(gaugeLines.contains("b7 gauge"), "\(gaugeLines)")
@@ -591,7 +599,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.RadioButtonOrientation.self) == "TUIkitPickers.RadioButtonOrientation")
         #expect(String(reflecting: TUIkit.AutomaticFormStyle.self) == "TUIkitForms.AutomaticFormStyle")
         #expect(String(reflecting: TUIkit.SearchFieldPlacement.self) == "TUIkitSearch.SearchFieldPlacement")
-        #expect(String(reflecting: TUIkit.TrackStyle.self) == "TUIkitTextInput.TrackStyle")
+        #expect(String(reflecting: TUIkit.TrackStyle.self) == "TUIkitNumericControls.TrackStyle")
     }
 
     @Test("A TUIkit type's reflected name is its declaring module's, not the umbrella's")
@@ -665,17 +673,17 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.AsyncImagePhase.self) == "TUIkitBitmaps.AsyncImagePhase")
         // Step B7 carved these out (decisions SPB7, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B7. A type from
-        // Sources/TUIkitNumericControls names TUIkitTextInput, the module that
-        // compiles it, until step C7 gives it a module of its own; one from
         // Sources/TUIkitForms names TUIkitForms since step C6, one from
         // Sources/TUIkitSearch TUIkitSearch since step C5 (decisions SPC5,
         // "What an app can see"), and one from Sources/TUIkitPickers
-        // TUIkitPickers since step C8 (decisions SPC7, "What an app can see"):
-        // each read `TUIkitTextInput.` from B7 until its peel.
+        // TUIkitPickers since step C8 and one from
+        // Sources/TUIkitNumericControls TUIkitNumericControls since step C7
+        // (decisions SPC7, "What an app can see"): each read
+        // `TUIkitTextInput.` from B7 until its peel.
         #expect(String(reflecting: TUIkit.TabWidth.self) == "TUIkitTextInput.TabWidth")
         #expect(String(reflecting: TUIkit.DatePickerComponents.self) == "TUIkitPickers.DatePickerComponents")
         #expect(String(reflecting: TUIkit.GroupedFormStyle.self) == "TUIkitForms.GroupedFormStyle")
         #expect(String(reflecting: TUIkit.SearchFieldIconPlacement.self) == "TUIkitSearch.SearchFieldIconPlacement")
-        #expect(String(reflecting: TUIkit.IndeterminateStyle.self) == "TUIkitTextInput.IndeterminateStyle")
+        #expect(String(reflecting: TUIkit.IndeterminateStyle.self) == "TUIkitNumericControls.IndeterminateStyle")
     }
 }

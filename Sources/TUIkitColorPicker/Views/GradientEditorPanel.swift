@@ -6,6 +6,7 @@
 
 import Foundation
 import TUIkitFoundation
+import TUIkitNumericControls
 import TUIkitStyling
 import TUIkitTextInput
 

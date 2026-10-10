@@ -63,7 +63,7 @@ package enum GradientRaster {
         package var format: KittyGraphics.PixelFormat { .rgb }
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitTextInput's track and indeterminate rasters
+        /// is internal and TUIkitNumericControls' track and indeterminate rasters
         /// make these.
         package init(bytes: [UInt8], width: Int, height: Int) {
             self.bytes = bytes

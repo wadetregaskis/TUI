@@ -539,8 +539,8 @@ anything at run time:
   (step B7), `TUIkitPresentation` (step C1, peeled out of
   `TUIkitNavigation`), `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
   (steps C2 to C4, peeled out of `TUIkitLists`), and `TUIkitForms`,
-  `TUIkitSearch` and `TUIkitPickers` (steps C6, C5 and C8, peeled out of
-  `TUIkitTextInput`).
+  `TUIkitSearch`, `TUIkitPickers` and `TUIkitNumericControls` (steps C5 to
+  C8, peeled out of `TUIkitTextInput`).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
   console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
@@ -559,24 +559,25 @@ anything at run time:
   transitions' and the visual, scroll and colour effects', `TUIkitMenus` for
   `Menu`'s, `ControlGroup`'s and `.contextMenu`'s, `TUIkitBitmaps` for the
   bitmap path's (`_ImageCore`, `AsyncImage`'s decoding, the image options'
-  environment, asset catalogues), `TUIkitTextInput` for the text inputs' and
-  numeric controls' (`TextFieldHandler`, `TextEditorHandler`, the field
-  renderer, `SliderHandler`, `TrackRenderer`), `TUIkitPickers` for the
-  pickers' (`_PickerMenuCore`, the radio group's handler, the date picker's
-  model), `TUIkitForms` for the forms'
+  environment, asset catalogues), `TUIkitTextInput` for the text inputs'
+  (`TextFieldHandler`, `TextEditorHandler`, the field renderer),
+  `TUIkitPickers` for the pickers' (`_PickerMenuCore`, the radio group's
+  handler, the date picker's model), `TUIkitNumericControls` for the numeric
+  controls' (`SliderHandler`, `TrackRenderer`, the indeterminate renderer),
+  `TUIkitForms` for the forms'
   (`FormContentExtraction`, a card's or panel's title), `TUIkitSearch` for
   search's (the search presentation, dismissal and scope bar),
   `TUIkitStrings` or
-  `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: a directory under
-  `Sources/` with a target of its own in `Package.swift` is that module, with
-  one exception, the coarse group, a target that names several directories:
-  `Sources/TUIkitNumericControls` compiles into `TUIkitTextInput` until step
-  C7.
+  `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: each directory under
+  `Sources/` is a target of its own in `Package.swift`, at its default path,
+  since step C7 peeled the last member out of the last coarse group, a
+  target that named several directories.
   (`Sources/TUIkitPresentation` compiled into `TUIkitNavigation` from step
   B5 until step C1, `Sources/TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
   into `TUIkitLists` from step B6 until steps C2 to C4, and
-  `Sources/TUIkitForms`, `TUIkitSearch` and `TUIkitPickers` into
-  `TUIkitTextInput` from step B7 until steps C6, C5 and C8.)
+  `Sources/TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and
+  `TUIkitNumericControls` into `TUIkitTextInput` from step B7 until steps C5
+  to C8.)
   `Tools/validate-test-boundaries.sh` checks the four modules' targets and runs
   in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views

@@ -26,19 +26,21 @@
 // options; since step B5c, which also took TUIkitImage out of
 // TUIkitFoundation's re-exports, so the line for it below is what gives an app
 // `ASCIIConverter` and the rest; TUIkitBitmaps and TUIkitColorPicker re-export
-// it too), TUIkitTextInput (the text inputs, and the numeric controls until
-// step C7 peels them; since step B7), TUIkitForms (forms and the view
-// groupings, since step C6), TUIkitSearch (`.searchable` with its tokens and
-// scopes, since step C5) and TUIkitPickers (`Picker`, `RadioButtonGroup` and
-// `DatePicker`, since step C8), all three of which TUIkitTextInput compiled
-// until then. Each by name, though TUIkitColorPicker re-exports
+// it too), TUIkitTextInput (the text inputs, since step B7), TUIkitForms
+// (forms and the view groupings, since step C6), TUIkitSearch (`.searchable`
+// with its tokens and scopes, since step C5), TUIkitPickers (`Picker`,
+// `RadioButtonGroup` and `DatePicker`, since step C8) and
+// TUIkitNumericControls (`Slider`, `Stepper`, `Gauge` and `ProgressView`,
+// since step C7), all four of which TUIkitTextInput compiled until then. Each
+// by name, though TUIkitColorPicker re-exports
 // TUIkitPresentation (TUIkitNavigation from B5 until C1), TUIkitTabs, and
 // through it TUIkitLists (directly until C3), and TUIkitTextInput for good
 // (directly until the peels, then through the modules they make,
 // TUIkitTextInput's own among them), and TUIkitApp and TUIkitPresentation
 // re-export TUIkitChrome (TUIkitNavigation did from B5b until C1), TUIkitTables
-// and TUIkitTabs TUIkitLists, TUIkitSearch TUIkitTextInput, and TUIkitSearch
-// and TUIkitColorPicker TUIkitPickers: the `umbrella`
+// and TUIkitTabs TUIkitLists, TUIkitSearch TUIkitTextInput, TUIkitSearch and
+// TUIkitColorPicker TUIkitPickers, and TUIkitColorPicker
+// TUIkitNumericControls: the `umbrella`
 // check asks for every module built on TUIkitFoundation, because no build
 // notices one this file leaves out while a sibling's re-export still reaches
 // it. A qualified name in an app, `TUIkit.Label`, still resolves through these
@@ -56,6 +58,7 @@
 @_exported import TUIkitLists
 @_exported import TUIkitMenus
 @_exported import TUIkitNavigation
+@_exported import TUIkitNumericControls
 @_exported import TUIkitPickers
 @_exported import TUIkitPresentation
 @_exported import TUIkitSearch

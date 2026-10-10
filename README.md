@@ -342,16 +342,17 @@ Sources/
 │   directories too until steps C2 to C4 peeled them into TUIkitTables,
 │   TUIkitTabs and TUIkitGrid), TUIkitChrome, TUIkitEffects and TUIkitMenus
 │   (step B5b), TUIkitBitmaps (step B5c) and TUIkitTextInput (step B7, which
-│   compiled TUIkitForms', TUIkitSearch's and TUIkitPickers' directories too
-│   until steps C6, C5 and C8 peeled them into TUIkitForms, TUIkitSearch and
-│   TUIkitPickers, and compiles TUIkitNumericControls' until step C7).
+│   compiled TUIkitForms', TUIkitSearch's, TUIkitPickers' and
+│   TUIkitNumericControls' directories too until steps C5 to C8 peeled them
+│   into TUIkitForms, TUIkitSearch, TUIkitPickers and
+│   TUIkitNumericControls).
 │   TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitPresentation,
 │   TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome,
 │   TUIkitEffects, TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms,
-│   TUIkitSearch and TUIkitPickers are built on TUIkitFoundation
-│   (TUIkitTables and TUIkitTabs on TUIkitLists as well, TUIkitSearch on
-│   TUIkitTextInput and TUIkitPickers), and the umbrella re-exports all
-│   seventeen.
+│   TUIkitSearch, TUIkitPickers and TUIkitNumericControls are built on
+│   TUIkitFoundation (TUIkitTables and TUIkitTabs on TUIkitLists as well,
+│   TUIkitSearch on TUIkitTextInput and TUIkitPickers), and the umbrella
+│   re-exports all eighteen.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
 ├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
@@ -364,7 +365,6 @@ Sources/
 ├── TUIkitBitmaps/        Image from files and URLs, AsyncImage, the image options
 ├── TUIkitMenus/          Menu, ControlGroup, .contextMenu, menu styles
 ├── TUIkitNumericControls/ Slider, Stepper, Gauge, ProgressView
-│                         (compiled into TUIkitTextInput until step C7)
 ├── TUIkitTextInput/      TextField, SecureField, TextEditor
 ├── TUIkitPickers/        Picker, DatePicker, RadioButtonGroup
 ├── TUIkitLists/          List, OutlineGroup, list styles, row editing
@@ -412,7 +412,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and the colour editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors, and the numeric controls), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`; none of the seventeen is a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and the colour editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUIkitNumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`; none of the eighteen is a product of its own) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

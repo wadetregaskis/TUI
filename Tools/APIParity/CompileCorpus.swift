@@ -3101,12 +3101,12 @@ private struct ServerIcons: View {
 /// SwiftUI's own `Form` example, its notification and profile settings, with a
 /// text field, a stepper and a slider added to its first section and each
 /// header as a view builder (the documentation's `Section(header:)` is
-/// deprecated), and its own `searchable(text:)` example. Since module split step B7 `TextField`,
-/// `Stepper` and `Slider` are TUIkitTextInput's (the last two compile into it
-/// until step C7 peels them), which the umbrella re-exports (and
-/// TUIkitColorPicker and TUIkitSearch, which the umbrella re-exports too),
-/// `Picker` is TUIkitPickers' since step C8, which the same three re-export,
-/// `Form` is TUIkitForms' since step C6 and `.searchable`
+/// deprecated), and its own `searchable(text:)` example. Since module split step B7 `TextField`
+/// is TUIkitTextInput's, which the umbrella re-exports (and TUIkitColorPicker
+/// and TUIkitSearch, which the umbrella re-exports too), `Picker` is
+/// TUIkitPickers' since step C8, which the same three re-export, `Stepper`
+/// and `Slider` TUIkitNumericControls' since step C7, which the umbrella and
+/// TUIkitColorPicker re-export, `Form` is TUIkitForms' since step C6 and `.searchable`
 /// TUIkitSearch's since step C5, which only the umbrella re-exports, so this,
 /// and the text input, picker, form, search and numeric snippets earlier in
 /// this file, are SwiftUI source reaching those modules as an app does:

@@ -951,10 +951,11 @@ class IndexStoreTests(unittest.TestCase):
 
 
 class UncompiledTests(unittest.TestCase):
-    """A coarse group's `directories:` names its members' directories, as the one target that compiled them (TUIkit's,
-    TUIkitFoundation from B1) named every module directory in its `sources:` from A5 to B7 (and until B2 TUIkitStrings'
-    files below its own), so a file can sit in a module's directory and be compiled by no target. SwiftPM only warns
-    about it, and CI does not fail on that warning; the module map, which reads what the build compiled, does."""
+    """A coarse group's `directories:` named its members' directories until C7, as the one target that compiled them
+    (TUIkit's, TUIkitFoundation from B1) named every module directory in its `sources:` from A5 to B7 (and until B2
+    TUIkitStrings' files below its own), and a module with no target of its own compiles nowhere, so a file can sit in a
+    module's directory and be compiled by no target. SwiftPM says nothing, or only warns; the module map, which reads
+    what the build compiled, fails."""
 
     def test_a_source_the_last_build_passed_over_is_uncompiled_and_one_newer_than_it_is_stale(self):
         src = {'Base/A.swift': 100.0, 'Base/Edited.swift': 300.0, 'Base/Left.swift': 100.0, 'Base/New.swift': 300.0}

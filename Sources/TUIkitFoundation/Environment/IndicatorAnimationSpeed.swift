@@ -202,7 +202,7 @@ extension IndicatorAnimationSpeed {
         package let frameTicks: Int
 
         /// The memberwise initializer, spelled out because the synthesized one is
-        /// internal and TUIkitTextInput's indeterminate progress bar makes these.
+        /// internal and TUIkitNumericControls' indeterminate progress bar makes these.
         package init(frameCount: Int, frameTicks: Int) {
             self.frameCount = frameCount
             self.frameTicks = frameTicks

@@ -3,45 +3,6 @@
 import CompilerPluginSupport
 import PackageDescription
 
-// ── Sources' directories ────────────────────────────────────────────────────────────────────────────────
-// Every directory under Sources, once. A target that compiles more than one of them (each coarse group of the module
-// split; TUIkitFoundation too, until step B7 carved the last group out of it) takes `path: "Sources"`, so it sees
-// every file under Sources, and SwiftPM reports each one it neither compiles nor excludes as unhandled ("found N
-// file(s) which are unhandled", a warning, which CI does not fail on). Such a target is declared with `directories:`
-// (below), which excludes every directory of this list it does not name. So a new directory under Sources goes in
-// this list, beside the target that compiles it (one of its own, or a `directories:` list), and no other target's
-// list changes. A directory left out of this list is reported as unhandled by each such target. One in it that no
-// target compiles is excluded by every one of them, and SwiftPM says nothing: for a module directory of the split's
-// map (Tools/ModuleMap/rules.json), ModuleMap's `uncompiled` check, which gates CI, then fails on its files; for any
-// other directory, nothing does.
-let sourcesDirectories = [
-    "CSTBImage", "Example", "Stress", "TerminalClientQuirks", "TUIkit", "TUIkitApp", "TUIkitAppKit", "TUIkitBitmaps",
-    "TUIkitChrome", "TUIkitColorPicker", "TUIkitCore", "TUIkitEffects", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid",
-    "TUIkitImage", "TUIkitLists", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings", "TUIkitStyling",
-    "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitView", "TUIkitWidthCorpus",
-]
-
-extension Target {
-    /// A target that compiles the directories under Sources that `directories` names: `path: "Sources"`, those
-    /// directories as its `sources:`, and every other one of `sourcesDirectories` as its `exclude:`.
-    static func target(
-        name: String,
-        dependencies: [Dependency],
-        directories: [String],
-        swiftSettings: [SwiftSetting]
-    ) -> Target {
-        .target(
-            name: name,
-            dependencies: dependencies,
-            path: "Sources",
-            exclude: sourcesDirectories.filter { !directories.contains($0) },
-            sources: directories,
-            swiftSettings: swiftSettings
-        )
-    }
-}
-
 let package = Package(
     name: "TUIkit",
     // Minimum deployment targets for Apple platforms
@@ -196,18 +157,19 @@ let package = Package(
         // one since step C3 (below), whose `TabView` and `Tab` its panel is laid out with (it depended on
         // TUIkitLists for them from step B6, while that target compiled the tabs' directory too, and on nothing of
         // the lists'); Pickers is one since step C8 (below), whose `RadioButtonGroup` the channel-curve editor picks
-        // its channel with (it depended on TUIkitTextInput for it from step B7, while that target compiled the
-        // pickers' directory too); and NumericControls and TextInput compile into TUIkitTextInput since step B7
-        // (below), whose `Slider`s and hex `TextField` its editors are made of. Nothing in TUIkitFoundation may use
-        // it (Tools/ModuleMap's upward check), so the umbrella re-exports it. TUIkitImage is named for itself: the
-        // curve editors import it, its `ASCIIToneCurve` is in their public initializers, and TUIkitFoundation, which
-        // re-exported it until step B5c, does not depend on it since. The module re-exports all six
-        // (Sources/TUIkitColorPicker/Exports.swift).
+        // its channel with, and NumericControls one since step C7 (below), whose `Slider`s its editors are made of
+        // and whose tracks' `TrackRenderer.gradientColor` colours the gradient editor's strips (it depended on
+        // TUIkitTextInput for both from step B7, while that target compiled their directories too); and TextInput
+        // is TUIkitTextInput since step B7 (below), whose `TextField` the panel's hex field is. Nothing in
+        // TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it. TUIkitImage is
+        // named for itself: the curve editors import it, its `ASCIIToneCurve` is in their public initializers, and
+        // TUIkitFoundation, which re-exported it until step B5c, does not depend on it since. The module re-exports
+        // all seven (Sources/TUIkitColorPicker/Exports.swift).
         .target(
             name: "TUIkitColorPicker",
             dependencies: [
-                "TUIkitFoundation", "TUIkitImage", "TUIkitPickers", "TUIkitPresentation", "TUIkitTabs",
-                "TUIkitTextInput",
+                "TUIkitFoundation", "TUIkitImage", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation",
+                "TUIkitTabs", "TUIkitTextInput",
             ],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
@@ -293,23 +255,31 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
-        // Step B7's leaf, built on TUIkitFoundation as the four above are, and the plan's third coarse group: one
-        // target that compiles several planned modules' directories, named after the one the peels leave: five
-        // until steps C6 and C5 peeled Sources/TUIkitForms and TUIkitSearch into the targets below, three until step
-        // C8 peeled Sources/TUIkitPickers, two since. Sources/TUIkitTextInput holds `TextField`, `SecureField` and
-        // `TextEditor`, their handlers, renderer, mouse handling, editing commands, undo and suggestions;
-        // Sources/TUIkitNumericControls `Slider`, `Stepper`, `Gauge`, `ProgressView`, the track and indeterminate
-        // renderers they share, and their styles. Step C7 peels NumericControls into a target of its own; until then
-        // its files compile into this module. Of the map's modules it depends on TUIkitFoundation alone. Nothing in
-        // TUIkitFoundation may use it (Tools/ModuleMap's upward check, which still checks the two directories as the
-        // two modules the map plans), so the umbrella re-exports it, and so do TUIkitColorPicker and TUIkitSearch. It
-        // re-exports TUIkitFoundation (Sources/TUIkitTextInput/Exports.swift).
+        // Step B7's leaf, built on TUIkitFoundation as the four above are: `TextField`, `SecureField` and
+        // `TextEditor`, their handlers, renderer, mouse handling, editing commands, undo and suggestions. It was the
+        // plan's third and last coarse group, one target over five planned modules' directories, named after the one
+        // the peels leave, until steps C5 to C8 peeled Sources/TUIkitSearch, TUIkitForms, TUIkitNumericControls and
+        // TUIkitPickers into the targets below; so since C7, the last of them (after C8), it is an ordinary target at
+        // its default path, Sources/TUIkitTextInput, and no target compiles another module's directory. Nothing in
+        // TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it, and so do
+        // TUIkitColorPicker and TUIkitSearch. It re-exports TUIkitFoundation (Sources/TUIkitTextInput/Exports.swift).
         .target(
             name: "TUIkitTextInput",
             dependencies: ["TUIkitFoundation"],
-            directories: [
-                "TUIkitTextInput", "TUIkitNumericControls",
-            ],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // Step C7's peel, out of the TextInput group above: `Slider` with its ticks and value labels, `Stepper`,
+        // `Gauge` and its concrete styles, `ProgressView` with its timer, their handlers and styles, the track and
+        // indeterminate renderers and rasters they share with `.trackStyle`, and `.sliderShowsValue`
+        // (Sources/TUIkitNumericControls). Built on TUIkitFoundation alone, the map's edge: a numeric control names
+        // nothing of the text inputs' or pickers', which compiled beside it from step B7 until this step and step C8.
+        // TUIkitTextInput does not depend on it, nor does anything in TUIkitFoundation (Tools/ModuleMap's upward
+        // check), so the umbrella re-exports it, and so does TUIkitColorPicker, whose editors are made of `Slider`s.
+        // It re-exports TUIkitFoundation (Sources/TUIkitNumericControls/Exports.swift).
+        .target(
+            name: "TUIkitNumericControls",
+            dependencies: ["TUIkitFoundation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -413,8 +383,8 @@ let package = Package(
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitForms, TUIkitGrid, TUIkitLists,
-        // TUIkitMenus, TUIkitNavigation, TUIkitPickers, TUIkitPresentation, TUIkitSearch, TUIkitTables, TUIkitTabs,
-        // TUIkitTextInput),
+        // TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers, TUIkitPresentation, TUIkitSearch,
+        // TUIkitTables, TUIkitTabs, TUIkitTextInput),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names
         // TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the
@@ -423,9 +393,9 @@ let package = Package(
             name: "TUIkit",
             dependencies: [
                 "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitForms",
-                "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitPickers", "TUIkitPresentation",
-                "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore",
-                "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls",
+                "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
+                "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -434,8 +404,8 @@ let package = Package(
         // module TUIkitFoundation, until a step of Phase B carved each into a target of its own: TUIkitApp (step
         // B3), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b) and TUIkitBitmaps (step B5c) at their
         // default paths, and the coarse groups TUIkitNavigation (step B5), TUIkitLists (step B6) and
-        // TUIkitTextInput (step B7) over their modules' directories (`directories:`), whose members phase C peels
-        // into targets of their own (TUIkitPresentation, step C1; TUIkitTables, step C2). B7 took the last of them out, so this is an
+        // TUIkitTextInput (step B7) over their modules' directories, whose members phase C peeled into targets of
+        // their own at their default paths (steps C1 to C8). B7 took the last of them out, so this is an
         // ordinary target at its default path, Sources/TUIkitFoundation.
         // Tools/ModuleMap checks the map: a file's directory is its module. It depends on neither TUIkitImage nor
         // CSTBImage since step B5c took the bitmap path out (the plan's B5c row): its `lower` list in rules.json
@@ -501,14 +471,16 @@ let package = Package(
         // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists,
         // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
         // TUIkitTextInput, TUIkitPresentation, TUIkitTables, TUIkitTabs,
-        // TUIkitGrid, TUIkitForms, TUIkitSearch, TUIkitPickers).
+        // TUIkitGrid, TUIkitForms, TUIkitSearch, TUIkitPickers,
+        // TUIkitNumericControls).
         .testTarget(
             name: "TUIkitTests",
             dependencies: [
                 "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
                 "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-                "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings", "TUIkitTables", "TUIkitTabs",
-                "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
+                "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings",
+                "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
+                "TUIkitWidthCorpus", "CTestSupport",
             ],
             // Golden snapshots are read/written by path (#filePath-relative, see
             // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so

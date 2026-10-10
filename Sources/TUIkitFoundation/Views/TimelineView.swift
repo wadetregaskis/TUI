@@ -97,7 +97,7 @@ extension TimelineView: View where Content: View {
 
     /// What the core answers, as the default would: the core is a primitive.
     /// Stated here so that a view of another module whose body is a timeline
-    /// view (`ProgressView`'s timer label, TUIkitTextInput's) asks this
+    /// view (`ProgressView`'s timer label, TUIkitNumericControls') asks this
     /// conformance. Through the default, which that module inlines, it asked
     /// for the body's type, whose underlying core only this module can see,
     /// and looked it up at run time on every call (CONTRIBUTING.md, "Crossing

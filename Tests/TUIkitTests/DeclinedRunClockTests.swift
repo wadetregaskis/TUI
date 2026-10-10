@@ -18,7 +18,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
-@testable import TUIkitTextInput
+@testable import TUIkitNumericControls
 @testable import TUIkitView
 
 /// A spinner whose two frames are one cell and two wide, so no run can hold it.

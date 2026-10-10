@@ -10,11 +10,11 @@
 
 import Testing
 import TUIkitCore
-@testable import TUIkitTextInput
 
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitNumericControls
 
 @MainActor
 @Suite("Gradient stops that name a palette role")

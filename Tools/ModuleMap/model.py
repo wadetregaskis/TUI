@@ -113,9 +113,11 @@ def unit_freshness(files, source_mtime, unit_mtime, newest):
     STALE: the source is newer than its unit, or it has none and is newer than the last build. Rebuild, then check.
     UNCOMPILED: it has no unit although the last build wrote one after the source was written. That build compiled other
     files once this one existed and did not compile it, so no target does: Package.swift leaves it out. A coarse group's
-    `directories:` names its members' directories, as the one target that compiled them (TUIkit's, `TUIkitFoundation`
-    from step B1) named every module directory in its `sources:` from step A5 to step B7, so a new member's directory is
-    compiled only once named there (and until step B2 TUIkitStrings was listed below its directory, file by file,
+    `directories:` named its members' directories until step C7 peeled the last member out, as the one target that
+    compiled them (TUIkit's, `TUIkitFoundation` from step B1) named every module directory in its `sources:` from step
+    A5 to step B7, so a new member's directory was compiled only once named there; since C7 every module is a target
+    at its default path, so a new module's directory is compiled only once its target exists (and until step B2
+    TUIkitStrings was listed below its directory, file by file,
     because its resources may not sit under a source path; its own target now takes every file in it). SwiftPM reports
     such a file as unhandled, but only as a warning, which does not fail CI: this finding does. (A build that failed
     before reaching a file also leaves it without a unit: build again, and the finding goes.)"""

@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitFoundation
+import TUIkitNumericControls
 import TUIkitPresentation
 import TUIkitTextInput
 

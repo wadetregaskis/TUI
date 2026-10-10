@@ -13,7 +13,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
-@testable import TUIkitTextInput
+@testable import TUIkitNumericControls
 
 @MainActor
 @Suite("An indeterminate gradient's default follows the palette")
