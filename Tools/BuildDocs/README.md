@@ -57,7 +57,7 @@ TUIkit is several library modules — `TUIkitCore`, `TUIkitStyling`,
 of the planned split until each was carved into a target of its own), the
 modules carved out of it (`TUIkitStrings`, `TUIkitTerminalHost`, step B2;
 `TUIkitApp`, step B3; `TUIkitColorPicker`, step B4; `TUIkitNavigation`, step B5, which compiled the presentations
-too until step C1 peeled them into `TUIkitPresentation`; `TUIkitLists`, step B6, which compiled the tables too until step C2 peeled them into `TUIkitTables`, and compiles the tabs and grids until steps C3 and C4;
+too until step C1 peeled them into `TUIkitPresentation`; `TUIkitLists`, step B6, which compiled the tables and the tabs too until steps C2 and C3 peeled them into `TUIkitTables` and `TUIkitTabs`, and compiles the grids until step C4;
 `TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b; `TUIkitBitmaps`, step B5c; `TUIkitTextInput`, step
 B7, which compiles the pickers, forms, search and numeric controls too until steps C5 to C8), and
 the `TUIkit` umbrella that `@_exported import`s the rest and declares nothing.

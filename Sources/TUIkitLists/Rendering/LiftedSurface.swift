@@ -27,7 +27,7 @@ extension EnvironmentValues {
     /// painted: the latter defaults to the page background, so on a palette
     /// that never overrode it the surface painted the colour that was already
     /// there and the island vanished.
-    var liftedSurface: Color {
+    package var liftedSurface: Color {
         if let inherited = surfaceBackground {
             return palette.lifted(from: inherited).resolve(with: palette)
         }

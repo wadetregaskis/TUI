@@ -5,8 +5,8 @@
 //  License: MIT
 
 import TUIkitFoundation
-import TUIkitLists
 import TUIkitStyling
+import TUIkitTabs
 
 // MARK: - State indices
 

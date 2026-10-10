@@ -51,7 +51,7 @@ package struct FocusPathModifier<Content: View>: View {
     let bind: @MainActor (RenderContext) -> (KeyEvent) -> Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for a tab view's menu openers.
+    /// internal and TUIkitTabs makes these, for a tab view's menu openers.
     package init(
         content: Content,
         stage: FocusPathStage,

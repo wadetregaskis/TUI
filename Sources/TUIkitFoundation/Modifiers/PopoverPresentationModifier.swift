@@ -142,7 +142,8 @@ package struct PopoverPresentationModifier<Content: View, Popover: View>: View {
     var ownsPresentation = false
 
     /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUIkitLists makes these, for a tab's popovers.
+    /// internal and TUIkitTabs makes these, for a tab's popovers, and
+    /// TUIkitTextInput, for a date picker's calendar.
     package init(
         content: Content,
         isPresented: Binding<Bool>,

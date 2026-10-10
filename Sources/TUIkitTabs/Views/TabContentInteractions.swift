@@ -10,6 +10,7 @@
 
 import TUIkitCore
 import TUIkitFoundation
+import TUIkitLists
 import TUIkitView
 
 // MARK: - What a tab carries

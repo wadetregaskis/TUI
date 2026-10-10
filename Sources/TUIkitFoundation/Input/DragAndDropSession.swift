@@ -123,8 +123,8 @@ package final class DragAndDropSession: @unchecked Sendable {
         package var hovering: ((_ x: Int, _ y: Int) -> Void)?
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitLists makes these, for the lists and tab bars,
-        /// and TUIkitTables, for the tables.
+        /// is internal and TUIkitLists makes these, for the lists, and
+        /// TUIkitTables, for the tables.
         package init(
             handlerID: HitTestRegion.HandlerID,
             accepts: @escaping (Any) -> Bool,
@@ -201,8 +201,8 @@ package final class DragAndDropSession: @unchecked Sendable {
         var drawing: HandlerDrawing?
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitLists makes these, for the lists and tab bars,
-        /// and TUIkitTables, for the tables.
+        /// is internal and TUIkitLists makes these, for the lists, and
+        /// TUIkitTables, for the tables.
         package init(
             handlerID: HitTestRegion.HandlerID,
             vertical: any ScrollableOffsetState,

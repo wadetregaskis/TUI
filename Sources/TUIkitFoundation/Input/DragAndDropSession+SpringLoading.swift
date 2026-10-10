@@ -28,7 +28,9 @@ extension DragAndDropSession {
         package let activate: () -> Void
 
         /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUIkitLists makes these, for a tab bar's tabs.
+        /// is internal and TUIkitTabs makes these, for a tab bar's tabs and a
+        /// sidebar's tab rows, and TUIkitTextInput, for a segmented picker's
+        /// segments.
         package init(handlerID: HitTestRegion.HandlerID, identity: ViewIdentity, activate: @escaping () -> Void) {
             self.handlerID = handlerID
             self.identity = identity

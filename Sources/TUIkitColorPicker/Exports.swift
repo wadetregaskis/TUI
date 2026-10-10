@@ -16,16 +16,17 @@
 // of TUIkitNavigation, which was the third from step B5: the panels are
 // `Dialog`s and the picker presents them through `.modal`, both
 // TUIkitPresentation's; nothing of the navigation containers'.
-// TUIkitLists is the fourth since step B6 carved it: the panel lays its modes
-// out in a `TabView` of `Tab`s, TUIkitTabs', which compiles into TUIkitLists
-// until step C3. TUIkitTextInput is the fifth since step B7 carved it: the
-// editors are made of `Slider`s (TUIkitNumericControls'), the panel's hex
-// field is a `TextField` and the channel-curve editor picks its channel with a
-// `RadioButtonGroup` (TUIkitPickers'), all three of which compile into
-// TUIkitTextInput until steps C7 and C8 peel the first and last. The umbrella,
-// Sources/TUIkit, re-exports this module beside TUIkitFoundation.
+// TUIkitTabs is the fourth since step C3 peeled it out of TUIkitLists, which
+// was the fourth from step B6: the panel lays its modes out in a `TabView` of
+// `Tab`s; nothing of the lists'. TUIkitTextInput is the fifth since step B7
+// carved it: the editors are made of `Slider`s (TUIkitNumericControls'), the
+// panel's hex field is a `TextField` and the channel-curve editor picks its
+// channel with a `RadioButtonGroup` (TUIkitPickers'), all three of which
+// compile into TUIkitTextInput until steps C7 and C8 peel the first and last.
+// The umbrella, Sources/TUIkit, re-exports this module beside
+// TUIkitFoundation.
 @_exported import TUIkitFoundation
 @_exported import TUIkitImage
-@_exported import TUIkitLists
 @_exported import TUIkitPresentation
+@_exported import TUIkitTabs
 @_exported import TUIkitTextInput

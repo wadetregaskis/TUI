@@ -242,7 +242,7 @@ extension Optional: TabContent where Wrapped: TabContent {
 extension Optional: _TabContentPrimitive where Wrapped: TabContent {
     func appendTabs(to tabs: inout _TabList) {
         guard let self else { return }
-        TUIkitLists.appendTabs(self, to: &tabs)
+        TUIkitTabs.appendTabs(self, to: &tabs)
     }
 }
 
@@ -267,7 +267,7 @@ extension Group: TabContent where Content: TabContent {
 
 extension Group: _TabContentPrimitive where Content: TabContent {
     func appendTabs(to tabs: inout _TabList) {
-        TUIkitLists.appendTabs(content, to: &tabs)
+        TUIkitTabs.appendTabs(content, to: &tabs)
     }
 }
 
@@ -288,8 +288,8 @@ extension _ConditionalContent: _TabContentPrimitive
 where TrueContent: TabContent, FalseContent: TabContent, TrueContent.TabValue == FalseContent.TabValue {
     func appendTabs(to tabs: inout _TabList) {
         switch self {
-        case .trueContent(let content): TUIkitLists.appendTabs(content, to: &tabs)
-        case .falseContent(let content): TUIkitLists.appendTabs(content, to: &tabs)
+        case .trueContent(let content): TUIkitTabs.appendTabs(content, to: &tabs)
+        case .falseContent(let content): TUIkitTabs.appendTabs(content, to: &tabs)
         }
     }
 }
@@ -348,7 +348,7 @@ extension ForEach: TabContent where Content: TabContent {
 extension ForEach: _TabContentPrimitive where Content: TabContent {
     func appendTabs(to tabs: inout _TabList) {
         for element in data {
-            TUIkitLists.appendTabs(content(element), to: &tabs)
+            TUIkitTabs.appendTabs(content(element), to: &tabs)
         }
     }
 }
@@ -373,7 +373,7 @@ public struct AnyTabContent<SelectionValue: Hashable>: TabContent {
     ///
     /// - Parameter tabContent: The tab content to erase.
     public init<T: TabContent>(_ tabContent: T) where SelectionValue == T.TabValue {
-        appendErased = { TUIkitLists.appendTabs(tabContent, to: &$0) }
+        appendErased = { TUIkitTabs.appendTabs(tabContent, to: &$0) }
     }
 
     /// Erased content is primitive: it hands its tabs over itself.

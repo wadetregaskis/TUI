@@ -850,6 +850,7 @@
   "TUIkitTables/Views/TableRowDragAndDrop.swift": "TUIkitTables",
   "TUIkitTables/Views/TableRowInk.swift": "TUIkitTables",
   "TUIkitTables/Views/TableRowModifiers.swift": "TUIkitTables",
+  "TUIkitTabs/Exports.swift": "TUIkitTabs",
   "TUIkitTabs/Modifiers/SpringLoadedRegion.swift": "TUIkitTabs",
   "TUIkitTabs/Styles/ActiveChipCycle.swift": "TUIkitTabs",
   "TUIkitTabs/Styles/ContrastingLabel.swift": "TUIkitTabs",

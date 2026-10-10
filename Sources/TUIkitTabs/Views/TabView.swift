@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUIkitFoundation
+import TUIkitLists
 
 // `Tab`, `TabSection` and the `TabContent` they are written in live in
 // `Tab.swift`, `TabSection.swift` and `TabContent.swift`; the style protocol

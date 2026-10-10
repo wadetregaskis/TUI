@@ -167,10 +167,10 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # TUIkitTerminalHost's (the modules step B2 carved out of it), `windowgroup`
 # TUIkitApp's (step B3), `colorpicker` TUIkitColorPicker's (step B4),
 # `navigationstack` TUIkitNavigation's (step B5), `alert` TUIkitPresentation's
-# (TUIkitNavigation's from step B5 until step C1 peeled it out), `list`,
-# `tabview` and `grid` TUIkitLists' (step B6: one from each of its three
-# directories, until steps C3 and C4), `table` TUIkitTables' (TUIkitLists' from
-# step B6 until step C2 peeled it out), `statusbar` TUIkitChrome's,
+# (TUIkitNavigation's from step B5 until step C1 peeled it out), `list` and
+# `grid` TUIkitLists' (step B6: one from each of its directories, until step
+# C4), `table` TUIkitTables' and `tabview` TUIkitTabs' (TUIkitLists' from step
+# B6 until steps C2 and C3 peeled them out), `statusbar` TUIkitChrome's,
 # `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step B5b),
 # `asyncimage` TUIkitBitmaps' (step B5c), `textfield`, `picker`, `form`,
 # `searchfieldplacement` and `slider` TUIkitTextInput's (step B7: one from each

@@ -17,8 +17,8 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
-@testable import TUIkitLists
 @testable import TUIkitStyling
+@testable import TUIkitTabs
 
 @MainActor
 @Suite("A tab chip's breath is opaque at every phase")

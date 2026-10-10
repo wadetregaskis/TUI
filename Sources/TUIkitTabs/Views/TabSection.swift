@@ -44,7 +44,7 @@ where SelectionValue == Content.TabValue {
 
 extension TabSection: _TabContentPrimitive {
     func appendTabs(to tabs: inout _TabList) {
-        tabs.appendSection(header: AnyView(header)) { TUIkitLists.appendTabs(content, to: &$0) }
+        tabs.appendSection(header: AnyView(header)) { TUIkitTabs.appendTabs(content, to: &$0) }
     }
 }
 

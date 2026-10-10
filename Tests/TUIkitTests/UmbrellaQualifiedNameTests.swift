@@ -77,6 +77,13 @@
 //  Nothing but the umbrella re-exports TUIkitTables, so this file stops
 //  compiling without the umbrella's line for it.
 //
+//  Step C3 peeled Sources/TUIkitTabs out of the group into TUIkitTabs, built
+//  on TUIkitLists, which it re-exports. The sixth test's tab view, and the
+//  tab bar placement among the reflected names, read `TUIkitTabs.` since;
+//  they read `TUIkitLists.` from B6 to C3. TUIkitColorPicker re-exports
+//  TUIkitTabs (its panel is a `TabView`), so the umbrella's own line for it
+//  is the `umbrella` check's, as TUIkitPresentation's is.
+//
 //  Step B5b carved three leaves the same way, each a module of its own:
 //  TUIkitChrome, TUIkitEffects and TUIkitMenus. The seventh test spells and
 //  draws a type of each through the umbrella, the menu beside an app's own
@@ -312,9 +319,8 @@ extension TUIkit.SearchFieldPlacement {
 
 extension TUIkit.TabViewCustomization {
     /// A member an app adds, through the umbrella's name, to a type of
-    /// TUIkitLists (Sources/TUIkitTabs), which the umbrella re-exports itself
-    /// (and through TUIkitColorPicker as well: directly until step C3, then
-    /// through TUIkitTabs, which depends on TUIkitLists).
+    /// TUIkitTabs (TUIkitLists' from step B6 until step C3), which the
+    /// umbrella re-exports itself, and TUIkitColorPicker as well.
     fileprivate var b6Marker: Int { self == TUIkit.TabViewCustomization() ? 6 : -6 }
 }
 
@@ -407,7 +413,7 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: type(of: alert)) == "TUIkitPresentation.Alert<TUIkitFoundation.Button>")
     }
 
-    @Test("A qualified name reaches TUIkitLists, whose three directories the umbrella re-exports, and TUIkitTables")
+    @Test("A qualified name reaches TUIkitLists (two directories), TUIkitTables and TUIkitTabs, through the umbrella")
     func qualifiedNamesReachTheListsGroup() {
         func drawn(_ view: some TUIkit.View, height: Int) -> String {
             TUIkit.renderToBuffer(view, context: makeRenderContext(width: 40, height: height)).lines
@@ -423,8 +429,9 @@ struct UmbrellaQualifiedNameTests {
         #expect(mine.name == "mine")
         let tableLines = drawn(table, height: 6)
         #expect(tableLines.contains("b6 name") && tableLines.contains("b6 cell"), "\(tableLines)")
-        // From Sources/TUIkitTabs (until step C3): a tab view, drawn, and a
-        // member an app's extension adds to its customization.
+        // From Sources/TUIkitTabs, which compiled into the same module until
+        // step C3 peeled it into TUIkitTabs: a tab view, drawn, and a member
+        // an app's extension adds to its customization.
         let tabs = TUIkit.TabView {
             TUIkit.Tab("b6 tab", systemImage: "list.bullet") { TUIkit.Text(verbatim: "b6 body") }
         }
@@ -437,8 +444,9 @@ struct UmbrellaQualifiedNameTests {
         // in TUIkitFoundation would still build, and read
         // `TUIkitFoundation.` here.
         #expect(String(reflecting: type(of: table)).hasPrefix("TUIkitTables.Table<"))
+        #expect(String(reflecting: type(of: tabs)).hasPrefix("TUIkitTabs.TabView<"))
         #expect(String(reflecting: TUIkit.EditMode.self) == "TUIkitLists.EditMode")
-        #expect(String(reflecting: TUIkit.TabViewCustomization.self) == "TUIkitLists.TabViewCustomization")
+        #expect(String(reflecting: TUIkit.TabViewCustomization.self) == "TUIkitTabs.TabViewCustomization")
         #expect(String(reflecting: TUIkit.GridItem.self) == "TUIkitLists.GridItem")
     }
 
@@ -596,14 +604,16 @@ struct UmbrellaQualifiedNameTests {
         #expect(String(reflecting: TUIkit.PresentationDetent.self) == "TUIkitPresentation.PresentationDetent")
         // Step B6 carved these out (decisions SPB6, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B6. A type from
-        // Sources/TUIkitTabs or TUIkitGrid names TUIkitLists, the module that
-        // compiles it, until steps C3 and C4 give it a module of its own; one
-        // from Sources/TUIkitTables names TUIkitTables since step C2 (decisions
-        // SPC2, "What an app can see"), and read `TUIkitLists.` from B6 to C2.
+        // Sources/TUIkitGrid names TUIkitLists, the module that compiles it,
+        // until step C4 gives it a module of its own; one from
+        // Sources/TUIkitTables names TUIkitTables since step C2 (decisions
+        // SPC2, "What an app can see"), and one from Sources/TUIkitTabs
+        // TUIkitTabs since step C3 (decisions SPC3, "What an app can see"):
+        // each read `TUIkitLists.` from B6 until its peel.
         #expect(String(reflecting: TUIkit.SidebarListStyle.self) == "TUIkitLists.SidebarListStyle")
         #expect(String(reflecting: TUIkit.TableColumnCustomizationBehavior.self)
             == "TUIkitTables.TableColumnCustomizationBehavior")
-        #expect(String(reflecting: TUIkit.TabBarPlacement.self) == "TUIkitLists.TabBarPlacement")
+        #expect(String(reflecting: TUIkit.TabBarPlacement.self) == "TUIkitTabs.TabBarPlacement")
         #expect(String(reflecting: TUIkit.GridItem.Size.self) == "TUIkitLists.GridItem.Size")
         // Step B5b carved these out (decisions SPB5b, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B5b.

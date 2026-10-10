@@ -6,8 +6,8 @@
 
 import Foundation
 import TUIkitFoundation
-import TUIkitLists
 import TUIkitStyling
+import TUIkitTabs
 import TUIkitTextInput
 
 // MARK: - Color Picker Panel
