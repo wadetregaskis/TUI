@@ -20,6 +20,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A composited cell keeps the field under its own column")

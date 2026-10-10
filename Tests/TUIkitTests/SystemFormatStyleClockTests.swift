@@ -14,6 +14,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("SystemFormatStyle timer and stopwatch")
 struct SystemFormatStyleClockTests {

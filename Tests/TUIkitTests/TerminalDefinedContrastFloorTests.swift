@@ -15,6 +15,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 @testable import TUIkitView
 

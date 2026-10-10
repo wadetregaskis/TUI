@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A translucent track")

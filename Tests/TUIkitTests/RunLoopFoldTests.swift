@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// A scene with nothing animating: every clock is unreplayable against it.

@@ -16,6 +16,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Hit testing")

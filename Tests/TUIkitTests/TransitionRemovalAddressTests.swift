@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What stands around the optional a view comes and goes through.
 ///

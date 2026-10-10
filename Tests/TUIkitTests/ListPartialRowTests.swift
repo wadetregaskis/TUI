@@ -20,6 +20,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("Partial rows at both ends")
 @MainActor

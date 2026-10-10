@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `buttonRepeatBehavior(_:)` for a held key, which a terminal speaking the
 /// kitty keyboard protocol reports as a press followed by repeats.

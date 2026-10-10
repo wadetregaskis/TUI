@@ -24,6 +24,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// Frames of the real loop's lifecycle over one render cache.

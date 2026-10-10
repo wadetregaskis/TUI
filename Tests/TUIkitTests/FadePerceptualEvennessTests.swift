@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A fade has to LOOK like equal steps, which is a claim about the space the
 /// blend happens in and nothing else.

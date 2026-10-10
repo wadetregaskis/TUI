@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 /// A text field's render must not be quadratic in the length of its text.

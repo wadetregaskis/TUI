@@ -12,6 +12,7 @@ import Testing
 import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Icons from an image resource's name")

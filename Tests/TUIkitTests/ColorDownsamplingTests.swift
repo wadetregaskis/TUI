@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 // MARK: - downsampledToPalette256 Tests
 

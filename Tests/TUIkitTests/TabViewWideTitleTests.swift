@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A tab strip is laid out in cells")

@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Changing an `Image`'s source has to change what it draws.
 ///

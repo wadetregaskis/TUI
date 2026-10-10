@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 /// The last screenful fills the content area, even when no whole number of rows
 /// can.

@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A live sheet's band", .rendersEnglishUI)

@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Colour editors read a terminal slot as the colour the terminal reported for it")

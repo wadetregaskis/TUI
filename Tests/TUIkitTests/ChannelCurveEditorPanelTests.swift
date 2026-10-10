@@ -15,6 +15,7 @@ import TUIkitImage
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Channel curve editor")

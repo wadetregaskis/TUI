@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Where the lazy stack sits in the scroll view's content.
 enum LazyStackOriginShape: CaseIterable, CustomTestStringConvertible {

@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 /// PageDown on a multi-line `Table` moves by the rows on SCREEN.
 ///

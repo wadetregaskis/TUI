@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("An indeterminate gradient's frames are whole-sample shifts")

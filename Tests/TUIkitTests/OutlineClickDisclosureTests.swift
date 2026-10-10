@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A `List` with no selection binding has nothing for a row click to do — and an
 /// outline row is the one case where there IS something to do: open or close it.

@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Named images in a bundle")

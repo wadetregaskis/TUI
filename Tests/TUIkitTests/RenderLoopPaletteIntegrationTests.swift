@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitChrome
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct DistinctBackgroundPalette: Palette {
     let id = "distinct-bg"

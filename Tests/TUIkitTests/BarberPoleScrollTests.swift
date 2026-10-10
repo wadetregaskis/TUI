@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
+@testable import TUIkitTestSupport
 
 @Suite("barberPole scrolls its stripes")
 struct BarberPoleScrollTests {

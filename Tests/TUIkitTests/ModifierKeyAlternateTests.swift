@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// SwiftUI's `modifierKeyAlternate(_:_:)`, where a terminal speaking the kitty
 /// keyboard protocol reports the modifier keys.

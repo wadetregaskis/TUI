@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private enum Produce: Hashable { case fruit, vegetable }
 

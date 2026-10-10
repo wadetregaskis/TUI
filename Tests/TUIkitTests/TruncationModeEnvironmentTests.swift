@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `.truncationMode(_:)` on a **View**, which is where SwiftUI puts it: one
 /// application decides how every piece of clipped text beneath it reads.

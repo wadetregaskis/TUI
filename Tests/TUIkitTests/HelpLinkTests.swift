@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the links under test did.
 private final class HelpLog: @unchecked Sendable {

@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 /// Label above content, as SwiftUI's documentation sketches a custom style.

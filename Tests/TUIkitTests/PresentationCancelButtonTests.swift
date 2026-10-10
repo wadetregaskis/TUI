@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A presentation's cancel button on Escape", .rendersEnglishUI)

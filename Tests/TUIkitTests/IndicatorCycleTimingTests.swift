@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A site that builds focus-emphasis or caret runs, by what draws through it.
 enum CycleRunProducer: String, CaseIterable, Sendable, CustomTestStringConvertible {

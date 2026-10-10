@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("ColorDepth pin task isolation")
 struct ColorDepthPinIsolationTests {

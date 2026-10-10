@@ -19,6 +19,7 @@ import TUIkitStyling
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Scrollbar pulse floor")

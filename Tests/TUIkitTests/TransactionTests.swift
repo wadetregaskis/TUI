@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Reports the transaction its subtree renders under, so a test can see what
 /// reached it rather than what was set.

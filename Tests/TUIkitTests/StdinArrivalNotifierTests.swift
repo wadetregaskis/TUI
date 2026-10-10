@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Tests for `StdinArrivalNotifier` — the main-loop "wait for stdin OR a
 /// timeout" race.

@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitEffects
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// `.opacity(_:)` — a blend toward the background, since a cell has no alpha.
 ///

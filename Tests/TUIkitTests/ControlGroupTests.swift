@@ -11,6 +11,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitMenus
+@testable import TUIkitTestSupport
 
 /// Puts the label in front of the current group.
 private struct Prefixed: ControlGroupStyle {

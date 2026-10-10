@@ -13,6 +13,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("CSI sequence scanning")
 struct CSISequenceScanTests {

@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Pins the List row pipeline's steady-state cost model: once a row's buffer
 /// is in the render cache, a later frame must serve it WITHOUT invoking the

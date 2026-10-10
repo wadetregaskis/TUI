@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// A palette whose scrollbar colours are RGB, so nothing about it is grounded on

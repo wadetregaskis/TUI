@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The example from SwiftUI's documentation of `Button(_:)`: the current
 /// button, with a border added.

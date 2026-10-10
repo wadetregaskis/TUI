@@ -16,6 +16,7 @@ import TUIkitImage
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Image sizing at the extremes")

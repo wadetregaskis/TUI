@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// Three controls whose stored properties left padding — bytes the per-pass

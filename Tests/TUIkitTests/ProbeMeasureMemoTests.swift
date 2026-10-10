@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// A navigation row's label: a title at the leading edge, a number at the

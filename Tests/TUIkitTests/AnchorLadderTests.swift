@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// Rows keyed by stable id; each row's height follows its ID (i%3+1), so

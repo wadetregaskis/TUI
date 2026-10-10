@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// An executor that counts the jobs it is given, and runs each at once.
 @available(macOS 15, *)

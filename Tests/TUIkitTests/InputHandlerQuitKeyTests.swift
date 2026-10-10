@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("The user's quit key in the input chain")

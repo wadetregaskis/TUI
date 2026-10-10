@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// The terminal's page, with every ink a slot.
 private struct SlotPagePalette: Palette {

@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 // MARK: - Localization Service Tests
 

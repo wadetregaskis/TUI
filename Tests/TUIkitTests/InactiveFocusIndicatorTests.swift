@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// The Example's main menu in miniature: an inline `Menu` of `Button`s, whose rows
 /// are page focus stops. The first row takes the focus.

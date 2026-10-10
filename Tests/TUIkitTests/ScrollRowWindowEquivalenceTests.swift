@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 /// `ScrollRowWindow` replaced three separately-written copies of one rule. This
 /// sweeps it against a transcription of each, over every shape they can be

@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Every language in the **Example app** carries the whole English key set.
 ///

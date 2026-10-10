@@ -16,6 +16,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 private struct MeasureRow: Identifiable {
     let id: Int

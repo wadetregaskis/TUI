@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("Reveal target: whole control vs the part that moved")
 struct RevealTargetTests {

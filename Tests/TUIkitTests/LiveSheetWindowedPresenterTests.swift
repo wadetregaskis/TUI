@@ -17,6 +17,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// What the pages below switch for a frame and back, by reference so the

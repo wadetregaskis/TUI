@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Drives the probe header's height from outside the app: `App` requires a bare
 /// `init()`, so it cannot carry test state itself. Same trick as

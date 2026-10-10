@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the sheet's items did, reachable from an `App`.
 private final class SheetItemProbe: @unchecked Sendable {

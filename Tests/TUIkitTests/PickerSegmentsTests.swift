@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The picker's selection, outside the view.
 private final class Choice: @unchecked Sendable {

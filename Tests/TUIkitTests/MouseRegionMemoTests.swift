@@ -15,6 +15,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// What a row's `Button` did, kept outside the memo's key so nothing in the

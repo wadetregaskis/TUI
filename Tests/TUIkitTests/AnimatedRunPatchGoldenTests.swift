@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `FrameBuffer.patchingAnimatedCells` and `splicing` used to walk the line
 /// three or four times per call; they walk it once now. This pins the bytes

@@ -11,6 +11,7 @@
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What a scripted terminal was sent, one entry per write.
 @MainActor

@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 // MARK: - Why these tests exist
 //

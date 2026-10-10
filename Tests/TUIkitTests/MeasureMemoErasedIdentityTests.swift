@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// The measure memo's key held the view's VALUE BYTES, and for an ``AnyView``

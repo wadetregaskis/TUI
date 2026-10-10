@@ -16,6 +16,7 @@ import TUIkitCore
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A replayed animation frame carries the host's cursor compensation")

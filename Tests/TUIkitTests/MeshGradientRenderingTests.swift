@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("MeshGradient rendering")

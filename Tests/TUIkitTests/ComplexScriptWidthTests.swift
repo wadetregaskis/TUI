@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 import TUIkitWidthCorpus
 
 // MARK: - Two width rules, one set of scalars

@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Observable
 private class LayoutTestModel {

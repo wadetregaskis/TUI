@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `render(frameNowNanos:)` once defaulted its absolute clock reading to 0,
 /// so the frames that took the default anchored drag flights and the

@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("⌃S and ⌥⌃S toggle a split view's sidebar")

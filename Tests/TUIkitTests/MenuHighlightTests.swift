@@ -20,6 +20,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("Menu highlight")
 struct MenuHighlightTests {

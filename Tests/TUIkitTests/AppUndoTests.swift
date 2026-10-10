@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The app's undo manager (decisions A1): in the environment, undone and
 /// redone by the keys the owner chose, and offered in the status bar.

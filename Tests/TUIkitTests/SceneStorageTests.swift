@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `@SceneStorage` — SwiftUI's per-scene state restoration, in an app that has
 /// exactly one scene.

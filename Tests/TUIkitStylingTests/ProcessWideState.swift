@@ -11,7 +11,7 @@ import Testing
 /// The one place a test in this target may change what every test in the
 /// process reads — and only from inside an exit test.
 ///
-/// This target's copy of `TUIkitTests`' `ProcessWideState`, which says why at
+/// This target's copy of `TUIkitTestSupport`'s `ProcessWideState`, which says why at
 /// length; the per-module test targets link only their own module, so the two
 /// cannot share one. In short: swift-testing runs every suite of every test
 /// target concurrently in ONE process, so a process-wide value written by one

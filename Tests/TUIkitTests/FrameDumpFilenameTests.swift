@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The debug frame dump's filename carried a locale-formatted date, and in
 /// European Portuguese (and a handful of others) that date has `/` in it —

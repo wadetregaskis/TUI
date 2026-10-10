@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `.listRowInsets(_:)` and `.listRowBackground(_:)` — the two list-row
 /// modifiers a grid of character cells can actually honour.

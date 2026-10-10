@@ -18,6 +18,7 @@ import TUIkitStyling
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Section header prominence")

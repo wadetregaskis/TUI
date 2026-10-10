@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitPresentation
 @testable import TUIkitSearch
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 @MainActor

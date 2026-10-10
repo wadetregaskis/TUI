@@ -18,6 +18,7 @@
     @testable import TUIkitApp
 @testable import TUIkitEffects
     @testable import TUIkitFoundation
+    @testable import TUIkitTestSupport
 
     /// What the glyphs below saw, frame by frame.
     @MainActor

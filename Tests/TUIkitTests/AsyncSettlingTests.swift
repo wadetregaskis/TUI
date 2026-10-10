@@ -6,6 +6,8 @@
 
 import Testing
 
+@testable import TUIkitTestSupport
+
 /// The wait the refresh tests use, and the rule it gives up by.
 ///
 /// A wait that gives up wrongly fails whichever test was using it, and blames

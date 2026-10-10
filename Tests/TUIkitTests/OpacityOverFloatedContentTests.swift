@@ -14,6 +14,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Opacity over content that floats")

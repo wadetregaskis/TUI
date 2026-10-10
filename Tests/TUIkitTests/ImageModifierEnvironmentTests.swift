@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 @testable import TUIkitImage
+@testable import TUIkitTestSupport
 
 /// Captures the environment the modifier chain delivered. A class, and
 /// `@unchecked Sendable`, for the same reason `RenderPassScopeTests.ProbeState`

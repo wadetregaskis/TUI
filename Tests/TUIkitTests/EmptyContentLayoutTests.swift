@@ -14,6 +14,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The rows `view` draws, styling stripped, between an `A` and a `B`.
 @MainActor

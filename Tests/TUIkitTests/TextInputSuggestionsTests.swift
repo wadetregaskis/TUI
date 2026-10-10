@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitPickers
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 // MARK: - Extraction

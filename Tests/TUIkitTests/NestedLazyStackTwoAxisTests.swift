@@ -17,6 +17,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A row that is sometimes two lines, sometimes a filler right-aligned across
 /// whatever it is offered, and at `wide` fifty cells past the viewport.

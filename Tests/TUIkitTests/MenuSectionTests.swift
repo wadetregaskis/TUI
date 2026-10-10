@@ -18,6 +18,7 @@ import TUIkitCore
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Which item ran.
 @MainActor

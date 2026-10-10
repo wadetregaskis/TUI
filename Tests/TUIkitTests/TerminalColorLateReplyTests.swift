@@ -24,6 +24,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitImage
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 @MainActor

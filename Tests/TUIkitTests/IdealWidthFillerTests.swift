@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// Row 50 is 120 cells of text — inside a `.frame(maxWidth: .infinity)` when

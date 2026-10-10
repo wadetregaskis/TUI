@@ -18,6 +18,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("Bundled VERSION resource")
 struct VersionResourceTests {

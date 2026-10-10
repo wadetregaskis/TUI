@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// One place in the tree, rendered again as the frame clock advances, with
 /// every change animated linearly over a second.

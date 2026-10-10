@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 @MainActor

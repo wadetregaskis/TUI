@@ -12,6 +12,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("The two compositing paths agree")
 struct CompositeTwinTests {

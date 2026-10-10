@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Draws the menu as it would otherwise look, in square brackets.
 private struct BracketedMenuStyle: MenuStyle {

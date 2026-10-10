@@ -20,6 +20,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Where a probe rendered, so a test can plant a cached buffer at exactly that
 /// identity — the identity a memo above it would key on.

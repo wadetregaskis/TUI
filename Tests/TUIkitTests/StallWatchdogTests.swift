@@ -25,6 +25,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A watchdog over two pipes: one it watches as the terminal's input, one it
 /// writes its pop to.

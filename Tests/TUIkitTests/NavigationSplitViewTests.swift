@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNavigation
+@testable import TUIkitTestSupport
 
 // MARK: - Test Helpers
 

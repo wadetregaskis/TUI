@@ -15,6 +15,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 @Suite("secure field clipboard refusal")

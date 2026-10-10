@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 #if canImport(AppKit)
     @testable import TUIkitAppKit

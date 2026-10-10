@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// ``FrameBuffer/resolvingOpacity(over:at:surface:palette:)`` — the blend that
 /// happens where the destination is finally known.

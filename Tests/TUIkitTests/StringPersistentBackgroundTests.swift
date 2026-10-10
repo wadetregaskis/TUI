@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Tests for `String.withPersistentBackground(_:)` — the thin wrapper
 /// that applies a background that survives inner ANSI resets, or

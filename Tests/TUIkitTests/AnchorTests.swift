@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct BoundsKey: PreferenceKey {
     static var defaultValue: Anchor<CellRect>? { nil }

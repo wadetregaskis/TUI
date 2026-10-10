@@ -6,6 +6,7 @@
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A view drawn frame by frame, the frames a clock apart and every one of them
 /// under `animation` — what a removal transition is tested on.

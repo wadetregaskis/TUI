@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct Card: CustomStringConvertible, Equatable {
     let name: String

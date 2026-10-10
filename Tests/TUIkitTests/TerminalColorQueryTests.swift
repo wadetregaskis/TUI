@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The colour query's requests, its reply parsers, and the pure resolution of
 /// what a terminal said.

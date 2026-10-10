@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 // One cohesive file of String terminal-width / ANSI-aware tests; splitting purely
 // to satisfy the length ceiling would scatter closely-related cases.

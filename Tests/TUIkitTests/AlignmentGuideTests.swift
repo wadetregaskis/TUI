@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A custom guide one third of the way across, to prove the model is genuinely
 /// extensible rather than three built-ins in a trench coat.

@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Whether `value` is SwiftUI's printed `expected`, to its six places.
 private func near(_ value: Double, _ expected: Double, within tolerance: Double = 2e-6) -> Bool {

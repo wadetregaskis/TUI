@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// An RGB page, ink and accent whose tertiary tier is the terminal's own foreground:
 /// the DEFAULT focus wash is 30% of that tier over the page, which below half is the

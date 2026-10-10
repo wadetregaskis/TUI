@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
 @testable import TUIkitTables
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Table row ink")

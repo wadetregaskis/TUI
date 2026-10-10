@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A minimal equatable view for testing memoization behavior.
 private struct LabelView: View, Equatable {

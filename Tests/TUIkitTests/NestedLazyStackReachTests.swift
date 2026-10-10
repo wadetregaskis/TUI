@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A header, then a lazy stack of `rows` rows below it — so the stack is one
 /// sibling among two and not the scroll view's direct content. The anchored

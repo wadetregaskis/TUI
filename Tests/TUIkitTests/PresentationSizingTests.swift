@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
+@testable import TUIkitTestSupport
 
 /// Proposes 40 by 12, and nothing else.
 private struct FixedSizing: PresentationSizing {

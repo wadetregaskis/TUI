@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// The per-pass memos key a view by a hash of its bytes (`viewValueHash`), and

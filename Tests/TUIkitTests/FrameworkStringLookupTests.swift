@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("TUIkit's own words and the app's keys")

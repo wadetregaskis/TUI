@@ -13,6 +13,7 @@ import TUIkitCore
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A hover OBSERVER — `.onHover`, `help(_:)` — hears the pointer enter and
 /// leave without taking the hover from the controls it wraps.

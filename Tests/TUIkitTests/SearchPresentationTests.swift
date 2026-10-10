@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the page holds, by reference so the bindings a frame built reach it.
 private final class Probe {

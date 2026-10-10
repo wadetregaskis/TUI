@@ -18,6 +18,7 @@ import TUIkitImage
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Images made from pixels the app has")

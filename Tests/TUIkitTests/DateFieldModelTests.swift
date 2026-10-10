@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitPickers
+@testable import TUIkitTestSupport
 
 /// Coverage for ``DateFieldModel`` — the pure calendar math behind
 /// ``DatePicker``: component layout, zero-padded formatting, in-field wrapping

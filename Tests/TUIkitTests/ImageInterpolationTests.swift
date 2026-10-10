@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 @testable import TUIkitImage
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Image interpolation and antialiasing")

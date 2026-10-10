@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// How many times the button was pressed.
 private final class Presses: @unchecked Sendable {

@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Identifying the host from what it answers, rather than from an environment
 /// variable ssh does not forward.

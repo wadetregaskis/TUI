@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A form whose own Done button calls `dismiss()`, the shape SwiftUI's
 /// documentation teaches.

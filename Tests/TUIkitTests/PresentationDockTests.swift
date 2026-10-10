@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the probe posts, and the heights the page was laid out at.
 @MainActor

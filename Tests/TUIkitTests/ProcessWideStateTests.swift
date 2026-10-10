@@ -10,6 +10,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// The door's own check.
 @Suite("Process-wide state is written only in a process of its own")

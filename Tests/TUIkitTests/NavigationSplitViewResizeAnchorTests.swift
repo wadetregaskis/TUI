@@ -14,6 +14,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("NavigationSplitView resize anchors on the displayed width")

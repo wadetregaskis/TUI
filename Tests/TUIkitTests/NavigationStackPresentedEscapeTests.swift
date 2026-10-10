@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the status bar says Escape does while a dialog is up over a pushed
 /// `NavigationStack` screen.

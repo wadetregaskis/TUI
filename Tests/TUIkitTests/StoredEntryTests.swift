@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A built-in store keeps the value a key's bytes decoded to, so a read on the
 /// render path does not decode JSON every time — and serves it only where the

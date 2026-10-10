@@ -20,6 +20,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("Frame buffer line-width invariant")
 struct FrameBufferLineWidthInvariantTests {

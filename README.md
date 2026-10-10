@@ -383,6 +383,7 @@ Sources/
 Tests/                    ~6,300 tests across ~900 suites in ~680 files
 ├── TUIkitTests/          The framework's suite (incl. i18n consistency,
 │                         localization & golden-snapshot tests)
+├── TUIkitTestSupport/    The helpers, mocks, fixtures and golden snapshots it shares
 ├── TUIkitCoreTests/      One suite per library module, so a module's tests
 ├── TUIkitStylingTests/   cannot lean on the umbrella's API — the boundary is
 ├── TUIkitViewTests/      enforced by Tools/validate-test-boundaries.sh

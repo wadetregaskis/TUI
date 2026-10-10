@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// `item`, on a repeating fade drawn at 0.9 of a breath down to 0.3.
 private struct BreathingItem: View, Renderable {

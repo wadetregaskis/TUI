@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// `Image` drawing with the terminal's own graphics instead of glyphs.
 ///

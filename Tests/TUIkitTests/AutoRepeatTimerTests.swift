@@ -18,6 +18,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 /// `.serialized` because the whole point of one of these is to occupy the

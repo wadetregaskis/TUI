@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 private struct Entry: Identifiable, Sendable {
     let id: Int

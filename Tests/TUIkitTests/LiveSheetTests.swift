@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The page's and the sheet's state, by reference so the bindings a frame
 /// built reach it.

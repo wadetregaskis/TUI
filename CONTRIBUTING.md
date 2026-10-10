@@ -513,12 +513,12 @@ anything at run time:
     exit test's body runs in a child process of its own.
   SwiftLint's `process_wide_write_in_tests` forbids the raw writes, and
   `ProcessWideState` refuses a write made outside an exit test. See
-  `Tests/TUIkitTests/TestHelpers/ProcessWideState.swift` for the two flakes
+  `Tests/TUIkitTestSupport/TestHelpers/ProcessWideState.swift` for the two flakes
   this came from.
 - **A test that asserts the framework's own UI words** — "No items", "dismiss",
   "Done" — depends on the language `LocalizationService.shared` picked from
   `LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG`. Declare that on the suite with
-  `.rendersEnglishUI` (see `Tests/TUIkitTests/TestHelpers/RendersEnglishUI.swift`),
+  `.rendersEnglishUI` (see `Tests/TUIkitTestSupport/TestHelpers/RendersEnglishUI.swift`),
   which pins English for the process before the suite runs. Without it the suite
   passes for you and fails for anyone whose POSIX locale is not English. Do not
   set a locale variable from inside a test: `LocalizationService.shared` is a
@@ -528,6 +528,16 @@ anything at run time:
   from the app language every frame. A test asserting "4,994" pins
   `environment.locale` explicitly rather than relying on the default.
 - Test files mirror source structure in `Tests/TUIkitTests/`
+- The helpers, mocks and fixtures that the suite's test files share live in
+  `Tests/TUIkitTestSupport`, a plain target. Every test file of
+  `Tests/TUIkitTests` has `@testable import TUIkitTestSupport`, so give a new
+  one that line too. Every file of the support target is wrapped in
+  `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, under a comment that says
+  why; copy both into a new file there. `swift build -c release` builds the
+  target too, without testability, so it must compile empty there
+  (`Package.swift` says what else was measured). It holds no `@Test` and no
+  `@Suite`: it is linked into every test binary, and a suite in it would be
+  found in each one. The golden snapshots are its `__Snapshots__`.
 - The four lower library modules also have a test target each
   (`TUIkitCoreTests`, `TUIkitStylingTests`, `TUIkitViewTests`,
   `TUIkitImageTests`) that links **only that module**, so a module test cannot

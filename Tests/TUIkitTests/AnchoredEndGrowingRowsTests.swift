@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct GrowingGroupsApp: App {
     var body: some Scene { WindowGroup { GrowingGroupsPage() } }

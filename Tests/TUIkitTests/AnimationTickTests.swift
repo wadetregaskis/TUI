@@ -12,6 +12,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("The 1/60 s animation tick")
 struct AnimationTickTests {

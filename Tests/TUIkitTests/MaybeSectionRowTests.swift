@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// How many rows of the loop were built.

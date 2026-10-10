@@ -28,6 +28,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// Renders a page the way the run loop brackets a frame, and asks a real
 /// `InputHandler` over the same services whether the frame's bindings need

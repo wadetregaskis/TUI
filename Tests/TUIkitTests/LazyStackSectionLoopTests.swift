@@ -16,6 +16,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// How many sections were built.
 @MainActor

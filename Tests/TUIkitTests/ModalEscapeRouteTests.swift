@@ -9,6 +9,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The modal presenter's layer-2 ESC route and the presenters' drag-state
 /// survival — the two counts on which they trailed their siblings.

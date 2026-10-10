@@ -14,6 +14,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("NavigationSplitView keeps each column's width when columns hide")

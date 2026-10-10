@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitTerminalHost
+@testable import TUIkitTestSupport
 
 #if canImport(Darwin)
 import Darwin

@@ -22,6 +22,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTerminalHost
+@testable import TUIkitTestSupport
 
 @Suite("tmux compatibility")
 struct TmuxCompatibilityTests {

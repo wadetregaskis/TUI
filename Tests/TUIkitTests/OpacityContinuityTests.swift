@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// The properties a fade must hold ACROSS alpha, not at any one value: colours
 /// move monotonically, glyph decisions change at most once, and the ends are

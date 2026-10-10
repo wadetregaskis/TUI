@@ -10,6 +10,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Everything a bar's content emitted survives the bar's frame.
 ///

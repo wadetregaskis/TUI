@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A palette that is not dark, because the whole point of blending toward the
 /// surface rather than toward black is invisible on a black one.

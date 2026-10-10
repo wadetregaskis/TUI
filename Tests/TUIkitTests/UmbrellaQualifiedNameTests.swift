@@ -170,6 +170,7 @@
 
 import Testing
 import TUIkit
+@testable import TUIkitTestSupport
 
 /// An app's own `Label`, beside TUIkit's.
 private enum Client {

@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
 @testable import TUIkitTerminalHost
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Links in a Text")

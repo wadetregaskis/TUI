@@ -13,6 +13,7 @@
 import Observation
 import Testing
 
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// What the scopes below read.

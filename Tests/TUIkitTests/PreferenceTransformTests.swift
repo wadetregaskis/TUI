@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A summing key whose default is not the sum's identity.
 private struct OffsetSumKey: PreferenceKey {

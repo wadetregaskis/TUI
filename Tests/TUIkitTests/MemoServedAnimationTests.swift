@@ -21,6 +21,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// A catalogue row, `Equatable` so `ForEach` memoizes it as the Spinners page's

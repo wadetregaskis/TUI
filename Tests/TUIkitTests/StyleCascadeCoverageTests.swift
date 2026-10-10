@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct CoverageRow: Identifiable, Sendable {
     let id: Int

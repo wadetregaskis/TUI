@@ -17,6 +17,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A breathing List row's dropped child runs")

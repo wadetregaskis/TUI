@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Turning the kitty keyboard protocol on where the terminal speaks it, and
 /// off again, against a scripted terminal.

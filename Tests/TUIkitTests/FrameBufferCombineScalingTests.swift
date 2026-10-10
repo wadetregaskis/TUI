@@ -29,6 +29,7 @@ import Foundation
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("Frame buffer combine scaling")
 struct FrameBufferCombineScalingTests {

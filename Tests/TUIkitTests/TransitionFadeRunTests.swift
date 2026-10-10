@@ -26,6 +26,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitEffects
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// A spinner on a colour of its own, arriving under a one-second `.opacity`

@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The percentage, as text.
 private struct PercentStyle: ProgressViewStyle {

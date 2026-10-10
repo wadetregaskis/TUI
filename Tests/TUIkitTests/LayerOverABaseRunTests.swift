@@ -23,6 +23,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Two cells whose field turns red and blue, frame by frame, drawn at the frame the
 /// render's instant shows — or, `glyphOnly`, two glyphs on one field.

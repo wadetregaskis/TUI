@@ -18,6 +18,7 @@ import TUIkitCore
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitGrid
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Flowing grids")

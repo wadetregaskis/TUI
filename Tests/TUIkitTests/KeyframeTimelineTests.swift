@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct Values {
     var a = 0.0

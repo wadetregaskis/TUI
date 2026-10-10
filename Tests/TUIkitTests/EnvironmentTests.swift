@@ -9,6 +9,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Custom environment key for testing.
 private struct TestStringKey: EnvironmentKey {

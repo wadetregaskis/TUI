@@ -10,6 +10,7 @@ import TUIkitCore
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A declined mouse event falls through to the region beneath — for every
 /// button. `.onHover` wraps its content in a full-size region that declines

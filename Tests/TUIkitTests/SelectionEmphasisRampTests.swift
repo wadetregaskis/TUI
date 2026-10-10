@@ -21,6 +21,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Selection emphasis pulse ramp")

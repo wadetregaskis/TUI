@@ -13,6 +13,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Type select")

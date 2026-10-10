@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The `r;g;b` SGR parameter fragment for a resolved colour — matches both
 /// foreground (`38;2;…`) and background (`48;2;…`) uses in a rendered line.

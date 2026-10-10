@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Whether the probe page declares a header: reachable from an `App`, which
 /// must be constructible with a bare `init()`.

@@ -16,6 +16,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A row that stamps its @State with its label on first appearance — so the
 /// rendered "label:stamp" pair reveals whose state each row is wearing.

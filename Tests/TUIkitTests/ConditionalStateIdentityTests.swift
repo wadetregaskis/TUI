@@ -15,6 +15,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct StatefulA: View {
     // Internal rather than `private`: this fixture exists so the test can read

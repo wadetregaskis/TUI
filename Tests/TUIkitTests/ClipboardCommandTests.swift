@@ -18,6 +18,7 @@
     import TUIkit
     @testable import TUIkitCore
     @testable import TUIkitFoundation
+    @testable import TUIkitTestSupport
 
     /// What the actions under test saw, in the order they ran.
     private final class ActionLog: @unchecked Sendable {

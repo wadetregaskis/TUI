@@ -15,6 +15,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// How many times a row type's shape was asked.

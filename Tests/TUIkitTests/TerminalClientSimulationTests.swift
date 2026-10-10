@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Rendering as a terminal other than the one detected — the mechanism the
 /// `TerminalClientQuirks` app is built on.

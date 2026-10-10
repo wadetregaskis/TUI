@@ -22,6 +22,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @Suite("Raw mode's line discipline")
 struct TerminalLineDisciplineTests {

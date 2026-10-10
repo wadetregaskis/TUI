@@ -19,6 +19,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the handlers under test saw, in the order they ran.
 private final class PressLog: @unchecked Sendable {

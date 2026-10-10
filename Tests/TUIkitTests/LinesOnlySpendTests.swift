@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A breath's colours are spent for their lines alone")

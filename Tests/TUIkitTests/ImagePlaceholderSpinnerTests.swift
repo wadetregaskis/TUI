@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Image placeholder spinner style")

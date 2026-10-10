@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @Suite("A style's SGR introducer is the attributes and colours, joined")
 struct SGRStyleSequenceTests {

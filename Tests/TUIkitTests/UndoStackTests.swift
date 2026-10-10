@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The `UndoManager` TUIkit provides where Foundation has none (Linux), tested
 /// through its engine on every platform. The expectations are

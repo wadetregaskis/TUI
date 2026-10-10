@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// `settingForeground`/`settingBackground` used to build the SGR sequence a
 /// colour would emit and parse it back in — one code path for "what colour

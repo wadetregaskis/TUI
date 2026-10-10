@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The handshake. This is the one terminal capability in the project that is
 /// asked rather than looked up, so what it asks and how it reads the answer

@@ -20,6 +20,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("ANSI overlay split")
 struct ANSIOverlaySplitTests {

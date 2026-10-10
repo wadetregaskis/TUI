@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
+@testable import TUIkitTestSupport
 
 /// One duration the framework picks on its own, by the name the spec tracks it by.
 struct StandardAnimationDuration: Sendable, CustomTestStringConvertible {

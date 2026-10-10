@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Spans spelt from the framework's tables")

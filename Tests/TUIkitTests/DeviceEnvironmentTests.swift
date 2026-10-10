@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Draws one environment value, so a test can read what a subtree sees.
 private struct Reads<Value>: View {

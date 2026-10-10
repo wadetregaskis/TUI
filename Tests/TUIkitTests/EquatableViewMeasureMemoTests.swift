@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Tests for the value-based measure memoization on ``EquatableView``: a
 /// repeated measurement of an unchanged `Equatable` view returns the cached

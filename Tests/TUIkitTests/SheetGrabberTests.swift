@@ -12,6 +12,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A page under a detented sheet, its detent bound or the sheet's own.
 @MainActor

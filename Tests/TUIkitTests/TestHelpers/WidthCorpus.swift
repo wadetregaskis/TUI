@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 import TUIkitWidthCorpus
 
 // MARK: - The shared width corpus

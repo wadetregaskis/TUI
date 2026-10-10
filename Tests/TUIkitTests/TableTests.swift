@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitTables
+@testable import TUIkitTestSupport
 
 // MARK: - Test Data
 

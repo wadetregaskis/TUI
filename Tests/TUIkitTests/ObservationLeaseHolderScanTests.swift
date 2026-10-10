@@ -19,6 +19,8 @@
 import Foundation
 import Testing
 
+@testable import TUIkitTestSupport
+
 @Suite("Observation leases: every holder outside the render cache keeps its leases")
 struct ObservationLeaseHolderScanTests {
     private static let sources = URL(fileURLWithPath: #filePath)

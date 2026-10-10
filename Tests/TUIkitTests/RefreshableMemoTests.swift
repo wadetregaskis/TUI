@@ -16,6 +16,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Counts refresh runs, from whatever thread the action runs on.
 private final class RunCounter: @unchecked Sendable {

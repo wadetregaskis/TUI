@@ -25,6 +25,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 extension LocalizedTitleTests {

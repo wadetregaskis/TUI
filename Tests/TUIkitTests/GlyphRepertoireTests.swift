@@ -16,6 +16,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitImage
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Glyph repertoire")

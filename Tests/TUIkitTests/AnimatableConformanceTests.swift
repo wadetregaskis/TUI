@@ -13,6 +13,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The shape a ported SwiftUI `Animatable` takes: its data is `CGFloat`, which
 /// compiles only if `CGFloat` is TUIkit `VectorArithmetic`.

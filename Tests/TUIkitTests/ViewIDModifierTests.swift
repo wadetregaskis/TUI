@@ -15,6 +15,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Seeds its @State default from `seed`, so the rendered text reveals whether
 /// the @State was freshly bound (shows the new seed) or reused (shows the old).

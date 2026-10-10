@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 /// The framework's own words on its panels and empty containers go through
 /// the translation tables. A `String`-typed name can only ever bind the

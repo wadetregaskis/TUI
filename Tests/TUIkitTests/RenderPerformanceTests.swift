@@ -43,6 +43,7 @@ import TUIkitCore
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 // MARK: - Render Performance Tests
 

@@ -17,6 +17,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitTestSupport
 
 // MARK: - The recipe
 

@@ -28,6 +28,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("focusEffectDisabled suppresses every control's focus indication; an inactive window keeps it, still")

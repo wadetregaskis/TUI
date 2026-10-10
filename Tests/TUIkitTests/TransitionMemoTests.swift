@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// One row's data. `Equatable`, so `ForEach` memoizes the row it builds.
 private struct Item: Identifiable, Equatable {

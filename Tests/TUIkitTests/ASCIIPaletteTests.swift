@@ -7,6 +7,7 @@
 import Testing
 @testable import TUIkitImage
 import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @Suite("Image palettes and tone curves")
 struct ASCIIPaletteTests {

@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the hover actions under test saw, in order.
 private final class PhaseLog: @unchecked Sendable {

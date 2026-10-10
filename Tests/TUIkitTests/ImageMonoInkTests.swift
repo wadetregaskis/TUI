@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitImage
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Mono images use the view's styles, and the theme's ink by default")

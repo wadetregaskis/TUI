@@ -12,6 +12,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Every presenter asks for its focus section on every frame it is up, and
 /// activating a section is a transition. With one presentation that is a no-op

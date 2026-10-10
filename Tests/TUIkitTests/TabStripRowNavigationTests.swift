@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitTabs
+@testable import TUIkitTestSupport
 
 private final class IntBox {
     var value: Int

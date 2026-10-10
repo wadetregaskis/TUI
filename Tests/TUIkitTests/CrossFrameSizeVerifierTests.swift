@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// What the row closures read that is not their row.

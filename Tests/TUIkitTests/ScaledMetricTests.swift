@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct Gutter: View {
     @ScaledMetric(relativeTo: .caption) var gutter = 3

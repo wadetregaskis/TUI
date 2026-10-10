@@ -16,6 +16,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The page under the modal. Its counter is `@State`, deliberately: the
 /// backdrop renders through an isolated context, and the question is whether

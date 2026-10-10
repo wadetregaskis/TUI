@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTabs
+@testable import TUIkitTestSupport
 
 @Observable
 @MainActor

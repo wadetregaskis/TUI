@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// The terminal's page and ink, stated as roles, with an RGB accent and tertiary tier.
 private struct TerminalPagePalette: Palette {

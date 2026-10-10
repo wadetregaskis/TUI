@@ -24,6 +24,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
 @testable import TUIkitTables
+@testable import TUIkitTestSupport
 
 @Observable
 @MainActor

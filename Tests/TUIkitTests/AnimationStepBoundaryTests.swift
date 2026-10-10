@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// An animation clock used to count elapsed time by ADDING what it slept, so the
 /// instant that should be exactly 0.35 s was `0.05` added seven times — and in binary

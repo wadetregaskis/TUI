@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A control that answers to a bare symbol or digit does not answer to a
 /// Control or Option chord on it: Ctrl-minus (the legacy byte 0x1F, which

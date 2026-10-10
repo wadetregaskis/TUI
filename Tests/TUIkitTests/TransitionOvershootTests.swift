@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A view that comes and goes, in a slot that survives it.
 private struct Host: View {

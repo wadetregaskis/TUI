@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the probes' actions did, reachable from an `App`.
 private final class ReachProbe: @unchecked Sendable {

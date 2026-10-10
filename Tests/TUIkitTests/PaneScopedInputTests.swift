@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
+@testable import TUIkitTestSupport
 
 /// Renders `content` as pane `id`: its own focus section, rendered through
 /// `renderingPane`, as a live sheet's presenter renders its content.

@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitEffects
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A fade keeps the terminal's own field where the unfaded row has it")

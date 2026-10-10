@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// `.scrollIndicators(.visible)` with the "N more above / below" style draws both
 /// lines at every offset — including the top, where nothing is above, and the

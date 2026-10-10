@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitImage
 @testable import TUIkitLists
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// An RGB page and ink, and a terminal slot for the accent.
 private struct SlotAccentPalette: Palette {

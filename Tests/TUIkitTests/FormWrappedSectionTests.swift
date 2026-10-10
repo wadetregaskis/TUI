@@ -21,6 +21,7 @@ import Testing
 import TUIkit
 @testable import TUIkitForms
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// Records the identity path it renders under.

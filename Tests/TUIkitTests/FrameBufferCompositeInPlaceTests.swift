@@ -21,6 +21,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("FrameBuffer in-place composite")
 struct FrameBufferCompositeInPlaceTests {

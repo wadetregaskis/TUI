@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
 @testable import TUIkitTables
+@testable import TUIkitTestSupport
 
 /// A column's line limit is at least one, however it is set.
 ///

@@ -33,6 +33,7 @@ import TUIkit
 @testable import TUIkitColorPicker
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// One of everything that leaves a run: the focusable controls breathe when the

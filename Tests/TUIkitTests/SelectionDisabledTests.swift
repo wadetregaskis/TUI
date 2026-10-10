@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("selectionDisabled")

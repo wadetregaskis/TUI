@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("List and Table can be pushed past their edges")

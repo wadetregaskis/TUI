@@ -16,6 +16,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("SGR state")
 struct SGRStateTests {

@@ -21,6 +21,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Gradients do not band at 256 colours")

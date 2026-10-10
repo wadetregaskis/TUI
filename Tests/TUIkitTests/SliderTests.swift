@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
+@testable import TUIkitTestSupport
 
 /// Creates a default render context for testing.
 private func testContext(width: Int = 40, height: Int = 24) -> RenderContext {

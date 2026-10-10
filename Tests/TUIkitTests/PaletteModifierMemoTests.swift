@@ -25,6 +25,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A palette as the Theming guide writes one: no `Equatable`, an id of its own.
 private struct GuidePalette: Palette {

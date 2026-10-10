@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the tap actions under test saw, in order.
 private final class TapLog: @unchecked Sendable {

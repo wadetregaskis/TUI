@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitPickers
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 /// The input dispatcher's layer-0 gate: while a text-consuming handler is

@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A memoizable leaf whose body is built by a closure, so each case can put a
 /// different effect **inside** the subtree the cache would serve.

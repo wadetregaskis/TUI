@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Brackets its content: the shape of nearly every custom modifier.
 private struct Bracketed: ViewModifier {

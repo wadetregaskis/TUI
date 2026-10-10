@@ -19,6 +19,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the user's quit key does when the kitty keyboard protocol reports it
 /// as a key: what the terminal driver does for its byte. The signal itself is

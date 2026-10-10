@@ -21,6 +21,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A two-cell run in the overlay whose frames draw a glyph in an ink of its own,
 /// one in none, and one on the terminal's own field, stated; frame `drawn` is

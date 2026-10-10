@@ -9,6 +9,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("AnimatableValues")
 struct AnimatableValuesTests {

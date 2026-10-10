@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTables
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Table row content")

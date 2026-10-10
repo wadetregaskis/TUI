@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The kitty keyboard protocol's reports through the live parser, and what
 /// the input chain does with a repeat and a release.

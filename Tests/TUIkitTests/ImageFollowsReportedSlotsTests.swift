@@ -21,6 +21,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("An image drawn in the terminal's slots is drawn again when the terminal reports them")

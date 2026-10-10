@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitEffects
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// What each row's effect was drawn at, by row.

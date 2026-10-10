@@ -12,6 +12,7 @@
 import Testing
 
 @testable import TUIkitCore
+@testable import TUIkitTestSupport
 
 @Suite("Animated cell runs")
 struct AnimatedCellRunTests {

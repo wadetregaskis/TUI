@@ -6,6 +6,8 @@
 
 import Foundation
 
+@testable import TUIkitTestSupport
+
 /// Reads `[String: [String: String]]` translation tables straight out of
 /// Swift source, for the targets the test graph cannot import: the Example
 /// and Stress executables.

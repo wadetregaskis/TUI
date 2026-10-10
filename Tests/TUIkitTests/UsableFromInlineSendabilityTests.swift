@@ -11,6 +11,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The compiler infers `Sendable` only for a type that is not usable from inline
 /// code. Making a type `@usableFromInline` therefore drops the conformance without

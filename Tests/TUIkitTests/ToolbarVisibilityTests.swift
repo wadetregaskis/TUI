@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Which bars the probe hides, reachable from an `App`.
 private final class HiddenBars: @unchecked Sendable {

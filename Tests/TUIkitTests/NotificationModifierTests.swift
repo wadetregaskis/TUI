@@ -12,6 +12,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A clock a test sets by hand, for a `NotificationService` to read.
 private final class ManualClock: @unchecked Sendable {

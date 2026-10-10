@@ -11,6 +11,7 @@ import TUIkitCore
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// "Cancel means the edit never happened" — the rule the four live-editing
 /// panels share, tested here because there is now one copy of it to test.

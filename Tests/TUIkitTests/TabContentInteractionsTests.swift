@@ -12,6 +12,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// What the tab view and its tabs did, outside the views.
 private final class Log: @unchecked Sendable {

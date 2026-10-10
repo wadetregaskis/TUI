@@ -12,6 +12,7 @@ import Testing
 import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 private struct Alarm: Hashable, Identifiable {
     var id: Int

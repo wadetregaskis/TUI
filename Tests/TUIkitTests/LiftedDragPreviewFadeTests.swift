@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A lifted drag preview lifts the fades its rows draw")

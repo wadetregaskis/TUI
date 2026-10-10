@@ -3,6 +3,15 @@
 import CompilerPluginSupport
 import PackageDescription
 
+/// What the umbrella suite's test target and its support target, TUIkitTestSupport, depend on.
+let umbrellaTestDependencies: [Target.Dependency] = [
+    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
+    "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
+    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings",
+    "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
+    "TUIkitWidthCorpus", "CTestSupport",
+]
+
 let package = Package(
     name: "TUIkit",
     // Minimum deployment targets for Apple platforms
@@ -459,7 +468,7 @@ let package = Package(
         ),
         // The umbrella test target: integration tests + every test that exercises
         // a control, the App/run loop, focus, or the shared render helpers (which
-        // live in this target). Module-specific *unit* tests live in the
+        // live in TUIkitTestSupport, below). Module-specific *unit* tests live in the
         // per-module test targets below, which link ONLY their module (+ its
         // real deps) so a test that reaches across a module boundary fails to
         // compile. `swift test` runs every target, so the full suite is
@@ -475,19 +484,39 @@ let package = Package(
         // TUIkitNumericControls).
         .testTarget(
             name: "TUIkitTests",
-            dependencies: [
-                "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
-                "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-                "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings",
-                "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
-                "TUIkitWidthCorpus", "CTestSupport",
-            ],
-            // Golden snapshots are read/written by path (#filePath-relative, see
-            // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
-            // exclude them from the build rather than declaring them as resources.
-            // The same for the fixtures read by path (an asset catalogue, and the
-            // `Assets.car` Xcode compiled from it).
-            exclude: ["__Snapshots__", "__Fixtures__"]
+            dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"],
+            // The fixtures read by path (an asset catalogue, and the `Assets.car`
+            // Xcode compiled from it), not via the resource bundle, so exclude
+            // them from the build rather than declaring them as resources.
+            exclude: ["__Fixtures__"]
+        ),
+        // The helpers, mocks and fixtures the umbrella suite's files share. Every
+        // file there `@testable import`s it, and its own declarations stay
+        // internal. A plain target, as CTestSupport is, which `swift build`
+        // builds even without `--build-tests`: in a release build, which has no
+        // testability, its `@testable import`s of the library would fail
+        // ("module 'TUIkitFoundation' was not compiled for testing"). So every
+        // file is wrapped in `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`,
+        // which this target defines for debug builds only, and a release build
+        // compiles it empty. The alternatives, measured 2026-10-10 in a probe
+        // package (lane TT2) on Swift 6.2.4, 6.3.3 and 6.4.0: as a test target
+        // the others depend on, 6.4's build system still builds it in release;
+        // `swift build -c release --product <a library product>` builds every
+        // target on 6.2 and 6.3; and `package` access instead of `@testable` would put every
+        // internal a helper uses into the library's package interface. A
+        // release TEST build passes the define itself:
+        // `swift build -c release --build-tests -Xswiftc -enable-testing -Xswiftc -DTUIKIT_TEST_SUPPORT`.
+        // `canImport(Testing)`: a static Linux SDK ships no Testing module, and
+        // a debug build of the whole package for it would fail here.
+        // Golden snapshots are read and written by path (#filePath-relative, see
+        // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
+        // they are excluded from the build rather than declared as resources.
+        .target(
+            name: "TUIkitTestSupport",
+            dependencies: umbrellaTestDependencies,
+            path: "Tests/TUIkitTestSupport",
+            exclude: ["__Snapshots__"],
+            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         // C declarations a test needs that only the C importer makes — a struct
         // with bitfields, which the runtime's field list leaves out. Tests

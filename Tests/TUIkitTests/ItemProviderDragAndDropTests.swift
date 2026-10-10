@@ -19,6 +19,7 @@
     import TUIkit
     @testable import TUIkitCore
     @testable import TUIkitFoundation
+    @testable import TUIkitTestSupport
 
     /// What the destination under test was told, in order.
     private final class DropLog: @unchecked Sendable {

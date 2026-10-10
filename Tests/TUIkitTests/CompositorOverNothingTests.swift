@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A `Layout` that lays every subview at the same origin, the last on top.
 private struct Overlap: Layout {

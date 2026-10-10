@@ -14,6 +14,8 @@
 import Foundation
 import Testing
 
+@testable import TUIkitTestSupport
+
 @Suite("Nothing asks the terminal for a cursor report")
 struct CursorReportRequestScanTests {
     private static let sources = URL(fileURLWithPath: #filePath)

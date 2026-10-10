@@ -17,6 +17,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Which item actions ran.
 private final class ActionLog {

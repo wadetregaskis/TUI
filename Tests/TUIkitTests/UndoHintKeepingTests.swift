@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 /// The status bar's undo and redo hints are worked out once and kept
 /// (`AppUndoKeys.hint(for:)`): asked for on every render, each answer built

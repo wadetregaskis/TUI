@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A view nine bytes long, so whatever follows it in a wrapper is misaligned.
 private struct OddProbe: View {

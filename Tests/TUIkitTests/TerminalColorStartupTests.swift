@@ -10,6 +10,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The startup colour exchange: which request a host is sent, how long it is
 /// waited for, what it hands back to the input parser, and what it publishes.

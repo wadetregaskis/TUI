@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Validates the primitives behind demand-driven animation: a render frame
 /// reports whether it consumed the animation clock — through the `pulsePhase`

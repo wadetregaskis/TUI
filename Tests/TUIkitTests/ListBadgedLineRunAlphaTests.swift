@@ -18,6 +18,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A list whose rows are badged, a spinner on each first line — the focus on a
 /// button above it, so its cursor row does not breathe (a breathing row repaints its

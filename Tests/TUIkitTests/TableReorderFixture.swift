@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitLists
+@testable import TUIkitTestSupport
 
 struct TableReorderRow: Identifiable, Sendable {
     let id: String

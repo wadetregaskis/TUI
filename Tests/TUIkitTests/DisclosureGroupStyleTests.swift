@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Label and a +/- marker on one row, the content under it while expanded.
 private struct PlusMinusStyle: DisclosureGroupStyle {

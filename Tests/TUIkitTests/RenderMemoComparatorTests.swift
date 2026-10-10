@@ -27,6 +27,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitLists
 @testable import TUIkitNumericControls
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Render-memo comparators")

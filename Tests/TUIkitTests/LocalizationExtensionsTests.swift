@@ -19,6 +19,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Localization extensions")

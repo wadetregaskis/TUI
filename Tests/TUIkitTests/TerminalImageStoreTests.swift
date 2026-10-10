@@ -11,6 +11,7 @@ import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// The store owns a resource that lives in another process and that nothing
 /// else will ever clean up, so every one of these is about the arithmetic of

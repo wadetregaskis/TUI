@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("Sheet detents")

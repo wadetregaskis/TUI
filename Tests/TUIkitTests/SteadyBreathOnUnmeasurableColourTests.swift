@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// An RGB page and ink whose accent is the terminal's own foreground, which has no RGB

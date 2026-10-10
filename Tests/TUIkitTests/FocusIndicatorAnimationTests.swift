@@ -27,6 +27,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitPresentation
+@testable import TUIkitTestSupport
 @testable import TUIkitTextInput
 
 @MainActor

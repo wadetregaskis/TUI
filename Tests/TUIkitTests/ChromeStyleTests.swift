@@ -15,6 +15,7 @@ import TUIkit
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A page with a top bar of a title and a version, and a bottom bar of hints,
 /// in one chrome style, under a horizontal gutter of its own.

@@ -10,6 +10,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 /// The bytes of a `T` that `build` leaves as they were: `build` runs twice, on

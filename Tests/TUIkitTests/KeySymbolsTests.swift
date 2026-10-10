@@ -13,6 +13,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
+@testable import TUIkitTestSupport
 
 /// The expectations here are AppKit's, not a re-statement of the formatter's
 /// tables: `NSKeyboardShortcut`'s `localizedDisplayName`, which draws the

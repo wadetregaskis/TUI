@@ -23,6 +23,7 @@ import TUIkitStyling
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 @testable import TUIkitView
 
 @MainActor

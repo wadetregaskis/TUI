@@ -20,6 +20,7 @@ import TUIkit
 @testable import TUIkitBitmaps
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A mono picture in a breathing link")

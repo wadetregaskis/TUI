@@ -9,6 +9,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A view whose text is NOT part of its memo token, so a served entry is
 /// observable: if the old rendering is reused the old text is what appears.

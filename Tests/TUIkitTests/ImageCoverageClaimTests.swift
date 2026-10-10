@@ -14,6 +14,7 @@ import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitImage
+@testable import TUIkitTestSupport
 
 @Suite("An image's coverage becomes claims")
 struct ImageCoverageClaimTests {

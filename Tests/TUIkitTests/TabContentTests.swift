@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Tab content of an app's own, written the way SwiftUI's is.
 private struct MailTabs: TabContent {

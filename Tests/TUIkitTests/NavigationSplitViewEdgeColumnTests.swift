@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("A hidden leading column leaves a ▶ edge column that brings it back", .rendersEnglishUI)

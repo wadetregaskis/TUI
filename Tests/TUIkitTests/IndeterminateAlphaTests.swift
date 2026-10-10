@@ -16,6 +16,7 @@ import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 @MainActor
 @Suite("An indeterminate bar's alpha")

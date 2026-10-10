@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// A representative corpus of layouts, snapshotted to catch unintended rendering
 /// changes — especially from the flexibility-contract work, where a change to how

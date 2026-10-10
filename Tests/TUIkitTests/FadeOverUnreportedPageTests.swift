@@ -19,6 +19,7 @@ import TUIkit
 @testable import TUIkitEffects
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// The page and ink the terminal decides, stated as roles, with RGB elsewhere.
 private struct TerminalPairPalette: Palette {

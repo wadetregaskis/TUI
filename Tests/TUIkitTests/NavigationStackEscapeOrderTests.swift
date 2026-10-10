@@ -8,6 +8,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// Who hears Escape first on a pushed `NavigationStack` screen: the screen, or
 /// the stack that would pop it.

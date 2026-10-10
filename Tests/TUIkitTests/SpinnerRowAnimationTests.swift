@@ -27,6 +27,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// An `Equatable` view wrapping a Spinner, for the explicit `.equatable()`
 /// variant of the row-memo freeze.

@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+@testable import TUIkitTestSupport
 
 /// How often the memoized view's `body` ran.
 @MainActor

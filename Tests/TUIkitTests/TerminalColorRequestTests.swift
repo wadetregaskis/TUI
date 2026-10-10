@@ -23,6 +23,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitStyling
+@testable import TUIkitTestSupport
 
 /// A terminal whose byte source hands over whatever the test has staged, as
 /// `TerminalInputParsingTests` drives the parser: no TTY, and the split between
