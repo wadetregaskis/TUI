@@ -108,12 +108,23 @@ if [ ! -d "${SYMBOL_GRAPHS:-}" ]; then
 fi
 
 echo "==> Unifying them under a single module identity"
-STAGED="$(mktemp -d)"
-trap 'rm -f "$DUMP_LOG"; rm -rf "$STAGED"' EXIT
+if [ "$PREVIEW" -eq 1 ]; then
+    # A preview `exec`s DocC below, which replaces this shell, so no EXIT trap
+    # survives to delete the graphs DocC serves from (about 400 MB). So a preview
+    # stages into ONE fixed directory that the next preview replaces (the unifier
+    # empties its destination first), rather than a fresh temporary that every
+    # preview would leave behind. Not signal handling around a child server
+    # instead: `exec` keeps `kill <pid>` and Ctrl-C going straight to DocC.
+    STAGED=".build/docs-preview-symbols"
+else
+    STAGED="$(mktemp -d)"
+    trap 'rm -f "$DUMP_LOG"; rm -rf "$STAGED"' EXIT
+fi
 python3 Tools/BuildDocs/unify_symbol_graphs.py "$SYMBOL_GRAPHS" "$STAGED"
 
 if [ "$PREVIEW" -eq 1 ]; then
     echo "==> Serving — open http://localhost:$PORT/documentation/tuikit"
+    rm -f "$DUMP_LOG"
     exec "$DOCC" preview Sources/TUIkit/TUIkit.docc \
         --port "$PORT" \
         --fallback-display-name TUIkit \
