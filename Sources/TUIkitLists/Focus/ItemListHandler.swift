@@ -1304,14 +1304,33 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     var isFocusEngaged = false
 
     /// Binding for single selection mode (optional ID).
-    package var singleSelection: Binding<SelectionValue?>? { get { _singleSelection } set { _singleSelection = newValue } }
+    ///
+    /// The getter is `@inline(__always)` for ``isSelected(at:)``, which every
+    /// drawn row of a list or table asks (through ``drawsSelected(at:)``):
+    /// once the storage went private behind it (module split, step C2),
+    /// release builds called this getter there out of line (why the optimiser
+    /// declines is not established). The attribute reaches callers in this
+    /// module only. Reading `_singleSelection` directly in `isSelected`
+    /// instead is not the same: that read spans `Binding.wrappedValue`'s
+    /// getter, and a release build then checks every access to both
+    /// selections' storage at run time (`swift_beginAccess`).
+    package var singleSelection: Binding<SelectionValue?>? {
+        @inline(__always) get { _singleSelection }
+        set { _singleSelection = newValue }
+    }
 
     /// ``singleSelection``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _singleSelection: Binding<SelectionValue?>?
 
     /// Binding for multi-selection mode (Set of IDs).
-    package var multiSelection: Binding<Set<SelectionValue>>? { get { _multiSelection } set { _multiSelection = newValue } }
+    ///
+    /// The getter is `@inline(__always)` for ``isSelected(at:)``, as
+    /// ``singleSelection``'s is.
+    package var multiSelection: Binding<Set<SelectionValue>>? {
+        @inline(__always) get { _multiSelection }
+        set { _multiSelection = newValue }
+    }
 
     /// ``multiSelection``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
