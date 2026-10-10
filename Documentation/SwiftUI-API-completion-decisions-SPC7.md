@@ -114,18 +114,23 @@ and the colour picker's per-column call crosses into TUIkitNumericControls
 as it crossed into TUIkitFoundation from step B4 and into TUIkitTextInput
 from step B7 (the release binaries: the same two call sites, out of line in
 the base and now; the one-module build before the split, c181ec0f9, inlined
-both). The call's body quantises the whole
-gradient to the span on every call (`Color.quantisedRamp`, TUIkitStyling,
-which repairs the ramp into a monotone one), so a cross-module call adds
-nothing a strip column would notice; no Stress scenario draws the editor.
+both). Each call asks `Color.quantisedRamp` (TUIkitStyling) for the
+gradient's ramp over the span, which serves a span of more than two cells
+(the editor's are 36 and 8) from its cache once it holds it: a lock,
+hashing the `Gradient` into the cache key, and a dictionary probe. Only a
+miss samples the ramp, and at 256-colour depth repairs it into a monotone
+one. Even the probe costs far more than a call (reasoned, unmeasured), so
+a cross-module call adds nothing a strip column would notice; no Stress
+scenario draws the editor. (Step C7's commit message, 059fa6908, says the
+body quantises the whole ramp on every call; it does not.)
 
 **The fuller version:** `@inlinable package`, with `TrackRenderer`
 `@usableFromInline` and stating `Sendable` (CONTRIBUTING.md, "Crossing a
 module boundary"; UsableFromInlineSendabilityTests would pin it), so the
 colour picker inlines the five-line body. Price: one more `@usableFromInline`
-type, for a call whose own work is a ramp per column. Moving it down into
-TUIkitFoundation instead would make every per-cell call of the track
-renderer cross a module, which is the wrong way round.
+type, for a call whose own work is a ramp-cache probe per column. Moving it
+down into TUIkitFoundation instead would make every per-cell call of the
+track renderer cross a module, which is the wrong way round.
 
 ## Not done here
 
