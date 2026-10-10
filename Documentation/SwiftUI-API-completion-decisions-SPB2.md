@@ -34,7 +34,11 @@ made them. Each name below was `TUIkitFoundation`'s after step B1, and
   directory, and stops the process (`fatalError`) if neither holds the bundle.
   That happens at the first translation the framework looks up, or the first
   read of `tuiKitVersion`. (Read in the generated
-  `resource_bundle_accessor.swift`, macOS, debug build.)
+  `resource_bundle_accessor.swift`, macOS, debug build.) Since lane BNDL
+  (e5445e2cd) the missing bundle no longer stops the process: TUIkit looks for
+  its bundle itself, never through `Bundle.module`, and without it reads its
+  own words in English and its version as "unknown" (README, "Shipping a
+  program"; decisions BNDL).
 - **A saved `NavigationPath.CodableRepresentation`** stores each value's type
   by its mangled name, which names the declaring module. So a saved path
   holding `LocalizationService.Language` or one of the four `SystemFormatStyle`s

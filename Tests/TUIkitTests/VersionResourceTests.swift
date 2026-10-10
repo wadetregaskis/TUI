@@ -36,7 +36,7 @@ struct VersionResourceTests {
     func resourceResolves() {
         #expect(
             tuiKitVersion != "unknown",
-            "Bundle.module could not read VERSION — check `resources:` in Package.swift")
+            "No TUIkit resource bundle with VERSION was found (ModuleResources) — check `resources:` in Package.swift")
     }
 
     @Test("The version is a semantic version, trimmed")
