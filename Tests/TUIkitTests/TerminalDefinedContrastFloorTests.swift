@@ -70,12 +70,12 @@ struct TerminalDefinedContrastFloorTests {
     }
 
     /// Apple Terminal "Basic": black on white, and its sixteen.
-    private static let apple = UnreportedANSISlotTests.appleTerminal
+    private static let apple = UnreportedANSISlots.appleTerminal
 
     /// The same sixteen under a white-on-black pair.
     private static let appleDark = TerminalColors(
         foreground: rgb(255, 255, 255), background: rgb(0, 0, 0),
-        slots: TerminalColors.Slots(UnreportedANSISlotTests.appleBasic))
+        slots: TerminalColors.Slots(UnreportedANSISlots.appleBasic))
 
     /// A terminal that reported its pair and no slots, as Warp does.
     private static let pairOnly = TerminalColors(foreground: rgb(17, 17, 17), background: rgb(255, 255, 255))

@@ -153,7 +153,7 @@ struct SteadyBreathOnUnmeasurableColourTests {
     private static let reported = TerminalColors(
         foreground: TerminalColors.RGB(red: 171, green: 178, blue: 191),
         background: TerminalColors.RGB(red: 40, green: 44, blue: 52),
-        slots: TerminalColors.Slots(UnreportedANSISlotTests.appleBasic))
+        slots: TerminalColors.Slots(UnreportedANSISlots.appleBasic))
 
     /// The middle of each 50 ms frame of the focus breath, over two cycles and more,
     /// so a caret's slower pulse is covered too.

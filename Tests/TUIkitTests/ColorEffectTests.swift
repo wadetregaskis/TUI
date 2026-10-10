@@ -121,7 +121,7 @@ struct ColorEffectTests {
 
     @Test("Multiplying by a slot the terminal has reported multiplies by the reported colour")
     func multiplyByAReportedSlot() {
-        TerminalColors.withCurrent(UnreportedANSISlotTests.appleTerminal) {
+        TerminalColors.withCurrent(UnreportedANSISlots.appleTerminal) {
             let base = Text("ab").foregroundStyle(Color.rgb(200, 100, 50))
             // (200, 100, 50) × Apple Basic's slot 4, (0, 0, 179), / 255: 50 × 179 / 255 → 35.
             let tinted = drawn(base.colorMultiply(.ansi(.blue)))

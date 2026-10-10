@@ -321,7 +321,7 @@ struct FadeOverUnreportedPageTests {
             let view = dissolving(Text("ab").foregroundStyle(Color.ansi(.red)), at: 0.3)
             #expect(text(view) == "ab" && view.contains("38;2;40;44;52"), "\(view.debugDescription)")
         }
-        TerminalColors.withCurrent(UnreportedANSISlotTests.appleTerminal) {
+        TerminalColors.withCurrent(UnreportedANSISlots.appleTerminal) {
             let faded = dissolved("\u{1B}[31mab\u{1B}[0m", 0.3)
             let between = Color.ansi(.red).opacity(0.3, over: Color(value: .terminalBackground))
             #expect(Self.isRGB(between), "the fixture: a reported slot over a reported page mixes")

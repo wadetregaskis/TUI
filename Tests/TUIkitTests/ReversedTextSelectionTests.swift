@@ -64,7 +64,7 @@ struct ReversedTextSelectionTests {
     private static let reported = TerminalColors(
         foreground: TerminalColors.RGB(red: 171, green: 178, blue: 191),
         background: TerminalColors.RGB(red: 40, green: 44, blue: 52),
-        slots: TerminalColors.Slots(UnreportedANSISlotTests.appleBasic))
+        slots: TerminalColors.Slots(UnreportedANSISlots.appleBasic))
 
     // MARK: - Reading a field back
 

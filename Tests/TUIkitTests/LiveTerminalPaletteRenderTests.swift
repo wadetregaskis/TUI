@@ -33,7 +33,7 @@ struct LiveTerminalPaletteRenderTests {
     /// 2026-09-14): black on white, and its sixteen.
     private static let appleTerminal = TerminalColors(
         foreground: rgb(0, 0, 0), background: rgb(255, 255, 255),
-        slots: TerminalColors.Slots(UnreportedANSISlotTests.appleBasic))
+        slots: TerminalColors.Slots(UnreportedANSISlots.appleBasic))
 
     /// Ghostty 1.3.1's default configuration as it reports itself (measured the same
     /// day): white on #282c34, and its sixteen.

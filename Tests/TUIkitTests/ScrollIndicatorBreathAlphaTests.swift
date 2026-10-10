@@ -99,7 +99,7 @@ struct ScrollIndicatorBreathAlphaTests {
         // Reported, so every slot measures and the breath moves between its two ends. A
         // slot the terminal has not reported holds the breath at its bright end
         // (SteadyBreathCopiesOnUnmeasurableColourTests), which is not a re-spelling.
-        let reported = TerminalColors(slots: TerminalColors.Slots(UnreportedANSISlotTests.appleBasic))
+        let reported = TerminalColors(slots: TerminalColors.Slots(UnreportedANSISlots.appleBasic))
         TerminalColors.withCurrent(reported) {
             for palette in palettes {
                 let ends = scrollIndicatorBreath(palette: palette, over: palette.background)

@@ -147,13 +147,6 @@ private struct InvertedColourApp: App {
     }
 }
 
-/// The terminal's own page: every field the palette names for the page — the
-/// page itself, a tab's surface, a chip's label, the wash a dim or a backdrop
-/// flattens everything to — is `Color.default`, spelled `ESC[49m`, and nothing
-/// has an RGB to blend with.
-@MainActor
-let terminalPagePalette = ThemeProbePalette(background: .default, overlayBackground: .default)
-
 private struct OnTheTerminalPageApp: App {
     init() {}
     var body: some Scene { WindowGroup { catalogue() }.palette(terminalPagePalette) }
