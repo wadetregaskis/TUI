@@ -545,6 +545,15 @@ extension BorderRenderer {
     /// a String allocation — for each one. A container body of N lines paid N
     /// of those (plus N for the right bar's reuse) every frame; this pays one.
     ///
+    /// `@inline(__always)` for its one caller, `_ContainerViewCore`'s
+    /// `renderStandardStyle`, which inlined it before the module split and
+    /// has called it out of line in release builds since (why the optimiser
+    /// declines is not established). The attribute wins the body's call
+    /// site, which every bordered container draws, but not the footer's:
+    /// Swift 6.2.4's inliner (`isInlineAlwaysCallSite`) honours it only while
+    /// the caller has under 64 basic blocks or the callee at most 64, and
+    /// this callee has more, which the first inlining adds to the caller.
+    ///
     /// - Parameters:
     ///   - contents: The content strings, one per line.
     ///   - innerWidth: The target content width (each line is fitted to it).
@@ -557,6 +566,7 @@ extension BorderRenderer {
     ///   own `strippedLength` re-measure — the dominant cost when a deeply-nested
     ///   layout re-borders the same lines at every level. Pass `nil` (the
     ///   default) when the lines may be ragged, to measure each individually.
+    @inline(__always)
     static func standardContentLines(
         contents: [String],
         innerWidth: Int,
