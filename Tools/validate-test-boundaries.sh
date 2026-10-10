@@ -16,7 +16,13 @@
 # a stray `import TUIkit` in a module test the moment it lands (CI + pre-commit),
 # not only when the offending symbol happens to be referenced.
 #
-# Exit status: 0 if all module test targets stay within their layer, 1 otherwise.
+# It also checks that every file of TUIkitTestSupport, the umbrella suite's
+# plain support target, is wrapped in its guard. `swift build -c release`
+# builds that target without testability, so a file outside the guard builds
+# in debug and fails CI's release builds (Package.swift says why).
+#
+# Exit status: 0 if all module test targets stay within their layer and every
+# support file is guarded, 1 otherwise.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -79,10 +85,26 @@ for target in TUIkitCoreTests TUIkitStylingTests TUIkitViewTests TUIkitImageTest
     done < <(grep -rnE '^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+TUIkit' "$dir" 2>/dev/null || true)
 done
 
+# The guard opens the file's code, after its header comment and the comment
+# above the guard, and the file's last line is its `#endif`.
+guard='#if TUIKIT_TEST_SUPPORT && canImport(Testing)'
+while IFS= read -r file; do
+    first=$(grep -vE '^[[:space:]]*(//.*)?$' "$file" | head -1)
+    last=$(grep -vE '^[[:space:]]*$' "$file" | tail -1)
+    if [ "$first" != "$guard" ] || [ "$last" != "#endif" ]; then
+        echo "✘ $file is not wrapped in '$guard' ... '#endif'."
+        echo "    A release build compiles TUIkitTestSupport without testability. Copy the guard,"
+        echo "    and the comment above it, from another file there."
+        violations=$((violations + 1))
+    fi
+done < <(find Tests/TUIkitTestSupport -name '*.swift' -not -path '*/__*' 2>/dev/null | sort)
+
 if [ "$violations" -gt 0 ]; then
     echo ""
-    echo "✘ $violations test-boundary violation(s). Per-module test targets must stay within their module's layer."
+    echo "✘ $violations test-boundary violation(s). Per-module test targets must stay within their module's layer,"
+    echo "  and every TUIkitTestSupport file must be guarded."
     exit 1
 fi
 
-echo "✓ Test module boundaries intact (TUIkit{Core,Styling,View,Image}Tests each stay within their layer)."
+echo "✓ Test module boundaries intact (TUIkit{Core,Styling,View,Image}Tests each stay within their layer;"
+echo "  every TUIkitTestSupport file is guarded)."

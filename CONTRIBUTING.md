@@ -605,8 +605,8 @@ anything at run time:
   `Sources/TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and
   `TUIkitNumericControls` into `TUIkitTextInput` from step B7 until steps C5
   to C8.)
-  `Tools/validate-test-boundaries.sh` checks the four modules' targets and runs
-  in CI.
+  `Tools/validate-test-boundaries.sh` checks the four modules' targets, and
+  that every file of `TUIkitTestSupport` is guarded, and runs in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views
   (`@testable import Example`), for when a test must drive what the app
   ships rather than a copy of its shape: a copy goes on passing after the
