@@ -380,7 +380,7 @@ Sources/
 ├── Example/        Example app (executable target)
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
 
-Tests/                    ~6,300 tests across ~900 suites in ~680 files
+Tests/                    ~10,900 tests across ~1,560 suites in ~1,310 files
 ├── TUIkitTests/          The framework's suite, in four targets by area: views, layout,
 │                         styling, rendering (incl. i18n consistency, localization &
 │                         golden-snapshot tests)

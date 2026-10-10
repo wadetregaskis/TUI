@@ -551,8 +551,8 @@ anything at run time:
   why; copy both into a new file there. `swift build -c release` builds the
   target too, without testability, so it must compile empty there
   (`Package.swift` says what else was measured). It holds no `@Test` and no
-  `@Suite`: it is linked into every test binary, and a suite in it would be
-  found in each one. The golden snapshots are its `__Snapshots__`.
+  `@Suite`: it is linked into each of the four umbrella test targets, and a
+  suite in it would be found in each of them. The golden snapshots are its `__Snapshots__`.
 - The four lower library modules also have a test target each
   (`TUIkitCoreTests`, `TUIkitStylingTests`, `TUIkitViewTests`,
   `TUIkitImageTests`) that links **only that module**, so a module test cannot
