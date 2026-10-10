@@ -714,8 +714,8 @@ jobs:
   # leaves steps B5b, B5c, B5, B6, B7 and B4 carved out of it, and
   # TUIkitPresentation, which step C1 peeled out of TUIkitNavigation, and
   # TUIkitTables, TUIkitTabs and TUIkitGrid, which steps C2 to C4 peeled out of
-  # TUIkitLists, and TUIkitSearch and TUIkitForms, which steps C5 and C6 peeled
-  # out of TUIkitTextInput.
+  # TUIkitLists, and TUIkitPickers, TUIkitSearch and TUIkitForms, which steps
+  # C8, C5 and C6 peeled out of TUIkitTextInput.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -855,20 +855,22 @@ jobs:
       # come after it: the tables and the tab views. Step C4's, TUIkitGrid,
       # which it peeled out of TUIkitLists too, built on TUIkitFoundation
       # alone: the grids. Step B7's leaf, TUIkitTextInput, built on
-      # TUIkitFoundation: the text inputs, and the pickers and numeric
-      # controls, whose directories it compiles too until steps C7 and C8.
-      # Step C5's, TUIkitSearch, which it peeled out of TUIkitTextInput, built
-      # on TUIkitFoundation and TUIkitTextInput, so it comes after it: search.
+      # TUIkitFoundation: the text inputs, and the numeric controls, whose
+      # directory it compiles too until step C7. Step C8's, TUIkitPickers,
+      # which it peeled out of TUIkitTextInput, built on TUIkitFoundation
+      # alone: the pickers. Step C5's, TUIkitSearch, which it peeled out of
+      # TUIkitTextInput too, built on TUIkitFoundation, TUIkitTextInput and
+      # TUIkitPickers, so it comes after both: search.
       # Step C6's, TUIkitForms, which it peeled out of TUIkitTextInput too,
       # built on TUIkitFoundation alone: the forms and the view groupings.
       # Step B4's leaf, TUIkitColorPicker, built on TUIkitFoundation,
-      # TUIkitImage, TUIkitPresentation, TUIkitTabs and TUIkitTextInput, so it
-      # comes last. None imports Darwin, Glibc or Musl or calls a termios,
-      # ioctl, signal or DispatchSource API (checked by grep, 2026-10-08 and,
-      # for B5b's three, TUIkitBitmaps, TUIkitTextInput, TUIkitNavigation,
-      # TUIkitPresentation and TUIkitTables, 2026-10-09, and TUIkitTabs,
-      # TUIkitGrid, TUIkitSearch and TUIkitForms, 2026-10-10). Two have an
-      # `#if`, none around a POSIX call:
+      # TUIkitImage, TUIkitPresentation, TUIkitTabs, TUIkitTextInput and
+      # TUIkitPickers, so it comes last. None imports Darwin, Glibc or Musl or
+      # calls a termios, ioctl, signal or DispatchSource API (checked by grep,
+      # 2026-10-08 and, for B5b's three, TUIkitBitmaps, TUIkitTextInput,
+      # TUIkitNavigation, TUIkitPresentation and TUIkitTables, 2026-10-09, and
+      # TUIkitTabs, TUIkitGrid, TUIkitSearch, TUIkitForms and TUIkitPickers,
+      # 2026-10-10). Two have an `#if`, none around a POSIX call:
       # TUIkitEffects one, `canImport(Symbols)` around the `.symbolEffect`
       # modifiers that take Apple's Symbols types (absent off macOS, as on
       # Linux), and TUIkitTables three (TUIkitLists' until step C2), on two
@@ -932,6 +934,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTextInput"
+
+      - name: "Build TUIkitPickers"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitPickers"
 
       - name: "Build TUIkitSearch"
         continue-on-error: true
@@ -1109,6 +1116,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitTextInput
+      - name: "Build TUIkitPickers"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitPickers
       - name: "Build TUIkitSearch"
         continue-on-error: true
         timeout-minutes: 30
