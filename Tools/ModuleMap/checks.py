@@ -268,6 +268,49 @@ def built_on_default(R, reexports):
         above |= more
 
 
+def _import_graph(M, R):
+    """What the import checks share: the modules carved out above the default module (`built_on_default`), and
+    `reach(modules)`, the modules those imports make visible, each with what it re-exports, transitively, as the
+    compiler's ValueDecl::findImport follows them. A module re-exports what its files `@_exported import`, a module
+    being the target that compiled the file, as its index unit names it; a lower module, what its sources do."""
+    rex = collections.defaultdict(set)
+    for f in M.files:
+        t = M.target.get(f)
+        if t is None: continue
+        for s in M.lexed[f].stripped:
+            imp = SS.import_of(s.strip())
+            if imp and imp[1]: rex[t].add(imp[0])
+    for m, xs in M.lower_reexports.items(): rex[m] |= xs
+
+    def reach(modules):
+        todo, vis = set(modules), set()
+        while todo:
+            m = todo.pop()
+            if m in vis: continue
+            vis.add(m); todo |= rex.get(m, set())
+        return vis
+    return built_on_default(R, rex), reach
+
+
+def _file_uses(M, above):
+    """(file, module, name, references, line) for each module that a declaration of a file of a module in `above`
+    names outside the file's own target: another target (by the declaration it names), or a lower module (by the
+    symbol). A target is as the index unit names it; a reference to the SDK is none of these."""
+    for a in M.nodes:
+        f = M.file[a]
+        t = M.target.get(f)
+        if t not in above: continue
+        # The edge's first site is in `f`, the node's own file: a node is one top-level declaration, and `top()`
+        # follows lexical containers, so every reference a node makes is in the file that declares it.
+        for b, (k, (_, ln)) in M.edges.get(a, {}).items():
+            tb = M.target.get(M.file[b])
+            if tb is not None and tb != t: yield f, tb, M.name[b], k, ln
+    for src, usr, f, ln in M.foreign_refs:
+        if M.target.get(f) not in above: continue
+        lm = M.lower_module(usr)
+        if lm is not None: yield f, lm, M.lower_name.get(usr) or M.symbols.get(usr, ('?',))[0], 1, ln
+
+
 def imports(M, R):
     """A file of a module carved out above the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation,
     TUIkitLists …) that uses another of the package's modules without importing it: neither directly nor through a
@@ -281,26 +324,12 @@ def imports(M, R):
     each of its directories), and the lower modules (TUIkitCore, TUIkitView …). A reference inside the file's own
     target needs no import; one to the SDK is not this check's business. Not checked: TUIkitFoundation's own files and
     the side modules below it, whose references to the lower modules each module's own imports have always carried."""
-    rex = collections.defaultdict(set)
-    for f in M.files:
-        t = M.target.get(f)
-        if t is None: continue
-        for s in M.lexed[f].stripped:
-            imp = SS.import_of(s.strip())
-            if imp and imp[1]: rex[t].add(imp[0])
-    for m, xs in M.lower_reexports.items(): rex[m] |= xs
-    above = built_on_default(R, rex)
+    above, reach = _import_graph(M, R)
     seen_vis = {}
 
     def visible(f):
         if f not in seen_vis:
-            todo = {x[0] for x in map(SS.import_of, (s.strip() for s in M.lexed[f].stripped)) if x}
-            vis = set()
-            while todo:
-                m = todo.pop()
-                if m in vis: continue
-                vis.add(m); todo |= rex.get(m, set())
-            seen_vis[f] = vis
+            seen_vis[f] = reach(x[0] for x in map(SS.import_of, (s.strip() for s in M.lexed[f].stripped)) if x)
         return seen_vis[f]
     found = {}
 
@@ -312,20 +341,8 @@ def imports(M, R):
         x.weight += k
         x.line = min(x.line, ln)
         if name not in x.names: x.names.append(name)
-    for a in M.nodes:
-        f = M.file[a]
-        t = M.target.get(f)
-        if t not in above: continue
-        # The edge's first site is in `f`, the node's own file: a node is one top-level declaration, and `top()`
-        # follows lexical containers, so every reference a node makes is in the file that declares it.
-        for b, (k, (_, ln)) in M.edges.get(a, {}).items():
-            tb = M.target.get(M.file[b])
-            if tb is not None and tb != t and tb not in visible(f): note(f, tb, M.name[b], k, ln)
-    for src, usr, f, ln in M.foreign_refs:
-        if M.target.get(f) not in above: continue
-        lm = M.lower_module(usr)
-        if lm is not None and lm not in visible(f):
-            note(f, lm, M.lower_name.get(usr) or M.symbols.get(usr, ('?',))[0], 1, ln)
+    for f, mod, name, k, ln in _file_uses(M, above):
+        if mod not in visible(f): note(f, mod, name, k, ln)
     out = sorted(found.values(), key=lambda x: x.key)
     for x in out:
         names = ', '.join(x.names[:4]) + (' …' if len(x.names) > 4 else '')
