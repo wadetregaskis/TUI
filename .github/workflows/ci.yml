@@ -391,7 +391,9 @@ jobs:
       # a file of a module's directory that no target compiles),
       # were TUIkit split as mapped today; and, of the modules carved so far,
       # a file that uses another module without importing it, which costs
-      # every closure it passes there a run-time MainActor check (`imports`).
+      # every closure it passes there a run-time MainActor check (`imports`),
+      # and a file that imports a module it names nothing of
+      # (`stale-imports`).
       # It reads the index store the Build
       # step above wrote, so it costs no build: a few seconds on one lane,
       # because the map is the same on every Swift.

@@ -297,9 +297,11 @@ compiles, and costs nothing at run time, but the file's imports stop saying whic
 is an `import` of one of the package's targets, in a file of a module carved out above TUIkitFoundation, when the file
 names no declaration of that module (by the index, as `imports` counts them) and the import is not the file's only
 way to a module it does use (through that module's re-exports). Not judged: the default module, which every such file
-imports (CONTRIBUTING.md, "Crossing a module boundary"); a module outside the map (an SDK module, or a lower module,
-which `import TUIkitFoundation` re-exports anyway); and a file with an `#if`, since the index holds only the branches
-the macOS build compiled. Fix it by deleting the import line.
+imports (CONTRIBUTING.md, "Crossing a module boundary"); a module outside the map (an SDK module, or a lower module);
+and a file with an `#if`, since the index holds only the branches the macOS build compiled. Fix it by deleting the
+import line. Of the lower modules, TUIkitFoundation re-exports TUIkitCore, TUIkitStyling and TUIkitView, so an extra
+import of one costs nothing; it does not re-export TUIkitImage, so a stale `import TUIkitImage` is a real one this
+check does not report.
 
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
 
