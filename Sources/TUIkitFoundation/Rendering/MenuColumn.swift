@@ -173,7 +173,8 @@ extension EnvironmentValues {
 @MainActor
 package final class MenuPopupController {
     /// No arguments: spelled out because the implicit initializer is internal and a
-    /// menu's popup (TUIkitMenus) makes these.
+    /// menu's popup (TUIkitMenus) makes these, as does the screen selection's Copy
+    /// menu (TUIkitChrome).
     package init() {}
 
     /// Collects what the rows report as they render.

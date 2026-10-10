@@ -38,8 +38,8 @@ package final class ContextMenuState {
     private var _needsSectionTeardown = false
 
     /// No arguments, spelled out because the implicit initializer is internal
-    /// and TUIkitLists makes these, for the lists' row menus, and TUIkitTabs,
-    /// for a tab's menu.
+    /// and TUIkitMenus makes these, for `contextMenu(menuItems:)`, TUIkitLists,
+    /// for the lists' row menus, and TUIkitTabs, for a tab's menu.
     package init() {}
 
     /// Closes the menu — chosen from, dismissed, or let go of — dropping its
