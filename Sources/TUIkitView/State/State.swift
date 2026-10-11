@@ -631,7 +631,7 @@ public protocol RenderIdentityBindable {
 ///
 /// - Returns: Whether `view` holds an app's ``DynamicProperty`` — anywhere
 ///   the walk descends — whose `update()` must run before `body`: the caller
-///   then evaluates `body` on ``updatedDynamicProperties(of:hasAppProperties:)``.
+///   then evaluates it with ``updatedBody(of:)``.
 @MainActor
 @discardableResult
 package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage: StateStorage) -> Bool {

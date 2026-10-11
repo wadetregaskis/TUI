@@ -266,12 +266,7 @@ private enum WeakFieldNames {
 /// A field held `unowned` whose type is an app property is updated through
 /// its reference; one held `weak` is not, its type being an optional, which
 /// SwiftUI does not update either (measured on macOS 15).
-///
-/// `@usableFromInline` for ``updatedDynamicProperties(of:hasAppProperties:)``,
-/// which is inlined into the modules above (CONTRIBUTING.md, "Crossing a
-/// module boundary"); its own body is not inlinable.
 @MainActor
-@usableFromInline
 package func updateDynamicProperties<Root>(of root: inout Root) {
     // `&root` goes to each helper as a typed pointer argument, not through a
     // closure passed to `withUnsafeMutableBytes`/`withUnsafeMutablePointer`:
@@ -404,20 +399,25 @@ private func writeBackDynamicProperties<Field>(at address: UnsafeMutableRawPoint
     slot.pointee = field
 }
 
-/// `view` with its app properties updated and written back, or `nil` when
-/// `hasAppProperties` says it has none — which is the walk's answer, so a view
-/// without them is neither copied nor reflected again.
+/// `view`'s `body`, evaluated on a copy of `view` whose app properties have
+/// run `update()` and been written back (``updateDynamicProperties(of:)``).
 ///
-/// `@inlinable` as well as always inlined: `@inline(__always)` alone reaches
-/// only this module's callers, and the alignment-guide walk
-/// (TUIkitFoundation) and the `App` root (TUIkitApp) call it from others, where
-/// it would be an unspecialised call for every view, app property or not.
+/// The property walks call it only for a view that
+/// ``bindStateProperties(of:identity:storage:)`` said holds an app property,
+/// as `hasAppProperties ? updatedBody(of: view) : view.body`, and never
+/// inline it, so the copy is made here and nowhere else. Held by the caller
+/// instead — the copy, or an optional of it — it was paid for by every
+/// composite view, holding a property or not: the caller is an unspecialised
+/// generic, so it allocated a stack slot of the view's run-time size, behind
+/// a stack-protector check, on every call, the branch that used it taken or
+/// not, and a measure fetched the metadata of `Optional` of the view and of
+/// its body as well (release Stress, Xcode 6.2.4: `measureCompositeBody`
+/// gained two `Optional` metadata fetches and four `___chkstk_darwin` probes
+/// per call, `evaluateCompositeBody`'s body closure two probes).
 @MainActor
-@inlinable
-@inline(__always)
-package func updatedDynamicProperties<V>(of view: V, hasAppProperties: Bool) -> V? {
-    guard hasAppProperties else { return nil }
+@inline(never)
+package func updatedBody<V: View>(of view: V) -> V.Body {
     var updated = view
     updateDynamicProperties(of: &updated)
-    return updated
+    return updated.body
 }

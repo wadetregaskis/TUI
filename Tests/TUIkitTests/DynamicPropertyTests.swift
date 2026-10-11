@@ -103,6 +103,41 @@ private struct ShoutedView: View {
     }
 }
 
+/// Stores in `update()` how many columns its view draws: one until it runs.
+@propertyWrapper
+private struct Widened: DynamicProperty {
+    private var columns = 1
+
+    var wrappedValue: Int { columns }
+
+    mutating func update() {
+        columns = 5
+    }
+}
+
+/// As wide as what `update()` wrote back, so a size measured from a body
+/// that did not see it is one column.
+private struct WidenedView: View {
+    @Widened private var columns: Int
+
+    var body: some View {
+        Text(verbatim: String(repeating: "x", count: columns))
+    }
+}
+
+/// A view whose leading guide is what `update()` wrote back. It states the
+/// guide witness a framework composite does, so the alignment-guide walk
+/// evaluates its `body` to find the guide.
+private struct GuidedView: View {
+    @Widened private var columns: Int
+
+    static var _providesAlignmentGuide: Bool { true }
+
+    var body: some View {
+        Text(verbatim: "******").alignmentGuide(.leading) { _ in Double(columns) }
+    }
+}
+
 /// A view that is an enum, its app property in the case's payload: the
 /// binding walk's `Mirror` finds it there, so `update()` must run.
 private enum UpdatingScreen: View {
@@ -412,6 +447,35 @@ struct DynamicPropertyTests {
         let context = makeRenderContext(width: 30, height: 1)
         #expect(line(ShoutedView().environment(\.accentName, "teal"), context: context) == "TEAL [TEAL]")
         #expect(line(ShoutedView(), context: context) == "PLAIN [PLAIN]")
+    }
+
+    /// Each walk that evaluates a `body` runs `update()` first, and evaluates
+    /// that body on what it wrote back: a measure — tracked or not, the two
+    /// branches of `measureCompositeBody` — sizes the body that is drawn.
+    @Test("A measured body reads what update() wrote back, whether the measure is tracked or not")
+    func measureReadsWriteBack() {
+        let untracked = makeRenderContext(width: 20, height: 1)
+        #expect(measureChild(WidenedView(), proposal: .unspecified, context: untracked).width == 5)
+
+        let tracked = makeRenderContext(width: 20, height: 1)
+        let cache = tracked.renderCache
+        #expect(cache?.readingTypes.learn(WidenedView.self) == true, "precondition: the measure is tracked")
+        #expect(measureChild(WidenedView(), proposal: .unspecified, context: tracked).width == 5)
+    }
+
+    /// The alignment-guide walk evaluates a composite's `body` to find its
+    /// guide, and so runs `update()` first, as the measure and the render do.
+    @Test("A guide found in a body reads what update() wrote back")
+    func alignmentGuideReadsWriteBack() {
+        let context = makeRenderContext(width: 20, height: 2)
+        let buffer = renderToBuffer(
+            VStack(alignment: .leading, spacing: 0) {
+                GuidedView()
+                Text(verbatim: "|")
+            },
+            context: context)
+        let indents = buffer.lines.map { $0.stripped.prefix { $0 == " " }.count }
+        #expect(indents == [0, 5], "the guide is 5 columns in, so the bar is")
     }
 
     /// The review of B4: where a field cannot be written back, update() must

@@ -79,6 +79,31 @@ private struct CountingRootApp: App {
     }
 }
 
+/// Stores in `update()` what its App's body draws: `"stale"` until it runs.
+@propertyWrapper
+private struct Greeting: DynamicProperty {
+    private var text = "stale"
+
+    var wrappedValue: String { text }
+
+    mutating func update() {
+        text = "updated"
+    }
+}
+
+/// An App holding an app property of its own, as a view can.
+private struct GreetingApp: App {
+    @Greeting private var greeting: String
+
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text(verbatim: greeting)
+        }
+    }
+}
+
 @MainActor
 @Suite("App-level @State")
 struct AppStateBindingTests {
@@ -113,6 +138,16 @@ struct AppStateBindingTests {
         #expect(
             frameText(loop).contains("count 1"),
             "the memoized row kept the App's state from before the write")
+    }
+
+    /// The render loop evaluates `App.body` itself, not through a view walk,
+    /// so it runs an App's own property's `update()` itself, as a view's is
+    /// run, and evaluates `body` on what it wrote back.
+    @Test("An App's body reads what its own property's update() wrote back")
+    func appPropertyUpdateIsWrittenBack() {
+        let loop = RenderLoopHarness().loop(GreetingApp())
+        loop.render()
+        #expect(frameText(loop).contains("updated"), "\(frameText(loop))")
     }
 
     @Test("An App's @State keeps its value across frames")

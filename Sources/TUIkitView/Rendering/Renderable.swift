@@ -313,14 +313,12 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
     let body = withObservationTracking(
         {
             sentinel?.touch()
-            // What an app property's `update()` left, written back (`nil` for
-            // the view that has none — nearly all of them — which is
-            // evaluated as it is). Inside the scope: what `update()` reads is
-            // observed as what `body` reads is, as SwiftUI observes it.
-            if let updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties) {
-                return updated.body
-            }
-            return view.body
+            // What an app property's `update()` left, written back, for the
+            // view that holds one; any other — nearly all of them — is
+            // evaluated as it is, and pays for no copy (`updatedBody(of:)`).
+            // Inside the scope: what `update()` reads is observed as what
+            // `body` reads is, as SwiftUI observes it.
+            return hasAppProperties ? updatedBody(of: view) : view.body
         },
         onChange: observedChange(
             of: context, kind: context.isMeasuring ? .bodyMeasure : .bodyRender, reader: V.self,

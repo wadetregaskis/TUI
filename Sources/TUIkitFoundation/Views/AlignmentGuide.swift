@@ -271,13 +271,12 @@ package func explicitGuide<V: View>(
     // The body as the measure walk evaluates it: `@Environment` resolved and
     // `@State` bound at this view's identity, so it is the body that is drawn.
     resolveEnvironmentProperties(of: view, in: context.environment)
-    var updated: V?
+    var hasAppProperties = false
     if let storage = context.stateStorage {
-        let hasAppProperties = bindStateProperties(of: view, identity: context.identity, storage: storage)
-        updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties)
+        hasAppProperties = bindStateProperties(of: view, identity: context.identity, storage: storage)
     }
     return explicitGuide(
-        of: updated?.body ?? view.body, query, in: dimensions,
+        of: hasAppProperties ? updatedBody(of: view) : view.body, query, in: dimensions,
         context: context.withChildIdentity(type: V.Body.self))
 }
 

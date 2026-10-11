@@ -858,7 +858,12 @@ extension RenderLoop {
         // ends with the call, so nothing outside it ever sees this value. An app
         // property's `update()` runs inside it, for the same reason, and what it
         // left is the `App` whose body is read.
-        let scene = StateRegistration.withHydration(environment: environment) { (updatedDynamicProperties(of: app, hasAppProperties: updates) ?? app).body }
+        let scene = StateRegistration.withHydration(environment: environment) {
+            guard updates else { return app.body }
+            var updated = app
+            updateDynamicProperties(of: &updated)
+            return updated.body
+        }
         tuiContext.stateStorage.markActive(rootIdentity)
         return scene
     }
