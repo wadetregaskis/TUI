@@ -26,15 +26,30 @@ if [[ "$(uname -s)" != Darwin ]]; then
     echo "ci-check: macOS only (-deduplicate and -no_exported_symbols are ld64's); nothing to check"
     exit 0
 fi
-cd "$(dirname "$0")/../.."
+# -P: the physical path, as `swift build --show-bin-path` prints it, so that the bin path relative to the package
+# root (for the PTY smoke) comes out right from a checkout reached through a symlink.
+cd -P "$(dirname "$0")/../.."
 # Unquoted on purpose: CI's $SWIFT is a command line (`xcrun --toolchain … swift`).
 SWIFT=${SWIFT:-swift}
 flags=(-Xlinker -deduplicate -Xlinker -no_exported_symbols)
 bin=$($SWIFT build -c release --show-bin-path)
+relbin=${bin#"$PWD"/}
+if [[ "$relbin" == /* ]]; then
+    echo "ci-check: the bin path $bin is not below the package root $PWD" >&2
+    exit 2
+fi
+# This build's objects only: Swift Build (6.4's default) keeps the per-file ones under
+# `<scratch>/out/Intermediates.noindex/` and the merged ones beside the products, `<scratch>/out/Products/Release`;
+# the native build system keeps both in the bin directory. All of `.build` would also read another toolchain's release
+# build beside this one, whose consumers and C functions are not this binary's.
+case "$bin" in
+    */Products/*) objects=${bin%/Products/*} ;;
+    *) objects=$bin ;;
+esac
 
 echo "── dedup check: Stress linked whole with ${flags[*]} ──"
 $SWIFT build -c release --product Stress --disable-dead-strip "${flags[@]}"
-python3 Tools/DedupCheck/dedup_check.py --binary "$bin/Stress" --objects .build --demangle "$SWIFT demangle"
+python3 Tools/DedupCheck/dedup_check.py --binary "$bin/Stress" --objects "$objects" --demangle "$SWIFT demangle"
 
 products=(Stress Example IdleProbe)
 for product in "${products[@]}"; do
@@ -47,4 +62,4 @@ echo "── stripped Stress --selfcheck, render memo verified ──"
 TUIKIT_VERIFY_RENDER_MEMO=1 "$bin/Stress" --selfcheck
 
 echo "── stripped programs in a real PTY ──"
-Tools/Smoke/ci-pty-smoke.sh quick "${bin#"$PWD"/}"
+Tools/Smoke/ci-pty-smoke.sh quick "$relbin"

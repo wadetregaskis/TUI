@@ -51,6 +51,8 @@ python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'     # the tool's
   plugin). Swift Build (6.4's default) keeps each module's per-file objects under
   `.build/out/Intermediates.noindex/…/<Module>-t.build/`, and a merged `<Module>.o` beside the products that lacks
   key-path patterns the per-file ones hold (207 of 315, measured); given only merged objects, the check refuses.
+  But it reads every release build there: with another toolchain's beside this one, pass this build's own directory
+  instead, as `ci-check.sh` does (the bin directory for the native build system, `.build/out` for Swift Build).
 - `--plain <the same app linked without the flag>` marks which aliases ld made; `--json FILE` writes everything.
 
 ## In CI
