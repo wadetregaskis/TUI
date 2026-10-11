@@ -102,6 +102,36 @@ private struct ShoutedView: View {
     }
 }
 
+/// A view that is an enum, its app property in the case's payload: the
+/// binding walk's `Mirror` finds it there, so `update()` must run.
+private enum UpdatingScreen: View {
+    case main(Updating)
+
+    var body: some View {
+        switch self {
+        case .main(let updating): Text(verbatim: "\(updating.wrappedValue)")
+        }
+    }
+}
+
+/// An app property holding another, in an optional field: both update.
+private struct Holding: DynamicProperty {
+    let inner: Updating
+    let log: UpdateLog
+
+    func update() {
+        log.updates += 100
+    }
+}
+
+private struct OptionalHoldingView: View {
+    let holding: Holding?
+
+    var body: some View {
+        Text(verbatim: "\(holding?.log.updates ?? -1)")
+    }
+}
+
 @MainActor
 private final class BindingTap {
     var binding: Binding<Int>?
@@ -178,6 +208,22 @@ struct DynamicPropertyTests {
         let context = makeRenderContext(width: 30, height: 1)
         #expect(line(ShoutedView().environment(\.accentName, "teal"), context: context) == "TEAL [TEAL]")
         #expect(line(ShoutedView(), context: context) == "PLAIN [PLAIN]")
+    }
+
+    /// The review of B4: where a field cannot be written back, update() must
+    /// still run, as it did before write-back.
+    @Test("update() still runs for a property in a view that is an enum, and inside an optional field")
+    func updateRunsWhereNothingIsWrittenBack() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let log = UpdateLog()
+        #expect(line(UpdatingScreen.main(Updating(log: log)), context: context) == "1")
+        #expect(line(UpdatingScreen.main(Updating(log: log)), context: context) == "2")
+
+        // Both the holder's update (+100) and the one it holds (+1).
+        let shared = UpdateLog()
+        let holding = Holding(inner: Updating(log: shared), log: shared)
+        #expect(line(OptionalHoldingView(holding: holding), context: context) == "101")
+        #expect(line(OptionalHoldingView(holding: nil), context: context) == "-1")
     }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")

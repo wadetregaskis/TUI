@@ -30,8 +30,10 @@
 /// the properties inside it have been given their values, and what it changes
 /// in the property's own stored values is what `body` then reads, as in
 /// SwiftUI: the property is written back into the view `body` is evaluated on.
-/// A property in a class the view holds is not: only a struct's own fields
-/// are written back.
+/// A struct's own fields and an optional's wrapped value are written back.
+/// In a view that is an enum, or a class the view holds, `update()` still
+/// runs, on a copy, so what it changes is seen only through what the property
+/// holds by reference.
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.
     ///
@@ -89,8 +91,14 @@ enum NestedProperties {
 /// and each container is read and written in place at its offset, as its
 /// declared type. `Mirror` reads fields but cannot write one, and the stdlib's
 /// writable-key-path walk (`_forEachFieldWithKeyPath`) is SPI that Xcode's
-/// SDKs do not ship (see `RuntimeFields.swift`). A struct's own fields only:
-/// a class, or a field the runtime holds weakly, is left as it is.
+/// SDKs do not ship (see `RuntimeFields.swift`). A struct's own fields, and an
+/// `Optional`'s wrapped value, are written back. Anything else the binding
+/// walk's `Mirror` looks into — an enum's payload (a view that is an enum),
+/// a class's fields — has its properties updated on copies, which is what
+/// TUIkit did for every property before write-back: `update()` runs, and
+/// what it changes is seen only through what it holds by reference. An
+/// enum's payload is not written in place because a multi-payload enum may
+/// keep its case in the payload's spare bits, which a write would clear.
 ///
 /// `@usableFromInline` for ``updatedDynamicProperties(of:hasAppProperties:)``,
 /// which is inlined into the modules above (CONTRIBUTING.md, "Crossing a
@@ -98,15 +106,63 @@ enum NestedProperties {
 @MainActor
 @usableFromInline
 package func updateDynamicProperties<Root>(of root: inout Root) {
-    guard RuntimeFields.Kind(of: Root.self) == .struct else { return }
-    let fields = RuntimeFields.fields(of: Root.self)
-    guard !fields.isEmpty else { return }
-    withUnsafeMutableBytes(of: &root) { bytes in
-        guard let base = bytes.baseAddress else { return }
-        for field in fields where field.isStrong {
-            // `field.type` is an `Any.Type`, opened here to the field's own type.
-            writeBackDynamicProperties(at: base + field.offset, as: field.type)
+    switch RuntimeFields.Kind(of: Root.self) {
+    case .struct:
+        let fields = RuntimeFields.fields(of: Root.self)
+        guard !fields.isEmpty else { return }
+        withUnsafeMutableBytes(of: &root) { bytes in
+            guard let base = bytes.baseAddress else { return }
+            for field in fields where field.isStrong {
+                // `field.type` is an `Any.Type`, opened here to the field's own type.
+                writeBackDynamicProperties(at: base + field.offset, as: field.type)
+            }
         }
+    case .optional:
+        // The binding walk's `Mirror` looks through an `Optional`, so this
+        // does too: unwrapped, updated, and wrapped again.
+        guard let optional = Root.self as? any OptionalPropertyHolder.Type else { return }
+        withUnsafeMutablePointer(to: &root) { optional.updateWrapped(at: UnsafeMutableRawPointer($0)) }
+    default:
+        updateCopies(in: root)
+    }
+}
+
+/// An `Optional` opened to its wrapped type, for ``updateDynamicProperties(of:)``.
+private protocol OptionalPropertyHolder {
+    @MainActor static func updateWrapped(at address: UnsafeMutableRawPointer)
+}
+
+extension Optional: OptionalPropertyHolder {
+    /// Updates the value the optional at `address` wraps, if any, and writes
+    /// it back.
+    @MainActor static func updateWrapped(at address: UnsafeMutableRawPointer) {
+        let slot = address.assumingMemoryBound(to: Self.self)
+        guard var wrapped = slot.pointee else { return }
+        updateDynamicProperties(of: &wrapped)
+        slot.pointee = wrapped
+    }
+}
+
+/// Runs ``DynamicProperty/update()`` on a copy of each app property `value`
+/// holds where its fields cannot be written — innermost first, as the
+/// write-back does — and keeps nothing.
+@MainActor
+private func updateCopies(in value: Any) {
+    for child in Mirror(reflecting: value).children {
+        guard let container = NestedProperties.container(child.value) else { continue }
+        // An `Any` no constraint can open: `_openExistential` finds its type.
+        _openExistential(container, do: updateCopy)
+    }
+}
+
+/// One container of ``updateCopies(in:)``: its own properties updated (and
+/// written back into the copy, where they can be), then its `update()`.
+@MainActor
+private func updateCopy<Value>(of value: Value) {
+    var copy = value
+    updateDynamicProperties(of: &copy)
+    if var property = copy as? any DynamicProperty, !(property is any FrameworkDynamicProperty) {
+        property.update()
     }
 }
 
