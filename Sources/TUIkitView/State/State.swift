@@ -589,10 +589,6 @@ final class StateBacking<Value> {
     func bind(to storage: StateStorage, key: StateStorage.StateKey) {
         box = storage.storage(for: key, default: defaultValue)
     }
-
-    func bindFresh(to storage: StateStorage, key: StateStorage.StateKey) {
-        box = storage.freshStorage(for: key, default: defaultValue)
-    }
 }
 
 // MARK: - Render-time binding
@@ -603,20 +599,11 @@ protocol StateBindable {
     /// Binds this property to the storage `storage` keeps under `key`,
     /// created with the property's default if there is none.
     func bindState(to storage: StateStorage, key: StateStorage.StateKey)
-
-    /// Binds this property to new storage under `key`, holding its default,
-    /// in place of any `storage` kept there: an enum's case that has
-    /// replaced another starts afresh (``NestedPropertyWalk``).
-    func bindFreshState(to storage: StateStorage, key: StateStorage.StateKey)
 }
 
 extension State: StateBindable {
     func bindState(to storage: StateStorage, key: StateStorage.StateKey) {
         backing.bind(to: storage, key: key)
-    }
-
-    func bindFreshState(to storage: StateStorage, key: StateStorage.StateKey) {
-        backing.bindFresh(to: storage, key: key)
     }
 }
 
@@ -698,7 +685,7 @@ private func bindStateProperties(
     if NestedProperties.isEnum(value) {
         hasContainers = true
         var walk = NestedPropertyWalk(identity: identity, storage: storage)
-        walk.bindCase(of: mirror, scope: NestedScope.view, fresh: false)
+        walk.bindCase(of: mirror, scope: NestedScope.view)
         if walk.hasAppProperties { hasAppProperties = true }
         return
     }
@@ -720,7 +707,7 @@ private func bindStateProperties(
             var walk = NestedPropertyWalk(identity: identity, storage: storage)
             walk.bindContents(
                 ofContainer: container, label: child.label, in: value, position: position,
-                scope: NestedScope.view, fresh: false)
+                scope: NestedScope.view)
             if walk.hasAppProperties { hasAppProperties = true }
         }
         position += 1

@@ -192,6 +192,47 @@ private enum Phase: DynamicProperty {
     }
 }
 
+/// A view that is an enum whose case holds an optional app property, so the
+/// case can come back holding nothing.
+private enum OptionalScreen: View {
+    case one(TappedFull?)
+    case two
+
+    var body: some View {
+        switch self {
+        case .one(let full): Text(verbatim: "one \(full.map { String($0.value) } ?? "-")")
+        case .two: Text(verbatim: "two")
+        }
+    }
+}
+
+/// A view that is an enum whose case holds an existential app property, so
+/// the case can come back holding another type.
+private enum ExistentialScreen: View {
+    case one(any DynamicProperty)
+    case two
+
+    var body: some View {
+        switch self {
+        case .one(let property): Text(verbatim: "one \((property as? TappedFull).map { String($0.value) } ?? "-")")
+        case .two: Text(verbatim: "two")
+        }
+    }
+}
+
+/// A view that is an enum whose case holds an enum app property.
+private enum NestedScreen: View {
+    case outer(Phase)
+    case other
+
+    var body: some View {
+        switch self {
+        case .outer(let phase): Text(verbatim: phase.summary)
+        case .other: Text(verbatim: "other")
+        }
+    }
+}
+
 /// An enum app property declared before the view's own `@State`.
 private struct PhaseView: View {
     let tap: StateTap
@@ -397,6 +438,74 @@ struct DynamicPropertyStateKeyTests {
 
         #expect(line(PhaseView(tap: tap, phase: .two(Pair())), context: context) == "two 1 2 x 3")
         #expect(line(PhaseView(tap: tap, phase: .one(TappedFull(tap: tap))), context: context) == "one 100 x 3")
+    }
+
+    /// Found in review: the reset reached only the `@State` bound on the
+    /// frame the case came back, and an optional holding nothing then binds
+    /// nothing, so the old box survived to be found a frame later.
+    @Test("An enum view's case that comes back holding nil starts its @State at its default once it holds a value")
+    func enumViewReturningCaseThroughNil() {
+        let context = makeRenderContext(width: 30, height: 1)
+        let tap = StateTap()
+        #expect(line(OptionalScreen.one(TappedFull(tap: tap)), context: context) == "one 100")
+        tap.kept?.wrappedValue = 7
+        #expect(line(OptionalScreen.one(TappedFull(tap: tap)), context: context) == "one 7")
+        #expect(line(OptionalScreen.two, context: context) == "two")
+        #expect(line(OptionalScreen.one(nil), context: context) == "one -")
+
+        #expect(line(OptionalScreen.one(TappedFull(tap: tap)), context: context) == "one 100",
+                "the case came back reset, whatever it held on the frame it did")
+    }
+
+    /// The same, for an existential holding another type on the frame the
+    /// case comes back. Within one stay in the case, a type that comes back
+    /// finds its state (decisions-SKEY B-SKEY-1).
+    @Test("An enum view's case that comes back holding another type starts its @State at its default once it holds the old one")
+    func enumViewReturningCaseThroughAnotherType() {
+        let context = makeRenderContext(width: 30, height: 1)
+        let tap = StateTap()
+        #expect(line(ExistentialScreen.one(TappedFull(tap: tap)), context: context) == "one 100")
+        tap.kept?.wrappedValue = 7
+        #expect(line(ExistentialScreen.one(Empty()), context: context) == "one -")
+        #expect(line(ExistentialScreen.one(TappedFull(tap: tap)), context: context) == "one 7",
+                "precondition: within one stay in the case, a type that comes back finds its state")
+        #expect(line(ExistentialScreen.two, context: context) == "two")
+        #expect(line(ExistentialScreen.one(Empty()), context: context) == "one -")
+
+        #expect(line(ExistentialScreen.one(TappedFull(tap: tap)), context: context) == "one 100",
+                "the case came back reset, whatever type it held on the frame it did")
+    }
+
+    @Test("An enum property's case inside an enum view's case is reset when the outer case comes back")
+    func nestedEnumCaseReturning() {
+        let context = makeRenderContext(width: 30, height: 1)
+        let tap = StateTap()
+        #expect(line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context) == "one 100")
+        tap.kept?.wrappedValue = 7
+        #expect(line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context) == "one 7")
+        #expect(line(NestedScreen.other, context: context) == "other")
+        #expect(line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context) == "one 100",
+                "the inner case, unchanged, still came back reset with the outer one")
+
+        tap.kept?.wrappedValue = 8
+        #expect(line(NestedScreen.other, context: context) == "other")
+        #expect(line(NestedScreen.outer(.two(Pair())), context: context) == "two 1 2")
+        #expect(line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context) == "one 100")
+    }
+
+    @Test("An enum view switching cases back and forth keeps no more state than one case holds")
+    func enumViewSwitchingCasesKeepsNoLeftovers() throws {
+        let context = makeRenderContext(width: 30, height: 1)
+        let storage = try #require(context.stateStorage)
+        let tap = StateTap()
+        _ = line(Screen.one(TappedFull(tap: tap)), context: context)
+        _ = line(Screen.two(Pair()), context: context)
+        let settled = storage.count
+        for _ in 0..<5 {
+            _ = line(Screen.one(TappedFull(tap: tap)), context: context)
+            _ = line(Screen.two(Pair()), context: context)
+        }
+        #expect(storage.count == settled, "what each case left is dropped, not kept beside the new case's")
     }
 
     @Test("An existential app property that changes type starts the new type's @State at its own default")

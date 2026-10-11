@@ -95,10 +95,15 @@ enum NestedScope {
 /// and so does the old case's when it comes back, as SwiftUI's does
 /// (measured on macOS 15, session notes `SKEY/probe/skey.out`: an enum
 /// view's and an enum property's cases, and two cases of one payload type).
-/// The walk keeps which case it last saw, beside the state
-/// (``StateStorage/recordEnumCase(_:at:)``), and binds a case that replaced
-/// another to new storage. A case holding more than one value has each
-/// value walked, by its position (``NestedProperties/isTuple(_:)``).
+/// The walk keeps, beside the state, which case it last saw and the keys of
+/// the state it created while that case held (``EnumCaseRecord``). When
+/// another case replaces it, all of that is dropped, so nothing of the old
+/// case is there to find, however long after the change it is next reached.
+/// (Binding afresh only what the change's frame reached was not enough: a
+/// case that came back holding a `nil` optional, or an existential of
+/// another type, reached nothing, and a frame later found its old state.)
+/// A case holding more than one value has each value walked, by its
+/// position (``NestedProperties/isTuple(_:)``).
 @MainActor
 struct NestedPropertyWalk {
     /// The view's identity, which every nested key shares.
@@ -109,9 +114,14 @@ struct NestedPropertyWalk {
     /// the caller runs.
     var hasAppProperties = false
 
-    /// Whether the walk bound anything, for the enum case records: an enum
-    /// whose cases have held nothing to bind keeps none.
-    private var boundAny = false
+    /// The keys of the state the walk created inside an enum's case, in the
+    /// order it did: each enum's record takes those created inside its case,
+    /// an enclosing enum's included (``bindCase(of:scope:)``).
+    private var created: [StateStorage.StateKey] = []
+
+    /// How many enum cases the walk is inside. It notes the state it creates
+    /// only inside one, so a walk that meets no enum does what it did.
+    private var caseDepth = 0
 
     init(identity: ViewIdentity, storage: StateStorage) {
         self.identity = identity
@@ -122,12 +132,11 @@ struct NestedPropertyWalk {
     /// stored in `scope`, under `label` in `parent` — in a scope of its own,
     /// noting whether it is an app property.
     mutating func bindContents(
-        ofContainer container: Any, label: String?, in parent: Any, position: Int, scope: UInt64,
-        fresh: Bool
+        ofContainer container: Any, label: String?, in parent: Any, position: Int, scope: UInt64
     ) {
         let inner = NestedScope.container(at: position, ofType: type(of: container), in: scope)
         guard NestedProperties.isAppProperty(container) else {
-            bindContents(of: container, scope: inner, fresh: fresh)
+            bindContents(of: container, scope: inner)
             return
         }
         if NestedProperties.isHeldWeakly(label, in: parent) {
@@ -136,100 +145,116 @@ struct NestedPropertyWalk {
             // makes the view one to update. What it holds is still bound, as
             // an optional's is (decisions-DYNP A-DYNP-1).
             let counted = hasAppProperties
-            bindContents(of: container, scope: inner, fresh: fresh)
+            bindContents(of: container, scope: inner)
             hasAppProperties = counted
             return
         }
         hasAppProperties = true
-        bindContents(of: container, scope: inner, fresh: fresh)
+        bindContents(of: container, scope: inner)
     }
 
     /// Binds each value `value` stores, by its position, in `scope` — or,
     /// for an enum, what its case's payload holds.
-    ///
-    /// - Parameter fresh: Whether to bind each `@State` to new storage, in
-    ///   place of what it had: the walk is inside an enum's case that has
-    ///   just replaced another.
-    mutating func bindContents(of value: Any, scope: UInt64, fresh: Bool) {
+    mutating func bindContents(of value: Any, scope: UInt64) {
         let mirror = Mirror(reflecting: value)
         if NestedProperties.isEnum(value) {
-            bindCase(of: mirror, scope: scope, fresh: fresh)
+            bindCase(of: mirror, scope: scope)
             return
         }
         var position = 0
         for child in mirror.children {
-            bind(child.value, label: child.label, in: value, position: position, scope: scope, fresh: fresh)
+            bind(child.value, label: child.label, in: value, position: position, scope: scope)
             position += 1
         }
     }
 
     /// Binds what the enum `mirror` reflects holds: its case's payload, in a
-    /// scope of that case's, and to new storage when the case has replaced
-    /// the one last recorded at `scope`.
-    mutating func bindCase(of mirror: Mirror, scope: UInt64, fresh: Bool) {
+    /// scope of that case's. When the case is not the one last recorded at
+    /// `scope`, the state created while that one held is dropped first, so
+    /// the new case's `@State` starts at its defaults, and nothing of the old
+    /// case is left for it to find when it comes back.
+    mutating func bindCase(of mirror: Mirror, scope: UInt64) {
         let recordKey = StateStorage.StateKey(
             identity: identity, propertyIndex: StateStorage.StateKey.enumCaseIndex, scope: scope)
-        let previous = storage.enumCase(at: recordKey)
+        let record = storage.enumCaseRecord(at: recordKey)
         // An enum's `Mirror` has one child, labelled with the case's name and
-        // holding its payload, or none for a case without one.
-        guard let payload = mirror.children.first else {
-            // Holds nothing; recorded only where a case before it held
-            // something, so that case starts afresh when it returns.
-            if let previous, !previous.isEmpty { storage.recordEnumCase("", at: recordKey) }
-            return
+        // holding its payload, or none for a case without one, recorded as
+        // `""`.
+        let payload = mirror.children.first
+        let label = payload.map { $0.label ?? "" } ?? ""
+        if let record, record.label != label {
+            storage.removeValues(forKeys: record.keys)
+            record.keys.removeAll()
+            record.label = label
         }
-        let label = payload.label ?? ""
-        let replaced = fresh || (previous != nil && previous != label)
+        guard let payload else { return }
         let caseScope = NestedScope.enumCase(label, in: scope)
-        let boundBefore = boundAny
-        boundAny = false
+        let createdBefore = created.count
+        caseDepth += 1
         if NestedProperties.isTuple(payload.value) {
             // A case holding more than one value. A label is asked of a
             // parent only for a `weak` field, which a tuple's element cannot
             // be, so none is passed.
             var position = 0
             for element in Mirror(reflecting: payload.value).children {
-                bind(element.value, label: nil, in: payload.value, position: position, scope: caseScope, fresh: replaced)
+                bind(element.value, label: nil, in: payload.value, position: position, scope: caseScope)
                 position += 1
             }
         } else {
-            bind(payload.value, label: nil, in: payload.value, position: 0, scope: caseScope, fresh: replaced)
+            bind(payload.value, label: nil, in: payload.value, position: 0, scope: caseScope)
         }
-        if previous != label && (boundAny || previous != nil) {
-            storage.recordEnumCase(label, at: recordKey)
+        caseDepth -= 1
+        // An enum whose cases have created no state keeps no record.
+        guard created.count > createdBefore else { return }
+        if let record {
+            record.keys.append(contentsOf: created[createdBefore...])
+        } else {
+            storage.setEnumCaseRecord(
+                EnumCaseRecord(label: label, keys: Array(created[createdBefore...])), at: recordKey)
+            // Inside another enum's case, that case's change drops this
+            // record with the state it lists.
+            if caseDepth > 0 { created.append(recordKey) }
         }
-        boundAny = boundAny || boundBefore
     }
 
     /// Binds one stored value: a `@State`, a property bound to the view's
     /// identity, or a container the walk descends into.
     private mutating func bind(
-        _ value: Any, label: String?, in parent: Any, position: Int, scope: UInt64, fresh: Bool
+        _ value: Any, label: String?, in parent: Any, position: Int, scope: UInt64
     ) {
         if let bindable = value as? StateBindable {
             let key = StateStorage.StateKey(identity: identity, propertyIndex: position, scope: scope)
-            if fresh {
-                bindable.bindFreshState(to: storage, key: key)
-            } else {
+            guard caseDepth > 0 else {
                 bindable.bindState(to: storage, key: key)
+                return
             }
-            boundAny = true
+            // Binding finds the box under `key` or creates it, and the count
+            // of what is stored grows only when it creates one. (A box of
+            // another type under `key`, which only a coincidence of scopes
+            // could leave there, is replaced in place and not noted.)
+            let stored = storage.count
+            bindable.bindState(to: storage, key: key)
+            if storage.count != stored { created.append(key) }
         } else if let idBindable = value as? RenderIdentityBindable {
             idBindable.bindRenderIdentity(
                 path: NestedScope.identityPath(of: identity, in: scope), propertyIndex: position)
-            boundAny = true
         } else if let container = NestedProperties.container(value) {
-            bindContents(ofContainer: container, label: label, in: parent, position: position, scope: scope, fresh: fresh)
+            bindContents(ofContainer: container, label: label, in: parent, position: position, scope: scope)
         }
     }
 }
 
-/// Which case an enum holding properties held when the property walk last
-/// visited it (``StateStorage/recordEnumCase(_:at:)``).
+/// Which case an enum holding state held when the property walk last
+/// visited it, and the keys of the state the walk created while it held
+/// that case, at any depth, an enum's record inside it included
+/// (``NestedPropertyWalk/bindCase(of:scope:)``): what is dropped when
+/// another case replaces it.
 final class EnumCaseRecord {
     var label: String
+    var keys: [StateStorage.StateKey]
 
-    init(label: String) {
+    init(label: String, keys: [StateStorage.StateKey]) {
         self.label = label
+        self.keys = keys
     }
 }

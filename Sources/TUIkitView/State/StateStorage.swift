@@ -114,7 +114,7 @@ public final class StateStorage: @unchecked Sendable {
         }
 
         /// Where the property walk records which case an enum keyed at a
-        /// ``scope`` holds (``StateStorage/enumCase(at:)``). From the table
+        /// ``scope`` holds (``StateStorage/enumCaseRecord(at:)``). From the table
         /// above, because a view that is itself an enum keeps its record in
         /// its own scope, `0`.
         package static let enumCaseIndex = -130
@@ -287,41 +287,30 @@ extension StateStorage {
         return fresh
     }
 
-    /// A new storage for a property, in place of any it had: the `@State` of
-    /// an enum's case that has just replaced another case, which starts at
-    /// its default as SwiftUI's does, whatever it held when that case was
-    /// last left (measured on macOS 15: session notes `SKEY/probe/skey.out`).
-    ///
-    /// - Parameters:
-    ///   - key: The state key (identity + property index + scope).
-    ///   - defaultValue: The initial value.
-    /// - Returns: The new `Storage` object for this property.
-    package func freshStorage<Value>(for key: StateKey, default defaultValue: Value) -> StateBox<Value> {
-        let fresh = StateBox(defaultValue)
-        fresh.identity = key.identity
-        fresh.invalidationSink = renderCacheLink
-        values[key] = fresh
-        return fresh
-    }
-
-    /// The case the enum whose properties are keyed at `key`'s scope held
-    /// when the property walk last recorded one there
-    /// (``recordEnumCase(_:at:)``), or `nil` if it has recorded none.
+    /// The record of the case the enum whose properties are keyed at `key`'s
+    /// scope held when the property walk last visited it, and of the state
+    /// the walk created in that case (``setEnumCaseRecord(_:at:)``), or `nil`
+    /// if it keeps none.
     ///
     /// - Parameter key: The scope's record key, at ``StateKey/enumCaseIndex``.
-    package func enumCase(at key: StateKey) -> String? {
-        (values[key] as? EnumCaseRecord)?.label
+    func enumCaseRecord(at key: StateKey) -> EnumCaseRecord? {
+        values[key] as? EnumCaseRecord
     }
 
-    /// Records that the enum whose properties are keyed at `key`'s scope
-    /// holds the case `label` (`""` for a case without a payload). Kept among
-    /// the values, beside the state it describes, so it is pruned and
-    /// invalidated with that state's identity.
-    package func recordEnumCase(_ label: String, at key: StateKey) {
-        if let record = values[key] as? EnumCaseRecord {
-            record.label = label
-        } else {
-            values[key] = EnumCaseRecord(label: label)
+    /// Keeps `record` for the enum whose properties are keyed at `key`'s
+    /// scope. Kept among the values, beside the state it describes, so it is
+    /// pruned and invalidated with that state's identity.
+    func setEnumCaseRecord(_ record: EnumCaseRecord, at key: StateKey) {
+        values[key] = record
+    }
+
+    /// Removes what is stored under each of `keys`: the state an enum's case
+    /// created, when another case replaces it, so the case starts at its
+    /// defaults when it comes back, as SwiftUI's does (measured on macOS 15:
+    /// session notes `SKEY/probe/skey.out`).
+    func removeValues(forKeys keys: [StateKey]) {
+        for key in keys {
+            values.removeValue(forKey: key)
         }
     }
 
