@@ -120,7 +120,7 @@ MANIFEST = {
     'modules': {'pattern': 'TUIkit[A-Za-z]*', 'except': ['TUIkitTestSupport']},
     'key_path_consumers': {r'M\.compare': 'reviewed'},
     'c_function_addresses': {r'M\.handler': 'reviewed'},
-    'address_identity': ['handler.*To$'],
+    'address_identity': [r'^@objc closure .* M\.handler$'],
     'key_path_aliases': [],
 }
 
@@ -205,7 +205,16 @@ class DedupCheckTests(unittest.TestCase):
         manifest = dict(MANIFEST, key_path_aliases=[{'members': [GA, GB], 'reason': 'r'}])
         status, out = self.run_check(manifest, binary=app_binary(handler_alone=False))
         self.assertEqual(status, 1, out)
-        self.assertIn(f'F2 {HANDLER} shares its address with', out)
+        self.assertIn(f'F2 {DEMANGLED[HANDLER]} shares its address with', out)
+
+    def test_a_compared_address_pattern_that_matches_nothing_fails(self):
+        # A renamed function, or the pattern written against another spelling of the name: without this, F2 would
+        # check nothing and pass.
+        manifest = dict(MANIFEST, address_identity=[r'M\.renamedHandler'],
+                        key_path_aliases=[{'members': [GA, GB], 'reason': 'r'}])
+        status, out = self.run_check(manifest)
+        self.assertEqual(status, 1, out)
+        self.assertIn(r'F2 address_identity pattern "M\.renamedHandler" matches no function in the binary', out)
 
     def test_report_mode_fails_on_nothing(self):
         status, out = self.run_check(extra=('--report',))

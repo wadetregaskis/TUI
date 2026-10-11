@@ -14,7 +14,7 @@
     "FatalSignalTerminalRestore\\.\\(handler ": "COMPARED: endsTheProcess(handlerAddress:) compares SIGQUIT's disposition with it. Listed under address_identity."
   },
   "address_identity": [
-    "FatalSignalTerminalRestore.*handler.*To$"
+    "^@objc closure .*FatalSignalTerminalRestore\\.\\(handler "
   ],
   "key_path_aliases": [
     {

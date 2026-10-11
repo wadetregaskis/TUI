@@ -39,8 +39,9 @@ and cannot be folded.
 FUNCTION POINTERS. Comparing the address of a C function (`@convention(c)`) or of a closure.
   [F1] Every `@convention(c)` function (mangled suffix `To`) whose address TUIkit's code or data takes. The set must
        match `c_function_addresses` in the manifest (each entry says whether TUIkit compares that address).
-  [F2] Every symbol the manifest lists under `address_identity` (an address TUIkit compares) must be alone at its
-       address in the binary.
+  [F2] Every function the manifest's `address_identity` patterns match (an address TUIkit compares) must be alone at
+       its address in the binary, and every pattern must match one: a pattern that names nothing (a renamed
+       function, or a binary that does not link it) would otherwise check nothing and pass.
 
 Which objects are TUIkit's: the manifest's `modules` names them by module, and an object's module is where SwiftPM
 put it (`<Module>.build/…/x.o`, or Swift Build's merged `<Module>.o`). Every other module's objects are the app's:
@@ -396,17 +397,22 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
             findings.append(f'F1 new address-taken C function: {d} ({", ".join(sorted(e["references"]))})')
     report['F1'] = f1
 
-    # ---- F2: addresses TUIkit compares must be unique
+    # ---- F2: addresses TUIkit compares must be unique. The patterns read demangled names, as every other entry in
+    # the manifest does, and one that matches nothing is a finding: it would check nothing and pass.
     f2 = []
-    for pat in manifest.get('address_identity', []):
-        matched = sorted(n for n in addr_of if re.search(pat, n))
+    patterns = manifest.get('address_identity', [])
+    bnames = dm(list(addr_of)) if patterns else {}
+    for pat in patterns:
+        matched = sorted(n for n in addr_of if re.search(pat, bnames.get(n, n)))
         if not matched:
             f2.append({'pattern': pat, 'symbol': None, 'shares_address_with': []})
+            findings.append(f'F2 address_identity pattern "{pat}" matches no function in the binary: renamed (update '
+                            f'the manifest), or not linked here (check a binary that links it)')
         for s in matched:
             others = sorted(at[addr_of[s]] - {s})
-            f2.append({'pattern': pat, 'symbol': s, 'shares_address_with': others})
+            f2.append({'pattern': pat, 'symbol': bnames.get(s, s), 'shares_address_with': others})
             if others:
-                findings.append(f'F2 {s} shares its address with {others[:3]}')
+                findings.append(f'F2 {bnames.get(s, s)} shares its address with {others[:3]}')
     report['F2'] = f2
     return findings, report
 
