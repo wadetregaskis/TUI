@@ -168,9 +168,18 @@ public enum SFSymbol {
         // Fast path: a native Swift string exposes contiguous UTF-8 storage.
         let found: Int?? = name.utf8.withContiguousStorageIfAvailable { index(of: $0) }
         // Rare fallback (e.g. a bridged NSString): copy the query bytes once.
-        let position = found ?? Array(name.utf8).withUnsafeBufferPointer { index(of: $0) }
+        let position = found ?? index(copying: name.utf8)
         guard let position else { return nil }
         return Unicode.Scalar(puaBase + UInt32(codepointOffset(at: position)))
+    }
+
+    /// `scalar(forName:)`'s fallback for a string without contiguous UTF-8
+    /// storage: the position of `bytes` among the baked names, or `nil`,
+    /// searched in one copy of them. Internal rather than private so a test
+    /// reaches it directly — whether a given string bridges without contiguous
+    /// UTF-8 is up to the OS's Swift runtime, not to the test.
+    static func index(copying bytes: String.UTF8View) -> Int? {
+        Array(bytes).withUnsafeBufferPointer { index(of: $0) }
     }
 
     /// The position of `query` among the baked names, or `nil`: a binary search
