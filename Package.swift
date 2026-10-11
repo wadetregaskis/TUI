@@ -636,7 +636,9 @@ let package = Package(
 //
 // What it breaks: a statically linked app whose dlopened plugin calls TUIkit API that the app itself never
 // calls. That symbol is no longer in the app, and the plugin fails to load (measured with a small
-// library). A dynamically linked TUIkit is unaffected: a dylib keeps its exports (measured).
+// library). A dylib that links TUIkit in, TUIkit's own or one of the app's, is unaffected: ld keeps every
+// symbol a dylib exports as a dead-strip root (measured on a dylib product of TUIkit's modules, the same link
+// SwiftPM makes for an app's dylib), unless that dylib's own link narrows its exports.
 //
 // The opt-out is the app's: `.package(url: …, from: …, traits: [])`. That turns off EVERY default trait
 // of TUIkit's (today this is the only one); no compiler flag undoes `-internalize-at-link`, so the trait
