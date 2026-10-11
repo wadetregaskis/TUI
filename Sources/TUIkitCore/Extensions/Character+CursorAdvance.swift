@@ -722,7 +722,8 @@ extension Character {
     /// - **Plane-16 Private Use Area** (SF Symbols): 1, against a 2-cell claim.
     ///   tmux's `wcwidth` has never heard of SF Symbols. This is the one that
     ///   visibly breaks: the example's "Supports SF Symbols" box draws three of
-    ///   them, and its right border landed 3 cells early (measured 65 vs 68).
+    ///   them where the SF Symbols font is installed, and its right border
+    ///   landed 3 cells early (measured 65 vs 68).
     /// - **Bare pictographs** — a lone SMP scalar whose presentation is not
     ///   emoji: 1, against 2. Broader than
     ///   ``isBarePictographUnderAdvancer``, which additionally requires

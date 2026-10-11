@@ -175,9 +175,9 @@ one shift, once, after the search.
 
 `nameStarts` was left as it is. It is read twice per step of the binary search,
 so packing it would put a shift and a mask into the loop; deriving it from the
-blob at first use would remove it, at the price of runtime parsing. Both are
-open (`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`). Front-coding
-(below) has since replaced it with one offset per block.
+blob at first use would remove it, at the price of runtime parsing
+(`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`, now superseded).
+Front-coding (below) has since replaced it with one offset per block.
 
 ---
 

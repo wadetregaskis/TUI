@@ -22,9 +22,9 @@ of [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):
 **Superseded on 2026-10-11: front-coding landed.** The owner chose D3 ("Do the
 'front-coding' approach to SF Symbol names"), and lane SFQ shipped it: the names
 are front-coded in blocks of 16, and `nameStarts` (8,467 offsets) is gone,
-replaced by `blockStarts`, one offset per block (531 `UInt32`s). The
-`nameStarts` this entry weighs, and both fuller versions below, no longer
-exist. The entry is kept as written.
+replaced by `blockStarts`, one offset per block (530 blocks, so 531
+`UInt32`s with the blob-length sentinel). The `nameStarts` this entry weighs,
+and both fuller versions below, no longer exist. The entry is kept as written.
 
 A clean release build spent about 0.31 s of SIL optimisation on each of the
 symbol table's two integer arrays (Xcode 26.3's Swift 6.2.4; the pass timers'
