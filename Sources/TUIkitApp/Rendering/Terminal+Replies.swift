@@ -43,6 +43,10 @@ extension Terminal {
     /// it parses from its own `ESC`. That is the rule the CSI walk already
     /// applies, and for the same reason — anything else leaks the newcomer's
     /// bytes as keystrokes.
+    ///
+    /// `nil` too for a sequence with no terminator in its first
+    /// ``maxReplyBytes``; the caller tells that from one still arriving by the
+    /// buffer's length, and skips its rest (``skipAbandonedSequence()``).
     func stringSequenceLength() -> Int? {
         var index = 2
         let cap = min(input.count, Self.maxReplyBytes)
@@ -54,12 +58,11 @@ extension Terminal {
             }
             index += 1
         }
-        // Past the cap it is not a reply any more, whatever it started as.
-        return input.count >= Self.maxReplyBytes ? Self.maxReplyBytes : nil
+        return nil
     }
 
-    /// Hard cap on a terminal reply, past which the bytes are dropped rather
-    /// than buffered forever.
+    /// Hard cap on a terminal reply, past which its bytes are skipped as they
+    /// arrive rather than buffered forever (``skipAbandonedSequence()``).
     ///
     /// Far larger than a keystroke because these are not keystrokes: a graphics
     /// error names itself in words (Warp's is sixty characters), and an OSC
@@ -73,6 +76,75 @@ extension Terminal {
     /// truncate a 37-byte device-attributes reply mid-sequence and leak its
     /// tail as typing.
     static let maxReplyBytes = 4096
+
+    // MARK: - Skipping what is left of an over-long one
+
+    /// The two shapes of escape sequence the parser can give up on as
+    /// over-long, which end differently.
+    enum AbandonedSequence {
+        /// A CSI: ends at its final byte.
+        case controlSequence
+        /// An OSC, DCS, APC, PM or SOS: ends at `BEL` or `ST` (`ESC \`).
+        case string
+    }
+
+    /// Consumes what has arrived of the sequence ``abandonedSequence`` names,
+    /// through its terminator, and returns whether it is over.
+    ///
+    /// A sequence that runs past ``maxReplyBytes`` is no longer held, but its
+    /// rest is still not typing. Until 2026-10-11 the walks dropped the first
+    /// 4 KiB and left the rest to the key parser, so a long enough reply —
+    /// a clipboard answer's base64, a CSI of many parameters — spelled itself
+    /// out as keys. This reads on to where the sequence ends:
+    ///
+    /// - its terminator, consumed with it: a CSI's final byte, a string
+    ///   sequence's `BEL` or `ST`;
+    /// - or an `ESC` that begins anything else, which stays for the parser:
+    ///   a new sequence cut this one short, the rule both walks apply to one
+    ///   within the cap.
+    ///
+    /// An `ESC` at the very end of what has arrived, in a string sequence, may
+    /// be the first byte of `ST`, so it stays in the buffer and the skip goes
+    /// on. Running out of bytes leaves the skip on for the next call; the
+    /// dead-sequence wait in ``resolveStuckPartial()`` ends it if the rest
+    /// never comes.
+    func skipAbandonedSequence() -> Bool {
+        guard let family = abandonedSequence else { return true }
+        var index = 0
+        var end: Int?
+        scan: while index < input.count {
+            let byte = input[index]
+            switch family {
+            case .controlSequence:
+                if byte == 0x1B {
+                    end = index
+                    break scan
+                }
+                if String.isCSIFinalByte(UInt32(byte)) {
+                    end = index + 1
+                    break scan
+                }
+            case .string:
+                if byte == 0x07 {  // BEL
+                    end = index + 1
+                    break scan
+                }
+                if byte == 0x1B {
+                    guard index + 1 < input.count else { break scan }  // maybe ST: wait for its `\`
+                    end = input[index + 1] == 0x5C ? index + 2 : index
+                    break scan
+                }
+            }
+            index += 1
+        }
+        let skipped = end ?? index
+        if skipped > 0 {
+            consume(skipped)
+            staleFrames = 0
+        }
+        if end != nil { abandonedSequence = nil }
+        return end != nil
+    }
 
     // MARK: - Keeping the answers that say what the terminal paints
 

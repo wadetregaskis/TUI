@@ -91,6 +91,9 @@ extension Terminal {
     /// the buffer doesn't have a complete sequence yet — in which
     /// case the bytes already there stay put for the next call.
     private func tryExtractRegularEvent() -> [UInt8]? {
+        // What is left of a sequence given up on as over-long goes first,
+        // unread (``abandonSequence(_:)``).
+        if abandonedSequence != nil, !skipAbandonedSequence() { return nil }
         guard !input.isEmpty else { return nil }
         let first = input[0]
 
@@ -137,6 +140,12 @@ extension Terminal {
                 }
                 return [0x1B] + inner
             }
+            // The inner sequence was given up on as over-long, and its rest has
+            // not all arrived: the prefix goes with it. Put back, its `ESC`
+            // would read as a new sequence cutting the skip short, and the rest
+            // would be typed. (When the rest HAS arrived, the prefix lands on
+            // whatever follows, as it does behind a reply swallowed whole.)
+            if abandonedSequence != nil { return nil }
             input.prepend(0x1B)
             return nil
         }
@@ -165,7 +174,10 @@ extension Terminal {
         // Recursion, like the meta-prefix branch above, and bounded by the same
         // thing: each pass consumes bytes, and the buffer is finite.
         if String.isStringFamilyIntroducer(UInt32(second)) {
-            guard let length = stringSequenceLength() else { return nil }
+            guard let length = stringSequenceLength() else {
+                // No terminator yet, and none in as many bytes as a reply runs to.
+                return input.count >= Self.maxReplyBytes ? abandonSequence(.string) : nil
+            }
             noteVolunteeredColorReply(headOfInputLength: length)
             consume(length)
             return tryExtractRegularEvent()
@@ -375,18 +387,32 @@ extension Terminal {
             i += 1
         }
 
-        // Past the cap with no terminator: not a control sequence any more,
-        // whatever it started as. DROP the prefix rather than returning it —
-        // returning is what leaked the tail, because the caller only ever
-        // discards bytes it cannot parse, while `consume` has already moved
-        // the buffer past them.
-        if input.count >= Self.maxReplyBytes { consume(Self.maxReplyBytes) }
+        // Past the cap with no terminator: no longer held, whatever it started
+        // as, and still not typing. The prefix is not returned (the caller
+        // only discards bytes it cannot parse, so that leaked them), and the
+        // rest is not left to the key parser either (dropping the first 4 KiB
+        // and no more typed the rest out until 2026-10-11): it is skipped to
+        // the final byte.
+        if input.count >= Self.maxReplyBytes { return abandonSequence(.controlSequence) }
 
         // Otherwise the buffer simply doesn't have the terminator yet. (The
         // wait is bounded by `deadSequenceStaleFrames`, not by the cap: the cap
         // only catches a terminal that keeps sending, since bytes arriving keep
         // resetting the stale count.)
         return nil
+    }
+
+    /// Gives up holding the over-long sequence at the head of the buffer, and
+    /// goes on to what follows it: the sequence's introducer is consumed here,
+    /// and the rest of it is skipped, now and on as many later calls as it
+    /// takes to arrive (``skipAbandonedSequence()``).
+    ///
+    /// Returns the next event, as the string-family branch of
+    /// ``tryExtractRegularEvent()`` does after a reply it swallows whole.
+    private func abandonSequence(_ family: AbandonedSequence) -> [UInt8]? {
+        consume(2)
+        abandonedSequence = family
+        return tryExtractRegularEvent()
     }
 
     /// While `inPasteMode` is set, scans ``input`` for the
@@ -539,6 +565,7 @@ extension Terminal {
     /// dispatched.
     var hasPendingInput: Bool {
         !input.isEmpty || pendingBareEsc || pendingAltEsc || inPasteMode || !queuedInputs.isEmpty
+            || abandonedSequence != nil
     }
 
     /// Peels sequences off the front of the buffer until one of them is
@@ -673,8 +700,9 @@ extension Terminal {
         }
 
         // Still nothing. If the buffer's empty there's no partial to
-        // worry about; just return nil.
-        guard !input.isEmpty else {
+        // worry about; just return nil. (Unless a skip is waiting on the rest
+        // of a sequence: its wait has to run out on quiet frames too.)
+        guard !input.isEmpty || abandonedSequence != nil else {
             staleFrames = 0
             return nil
         }
@@ -694,7 +722,8 @@ extension Terminal {
     }
 
     /// Called once per stale frame while a partial sits at the front of the
-    /// buffer, and decides — based on how long it has been stuck — how to make
+    /// buffer (or while the rest of an over-long sequence is awaited), and
+    /// decides — based on how long it has been stuck — how to make
     /// progress without ever stranding part of a split escape sequence as a
     /// literal keystroke. Returns an event only when it pops a lone non-ESC
     /// byte; otherwise `nil` (still waiting, or it deferred/discarded).
@@ -714,6 +743,18 @@ extension Terminal {
     ///   sequence dropped as a unit.
     /// - Any other stuck byte is consumed singly to make progress.
     private func resolveStuckPartial() -> TerminalInput? {
+        // Skipping the rest of an over-long sequence, with nothing buffered or
+        // only an `ESC` that may be its `ST`: the skip ends at the same wait as
+        // an unfinished sequence, so a terminal that never finishes one cannot
+        // take the keyboard with it. An `ESC` left behind is then an ordinary
+        // lone one.
+        if abandonedSequence != nil {
+            if staleFrames >= Self.deadSequenceStaleFrames {
+                staleFrames = 0
+                abandonedSequence = nil
+            }
+            return nil
+        }
         let first = input[0]
 
         if first == 0x1B {

@@ -208,6 +208,15 @@ final class Terminal: TerminalProtocol {
     /// out to be a split sequence's introducer rather than the Escape key.
     var pendingAltEsc: Bool = false
 
+    /// The family of the over-long escape sequence whose rest the parser is
+    /// skipping, or `nil` when it is skipping nothing.
+    ///
+    /// Set when a sequence runs past ``maxReplyBytes`` with no terminator,
+    /// cleared at its terminator, at a new sequence's `ESC`, or after the
+    /// dead-sequence wait; see `skipAbandonedSequence()` in
+    /// `Terminal+Replies.swift`.
+    var abandonedSequence: AbandonedSequence?
+
     /// The kitty keyboard protocol's enhancements the terminal took when this
     /// process pushed them, or empty for the legacy encodings — which is also
     /// what it is between a pop (exit, suspend) and the push that follows.

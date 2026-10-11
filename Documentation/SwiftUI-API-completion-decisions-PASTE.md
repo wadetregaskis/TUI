@@ -4,8 +4,10 @@
 bracketed paste of plain text made Stress exit: past its 1 MiB limit the
 parser dropped what it had buffered and left paste mode, so every later byte
 of the same paste was read as a key, and the first `q` quit (found by the
-coordinator while sizing an input benchmark). Pasted text is now never keys,
-however long it runs.*
+coordinator while sizing an input benchmark). A terminal reply or a CSI
+longer than the 4 KiB the parser waits for had the same flaw on a smaller
+scale: the first 4 KiB was dropped and the rest typed out. Pasted text and
+terminal replies are now never keys, however long they run.*
 
 *The format is that of
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
@@ -68,3 +70,30 @@ of its own), which touches every place that reads a paste (about ten, in
 TUIkitTextInput, TUIkitFoundation and Stress), plus a status message in
 the seven string tables of TUIkitStrings. Raising the limit further instead
 costs memory in proportion: 2.5 to 3.5 times the limit at the peak.
+
+### B-PASTE-2. The rest of an over-long sequence is skipped, until its end or a pause
+
+A CSI, OSC, DCS, APC, PM or SOS longer than the 4 KiB the parser waits for
+(`Terminal.maxReplyBytes`) is still given up on at 4 KiB, but its rest is
+now skipped rather than typed: to its final byte (a CSI), to `BEL` or `ST`
+(the string families), or to an `ESC` that starts a new sequence, which then
+parses. That is the rule each walk already applies to a sequence a new
+`ESC` cuts short.
+
+The skip also ends after the wait an unfinished sequence gets
+(`deadSequenceStaleFrames`, eight quiet frames, about 200 ms), and the run
+loop keeps polling until then. Without that, a terminal that started a long
+reply and never finished it would take the keyboard with it: a string
+sequence ends only at `BEL` or `ESC`, so everything typed would be skipped
+until the user pressed Escape. A reply's bytes arrive as a stream, so a pause
+that long means its end is not coming.
+
+One shape is left as it was. An `ESC` in front of the sequence (the meta
+prefix of `ESC ESC [`, which no terminal puts on a reply) stays the prefix of
+whatever is read after the skip, as it does after a reply that is
+swallowed whole; when the skip outlasts what has arrived, it is dropped with
+the sequence rather than put back, where it would end the skip.
+
+**The fuller version** would skip strictly to the terminator, with no pause
+rule. Its price is the wedge above, for a case nobody has observed (not
+measured on any terminal): a reply longer than 4 KiB whose end is lost.
