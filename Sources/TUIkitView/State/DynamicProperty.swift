@@ -106,22 +106,22 @@ enum NestedProperties {
 @MainActor
 @usableFromInline
 package func updateDynamicProperties<Root>(of root: inout Root) {
+    // `&root` goes to each helper as a typed pointer argument, not through a
+    // closure passed to `withUnsafeMutableBytes`/`withUnsafeMutablePointer`:
+    // in a release build each of those two closures carried a run-time check
+    // that it ran on the main actor (`swift_task_isCurrentExecutor`), where a
+    // call with a pointer argument carries none. Typed, because `&root` to a
+    // raw pointer draws a warning for a type that may hold a reference.
     switch RuntimeFields.Kind(of: Root.self) {
     case .struct:
         let fields = RuntimeFields.fields(of: Root.self)
         guard !fields.isEmpty else { return }
-        withUnsafeMutableBytes(of: &root) { bytes in
-            guard let base = bytes.baseAddress else { return }
-            for field in fields where field.isStrong {
-                // `field.type` is an `Any.Type`, opened here to the field's own type.
-                writeBackDynamicProperties(at: base + field.offset, as: field.type)
-            }
-        }
+        writeBackDynamicProperties(in: fields, at: &root)
     case .optional:
         // The binding walk's `Mirror` looks through an `Optional`, so this
         // does too: unwrapped, updated, and wrapped again.
         guard let optional = Root.self as? any OptionalPropertyHolder.Type else { return }
-        withUnsafeMutablePointer(to: &root) { optional.updateWrapped(at: UnsafeMutableRawPointer($0)) }
+        optional.updateWrapped(at: &root)
     default:
         updateCopies(in: root)
     }
@@ -129,14 +129,15 @@ package func updateDynamicProperties<Root>(of root: inout Root) {
 
 /// An `Optional` opened to its wrapped type, for ``updateDynamicProperties(of:)``.
 private protocol OptionalPropertyHolder {
-    @MainActor static func updateWrapped(at address: UnsafeMutableRawPointer)
+    @MainActor static func updateWrapped<Address>(at address: UnsafeMutablePointer<Address>)
 }
 
 extension Optional: OptionalPropertyHolder {
     /// Updates the value the optional at `address` wraps, if any, and writes
-    /// it back.
-    @MainActor static func updateWrapped(at address: UnsafeMutableRawPointer) {
-        let slot = address.assumingMemoryBound(to: Self.self)
+    /// it back. `Address` is this optional's own type, which the caller could
+    /// not name: it holds only the existential metatype.
+    @MainActor static func updateWrapped<Address>(at address: UnsafeMutablePointer<Address>) {
+        let slot = UnsafeMutableRawPointer(address).assumingMemoryBound(to: Self.self)
         guard var wrapped = slot.pointee else { return }
         updateDynamicProperties(of: &wrapped)
         slot.pointee = wrapped
@@ -163,6 +164,17 @@ private func updateCopy<Value>(of value: Value) {
     updateDynamicProperties(of: &copy)
     if var property = copy as? any DynamicProperty, !(property is any FrameworkDynamicProperty) {
         property.update()
+    }
+}
+
+/// The struct fields of ``updateDynamicProperties(of:)``, in the struct at
+/// `root`, each written back where it lies.
+@MainActor
+private func writeBackDynamicProperties<Root>(in fields: [RuntimeFields.Field], at root: UnsafeMutablePointer<Root>) {
+    let base = UnsafeMutableRawPointer(root)
+    for field in fields where field.isStrong {
+        // `field.type` is an `Any.Type`, opened here to the field's own type.
+        writeBackDynamicProperties(at: base + field.offset, as: field.type)
     }
 }
 
