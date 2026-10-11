@@ -126,9 +126,13 @@ jobs:
       # while being impossible for anyone to depend on, and one with an
       # unsafeFlags linker setting, or a compile one no trait can turn off,
       # imposes a flag on every client's build. The expensive half of that
-      # question is the `consumer` job below.
+      # question is the `consumer` job below. The self-test first: it proves
+      # each check fires on its construct, and on nothing else, so a pattern
+      # that stopped matching fails here rather than passing every manifest.
       - name: Validate package manifest is consumable
-        run: ./Tools/validate-package-manifest.sh
+        run: |
+          ./Tools/validate-package-manifest.sh --self-test
+          ./Tools/validate-package-manifest.sh
 
   # ── SwiftUI API parity ─────────────────────────────────────────────────────
   # One runner, one Xcode, deliberately. Both sides of the comparison come out
