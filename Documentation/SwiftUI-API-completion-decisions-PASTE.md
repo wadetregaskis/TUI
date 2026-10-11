@@ -64,17 +64,39 @@ code (not measured):
   through 12 KiB however long it runs: about 40 MiB at that moment, 32 MiB at
   delivery.
 
-Then the app holds the text: a `TextEditor` inserts it and keeps the text
-from before for its undo. Rendering a 16 MiB document is a cost of its own,
-unmeasured here. From the code, not measured: a `TextField` walks its whole
-text on every frame it draws, with an array of cell widths as long as the
-text (128 MiB at 16 MiB of ASCII); and `TextEditor`'s insert shifts the lines
-after the caret once for each line it inserts, so a paste of many lines into
-the middle of a long document costs the product of the two. Before this lane
-neither was handed more than 1 MiB of paste: whatever came after that was
-typed into it, a key at a time. A measurement is owed: a 16 MiB paste into a
-focused `TextField`, and into a `TextEditor` above a long document, in a
-release build.
+Then the app holds the text, and what that costs is larger than anything
+above. From the code, not measured:
+
+- `TextEditor` keeps its text as lines of `Character`s (`EditorLayout`), and
+  a `Character` is 16 bytes: 256 MiB for 16 MiB of ASCII, held for as long
+  as the text is shown. Its insert (`TextEditorHandler`) splits the paste
+  into the same shape first, so a paste of many lines peaks near 300 MiB
+  (those lines, the paste and its copy with line breaks normalised, and the
+  lines joined back into the text), and a paste of one line near twice that,
+  because the line it goes into is copied. This is the largest cost the
+  raise from 1 MiB opens up, and it is on the common path: UTF-8 text.
+  (Review round 2; the first version of this list left it out.)
+- Its undo keeps up to 50 texts from before an edit (`TextUndoHistory`),
+  each the whole document. Once a 16 MiB paste is in, each later edit adds
+  16 MiB, up to 800 MiB, and each joins every line back into one string, so
+  every key typed walks the document.
+- Its insert shifts the lines after the caret once for each line it
+  inserts, so a paste of many lines into the middle of a long document
+  costs the product of the two.
+- Drawing it wraps every line at the editor's width (`EditorLayout` keeps
+  the wrappings of this frame and the last), a cost of its own, not
+  estimated here.
+- A `TextField` walks its whole text on every frame it draws, with an array
+  of cell widths as long as the text (128 MiB at 16 MiB of ASCII).
+
+Before this lane neither control was handed more than 1 MiB of paste in one
+event: whatever came after that was typed into it, a key at a time. The same
+costs apply to any document that size an app puts in an editor; a paste is
+now one way to make one. A measurement is owed: a 16 MiB paste into a
+focused `TextField`, and into a `TextEditor` above a long document with a
+few keys typed after it, in a release build. A `TextEditor` that kept its
+text as UTF-8, and its undo as edits rather than copies, would remove most
+of it; that is a redesign of the editor, outside this lane.
 
 **Why not the other two shapes.**
 
