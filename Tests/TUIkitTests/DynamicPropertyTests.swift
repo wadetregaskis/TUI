@@ -317,6 +317,25 @@ extension CustomMirrorView: @MainActor CustomReflectable {
     }
 }
 
+/// An app property that is a class holding another.
+private final class HoldingObject: DynamicProperty {
+    let inner: Updating
+
+    init(inner: Updating) {
+        self.inner = inner
+    }
+}
+
+/// Holds its app properties only weakly.
+private struct OnlyWeakView: View {
+    weak var weakly: UpdatingObject?
+    weak var holding: HoldingObject?
+
+    var body: some View {
+        Text(verbatim: "\(weakly?.updates ?? -1) \(holding?.inner.wrappedValue ?? -1)")
+    }
+}
+
 @MainActor
 private final class BindingTap {
     var binding: Binding<Int>?
@@ -537,6 +556,24 @@ struct DynamicPropertyTests {
         let log = UpdateLog()
         #expect(line(CustomMirrorView(object: object, log: log), context: context) == "1 1")
         #expect(line(CustomMirrorView(object: object, log: log), context: context) == "2 2")
+    }
+
+    /// The second review of the write-back: it passes over a property held
+    /// `weak`, and what that holds, so the binding walk must not count one,
+    /// or a view holding only such properties is copied and its fields
+    /// listed on every body for nothing.
+    @Test("A view whose app properties are all held weak is not one the write-back visits")
+    func weakOnlyIsNotVisited() {
+        let object = UpdatingObject()
+        let holding = HoldingObject(inner: Updating(log: UpdateLog()))
+        withExtendedLifetime((object, holding)) {
+            let view = OnlyWeakView(weakly: object, holding: holding)
+            let holdsAppProperty = bindStateProperties(
+                of: view, identity: ViewIdentity(path: "Root/OnlyWeak"), storage: StateStorage())
+            #expect(!holdsAppProperty)
+            let context = makeRenderContext(width: 20, height: 1)
+            #expect(line(view, context: context) == "0 0", "neither is updated, as before")
+        }
     }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")

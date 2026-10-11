@@ -101,6 +101,25 @@ enum NestedProperties {
             && !(type is any FrameworkPropertyContainer.Type)
     }
 
+    /// Whether the stored property `label` of `parent` is held `weak` — or
+    /// `unowned` as an optional — so that its declared type is an optional,
+    /// which the write-back passes over: the binding walk then does not count
+    /// it as an app property to update. Asked only of a child that is an app
+    /// property, so a view holding none pays nothing; read from the runtime's
+    /// field metadata once per type. A class's fields are not listed, so a
+    /// property in one is counted, as before.
+    @MainActor
+    static func isHeldWeakly(_ label: String?, in parent: Any) -> Bool {
+        guard let label else { return false }
+        let type = Swift.type(of: parent)
+        let key = ObjectIdentifier(type)
+        if let names = WeakFieldNames.known[key] { return names.contains(label) }
+        let names = Set(
+            RuntimeFields.fields(of: type).lazy.filter { !$0.isStrong && $0.kind == .optional }.map(\.name))
+        WeakFieldNames.known[key] = names
+        return names.contains(label)
+    }
+
     /// Whether a stored value of declared type `type` may be one that
     /// ``container(_:)`` descends into — decided from the type alone, so the
     /// write-back loads no field that cannot be one.
@@ -211,6 +230,13 @@ enum NestedProperties {
 @MainActor
 private enum ValueDependence {
     static var known: [ObjectIdentifier: Bool] = [:]
+}
+
+/// The names of each type's fields held `weak` (or `unowned` as an
+/// optional), for ``NestedProperties/isHeldWeakly(_:in:)``.
+@MainActor
+private enum WeakFieldNames {
+    static var known: [ObjectIdentifier: Set<String>] = [:]
 }
 
 // MARK: - Writing back what update() did

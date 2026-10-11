@@ -681,7 +681,19 @@ private func bindStateProperties(
             index += 1
         } else if let container = NestedProperties.container(child.value) {
             hasContainers = true
-            if NestedProperties.isAppProperty(container) { hasAppProperties = true }
+            let isAppProperty = NestedProperties.isAppProperty(container)
+            if isAppProperty, NestedProperties.isHeldWeakly(child.label, in: value) {
+                // The write-back passes over a property held `weak` (SwiftUI
+                // does not update one either), so neither it nor what it
+                // holds makes the view one to update. What it holds is still
+                // bound, as an optional's is (decisions-DYNP A-DYNP-1).
+                var passedOver = false
+                bindStateProperties(
+                    nestedIn: container, identity: identity, storage: storage, index: &index,
+                    hasContainers: &hasContainers, hasAppProperties: &passedOver)
+                continue
+            }
+            if isAppProperty { hasAppProperties = true }
             bindStateProperties(
                 nestedIn: container, identity: identity, storage: storage, index: &index,
                 hasContainers: &hasContainers, hasAppProperties: &hasAppProperties)
