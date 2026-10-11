@@ -13,7 +13,8 @@ developer, the key paths their binary forms that now compare equal ("app" agains
 compares or hashes key paths.
 
 Exit status: 0 clean (always, under --report), 1 a finding the manifest does not account for, 2 the check could not
-run: no objects, none of TUIkit's, no key paths in them, a stripped or universal binary. Never a pass.
+run: no objects, none of TUIkit's, no key paths in them, a stripped or universal binary, a folded key-path getter
+whose demangled name it cannot read. Never a pass.
 
 Swift code can observe a function's address in two ways, and the check covers both:
 
@@ -319,9 +320,20 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
     live = {g: e for g, e in scan.patterns.items() if g in addr_of}
     names = dm(list(live))
     groups = collections.defaultdict(list)
+    unread = []
     for g in live:
         rv = root_value(names.get(g, g))
+        if rv is None:
+            unread.append(g)
         groups[(addr_of[g],) + ((rv[0], rv[1]) if rv else (g, ''))].append(g)
+    # A getter whose root and value type cannot be read would sit in a group of its own, unchecked. That matters only
+    # where it shares its address with another key path's getter, and there it is no pass: the check cannot look.
+    per_address = collections.Counter(addr_of[g] for g in live)
+    unread = sorted(names.get(g, g) for g in unread if per_address[addr_of[g]] > 1)
+    if unread:
+        raise CannotCheck(f'cannot read the root and value type of {len(unread)} key-path getter(s) that share an '
+                          f'address with another, such as "{unread[0]}" (has `swift-demangle --compact` changed its '
+                          f'output? see root_value)')
     k1 = []
     for key, gs in sorted(groups.items()):
         if len(gs) < 2:

@@ -22,7 +22,8 @@ reviewed facts), and fails on anything the manifest does not account for:
 
 TUIkit's objects are those of the modules `manifest.json`'s `modules` names; every other module is the app's,
 reported and never failed. It reads arm64 Mach-O only (a universal binary: `lipo -thin arm64` first) and exits 2,
-never 0, when it cannot check: no objects, none of TUIkit's, no key path in them, a stripped binary.
+never 0, when it cannot check: no objects, none of TUIkit's, no key path in them, a stripped binary, a key-path getter
+sharing an address with another whose demangled name it cannot read.
 
 Not covered: key paths or functions that reach `==` through a dynamic cast (`x as? any Hashable`) or generic code
 that never names them; an `unsafeBitCast` of a Swift closure; and K1 for a module the checked binary does not link

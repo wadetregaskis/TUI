@@ -147,7 +147,7 @@ class DedupCheckTests(unittest.TestCase):
             f.write(data)
         return path
 
-    def run_check(self, manifest=MANIFEST, binary=None, module='TUIkitView', extra=(), obj=None):
+    def run_check(self, manifest=MANIFEST, binary=None, module='TUIkitView', extra=(), obj=None, dm=demangle):
         self.write(f'release/{module}.build/K.swift.o', obj if obj is not None else library_object())
         binary = binary if binary is not None else app_binary()
         app = self.write('app/Stress', binary)
@@ -155,7 +155,7 @@ class DedupCheckTests(unittest.TestCase):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stderr(err):
             status = dedup_check.run(['--binary', app, '--objects', os.path.join(self.dir, 'release'),
-                                      '--manifest', mpath, *extra], dm=demangle, out=out)
+                                      '--manifest', mpath, *extra], dm=dm, out=out)
         return status, out.getvalue() + err.getvalue()
 
     def test_a_divergent_pair_fails(self):
@@ -249,6 +249,16 @@ class DedupCheckTests(unittest.TestCase):
         self.assertIn('[DIVERGENT]', out)
         self.assertIn('REPORT ONLY', out)
         self.assertIn('tk  M.compare(', out)
+
+    def test_a_folded_getter_whose_name_cannot_be_read_cannot_be_checked(self):
+        # Were \S.b's demangled name in a form root_value does not read, \S.b would sit in a group of its own and
+        # \S.a == \S.b would go unchecked.
+        def dm(names):
+            return {n: 'M.S.b.get -> Swift.Int' if n == GB else DEMANGLED.get(n, n) for n in names}
+        status, out = self.run_check(dm=dm)
+        self.assertEqual(status, 2, out)
+        self.assertIn('cannot read the root and value type of 1 key-path getter(s) that share an address with '
+                      'another, such as "M.S.b.get -> Swift.Int"', out)
 
     def test_a_stripped_binary_cannot_be_checked(self):
         stripped = macho(machofile.MH_EXECUTE, [('__TEXT', '__text', 0x1000, 0x1000, [])], [])
