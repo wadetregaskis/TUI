@@ -113,10 +113,15 @@ enum NestedProperties {
         guard let label else { return false }
         let type = Swift.type(of: parent)
         let key = ObjectIdentifier(type)
-        if let names = WeakFieldNames.known[key] { return names.contains(label) }
-        let names = Set(
-            RuntimeFields.fields(of: type).lazy.filter { !$0.isStrong && $0.kind == .optional }.map(\.name))
-        WeakFieldNames.known[key] = names
+        if let names = TypeFacts.weakFieldNames.pointee[key] { return names.contains(label) }
+        // A loop, not `lazy.filter` and `map`: a closure handed to the
+        // standard library from here is a main-actor closure, and a release
+        // build checks at run time that each call of it is on the main actor.
+        var names: Set<String> = []
+        for field in RuntimeFields.fields(of: type) where !field.isStrong && field.kind == .optional {
+            names.insert(field.name)
+        }
+        TypeFacts.weakFieldNames.pointee[key] = names
         return names.contains(label)
     }
 
@@ -175,7 +180,7 @@ enum NestedProperties {
     @MainActor
     static func walkDependsOnValue(_ type: Any.Type) -> Bool {
         let key = ObjectIdentifier(type)
-        if let known = ValueDependence.known[key] { return known }
+        if let known = TypeFacts.valueDependence.pointee[key] { return known }
         let depends: Bool
         switch RuntimeFields.Kind(of: type) {
         case .enum:
@@ -189,7 +194,7 @@ enum NestedProperties {
         default:
             depends = false
         }
-        ValueDependence.known[key] = depends
+        TypeFacts.valueDependence.pointee[key] = depends
         return depends
     }
 
@@ -226,17 +231,29 @@ enum NestedProperties {
     }
 }
 
-/// ``NestedProperties/walkDependsOnValue(_:)``'s answers, per type.
+/// What the property walks learn of a type from its declaration, kept for the
+/// life of the process, since a declaration never changes:
+/// ``NestedProperties/walkDependsOnValue(_:)``'s answers, and the names of
+/// each type's fields held `weak` (or `unowned` as an optional), for
+/// ``NestedProperties/isHeldWeakly(_:in:)``.
+///
+/// Each table is reached through a pointer held as a constant — the reason
+/// `ObservationLeases` and `VolatileReadTracker` keep their state that way: a
+/// static variable is checked for exclusivity at run time on every read and
+/// every write (`swift_beginAccess`, then `swift_endAccess`), where a load
+/// through a constant pointer is a plain load. Never freed, as a static's
+/// value is not.
 @MainActor
-private enum ValueDependence {
-    static var known: [ObjectIdentifier: Bool] = [:]
+private enum TypeFacts {
+    static let valueDependence = permanentTable([ObjectIdentifier: Bool]())
+    static let weakFieldNames = permanentTable([ObjectIdentifier: Set<String>]())
 }
 
-/// The names of each type's fields held `weak` (or `unowned` as an
-/// optional), for ``NestedProperties/isHeldWeakly(_:in:)``.
-@MainActor
-private enum WeakFieldNames {
-    static var known: [ObjectIdentifier: Set<String>] = [:]
+/// `table`, moved into memory that is never freed — one of ``TypeFacts``'.
+private func permanentTable<Table>(_ table: Table) -> UnsafeMutablePointer<Table> {
+    let pointer = UnsafeMutablePointer<Table>.allocate(capacity: 1)
+    pointer.initialize(to: table)
+    return pointer
 }
 
 // MARK: - Writing back what update() did
@@ -369,10 +386,14 @@ private func writeBackDynamicProperties<Root>(in fields: [RuntimeFields.Field], 
 @MainActor
 private func updateReferent(of field: RuntimeFields.Field, in root: Any) {
     let name = field.name
-    guard let child = Mirror(reflecting: root).children.first(where: { $0.label == name }),
-        isValue(child.value, of: field.type)
-    else { return }
-    _openExistential(child.value, do: updateCopy)
+    // A loop, not `first(where:)`, for `NestedProperties.isHeldWeakly`'s
+    // reason: a closure would carry a run-time main-actor check.
+    for child in Mirror(reflecting: root).children where child.label == name {
+        if isValue(child.value, of: field.type) {
+            _openExistential(child.value, do: updateCopy)
+        }
+        return
+    }
 }
 
 /// Whether `value` is a `T` — for ``updateReferent(of:in:)``, a field's
