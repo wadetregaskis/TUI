@@ -121,7 +121,10 @@ final class Terminal: TerminalProtocol {
     /// marker to arrive — no blocking, no `usleep`. The run loop
     /// stays responsive even for very large pastes.
     var inPasteMode: Bool = false {
-        didSet { pasteScanCursor = 0 }
+        didSet {
+            pasteScanCursor = 0
+            keptPaste = nil
+        }
     }
 
     /// How many leading bytes of ``input`` have already been checked and ruled
@@ -132,8 +135,37 @@ final class Terminal: TerminalProtocol {
     /// nonsense, and leaving a stale one behind would skip past the next
     /// paste's marker. Nothing is consumed from the front while a paste is
     /// open, so an index taken on one pass still means the same byte on the
-    /// next.
+    /// next — except past ``pasteByteLimit``, where the bytes the cursor has
+    /// passed are dropped and the cursor goes back to zero with them.
     var pasteScanCursor: Int = 0
+
+    /// The most of one bracketed paste that reaches the app: 16 MiB.
+    ///
+    /// A longer paste still ends at its end marker (or the stall timeout), and
+    /// nothing in it is ever read as a key. The app is given its first 16 MiB,
+    /// cut back to a whole UTF-8 character, and the rest is dropped as it
+    /// arrives, so no paste holds more memory than this, however long it is.
+    /// Until 2026-10-11 the limit was 1 MiB and ended paste mode: the rest of
+    /// the paste then went to the key parser, and an 8 MiB paste of prose quit
+    /// Stress on its first `q`. Why 16 MiB, and what else was weighed:
+    /// `Documentation/SwiftUI-API-completion-decisions-PASTE.md`, B-PASTE-1.
+    static let maxPasteBytes = 16 << 20
+
+    /// ``maxPasteBytes``, as this terminal applies it.
+    ///
+    /// Stored rather than read from the constant only so that tests can
+    /// lower it: going past the real limit would cost each of them 16 MiB of
+    /// input to feed.
+    var pasteByteLimit = Terminal.maxPasteBytes
+
+    /// The first ``pasteByteLimit`` bytes of the open paste, set aside when
+    /// it ran past the limit, or `nil` while it has not.
+    ///
+    /// Kept apart from ``input`` so that the bytes behind it can be dropped
+    /// as the end-marker scan passes them, and the buffer can shrink back to
+    /// its baseline while the rest of the paste streams through it. Cleared
+    /// with ``inPasteMode``.
+    var keptPaste: [UInt8]?
 
     /// Frames during which we couldn't make progress on whatever
     /// sits at the front of the input buffer. Increments only when

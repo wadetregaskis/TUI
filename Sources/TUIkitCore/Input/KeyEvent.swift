@@ -182,7 +182,10 @@ public enum Key: Hashable, Sendable {
     // Character key
     case character(Character)
 
-    // Bracketed paste (bulk text from terminal paste operation)
+    /// A bracketed paste: the text the terminal sent between `ESC [ 200 ~`
+    /// and `ESC [ 201 ~`, as one event however many reads it took. Nothing in
+    /// it is read as a key. A paste longer than 16 MiB arrives as its first
+    /// 16 MiB, cut back to a whole character, and the rest is dropped.
     case paste(String)
 
     /// Creates a Key from a character if it's a simple character.

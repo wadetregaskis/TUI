@@ -46,11 +46,6 @@ extension Terminal {
     /// The focus-out report (`ESC [ O`), its counterpart for losing focus.
     private static let focusOut: [UInt8] = [0x1B, 0x5B, 0x4F]
 
-    /// Maximum bytes we'll accumulate while waiting for a paste end
-    /// marker. Anything beyond this is treated as a misbehaving
-    /// terminal and discarded so it can't pin memory forever.
-    private static let maxPasteBytes = 1 << 20  // 1 MiB
-
     /// Whether `byte` turns a preceding `ESC` into the introducer of a
     /// sequence, rather than leaving that `ESC` standing as the Escape key:
     /// CSI `[`, SS3 `O`, or one of the string-terminated families' introducers
@@ -397,7 +392,8 @@ extension Terminal {
     /// While `inPasteMode` is set, scans ``input`` for the
     /// paste end marker. If found, builds a paste event from the
     /// content between markers and consumes through the end marker.
-    /// Otherwise returns `nil` and leaves the buffer intact.
+    /// Otherwise returns `nil`, and leaves the buffer intact unless the
+    /// paste has run past ``pasteByteLimit`` (``dropPasteBeyondLimit()``).
     private func tryExtractPaste() -> TerminalInput? {
         let endMarker = Self.pasteEnd
         guard input.count >= endMarker.count else { return nil }
@@ -406,7 +402,8 @@ extension Terminal {
         // than restarting at zero. Note: the start marker is no longer in the
         // buffer — `readEvent()` consumed it before setting `inPasteMode`.
         //
-        // Nothing is consumed from the front while a paste is open, so a byte
+        // Nothing is consumed from the front while a paste is open (except past
+        // the limit, which resets the cursor with what it drops), so a byte
         // ruled out on one pass is still that same byte, still ruled out, on
         // the next; and one pass happens per `readEvent()`, each of which adds
         // at most one 4 KiB drain. Rescanning from zero therefore made a paste
@@ -436,26 +433,47 @@ extension Terminal {
         // drain and `0 1 ~` in the next — has to be matched from its first
         // byte, and that first byte is inside the tail we just failed on.
         pasteScanCursor = input.count - (endMarker.count - 1)
-
-        // Safety: if a runaway paste fills more than the cap, give up on it so
-        // we don't pin memory.
-        if input.count > Self.maxPasteBytes {
-            consume(input.count)
-            inPasteMode = false
-        }
+        dropPasteBeyondLimit()
         return nil
+    }
+
+    /// Once the open paste has run past ``pasteByteLimit``, sets its first
+    /// bytes aside in ``keptPaste`` and drops the rest of it as the end-marker
+    /// scan rules them out.
+    ///
+    /// The paste stays OPEN: what is dropped is paste content, and the end
+    /// marker, or the stall timeout, still ends it. Ending paste mode here
+    /// instead, as the limit did until 2026-10-11, handed every later byte of
+    /// the same paste to the key parser — pasted letters fired shortcuts, and
+    /// an 8 MiB paste of prose quit Stress at its first `q`.
+    ///
+    /// Only bytes before ``pasteScanCursor`` go: they are content, ruled out
+    /// as the start of the marker. The few after it may begin the marker, so
+    /// they stay for the next pass, and a marker straddling the limit or a
+    /// read boundary is still found. Linear, like the scan: each byte is
+    /// dropped once, and nothing is copied but the kept part, once.
+    private func dropPasteBeyondLimit() {
+        let content = pasteScanCursor
+        if keptPaste == nil {
+            guard content > pasteByteLimit else { return }
+            keptPaste = pasteBytes(first: content)
+        }
+        guard content > 0 else { return }
+        consume(content)
+        pasteScanCursor = 0
     }
 
     /// Ends a paste whose end marker never arrived, delivering whatever was
     /// buffered as the paste it evidently was.
     ///
     /// Delivering beats discarding: the bytes are the user's pasted text, and
-    /// the alternative to both is the wedge this exists to prevent. An empty
-    /// buffer just leaves paste mode — there is nothing to deliver, and a paste
-    /// event carrying "" would be noise.
+    /// the alternative to both is the wedge this exists to prevent. A paste past
+    /// the limit delivers its kept part, as its end marker would have. With
+    /// nothing buffered or kept it just leaves paste mode — there is nothing
+    /// to deliver, and a paste event carrying "" would be noise.
     private func abandonStalledPaste() -> TerminalInput? {
-        inPasteMode = false
-        guard !input.isEmpty else { return nil }
+        defer { inPasteMode = false }
+        guard keptPaste != nil || !input.isEmpty else { return nil }
 
         let event = pasteEvent(bufferedContent: input.count)
         consume(input.count)
@@ -463,20 +481,41 @@ extension Terminal {
     }
 
     /// The paste event for the first `length` bytes of ``input``, which it
-    /// copies and does not consume.
+    /// copies and does not consume — or, for a paste that ran past
+    /// ``pasteByteLimit``, for the part of it kept in ``keptPaste``.
     ///
     /// One copy of this for the two ways a paste ends, at its end marker and
     /// at the stall timeout, so that what the app is handed cannot differ
     /// between them. Text that is not UTF-8 is read a byte to a character
     /// (Latin-1) rather than dropped.
     private func pasteEvent(bufferedContent length: Int) -> TerminalInput {
-        var content = [UInt8]()
-        content.reserveCapacity(length)
-        for index in 0..<length { content.append(input[index]) }
-
+        let content = keptPaste ?? pasteBytes(first: length)
         let text = String(bytes: content, encoding: .utf8)
             ?? String(content.map { Character(UnicodeScalar($0)) })
         return .key(KeyEvent(key: .paste(text)))
+    }
+
+    /// A copy of the first `length` bytes of ``input`` or, when that is more
+    /// than ``pasteByteLimit``, of as many as the limit holds without cutting
+    /// a UTF-8 character in two.
+    ///
+    /// A character cut in two would cost more than its own bytes: the paste
+    /// would not be UTF-8, and ``pasteEvent(bufferedContent:)`` would read
+    /// every byte of it as a character of its own, garbling every other
+    /// non-ASCII character in it.
+    private func pasteBytes(first length: Int) -> [UInt8] {
+        var end = length
+        if length > pasteByteLimit {
+            end = pasteByteLimit
+            // A continuation byte (10xxxxxx) at the cut belongs to the character
+            // before it. Three at most: no character is longer than four bytes,
+            // and bytes that are not UTF-8 go to the Latin-1 reading whatever.
+            while end > max(0, pasteByteLimit - 3), input[end] & 0xC0 == 0x80 { end -= 1 }
+        }
+        var content = [UInt8]()
+        content.reserveCapacity(end)
+        for index in 0..<end { content.append(input[index]) }
+        return content
     }
 
     /// Whether the parser is holding something that needs another
