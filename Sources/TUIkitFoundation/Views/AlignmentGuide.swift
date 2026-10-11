@@ -360,10 +360,11 @@ struct AlignmentGuideRun {
     /// Resolves placement from already-merged guide positions.
     ///
     /// Every child's guide is put on one line: the run's merged guide
-    /// `max(resolved)`, or the region's own guide when the region is larger and
-    /// its guide sits further along. Offsets are then floored — the fraction
-    /// only ever exists *between* two guides — and clamped so no child is
-    /// placed outside the region.
+    /// `max(resolved)`, or toward the region's own guide when the region is
+    /// larger and its guide sits further along, as far as the whole run still
+    /// fits. Offsets are then floored — the fraction only ever exists
+    /// *between* two guides — and clamped so no child is placed outside a
+    /// region too small for the run.
     ///
     /// - Parameters:
     ///   - resolved: Each child's guide position within itself. A value that is
@@ -405,8 +406,22 @@ struct AlignmentGuideRun {
         // In a region bigger than the run, the run as a whole still has to be
         // positioned: its guide meets the region's. `max` keeps every offset
         // non-negative when the region's guide sits before the merged one
-        // (`.leading` with a guide pushed inward, say).
-        let anchor = max(merged, coordinate(regionGuide(extent), within: extent))
+        // (`.leading` with a guide pushed inward, say). `min` moves the run
+        // only as far as the room the region has past it, so the whole run
+        // stays inside and every child's guide stays on one line. A
+        // content-sized run has no room, so its line is `merged`: SwiftUI's
+        // rule. Without the `min`, a child hanging past the line grew the
+        // run, which moved a `.trailing` or `.center` region's guide past
+        // `merged`, shifted the whole run, and the per-child clamp below
+        // pulled back only the child that hung out. Measured against SwiftUI
+        // 2026-10-11: in `VStack(alignment: .trailing)`, a 3-wide view with
+        // trailing guide 0 above a 6-wide one leaves the 6-wide one at 0, not
+        // 3. A region smaller than the run has no room either, so the run
+        // keeps its leading edge on the region's, and the per-child clamp is
+        // the last resort.
+        let room = Double(max(0, extent - contentExtent))
+        let anchor = min(
+            max(merged, coordinate(regionGuide(extent), within: extent)), merged + room)
 
         var offsets: [Int] = []
         offsets.reserveCapacity(positions.count)
