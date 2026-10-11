@@ -424,15 +424,10 @@ extension Terminal {
                 if !match { continue }
 
                 // Content is everything before the marker.
-                var content = [UInt8]()
-                content.reserveCapacity(start)
-                for i in 0..<start { content.append(input[i]) }
+                let event = pasteEvent(bufferedContent: start)
                 consume(start + endMarker.count)
                 inPasteMode = false
-
-                let text = String(bytes: content, encoding: .utf8)
-                    ?? String(content.map { Character(UnicodeScalar($0)) })
-                return .key(KeyEvent(key: .paste(text)))
+                return event
             }
         }
 
@@ -462,10 +457,22 @@ extension Terminal {
         inPasteMode = false
         guard !input.isEmpty else { return nil }
 
-        var content = [UInt8]()
-        content.reserveCapacity(input.count)
-        for index in 0..<input.count { content.append(input[index]) }
+        let event = pasteEvent(bufferedContent: input.count)
         consume(input.count)
+        return event
+    }
+
+    /// The paste event for the first `length` bytes of ``input``, which it
+    /// copies and does not consume.
+    ///
+    /// One copy of this for the two ways a paste ends, at its end marker and
+    /// at the stall timeout, so that what the app is handed cannot differ
+    /// between them. Text that is not UTF-8 is read a byte to a character
+    /// (Latin-1) rather than dropped.
+    private func pasteEvent(bufferedContent length: Int) -> TerminalInput {
+        var content = [UInt8]()
+        content.reserveCapacity(length)
+        for index in 0..<length { content.append(input[index]) }
 
         let text = String(bytes: content, encoding: .utf8)
             ?? String(content.map { Character(UnicodeScalar($0)) })
