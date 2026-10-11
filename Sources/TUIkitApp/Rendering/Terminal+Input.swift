@@ -415,7 +415,15 @@ extension Terminal {
         // which the key parser then discarded — stranding `8;29c` at the head
         // of the buffer with no `ESC` in front of it, to be typed out as five
         // keystrokes.
-        var i = 3
+        //
+        // From the byte straight after `[`: the arms above rule out only a
+        // final byte and the legacy mouse report's `M` there, and an `ESC`
+        // there is a new sequence like an `ESC` anywhere later. The walk began
+        // one byte on until 2026-10-11, and took `ESC [ ESC [` for one CSI
+        // ending at the second `[`: a meta-sending terminal's Option-[, which
+        // is `ESC [`, followed by a paste typed the paste out as keys, and
+        // followed by a mouse report typed out the report's coordinates.
+        var i = 2
         let cap = min(input.count, Self.maxReplyBytes)
 
         while i < cap {

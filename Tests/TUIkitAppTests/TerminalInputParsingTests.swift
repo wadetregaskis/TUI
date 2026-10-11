@@ -264,6 +264,26 @@ struct TerminalInputParsingTests {
         #expect(mouseEvents.count == 1, "the fresh report should still parse as a mouse event")
     }
 
+    /// The same with nothing between the `[` and the new `ESC`: `ESC [` is
+    /// also Option-[ on a meta-sending terminal, so a sequence straight after
+    /// it is common. The walk began a byte too late, read `ESC [ ESC [` as
+    /// one CSI, and typed out the rest of what followed: the text of a paste,
+    /// the coordinates of a mouse report, the `A` of an arrow. The cut-short
+    /// `ESC [` goes, as one with parameters does, and the sequence parses.
+    @Test(
+        "A sequence straight after ESC [ parses, never typed out",
+        arguments: ["\u{1B}[200~quit\u{1B}[201~", "\u{1B}[<0;5;3M", "\u{1B}[A"])
+    func sequenceStraightAfterCutShortCSI(sequence: String) {
+        let (alone, stageAlone) = makeTerminal()
+        stageAlone(Array(sequence.utf8))
+        let expected = (0..<12).compactMap { _ in alone.readEvent() }
+        #expect(expected.count == 1, "\(sequence.debugDescription) alone is \(expected)")
+
+        let (terminal, stage) = makeTerminal()
+        stage(Array("\u{1B}[".utf8) + Array(sequence.utf8))
+        #expect((0..<12).compactMap { _ in terminal.readEvent() } == expected, "\(sequence.debugDescription)")
+    }
+
     @Test("hasPendingInput is true while an ESC is held, false once it resolves")
     func hasPendingInputTracksHeldPartial() {
         // The run loop polls on a bounded deadline only while this is true, so a

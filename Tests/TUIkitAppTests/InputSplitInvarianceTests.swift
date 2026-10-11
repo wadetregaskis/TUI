@@ -105,6 +105,11 @@ struct InputSplitInvarianceTests {
             ("escape-then-mouse", esc + esc + Array("[<0;10;5M".utf8)),
             ("escape-then-osc-bg", esc + esc + Array("]11;rgb:0000/0000/0000\u{07}".utf8)),
             ("escape-then-apc-ack-then-text", esc + esc + Array("_Gi=1;OK".utf8) + esc + Array("\\x".utf8)),
+            // Option-[ on a meta-sending terminal is `ESC [`, the CSI
+            // introducer; a sequence straight after it must parse, not be
+            // read as the rest of one CSI and typed out.
+            ("alt-bracket-then-up", esc + Array("[".utf8) + esc + Array("[A".utf8)),
+            ("alt-bracket-then-paste", esc + Array("[".utf8) + esc + Array("[200~hi".utf8) + esc + Array("[201~".utf8)),
         ]
 
         var reports: [String] = []
