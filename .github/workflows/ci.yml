@@ -517,8 +517,10 @@ jobs:
       # at launch on macOS 14 and 15. The script says why at length and how to
       # read a failure. Here because this lane builds release, what ships, with
       # 6.4, whose SwiftPM binds the library strongly where 6.2.4's bound
-      # swift-collections' reference weakly.
-      - name: Release executables link no Span back-deployment library
+      # swift-collections' reference weakly. It reads every library module's
+      # objects as well as Stress and Example, because no executable here
+      # links TUIkitAppKit.
+      - name: Release executables and library modules link no Span back-deployment library
         if: matrix.release_build
         run: Tools/check-span-compatibility.sh
 
