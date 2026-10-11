@@ -393,9 +393,21 @@ extension Terminal {
 
         // Legacy ("X10") mouse: ESC [ M <button+32> <x+32> <y+32>
         // M is the *introducer*, not the terminator, and the three
-        // trailing coord bytes can take any value, so we just
+        // trailing bytes have no terminator either, so we just
         // require six bytes total.
+        //
+        // Each of those three is biased by 32, so none is an `ESC`: one there
+        // is a new sequence that cut this one short, and is dropped with it as
+        // the walk below drops a CSI cut short. `ESC [` is also a meta-sending
+        // terminal's Option-[, so Option-[, `M` and then a paste is `ESC [ M`
+        // and the paste's start marker; until 2026-10-11 that marker went
+        // into the report, `MouseEvent.parseLegacy` refused it, and the paste
+        // was typed out as keys.
         if firstParam == 0x4D {
+            for index in 3..<min(input.count, 6) where input[index] == 0x1B {
+                consume(index)
+                return nil
+            }
             guard input.count >= 6 else { return nil }
             var bytes = [UInt8]()
             bytes.reserveCapacity(6)

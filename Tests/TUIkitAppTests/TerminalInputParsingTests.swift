@@ -284,6 +284,28 @@ struct TerminalInputParsingTests {
         #expect((0..<12).compactMap { _ in terminal.readEvent() } == expected, "\(sequence.debugDescription)")
     }
 
+    /// The same behind `ESC [ M`, the start of a legacy mouse report, which is
+    /// also Option-[ and a typed `M`: the report's three bytes after `M` were
+    /// taken whatever they were, so the sequence's first three bytes went into
+    /// a report `MouseEvent.parseLegacy` refuses, and the rest was typed out —
+    /// a paste's text, a mouse report's coordinates. None of the three bytes
+    /// is ever an `ESC` (each is biased by 32), so one there cuts the report
+    /// short, after one byte or none.
+    @Test(
+        "A sequence straight after ESC [ M parses, never typed out",
+        arguments: ["", "!"],
+        ["\u{1B}[200~quit\u{1B}[201~", "\u{1B}[<0;5;3M", "\u{1B}[A"])
+    func sequenceStraightAfterCutShortLegacyMouseReport(between: String, sequence: String) {
+        let (alone, stageAlone) = makeTerminal()
+        stageAlone(Array(sequence.utf8))
+        let expected = (0..<12).compactMap { _ in alone.readEvent() }
+        #expect(expected.count == 1, "\(sequence.debugDescription) alone is \(expected)")
+
+        let (terminal, stage) = makeTerminal()
+        stage(Array("\u{1B}[M\(between)".utf8) + Array(sequence.utf8))
+        #expect((0..<12).compactMap { _ in terminal.readEvent() } == expected, "\(sequence.debugDescription)")
+    }
+
     @Test("hasPendingInput is true while an ESC is held, false once it resolves")
     func hasPendingInputTracksHeldPartial() {
         // The run loop polls on a bounded deadline only while this is true, so a
