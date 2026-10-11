@@ -51,6 +51,14 @@ python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'     # the tool's
   key-path patterns the per-file ones hold (207 of 315, measured); given only merged objects, the check refuses.
 - `--plain <the same app linked without the flag>` marks which aliases ld made; `--json FILE` writes everything.
 
+## In CI
+
+`ci-check.sh` runs on the "macOS 26 · Swift 6.4" lane, after its release build: it relinks Stress whole with
+`-Xlinker -deduplicate -Xlinker -no_exported_symbols` and runs the check, then links Stress, Example and IdleProbe
+with the same flags as an app developer would, strips them, and runs `Stress --selfcheck` (render memo verified) and
+the quick PTY smoke on the stripped programs. Links only, no compile. Run it locally the same way, after
+`swift build -c release`.
+
 ## For an app developer
 
 `--report` fails on nothing and lists what `-deduplicate` did to your app: the equal key-path groups (K1, each

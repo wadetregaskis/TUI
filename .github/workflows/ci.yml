@@ -274,6 +274,8 @@ jobs:
             solver_scopes: 1500
             # The release build at the end of the job: see that step.
             release_build: true
+            # The deduplicated, stripped release programs: see that step.
+            dedup_check: true
           # Trunk only. "latest" (with `development`) was the newest snapshot
           # on ANY branch, ranked by date, and on 2026-09-28 that was
           # `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-09-26-a`, not trunk's
@@ -532,6 +534,35 @@ jobs:
       - name: Release executables and library modules link no Span back-deployment library
         if: matrix.release_build
         run: Tools/check-span-compatibility.sh
+
+      # The README's "Shipping size" offers app developers two link flags that
+      # change their whole program, `-Xlinker -deduplicate` and `-Xlinker
+      # -no_exported_symbols`, and TUIkit has to stay correct under them.
+      # `-deduplicate` gives byte-identical functions one address, so two key
+      # paths to computed properties whose getters compile alike compare and
+      # hash equal. This relinks Stress with both and checks that nothing in
+      # TUIkit depends on an address the fold changed
+      # (Tools/DedupCheck/README.md), then links Stress, Example and IdleProbe
+      # as the recipe does, strips them, and runs --selfcheck (render memo
+      # verified) and the quick PTY smoke on what a developer would ship. After
+      # the Span check, which reads the programs this step strips.
+      #
+      # Links only: the Release build step compiled everything. Measured on the
+      # development machine with Swift 6.4.0 (Swift Build), after this lane's
+      # steps run there: 4 s a link, 3 s for the check, 243 s in all, nearly
+      # all of it the PTY smoke; runners unmeasured. Swift Build prints a
+      # warning per module that OTHER_LDFLAGS should not carry
+      # -no_exported_symbols, and applies it all the same. One toolchain: this lane's 6.4 is the one TUIkit
+      # targets first and the only macOS lane with a release build to relink;
+      # the check reads TUIkit's own code, which every toolchain compiles alike,
+      # but which getters fold is the compiler's and linker's, and Xcode's 6.2.4
+      # folds one pair 6.4.0 does not (allowed in the manifest, with its
+      # review). A new pair only 6.2 or 6.3 folds would pass here; giving their
+      # lanes a release build to catch it would cost each a full -O compile.
+      - name: Deduplicated, stripped release programs pass the dedup check, selfcheck and PTY smoke
+        if: matrix.dedup_check
+        timeout-minutes: 20
+        run: Tools/DedupCheck/ci-check.sh
 
       # A guard against type-check regressions that cannot flake: the library
       # and every module it builds on, rebuilt with every
