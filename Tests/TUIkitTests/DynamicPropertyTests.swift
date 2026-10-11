@@ -191,6 +191,24 @@ private struct NilFirstAccentView: View {
         Text(verbatim: accent?.wrappedValue ?? "none")
     }
 }
+/// An app property that is a class, counting its `update()` calls.
+private final class UpdatingObject: DynamicProperty {
+    var updates = 0
+
+    func update() {
+        updates += 1
+    }
+}
+
+/// Holds one weakly and one unowned.
+private struct WeakHoldingView: View {
+    weak var weakly: UpdatingObject?
+    unowned let unownedly: UpdatingObject
+
+    var body: some View {
+        Text(verbatim: "\(weakly?.updates ?? -1) \(unownedly.updates)")
+    }
+}
 
 @MainActor
 private final class BindingTap {
@@ -338,6 +356,19 @@ struct DynamicPropertyTests {
         #expect(
             line(NilFirstAccentView(accent: AccentName()).environment(\.accentName, "teal"), context: context)
                 == "teal")
+    }
+
+    /// What SwiftUI does, measured on macOS 15 (session notes
+    /// DYNP/probe/dp.swift, cases 4 and 4b): an `unowned` property's type is
+    /// the property's own, and its `update()` runs; a `weak` one's is an
+    /// optional, and its `update()` does not.
+    @Test("An unowned app property is updated and a weak one is not, as in SwiftUI")
+    func unownedUpdatesWeakDoesNot() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let weakObject = UpdatingObject()
+        let unownedObject = UpdatingObject()
+        #expect(line(WeakHoldingView(weakly: weakObject, unownedly: unownedObject), context: context) == "0 1")
+        #expect(line(WeakHoldingView(weakly: weakObject, unownedly: unownedObject), context: context) == "0 2")
     }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")

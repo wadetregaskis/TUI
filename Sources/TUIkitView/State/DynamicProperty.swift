@@ -36,7 +36,9 @@
 /// A struct's own fields and an optional's wrapped value are written back.
 /// In a view that is an enum, or a class the view holds, `update()` still
 /// runs, on a copy, so what it changes is seen only through what the property
-/// holds by reference.
+/// holds by reference. A property held `unowned` is updated where it is (it
+/// is a class), and one held `weak` is not updated, as in SwiftUI (both
+/// measured on macOS 15).
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.
     ///
@@ -90,6 +92,13 @@ enum NestedProperties {
     /// nothing.
     static func runsUpdate(_ property: any DynamicProperty) -> Bool {
         !(property is any FrameworkDynamicProperty) && !(property is any FrameworkPropertyContainer)
+    }
+
+    /// Whether a stored value of declared type `type` is an app's property
+    /// (``isAppProperty(_:)``), from the type alone.
+    static func isAppPropertyType(_ type: Any.Type) -> Bool {
+        type is any DynamicProperty.Type && !(type is any FrameworkDynamicProperty.Type)
+            && !(type is any FrameworkPropertyContainer.Type)
     }
 
     /// Whether a stored value of declared type `type` may be one that
@@ -205,6 +214,9 @@ private enum ValueDependence {
 /// what it changes is seen only through what it holds by reference. An
 /// enum's payload is not written in place because a multi-payload enum may
 /// keep its case in the payload's spare bits, which a write would clear.
+/// A field held `unowned` whose type is an app property is updated through
+/// its reference; one held `weak` is not, its type being an optional, which
+/// SwiftUI does not update either (measured on macOS 15).
 ///
 /// `@usableFromInline` for ``updatedDynamicProperties(of:hasAppProperties:)``,
 /// which is inlined into the modules above (CONTRIBUTING.md, "Crossing a
@@ -286,10 +298,27 @@ private func updateCopy<Value>(of value: Value) {
 @MainActor
 private func writeBackDynamicProperties<Root>(in fields: [RuntimeFields.Field], at root: UnsafeMutablePointer<Root>) {
     let base = UnsafeMutableRawPointer(root)
-    for field in fields where field.isStrong && NestedProperties.mayBeContainer(field.type) {
-        // `field.type` is an `Any.Type`, opened here to the field's own type.
-        writeBackDynamicProperties(at: base + field.offset, as: field.type)
+    for (index, field) in fields.enumerated() {
+        if field.isStrong {
+            guard NestedProperties.mayBeContainer(field.type) else { continue }
+            // `field.type` is an `Any.Type`, opened here to the field's own type.
+            writeBackDynamicProperties(at: base + field.offset, as: field.type)
+        } else if NestedProperties.isAppPropertyType(field.type) {
+            updateReferent(ofField: index, in: root.pointee)
+        }
     }
+}
+
+/// An `unowned` field of `root` whose type is an app property: a class, so
+/// `update()` changes it where `body` reads it, and nothing is written back.
+/// SwiftUI updates one; a `weak` one's type is an optional, not the
+/// property's, and SwiftUI leaves it, as the caller does (measured on macOS
+/// 15). Loaded through `Mirror`, which knows how the runtime keeps the
+/// reference; a load as the declared type does not.
+@MainActor
+private func updateReferent(ofField index: Int, in root: Any) {
+    guard let child = Mirror(reflecting: root).children.dropFirst(index).first else { return }
+    _openExistential(child.value, do: updateCopy)
 }
 
 /// One field of ``updateDynamicProperties(of:)``, at `address` and of declared
