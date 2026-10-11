@@ -33,13 +33,16 @@ import TUIkitCore
 /// is the same on every frame.
 ///
 /// A scope is a 64-bit code, not the path itself, so that building one
-/// allocates nothing. Each step is injective in the step for a given parent
-/// — ``mixHashWord(_:_:)`` and ``finalizeHashWord64(_:)`` are bijections —
-/// so two fields of one container, or two types in one field, never share a
-/// scope. Two paths that differ higher up share one only by a 64-bit
-/// collision. Two cases of one enum may share one, since a case's label is
-/// folded in as a hash; that is harmless, because a case that replaces
-/// another starts from its defaults anyway (``NestedPropertyWalk``).
+/// allocates nothing. For a given parent, each step is injective in either
+/// of its inputs while the other is fixed — ``mixHashWord(_:_:)`` and
+/// ``finalizeHashWord64(_:)`` are bijections — so two fields of one type in
+/// one container, or two types in one field, never share a scope. It is not
+/// injective in both at once: two fields of one container differing in
+/// position AND type, like two paths that differ higher up, share one only
+/// by a 64-bit coincidence. Two cases of one enum may share one, since a
+/// case's label is folded in as a hash; that is harmless, because a case
+/// that replaces another starts from its defaults anyway
+/// (``NestedPropertyWalk``).
 enum NestedScope {
     /// The scope of a view's own properties.
     static var view: UInt64 { 0 }
