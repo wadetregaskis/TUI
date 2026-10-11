@@ -475,8 +475,8 @@ extension Terminal {
 
         // Otherwise the buffer simply doesn't have the terminator yet. (The
         // wait is bounded by `deadSequenceStaleFrames`, not by the cap: the cap
-        // only catches a terminal that keeps sending, since bytes arriving keep
-        // resetting the stale count.)
+        // only catches a terminal that keeps sending, since a pass on which
+        // bytes arrive does not count toward that wait.)
         return nil
     }
 
@@ -864,10 +864,12 @@ extension Terminal {
     /// - Any other stuck byte is consumed singly to make progress.
     private func resolveStuckPartial() -> TerminalInput? {
         // Skipping the rest of an over-long sequence, with nothing buffered or
-        // only an `ESC` that may be its `ST`: the skip ends at the same wait as
-        // an unfinished sequence, so a terminal that never finishes one cannot
-        // take the keyboard with it. An `ESC` left behind is then an ordinary
-        // lone one.
+        // only an `ESC` that may be its `ST`: the skip ends after as many quiet
+        // passes as an unfinished sequence waits, so a terminal that never
+        // finishes one cannot take the keyboard with it. They are counted from
+        // the last byte the skip consumed (``skipAbandonedSequence()``), where
+        // an unfinished sequence's are counted in all. An `ESC` left behind is
+        // then an ordinary lone one.
         if abandonedSequence != nil {
             if staleFrames >= Self.deadSequenceStaleFrames {
                 staleFrames = 0

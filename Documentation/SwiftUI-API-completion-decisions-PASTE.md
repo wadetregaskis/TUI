@@ -106,24 +106,45 @@ now skipped rather than typed: to its final byte (a CSI), to `BEL` or `ST`
 parses. That is the rule each walk already applies to a sequence a new
 `ESC` cuts short.
 
-The skip also ends after the wait an unfinished sequence gets
-(`deadSequenceStaleFrames`, eight quiet frames, about 200 ms), and the run
-loop keeps polling until then. Without that, a terminal that started a long
-reply and never finished it would take the keyboard with it: a string
-sequence ends only at `BEL` or `ESC`, so everything typed would be skipped
-until the user pressed Escape. A reply's bytes arrive as a stream, so a pause
-that long means its end is not coming.
+The skip also ends after eight quiet passes of the run loop
+(`deadSequenceStaleFrames`, about 200 ms at its 25 ms poll), the number an
+unfinished sequence waits, and the run loop keeps polling until then.
+Without that, a terminal that started a long reply and never finished it
+would take the keyboard with it: a string sequence ends only at `BEL` or
+`ESC`, so everything typed would be skipped until the user pressed Escape. A
+reply's bytes arrive as a stream, so a pause that long means its end is not
+coming.
 
-What is typed before that pause goes with the skip. While a string sequence
-is being skipped, a typed letter cannot be told from its payload (a
-clipboard answer's base64 is letters and digits), and each byte that
-arrives starts the wait again, so a user who keeps typing loses the keys
-until a pause of about 200 ms. An `ESC` ends the skip at once (the Escape
-key, an arrow, a mouse report), and so does `BEL`; a CSI's skip ends at the
-first letter typed, its final byte, which goes with it. That is how a
-sequence within the 4 KiB behaves when its end is lost, before and after
-this lane: bytes typed after it join it, and are dropped with it when the
-same wait runs out.
+What is typed before that pause goes with the skip, and typing makes the
+pause longer. While a string sequence is being skipped, a typed letter
+cannot be told from its payload (a clipboard answer's base64 is letters and
+digits). The skip's wait starts again from each byte it consumes, so a user
+who keeps typing loses the keys until a pause of about 200 ms, and a key
+held down to auto-repeat loses every repeat until it is let go. A CSI's skip
+ends at the first letter typed, its final byte, which goes with it, but not
+at a digit, `;`, a space or Backspace. `BEL` ends a string's skip, and an
+`ESC` with something behind it ends either: an arrow, a mouse report. A lone
+`ESC`, the Escape key, ends a CSI's skip at once. In a string's it may be
+the first byte of `ST`, so it waits for the skip's wait to run out and then
+for the wait every lone `ESC` gets: the Escape arrives eleven passes after
+the skip's last byte (about 275 ms), and a key typed in that time joins it
+as an Option chord (Escape then `j` is Option-j).
+
+A string sequence within the 4 KiB whose end is lost is not the same,
+though the first version of this entry said it was (review round 2). Bytes
+typed after one join it too, but its wait counts only the passes on which nothing
+arrives, and never starts again, so typing cannot make it longer: after
+eight quiet passes in all it is dropped with what joined it, and a held
+key's later repeats arrive. A lone `ESC` that joined a string sequence is
+dropped with it, so there the Escape is lost rather than late.
+
+The skip's wait starts again for the rule this lane is about: the rest of a
+reply is not typed. Counted as within the 4 KiB, a reply past 4 KiB that
+arrives with pauses adding up to eight quiet passes (a slow link, under
+ssh; not measured) would see its skip end part way, and its rest typed out.
+Starting again costs only when a reply past 4 KiB loses its end, which has
+not been observed on any terminal, and then only for as long as the typing
+lasts.
 
 An `ESC` in front of the sequence is the Escape key: no terminal puts a
 meta prefix on a reply, and no key runs to 4 KiB. It is delivered first, and

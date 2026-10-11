@@ -105,9 +105,19 @@ extension Terminal {
     ///
     /// An `ESC` at the very end of what has arrived, in a string sequence, may
     /// be the first byte of `ST`, so it stays in the buffer and the skip goes
-    /// on. Running out of bytes leaves the skip on for the next call; the
-    /// dead-sequence wait in ``resolveStuckPartial()`` ends it if the rest
-    /// never comes.
+    /// on: the Escape key pressed during such a skip arrives once the skip has
+    /// ended, and then the wait for a lone `ESC` has run out. Running out of
+    /// bytes leaves the skip on for the next call; the dead-sequence wait in
+    /// ``resolveStuckPartial()`` ends it if the rest never comes.
+    ///
+    /// That wait starts again from each byte consumed here. An unfinished
+    /// sequence's never starts again: it counts every quiet pass, however many
+    /// bytes arrive between them. So a reply's rest that arrives in pieces,
+    /// with pauses shorter than the wait between them, is not cut off part
+    /// way and typed out however many pauses there are; the price is that
+    /// typing during the skip — a key held to auto-repeat — keeps it going
+    /// and is skipped with it until the typing stops (decisions-PASTE,
+    /// B-PASTE-2).
     func skipAbandonedSequence() -> Bool {
         guard let family = abandonedSequence else { return true }
         var index = 0

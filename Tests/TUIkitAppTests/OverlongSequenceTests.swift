@@ -174,4 +174,105 @@ struct OverlongSequenceTests {
             #expect(events == escape + [Self.key("b")], "\(overlong.suffix(2))")
         }
     }
+
+    // MARK: - Typing during a skip, and during the wait within the cap
+
+    // The two waits are the same length and are counted differently: the
+    // skip's starts again from each byte it consumes, while an unfinished
+    // sequence's within the cap counts only the passes on which nothing
+    // arrives. These pin what decisions-PASTE B-PASTE-2 says of each, which
+    // its first version got wrong.
+
+    /// Every other pass a `j`, as a key held to auto-repeat is read.
+    private func typeWhileWaiting(_ terminal: Terminal, _ source: Source, passes: Int) -> [TerminalInput] {
+        var events: [TerminalInput] = []
+        for pass in 0..<passes {
+            if pass.isMultiple(of: 2) { source.bytes += Self.bytes("j") }
+            if let event = terminal.readEvent() { events.append(event) }
+        }
+        return events
+    }
+
+    /// Pumps `readEvent()` until the parser holds nothing, then reads one `b`.
+    private func waitOutThenType(_ terminal: Terminal, _ source: Source) -> [TerminalInput] {
+        var events: [TerminalInput] = []
+        var pumps = 0
+        while terminal.hasPendingInput, pumps < 200 {
+            pumps += 1
+            if let event = terminal.readEvent() { events.append(event) }
+        }
+        source.bytes += Self.bytes("b")
+        if let event = terminal.readEvent() { events.append(event) }
+        return events
+    }
+
+    /// In a string sequence's skip a typed letter cannot be told from the
+    /// payload, and each one starts the wait again: a held key is skipped
+    /// for as long as it repeats, and the key after a pause is the app's.
+    @Test("Typing during a skip is skipped, and starts its wait again")
+    func typingDuringSkipStartsItsWaitAgain() {
+        let (terminal, source) = makeTerminal()
+        source.bytes = Self.esc + Self.bytes("]52;c;") + Self.overlongPayload
+        #expect(typeWhileWaiting(terminal, source, passes: 64).isEmpty)
+        #expect(terminal.hasPendingInput, "the skip ended while bytes kept arriving")
+        #expect(waitOutThenType(terminal, source) == [Self.key("b")])
+    }
+
+    /// Within the cap, typing joins an unfinished string sequence too, but
+    /// cannot make its wait longer: after eight quiet passes in all it is
+    /// dropped with what joined it, and every repeat after that is a key.
+    /// The eight are the first pass (a pass whose bytes all came in the read
+    /// that starts it, into an empty buffer, counts as quiet) and the odd
+    /// ones to the thirteenth, so the `j`s of passes 14 to 62 arrive.
+    @Test("Typing after an unfinished sequence within the cap does not lengthen its wait")
+    func typingDoesNotLengthenTheWaitWithinTheCap() {
+        let (terminal, source) = makeTerminal()
+        source.bytes = Self.esc + Self.bytes("]52;c;QUJD")
+        #expect(typeWhileWaiting(terminal, source, passes: 64) == Array(repeating: Self.key("j"), count: 25))
+    }
+
+    /// The Escape key during a string sequence's skip may be the first byte
+    /// of its `ST`, so it waits out the skip's eight passes from the last
+    /// byte the skip consumed, and then the three a lone `ESC` takes: eleven
+    /// in all, about 275 ms at the run loop's 25 ms poll. A key typed in that
+    /// time joins it as an Option chord.
+    @Test("The Escape key during a string's skip arrives eleven passes after the skip's last byte")
+    func escapeDuringStringSkipIsLate() {
+        let (terminal, source) = makeTerminal()
+        source.bytes = Self.esc + Self.bytes("]52;c;") + Self.overlongPayload + Self.esc
+        var events: [TerminalInput] = []
+        // The pass that reads the last bytes skips them too, so the wait
+        // starts with it.
+        repeat {
+            if let event = terminal.readEvent() { events.append(event) }
+        } while !source.isDry
+        var late = 0
+        while events.isEmpty, late < 100 {
+            late += 1
+            if let event = terminal.readEvent() { events.append(event) }
+        }
+        #expect(events == [.key(KeyEvent(key: .escape))])
+        #expect(late == 11)
+
+        let (chord, chordSource) = makeTerminal()
+        chordSource.bytes = Self.esc + Self.bytes("]52;c;") + Self.overlongPayload + Self.esc
+        repeat { _ = chord.readEvent() } while !chordSource.isDry
+        chordSource.bytes += Self.bytes("j")
+        guard let optionJ = KeyEvent.parse(Self.esc + Self.bytes("j")), optionJ.alt else {
+            Issue.record("ESC j is not an Option chord")
+            return
+        }
+        #expect(drain(chord, chordSource) == [.key(optionJ)])
+    }
+
+    /// Within the cap, a lone `ESC` at the end of an unfinished string
+    /// sequence is dropped with it when its wait runs out: the Escape is lost
+    /// rather than late.
+    @Test("The Escape key after an unfinished string within the cap is dropped with it")
+    func escapeAfterUnfinishedStringWithinTheCapIsLost() {
+        let (terminal, source) = makeTerminal()
+        source.bytes = Self.esc + Self.bytes("]52;c;QUJD") + Self.esc
+        #expect(terminal.readEvent() == nil)
+        #expect(waitOutThenType(terminal, source) == [Self.key("b")])
+    }
 }
