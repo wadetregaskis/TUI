@@ -516,9 +516,22 @@ extension Terminal {
     /// (Latin-1) rather than dropped.
     private func pasteEvent(bufferedContent length: Int) -> TerminalInput {
         let content = keptPaste ?? pasteBytes(first: length)
-        let text = String(bytes: content, encoding: .utf8)
-            ?? String(content.map { Character(UnicodeScalar($0)) })
+        let text = String(bytes: content, encoding: .utf8) ?? Self.latin1Text(content)
         return .key(KeyEvent(key: .paste(text)))
+    }
+
+    /// `bytes` read a byte to a character, as Latin-1: what a paste that is
+    /// not UTF-8 arrives as.
+    ///
+    /// Written straight into the string's scalars, two bytes of UTF-8 at most
+    /// for each byte read. Mapping each byte to a `Character` first, as this
+    /// did until 2026-10-11, built an array of 16-byte `Character`s on the
+    /// way: 256 MiB for a paste at the 16 MiB limit, sixteen times the paste.
+    static func latin1Text(_ bytes: [UInt8]) -> String {
+        var text = ""
+        text.reserveCapacity(bytes.count + bytes.lazy.filter { $0 >= 0x80 }.count)
+        text.unicodeScalars.append(contentsOf: bytes.lazy.map { Unicode.Scalar($0) })
+        return text
     }
 
     /// A copy of the first `length` bytes of ``input`` or, when that is more

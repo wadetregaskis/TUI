@@ -181,6 +181,28 @@ struct PasteLimitTests {
         #expect(events == [.key(KeyEvent(key: .paste(expected))), Self.typedX])
     }
 
+    /// A paste that is not UTF-8 arrives read a byte to a character, within
+    /// the limit and past it: each byte its Latin-1 character, the control
+    /// bytes and the high half included, and nothing dropped or doubled.
+    /// (The lowered limit is four whole units, so the cut falls before a 0x00
+    /// and no byte is trimmed for looking like the middle of a character.)
+    @Test("A paste that is not UTF-8 arrives as Latin-1", arguments: [nil, 1_020] as [Int?])
+    func latin1Paste(limit: Int?) {
+        // Every byte value but ESC, which could begin the end marker; 0xC0 and
+        // 0xFF are never UTF-8, so the whole paste is not.
+        let unit = (0...255).map(UInt8.init).filter { $0 != 0x1B }
+        var content: [UInt8] = []
+        while content.count < 3_000 { content += unit }
+        let (terminal, source) = makeTerminal(
+            limit: limit, feeding: Self.pasteStart + content + Self.pasteEnd + Self.bytes("x"))
+        let kept = content.prefix(limit ?? content.count)
+        let expected = String(String.UnicodeScalarView(kept.map { Unicode.Scalar($0) }))
+        let (events, _) = drain(terminal, source)
+        #expect(events == [.key(KeyEvent(key: .paste(expected))), Self.typedX])
+        #expect(expected.unicodeScalars.count == kept.count)
+        #expect(Terminal.latin1Text(Array(kept)).utf8.count == kept.count + kept.filter { $0 >= 0x80 }.count)
+    }
+
     /// A paste past the limit whose end marker never comes still ends at the
     /// stall timeout, as the kept part, and the keyboard is the app's again.
     @Test("A paste past the limit whose end never comes is delivered at the stall")
