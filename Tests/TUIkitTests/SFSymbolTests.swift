@@ -184,6 +184,17 @@ struct SFSymbolTests {
         }
     }
 
+    #if canImport(AppKit)
+    @Test("The font probe's constant is star.fill's codepoint in the table")
+    func fontProbeScalarIsStarFill() {
+        // `isFontAvailable` probes CoreText with this constant rather than
+        // looking `star.fill` up, so a Mac without the font never reads the
+        // table. The generator writes it beside the table; a table regenerated
+        // with `star.fill` moved and the constant left behind fails here.
+        #expect(SFSymbol.fontProbeScalar == SFSymbol.scalar(forName: "star.fill"))
+    }
+    #endif
+
     @Test("Label with an unresolvable symbol renders title-only, no leading gap")
     func labelUnresolvedTitleOnly() {
         // An unknown name resolves to nothing on every platform → just the title,

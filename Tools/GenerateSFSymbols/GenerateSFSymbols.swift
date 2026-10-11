@@ -178,6 +178,10 @@ func wrapElements(_ values: [String]) -> String {
     return lines.joined(separator: "\n")
 }
 
+/// The symbol `SFSymbol.isFontAvailable` asks CoreText to draw. Any symbol in
+/// the font would do; the emitter stops if this one ever leaves the table.
+let fontProbeName = "star.fill"
+
 /// Emits the generated Swift source in the "name blob + offsets" representation
 /// (benchmarked as the fastest to look up and compile of the correct options,
 /// with no `String` in storage). Three native compile-time literals:
@@ -194,6 +198,9 @@ func wrapElements(_ values: [String]) -> String {
 ///     the same offsets as a `[UInt16]` of 8466 (16,932 bytes; packed, 16,936
 ///     with the last element's two unused lanes) cost a clean release build
 ///     four times the SIL optimisation (see README.md, "Why this shape").
+/// And one constant beside them, `fontProbeScalar`: the codepoint of
+/// `fontProbeName`, so `SFSymbol.isFontAvailable` probes CoreText without
+/// searching the names.
 func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     // The representation relies on ASCII names (so raw-byte order equals Swift
     // `String` order — what makes the binary search correct) and PUA codepoints
@@ -204,6 +211,10 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
             pair.codepoint >= 0x10_0000 && pair.codepoint - 0x10_0000 <= 0xFFFF,
             "codepoint outside the UInt16 PUA window: \(pair.name)")
     }
+    guard let fontProbe = pairs.first(where: { $0.name == fontProbeName }) else {
+        preconditionFailure("the font probe's symbol is missing: \(fontProbeName)")
+    }
+    let fontProbeHex = String(fontProbe.codepoint, radix: 16, uppercase: true)
 
     let nameBlob = pairs.map(\.name).joined(separator: "\n")
 
@@ -251,6 +262,12 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     extension SFSymbol {
         /// Number of symbols in the baked table.
         static let bakedCount = \(pairs.count)
+
+        /// The codepoint of `\(fontProbeName)`, the symbol `isFontAvailable` asks
+        /// CoreText to draw. A constant, so the font probe searches no names, and
+        /// on a Mac without the SF Symbols font `canRender(named:)` answers
+        /// without reading the table.
+        static let fontProbeScalar: Unicode.Scalar = \"\\u{\(fontProbeHex)}\"
 
         /// Every name, sorted ascending, newline-separated (no trailing newline).
         /// A `StaticString` — static bytes in the binary, never a `String`.

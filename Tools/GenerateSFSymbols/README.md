@@ -83,6 +83,12 @@ parsing, and no `String` in the stored table:
   unused lanes are zero. `SFSymbol.codepointOffset(at:)` reads one: a shift,
   once per lookup, outside the binary search.
 
+Beside them, one constant: **`fontProbeScalar`**, the codepoint of `star.fill`,
+which `SFSymbol.isFontAvailable` asks CoreText to draw. Being a constant, the
+font probe searches no names, so on a Mac without the SF Symbols font nothing
+that asks `SFSymbol.canRender(named:)` first reads the table. The generator
+stops if `star.fill` ever leaves the table.
+
 `SFSymbol` binary-searches `nameBlob` *directly* through `nameStarts`, comparing
 raw UTF-8 bytes — which equals Swift `String` ordering because the names are
 pure ASCII — so a lookup touches no `String` and (for a native-string query)

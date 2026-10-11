@@ -21,6 +21,12 @@ extension SFSymbol {
     /// Number of symbols in the baked table.
     static let bakedCount = 8466
 
+    /// The codepoint of `star.fill`, the symbol `isFontAvailable` asks
+    /// CoreText to draw. A constant, so the font probe searches no names, and
+    /// on a Mac without the SF Symbols font `canRender(named:)` answers
+    /// without reading the table.
+    static let fontProbeScalar: Unicode.Scalar = "\u{1002C3}"
+
     /// Every name, sorted ascending, newline-separated (no trailing newline).
     /// A `StaticString` — static bytes in the binary, never a `String`.
     /// Greppable verbatim. Indexed via `nameStarts`.

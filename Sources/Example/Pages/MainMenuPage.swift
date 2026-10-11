@@ -105,13 +105,15 @@ struct MainMenuPage: View {
     /// Subtitle for the SF Symbols feature box: a few thematic glyphs — the
     /// Swift logo, a terminal, and the ⌘ key, resolved through the very API the
     /// box advertises (``SFSymbol/glyph(named:)``) — followed by the "(macOS
-    /// only)" caveat. Off Apple platforms the symbols resolve to nothing, so
-    /// only the caveat remains.
+    /// only)" caveat. Where no font can draw the glyphs — off Apple platforms,
+    /// or on a Mac without the SF Symbols font — only the caveat remains, and
+    /// the font is asked first so that the names are not looked up there.
     private var sfSymbolsSubtitle: String {
+        let caveat = L("feature.sfSymbols.macOSOnly")
+        guard SFSymbol.isFontAvailable else { return caveat }
         let examples = ["swift", "apple.terminal", "command"]
             .compactMap { SFSymbol.glyph(named: $0) }
             .joined()
-        let caveat = L("feature.sfSymbols.macOSOnly")
         // The caveat now names the font requirement too, so it's wide — give it
         // its own line beneath the glyphs.
         return examples.isEmpty ? caveat : "\(examples) \(caveat)"

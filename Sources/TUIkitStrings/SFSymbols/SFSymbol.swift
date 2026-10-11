@@ -74,7 +74,8 @@ public enum SFSymbol {
     /// ``glyph(named:)`` says the name maps to a codepoint, and
     /// ``isFontAvailable`` says some installed font can draw one. Either alone
     /// is a trap — a resolved codepoint with no font behind it renders as a
-    /// missing-glyph box, which is worse than no icon at all.
+    /// missing-glyph box, which is worse than no icon at all. The font is asked
+    /// first, so where no font can draw a symbol the name is never looked up.
     ///
     /// This is what ``Label/init(_:systemImage:)-(LocalizedStringKey,_)`` gates its icon column on and
     /// what ``Image/init(systemName:)`` gates its whole self on, so both fall
@@ -112,11 +113,17 @@ public enum SFSymbol {
     /// not, and callers should fall back (``Label/init(_:systemImage:)-(LocalizedStringKey,_)`` shows just its
     /// title, the example's browser shows a "not available" placeholder).
     ///
-    /// Evaluated once and cached. `false` on any platform without CoreText (Linux)
-    /// and when the anchor symbol can't be resolved.
+    /// The anchor's codepoint is a constant the table's generator writes beside
+    /// the table, so the probe searches no names; and ``canRender(named:)`` asks
+    /// this first, so on a Mac without the font it answers — and ``Label``,
+    /// ``Image/init(systemName:)`` and a tab's symbol fall back — without
+    /// reading the table at all.
+    ///
+    /// Evaluated once and cached. `false` wherever the table is not compiled in:
+    /// any platform without CoreText (Linux) or without AppKit.
     public static let isFontAvailable: Bool = {
-        #if canImport(CoreText)
-        guard let glyph = glyph(named: "star.fill") else { return false }
+        #if canImport(CoreText) && canImport(AppKit)
+        let glyph = String(fontProbeScalar)
         let utf16 = Array(glyph.utf16)  // a Plane-16 scalar → one UTF-16 surrogate pair
         guard !utf16.isEmpty else { return false }
         // A base font whose CoreText cascade the system extends: the SF Symbols
