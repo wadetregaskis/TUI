@@ -570,6 +570,9 @@ purely because of the transport. Unnamed, it renders (measured on the
 | SF Symbols (Plane-16 PUA) | same 2/1 — three adjacent symbols sit 1 cell apart, not 2 |
 | Fitzpatrick clusters (🤙🏽) | modifier never stripped: over-advances, stranding 2 unpainted cells at the right edge |
 
+The SF Symbols row needs the SF Symbols font on the Mac that runs `Example`;
+without it the main menu draws no symbol (see tmux's "The defect this closed").
+
 **The signals, and how far each reaches.**
 
 | Signal | Names | Crosses ssh | Notes |
@@ -1782,6 +1785,12 @@ while every other line of the box landed at **68**, exactly 3 cells short, one
 per glyph, and the border was visibly broken. The tmux path now emits one CUF
 per under-advancing cluster, landing the cursor at the claimed column, so the
 border closes. Same fix for the bare SMP pictographs and the dominoes/cards.
+Re-measuring this needs the SF Symbols font on the Mac that runs `Example`:
+since 2026-10-11 the box asks `SFSymbol.isFontAvailable` before it looks a name
+up, and without the font it shows its caveat alone, with no PUA glyph to
+measure. The compensation's unit tests (`TmuxCompatibilityTests`, and
+`FrameDiffWriterTests` for iTerm2's) write the codepoints themselves and need
+no font.
 
 The claim's comment ("SF Mono: 2 cells") is right about the *font* in a native
 terminal and about the width TUIkit paints; tmux's wcwidth has never heard of
