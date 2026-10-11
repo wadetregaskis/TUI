@@ -106,6 +106,11 @@ when the floor moves.
 
 ## The chosen representation
 
+*As first built. Since 2026-10-11 the names are front-coded: `nameBlob` and
+`nameStarts` are gone, replaced by `nameBlocks` and `blockStarts` (see
+"Front-coding the names (2026-10-11)" below). The two invariants at the end of
+this section still hold.*
+
 Three native, compile-time literals — no runtime parsing, no `String` in storage:
 
 ```swift

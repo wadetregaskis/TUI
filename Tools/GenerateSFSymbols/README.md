@@ -165,8 +165,9 @@ why it is not in `__cstring`, unverified; `__data` −31,744, the offsets;
 `__text` +756) and the file by 132,096 (13,161,144 → 13,029,048; segments move
 in whole 16-KiB pages). There is still nothing to initialise: the blob and
 both arrays are compile-time data read by address, clean memory paged in where
-a lookup reads (the whole table is 6 16-KiB pages instead of 18, SIZE3's page
-model). Through `Label`, `Image(systemName:)` and the controls, a lookup happens
+a lookup reads (the whole table is 9 16-KiB pages instead of 18, each array
+rounded up to whole pages as SIZE3's page model counts the old 13 + 3 + 2:
+names 6, block index 1, codepoints 2). Through `Label`, `Image(systemName:)` and the controls, a lookup happens
 only where the SF Symbols font is installed: they ask `canRender`, which asks
 the font first, and the font probe itself reads no name (`fontProbeScalar`,
 above).

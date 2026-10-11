@@ -59,8 +59,9 @@ func cryptonDecryptObfuscatedFontTable(tableTag: UInt32, from: CTFont) -> Data?
 // MARK: - Output format
 //
 // See `emitSource(pairs:)` below and README.md: a `StaticString` blob of the
-// names, their byte offsets, and their codepoint offsets packed four to a
-// `UInt64` — compile-time constants all, so a lookup parses nothing.
+// names front-coded in blocks, the byte offset of each block, and the names'
+// codepoint offsets packed four to a `UInt64` — compile-time constants all, so
+// a lookup parses nothing.
 
 // MARK: - Locate the SF Symbols app
 
