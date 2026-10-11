@@ -124,7 +124,7 @@ VStack(alignment: .leading) {
 }
 ```
 
-Two consequences worth knowing before you reach for it:
+Three things worth knowing before you reach for it:
 
 - **The container can grow past its largest child.** The bullet's guide is now
   its *trailing* edge, so every sibling shifts right to meet it and the column
@@ -146,9 +146,10 @@ Two consequences worth knowing before you reach for it:
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and
-`.background(alignment:)`. In a **lazy** stack the run is the realized rows,
-which is the same limit SwiftUI has: prefer guides on content whose realized set
-is stable; a lazy stack reports none of its rows' guides to its own parent.
+`.background(alignment:)`. In a **lazy** stack the run is the realized rows, so
+prefer guides on content whose realized set is stable; a lazy stack reports none
+of its rows' guides to its own parent. SwiftUI's lazy stacks ignore explicit
+guides altogether (measured; whether TUIkit's should too is an open decision).
 
 Custom guides come from ``AlignmentID``, whose `defaultValue(in:)` receives the
 view's ``ViewDimensions``. Note that a guide's value is `Double` even though

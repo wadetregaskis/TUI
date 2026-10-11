@@ -774,8 +774,9 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
 
         // Explicit guides resolve over the children this stack actually PLACED.
         // A lazy stack stops at the first row that will not fit, so the run is
-        // the realized rows — the same limit SwiftUI has, and the reason a guide
-        // is best used on content whose realized set is stable.
+        // the realized rows, which is why a guide is best used on content whose
+        // realized set is stable. (SwiftUI's lazy stacks ignore explicit guides
+        // altogether, measured; decisions-GUIDE A-GUIDE-1.)
         let guideRun = placedGuideRun(
             collected, fixedExtent: nil, minimumExtent: maxWidth, context: context)
 

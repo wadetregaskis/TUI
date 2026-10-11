@@ -33,9 +33,9 @@ TUIkit's lazy stacks honour it, by design: `AlignmentGuideModifierTests`
 and windowed runs share the eager stacks' `AlignmentGuideRun` (this lane checked
 them against the eager rule: a placed lazy column sizes to its run, and a
 window moves the run as a whole, its guides still on one line —
-`AlignmentGuideContainerParityTests`). The comment on `assembleWindow` says the
-realized rows are "the same limit SwiftUI has", which the measurement does not
-bear out.
+`AlignmentGuideContainerParityTests`). The comment on `assembleWindow` said the
+realized rows were "the same limit SwiftUI has", which the measurement does not
+bear out; it, and LayoutSystem.md, now say what was measured.
 
 **Options.**
 1. *Match SwiftUI* (parity): a lazy stack places each row by its alignment's

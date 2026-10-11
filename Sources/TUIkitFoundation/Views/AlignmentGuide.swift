@@ -127,7 +127,8 @@ extension View {
     /// The value is used as given, as SwiftUI's is, even when it lies outside
     /// the view: `.alignmentGuide(.leading) { _ in 5 }` on a one-cell view
     /// indents its siblings by five cells. One guide pushes a child at most
-    /// 4,096 cells along, past the edge of any terminal.
+    /// 4,096 cells along, past the edge of any terminal, or as far as the
+    /// region's extent or the widest child if that is further.
     ///
     /// ## How far a guide travels
     ///
@@ -375,7 +376,9 @@ struct AlignmentGuideRun {
     /// pads a buffer to its extent, so a guide of `1e300` would otherwise ask
     /// for a buffer `Int.max` cells wide.
     ///
-    /// The bound changes nothing that can be seen. It is the natural-extent
+    /// The bound changes nothing a terminal shows, except inside a horizontal
+    /// `ScrollView`, which can scroll that far: there a child pushed past it
+    /// stops at it, where SwiftUI's keeps going. It is the natural-extent
     /// ladder's first rung (``naturalExtentStartingBudget(forVisible:)``), and
     /// TUIkit already takes half of that as more than any real bound offers
     /// (``isNaturalExtentBudget(_:)``), so a child pushed this far is past the
