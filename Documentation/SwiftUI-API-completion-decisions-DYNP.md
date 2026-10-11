@@ -12,8 +12,8 @@ on macOS 15 with an offscreen `NSHostingView` (session notes
 `DYNP/probe/dp.swift`; the case numbers are that probe's). The format is
 that of the main decisions file:*
 
-- **A-DYNP-n — needs your decision.** Nothing has shipped for these, beyond
-  what TUIkit already did.
+- **A-DYNP-n — needs your decision.** Each says which option TUIkit ships
+  until you decide, and what this lane changed in it.
 - **B-DYNP-n — shipped the safe option.** Says what the other version would
   be, and its price.
 - **C-DYNP-n — declined.** With the reason.
@@ -30,7 +30,13 @@ Shouting()`, is handled differently by the two frameworks.
 - **TUIkit.** It looks through the optional, as its property walks always
   have. The `@State` inside is bound, the `@Environment` inside is resolved,
   and `update()` runs. Since this lane, what `update()` changes is also
-  written back into the optional.
+  written back into the optional, and a type is no longer kept as holding
+  nothing because it was first drawn with the optional `nil` (B-DYNP-2).
+- **A `weak` field** is an optional field too, `weak var p: Box?`. Its
+  `update()` does not run, as SwiftUI's does not (measured, case 4), and it
+  does not make its view one the write-back visits. What it holds is bound
+  and resolved, as for any optional; whether SwiftUI does that is
+  unmeasured.
 
 The options:
 
@@ -109,3 +115,19 @@ seen holding nothing there is still kept as holding nothing.
 
 **The fuller version** would count those too. Its price: every view holding
 an `any` field would be walked on every frame, whatever it holds.
+
+**The cost of counting every enum.** A view that is an enum, and a property
+or modifier that is one, counts whatever its cases hold. That includes one
+with no property anywhere, such as `enum Tab: View { case home, settings }`,
+which until this lane was kept after its first sighting. It is now walked on
+every frame: two `Mirror` walks per `body`, a cast, and four hash lookups.
+That is unmeasured; no A/B scenario has an enum view, and TUIkit's own
+`ConditionalView` is drawn without a `body`, so the walks never see it.
+Narrowing it to the enums whose payloads can hold a property would need each
+case's payload type. The runtime's mirror entry points list no fields for an
+enum type (`swift_reflectionMirror_recursiveCount` answers 0 for one with
+three cases, two with payloads; session notes `DYNP/probe/enumfields`), so
+those types would have to be read from the enum's field descriptor and
+resolved from their mangled names: a second runtime layout to depend on,
+beside the field metadata. Worth it if an app's enum views show up in a
+profile.
