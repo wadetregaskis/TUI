@@ -110,6 +110,9 @@ struct InputSplitInvarianceTests {
             // read as the rest of one CSI and typed out.
             ("alt-bracket-then-up", esc + Array("[".utf8) + esc + Array("[A".utf8)),
             ("alt-bracket-then-paste", esc + Array("[".utf8) + esc + Array("[200~hi".utf8) + esc + Array("[201~".utf8)),
+            // A sequence cut short straight after an `ESC` leaves it nothing
+            // to prefix: Escape, then the sequence that cut in.
+            ("escape-then-cut-short-csi-then-up", esc + esc + Array("[1;2".utf8) + esc + Array("[A".utf8)),
         ]
 
         var reports: [String] = []

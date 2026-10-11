@@ -4469,10 +4469,12 @@ the two because the unmodified action happens instead.
 
 The ESC-prefixed spelling is read as a prefix only on a key. An `ESC` in front
 of anything that is not one — a terminal reply, a focus or mouse report, a
-paste's start marker — is the Escape key, pressed just before the terminal
-sent that, and arrives as Escape, with the rest parsed on its own
-(`Terminal.tryExtractMetaPrefixed()`, 2026-10-11). Before that the pair was
-read as Option+Escape and the report lost, or the paste typed out as keys.
+paste's start marker, a sequence that a new one cuts short — is the Escape
+key, pressed just before the terminal sent that, and arrives as Escape, with
+the rest parsed on its own (`Terminal.tryExtractMetaPrefixed()`, 2026-10-11).
+Before that the pair was read as Option+Escape and the report lost, or the
+paste typed out as keys, and an `ESC` in front of a sequence cut short went
+on to the one that cut it: `ESC ESC [1;2 ESC [A` was Option+Up.
 
 *Not yet captured (2026-08-13):* **what Apple Terminal actually sends for
 ⌥←/⌥→.** The parser change above was verified against all three spellings by

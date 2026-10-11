@@ -194,9 +194,10 @@ extension Terminal {
     /// machinery handles a dead one).
     ///
     /// The prefix rides only on a KEY (``takesMetaPrefix(_:)``), and only on
-    /// the one straight after it. In front of anything else the first ESC is
-    /// the Escape key, pressed just before the terminal sent that, so it goes
-    /// out alone and what follows parses on its own:
+    /// the one straight after it: a sequence there that is cut short or
+    /// skipped as over-long leaves it nothing to ride on. In front of anything
+    /// else the first ESC is the Escape key, pressed just before the terminal
+    /// sent that, so it goes out alone and what follows parses on its own:
     ///
     /// - A focus report, a mouse report, a paste's start marker. Re-attached,
     ///   the pair reached `KeyEvent.parse`, which reads `ESC ESC` and anything
@@ -232,10 +233,15 @@ extension Terminal {
             input.prepend(contentsOf: inner)
             return [0x1B]
         }
-        // An over-long sequence whose rest has not all arrived. Not put back:
-        // its `ESC` would read as a new sequence cutting the skip short, and
-        // the rest would be typed.
-        if abandonedSequence != nil { return [0x1B] }
+        // Bytes consumed and no event: what came straight after the `ESC` is
+        // gone, so the `ESC` had nothing to prefix and is the Escape key. It
+        // was a sequence a new `ESC` cut short, which the CSI and SS3
+        // extractors drop, or an over-long one being skipped, its rest perhaps
+        // still to come (``abandonSequence(_:)``). Put back, the `ESC` became
+        // the prefix of whatever came next — `ESC ESC [1;2 ESC [A` was
+        // Option+Up until 2026-10-11 — and in front of a skip it read as a
+        // new sequence cutting the skip short, and the rest was typed.
+        if input.count != held { return [0x1B] }
         input.prepend(0x1B)
         return nil
     }

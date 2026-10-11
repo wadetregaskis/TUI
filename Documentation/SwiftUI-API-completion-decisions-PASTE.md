@@ -134,7 +134,11 @@ Escape pressed just before a long reply came in was lost either way. The
 same held in front of everything else that is not a key — a reply swallowed
 whole, a focus or mouse report, a paste's start marker, behind which the
 paste was typed out as keys — and it is now one rule for all of them
-(`tryExtractMetaPrefixed()`).
+(`tryExtractMetaPrefixed()`). Review round 2 found one more: a sequence
+straight after the `ESC` that a new one cuts short, or an over-long one
+whose skip ends in front of the start of another, left the `ESC` to prefix
+the next thing read, so `ESC ESC [1;2 ESC [A` was Option+Up. It is Escape
+and Up.
 
 **The fuller version** would skip strictly to the terminator, with no pause
 rule. Its price is the wedge above, for a case nobody has observed (not

@@ -147,6 +147,33 @@ struct EscapeBeforeNonKeyTests {
         #expect(eventsAlone(Self.esc + Self.esc + overlong + Self.bytes("b")) == [Self.escape, Self.key("b")])
     }
 
+    /// A sequence straight after the `ESC` that a new one cuts short (a
+    /// CSI's parameters, an SS3's modifier) is dropped, and leaves the `ESC`
+    /// nothing to prefix: it is the Escape key, and the sequence that cut in
+    /// parses on its own. The `ESC` was put back in front of that sequence,
+    /// so `ESC ESC [1;2 ESC [A` was Option+Up (review round 2).
+    @Test("Escape then a sequence cut short is Escape, then the sequence that cut it", arguments: ["[1;2", "O2"])
+    func escapeThenCutShortSequence(cutShort: String) {
+        let up = Self.esc + Self.bytes("[A")
+        #expect(eventsAlone(Self.esc + Self.esc + Self.bytes(cutShort) + up) == [Self.escape] + eventsAlone(up))
+    }
+
+    /// The same for an over-long CSI whose skip ends in the reads that start
+    /// it, with only the start of a sequence behind it: the `ESC` was put
+    /// back in front of that start, and when the rest arrived the two were
+    /// Option+Up, the Escape lost. Fewer passes than the dead-sequence wait
+    /// before the rest is staged, so the start is still held.
+    @Test("Escape, an over-long CSI and the start of a sequence is Escape, then the sequence")
+    func escapeThenOverlongCSIThenSplitSequence() {
+        let overlong = Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 2500)) + Self.bytes("m")
+        let (terminal, stage) = makeTerminal()
+        stage(Self.esc + Self.esc + overlong + Self.esc + Self.bytes("["))
+        var seen = (0..<4).compactMap { _ in terminal.readEvent() }
+        stage(Self.bytes("A"))
+        seen += events(terminal)
+        #expect(seen == [Self.escape] + eventsAlone(Self.esc + Self.bytes("[A")))
+    }
+
     /// And a meta prefix still rides on the key straight after it: CSI,
     /// SS3, and a plain byte.
     @Test("A meta prefix still makes an Option chord of the key after it", arguments: ["[Z", "[A", "[1;5C", "OP", "x"])
