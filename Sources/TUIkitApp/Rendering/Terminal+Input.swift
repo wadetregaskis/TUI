@@ -583,15 +583,40 @@ extension Terminal {
     /// `bytes` read a byte to a character, as Latin-1: what a paste that is
     /// not UTF-8 arrives as.
     ///
-    /// Written straight into the string's scalars, two bytes of UTF-8 at most
-    /// for each byte read. Mapping each byte to a `Character` first, as this
-    /// did until 2026-10-11, built an array of 16-byte `Character`s on the
-    /// way: 256 MiB for a paste at the 16 MiB limit, sixteen times the paste.
-    static func latin1Text(_ bytes: [UInt8]) -> String {
-        var text = ""
-        text.reserveCapacity(bytes.count + bytes.lazy.filter { $0 >= 0x80 }.count)
-        text.unicodeScalars.append(contentsOf: bytes.lazy.map { Unicode.Scalar($0) })
-        return text
+    /// Written as UTF-8 straight into the storage of the string returned —
+    /// one byte for each byte below 0x80, two for each above, sized exactly
+    /// beforehand — so the decode holds the bytes and the string, and nothing
+    /// else. Two earlier spellings each built an array on the way, though
+    /// neither reads as if it did. Mapping each byte to a `Character` (until
+    /// 2026-10-11) made an array of 16-byte `Character`s: 256 MiB for a paste
+    /// at the 16 MiB limit. Appending `Unicode.Scalar`s to the string's
+    /// `unicodeScalars` (the same day) made one of 4-byte scalars: the
+    /// standard library's `append(contentsOf:)` there is not inlinable, and
+    /// its body maps the sequence to a `[UInt32]`, decodes that as UTF-32 into
+    /// a second string and concatenates the two, so the reserved capacity was
+    /// thrown away and the text copied once more: decoding a paste at the
+    /// limit grew the process by 144 MiB, where writing the UTF-8 grows it by
+    /// the 32 MiB of the text (measured, `PasteLimitTests`).
+    ///
+    /// `nonisolated`: it reads nothing of the terminal's, and that test calls
+    /// it from an exit test's body, which is not on the main actor.
+    nonisolated static func latin1Text(_ bytes: [UInt8]) -> String {
+        let length = bytes.count + bytes.reduce(0) { $0 + Int($1 >> 7) }
+        return String(unsafeUninitializedCapacity: length) { buffer in
+            var index = 0
+            for byte in bytes {
+                if byte < 0x80 {
+                    buffer[index] = byte
+                    index += 1
+                } else {
+                    // U+0080 to U+00FF: 110000xx 10xxxxxx.
+                    buffer[index] = 0xC0 | byte >> 6
+                    buffer[index + 1] = 0x80 | byte & 0x3F
+                    index += 2
+                }
+            }
+            return index
+        }
     }
 
     /// A copy of the first `length` bytes of ``input`` or, when that is more
