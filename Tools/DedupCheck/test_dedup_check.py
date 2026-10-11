@@ -103,11 +103,13 @@ def library_object():
     return macho(machofile.MH_OBJECT, [text, const], symbols)
 
 
-def app_binary(setters_differ=True, handler_alone=True, with_compare=True):
-    """The linked app: \\S.a's and \\S.b's getters folded onto 0x1100, \\S.c's and \\S.d's onto 0x1300."""
+def app_binary(setters_differ=True, handler_alone=True, with_compare=True, fold_all=False):
+    """The linked app: \\S.a's and \\S.b's getters folded onto 0x1100, \\S.c's and \\S.d's onto 0x1300 (onto 0x1100
+    as well with `fold_all`)."""
+    read_only_at = 0x1100 if fold_all else 0x1300
     symbols = [(GA, N_SECT_EXT, 1, 0x1100), (GB, N_SECT_EXT, 1, 0x1100),
                (SA, N_SECT_EXT, 1, 0x1200), (SB, N_SECT_EXT, 1, 0x1210 if setters_differ else 0x1200),
-               (GC, N_SECT_EXT, 1, 0x1300), (GD, N_SECT_EXT, 1, 0x1300),
+               (GC, N_SECT_EXT, 1, read_only_at), (GD, N_SECT_EXT, 1, read_only_at),
                (HANDLER, N_SECT_EXT, 1, 0x1500), (SETUP, N_SECT_EXT, 1, 0x1600)]
     if with_compare:
         symbols.append((COMPARE, N_SECT_EXT, 1, 0x1400))
@@ -167,6 +169,14 @@ class DedupCheckTests(unittest.TestCase):
     def test_read_only_key_paths_folded_together_are_listed_as_an_alias(self):
         status, out = self.run_check(binary=app_binary(setters_differ=False))
         self.assertIn('[alias (read-only)] M.S -> Swift.Int @ 0x1300', out)
+
+    def test_a_divergent_pair_among_read_only_key_paths_still_fails(self):
+        # \S.a, \S.b (writable, different setters), \S.c and \S.d (read-only) all on one address: a read-only key
+        # path never equals a writable one, but \S.a == \S.b all the same.
+        status, out = self.run_check(binary=app_binary(fold_all=True))
+        self.assertEqual(status, 1, out)
+        self.assertIn('K1 DIVERGENT key paths M.S.a.getter : Swift.Int == M.S.b.getter : Swift.Int:', out)
+        self.assertIn('[alias (read-only)] M.S -> Swift.Int @ 0x1100', out)
 
     def test_an_unlisted_consumer_of_key_path_equality_fails(self):
         status, out = self.run_check(dict(MANIFEST, key_path_consumers={},

@@ -129,7 +129,7 @@ class Scan:
         self.objects = 0
         self.checked_objects = 0
         self.merged_modules, self.per_file_modules = set(), set()     # TUIkit's, by the kind of object read
-        self.patterns = {}          # getter -> {'sites', 'modules', 'writable', 'app_only'}
+        self.patterns = {}          # getter -> {'sites', 'modules', 'writable', 'read_only', 'app_only'}
         self.consumers = {}         # function -> {'targets', 'checked', 'app', 'modules'}
         self.c_taken = {}           # C function -> {'references', 'checked', 'app', 'modules'}
         self.defined = set()
@@ -189,11 +189,13 @@ def scan_objects(objects, is_checked):
                     writable = any(SETTER_THUNK.search(r[1]) for r in inside)
                     for g in getters:
                         e = scan.patterns.setdefault(
-                            g, {'sites': set(), 'modules': set(), 'writable': False, 'app_only': True})
+                            g, {'sites': set(), 'modules': set(), 'writable': False, 'read_only': False,
+                                'app_only': True})
                         e['app_only'] = e['app_only'] and not checked
                         e['sites'].add(os.path.basename(p))
                         e['modules'].add(module)
                         e['writable'] = e['writable'] or writable
+                        e['read_only'] = e['read_only'] or not writable
             for addr, name, rtype, _, _, _ in rel:
                 if not name:
                     continue
@@ -290,19 +292,21 @@ def root_value(dm):
     return (left[:j], value, left[j + 1:]) if j > 0 else None
 
 
-def classify(rows):
-    """A group of key paths that compare equal: what writing through each does. AnyKeyPath.== compares the key
-    path's class and each component's KIND before its id, and ignores the accessors: a read-only (.get) and a settable
-    (.mutatingGetSet) component are never equal, and two settable ones with one getter id are equal whatever their
-    setters do."""
+def equal_classes(rows):
+    """The key paths among `rows` (getters of one address, root and value type) that compare equal, as [(kind,
+    rows)] for each class of two or more. AnyKeyPath.== compares the key path's class and each component's KIND before
+    its id, and ignores the accessors: a read-only (.get) component never equals a settable (.mutatingGetSet) one, so
+    the writable key paths compare equal among themselves and the read-only ones among themselves (a getter formed
+    both ways is in both); and two settable components with one getter id are equal whatever their setters do."""
+    classes = []
     writable = [r for r in rows if r['writable_key_path_formed']]
-    if writable and len(writable) < len(rows):
-        return 'not equal (read-only vs writable)'
-    if not writable:
-        return 'alias (read-only)'
-    if len({r['setter_address'] for r in rows}) == 1 and rows[0]['setter_address'] is not None:
-        return 'alias (same setter)'
-    return 'DIVERGENT'
+    if len(writable) > 1:
+        same = len({r['setter_address'] for r in writable}) == 1 and writable[0]['setter_address'] is not None
+        classes.append(('alias (same setter)' if same else 'DIVERGENT', writable))
+    read_only = [r for r in rows if r['read_only_key_path_formed']]
+    if len(read_only) > 1:
+        classes.append(('alias (read-only)', read_only))
+    return classes
 
 
 def check(scan, addr_of, at, manifest, dm, plain_addr=None):
@@ -328,16 +332,19 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
             rows.append({'getter': g, 'demangled': names.get(g, g), 'sites': sorted(live[g]['sites'])[:6],
                          'modules': sorted(live[g]['modules']), 'app_only': live[g]['app_only'],
                          'writable_key_path_formed': live[g]['writable'],
+                         'read_only_key_path_formed': live[g]['read_only'],
                          'setter_address': addr_of.get(setter), 'setter_defined': setter in scan.defined,
                          'folded_by_ld': (plain_addr is not None and len({plain_addr.get(x) for x in gs}) > 1)})
-        kind = classify(rows)
-        allowed = any(set(x['members']) <= {r['demangled'] for r in rows} or set(x['members']) <= set(gs)
-                      for x in manifest.get('key_path_aliases', []))
-        k1.append({'address': hex(key[0]), 'root': key[1], 'value': key[2], 'kind': kind, 'allowed': allowed,
-                   'members': rows})
-        if manifest_given and kind == 'DIVERGENT' and not allowed and not all(r['app_only'] for r in rows):
-            findings.append(f'K1 DIVERGENT key paths {" == ".join(r["demangled"] for r in rows)}: equal under '
-                            f'folding, but they write differently')
+        classes = equal_classes(rows) or [('not equal (read-only vs writable)', rows)]
+        for kind, members in classes:
+            allowed = any(set(x['members']) <= {r['demangled'] for r in members}
+                          or set(x['members']) <= {r['getter'] for r in members}
+                          for x in manifest.get('key_path_aliases', []))
+            k1.append({'address': hex(key[0]), 'root': key[1], 'value': key[2], 'kind': kind, 'allowed': allowed,
+                       'members': members})
+            if manifest_given and kind == 'DIVERGENT' and not allowed and not all(r['app_only'] for r in members):
+                findings.append(f'K1 DIVERGENT key paths {" == ".join(r["demangled"] for r in members)}: equal under '
+                                f'folding, but they write differently')
     folded_ids = sorted(g for g in live if len(at[addr_of[g]]) > 1)
     report['K1_not_in_binary'] = sorted(dm([g for g in scan.patterns if g not in addr_of]).values())
     partners = {g: sorted(at[addr_of[g]] - {g}) for g in folded_ids}
