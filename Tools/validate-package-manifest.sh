@@ -3,16 +3,30 @@
 # validate-package-manifest.sh — reject manifest constructs that make this
 # package impossible to depend on.
 #
-# SwiftPM refuses to RESOLVE a versioned dependency whose manifest uses
-# `unsafeFlags`, or that depends on a local filesystem path, or that pins
-# another package to a branch or a revision rather than a version. The refusal
-# happens in the CONSUMER's resolution, not in ours — so a manifest carrying any
-# of them builds here, passes every test here, ships a green CI here, and is
-# simply undownloadable by anyone else. There is no other detector: nothing we
-# build in-tree ever exercises the constraint.
+# SwiftPM refuses to RESOLVE a versioned dependency that depends on a local
+# filesystem path, or that pins another package to a branch or a revision
+# rather than a version. The refusal happens in the CONSUMER's resolution, not
+# in ours — so a manifest carrying either builds here, passes every test here,
+# ships a green CI here, and is simply undownloadable by anyone else. There is
+# no other detector: nothing we build in-tree ever exercises the constraint.
 #
-# `unsafeFlags` is the realistic way one arrives: reaching for `-Xfrontend` to
-# chase a profiling question, and forgetting to take it out again.
+# `unsafeFlags` used to be a third such construct. SwiftPM 6.2 lifted that
+# refusal (swift-package-manager #8896, in 6.2 as #8914; measured with a
+# dependency resolved by version on 6.2.4, 6.3.3, 6.4.0 and Xcode 26.3), and
+# this package needs 6.2. What is checked now is what such a flag may reach:
+#
+#   - Nothing in a LINKER setting. A package's linker flags land on the app's
+#     own final link and change the developer's whole program: `-deduplicate`
+#     changes which of the app's own key paths compare equal, and a strip flag
+#     strips the app's symbols. Those are the developer's to choose; the
+#     README offers them, with what each costs.
+#   - A COMPILE flag only behind a trait. It reaches every client's build of
+#     TUIkit, and no compiler flag undoes another, so the trait is the
+#     client's only way to turn it off (`traits: []`). Package.swift's
+#     `DeadStripUnusedAPI` is the one there is.
+#
+# A flag reached for to chase a profiling question, and left in, is the
+# realistic way an ungated one arrives.
 #
 # This is the cheap half of the consumer gate — milliseconds, every push. The
 # expensive half (Tools/verify-versioned-consumer.sh) actually resolves and
@@ -41,24 +55,41 @@ cd "$(dirname "$0")/.."
 # The patterns match JSON *keys*, which dump-package emits verbatim, so a
 # dependency URL that happens to contain the word "branch" cannot trip them.
 check_manifest() {
-    local json="$1" failures=0
+    local json="$1" failures=0 flat unsafe gated
+    # dump-package sorts its keys, so once the whitespace is gone a setting
+    # reads {"condition":{…,"traits":[…]},"kind":{"unsafeFlags":{"_0":[…]}},
+    # "tool":"…"}. Here-strings rather than `printf | grep -q`: under
+    # pipefail, a grep that stops at its first match leaves printf writing a
+    # large manifest into a closed pipe, and the pipeline's SIGPIPE status
+    # then reads as "no match".
+    flat=$(tr -d ' \t\r\n' <<<"$json")
 
-    if printf '%s' "$json" | grep -q '"unsafeFlags"'; then
-        printf 'FAIL unsafeFlags\n'
-        printf '     SwiftPM refuses to resolve a versioned dependency whose manifest\n'
-        printf '     uses unsafeFlags. Every consumer of this package would be unable to\n'
-        printf '     add it at all. Express the flag as a supported setting, or drop it.\n'
+    if grep -qE '"kind":\{"unsafeFlags":\{"_0":\[[^]]*\]\}\},"tool":"linker"' <<<"$flat"; then
+        printf 'FAIL unsafeFlags in a linker setting\n'
+        printf '     A package'"'"'s linker flags land on the app'"'"'s final link and change\n'
+        printf '     the developer'"'"'s whole program. Offer the flag in the README instead.\n'
         failures=$((failures + 1))
     fi
 
-    if printf '%s' "$json" | grep -q '"fileSystem"'; then
+    unsafe=$(grep -oE '"kind":\{"unsafeFlags"' <<<"$flat" | wc -l | tr -d ' ')
+    gated=$(grep -oE '"traits":\[[^]]+\]\},"kind":\{"unsafeFlags"' <<<"$flat" | wc -l | tr -d ' ')
+    if [ "$unsafe" != "$gated" ]; then
+        printf 'FAIL unsafeFlags without a trait\n'
+        printf '     %s of %s unsafeFlags settings name no trait in their condition. A\n' \
+            "$((unsafe - gated))" "$unsafe"
+        printf '     client can undo a compiler flag only by turning off the trait that\n'
+        printf '     adds it: gate it with .when(…, traits: [...]).\n'
+        failures=$((failures + 1))
+    fi
+
+    if grep -q '"fileSystem"' <<<"$flat"; then
         printf 'FAIL local path dependency\n'
         printf '     A .package(path:) dependency exists only on this machine. A consumer\n'
         printf '     resolving this package by version cannot follow it.\n'
         failures=$((failures + 1))
     fi
 
-    if printf '%s' "$json" | grep -qE '"requirement" *: *\{ *"(branch|revision)"'; then
+    if grep -qE '"requirement":\{"(branch|revision)"' <<<"$flat"; then
         printf 'FAIL branch or revision dependency\n'
         printf '     A versioned package may only depend on other packages by version.\n'
         printf '     A branch or revision pin makes this package unresolvable downstream.\n'
@@ -87,8 +118,17 @@ self_test() {
 
     run_case "clean manifest passes" \
         '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"range":[{"lowerBound":"1.0.0","upperBound":"2.0.0"}]}}]}],"targets":[{"name":"T","settings":[]}]}' 0
-    run_case "unsafeFlags caught" \
-        '{"targets":[{"name":"T","settings":[{"kind":{"unsafeFlags":[["-Xfrontend"]]}}]}]}' 1
+    run_case "a compile flag behind a trait passes" \
+        '{"targets":[{"name":"T","settings":[{"condition":{"config":"release","platformNames":["macos"],"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}]}]}' 0
+    run_case "a compile flag without a trait caught" \
+        '{"targets":[{"name":"T","settings":[{"condition":{"config":"release"},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}]}]}' 1
+    run_case "a compile flag with no condition caught" \
+        '{"targets":[{"name":"T","settings":[{"kind":{"unsafeFlags":{"_0":["-Onone"]}},"tool":"swift"}]}]}' 1
+    run_case "a linker flag caught, even behind a trait" \
+        '{"targets":[{"name":"T","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xlinker","-deduplicate"]}},"tool":"linker"}]}]}' 1
+    # The same shape as dump-package prints it, over many lines.
+    run_case "a pretty-printed linker flag caught" \
+        "$(printf '{\n  "targets" : [\n    {\n      "settings" : [\n        {\n          "kind" : {\n            "unsafeFlags" : {\n              "_0" : [\n                "-Xlinker",\n                "-x"\n              ]\n            }\n          },\n          "tool" : "linker"\n        }\n      ]\n    }\n  ]\n}')" 1
     run_case "path dependency caught" \
         '{"dependencies":[{"fileSystem":[{"identity":"local","path":"/Users/someone/dep"}]}]}' 1
     run_case "branch dependency caught" \
@@ -116,7 +156,7 @@ fi
 manifest_json="$(swift package dump-package)"
 
 if check_manifest "$manifest_json"; then
-    printf 'Package.swift is consumable: no unsafeFlags, no path/branch/revision dependencies\n'
+    printf 'Package.swift is consumable: no linker unsafeFlags, every compiler one behind a trait, no path/branch/revision dependencies\n'
     exit 0
 fi
 

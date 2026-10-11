@@ -122,9 +122,11 @@ jobs:
         run: ./Tools/validate-test-boundaries.sh
 
       # Milliseconds, and it guards a failure nothing else can see: a manifest
-      # using unsafeFlags — or a path/branch/revision dependency — builds and
-      # tests perfectly here while being impossible for anyone to depend on.
-      # The expensive half of that question is the `consumer` job below.
+      # with a path/branch/revision dependency builds and tests perfectly here
+      # while being impossible for anyone to depend on, and one with an
+      # unsafeFlags linker setting, or a compile one no trait can turn off,
+      # imposes a flag on every client's build. The expensive half of that
+      # question is the `consumer` job below.
       - name: Validate package manifest is consumable
         run: ./Tools/validate-package-manifest.sh
 
@@ -563,8 +565,8 @@ jobs:
       # (today one line, SoftTrap.report's `log.report`), only on another
       # platform, or only under an opt-in define such as
       # TUIKIT_VALUE_HASH_CENSUS is not counted here. Set on the command line
-      # only: in Package.swift it would need `unsafeFlags`, which a package used
-      # as a dependency may not use. Swift Build (6.4's default) passes
+      # only: in Package.swift it would reach every client's build of TUIkit.
+      # Swift Build (6.4's default) passes
       # `-Xswiftc -Xfrontend` through as the native build system does. Last in
       # the job, because it rebuilds those modules with a different command
       # line.

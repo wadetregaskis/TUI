@@ -626,6 +626,57 @@ let package = Package(
     ]
 )
 
+// ── App size: the trait `DeadStripUnusedAPI` (default on) ─────────────────────────────────────────────
+// Swift marks every public symbol "no dead strip", so that code outside the link could call it. An app
+// linking TUIkit statically, as every SwiftPM app does, therefore keeps ALL of TUIkit's public API, called
+// or not. `-internalize-at-link` drops that mark from TUIkit's own symbols, and the app's linker keeps what
+// the app reaches (`swift build -c release` passes `-dead_strip`; an Xcode app needs
+// `DEAD_CODE_STRIPPING = YES`, which Xcode's default is not). Measured 2026-10-11, stripped: a hello-world
+// app -14.7% and Stress -12.1% on Swift 6.4.0, -14.9% and -12.3% on Xcode's 6.2.4.
+//
+// What it breaks: a statically linked app whose dlopened plugin calls TUIkit API that the app itself never
+// calls. That symbol is no longer in the app, and the plugin fails to load (measured with a small
+// library). A dynamically linked TUIkit is unaffected: a dylib keeps its exports (measured).
+//
+// The opt-out is the app's: `.package(url: …, from: …, traits: [])`. That turns off EVERY default trait
+// of TUIkit's (today this is the only one); no compiler flag undoes `-internalize-at-link`, so the trait
+// is the only way out. The trait is named for what it lets the app's linker do, not for the compiler flag.
+//
+// On every module a library product ships (the same closure Tools/check-span-compatibility.sh reads),
+// in macOS release builds only: debug builds, and so `swift test` and DocC's symbol graphs, compile as
+// before. Not on Linux or Windows: unmeasured there. SwiftPM 6.2 and later accept `unsafeFlags` from a
+// dependency resolved by version (swift-package-manager #8896, in 6.2 as #8914), and this package needs
+// 6.2; Tools/validate-package-manifest.sh keeps them to compile flags, which reach TUIkit's own compiles
+// and nothing of the app's.
+package.traits.formUnion([
+    .default(enabledTraits: ["DeadStripUnusedAPI"]),
+    .trait(
+        name: "DeadStripUnusedAPI",
+        description: "Lets an app's static link drop the TUIkit API it never calls (macOS release builds)."
+    ),
+])
+let libraryModules: Set<String> = {
+    let targets = Dictionary(uniqueKeysWithValues: package.targets.map { ($0.name, $0) })
+    var pending = package.products.compactMap { $0 as? Product.Library }.flatMap(\.targets)
+    var found = Set<String>()
+    while let name = pending.popLast() {
+        guard let target = targets[name], found.insert(name).inserted else { continue }
+        for dependency in target.dependencies {
+            if case .targetItem(let name, _) = dependency { pending.append(name) }
+            if case .byNameItem(let name, _) = dependency { pending.append(name) }
+        }
+    }
+    return found
+}()
+for target in package.targets where target.type == .regular && libraryModules.contains(target.name) {
+    target.swiftSettings = (target.swiftSettings ?? []) + [
+        .unsafeFlags(
+            ["-Xfrontend", "-internalize-at-link"],
+            .when(platforms: [.macOS], configuration: .release, traits: ["DeadStripUnusedAPI"])
+        )
+    ]
+}
+
 // ── Benchmarks (opt-in) ───────────────────────────────────────────────────────────────────────────
 // ordo-one/package-benchmark and the `TUIkitBenchmarks` target are gated behind
 // an environment flag so the default `swift build` / `swift test` graph never
