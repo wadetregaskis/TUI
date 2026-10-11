@@ -175,6 +175,70 @@ struct TerminalInputBufferParsingTests {
         #expect(capacities == [Terminal.baselineCapacity], "the buffer was reallocated: \(capacities.sorted())")
     }
 
+    /// The same for a reply nearly as long as the parser waits for, which a
+    /// drain's room has to fit beside: first with only 1,000 bytes removed in
+    /// front of it, then with the back of the buffer so far along that the
+    /// reply has to slide down for the next read to fit. With room for two
+    /// reads only, the first grew the buffer by half, and the reply's end
+    /// shrank it back — inside one `readEvent()`, so the capacity between
+    /// calls cannot show it; the bytes the buffer copied do.
+    @Test("A reply as long as the parser waits for, split across reads, leaves the buffer's allocation alone")
+    func longPartialReplyDoesNotReallocate() {
+        let (terminal, source) = makeTerminal()
+        let chunk = Terminal.readChunk
+        var capacities: Set<Int> = [terminal.input.capacity]
+        var events: [TerminalInput] = []
+        func pump(_ times: Int) {
+            for _ in 0..<times {
+                if let event = terminal.readEvent() { events.append(event) }
+                capacities.insert(terminal.input.capacity)
+            }
+        }
+        func keys(_ count: Int) -> [UInt8] { [UInt8](repeating: 0x6B, count: count) }
+        // A clipboard answer: a string sequence, swallowed without an event.
+        let replyLength = 3500
+        let reply = Self.esc + Self.bytes("]52;c;")
+            + [UInt8](repeating: 0x41, count: replyLength - 8) + [0x07]
+        #expect(reply.count == replyLength && replyLength < Terminal.maxReplyBytes)
+
+        // One read: 1,000 keys and the head of the reply. Then ten more of
+        // its bytes, then the rest of it and a key.
+        source.bytes = keys(1000) + Array(reply.prefix(chunk - 1000))
+        pump(1000)
+        source.bytes = Array(reply[(chunk - 1000)..<(chunk - 990)])
+        pump(1)
+        source.bytes = Array(reply[(chunk - 990)...]) + Self.bytes("z")
+        pump(3)
+        #expect(events == Array(repeating: .key(KeyEvent(character: "k")), count: 1000) + [.key(KeyEvent(character: "z"))])
+        // Nothing copied: each read landed behind the reply, in room the
+        // buffer had. Growing would have copied the reply.
+        #expect(terminal.input.bytesMoved == 0, "the buffer copied \(terminal.input.bytesMoved) bytes: it was reallocated")
+
+        // Now with a full read's keys ahead of it, the last five bytes a mouse
+        // report's head, so the next read lands behind them; that read brings
+        // the report's tail, 1,000 keys and the head of the reply.
+        events.removeAll()
+        let report = Self.esc + Self.bytes("[<35;120;40M")
+        source.bytes = keys(chunk - 5) + Array(report.prefix(5))
+        pump(chunk - 5)
+        source.bytes = Array(report.dropFirst(5)) + keys(1000) + Array(reply.prefix(chunk - 1008))
+        pump(1001)
+        source.bytes = Array(reply[(chunk - 1008)..<(chunk - 998)])
+        pump(1)
+        source.bytes = Array(reply[(chunk - 998)...]) + Self.bytes("z")
+        pump(3)
+        #expect(events.count == chunk - 5 + 1 + 1000 + 1)
+        #expect(events.prefix(chunk - 5).allSatisfy { $0 == .key(KeyEvent(character: "k")) })
+        guard case .mouse = events.dropFirst(chunk - 5).first else {
+            Issue.record("the report across the read boundary did not decode")
+            return
+        }
+        #expect(events.last == .key(KeyEvent(character: "z")))
+        // One copy: the reply's 3,098 bytes so far, slid down to the front.
+        #expect(terminal.input.bytesMoved == chunk - 998, "expected one slide of the reply, not \(terminal.input.bytesMoved) bytes")
+        #expect(capacities == [Terminal.baselineCapacity], "the buffer was reallocated: \(capacities.sorted())")
+    }
+
     /// What an exchange reads but does not own goes back AFTER whatever was
     /// already buffered, because that was read first — here behind a key
     /// still waiting and the head of a sequence still in flight, so the bytes

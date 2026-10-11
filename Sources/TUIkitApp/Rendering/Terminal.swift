@@ -88,18 +88,32 @@ final class Terminal: TerminalProtocol {
     static let readChunk = 4096
 
     /// Initial — and steady-state minimum — capacity for ``input``:
-    /// room for one ``readChunk`` beside a partial sequence as long as
-    /// the longest the parser waits for (``maxReplyBytes``), so a drain
-    /// never has to grow the buffer under a sequence still in flight.
+    /// one ``readChunk`` and twice ``maxReplyBytes``, so a drain never
+    /// has to grow the buffer under a sequence the parser is waiting on.
+    ///
+    /// The arithmetic. A sequence is partial only because the buffer
+    /// ends inside it, so while the parser waits, the buffer holds that
+    /// sequence and nothing else, and it is shorter than
+    /// ``maxReplyBytes`` (a longer one is dropped). A drain needs room
+    /// when the back is past `baselineCapacity − readChunk`, which is
+    /// `2 × maxReplyBytes`; so more than ``maxReplyBytes`` bytes were
+    /// removed in front of the partial, more than the partial holds,
+    /// and ``InputByteBuffer`` slides it down rather than growing (it
+    /// slides when the bytes removed in front are at least as many as
+    /// the live ones). Paste content is not bounded that way: a large
+    /// paste grows the buffer, and ``consume(_:)`` gives the room back.
     ///
     /// It was one ``readChunk`` until 2026-10-10. A drain asks for a
     /// whole chunk of free room, so ANY partial sequence left at the
     /// front — a read boundary through a mouse report, the lone `ESC`
     /// of an Escape key held a round — grew the buffer by half, and the
     /// next ``consume(_:)`` shrank it straight back: two reallocations
-    /// each time. Now the partial bytes slide down, or the read lands
-    /// behind them, in the room that is already there.
-    static let baselineCapacity = 2 * readChunk
+    /// each time. Two chunks fixed that for partials of up to half a
+    /// chunk, but not for a longer reply: 1,000 keys and the first
+    /// 3,096 bytes of a reply in one read, then a few more of its bytes,
+    /// still grew it (the 1,000 bytes in front were fewer than the
+    /// 3,106 to slide).
+    static let baselineCapacity = readChunk + 2 * maxReplyBytes
 
     /// True while we're between the bracketed-paste start (`ESC[200~`)
     /// and end (`ESC[201~`) markers. Paste content is accumulated
