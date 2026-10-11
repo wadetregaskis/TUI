@@ -30,10 +30,14 @@
 //  USAGE (see README.md for the exact swiftc invocation and dlopen flags):
 //
 //      Tools/GenerateSFSymbols/generate.sh
+//      Tools/GenerateSFSymbols/generate.sh "/Applications/SF Symbols.app"
+//      Tools/GenerateSFSymbols/generate.sh --pairs FILE
 //
 //  which compiles this file with dynamic-lookup linking and runs it, writing the
 //  generated table into Sources/. Pass an explicit app path as the first
-//  argument to override auto-detection.
+//  argument to override auto-detection, or `--pairs FILE` to read the mapping
+//  from a file of `name<TAB>codepoint` lines instead of the app: on a machine
+//  without the app, or to re-emit the committed mapping in a changed format.
 
 import CoreText
 import Foundation
@@ -277,34 +281,72 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
 
 // MARK: - Main
 
-let explicitPath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : nil
-guard let app = locateApp(explicit: explicitPath) else {
-    FileHandle.standardError.write(Data("error: SF Symbols app not found (pass its path as an argument)\n".utf8))
-    exit(1)
+/// Decrypts the SF Symbols app's `symp` table (the app at `explicitPath`, or
+/// the first one found) and parses its name → codepoint pairs.
+func readPairsFromApp(explicitPath: String?) -> [(name: String, codepoint: UInt32)] {
+    guard let app = locateApp(explicit: explicitPath) else {
+        FileHandle.standardError.write(
+            Data("error: SF Symbols app not found (pass its path, or --pairs FILE)\n".utf8))
+        exit(1)
+    }
+
+    for framework in app.frameworks where dlopen(framework, RTLD_NOW) == nil {
+        let message = dlerror().map { String(cString: $0) } ?? "unknown error"
+        FileHandle.standardError.write(Data("warning: dlopen failed for \(framework): \(message)\n".utf8))
+    }
+
+    let fontURL = URL(fileURLWithPath: app.font) as CFURL
+    guard
+        let descriptors = CTFontManagerCreateFontDescriptorsFromURL(fontURL) as? [CTFontDescriptor],
+        let descriptor = descriptors.first
+    else {
+        FileHandle.standardError.write(Data("error: could not read font descriptors from \(app.font)\n".utf8))
+        exit(1)
+    }
+    let font = CTFontCreateWithFontDescriptor(descriptor, 12, nil)
+
+    // 'symp' big-endian table tag.
+    guard let csv = cryptonDecryptObfuscatedFontTable(tableTag: 0x73_79_6D_70, from: font) else {
+        FileHandle.standardError.write(
+            Data("error: decryptObfuscatedFontTable returned nil (cipher or symbol changed?)\n".utf8))
+        exit(1)
+    }
+    return parsePairs(from: csv)
 }
 
-for framework in app.frameworks where dlopen(framework, RTLD_NOW) == nil {
-    let message = dlerror().map { String(cString: $0) } ?? "unknown error"
-    FileHandle.standardError.write(Data("warning: dlopen failed for \(framework): \(message)\n".utf8))
+/// Reads `name<TAB>codepoint` lines, the codepoint in hexadecimal as the app's
+/// `PUAs` column spells it (`star.fill<TAB>1002C3`). Empty lines are skipped;
+/// any other line that is not a name, one tab and a hexadecimal codepoint
+/// stops the run, so a mangled file never becomes a smaller table.
+func readPairs(fromFile path: String) -> [(name: String, codepoint: UInt32)] {
+    guard let data = FileManager.default.contents(atPath: path) else {
+        FileHandle.standardError.write(Data("error: cannot read \(path)\n".utf8))
+        exit(1)
+    }
+    var pairs: [(name: String, codepoint: UInt32)] = []
+    let lines = String(decoding: data, as: UTF8.self).split(separator: "\n", omittingEmptySubsequences: false)
+    for (number, line) in lines.enumerated() where !line.isEmpty {
+        let fields = line.split(separator: "\t", omittingEmptySubsequences: false)
+        guard fields.count == 2, !fields[0].isEmpty, let codepoint = UInt32(fields[1], radix: 16) else {
+            FileHandle.standardError.write(Data("error: \(path):\(number + 1): not name<TAB>hex codepoint\n".utf8))
+            exit(1)
+        }
+        pairs.append((String(fields[0]), codepoint))
+    }
+    return pairs
 }
 
-let fontURL = URL(fileURLWithPath: app.font) as CFURL
-guard
-    let descriptors = CTFontManagerCreateFontDescriptorsFromURL(fontURL) as? [CTFontDescriptor],
-    let descriptor = descriptors.first
-else {
-    FileHandle.standardError.write(Data("error: could not read font descriptors from \(app.font)\n".utf8))
-    exit(1)
+let arguments = Array(CommandLine.arguments.dropFirst())
+var pairs: [(name: String, codepoint: UInt32)]
+if arguments.first == "--pairs" {
+    guard arguments.count == 2 else {
+        FileHandle.standardError.write(Data("usage: GenerateSFSymbols [APP_PATH | --pairs FILE]\n".utf8))
+        exit(1)
+    }
+    pairs = readPairs(fromFile: arguments[1])
+} else {
+    pairs = readPairsFromApp(explicitPath: arguments.first)
 }
-let font = CTFontCreateWithFontDescriptor(descriptor, 12, nil)
-
-// 'symp' big-endian table tag.
-guard let csv = cryptonDecryptObfuscatedFontTable(tableTag: 0x73_79_6D_70, from: font) else {
-    FileHandle.standardError.write(Data("error: decryptObfuscatedFontTable returned nil (cipher or symbol changed?)\n".utf8))
-    exit(1)
-}
-
-var pairs = parsePairs(from: csv)
 pairs.sort { $0.name < $1.name }
 guard !pairs.isEmpty else {
     FileHandle.standardError.write(Data("error: no name/codepoint pairs parsed\n".utf8))

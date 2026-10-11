@@ -6,9 +6,9 @@ Regenerates [`Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift`](..
 `Label(_:systemImage:)`.
 
 This is **developer tooling**, not part of the package build. End users never
-run it; they consume the committed generated file. It is macOS-only and needs
-the **SF Symbols app** installed (mirroring `Tools/Profiling`, which needs
-Instruments).
+run it; they consume the committed generated file. It is macOS-only and reads
+the mapping from the **SF Symbols app** (mirroring `Tools/Profiling`, which
+needs Instruments), or from a file of name/codepoint pairs.
 
 ## Run
 
@@ -24,6 +24,20 @@ Pass an explicit app path to override auto-detection (it tries
 ```sh
 Tools/GenerateSFSymbols/generate.sh "/Applications/SF Symbols.app"
 ```
+
+Or read the mapping from a file instead of the app:
+
+```sh
+Tools/GenerateSFSymbols/generate.sh --pairs symbols.tsv
+```
+
+The file holds one `name<TAB>codepoint` line per symbol, the codepoint in
+hexadecimal as the app's own table spells it (`star.fill	1002C3`), in any
+order (the generator sorts them). A line of any other shape stops the run.
+This is for a machine without the app, and for changing what the generator
+emits without changing the mapping: the pairs of the committed table, fed
+back in, regenerate the same mapping in the new format, written by the same
+emitter as an app run.
 
 The script compiles and runs `GenerateSFSymbols.swift`, which writes the
 generated Swift table into `Sources/` and prints a one-line summary

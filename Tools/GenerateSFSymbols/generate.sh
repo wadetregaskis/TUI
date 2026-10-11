@@ -8,9 +8,11 @@
 #
 #  Regenerates Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift from the
 #  installed SF Symbols app. macOS only; requires the SF Symbols app (Beta or
-#  release) in /Applications. See README.md and GenerateSFSymbols.swift.
+#  release) in /Applications, unless the mapping comes from a pairs file. See
+#  README.md and GenerateSFSymbols.swift.
 #
 #  Usage:  Tools/GenerateSFSymbols/generate.sh ["/path/to/SF Symbols.app"]
+#          Tools/GenerateSFSymbols/generate.sh --pairs FILE   (name<TAB>hex codepoint lines)
 #
 #  Run from the repository root (the output path is repo-relative).
 
