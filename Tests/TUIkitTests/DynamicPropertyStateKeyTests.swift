@@ -508,6 +508,34 @@ struct DynamicPropertyStateKeyTests {
         #expect(storage.count == settled, "what each case left is dropped, not kept beside the new case's")
     }
 
+    /// Found in review: the record of the enum view's case also listed what
+    /// the inner enum's case created, so each inner change listed the
+    /// recreated state there again. `storage.count` cannot see it: the
+    /// record is one value however many keys it lists.
+    @Test("An enum property switching cases inside an enum view's unchanged case grows nothing the view keeps")
+    func nestedEnumSwitchingCasesKeepsOuterRecordBounded() throws {
+        let context = makeRenderContext(width: 30, height: 1)
+        let storage = try #require(context.stateStorage)
+        let tap = StateTap()
+        _ = line(NestedScreen.other, context: context)
+        let empty = storage.count
+        _ = line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context)
+        _ = line(NestedScreen.outer(.two(Pair())), context: context)
+        let recordKey = StateStorage.StateKey(
+            identity: context.identity, propertyIndex: StateStorage.StateKey.enumCaseIndex,
+            scope: NestedScope.view)
+        let record = try #require(storage.enumCaseRecord(at: recordKey))
+        let listed = record.keys.count
+        for _ in 0..<5 {
+            _ = line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context)
+            _ = line(NestedScreen.outer(.two(Pair())), context: context)
+        }
+        #expect(record.keys.count == listed, "the inner enum's changes are its own record's to list")
+
+        _ = line(NestedScreen.other, context: context)
+        #expect(storage.count == empty + 1, "the outer case's change dropped the inner enum's record and state")
+    }
+
     @Test("An existential app property that changes type starts the new type's @State at its own default")
     func existentialPropertyOfAnotherType() {
         let context = makeRenderContext(width: 30, height: 1)

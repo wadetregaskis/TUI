@@ -307,10 +307,13 @@ extension StateStorage {
     /// Removes what is stored under each of `keys`: the state an enum's case
     /// created, when another case replaces it, so the case starts at its
     /// defaults when it comes back, as SwiftUI's does (measured on macOS 15:
-    /// session notes `SKEY/probe/skey.out`).
+    /// session notes `SKEY/probe/skey.out`). An enum's record among them —
+    /// one inside the case — has what it lists removed with it.
     func removeValues(forKeys keys: [StateKey]) {
         for key in keys {
-            values.removeValue(forKey: key)
+            if let record = values.removeValue(forKey: key) as? EnumCaseRecord {
+                removeValues(forKeys: record.keys)
+            }
         }
     }
 

@@ -114,9 +114,10 @@ struct NestedPropertyWalk {
     /// the caller runs.
     var hasAppProperties = false
 
-    /// The keys of the state the walk created inside an enum's case, in the
-    /// order it did: each enum's record takes those created inside its case,
-    /// an enclosing enum's included (``bindCase(of:scope:)``).
+    /// The keys of the state the walk created inside the enum cases it is in,
+    /// in the order it did: each enum's record takes those created in its
+    /// case, and the key of the record of an enum inside it when that record
+    /// is made — not what that record lists (``bindCase(of:scope:)``).
     private var created: [StateStorage.StateKey] = []
 
     /// How many enum cases the walk is inside. It notes the state it creates
@@ -211,10 +212,14 @@ struct NestedPropertyWalk {
         } else {
             storage.setEnumCaseRecord(
                 EnumCaseRecord(label: label, keys: Array(created[createdBefore...])), at: recordKey)
-            // Inside another enum's case, that case's change drops this
-            // record with the state it lists.
-            if caseDepth > 0 { created.append(recordKey) }
         }
+        // What this case created is this record's alone. An enclosing case's
+        // record lists this record instead — once, when it is made — and
+        // drops what it lists with it (``StateStorage/removeValues(forKeys:)``).
+        // Were the keys handed on as well, every change of this case while
+        // the enclosing one held would list its new state there again.
+        created.removeSubrange(createdBefore...)
+        if record == nil, caseDepth > 0 { created.append(recordKey) }
     }
 
     /// Binds one stored value: a `@State`, a property bound to the view's
@@ -246,9 +251,11 @@ struct NestedPropertyWalk {
 
 /// Which case an enum holding state held when the property walk last
 /// visited it, and the keys of the state the walk created while it held
-/// that case, at any depth, an enum's record inside it included
-/// (``NestedPropertyWalk/bindCase(of:scope:)``): what is dropped when
-/// another case replaces it.
+/// that case (``NestedPropertyWalk/bindCase(of:scope:)``): what is dropped
+/// when another case replaces it. For an enum inside the case, the key is
+/// that enum's record, which lists what is created in its own case and is
+/// dropped with it; so a case of the inner enum changing, however often,
+/// while this one holds, adds nothing here.
 final class EnumCaseRecord {
     var label: String
     var keys: [StateStorage.StateKey]
