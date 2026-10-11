@@ -57,9 +57,11 @@ struct GuideProbeRow: Sendable, CustomTestStringConvertible {
         self.swiftUI = swiftUI
     }
 
+    /// The row without its container, which the suite that reads it names:
+    /// the probe's pairs are in a `VStack` (or `HStack`), and `ZStack`'s rows
+    /// reuse the type.
     var testDescription: String {
-        "\(alignment.isHorizontal ? "VStack" : "HStack")(.\(alignment)): \(guided) cells with guide "
-            + "\(Int(guide)), then \(sibling)"
+        ".\(alignment): \(guided) cells with guide \(Int(guide)), then \(sibling)"
     }
 }
 
