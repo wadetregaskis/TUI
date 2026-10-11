@@ -371,7 +371,10 @@ extension RenderCache {
                 hashFoldSeed, UInt64(bitPattern: Int64(identity.structuralHash)))
             // The key path's own hash: it has to be the VALUE's, not the
             // object's, because two `\.foregroundStyle` literals from different
-            // call sites are equal and must hash alike.
+            // call sites are equal and must hash alike. No two key paths a fold
+            // could make equal share one (identity, depth): manifest.json in
+            // Tools/DedupCheck, `RenderCache.EnvironmentSlot`.
+            // swiftlint:disable:next key_path_identity
             folded = mixHashWord(folded, UInt64(bitPattern: Int64(keyPath.hashValue)))
             folded = mixHashWord(folded, UInt64(bitPattern: Int64(depth)))
             hasher.combine(finalizeHashWord(folded))

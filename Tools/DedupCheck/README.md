@@ -26,7 +26,9 @@ never 0, when it cannot check: no objects, none of TUIkit's, no key path in them
 
 Not covered: key paths or functions that reach `==` through a dynamic cast (`x as? any Hashable`) or generic code
 that never names them; an `unsafeBitCast` of a Swift closure; and K1 for a module the checked binary does not link
-(Stress links every library module but TUIkitAppKit and TUIkitMacros).
+(Stress links every library module but TUIkitAppKit and TUIkitMacros). Two SwiftLint rules in `.swiftlint.yml`,
+`key_path_identity` and `function_address_identity`, flag a new comparison or bit cast at the source, before any
+build; each site that means it carries a `swiftlint:disable` with its reason and manifest entry.
 
 ## Running it
 

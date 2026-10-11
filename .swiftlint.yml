@@ -507,3 +507,66 @@ custom_rules:
     match_kinds:
       - identifier
     severity: error
+
+  # `-Xlinker -deduplicate`, which the README offers app developers, folds
+  # byte-identical functions onto one address across the whole app, TUIkit
+  # included. A key path to a COMPUTED property is identified by its getter's
+  # address, so two such key paths can then compare and hash equal although
+  # they name different properties. TUIkit's code that compares or hashes key
+  # paths is listed in Tools/DedupCheck/manifest.json, which CI checks against
+  # a deduplicated link (Tools/DedupCheck/README.md); this rule makes a NEW
+  # site visible when it is written. Each site that is meant takes a
+  # `swiftlint:disable:next` naming its manifest entry.
+  #
+  # The library only (`included` is a regex on the path): tests assert key
+  # paths, and the apps are user code. What it cannot see: a synthesized
+  # Equatable or Hashable on a type that stores a key path, and a key path
+  # handed to generic Equatable code. The check's object scan (K2) catches the
+  # first; the second has no syntax. On SIZE3's test cases (2026-10-11,
+  # SwiftLint 0.65.1) it and the rule below hit all ten positives (eight key
+  # paths, two bit casts) and none of the negatives (comments, strings,
+  # `\(x == nil)` in an interpolation, `[keyPath: kp]` subscripts) but the
+  # bit cast of a plain value, which no regex can tell from a function's.
+  key_path_identity:
+    included: 'Sources/TUIkit'
+    name: "Key-path identity"
+    message: >-
+      Comparing or hashing key paths compares getter addresses, and
+      -deduplicate folds identical getters (two computed properties whose
+      getters compile alike then compare equal). If this is intended, list the
+      enclosing function under key_path_consumers in
+      Tools/DedupCheck/manifest.json, say where its key paths come from, and
+      disable this rule on the line.
+    regex: '\\[A-Z.][\w.?!]*\s*[=!]==?|[=!]==?\s*\\[A-Z.]|\b(Set|Dictionary)<\s*(Any|Partial)?KeyPath\b|\[\s*(Any|Partial)KeyPath\b[^\]\n]*:|\b\w*[kK]eyPath\s*[=!]=(?!=)|[=!]=\s*[\w.]*[kK]eyPath\b|[kK]eyPath\.hashValue|combine\(\s*[\w.]*[kK]eyPath\b|AnyHashable\(\s*[\w.]*[kK]eyPath\b'
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - comment.mark
+      - comment.url
+      - doccomment.field
+      - string
+    severity: error
+
+  # The other way Swift code sees a function's address: reinterpreting a
+  # function value (a closure, a @convention(c) pointer) as bits. ld does not
+  # fold a @convention(c) entry point, but does fold Swift closures whose
+  # address sits in data. Any comparison or hash of such bits is listed under
+  # address_identity in Tools/DedupCheck/manifest.json, and the check fails if
+  # one of those shares its address. A regex cannot tell a function from a
+  # plain value (a metatype, a C union), so every `unsafeBitCast` to an
+  # integer or a pointer is flagged and reviewed at the site.
+  function_address_identity:
+    included: 'Sources/TUIkit'
+    name: "Function-address identity"
+    message: >-
+      This reinterprets a value as an address. If it is a function's (a
+      closure or a C function pointer) and the address is compared or hashed,
+      -deduplicate can make two functions share it: list the function under
+      address_identity in Tools/DedupCheck/manifest.json and disable this rule
+      on the line.
+    regex: '\bunsafeBitCast\([^\n]*,\s*to:\s*(U?Int|UnsafeRawPointer|UnsafeMutableRawPointer|OpaquePointer|\(\s*U?Int\s*,\s*U?Int\s*\))\.self'
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+    severity: error

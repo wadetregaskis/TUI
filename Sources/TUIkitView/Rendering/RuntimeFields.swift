@@ -133,6 +133,8 @@ package enum RuntimeFields {
     /// not what this reads it as, and the caller bypasses.
     package static func fixedArray(_ type: Any.Type) -> (count: Int, element: Any.Type)? {
         guard Kind(of: type) == .fixedArray else { return nil }
+        // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
+        // swiftlint:disable:next function_address_identity
         let metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
         let word = MemoryLayout<Int>.size
         let count = metadata.load(fromByteOffset: word, as: Int.self)

@@ -45,6 +45,9 @@ extension WindowGroup: ConfiguringScene {
         var current: Any = content
 
         while let modifier = current as? any AnyEnvironmentModifierNode {
+            // A key path equal to `\.palette` reads the palette, folded or not:
+            // Tools/DedupCheck/manifest.json, `WindowGroup.(rootViewPalette`.
+            // swiftlint:disable:next key_path_identity
             if modifier.anyEnvironmentKeyPath == \EnvironmentValues.palette,
                 let palette = modifier.anyEnvironmentValue as? any Palette
             {

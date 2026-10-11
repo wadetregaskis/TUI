@@ -211,6 +211,10 @@ enum FatalSignalTerminalRestore {
     /// `action`'s handler, as an address, through each C library's spelling
     /// of the union that holds it: 0 for `SIG_DFL`, 1 for `SIG_IGN`.
     private static func handlerAddress(of action: sigaction) -> Int {
+        // Compared with ``handler``'s address (`endsTheProcess`), so listed
+        // under address_identity in Tools/DedupCheck/manifest.json, whose check
+        // fails if `-deduplicate` gives that address to another function.
+        // swiftlint:disable function_address_identity
         #if canImport(Darwin)
             unsafeBitCast(action.__sigaction_u, to: Int.self)
         #elseif canImport(Glibc)
@@ -218,6 +222,7 @@ enum FatalSignalTerminalRestore {
         #elseif canImport(Musl)
             unsafeBitCast(action.__sa_handler, to: Int.self)
         #endif
+        // swiftlint:enable function_address_identity
     }
 
     /// The handler ``setHandler(_:)`` installs, a C function that calls
@@ -227,7 +232,11 @@ enum FatalSignalTerminalRestore {
     }
 
     /// ``handler``'s address, as ``handlerAddress(of:)`` reads one.
-    static var handlerAddress: Int { unsafeBitCast(handler, to: Int.self) }
+    static var handlerAddress: Int {
+        // Compared: Tools/DedupCheck/manifest.json, address_identity.
+        // swiftlint:disable:next function_address_identity
+        unsafeBitCast(handler, to: Int.self)
+    }
 
     /// Sets `action`'s handler to ``handle(_:)``, through each C library's
     /// spelling of the union that holds it.

@@ -222,6 +222,9 @@ struct _TableSortModel<Value> {
     private static func sameColumn<Sort: SortComparator>(_ lhs: Sort, _ rhs: Sort) -> Bool
     where Sort.Compared == Value {
         if let lhs = lhs as? KeyPathComparator<Value>, let rhs = rhs as? KeyPathComparator<Value> {
+            // The app's key paths: folded getters read alike, so the columns sort
+            // alike (Tools/DedupCheck/manifest.json, `_TableSortModel`).
+            // swiftlint:disable:next key_path_identity
             return lhs.keyPath == rhs.keyPath
         }
         var lhs = lhs
