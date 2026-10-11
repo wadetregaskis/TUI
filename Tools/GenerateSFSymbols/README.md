@@ -12,7 +12,8 @@ needs Instruments), or from a file of name/codepoint pairs.
 
 ## Run
 
-From the repository root:
+From the repository root (or any directory: a relative app path or file is
+taken from the directory the script runs in):
 
 ```sh
 Tools/GenerateSFSymbols/generate.sh

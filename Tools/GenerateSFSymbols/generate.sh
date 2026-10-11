@@ -14,9 +14,21 @@
 #  Usage:  Tools/GenerateSFSymbols/generate.sh ["/path/to/SF Symbols.app"]
 #          Tools/GenerateSFSymbols/generate.sh --pairs FILE   (name<TAB>hex codepoint lines)
 #
-#  Run from the repository root (the output path is repo-relative).
+#  Runs from any directory: a relative app path or FILE is taken from the
+#  directory it is run in, and the table is written into the repository the
+#  script belongs to.
 
 set -euo pipefail
+
+# Make relative path arguments absolute before the cd below, which the
+# generator needs (it writes the table to a repo-relative path).
+arguments=()
+for argument in "$@"; do
+    case "$argument" in
+        -* | /*) arguments+=("$argument") ;;
+        *) arguments+=("$PWD/$argument") ;;
+    esac
+done
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
@@ -33,4 +45,6 @@ swiftc -O \
     -Xlinker -undefined -Xlinker dynamic_lookup \
     -o "$binary" "$source_file"
 
-"$binary" "$@"
+# `${arguments[@]+…}`, not `"${arguments[@]}"`: under `set -u`, macOS's bash 3.2
+# calls an empty array unbound, so a run with no arguments would stop here.
+"$binary" ${arguments[@]+"${arguments[@]}"}
