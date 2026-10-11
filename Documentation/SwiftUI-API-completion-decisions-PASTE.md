@@ -79,7 +79,9 @@ above. From the code, not measured:
 - Its undo keeps up to 50 texts from before an edit (`TextUndoHistory`),
   each the whole document. Once a 16 MiB paste is in, each later edit adds
   16 MiB, up to 800 MiB, and each joins every line back into one string, so
-  every key typed walks the document.
+  every key typed walks the document. `TextField` keeps the same history
+  (`pushUndoState` records the whole text), so the same 800 MiB applies to a
+  field.
 - Its insert shifts the lines after the caret once for each line it
   inserts, so a paste of many lines into the middle of a long document
   costs the product of the two.
@@ -87,7 +89,11 @@ above. From the code, not measured:
   the wrappings of this frame and the last), a cost of its own, not
   estimated here.
 - A `TextField` walks its whole text on every frame it draws, with an array
-  of cell widths as long as the text (128 MiB at 16 MiB of ASCII).
+  of cell widths as long as the text (128 MiB at 16 MiB of ASCII). A
+  vertical one (`axis: .vertical`) also builds an array of the text's
+  `Character`s from scratch on every measure and render and on caret keys
+  (`verticalSource`, `softWrapLayout`): 256 MiB and a grapheme walk of the
+  whole text, several times a frame.
 
 Before this lane neither control was handed more than 1 MiB of paste in one
 event: whatever came after that was typed into it, a key at a time. The same

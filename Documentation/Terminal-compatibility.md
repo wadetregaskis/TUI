@@ -4485,8 +4485,8 @@ what it becomes. A key's bytes before the dead-sequence wait runs out
 and three more bytes is a legacy mouse report. Nothing else finishes it, and
 it is dropped when the wait runs out. An `ESC` straight after it, or among
 the three bytes a legacy report has after its `M` — a paste, a mouse report
-or an arrow that the terminal sends — cuts it short, and that sequence parses on its own (2026-10-11). Before
-that, the sequence's first bytes were read as the rest of this one, and
+or an arrow that the terminal sends — cuts it short, and that sequence
+parses on its own (2026-10-11). Before that, the sequence's first bytes were read as the rest of this one, and
 what followed them was typed out as keys: a paste's text, a report's
 coordinates.
 
