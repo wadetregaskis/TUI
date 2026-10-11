@@ -40,13 +40,20 @@ func mixHashWord(_ accumulated: UInt64, _ value: UInt64) -> UInt64 {
 /// measurements in 1e1cfe25 and 21c3675b still stand.
 @inline(__always)
 func finalizeHashWord(_ value: UInt64) -> Int {
+    Int(truncatingIfNeeded: finalizeHashWord64(value))
+}
+
+/// ``finalizeHashWord(_:)`` kept at 64 bits on every platform, for a code
+/// that is itself a key rather than a `Dictionary`'s bucket hint.
+@inline(__always)
+func finalizeHashWord64(_ value: UInt64) -> UInt64 {
     var mixed = value
     mixed ^= mixed >> 30
     mixed = mixed &* 0xbf58_476d_1ce4_e5b9
     mixed ^= mixed >> 27
     mixed = mixed &* 0x94d0_49bb_1331_11eb
     mixed ^= mixed >> 31
-    return Int(truncatingIfNeeded: mixed)
+    return mixed
 }
 
 /// The seed every fold starts from — FNV's offset basis.
