@@ -171,7 +171,47 @@ one shift, once, after the search.
 `nameStarts` was left as it is. It is read twice per step of the binary search,
 so packing it would put a shift and a mask into the loop; deriving it from the
 blob at first use would remove it, at the price of runtime parsing. Both are
-open (`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`).
+open (`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`). Front-coding
+(below) has since replaced it with one offset per block.
+
+---
+
+## Front-coding the names (2026-10-11)
+
+Sorted names share long prefixes with their neighbours (`0.circle`,
+`0.circle.ar`, `0.circle.fill`, …), and the blob above stores every one of them
+in full: 200,347 bytes. The table is now **front-coded in blocks of 16**: each
+block's first name (its head) in full, every other name as one byte of
+shared-prefix length plus its suffix, each name ended by a newline. The blob is
+87,240 bytes, and `nameStarts` becomes `blockStarts`, one `UInt32` per block
+(531). Still all compile-time data: nothing to parse or allocate at first use.
+
+```swift
+static let nameBlocks: StaticString = """
+0.circle
+\u{8}.ar
+\u{9}fill
+…
+"""
+static let blockStarts: [UInt32] = [ 0, 91, 192, … ]
+```
+
+The lookup binary-searches the heads, then walks one block without rebuilding
+any name: it tracks how many query bytes the current name matches, and a name
+sharing more than that with its predecessor still sorts below the query, one
+sharing fewer has passed it, and only one sharing exactly that many has its
+suffix compared. The shared-length byte is written as a `\u{…}` escape, so the
+literal stays one name to a line and its diffs stay readable.
+
+Measured in the session notes' SIZE3 research (`SIZE3/q/sf-table/notes.md`:
+6.4.0 `-O` probes, stripped and dead-stripped; lookup timings INDICATIVE, one
+VM): −142,442 bytes per executable (TUIkit's stripped release `Stress`, built
+with Xcode 26.3's 6.2.4 when the change landed: −144,076 bytes of sections,
+−132,096 of file), and a lookup of 114 ns over all names in
+random order and 56 ns over 20 common ones, against 122 and 41 ns for the blob
+above. Blocks of 32 save 4,936 bytes more for 136 / 96 ns; DEFLATE saves more
+again but adds 320–464 KiB of dirty footprint to every process that resolves one
+name, where this table is clean, file-backed and read where a lookup reads.
 
 ---
 
@@ -194,6 +234,10 @@ open (`B-BT1-1` in `SwiftUI-API-completion-decisions-BT1.md`).
 6. **Assert the representation's invariants in the generator** (here: ASCII
    names, `UInt16`-range codepoints) so a bad regeneration fails loudly rather
    than shipping a subtly wrong table.
+7. **Sorted strings with shared prefixes front-code well**, still as a
+   `StaticString` and still searched in place: small blocks (16 here) keep the
+   walk short, and a digest of the mapping pinned in a test proves a change of
+   format changed no answer.
 
 Reference implementation: `Sources/TUIkitStrings/SFSymbols/SFSymbol.swift` (lookup) and
 `SFSymbolTable.generated.swift` (the baked literals), produced by

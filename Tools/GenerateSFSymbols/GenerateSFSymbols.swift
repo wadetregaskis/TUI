@@ -182,15 +182,39 @@ func wrapElements(_ values: [String]) -> String {
 /// the font would do; the emitter stops if this one ever leaves the table.
 let fontProbeName = "star.fill"
 
-/// Emits the generated Swift source in the "name blob + offsets" representation
-/// (benchmarked as the fastest to look up and compile of the correct options,
-/// with no `String` in storage). Three native compile-time literals:
-///   - `nameBlob`: a `StaticString` of every name, sorted ascending and
-///     newline-separated with NO trailing newline — greppable line by line.
-///   - `nameStarts`: `[UInt32]`, n+1 entries. Name `i` is the blob bytes
-///     `nameStarts[i] ..< nameStarts[i+1] - 1` (the `-1` drops the separating
-///     newline; the sentinel `nameStarts[n]` = blob length + 1 makes the last
-///     name resolve the same way).
+/// Names per block of the front-coded name table: every 16th name is stored
+/// in full, and the 15 after it each against the name before it. Blocks of 16
+/// were measured against 32 and 64 and against the 2026-10 table (one string
+/// per name, with an offset each): see README.md, "Why this shape".
+let nameBlockSize = 16
+
+/// FNV-1a (64-bit) of one `name<TAB>CODEPOINT<LF>` line per pair, in order,
+/// the codepoint in upper-case hexadecimal (the lines of a `--pairs` file).
+/// `SFSymbolTableTests` pins it, so a change to how the table is stored cannot
+/// change the mapping unnoticed; a table regenerated from a newer SF Symbols
+/// release changes it on purpose, and the run prints the value to pin.
+func mappingDigest(_ pairs: [(name: String, codepoint: UInt32)]) -> UInt64 {
+    var hash: UInt64 = 0xCBF2_9CE4_8422_2325
+    for pair in pairs {
+        for byte in "\(pair.name)\t\(String(pair.codepoint, radix: 16, uppercase: true))\n".utf8 {
+            hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01B3
+        }
+    }
+    return hash
+}
+
+/// Emits the generated Swift source: the names front-coded in a `StaticString`,
+/// an index of where each block starts, and the codepoints, all compile-time
+/// literals with no `String` in storage, so a lookup parses nothing:
+///   - `nameBlocks`: a `StaticString` of every name, sorted ascending, each
+///     ended by a newline (the last one too), in blocks of `nameBlockSize`. A
+///     block's first name (its head) is stored in full; each other name as one
+///     byte, how many leading bytes it shares with the name before it, then
+///     the rest of it. The byte is written as a `\u{…}` escape, so the literal
+///     keeps one name to a line and a head reads as itself.
+///   - `blockStarts`: `[UInt32]`, blocks + 1 entries: the byte offset of each
+///     block's head, then the blob's length, so block `b` is the bytes
+///     `blockStarts[b] ..< blockStarts[b + 1]`.
 ///   - `packedCodepointOffsets`: `[UInt64]`, each name's `codepoint - 0x100000`
 ///     packed four to an element, the first in the high 16 bits (so the hex
 ///     reads in table order); the last element's unused lanes are zero.
@@ -202,30 +226,59 @@ let fontProbeName = "star.fill"
 /// `fontProbeName`, so `SFSymbol.isFontAvailable` probes CoreText without
 /// searching the names.
 func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
-    // The representation relies on ASCII names (so raw-byte order equals Swift
-    // `String` order — what makes the binary search correct) and PUA codepoints
-    // that fit a UInt16 offset. Fail loudly at generation time if either breaks.
+    // The representation relies on names of printable ASCII (so raw-byte order
+    // equals Swift `String` order — what makes the binary search correct — and
+    // a name holds no newline, which ends it, and no `\` or `"`, so it is
+    // written into the literal as it is), on strictly ascending names (each is
+    // stored against the one before it), and on PUA codepoints that fit a
+    // UInt16 offset. Fail loudly at generation time if any of them breaks.
     for pair in pairs {
-        precondition(pair.name.utf8.allSatisfy { $0 < 0x80 }, "non-ASCII name: \(pair.name)")
+        precondition(
+            !pair.name.isEmpty
+                && pair.name.utf8.allSatisfy { (0x21...0x7E).contains($0) && $0 != 0x5C && $0 != 0x22 },
+            "a name must be printable ASCII, without a backslash or a quote: \(pair.name)")
         precondition(
             pair.codepoint >= 0x10_0000 && pair.codepoint - 0x10_0000 <= 0xFFFF,
             "codepoint outside the UInt16 PUA window: \(pair.name)")
+    }
+    for (previous, next) in zip(pairs, pairs.dropFirst()) {
+        precondition(
+            previous.name.utf8.lexicographicallyPrecedes(next.name.utf8),
+            "names not strictly ascending: \(previous.name), \(next.name)")
     }
     guard let fontProbe = pairs.first(where: { $0.name == fontProbeName }) else {
         preconditionFailure("the font probe's symbol is missing: \(fontProbeName)")
     }
     let fontProbeHex = String(fontProbe.codepoint, radix: 16, uppercase: true)
 
-    let nameBlob = pairs.map(\.name).joined(separator: "\n")
-
-    var starts: [UInt32] = []
-    starts.reserveCapacity(pairs.count + 1)
-    var offset: UInt32 = 0
-    for pair in pairs {
-        starts.append(offset)
-        offset += UInt32(pair.name.utf8.count) + 1  // +1 for the newline separator
+    // Front-code: a head in full, then per name its shared-prefix length (one
+    // byte below 0x80, so one UTF-8 byte in the StaticString) and its suffix.
+    // Every suffix is non-empty: a name sharing all of itself with the name
+    // before it would be a prefix of that name, and so sort before it.
+    var blobLength = 0
+    var lines: [String] = []
+    var blockStarts: [UInt32] = []
+    for (index, pair) in pairs.enumerated() {
+        let name = Array(pair.name.utf8)
+        if index % nameBlockSize == 0 {
+            blockStarts.append(UInt32(blobLength))
+            lines.append(pair.name)
+            blobLength += name.count
+        } else {
+            let previous = Array(pairs[index - 1].name.utf8)
+            var shared = 0
+            while shared < min(previous.count, name.count), previous[shared] == name[shared] { shared += 1 }
+            precondition(shared < 0x80, "shares 128 bytes or more with the name before it: \(pair.name)")
+            let suffix = String(decoding: name[shared...], as: UTF8.self)
+            lines.append("\\u{\(String(shared, radix: 16, uppercase: true))}" + suffix)
+            blobLength += 1 + name.count - shared
+        }
+        blobLength += 1  // the newline that ends every name
     }
-    starts.append(offset)  // sentinel = blob length + 1
+    blockStarts.append(UInt32(blobLength))
+    // The literal's text: one name to a line, and an empty line before the
+    // closing delimiter so the last name is newline-ended too.
+    let nameBlocks = lines.joined(separator: "\n")
 
     let offsets = pairs.map { UInt16($0.codepoint - 0x10_0000) }
     var packed: [String] = []
@@ -236,7 +289,7 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
         let padding = Array(repeating: "0000", count: 4 - lanes.count)
         packed.append("0x" + (lanes + padding).joined(separator: "_"))
     }
-    let startsLiteral = wrapElements(starts.map { String($0) })
+    let startsLiteral = wrapElements(blockStarts.map { String($0) })
     let offsetsLiteral = wrapElements(packed)
 
     return """
@@ -250,8 +303,9 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     //
     //  Produced by `Tools/GenerateSFSymbols/generate.sh` from the SF Symbols
     //  app's authoritative name → codepoint table (see that tool for how and
-    //  why). \(pairs.count) symbols, sorted by name. `SFSymbol` binary-searches
-    //  `nameBlob` directly through `nameStarts` — no String, no runtime parsing.
+    //  why). \(pairs.count) symbols, sorted by name and front-coded in blocks of
+    //  \(nameBlockSize). `SFSymbol` binary-searches the block heads through
+    //  `blockStarts`, then walks one block — no String, no runtime parsing.
     //  Gated to Apple platforms — SF Symbols never render elsewhere — so no other
     //  platform carries the weight.
 
@@ -269,16 +323,24 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
         /// without reading the table.
         static let fontProbeScalar: Unicode.Scalar = \"\\u{\(fontProbeHex)}\"
 
-        /// Every name, sorted ascending, newline-separated (no trailing newline).
-        /// A `StaticString` — static bytes in the binary, never a `String`.
-        /// Greppable verbatim. Indexed via `nameStarts`.
-        static let nameBlob: StaticString = \"\"\"
-    \(nameBlob)
+        /// Names per block of `nameBlocks`; the last block holds the rest.
+        static let nameBlockSize = \(nameBlockSize)
+
+        /// Every name, sorted ascending, each ended by a newline (the last one
+        /// too), front-coded in blocks of `nameBlockSize`: a block's first name,
+        /// its head, in full; every other name as one byte, how many leading
+        /// bytes it shares with the name before it (written `\\u{…}`), then the
+        /// rest of it. One name to a line. A `StaticString` — static bytes in
+        /// the binary, never a `String`. Indexed via `blockStarts`.
+        static let nameBlocks: StaticString = \"\"\"
+    \(nameBlocks)
+
     \"\"\"
 
-        /// Byte offsets into `nameBlob`: name `i` is
-        /// `nameBlob[nameStarts[i] ..< nameStarts[i + 1] - 1]`. \(starts.count) entries (n + 1).
-        static let nameStarts: [UInt32] = [
+        /// Byte offset of each block's head in `nameBlocks`, then the blob's
+        /// length: block `b` is `nameBlocks[blockStarts[b] ..< blockStarts[b + 1]]`.
+        /// \(blockStarts.count) entries (blocks + 1).
+        static let blockStarts: [UInt32] = [
     \(startsLiteral)
         ]
 
@@ -376,7 +438,13 @@ let outputPath = "Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift"
 do {
     try source.write(toFile: outputPath, atomically: true, encoding: .utf8)
     FileHandle.standardError.write(
-        Data("wrote \(pairs.count) symbols (\(source.utf8.count) bytes) to \(outputPath)\n".utf8))
+        Data(
+            """
+            wrote \(pairs.count) symbols (\(source.utf8.count) bytes) to \(outputPath)
+            mapping digest 0x\(String(mappingDigest(pairs), radix: 16, uppercase: true)) \
+            (SFSymbolTableTests pins it: a new mapping changes it, a new format must not)
+
+            """.utf8))
 } catch {
     FileHandle.standardError.write(Data("error: writing \(outputPath): \(error)\n".utf8))
     exit(1)

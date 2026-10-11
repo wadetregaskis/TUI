@@ -149,6 +149,10 @@ public enum SFSymbol {
     /// The Plane-16 Private Use Area base every codepoint offset is measured from.
     private static let puaBase: UInt32 = 0x10_0000
 
+    /// The byte that ends every name in `nameBlocks`. Computed, not stored: a
+    /// literal in every comparison of the search, with no global to read.
+    private static var newline: UInt8 { UInt8(ascii: "\n") }
+
     /// Name `index`'s `codepoint - 0x100000`: the generated table packs four
     /// to a `UInt64`, the first in the high 16 bits.
     private static func codepointOffset(at index: Int) -> UInt16 {
@@ -156,72 +160,127 @@ public enum SFSymbol {
         return UInt16(truncatingIfNeeded: packedCodepointOffsets[index / 4] &>> shift)
     }
 
-    /// The glyph scalar for `name`, or `nil`. Binary-searches the baked
-    /// `nameBlob` comparing raw UTF-8 bytes — for the ASCII symbol names that is
-    /// identical to Swift `String` ordering, so the search touches no `String`
-    /// and, on the common path, allocates nothing.
+    /// The glyph scalar for `name`, or `nil`. Searches the baked, front-coded
+    /// `nameBlocks` comparing raw UTF-8 bytes — for the ASCII symbol names that
+    /// is identical to Swift `String` ordering, so the search touches no
+    /// `String` and, on the common path, allocates nothing.
     static func scalar(forName name: String) -> Unicode.Scalar? {
         // Fast path: a native Swift string exposes contiguous UTF-8 storage.
-        let found: Unicode.Scalar?? = name.utf8.withContiguousStorageIfAvailable { searchBlob($0) }
-        if let found { return found }
+        let found: Int?? = name.utf8.withContiguousStorageIfAvailable { index(of: $0) }
         // Rare fallback (e.g. a bridged NSString): copy the query bytes once.
-        return Array(name.utf8).withUnsafeBufferPointer { searchBlob($0) }
+        let position = found ?? Array(name.utf8).withUnsafeBufferPointer { index(of: $0) }
+        guard let position else { return nil }
+        return Unicode.Scalar(puaBase + UInt32(codepointOffset(at: position)))
     }
 
-    /// Lower-bound binary search of `nameBlob` for `query`'s bytes.
-    private static func searchBlob(_ query: UnsafeBufferPointer<UInt8>) -> Unicode.Scalar? {
-        nameBlob.withUTF8Buffer { blob in
+    /// The position of `query` among the baked names, or `nil`: a binary search
+    /// of the block heads for the last one at or below the query, then a walk
+    /// of that block.
+    private static func index(of query: UnsafeBufferPointer<UInt8>) -> Int? {
+        nameBlocks.withUTF8Buffer { blob in
             var low = 0
-            var high = bakedCount
+            var high = blockStarts.count - 1  // the number of blocks
             while low < high {
                 let mid = low + (high - low) / 2
-                if compare(blob, name: mid, to: query) < 0 {
+                if compareHead(blob, at: Int(blockStarts[mid]), to: query) <= 0 {
                     low = mid + 1
                 } else {
                     high = mid
                 }
             }
-            guard low < bakedCount, compare(blob, name: low, to: query) == 0 else { return nil }
-            return Unicode.Scalar(puaBase + UInt32(codepointOffset(at: low)))
+            // `low` is the first block whose head sorts above the query.
+            guard low > 0 else { return nil }
+            return walk(blob, block: low - 1, for: query)
         }
     }
 
-    /// Unsigned byte-lexicographic comparison of baked name `index` against
-    /// `query`: negative if the name sorts before the query, `0` if equal. This
-    /// equals Swift `String` ordering because every name is ASCII.
-    private static func compare(
-        _ blob: UnsafeBufferPointer<UInt8>, name index: Int, to query: UnsafeBufferPointer<UInt8>
+    /// Unsigned byte-lexicographic comparison of the head name starting at
+    /// `start` against `query`: negative if the head sorts before the query,
+    /// `0` if equal, positive after. Equals Swift `String` ordering because
+    /// every name is ASCII.
+    private static func compareHead(
+        _ blob: UnsafeBufferPointer<UInt8>, at start: Int, to query: UnsafeBufferPointer<UInt8>
     ) -> Int {
-        let start = Int(nameStarts[index])
-        let end = Int(nameStarts[index + 1]) - 1  // drop the separating newline
-        let nameLength = end - start
-        let common = min(nameLength, query.count)
+        var position = start
         var offset = 0
-        while offset < common {
-            let lhs = blob[start + offset]
-            let rhs = query[offset]
-            if lhs != rhs { return lhs < rhs ? -1 : 1 }
+        while true {
+            let byte = blob[position]
+            if byte == newline { return offset == query.count ? 0 : -1 }
+            if offset == query.count { return 1 }
+            let other = query[offset]
+            if byte != other { return byte < other ? -1 : 1 }
+            position += 1
             offset += 1
         }
-        if nameLength == query.count { return 0 }
-        return nameLength < query.count ? -1 : 1
+    }
+
+    /// The position of `query` in `block`, whose head sorts at or below it, or
+    /// `nil`.
+    ///
+    /// Nothing is rebuilt. The walk keeps `matched`, how many leading bytes of
+    /// the query the current name shares, while that name still sorts below
+    /// the query. The next name shares `shared` bytes with the current one: if
+    /// more than `matched`, it agrees with the current name where that name
+    /// fell below the query, so it does too, with the same `matched`; if fewer,
+    /// it rose above the current name at a byte the query matched, so it — and
+    /// every name after it — sorts above the query; only a name sharing exactly
+    /// `matched` has its suffix compared with the query.
+    private static func walk(
+        _ blob: UnsafeBufferPointer<UInt8>, block: Int, for query: UnsafeBufferPointer<UInt8>
+    ) -> Int? {
+        var position = Int(blockStarts[block])
+        let end = Int(blockStarts[block + 1])
+        var index = block * nameBlockSize
+        var matched = 0
+        var shared = 0  // the head is stored in full: it shares nothing
+        while true {
+            if shared < matched { return nil }
+            if shared == matched {
+                while blob[position] != newline, matched < query.count, blob[position] == query[matched] {
+                    position += 1
+                    matched += 1
+                }
+                let byte = blob[position]
+                if byte == newline {
+                    if matched == query.count { return index }
+                    // A proper prefix of the query: below it, so walk on.
+                } else if matched == query.count || byte > query[matched] {
+                    return nil  // above the query
+                }
+            }
+            while blob[position] != newline { position += 1 }
+            position += 1
+            index += 1
+            guard position < end else { return nil }
+            shared = Int(blob[position])
+            position += 1
+        }
     }
 
     /// Public-facing entries (name + glyph). Built once, on first access to
-    /// ``all`` — the only place a name becomes a `String`.
+    /// ``all`` — the only place a name becomes a `String`: one pass over
+    /// `nameBlocks`, each name rebuilt from the one before it.
     private static let entries: [Entry] = {
         var result: [Entry] = []
         result.reserveCapacity(bakedCount)
-        nameBlob.withUTF8Buffer { blob in
+        nameBlocks.withUTF8Buffer { blob in
+            var name: [UInt8] = []
+            var position = 0
             for index in 0..<bakedCount {
-                let start = Int(nameStarts[index])
-                let length = Int(nameStarts[index + 1]) - 1 - start
-                let name = String(unsafeUninitializedCapacity: length) { buffer in
-                    for offset in 0..<length { buffer[offset] = blob[start + offset] }
-                    return length
+                if index.isMultiple(of: nameBlockSize) {
+                    name.removeAll(keepingCapacity: true)
+                } else {
+                    name.removeLast(name.count - Int(blob[position]))
+                    position += 1
                 }
+                while blob[position] != newline {
+                    name.append(blob[position])
+                    position += 1
+                }
+                position += 1
                 let scalar = Unicode.Scalar(puaBase + UInt32(codepointOffset(at: index)))!
-                result.append(Entry(name: name, glyph: String(scalar)))
+                let text = String(unsafeUninitializedCapacity: name.count) { $0.initialize(fromContentsOf: name) }
+                result.append(Entry(name: text, glyph: String(scalar)))
             }
         }
         return result
