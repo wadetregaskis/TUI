@@ -114,11 +114,16 @@ sequence ends only at `BEL` or `ESC`, so everything typed would be skipped
 until the user pressed Escape. A reply's bytes arrive as a stream, so a pause
 that long means its end is not coming.
 
-One shape is left as it was. An `ESC` in front of the sequence (the meta
-prefix of `ESC ESC [`, which no terminal puts on a reply) stays the prefix of
-whatever is read after the skip, as it does after a reply that is
-swallowed whole; when the skip outlasts what has arrived, it is dropped with
-the sequence rather than put back, where it would end the skip.
+An `ESC` in front of the sequence is the Escape key: no terminal puts a
+meta prefix on a reply, and no key runs to 4 KiB. It is delivered first, and
+the sequence is skipped after it. The first version of this entry had it
+wrong (review round 1): the `ESC` was put on whatever was read after the
+skip, or dropped with the sequence when its rest had not arrived, so an
+Escape pressed just before a long reply came in was lost either way. The
+same held in front of everything else that is not a key — a reply swallowed
+whole, a focus or mouse report, a paste's start marker, behind which the
+paste was typed out as keys — and it is now one rule for all of them
+(`tryExtractMetaPrefixed()`).
 
 **The fuller version** would skip strictly to the terminator, with no pause
 rule. Its price is the wedge above, for a case nobody has observed (not

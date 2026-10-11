@@ -98,6 +98,13 @@ struct InputSplitInvarianceTests {
             // A device-attributes answer: a CSI longer than any keystroke,
             // which is the shape that used to be truncated at 32 bytes.
             ("da1", esc + Array("[?63;1;2;4;6;9;15;16;18;21;22;28;29c".utf8)),
+            // Escape pressed just before the terminal sent something that is
+            // not a key: the ESC is the Escape key, never a meta prefix on it
+            // (`tryExtractMetaPrefixed`), wherever the read boundary falls.
+            ("escape-then-paste", esc + esc + Array("[200~hi".utf8) + esc + Array("[201~".utf8)),
+            ("escape-then-mouse", esc + esc + Array("[<0;10;5M".utf8)),
+            ("escape-then-osc-bg", esc + esc + Array("]11;rgb:0000/0000/0000\u{07}".utf8)),
+            ("escape-then-apc-ack-then-text", esc + esc + Array("_Gi=1;OK".utf8) + esc + Array("\\x".utf8)),
         ]
 
         var reports: [String] = []

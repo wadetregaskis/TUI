@@ -127,8 +127,9 @@ struct OverlongSequenceTests {
         for (overlong, rest) in [
             (Self.esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 2500)), Self.bytes("2;3m")),
             (Self.esc + Self.bytes("]52;c;") + Self.overlongPayload, Self.bytes("QUJD") + Self.esc + Self.bytes("\\")),
-            // Behind a meta `ESC`, which goes with it rather than being put
-            // back in front of the rest, where it would end the skip.
+            // Behind an `ESC`, which is the Escape key (no key runs to 4 KiB)
+            // and is delivered first, not put back in front of the rest, where
+            // it would end the skip.
             (Self.esc + Self.esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 2500)), Self.bytes("2;3m")),
         ] {
             let (terminal, source) = makeTerminal()
@@ -139,7 +140,8 @@ struct OverlongSequenceTests {
             }
             source.bytes += rest + Self.bytes("b")
             events += drain(terminal, source)
-            #expect(events == [Self.key("b")], "\(overlong.prefix(3))")
+            let escape = overlong[1] == 0x1B ? [TerminalInput.key(KeyEvent(key: .escape))] : []
+            #expect(events == escape + [Self.key("b")], "\(overlong.prefix(3))")
         }
     }
 

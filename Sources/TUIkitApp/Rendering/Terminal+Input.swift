@@ -193,33 +193,67 @@ extension Terminal {
     /// fully arrived, put the prefix back and wait (the stale-partial
     /// machinery handles a dead one).
     ///
-    /// Except a focus report. Nothing prefixes one with a meta ESC: an ESC in
-    /// front of one is the Escape key, pressed as the window lost or gained
-    /// focus. Re-attached, the pair would reach `KeyEvent.parse` as
-    /// Option+Escape — no Escape, and a chord nobody pressed. So the report
-    /// goes back to the head of the buffer, and the ESC goes out alone. The
-    /// deferred-`ESC ESC` re-attach in `readEvent()` arrives here too, so this
-    /// covers a split read as well.
+    /// The prefix rides only on a KEY (``takesMetaPrefix(_:)``), and only on
+    /// the one straight after it. In front of anything else the first ESC is
+    /// the Escape key, pressed just before the terminal sent that, so it goes
+    /// out alone and what follows parses on its own:
+    ///
+    /// - A focus report, a mouse report, a paste's start marker. Re-attached,
+    ///   the pair reached `KeyEvent.parse`, which reads `ESC ESC` and anything
+    ///   after it that is not a key as Option+Escape: no Escape, a chord nobody
+    ///   pressed, the report lost — and behind the start marker, no paste: its
+    ///   text was typed out as keys.
+    /// - A terminal reply. Nothing prefixes one. An OSC, DCS, APC, PM or SOS
+    ///   is told by its introducer, so the Escape goes at once, without
+    ///   waiting for the reply to end; a CSI that is not a key (a DA answer)
+    ///   is told once it has. Until 2026-10-11 a reply swallowed whole handed
+    ///   the prefix to the event AFTER it (Escape, a reply and `a` in one read
+    ///   was Option-a), and one skipped as over-long (``abandonSequence(_:)``)
+    ///   took it along when its rest had not arrived.
+    ///
+    /// The deferred-`ESC ESC` re-attach in `readEvent()` arrives here too, so
+    /// all of this covers a split read as well.
     ///
     /// Apart from ``tryExtractRegularEvent()``, which was at its complexity
     /// limit, and which this recurses into for the inner event.
     private func tryExtractMetaPrefixed() -> [UInt8]? {
-        consume(1)
-        if let inner = tryExtractRegularEvent() {
-            if inner == Self.focusIn || inner == Self.focusOut {
-                input.prepend(contentsOf: inner)
-                return [0x1B]
-            }
-            return [0x1B] + inner
+        if input.count >= 3, String.isStringFamilyIntroducer(UInt32(input[2])) {
+            consume(1)
+            return [0x1B]
         }
-        // The inner sequence was given up on as over-long, and its rest has
-        // not all arrived: the prefix goes with it. Put back, its `ESC` would
-        // read as a new sequence cutting the skip short, and the rest would be
-        // typed. (When the rest HAS arrived, the prefix lands on whatever
-        // follows, as it does behind a reply swallowed whole.)
-        if abandonedSequence != nil { return nil }
+        consume(1)
+        let held = input.count
+        if let inner = tryExtractRegularEvent() {
+            // Bytes consumed beyond the event's own were a sequence swallowed
+            // or skipped in front of it.
+            if held - input.count == inner.count, Self.takesMetaPrefix(inner) {
+                return [0x1B] + inner
+            }
+            input.prepend(contentsOf: inner)
+            return [0x1B]
+        }
+        // An over-long sequence whose rest has not all arrived. Not put back:
+        // its `ESC` would read as a new sequence cutting the skip short, and
+        // the rest would be typed.
+        if abandonedSequence != nil { return [0x1B] }
         input.prepend(0x1B)
         return nil
+    }
+
+    /// Whether `sequence`, an event read straight after an `ESC`, is a key
+    /// that `ESC` can be the meta prefix of: one `KeyEvent.parse` reads, and
+    /// not a report or the start of a paste.
+    ///
+    /// The reports are named because the key parser does not refuse them
+    /// all: a legacy mouse report's last byte is a coordinate, and at row 33
+    /// it is `A`, which reads as Up.
+    private static func takesMetaPrefix(_ sequence: [UInt8]) -> Bool {
+        if sequence == focusIn || sequence == focusOut || sequence == pasteStart { return false }
+        // `ESC [ <`, an SGR mouse report; `ESC [ M`, a legacy one.
+        if sequence.count >= 3, sequence[1] == 0x5B, sequence[2] == 0x3C || sequence[2] == 0x4D {
+            return false
+        }
+        return KeyEvent.parse(sequence) != nil
     }
 
     /// Peels one complete plain-text event off the front of the buffer: a

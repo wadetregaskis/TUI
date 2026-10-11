@@ -4467,6 +4467,13 @@ not until now, and a ⌥-chord sent that way arrived as the **bare key** — the
 modifier looked ignored rather than undelivered, which is the worse failure of
 the two because the unmodified action happens instead.
 
+The ESC-prefixed spelling is read as a prefix only on a key. An `ESC` in front
+of anything that is not one — a terminal reply, a focus or mouse report, a
+paste's start marker — is the Escape key, pressed just before the terminal
+sent that, and arrives as Escape, with the rest parsed on its own
+(`Terminal.tryExtractMetaPrefixed()`, 2026-10-11). Before that the pair was
+read as Option+Escape and the report lost, or the paste typed out as keys.
+
 *Not yet captured (2026-08-13):* **what Apple Terminal actually sends for
 ⌥←/⌥→.** The parser change above was verified against all three spellings by
 feeding them to a real app through a PTY — that part is measured — but which
