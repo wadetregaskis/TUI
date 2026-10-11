@@ -14,6 +14,7 @@ import Testing
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
+@testable import TUIkitView
 
 /// A counter kept in the state of whatever view declares it.
 @propertyWrapper
@@ -132,6 +133,26 @@ private struct OptionalHoldingView: View {
     }
 }
 
+/// Fields the runtime's metadata describes at a layout other than the one
+/// stored (`ValueHashPlan.swift`, "A metatype"). `Int.Type` has one value, so
+/// the tuple stores only its `String`, at offset 0; the runtime's layout puts
+/// the metatype there, a pointer, and the `String` after it. Loaded as the
+/// runtime lays the tuple out, the `String`'s object word is `poison`, and
+/// copying it retains an address where no object is.
+private struct MetatypeFieldsView: View {
+    @Updating private var updates: Int
+    let pair: (Int.Type, String) = (Int.self, "a string too long to be stored inline")
+    let poison = 0x10
+
+    init(log: UpdateLog) {
+        _updates = Updating(log: log)
+    }
+
+    var body: some View {
+        Text(verbatim: "\(updates)")
+    }
+}
+
 @MainActor
 private final class BindingTap {
     var binding: Binding<Int>?
@@ -225,6 +246,25 @@ struct DynamicPropertyTests {
         #expect(line(OptionalHoldingView(holding: holding), context: context) == "101")
         #expect(line(OptionalHoldingView(holding: nil), context: context) == "-1")
     }
+
+    /// The review of the write-back: a field whose type cannot hold a
+    /// property is never loaded, because the runtime describes some at a
+    /// layout other than the one stored and a load of one reads the bytes
+    /// beside it. An exit test: loaded, the misread `String` is copied, which
+    /// retains `poison` and crashes the process.
+    #if _pointerBitWidth(_64)
+        @Test("The write-back never loads a field that cannot hold a property, so a metatype's thin layout is never misread")
+        func writeBackLoadsOnlyContainers() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let log = UpdateLog()
+                    var view = MetatypeFieldsView(log: log)
+                    updateDynamicProperties(of: &view)
+                    #expect(log.updates == 1, "the app property beside the metatypes was updated")
+                }
+            }
+        }
+    #endif
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")
     func frameworkWrappersConform() {

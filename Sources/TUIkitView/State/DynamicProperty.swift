@@ -73,6 +73,34 @@ enum NestedProperties {
     static func isAppProperty(_ value: Any) -> Bool {
         value is any DynamicProperty && !(value is any FrameworkDynamicProperty)
     }
+
+    /// Whether a stored value of declared type `type` may be one that
+    /// ``container(_:)`` descends into — decided from the type alone, so the
+    /// write-back loads no field that cannot be one.
+    ///
+    /// Not every field may be loaded as its declared type: the runtime's
+    /// layout of a type is not always the one stored. A metatype with one
+    /// value (`Int.Type`) is stored in no bytes, and a tuple or optional
+    /// holding one is packed to match, where the runtime reports a pointer's
+    /// layout for them all (`ValueHashPlan.swift`, "A metatype"); a load of
+    /// one reads the bytes beside it. A property's own type is laid out as
+    /// stored, and so is an optional of one. An existential or a class
+    /// reference is loaded too — its layout is never packed — because only
+    /// its value says whether it holds a property, as the binding walk's
+    /// `Mirror` sees it.
+    static func mayBeContainer(_ type: Any.Type) -> Bool {
+        if type is any FrameworkDynamicProperty.Type { return false }
+        if type is any DynamicProperty.Type || type is any ViewModifier.Type { return true }
+        switch RuntimeFields.Kind(of: type) {
+        case .optional:
+            guard let optional = type as? any OptionalPropertyHolder.Type else { return false }
+            return mayBeContainer(optional.wrappedType)
+        case .existential:
+            return true
+        case let kind:
+            return kind.isClass
+        }
+    }
 }
 
 // MARK: - Writing back what update() did
@@ -127,12 +155,18 @@ package func updateDynamicProperties<Root>(of root: inout Root) {
     }
 }
 
-/// An `Optional` opened to its wrapped type, for ``updateDynamicProperties(of:)``.
+/// An `Optional` opened to its wrapped type, for ``updateDynamicProperties(of:)``
+/// and ``NestedProperties/mayBeContainer(_:)``.
 private protocol OptionalPropertyHolder {
+    /// The type the optional wraps.
+    static var wrappedType: Any.Type { get }
+
     @MainActor static func updateWrapped<Address>(at address: UnsafeMutablePointer<Address>)
 }
 
 extension Optional: OptionalPropertyHolder {
+    static var wrappedType: Any.Type { Wrapped.self }
+
     /// Updates the value the optional at `address` wraps, if any, and writes
     /// it back. `Address` is this optional's own type, which the caller could
     /// not name: it holds only the existential metatype.
@@ -168,19 +202,22 @@ private func updateCopy<Value>(of value: Value) {
 }
 
 /// The struct fields of ``updateDynamicProperties(of:)``, in the struct at
-/// `root`, each written back where it lies.
+/// `root`, each written back where it lies. Only a field whose type may hold a
+/// property is loaded (``NestedProperties/mayBeContainer(_:)``): any other
+/// may be stored at a layout other than the one its type reports.
 @MainActor
 private func writeBackDynamicProperties<Root>(in fields: [RuntimeFields.Field], at root: UnsafeMutablePointer<Root>) {
     let base = UnsafeMutableRawPointer(root)
-    for field in fields where field.isStrong {
+    for field in fields where field.isStrong && NestedProperties.mayBeContainer(field.type) {
         // `field.type` is an `Any.Type`, opened here to the field's own type.
         writeBackDynamicProperties(at: base + field.offset, as: field.type)
     }
 }
 
 /// One field of ``updateDynamicProperties(of:)``, at `address` and of declared
-/// type `Field`: if it is a container, its own properties updated and written
-/// back into it, it updated if it is an app property, and the result stored.
+/// type `Field`, a type that may hold a property: if it is a container, its
+/// own properties updated and written back into it, it updated if it is an
+/// app property, and the result stored.
 @MainActor
 private func writeBackDynamicProperties<Field>(at address: UnsafeMutableRawPointer, as _: Field.Type) {
     let slot = address.assumingMemoryBound(to: Field.self)
