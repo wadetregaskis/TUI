@@ -282,15 +282,17 @@ def split_top(s, sep):
 
 
 def root_value(dm):
-    """('Root', 'Value', 'property') from a demangled getter, e.g. '(extension in M):A.B.x.getter : T'."""
-    dm = re.sub(r'^\(extension in [^)]*\):', '', dm)
-    dm = re.sub(r'^static ', '', dm)
+    """('Root', 'Value', 'property') from a demangled getter, e.g. '(extension in M):A.B.x.getter : T'. A static
+    property's root is its type's metatype, 'A.B.Type', where a key path to it starts (`\\A.B.Type.x`); the demangler
+    prints `static` before the extension context ('static (extension in M):A.B.x.getter : T')."""
+    static = dm.startswith('static ')
+    dm = re.sub(r'^(static |\(extension in [^)]*\):)+', '', dm)
     i = dm.find('.getter : ')
     if i < 0:
         return None
     left, value = dm[:i], dm[i + len('.getter : '):]
     j = split_top(left, '.')
-    return (left[:j], value, left[j + 1:]) if j > 0 else None
+    return (left[:j] + ('.Type' if static else ''), value, left[j + 1:]) if j > 0 else None
 
 
 def equal_classes(rows):

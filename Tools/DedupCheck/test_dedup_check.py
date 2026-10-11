@@ -326,8 +326,15 @@ class ParsingTests(unittest.TestCase):
             dedup_check.root_value('(extension in TUIkitFoundation):TUIkitCore.EnvironmentValues.buttonStyle.getter'
                                    ' : TUIkitFoundation.ButtonStyle'),
             ('TUIkitCore.EnvironmentValues', 'TUIkitFoundation.ButtonStyle', 'buttonStyle'))
+        # A static property's key path starts at the metatype; the demangler prints `static` before the extension
+        # context (both measured with Xcode's swift-demangle, 6.2.4, 2026-10-11).
         self.assertEqual(dedup_check.root_value('static M.G<Swift.Int>.a.getter : Swift.Int'),
-                         ('M.G<Swift.Int>', 'Swift.Int', 'a'))
+                         ('M.G<Swift.Int>.Type', 'Swift.Int', 'a'))
+        self.assertEqual(dedup_check.root_value('static (extension in N):M.S<A where A == Swift.Int>.y.getter'
+                                                ' : Swift.Int'),
+                         ('M.S<A where A == Swift.Int>.Type', 'Swift.Int', 'y'))
+        self.assertEqual(dedup_check.root_value('M.S.subscript.getter : (Swift.Int) -> Swift.String'),
+                         ('M.S', '(Swift.Int) -> Swift.String', 'subscript'))
         self.assertIsNone(dedup_check.root_value('M.f() -> ()'))
 
     def test_host_tools_are_not_read(self):
