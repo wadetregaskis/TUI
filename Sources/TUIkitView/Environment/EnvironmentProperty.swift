@@ -252,14 +252,16 @@ extension Environment: ResolutionInspectable {}
 /// One level of ``resolveEnvironmentProperties(of:in:)``, descending into any
 /// property that holds properties of its own — an app's ``DynamicProperty``, or
 /// a ``ViewModifier`` stored in a ``ModifiedContent``, either of which may read
-/// `@Environment` as a view does. A stored
+/// `@Environment` as a view does — or into an enum's case that holds more
+/// than one value (``NestedProperties/tuplePayload(of:_:)``). A stored
 /// VIEW is not descended into: it resolves its own when it renders.
 ///
 /// - Returns: Whether anything was resolved.
 @MainActor
 private func resolveEnvironmentProperties(nestedIn value: Any, in environment: EnvironmentValues) -> Bool {
     var found = false
-    for child in Mirror(reflecting: value).children {
+    let mirror = Mirror(reflecting: value)
+    for child in mirror.children {
         if let resolvable = child.value as? EnvironmentResolvable {
             resolvable.resolveEnvironment(environment)
             found = true
@@ -267,6 +269,13 @@ private func resolveEnvironmentProperties(nestedIn value: Any, in environment: E
             resolveEnvironmentProperties(nestedIn: container, in: environment) {
             found = true
         }
+    }
+    // An enum's case holding more than one value is one child, a tuple,
+    // which neither branch takes. Asked only where nothing was found: an
+    // enum has one child at most, so a level that resolved something is not
+    // one of these, and pays nothing for the question.
+    if !found, let payload = NestedProperties.tuplePayload(of: value, mirror) {
+        found = resolveEnvironmentProperties(nestedIn: payload, in: environment)
     }
     return found
 }

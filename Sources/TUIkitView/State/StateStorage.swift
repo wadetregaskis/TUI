@@ -68,34 +68,67 @@ public final class StateStorage: @unchecked Sendable {
     /// | -100… | `ItemProviderDropModifier` (`onDrop(of:delegate:)`) |
     /// | -110… | `_ContentTransitionView` (`contentTransition(_:)`, a tracked value) |
     /// | -120… | `GestureAttachment` (`gesture(_:including:)` and its siblings) |
+    /// | -130… | the property walk's record of an enum's case (`enumCaseIndex`) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with
     /// composite content keep their historical `0...` constants; anything
     /// that renders a caller-supplied `@ViewBuilder` at its own identity
     /// belongs in this table.)
+    ///
+    /// ## Nested properties
+    ///
+    /// A property inside another one the view holds — an app's
+    /// `DynamicProperty`, a modifier, an enum's case — is keyed in a
+    /// `scope` of its own: a code for where it is declared inside the view
+    /// (`NestedScope`), with `propertyIndex` its position there. Neither
+    /// depends on what the view's other fields hold, so an optional, an
+    /// existential or an enum's case changing moves no other property's
+    /// key. A view's own properties are in scope `0`.
     public struct StateKey: Hashable {
         /// The view's structural identity in the render tree.
         public let identity: ViewIdentity
 
         /// The property's declaration index within the view (0, 1, 2, ...),
         /// or a reserved NEGATIVE infrastructure index — see the
-        /// property-index namespace note above.
+        /// property-index namespace note above. In a nested `scope`, the
+        /// property's position among the values stored there.
         public let propertyIndex: Int
+
+        /// Where inside the view a nested property is declared: `0` for the
+        /// view's own properties. See "Nested properties" above.
+        package let scope: UInt64
 
         /// Creates a new state key.
         public init(identity: ViewIdentity, propertyIndex: Int) {
             self.identity = identity
             self.propertyIndex = propertyIndex
+            self.scope = 0
         }
 
-        /// Both fields folded into one word before `Hasher` sees either — see
+        /// Creates the key of a property nested at `scope` inside the view.
+        package init(identity: ViewIdentity, propertyIndex: Int, scope: UInt64) {
+            self.identity = identity
+            self.propertyIndex = propertyIndex
+            self.scope = scope
+        }
+
+        /// Where the property walk records which case an enum keyed at a
+        /// ``scope`` holds (``StateStorage/enumCase(at:)``). From the table
+        /// above, because a view that is itself an enum keeps its record in
+        /// its own scope, `0`.
+        package static let enumCaseIndex = -130
+
+        /// The fields folded into one word before `Hasher` sees any — see
         /// ``mixHashWord(_:_:)``, and ``RenderCache/MeasureKey`` for why a
-        /// process-local cache key does not need SipHash per field.
+        /// process-local cache key does not need SipHash per field. `scope`
+        /// is XORed into the index's word rather than mixed in after it: a
+        /// view's own keys, scope `0`, fold as they did before scopes, and
+        /// the equality that follows a hash match tells keys apart.
         public func hash(into hasher: inout Hasher) {
             let folded = mixHashWord(
                 mixHashWord(hashFoldSeed, UInt64(bitPattern: Int64(identity.structuralHash))),
-                UInt64(bitPattern: Int64(propertyIndex)))
+                UInt64(bitPattern: Int64(propertyIndex)) ^ scope)
             hasher.combine(finalizeHashWord(folded))
         }
     }
@@ -252,6 +285,44 @@ extension StateStorage {
         fresh.invalidationSink = renderCacheLink
         values[key] = fresh
         return fresh
+    }
+
+    /// A new storage for a property, in place of any it had: the `@State` of
+    /// an enum's case that has just replaced another case, which starts at
+    /// its default as SwiftUI's does, whatever it held when that case was
+    /// last left (measured on macOS 15: session notes `SKEY/probe/skey.out`).
+    ///
+    /// - Parameters:
+    ///   - key: The state key (identity + property index + scope).
+    ///   - defaultValue: The initial value.
+    /// - Returns: The new `Storage` object for this property.
+    package func freshStorage<Value>(for key: StateKey, default defaultValue: Value) -> StateBox<Value> {
+        let fresh = StateBox(defaultValue)
+        fresh.identity = key.identity
+        fresh.invalidationSink = renderCacheLink
+        values[key] = fresh
+        return fresh
+    }
+
+    /// The case the enum whose properties are keyed at `key`'s scope held
+    /// when the property walk last recorded one there
+    /// (``recordEnumCase(_:at:)``), or `nil` if it has recorded none.
+    ///
+    /// - Parameter key: The scope's record key, at ``StateKey/enumCaseIndex``.
+    package func enumCase(at key: StateKey) -> String? {
+        (values[key] as? EnumCaseRecord)?.label
+    }
+
+    /// Records that the enum whose properties are keyed at `key`'s scope
+    /// holds the case `label` (`""` for a case without a payload). Kept among
+    /// the values, beside the state it describes, so it is pruned and
+    /// invalidated with that state's identity.
+    package func recordEnumCase(_ label: String, at key: StateKey) {
+        if let record = values[key] as? EnumCaseRecord {
+            record.label = label
+        } else {
+            values[key] = EnumCaseRecord(label: label)
+        }
     }
 
     /// The storage for a property **if one already exists**, never creating it.

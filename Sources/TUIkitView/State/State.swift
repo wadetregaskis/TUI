@@ -589,6 +589,10 @@ final class StateBacking<Value> {
     func bind(to storage: StateStorage, key: StateStorage.StateKey) {
         box = storage.storage(for: key, default: defaultValue)
     }
+
+    func bindFresh(to storage: StateStorage, key: StateStorage.StateKey) {
+        box = storage.freshStorage(for: key, default: defaultValue)
+    }
 }
 
 // MARK: - Render-time binding
@@ -596,12 +600,23 @@ final class StateBacking<Value> {
 /// A `@State` property that can be bound to storage at render time (mirrors
 /// ``EnvironmentResolvable``).
 protocol StateBindable {
-    func bindState(to storage: StateStorage, identity: ViewIdentity, propertyIndex: Int)
+    /// Binds this property to the storage `storage` keeps under `key`,
+    /// created with the property's default if there is none.
+    func bindState(to storage: StateStorage, key: StateStorage.StateKey)
+
+    /// Binds this property to new storage under `key`, holding its default,
+    /// in place of any `storage` kept there: an enum's case that has
+    /// replaced another starts afresh (``NestedPropertyWalk``).
+    func bindFreshState(to storage: StateStorage, key: StateStorage.StateKey)
 }
 
 extension State: StateBindable {
-    func bindState(to storage: StateStorage, identity: ViewIdentity, propertyIndex: Int) {
-        backing.bind(to: storage, key: StateStorage.StateKey(identity: identity, propertyIndex: propertyIndex))
+    func bindState(to storage: StateStorage, key: StateStorage.StateKey) {
+        backing.bind(to: storage, key: key)
+    }
+
+    func bindFreshState(to storage: StateStorage, key: StateStorage.StateKey) {
+        backing.bindFresh(to: storage, key: key)
     }
 }
 
@@ -613,18 +628,24 @@ extension State: StateBindable {
 /// `FocusManager`, keyed by an id that must stay the same across frames so a
 /// control's focusID and the "which value is focused?" reverse-lookup remain
 /// stable. The id is derived from the owning view's identity + the property's
-/// declaration order, exactly like a `StateBindable` slot key. Public so a
-/// type in a module layered above `TUIkitView` can participate in the same
+/// declaration order, exactly like a `StateBindable` slot key — and, for one
+/// nested inside an app's `DynamicProperty`, a modifier or an enum's case,
+/// from where it lies there (`NestedScope`). Public so a type in a module
+/// layered above `TUIkitView` can participate in the same
 /// `bindStateProperties(of:identity:storage:)` walk that binds `@State`.
 public protocol RenderIdentityBindable {
     /// Binds this property to a stable id derived from its view's render
-    /// `path` and declaration `propertyIndex`.
+    /// `path` and declaration `propertyIndex`. For a property nested inside
+    /// another the view holds, `path` is followed by `::` and a code for
+    /// where in the view that is, and `propertyIndex` is the property's
+    /// position there.
     func bindRenderIdentity(path: String, propertyIndex: Int)
 }
 
 /// Binds every `@State` (and ``RenderIdentityBindable``, e.g. `@FocusState`)
 /// property of `view` to storage/ids keyed by the view's own render `identity`
-/// + declaration order. Mirrors ``resolveEnvironmentProperties``.
+/// + declaration order — or, for one nested inside another property, where it
+/// is declared there (``NestedScope``). Mirrors ``resolveEnvironmentProperties``.
 ///
 /// `view` is not constrained to `View`: the render loop binds an `App`'s
 /// `@State` with it too, at the root identity, before evaluating `App.body`.
@@ -653,25 +674,40 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
     return hasAppProperties
 }
 
-/// One level of ``bindStateProperties(of:identity:storage:)``, descending into
-/// any property that holds properties of its own to bind — an app's
-/// ``DynamicProperty``, or a ``ViewModifier`` stored in a ``ModifiedContent``,
-/// either of which may declare `@State` as a view does — and noting whether
-/// it met an app property, whose ``DynamicProperty/update()`` the caller runs
+/// The view's own level of ``bindStateProperties(of:identity:storage:)``: its
+/// own `@State` and `@FocusState` keyed by declaration order, and what it
+/// holds inside any property that has properties of its own to bind — an
+/// app's ``DynamicProperty``, or a ``ViewModifier`` stored in a
+/// ``ModifiedContent``, either of which may declare `@State` as a view does —
+/// handed to a ``NestedPropertyWalk``, which notes whether it met an app
+/// property, whose ``DynamicProperty/update()`` the caller runs
 /// (``updateDynamicProperties(of:)``).
 ///
-/// Nested properties take the next indices of the same counter, in declaration
-/// order, so they key the owning view's identity without colliding with its
-/// own. A stored VIEW is not descended into: it binds its state at its own
-/// identity when it renders.
+/// A nested property is keyed by where it is declared (``NestedScope``), not
+/// by the next index of the view's own counter: what an optional, an
+/// existential or an enum case before it holds then moves no key. A view
+/// that is an enum holds only what its case does, keyed that way too. A
+/// stored VIEW is not descended into: it binds its state at its own identity
+/// when it renders.
 @MainActor
 private func bindStateProperties(
     nestedIn value: Any, identity: ViewIdentity, storage: StateStorage, index: inout Int,
     hasContainers: inout Bool, hasAppProperties: inout Bool
 ) {
-    for child in Mirror(reflecting: value).children {
+    let mirror = Mirror(reflecting: value)
+    if NestedProperties.isEnum(value) {
+        hasContainers = true
+        var walk = NestedPropertyWalk(identity: identity, storage: storage)
+        walk.bindCase(of: mirror, scope: NestedScope.view, fresh: false)
+        if walk.hasAppProperties { hasAppProperties = true }
+        return
+    }
+    // Every stored value's position, counted for a container's scope; the
+    // view's own properties keep the counter that counts only them.
+    var position = 0
+    for child in mirror.children {
         if let bindable = child.value as? StateBindable {
-            bindable.bindState(to: storage, identity: identity, propertyIndex: index)
+            bindable.bindState(to: storage, key: StateStorage.StateKey(identity: identity, propertyIndex: index))
             index += 1
         } else if let idBindable = child.value as? RenderIdentityBindable {
             // Shares the same declaration-order counter as @State so mixing
@@ -681,23 +717,13 @@ private func bindStateProperties(
             index += 1
         } else if let container = NestedProperties.container(child.value) {
             hasContainers = true
-            let isAppProperty = NestedProperties.isAppProperty(container)
-            if isAppProperty, NestedProperties.isHeldWeakly(child.label, in: value) {
-                // The write-back passes over a property held `weak` (SwiftUI
-                // does not update one either), so neither it nor what it
-                // holds makes the view one to update. What it holds is still
-                // bound, as an optional's is (decisions-DYNP A-DYNP-1).
-                var passedOver = false
-                bindStateProperties(
-                    nestedIn: container, identity: identity, storage: storage, index: &index,
-                    hasContainers: &hasContainers, hasAppProperties: &passedOver)
-                continue
-            }
-            if isAppProperty { hasAppProperties = true }
-            bindStateProperties(
-                nestedIn: container, identity: identity, storage: storage, index: &index,
-                hasContainers: &hasContainers, hasAppProperties: &hasAppProperties)
+            var walk = NestedPropertyWalk(identity: identity, storage: storage)
+            walk.bindContents(
+                ofContainer: container, label: child.label, in: value, position: position,
+                scope: NestedScope.view, fresh: false)
+            if walk.hasAppProperties { hasAppProperties = true }
         }
+        position += 1
     }
 }
 

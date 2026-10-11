@@ -34,7 +34,7 @@ struct StatePropertyWrapperTests {
         let identity = ViewIdentity(path: "Root/State")
 
         let state = State(wrappedValue: "initial")
-        state.bindState(to: storage, identity: identity, propertyIndex: 0)
+        state.bindState(to: storage, key: StateStorage.StateKey(identity: identity, propertyIndex: 0))
 
         // Seed a cached buffer at the state's identity, then mutate it.
         cache.store(

@@ -16,6 +16,11 @@
 /// state is kept for the place the view is in the tree, and the environment is
 /// the one in force there.
 ///
+/// Each `@State` is kept for where it is declared in the view, whatever the
+/// view's other fields hold. In an enum, a view that is one or a property
+/// that is one, a case that replaces another starts the `@State` it holds at
+/// their defaults, as SwiftUI's does (measured on macOS 15).
+///
 /// ```swift
 /// @propertyWrapper
 /// struct Shouting: DynamicProperty {
@@ -78,6 +83,34 @@ enum NestedProperties {
         if value is any FrameworkDynamicProperty { return nil }
         if value is any DynamicProperty || value is any ViewModifier { return value }
         return nil
+    }
+
+    /// Whether `value` is an enum, whose `Mirror` lists only its current
+    /// case's payload. Asked of its metadata's kind, one small runtime call,
+    /// rather than of `Mirror.displayStyle`, whose getter and comparison
+    /// cross into the resilient standard library: the binding walk asks it
+    /// of every view it walks. An `Optional` is not one: its kind is its own.
+    static func isEnum(_ value: Any) -> Bool {
+        RuntimeFields.Kind(of: type(of: value)) == .enum
+    }
+
+    /// Whether `value`, an enum's payload as its `Mirror` lists it, is a
+    /// tuple: its case holds more than one value, and `Mirror` shows them as
+    /// one child. The walks then walk each value, as SwiftUI takes each
+    /// case's payload as a tuple and keeps the elements that are properties
+    /// (session notes `DYNP/optional/notes.md` §2). Asked only of an enum's
+    /// payload: a tuple stored in a field is not looked into, by SwiftUI
+    /// (measured) or the walks.
+    static func isTuple(_ value: Any) -> Bool {
+        RuntimeFields.Kind(of: type(of: value)) == .tuple
+    }
+
+    /// The payload of `mirror`, the `Mirror` of `value`, when `value` is an
+    /// enum whose case holds more than one value — a tuple, whose elements
+    /// the walks visit as the payload's values (``isTuple(_:)``) — or `nil`.
+    static func tuplePayload(of value: Any, _ mirror: Mirror) -> Any? {
+        guard isEnum(value), let payload = mirror.children.first?.value, isTuple(payload) else { return nil }
+        return payload
     }
 
     /// Whether `value` is an app's ``DynamicProperty`` — one whose
@@ -331,10 +364,16 @@ extension Optional: OptionalPropertyHolder {
 
 /// Runs ``DynamicProperty/update()`` on a copy of each app property `value`
 /// holds where its fields cannot be written — innermost first, as the
-/// write-back does — and keeps nothing.
+/// write-back does — and keeps nothing. For an enum whose case holds more
+/// than one value, each of them (``NestedProperties/tuplePayload(of:_:)``).
 @MainActor
 private func updateCopies(in value: Any) {
-    for child in Mirror(reflecting: value).children {
+    let mirror = Mirror(reflecting: value)
+    if let payload = NestedProperties.tuplePayload(of: value, mirror) {
+        updateCopies(in: payload)
+        return
+    }
+    for child in mirror.children {
         guard let container = NestedProperties.container(child.value) else { continue }
         // An `Any` no constraint can open: `_openExistential` finds its type.
         _openExistential(container, do: updateCopy)

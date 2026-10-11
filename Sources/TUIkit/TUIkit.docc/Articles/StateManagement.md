@@ -195,7 +195,9 @@ This path is built automatically during rendering based on:
 All `@State` values live in one `StateStorage`, owned by the app's `TUIContext`. Each value
 is held in a reference box (`StateBox`), keyed by:
 - The structural identity of the view that declares the property
-- The property's declaration index within that view (0, 1, 2, ...)
+- The property's declaration index within that view (0, 1, 2, ...) — or, for a `@State`
+  inside an app's own `DynamicProperty`, a modifier or an enum's case, where inside the
+  view it is declared, so that what the view's other fields hold never moves its key
 
 Declaring `@State var count = 0` stores nothing. The `init` only records the default, in a
 box of its own that belongs to no identity. The property is bound when its view renders:
