@@ -524,13 +524,15 @@ struct DynamicPropertyStateKeyTests {
         let recordKey = StateStorage.StateKey(
             identity: context.identity, propertyIndex: StateStorage.StateKey.enumCaseIndex,
             scope: NestedScope.view)
-        let record = try #require(storage.enumCaseRecord(at: recordKey))
-        let listed = record.keys.count
+        let listed = try #require(storage.enumCaseRecord(at: recordKey)).keys.count
+        #expect(listed == 1, "the outer case lists only the inner enum's record")
         for _ in 0..<5 {
             _ = line(NestedScreen.outer(.one(TappedFull(tap: tap))), context: context)
             _ = line(NestedScreen.outer(.two(Pair())), context: context)
         }
-        #expect(record.keys.count == listed, "the inner enum's changes are its own record's to list")
+        // Fetched again: a record replaced each frame would leave the first one's count unchanged.
+        let after = try #require(storage.enumCaseRecord(at: recordKey))
+        #expect(after.keys.count == listed, "the inner enum's changes are its own record's to list")
 
         _ = line(NestedScreen.other, context: context)
         #expect(storage.count == empty + 1, "the outer case's change dropped the inner enum's record and state")
