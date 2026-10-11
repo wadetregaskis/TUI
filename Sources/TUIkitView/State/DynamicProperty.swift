@@ -30,6 +30,9 @@
 /// the properties inside it have been given their values, and what it changes
 /// in the property's own stored values is what `body` then reads, as in
 /// SwiftUI: the property is written back into the view `body` is evaluated on.
+/// What it reads of an `@Observable` object is observed as `body`'s reads
+/// are, so a change to it draws the view again, as SwiftUI does (measured on
+/// macOS 15).
 /// A struct's own fields and an optional's wrapped value are written back.
 /// In a view that is an enum, or a class the view holds, `update()` still
 /// runs, on a copy, so what it changes is seen only through what the property

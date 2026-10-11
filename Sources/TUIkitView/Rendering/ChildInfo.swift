@@ -809,16 +809,19 @@ private func measureCompositeBody<V: View>(
     resolveEnvironmentProperties(of: view, in: context.environment)
     let hasAppProperties = bindStateProperties(
         of: view, identity: context.identity, storage: context.stateStorage!)
-    // As the render path evaluates it: see `evaluateCompositeBody`.
-    let updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties)
+    // As the render path evaluates it, `update()` inside the scope where there
+    // is one: see `evaluateCompositeBody`.
     guard let cache = context.renderCache, cache.readingTypes.contains(V.self) else {
+        let updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties)
         return measureChild(updated?.body ?? view.body, proposal: proposal, context: childContext)
     }
     let sentinel = cache.leases.isActive ? cache.leases.sentinel(at: context.identity) : nil
     let body = withObservationTracking(
         {
             sentinel?.touch()
-            if let updated { return updated.body }
+            if let updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties) {
+                return updated.body
+            }
             return view.body
         },
         onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))

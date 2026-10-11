@@ -59,6 +59,34 @@ struct ObservableInvalidationScopeTests {
         var body: some View { CountingText(text: "sibling", slot: 1) }
     }
 
+    /// Caches what it reads of the model in `update()`, so `body` reads only
+    /// the copy: the model is read by `update()` alone.
+    @propertyWrapper
+    private struct CachedCount: DynamicProperty {
+        let model: Model
+        private var cached = -1
+
+        init(model: Model) {
+            self.model = model
+        }
+
+        var wrappedValue: Int { cached }
+
+        mutating func update() {
+            cached = model.count
+        }
+    }
+
+    private struct UpdateReader: View {
+        @CachedCount private var count: Int
+
+        init(model: Model) {
+            _count = CachedCount(model: model)
+        }
+
+        var body: some View { CountingText(text: "count \(count)", slot: 0) }
+    }
+
     private static func frame<V: View>(_ view: V, tui: TUIContext, width: Int = 40) -> FrameBuffer {
         let context = RenderContext(availableWidth: width, availableHeight: 10, tuiContext: tui)
         tui.stateStorage.beginRenderPass()
@@ -130,6 +158,31 @@ struct ObservableInvalidationScopeTests {
             Renders.count[0] >= 1 && Renders.count[1] == verifierRenders(hits: 1),
             "\(Renders.count)")
         #expect(delta.clears == 0, "\(delta)")
+    }
+
+    /// SwiftUI observes what an app property's `update()` reads, as it does
+    /// `body`'s reads: measured on macOS 15 (session notes DYNP/probe/dp.swift,
+    /// case 5), a model read only in `update()` re-runs the body when it
+    /// changes, and one held but not read does not.
+    @Test("A model read in an app property's update() invalidates its view, as a read in body does")
+    func updateReadInvalidates() {
+        let model = Model()
+        let tui = TUIContext()
+        let view = VStack {
+            _MemoizedRow(element: 1, content: UpdateReader(model: model))
+            _MemoizedRow(element: 2, content: Sibling())
+        }
+        _ = Self.frame(view, tui: tui)
+        _ = Self.frame(view, tui: tui)
+        let warm = Self.frame(view, tui: tui)
+        #expect(warm.lines.first?.stripped.contains("count 0") == true)
+        #expect(
+            tui.renderCache.readingTypes.contains(UpdateReader.self),
+            "the read in update() was observed, so the cache knows the type reads")
+
+        model.count = 7
+        let changed = Self.frame(view, tui: tui)
+        #expect(changed.lines.first?.stripped.contains("count 7") == true, "the reader shows the new value")
     }
 
     @Test("The change still requests a frame")
