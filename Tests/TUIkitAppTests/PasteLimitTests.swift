@@ -71,7 +71,14 @@ struct PasteLimitTests {
 
     /// Pumps `readEvent()` until the source is dry and nothing has been
     /// delivered for a while; returns the events, and the most bytes the
-    /// buffer held between two pumps.
+    /// buffer can have held at once.
+    ///
+    /// That is what the buffer held going into a pump plus everything the
+    /// pump read: the parser drops paste bytes only after reading them, so
+    /// sampling the buffer after a pump sees it after the drop, never at its
+    /// largest. (It cannot be sampled during the read: the buffer is being
+    /// written then.) An upper bound, since a pump that reads twice may drop
+    /// between the reads.
     private func drain(_ terminal: Terminal, _ source: Source) -> (events: [TerminalInput], peak: Int) {
         var events: [TerminalInput] = []
         var peak = 0
@@ -79,13 +86,14 @@ struct PasteLimitTests {
         var pumps = 0
         while quiet < 8 && pumps < 1_000_000 {
             pumps += 1
+            let (held, offset) = (terminal.input.count, source.offset)
             if let event = terminal.readEvent() {
                 events.append(event)
                 quiet = 0
             } else if source.isDry {
                 quiet += 1
             }
-            peak = max(peak, terminal.input.count)
+            peak = max(peak, held + source.offset - offset)
         }
         return (events, peak)
     }
@@ -132,19 +140,41 @@ struct PasteLimitTests {
         #expect(terminal.input.capacity == Terminal.baselineCapacity, "the paste's room was not given back")
     }
 
-    /// The end marker across the limit, with a read boundary at the limit
-    /// too: content from six bytes short of it to six past. Up to the limit
-    /// the paste arrives whole; past it, cut to it.
-    @Test("An end marker at the limit ends the paste there", arguments: -6...6)
-    func endMarkerAtTheLimit(offset: Int) {
+    /// The end marker across the limit: content from six bytes short of it
+    /// to six past, and a read boundary before the marker or inside it. Up
+    /// to the limit the paste arrives whole; past it, cut to it.
+    ///
+    /// Past it, where the read up to the boundary takes the content the scan
+    /// has ruled out beyond the limit, the paste's start is set aside and the
+    /// rest dropped BEFORE the marker is complete, so the marker is found
+    /// straddling a drop: from the bytes the drop kept because they might
+    /// begin it, and the read after. The test checks that it got there.
+    @Test("An end marker at the limit ends the paste there", arguments: -6...6, 0...5)
+    func endMarkerAtTheLimit(offset: Int, split: Int) {
         let limit = 10_000
         let content = Self.content(count: limit + offset)
+        let boundary = Self.pasteStart.count + content.count + split
         let (terminal, source) = makeTerminal(
             limit: limit, feeding: Self.pasteStart + content + Self.pasteEnd + Self.bytes("x"),
-            boundaries: [Self.pasteStart.count + limit])
+            boundaries: [boundary])
 
-        let (events, _) = drain(terminal, source)
-        #expect(events == [Self.paste(content.prefix(limit)), Self.typedX], "content \(offset) from the limit")
+        var events: [TerminalInput] = []
+        var pumps = 0
+        while source.offset < boundary, pumps < 100_000 {
+            pumps += 1
+            if let event = terminal.readEvent() { events.append(event) }
+        }
+        // The scan rules out all but the last five bytes it has, the content
+        // and the marker's first `split` bytes.
+        let ruledOut = content.count + split - (Self.pasteEnd.count - 1)
+        #expect(
+            (terminal.keptPaste != nil) == (ruledOut > limit),
+            "content \(offset) from the limit, read to \(split) bytes into the marker")
+
+        events += drain(terminal, source).events
+        #expect(
+            events == [Self.paste(content.prefix(limit)), Self.typedX],
+            "content \(offset) from the limit, read to \(split) bytes into the marker")
     }
 
     /// A paste of exactly the limit is not cut, its last character included;
