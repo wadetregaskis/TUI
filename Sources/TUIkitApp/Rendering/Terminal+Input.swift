@@ -17,8 +17,8 @@ import TUIkitFoundation
 ///
 /// A focus report (`ESC [ I` / `ESC [ O`, mode 1004) is delivered as
 /// `TerminalInput.focusChanged`, never as a key. Behind an Escape it would
-/// otherwise be read as one meta-prefixed chord — see the `ESC ESC` branch of
-/// ``tryExtractRegularEvent()``.
+/// otherwise be read as one meta-prefixed chord — see
+/// ``tryExtractMetaPrefixed()``.
 ///
 /// Split out of `Terminal.swift` because that file had reached its length
 /// limit and this is the coherent half to lift: everything here reads and
@@ -126,37 +126,7 @@ extension Terminal {
         }
 
         if second == 0x1B {
-            // Meta-prefixed escape sequence ("option as meta key"): ESC + a
-            // full CSI/SS3 sequence, e.g. Option-Shift-Tab = ESC ESC [ Z.
-            // Consuming just the two ESCs here stranded the sequence's tail
-            // as literal keystrokes — the `[` then fired a page shortcut.
-            // Extract the INNER event and re-attach the meta prefix; if the
-            // inner sequence hasn't fully arrived, put the prefix back and
-            // wait (the stale-partial machinery handles a dead one).
-            //
-            // Except a focus report. Nothing prefixes one with a meta ESC: an
-            // ESC in front of one is the Escape key, pressed as the window lost
-            // or gained focus. Re-attached, the pair would reach `KeyEvent.parse`
-            // as Option+Escape — no Escape, and a chord nobody pressed. So the
-            // report goes back to the head of the buffer, and the ESC goes out
-            // alone. The deferred-`ESC ESC` re-attach in `readEvent()` arrives
-            // here too, so this covers a split read as well.
-            consume(1)
-            if let inner = tryExtractRegularEvent() {
-                if inner == Self.focusIn || inner == Self.focusOut {
-                    input.prepend(contentsOf: inner)
-                    return [0x1B]
-                }
-                return [0x1B] + inner
-            }
-            // The inner sequence was given up on as over-long, and its rest has
-            // not all arrived: the prefix goes with it. Put back, its `ESC`
-            // would read as a new sequence cutting the skip short, and the rest
-            // would be typed. (When the rest HAS arrived, the prefix lands on
-            // whatever follows, as it does behind a reply swallowed whole.)
-            if abandonedSequence != nil { return nil }
-            input.prepend(0x1B)
-            return nil
+            return tryExtractMetaPrefixed()
         }
 
         // A reply the application never asked for — a graphics acknowledgement,
@@ -180,7 +150,7 @@ extension Terminal {
         // slots, a terminal whose theme changed — is kept for the run loop (see
         // `Terminal+Replies.swift`). Nothing else is.
         //
-        // Recursion, like the meta-prefix branch above, and bounded by the same
+        // Recursion, like `tryExtractMetaPrefixed()`, and bounded by the same
         // thing: each pass consumes bytes, and the buffer is finite.
         if String.isStringFamilyIntroducer(UInt32(second)) {
             guard let length = stringSequenceLength() else {
@@ -195,7 +165,7 @@ extension Terminal {
         // Alt + a multi-byte character: a meta-sending terminal prefixes
         // whatever the keyboard produced, ASCII or not (Option+ß under a
         // German layout arrives as ESC + the two bytes of ß). Same
-        // put-the-prefix-back dance as the meta-escape path above when the
+        // put-the-prefix-back dance as `tryExtractMetaPrefixed()` when the
         // character's tail hasn't arrived yet.
         if second >= 0x80 {
             consume(1)
@@ -211,6 +181,45 @@ extension Terminal {
         consume(2)
 
         return bytes
+    }
+
+    /// Meta-prefixed escape sequence ("option as meta key"): ESC + a full
+    /// CSI/SS3 sequence, e.g. Option-Shift-Tab = ESC ESC [ Z. Assumes `input`
+    /// starts with `ESC ESC`.
+    ///
+    /// Consuming just the two ESCs here stranded the sequence's tail as
+    /// literal keystrokes — the `[` then fired a page shortcut. Extract the
+    /// INNER event and re-attach the meta prefix; if the inner sequence hasn't
+    /// fully arrived, put the prefix back and wait (the stale-partial
+    /// machinery handles a dead one).
+    ///
+    /// Except a focus report. Nothing prefixes one with a meta ESC: an ESC in
+    /// front of one is the Escape key, pressed as the window lost or gained
+    /// focus. Re-attached, the pair would reach `KeyEvent.parse` as
+    /// Option+Escape — no Escape, and a chord nobody pressed. So the report
+    /// goes back to the head of the buffer, and the ESC goes out alone. The
+    /// deferred-`ESC ESC` re-attach in `readEvent()` arrives here too, so this
+    /// covers a split read as well.
+    ///
+    /// Apart from ``tryExtractRegularEvent()``, which was at its complexity
+    /// limit, and which this recurses into for the inner event.
+    private func tryExtractMetaPrefixed() -> [UInt8]? {
+        consume(1)
+        if let inner = tryExtractRegularEvent() {
+            if inner == Self.focusIn || inner == Self.focusOut {
+                input.prepend(contentsOf: inner)
+                return [0x1B]
+            }
+            return [0x1B] + inner
+        }
+        // The inner sequence was given up on as over-long, and its rest has
+        // not all arrived: the prefix goes with it. Put back, its `ESC` would
+        // read as a new sequence cutting the skip short, and the rest would be
+        // typed. (When the rest HAS arrived, the prefix lands on whatever
+        // follows, as it does behind a reply swallowed whole.)
+        if abandonedSequence != nil { return nil }
+        input.prepend(0x1B)
+        return nil
     }
 
     /// Peels one complete plain-text event off the front of the buffer: a
