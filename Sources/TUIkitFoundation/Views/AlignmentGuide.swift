@@ -124,6 +124,11 @@ extension View {
     /// everything else right to meet it — and the stack becomes wider than its
     /// widest child, which is the whole point of the mechanism.
     ///
+    /// The value is used as given, as SwiftUI's is, even when it lies outside
+    /// the view: `.alignmentGuide(.leading) { _ in 5 }` on a one-cell view
+    /// indents its siblings by five cells. One guide pushes a child at most
+    /// 4,096 cells along, past the edge of any terminal.
+    ///
     /// ## How far a guide travels
     ///
     /// As in SwiftUI, a guide travels up through the views that place their
@@ -153,8 +158,9 @@ extension View {
     ///
     /// - Parameters:
     ///   - g: The guide to set.
-    ///   - computeValue: The guide's position within this view, given the
-    ///     view's dimensions.
+    ///   - computeValue: The guide's position in this view's own
+    ///     coordinates, given the view's dimensions. It need not lie inside
+    ///     the view.
     /// - Returns: A view carrying the explicit guide.
     public func alignmentGuide(
         _ g: HorizontalAlignment,
@@ -181,8 +187,9 @@ extension View {
     ///
     /// - Parameters:
     ///   - g: The guide to set.
-    ///   - computeValue: The guide's position within this view, given the
-    ///     view's dimensions.
+    ///   - computeValue: The guide's position in this view's own
+    ///     coordinates, given the view's dimensions. It need not lie inside
+    ///     the view.
     /// - Returns: A view carrying the explicit guide.
     public func alignmentGuide(
         _ g: VerticalAlignment,
@@ -357,6 +364,33 @@ struct AlignmentGuideRun {
     /// The extent the run occupies along the axis.
     let extent: Int
 
+    /// The furthest, in cells, one guide falling short of another pushes a
+    /// child along the run: 4,096.
+    ///
+    /// SwiftUI uses a guide exactly as given, inside its own view or not
+    /// (measured 2026-10-11: a 1-wide view whose leading guide is 25 indents
+    /// its sibling by 25), so nothing here holds a guide to its view's size.
+    /// What is bounded is the push: a guide is caller arithmetic, a runaway
+    /// expression is a finite astronomical number, and a content-sized run
+    /// pads a buffer to its extent, so a guide of `1e300` would otherwise ask
+    /// for a buffer `Int.max` cells wide.
+    ///
+    /// The bound changes nothing that can be seen. It is the natural-extent
+    /// ladder's first rung (``naturalExtentStartingBudget(forVisible:)``), and
+    /// TUIkit already takes half of that as more than any real bound offers
+    /// (``isNaturalExtentBudget(_:)``), so a child pushed this far is past the
+    /// edge of any terminal either way. It is a constant rather than the
+    /// container's available extent so that the run reads no budget: a row
+    /// reports its height without reading the vertical one
+    /// (`_HStackCore.clipSizeThatFits`). A run is never bounded below its
+    /// region's own extent or its widest child, which are drawn already.
+    ///
+    /// Past the bound, a child is placed at it: a content-sized run is at most
+    /// this plus its widest child, which stops a stack asked its ideal width at
+    /// the ladder's second rung, and a guide such a child reports up through
+    /// its stack is reported from where it was placed.
+    static let maximumPush = 4096
+
     /// Resolves placement from already-merged guide positions.
     ///
     /// Every child's guide is put on one line: the run's merged guide
@@ -367,9 +401,9 @@ struct AlignmentGuideRun {
     /// region too small for the run.
     ///
     /// - Parameters:
-    ///   - resolved: Each child's guide position within itself. A value that is
-    ///     not a cell coordinate is taken as the child's own origin — see
-    ///     ``coordinate(_:within:)``.
+    ///   - resolved: Each child's guide position within itself, used as given.
+    ///     A value that is not a cell coordinate is taken as the child's own
+    ///     origin — see ``coordinate(_:)``.
     ///   - sizes: Each child's extent along the axis.
     ///   - fixedExtent: The region's extent when the container does not size to
     ///     content; `nil` to grow to fit the run.
@@ -386,18 +420,17 @@ struct AlignmentGuideRun {
         // child's non-coordinate poisons every sibling's base through the
         // maximum, and the child that set it gets `∞ - ∞`, i.e. NaN, for its
         // own.
-        let positions = zip(resolved, sizes).map { coordinate($0.0, within: $0.1) }
+        let positions = resolved.map { coordinate($0) }
         let merged = positions.max() ?? 0
+        let reach = Double(max(Self.maximumPush, minimumExtent, fixedExtent ?? 0))
 
         // A child's distance from the run's leading edge is how far its guide
         // falls short of the merged one — so the child with the largest guide
-        // sits flush and every other is pushed along.
-        var bases: [Double] = []
-        bases.reserveCapacity(positions.count)
+        // sits flush and every other is pushed along, at most `reach`
+        // (``maximumPush``).
         var contentExtent = 0
         for (index, guide) in positions.enumerated() {
-            let base = merged - guide
-            bases.append(base)
+            let base = min(merged - guide, reach)
             contentExtent = max(
                 contentExtent, Int(clamping: (base + Double(sizes[index])).rounded(.up)))
         }
@@ -420,44 +453,37 @@ struct AlignmentGuideRun {
         // keeps its leading edge on the region's, and the per-child clamp is
         // the last resort.
         let room = Double(max(0, extent - contentExtent))
-        let anchor = min(
-            max(merged, coordinate(regionGuide(extent), within: extent)), merged + room)
+        let anchor = min(max(merged, coordinate(regionGuide(extent))), merged + room)
 
         var offsets: [Int] = []
         offsets.reserveCapacity(positions.count)
         for (index, guide) in positions.enumerated() {
-            let raw = Int(clamping: (anchor - guide).rounded(.down))
+            // A child pushed past `reach` sits at it, moved with the run.
+            let along = merged - guide > reach ? reach + (anchor - merged) : anchor - guide
+            let raw = Int(clamping: along.rounded(.down))
             offsets.append(min(max(0, raw), max(0, extent - sizes[index])))
         }
         return Self(offsets: offsets, extent: extent)
     }
 
-    /// `value` as a cell coordinate within a view of extent `size`.
+    /// `value` as a cell coordinate: the view's own origin when it is not
+    /// finite, and otherwise `value`, as given.
     ///
-    /// A guide is a position INSIDE its own view, so a real one lives in that
-    /// view's extent. This is NOT the clamp into the region — that happens per
-    /// child further down, exactly as
-    /// ``HorizontalAlignment/childOffset(childWidth:in:)`` clamps its result —
-    /// it is a filter on values that are not positions at all. A guide is
-    /// caller arithmetic: `Double(d.width) / Double(d.height)` on a child that
-    /// is legitimately zero-height during a measure pass is `+∞`, `0 / 0` is
-    /// NaN, and a runaway expression is a finite astronomical number. Every one
-    /// used to reach `Int(_: Double)`, which traps on NaN, on either infinity
-    /// and on any magnitude past `Int`'s range — and even a finite one that a
-    /// saturating conversion let through would grow a content-sized region to
-    /// `Int.max` cells and try to allocate a buffer that wide.
+    /// A guide is caller arithmetic: `Double(d.width) / Double(d.height)` on a
+    /// child that is legitimately zero-height during a measure pass is `+∞`,
+    /// and `0 / 0` is NaN. Either used to reach `Int(_: Double)`, which traps
+    /// on both. A non-finite guide becomes the position a view with no guide
+    /// has; NaN has no order and so no nearer edge to fall back to.
     ///
-    /// So a non-finite guide becomes the view's own origin — the position a
-    /// view with no guide has; NaN has no order and so no nearer edge to fall
-    /// back to. A finite one is held within the view's own geometry, a full
-    /// extent of overshoot to either side (which covers aligning one child's
-    /// far edge to another's near one) — rather than an arbitrary constant, so
-    /// the extent a content-sized run grows to is bounded by the children's
-    /// real sizes and never by a magic number.
-    private static func coordinate(_ value: Double, within size: Int) -> Double {
-        guard value.isFinite else { return 0 }
-        let reach = Double(max(1, size))
-        return min(max(-reach, value), 2 * reach)
+    /// A finite guide is NOT held to its own view. It used to be held to
+    /// `[-w, 2w]` of the view's extent `w`, on the premise that a guide is a
+    /// position inside its view, so a 1-wide view's guide of 5 indented its
+    /// sibling by 2. SwiftUI uses it as given (measured 2026-10-11, 135
+    /// placements), so a finite guide passes through, and what bounds the run
+    /// is how far it pushes a child (``maximumPush``), with every conversion
+    /// to `Int` saturating.
+    private static func coordinate(_ value: Double) -> Double {
+        value.isFinite ? value : 0
     }
 }
 

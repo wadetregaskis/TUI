@@ -40,3 +40,33 @@ holds its report to its proposal ("never advertise a size larger than the
 constraint", `_VStackCore.sizeThatFits`), and the parent's buffer is the size
 it reported, so this is a change to every container's contract, not to the
 guide run.
+
+### B-GUIDE-2. One guide pushes a view at most 4,096 cells, whatever the container's extent
+
+*`AlignmentGuideRun.maximumPush`, `.alignmentGuide(_:computeValue:)`*
+
+A finite guide is now used as given, as SwiftUI's is; what is bounded is how
+far one guide falling short of another pushes a view along the run, because a
+content-sized run pads a buffer to its extent and a runaway guide (`1e300`)
+would otherwise ask for one `Int.max` cells wide (117c0533e, b2182b996). A
+non-finite guide is still the view's own origin.
+
+The brief suggested the bound be the container's available extent plus the
+views' sizes, with a hard cap for unbounded proposals. The bound shipped is the
+hard cap alone, 4,096 cells — the natural-extent ladder's first rung, half of
+which TUIkit already takes as more than any real bound offers
+(`isNaturalExtentBudget`) — floored at the region's own extent and its widest
+view, which are drawn already. A view pushed that far is past any terminal's
+edge with either bound, so nothing visible differs; the constant reads no
+budget, which a bound on the available extent would: a row reports its height
+without reading the vertical budget (`_HStackCore.clipSizeThatFits`), and the
+measure and the render would each bound the run by their own budget.
+
+**The fuller version** would hold no bound at all on a guide that lies within
+`Int`, so a view could be pushed past 4,096 cells into a scroll view's canvas.
+**Price:** a buffer as wide as the guide asks, per row, and a stack asked its
+ideal width under a runaway guide climbing the ladder toward `Int.max` instead
+of stopping at its second rung. And a view pushed past the bound that reports
+its guide up through its stack reports it from where it was placed, not from
+where SwiftUI would place it — visible only through two explicit guides more
+than 4,096 cells apart.

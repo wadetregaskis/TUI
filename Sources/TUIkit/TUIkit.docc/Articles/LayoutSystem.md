@@ -130,6 +130,9 @@ Two consequences worth knowing before you reach for it:
   its *trailing* edge, so every sibling shifts right to meet it and the column
   ends up wider than the widest line in it. Both passes account for this — the
   measure reports the grown extent, or the parent would reserve too little.
+- **A guide is used as given.** It need not lie inside the view: a guide of 5
+  on a one-cell view indents its siblings by five cells, as in SwiftUI. Each
+  view sits at the largest guide less its own, for every alignment.
 - **A guide travels up through the views that know where they put it.** A
   `VStack`, `HStack` or `ZStack` reports the guides its children set, each
   moved by where the child sits (several merge by the alignment's

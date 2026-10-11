@@ -180,13 +180,19 @@ struct AlignmentGuideTests {
             resolved: resolved, sizes: [3, 3], fixedExtent: nil, minimumExtent: 0
         ) { Double($0) / 2 }
         #expect(run.offsets.count == 2)
-        // Bounded by the CHILDREN'S geometry, not merely finite and not a
-        // magic constant: a guide is a coordinate within its own view, so the
-        // furthest one places a child is its own extent (with overshoot), and
-        // the region a content-sized run grows to follows from the real sizes.
-        // Here sizes are 3, so the extent cannot pass ~3× a child; an `Int.max`
-        // from a saturating conversion would instead pad a buffer that wide.
-        #expect((0...12).contains(run.extent), "extent \(run.extent)")
+        // Bounded, not merely finite: a finite guide is used as given, as
+        // SwiftUI's is, so what bounds the run is how far one guide falling
+        // short of another pushes a child — `maximumPush` cells — and the
+        // extent a content-sized run grows to is that plus its widest child.
+        // An `Int.max` from a saturating conversion would instead pad a buffer
+        // that wide. A non-finite guide is the view's own origin, so it
+        // pushes nothing.
+        #expect((0...AlignmentGuideRun.maximumPush + 3).contains(run.extent), "extent \(run.extent)")
+        if resolved.allSatisfy(\.isFinite) {
+            #expect(run.offsets.max() == AlignmentGuideRun.maximumPush, "offsets \(run.offsets)")
+        } else {
+            #expect(run.extent == 3, "extent \(run.extent)")
+        }
         #expect(
             run.offsets.allSatisfy { (0...run.extent).contains($0) },
             "offsets \(run.offsets) within 0...\(run.extent)")
@@ -203,6 +209,42 @@ struct AlignmentGuideTests {
             ) { Double($0) / 2 }
             #expect(run.extent == 10, "guide \(guide) must not move a fixed extent")
             #expect((0...6).contains(run.offsets[0]), "guide \(guide) -> \(run.offsets[0])")
+        }
+    }
+
+    @Test("The furthest a guide pushes a child is the natural-extent ladder's first rung")
+    @MainActor
+    func maximumPushIsTheLadderFloor() {
+        // A child pushed this far is past any terminal's edge only because no
+        // real bound offers this much — the premise `isNaturalExtentBudget`
+        // states for the same number. The two must not drift apart.
+        #expect(AlignmentGuideRun.maximumPush == naturalExtentStartingBudget(forVisible: 0))
+        #expect(isNaturalExtentBudget(AlignmentGuideRun.maximumPush))
+    }
+
+    @Test("A guide past the push bound draws in the terminal and sizes the ideal width to the bound")
+    @MainActor
+    func guidePastThePushBound() {
+        // Finite, so used as given — but the sibling it pushes stops at
+        // `maximumPush`, past any terminal's edge: the column draws its 30
+        // cells with the sibling out of sight, and asked its ideal width it
+        // answers the bound plus the sibling, where the ladder stops, rather
+        // than climbing toward `Int.max`.
+        for guide in [1e6, 1e300] {
+            let column = VStack(alignment: .leading, spacing: 0) {
+                Text("g").alignmentGuide(.leading) { _ in guide }
+                Text("ssssss")
+            }
+            let context = makeBareRenderContext(width: 30, height: 4)
+            let buffer = renderToBuffer(column, context: context)
+            #expect(buffer.width == 30, "guide \(guide) -> width \(buffer.width)")
+            #expect(buffer.lines.map { $0.stripped.filter { $0 != " " } } == ["g", ""])
+            #expect(buffer.lines.first?.stripped.first == "g")
+
+            let ideal = measureNaturalExtent(
+                column, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+                context: context, startingBudget: naturalExtentStartingBudget(forVisible: 30))
+            #expect(ideal.width == AlignmentGuideRun.maximumPush + 6, "guide \(guide) -> ideal \(ideal.width)")
         }
     }
 
