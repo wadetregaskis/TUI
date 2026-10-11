@@ -93,8 +93,15 @@ its current case's payload.
 **Shipped.** A type is kept only if its declared fields say no value of it
 can hold more. That rules out an enum, and a struct with a field that is an
 optional of something a walk acts on: a `@State`, a property bound to its
-view's identity, an `@Environment`, an app's property, or a modifier. Such a
-type is walked on every frame, as a type with state already is.
+view's identity, an `@Environment`, an app's property, or a modifier. The
+same is asked of every property and modifier the walks descend into, at any
+depth, since a walk finds their fields as it finds the view's: a modifier
+holding an optional property makes its `ModifiedContent` count, and so does
+a property or modifier field that is an enum or a class (what a class
+instance holds can change). Such a type is walked on every frame, as a type
+with state already is. Each type is decided once, from the runtime's field
+metadata, so a `ModifiedContent` whose modifier holds none of these is still
+kept.
 
 **Not counted.** An existential field, and a class field whose subclass is
 a property. What either holds is known only from its value, so a type first

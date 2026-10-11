@@ -207,7 +207,8 @@ public func resolveEnvironmentProperties<V>(of view: V, in environment: Environm
     }
 
     // Not kept where the next value may hold what this one did not: a `nil`
-    // optional of a property, an enum's case with no payload.
+    // optional of a property, an enum's case with no payload — here or in a
+    // property or modifier the walk descends into, at any depth.
     if !resolveEnvironmentProperties(nestedIn: view, in: environment),
         !NestedProperties.walkDependsOnValue(V.self) {
         EnvironmentResolutionCache.typesWithoutEnvironment.insert(typeID)

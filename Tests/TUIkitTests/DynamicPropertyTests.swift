@@ -191,6 +191,63 @@ private struct NilFirstAccentView: View {
         Text(verbatim: accent?.wrappedValue ?? "none")
     }
 }
+/// A modifier holding an app property in an optional field: its
+/// `ModifiedContent` is first drawn with the field `nil`.
+private struct OptionalAccentTag: ViewModifier {
+    let accent: AccentName?
+
+    func body(content: Content) -> some View {
+        HStack(spacing: 1) {
+            content
+            Text(verbatim: accent?.wrappedValue ?? "none")
+        }
+    }
+}
+
+/// A modifier holding an app property in a plain field: nothing about its
+/// `ModifiedContent` depends on the value.
+private struct AccentTag: ViewModifier {
+    let accent: AccentName
+
+    func body(content: Content) -> some View {
+        HStack(spacing: 1) {
+            content
+            Text(verbatim: accent.wrappedValue)
+        }
+    }
+}
+
+/// An app property holding another in an optional field.
+private struct OptionalAccent: DynamicProperty {
+    var accent: AccentName?
+}
+
+/// Holds an `OptionalAccent`, first drawn with nothing in it.
+private struct NestedNilFirstAccentView: View {
+    let outer: OptionalAccent
+
+    var body: some View {
+        Text(verbatim: outer.accent?.wrappedValue ?? "none")
+    }
+}
+
+/// An app property that is an enum, first drawn in its case with no payload.
+private enum AccentSwitch: DynamicProperty {
+    case off
+    case on(AccentName)
+}
+
+private struct SwitchedAccentView: View {
+    let accent: AccentSwitch
+
+    var body: some View {
+        switch accent {
+        case .off: Text(verbatim: "off")
+        case .on(let name): Text(verbatim: name.wrappedValue)
+        }
+    }
+}
+
 /// An app property that is a class, counting its `update()` calls.
 private final class UpdatingObject: DynamicProperty {
     var updates = 0
@@ -356,6 +413,41 @@ struct DynamicPropertyTests {
         #expect(
             line(NilFirstAccentView(accent: AccentName()).environment(\.accentName, "teal"), context: context)
                 == "teal")
+    }
+
+    /// The second review of the per-type caches: the walks descend into a
+    /// property or a modifier, which can hold nothing on one draw and a
+    /// property on the next as a view can, so the type holding it must not be
+    /// kept as having no environment from its first draw either.
+    @Test("A property one level down, first drawn absent, has its environment resolved once it is there")
+    func firstValueDoesNotDecideOneLevelDown() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let text = Text(verbatim: "a")
+        #expect(line(text.modifier(OptionalAccentTag(accent: nil)), context: context) == "a none")
+        #expect(
+            line(text.modifier(OptionalAccentTag(accent: AccentName())).environment(\.accentName, "teal"), context: context)
+                == "a teal")
+
+        #expect(line(NestedNilFirstAccentView(outer: OptionalAccent()), context: context) == "none")
+        #expect(
+            line(
+                NestedNilFirstAccentView(outer: OptionalAccent(accent: AccentName())).environment(\.accentName, "teal"),
+                context: context) == "teal")
+
+        #expect(line(SwitchedAccentView(accent: .off), context: context) == "off")
+        #expect(
+            line(SwitchedAccentView(accent: .on(AccentName())).environment(\.accentName, "teal"), context: context)
+                == "teal")
+    }
+
+    /// What keeps the caches worth having: a `ModifiedContent` whose modifier
+    /// holds no optional property, enum or class is still kept per type, so it
+    /// is not walked on every frame.
+    @Test("A modifier with nothing that varies by value leaves its ModifiedContent cacheable")
+    func plainModifierStaysCacheable() {
+        #expect(!NestedProperties.walkDependsOnValue(ModifiedContent<Text, AccentTag>.self))
+        #expect(!NestedProperties.walkDependsOnValue(ModifiedContent<Text, EmptyModifier>.self))
+        #expect(NestedProperties.walkDependsOnValue(ModifiedContent<Text, OptionalAccentTag>.self))
     }
 
     /// What SwiftUI does, measured on macOS 15 (session notes

@@ -116,8 +116,7 @@ enum NestedProperties {
     /// its value says whether it holds a property, as the binding walk's
     /// `Mirror` sees it.
     static func mayBeContainer(_ type: Any.Type) -> Bool {
-        if type is any FrameworkDynamicProperty.Type { return false }
-        if type is any DynamicProperty.Type || type is any ViewModifier.Type { return true }
+        if isContainerType(type) { return true }
         switch RuntimeFields.Kind(of: type) {
         case .optional:
             guard let optional = type as? any OptionalPropertyHolder.Type else { return false }
@@ -129,18 +128,31 @@ enum NestedProperties {
         }
     }
 
+    /// Whether a value of declared type `type` is one that ``container(_:)``
+    /// descends into, whatever its value: an app's property, one of TUIkit's
+    /// that holds properties (``FrameworkPropertyContainer``), or a modifier.
+    static func isContainerType(_ type: Any.Type) -> Bool {
+        if type is any FrameworkDynamicProperty.Type { return false }
+        return type is any DynamicProperty.Type || type is any ViewModifier.Type
+    }
+
     /// Whether what a property walk finds in a value of `type` can differ
     /// from one value of the type to another, so that one holding nothing to
-    /// bind, resolve or update says nothing of the next: a struct with a
-    /// field that is an optional of something a walk acts on (`nil` holds
-    /// none), such an optional itself, and an enum, whose `Mirror` children
-    /// are its current case's payload. The walks keep a type as holding
-    /// nothing only where this is `false`.
+    /// bind, resolve or update says nothing of the next: an enum, whose
+    /// `Mirror` children are its current case's payload; an optional of
+    /// something a walk acts on (`nil` holds none); and a struct with a field
+    /// that is either, or that is a property or modifier for which this is
+    /// `true` — at any depth, because the walks descend into a property's and
+    /// a modifier's own fields (a modifier holding an optional property makes
+    /// its `ModifiedContent` count). A property or modifier field that is a
+    /// class counts too: what the walk finds in it is what its instance holds
+    /// at the time. The walks keep a type as holding nothing only where this
+    /// is `false`.
     ///
     /// Decided from declared types, so an existential field, or a class
     /// field whose subclass is a property, is not counted: what one holds is
     /// known only from its value. Asked only of a type a walk found nothing
-    /// in, and kept per type.
+    /// in, and kept per type, the types inside it included.
     @MainActor
     static func walkDependsOnValue(_ type: Any.Type) -> Bool {
         let key = ObjectIdentifier(type)
@@ -153,13 +165,25 @@ enum NestedProperties {
             depends = optionalHoldsProperty(type)
         case .struct:
             depends = !RuntimeFields.forEach(of: type) { _, _, fieldType, kind in
-                !(kind == .optional && optionalHoldsProperty(fieldType))
+                !fieldDependsOnValue(fieldType, kind: kind)
             }
         default:
             depends = false
         }
         ValueDependence.known[key] = depends
         return depends
+    }
+
+    /// One struct field of ``walkDependsOnValue(_:)``, of declared type
+    /// `type`: an optional of something a walk acts on, or a property or
+    /// modifier the walks descend into whose own values can differ. Struct
+    /// containment has no cycles, so the recursion ends; an enum or a class
+    /// answers without looking inside.
+    @MainActor
+    private static func fieldDependsOnValue(_ type: Any.Type, kind: RuntimeFields.Kind) -> Bool {
+        if kind == .optional { return optionalHoldsProperty(type) }
+        guard isContainerType(type) else { return false }
+        return kind.isClass || walkDependsOnValue(type)
     }
 
     /// Whether `type`, an optional, wraps — at whatever depth — something a
@@ -179,8 +203,7 @@ enum NestedProperties {
             || wrapped is any EnvironmentResolvable.Type {
             return true
         }
-        if wrapped is any FrameworkDynamicProperty.Type { return false }
-        return wrapped is any DynamicProperty.Type || wrapped is any ViewModifier.Type
+        return isContainerType(wrapped)
     }
 }
 
