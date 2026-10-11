@@ -3206,3 +3206,30 @@ private struct LocaleBadge: View {
         Text(localeName)
     }
 }
+
+// MARK: - A view that is an enum, its cases holding properties
+
+/// A `DynamicProperty` keeping a counter of its own in `@State`.
+private struct CorpusTally: DynamicProperty {
+    @State private var count = 0
+
+    var binding: Binding<Int> { $count }
+}
+
+/// SwiftUI gives each case's properties their own state, reset when another
+/// case replaces it, and binds a property beside other values in one case
+/// (lane SKEY, measured on macOS 15).
+@MainActor
+private enum CorpusScreen: View {
+    case list(CorpusTally)
+    case detail(CorpusTally, title: String)
+
+    var body: some View {
+        switch self {
+        case .list(let tally):
+            Stepper("Rows", value: tally.binding)
+        case let .detail(tally, title):
+            Stepper(title, value: tally.binding)
+        }
+    }
+}
