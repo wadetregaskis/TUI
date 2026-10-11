@@ -66,6 +66,7 @@ def macho(filetype, sections, symbols, cputype=machofile.CPU_TYPE_ARM64):
 
 GA, GB, GC, GD = '_$s1M1SV1aSivg', '_$s1M1SV1bSivg', '_$s1M1SV1cSivg', '_$s1M1SV1dSivg'
 SA, SB = '_$s1M1SV1aSivs', '_$s1M1SV1bSivs'
+GE, SE = '_$s1M1SV1eSivg', '_$s1M1SV1eSivs'
 COMPARE = '_$s1M7compareySbs10AnyKeyPathC_ADtF'
 SETUP = '_$s1M5setupyyF'
 HANDLER = '_$s1M7handleryys5Int32VcvpZfiyADcfU_To'
@@ -75,6 +76,7 @@ DEMANGLED = {
     GA: 'M.S.a.getter : Swift.Int', GB: 'M.S.b.getter : Swift.Int',
     GC: 'M.S.c.getter : Swift.Int', GD: 'M.S.d.getter : Swift.Int',
     SA: 'M.S.a.setter : Swift.Int', SB: 'M.S.b.setter : Swift.Int',
+    GE: 'M.S.e.getter : Swift.Int', SE: 'M.S.e.setter : Swift.Int',
     COMPARE: 'M.compare(Swift.AnyKeyPath, Swift.AnyKeyPath) -> Swift.Bool', SETUP: 'M.setup() -> ()',
     HANDLER: '@objc closure #1 (Swift.Int32) -> () in variable initialization expression of static M.handler',
 }
@@ -84,9 +86,9 @@ def demangle(names):
     return {n: DEMANGLED.get(n, n) for n in names}
 
 
-def library_object():
+def library_object(with_e=False):
     """Four key-path patterns (\\S.a and \\S.b writable, \\S.c and \\S.d read-only), `compare` calling
-    AnyKeyPath.==, and `setup` taking the address of a @convention(c) handler."""
+    AnyKeyPath.==, and `setup` taking the address of a @convention(c) handler. `with_e`: a fifth, \\S.e, writable."""
     symbols = [
         ('l_keypath', N_SECT_LOCAL, 2, 0x100), ('l_keypath.1', N_SECT_LOCAL, 2, 0x120),
         ('l_keypath.2', N_SECT_LOCAL, 2, 0x140), ('l_keypath.3', N_SECT_LOCAL, 2, 0x150),
@@ -100,12 +102,16 @@ def library_object():
     const = ('__DATA', '__const', 0x100, 0x80, [(0x04, 4, UNSIGNED), (0x08, 5, UNSIGNED),
                                                 (0x24, 6, UNSIGNED), (0x28, 7, UNSIGNED),
                                                 (0x44, 8, UNSIGNED), (0x54, 9, UNSIGNED)])
+    if with_e:
+        symbols += [('l_keypath.4', N_SECT_LOCAL, 2, 0x160),
+                    (GE, N_UNDF_EXT, 0, 0), ('_$s1M1SV1eSivpACTk', N_UNDF_EXT, 0, 0)]    # 14, 15, 16
+        const[4].extend([(0x64, 15, UNSIGNED), (0x68, 16, UNSIGNED)])
     return macho(machofile.MH_OBJECT, [text, const], symbols)
 
 
-def app_binary(setters_differ=True, handler_alone=True, with_compare=True, fold_all=False):
+def app_binary(setters_differ=True, handler_alone=True, with_compare=True, fold_all=False, with_e=False):
     """The linked app: \\S.a's and \\S.b's getters folded onto 0x1100, \\S.c's and \\S.d's onto 0x1300 (onto 0x1100
-    as well with `fold_all`)."""
+    as well with `fold_all`); with `with_e`, \\S.e's getter onto 0x1100 too, with a setter of its own."""
     read_only_at = 0x1100 if fold_all else 0x1300
     symbols = [(GA, N_SECT_EXT, 1, 0x1100), (GB, N_SECT_EXT, 1, 0x1100),
                (SA, N_SECT_EXT, 1, 0x1200), (SB, N_SECT_EXT, 1, 0x1210 if setters_differ else 0x1200),
@@ -113,6 +119,8 @@ def app_binary(setters_differ=True, handler_alone=True, with_compare=True, fold_
                (HANDLER, N_SECT_EXT, 1, 0x1500), (SETUP, N_SECT_EXT, 1, 0x1600)]
     if with_compare:
         symbols.append((COMPARE, N_SECT_EXT, 1, 0x1400))
+    if with_e:
+        symbols += [(GE, N_SECT_EXT, 1, 0x1100), (SE, N_SECT_EXT, 1, 0x1220)]
     if not handler_alone:
         symbols.append(('_$s1M5otheryys5Int32VcvpZfiyADcfU_To', N_SECT_EXT, 1, 0x1500))
     return macho(machofile.MH_EXECUTE, [('__TEXT', '__text', 0x1000, 0x1000, [])], symbols)
@@ -139,8 +147,8 @@ class DedupCheckTests(unittest.TestCase):
             f.write(data)
         return path
 
-    def run_check(self, manifest=MANIFEST, binary=None, module='TUIkitView', extra=()):
-        self.write(f'release/{module}.build/K.swift.o', library_object())
+    def run_check(self, manifest=MANIFEST, binary=None, module='TUIkitView', extra=(), obj=None):
+        self.write(f'release/{module}.build/K.swift.o', obj if obj is not None else library_object())
         binary = binary if binary is not None else app_binary()
         app = self.write('app/Stress', binary)
         mpath = self.write('manifest.json', json.dumps(manifest).encode())
@@ -160,6 +168,15 @@ class DedupCheckTests(unittest.TestCase):
         status, out = self.run_check(manifest)
         self.assertEqual(status, 0, out)
         self.assertIn('[DIVERGENT; allowed]', out)
+
+    def test_an_allow_listed_pair_does_not_cover_a_third_member(self):
+        # The manifest allows \S.a == \S.b. A third writable getter folding onto them, \S.e with a setter of its
+        # own, is a new pair nobody has reviewed: the entry names a group, not some of its members.
+        manifest = dict(MANIFEST, key_path_aliases=[{'members': [GA, GB], 'reason': 'reviewed'}])
+        status, out = self.run_check(manifest, binary=app_binary(with_e=True), obj=library_object(with_e=True))
+        self.assertEqual(status, 1, out)
+        self.assertIn('K1 DIVERGENT key paths M.S.a.getter : Swift.Int == M.S.b.getter : Swift.Int == '
+                      'M.S.e.getter : Swift.Int:', out)
 
     def test_one_setter_makes_an_alias_not_a_finding(self):
         status, out = self.run_check(binary=app_binary(setters_differ=False))

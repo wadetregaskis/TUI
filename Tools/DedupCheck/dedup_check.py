@@ -337,8 +337,8 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
                          'folded_by_ld': (plain_addr is not None and len({plain_addr.get(x) for x in gs}) > 1)})
         classes = equal_classes(rows) or [('not equal (read-only vs writable)', rows)]
         for kind, members in classes:
-            allowed = any(set(x['members']) <= {r['demangled'] for r in members}
-                          or set(x['members']) <= {r['getter'] for r in members}
+            # An entry allows exactly the group it lists: a getter that folds into it later is a new review.
+            allowed = any(set(x['members']) in ({r['demangled'] for r in members}, {r['getter'] for r in members})
                           for x in manifest.get('key_path_aliases', []))
             k1.append({'address': hex(key[0]), 'root': key[1], 'value': key[2], 'kind': kind, 'allowed': allowed,
                        'members': members})
