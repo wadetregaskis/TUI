@@ -76,9 +76,14 @@
 # the library in (`swift demangle` them). Look for that type in unspecialised
 # generic code, in a cast or existential, or in a dependency — swift-collections
 # 1.4 and later reference OutputSpan from DequeModule. Use the type only where
-# its uses specialise, or behind `@available(macOS 26, *)`, or not at all;
-# raising TUIkit's deployment target to macOS 26 would also silence this, and
-# would drop macOS 14 and 15.
+# its uses specialise, or not at all. `@available(macOS 26, *)` does not help:
+# the compiler treats the Span types as available on every target TUIkit
+# supports (they back-deploy), so a reference from code marked macOS 26 is
+# still strong (measured 2026-10-10, Swift 6.4.0, macOS 14 target: an
+# `@available(macOS 26, *)` generic function appending to an `OutputSpan` gave
+# the executable linking it a strong LC_LOAD_DYLIB of the library). Raising
+# TUIkit's deployment target to macOS 26 would silence this, and would drop
+# macOS 14 and 15.
 set -u -o pipefail
 
 if [[ "$(uname -s)" != Darwin ]]; then
