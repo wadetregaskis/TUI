@@ -184,8 +184,17 @@ public enum Key: Hashable, Sendable {
 
     /// A bracketed paste: the text the terminal sent between `ESC [ 200 ~`
     /// and `ESC [ 201 ~`, as one event however many reads it took. Nothing in
-    /// it is read as a key. A paste longer than 16 MiB arrives as its first
-    /// 16 MiB, cut back to a whole character, and the rest is dropped.
+    /// it is read as a key, however long it is. A paste longer than 16 MiB
+    /// arrives as its first 16 MiB, cut back to a whole Unicode scalar so that
+    /// it stays UTF-8 (a character of several scalars at the cut, such as a
+    /// flag, keeps only the scalars before it), and the rest is dropped.
+    ///
+    /// A terminal that stops sending in the middle of a paste for about a
+    /// second has it ended there, as one whose end marker was lost: the text
+    /// so far arrives as the paste, and what the terminal sends after the
+    /// pause is read as typing. Nothing tells a lost marker from a long pause
+    /// while it lasts, and without that timeout a lost marker would take the
+    /// keyboard for good.
     case paste(String)
 
     /// Creates a Key from a character if it's a simple character.

@@ -142,9 +142,9 @@ final class Terminal: TerminalProtocol {
     /// The most of one bracketed paste that reaches the app: 16 MiB.
     ///
     /// A longer paste still ends at its end marker (or the stall timeout), and
-    /// nothing in it is ever read as a key. The app is given its first 16 MiB,
-    /// cut back to a whole UTF-8 character, and the rest is dropped as it
-    /// arrives, so no paste holds more memory than this, however long it is.
+    /// nothing before that is ever read as a key. The app is given its first
+    /// 16 MiB, cut back to a whole Unicode scalar, and the rest is dropped as
+    /// it arrives, so no paste holds more memory than this, however long it is.
     /// Until 2026-10-11 the limit was 1 MiB and ended paste mode: the rest of
     /// the paste then went to the key parser, and an 8 MiB paste of prose quit
     /// Stress on its first `q`. Why 16 MiB, and what else was weighed:

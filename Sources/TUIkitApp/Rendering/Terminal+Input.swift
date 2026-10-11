@@ -67,10 +67,19 @@ extension Terminal {
     private static let bareEscStaleFrames = 2
 
     /// Stale frames of TOTAL silence before an unterminated bracketed paste is
-    /// delivered anyway. At the loop's ~24 ms cadence this is about a second —
-    /// far longer than any gap inside a real paste, which arrives as a
-    /// continuous stream, and short enough that a user does not sit in front of
-    /// an app that has stopped answering the keyboard.
+    /// delivered anyway. These are passes of the run loop that read nothing,
+    /// one ``readEvent()`` each: a second at the loop's 25 ms input poll
+    /// (`FramePacer.pendingInputPollNanos`), less while something else wakes
+    /// the loop sooner — two-thirds of one while an animation runs at 60
+    /// frames a second. Far longer than any gap inside a real paste, which
+    /// arrives as a continuous stream, and short enough that a user does not
+    /// sit in front of an app that has stopped answering the keyboard.
+    ///
+    /// It is the one way the rest of a paste is still read as keys: what the
+    /// terminal sends after such a pause comes after the paste has ended.
+    /// While the pause lasts, nothing tells a paste whose end marker was lost
+    /// from one that has only stopped for a moment, and the first must not
+    /// keep the keyboard.
     ///
     /// Without it the ONLY way out of paste mode was the end marker or the 1 MiB
     /// cap: a paste whose `ESC[201~` never arrived swallowed every subsequent
@@ -536,12 +545,15 @@ extension Terminal {
 
     /// A copy of the first `length` bytes of ``input`` or, when that is more
     /// than ``pasteByteLimit``, of as many as the limit holds without cutting
-    /// a UTF-8 character in two.
+    /// a Unicode scalar's UTF-8 bytes in two.
     ///
     /// A character cut in two would cost more than its own bytes: the paste
     /// would not be UTF-8, and ``pasteEvent(bufferedContent:)`` would read
     /// every byte of it as a character of its own, garbling every other
-    /// non-ASCII character in it.
+    /// non-ASCII character in it. A character of several scalars (a flag, a
+    /// letter and its combining accent) can still be cut between them: the
+    /// paste stays UTF-8, and only that character loses its later scalars,
+    /// with the rest of what is past the limit.
     private func pasteBytes(first length: Int) -> [UInt8] {
         var end = length
         if length > pasteByteLimit {

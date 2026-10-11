@@ -7,7 +7,9 @@ of the same paste was read as a key, and the first `q` quit (found by the
 coordinator while sizing an input benchmark). A terminal reply or a CSI
 longer than the 4 KiB the parser waits for had the same flaw on a smaller
 scale: the first 4 KiB was dropped and the rest typed out. Pasted text and
-terminal replies are now never keys, however long they run.*
+terminal replies are now never keys, however long they run. (A paste the
+terminal pauses in for about a second is still ended at the pause, as
+before: B-PASTE-1.)*
 
 *The format is that of
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*
@@ -27,8 +29,24 @@ A bracketed paste is one `KeyEvent.Key.paste` event whatever its length, and
 nothing between its markers is read as a key. The limit on what is delivered
 went from 1 MiB to 16 MiB (`Terminal.maxPasteBytes`). Past it, the paste
 stays open to its end marker, or to the stall timeout, as before; the app is
-given the first 16 MiB, cut back to a whole UTF-8 character, and the rest is
-dropped as it arrives.
+given the first 16 MiB, cut back to a whole Unicode scalar so that it stays
+UTF-8, and the rest is dropped as it arrives. A character of several scalars
+that straddles the cut (a flag, a letter and its combining accent) keeps only
+the scalars before it.
+
+**The stall timeout is the one way the rest of a paste is still read as
+keys**, and this lane leaves it as it was. A terminal that stops sending in
+the middle of a paste for 40 passes of the run loop
+(`stalledPasteStaleFrames`: a second at the loop's 25 ms input poll,
+two-thirds of one while an animation runs at 60 frames a second) has the
+paste ended there and delivered, and what it sends after the pause is read
+as typing. The timeout exists for a paste whose end marker is lost, which
+would otherwise keep the keyboard for good, and nothing tells that from a
+paste that has only paused until the pause is over. The fuller version
+would time the pause on the clock rather than in passes of the loop, so that
+an animation cannot shorten it. Its price: the parser counts passes and
+reads no clock today, and the tests that drive it pass by pass would each
+need a clock of their own.
 
 **Why 16 MiB.** The paste that quit Stress was 8 MiB of prose, and pasting a
 multi-megabyte log into a `TextEditor` is plausible, so the limit has to sit
@@ -48,7 +66,15 @@ code (not measured):
 
 Then the app holds the text: a `TextEditor` inserts it and keeps the text
 from before for its undo. Rendering a 16 MiB document is a cost of its own,
-unmeasured here.
+unmeasured here. From the code, not measured: a `TextField` walks its whole
+text on every frame it draws, with an array of cell widths as long as the
+text (128 MiB at 16 MiB of ASCII); and `TextEditor`'s insert shifts the lines
+after the caret once for each line it inserts, so a paste of many lines into
+the middle of a long document costs the product of the two. Before this lane
+neither was handed more than 1 MiB of paste: whatever came after that was
+typed into it, a key at a time. A measurement is owed: a 16 MiB paste into a
+focused `TextField`, and into a `TextEditor` above a long document, in a
+release build.
 
 **Why not the other two shapes.**
 
