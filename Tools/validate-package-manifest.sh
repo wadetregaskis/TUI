@@ -55,7 +55,7 @@ cd "$(dirname "$0")/.."
 # The patterns match JSON *keys*, which dump-package emits verbatim, so a
 # dependency URL that happens to contain the word "branch" cannot trip them.
 check_manifest() {
-    local json="$1" failures=0 flat unsafe gated
+    local json="$1" failures=0 flat tools unsafe gated
     # dump-package sorts its keys, so once the whitespace is gone a setting
     # reads {"condition":{…,"traits":[…]},"kind":{"unsafeFlags":{"_0":[…]}},
     # "tool":"…"}. Here-strings rather than `printf | grep -q`: under
@@ -64,10 +64,28 @@ check_manifest() {
     # then reads as "no match".
     flat=$(tr -d ' \t\r\n' <<<"$json")
 
-    if grep -qE '"kind":\{"unsafeFlags":\{"_0":\[[^]]*\]\}\},"tool":"linker"' <<<"$flat"; then
+    # Each unsafeFlags setting's tool, one per line: the first "tool" key
+    # after the setting's kind. Whatever shape the flags' value takes
+    # (`{"_0":[…]}` today, `[[…]]` in older SwiftPMs), a `"tool":"` cannot
+    # occur inside it, because JSON escapes the quotes in a flag. `?` is a
+    # setting with no tool after it: JSON in a shape this does not read.
+    tools=$(awk '{
+        n = split($0, part, /"kind":[{]"unsafeFlags":/)
+        for (i = 2; i <= n; i++)
+            if (match(part[i], /"tool":"[^"]*"/)) print substr(part[i], RSTART + 8, RLENGTH - 9)
+            else print "?"
+    }' <<<"$flat")
+
+    if grep -qx 'linker' <<<"$tools"; then
         printf 'FAIL unsafeFlags in a linker setting\n'
         printf '     A package'"'"'s linker flags land on the app'"'"'s final link and change\n'
         printf '     the developer'"'"'s whole program. Offer the flag in the README instead.\n'
+        failures=$((failures + 1))
+    fi
+    if grep -qx '?' <<<"$tools"; then
+        printf 'FAIL an unsafeFlags setting names no tool\n'
+        printf '     dump-package'"'"'s JSON is not in the shape this script reads, so it\n'
+        printf '     cannot tell a linker flag from a compile one: update check_manifest.\n'
         failures=$((failures + 1))
     fi
 
@@ -105,40 +123,62 @@ check_manifest() {
 self_test() {
     local failures=0 name json
 
+    # `want` is "pass", or the checks that must fire, by their FAIL titles,
+    # joined with ";": a case caught by some other check proves nothing.
     run_case() {
-        name="$1"; json="$2"; local want="$3" got=0
-        check_manifest "$json" >/dev/null 2>&1 || got=1
-        if [ "$got" != "$want" ]; then
-            printf 'SELF-TEST FAIL: %s (expected %s, got %s)\n' "$name" "$want" "$got"
+        name="$1"; json="$2"; local want="$3" out got status=0
+        out=$(check_manifest "$json" 2>&1) || status=$?
+        got=$(sed -n 's/^FAIL //p' <<<"$out" | paste -sd ';' -)
+        [ -n "$got" ] || got=pass
+        if [ "$got" != "$want" ] || { [ "$got" = pass ] && [ "$status" -ne 0 ]; } \
+            || { [ "$got" != pass ] && [ "$status" -eq 0 ]; }; then
+            printf 'SELF-TEST FAIL: %s (expected %s, got %s, exit %s)\n' "$name" "$want" "$got" "$status"
             failures=$((failures + 1))
         else
             printf 'ok  %s\n' "$name"
         fi
     }
 
+    local linker='unsafeFlags in a linker setting' untraited='unsafeFlags without a trait'
+    local swift_gated='{"condition":{"config":"release","platformNames":["macos"],"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}'
+    local linker_gated='{"condition":{"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xlinker","-deduplicate"]}},"tool":"linker"}'
+
     run_case "clean manifest passes" \
-        '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"range":[{"lowerBound":"1.0.0","upperBound":"2.0.0"}]}}]}],"targets":[{"name":"T","settings":[]}]}' 0
+        '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"range":[{"lowerBound":"1.0.0","upperBound":"2.0.0"}]}}]}],"targets":[{"name":"T","settings":[]}]}' pass
     run_case "a compile flag behind a trait passes" \
-        '{"targets":[{"name":"T","settings":[{"condition":{"config":"release","platformNames":["macos"],"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}]}]}' 0
+        "{\"targets\":[{\"name\":\"T\",\"settings\":[$swift_gated]}]}" pass
     run_case "a compile flag without a trait caught" \
-        '{"targets":[{"name":"T","settings":[{"condition":{"config":"release"},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}]}]}' 1
+        '{"targets":[{"name":"T","settings":[{"condition":{"config":"release"},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}]}]}' "$untraited"
     run_case "a compile flag with no condition caught" \
-        '{"targets":[{"name":"T","settings":[{"kind":{"unsafeFlags":{"_0":["-Onone"]}},"tool":"swift"}]}]}' 1
+        '{"targets":[{"name":"T","settings":[{"kind":{"unsafeFlags":{"_0":["-Onone"]}},"tool":"swift"}]}]}' "$untraited"
     run_case "a linker flag caught, even behind a trait" \
-        '{"targets":[{"name":"T","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xlinker","-deduplicate"]}},"tool":"linker"}]}]}' 1
+        "{\"targets\":[{\"name\":\"T\",\"settings\":[$linker_gated]}]}" "$linker"
+    run_case "a linker flag without a trait caught by both checks" \
+        '{"targets":[{"name":"T","settings":[{"kind":{"unsafeFlags":{"_0":["-Xlinker","-x"]}},"tool":"linker"}]}]}' "$linker;$untraited"
     # The same shape as dump-package prints it, over many lines.
-    run_case "a pretty-printed linker flag caught" \
-        "$(printf '{\n  "targets" : [\n    {\n      "settings" : [\n        {\n          "kind" : {\n            "unsafeFlags" : {\n              "_0" : [\n                "-Xlinker",\n                "-x"\n              ]\n            }\n          },\n          "tool" : "linker"\n        }\n      ]\n    }\n  ]\n}')" 1
+    run_case "a pretty-printed linker flag behind a trait caught" \
+        "$(printf '{\n  "targets" : [\n    {\n      "settings" : [\n        {\n          "condition" : {\n            "traits" : [\n              "T"\n            ]\n          },\n          "kind" : {\n            "unsafeFlags" : {\n              "_0" : [\n                "-Xlinker",\n                "-x"\n              ]\n            }\n          },\n          "tool" : "linker"\n        }\n      ]\n    }\n  ]\n}')" "$linker"
+    # Older SwiftPMs encoded the flags as an array of arrays; the linker check
+    # must not depend on how the value is spelled.
+    run_case "a linker flag in the older encoding caught" \
+        '{"targets":[{"name":"T","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":[["-Xlinker","-deduplicate"]]},"tool":"linker"}]}]}' "$linker"
+    # Each setting's own tool, wherever it sits among the others.
+    run_case "a linker flag after a compile one caught" \
+        "{\"targets\":[{\"name\":\"T\",\"settings\":[$swift_gated,$linker_gated]}]}" "$linker"
+    run_case "a compile flag after a linker one does not hide it" \
+        "{\"targets\":[{\"name\":\"T\",\"settings\":[$linker_gated,$swift_gated]}]}" "$linker"
+    run_case "a setting with no tool cannot be read" \
+        '{"targets":[{"name":"T","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-x"]}}}]}]}' 'an unsafeFlags setting names no tool'
     run_case "path dependency caught" \
-        '{"dependencies":[{"fileSystem":[{"identity":"local","path":"/Users/someone/dep"}]}]}' 1
+        '{"dependencies":[{"fileSystem":[{"identity":"local","path":"/Users/someone/dep"}]}]}' 'local path dependency'
     run_case "branch dependency caught" \
-        '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"branch":["main"]}}]}]}' 1
+        '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"branch":["main"]}}]}]}' 'branch or revision dependency'
     run_case "revision dependency caught" \
-        '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"revision":["abc123"]}}]}]}' 1
+        '{"dependencies":[{"sourceControl":[{"identity":"x","requirement":{"revision":["abc123"]}}]}]}' 'branch or revision dependency'
     # A URL containing a check word must NOT trip the scanner — the reason this
     # reads dump-package's JSON keys rather than the manifest source.
     run_case "a URL containing 'branch' is not a branch pin" \
-        '{"dependencies":[{"sourceControl":[{"identity":"x","location":{"remote":[{"urlString":"https://example.com/branch/revision"}]},"requirement":{"exact":["1.0.0"]}}]}]}' 0
+        '{"dependencies":[{"sourceControl":[{"identity":"x","location":{"remote":[{"urlString":"https://example.com/branch/revision"}]},"requirement":{"exact":["1.0.0"]}}]}]}' pass
 
     if [ "$failures" -eq 0 ]; then
         printf '\nself-test passed: every check fires on its construct and on nothing else\n'
