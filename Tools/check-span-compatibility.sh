@@ -64,6 +64,19 @@
 # the list from an SDK keeps the check independent of which SDK `xcrun` finds
 # (Command Line Tools' is older, and lists none).
 #
+# WHY NOT A UNIT TEST. A test runs in a debug build, and a debug build refers
+# to the library where a release build of the same code does not: a Span
+# handed to a generic function, even an `@inline(__always)` one, makes the
+# object refer to the type's metadata (`$ss4SpanVMn` on Xcode's Swift 6.2.4,
+# `$ss4SpanVMa` on 6.4.0) at -Onone and to nothing at -O (measured 2026-10-11,
+# macOS 14 target). A test would fail on code that ships clean, while the
+# release build already shows every reference that ships, so the check reads
+# release builds, here and in CI. The debug test bundles are clean today
+# (measured 2026-10-11: on Xcode's 6.2.4 and on 6.4.0's Swift Build, which
+# makes one bundle per test target, no load command names the library and
+# nothing is imported from it; a 6.2.4 test run never loads it), and neither
+# toolchain's Testing library links it.
+#
 # AN EMPTY ANSWER MUST MEAN "NONE", NOT "COULD NOT LOOK". `otool -L` prints
 # "is not an object file" and exits 0 for a file it cannot read, so every
 # executable must also show the libSystem load and the libSystem imports that
