@@ -3179,3 +3179,30 @@ private struct GlobalVisualEffect: View {
             }
     }
 }
+
+// MARK: - A property wrapper that keeps what update() derives
+
+/// The commonest non-trivial `DynamicProperty`: it reads the environment and
+/// keeps what it derives in a stored value of its own, in `update()`. SwiftUI
+/// writes that value back before `body` reads it, and TUIkit does too
+/// (decisions B4).
+@propertyWrapper
+private struct CorpusLocaleName: DynamicProperty {
+    @Environment(\.locale) private var locale
+    private var cached = ""
+
+    var wrappedValue: String { cached }
+
+    mutating func update() {
+        cached = locale.identifier.uppercased()
+    }
+}
+
+@MainActor
+private struct LocaleBadge: View {
+    @CorpusLocaleName private var localeName: String
+
+    var body: some View {
+        Text(localeName)
+    }
+}

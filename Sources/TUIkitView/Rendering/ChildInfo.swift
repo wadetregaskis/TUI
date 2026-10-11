@@ -807,15 +807,18 @@ private func measureCompositeBody<V: View>(
     // view branching on `\.terminalWidth` would measure the subtree it would
     // have rendered at 80 columns, whatever the terminal actually was.
     resolveEnvironmentProperties(of: view, in: context.environment)
-    bindStateProperties(
+    let hasAppProperties = bindStateProperties(
         of: view, identity: context.identity, storage: context.stateStorage!)
+    // As the render path evaluates it: see `evaluateCompositeBody`.
+    let updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties)
     guard let cache = context.renderCache, cache.readingTypes.contains(V.self) else {
-        return measureChild(view.body, proposal: proposal, context: childContext)
+        return measureChild(updated?.body ?? view.body, proposal: proposal, context: childContext)
     }
     let sentinel = cache.leases.isActive ? cache.leases.sentinel(at: context.identity) : nil
     let body = withObservationTracking(
         {
             sentinel?.touch()
+            if let updated { return updated.body }
             return view.body
         },
         onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))

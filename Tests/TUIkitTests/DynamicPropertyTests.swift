@@ -65,6 +65,43 @@ private struct Updating: DynamicProperty {
     }
 }
 
+/// Caches what it reads in a stored value of its own, in `update()` — what
+/// SwiftUI writes back into the view before `body` reads it.
+@propertyWrapper
+private struct Shouted: DynamicProperty {
+    @Environment(\.accentName) private var name
+    private var cached = ""
+
+    var wrappedValue: String { cached }
+
+    mutating func update() {
+        cached = name.uppercased()
+    }
+}
+
+/// An app property holding another, each caching in `update()`: the inner one
+/// is updated and written back into the outer before the outer updates.
+@propertyWrapper
+private struct Framed: DynamicProperty {
+    @Shouted private var inner: String
+    private var framed = ""
+
+    var wrappedValue: String { framed }
+
+    mutating func update() {
+        framed = "[\(inner)]"
+    }
+}
+
+private struct ShoutedView: View {
+    @Shouted private var accent: String
+    @Framed private var framed: String
+
+    var body: some View {
+        Text(verbatim: "\(accent) \(framed)")
+    }
+}
+
 @MainActor
 private final class BindingTap {
     var binding: Binding<Int>?
@@ -132,6 +169,15 @@ struct DynamicPropertyTests {
         #expect(line(UpdatingView(log: log), context: context) == "1")
         #expect(line(UpdatingView(log: log), context: context) == "2",
                 "a second frame runs it again: the type is not cached as having nothing to do")
+    }
+
+    /// Decisions B4: SwiftUI writes back what `update()` changes in the
+    /// property's own stored values, and so does TUIkit now.
+    @Test("What update() stores in the property is what body reads, through a property inside another too")
+    func updateWritesBack() {
+        let context = makeRenderContext(width: 30, height: 1)
+        #expect(line(ShoutedView().environment(\.accentName, "teal"), context: context) == "TEAL [TEAL]")
+        #expect(line(ShoutedView(), context: context) == "PLAIN [PLAIN]")
     }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")

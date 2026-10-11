@@ -628,27 +628,35 @@ public protocol RenderIdentityBindable {
 ///
 /// `view` is not constrained to `View`: the render loop binds an `App`'s
 /// `@State` with it too, at the root identity, before evaluating `App.body`.
+///
+/// - Returns: Whether `view` holds an app's ``DynamicProperty`` — anywhere
+///   the walk descends — whose `update()` must run before `body`: the caller
+///   then evaluates `body` on ``updatedDynamicProperties(of:hasAppProperties:)``.
 @MainActor
-package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage: StateStorage) {
+@discardableResult
+package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage: StateStorage) -> Bool {
     let typeID = ObjectIdentifier(V.self)
-    if StateBindingCache.typesWithoutState.contains(typeID) { return }
+    if StateBindingCache.typesWithoutState.contains(typeID) { return false }
     var index = 0
     var hasContainers = false
+    var hasAppProperties = false
     bindStateProperties(
         nestedIn: view, identity: identity, storage: storage, index: &index,
-        hasContainers: &hasContainers)
+        hasContainers: &hasContainers, hasAppProperties: &hasAppProperties)
     // A type holding an app's `DynamicProperty` is never skipped, even with
     // nothing in it to bind: its `update()` has to run before every body.
     if index == 0 && !hasContainers {
         StateBindingCache.typesWithoutState.insert(typeID)
     }
+    return hasAppProperties
 }
 
 /// One level of ``bindStateProperties(of:identity:storage:)``, descending into
 /// any property that holds properties of its own to bind — an app's
 /// ``DynamicProperty``, or a ``ViewModifier`` stored in a ``ModifiedContent``,
-/// either of which may declare `@State` as a view does — and running an app
-/// property's ``DynamicProperty/update()`` once it is bound.
+/// either of which may declare `@State` as a view does — and noting whether
+/// it met an app property, whose ``DynamicProperty/update()`` the caller runs
+/// (``updateDynamicProperties(of:)``).
 ///
 /// Nested properties take the next indices of the same counter, in declaration
 /// order, so they key the owning view's identity without colliding with its
@@ -657,7 +665,7 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
 @MainActor
 private func bindStateProperties(
     nestedIn value: Any, identity: ViewIdentity, storage: StateStorage, index: inout Int,
-    hasContainers: inout Bool
+    hasContainers: inout Bool, hasAppProperties: inout Bool
 ) {
     for child in Mirror(reflecting: value).children {
         if let bindable = child.value as? StateBindable {
@@ -671,12 +679,10 @@ private func bindStateProperties(
             index += 1
         } else if let container = NestedProperties.container(child.value) {
             hasContainers = true
+            if NestedProperties.isAppProperty(container) { hasAppProperties = true }
             bindStateProperties(
                 nestedIn: container, identity: identity, storage: storage, index: &index,
-                hasContainers: &hasContainers)
-            // Last, because the environment walk ran before this one: by now
-            // everything the property holds has its value.
-            NestedProperties.update(container)
+                hasContainers: &hasContainers, hasAppProperties: &hasAppProperties)
         }
     }
 }

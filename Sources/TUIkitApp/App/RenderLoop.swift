@@ -852,11 +852,13 @@ extension RenderLoop {
         // and a memoized view below the scene (a `ForEach` row drawing the value
         // from its closure) kept its old buffer. Bound here, a write clears
         // `rootIdentity` and everything below it, as a root view's `@State` would.
-        bindStateProperties(of: app, identity: rootIdentity, storage: tuiContext.stateStorage)
+        let updates = bindStateProperties(of: app, identity: rootIdentity, storage: tuiContext.stateStorage)
         // Nothing populates an App's `@Environment` boxes either — publishing the
         // environment around `body` is the only way its reads resolve. The scope
-        // ends with the call, so nothing outside it ever sees this value.
-        let scene = StateRegistration.withHydration(environment: environment) { app.body }
+        // ends with the call, so nothing outside it ever sees this value. An app
+        // property's `update()` runs inside it, for the same reason, and what it
+        // left is the `App` whose body is read.
+        let scene = StateRegistration.withHydration(environment: environment) { (updatedDynamicProperties(of: app, hasAppProperties: updates) ?? app).body }
         tuiContext.stateStorage.markActive(rootIdentity)
         return scene
     }

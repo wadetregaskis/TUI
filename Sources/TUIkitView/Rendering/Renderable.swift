@@ -304,8 +304,11 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
 @MainActor
 package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) -> V.Body {
     resolveEnvironmentProperties(of: view, in: context.environment)
-    bindStateProperties(
+    let hasAppProperties = bindStateProperties(
         of: view, identity: context.identity, storage: context.stateStorage!)
+    // What an app property's `update()` left, written back (`nil` for the
+    // view that has none — nearly all of them — which is evaluated as it is).
+    let updated = updatedDynamicProperties(of: view, hasAppProperties: hasAppProperties)
     // Read inside the scope, so the lease the scope is armed under can
     // cancel it: `nil` — nothing extra read, and a scope that reads nothing
     // arms nothing — until the type is known to read and leases are on.
@@ -313,6 +316,7 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
     let body = withObservationTracking(
         {
             sentinel?.touch()
+            if let updated { return updated.body }
             return view.body
         },
         onChange: observedChange(
