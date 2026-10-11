@@ -5,8 +5,7 @@ changes, as SwiftUI's does. That was the owner's ruling on decisions B4 (D6M
 lane, 2026-10-05): "that seems like a bug that we should fix … we need to be
 very careful about the performance impact". B4 in
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md)
-still describes the behaviour before the lane ("does not write back"); B-DYNP-1
-below supersedes it. This file records what the write-back covers, and where
+now points here; B-DYNP-1 below supersedes it. This file records what the write-back covers, and where
 TUIkit still differs from SwiftUI. Each SwiftUI behaviour below was measured
 on macOS 15 with an offscreen `NSHostingView` (session notes
 `DYNP/probe/dp.swift`; the case numbers are that probe's). The format is
