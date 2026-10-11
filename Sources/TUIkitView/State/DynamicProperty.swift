@@ -50,6 +50,13 @@ extension DynamicProperty {
 /// handle directly and need not look inside.
 package protocol FrameworkDynamicProperty: DynamicProperty {}
 
+/// A dynamic property TUIkit itself provides that holds properties the walks
+/// must reach — `@GestureState` keeps its value in a `@State` — but whose
+/// ``DynamicProperty/update()`` does nothing: descended into as an app's
+/// property is, but not counted as one, so a view holding it is not copied
+/// on every body to run that `update()`.
+package protocol FrameworkPropertyContainer: DynamicProperty {}
+
 extension State: FrameworkDynamicProperty {}
 extension Binding: FrameworkDynamicProperty {}
 extension Environment: FrameworkDynamicProperty {}
@@ -71,7 +78,15 @@ enum NestedProperties {
     /// Whether `value` is an app's ``DynamicProperty`` — one whose
     /// ``DynamicProperty/update()`` the framework runs.
     static func isAppProperty(_ value: Any) -> Bool {
-        value is any DynamicProperty && !(value is any FrameworkDynamicProperty)
+        guard let property = value as? any DynamicProperty else { return false }
+        return runsUpdate(property)
+    }
+
+    /// Whether the framework runs `property`'s ``DynamicProperty/update()``:
+    /// an app's property, not one of TUIkit's own, whose `update()` does
+    /// nothing.
+    static func runsUpdate(_ property: any DynamicProperty) -> Bool {
+        !(property is any FrameworkDynamicProperty) && !(property is any FrameworkPropertyContainer)
     }
 
     /// Whether a stored value of declared type `type` may be one that
@@ -196,7 +211,7 @@ private func updateCopies(in value: Any) {
 private func updateCopy<Value>(of value: Value) {
     var copy = value
     updateDynamicProperties(of: &copy)
-    if var property = copy as? any DynamicProperty, !(property is any FrameworkDynamicProperty) {
+    if var property = copy as? any DynamicProperty, NestedProperties.runsUpdate(property) {
         property.update()
     }
 }
@@ -224,7 +239,7 @@ private func writeBackDynamicProperties<Field>(at address: UnsafeMutableRawPoint
     guard NestedProperties.container(slot.pointee) != nil else { return }
     var field = slot.pointee
     updateDynamicProperties(of: &field)
-    if var property = field as? any DynamicProperty, !(property is any FrameworkDynamicProperty) {
+    if var property = field as? any DynamicProperty, NestedProperties.runsUpdate(property) {
         property.update()
         guard let updated = property as? Field else { return }
         field = updated

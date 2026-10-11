@@ -149,6 +149,10 @@ public struct GestureState<Value>: DynamicProperty {
 
 extension GestureState: @unchecked Sendable where Value: Sendable {}
 
+/// Its `@State` is bound with the view's, but its `update()` does nothing, so
+/// a view holding it is not one whose app properties are updated.
+extension GestureState: FrameworkPropertyContainer {}
+
 extension GestureState where Value: ExpressibleByNilLiteral {
     /// Creates a view state that's derived from a gesture with an initial
     /// value of `nil`, and a transaction to reset it.

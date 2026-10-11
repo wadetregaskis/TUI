@@ -152,6 +152,14 @@ private struct MetatypeFieldsView: View {
         Text(verbatim: "\(updates)")
     }
 }
+/// A view whose one dynamic property is TUIkit's own `@GestureState`.
+private struct GestureStateView: View {
+    @GestureState private var pressed = false
+
+    var body: some View {
+        Text(verbatim: pressed ? "pressed" : "idle")
+    }
+}
 
 @MainActor
 private final class BindingTap {
@@ -265,6 +273,18 @@ struct DynamicPropertyTests {
             }
         }
     #endif
+
+    /// The review of the write-back: TUIkit's own `@GestureState` holds a
+    /// `@State` the walk binds, but its `update()` does nothing, so a view
+    /// holding it is not copied and listed on every body to run it.
+    @Test("TUIkit's own @GestureState does not make its view run the app-property update")
+    func gestureStateIsNotAnAppProperty() {
+        let holdsAppProperty = bindStateProperties(
+            of: GestureStateView(), identity: ViewIdentity(path: "Root/GestureState"), storage: StateStorage())
+        #expect(!holdsAppProperty)
+        let context = makeRenderContext(width: 20, height: 1)
+        #expect(line(GestureStateView(), context: context) == "idle")
+    }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")
     func frameworkWrappersConform() {
