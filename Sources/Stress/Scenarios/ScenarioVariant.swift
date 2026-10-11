@@ -47,6 +47,7 @@ enum ScenarioVariants {
         AppShapeMatrix.scenarioID: AppShapeMatrix.variants,
         ControlRowsMatrix.scenarioID: ControlRowsMatrix.variants,
         ModifierChainsScenario.scenarioID: ModifierChainsScenario.variants,
+        StatefulRowsScenario.scenarioID: StatefulRowsScenario.variants,
     ]
 
     /// The variants of `scenario`, or an empty array for an ordinary scenario.

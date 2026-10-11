@@ -102,6 +102,7 @@ enum Scenarios {
         MenuBarScenario.descriptor,
         KeyRowsScenario.descriptor,
         ControlRowsMatrix.descriptor,
+        StatefulRowsScenario.descriptor,
         KitchenSinkScenario.descriptor,
     ]
 
