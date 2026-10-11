@@ -162,22 +162,34 @@
             }
         }
 
-        @Test("A bridged NSString without contiguous UTF-8 is looked up through its copied bytes")
-        func bridgedStringUsesTheCopyingFallback() throws {
-            // Long enough not to become a tagged pointer, and UTF-16 data, which
-            // is what leaves the bridged string without contiguous UTF-8 (probed
-            // 2026-10-11: built from a Swift string or from characters, an ASCII
-            // NSString bridges contiguous, and the fallback is not reached).
+        @Test("A bridged NSString is looked up by its bytes, whether or not it bridges with contiguous UTF-8")
+        func bridgedStringResolves() throws {
+            // Long enough not to become a tagged pointer, and UTF-16 data. On
+            // macOS 15 (probed 2026-10-11) that leaves the bridged string
+            // without contiguous UTF-8, so this reaches the copying fallback;
+            // built from a Swift string or from characters, an ASCII NSString
+            // bridges contiguous. Which way it bridges is the OS's Swift
+            // runtime's choice, so it is not required here: the answer must be
+            // the same either way, and the next test reaches the fallback on
+            // every OS.
             let name = "figure.seated.side.right.windshield.front.and.heat.waves.air.distribution.upper.and.middle.and.lower"
             for (query, expected) in [(name, SFSymbol.glyph(named: name)), (name + "s", nil)] {
                 let data = try #require(query.data(using: .utf16LittleEndian))
                 let object = try #require(NSString(data: data, encoding: String.Encoding.utf16LittleEndian.rawValue))
-                let bridged = object as String
-                let isContiguous = bridged.utf8.withContiguousStorageIfAvailable { _ in true } ?? false
-                try #require(!isContiguous, "the bridged string must take the fallback path")
-                #expect(SFSymbol.glyph(named: bridged) == expected)
+                #expect(SFSymbol.glyph(named: object as String) == expected)
             }
             #expect(SFSymbol.glyph(named: name) != nil)
+        }
+
+        @Test("The copying fallback finds every name at its own position and misses what is not a name")
+        func copyingFallbackAgreesWithTheTable() {
+            let all = SFSymbol.all
+            let misplaced = all.indices.filter { SFSymbol.index(copying: all[$0].name.utf8) != $0 }
+            let misplacedCount = misplaced.count  // so a failure prints the count, not every index
+            #expect(misplacedCount == 0, "e.g. \(misplaced.prefix(5).map { all[$0].name })")
+            for miss in ["", "0", "star.fil", "star.fillx", "zzzz", "stär.fill", "star\nfill"] {
+                #expect(SFSymbol.index(copying: miss.utf8) == nil, "\(miss)")
+            }
         }
     }
 #endif
