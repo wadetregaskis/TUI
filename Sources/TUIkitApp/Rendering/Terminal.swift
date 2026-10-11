@@ -4,7 +4,6 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-import DequeModule
 import Foundation
 import TUIkitFoundation
 
@@ -69,14 +68,12 @@ final class Terminal: TerminalProtocol {
     /// ``appendDrain()`` (one `read()` syscall per call) and consumed
     /// from the front by ``readEvent()`` as it identifies events.
     ///
-    /// ``UniqueDeque`` is a noncopyable ring buffer with O(1)
-    /// removeFirst and an "append into uninitialised storage via
-    /// `OutputSpan`" API — together those let us `read()` straight
-    /// into the deque's backing buffer with zero intermediate
-    /// copies, and consume bytes off the front without paying any
-    /// shuffling cost. Capacity grows geometrically when needed
-    /// and ``consume(_:)`` shrinks it back to ``baselineCapacity``
-    /// once a transient large paste has been fully consumed.
+    /// ``InputByteBuffer`` removes from the front in O(1) and hands
+    /// `read()` free storage at its back, so stdin is read straight
+    /// into it with no intermediate copy. Capacity grows
+    /// geometrically when needed and ``consume(_:)`` shrinks it back
+    /// to ``baselineCapacity`` once a transient large paste has been
+    /// fully consumed.
     ///
     /// This and the parser state below it are module-internal rather than
     /// private, and NOT because anything outside wants them: the parser that
@@ -84,8 +81,7 @@ final class Terminal: TerminalProtocol {
     /// `Terminal+Replies.swift`), split out because this file had reached its
     /// length limit, and an extension cannot hold stored properties. Nothing
     /// outside this module can see `Terminal` at all.
-    var input: UniqueDeque<UInt8> = .init(
-        minimumCapacity: Terminal.baselineCapacity)
+    var input = InputByteBuffer(minimumCapacity: Terminal.baselineCapacity)
 
     /// Initial — and steady-state minimum — capacity for ``input``.
     /// Sized to comfortably hold a frame's worth of bursty mouse
@@ -189,7 +185,7 @@ final class Terminal: TerminalProtocol {
     /// can commit several characters through one key. Each is delivered as a
     /// key event of its own, as the legacy encoding's bytes would be, so all
     /// but the first wait here for the next ``readEvent()``.
-    var queuedInputs: Deque<TerminalInput> = []
+    var queuedInputs = InputQueue<TerminalInput>()
 
     /// Colour answers the terminal volunteered, siphoned out of the keystrokes
     /// by the parser and waiting for the run loop to take them.
@@ -1102,7 +1098,7 @@ extension Terminal {
     /// Removes `n` bytes from the front of the buffer and, if the
     /// resulting size fits back inside ``baselineCapacity``, shrinks
     /// the backing allocation down too. The shrink is the reason
-    /// for the explicit `reallocate(capacity:)` call: ``UniqueDeque``
+    /// for the explicit `reallocate(capacity:)` call: ``InputByteBuffer``
     /// grows geometrically (1.5×) when needed but doesn't shrink on
     /// its own, so we have to ask.
     func consume(_ n: Int) {
@@ -1114,43 +1110,19 @@ extension Terminal {
         }
     }
 
-    /// Drains whatever stdin has waiting straight into the deque's
-    /// uninitialised tail storage, with zero intermediate copies.
-    ///
-    /// Implementation:
-    /// - ``UniqueDeque/append(addingCount:initializingWith:)`` hands
-    ///   us an `OutputSpan<UInt8>` covering contiguous free space
-    ///   at the back of the ring buffer.
-    /// - `withUnsafeMutableBufferPointer` exposes that span as a
-    ///   raw `UnsafeMutableBufferPointer`, which we pass straight to
-    ///   `read(STDIN_FILENO, …)`.
-    /// - We set the span's `written` count to whatever `read()`
-    ///   returned; the deque keeps exactly those bytes initialised.
-    ///
-    /// In the (rare) case that the ring buffer's contiguous tail is
-    /// smaller than our requested chunk, the deque calls our closure
-    /// a second time for the wrapped portion — `read()` is called
-    /// again for that span, which costs at most one extra syscall.
+    /// Drains whatever stdin has waiting straight into the buffer's
+    /// free tail storage, with zero intermediate copies: one `read()`
+    /// (through ``readSource``) into the contiguous room
+    /// ``InputByteBuffer/append(upTo:from:)`` makes at the back, which
+    /// keeps exactly the bytes `read()` says it wrote.
     ///
     /// - Returns: the number of new bytes drained from stdin.
     @discardableResult
     func appendDrain() -> Int {
-        var added = 0
-        // Request up to one baseline chunk at a time. The deque
-        // grows behind the scenes if we don't already have that much
-        // free; subsequent drains can reuse the expanded capacity.
-        input.append(addingCount: Self.baselineCapacity) { (span: inout OutputSpan<UInt8>) in
-            span.withUnsafeMutableBufferPointer { buffer, written in
-                let n = readSource(buffer)
-                if n > 0 {
-                    written = n
-                    added += n
-                } else {
-                    written = 0
-                }
-            }
-        }
-        return added
+        // Up to one baseline chunk at a time. The buffer makes that
+        // much room first, sliding or growing as it must; subsequent
+        // drains can reuse the expanded capacity.
+        input.append(upTo: Self.baselineCapacity, from: readSource)
     }
 
     /// Waits until `descriptor` has bytes to read, or `deadline` passes.

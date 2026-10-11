@@ -508,19 +508,19 @@ jobs:
         timeout-minutes: 30
         run: $SWIFT build -c release
 
-      # A guard against type-check regressions that cannot flake: the library,
-      # and the swift-collections modules it builds on, rebuilt with every
+      # A guard against type-check regressions that cannot flake: the library
+      # and every module it builds on, rebuilt with every
       # expression's constraint system capped at `matrix.solver_scopes` solver
       # scopes. A count, not a time, so a slow runner cannot fail it — and why
       # each lane that runs it has a cap of its own: the count belongs to the
       # compiler. It runs on two lanes, each capped just above its compiler's
       # worst expression:
       #
-      # * macOS 15 (Xcode 26.3's 6.2.4), 2,000. On 2026-10-07 the worst were
-      #   swift-collections' UniqueDeque.swift:240, between 1,850 and 1,900
-      #   scopes, and TUIkitCore's Animation.swift:586, between 1,800 and 1,900
-      #   (not tried at 1,850); TUIkit's own worst was
-      #   ScrollTransition.swift:218, 1,700–1,800.
+      # * macOS 15 (Xcode 26.3's 6.2.4), 2,000. On 2026-10-07 the worst was
+      #   TUIkitCore's Animation.swift:586, between 1,800 and 1,900 (not tried
+      #   at 1,850), then ScrollTransition.swift:218, 1,700–1,800. (Until
+      #   2026-10-10 the step also rebuilt swift-collections, whose
+      #   UniqueDeque.swift:240 needed between 1,850 and 1,900.)
       # * macOS 26 with swift.org's 6.4, 1,500. 6.4.0 counts ordinary code far
       #   lower than 6.2 does (6.2's two worst are under 300 on 6.4), so 6.2's
       #   cap bounds 6.4 only loosely, and an expression 6.4's solver handles

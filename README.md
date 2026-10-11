@@ -199,6 +199,8 @@ Then add it to your target:
 
 The bundle is optional. A program shipped as the executable alone runs: TUIkit's words read in English, which is compiled in, whatever language the user asks for, and `tuiKitVersion` reads `unknown`. A copied executable does not read the bundle it left in `.build`, so it behaves the same on the machine that built it as on any other. Your own targets' resources are bundles of their own, which SwiftPM's `Bundle.module` still requires wherever your code reads it.
 
+TUIkit itself needs no library beside the executable on any macOS it supports. A program that uses the standard library's `Span` types itself (`Span`, `RawSpan`, `MutableSpan`, `OutputSpan` and their kin), or links swift-collections 1.4 or later, may link `libswiftCompatibilitySpan.dylib` (`otool -L` on the executable says whether it does), which macOS has only from 26: copied out of `.build`, it stops at launch on macOS 14 and 15 with `Library not loaded: @rpath/libswiftCompatibilitySpan.dylib`. Ship that library beside the executable — copy it from `usr/lib/swift-6.2/macosx/` in the toolchain that built the program (Xcode's is `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain`, swift.org's and swiftly's `~/Library/Developer/Toolchains/swift-<version>-RELEASE.xctoolchain`), and sign it with your own identity if you notarise the program — or link it weakly, `swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswiftCompatibilitySpan.dylib`, which is safe only if the code that needs it never runs before macOS 26.
+
 ### Build time
 
 A clean release build of TUIkit takes minutes, not seconds. Two things decide most of it (measured 2026-10-07 on a 12-core arm64 Mac VM, Swift 6.2.4):
@@ -308,7 +310,6 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 
 ### Package dependencies
 
-- [swift-collections](https://github.com/apple/swift-collections) — `DequeModule`, used by the terminal output queue
 - [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
 - [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUIKIT_BENCHMARKS` flag: `TUIKIT_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
 

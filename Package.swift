@@ -59,7 +59,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.3"),
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.5.1"),
         // For the `TUIkitMacros` product's compiler plugin only. From the
         // release line of the oldest toolchain the package supports (602 is
         // Swift 6.2's) up to the next major, as macro packages commonly take
@@ -147,14 +146,10 @@ let package = Package(
         // (Tools/ModuleMap's upward check), so the umbrella re-exports it, not TUIkitFoundation; it re-exports
         // TUIkitFoundation in turn (Sources/TUIkitApp/Exports.swift), and TUIkitChrome since step B5b (below):
         // the run loop draws the window chrome, the status bar and the notifications around the content. POSIX
-        // by design: no Windows step builds it (CLAUDE.md). DequeModule is its alone: only the `Terminal` files
-        // use it.
+        // by design: no Windows step builds it (CLAUDE.md).
         .target(
             name: "TUIkitApp",
-            dependencies: [
-                "TUIkitChrome", "TUIkitFoundation",
-                .product(name: "DequeModule", package: "swift-collections"),
-            ],
+            dependencies: ["TUIkitChrome", "TUIkitFoundation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 

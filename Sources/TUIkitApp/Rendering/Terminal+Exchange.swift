@@ -4,7 +4,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import DequeModule
 import Foundation
 import TUIkitFoundation
 
@@ -76,9 +75,7 @@ extension Terminal {
     /// the mode query runs again, it may not be, and these are still the
     /// newest bytes.
     func enqueue(input bytes: [UInt8]) {
-        input.append(addingCount: bytes.count) { (span: inout OutputSpan<UInt8>) in
-            for byte in bytes { span.append(byte) }
-        }
+        input.append(contentsOf: bytes)
     }
 
     /// Puts what an exchange read, less its replies and its fence, into the

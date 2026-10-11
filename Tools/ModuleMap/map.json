@@ -44,6 +44,8 @@
   "TUIkitApp/Input/Scene+KeyNotation.swift": "TUIkitApp",
   "TUIkitApp/RenderOnce.swift": "TUIkitApp",
   "TUIkitApp/Rendering/FrameDiffWriter.swift": "TUIkitApp",
+  "TUIkitApp/Rendering/InputByteBuffer.swift": "TUIkitApp",
+  "TUIkitApp/Rendering/InputQueue.swift": "TUIkitApp",
   "TUIkitApp/Rendering/Terminal+Exchange.swift": "TUIkitApp",
   "TUIkitApp/Rendering/Terminal+FrameDump.swift": "TUIkitApp",
   "TUIkitApp/Rendering/Terminal+Input.swift": "TUIkitApp",

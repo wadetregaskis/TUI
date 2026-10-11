@@ -4,7 +4,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import DequeModule
 import Foundation
 import TUIkitFoundation
 
@@ -138,12 +137,12 @@ extension Terminal {
             consume(1)
             if let inner = tryExtractRegularEvent() {
                 if inner == Self.focusIn || inner == Self.focusOut {
-                    input.insert(copying: inner, at: 0)
+                    input.prepend(contentsOf: inner)
                     return [0x1B]
                 }
                 return [0x1B] + inner
             }
-            input.insert(0x1B, at: 0)
+            input.prepend(0x1B)
             return nil
         }
 
@@ -187,7 +186,7 @@ extension Terminal {
             if let inner = tryExtractPlainText() {
                 return [0x1B] + inner
             }
-            input.insert(0x1B, at: 0)
+            input.prepend(0x1B)
             return nil
         }
 
@@ -591,7 +590,7 @@ extension Terminal {
         if pendingBareEsc {
             pendingBareEsc = false
             if !input.isEmpty, Self.continuesEscapeSequence(input[0]) {
-                input.insert(0x1B, at: 0)
+                input.prepend(0x1B)
             } else {
                 return finalize(bytes: [0x1B])
             }
@@ -605,7 +604,7 @@ extension Terminal {
         if pendingAltEsc {
             pendingAltEsc = false
             if !input.isEmpty, Self.continuesEscapeSequence(input[0]) {
-                input.insert(copying: [0x1B, 0x1B], at: 0)
+                input.prepend(contentsOf: [0x1B, 0x1B])
             } else {
                 return finalize(bytes: [0x1B, 0x1B])
             }

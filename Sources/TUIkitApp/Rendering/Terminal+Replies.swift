@@ -4,7 +4,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import DequeModule
 import TUIkitFoundation
 
 // MARK: - Things the terminal says that nobody typed

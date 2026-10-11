@@ -145,7 +145,7 @@ private enum ImportScan {
     static let allowed: Set<String> = [
         "TUIkit", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage", "CSTBImage",
         "Foundation", "FoundationEssentials", "FoundationNetworking", "Observation", "Dispatch",
-        "Synchronization", "DequeModule",
+        "Synchronization",
         "Darwin", "Glibc", "Musl", "WASILibc", "ucrt", "WinSDK", "os",
         "CoreGraphics", "CoreText", "ImageIO", "UniformTypeIdentifiers",
         // The symbol effects' types (decisions A35). Checked 2026-10-05 as the
