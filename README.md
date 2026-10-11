@@ -199,7 +199,39 @@ Then add it to your target:
 
 The bundle is optional. A program shipped as the executable alone runs: TUIkit's words read in English, which is compiled in, whatever language the user asks for, and `tuiKitVersion` reads `unknown`. A copied executable does not read the bundle it left in `.build`, so it behaves the same on the machine that built it as on any other. Your own targets' resources are bundles of their own, which SwiftPM's `Bundle.module` still requires wherever your code reads it.
 
-TUIkit itself needs no library beside the executable on any macOS it supports. A program that uses the standard library's `Span` types itself (`Span`, `RawSpan`, `MutableSpan`, `OutputSpan` and their kin), or links swift-collections 1.4 or later, may link `libswiftCompatibilitySpan.dylib` (`otool -L` on the executable says whether it does), which macOS has only from 26: copied out of `.build`, a program that links it strongly (the usual case: weak only where the code needing it was compiled for a macOS older than 10.14.4) stops at launch on macOS 14 and 15 with `Library not loaded: @rpath/libswiftCompatibilitySpan.dylib`. Ship that library beside the executable — copy it from `usr/lib/swift-6.2/macosx/` in the toolchain that built the program (Xcode's is `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain`, swift.org's and swiftly's `~/Library/Developer/Toolchains/swift-<version>-RELEASE.xctoolchain`), and sign it with your own identity if you notarise the program — or link it weakly, `swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswiftCompatibilitySpan.dylib`, which is safe only if the code that needs it never runs before macOS 26.
+TUIkit itself needs no library beside the executable on any macOS it supports. A program that uses the standard library's `Span` types itself (`Span`, `RawSpan`, `MutableSpan`, `OutputSpan` and their kin), or links swift-collections 1.4 or later, may link `libswiftCompatibilitySpan.dylib` (`otool -L` on the executable says whether it does), which macOS has only from 26: copied out of `.build`, a program that links it strongly (the usual case: weak only where the code needing it was compiled for a macOS older than 10.14.4) stops at launch on macOS 14 and 15 with `Library not loaded: @rpath/libswiftCompatibilitySpan.dylib`. Ship that library beside the executable — copy it from `usr/lib/swift-6.2/macosx/` in the toolchain that built the program (Xcode's is `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain`, swift.org's and swiftly's `~/Library/Developer/Toolchains/swift-<version>-RELEASE.xctoolchain`), and sign it with your own identity if you notarise the program — or link it weakly, `swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswiftCompatibilitySpan.dylib`, which is safe only if the code that needs it never runs before macOS 26. To check a built program, run `Tools/check-span-compatibility.sh <executable>` from a TUIkit checkout: it fails on any load of the library, strong or weak, and on any symbol imported from it.
+
+### Shipping size
+
+`swift build -c release` does not strip the program (measured), and two link flags shrink it further; each of these costs something only you can weigh. The figures are for a stripped hello-world app (`Text("Hello, world")` in a `WindowGroup`), built with Swift 6.4.0 on 2026-10-11; Xcode's Swift 6.2.4 is within a point. The Xcode settings named are untried in Xcode unless marked measured.
+
+- **`strip`**: 20.9 MB → 9.7 MB, the symbol tables and the debug map. *Cost:* crash reports and profiles show addresses, so keep the dSYM to symbolicate them. `dsymutil` makes one and must run before `strip`; `swift build -c release` already runs it and leaves `MyApp.dSYM` beside the executable (measured, 6.2.4 and 6.4.0). In Xcode, Strip Linked Product (`STRIP_INSTALLED_PRODUCT`) with `DEBUG_INFORMATION_FORMAT = dwarf-with-dsym`.
+- **TUIkit's `DeadStripUnusedAPI` trait, on by default**: −14.7% with `swift build -c release`, the TUIkit API the app never calls. It works through the linker's dead stripping, so an Xcode app needs `DEAD_CODE_STRIPPING = YES`, which is not Xcode's default (measured, Xcode 26.3). *Cost:* a statically linked app whose `dlopen`ed plugin calls TUIkit API the app itself never calls: the plugin no longer loads. Such an app turns the trait off with `.package(url: …, from: …, traits: [])`, which turns off every default trait of TUIkit's (today, only this one).
+- **`-Xlinker -no_exported_symbols`**: −3.3%. *Cost:* a plugin linked against the executable (`-bundle_loader`), or a `dlsym` on it, no longer finds its symbols; but `strip` already cuts the executable's exports to one (measured 2026-10-10), so a stripped app loses nothing more. In Xcode, `LD_EXPORT_SYMBOLS = NO`: the setting Swift Build names when it finds the flag in `OTHER_LDFLAGS`, where `-Xlinker` puts it (with `swift build` on 6.4.0 it warns, and applies the flag all the same: measured).
+- **`-Xlinker -deduplicate`**: −7.2% (−10.4% with `-no_exported_symbols`). *Cost:* the linker gives functions whose machine code is identical one address, across your whole program. Swift identifies a key path to a computed property by its getter's address, so two key paths with one root and one value type whose getters compile alike — `var a: Int { x }` and `var b: Int { x }`, or two constants — compare and hash equal. They still read the same values, but code using key paths as names can tell: a `Set` or `Dictionary` of key paths, `KeyPathComparator` equality (a `Table` then treats two such columns as one), and writable key paths whose setters differ. Swift closures compared by function pointer can likewise compare equal (`@convention(c)` functions are not merged), and a crash report or profile may name one of several merged functions. Adding `-Xlinker -no_deduplicate_allow_swift_addr_ref` keeps key paths and closures distinct (measured) and saves 2.2% instead. TUIkit's CI checks TUIkit's own code under both flags; `Tools/DedupCheck/dedup_check.py --report` lists, before `strip`, what they did to yours ([Tools/DedupCheck/README.md](Tools/DedupCheck/README.md)).
+
+The two link flags, per build or in your app's own manifest, and in Xcode (Release configuration):
+
+```bash
+swift build -c release -Xlinker -no_exported_symbols -Xlinker -deduplicate
+```
+
+```swift
+.executableTarget(
+    name: "MyApp",
+    dependencies: ["TUIkit"],
+    linkerSettings: [
+        .unsafeFlags(
+            ["-Xlinker", "-no_exported_symbols", "-Xlinker", "-deduplicate"],
+            .when(platforms: [.macOS], configuration: .release))
+    ]
+)
+```
+
+```
+LD_EXPORT_SYMBOLS = NO
+OTHER_LDFLAGS = $(inherited) -Xlinker -deduplicate
+```
 
 ### Build time
 
