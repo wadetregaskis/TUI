@@ -87,6 +87,51 @@
             }
         }
 
+        @Test("Queries next to every name answer as the set of names does: their own glyph if a name, else nil")
+        func nearMissesAgreeWithTheNames() {
+            // Every proper prefix of a name; every name with one byte moved up
+            // or down by one; and splices `earlier.prefix(cut) + name.dropFirst(cut)`
+            // of two names in one block, `cut` being where `name` leaves the
+            // name before it. That cut is where the walk compares a name's
+            // suffix, so a walk that kept going past a name that rose above the
+            // query would line up its stale match with a later name there
+            // (with the walk's `shared < matched` exit deleted, "scape" found
+            // scope's glyph).
+            let all = SFSymbol.all
+            let size = SFSymbol.nameBlockSize
+            var glyphs: [String: String] = [:]
+            glyphs.reserveCapacity(all.count)
+            for entry in all { glyphs[entry.name] = entry.glyph }
+            var wrong: [String] = []
+            var checked = 0
+            func check(_ bytes: [UInt8]) {
+                let query = String(unsafeUninitializedCapacity: bytes.count) { $0.initialize(fromContentsOf: bytes) }
+                checked += 1
+                if SFSymbol.glyph(named: query) != glyphs[query] { wrong.append(query) }
+            }
+            let names = all.map { Array($0.name.utf8) }
+            for (index, name) in names.enumerated() {
+                var edited = name
+                for position in name.indices {
+                    check(Array(name[..<position]))
+                    for byte in [name[position] &- 1, name[position] &+ 1] {
+                        edited[position] = byte
+                        check(edited)
+                    }
+                    edited[position] = name[position]
+                }
+                let head = index / size * size
+                guard index > head else { continue }
+                let cut = zip(names[index - 1], name).prefix { $0 == $1 }.count
+                for earlier in names[head..<index] where earlier.count >= cut {
+                    check(Array(earlier[..<cut]) + name[cut...])
+                }
+            }
+            #expect(checked > 600_000)
+            let wrongCount = wrong.count  // so a failure prints the count, not every query
+            #expect(wrongCount == 0, "e.g. \(wrong.prefix(5))")
+        }
+
         @Test("The block index points at each block's head, and each block's first and last names resolve")
         func blockHeadsAndEdges() {
             let all = SFSymbol.all
