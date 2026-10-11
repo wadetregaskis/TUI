@@ -119,6 +119,66 @@ enum NestedProperties {
             return kind.isClass
         }
     }
+
+    /// Whether what a property walk finds in a value of `type` can differ
+    /// from one value of the type to another, so that one holding nothing to
+    /// bind, resolve or update says nothing of the next: a struct with a
+    /// field that is an optional of something a walk acts on (`nil` holds
+    /// none), such an optional itself, and an enum, whose `Mirror` children
+    /// are its current case's payload. The walks keep a type as holding
+    /// nothing only where this is `false`.
+    ///
+    /// Decided from declared types, so an existential field, or a class
+    /// field whose subclass is a property, is not counted: what one holds is
+    /// known only from its value. Asked only of a type a walk found nothing
+    /// in, and kept per type.
+    @MainActor
+    static func walkDependsOnValue(_ type: Any.Type) -> Bool {
+        let key = ObjectIdentifier(type)
+        if let known = ValueDependence.known[key] { return known }
+        let depends: Bool
+        switch RuntimeFields.Kind(of: type) {
+        case .enum:
+            depends = true
+        case .optional:
+            depends = optionalHoldsProperty(type)
+        case .struct:
+            depends = !RuntimeFields.forEach(of: type) { _, _, fieldType, kind in
+                !(kind == .optional && optionalHoldsProperty(fieldType))
+            }
+        default:
+            depends = false
+        }
+        ValueDependence.known[key] = depends
+        return depends
+    }
+
+    /// Whether `type`, an optional, wraps — at whatever depth — something a
+    /// walk binds, resolves or descends into when it is there: a `@State`, a
+    /// property bound to its view's identity, an `@Environment`, or a
+    /// container (an app's property, a modifier). Not a `Binding` or another
+    /// of TUIkit's own properties the walks pass over, which many controls
+    /// hold as optionals.
+    private static func optionalHoldsProperty(_ type: Any.Type) -> Bool {
+        var wrapped = type
+        // A metatype cast does not look through an optional, as a value's
+        // does: only an `Optional` type is an `OptionalPropertyHolder`.
+        while let optional = wrapped as? any OptionalPropertyHolder.Type {
+            wrapped = optional.wrappedType
+        }
+        if wrapped is any StateBindable.Type || wrapped is any RenderIdentityBindable.Type
+            || wrapped is any EnvironmentResolvable.Type {
+            return true
+        }
+        if wrapped is any FrameworkDynamicProperty.Type { return false }
+        return wrapped is any DynamicProperty.Type || wrapped is any ViewModifier.Type
+    }
+}
+
+/// ``NestedProperties/walkDependsOnValue(_:)``'s answers, per type.
+@MainActor
+private enum ValueDependence {
+    static var known: [ObjectIdentifier: Bool] = [:]
 }
 
 // MARK: - Writing back what update() did

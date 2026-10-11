@@ -160,6 +160,37 @@ private struct GestureStateView: View {
         Text(verbatim: pressed ? "pressed" : "idle")
     }
 }
+/// `OptionalHoldingView`, for a test that draws it first with nothing held.
+private struct NilFirstHoldingView: View {
+    let holding: Holding?
+
+    var body: some View {
+        Text(verbatim: "\(holding?.log.updates ?? -1)")
+    }
+}
+
+/// A view that is an enum, first drawn in its case with no payload.
+private enum BlankFirstScreen: View {
+    case blank
+    case main(Updating)
+
+    var body: some View {
+        switch self {
+        case .blank: Text(verbatim: "blank")
+        case .main(let updating): Text(verbatim: "\(updating.wrappedValue)")
+        }
+    }
+}
+
+/// An app property reading the environment, in an optional field first drawn
+/// `nil`.
+private struct NilFirstAccentView: View {
+    let accent: AccentName?
+
+    var body: some View {
+        Text(verbatim: accent?.wrappedValue ?? "none")
+    }
+}
 
 @MainActor
 private final class BindingTap {
@@ -284,6 +315,29 @@ struct DynamicPropertyTests {
         #expect(!holdsAppProperty)
         let context = makeRenderContext(width: 20, height: 1)
         #expect(line(GestureStateView(), context: context) == "idle")
+    }
+
+    /// The review of the write-back: whether a type has anything to bind,
+    /// resolve or update is kept per type, so it must not be decided from a
+    /// value that holds nothing where another value of the type holds a
+    /// property — a `nil` optional, an enum case with no payload. SwiftUI
+    /// runs `update()` for the enum view's later payload (measured on macOS
+    /// 15, session notes DYNP/probe/dp.swift, case 7).
+    @Test("A type first drawn holding no property still updates, binds and resolves one it holds later")
+    func firstValueDoesNotDecide() {
+        let context = makeRenderContext(width: 20, height: 1)
+        #expect(line(NilFirstHoldingView(holding: nil), context: context) == "-1")
+        let shared = UpdateLog()
+        let holding = Holding(inner: Updating(log: shared), log: shared)
+        #expect(line(NilFirstHoldingView(holding: holding), context: context) == "101")
+
+        #expect(line(BlankFirstScreen.blank, context: context) == "blank")
+        #expect(line(BlankFirstScreen.main(Updating(log: UpdateLog())), context: context) == "1")
+
+        #expect(line(NilFirstAccentView(accent: nil), context: context) == "none")
+        #expect(
+            line(NilFirstAccentView(accent: AccentName()).environment(\.accentName, "teal"), context: context)
+                == "teal")
     }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")

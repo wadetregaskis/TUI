@@ -644,8 +644,10 @@ package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage:
         nestedIn: view, identity: identity, storage: storage, index: &index,
         hasContainers: &hasContainers, hasAppProperties: &hasAppProperties)
     // A type holding an app's `DynamicProperty` is never skipped, even with
-    // nothing in it to bind: its `update()` has to run before every body.
-    if index == 0 && !hasContainers {
+    // nothing in it to bind: its `update()` has to run before every body. Nor
+    // is one whose next value may hold what this one did not (a `nil`
+    // optional of a property, an enum's case with no payload).
+    if index == 0 && !hasContainers && !NestedProperties.walkDependsOnValue(V.self) {
         StateBindingCache.typesWithoutState.insert(typeID)
     }
     return hasAppProperties
