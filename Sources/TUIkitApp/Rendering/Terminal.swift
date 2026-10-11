@@ -94,7 +94,8 @@ final class Terminal: TerminalProtocol {
     /// The arithmetic. A sequence is partial only because the buffer
     /// ends inside it, so while the parser waits, the buffer holds that
     /// sequence and nothing else, and it is shorter than
-    /// ``maxReplyBytes`` (a longer one is dropped). A drain needs room
+    /// ``maxReplyBytes`` (a longer one is not held: its rest is skipped as
+    /// it arrives, `skipAbandonedSequence()`). A drain needs room
     /// when the back is past `baselineCapacity − readChunk`, which is
     /// `2 × maxReplyBytes`; so more than ``maxReplyBytes`` bytes were
     /// removed in front of the partial, more than the partial holds,

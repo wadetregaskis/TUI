@@ -623,7 +623,8 @@ extension Terminal {
     /// Whether the parser is holding something that needs another
     /// ``readEvent()`` soon to resolve, even if no new bytes arrive: a lone
     /// `ESC` mid Escape-vs-sequence disambiguation, a deferred bare `ESC`, an
-    /// incomplete escape sequence awaiting its terminator, or an open paste.
+    /// incomplete escape sequence awaiting its terminator, the rest of an
+    /// over-long one being skipped (``abandonedSequence``), or an open paste.
     ///
     /// The run loop reads this to schedule a bounded wake while it's true, so
     /// these resolve on a wall-clock deadline (a prompt Escape, a dropped dead

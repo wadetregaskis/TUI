@@ -114,6 +114,17 @@ sequence ends only at `BEL` or `ESC`, so everything typed would be skipped
 until the user pressed Escape. A reply's bytes arrive as a stream, so a pause
 that long means its end is not coming.
 
+What is typed before that pause goes with the skip. While a string sequence
+is being skipped, a typed letter cannot be told from its payload (a
+clipboard answer's base64 is letters and digits), and each byte that
+arrives starts the wait again, so a user who keeps typing loses the keys
+until a pause of about 200 ms. An `ESC` ends the skip at once (the Escape
+key, an arrow, a mouse report), and so does `BEL`; a CSI's skip ends at the
+first letter typed, its final byte, which goes with it. That is how a
+sequence within the 4 KiB behaves when its end is lost, before and after
+this lane: bytes typed after it join it, and are dropped with it when the
+same wait runs out.
+
 An `ESC` in front of the sequence is the Escape key: no terminal puts a
 meta prefix on a reply, and no key runs to 4 KiB. It is delivered first, and
 the sequence is skipped after it. The first version of this entry had it
