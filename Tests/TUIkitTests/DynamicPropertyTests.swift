@@ -292,6 +292,31 @@ private struct WeakHoldingView: View {
     }
 }
 
+/// Lists its properties in a `customMirror` of its own, in the other order
+/// from its declaration, so `Mirror`'s first child is the struct property
+/// where the runtime's field metadata lists the unowned object first.
+private struct CustomMirrorView: View {
+    unowned let object: UpdatingObject
+    @Updating private var updates: Int
+
+    init(object: UpdatingObject, log: UpdateLog) {
+        self.object = object
+        _updates = Updating(log: log)
+    }
+
+    var body: some View {
+        Text(verbatim: "\(object.updates) \(updates)")
+    }
+}
+
+/// Isolated to the main actor, as the view is: the walks that reflect it run
+/// there.
+extension CustomMirrorView: @MainActor CustomReflectable {
+    var customMirror: Mirror {
+        Mirror(self, children: ["updates": _updates, "object": object])
+    }
+}
+
 @MainActor
 private final class BindingTap {
     var binding: Binding<Int>?
@@ -499,6 +524,19 @@ struct DynamicPropertyTests {
         let unownedObject = UpdatingObject()
         #expect(line(WeakHoldingView(weakly: weakObject, unownedly: unownedObject), context: context) == "0 1")
         #expect(line(WeakHoldingView(weakly: weakObject, unownedly: unownedObject), context: context) == "0 2")
+    }
+
+    /// The second review of the write-back: the unowned field is found in
+    /// `Mirror` by name, not by its index in the field metadata, which a
+    /// custom mirror's order does not follow. By index, the struct property
+    /// was updated twice per body and the object never.
+    @Test("An unowned app property is updated once, and nothing else twice, in a view with a custom Mirror")
+    func unownedUnderCustomMirror() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let object = UpdatingObject()
+        let log = UpdateLog()
+        #expect(line(CustomMirrorView(object: object, log: log), context: context) == "1 1")
+        #expect(line(CustomMirrorView(object: object, log: log), context: context) == "2 2")
     }
 
     @Test("TUIkit's own property wrappers are DynamicProperty, as SwiftUI's are")

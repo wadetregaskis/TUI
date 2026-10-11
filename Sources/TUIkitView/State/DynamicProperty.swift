@@ -321,13 +321,13 @@ private func updateCopy<Value>(of value: Value) {
 @MainActor
 private func writeBackDynamicProperties<Root>(in fields: [RuntimeFields.Field], at root: UnsafeMutablePointer<Root>) {
     let base = UnsafeMutableRawPointer(root)
-    for (index, field) in fields.enumerated() {
+    for field in fields {
         if field.isStrong {
             guard NestedProperties.mayBeContainer(field.type) else { continue }
             // `field.type` is an `Any.Type`, opened here to the field's own type.
             writeBackDynamicProperties(at: base + field.offset, as: field.type)
         } else if NestedProperties.isAppPropertyType(field.type) {
-            updateReferent(ofField: index, in: root.pointee)
+            updateReferent(of: field, in: root.pointee)
         }
     }
 }
@@ -338,10 +338,26 @@ private func writeBackDynamicProperties<Root>(in fields: [RuntimeFields.Field], 
 /// property's, and SwiftUI leaves it, as the caller does (measured on macOS
 /// 15). Loaded through `Mirror`, which knows how the runtime keeps the
 /// reference; a load as the declared type does not.
+///
+/// Found among `Mirror`'s children by its name and type, not its position: a
+/// view with a `customMirror` (`CustomReflectable`) has `Mirror` list the
+/// children it chooses, in its own order, where the field's index can name
+/// another property — updated a second time, on a copy — or none. One a
+/// custom mirror leaves out is not updated; the property walks, which find a
+/// view's properties through the same `Mirror`, do not see it either.
 @MainActor
-private func updateReferent(ofField index: Int, in root: Any) {
-    guard let child = Mirror(reflecting: root).children.dropFirst(index).first else { return }
+private func updateReferent(of field: RuntimeFields.Field, in root: Any) {
+    let name = field.name
+    guard let child = Mirror(reflecting: root).children.first(where: { $0.label == name }),
+        isValue(child.value, of: field.type)
+    else { return }
     _openExistential(child.value, do: updateCopy)
+}
+
+/// Whether `value` is a `T` — for ``updateReferent(of:in:)``, a field's
+/// declared type, opened by the call.
+private func isValue<T>(_ value: Any, of _: T.Type) -> Bool {
+    value is T
 }
 
 /// One field of ``updateDynamicProperties(of:)``, at `address` and of declared
