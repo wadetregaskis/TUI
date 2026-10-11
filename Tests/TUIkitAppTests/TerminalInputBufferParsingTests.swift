@@ -143,6 +143,38 @@ struct TerminalInputBufferParsingTests {
         #expect(terminal.takeVolunteeredColorReplies() == colourReply)
     }
 
+    /// The buffer holds a read beside any partial sequence the parser waits
+    /// for, so neither a read boundary through a sequence nor an Escape key
+    /// (held a round as a lone `ESC`) reallocates it. With room for one read
+    /// only, each grew the buffer by half, and the next `consume` shrank it
+    /// back.
+    @Test("Split sequences and an Escape key leave the buffer's allocation alone")
+    func partialSequencesDoNotReallocate() {
+        let (terminal, source) = makeTerminal()
+        var capacities: Set<Int> = [terminal.input.capacity]
+        var events: [TerminalInput] = []
+        func pump(_ times: Int) {
+            for _ in 0..<times {
+                if let event = terminal.readEvent() { events.append(event) }
+                capacities.insert(terminal.input.capacity)
+            }
+        }
+
+        // Thirteen-byte motion reports: 4,096-byte reads end inside one.
+        let report = Self.esc + Self.bytes("[<35;120;40M")
+        source.bytes = Array([[UInt8]](repeating: report, count: 1000).joined())
+        pump(1100)
+        #expect(events.count == 1000)
+        #expect(events.allSatisfy { if case .mouse = $0 { true } else { false } })
+
+        source.bytes = Self.esc
+        pump(12)
+        source.bytes = Self.bytes("a")
+        pump(4)
+        #expect(events.dropFirst(1000) == [.key(KeyEvent(key: .escape)), .key(KeyEvent(character: "a"))])
+        #expect(capacities == [Terminal.baselineCapacity], "the buffer was reallocated: \(capacities.sorted())")
+    }
+
     /// What an exchange reads but does not own goes back AFTER whatever was
     /// already buffered, because that was read first — here behind a key
     /// still waiting and the head of a sequence still in flight, so the bytes

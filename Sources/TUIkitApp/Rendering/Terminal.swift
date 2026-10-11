@@ -83,10 +83,23 @@ final class Terminal: TerminalProtocol {
     /// outside this module can see `Terminal` at all.
     var input = InputByteBuffer(minimumCapacity: Terminal.baselineCapacity)
 
-    /// Initial — and steady-state minimum — capacity for ``input``.
-    /// Sized to comfortably hold a frame's worth of bursty mouse
-    /// events without ever needing to grow.
-    static let baselineCapacity = 4096
+    /// How many bytes one ``appendDrain()`` asks `read()` for. Sized
+    /// to comfortably hold a frame's worth of bursty mouse events.
+    static let readChunk = 4096
+
+    /// Initial — and steady-state minimum — capacity for ``input``:
+    /// room for one ``readChunk`` beside a partial sequence as long as
+    /// the longest the parser waits for (``maxReplyBytes``), so a drain
+    /// never has to grow the buffer under a sequence still in flight.
+    ///
+    /// It was one ``readChunk`` until 2026-10-10. A drain asks for a
+    /// whole chunk of free room, so ANY partial sequence left at the
+    /// front — a read boundary through a mouse report, the lone `ESC`
+    /// of an Escape key held a round — grew the buffer by half, and the
+    /// next ``consume(_:)`` shrank it straight back: two reallocations
+    /// each time. Now the partial bytes slide down, or the read lands
+    /// behind them, in the room that is already there.
+    static let baselineCapacity = 2 * readChunk
 
     /// True while we're between the bracketed-paste start (`ESC[200~`)
     /// and end (`ESC[201~`) markers. Paste content is accumulated
@@ -1119,10 +1132,10 @@ extension Terminal {
     /// - Returns: the number of new bytes drained from stdin.
     @discardableResult
     func appendDrain() -> Int {
-        // Up to one baseline chunk at a time. The buffer makes that
-        // much room first, sliding or growing as it must; subsequent
-        // drains can reuse the expanded capacity.
-        input.append(upTo: Self.baselineCapacity, from: readSource)
+        // Up to one chunk at a time. The buffer makes that much room
+        // first, sliding or growing as it must; subsequent drains can
+        // reuse the expanded capacity.
+        input.append(upTo: Self.readChunk, from: readSource)
     }
 
     /// Waits until `descriptor` has bytes to read, or `deadline` passes.
