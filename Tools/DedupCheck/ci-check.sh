@@ -14,7 +14,8 @@
 # It compiles nothing: run `swift build -c release` first, and every step here is a link. It leaves the three
 # programs deduplicated and stripped in the release directory. macOS only (both flags are ld64's). `$SWIFT` (default
 # `swift`) is the toolchain, as CI's workflow sets it. Swift Build (6.4's default) warns, once per module, that
-# OTHER_LDFLAGS should not carry -no_exported_symbols, and applies it all the same (measured with 6.4.0).
+# OTHER_LDFLAGS should not carry -no_exported_symbols, and applies it all the same (measured with 6.4.0): 27 identical
+# lines a link, which `link` below counts instead of printing.
 #
 #   swift build -c release && Tools/DedupCheck/ci-check.sh
 #
@@ -47,14 +48,28 @@ case "$bin" in
     *) objects=$bin ;;
 esac
 
+# Runs a link and prints its output, less Swift Build's warning about -no_exported_symbols in OTHER_LDFLAGS (it names
+# LD_EXPORT_SYMBOLS, which `swift build` cannot set), which it counts. Any other line, warning or not, is shown.
+noise='The OTHER_LDFLAGS build setting is not allowed to contain -no_exported_symbols'
+link() {
+    local out status=0 count
+    out=$("$@" 2>&1) || status=$?
+    count=$(grep -c -F "$noise" <<<"$out" || true)
+    grep -v -F "$noise" <<<"$out" || true
+    if [[ "$count" -gt 0 ]]; then
+        echo "($count of Swift Build's warnings that OTHER_LDFLAGS should not carry -no_exported_symbols, not shown)"
+    fi
+    return "$status"
+}
+
 echo "── dedup check: Stress linked whole with ${flags[*]} ──"
-$SWIFT build -c release --product Stress --disable-dead-strip "${flags[@]}"
+link $SWIFT build -c release --product Stress --disable-dead-strip "${flags[@]}"
 python3 Tools/DedupCheck/dedup_check.py --binary "$bin/Stress" --objects "$objects" --demangle "$SWIFT demangle"
 
 products=(Stress Example IdleProbe)
 for product in "${products[@]}"; do
     echo "── $product linked with ${flags[*]}, then stripped ──"
-    $SWIFT build -c release --product "$product" "${flags[@]}"
+    link $SWIFT build -c release --product "$product" "${flags[@]}"
     strip "$bin/$product"
 done
 

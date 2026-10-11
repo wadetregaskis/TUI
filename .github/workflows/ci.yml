@@ -561,9 +561,10 @@ jobs:
       # Links only: the Release build step compiled everything. Measured on the
       # development machine with Swift 6.4.0 (Swift Build), after this lane's
       # steps run there: 4 s a link, 3 s for the check, 243 s in all, nearly
-      # all of it the PTY smoke; runners unmeasured. Swift Build prints a
-      # warning per module that OTHER_LDFLAGS should not carry
-      # -no_exported_symbols, and applies it all the same. One toolchain: this lane's 6.4 is the one TUIkit
+      # all of it the PTY smoke; runners unmeasured. Swift Build warns per
+      # module that OTHER_LDFLAGS should not carry -no_exported_symbols, and
+      # applies it all the same; the script counts those lines rather than
+      # printing 108 of them. One toolchain: this lane's 6.4 is the one TUIkit
       # targets first and the only macOS lane with a release build to relink;
       # the check reads TUIkit's own code, which every toolchain compiles alike,
       # but which getters fold is the compiler's and linker's, and Xcode's 6.2.4
