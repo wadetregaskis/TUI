@@ -12,8 +12,9 @@
 /// TUIkit's own rather than swift-collections' `UniqueDeque`, which held them
 /// until 2026-10. Linking DequeModule linked `libswiftCompatibilitySpan.dylib`,
 /// a library macOS has only from 26, so a TUIkit program copied out of `.build`
-/// stopped at launch on macOS 14 and 15. For the same reason nothing here uses
-/// `Span`, `OutputSpan` or their kin: `read()` gets an
+/// stopped at launch on macOS 14 and 15 (`Tools/check-span-compatibility.sh`
+/// says how, and CI runs it so that it stays gone). For the same reason
+/// nothing here uses `Span`, `OutputSpan` or their kin: `read()` gets an
 /// `UnsafeMutableBufferPointer`.
 ///
 /// What the parser asks of it, and what each costs:

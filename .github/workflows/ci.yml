@@ -508,6 +508,20 @@ jobs:
         timeout-minutes: 30
         run: $SWIFT build -c release
 
+      # A TUIkit program has to launch copied out of `.build`, onto a Mac with
+      # no toolchain. Below macOS 26 that rules out linking
+      # libswiftCompatibilitySpan.dylib, a back-deployment library macOS lacks
+      # until 26: a Span-family type in unspecialised generic code, or a
+      # dependency such as swift-collections 1.4+, brings it in with no error
+      # or warning, and on 2026-10-10 that stopped every copied-out 6.4 build
+      # at launch on macOS 14 and 15. The script says why at length and how to
+      # read a failure. Here because this lane builds release, what ships, with
+      # 6.4, whose SwiftPM binds the library strongly where 6.2.4's bound
+      # swift-collections' reference weakly.
+      - name: Release executables link no Span back-deployment library
+        if: matrix.release_build
+        run: Tools/check-span-compatibility.sh
+
       # A guard against type-check regressions that cannot flake: the library
       # and every module it builds on, rebuilt with every
       # expression's constraint system capped at `matrix.solver_scopes` solver

@@ -52,11 +52,12 @@ Linux additionally runs Swift 6.3 on arm64, and lint runs on Linux only — it
 gates everything else, so a style slip fails in a minute rather than after
 eighteen builds.
 
-Three checks run on chosen lanes only:
+Four checks run on chosen lanes only:
 
 | Check | Lanes | What it catches |
 |-------|-------|-----------------|
 | Release build (`swift build -c release`: every library target, Stress, Example and the tools; no tests) | `macOS 26 · Swift 6.4`, `Linux · Swift 6.3 · arm64` | Failures that exist only under `-O`. Every other build in CI is debug; on 2026-10-08 Swift 6.3.3 could not build the library in release while every lane was green. |
+| Span back-deployment library (`Tools/check-span-compatibility.sh` on that release build's Stress and Example; runs locally after `swift build -c release`) | `macOS 26 · Swift 6.4` | An executable that links `libswiftCompatibilitySpan.dylib`, which macOS has only from 26. Copied out of `.build` it stops at launch on macOS 14 and 15, as every 6.4 build did until 2026-10-10, through swift-collections. |
 | Type-check budget (the library rebuilt with every expression capped at a number of solver scopes, `-solver-scope-threshold`) | `macOS 15 · Xcode 26` (6.2.4) at 2,000; `macOS 26 · Swift 6.4` at 1,500 | An expression that has become expensive to type-check, as a count rather than a time, so a slow runner cannot fail it. The count belongs to the compiler, so each lane's cap sits just above its own compiler's worst expression. |
 | Module map (`Tools/ModuleMap`) | `macOS 15 · Xcode 26` | A reference that would cross a planned module boundary upward. It reads the index store the build wrote, and the map is the same on every Swift. |
 
