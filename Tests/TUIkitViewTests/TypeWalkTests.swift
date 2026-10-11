@@ -169,7 +169,7 @@ struct TypeWalkTests {
         #expect(walk.verdict(for: HoldsClosure.self).refusal == .noFieldMetadata(path: "HoldsClosure"))
     }
 
-    @Test("A constrained existential, whose kind the runtime does not name, is refused")
+    @Test("A constrained existential, a kind the walk does not know, is refused")
     func unknownKindRefused() {
         #expect(
             verdict(HoldsConstrainedExistential.self).refusal

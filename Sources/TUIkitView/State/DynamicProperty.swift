@@ -111,17 +111,17 @@ enum NestedProperties {
     /// holding one is packed to match, where the runtime reports a pointer's
     /// layout for them all (`ValueHashPlan.swift`, "A metatype"); a load of
     /// one reads the bytes beside it. A property's own type is laid out as
-    /// stored, and so is an optional of one. An existential or a class
-    /// reference is loaded too — its layout is never packed — because only
-    /// its value says whether it holds a property, as the binding walk's
-    /// `Mirror` sees it.
+    /// stored, and so is an optional of one. An existential — a constrained
+    /// one (`any P<Int>`) too — or a class reference is loaded as well (its
+    /// layout is never packed), because only its value says whether it holds
+    /// a property, as the binding walk's `Mirror` sees it.
     static func mayBeContainer(_ type: Any.Type) -> Bool {
         if isContainerType(type) { return true }
         switch RuntimeFields.Kind(of: type) {
         case .optional:
             guard let optional = type as? any OptionalPropertyHolder.Type else { return false }
             return mayBeContainer(optional.wrappedType)
-        case .existential:
+        case .existential, .extendedExistential:
             return true
         case let kind:
             return kind.isClass

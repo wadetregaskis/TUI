@@ -248,6 +248,31 @@ private struct SwitchedAccentView: View {
     }
 }
 
+/// A protocol with a primary associated type, so `any UpdateSource<Int>` is a
+/// constrained existential: a kind of its own to the runtime.
+private protocol UpdateSource<Element> {
+    associatedtype Element
+}
+
+private struct SourcedUpdates: UpdateSource, DynamicProperty {
+    typealias Element = Int
+    let log: UpdateLog
+
+    func update() {
+        log.updates += 1
+    }
+}
+
+/// Holds an app property as a constrained existential.
+private struct ConstrainedExistentialView: View {
+    let source: any UpdateSource<Int>
+    let log: UpdateLog
+
+    var body: some View {
+        Text(verbatim: "\(log.updates)")
+    }
+}
+
 /// An app property that is a class, counting its `update()` calls.
 private final class UpdatingObject: DynamicProperty {
     var updates = 0
@@ -448,6 +473,19 @@ struct DynamicPropertyTests {
         #expect(!NestedProperties.walkDependsOnValue(ModifiedContent<Text, AccentTag>.self))
         #expect(!NestedProperties.walkDependsOnValue(ModifiedContent<Text, EmptyModifier>.self))
         #expect(NestedProperties.walkDependsOnValue(ModifiedContent<Text, OptionalAccentTag>.self))
+    }
+
+    /// The second review of the write-back: a field is loaded only if its
+    /// declared type may hold a property, and an existential may. A
+    /// constrained one is a kind of its own to the runtime; before it was
+    /// counted, its property's `update()` never ran, where it had run on a
+    /// copy before write-back.
+    @Test("update() runs for an app property held as a constrained existential")
+    func constrainedExistentialUpdates() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let log = UpdateLog()
+        #expect(line(ConstrainedExistentialView(source: SourcedUpdates(log: log), log: log), context: context) == "1")
+        #expect(line(ConstrainedExistentialView(source: SourcedUpdates(log: log), log: log), context: context) == "2")
     }
 
     /// What SwiftUI does, measured on macOS 15 (session notes

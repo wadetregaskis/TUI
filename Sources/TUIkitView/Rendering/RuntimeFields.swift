@@ -79,13 +79,9 @@ package enum RuntimeFields {
     }
 
     /// The runtime's kind for a type — the stdlib's `_MetadataKind`, for the
-    /// kinds the type walk tells apart. Any other raw value, including a kind
-    /// added to the runtime after this was written, is ``unknown``.
-    ///
-    /// The runtime names a constrained existential (`any Collection<Int>`)
-    /// "extended existential", 0x307. It is ``unknown`` here, as the stdlib's
-    /// enum reported it to the type walk this replaced, so what the walk
-    /// refuses is unchanged.
+    /// kinds the type walk tells apart, and ``extendedExistential``. Any other
+    /// raw value, including a kind added to the runtime after this was
+    /// written, is ``unknown``.
     package enum Kind: UInt, Sendable {
         case `class` = 0
         case `struct` = 0x200
@@ -99,6 +95,12 @@ package enum RuntimeFields {
         case metatype = 0x304
         case objcClassWrapper = 0x305
         case existentialMetatype = 0x306
+        /// A constrained existential (`any Collection<Int>`), which the
+        /// stdlib's enum does not name. Laid out as the runtime describes it,
+        /// as any existential is. The type walk and the value-hash plan refuse
+        /// it as they refuse an ``unknown`` kind, which is what the stdlib's
+        /// enum reported it as to the walk this replaced.
+        case extendedExistential = 0x307
         /// `Builtin.FixedArray`, the storage of an `InlineArray`: `count` elements
         /// of one type, laid out at its stride (``RuntimeFields/fixedArray(_:)``).
         case fixedArray = 0x308

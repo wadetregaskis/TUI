@@ -150,8 +150,9 @@ package struct ValueHashPlan {
 ///   where the element is all bytes with no padding after it; element by element
 ///   (at most ``fixedArrayElementLimit``) otherwise.
 /// - **Anything else**: bypass — a payload enum that has not opted in (an
-///   app's, a generic one such as `Result`), a constrained existential (the
-///   runtime reports it as a kind the walk does not know), any unknown kind.
+///   app's, a generic one such as `Result`), a constrained existential (a
+///   kind of its own, `.extendedExistential`, the walk does not describe),
+///   any unknown kind.
 struct ValueHashPlanBuilder {
     /// Lists a type's stored fields: ``RuntimeFields/fields(of:)``, which a
     /// test replaces to see a type whose metadata was stripped bypass.

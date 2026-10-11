@@ -227,9 +227,10 @@ package struct TypeWalk {
             found = Verdict(refusal: nil, holdsFunctions: false)
         default:
             // Not POD (a POD type is a leaf above), and of a kind the walk does
-            // not know: `.unknown`, which is how a constrained existential
-            // reads, or a kind the runtime did not name when this was written.
-            // Refused, since what it holds cannot be seen.
+            // not know: a constrained existential (`.extendedExistential`,
+            // which the stdlib's kind enum did not name), or a kind the runtime
+            // did not name when this was written (`.unknown`). Refused, since
+            // what it holds cannot be seen.
             found = Verdict(refusal: .unknownKind(path: path), holdsFunctions: false)
         }
         return inClass ? Self.withinClass(found) : found
