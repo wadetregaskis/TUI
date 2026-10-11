@@ -190,6 +190,13 @@ jobs:
       - name: Terminal probe tests
         run: python3 -m unittest discover -s Tools/TerminalProbes -p 'test_*.py'
 
+      # The deduplication check's own rules (what it concludes from a fold:
+      # equal key paths, unlisted consumers, shared compared addresses, and
+      # exit 2 whenever it cannot look) on Mach-O files the tests write: no
+      # build, no toolchain, under a second. Tools/DedupCheck/README.md.
+      - name: Dedup check tool tests
+        run: python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'
+
       # Fails on a new unexplained gap, on a gap CLOSED but not recorded, on a
       # new argument-label deviation, and on a map entry that has gone stale.
       # The last two are the ones no human notices: a map nobody audits stops
