@@ -36,8 +36,10 @@ import TUIkitCore
 /// allocates nothing. For a given parent, each step is injective in either
 /// of its inputs while the other is fixed — ``mixHashWord(_:_:)`` and
 /// ``finalizeHashWord64(_:)`` are bijections — so two fields of one type in
-/// one container, or two types in one field, never share a scope. It is not
-/// injective in both at once: two fields of one container differing in
+/// one container, or two types in one field, share a scope only by one
+/// coincidence: a step whose code comes out `0`, the view's own scope, is
+/// given `1`, which another step's code may be (one chance in 2^64). It is
+/// not injective in both at once: two fields of one container differing in
 /// position AND type, like two paths that differ higher up, share one only
 /// by a 64-bit coincidence. Two cases of one enum may share one, since a
 /// case's label is folded in as a hash; that is harmless, because a case
@@ -235,8 +237,11 @@ struct NestedPropertyWalk {
             }
             // Binding finds the box under `key` or creates it, and the count
             // of what is stored grows only when it creates one. (A box of
-            // another type under `key`, which only a coincidence of scopes
-            // could leave there, is replaced in place and not noted.)
+            // another type under `key` is replaced in place and not noted.
+            // A field declared `Any` that holds a `@State` of another value
+            // type than on an earlier frame leaves one there, its key noted
+            // when this stay in the case created the first box; otherwise
+            // only a coincidence of scopes does.)
             let stored = storage.count
             bindable.bindState(to: storage, key: key)
             if storage.count != stored { created.append(key) }
