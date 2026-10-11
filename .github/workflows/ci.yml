@@ -118,6 +118,13 @@ jobs:
       - name: SwiftLint
         run: swiftlint --strict
 
+      # The two rules that guard `-Xlinker -deduplicate` are regexes, and a
+      # regex that stops matching fails nothing by itself. This lints the
+      # cases in Tools/DedupCheck/lint-cases/ and checks the rules flag
+      # exactly the lines marked there. Seconds.
+      - name: SwiftLint's -deduplicate rules flag exactly their cases
+        run: Tools/DedupCheck/test-lint-rules.sh
+
       - name: Validate test module boundaries
         run: ./Tools/validate-test-boundaries.sh
 

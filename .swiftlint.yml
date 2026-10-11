@@ -522,11 +522,12 @@ custom_rules:
   # paths, and the apps are user code. What it cannot see: a synthesized
   # Equatable or Hashable on a type that stores a key path, and a key path
   # handed to generic Equatable code. The check's object scan (K2) catches the
-  # first; the second has no syntax. On SIZE3's test cases (2026-10-11,
-  # SwiftLint 0.65.1) it and the rule below hit all ten positives (eight key
-  # paths, two bit casts) and none of the negatives (comments, strings,
-  # `\(x == nil)` in an interpolation, `[keyPath: kp]` subscripts) but the
-  # bit cast of a plain value, which no regex can tell from a function's.
+  # first; the second has no syntax. Tools/DedupCheck/lint-cases/ holds what
+  # it and the rule below must and must not flag (a key path checked against
+  # nil, a `[keyPath: kp]` subscript, an array of key paths, comments and
+  # strings must not), and Tools/DedupCheck/test-lint-rules.sh, in CI's lint
+  # job, checks them. The bit cast of a plain value is flagged by design: no
+  # regex can tell it from a function's.
   key_path_identity:
     included: 'Sources/TUIkit'
     name: "Key-path identity"
@@ -537,7 +538,7 @@ custom_rules:
       enclosing function under key_path_consumers in
       Tools/DedupCheck/manifest.json, say where its key paths come from, and
       disable this rule on the line.
-    regex: '\\[A-Z.][\w.?!]*\s*[=!]==?|[=!]==?\s*\\[A-Z.]|\b(Set|Dictionary)<\s*(Any|Partial)?KeyPath\b|\[\s*(Any|Partial)KeyPath\b[^\]\n]*:|\b\w*[kK]eyPath\s*[=!]=(?!=)|[=!]=\s*[\w.]*[kK]eyPath\b|[kK]eyPath\.hashValue|combine\(\s*[\w.]*[kK]eyPath\b|AnyHashable\(\s*[\w.]*[kK]eyPath\b'
+    regex: '\\[A-Z.][\w.?!]*\s*[=!]==?|[=!]==?\s*\\[A-Z.]|\b(Set|Dictionary)<\s*(Any|Partial|Writable|ReferenceWritable)?KeyPath\b|\[\s*(Any|Partial|Writable|ReferenceWritable)?KeyPath\b(<([^\[\]\n]|\[[^\[\]\n]*\])*>)?\s*:|\b\w*[kK]eyPath\s*[=!]=(?!=)(?!\s*nil\b)|(?<!\bnil\s)(?<!\bnil)[=!]=\s*[\w.]*[kK]eyPath\b|[kK]eyPath\.hashValue|combine\(\s*[\w.]*[kK]eyPath\b|AnyHashable\(\s*[\w.]*[kK]eyPath\b'
     excluded_match_kinds:
       - comment
       - doccomment

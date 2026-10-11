@@ -29,7 +29,8 @@ Not covered: key paths or functions that reach `==` through a dynamic cast (`x a
 that never names them; an `unsafeBitCast` of a Swift closure; and K1 for a module the checked binary does not link
 (Stress links every library module but TUIkitAppKit and TUIkitMacros). Two SwiftLint rules in `.swiftlint.yml`,
 `key_path_identity` and `function_address_identity`, flag a new comparison or bit cast at the source, before any
-build; each site that means it carries a `swiftlint:disable` with its reason and manifest entry.
+build; each site that means it carries a `swiftlint:disable` with its reason and manifest entry. `lint-cases/` holds
+what they must and must not flag, and `test-lint-rules.sh` (CI's lint job) checks them.
 
 ## Running it
 
