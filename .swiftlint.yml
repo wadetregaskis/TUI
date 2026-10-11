@@ -518,8 +518,10 @@ custom_rules:
   # site visible when it is written. Each site that is meant takes a
   # `swiftlint:disable:next` naming its manifest entry.
   #
-  # The library only (`included` is a regex on the path): tests assert key
-  # paths, and the apps are user code. What it cannot see: a synthesized
+  # The library only (`included` and `excluded` are regexes on the path):
+  # tests assert key paths, the apps are user code, and the macro plugin and
+  # the width corpus are linked into no app (dedup_check.py checks neither).
+  # What it cannot see: a synthesized
   # Equatable or Hashable on a type that stores a key path, and a key path
   # handed to generic Equatable code. The check's object scan (K2) catches the
   # first; the second has no syntax. Tools/DedupCheck/lint-cases/ holds what
@@ -530,6 +532,7 @@ custom_rules:
   # regex can tell it from a function's.
   key_path_identity:
     included: 'Sources/TUIkit'
+    excluded: 'Sources/TUIkit(MacrosPlugin|WidthCorpus)/'
     name: "Key-path identity"
     message: >-
       Comparing or hashing key paths compares getter addresses, and
@@ -558,6 +561,7 @@ custom_rules:
   # integer or a pointer is flagged and reviewed at the site.
   function_address_identity:
     included: 'Sources/TUIkit'
+    excluded: 'Sources/TUIkit(MacrosPlugin|WidthCorpus)/'
     name: "Function-address identity"
     message: >-
       This reinterprets a value as an address. If it is a function's (a

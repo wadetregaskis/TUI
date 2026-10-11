@@ -8,7 +8,9 @@
 # other line by neither. The rules read only TUIkit's library sources (their
 # `included` is a regex on the path), so the cases are linted from a copy
 # under `Sources/TUIkitLintCases/`, with the repository's own configuration.
-# Other rules' findings on the cases are ignored.
+# A second copy of Positive.swift under each module no app links, the macro
+# plugin and the width corpus, must not be flagged at all. Other rules'
+# findings on the cases are ignored.
 #
 #   Tools/DedupCheck/test-lint-rules.sh      # swiftlint on PATH; CI's lint job
 #
@@ -26,9 +28,15 @@ trap 'rm -rf "$tmp"' EXIT
 cases="$tmp/Sources/TUIkitLintCases"
 mkdir -p "$cases"
 cp "$here"/lint-cases/*.swift "$cases/"
+hosts=()
+for module in TUIkitMacrosPlugin TUIkitWidthCorpus; do
+    mkdir -p "$tmp/Sources/$module"
+    cp "$here/lint-cases/Positive.swift" "$tmp/Sources/$module/"
+    hosts+=("$tmp/Sources/$module/Positive.swift")
+done
 
-# "File.swift:line rule", one per line, sorted.
-expected=$(cd "$cases" && grep -nE "hit: ($rules)\$" -- *.swift \
+# "Module/File.swift:line rule", one per line, sorted.
+expected=$(cd "$tmp/Sources" && grep -nE "hit: ($rules)\$" -- TUIkitLintCases/*.swift \
     | sed -E "s/^([^:]+):([0-9]+):.*hit: ($rules)\$/\1:\2 \3/" | sort)
 for rule in key_path_identity function_address_identity; do
     if ! grep -q " $rule\$" <<<"$expected"; then
@@ -37,8 +45,9 @@ for rule in key_path_identity function_address_identity; do
     fi
 done
 # swiftlint exits non-zero on the error-severity hits it is here to make.
-actual=$( (swiftlint lint --no-cache --quiet --config "$repo/.swiftlint.yml" "$cases"/*.swift 2>/dev/null || true) \
-    | sed -nE "s#^.*/([^/]+\.swift):([0-9]+):[0-9]+: [a-z]+: .*\(($rules)\)\$#\1:\2 \3#p" | sort -u)
+actual=$( (swiftlint lint --no-cache --quiet --config "$repo/.swiftlint.yml" "$cases"/*.swift "${hosts[@]}" \
+        2>/dev/null || true) \
+    | sed -nE "s#^.*/([^/]+/[^/]+\.swift):([0-9]+):[0-9]+: [a-z]+: .*\(($rules)\)\$#\1:\2 \3#p" | sort -u)
 
 if [ "$expected" = "$actual" ]; then
     printf 'test-lint-rules: %s marked hits, and no other line flagged\n' "$(wc -l <<<"$expected" | tr -d ' ')"
