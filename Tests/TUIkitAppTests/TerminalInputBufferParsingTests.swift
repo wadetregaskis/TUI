@@ -175,14 +175,15 @@ struct TerminalInputBufferParsingTests {
         #expect(capacities == [Terminal.baselineCapacity], "the buffer was reallocated: \(capacities.sorted())")
     }
 
-    /// The same for a reply nearly as long as the parser waits for, which a
-    /// drain's room has to fit beside: first with only 1,000 bytes removed in
+    /// The same for a reply nearly a read long (the most the buffer's baseline
+    /// is sized for: the parser waits for longer ones, which may grow it),
+    /// which a drain's room has to fit beside: first with only 1,000 bytes removed in
     /// front of it, then with the back of the buffer so far along that the
     /// reply has to slide down for the next read to fit. With room for two
     /// reads only, the first grew the buffer by half, and the reply's end
     /// shrank it back — inside one `readEvent()`, so the capacity between
     /// calls cannot show it; the bytes the buffer copied do.
-    @Test("A reply as long as the parser waits for, split across reads, leaves the buffer's allocation alone")
+    @Test("A reply nearly a read long, split across reads, leaves the buffer's allocation alone")
     func longPartialReplyDoesNotReallocate() {
         let (terminal, source) = makeTerminal()
         let chunk = Terminal.readChunk
@@ -199,7 +200,7 @@ struct TerminalInputBufferParsingTests {
         let replyLength = 3500
         let reply = Self.esc + Self.bytes("]52;c;")
             + [UInt8](repeating: 0x41, count: replyLength - 8) + [0x07]
-        #expect(reply.count == replyLength && replyLength < Terminal.maxReplyBytes)
+        #expect(reply.count == replyLength && replyLength < Terminal.readChunk)
 
         // One read: 1,000 keys and the head of the reply. Then ten more of
         // its bytes, then the rest of it and a key.

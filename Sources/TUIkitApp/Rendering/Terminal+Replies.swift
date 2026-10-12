@@ -45,14 +45,15 @@ extension Terminal {
     /// bytes as keystrokes.
     ///
     /// `nil` too for a sequence with no terminator in its first
-    /// ``maxReplyBytes``; the caller tells that from one still arriving by the
-    /// buffer's length, and skips its rest (``skipAbandonedSequence()``).
+    /// ``maxStringSequenceBytes``; the caller tells that from one still
+    /// arriving by the buffer's length, and skips its rest
+    /// (``skipAbandonedSequence()``).
     ///
     /// Resumes where the last walk of the same sequence stopped
     /// (``sequenceWalkStart(_:)``).
     func stringSequenceLength() -> Int? {
         var index = sequenceWalkStart(2)
-        let cap = min(input.count, Self.maxReplyBytes)
+        let cap = min(input.count, Self.maxStringSequenceBytes)
         while index < cap {
             if input[index] == 0x07 { return index + 1 }  // BEL
             if input[index] == 0x1B {
@@ -73,8 +74,8 @@ extension Terminal {
     /// (``InputByteBuffer/frontGeneration``): the bytes that walk read are
     /// still there, unchanged, and none of them ended it. Until 2026-10-12
     /// each walk began at the sequence's start, so one arriving a byte a read
-    /// was read once a byte: quadratic in its length, which the cap held to
-    /// 4 KiB.
+    /// was read once a byte: quadratic in its length, which the cap, then
+    /// 4 KiB, held small.
     func sequenceWalkStart(_ offset: Int) -> Int {
         sequenceWalk.frontGeneration == input.frontGeneration ? max(offset, sequenceWalk.stoppedAt) : offset
     }
@@ -85,21 +86,47 @@ extension Terminal {
         sequenceWalk = (input.frontGeneration, offset)
     }
 
-    /// Hard cap on a terminal reply, past which its bytes are skipped as they
-    /// arrive rather than buffered forever (``skipAbandonedSequence()``).
+    /// The longest CSI the parser holds whole, 16 KiB. Past it the sequence
+    /// is skipped as it arrives, to its final byte (``skipAbandonedSequence()``):
+    /// never typed, and never held, so a terminal that starts one and never
+    /// ends it cannot pin the buffer.
     ///
-    /// Far larger than a keystroke because these are not keystrokes: a graphics
-    /// error names itself in words (Warp's is sixty characters), and an OSC
-    /// reply can carry a payload. Generous enough that no real reply is
-    /// truncated, bounded so a terminal that starts a sequence and never ends
-    /// it cannot pin the buffer.
+    /// The longest CSI that legitimately arrives is a key: a kitty keyboard
+    /// protocol report carrying the text its key typed (TUIkit pushes
+    /// `reportAssociatedText`), at most eight bytes a character, a code point
+    /// of up to seven digits and its `:`. So 16 KiB holds a report that typed
+    /// some two thousand characters; one longer is lost, not typed. Every CSI
+    /// reply TUIkit asks for is under forty bytes: xterm's device attributes,
+    /// `ESC[?63;1;2;4;6;9;15;16;18;21;22;28;29c`, the longest seen at 37
+    /// (`Documentation/Terminal-compatibility.md` has iTerm2's, at 33).
     ///
-    /// Both walks are bounded by it — this file's, and ``tryExtractCSI()`` in
-    /// `Terminal+Input.swift`. A CSI is not only a key: DA, DSR and DECRPM
-    /// answers arrive as CSIs, and the CSI walk's own 32-byte budget used to
-    /// truncate a 37-byte device-attributes reply mid-sequence and leak its
-    /// tail as typing.
-    static let maxReplyBytes = 4096
+    /// A CSI is not only a key: DA, DSR and DECRPM answers arrive as CSIs, and
+    /// the CSI walk's own 32-byte budget used to truncate a 37-byte
+    /// device-attributes reply mid-sequence and leak its tail as typing. From
+    /// then until 2026-10-12 every family's limit was 4 KiB
+    /// (decisions-PASTE, B-PASTE-2).
+    static let maxControlSequenceBytes = 16 << 10
+
+    /// The longest OSC, DCS, APC, PM or SOS the parser holds whole, 64 KiB.
+    /// Past it the sequence is skipped as it arrives, to its `BEL` or `ST`
+    /// (``skipAbandonedSequence()``): never typed, and never held.
+    ///
+    /// Of these TUIkit asks for colour answers (OSC 4, 10 and 11, about
+    /// twenty-five bytes each), the terminal's name and version (XTVERSION's
+    /// DCS, tens of bytes) and graphics acknowledgements (an APC: `OK`, or an
+    /// error in words, Warp's sixty characters and iTerm2's some eighty). The
+    /// limit is several hundred times the longest. Only the colour answers are
+    /// read; any other string sequence is swallowed, whole within the limit
+    /// and skipped past it, which comes to the same for the app.
+    ///
+    /// An OSC 52 clipboard answer is the one reply unbounded by nature: the
+    /// base64 of whatever the clipboard holds. TUIkit asks for none, as it
+    /// reads the clipboard through the platform's tools (`SystemClipboard`)
+    /// and a terminal's own paste arrives bracketed; so one arriving here
+    /// answers another program's question and is skipped past the limit like
+    /// any other. Were TUIkit to read the clipboard by OSC 52, that answer
+    /// would have to be read as a paste is, whole, with no limit.
+    static let maxStringSequenceBytes = 64 << 10
 
     // MARK: - Skipping what is left of an over-long one
 
@@ -115,8 +142,9 @@ extension Terminal {
     /// Consumes what has arrived of the sequence ``abandonedSequence`` names,
     /// through its terminator, and returns whether it is over.
     ///
-    /// A sequence that runs past ``maxReplyBytes`` is no longer held, but its
-    /// rest is still not typing. Until 2026-10-11 the walks dropped the first
+    /// A sequence that runs past its family's limit
+    /// (``maxControlSequenceBytes``, ``maxStringSequenceBytes``) is no longer
+    /// held, but its rest is still not typing. Until 2026-10-11 the walks dropped the first
     /// 4 KiB and left the rest to the key parser, so a long enough reply —
     /// a clipboard answer's base64, a CSI of many parameters — spelled itself
     /// out as keys. This reads on to where the sequence ends:
@@ -202,7 +230,7 @@ extension Terminal {
         }
         guard TerminalColorQuery.isReply(bytes[...]) else { return }
         // A reply nobody takes cannot pin memory: this is dropped rather than
-        // buffered forever, the same bargain ``maxReplyBytes`` makes.
+        // buffered forever, the same bargain the sequence limits make.
         guard volunteeredColorReplies.count + bytes.count <= Self.maxVolunteeredReplyBytes else {
             return
         }
@@ -215,9 +243,13 @@ extension Terminal {
     /// Copied out only for an OSC, which is the only string-terminated family a
     /// colour answer comes in. A graphics acknowledgement is an APC and arrives
     /// for every image transmitted unless every one of them says `q=2`, so
-    /// copying those out would pay an allocation a frame to learn nothing.
+    /// copying those out would pay an allocation a frame to learn nothing. Nor
+    /// an OSC longer than everything kept may be, which would be dropped: an
+    /// OSC 52 clipboard answer to another program, up to
+    /// ``maxStringSequenceBytes`` long, is not copied to learn that.
     func noteVolunteeredColorReply(headOfInputLength length: Int) {
-        guard length > 1, input.count >= length, input[1] == 0x5D else { return }  // ESC ]
+        guard length > 1, length <= Self.maxVolunteeredReplyBytes else { return }
+        guard input.count >= length, input[1] == 0x5D else { return }  // ESC ]
         var sequence: [UInt8] = []
         sequence.reserveCapacity(length)
         for index in 0..<length { sequence.append(input[index]) }

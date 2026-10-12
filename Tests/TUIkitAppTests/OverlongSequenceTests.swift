@@ -1,12 +1,13 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  OverlongSequenceTests.swift
 //
-//  An escape sequence longer than the parser waits for (`maxReplyBytes`): a
-//  CSI with thousands of parameters, or an OSC, DCS, APC, PM or SOS whose
-//  payload runs past 4 KiB, as a clipboard answer's can. The parser stops
-//  holding such a sequence at the limit. Until 2026-10-11 it dropped the
-//  first 4 KiB and read the rest as typing, so a long enough reply spelled its
-//  payload out as keys; now the rest is skipped to the sequence's terminator.
+//  An escape sequence longer than the parser waits for: a CSI past 16 KiB
+//  (`maxControlSequenceBytes`), or an OSC, DCS, APC, PM or SOS past 64 KiB
+//  (`maxStringSequenceBytes`), as a clipboard answer's can run. The parser
+//  stops holding such a sequence at its limit. Until 2026-10-11 it dropped the
+//  first 4 KiB, then every family's limit, and read the rest as typing, so a
+//  long enough reply spelled its payload out as keys; now the rest is skipped
+//  to the sequence's terminator.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -75,13 +76,18 @@ struct OverlongSequenceTests {
     private static func bytes(_ text: String) -> [UInt8] { Array(text.utf8) }
     private static func key(_ character: Character) -> TerminalInput { .key(KeyEvent(character: character)) }
 
-    /// A CSI of ten thousand parameter bytes: digits and `;`, each of them a
-    /// key if it were read as one, and `m` to end it.
-    private static let overlongCSI = esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 5000)) + Self.bytes("m")
+    /// A CSI's parameter bytes, 2 KiB past the most the parser holds: digits
+    /// and `;`, each of them a key if it were read as one.
+    private static let overlongParameters = Self.bytes(
+        String(repeating: "1;", count: Terminal.maxControlSequenceBytes / 2 + 1024))
+
+    /// An over-long CSI, its parameters ended by `m`.
+    private static let overlongCSI = esc + Self.bytes("[") + overlongParameters + Self.bytes("m")
 
     /// A string sequence's body: letters, digits and `=` (a clipboard
-    /// answer's base64), longer than the parser waits for.
-    private static let overlongPayload = Self.bytes(String(repeating: "QUJD=z09", count: 1000))
+    /// answer's base64), 8 KiB past the most the parser holds.
+    private static let overlongPayload = Self.bytes(
+        String(repeating: "QUJD=z09", count: Terminal.maxStringSequenceBytes / 8 + 1024))
 
     @Test("An over-long CSI is skipped, and the keys either side of it arrive", arguments: [1, 7, 1000, 4096])
     func overlongCSIIsSkipped(readLimit: Int) {
@@ -140,7 +146,7 @@ struct OverlongSequenceTests {
     func newSequenceEndsTheSkip() {
         let up = TerminalInput.key(KeyEvent(key: .up))
         for overlong in [
-            Self.esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 5000)),
+            Self.esc + Self.bytes("[") + Self.overlongParameters,
             Self.esc + Self.bytes("]52;c;") + Self.overlongPayload,
         ] {
             let (terminal, source) = makeTerminal()
@@ -154,16 +160,20 @@ struct OverlongSequenceTests {
     @Test("The rest of an over-long sequence arriving later is still skipped")
     func restArrivingLaterIsSkipped() {
         for (overlong, rest) in [
-            (Self.esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 2500)), Self.bytes("2;3m")),
+            (Self.esc + Self.bytes("[") + Self.overlongParameters, Self.bytes("2;3m")),
             (Self.esc + Self.bytes("]52;c;") + Self.overlongPayload, Self.bytes("QUJD") + Self.esc + Self.bytes("\\")),
-            // Behind an `ESC`, which is the Escape key (no key runs to 4 KiB)
-            // and is delivered first, not put back in front of the rest, where
-            // it would end the skip.
-            (Self.esc + Self.esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 2500)), Self.bytes("2;3m")),
+            // Behind an `ESC`, which is the Escape key (no key runs to the
+            // limit) and is delivered first, not put back in front of the
+            // rest, where it would end the skip.
+            (Self.esc + Self.esc + Self.bytes("[") + Self.overlongParameters, Self.bytes("2;3m")),
         ] {
             let (terminal, source) = makeTerminal()
             source.bytes = overlong
             var events: [TerminalInput] = []
+            // Everything sent so far, then four quiet passes.
+            repeat {
+                if let event = terminal.readEvent() { events.append(event) }
+            } while !source.isDry
             for _ in 0..<4 {
                 if let event = terminal.readEvent() { events.append(event) }
             }
@@ -180,7 +190,7 @@ struct OverlongSequenceTests {
     @Test("Silence ends the skip, and the keyboard is the app's again")
     func silenceEndsTheSkip() {
         for overlong in [
-            Self.esc + Self.bytes("[") + Self.bytes(String(repeating: "1;", count: 2500)),
+            Self.esc + Self.bytes("[") + Self.overlongParameters,
             Self.esc + Self.bytes("]52;c;") + Self.overlongPayload,
             Self.esc + Self.bytes("]52;c;") + Self.overlongPayload + Self.esc,
         ] {
@@ -260,6 +270,23 @@ struct OverlongSequenceTests {
         #expect(typeWhileWaiting(terminal, source, passes: 64) == Array(repeating: Self.key("j"), count: 25))
     }
 
+    /// A clipboard answer past the limit with the Escape key after it, sized
+    /// so that the Escape comes with the answer's last byte in a read of
+    /// their own, the second of a pass of the run loop, as it did when the
+    /// whole answer fitted in one pass. Which read of a pass brings the
+    /// Escape moves the count below by one: a pass whose second read finds
+    /// nothing counts toward the wait.
+    ///
+    /// The arithmetic: a pass reads twice when its buffer starts empty, once
+    /// while a sequence is held, so the answer is held for its first
+    /// `limit / readChunk` reads, skipped from then on, two reads a pass, and
+    /// one whole read more puts its last byte and the Escape second.
+    private static var answerThenEscape: [UInt8] {
+        let head = esc + bytes("]52;c;")
+        let reads = Terminal.maxStringSequenceBytes / Terminal.readChunk + 1
+        return head + [UInt8](repeating: 0x41, count: reads * Terminal.readChunk + 1 - head.count) + esc
+    }
+
     /// The Escape key during a string sequence's skip may be the first byte
     /// of its `ST`, so it waits out the skip's eight passes from the last
     /// byte the skip consumed, and then the three a lone `ESC` takes: eleven
@@ -268,7 +295,7 @@ struct OverlongSequenceTests {
     @Test("The Escape key during a string's skip arrives eleven passes after the skip's last byte")
     func escapeDuringStringSkipIsLate() {
         let (terminal, source) = makeTerminal()
-        source.bytes = Self.esc + Self.bytes("]52;c;") + Self.overlongPayload + Self.esc
+        source.bytes = Self.answerThenEscape
         var events: [TerminalInput] = []
         // The pass that reads the last bytes skips them too, so the wait
         // starts with it.
@@ -284,7 +311,7 @@ struct OverlongSequenceTests {
         #expect(late == 11)
 
         let (chord, chordSource) = makeTerminal()
-        chordSource.bytes = Self.esc + Self.bytes("]52;c;") + Self.overlongPayload + Self.esc
+        chordSource.bytes = Self.answerThenEscape
         repeat { _ = chord.readEvent() } while !chordSource.isDry
         chordSource.bytes += Self.bytes("j")
         guard let optionJ = KeyEvent.parse(Self.esc + Self.bytes("j")), optionJ.alt else {
@@ -303,5 +330,94 @@ struct OverlongSequenceTests {
         source.bytes = Self.esc + Self.bytes("]52;c;QUJD") + Self.esc
         #expect(terminal.readEvent() == nil)
         #expect(waitOutThenType(terminal, source) == [Self.key("b")])
+    }
+
+    // MARK: - The limits, family by family
+
+    /// A kitty key report of exactly `length` bytes, `ESC [ 0 ; ; 97:…:100 u`,
+    /// and the keys it types: `a`s, three bytes each with their `:`, and up
+    /// to two `d`s, four each, inside five bytes of frame.
+    private static func keyReport(length: Int) -> (bytes: [UInt8], typed: [TerminalInput]) {
+        let fours = (length - 5) % 3
+        let threes = (length - 5 - 4 * fours) / 3
+        let codes = Array(repeating: "97", count: threes) + Array(repeating: "100", count: fours)
+        let typed = codes.map { $0 == "97" ? Self.key("a") : Self.key("d") }
+        return (Self.bytes("\u{1B}[0;;" + codes.joined(separator: ":") + "u"), typed)
+    }
+
+    /// The longest CSI that legitimately arrives: a kitty key report carrying
+    /// the text its key typed. One exactly as long as the parser holds
+    /// decodes, every character of it; one byte longer is skipped to its
+    /// final byte, and nothing in it is typed. And one of 8 KiB, twice the
+    /// limit until 2026-10-12, decodes.
+    @Test("A key report as long as the CSI limit decodes, and one a byte longer is skipped", arguments: [7, 4096])
+    func controlSequenceAtTheLimit(readLimit: Int) {
+        for (length, decodes) in [
+            (8 << 10, true), (Terminal.maxControlSequenceBytes, true), (Terminal.maxControlSequenceBytes + 1, false),
+        ] {
+            let report = Self.keyReport(length: length)
+            #expect(report.bytes.count == length)
+            let (terminal, source) = makeTerminal(readLimit: readLimit)
+            terminal.keyboardEnhancement = .requested
+            source.bytes = report.bytes + Self.bytes("x")
+            let events = drain(terminal, source)
+            #expect(events.count == (decodes ? report.typed.count : 0) + 1, "\(length) bytes")
+            #expect(events == (decodes ? report.typed : []) + [Self.key("x")], "\(length) bytes")
+        }
+    }
+
+    /// A string sequence whose terminator begins at the last byte the parser
+    /// holds is held whole, and swallowed; one whose terminator begins a byte
+    /// later is given up on and skipped to it. Either way nothing in it is
+    /// typed. Told apart before the terminator has been sent, where the
+    /// first is still waited for and the second already being skipped. And
+    /// one of 32 KiB, eight times the limit until 2026-10-12, is held whole.
+    @Test(
+        "A string sequence ending within the limit is held whole, and one ending a byte past it is skipped",
+        arguments: [[0x07], [0x1B, 0x5C]] as [[UInt8]])
+    func stringSequenceAtTheLimit(terminator: [UInt8]) {
+        for (terminatorAt, held) in [
+            (32 << 10, true), (Terminal.maxStringSequenceBytes - 1, true), (Terminal.maxStringSequenceBytes, false),
+        ] {
+            let head = Self.esc + Self.bytes("]52;c;")
+            let body = head + [UInt8](repeating: 0x41, count: terminatorAt - head.count)
+            let (terminal, source) = makeTerminal(readLimit: 4096)
+            source.bytes = Self.bytes("a") + body
+            var events: [TerminalInput] = []
+            repeat {
+                if let event = terminal.readEvent() { events.append(event) }
+            } while !source.isDry
+            #expect(
+                terminal.abandonedSequence == (held ? nil : .string),
+                "terminator at \(terminatorAt): \(String(describing: terminal.abandonedSequence))")
+            source.bytes += terminator + Self.bytes("b")
+            events += drain(terminal, source)
+            #expect(events == [Self.key("a"), Self.key("b")], "terminator at \(terminatorAt)")
+        }
+    }
+
+    /// The limits as decided (decisions-PASTE, B-PASTE-2): over four hundred
+    /// times the longest CSI reply TUIkit asks for, room for a key report that
+    /// typed some two thousand characters; over six hundred times the longest
+    /// string reply. The tests above go by the constants, so these pin them.
+    @Test("The limits are 16 KiB for a CSI and 64 KiB for a string sequence")
+    func limitsAreSpecified() {
+        #expect(Terminal.maxControlSequenceBytes == 16 << 10)
+        #expect(Terminal.maxStringSequenceBytes == 64 << 10)
+    }
+
+    /// An OSC 52 clipboard answer is the one reply unbounded by nature, the
+    /// base64 of whatever the clipboard holds. TUIkit asks for none, so one
+    /// that arrives answers another program: at a mebibyte, sixteen times the
+    /// limit, it is skipped whole and nothing in it is typed.
+    @Test(
+        "A clipboard answer of a mebibyte is skipped whole, and the keys either side arrive",
+        arguments: [[0x07], [0x1B, 0x5C]] as [[UInt8]], [1000, 4096])
+    func mebibyteClipboardAnswer(terminator: [UInt8], readLimit: Int) {
+        let answer = Self.esc + Self.bytes("]52;c;") + Self.bytes(String(repeating: "QUJDRA==", count: 1 << 17)) + terminator
+        let (terminal, source) = makeTerminal(readLimit: readLimit)
+        source.bytes = Self.bytes("a") + answer + Self.bytes("b")
+        #expect(drain(terminal, source) == [Self.key("a"), Self.key("b")])
+        #expect(terminal.abandonedSequence == nil)
     }
 }

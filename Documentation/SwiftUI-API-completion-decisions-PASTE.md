@@ -171,12 +171,74 @@ proportionate to it too.
 
 ### B-PASTE-2. The rest of an over-long sequence is skipped, until its end or a pause
 
-A CSI, OSC, DCS, APC, PM or SOS longer than the 4 KiB the parser waits for
-(`Terminal.maxReplyBytes`) is still given up on at 4 KiB, but its rest is
-now skipped rather than typed: to its final byte (a CSI), to `BEL` or `ST`
-(the string families), or to an `ESC` that starts a new sequence, which then
-parses. That is the rule each walk already applies to a sequence a new
-`ESC` cuts short.
+A CSI, OSC, DCS, APC, PM or SOS longer than the parser waits for is still
+given up on at that limit, but its rest is now skipped rather than typed: to
+its final byte (a CSI), to `BEL` or `ST` (the string families), or to an
+`ESC` that starts a new sequence, which then parses. That is the rule each
+walk already applies to a sequence a new `ESC` cuts short. The limit was
+4 KiB for every family (`Terminal.maxReplyBytes`) until 2026-10-12, and is
+now 16 KiB for a CSI and 64 KiB for the string families (below).
+
+**The limits, family by family** (lane PASTE2, 2026-10-12). The owner found
+4 KiB "unnecessarily tight", and asked whether any reply is unbounded by
+nature, as an OSC 52 answer might be. Past the limit nothing is typed, so
+the limit decides how much of a sequence is held before the rest is skipped,
+and with it whether a CSI that long is read (a key) or dropped. Every reply
+TUIkit asks for or is sent, and the longest each runs to:
+
+| Reply | Why it comes | Longest |
+|---|---|---|
+| DA1, `CSI ? … c` | the identity and keyboard questions | 37 bytes, xterm's; iTerm2's 33 |
+| DA2, `CSI > … c` | the identity question | about 15 bytes |
+| XTVERSION, `DCS > \| … ST` | the identity question | the terminal's name and version: tens of bytes |
+| the fence, `CSI 0 n` | every startup question ends with `CSI 5 n` | 4 bytes |
+| DECRPM, `CSI ? 2027 ; Ps $ y` | the grapheme-clustering question | about 15 bytes |
+| the kitty keyboard flags, `CSI ? flags u` | the keyboard negotiation | about 8 bytes |
+| the cell size, `CSI 4 ; h ; w t` | `CSI 14 t` | about 15 bytes |
+| colours, `OSC 4`, `10`, `11 ; rgb:…` | the colour questions, and sent unasked when the theme changes | about 25 bytes each |
+| the appearance, `CSI ? 997 ; Ps n` | sent unasked while mode 2031 is on | 10 bytes |
+| graphics, `APC G …;OK` or an error in words | each image transmitted, unless it says `q=2` | about 100 bytes: Warp's error is sixty characters, iTerm2's some eighty |
+| a key with its text, `CSI … ; … ; text u` | the kitty keyboard protocol, `reportAssociatedText` | 8 bytes a character typed |
+| focus, mouse, paste markers | the modes TUIkit turns on | under 20 bytes |
+| a clipboard answer, `OSC 52 ; c ; base64 ST` | nothing TUIkit sends | unbounded |
+
+TUIkit sends no DA3, no cursor-position report (`CSI 6 n`), no OSC 12 and no
+DCS question (XTGETTCAP, DECRQSS: Apple Terminal prints a DCS rather than
+parse it, `Documentation/Terminal-compatibility.md`).
+
+- **A CSI: 16 KiB** (`Terminal.maxControlSequenceBytes`). The longest that
+  legitimately arrives is a key: a kitty report carrying the text its key
+  typed, at most eight bytes a character (a code point of up to seven digits
+  and its `:`), so 16 KiB holds one that typed some two thousand characters.
+  How much an input method commits through one key was not measured; a
+  report longer than the limit is lost, not typed. Every CSI reply asked
+  for is under 40 bytes.
+- **An OSC, DCS, APC, PM or SOS: 64 KiB**
+  (`Terminal.maxStringSequenceBytes`), over six hundred times the longest
+  reply asked for. Only the colour answers are read; any other string
+  sequence is swallowed whole within the limit and skipped past it, which
+  comes to the same for the app.
+- **OSC 52 is the one reply unbounded by nature**: the base64 of whatever
+  the clipboard holds. TUIkit asks for none. It reads the clipboard through
+  the platform's tools (`SystemClipboard`), and a terminal's own paste comes
+  bracketed (B-PASTE-1). So an OSC 52 answer here answers another program's
+  question, and the limit and its skip suit it: it is dropped either way,
+  and held only up to 64 KiB. `OverlongSequenceTests` skips one of a
+  mebibyte whole. Were TUIkit to read the clipboard by OSC 52 (a paste over
+  ssh, say, where the platform's tools read the far machine's clipboard),
+  that answer would have to be read as a paste is, whole, with no limit.
+
+What the higher limits cost: memory while a sequence is held, at most 64 KiB
+(the input buffer stays at its 12 KiB baseline, three reads, and grows past
+it only for a sequence longer than a read, giving the room back once it is
+parsed); and the walk. Each pass of the run loop walked a sequence still
+arriving from its start, so one arriving a byte a read cost its length
+squared over two: tolerable under 4 KiB, not at 64. The walks now resume
+where the last stopped, while the buffer's front has not moved (since
+2026-10-12).
+And the colour answers the parser keeps (`noteVolunteeredColorReply`) are
+not copied out when longer than all it keeps (4 KiB): an OSC 52 answer to
+another program would have been copied whole, to be dropped.
 
 The skip also ends after eight quiet passes of the run loop
 (`deadSequenceStaleFrames`, about 200 ms at its 25 ms poll), the number an
@@ -202,7 +264,7 @@ for the wait every lone `ESC` gets: the Escape arrives eleven passes after
 the skip's last byte (about 275 ms), and a key typed in that time joins it
 as an Option chord (Escape then `j` is Option-j).
 
-A string sequence within the 4 KiB whose end is lost is not the same,
+A string sequence within the limit whose end is lost is not the same,
 though the first version of this entry said it was (review round 2). Bytes
 typed after one join it too, but its wait counts only the passes on which nothing
 arrives, and never starts again, so typing cannot make it longer: after
@@ -211,15 +273,15 @@ key's later repeats arrive. A lone `ESC` that joined a string sequence is
 dropped with it, so there the Escape is lost rather than late.
 
 The skip's wait starts again for the rule this lane is about: the rest of a
-reply is not typed. Counted as within the 4 KiB, a reply past 4 KiB that
+reply is not typed. Counted as within the limit, a reply past the limit that
 arrives with pauses adding up to eight quiet passes (a slow link, under
 ssh; not measured) would see its skip end part way, and its rest typed out.
-Starting again costs only when a reply past 4 KiB loses its end, which has
+Starting again costs only when a reply past its limit loses its end, which has
 not been observed on any terminal, and then only for as long as the typing
 lasts.
 
 An `ESC` in front of the sequence is the Escape key: no terminal puts a
-meta prefix on a reply, and no key runs to 4 KiB. It is delivered first, and
+meta prefix on a reply, and no key runs to the limit. It is delivered first, and
 the sequence is skipped after it. The first version of this entry had it
 wrong (review round 1): the `ESC` was put on whatever was read after the
 skip, or dropped with the sequence when its rest had not arrived, so an
@@ -235,4 +297,4 @@ and Up.
 
 **The fuller version** would skip strictly to the terminator, with no pause
 rule. Its price is the wedge above, for a case nobody has observed (not
-measured on any terminal): a reply longer than 4 KiB whose end is lost.
+measured on any terminal): a reply longer than its limit whose end is lost.

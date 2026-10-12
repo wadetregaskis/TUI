@@ -88,21 +88,21 @@ final class Terminal: TerminalProtocol {
     static let readChunk = 4096
 
     /// Initial — and steady-state minimum — capacity for ``input``:
-    /// one ``readChunk`` and twice ``maxReplyBytes``, so a drain never
-    /// has to grow the buffer under a sequence the parser is waiting on.
+    /// three ``readChunk``s, so a drain never has to grow the buffer under
+    /// a sequence of up to one chunk that the parser is waiting on: every
+    /// key, and every reply TUIkit asks for.
     ///
     /// The arithmetic. A sequence is partial only because the buffer
     /// ends inside it, so while the parser waits, the buffer holds that
-    /// sequence and nothing else, and it is shorter than
-    /// ``maxReplyBytes`` (a longer one is not held: its rest is skipped as
-    /// it arrives, `skipAbandonedSequence()`). A drain needs room
-    /// when the back is past `baselineCapacity − readChunk`, which is
-    /// `2 × maxReplyBytes`; so more than ``maxReplyBytes`` bytes were
-    /// removed in front of the partial, more than the partial holds,
-    /// and ``InputByteBuffer`` slides it down rather than growing (it
-    /// slides when the bytes removed in front are at least as many as
-    /// the live ones). Paste content is not bounded that way: a large
-    /// paste grows the buffer, and ``consume(_:)`` gives the room back.
+    /// sequence and nothing else. A drain needs room when the back is
+    /// past `baselineCapacity − readChunk`, which is two chunks; so for a
+    /// partial of at most one chunk, more bytes were removed in front of
+    /// it than it holds, and ``InputByteBuffer`` slides it down rather than
+    /// growing (it slides when the bytes removed in front are at least as
+    /// many as the live ones). A longer partial, up to the limits
+    /// (``maxControlSequenceBytes``, ``maxStringSequenceBytes``), can grow
+    /// the buffer, and so can paste content, which no limit bounds;
+    /// ``consume(_:)`` gives the room back.
     ///
     /// It was one ``readChunk`` until 2026-10-10. A drain asks for a
     /// whole chunk of free room, so ANY partial sequence left at the
@@ -113,8 +113,12 @@ final class Terminal: TerminalProtocol {
     /// chunk, but not for a longer reply: 1,000 keys and the first
     /// 3,096 bytes of a reply in one read, then a few more of its bytes,
     /// still grew it (the 1,000 bytes in front were fewer than the
-    /// 3,106 to slide).
-    static let baselineCapacity = readChunk + 2 * maxReplyBytes
+    /// 3,106 to slide). It was written as one chunk and twice the reply
+    /// limit until 2026-10-12, when the reply limits went from one chunk to
+    /// four and sixteen: the baseline stayed where it was, since no reply
+    /// TUIkit asks for comes near a chunk, and a longer sequence's growth is
+    /// given back.
+    static let baselineCapacity = 3 * readChunk
 
     /// True while we're between the bracketed-paste start (`ESC[200~`)
     /// and end (`ESC[201~`) markers. Paste content is accumulated
@@ -206,7 +210,8 @@ final class Terminal: TerminalProtocol {
     /// The family of the over-long escape sequence whose rest the parser is
     /// skipping, or `nil` when it is skipping nothing.
     ///
-    /// Set when a sequence runs past ``maxReplyBytes`` with no terminator,
+    /// Set when a sequence runs past its family's limit
+    /// (``maxControlSequenceBytes``, ``maxStringSequenceBytes``) with no terminator,
     /// cleared at its terminator, at a new sequence's `ESC`, or after the
     /// dead-sequence wait; see `skipAbandonedSequence()` in
     /// `Terminal+Replies.swift`.

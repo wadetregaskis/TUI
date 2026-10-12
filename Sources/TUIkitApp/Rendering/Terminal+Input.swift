@@ -155,7 +155,7 @@ extension Terminal {
         if String.isStringFamilyIntroducer(UInt32(second)) {
             guard let length = stringSequenceLength() else {
                 // No terminator yet, and none in as many bytes as a reply runs to.
-                return input.count >= Self.maxReplyBytes ? abandonSequence(.string) : nil
+                return input.count >= Self.maxStringSequenceBytes ? abandonSequence(.string) : nil
             }
             noteVolunteeredColorReply(headOfInputLength: length)
             consume(length)
@@ -426,7 +426,7 @@ extension Terminal {
 
         // Scan forward for a real terminator (letter or `~`).
         //
-        // Bounded by ``maxReplyBytes``, NOT by a keystroke-sized budget: a CSI
+        // Bounded by ``maxControlSequenceBytes``, NOT by a keystroke-sized budget: a CSI
         // is not only a key. DA, DSR and DECRPM answers are CSIs too, and a
         // real xterm-class `ESC[?63;1;2;4;6;9;15;16;18;21;22;28;29c` is 37
         // bytes. The old 32-byte cap truncated it and RETURNED the prefix,
@@ -445,7 +445,7 @@ extension Terminal {
         // Resuming where the last walk of the same sequence stopped, so one
         // arriving a few bytes a read is walked once (`sequenceWalkStart(_:)`).
         var i = sequenceWalkStart(2)
-        let cap = min(input.count, Self.maxReplyBytes)
+        let cap = min(input.count, Self.maxControlSequenceBytes)
 
         while i < cap {
             let b = input[i]
@@ -474,7 +474,7 @@ extension Terminal {
         // rest is not left to the key parser either (dropping the first 4 KiB
         // and no more typed the rest out until 2026-10-11): it is skipped to
         // the final byte.
-        if input.count >= Self.maxReplyBytes { return abandonSequence(.controlSequence) }
+        if input.count >= Self.maxControlSequenceBytes { return abandonSequence(.controlSequence) }
 
         // Otherwise the buffer simply doesn't have the terminator yet. (The
         // wait is bounded by `deadSequenceStaleFrames`, not by the cap: the cap

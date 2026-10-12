@@ -5889,6 +5889,18 @@ K3).
   `ClipboardBackend`; the helper's is `SystemClipboard.Backend`, installed by
   `AppRunner` alone), and the status bar's line when neither reaches them.
   See "OSC 52 clipboard writes".
+- `Terminal.maxControlSequenceBytes` + `Terminal.maxStringSequenceBytes` —
+  how much of a sequence the input parser holds before it skips the rest
+  (never typing it): 16 KiB for a CSI, 64 KiB for an OSC, DCS, APC, PM or
+  SOS, since 2026-10-12 (4 KiB for both before). Sized against the longest
+  replies on record: an xterm-class device-attributes answer of 37 bytes
+  (the CSI walk's, `Terminal+Input.swift`; iTerm2's is 33, "What each host
+  advertises"), and a graphics error in words, iTerm2's `ENOENT` of some
+  eighty characters (the classic placements, under "Graphics protocols, and
+  a parser gap"). An OSC 52 clipboard answer is unbounded by nature; TUIkit
+  sends no OSC 52 query, so one arriving answers another program and is
+  skipped. Every reply TUIkit asks for, with its longest:
+  `Documentation/SwiftUI-API-completion-decisions-PASTE.md`, B-PASTE-2.
 - `KeyEvent.normalizingLegacyShiftedFunctionKeys()` +
   `Terminal.finalize` — Apple Terminal's shifted-function-key re-coding
   (F13…F20 read back as Shift+F5…F12), gated on `TerminalHost.isAppleTerminal`.
