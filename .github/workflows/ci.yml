@@ -294,6 +294,9 @@ jobs:
             release_build: true
             # The deduplicated, stripped release programs: see that step.
             dedup_check: true
+            # One app per library product, each on its product alone: see
+            # that step.
+            product_smoke: true
           # Trunk only. "latest" (with `development`) was the newest snapshot
           # on ANY branch, ranked by date, and on 2026-09-28 that was
           # `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-09-26-a`, not trunk's
@@ -509,6 +512,31 @@ jobs:
       - name: Profiling driver tests
         if: matrix.smoke == 'full'
         run: python3 -m unittest discover -s Tools/Profiling -p 'test_*.py'
+
+      # One tiny app per library product, each depending on that product
+      # alone and importing its module, with TUIkit resolved by version from a
+      # staged copy of this tree, as a client resolves it; every app is built
+      # and run (Tools/ProductSmoke/verify-products.sh says what that catches
+      # that the package's own builds cannot: every executable here links the
+      # umbrella, so a module that uses a sibling it does not declare links
+      # anyway). On this lane because Swift Build, 6.4's default build system
+      # on macOS, scans every target's imports: it failed a miniature package
+      # on an undeclared module dependency in every clean run, where SwiftPM's
+      # own build system can find such a module by luck
+      # (Documentation/Historical/Per-module products (2026-10-11).md, E5),
+      # and the script fails on its warning when it only warns. An import of
+      # TUIkitLists planted in TUIkitGrid failed it locally (the
+      # TUIkitGrid app's link). The Linux 6.4 and Xcode 27 lanes' default
+      # build system is unchecked. Debug, a scratch of its own: one build of
+      # every TUIkit module and 26 small apps; measured on the shared
+      # development machine with swift.org 6.4.0, which used a prebuilt
+      # swift-syntax for TUIkitMacros, 47.9 s in all on 2026-10-11, 25.4 s
+      # of it the build (156 s of CPU), the rest staging, resolution and the
+      # runs. Runners: unmeasured.
+      - name: Each library product builds and runs on its own
+        if: matrix.product_smoke
+        timeout-minutes: 30
+        run: Tools/ProductSmoke/verify-products.sh
 
       # The package's products in RELEASE — every library target, Stress,
       # Example and the tools. Every other build in this workflow is debug, and

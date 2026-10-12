@@ -476,6 +476,8 @@ Tools/
 ├── EmojiBugScanner/      Probes Terminal.app for emoji cursor-advance quirks
 ├── GenerateImageGlyphs/  Font-rasterisation calibration tables for the Image glyph renderers
 ├── GenerateSFSymbols/    Regenerates the baked SF Symbol name → codepoint table
+├── ProductSmoke/         One tiny app per library product, each on its product alone,
+│                         built and run against the tree as a client would (CI)
 ├── Profiling/            Instruments Time Profiler tooling (record.sh, drive.py,
 │                         analyze_timeprofile.py, idle_cpu.py) and the RenderHarness
 │                         executable (no-PTY render loop for `xctrace --launch`)
