@@ -9,7 +9,7 @@
 //  License: MIT
 
 import Testing
-@testable import TUIkitColorPicker
+@testable import TUIkitColorEditors
 import TUIkitImage
 
 import TUIkit

@@ -179,7 +179,10 @@ public struct ColorPickerPanel: View {
 /// dialog chrome, so it can be embedded inside other editors (the
 /// ``GradientEditorPanel`` hosts one to edit the selected gradient stop in
 /// place, instead of nesting dialogs).
-struct _ColorPickerBody: View {
+///
+/// `package`: the gradient and tone-curve editors that embed it are
+/// TUIkitColorEditors' since C9b moved them out of this module.
+package struct _ColorPickerBody: View {
     let selection: Binding<Color>
 
     /// Whether the opacity row is offered. Defaulted on, because a gradient stop —
@@ -188,6 +191,11 @@ struct _ColorPickerBody: View {
     /// The tone-curve editor turns it off: a tone curve keeps each pixel's own alpha
     /// and ignores its stops'.
     var supportsOpacity: Bool = true
+
+    package init(selection: Binding<Color>, supportsOpacity: Bool = true) {
+        self.selection = selection
+        self.supportsOpacity = supportsOpacity
+    }
 
     private typealias Mode = ColorPickerPanel.Mode
 
@@ -239,7 +247,7 @@ struct _ColorPickerBody: View {
     /// Resolves a semantic ``selection`` to concrete RGB for the read-out.
     @Environment(\.palette) private var palette
 
-    var body: some View {
+    package var body: some View {
             // Centre the preview and the tab view relative to each other (the tab
             // view is the widest, so the preview centres within it).
             VStack(alignment: .center, spacing: 1) {

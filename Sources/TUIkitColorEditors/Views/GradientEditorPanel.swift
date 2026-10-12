@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitColorPicker
 import TUIkitFoundation
 import TUIkitNumericControls
 import TUIkitStyling

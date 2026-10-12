@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitColorPicker
 import TUIkitFoundation
 import TUIkitImage
 import TUIkitNumericControls

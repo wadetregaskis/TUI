@@ -59,10 +59,11 @@ SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 # the public API is the union of the modules it re-exports. A module carved out
 # of TUIkitFoundation, or peeled out of a coarse group, joins this list then.
 TUIKIT_MODULES = [
-    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitForms",
-    "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers",
-    "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation",
-    "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitAppKit",
+    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorEditors", "TUIkitColorPicker", "TUIkitEffects",
+    "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls",
+    "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
+    "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",
+    "TUIkitAppKit",
 ]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are

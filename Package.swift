@@ -5,7 +5,7 @@ import PackageDescription
 
 /// What the umbrella suite's four test targets and their support target, TUIkitTestSupport, depend on.
 let umbrellaTestDependencies: [Target.Dependency] = [
-    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects",
+    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorEditors", "TUIkitColorPicker", "TUIkitEffects",
     "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
     "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings",
     "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
@@ -63,9 +63,12 @@ let package = Package(
         // so an app rarely names it; a product of its own lets a library that adds a toolbar item or a status
         // bar item depend on it without TUIkitApp's console layer, which has no Windows build.
         .library(name: "TUIkitChrome", targets: ["TUIkitChrome"]),
-        // TUIkitColorPicker: `ColorPicker` with its panel and swatches, and the gradient, tone-curve and
-        // channel-curve editor panels. Re-exports TUIkitImage, TUIkitNumericControls, TUIkitPickers,
-        // TUIkitPresentation, TUIkitTabs and TUIkitTextInput, which its panels are made of.
+        // TUIkitColorEditors: the gradient, tone-curve and channel-curve editor panels, which host
+        // `ColorPickerPanel`'s body. Re-exports TUIkitColorPicker, TUIkitImage (the curve editors take an
+        // `ASCIIToneCurve`), TUIkitNumericControls and TUIkitPickers.
+        .library(name: "TUIkitColorEditors", targets: ["TUIkitColorEditors"]),
+        // TUIkitColorPicker: `ColorPicker` and `ColorPickerPanel` with its swatches. Re-exports
+        // TUIkitNumericControls, TUIkitPresentation, TUIkitTabs and TUIkitTextInput, which its panel is made of.
         .library(name: "TUIkitColorPicker", targets: ["TUIkitColorPicker"]),
         // TUIkitEffects: transitions, content transitions, `.symbolEffect`, `.visualEffect`,
         // `.scrollTransition` and the colour effects.
@@ -232,27 +235,43 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
-        // Step B4's leaf, built on TUIkitFoundation as TUIkitApp is: `ColorPicker`, its panel and swatches, and the
-        // gradient, tone-curve and channel-curve editors. The plan's map builds it on NumericControls, TextInput,
-        // Pickers, Tabs and Presentation. Presentation is a module of its own since step C1 (below), whose `Dialog`
+        // Step B4's leaf, built on TUIkitFoundation as TUIkitApp is: `ColorPicker`, its panel and swatches, and,
+        // until C9b moved them into TUIkitColorEditors (below), the gradient, tone-curve and channel-curve editors.
+        // The plan's map builds it on NumericControls, TextInput, Pickers, Tabs and Presentation. Presentation is a module of its own since step C1 (below), whose `Dialog`
         // and `.modal` its panels are made of (it depended on TUIkitNavigation for them from step B5, while that
         // target compiled the presentations' directory too, and on nothing of the navigation containers'); Tabs is
         // one since step C3 (below), whose `TabView` and `Tab` its panel is laid out with (it depended on
         // TUIkitLists for them from step B6, while that target compiled the tabs' directory too, and on nothing of
-        // the lists'); Pickers is one since step C8 (below), whose `RadioButtonGroup` the channel-curve editor picks
-        // its channel with, and NumericControls one since step C7 (below), whose `Slider`s its editors are made of
-        // and whose tracks' `TrackRenderer.gradientColor` colours the gradient editor's strips (it depended on
-        // TUIkitTextInput for both from step B7, while that target compiled their directories too); and TextInput
-        // is TUIkitTextInput since step B7 (below), whose `TextField` the panel's hex field is. Nothing in
-        // TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it. TUIkitImage is
-        // named for itself: the curve editors import it, its `ASCIIToneCurve` is in their public initializers, and
-        // TUIkitFoundation, which re-exported it until step B5c, does not depend on it since. The module re-exports
-        // all seven (Sources/TUIkitColorPicker/Exports.swift).
+        // the lists'); NumericControls is one since step C7 (below), whose `Slider`s its channel rows are (it
+        // depended on TUIkitTextInput for them from step B7, while that target compiled their directory too); and
+        // TextInput is TUIkitTextInput since step B7 (below), whose `TextField` the panel's hex field is. Pickers
+        // and TUIkitImage were the editors' alone, and left with them. Nothing in TUIkitFoundation may use it
+        // (Tools/ModuleMap's upward check), so the umbrella re-exports it, and so does TUIkitColorEditors. The module
+        // re-exports all five (Sources/TUIkitColorPicker/Exports.swift).
         .target(
             name: "TUIkitColorPicker",
             dependencies: [
-                "TUIkitFoundation", "TUIkitImage", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation",
-                "TUIkitTabs", "TUIkitTextInput",
+                "TUIkitFoundation", "TUIkitNumericControls", "TUIkitPresentation", "TUIkitTabs", "TUIkitTextInput",
+            ],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // C9b's peel, out of TUIkitColorPicker above: `GradientEditorPanel`, `ToneCurveEditorPanel` and
+        // `ChannelCurveEditorPanel`, and the gradient editor's stop chips (Sources/TUIkitColorEditors). Each panel
+        // hosts the colour panel's body or the editor chrome `ColorPickerPanel` is drawn in, but `ColorPicker` uses
+        // none of them, so while they were TUIkitColorPicker's every app with a `ColorPicker` compiled and linked
+        // them and what only they use (SIZE3's Q7, change (1), with per-module products). Built on
+        // TUIkitColorPicker, whose `_EditorPanelChrome`, `_ColorPickerBody` and `_ColorSwatchButtonStyle` are
+        // `package` for them; on TUIkitImage, whose `ASCIIToneCurve` is in the curve editors' public initializers;
+        // on TUIkitPickers, whose `RadioButtonGroup` the channel-curve editor picks its channel with; and on
+        // TUIkitNumericControls, whose `Slider`s all three are made of and whose tracks'
+        // `TrackRenderer.gradientColor` colours the gradient editor's strips. Nothing depends on it but the
+        // umbrella, which re-exports it, and the tests. It re-exports all five
+        // (Sources/TUIkitColorEditors/Exports.swift).
+        .target(
+            name: "TUIkitColorEditors",
+            dependencies: [
+                "TUIkitColorPicker", "TUIkitFoundation", "TUIkitImage", "TUIkitNumericControls", "TUIkitPickers",
             ],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
@@ -358,7 +377,8 @@ let package = Package(
         // (Sources/TUIkitNumericControls). Built on TUIkitFoundation alone, the map's edge: a numeric control names
         // nothing of the text inputs' or pickers', which compiled beside it from step B7 until this step and step C8.
         // TUIkitTextInput does not depend on it, nor does anything in TUIkitFoundation (Tools/ModuleMap's upward
-        // check), so the umbrella re-exports it, and so does TUIkitColorPicker, whose editors are made of `Slider`s.
+        // check), so the umbrella re-exports it, and so do TUIkitColorPicker and TUIkitColorEditors, whose channel
+        // rows and editors are made of `Slider`s.
         // It re-exports TUIkitFoundation (Sources/TUIkitNumericControls/Exports.swift).
         .target(
             name: "TUIkitNumericControls",
@@ -372,8 +392,8 @@ let package = Package(
         // Symbols initializers (Sources/TUIkitPickers). Built on TUIkitFoundation alone, the map's edge: a picker
         // names nothing of the text inputs' or numeric controls', which compiled beside it from step B7 until this
         // step. TUIkitTextInput does not depend on it, nor does anything in TUIkitFoundation (Tools/ModuleMap's
-        // upward check), so the umbrella re-exports it, and so do TUIkitColorPicker, whose channel-curve editor picks
-        // its channel with a `RadioButtonGroup`, and TUIkitSearch, whose scope bar is a segmented `Picker`. It
+        // upward check), so the umbrella re-exports it, and so do TUIkitColorEditors, whose channel-curve editor
+        // picks its channel with a `RadioButtonGroup`, and TUIkitSearch, whose scope bar is a segmented `Picker`. It
         // re-exports TUIkitFoundation (Sources/TUIkitPickers/Exports.swift).
         .target(
             name: "TUIkitPickers",
@@ -452,10 +472,10 @@ let package = Package(
         // TUIkitImage (Sources/TUIkitBitmaps/Exports.swift).
         //
         // TUIkitImage (the decoders, `ASCIIConverter`, `RGBAImage`) is a dependency of this module and of
-        // TUIkitColorPicker, the only two leaves that name it. Of the framework's other modules only the umbrella,
+        // TUIkitColorEditors (TUIkitColorPicker's until C9b), the only two leaves that name it. Of the framework's other modules only the umbrella,
         // which re-exports it, and TUIkitAppKit, whose `CGImage` and `NSImage` bridges make an `RGBAImage`, name
         // it; the tests and tools aside, nothing else does. TUIkitFoundation does not depend on it since this step,
-        // so an app that depends on none of the TUIkit, TUIkitBitmaps, TUIkitColorPicker, TUIkitAppKit and
+        // so an app that depends on none of the TUIkit, TUIkitBitmaps, TUIkitColorEditors, TUIkitAppKit and
         // TUIkitImage products links neither TUIkitImage nor CSTBImage.
         .target(
             name: "TUIkitBitmaps",
@@ -465,9 +485,9 @@ let package = Package(
 
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
-        // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitEffects, TUIkitForms, TUIkitGrid, TUIkitLists,
-        // TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers, TUIkitPresentation, TUIkitSearch,
-        // TUIkitTables, TUIkitTabs, TUIkitTextInput),
+        // TUIkitBitmaps, TUIkitChrome, TUIkitColorEditors, TUIkitColorPicker, TUIkitEffects, TUIkitForms, TUIkitGrid,
+        // TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers, TUIkitPresentation,
+        // TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names
         // TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the
@@ -475,8 +495,8 @@ let package = Package(
         .target(
             name: "TUIkit",
             dependencies: [
-                "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitEffects", "TUIkitForms",
-                "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls",
+                "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorEditors", "TUIkitColorPicker", "TUIkitEffects",
+                "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls",
                 "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
                 "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
@@ -570,7 +590,7 @@ let package = Package(
         // imports TUIkit, as an app does, and `@testable import`s
         // TUIkitFoundation where it reaches the framework's internals, or the
         // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
-        // TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists,
+        // TUIkitApp, TUIkitColorPicker, TUIkitColorEditors, TUIkitNavigation, TUIkitLists,
         // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
         // TUIkitTextInput, TUIkitPresentation, TUIkitTables, TUIkitTabs,
         // TUIkitGrid, TUIkitForms, TUIkitSearch, TUIkitPickers,

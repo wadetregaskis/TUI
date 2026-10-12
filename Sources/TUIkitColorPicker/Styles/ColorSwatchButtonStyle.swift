@@ -32,7 +32,10 @@ import TUIkitFoundation
 /// `color` and `isSelected` into ``_ColorSwatchCells``, so equal values do draw
 /// the same swatch, and the synthesized `==` over them is what drops the cells
 /// painted in the previous colour.
-struct _ColorSwatchButtonStyle: ButtonStyle, Equatable {
+///
+/// `package`: the gradient and tone-curve editors are TUIkitColorEditors' since
+/// C9b moved them out of this module.
+package struct _ColorSwatchButtonStyle: ButtonStyle, Equatable {
     /// The colour on show — the swatch fill and the bullet's backdrop.
     let color: Color
 
@@ -40,7 +43,12 @@ struct _ColorSwatchButtonStyle: ButtonStyle, Equatable {
     /// that stand alone (a single ``ColorPicker``'s) leave it false.
     var isSelected: Bool = false
 
-    func makeBody(configuration: Configuration) -> some View {
+    package init(color: Color, isSelected: Bool = false) {
+        self.color = color
+        self.isSelected = isSelected
+    }
+
+    package func makeBody(configuration: Configuration) -> some View {
         _ColorSwatchCells(
             color: color,
             isSelected: isSelected,
@@ -152,7 +160,7 @@ struct _ColorSwatchCells: View {
 extension _ColorSwatchButtonStyle {
     /// The cell width of a swatch — wide enough to read as a block of colour,
     /// and odd so the state bullet has a true centre.
-    static let width = 3
+    package static let width = 3
 }
 
 // MARK: - Environment without reflection

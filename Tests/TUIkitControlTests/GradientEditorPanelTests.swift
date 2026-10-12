@@ -14,7 +14,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitApp
-@testable import TUIkitColorPicker
+@testable import TUIkitColorEditors
 @testable import TUIkitFoundation
 @testable import TUIkitNumericControls
 @testable import TUIkitTestSupport

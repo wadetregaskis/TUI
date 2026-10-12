@@ -28,7 +28,10 @@ import TUIkitPresentation
 /// Cancel is not the only way out: `Esc`, the modal's own dismissal, and the
 /// presenting page going away all have to mean the same thing. Only Done says
 /// otherwise, and it says so by setting a flag first.
-struct _EditorPanelChrome<Value, Content: View>: View {
+///
+/// `package`: ``ColorPickerPanel`` is here, and the other three panels are
+/// TUIkitColorEditors' since C9b moved them out of this module.
+package struct _EditorPanelChrome<Value, Content: View>: View {
     /// The dialog's title.
     let title: String
 
@@ -46,7 +49,7 @@ struct _EditorPanelChrome<Value, Content: View>: View {
     /// ``onDone(_:)``.
     private var doneAction: () -> Void = {}
 
-    init(
+    package init(
         title: String,
         edited: Binding<Value>,
         isPresented: Binding<Bool>,
@@ -66,7 +69,7 @@ struct _EditorPanelChrome<Value, Content: View>: View {
     ///
     /// A modifier rather than an init parameter so the content stays the trailing
     /// closure, which is the only shape that reads like a view.
-    func onDone(_ action: @escaping () -> Void) -> Self {
+    package func onDone(_ action: @escaping () -> Void) -> Self {
         var copy = self
         copy.doneAction = action
         return copy
@@ -83,7 +86,7 @@ struct _EditorPanelChrome<Value, Content: View>: View {
         var applied = false
     }
 
-    var body: some View {
+    package var body: some View {
         Dialog(title: title, titleColor: .palette.accent, footerAlignment: .center) {
             content
                 .onAppear { session.original = edited.wrappedValue }

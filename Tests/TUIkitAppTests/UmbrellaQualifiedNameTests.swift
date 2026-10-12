@@ -165,6 +165,14 @@
 //  C7. TUIkitColorPicker re-exports TUIkitNumericControls too (its editors are
 //  sliders), so the umbrella's own line for it is the `umbrella` check's.
 //
+//  C9b peeled the gradient, tone-curve and channel-curve editors out of
+//  TUIkitColorPicker into TUIkitColorEditors, built on it, so that an app with
+//  a `ColorPicker` alone links none of them. The fourth test's curve editor,
+//  and the editors among the reflected names, read `TUIkitColorEditors.`
+//  since; they read `TUIkitColorPicker.` from B4 to C9b. Nothing but the
+//  umbrella re-exports TUIkitColorEditors, so the umbrella's line for it is
+//  what lets this file compile.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -429,10 +437,11 @@ struct UmbrellaQualifiedNameTests {
             .map(\.stripped)
         #expect(lines.first?.contains("b4") == true, "\(lines)")
         // A curve editor, whose initializer takes a TUIkitImage type, spelled
-        // through the umbrella too.
+        // through the umbrella too: TUIkitColorEditors' since C9b, which
+        // TUIkitColorPicker compiled until then.
         let panel = TUIkit.ToneCurveEditorPanel(
             stops: .constant([TUIkit.ASCIIToneCurve.Stop]()), isPresented: .constant(true))
-        #expect(String(reflecting: type(of: panel)) == "TUIkitColorPicker.ToneCurveEditorPanel")
+        #expect(String(reflecting: type(of: panel)) == "TUIkitColorEditors.ToneCurveEditorPanel")
     }
 
     @Test("A qualified name reaches TUIkitNavigation and TUIkitPresentation, which the umbrella re-exports")
@@ -639,6 +648,13 @@ struct UmbrellaQualifiedNameTests {
         // each read `TUIkitFoundation.` between B1 and B4.
         #expect(String(reflecting: TUIkit.ColorPicker.self) == "TUIkitColorPicker.ColorPicker")
         #expect(String(reflecting: TUIkit.ColorPickerPanel.self) == "TUIkitColorPicker.ColorPickerPanel")
+        // C9b peeled these out of TUIkitColorPicker; each read
+        // `TUIkitColorPicker.` between B4 and C9b (and `TUIkitFoundation.`
+        // between B1 and B4).
+        #expect(String(reflecting: TUIkit.GradientEditorPanel.self) == "TUIkitColorEditors.GradientEditorPanel")
+        #expect(String(reflecting: TUIkit.ToneCurveEditorPanel.self) == "TUIkitColorEditors.ToneCurveEditorPanel")
+        #expect(
+            String(reflecting: TUIkit.ChannelCurveEditorPanel.self) == "TUIkitColorEditors.ChannelCurveEditorPanel")
         // Step B5 carved these out (decisions SPB5, "What an app can see");
         // each read `TUIkitFoundation.` between B1 and B5. A type from
         // Sources/TUIkitPresentation named TUIkitNavigation, the module that
