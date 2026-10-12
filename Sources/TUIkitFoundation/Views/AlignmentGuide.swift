@@ -376,13 +376,16 @@ struct AlignmentGuideRun {
     /// pads a buffer to its extent, so a guide of `1e300` would otherwise ask
     /// for a buffer `Int.max` cells wide.
     ///
-    /// The bound changes nothing a terminal shows, except inside a horizontal
-    /// `ScrollView`, which can scroll that far: there a child pushed past it
-    /// stops at it, where SwiftUI's keeps going. It is the natural-extent
+    /// The bound is visible in a `ScrollView` on either axis, which can scroll
+    /// that far: a child pushed past it stops at it, where SwiftUI's keeps
+    /// going (measured 2026-10-12: a `ZStack` placing rows by guide in a
+    /// vertical `ScrollView` piles every row past 4,096 on row 4,096). The
+    /// owner has decided to raise it to 2^20 and report a push past it as a
+    /// logic error (decisions B-GUIDE-2). It is the natural-extent
     /// ladder's first rung (``naturalExtentStartingBudget(forVisible:)``), and
     /// TUIkit already takes half of that as more than any real bound offers
     /// (``isNaturalExtentBudget(_:)``), so a child pushed this far is past the
-    /// edge of any terminal either way. It is a constant rather than the
+    /// edge of any terminal's screen. It is a constant rather than the
     /// container's available extent so that the run reads no budget: a row
     /// reports its height without reading the vertical one
     /// (`_HStackCore.clipSizeThatFits`). A run is never bounded below its

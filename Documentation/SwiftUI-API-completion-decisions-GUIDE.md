@@ -12,7 +12,7 @@ session notes, `GUIDE/probe/` and `GUIDE/probe2/`).*
 
 ## A. Needs a decision
 
-### A-GUIDE-1. SwiftUI's lazy stacks ignore an explicit alignment guide; TUIkit's honour it
+### A-GUIDE-1. SwiftUI's lazy stacks ignore an explicit alignment guide; TUIkit's honour it — decided: keep honouring it
 
 *`LazyVStack(alignment:spacing:pinnedViews:content:)`,
 `LazyHStack(alignment:spacing:pinnedViews:content:)`,
@@ -51,6 +51,26 @@ bear out; it, and LayoutSystem.md, now say what was measured.
 
 Recommended: 1, by the parity rule; nothing has shipped either way in this
 lane.
+
+**Owner (2026-10-12): keep honouring guides in lazy stacks** (option 2);
+SwiftUI's ignoring them looks like a bug. Measured since (session notes
+`GUIDE2/notes.md` §1): SwiftUI's lazy stacks never ask a row for its guide,
+and report none to their parent either, not even a custom one. Its
+documentation says nothing about it (the macOS 26.2 SDK's doc comments,
+searched); it may be a side effect of laziness, since the eager rule needs
+every row's guide and a lazy stack does not build the rows off screen. Either
+way SwiftUI code with a guide in a lazy stack does nothing, so no code relies
+on it, and copying it would only take a working feature away. Recorded as a
+deliberate deviation in the compatibility guide.
+
+**The cost, which only an app with a guide on a lazy row pays** (gated by the
+static witness): when a lazy row's type carries a guide, two fast paths step
+aside, the uniform window at any row count and the anchored window over 256
+rows, and the exact slot walk measures every row on every frame. That is what
+keeps the alignment column still while rows scroll in. Its cost on a big list
+is unmeasured. A lazy stack outside a scroll view resolves its guides over the
+rows it placed, so a guide on a row past the cut does nothing until that row
+fits.
 
 ### A-GUIDE-2. SwiftUI does not report a built-in guide out of a stack of several views
 
@@ -93,6 +113,51 @@ unmeasured beyond these rows, and the text baselines not at all). TUIkit reports
 Recommended: 1, in a lane of its own (it is not a guide-value question, so it
 was left out of this one).
 
+**2026-10-12: awaiting your choice between (a) and (b) below.** You asked for
+no special exceptions: uniform behaviour. Measured since (session notes
+`GUIDE2/notes.md` §2), SwiftUI's rule depends on the guide's **kind**, so no
+rule here is free of exceptions:
+
+- **Edge and centre guides** (`.leading`, `.center`, `.trailing`, `.top`,
+  vertical `.center`, `.bottom`) never leave a container that arranges several
+  views: `VStack`, `HStack`, `ZStack`, `AnyLayout`, a custom `Layout`, a
+  `ForEach` of one row and a false `if`, with three views, beside a `Spacer`,
+  with two children setting the guide, and with the stack aligned on the same
+  guide.
+- **Custom guides and text baselines do leave**: custom guides measured out of
+  `VStack`, `HStack`, `ZStack`, `VStackLayout`, `AnyLayout` and a custom
+  `Layout`, merged by their mean; baselines out of `VStack`, merged by the
+  minimum (`firstTextBaseline`) and the maximum (`lastTextBaseline`), as
+  `combineExplicit` already merges them.
+- **Lazy stacks and a `ScrollView`** report nothing, not even a custom guide.
+- **Single-child modifiers and an app's view type** pass every guide.
+- **One oddity:** a container whose content is statically one view lets an edge
+  guide through (`VStack { G }`), but not through a `ForEach` of one, an `if`
+  or `AnyLayout`. It looks like an implementation shortcut (hypothesis).
+
+TUIkit today reports edge guides out of eager stacks of several views, merged
+by the mean, which gives odd results: `VStack(alignment: .center) { G (leading
+5); S (leading 1) }` puts the outer row's guide at column 4, where no child
+aligned (SwiftUI: 0). Its `Layout`s count the baselines as built-in guides, so
+they drop a baseline SwiftUI's `VStack` reports. Custom guides already match
+SwiftUI in every container measured.
+
+- **(a) SwiftUI's rule, by kind.** A container places its own children by an
+  edge or centre guide and reports none; baselines and custom guides travel.
+  To align across containers by an edge, a developer declares a custom
+  `AlignmentID` (about five lines). SwiftUI code keeps its layout.
+- **(b) Uniform.** Every eager container reports every explicit guide, merged
+  as today. To keep one local, a developer adds
+  `.alignmentGuide(.leading) { _ in 0 }` on the inner container, which answers
+  its own key before asking its content. SwiftUI code written for local guides
+  lays out differently, with no error.
+
+Under both, lazy stacks and scroll views keep reporting nothing, and only
+explicit values change. Either is about three days, after B19's fuller version
+and its A/B, which must pass first. **Recommended: (a)**: SwiftUI code keeps
+its layout, and a guide stays local unless the developer asks. (b) is the
+literal reading of "no exceptions".
+
 ## B. Shipped the safe option
 
 ### B-GUIDE-1. A region smaller than the run keeps the run's leading edge on its own
@@ -124,7 +189,15 @@ constraint", `_VStackCore.sizeThatFits`), and the parent's buffer is the size
 it reported, so this is a change to every container's contract, not to the
 guide run.
 
-### B-GUIDE-2. One guide pushes a view at most 4,096 cells, whatever the container's extent
+**2026-10-12, answered: keep the safe option for now.** The case arises only
+when an explicit guide pushes a view past the widest child and the region
+cannot grow (a child that fills it, a fixed `.frame`, or the screen). Measured:
+`GGG` sits three cells left of where its guide puts it. Changing what
+containers report would take 1.5 to 2.5 weeks (estimate) and risk every
+layout; drawn as an overflow layer, B-GUIDE-3's mechanism, it is about a day
+more than that mechanism.
+
+### B-GUIDE-2. One guide pushes a view at most 4,096 cells, whatever the container's extent — decided: 2^20, and a push past it reported
 
 *`AlignmentGuideRun.maximumPush`, `.alignmentGuide(_:computeValue:)`*
 
@@ -139,11 +212,43 @@ views' sizes, with a hard cap for unbounded proposals. The bound shipped is the
 hard cap alone, 4,096 cells — the natural-extent ladder's first rung, half of
 which TUIkit already takes as more than any real bound offers
 (`isNaturalExtentBudget`) — floored at the region's own extent and its widest
-view, which are drawn already. A view pushed that far is past any terminal's
-edge with either bound, so nothing visible differs; the constant reads no
+view, which are drawn already. This said a view pushed that far is past any
+terminal's edge with either bound, so nothing visible differs. That is wrong
+(measured 2026-10-12, below): a scroll view's canvas goes past any terminal's
+edge. The constant reads no
 budget, which a bound on the available extent would: a row reports its height
 without reading the vertical budget (`_HStackCore.clipSizeThatFits`), and the
 measure and the render would each bound the run by their own budget.
+
+**Owner (2026-10-12): 4,096 is too low, and a cap must not hide logic
+errors. Decided: raise the bound to 2^20 (1,048,576 cells) and report a push
+past it as a logic error; lane owed.** Measured since (session notes
+`GUIDE2/notes.md` §4):
+
+- **4,096 hides real layouts.** A `ZStack(alignment: .topLeading)` that places
+  items by `.alignmentGuide(.top) { _ in -row }` in a vertical `ScrollView` (a
+  day or timeline view) puts every item past row 4,096 on row 4,096, and the
+  content is 4,097 rows tall instead of 10,001; SwiftUI honours 10,000 and
+  100,000 rows. A horizontal `ScrollView` stops a view at column 4,096 the same
+  way.
+- **A guide of 1e300 or NaN is always a bug.** SwiftUI places 1e300 without a
+  word, losing the view's width to rounding, and crashes on +∞ and NaN ("view
+  origin is invalid") in every placement tried.
+- **No cap is worse than a cap.** Without one, a 1e300 guide traps on
+  arithmetic overflow while the render sizes a line (measured, and Swift
+  checks overflow in release too), and a push of 1e7 to 1e12 builds a line of
+  that many spaces per pushed row every frame. Neither names the guide.
+
+**The lane:** the bound becomes 2^20, 256 times today's (about twelve times a
+seconds-per-row day; a legitimate push of a million takes four measures on the
+ladder instead of one). A push past it, and a non-finite guide on a view
+whose width and height are both non-zero, on a render pass, is reported
+through `SoftTrap` (an assertion in debug, reported once in release, with a
+reporter tests can replace), and the view is placed at its own origin, not at
+the bound, so a release build never builds a million-cell buffer on a bug
+path. A zero-sized view keeps its silent fallback, because a small terminal
+can squeeze a row to zero and make a `d.width / d.height` guide infinite.
+Four tests in `AlignmentGuideTests` change with it.
 
 **The fuller version** would hold no bound at all on a guide that lies within
 `Int`, so a view could be pushed past 4,096 cells into a scroll view's canvas.
@@ -182,3 +287,19 @@ buffer (`OffsetView` draws one). **Price:** a region would stop containing its
 content, which every TUIkit container assumes of a buffer (its size is its
 extent), or a child past the edge would be cut — showing six cells' worth of a
 view as one or none, where today it is whole.
+
+**Asked 2026-10-12: build the overflow layers?** You dislike forced clipping
+(a bouncing scale-in, say), and asked to explore SwiftUI's unclipped
+placement. SwiftUI does not clip a view to its frame by default (measured for
+frame, overlay, background, offset and scale; scroll views and the clipping
+modifiers do clip). TUIkit clips every view to the space it was given, as a
+safety net, but `scrollClipDisabled`'s overflow layers already draw past a
+region in SwiftUI's stacking order, painting only the cells they draw, with
+their hit regions travelling with them. Generalised to the placement sites,
+they would fix this entry, B-GUIDE-1's overhang, a badge on a corner
+overwriting its label, fixed-size content larger than its frame, and `.move`
+and `.offset` bounces drawing over every sibling instead of in order. A cell
+has no transparency, so overflow hides what is under it completely: lists,
+tables, menus, sheets and scroll views keep clipping. The bouncing scale-in
+is a different limit: `.scale` uncovers a view a cell at a time, and past 100%
+there is nothing more to show. About three to four days.
