@@ -50,7 +50,8 @@ struct GuidePlacementRow: Sendable, CustomTestStringConvertible {
 /// `.overlay` and `.background`.
 ///
 /// Measured with SwiftUI 6.5.4 on macOS 15.8.1, offscreen `NSHostingView`,
-/// 2026-10-11 (session notes, GUIDE/probe2). One point stands for one cell.
+/// 2026-10-11 (`Tools/SwiftUIProbes/Alignment guides/guide2.swift` to `guide6.swift`).
+/// One point stands for one cell.
 @MainActor
 @Suite("Alignment guides in a ZStack, a lazy stack and a single-child placement")
 struct AlignmentGuideContainerParityTests {

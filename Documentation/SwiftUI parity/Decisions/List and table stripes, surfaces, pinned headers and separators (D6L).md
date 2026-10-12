@@ -198,7 +198,7 @@ line between rows that belongs to neither — its own claims and its own
 *`alternatingRowBackgrounds` on a sectioned `List` (decisions A29/A46)*
 
 **Measured (macOS 15.8, offscreen `NSHostingView`, each row's background
-sampled; `D6L/probe/phase/phase.swift` in the session notes):** a list's
+sampled; [`Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift`](<../../../Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift>)):** a list's
 stripes tint the second content row and every other after it — the phase
 TUIkit now draws, for tables and lists alike — and in a sectioned list they
 count the content rows across the sections, headers not counted: three rows

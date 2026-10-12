@@ -35,7 +35,8 @@ private struct Column: View {
 ///
 /// SwiftUI 6.5.4, macOS 15.8.1, offscreen `NSHostingView`, 2026-10-11. The
 /// views were `Color.clear.frame(width:height:)`, so one point stands for one
-/// cell. The harness and its output are in the session notes (GUIDE/probe).
+/// cell. The harness and its output are `Tools/SwiftUIProbes/Alignment guides/guide.swift` and
+/// `guide.out`.
 struct GuideProbeRow: Sendable, CustomTestStringConvertible {
     enum Alignment: String, Sendable {
         case leading, trailing, center, top, bottom

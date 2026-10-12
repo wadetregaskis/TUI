@@ -2,8 +2,9 @@
 //  ForEachRowMembersTests.swift
 //
 //  A `ForEach` row of several views hands its container each of them, as
-//  SwiftUI's does (measured on macOS 15.8, probe in the session notes,
-//  `D1S/probe/b15`): `ForEach(0..<2) { _ in Group { a; b } }` is four subviews,
+//  SwiftUI's does (measured on macOS 15.8, probe
+//  `Tools/SwiftUIProbes/Sections and subview counting/b15.swift`):
+//  `ForEach(0..<2) { _ in Group { a; b } }` is four subviews,
 //  and so is the same row as a tuple; a row of sections is their parts; a
 //  loop in a row is its rows; an `EmptyView` row is none. Decisions B15.
 //

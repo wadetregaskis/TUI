@@ -1,14 +1,14 @@
 # Completing the SwiftUI API: decisions from lane SKEY
 
 *Lane SKEY, 2026-10-11, fixed two bugs in how TUIkit binds the `@State` inside
-an app's `DynamicProperty` (session notes `DYNP/optional/notes.md` §5.5,
+an app's `DynamicProperty` ([`Tools/SwiftUIProbes/Dynamic property discovery/notes.md`](<../../../Tools/SwiftUIProbes/Dynamic property discovery/notes.md>) §5.5,
 `DynamicPropertyStateKeyTests`). A nested `@State` took the next index of its
 view's one counter, so what an optional, an existential or an enum case before
 it held moved its key, and two `@State`s of one type swapped values. It is now
 keyed by where it is declared in the view (`NestedScope`). And a property in an
 enum case holding more than one value was never bound. What SwiftUI does was
 measured on macOS 15 (SwiftUI 6.5.4) with an offscreen `NSHostingView`
-(session notes `SKEY/probe/skey.swift`, outputs `skey.out` and
+([`Tools/SwiftUIProbes/State keys in dynamic properties/skey.swift`](<../../../Tools/SwiftUIProbes/State keys in dynamic properties/skey.swift>), outputs `skey.out` and
 `skey-optconf.out`):*
 
 - *An enum's case that replaces another, an enum view's or an enum

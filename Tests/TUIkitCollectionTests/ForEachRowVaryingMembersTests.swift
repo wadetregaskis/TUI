@@ -3,7 +3,8 @@
 //
 //  A `ForEach` row of several views with an `if` without `else` among them —
 //  `Text(name); if flagged { Text("!") }` — makes two views for some elements
-//  and one for others, as SwiftUI counts them (`D1S/probe/b15`: a false
+//  and one for others, as SwiftUI counts them
+//  (`Tools/SwiftUIProbes/Sections and subview counting/b15.swift`: a false
 //  condition is no subview). Counted from its type as a fixed two, it handed
 //  every walk that trusts the type an empty child for each element whose
 //  condition was false: a `List` drew an invisible row the cursor stopped on,

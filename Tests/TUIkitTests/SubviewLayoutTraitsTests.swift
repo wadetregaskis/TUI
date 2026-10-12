@@ -5,8 +5,9 @@
 //  `Spacer` through `ForEach(subviews:)` is a spacer, a member's
 //  `.alignmentGuide` moves the proxy, its `.zIndex` orders it in a `ZStack`, and
 //  its `.layoutValue` reaches the `Layout` it is placed in — each as SwiftUI
-//  does (measured on macOS 15.8, probes in the session notes, `D1S/probe/b17`,
-//  `z` and `lv`). The oracle throughout is the same content placed directly.
+//  does (measured on macOS 15.8: `b17.swift`, `z.swift` and `lv.swift` in
+//  `Tools/SwiftUIProbes/Sections and subview counting/`). The oracle
+//  throughout is the same content placed directly.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

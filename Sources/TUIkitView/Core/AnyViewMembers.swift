@@ -9,7 +9,8 @@
 
 /// An `AnyView` is, to the container resolving it, what it erases: one child
 /// when that is one view, as it always was, and each of its views when it is
-/// several — measured on macOS 15.8 (`D1S/probe/b15`): `AnyView(Group { a; b })`
+/// several — measured on macOS 15.8
+/// (`Tools/SwiftUIProbes/Sections and subview counting/b15.swift`): `AnyView(Group { a; b })`
 /// is two subviews of a `Layout`, an `HStack` lays the two along its row, and
 /// the Wave 5 probe counted the same. Until then an `AnyView` was one child
 /// everywhere, so the same `HStack` stacked the pair in a column (decisions

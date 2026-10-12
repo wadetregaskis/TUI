@@ -5729,7 +5729,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// phase a macOS table draws (measured on macOS 15.8 by sampling each
         /// row's background in an offscreen `NSHostingView`, under `.automatic`,
         /// `.inset` and `.bordered` alike: rows 1, 3 and 5 tinted, 0, 2 and 4 the
-        /// base; `D6L/probe/phase/phase.swift` in the session notes).
+        /// base; `Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift`).
         let stripe: Color?
 
         /// - Parameter frameStripe: What this frame's striped rows wear, or `nil`

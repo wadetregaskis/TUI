@@ -400,7 +400,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 ### S3. A property in an existential field is bound, per concrete type
 
 - **SwiftUI:** never binds a property held in an `any DynamicProperty` or
-  `Any` field (measured 2026-10-10: session notes `DYNP/optional/notes.md`,
+  `Any` field (measured 2026-10-10: `Tools/SwiftUIProbes/Dynamic property discovery/notes.md`,
   cases (vii-a) and (vii-a2)).
 - **TUIkit:** binds it, with its concrete type in its state key: a new type
   starts at its defaults, and an earlier type that comes back while the view

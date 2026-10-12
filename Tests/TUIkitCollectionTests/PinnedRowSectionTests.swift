@@ -6,7 +6,7 @@
 //  a horizontal scroll view's leading edge while its content is under it,
 //  pushed off by the content's last column, and its footer at the trailing
 //  edge; SwiftUI's vertical rule turned on its side (measured on macOS 15.8,
-//  probes in the session notes, `w10b/probe/p2`). Decisions A44.
+//  probe `Tools/SwiftUIProbes/Pinned section headers and footers/p2.swift`). Decisions A44.
 //
 //  The oracle is the same row unpinned, scrolled to the same column: pinning
 //  writes the header over the leading cells exactly while the section's

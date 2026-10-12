@@ -530,7 +530,7 @@ struct DynamicPropertyTests {
     /// value that holds nothing where another value of the type holds a
     /// property — a `nil` optional, an enum case with no payload. SwiftUI
     /// runs `update()` for the enum view's later payload (measured on macOS
-    /// 15, session notes DYNP/probe/dp.swift, case 7).
+    /// 15, `Tools/SwiftUIProbes/Dynamic properties/dp.swift`, case 7).
     @Test("A type first drawn holding no property still updates, binds and resolves one it holds later")
     func firstValueDoesNotDecide() {
         let context = makeRenderContext(width: 20, height: 1)
@@ -596,8 +596,8 @@ struct DynamicPropertyTests {
         #expect(line(ConstrainedExistentialView(source: SourcedUpdates(log: log), log: log), context: context) == "2")
     }
 
-    /// What SwiftUI does, measured on macOS 15 (session notes
-    /// DYNP/probe/dp.swift, cases 4 and 4b): an `unowned` property's type is
+    /// What SwiftUI does, measured on macOS 15
+    /// (`Tools/SwiftUIProbes/Dynamic properties/dp.swift`, cases 4 and 4b): an `unowned` property's type is
     /// the property's own, and its `update()` runs; a `weak` one's is an
     /// optional, and its `update()` does not.
     @Test("An unowned app property is updated and a weak one is not, as in SwiftUI")

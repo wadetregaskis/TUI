@@ -4663,7 +4663,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// macOS, where the table view under `.automatic`, `.plain`, `.inset` and
     /// `.bordered` floats its group rows and under `.sidebar` does not
     /// (measured, macOS 15.8: `NSTableView.floatsGroupRows`; the probe is
-    /// `D6L/probe/pin.swift` in the session notes). Footers pin under none.
+    /// `Tools/SwiftUIProbes/List pinned headers and row stripes/pin.swift`).
+    /// Footers pin under none.
     static func pinsSectionHeaders(_ style: any ListStyle) -> Bool {
         !(style is SidebarListStyle)
     }

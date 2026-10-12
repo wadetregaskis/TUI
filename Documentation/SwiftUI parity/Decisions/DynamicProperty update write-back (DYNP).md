@@ -7,8 +7,8 @@ very careful about the performance impact". B4 in
 [`SwiftUI API completion decisions.md`](<SwiftUI API completion decisions.md>)
 now points here; B-DYNP-1 below supersedes it. This file records what the write-back covers, and where
 TUIkit still differs from SwiftUI. Each SwiftUI behaviour below was measured
-on macOS 15 with an offscreen `NSHostingView` (session notes
-`DYNP/probe/dp.swift`; the case numbers are that probe's). The format is
+on macOS 15 with an offscreen `NSHostingView`
+([`Tools/SwiftUIProbes/Dynamic properties/dp.swift`](<../../../Tools/SwiftUIProbes/Dynamic properties/dp.swift>); the case numbers are that probe's). The format is
 that of the main decisions file:*
 
 - **A-DYNP-n — needs your decision.** Each says which option TUIkit ships
@@ -125,7 +125,7 @@ That is unmeasured; no A/B scenario has an enum view, and TUIkit's own
 Narrowing it to the enums whose payloads can hold a property would need each
 case's payload type. The runtime's mirror entry points list no fields for an
 enum type (`swift_reflectionMirror_recursiveCount` answers 0 for one with
-three cases, two with payloads; session notes `DYNP/probe/enumfields`), so
+three cases, two with payloads; `Tools/SwiftUIProbes/Dynamic properties/enumfields.swift`), so
 those types would have to be read from the enum's field descriptor and
 resolved from their mangled names: a second runtime layout to depend on,
 beside the field metadata. Worth it if an app's enum views show up in a

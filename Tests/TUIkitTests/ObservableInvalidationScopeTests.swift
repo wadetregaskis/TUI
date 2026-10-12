@@ -161,7 +161,8 @@ struct ObservableInvalidationScopeTests {
     }
 
     /// SwiftUI observes what an app property's `update()` reads, as it does
-    /// `body`'s reads: measured on macOS 15 (session notes DYNP/probe/dp.swift,
+    /// `body`'s reads: measured on macOS 15
+    /// (`Tools/SwiftUIProbes/Dynamic properties/dp.swift`,
     /// case 5), a model read only in `update()` re-runs the body when it
     /// changes, and one held but not read does not.
     @Test("A model read in an app property's update() invalidates its view, as a read in body does")

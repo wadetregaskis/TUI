@@ -98,7 +98,7 @@ enum NestedProperties {
     /// tuple: its case holds more than one value, and `Mirror` shows them as
     /// one child. The walks then walk each value, as SwiftUI takes each
     /// case's payload as a tuple and keeps the elements that are properties
-    /// (session notes `DYNP/optional/notes.md` §2). Asked only of an enum's
+    /// (`Tools/SwiftUIProbes/Dynamic property discovery/notes.md` §2). Asked only of an enum's
     /// payload: a tuple stored in a field is not looked into, by SwiftUI
     /// (measured) or the walks.
     static func isTuple(_ value: Any) -> Bool {

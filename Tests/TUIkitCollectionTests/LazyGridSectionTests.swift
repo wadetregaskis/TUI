@@ -84,7 +84,8 @@ struct LazyGridSectionTests {
 
     @Test("A grid's spacing falls between every two of a section's rows, its header and footer too, as SwiftUI's does")
     func spacingBetweenRowsAndSections() {
-        // Measured on macOS 15.8 (`w10b/probe/p5`, `spacing: 10`): the gap
+        // Measured on macOS 15.8 (`spacing: 10`;
+        // `Tools/SwiftUIProbes/Pinned section headers and footers/p5.swift`): the gap
         // falls between a header and its section's first row as between any
         // two rows. The grid's sections are a loop's rows, each a section a
         // stack takes apart (decisions B15).

@@ -7,8 +7,8 @@ Where the work met a judgement call the brief did not settle, the safe option
 shipped and is written up here, in the three parts the other lanes use: A needs
 a decision, B shipped the safe option (with the fuller version and its price),
 C declined with a parity-map reason. SwiftUI's behaviour was measured with
-SwiftUI 6.5.4 on macOS 15.8.1 with offscreen `NSHostingView`s (probes in the
-session notes, `GUIDE/probe/` and `GUIDE/probe2/`).*
+SwiftUI 6.5.4 on macOS 15.8.1 with offscreen `NSHostingView`s (probes in
+[`Tools/SwiftUIProbes/Alignment guides/`](<../../../Tools/SwiftUIProbes/Alignment guides/>)).*
 
 ## A. Needs a decision
 
@@ -18,7 +18,7 @@ session notes, `GUIDE/probe/` and `GUIDE/probe2/`).*
 `LazyHStack(alignment:spacing:pinnedViews:content:)`,
 `.alignmentGuide(_:computeValue:)`*
 
-Measured (GUIDE/probe2, `guide3.out`, `guide4.out`): in a `LazyVStack` 400
+Measured (`Tools/SwiftUIProbes/Alignment guides/guide3.out`, `guide4.out`): in a `LazyVStack` 400
 points wide, a 1-wide view with leading guide 5 above a 6-wide view leaves both
 at 0; with `.trailing` and a 3-wide view whose trailing guide is 0, the views
 are at 397 and 394 — each at the alignment's default, the guide unread. The
@@ -83,7 +83,7 @@ S (leading 1) }` centring the row at 4) goes. Lane owed, after B19's A/B.
 *`VStack`, `HStack`, `ZStack` reporting their children's guides
 (`StackGuidePropagation.swift`, `_HStackCore`/`_ZStackCore.explicitGuide`)*
 
-Measured (GUIDE/probe2, `guide3.out`, `guide4.out`, `guide6.out`), an inner
+Measured (`Tools/SwiftUIProbes/Alignment guides/guide3.out`, `guide4.out`, `guide6.out`), an inner
 stack inside `VStack(alignment: .leading)` beside a 6-wide view C:
 
 | inner stack | C's x |
@@ -277,7 +277,7 @@ scroll views keep clipping (session notes `GUIDE2/notes.md` §5).
 `.background(alignment:content:)` — `horizontalGuidePlacement`,
 `verticalGuidePlacement`*
 
-Measured (GUIDE/probe2, `guide2.out`, `guide5.out`): SwiftUI places a single
+Measured (`Tools/SwiftUIProbes/Alignment guides/guide2.out`, `guide5.out`): SwiftUI places a single
 child so its guide meets the region's, wherever that puts it. In
 `.frame(width: 20, alignment: .leading)` a 6-wide view with leading guide 5 is
 at -5, with guide 25 at -25; with `.trailing` and guide 0 it is at 20, past the

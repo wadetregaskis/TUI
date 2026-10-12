@@ -3,8 +3,8 @@
 //
 //  A `Section` outside a `List`, a `Form` and a `Table` is its header's,
 //  content's and footer's views, laid out as the container's own children with
-//  no styling of their own — as SwiftUI's is (measured on macOS 15.8, probes in
-//  the session notes, `D1S/probe/b16`): a `VStack` spaces all of them apart,
+//  no styling of their own — as SwiftUI's is (measured on macOS 15.8, probe
+//  `Tools/SwiftUIProbes/Sections and subview counting/b16.swift`): a `VStack` spaces all of them apart,
 //  an `HStack` lays them along its row, a `Grid` gives each a row, a `Layout`
 //  sees each as a subview. Decisions B16.
 //

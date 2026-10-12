@@ -2,7 +2,8 @@
 //  AnyViewMembersTests.swift
 //
 //  An `AnyView` around several views hands its container each of them, as
-//  SwiftUI's does (measured on macOS 15.8, `D1S/probe/b15`: two rows of
+//  SwiftUI's does (measured on macOS 15.8,
+//  `Tools/SwiftUIProbes/Sections and subview counting/b15.swift`: two rows of
 //  `AnyView(Group { a; b })` are four subviews, and an `HStack` lays them along
 //  its row). It was one child everywhere. Decisions D1S, B-D1S-3.
 //

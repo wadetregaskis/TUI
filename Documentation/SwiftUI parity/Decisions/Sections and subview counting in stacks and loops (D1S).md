@@ -6,8 +6,9 @@ Where the work met a judgement call those decisions did not settle, the safe
 option shipped and is written up here, in that document's three parts: A needs
 a decision, B shipped the safe option (with the fuller version and its price),
 C declined with a parity-map reason. SwiftUI's behaviour was measured on macOS
-15.8 with offscreen `NSHostingView`s (probes in the session notes,
-`D1S/probe/`).*
+15.8 with offscreen `NSHostingView`s (probes in
+[`Tools/SwiftUIProbes/Sections and subview counting/`](<../../../Tools/SwiftUIProbes/Sections and subview counting/>); the
+`D1S/probe2/…` ones are in the maintainers' working notes).*
 
 ## B. Shipped the safe option
 

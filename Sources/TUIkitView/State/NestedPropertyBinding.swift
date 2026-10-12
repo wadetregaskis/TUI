@@ -21,7 +21,7 @@ import TUIkitCore
 /// view's other fields. One shared counter, which a property found inside a
 /// `nil` optional, an existential of another type or another enum case did
 /// not advance, moved every key after it, and two `@State`s of one type then
-/// swapped values (session notes `DYNP/optional/notes.md` §5.5,
+/// swapped values (`Tools/SwiftUIProbes/Dynamic property discovery/notes.md` §5.5,
 /// `DynamicPropertyStateKeyTests`).
 ///
 /// A container's type is part of its step because an existential field can
@@ -95,7 +95,7 @@ enum NestedScope {
 /// property or modifier — holds what its current case's payload holds.
 /// When the case changes, the new case's `@State` starts at its defaults,
 /// and so does the old case's when it comes back, as SwiftUI's does
-/// (measured on macOS 15, session notes `SKEY/probe/skey.out`: an enum
+/// (measured on macOS 15, `Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`: an enum
 /// view's and an enum property's cases, and two cases of one payload type).
 /// The walk keeps, beside the state, which case it last saw and the keys of
 /// the state it created while that case held (``EnumCaseRecord``). When

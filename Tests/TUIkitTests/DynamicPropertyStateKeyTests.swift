@@ -6,8 +6,8 @@
 //  presence depends on the view's VALUE — an optional, an existential, an
 //  enum's payload — then moves the keys of everything after it from one
 //  value to the next. These tests change only that value, at one identity,
-//  and ask whether each `@State` keeps its own value (session notes
-//  DYNP/optional/notes.md §5.5).
+//  and ask whether each `@State` keeps its own value
+//  (`Tools/SwiftUIProbes/Dynamic property discovery/notes.md` §5.5).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -370,7 +370,8 @@ struct DynamicPropertyStateKeyTests {
 
     /// Found writing the test above: a case holding two values. OpenSwiftUI's
     /// `DynamicPropertyCache` takes each case's payload as a tuple and keeps
-    /// its elements that conform (session notes DYNP/optional/notes.md §2).
+    /// its elements that conform
+    /// (`Tools/SwiftUIProbes/Dynamic property discovery/notes.md` §2).
     @Test("An app property beside another value in an enum view's payload keeps its @State")
     func enumPayloadOfTwoValues() {
         let context = makeRenderContext(width: 30, height: 1)
@@ -399,7 +400,8 @@ struct DynamicPropertyStateKeyTests {
     }
 
     /// SwiftUI 6.5.4 on macOS 15 resets the case it leaves: back in it, its
-    /// `@State` reads its default (session notes SKEY/probe/skey.out, E1).
+    /// `@State` reads its default
+    /// (`Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`, E1).
     @Test("An enum view's case that comes back starts its @State at its defaults again")
     func enumViewReturningCase() {
         let context = makeRenderContext(width: 30, height: 1)
@@ -413,7 +415,8 @@ struct DynamicPropertyStateKeyTests {
                 "the case left for another starts again at its default")
     }
 
-    /// Measured the same way on SwiftUI (SKEY/probe/skey.out, E1b).
+    /// Measured the same way on SwiftUI
+    /// (`Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`, E1b).
     @Test("An enum view's case starts at its own defaults when the case it replaced held the same property type")
     func enumViewCasesOfOneType() {
         let context = makeRenderContext(width: 30, height: 1)
@@ -426,7 +429,8 @@ struct DynamicPropertyStateKeyTests {
     }
 
     /// An enum property's cases reset as an enum view's do in SwiftUI, and
-    /// the view's own `@State` is untouched (SKEY/probe/skey.out, E2).
+    /// the view's own `@State` is untouched
+    /// (`Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`, E2).
     @Test("An enum app property's case change starts its @State afresh and leaves the view's own @State alone")
     func enumPropertyChangingCase() {
         let context = makeRenderContext(width: 30, height: 1)
@@ -555,7 +559,7 @@ struct DynamicPropertyStateKeyTests {
     /// the closest it comes to TUIkit looking through an optional
     /// (decisions-DYNP A-DYNP-1): measured on macOS 15, the property's
     /// `@State` reads what it held before the optional went `nil`
-    /// (SKEY/probe/skey-optconf.out, E4).
+    /// (`Tools/SwiftUIProbes/State keys in dynamic properties/skey-optconf.out`, E4).
     @Test("An optional app property that comes back finds the @State it left")
     func optionalPropertyReturning() {
         let context = makeRenderContext(width: 30, height: 1)
