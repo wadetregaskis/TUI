@@ -26,7 +26,7 @@ import TUIkitPresentation
 /// opaque spelling and claims an ``OpacityRegion`` over its own cells, so the
 /// alpha is resolved against **whatever is actually behind the swatch on the
 /// page**. There is no checkerboard and no assumed backdrop, because the
-/// composite knows the real one; see `Documentation/Opacity as composition.md` §27.
+/// composite knows the real one; see `Documentation/Colour and styling/Opacity as composition.md` §27.
 ///
 /// `supportsOpacity: false` withholds the channel *and* draws the swatch opaque —
 /// a picker that does not deal in opacity should not display one — but it never

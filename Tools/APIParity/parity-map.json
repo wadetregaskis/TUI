@@ -132,7 +132,7 @@
         "EnvironmentValues.searchSuggestionsPlacement",
         "View.searchSuggestions(_:for:)"
       ],
-      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUIkit has one place: the field's drop-down (Sources/TUIkitTextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/Parity-decisions-pending.md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
+      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUIkit has one place: the field's drop-down (Sources/TUIkitTextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/SwiftUI parity/Parity work blocked on a decision.md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
     },
     {
       "match": [
@@ -216,7 +216,7 @@
         "VisualEffect.blendMode*",
         "PrimitiveButtonStyle.glass*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, glass materials, blend modes, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Opacity as composition.md) rather than by blending pixels."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, glass materials, blend modes, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels."
     },
     {
       "match": [
@@ -302,7 +302,7 @@
         "View.pointerStyle*",
         "View.pointerVisibility*"
       ],
-      "why": "The mouse pointer's SHAPE. Some terminals let an app set it by name with OSC 22 (Ghostty from 1.0.0, kitty and foot with CSS names; iTerm2 from 3.5.0 and xterm with X11 names), others do not, and none reports which names it takes. Refused until the lane the owner decided on 2026-10-12 lands (refusal review O12, option (b): honoured on measured hosts with a run-time check, inert elsewhere; design in Ghostty-VT-adoption.md §C4). `pointerVisibility` stays refused unless a probe shows the name `none` hides the pointer."
+      "why": "The mouse pointer's SHAPE. Some terminals let an app set it by name with OSC 22 (Ghostty from 1.0.0, kitty and foot with CSS names; iTerm2 from 3.5.0 and xterm with X11 names), others do not, and none reports which names it takes. Refused until the lane the owner decided on 2026-10-12 lands (refusal review O12, option (b): honoured on measured hosts with a run-time check, inert elsewhere; design in Ghostty VT reference adoption study.md §C4). `pointerVisibility` stays refused unless a probe shows the name `none` hides the pointer."
     },
     {
       "match": [
@@ -329,7 +329,7 @@
         "TextFormattingCommands*",
         "ToolbarCommands*"
       ],
-      "why": "The menu-bar command system — CommandMenu, CommandGroup and their placements — plus `onCommand`'s responder-chain selectors. A terminal has no menu bar. SwiftUI-compatibility.md §2.6 records the substitute: TUIkit's chrome is a status bar of shortcut hints built from `StatusBarItem`, whose identity IS the shortcut it announces."
+      "why": "The menu-bar command system — CommandMenu, CommandGroup and their placements — plus `onCommand`'s responder-chain selectors. A terminal has no menu bar. SwiftUI compatibility guide.md §2.6 records the substitute: TUIkit's chrome is a status bar of shortcut hints built from `StatusBarItem`, whose identity IS the shortcut it announces."
     },
     {
       "match": [
@@ -364,7 +364,7 @@
         "Image.init(_:variableValue:bundle:*",
         "Image.init(decorative:variableValue:bundle:)"
       ],
-      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (Symbols)."
+      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md (Symbols)."
     },
     {
       "match": [
@@ -377,14 +377,14 @@
         "View.lineHeight(_:)",
         "EnvironmentValues.lineHeight"
       ],
-      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/SwiftUI-API-completion-refusal-review.md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows)."
+      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows)."
     },
     {
       "match": [
         "View.writingToolsAffordanceVisibility(_:)",
         "View.textInputFormattingControlVisibility(_:for:)"
       ],
-      "why": "Affordances the operating system draws over a text view: Apple Intelligence's Writing Tools button, and the rich-text formatting control bar. Nothing in a terminal app is OS-drawn, and neither service reaches a terminal. TextInputFormattingControlPlacement is declined for the same reason (Documentation/SwiftUI-API-completion-refusal-review.md)."
+      "why": "Affordances the operating system draws over a text view: Apple Intelligence's Writing Tools button, and the rich-text formatting control bar. Nothing in a terminal app is OS-drawn, and neither service reaches a terminal. TextInputFormattingControlPlacement is declined for the same reason (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md)."
     },
     {
       "match": [
@@ -392,7 +392,7 @@
         "View.typesettingLanguage(_:isEnabled:)",
         "Text.typesettingLanguage(_:isEnabled:)"
       ],
-      "why": "A run's typesetting language sets its line height, line breaking and spacing. Line height is the terminal's row and spacing is whole cells; TUIkit's word wrapper breaks at spaces and at characters a line cannot hold, whatever the language. So a language changes none of the three and could only be accepted and ignored. See Documentation/SwiftUI-API-completion-decisions.md C8."
+      "why": "A run's typesetting language sets its line height, line breaking and spacing. Line height is the terminal's row and spacing is whole cells; TUIkit's word wrapper breaks at spaces and at characters a line cannot hold, whatever the language. So a language changes none of the three and could only be accepted and ignored. See Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md C8."
     },
     {
       "match": [
@@ -464,7 +464,7 @@
         "FetchedResults*",
         "EnvironmentValues.managedObjectContext"
       ],
-      "why": "Core Data, which is absent on Linux and Windows. Offering it behind #if canImport(CoreData) would be a policy change (no Apple-only public API surface) rather than a medium limit; Documentation/SwiftUI-API-completion-refusal-review.md confirms the same decline for SectionedFetchRequest."
+      "why": "Core Data, which is absent on Linux and Windows. Offering it behind #if canImport(CoreData) would be a policy change (no Apple-only public API surface) rather than a medium limit; Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md confirms the same decline for SectionedFetchRequest."
     },
     {
       "match": [
@@ -490,7 +490,7 @@
         "Scene.keyboardShortcut(_:)",
         "Scene.keyboardShortcut(_:modifiers:localization:)"
       ],
-      "why": "macOS window and menu-bar chrome: window and menu-bar-extra styles, window placement, utility windows, which scenes launch or are restored, and the shortcut that opens a scene's window. The terminal emulator owns the one window a TUIkit app draws in. Further scenes are the multi-scene question, Documentation/SwiftUI-API-completion-refusal-review.md O9."
+      "why": "macOS window and menu-bar chrome: window and menu-bar-extra styles, window placement, utility windows, which scenes launch or are restored, and the shortcut that opens a scene's window. The terminal emulator owns the one window a TUIkit app draws in. Further scenes are the multi-scene question, Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md O9."
     },
     {
       "match": [
@@ -538,7 +538,7 @@
         "VisualEffect.blendMode*",
         "PrimitiveButtonStyle.glass*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, glass materials, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Opacity as composition.md) rather than by blending pixels."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, glass materials, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels."
     },
     {
       "match": [
@@ -546,7 +546,7 @@
         "Color.resolveHDR(in:)",
         "Color.exposureAdjust(_:)"
       ],
-      "why": "No terminal renders HDR: every colour escape a terminal takes is 8-bit sRGB (truecolour SGR, the 256 cube, the 16 slots; OSC 4/10/11 and Ghostty's widest `rgb:`/`rgbi:` specifications are SDR too, Ghostty-VT-adoption.md), and none reports a display headroom. `Color.ResolvedHDR` and `resolveHDR(in:)` would hand an app linear components and a headroom above 1 that nothing on screen could show, and `exposureAdjust(_:)` would brighten by stops a colour whose top is already the terminal's white — each pretending to a range the medium does not have, which the owner ruled out (decisions A16: \"only APIs that fail gracefully; none that pretend\"). `Color.headroom(_:)` IS implemented: an SDR display always meets the cap, so the colour comes back as it is. SwiftUI has no query of the shape \"is HDR supported\" for TUIkit to answer \"no\" through; `allowedDynamicRange` is a setting, declined with the per-pixel family."
+      "why": "No terminal renders HDR: every colour escape a terminal takes is 8-bit sRGB (truecolour SGR, the 256 cube, the 16 slots; OSC 4/10/11 and Ghostty's widest `rgb:`/`rgbi:` specifications are SDR too, Ghostty VT reference adoption study.md), and none reports a display headroom. `Color.ResolvedHDR` and `resolveHDR(in:)` would hand an app linear components and a headroom above 1 that nothing on screen could show, and `exposureAdjust(_:)` would brighten by stops a colour whose top is already the terminal's white — each pretending to a range the medium does not have, which the owner ruled out (decisions A16: \"only APIs that fail gracefully; none that pretend\"). `Color.headroom(_:)` IS implemented: an SDR display always meets the cap, so the colour comes back as it is. SwiftUI has no query of the shape \"is HDR supported\" for TUIkit to answer \"no\" through; `allowedDynamicRange` is a setting, declined with the per-pixel family."
     }
   ],
   "renamed": {
@@ -630,7 +630,7 @@
       "why": "A Scene that supplies an alternate interface for iOS's Assistive Access mode. A terminal app has no iOS lifecycle and no system mode to supply one for."
     },
     "BlendMode": {
-      "why": "There is no blend function for it to name. A composite copies each cell over what it covers; the one blend TUIkit performs, `opacity`, resolves at the composite against whatever is behind (Documentation/Opacity as composition.md). The modes multiply, screen and so on per pixel sample, which a cell does not have: see the per-pixel shading family."
+      "why": "There is no blend function for it to name. A composite copies each cell over what it covers; the one blend TUIkit performs, `opacity`, resolves at the composite against whatever is behind (Documentation/Colour and styling/Opacity as composition.md). The modes multiply, screen and so on per pixel sample, which a cell does not have: see the per-pixel shading family."
     },
     "ButtonBorderShape": {
       "why": "Capsule/circle/roundedRectangle radii are vector paths; a cell-grid button can only pick bracket glyphs (Sources/TUIkitFoundation/Views/Button.swift:55) or box corner glyphs (BorderStyle.rounded, Sources/TUIkitStyling/Styles/BorderStyle.swift:109). No radius exists to name."
@@ -705,10 +705,10 @@
       "why": "eoFill and isAntialiased only mean something to a path rasterizer resolving self-intersection and edge coverage; there is no path and no partial cell coverage (see Shape)."
     },
     "Font.Design.rounded": {
-      "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI-API-completion-refusal-review.md P1)."
+      "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md P1)."
     },
     "Font.Design.serif": {
-      "why": "A serif face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another; macOS's serif also widens text (31 → 34 pt, measured), which a cell cannot. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI-API-completion-refusal-review.md P1)."
+      "why": "A serif face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another; macOS's serif also widens text (31 → 34 pt, measured), which a cell cannot. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md P1)."
     },
     "Font.Leading": {
       "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUIkit spells `View.lineSpacing(_:)` (Sources/TUIkitFoundation/Environment/LineSpacing.swift) — a different unit and a different meaning, so it is not this API under another name."
@@ -747,7 +747,7 @@
       "why": "The type of Image's transferRepresentation; see that entry."
     },
     "Image.Scale": {
-      "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI-compatibility.md:452 records the same constraint for Font generally."
+      "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI parity/SwiftUI compatibility guide.md:452 records the same constraint for Font generally."
     },
     "Image.transferRepresentation": {
       "why": "Image's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUIkit's copyable/draggable payloads need no Transferable conformance, so there is no representation for an image to declare."
@@ -762,7 +762,7 @@
       "why": "A colour's spoken name comes from Apple's accessibility colour naming, which is private and has no counterpart in the open-source Foundation, and a screen reader reads a terminal only through what is on screen, so a name would have to be drawn. Declined (owner, 2026-10-05; decisions A33, removed when this entry landed): code that uses it does not compile, and the app says what it means in words. Interpolating the colour's description instead would read `Color(…)` aloud, the quiet wrong answer."
     },
     "MatchedGeometryProperties": {
-      "why": "An option set (.position/.size/.frame) selecting which parts of a frame `matchedGeometryEffect` interpolates. With no interpolation to configure — see the matchedGeometryEffect entry, and Documentation/SwiftUI-compatibility.md:452 — the type has nothing to select between."
+      "why": "An option set (.position/.size/.frame) selecting which parts of a frame `matchedGeometryEffect` interpolates. With no interpolation to configure — see the matchedGeometryEffect entry, and Documentation/SwiftUI parity/SwiftUI compatibility guide.md:452 — the type has nothing to select between."
     },
     "MatchedTransitionSourceConfiguration": {
       "why": "Configures a zoom transition's source: its corner shape and background. It waits with `matchedTransitionSource` on O4 of the refusal review (decisions A23)."
@@ -915,7 +915,7 @@
       "why": "It permits shrinking the FONT to fit, down to a fraction of the nominal size. A TUIkit app does not own the font: cell size belongs to the emulator, is chosen by the user, and is identical for every glyph on screen. Nothing in the framework can scale one view's text without scaling the whole terminal."
     },
     "View.preferredColorScheme(_:)": {
-      "why": "Kept out on purpose (owner, 2026-10-04: omit for now; decisions A17, removed when this entry landed). A terminal's look is a palette, and the write half of `\\.colorScheme` is `.palette(_:)` (SwiftUI-compatibility.md §2.5). Choosing a light or dark variant would need palettes in pairs, which TUIkit's are not; it becomes possible if light palettes are wanted for their own sake."
+      "why": "Kept out on purpose (owner, 2026-10-04: omit for now; decisions A17, removed when this entry landed). A terminal's look is a palette, and the write half of `\\.colorScheme` is `.palette(_:)` (SwiftUI compatibility guide.md §2.5). Choosing a light or dark variant would need palettes in pairs, which TUIkit's are not; it becomes possible if light palettes are wanted for their own sake."
     },
     "View.scrollInputBehavior(_:for:)": {
       "why": "Takes a ScrollInputKind, which has no value on macOS (see that entry), so no macOS source can call it."
@@ -990,7 +990,7 @@
     },
     "FocusedObject": {
       "how": "@FocusedValue(Model.self) with an @Observable model",
-      "why": "SwiftUI's @FocusedObject reads an ObservableObject, the Combine-based family TUIkit does not support (Documentation/SwiftUI-compatibility.md §2.3). The same reading of an @Observable model is `@FocusedValue(Model.self)` (Sources/TUIkitFoundation/Focus/FocusedValue.swift), which SwiftUI also offers and which tracks the properties the body reads, as the ObservableObject wrapper did through objectWillChange."
+      "why": "SwiftUI's @FocusedObject reads an ObservableObject, the Combine-based family TUIkit does not support (Documentation/SwiftUI parity/SwiftUI compatibility guide.md §2.3). The same reading of an @Observable model is `@FocusedValue(Model.self)` (Sources/TUIkitFoundation/Focus/FocusedValue.swift), which SwiftUI also offers and which tracks the properties the body reads, as the ObservableObject wrapper did through objectWillChange."
     },
     "ForEach.Body": {
       "how": "ForEach.body: Never",
@@ -1038,7 +1038,7 @@
     },
     "StateObject": {
       "how": "@State var m = M() with @Observable",
-      "why": "Documentation/SwiftUI-compatibility.md:179 states the mapping explicitly; `State` is a shared type (Sources/TUIkitView/State/State.swift) and binds at render time by the view's own identity."
+      "why": "Documentation/SwiftUI parity/SwiftUI compatibility guide.md:179 states the mapping explicitly; `State` is a shared type (Sources/TUIkitView/State/State.swift) and binds at render time by the view's own identity."
     },
     "Text.Body": {
       "how": "typealias Body = Never (inferred)",

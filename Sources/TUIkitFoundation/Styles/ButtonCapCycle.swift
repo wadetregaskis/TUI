@@ -9,7 +9,7 @@
 /// A focused button's caps are the only thing on it that moves while it sits
 /// still. Re-deriving this tick's colour and re-rendering the screen to place
 /// two cells — twenty times a second, forever — is what made an idle page cost
-/// a third of a core (see `Documentation/Performance-profile-2026-08.md`). So
+/// a third of a core (see `Documentation/Performance/Full performance profile of Stress and the Example (2026-08).md`). So
 /// the cycle is built once at render time and handed to the run loop as
 /// ``AnimatedCellRun``s, which advance those cells with no view involved.
 ///

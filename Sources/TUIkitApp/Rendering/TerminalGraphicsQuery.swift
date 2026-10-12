@@ -47,7 +47,7 @@ import WASILibc
 /// ## Why it is not asked of everybody
 ///
 /// This is an APC sequence, and **Apple Terminal does not parse APC** — it
-/// prints the payload (measured; `Documentation/Terminal-compatibility.md`).
+/// prints the payload (measured; `Documentation/Terminals/Terminal compatibility survey.md`).
 /// Two defences, because one is a table and tables go stale:
 ///
 /// 1. The exchange is skipped on a host identified as one that prints APC.
@@ -102,7 +102,7 @@ enum TerminalGraphicsQuery {
     /// DECSC saves the position and the SGR state, and every VT100 descendant
     /// reads it one way. Cosmetic here — no measured host leaves mode 69 on —
     /// but the spelling with one meaning is the one to use
-    /// (`Documentation/Ghostty-VT-adoption.md`, K6).
+    /// (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K6).
     static var request: String {
         "\u{1B}7"  // DECSC: save the cursor, in case the payload is printed
             + KittyGraphics.transmit(pixels: onePixel, width: 1, height: 1, id: probeID)

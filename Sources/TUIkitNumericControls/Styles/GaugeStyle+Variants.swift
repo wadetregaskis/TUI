@@ -22,7 +22,7 @@ extension GaugeStyle {
     /// A custom body is an ordinary view, so it is measured as one rather than
     /// rendered and counted — the two-pass layout asks for a size far more often
     /// than it asks for bytes, and measuring by rendering is half a frame
-    /// (`Documentation/What makes a page slow to open.md`).
+    /// (`Documentation/Performance/What makes a page slow to open.md`).
     @MainActor
     func makeSize(
         configuration: Configuration, proposal: ProposedSize, context: RenderContext

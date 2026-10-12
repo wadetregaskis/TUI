@@ -1347,7 +1347,7 @@ jobs:
   #
   # And 6.3.3 rather than 6.4.0, for now: 6.4.0 shipped with a matching SDK,
   # but 6.3.3 is the only version the port has been measured with (see
-  # Documentation/WebAssembly.md), and a binding lane moves to a pair somebody
+  # Documentation/WebAssembly port.md), and a binding lane moves to a pair somebody
   # has built. Moving is every 6.3.3 below plus swift.org's published
   # checksum for the 6.4.0 bundle.
   wasm:

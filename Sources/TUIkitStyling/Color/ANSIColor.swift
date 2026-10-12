@@ -73,7 +73,7 @@ public enum ANSIColor: UInt8, Sendable, CaseIterable {
     /// number is needed and nothing is measured: quantising RGB to sixteen colours,
     /// and reading a slot the terminal has not reported as a value, as a colour
     /// editor does. See "What an ANSI colour actually paints" in
-    /// `Documentation/Terminal-compatibility.md`.
+    /// `Documentation/Terminals/Terminal compatibility survey.md`.
     public var xtermRGB: (red: UInt8, green: UInt8, blue: UInt8) {
         switch self {
         case .black: return (0, 0, 0)

@@ -287,7 +287,7 @@ struct FrameDiffWriterTerminalGatingTests {
         #expect(!TerminalHost.detectAppleTerminal(environment: [:]))
 
         // `TUIKIT_TERM_PROGRAM` outranks it, in BOTH directions. This is the
-        // case the variable exists for (Terminal-compatibility.md): Terminal.app
+        // case the variable exists for (Terminal compatibility survey.md): Terminal.app
         // sets no forwarded signal and answers no XTVERSION, so across an ssh
         // hop the explicit override is the only thing that names it.
         #expect(
@@ -332,7 +332,7 @@ struct FrameDiffWriterTerminalGatingTests {
 struct CursorAdvanceModelTests {
     // All values below were measured by DSR cursor-position queries in the
     // real terminals (Terminal.app 455.1, iTerm2 3.6.11, macOS 15.7) — see
-    // Documentation/Terminal-compatibility.md.
+    // Documentation/Terminals/Terminal compatibility survey.md.
 
     @Test("Terminal.app: a flag PAIR conserves internally, and the walk trims its store")
     func appleFlagPairInternalAndStore() {

@@ -60,7 +60,7 @@ extension EnvironmentValues {
 /// - Over a reported page, a translucent root is RGB between its colour and that page.
 /// - Over a page the terminal has not reported, no blend can mix, so a root keeps its
 ///   colour at an alpha of ½ or more and is the terminal's page below (§75 of
-///   `Documentation/Opacity as composition.md`).
+///   `Documentation/Colour and styling/Opacity as composition.md`).
 /// - A root spelled `Color.default` is the terminal's page too.
 ///
 /// Before the terminal's page was a colour, spent meant the opaque spelling, so `.clear`

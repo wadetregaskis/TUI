@@ -162,7 +162,7 @@ public struct GradientPaint: Equatable, Sendable {
 /// ## Measured against SwiftUI, not guessed
 ///
 /// Every rule here — and the two deviations — came off pixels rendered by
-/// `ImageRenderer`; see `Documentation/Gradients where a colour is accepted.md`
+/// `ImageRenderer`; see `Documentation/Colour and styling/Gradients where a colour is accepted.md`
 /// §3. The ones nobody guesses right:
 ///
 /// - **`t` clamps at both ends.** Inside ``radial(center:startRadius:endRadius:)``'s

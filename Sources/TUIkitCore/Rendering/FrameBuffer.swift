@@ -180,7 +180,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// cannot see**. The fade is deferred to whatever finally draws the buffer
     /// onto something — a `ZStack`, an overlay, or the root — where the
     /// destination is known. See ``OpacityRegion`` and
-    /// `Documentation/Opacity as composition.md`.
+    /// `Documentation/Colour and styling/Opacity as composition.md`.
     public var opacityRegions: [OpacityRegion] = []
 
     /// Creates an empty buffer.

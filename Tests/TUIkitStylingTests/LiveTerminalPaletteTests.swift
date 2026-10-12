@@ -24,7 +24,7 @@ struct LiveTerminalPaletteTests {
     }
 
     /// Apple Terminal 455.1's "Basic" sixteen, as its OSC 4 replies reported them on
-    /// 2026-09-14 (Terminal-compatibility.md), in slot order.
+    /// 2026-09-14 (Terminal compatibility survey.md), in slot order.
     private static let appleBasic = [
         rgb(0, 0, 0), rgb(153, 0, 0), rgb(0, 166, 0), rgb(153, 153, 0),
         rgb(0, 0, 179), rgb(179, 0, 179), rgb(0, 166, 179), rgb(191, 191, 191),

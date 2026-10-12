@@ -7,7 +7,7 @@ a cursor row's breath is then reverse video: the whole row the text's colour,
 everything on it in the page's. Without colour at all, a cursor row is reversed
 on every frame and breathes by its weight, bold on the bright frames. The frames
 are checked byte for byte by the test suite; what a host PAINTS for them is what
-this card asks (Terminal-compatibility.md, "Reverse video (SGR 7)").
+this card asks (Terminal compatibility survey.md, "Reverse video (SGR 7)").
 
 The rows are the bytes TUIkit emits (captured 2026-09-30 from the framework:
 Red Sands on xterm's sixteen, and the default palette without colour), so this

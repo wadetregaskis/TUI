@@ -235,7 +235,7 @@ struct CellSpanDiffTests {
 
     @Test("A row carrying a wide character is written whole")
     func wideCharacterDeclines() {
-        // Every advance divergence in Terminal-compatibility.md is a 2-cell
+        // Every advance divergence in Terminal compatibility survey.md is a 2-cell
         // claim meeting a 1-cell advance, so a span — which trusts our column
         // count to place the cursor — must not be planned for such a row.
         let width = 30

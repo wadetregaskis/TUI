@@ -312,7 +312,7 @@ final class SignalManager {
 ///
 /// What is lost with the signals is worth naming: there is no resize
 /// notification (a host that can resize has to say so some other way — see
-/// `Documentation/WebAssembly.md`), no Ctrl-C interrupt (the key reaches the
+/// `Documentation/WebAssembly port.md`), no Ctrl-C interrupt (the key reaches the
 /// app through stdin like any other, and the app's own bindings handle it),
 /// and no suspend/resume, which has no meaning in a browser tab.
 @MainActor

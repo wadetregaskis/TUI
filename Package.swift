@@ -194,7 +194,7 @@ let package = Package(
         // the module that owns `View`: declared anywhere else, a `Color` in a
         // `@ViewBuilder` pack beside a generic view segfaults the debug
         // runtime while instantiating the pack's metadata. See §14 of
-        // `Documentation/Gradients where a colour is accepted.md` — it is a
+        // `Documentation/Colour and styling/Gradients where a colour is accepted.md` — it is a
         // toolchain bug, reproduced on Swift 6.2.4 and still present on the
         // 6.5-dev snapshot of 2026-08-30. PaletteEnvironment.swift and
         // ColorAnimation.swift moved down with it.

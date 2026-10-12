@@ -45,7 +45,7 @@ struct CustomizablePalette: Palette, Hashable {
     ///
     /// A debugging seam, off unless the variable is set, and it lives here because
     /// this is the one place the app's every colour passes through. What it is for
-    /// is stated at length in §68 of `Documentation/Opacity as composition.md`: a
+    /// is stated at length in §68 of `Documentation/Colour and styling/Opacity as composition.md`: a
     /// paint site that hands a translucent colour straight to the ANSI emitter is
     /// invisible to a unit test that never renders that page, and every audit of
     /// those sites had been a re-reading of the same list. Fading the whole app and
@@ -64,7 +64,7 @@ struct CustomizablePalette: Palette, Hashable {
     /// Separate because a translucent ground asks a different question — whether the
     /// framework survives a ground with nothing behind it — and because the Theme page's
     /// pickers can set exactly this, which crashed the app until §70.4 of
-    /// `Documentation/Opacity as composition.md`. Run the faded-palette sweep with it set
+    /// `Documentation/Colour and styling/Opacity as composition.md`. Run the faded-palette sweep with it set
     /// (the sweep passes its environment through) to prove that across every page.
     private static var debugGroundFade: Double? {
         debugAlpha("TUIKIT_EXAMPLE_GROUND_ALPHA")

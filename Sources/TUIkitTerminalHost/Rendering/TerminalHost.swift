@@ -108,7 +108,7 @@ package enum TerminalHost {
     /// 2. **`TERM_PROGRAM`** — the local answer, authoritative when present.
     /// 3. **`LC_TERMINAL`** — iTerm2's shell integration sets it, and ssh's
     ///    `LC_*` rule carries it across a hop (measured; see
-    ///    `Documentation/Terminal-compatibility.md`). Consulted after
+    ///    `Documentation/Terminals/Terminal compatibility survey.md`). Consulted after
     ///    `TERM_PROGRAM` so a local answer always beats a forwarded one.
     /// 4. **`TERM`** — the termtype, which ssh carries in its `pty-req`
     ///    (RFC 4254 §6.2) and which therefore survives every hop that kills
@@ -703,7 +703,7 @@ package enum TerminalHost {
     ///
     /// tmux learns a client's theme because it sets mode 2031 on it at attach
     /// and reads the `CSI ? 997` it then sends (measured, 3.7c — see
-    /// `Documentation/Terminal-compatibility.md`). A pane is told nothing; these
+    /// `Documentation/Terminals/Terminal compatibility survey.md`). A pane is told nothing; these
     /// hooks are how it can be.
     ///
     /// Registered SEPARATELY from ``tmuxClientChangeHooks``, and that is

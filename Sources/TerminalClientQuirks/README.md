@@ -8,7 +8,7 @@ swift run TerminalClientQuirks
 ```
 
 Terminals disagree about how far the cursor moves over a grapheme cluster.
-`Documentation/Terminal-compatibility.md` catalogues the disagreements and TUIkit
+`Documentation/Terminals/Terminal compatibility survey.md` catalogues the disagreements and TUIkit
 compensates for them automatically — but only for a terminal it can *name*, and
 only in the ways that terminal has been *measured* to need. This app is the view
 into both halves, and the tool for extending them.

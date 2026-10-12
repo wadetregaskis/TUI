@@ -12,7 +12,7 @@ import TUIkitCore
 ///
 /// Terminals disagree about how far the cursor moves over a grapheme cluster.
 /// The disagreements are measured and catalogued in
-/// `Documentation/Terminal-compatibility.md`, and TUIkit compensates for them
+/// `Documentation/Terminals/Terminal compatibility survey.md`, and TUIkit compensates for them
 /// automatically — this type is the public view of that machinery, for apps
 /// that want to show the user what was decided, or to compensate a string they
 /// are writing to the terminal themselves.
@@ -402,7 +402,7 @@ public struct TerminalClient: Sendable, Equatable {
     /// laid out as.
     ///
     /// The gap between the two is the whole subject of
-    /// `Documentation/Terminal-compatibility.md`: a glyph painted two cells
+    /// `Documentation/Terminals/Terminal compatibility survey.md`: a glyph painted two cells
     /// wide that advances the cursor one drags everything after it on the row a
     /// cell to the left.
     ///

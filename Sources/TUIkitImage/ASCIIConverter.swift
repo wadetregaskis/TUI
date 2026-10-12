@@ -157,7 +157,7 @@ public enum ASCIICharacterSet: Sendable, Equatable {
     /// >
     /// > Whether a mark or an isolate around each cell suppresses it is
     /// > measured by `Tools/TerminalProbes/rtl_image_card.py` and is an open
-    /// > question in `Documentation/Terminal-compatibility.md` — the obvious
+    /// > question in `Documentation/Terminals/Terminal compatibility survey.md` — the obvious
     /// > candidate, U+202D … U+202C, is already ruled out: Apple Terminal
     /// > paints those two as the missing-glyph box.
     case customRamp(String)

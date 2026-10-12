@@ -38,7 +38,7 @@ and it is why TUIkit now emits a space for a cell that has nothing to draw.
 which colours this host actually has.
 
 Run INSIDE the terminal under test and record what you saw in
-Documentation/Terminal-compatibility.md.
+Documentation/Terminals/Terminal compatibility survey.md.
 """
 
 CSI = "\x1b["

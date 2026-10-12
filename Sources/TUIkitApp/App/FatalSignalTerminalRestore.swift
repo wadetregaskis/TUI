@@ -78,7 +78,7 @@ import Musl
 /// `SIGINT` and `SIGTERM` are not here: the run loop's dispatch sources turn
 /// them into an orderly shutdown, which tears down on its way out (the PTY
 /// smoke kills with both). `SIGPIPE` is ignored, so it ends nothing. `SIGKILL`
-/// cannot be caught at all — see `Documentation/Terminal-compatibility.md`,
+/// cannot be caught at all — see `Documentation/Terminals/Terminal compatibility survey.md`,
 /// "The kitty keyboard protocol", for what that leaves and how to recover.
 ///
 /// ## Why a process-wide global

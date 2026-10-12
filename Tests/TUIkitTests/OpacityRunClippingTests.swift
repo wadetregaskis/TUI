@@ -19,7 +19,7 @@ import TUIkit
 /// that translation and clipping commute for a run and the screen drops the
 /// remainder. The opacity resolution was named in that rationale as reading such
 /// an offset as `max(0, …)`; it did not, and the blend indexes its source array by
-/// absolute column. See `Documentation/Opacity as composition.md` §70.
+/// absolute column. See `Documentation/Colour and styling/Opacity as composition.md` §70.
 @MainActor
 @Suite("Opacity resolution: runs outside the buffer")
 struct OpacityRunClippingTests {

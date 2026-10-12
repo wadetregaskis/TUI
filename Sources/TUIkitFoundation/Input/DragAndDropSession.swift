@@ -55,7 +55,7 @@ public struct DropInfo: Sendable, Equatable {
 
     /// Where the drop is, in the destination's own cells — SwiftUI's
     /// `location`, a ``CellPoint`` where SwiftUI's is a `CGPoint` (§2.2 of
-    /// `Documentation/SwiftUI-compatibility.md`). The same cell as ``x`` and
+    /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). The same cell as ``x`` and
     /// ``y``.
     public var location: CellPoint { CellPoint(x: x, y: y) }
 

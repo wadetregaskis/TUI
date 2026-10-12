@@ -102,7 +102,7 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
         // stops at `focusPulseMax` so the content stays readable). Spelled out here,
         // the two ends also disagreed about a translucent accent — the dim end spent
         // its alpha and the bright end was written from `palette.accent` again. See
-        // `Documentation/Opacity as composition.md` §21. And where the accent or the
+        // `Documentation/Colour and styling/Opacity as composition.md` §21. And where the accent or the
         // page has no RGB there is nothing between them to breathe (§75), so the bar
         // reverses the palette's own pair rather than hold a colour nobody can check
         // the label against (§88) — the same answer `RowBackground` gives a cursor row.

@@ -48,7 +48,7 @@ font and its size next to the host and version — a reading with no font named
 is not reproducible. (The 2026-09-04 reading recorded host, version and date
 and NOT the font, which is the one gap in it.)
 
-Put the reading in `Documentation/Terminal-compatibility.md`, and add one row
+Put the reading in `Documentation/Terminals/Terminal compatibility survey.md`, and add one row
 per right-overhanging codepoint to THIS HOST's set in
 `Sources/TUIkitCore/Extensions/ChromeOverhang.swift`, which widens the claim to
 two cells on that host and lets the existing ECH+CUF walk keep the grid where
@@ -64,7 +64,7 @@ fix but a second defect. If one of those overhangs, the answer is a different
 glyph. See the file's own notes.
 
 Run INSIDE the terminal under test and record what you saw in
-Documentation/Terminal-compatibility.md.
+Documentation/Terminals/Terminal compatibility survey.md.
 """
 import os
 import sys
@@ -166,7 +166,7 @@ def main():
     print()
     print("      <id>  <U+XXXX>  left | right | none")
     print()
-    print("  Into Documentation/Terminal-compatibility.md, and one entry per")
+    print("  Into Documentation/Terminals/Terminal compatibility survey.md, and one entry per")
     print("  right-overhanging codepoint into THIS HOST's set in")
     print("  Sources/TUIkitCore/Extensions/ChromeOverhang.swift — never from a")
     print("  report, only from this card. A host with no set claims one cell")

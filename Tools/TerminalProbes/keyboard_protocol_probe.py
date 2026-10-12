@@ -20,7 +20,7 @@ screen, and a terminal could get one of them wrong.
 Run INSIDE the terminal under test. Writes JSON to $PROBE_OUT (default
 ./keyboard_protocol_probe.json) and prints a one-screen summary. Safe on Apple
 Terminal: `CSI ? u` has a `?` and no intermediate byte, the shape measured clean
-there (Documentation/Terminal-compatibility.md, "Asking the terminal — Device
+there (Documentation/Terminals/Terminal compatibility survey.md, "Asking the terminal — Device
 Attributes"); it is expected to answer only the fence.
 """
 import json, os, re, select, sys, termios, tty

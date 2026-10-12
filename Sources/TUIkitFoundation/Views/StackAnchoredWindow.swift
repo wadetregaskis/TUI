@@ -108,7 +108,7 @@ private final class AnchoredWindowFrame {
         // where it is in line coordinates, so the ordinal is kept as-is and an
         // insert above shifts the content down. Only the row-holding modes
         // re-bind the ordinal to its key below. See
-        // `Documentation/Scroll-anchoring.md` §1.1 / §2.
+        // `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 / §2.
         guard mode.holdsRowIdentity else { return }
         guard let anchorKey = state.anchorKey else { return }
         guard children.key(at: state.anchorOrdinal) != anchorKey else { return }

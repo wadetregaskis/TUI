@@ -36,7 +36,7 @@ extension TerminalClient {
     /// The chords `program` may send ⌃\\'s byte for in its legacy encoding.
     /// Under the kitty keyboard protocol the chords arrive apart everywhere.
     ///
-    /// The owner's `cat -v` readings of 2026-10-06 (Terminal-compatibility.md,
+    /// The owner's `cat -v` readings of 2026-10-06 (Terminal compatibility survey.md,
     /// "The three that share ⌃\\'s 0x1C"), on a US keyboard:
     ///
     /// - Apple Terminal 2.14: ⌃⇧\\ sends 0x1C; ⌃4 sends nothing at all.

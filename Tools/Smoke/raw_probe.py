@@ -21,7 +21,7 @@ This probe decodes nothing. It records the child's bytes verbatim and counts
 patterns in them, which is what the questions below actually need:
 
   * did this cluster reach the terminal with its cursor compensation?
-    (`Documentation/Terminal-compatibility.md` — a cluster whose painted width
+    (`Documentation/Terminals/Terminal compatibility survey.md` — a cluster whose painted width
     and cursor advance disagree needs ECH before and CUF after on Terminal.app,
     and an emission missing them shifts the rest of the row one cell.)
   * does an IDLE app write anything at all, and how much?

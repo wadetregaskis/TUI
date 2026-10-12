@@ -5,7 +5,7 @@ mode, and how long does it hold a display nobody lets go of?
 
 TUIkit sends `CSI ? 2026 h` before a frame that writes more than one row and
 `CSI ? 2026 l` after it, to every host, without asking (see
-`Terminal.beginSynchronizedUpdate()` and Documentation/Terminal-compatibility.md,
+`Terminal.beginSynchronizedUpdate()` and Documentation/Terminals/Terminal compatibility survey.md,
 "Synchronized output (mode 2026)"). This measures what that rests on.
 
 Run INSIDE the terminal under test; nothing here needs TUIkit built.
@@ -19,7 +19,7 @@ Writes JSON to $PROBE_OUT (default ./sync_probe.json) and prints a summary.
 1. **Leak.** The cursor column (DSR 6, `CSI 6 n`) before and after the pair,
    with nothing between them. A column that moved means the terminal printed
    part of a sequence it should have consumed: the method that found Apple
-   Terminal's `?`-plus-intermediate leak (Terminal-compatibility.md, "Asking
+   Terminal's `?`-plus-intermediate leak (Terminal compatibility survey.md, "Asking
    the terminal — Device Attributes"). Expected clean everywhere: the shape is
    a `?` and no intermediate.
 

@@ -1,0 +1,1390 @@
+# Deliberate deviations from SwiftUI
+
+TUIkit aims at rough source compatibility with SwiftUI: SwiftUI code should
+compile and mean the same thing, except where a grid of character cells cannot
+carry the meaning. The two rules behind that are at the top of
+[SwiftUI compatibility guide.md](<SwiftUI compatibility guide.md#two-rules-that-decide-every-case>).
+
+This page lists the places where code that compiles against both frameworks
+behaves differently **on purpose**. It is about the behaviour of SwiftUI
+features and APIs TUIkit has, not about what TUIkit adds or leaves out.
+
+## What belongs here
+
+An entry belongs here when all three hold:
+
+- the SwiftUI spelling compiles against TUIkit;
+- it does something observably different from what it does in SwiftUI. Each
+  entry says how SwiftUI's side is known: measured, Apple's documentation, the
+  SDK's declaration, or "not measured" where it is only believed;
+- the difference was chosen: by an owner's ruling, by a decision recorded in
+  the decisions files or on the declaration, or because a terminal leaves no
+  alternative.
+
+These do not belong here:
+
+- **APIs TUIkit declines.** They fail to compile, which is rule 2 working:
+  `Tools/APIParity/parity-map.json` (`notImplemented`) and
+  [§4b](<SwiftUI compatibility guide.md#4b-swiftui-has-it--tuikit-wont-bitmap-vs-text-cell>) of the compatibility guide. The `ObservableObject`
+  family is the best-known one ([§2.3](<SwiftUI compatibility guide.md#23-reactive-model-is-observable-only-no-observableobject-family>)).
+- **TUI-only additions** ([§4c](<SwiftUI compatibility guide.md#4c-tuikit-only-no-swiftui-equivalent>)) and **SwiftUI APIs not built
+  yet** ([§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>)).
+- **Behaviour that differs between terminals.** That is measured per host in
+  [Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>).
+- **Bugs.** A difference nobody chose is a defect. Give it a failing test and
+  fix it, or put it to the owner; if the ruling is to keep it, it comes here.
+  Differences that are known and slated to change, or still open, are listed
+  at the end, in [Slated to change](#slated-to-change).
+
+Each entry gives a **status**:
+
+| Status | Meaning |
+|---|---|
+| **Owner** | The owner ruled on it (dated). |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. Five of these (L12, E3, T8, T10, V7) are awaiting the owner's ruling, and each may yet become a fix. |
+| **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
+| **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
+| **Under review** | Kept for now; the owner has an open question on it. |
+
+## How to add an entry
+
+1. Put it in the area it belongs to, under the next free ID. IDs are never
+   reused, so a link to `L3` keeps meaning the same thing.
+2. Fill the four fields. **SwiftUI**: what it does, and how that is known
+   (measured, with the date and the probe; Apple's documentation; the SDK's
+   declaration; or "not measured"). **TUIkit**: what it does, naming the
+   declaration or the test that pins it. **Why**: the reason, in a sentence or
+   two, or "not recorded" where the decision gives none. **Decided**: where,
+   as a link, and the status.
+3. Land it in the same commit as the behaviour. A commit that removes a
+   deviation deletes its entry and says so in its message.
+4. Before "fixing" a difference from SwiftUI, look for it here. Closing a
+   deliberate deviation is a regression, not parity.
+
+Units are cells throughout: a *column* is a cell's width and a *row* its
+height. Where SwiftUI's numbers are compared with TUIkit's, a typical cell is
+taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
+
+## Areas
+
+- [Units and geometry](#units-and-geometry)
+- [Layout](#layout)
+- [State and data flow](#state-and-data-flow)
+- [Environment](#environment)
+- [Focus and input](#focus-and-input)
+- [Text](#text)
+- [Colour and drawing](#colour-and-drawing)
+- [Animation](#animation)
+- [Scrolling](#scrolling)
+- [Lists, tables and controls](#lists-tables-and-controls)
+- [Presentation and window chrome](#presentation-and-window-chrome)
+- [Lifecycle](#lifecycle)
+- [Slated to change](#slated-to-change)
+
+---
+
+## Units and geometry
+
+### U1. Measurements are whole cells, not points
+
+- **SwiftUI:** `.padding(20)`, `VStack(spacing: 8)`, `.frame(width: 120)` and
+  `.offset(x: 4)` are `CGFloat` points (the SDK's declarations).
+- **TUIkit:** the same spellings take `Int` cells. `.padding(20)` is twenty
+  columns at each side and twenty rows above and below, so an integer literal
+  ported from SwiftUI means about 8 times as much across and 16 times as much
+  down. A fractional `CGFloat` expression does not compile, and a fixed
+  maximum is spelled `.frame(maxWidth: .fixed(200))`.
+- **Why:** a terminal addresses whole cells. Half a column cannot be drawn, and
+  `CGFloat` would push a rounding decision onto every call site.
+- **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>); the owner names `.padding(20)` as a
+  deliberate choice (2026-10-11). **Owner.**
+
+### U2. Geometry values are cell types
+
+- **SwiftUI:** `CGPoint`, `CGSize`, `CGRect`, `CGVector` and `UnitPoint`, in
+  points (the SDK's declarations).
+- **TUIkit:** `CellPoint`, `CellSize` and `CellRect` of `Int` cells, and
+  `CellVector` (a rate, `Double` cells per second). Pointer locations,
+  `GeometryProxy.size` and `frame(in:)`, `Layout.placeSubviews(in:)`, anchors
+  and `DropInfo.location` all use them. `CellRect` has no `midX`/`midY`;
+  `LayoutSubview.place(in:anchor:proposal:)` resolves an anchor in one
+  flooring step. An alignment guide's value stays `Double`, so a guide behaves
+  as SwiftUI's does: it is floored only after one guide is subtracted from
+  another. An anchor kept in `@State` and read in another subtree resolves
+  through the global space, from where the anchored view was when the last
+  frame was drawn ([§1](<SwiftUI compatibility guide.md#1-match>), the Env / prefs row).
+- **Why:** U1's reason. Flooring a midpoint before subtracting a half-size
+  moves a centred view by a cell in 210 of 861 (extent, size) cases.
+- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrectunitpoint>), [B-D5G-5](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
+
+### U3. Default spacing and padding are one cell or none
+
+- **SwiftUI:** a stack's `spacing: nil` uses the views' preferred spacing,
+  `.padding()` a platform-specific default amount, `Grid` platform metrics
+  (Apple's documentation; the amounts were not measured).
+- **TUIkit:** `nil` is 0 rows between the views of a `VStack` and 1 column in
+  an `HStack`; a `Grid` is 1 column and 0 rows; a lazy grid's `nil` is no
+  blank rows or columns. `.padding()`, `scenePadding` and
+  `safeAreaPadding(nil)` are one cell on each edge.
+- **Why:** terminals are dense. A blank column reads as a word gap and a blank
+  row as a paragraph break; adjacent lines are already apart.
+- **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>) (its note on stacks),
+  [§1](<SwiftUI compatibility guide.md#1-match>) (the Grid and Lazy grids rows), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>).
+  **Recorded.** (A stack resolves `nil` once rather than per pair of views;
+  that is [slated to change](#slated-to-change).)
+
+### U4. Gesture distances are cells along either axis
+
+- **SwiftUI:** Euclidean points: a drag starts after 10, a long press fails
+  past 10, a tap fails past 40 (measured, macOS 15.8, by lane 17g's probes,
+  session notes `w17g/probe`, as the decisions file's note on lane 17g says).
+- **TUIkit:** whole cells along either axis. A drag and a long press allow one
+  cell by default, the smallest move a terminal reports; a tap allows five
+  columns or two rows. `DragGesture(minimumDistance: 10)` written for SwiftUI
+  asks for ten cells.
+- **Why:** a terminal reports the pointer by cell.
+- **Decided:** [B90](<Decisions/SwiftUI API completion decisions.md#b90-distances-are-cells-along-either-axis>). **Lane** (the fuller version converts points
+  through the reported cell size).
+
+---
+
+## Layout
+
+### L1. A fixed `.frame` aligns its content top-leading
+
+- **SwiftUI:** `frame(width:height:alignment:)` defaults to `.center` (the
+  SDK's declaration).
+- **TUIkit:** `.topLeading`
+  ([View+Layout.swift](../../Sources/TUIkitFoundation/Extensions/View+Layout.swift#L285-L298)).
+  The flexible `frame(minWidth:…maxHeight:alignment:)` keeps `.center`.
+- **Why:** in a terminal a fixed width nearly always makes a left-aligned
+  column: a label gutter, a slider channel, a table cell. Centring by default
+  would shift every such column.
+- **Decided:** [§2.7](<SwiftUI compatibility guide.md#27-fixed-frame-default-alignment-is-topleading-not-center>). **Recorded.**
+
+### L2. The stack layouts default to leading, top and top-leading
+
+- **SwiftUI:** `VStackLayout`, `HStackLayout` and `ZStackLayout` default to
+  `.center`, like the stack views (the SDK's declarations).
+- **TUIkit:** they default to `.leading`, `.top` and `.topLeading`. `VStack`,
+  `HStack` and `ZStack` keep `.center`. So `AnyLayout(isWide ? HStackLayout() :
+  VStackLayout())` is not a silent stand-in for the stack views where the call
+  site relied on their centring.
+- **Why:** L1's top-left reading, extended to the layout values.
+- **Decided:** [§2.10](<SwiftUI compatibility guide.md#210-vstacklayout--hstacklayout--zstacklayout-default-alignment-is-leading--top--topleading-not-center>). **Owner** (2026-09-20).
+
+### L3. Lazy stacks honour alignment guides
+
+- **SwiftUI:** `LazyVStack` and `LazyHStack` ignore an explicit
+  `.alignmentGuide`: each row sits at its alignment's default (measured,
+  macOS 15.8, 2026-10-11, inside and outside a `ScrollView`, in a `ForEach`,
+  with `Text` rows). The eager stacks honour it.
+- **TUIkit:** the lazy stacks honour it as the eager ones do, on the placed and
+  the windowed paths (`AlignmentGuideRun`; pinned by
+  `AlignmentGuideModifierTests` and `AlignmentGuideContainerParityTests`).
+- **Why:** SwiftUI's behaviour looks like a bug, and it is undocumented: its
+  lazy stacks also report no guide to their parent, not even a custom one
+  (measured). No SwiftUI code can rely on a guide doing nothing, and copying it
+  would make a guide silently inert in one kind of stack.
+- **Cost:** paid only where a lazy row's type carries a guide. Then the uniform
+  window (at any row count) and the anchored window (over 256 rows) step aside,
+  and the exact slot walk measures every row on every frame, which is what
+  keeps the alignment column still as rows scroll in. Not measured on a big
+  list.
+- **Decided:** [A-GUIDE-1](<Decisions/Alignment guides outside their view (GUIDE).md#a-guide-1-swiftuis-lazy-stacks-ignore-an-explicit-alignment-guide-tuikits-honour-it--decided-keep-honouring-it>). **Owner** (2026-10-12: keep).
+
+### L4. A stack reports a built-in guide from several views
+
+- **SwiftUI:** a stack passes a built-in guide (`.leading`, `.top`) up to its
+  parent only when it holds a single view; a custom `AlignmentID` passes up
+  from several (measured for the cases in A-GUIDE-2's table; the general rule
+  is inferred).
+- **TUIkit:** a stack passes up both kinds from any number of views, merged by
+  their mean (`combineExplicit`).
+- **Why:** one rule for every guide, with no special cases.
+- **Decided:** [A-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#a-guide-2-swiftui-does-not-report-a-built-in-guide-out-of-a-stack-of-several-views>). **Under review**: the owner
+  asked for uniform behaviour (2026-10-12), and SwiftUI's rule turned out to
+  depend on the guide's kind (edge and centre guides stay in a multi-view
+  container, custom guides and baselines leave it), so no rule is free of
+  exceptions. The owner is choosing between SwiftUI's rule by kind
+  (recommended) and a uniform one.
+
+### L5. A view does not draw outside the size it reports
+
+- **SwiftUI:** a frame does not clip
+  ([`clipped(antialiased:)`](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>) documents this). An overlay larger
+  than its base, an image larger than its frame, and a child an alignment guide
+  pushes past its frame all draw outside it, cut only by the window or a
+  clipping view. A stack whose guides need more room than it was offered
+  reports the larger size (measured, B-GUIDE-1, B-GUIDE-3).
+- **TUIkit:** a container reports at most what it was offered and draws into a
+  buffer of that size. An oversized overlay is cut to its base's box. An image
+  larger than its space is cut from its top-leading corner, where SwiftUI's
+  overflows centred. A single child whose guide would place it outside its
+  `.frame`, `.overlay` or `.background` is moved to the nearest place that
+  keeps it whole; a run of guided views larger than its region keeps its
+  leading edge.
+- **Why:** a terminal buffer has no outside. A view that reported one size and
+  drew another would leave every container above it guessing, and measuring
+  would stop agreeing with drawing.
+- **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Modifiers row, on `overlay`),
+  [B-D3M-2](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
+  [B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**, and **Under review** for the
+  guide placements (2026-10-12: the owner asked for SwiftUI's unclipped
+  placement to be explored). The exception is displaced drawing, L6.
+
+### L6. Displaced drawing floats over its neighbours
+
+- **SwiftUI:** `.offset` and `.position` draw the view at its new place in the
+  normal stacking order, with whatever is behind showing through where it
+  was (not measured).
+- **TUIkit:** displaced drawing is a floating layer composited at the screen
+  root, over the views before and after it, with nothing painted at its
+  natural place. During a spring transition's overshoot the view's hit
+  regions stay at its slot and its trailing blank cells are trimmed. While a
+  view is arriving in a transition, its slot clips it.
+- **Why:** a cell holds one glyph and has no transparency, so being over a
+  neighbour means erasing it. Clicks stay where the view will land rather
+  than where it is passing.
+- **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>),
+  [OffsetModifier.swift](../../Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift#L77-L83).
+  **Medium.**
+
+### L7. Lazy containers window what they draw; they do not defer creation
+
+- **SwiftUI:** a lazy stack creates a row as it nears the screen and releases
+  it a few updates after it leaves, estimates its own extent, and takes its
+  cross-axis size from its first subview (Apple's `LazyVStack` documentation
+  and WWDC26's "Dive into lazy stacks and scrolling").
+- **TUIkit:** a lazy stack draws only the rows in its window: on its own, the
+  rows that fit; as a `ScrollView`'s direct content, the visible viewport. A
+  row out of the window keeps its state (see F1). The cross-axis size hugs the
+  widest row placed. A lazy stack nested below other scroll content is not
+  windowed. `LazyVGrid` and `LazyHGrid` measure every subview. `List` is the
+  container built to scale.
+- **Why:** TUIkit rebuilds the tree each frame and keeps no view objects, so
+  for it creating a view is drawing it. The widest placed row is a steadier
+  width than the first row's.
+- **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>),
+  [LazyGrids.swift](../../Sources/TUIkitGrid/Views/LazyGrids.swift#L246-L249).
+  **Recorded.**
+
+### L8. A lazy stack lays its sections out whole
+
+- **SwiftUI:** a stack lays out a `Section`'s header, rows and footer as its
+  own children, and a modifier on the section applies to each part (the
+  grid's case measured, B70; the rest not measured).
+- **TUIkit:** a lazy stack keeps its own sections whole when it pins, and a
+  `ForEach`'s sections whole when it does not. A modifier on such a section
+  wraps it once: `.padding(.top, 10)` pads above its header only. A centred
+  view in one can land a cell from where the stack would centre it. A sectioned
+  `LazyVGrid` fills the width it is offered, where a grid of fixed columns
+  otherwise hugs them.
+- **Why:** pinning needs the section to know which lines are its header, and
+  windowing by section keeps a long stack's cost to what it draws.
+- **Decided:** [B-D1S-1](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-1-a-lazy-stack-keeps-its-own-sections-whole-all-of-them-pinned-a-loops-unpinned>), [B70](<Decisions/SwiftUI API completion decisions.md#b70-a-sectioned-lazyvgrid-is-a-stack-of-sections-each-around-a-grid-of-its-views>). **Lane.**
+
+### L9. Some shapes of content count as one child
+
+- **SwiftUI:** an `if` without `else` that is false is no child; an `AnyView`
+  around several views is several children; a view of the app's own whose
+  body is several views is taken apart even when it is modified or its body is
+  an `if`/`else`, and the modifier applies to each part (measured, D1S
+  probes).
+- **TUIkit:** an `if` without `else` that is a `ForEach` row's only view is one
+  child, empty while false; an `AnyView` that is a `ForEach` row is one child;
+  a modified view of the app's own, or one whose body is an `if`/`else`, an
+  `AnyView` or a modifier on several views, is one child. A stack neither draws
+  nor spaces an empty child, so only an app's own `Layout`, which counts
+  subviews, sees the first difference.
+- **Why:** counting these exactly means building every row on every walk,
+  which costs a lazy stack its window and a loop its row memo.
+- **Decided:** [B-D1S-3](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-3-an-anyview-that-is-a-loops-row-is-one-child>), [B-D1S-5](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-5-a-loop-whose-rows-vary-is-built-to-be-counted>),
+  [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>). **Lane.**
+
+### L10. `safeAreaInset` puts the bar beside the view; there is no safe area
+
+- **SwiftUI:** `safeAreaInset` lays the bar beside the view and also grows the
+  view's safe area, so a `ScrollView` runs under the bar, a background extends
+  beneath it, and `ignoresSafeArea()` reaches into it (measured, W05).
+- **TUIkit:** only the first half. A scroll view stops at the bar, and a
+  `List` or `TextEditor` under `safeAreaPadding` is padded whole rather than
+  having its rows inset. `ignoresSafeArea` and `GeometryProxy.safeAreaInsets`
+  do not compile.
+- **Why:** in a cell grid the difference shows only as colour under the bar's
+  blank cells, and a real safe area costs a field on the layout's hot path
+  and a parity risk at every container.
+- **Decided:** [B6](<Decisions/SwiftUI API completion decisions.md#b6-safeareainset-puts-the-bar-beside-the-view-there-is-no-safe-area>), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>). **Owner** (2026-10-12: not
+  convinced; do not build the safe area).
+
+### L11. An alignment guide stops at a border, a frame or an offset
+
+- **SwiftUI:** `.alignmentGuide` passes out through the modifiers written after
+  it, each translating it by where it put its content (measured, including
+  `.padding(0)`: [§1](<SwiftUI compatibility guide.md#1-match>), the Layout row).
+- **TUIkit:** `.padding` passes a guide on, translated by its inset
+  (`PaddingModifier`'s `_translatesAlignmentGuides`), but `.border()`, a
+  `.frame` or an `.offset` written after it stops it; so does a view of the
+  app's own whose `body` is one view (L3's lazy stacks honour a guide that
+  reaches them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off
+  the outermost view the same way.
+- **Why:** a guide is a closure evaluated against the dimensions the view laid
+  out at. A wrapper that passed it on untranslated would report a position from
+  the wrong coordinate space, and TUIkit's buffers carry no guide to translate.
+  A wrong position is worse than a documented stop.
+- **Decided:** [AlignmentGuide.swift](../../Sources/TUIkitFoundation/Views/AlignmentGuide.swift#L145-L158),
+  [§1](<SwiftUI compatibility guide.md#1-match>) (the Layout row calls it a gap),
+  [§3](<SwiftUI compatibility guide.md#3-open-divergence>). **Recorded.** The owner's A-GUIDE-2 ruling (uniform
+  behaviour, no special exceptions) bears on it; B19's exploration, in
+  [Slated to change](#slated-to-change), covers only views of the app's own.
+
+### L12. `layoutPriority` is read only by a custom `Layout`
+
+- **SwiftUI:** a stack offers space to higher-priority children first, so
+  `HStack { Text(long).layoutPriority(1); Text(other) }` truncates `other`
+  first (Apple's documentation; semantic audit items 26 and 35).
+- **TUIkit:** the built-in stacks ignore it and distribute by the flexibility
+  each child reports; a custom `Layout` reads it from its subviews.
+- **Why:** the declaration's: flexibility "answers the same question more
+  directly". The semantic audit disputes that (flexibility says who grows,
+  priority who shrinks first).
+- **Decided:** [LayoutValueKey.swift](../../Sources/TUIkitFoundation/Views/LayoutValueKey.swift#L114-L121).
+  **Recorded**, with no ruling; awaiting the owner. [§1](<SwiftUI compatibility guide.md#1-match>) (the
+  Custom layout row) still lists it as a match.
+
+---
+
+## State and data flow
+
+### S1. A dynamic property in an optional field is live
+
+- **SwiftUI:** for `var p: MyProperty? = MyProperty()`, `update()` is never
+  called, an `@Environment` inside reads its default, and nothing inside is
+  bound (measured, macOS 15, decisions-DYNP cases 2 and 2b, and lane SKEY's
+  probe). With a
+  retroactive `extension Optional: DynamicProperty`, SwiftUI binds it and
+  keeps its state across a `nil`.
+- **TUIkit:** looks through the optional. The `@State` inside is bound, the
+  `@Environment` resolved, `update()` run and what it changes written back,
+  and the state survives a `nil` gap, as SwiftUI does with the conformance. A
+  `weak` field is not updated, as in SwiftUI.
+- **Why:** TUIkit does not copy a SwiftUI limitation without a very good
+  reason, and this one looks incidental. It lets a property be present
+  conditionally without moving it into a child view. The cost is portability
+  the other way: code relying on it silently loses `update()` on SwiftUI.
+- **Decided:** [A-DYNP-1](<Decisions/DynamicProperty update write-back (DYNP).md#a-dynp-1-a-property-in-an-optional-field-tuikit-treats-it-as-present-swiftui-ignores-it>). **Owner** (2026-10-11 and
+  2026-10-12: keep unless a concrete correctness reason appears).
+
+### S2. Dynamic properties are found from the view's values, not its declared types
+
+- **SwiftUI:** finds a view type's dynamic properties once, from the declared
+  types of its fields, and installs each at its field's offset in every copy
+  of the view. Only fields declared as a `DynamicProperty` are looked into;
+  classes get no fields (OpenSwiftUI's reconstruction; consistent with what
+  was measured: a field declared as a plain class holding a property subclass
+  is never updated, and a dead `unowned` field that is not a property is never
+  read).
+- **TUIkit:** before each `body`, walks the view's stored values with `Mirror`
+  ([EnvironmentProperty.swift](../../Sources/TUIkitView/Environment/EnvironmentProperty.swift#L196-L281),
+  [State.swift](../../Sources/TUIkitView/State/State.swift#L645-L716)). So it reaches
+  properties held in optionals (S1), in existentials (S3), inside class
+  instances, and in stored modifiers. Only the write-back of `update()` works
+  from declared types (`RuntimeFields`).
+- **Why:** the walk predates the write-back and needs no knowledge of the
+  runtime's layouts. The optional and existential reach are wanted; the reach
+  into class instances and stored modifiers produces confirmed bugs, and a
+  plan built from declared types is proposed (session notes `DYNV/notes.md`).
+- **Decided:** **Under review** (2026-10-12: the owner asked for an answer per
+  bug, with real-world examples, before approving the change).
+
+### S3. A property in an existential field is bound, per concrete type
+
+- **SwiftUI:** never binds a property held in an `any DynamicProperty` or
+  `Any` field (measured 2026-10-10: session notes `DYNP/optional/notes.md`,
+  cases (vii-a) and (vii-a2)).
+- **TUIkit:** binds it, with its concrete type in its state key: a new type
+  starts at its defaults, and an earlier type that comes back while the view
+  stays finds the state it left.
+- **Why:** a property whose type changes at one view identity keeps the view's
+  own state, which no workaround on SwiftUI keeps whole.
+- **Decided:** [B-SKEY-1](<Decisions/State keys inside a DynamicProperty (SKEY).md#b-skey-1-an-existential-propertys-new-type-starts-afresh-and-an-earlier-type-that-comes-back-finds-what-it-left>). **Lane** (it exists while S2's
+  walk does).
+
+### S4. A binding to a collection's element outlives the element
+
+- **SwiftUI:** an element binding forwards to the collection's subscript (not
+  measured past the end).
+- **TUIkit:** a read past the end answers with the value that was there, and a
+  write past the end is dropped.
+- **Why:** an element binding outlives the frame that made it; a row removed
+  while a control still holds its binding must not trap.
+- **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the State row: "deliberately not a plain
+  forward"). **Recorded.**
+
+### S5. A focused value read ahead of its publisher arrives a frame late
+
+- **SwiftUI:** `@FocusedValue` readers are mostly `Commands` and toolbar
+  items, updated outside the view graph (not measured).
+- **TUIkit:** readers are views. One drawn before its publisher in the same
+  walk shows a changed value one frame (about 17 ms) late; the run loop asks
+  for that frame itself.
+- **Why:** removing the late frame takes a second walk of every page that uses
+  the API.
+- **Decided:** [B34](<Decisions/SwiftUI API completion decisions.md#b34-a-focused-value-reader-drawn-ahead-of-its-publisher-catches-up-a-frame-later>). **Lane.**
+
+---
+
+## Environment
+
+### E1. Two environment values are read-only constants
+
+- **SwiftUI:** `\.layoutDirection` and `\.sidebarRowSize` are settable.
+  Right-to-left mirrors every horizontal layout, and a sidebar row size
+  resizes sidebar rows (Apple's documentation).
+- **TUIkit:** always `.leftToRight` and `.medium`, and a write does not
+  compile. `flipsForRightToLeftLayoutDirection(_:)` returns the view.
+- **Why:** nothing would honour a write yet, and a write that is accepted and
+  ignored is what rule 2 forbids.
+- **Decided:** [B1](<Decisions/SwiftUI API completion decisions.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<Decisions/SwiftUI API completion decisions.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
+  owner still wants right-to-left, out of scope for now). `\.legibilityWeight`
+  was the third such value; it is [slated to change](#slated-to-change).
+
+### E2. Reduce motion holds TUIkit's own spatial animations still
+
+- **SwiftUI:** `\.accessibilityReduceMotion` reports the system's Reduce
+  Motion setting, and the app decides what to change (Apple's documentation;
+  not measured).
+- **TUIkit:** under it, an animated change of `.offset`, `.position`, padding
+  or a fixed `.frame`, a visual effect's offset, an `.animated` scroll
+  transition's offset and a drag preview's flight jump to their end. Fades,
+  colours, the focus breath, spinners and progress still animate. An app's own
+  `Animatable` values are left to the app, as in SwiftUI. The value comes from
+  the user's `TUIKIT_REDUCE_MOTION` or the app's TUI-only
+  `Scene.reduceMotion(_:)`, not from the system setting: the machine an app
+  runs on need not be the one its user sits at
+  ([ReduceMotion.swift](../../Sources/TUIkitApp/Environment/ReduceMotion.swift#L4-L7)).
+  Reading the system setting where the terminal is surely local is
+  [slated](#slated-to-change).
+- **Why:** the owner's reading: motion means movement in x and y, and the
+  framework's own movement should honour the setting.
+- **Decided:** [A-D3M-1](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
+  **Owner** (2026-10-05).
+
+### E3. `\.locale` is the app's language, without a region
+
+- **SwiftUI:** `\.locale` is the user's locale, region included (Apple's
+  documentation: "the current locale that views should use"; not measured).
+- **TUIkit:** each frame the app's language is published as a bare-code
+  locale, `en`, `de` or one of the other five TUIkit ships, so a British user's
+  dates format as `en` does. A language TUIkit does not ship falls back to
+  `en`. A subtree's own `.environment(\.locale, …)` still wins, and
+  `\.calendar` and `\.timeZone` keep the system's.
+- **Why:** the app's chosen language should drive its formatting, so a German
+  app groups `12.000` while its words are German.
+- **Decided:** [LocalizationService+Language.swift](../../Sources/TUIkitStrings/Localization/LocalizationService+Language.swift#L35-L43),
+  [ServiceEnvironment+Runtime.swift](../../Sources/TUIkitApp/Environment/ServiceEnvironment+Runtime.swift#L40-L43).
+  **Recorded**, with no ruling; awaiting the owner (semantic audit item 7: the
+  fallback for an unshipped language was nobody's choice).
+
+---
+
+## Focus and input
+
+### I1. ⌘ shortcuts bind to a stand-in modifier
+
+- **SwiftUI:** `.keyboardShortcut("s")` is ⌘S; `onCopyCommand` and its
+  siblings answer ⌘C, ⌘X and ⌘V (the SDK's declarations and Apple's
+  documentation).
+- **TUIkit:** no terminal reports ⌘ on a key in its legacy encodings, so the
+  default `.command` is remapped when the shortcut registers, to whatever the
+  TUI-only `.commandKey(_:)` names: Control by default, or Option, a bare key,
+  or nothing. Under the kitty keyboard protocol a ⌘ chord the terminal passes
+  on is dropped rather than delivered (it still updates the modifier state).
+- **Why:** delivered as the bare key, ⌘K would type a `k` into a field and
+  fire every bare-`k` binding.
+- **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>) (the `.keyboardShortcut` row),
+  [Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md#command-is-never-reported>),
+  [B-D1K-1](<Decisions/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-1-under-the-kitty-keyboard-protocol-a--chord-is-dropped-not-delivered>). **Medium.**
+
+### I2. Shift on a typed character is the character's case
+
+- **SwiftUI:** on macOS `KeyPress.modifiers` has Shift for `!` (not
+  measured).
+- **TUIkit:** a key that typed a character has Shift only when the character is
+  uppercase: `A` has it; `!`, `+` and `_` do not, on every terminal and under
+  the kitty protocol too. A shortcut's Shift is read from case. A key the
+  terminal composed arrives composed (Option-A as `å` without Option as Meta).
+- **Why:** the legacy encodings send only the character. One rule makes an
+  event the same on every terminal.
+- **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Key presses row),
+  [Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>). **Medium.**
+
+### I3. Unbound Ctrl-H, I, J, M and [ act as Backspace, Tab, Return and Escape
+
+- **SwiftUI:** on macOS these chords are mostly inert (the text system binds
+  ⌃H to delete backward; not measured).
+- **TUIkit:** under the kitty protocol, where they arrive as themselves, a
+  chord nothing binds goes round once more as its legacy key. A binding on it
+  still wins.
+- **Why:** on every legacy terminal they are those keys, and users' habits are
+  built on that.
+- **Decided:** [B-D1K-3](<Decisions/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-3-ctrl-h-i-j-m-and--fall-back-to-their-legacy-keys-when-nothing-binds-them>). **Lane.**
+
+### I4. `.focusable(false)` covers a subtree, and is additive
+
+- **SwiftUI:** `.focusable(false)` speaks for one view: on a `VStack` it leaves
+  the buttons inside focusable (Apple's documentation, per semantic audit
+  item 29; not measured).
+- **TUIkit:** it reaches every control in the subtree, and an inner
+  `.focusable(true)` does not reopen a subtree an ancestor closed. A click
+  still activates.
+- **Why:** a TUIkit modifier wraps a subtree. Additive is what stops a Tab
+  stop appearing with nothing drawn behind it.
+- **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>) (the Common modifiers row),
+  [FocusableModifier.swift](../../Sources/TUIkitFoundation/Modifiers/FocusableModifier.swift#L37-L43).
+  **Recorded.**
+
+### I5. The first control takes the focus by itself
+
+- **SwiftUI:** `prefersDefaultFocus(_:in:)` applies "when no other view has
+  focus" (Apple's documentation; its examples are tvOS's, and macOS was not
+  measurable offscreen).
+- **TUIkit:** a screen or a newly presented sheet focuses its first control by
+  itself. A preferred default takes over from that automatic choice only on
+  the frame the choice is made: at launch, or as a sheet appears. From the
+  next frame the automatic choice counts as held, so a focus scope that
+  appears later does not take the focus (pinned by `doesNotSteal`). A focus
+  the user, an `@FocusState` write or `.defaultFocus` placed is never taken.
+- **Why:** a keyboard interface needs somewhere to start.
+- **Decided:** [B35](<Decisions/SwiftUI API completion decisions.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>), [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>) (the `@FocusState` row
+  states the frame rule). **Owner** (2026-10-12: an explicit focus
+  overrides the default, which holds today; the automatic choice must not
+  count as held, which is [slated](#slated-to-change)).
+
+### I6. Undo steps are per input event, and the keys are Control chords
+
+- **SwiftUI:** on macOS a text view coalesces a typing run into one undo step,
+  undo is ⌘Z, and `NSUndoManager` raises on an unbalanced group (the raise
+  measured on macOS 15, B-D1K-5 and B-D1K-6).
+- **TUIkit:** each input event's edits are one step. The keys are data: undo on
+  Ctrl-Z, Ctrl-minus and Ctrl-/; redo on Ctrl-Shift-Z, Ctrl-_ and Option-_,
+  replaced app-wide with `.undoShortcuts(_:)`. A `SecureField` registers
+  nothing. Where Foundation has no `UndoManager` (Linux), TUIkit's own does
+  nothing, or makes a step of its own, where `NSUndoManager` raises, and posts
+  no notifications.
+- **Why:** a terminal app that raised would die holding the terminal in raw
+  mode. Ctrl-Z is the key a terminal user reaches for.
+- **Decided:** [B-D1K-5](<Decisions/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-5-undomanager-on-linux-is-tuikits-own-without-notifications-or-selectors>), [B-D1K-6](<Decisions/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-6-a-text-controls-undo-steps-are-per-event-they-last-as-long-as-the-control-and-a-secure-field-has-none>),
+  [B-D1K-7](<Decisions/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-7-the-undo-and-redo-keys-are-data-ctrl-z-among-them-redos-reach-only-some-terminals-and-the-status-bar-is-the-route-everywhere>). **Owner** for Ctrl-Z (2026-10-04); **Lane** for the
+  rest.
+
+### I7. Clipboard commands and shortcut localization
+
+- **SwiftUI:** `onCopyCommand`, `onCutCommand` and `onPasteCommand` move item
+  providers of any type; `KeyboardShortcut.Localization.automatic` remaps a
+  shortcut for the keyboard layout and mirrors it right-to-left (Apple's
+  documentation, B8).
+- **TUIkit:** the commands exist on Apple platforms only (gated on
+  `UniformTypeIdentifiers`, so they fail to compile on Linux rather than do
+  nothing), and carry text: a copy writes every item that loads as a string,
+  one per line, and a paste offers the clipboard's text, triggering only for a
+  type that accepts text. A copy goes to the terminal's clipboard by OSC 52
+  where the terminal writes it, or to this machine's only when the user is
+  provably at this machine, and otherwise says in the status bar that nothing
+  was copied
+  ([ClipboardWriter.swift](../../Sources/TUIkitFoundation/App/ClipboardWriter.swift#L65-L76));
+  a paste is the terminal's bracketed paste, the app's own last copy or the
+  local helper, never an OSC 52 read. SwiftUI's own `copyable`, `cuttable`,
+  `pasteDestination` and `PasteButton` need no item providers and carry text
+  on Linux too, so no TUIkit-only spelling is needed. Windows needs Win32
+  arms of the system clipboard (CONTRIBUTING.md). Every `Localization` behaves
+  as `.custom`: AppKit's remap for the keyboard layout is compiled code that
+  cannot be copied, and needs to know what the user's layout can type, which a
+  terminal does not say; mirroring (five pairs, documented in `NSMenuItem.h`)
+  is [slated](#slated-to-change) to follow right-to-left.
+- **Why:** a terminal's clipboard holds one string, and a terminal reports the
+  character typed, not the key's place on the keyboard.
+- **Decided:** [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>); decisions B9, answered on 2026-10-12 (the
+  owner asked whether OSC 52 was in the path, and what portable versions would
+  take) and removed, since nothing was left to build. **Medium.**
+
+### I8. A control takes the press once the gestures ahead of it give up
+
+- **SwiftUI:** a plain-style button fails when its press is released off it, and
+  a drag attached to it then reports its end (measured, macOS 15.8, lane 17g's
+  probes).
+- **TUIkit:** a control is not a recognizer. It is given the press once every
+  gesture ranked ahead of it has given up, and then owns it: a drag attached to
+  a button never hears the press, and a control behind an undecided gesture
+  draws its pressed state late (a double-tap gesture on a `List` row holds the
+  row's selection back by the double-tap interval).
+- **Why:** TUIkit's controls act on the press at once; making each a
+  recognizer that can wait or fail is B89's fuller version.
+- **Decided:** [B89](<Decisions/SwiftUI API completion decisions.md#b89-a-control-takes-the-press-once-the-gestures-ahead-of-it-give-up-it-cannot-wait>). **Lane** (the fuller version turns about
+  fifteen controls into recognizers).
+
+### I9. Gesture timing
+
+- **SwiftUI:** a disabled view's gestures give up when it is disabled
+  (measured, macOS 15.8, F2 probes); a table row's double-click uses the
+  system's interval, 0.5 s.
+- **TUIkit:** a long press ends, and a multi-tap gives up, on the first frame at
+  or past its deadline. A tap's next click counts if released within 0.35 s of
+  the last release, as measured on SwiftUI; a list row's double-click counts
+  presses within 400 ms. A
+  drag's velocity is an average of report-to-report speeds. A disabled view's
+  gestures are given up at the next press, as a removed view's are.
+- **Why:** the run loop checks deadlines at each frame's start, and each click
+  interval follows its own macOS counterpart: a tap's the measured tap, a
+  row's `NSTableView`'s (B92, B93).
+- **Decided:** [B91](<Decisions/SwiftUI API completion decisions.md#b91-a-drags-velocity-is-an-average-of-the-report-to-report-speeds>), [B92](<Decisions/SwiftUI API completion decisions.md#b92-timed-recognizers-run-on-the-frame-clock>), [B93](<Decisions/SwiftUI API completion decisions.md#b93-two-double-click-windows-a-rows-and-a-taps>),
+  [B-F2-1](<Decisions/Stdin test flake, lost taps and the quit chord (F2).md#b-f2-1-a-press-drained-before-the-frame-that-fails-a-double-tap-restarts-it>), [B-F2-2](<Decisions/Stdin test flake, lost taps and the quit chord (F2).md#b-f2-2-a-disabled-views-gestures-are-given-up-at-the-next-press-as-a-removed-views-are>). **Lane.**
+
+### I10. Drag and drop stays inside the app
+
+- **SwiftUI:** payloads are `Transferable` and can leave the app; a drop
+  operation decides the pointer's badge and what the source is told;
+  spring-loaded controls highlight while a drag waits over them (Apple's
+  documentation, B10 and B82).
+- **TUIkit:** a payload needs no `Transferable` and never leaves the app. A
+  drop's action gets a `DropInfo` carrying the cell and the modifiers held at
+  release. `.copy`, `.move`, `.delete` and `.alias` all accept a drop; only
+  `.cancel` and `.forbidden` refuse it, and no badge names the operation (a
+  badge is [slated](#slated-to-change)). A drop session's `localSession` is
+  never `nil`. A spring-loaded control activates after a fixed half second
+  with nothing drawn.
+- **Why:** there is no system pasteboard to drag through, CoreTransferable is
+  Apple-only, and a terminal's mouse reports carry the modifiers through the
+  whole drag.
+- **Decided:** [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>), [B82](<Decisions/SwiftUI API completion decisions.md#b82-spring-loading-a-paused-drag-activates-a-control-undrawn>), [B83](<Decisions/SwiftUI API completion decisions.md#b83-the-drag-and-drop-session-values-ship-nothing-hands-them-out-yet>),
+  [DragAndDropSession.swift](../../Sources/TUIkitFoundation/Input/DragAndDropSession.swift#L16-L23).
+  **Medium.**
+
+---
+
+## Text
+
+### T1. Font styles are intensity, not size
+
+- **SwiftUI:** `.font(.title)` draws larger type, `Font.system(size:)` names a
+  size, and a `Font.Design` (`.serif`, `.monospaced`) picks a face (Apple's
+  documentation).
+- **TUIkit:** the eleven text styles map to three intensity tiers: bold
+  (`largeTitle` to `headline`), normal (`subheadline`, `body`, `callout`) and
+  faint (`footnote`, `caption`, `caption2`). A point size does not compile. A
+  design is accepted and ignored: every cell is in the terminal's one face
+  ([Font.swift](../../Sources/TUIkitFoundation/Styling/Font.swift#L164-L176)).
+- **Why:** a terminal has one font size, but "this is a heading" survives as
+  intensity, and semantic styles are everywhere in SwiftUI code.
+- **Decided:** [Two rules](<SwiftUI compatibility guide.md#two-rules-that-decide-every-case>) (rule
+  2's worked example). **Owner** (2026-08-15, the three-tier mapping).
+
+### T2. A localized key goes on looking past a named table
+
+- **SwiftUI:** `Text("greeting", tableName: "Onboarding")` shows `greeting`
+  when that table lacks the key (A14; not measured).
+- **TUIkit:** it goes on to the registered strings, `Localizable`, and then
+  TUIkit's own strings. TUIkit's own words fall back to the app's
+  `Localizable` only in a language TUIkit has no translation for. The user's
+  languages are read up to and including the first one TUIkit ships, then
+  English.
+- **Why:** an app gets some strings rather than keys, and can borrow TUIkit's.
+- **Decided:** [A14](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#a14s-lookup-order--decided-2026-10-05>), [B-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#b-fu2-1-a-language-tuikit-does-not-ship-is-read-only-as-far-as-the-first-it-does>). **Owner**
+  (2026-10-05).
+
+### T3. Markdown in a `Text` key is TUIkit's own parse
+
+- **SwiftUI:** Foundation's parser (B86 measured its quirks).
+- **TUIkit:** `InlineMarkdown`, which agrees with Foundation on a 138-case table
+  and 550,000 random strings but for two things: named character references
+  beyond about 140 common ones are drawn as written, and link reference
+  definitions are not consumed. Two more differences are in the drawing:
+  `^[…](inflect: true)` is drawn without inflection, and a code span is plain
+  text, every cell being monospaced already.
+- **Why:** Foundation's Markdown parser is Darwin-only.
+- **Decided:** [B86](<Decisions/SwiftUI API completion decisions.md#b86-tuikits-markdown-parse-is-its-own-with-two-known-differences>). **Medium.**
+
+### T4. Links are underlined, and a link inside a `Text` is not a control
+
+- **SwiftUI:** a `Link` and a link in a `Text` are accent-coloured, not
+  underlined; a link in a `Text` is clickable and opens through the
+  environment's `OpenURLAction` (the colours measured on macOS 15.8, B85; the
+  click from Apple's documentation).
+- **TUIkit:** both are underlined (`.linkUnderline(false)` removes it). A link
+  in a `Text` carries an OSC 8 hyperlink for the terminal to open, and takes
+  no focus and no click; on a terminal without OSC 8 (Apple Terminal) its
+  destination cannot be reached from the text.
+- **Why:** a terminal has no pointer affordance for a link, so the underline
+  is what marks one.
+- **Decided:** [Link.swift](../../Sources/TUIkitFoundation/Views/Link.swift#L41-L44)
+  (**Recorded**), [B85](<Decisions/SwiftUI API completion decisions.md#b85-a-link-in-a-text-is-drawn-and-hyperlinked-but-is-not-a-control>) (**Lane**).
+
+### T5. A live text taken as a string is read once
+
+- **SwiftUI:** a `Text(_:style:)` or live interpolation stays live wherever it
+  is used, titles included (inferred: its titles are `Text` throughout; not
+  measured).
+- **TUIkit:** where an API takes a `Text` only for its string
+  (`navigationTitle(Text)`, `help(Text)`), and where a control resolves its
+  title key to a string, a live text is read once, when built.
+- **Why:** those APIs keep only a string. Keeping the `Text` means
+  re-measuring the bar a changing title sits in (B51's fuller version).
+- **Decided:** [B51](<Decisions/SwiftUI API completion decisions.md#b51-a-live-text-read-for-its-string-is-read-once-when-it-is-built>). **Lane.**
+
+### T6. Text selection selects what is drawn
+
+- **SwiftUI:** `textSelection` defaults to `.disabled` (Apple's
+  documentation), and a selection stays inside one `Text`, in a `Table` inside
+  one cell (measured, macOS 15, B-D4X-7).
+- **TUIkit:** with no modifier, a drag on the page's background, plain text or
+  a scroll view's content selects; list and table rows keep their own meaning
+  unless `.enabled`. A selection may cross from one `Text` into the next, and
+  a `Table` row's crosses its columns. What is selected is the page, not the
+  menus and popovers over it.
+- **Why:** an app that reports the mouse takes the terminal's own selection
+  away, and that selection reached any text.
+- **Decided:** decisions A13 (**Owner**, shipped 2026-10-05 and removed from
+  the decisions doc; its deferred parts are in
+  [Future options](<../Future options.md#handing-the-mouse-to-the-terminal-a132>)),
+  [B-D4X-6](<Decisions/Clipboard, screen selection and the wrapping editor (D4X).md#b-d4x-6-the-screen-selection-is-on-wherever-a-drag-does-nothing-else>), [B-D4X-7](<Decisions/Clipboard, screen selection and the wrapping editor (D4X).md#b-d4x-7-row-text-under-enabled-is-kept-to-the-row-not-to-the-cell>),
+  [B-D4X-8](<Decisions/Clipboard, screen selection and the wrapping editor (D4X).md#b-d4x-8-what-is-selected-is-the-page-not-the-layers-over-it>) (**Lane**).
+
+### T7. Text entry keys
+
+- **SwiftUI:** a vertical `TextField` takes a newline from Option-Return
+  (measured) and Ctrl-Return (U+2028); `TextEditor`'s find bar opens with ⌘F
+  and highlights every match; a field can hold several selection ranges.
+- **TUIkit:** a newline comes from Option-Return where the terminal sends
+  Option as Meta, and from Ctrl-O everywhere; Ctrl-Return and Shift-Return
+  submit. A vertical field wraps one cell short of its edge, keeping that cell
+  for the caret. The find bar opens with Ctrl-G and marks only the current
+  match. A field selects one range: an app's multiple selection selects its
+  first.
+- **Why:** what the terminal delivers. ⌘F is the terminal's, and Ctrl-F is the
+  editor's "forward a character".
+- **Decided:** [B62](<Decisions/SwiftUI API completion decisions.md#b62-a-vertical-textfield-is-a-text-field-that-wraps-not-an-editor-with-a-fields-chrome>), [B63](<Decisions/SwiftUI API completion decisions.md#b63-a-newline-from-the-keyboard-option-return-where-the-terminal-sends-it-ctrl-o-everywhere>), [B65](<Decisions/SwiftUI API completion decisions.md#b65-a-text-fields-selection-is-one-range>),
+  [B81](<Decisions/SwiftUI API completion decisions.md#b81-the-find-bar-ctrl-g-opens-it-the-current-match-is-the-selection-and-other-matches-are-not-highlighted>). **Medium**, with **Lane** choices of key.
+
+### T8. `textContentType` filters what can be typed
+
+- **SwiftUI:** `textContentType(_:)` is a hint for autofill (Apple's
+  documentation).
+- **TUIkit:** a terminal has no autofill, so the content type is an allowed
+  character set: typed and pasted characters outside it are dropped silently
+  (`.oneTimeCode` takes digits only, `.emailAddress` letters, digits and
+  `@._+-`).
+- **Why:** a terminal has no autofill, so the type was given a meaning a
+  terminal can carry.
+- **Decided:** [TextContentType.swift](../../Sources/TUIkitStyling/Styles/TextContentType.swift#L11-L17).
+  **Recorded**, with no ruling; awaiting the owner (the semantic audit's item
+  66 asked for the filter to move to a TUI-only modifier).
+
+### T9. A date field's order is fixed
+
+- **SwiftUI:** a `DatePicker`'s fields follow the locale's order, and the
+  `.graphical` style draws a clock for the time (not measured).
+- **TUIkit:** the inline field is `YYYY-MM-DD HH:MM` whatever the locale
+  (`\.locale` deliberately does not reorder it; the calendar and time zone do
+  apply), and `.graphical` draws an hour-and-minute field under the month.
+- **Why:** the typing model depends on the columns holding still under the
+  caret.
+- **Decided:** [DatePicker.swift](../../Sources/TUIkitPickers/Views/DatePicker.swift#L43-L55),
+  [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Recorded.**
+
+### T10. An interpolated key holds `%@` for every value
+
+- **SwiftUI:** the key of `Text("Moved \(n) rows to \(s)")` is
+  `Moved %lld rows to %@`: an integer is `%lld`, a `Double` `%lf`, and
+  `specifier: "%.2f"` keeps `%.2f` (measured 2026-10-12, macOS 15.8, session
+  notes `CRIT/DEVS/probe`). A String Catalog extracted from SwiftUI code is
+  keyed that way.
+- **TUIkit:** every interpolated value is `%@` in the key, the specifier form
+  included, so that key is `Moved %@ rows to %@`. A translation's own `%lld`
+  is substituted, but a catalog keyed by SwiftUI's specifiers is not found.
+- **Why:** one key per sentence whatever the values' types, formatted at once
+  in the current locale.
+- **Decided:** [LocalizedStringKey.swift](../../Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift#L500-L511),
+  [Localization](../../Sources/TUIkit/TUIkit.docc/Articles/Localization.md#L137-L141),
+  [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Recorded**, with no ruling; awaiting the owner.
+  Normalising the specifiers at lookup would close it.
+
+---
+
+## Colour and drawing
+
+### C1. A colour is a five-byte value
+
+- **SwiftUI:** a named colour from an asset catalogue keeps its light and dark
+  variants and chooses where it is drawn; extended-range components survive
+  (Apple's documentation; not measured).
+- **TUIkit:** a colour set's variant is chosen when the `Color` is made, by the
+  default palette's colour scheme; a colour's components are clamped to 8-bit
+  sRGB when it is made (a `Color.Resolved` keeps the extended range).
+- **Why:** `Color` is five bytes with no padding, carried by every `Text` and
+  every cell run; there is no room for a second colour or a reference.
+- **Decided:** [B-D6M-1](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#b-d6m-1-a-named-colours-light-and-dark-variants-are-chosen-when-it-is-made>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Color values
+  row). **Lane.**
+
+### C2. A gradient is one sample a cell, corrected for the cell's shape
+
+- **SwiftUI:** gradients and meshes are drawn per pixel; a `RadialGradient`'s
+  radii are points (the SDK's declarations; B95 compared SwiftUI's mesh
+  pictures with probes).
+- **TUIkit:** each cell takes the colour at its centre, so a smooth ramp is a
+  staircase on a glyph terminal (a terminal that takes pictures draws a
+  gradient behind blank cells as a picture). `RadialGradient`'s radii are
+  cells measured across, with the height derived through the cell's aspect so
+  a circle looks like one; `AngularGradient`'s angles are corrected the same
+  way. A mesh's patches are evaluated exactly where SwiftUI tessellates
+  (a level or two of difference).
+- **Why:** a cell shows one colour, and a cell is about twice as tall as it is
+  wide, so radii and angles are corrected for a circle to look like one.
+- **Decided:** [B95](<Decisions/SwiftUI API completion decisions.md#b95-a-mesh-is-one-sample-a-cell-on-a-glyph-terminal-and-a-picture-where-the-terminal-takes-one>),
+  [§3, "Closed: `foregroundStyle`…"](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>),
+  [AppearanceAndColors](../../Sources/TUIkit/TUIkit.docc/Articles/AppearanceAndColors.md#L237-L241).
+  **Medium.**
+
+### C3. `Text("a").foregroundStyle(.secondary)` is the palette's tier
+
+- **SwiftUI:** the hierarchical level, derived from any foreground style above
+  (Apple's documentation).
+- **TUIkit:** on a `Text` it binds `Color`'s `.secondary`, the palette's
+  secondary tier. On any other view `.secondary` is the level, as in SwiftUI.
+- **Why:** `Text.foregroundStyle` returning `Text` takes only a `Color`, so that
+  a gradient on one fragment of a concatenation fails to compile rather than
+  being lost.
+- **Decided:** [B22](<Decisions/SwiftUI API completion decisions.md#b22-the-content-levels-and-the-two--and-three-style-foregroundstyle>), [§3](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>). **Lane.**
+
+### C4. Images size by cells, and are read once
+
+- **SwiftUI:** an image that is not resizable is its natural size in points,
+  overflowing its frame centred; a tiled image repeats at its natural size and
+  cap insets are points; an `NSImage` drawn into after it is shown shows its
+  new pixels; `Image(systemName:)` always draws its symbol (Apple's
+  documentation; not measured).
+- **TUIkit:** the natural size applies where the terminal's cell size in points
+  is known (Apple Terminal, Warp, iTerm2, Ghostty on its own Mac); elsewhere
+  an image fits what it is offered. A larger image is cut from its top-leading
+  corner. Tiles and caps are at the scale the whole image fits at, caps in
+  pixels. An image made from a `CGImage` or `NSImage` is read once and keeps
+  its first pixels. `Image(systemName:)` draws nothing unless a font supplies
+  the symbol's glyph (on a Mac, a terminal using SF Mono with the SF Symbols
+  font installed).
+- **Why:** a cell grid has no points unless the terminal says how big a cell
+  is; noticing an in-place edit would mean hashing pixels every frame.
+- **Decided:** [§2.4](<SwiftUI compatibility guide.md#24-image-is-textascii-sf-symbols-render-as-glyphs-in-narrow-circumstances>), [B-D3M-2](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>),
+  [B-D3M-3](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-3-tiles-and-caps-keep-the-fitted-scale-and-caps-are-in-pixels>). **Medium**, with **Lane** choices.
+
+---
+
+## Animation
+
+### A1. A spring restarts at rest when it is retargeted
+
+- **SwiftUI:** a spring retargeted mid-flight hands its velocity to the next,
+  blending over `blendDuration`; `interpolatingSpring` adds overlapping
+  animations; `Transaction.tracksVelocity` carries velocity forward (Apple's
+  documentation).
+- **TUIkit:** an animation is a closed-form function of time from rest. A
+  retarget starts the new curve from where the picture is, without its speed;
+  `blendDuration` has nothing to blend; `tracksVelocity` is recorded and read
+  by nothing.
+- **Why:** a closed-form curve from rest needs no per-frame state, and there
+  is no velocity to hand on.
+- **Decided:** [B55](<Decisions/SwiftUI API completion decisions.md#b55-tracksvelocity-is-recorded-and-no-velocity-is-carried-iscontinuous-is-set-by-tuikits-own-continuous-controls>), [B58](<Decisions/SwiftUI API completion decisions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not-a-spring-animation-keeps-no-velocity-across-a-retarget>). **Lane.**
+
+### A2. Animation arithmetic follows the documentation where SwiftUI's answers do not
+
+- **SwiftUI (measured):** `UnitCurve.linear` and the circular curves do not
+  clamp out-of-range input; `circularEaseInOut.inverse` is the curve itself; a
+  bounce at or below −1 is NaN; an overdamped spring's `velocity` is one more
+  than the derivative of its `value`; a keyframe spring is evaluated backwards
+  before its start; a zero-length keyframe is NaN.
+- **TUIkit:** clamps, as `value(at:)` documents; answers the true inverse;
+  stops a bounce at −0.999; answers the derivative; holds the start value
+  before the start; arrives at once. Three other spring quirks are kept,
+  because ported arithmetic reads them.
+- **Why:** where SwiftUI's answer contradicts its own documentation, or is
+  NaN, the documented answer is the one code can rely on.
+- **Decided:** [B57](<Decisions/SwiftUI API completion decisions.md#b57-unitcurve-is-swiftuis-arithmetic-except-where-its-answers-contradict-its-documentation>), [B58](<Decisions/SwiftUI API completion decisions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not-a-spring-animation-keeps-no-velocity-across-a-retarget>), [B60](<Decisions/SwiftUI API completion decisions.md#b60-keyframe-timelines-follow-swiftuis-curves-measured-the-animator-views-stay-with-o2>).
+  **Lane.**
+
+### A3. Transitions move in whole cells, and a custom one is drawn by scrubbing
+
+- **SwiftUI:** a transition interpolates its modifiers; `.scale` shrinks the
+  view; a removed view's content stays live; a transition may change the
+  view's size and re-lay its siblings (Apple's documentation, B52).
+- **TUIkit:** `.move`, `.offset` and `.slide` move in whole cells; `.scale`
+  uncovers the view from its anchor a cell at a time, and a scale above 1 draws
+  the view whole. A custom `Transition`'s body is drawn by rendering it at its
+  end phase and at `.identity` and interpolating the values between; while a
+  view leaves, its content is the picture it last drew, and the view keeps its
+  `.identity` size throughout.
+- **Why:** a frame is rebuilt from the tree, and a removed view no longer
+  exists in it.
+- **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>).
+  **Medium.**
+
+### A4. A content transition dissolves everything the modifier wraps
+
+- **SwiftUI:** each leaf reads `\.contentTransition` and animates its own
+  content; `.numericText` rolls digits "in certain environments" (Apple's
+  documentation, B61).
+- **TUIkit:** the modifier dissolves its whole subtree's drawing (identical
+  cells dissolve into themselves); an inner `.contentTransition(.identity)`
+  does not exempt its part; `.numericText` and `.opacity` dissolve too; the
+  symbol-effect transitions are fades of the whole view.
+- **Why:** the dissolve works on the drawing the modifier wraps, through the
+  opacity compositor, so it needs nothing from the leaves.
+- **Decided:** [B61](<Decisions/SwiftUI API completion decisions.md#b61-a-content-transition-dissolves-everything-the-modifier-wraps>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Symbol effects row).
+  **Lane.**
+
+### A5. A text that changes under an animation snaps
+
+- **SwiftUI:** with no `.contentTransition`, a `Text` whose string changes
+  inside `withAnimation` cross-fades: the environment's default transition is
+  none of `.identity`, `.opacity` and `.interpolate` (measured, A40).
+- **TUIkit:** the change is drawn at once unless `.contentTransition(_:)` is
+  written above it (A4).
+- **Why:** a default dissolve makes every `Text` drawn under an animation
+  compare its lines with the last frame's and keep a drawing in state; that
+  cost in the hottest view has not been measured.
+- **Decided:** [A40](<Decisions/SwiftUI API completion decisions.md#a40-should-a-content-change-dissolve-by-default-under-an-animation>). **Under review**: the owner leaned towards
+  dissolving by default unless it costs when nothing animates (2026-10-04),
+  and on 2026-10-05 it was agreed to A/B it and dissolve by default if that
+  costs under about 1%. The A/B is owed.
+
+---
+
+## Scrolling
+
+### R1. Scrolling moves in whole lines and is never animated
+
+- **SwiftUI:** scrolls in points, with momentum; an animated `scrollTo`
+  animates; phases include `.tracking`, `.decelerating` and `.animating`, with
+  a velocity; a bounce springs back (the `scrollTo` phases measured, B27; the
+  rest Apple's documentation).
+- **TUIkit:** an offset is whole rows and columns; an animated `scrollTo`
+  jumps. A user scroll is `.interacting` until 250 ms pass with no step; the
+  other three phases never occur; the velocity is `nil`. An overscroll
+  allowance stays where it was pushed (bounce behaviour decides only when it
+  applies).
+- **Why:** a terminal reports no gesture phases and no momentum.
+- **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>).
+  **Medium**. The owner decided on 2026-10-12 to measure a velocity and add a
+  bounce under `.always`, both cheap; both are
+  [slated](#slated-to-change).
+
+### R2. A default scroll anchor quantises to three edges, and ignores x
+
+- **SwiftUI:** `.center` keeps the centre fixed; `x` places content on a
+  horizontal view (measured, macOS 15, B-D2S-1).
+- **TUIkit:** for where a view opens and what it holds, `y ≥ 0.75` is the
+  bottom, `y ≤ 0.25` the top, and anything between anchors nothing. `x` is
+  ignored for every role. SwiftUI's two-axis alignment arithmetic, which draws
+  an item past the view's bounds, is not copied.
+- **Why:** an offset is whole rows, so there is no centre to hold between two
+  of them, and the anchor modes are defined over rows.
+- **Decided:** [UnitPoint.swift](../../Sources/TUIkitFoundation/Views/UnitPoint.swift#L224-L233),
+  [B-D2S-1](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-1-the-alignment-role-places-content-on-the-vertical-axis-only>). **Recorded.**
+
+### R3. `ScrollPosition.viewID` answers sooner
+
+- **SwiftUI:** a `ScrollPosition`'s readings are the request until the user
+  scrolls: after `scrollTo(y: 100)`, `point`, `viewID` and `edge` are `nil` and
+  `isPositionedByUser` is `false`; after an animated `scrollTo(id: 10)`,
+  `viewID` is `10`. `viewID` names a row the user scrolled to only once the
+  user has scrolled (measured, macOS 15, Wave 10).
+- **TUIkit:** the request and the reported row are held separately, and the
+  request stays readable until the user scrolls, as SwiftUI's does. But
+  `viewID(type:)` also answers on the first frame and after a programmatic
+  scroll, with the row the view reports. A reading SwiftUI would give is never
+  different, only present sooner. Only code that takes "`viewID` is `nil`" to
+  mean "the user has not scrolled yet" behaves differently, and
+  `isPositionedByUser` is the test for that.
+- **Why:** reading the binding tells an app where the view ended up, however
+  it got there; the read-back predates the request model, and its tests pin
+  it.
+- **Decided:** decisions B23, folded here and removed on 2026-10-12.
+  **Owner** (2026-10-04: keep TUIkit's extras if they are source-compatible,
+  which they are; 2026-10-12: keep).
+
+### R4. `ScrollGeometry` leaves out the bars
+
+- **SwiftUI:** overlay scrollers, so the visible area is the frame (every
+  reading B26 lists was measured).
+- **TUIkit:** `containerSize` is the viewport less the bar (and less the
+  "N more" lines where they are reserved). A vertical view's
+  `contentSize.width` is the width it lays its content out at.
+- **Why:** a terminal's bar takes cells from the viewport, so what is visible
+  is what is left. That keeps the reading apps rely on exact:
+  `visibleRect.maxY` reaches `contentSize.height + contentInsets.bottom` at
+  the bottom, and no further. The whole frame would make `visibleRect` a cell
+  wider than what can be seen. For full-width rows, the common case, the
+  content's own width and the layout width are the same number; measuring the
+  content across every frame an observer is attached is cheap to add if a use
+  turns up.
+- **Decided:** decisions B26, folded here and removed on 2026-10-12.
+  **Owner** (2026-10-12: keep).
+
+### R5. A scroll indicator is part of the viewport, and always drawn
+
+- **SwiftUI:** overlay scrollers, hidden until something scrolls, hence
+  `scrollIndicatorsFlash` (Apple's documentation). SwiftUI's documentation
+  says `.scrollContent` margins inset the content "without affecting the
+  insets of its scroll indicators", and `.automatic` inset both. Measured on
+  macOS 15.8 (2026-10-12, legacy scrollers as the terminal's analogue,
+  session notes `DECB/probe/margins`): `.scrollIndicators` margins place the
+  scroller exactly as TUIkit places its bar, shortened by the top and bottom
+  margins and moved in by the trailing one, with the columns it moves in by
+  taken from the content; `.automatic` agrees by outcome; and `.scrollContent`
+  gives exactly `.automatic`'s state, scroller moved too, which contradicts
+  the documentation.
+- **TUIkit:** the bar is a column or row of the viewport, drawn on every frame
+  the content overflows. A vertical bar is shortened by the top and bottom
+  margins and moved in by the trailing one, under `.automatic` and
+  `.scrollIndicators` margins; `.scrollContent` margins leave it at the edge.
+  `scrollIndicatorsFlash` returns the view.
+- **Why:** a bar is a column of cells and cannot float over content.
+  TUIkit's `.scrollContent` follows SwiftUI's documentation, not macOS's
+  behaviour, which contradicts it: an app that wants the bar left at the edge
+  says `.scrollContent`, and one that wants it moved says `.scrollIndicators`.
+- **Decided:** decisions B24, folded here and removed on 2026-10-12 (the owner
+  asked what was recommended; keeping this rule was, with the measurement
+  above); [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-returns-the-view-the-indicators-are-already-showing>). **Medium**. The owner asked for a flash to be
+  built (2026-10-12), which is [slated](#slated-to-change).
+
+### R6. Rows are reported without `scrollTargetLayout()`
+
+- **SwiftUI:** a scroll view reports through `.scrollPosition(id:)` only the
+  views of a layout marked with `scrollTargetLayout()` (Apple's
+  documentation).
+- **TUIkit:** a windowed stack's rows are reported whether or not marked; the
+  mark matters only to `.viewAligned`, which aligns to the marked stack's
+  rows. A marked eager `VStack` or `HStack` reports nothing, which is
+  [slated](#slated-to-change). So SwiftUI code without the mark (forgotten, or
+  a binding used only to scroll) behaves differently: a user's scroll writes
+  the binding here, and can fire an `onChange` SwiftUI never fires.
+- **Why:** reading back where the view is predates the mark, and most SwiftUI
+  code that reads the binding marks a layout, because SwiftUI reports nothing
+  otherwise, so it reads the same here (estimate).
+- **Decided:** decisions B29, folded here and removed on 2026-10-12 (the owner
+  asked whether the difference is intentional: it is, and documented at
+  [ScrollTargetBehavior.swift](../../Sources/TUIkitFoundation/Views/ScrollTargetBehavior.swift#L357-L363)).
+  **Lane.**
+
+### R7. `List` and `Table` keep their own scrolling rules
+
+- **SwiftUI (measured, macOS 15):** a `List` never consults a custom scroll
+  target behaviour, and honours `scrollClipDisabled`.
+- **TUIkit:** `List` and `Table` honour the built-in behaviours only;
+  `.viewAligned` aligns rows at the top whatever its anchor; both keep clipping
+  under `scrollClipDisabled`.
+- **Why:** a list's offset is a row and a clip; a custom behaviour would need
+  every row's height above the viewport, the walk a list exists not to make.
+- **Decided:** [B-D2S-2](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-2-list-and-table-honour-the-built-in-behaviours-and-no-behaviour-of-the-apps-own>), [B-D2S-3](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-3-in-a-list-or-table-viewaligned-aligns-rows-at-the-top-whatever-its-anchor>),
+  [B-D2S-4](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-4-scrollclipdisabled-reaches-scrollview-list-and-table-keep-clipping>). **Lane.**
+
+### R8. An unclipped scroll view's overflow is hidden line by line
+
+- **SwiftUI:** under `scrollClipDisabled` a later view hides the overflow where
+  its glyphs are drawn (measured).
+- **TUIkit:** on each line of the later view, from its first painted cell to
+  its last; unstyled blank cells either side hide nothing, and a click on
+  overflow drawn there is the overflow's.
+- **Why:** a cell is drawn or not, so "where it draws" has to be said in
+  cells.
+- **Decided:** [B-D2S-5](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-5-a-later-view-hides-an-unclipped-scroll-views-overflow-from-its-first-painted-cell-to-its-last>). **Medium.**
+
+### R9. A pinned header is opaque, and focus keeps rows clear of it
+
+- **SwiftUI:** a pinned section header has no background; rows show through
+  where it draws nothing (measured).
+- **TUIkit:** the header's cells replace the rows' glyphs across the section's
+  width (a cell's background shows through). It sits below an "N more above"
+  line. Focus moving onto a row scrolls it clear of a pinned header; a
+  programmatic `scrollTo(_:anchor: .top)` puts the row under it, as SwiftUI
+  does.
+- **Why:** a cell holds one glyph, so a row's text showing beside a short
+  header reads as one garbled line.
+- **Decided:** [B66](<Decisions/SwiftUI API completion decisions.md#b66-a-pinned-header-covers-the-rows-under-it-swiftuis-lets-them-show-through>), [B67](<Decisions/SwiftUI API completion decisions.md#b67-under-the-n-more-above-line-a-pinned-header-sits-below-it>), [B69](<Decisions/SwiftUI API completion decisions.md#b69-focus-keeps-a-row-clear-of-a-pinned-header-a-seek-does-not>).
+  **Medium.**
+
+### R10. Scroll visibility and coordinate spaces
+
+- **SwiftUI:** a lazy row that scrolls away is destroyed and reports nothing
+  (measured, B-D5G-1); `.scrollView` inside a `List` row is the list's own
+  space (not measured).
+- **TUIkit:** a row windowed out of a lazy stack is still in the tree and is
+  reported hidden. `.scrollView` inside a `List` row is answered by the nearest
+  `ScrollView` around the list. A `ScrollViewReader` finds an `.id(_:)` only on
+  the stack's own children; a `ForEach` row is found by its element's id. A
+  scroll transition's default threshold is taken as `.visible`; SwiftUI's
+  could not be measured (B-D5G-8).
+- **Why:** the row is still there (F1), and an app that stops a player on
+  "hidden" must hear it. A list renders its rows into a window under its
+  chrome and tells them its own origin.
+- **Decided:** [B-D5G-1](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>), [B-D5G-9](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-9-a-lists-rows-are-not-placed-by-the-prediction-and-a-list-does-not-own-scrollview>),
+  [ScrollViewReader.swift](../../Sources/TUIkitFoundation/Views/ScrollViewReader.swift#L47-L52).
+  **Lane.**
+
+### R11. `ScrollPosition.scrollTo(id:anchor:)` honours its own anchor
+
+- **SwiftUI:** `ScrollPosition.scrollTo(id:anchor:)` ignored the call's anchor
+  in the probe: `.top` and `.center` both landed at the minimal position, and a
+  transaction's `scrollTargetAnchor` applied even over a `.bottom` call
+  (measured, macOS 15.8, 2026-10-12, session notes `DECB/probe/anchor`).
+  `ScrollViewProxy.scrollTo` honours the call's anchor first, then the
+  transaction's.
+- **TUIkit:** both honour the call's anchor first, then the transaction's.
+- **Why:** SwiftUI's `ScrollPosition` reading looks like a defect, and one
+  rule for both seeks is easier to rely on.
+- **Decided:** [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
+  2026-10-12. **Lane.**
+
+### R12. "No adjustment" suspends an eager stack's follow too
+
+- **SwiftUI:** `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled`
+  stops a lazy stack's bottom follow under `defaultScrollAnchor(.bottom)`, and
+  its hold of the top row when rows are inserted above; with an eager `VStack`
+  the follow happens anyway (measured, macOS 15.8, 2026-10-12, session notes
+  `DECB/probe/disabled`).
+- **TUIkit:** `.disabled` suspends a declared anchor's adjustments for that
+  change in a `ScrollView`, `List` or `Table`, whether the content is eager or
+  lazy.
+- **Why:** one rule for both kinds of stack; SwiftUI's split looks incidental.
+- **Decided:** [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
+  2026-10-12. **Lane.**
+
+---
+
+## Lists, tables and controls
+
+### V1. A plain click on the selected row clears a single selection
+
+- **SwiftUI:** on macOS a plain click selects and never deselects;
+  command-click clears (the `NSTableView` convention; Apple's prose does not
+  state it, semantic audit item 1).
+- **TUIkit:** with a `Binding<ID?>`, a click on the selected row clears it.
+  With a `Binding<Set<ID>>` the macOS rule holds in full, with Ctrl-click and
+  Option-click toggling a row in place of command-click (Ctrl-click opens the
+  row's menu where it has one).
+- **Why:** command-click does not reach many terminals, so the convention's way
+  back to "nothing selected" is unavailable.
+- **Decided:** [§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>), [B-D4T-2](<Decisions/Table and list actions, context menus and columns (D4T).md#b-d4t-2-ctrl-click-on-a-list-or-table-with-a-menu-opens-the-menu-not-a-toggle>). **Owner**
+  (2026-09-21).
+
+### V2. The keyboard cursor is apart from the selection
+
+- **SwiftUI:** on macOS the keyboard cursor is the selection (measured,
+  macOS 15.8, B-D4T-1).
+- **TUIkit:** the arrows move a cursor and Space or Return selects. So
+  `contextMenu(forSelectionType:menu:primaryAction:)`'s Return acts on the
+  selection when the cursor row is in it and on the cursor row alone when not;
+  type select moves the cursor; background prominence is raised for the cursor
+  row (when it is selected) where SwiftUI raises every selected row; a sidebar
+  tab view chooses a tab on Return, where a macOS sidebar selects as the cursor
+  moves.
+- **Why:** not recorded. Space toggling at the cursor is how the keyboard
+  builds a selection ([§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>)).
+- **Decided:** [B-D4T-1](<Decisions/Table and list actions, context menus and columns (D4T).md#b-d4t-1-returns-primary-action-acts-on-the-cursor-rows-set-not-on-the-selection-as-such>), [B73](<Decisions/SwiftUI API completion decisions.md#b73-background-prominence-raised-on-the-rows-a-list-builds-itself>), [B76](<Decisions/SwiftUI API completion decisions.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>),
+  [B77](<Decisions/SwiftUI API completion decisions.md#b77-type-select-moves-the-cursor-and-a-prefixs-first-character-gives-way-to-bare-key-bindings>). **Lane.**
+
+### V3. List and table chrome differs from macOS by default
+
+- **SwiftUI (measured, macOS 15.8):** `.automatic` lists and tables have no
+  border; a list draws a separator under every row (not `.sidebar`); stripes
+  count rows across sections; a `.standard` badge sits in a capsule; a section's
+  actions show while the pointer is over it.
+- **TUIkit:** `.automatic` is bordered; no separators unless asked; stripes
+  restart at each section; a badge is plain text; section actions are always
+  shown, after the header's title.
+- **Why:** a separator costs a line per row; actions shown only on hover are
+  out of the keyboard's reach.
+- **Decided:** decisions A29 and A46 (**Owner**, 2026-10-07: tables stripe by
+  default, both keep their border; removed when they shipped),
+  [A-D6L-1](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-1-the-surface-look-try-it-then-decide-what-if-anything-becomes-the-default>),
+  [A-D6L-2](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-2-should-a-list-draw-separators-by-default>), [B-D6L-4](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#b-d6l-4-stripes-restart-at-each-section-macos-counts-on-across-them>), [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
+  [B78](<Decisions/SwiftUI API completion decisions.md#b78-section-actions-always-shown-after-the-headers-title>). **Under review** (borders and separators),
+  **Lane** (the rest).
+
+### V4. A table row is one line unless asked
+
+- **SwiftUI:** a row grows to its tallest cell, and a table's rows are lazy
+  (measured, macOS 15.8, wave 8a's note in the decisions file).
+- **TUIkit:** a cell is one line unless its column's `lineLimit(_:)` allows
+  more; the TUI-only `.tableRowHeights(.automatic)` opts into growth. Rows are
+  flattened when the table is built, so a `ForEach`'s content runs once per
+  element per build. A section header is drawn as lines of the row below it.
+- **Why:** the row height is the owner's answer to B44; the rest is not
+  recorded.
+- **Decided:** decisions B44 (the owner's answer, implemented by
+  [lane D4T](<Decisions/Table and list actions, context menus and columns (D4T).md#b-shipped-the-safe-option>)), [B-D4T-5](<Decisions/Table and list actions, context menus and columns (D4T).md#b-d4t-5-a-section-header-is-lines-of-the-row-below-it-not-a-row-of-its-own>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Data
+  row). **Owner** (row height), **Lane** (the rest).
+
+### V5. A collapsed `DisclosureGroup` keeps its content's state
+
+- **SwiftUI:** collapsing takes the content out of the hierarchy, `@State`
+  with it (not measured).
+- **TUIkit:** the content's `@State`, `onChange` baselines and branches are
+  kept while the group itself is on screen; `.task` and `onDisappear` are not
+  covered.
+- **Why:** a nested group opened, or a field typed in, should still be so when
+  its parent reopens.
+- **Decided:** [DisclosureGroup.swift](../../Sources/TUIkitFoundation/Views/DisclosureGroup.swift#L58-L63).
+  **Recorded.**
+
+### V6. Smaller differences in containers, controls and text
+
+| Behaviour | SwiftUI | TUIkit | Decided |
+|---|---|---|---|
+| `listRowInsets` written twice on a row | the inner replaces the outer | the two add up | [ListRowStyleModifiers.swift](../../Sources/TUIkitLists/Modifiers/ListRowStyleModifiers.swift#L51-L54), **Recorded** |
+| A row's `.top` separator | drawn where the style allows | declined; the line between rows is the upper row's `.bottom` | [B-D6L-2](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#b-d6l-2-a-rows-top-separator-is-the-styles-to-decline>), **Lane** |
+| `.badgeProminence` inside a row | reaches the row's badge | does not; set it on the list | [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>), **Lane** |
+| Return on a segmented picker | does nothing | chooses the segment under the cursor | [B-D2C-1](<Decisions/Pickers and sheet sizes (D2C).md#b-d2c-1-a-segmented-pickers-return-chooses-where-macoss-does-nothing>), **Lane** |
+| `Stepper` and `Slider` | draw no value | draw a value read-out | [§1](<SwiftUI compatibility guide.md#1-match>) (Controls row), **Recorded** |
+| `.automatic` and `.tabBarOnly` tab views | a segmented bar in the toolbar (measured) | a compact strip; `.grouped` draws folder tabs | [§1](<SwiftUI compatibility guide.md#1-match>) (Containers row), **Recorded** |
+| A tab's label view | drawn as given | its text, in the strip's ink | [B75](<Decisions/SwiftUI API completion decisions.md#b75-a-tabs-label-is-drawn-as-text>), **Lane** |
+| A sidebar tab view's header and footer | scroll with the tabs | stay put; sections do not fold | [B76](<Decisions/SwiftUI API completion decisions.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>), **Lane** |
+| Reordering tab sections | by dragging | only by the app | [B79](<Decisions/SwiftUI API completion decisions.md#b79-tab-view-customization-is-the-apps-to-change-no-gesture-changes-it>), **Lane** |
+| A table row a drop would land on | ringed in the accent | drawn as selected | [B80](<Decisions/SwiftUI API completion decisions.md#b80-table-row-drag-and-drop-the-rows-own-line-a-selected-look-flat-loops>), **Lane** |
+| `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<Decisions/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
+| A compact `DatePicker`'s calendar | (macOS keyboard unmeasured) | takes the keyboard as it opens | [B-D2C-2](<Decisions/Pickers and sheet sizes (D2C).md#b-d2c-2-a-compact-date-pickers-calendar-takes-the-keyboard-as-it-opens>), **Lane** |
+| A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<Decisions/SwiftUI API completion decisions.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
+| `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<Decisions/SwiftUI API completion decisions.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
+| `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<Decisions/SwiftUI API completion decisions.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
+| `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<Decisions/SwiftUI API completion decisions.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
+| A live text with an attributed format | (a custom style's colours: not measured) | draws the characters only | [B88](<Decisions/SwiftUI API completion decisions.md#b88-a-live-text-with-an-attributed-format-draws-the-characters-only>), **Lane** |
+
+### V7. A `Picker` does not find options inside a view of the app's own
+
+- **SwiftUI:** a `Picker`'s options, and a text field's suggestions, may be
+  factored into a view of the app's own (not measured).
+- **TUIkit:** each is read by a walk of its own that does not evaluate a view
+  of the app's own, so options in such a view leave the picker empty, and
+  suggestions in one are not offered. A `Form` reads through a view of the
+  app's own only when its body is several views, a loop, an `if` or a
+  section.
+- **Why:** not recorded.
+- **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Subviews row, under "Differs").
+  **Recorded**, with no ruling; awaiting the owner.
+
+---
+
+## Presentation and window chrome
+
+### W1. Toolbars are the window's two bars
+
+- **SwiftUI:** on macOS, `.toolbar` items go to the window's toolbar;
+  `.principal` is centred and `.status` centred in the toolbar (Apple's
+  documentation).
+- **TUIkit:** items join a top bar above the page and a bottom bar below it,
+  each drawn only while something is placed in it. `.principal` replaces the
+  title and `.status` goes to the bottom bar (iOS's readings). A bar appears or
+  goes one frame after the page that changed it. The window's title is the
+  outermost `.navigationTitle` drawn.
+- **Why:** a bar's rows must be known before the page is laid out.
+- **Decided:** [§2.6](<SwiftUI compatibility guide.md#26-toolbars-are-the-windows-bars-commands-are-not-yet>). **Recorded.**
+
+### W2. A toolbar in a sheet draws round the view that declared it
+
+- **SwiftUI:** a sheet's toolbar items go to the sheet's edges (not
+  measured).
+- **TUIkit:** in a sheet, cover or popover, `.toolbar` draws its modal actions
+  in a button row below the view it is attached to, and its other placements in
+  a row above it. A `.toolbar` on an inner view puts its rows there.
+- **Why:** the window's bars are inert while a presentation holds the input,
+  so a sheet's own items have to be drawn inside it.
+- **Decided:** [B-D5C-3](<Decisions/Toolbars and opt-in window chrome (D5C).md#b-d5c-3-a-toolbar-in-a-sheet-draws-its-items-round-the-view-that-declared-it>). **Lane.**
+
+### W3. Sheets are their content's size
+
+- **SwiftUI (measured, macOS 15.8):** a sheet is never smaller than 100 × 80
+  points; `.form` proposes 470 × 400; boxes in a `VStack` in a sized sheet are
+  their content's size.
+- **TUIkit:** no minimum; `.form` proposes `min(64, width)` columns by
+  `min(25, height)` rows; boxes stacked in a sized sheet share its size.
+- **Why:** a terminal sheet has no material, so its box is what shows its
+  size.
+- **Decided:** [B-D2C-3](<Decisions/Pickers and sheet sizes (D2C).md#b-d2c-3-form-is-25-rows-tall>), [B-D2C-4](<Decisions/Pickers and sheet sizes (D2C).md#b-d2c-4-no-minimum-sheet-size>),
+  [B-D2C-5](<Decisions/Pickers and sheet sizes (D2C).md#b-d2c-5-a-sized-sheets-boxes-share-its-size-in-a-stack-and-size-to-content-in-a-scroll-view--nowhere-else>). **Lane.**
+
+### W4. Detents and live sheets
+
+- **SwiftUI (iOS):** the page keeps its height under a sheet that lets it
+  through; a drag indicator shows on a sheet with one detent; a sheet presented
+  from a sheet can leave the outer one live (Apple's documentation; not
+  measured).
+- **TUIkit:** the page is laid out in the rows above a live sheet, as a smaller
+  terminal would lay it out. The grabber is a one-row rule, drawn only with two
+  detents or more. A live sheet presented from a modal presentation is a modal.
+- **Why:** Tab and the arrow keys would reach a page drawn under the sheet.
+- **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>) (the Presentation row),
+  [B-D7S-1](<Decisions/Live and resizable sheets (D7S).md#b-d7s-1-the-grabber-is-a-rule-of-its-own-and-a-sheet-with-one-detent-has-none-whatever-the-indicator-says>), [B-D7S-4](<Decisions/Live and resizable sheets (D7S).md#b-d7s-4-a-live-sheet-presented-from-inside-a-modal-presentation-is-a-modal>). **Lane.**
+
+### W5. A critical dialog's caution sign is an emoji
+
+- **SwiftUI:** a large caution symbol beside the message (macOS's alert; not
+  measured).
+- **TUIkit:** the title starts with the warning-sign emoji (U+26A0 U+FE0F),
+  keeping the warning colour on the border and title.
+- **Why:** a terminal cannot draw the large picture; the owner asked for the
+  sign.
+- **Decided:** [B-D3M-1](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-1-a-critical-dialogs-caution-sign-is-the-%EF%B8%8F-emoji-not-a-full-size-icon>). **Owner** (asked for it; the large
+  picture is a later project).
+
+---
+
+## Lifecycle
+
+### F1. A row windowed out of a lazy container keeps its state
+
+- **SwiftUI:** a lazy stack destroys a row a few updates after it scrolls away;
+  its `@State` goes with it (Apple's `LazyVStack` documentation and WWDC26, as
+  in L7).
+- **TUIkit:** the row stays in the tree, with its state, while it is among the
+  stack's rows. `onAppear` and `task` still fire on visibility, and
+  `onScrollVisibilityChange` reports it hidden (R10).
+- **Why:** L7's: TUIkit keeps no view objects, so nothing ends a row's state
+  while the stack still lists the row.
+- **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>), [B-D5G-1](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>). **Recorded.**
+
+### F2. Animations carry on in an inactive scene
+
+- **SwiftUI:** Apple advises pausing timers in an inactive scene (Apple's
+  documentation).
+- **TUIkit:** an unfocused terminal window is still on screen, so spinners and
+  progress bars go on; only the focus indication holds still.
+- **Why:** an unfocused terminal window is still on screen and still read.
+- **Decided:** [FocusSystem](../../Sources/TUIkit/TUIkit.docc/Articles/FocusSystem.md#L345-L347).
+  **Recorded.**
+
+---
+
+## Slated to change
+
+Known differences that are not meant to stay, and open ones nobody has ruled
+on. Each waits on the work, or on the ruling, its State names.
+
+| Difference | Where | State |
+|---|---|---|
+| `\.legibilityWeight` is read-only `nil`; SwiftUI's `.bold` draws text a weight heavier (measured) | [B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-read-only-always-nil>) | Awaiting the owner: asked on 2026-10-12 to confirm it should become writable; then a lane with an A/B |
+| The automatic first-control focus counts as held after its first frame (I5) | [B35](<Decisions/SwiftUI API completion decisions.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>) | Owner 2026-10-12: it must not count; lane owed, one commit |
+| Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable, and only `.viewAligned` reads them (the size classes). On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tuikit-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults |
+| An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
+| A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
+| `scrollIndicatorsFlash` draws nothing | [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-returns-the-view-the-indicators-are-already-showing>) | Owner 2026-10-12: implement |
+| No scroll velocity, no bounce | [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>) | Owner 2026-10-12: both, being cheap; the bounce under `.always`. Awaiting the owner on what the velocity at the change to idle means (recommended: the scrolling's last speed, a deliberate deviation from SwiftUI's literal (0, 0)) |
+| No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal; awaiting the owner's confirmation of the single-width glyphs |
+| `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
+| A windowed `LazyVStack`'s held row ignores `scrollContentOffsetAdjustmentBehavior = .disabled` | [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>) | Known gap; lane owed, one commit |
+| With no scroll anchor declared, rows inserted above the top row move it; SwiftUI holds it by default (measured, lazy stack) | [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [Scroll anchoring.md](<../Layout and scrolling/Scroll anchoring.md>) | Awaiting the owner: keep TUIkit's Window default (the owner's 2026-07-17 spec) as a deviation, or hold the row as SwiftUI does |
+| A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
+| The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
+| A guide pushes a view at most 4,096 cells, which a scroll view's canvas shows (measured) | [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>) | Owner 2026-10-12: too low, and a cap must not hide logic errors. Decided: 2^20, a push past it reported through `SoftTrap`; lane owed |
+| Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
+| The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |
+| A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
+| A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
+| An enum view's `update()` changes are not written back | [B-DYNP-1](<Decisions/DynamicProperty update write-back (DYNP).md#b-dynp-1-what-update-changes-is-written-back-except-in-an-enum-views-payload>) | Known; fuller version priced |
+| Dynamic-property discovery bugs (shared state, custom mirrors, class contents, stored modifiers, dead `unowned` fields) | session notes `DYNV/notes.md` | Owner reviewing (S2) |

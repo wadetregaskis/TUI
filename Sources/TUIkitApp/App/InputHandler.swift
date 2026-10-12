@@ -349,7 +349,7 @@ extension InputHandler {
         // Ctrl-Z (both are 0x1A): only a Ctrl-Shift-Z the redo keys leave
         // unbound reaches here. And with Option, as before the app had an
         // undo: Ctrl-Option-Z is not one of undo's keys, and a shell reads
-        // its `ESC 0x1A` as a suspend too (Terminal-compatibility.md, "Undo
+        // its `ESC 0x1A` as a suspend too (Terminal compatibility survey.md, "Undo
         // and redo").
         if event.ctrl, case .character(let character) = event.key,
             character == "z" || character == "Z"

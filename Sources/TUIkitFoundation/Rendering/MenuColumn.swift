@@ -133,7 +133,7 @@ extension EnvironmentValues {
     /// a `Toggle` render AS such a row rather than as a checkbox — read on both
     /// the measure and the render, so the column hugs the width it will draw.
     /// Deliberately absent for an inline `Menu`, whose rows ARE page focus stops
-    /// — see `Documentation/Unifying the menu implementations.md`.
+    /// — see `Documentation/Controls and presentation/Unifying the menu implementations.md`.
     var menuRowSink: MenuRowSink? {
         get { self[MenuRowSinkKey.self] }
         set { self[MenuRowSinkKey.self] = newValue }

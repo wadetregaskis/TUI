@@ -119,7 +119,7 @@ extension String {
     ///   has no anchor: it trusts our column count to say where the cursor
     ///   goes, and if the terminal disagrees the span lands in the wrong place
     ///   and the row never recovers. Every divergence in
-    ///   `Documentation/Terminal-compatibility.md` is of exactly this shape — a
+    ///   `Documentation/Terminals/Terminal compatibility survey.md` is of exactly this shape — a
     ///   2-cell claim meeting a 1-cell advance (bare pictographs, lone regional
     ///   indicators, SF-Symbol PUA glyphs, the VS-15 chrome glyphs, skin-tone
     ///   clusters) — so declining every multi-cell claim declines every one of

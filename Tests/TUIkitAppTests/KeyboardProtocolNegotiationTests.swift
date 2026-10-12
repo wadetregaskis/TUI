@@ -17,7 +17,7 @@ import TUIkit
 ///
 /// The replies are the specification's: `CSI ? flags u` to the query, and a
 /// DA1 answer to the fence. No real terminal has been captured answering yet;
-/// see `Documentation/Terminal-compatibility.md`.
+/// see `Documentation/Terminals/Terminal compatibility survey.md`.
 @MainActor
 @Suite("Kitty keyboard protocol negotiation")
 struct KeyboardProtocolNegotiationTests {

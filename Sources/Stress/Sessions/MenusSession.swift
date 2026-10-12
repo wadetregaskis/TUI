@@ -207,7 +207,7 @@ final class MenusSession: StressSession {
         // The click focuses what it opens, so that is where the focus goes back
         // to. A drop-down the pointer opens highlights its choice, where a menu
         // highlights nothing — the owner's call, still open (see
-        // `Documentation/Unifying the menu implementations.md`).
+        // `Documentation/Controls and presentation/Unifying the menu implementations.md`).
         let kind = target.kind
         open = OpenMenu(kind: kind, focusBefore: target.focus, highlight: kind == .picker ? desk.filter : nil)
         let press = MouseEvent(button: .left, phase: .pressed, x: x, y: y)

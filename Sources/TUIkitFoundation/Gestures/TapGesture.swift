@@ -31,7 +31,7 @@ import TUIkitCore
 /// ```
 ///
 /// A tap is a click of the left mouse button, recognized on its release, with
-/// the rules SwiftUI's measured on macOS 15.8 (`Documentation/SwiftUI-compatibility.md`):
+/// the rules SwiftUI's measured on macOS 15.8 (`Documentation/SwiftUI parity/SwiftUI compatibility guide.md`):
 ///
 /// - the release has to land on the view, and the pointer may not stray
 ///   more than five columns or two rows from the press — about the 40 points
@@ -56,7 +56,7 @@ import TUIkitCore
 /// macOS. A gesture around the view is released when they are given up: at
 /// the next press for a removed view, as on macOS; for a disabled one macOS
 /// gives them up at once, and TUIkit at the next press, as for a removed one
-/// (`Documentation/SwiftUI-API-completion-decisions-F2.md`, B-F2-2).
+/// (`Documentation/SwiftUI parity/Decisions/Stdin test flake, lost taps and the quit chord (F2).md`, B-F2-2).
 public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int
@@ -129,7 +129,7 @@ public struct TapGesture: Gesture {
 /// ```
 ///
 /// The location is the release's cell, a ``CellPoint`` where SwiftUI's is a
-/// `CGPoint` (§2.2 of `Documentation/SwiftUI-compatibility.md`). It is
+/// `CGPoint` (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). It is
 /// recognized as ``TapGesture`` is, and like it reports nothing until it ends —
 /// SwiftUI's `onChanged` on a spatial tap never runs either (measured on
 /// macOS 15.8).

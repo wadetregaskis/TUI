@@ -114,7 +114,7 @@ struct TerminalClientSimulationTests {
     /// The call site of the quirks' peak guard: a row is clipped by the model
     /// in force, and hand-built quirks outrank the detected host for the clip
     /// as they do for the compensation. K3 in
-    /// `Documentation/Ghostty-VT-adoption.md`.
+    /// `Documentation/Terminals/Ghostty VT reference adoption study.md`.
     @Test("Hand-built quirks guard an over-advancer's peak at the right edge")
     func quirksGuardThePeak() async {
         await #expect(processExitsWith: .success) {

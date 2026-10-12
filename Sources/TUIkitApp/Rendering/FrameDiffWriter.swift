@@ -479,14 +479,14 @@ extension FrameDiffWriter {
         // (small) set of under-advancers — keycaps and SF-Symbol PUA glyphs —
         // with CUF, exactly as the Apple path does for Terminal.app's larger
         // set. Both advance models are DSR-measured; see
-        // Documentation/Terminal-compatibility.md.
+        // Documentation/Terminals/Terminal compatibility survey.md.
         // Ghostty needs no skin-tone strip — it is the only measured terminal
         // that merges Fitzpatrick clusters into the 2 cells the layout claims
         // — but under-advances its VS-15 chrome glyphs and SF Symbols. Warp
         // draws skin tones as base + swatch exactly like iTerm2, so it takes
         // the same strip, then a CUF for its lone-regional-indicator
         // under-advance. All models are DSR-measured; see
-        // Documentation/Terminal-compatibility.md.
+        // Documentation/Terminals/Terminal compatibility survey.md.
         let compensated = compensatingCursorAdvance(clipped)
         // A reset is not always a sequence of its OWN, and the restoration below
         // matches only the literal `ESC[0m`.
@@ -636,7 +636,7 @@ extension FrameDiffWriter {
     /// which is precisely what an uncompensated emission measures as
     /// (`row_probe.py`, retired 2026-08-28 — `Tools/TerminalProbes/README.md`
     /// says what asks its question now; the record is in
-    /// `Documentation/Terminal-compatibility.md`).
+    /// `Documentation/Terminals/Terminal compatibility survey.md`).
     ///
     /// The compensation cannot move a cell — it erases, draws and steps, and
     /// writes no visible characters — so the splice arithmetic below is
@@ -670,7 +670,7 @@ extension FrameDiffWriter {
     /// breathed with its right cap in the page's colour inside the outer tab's
     /// surface — and what the render drew is wrong wherever the drawn frame gave a
     /// cell a field of its own: a `.plain` field's block caret, drawn visible,
-    /// never blinked off. See `Documentation/Terminal-compatibility.md`.
+    /// never blinked off. See `Documentation/Terminals/Terminal compatibility survey.md`.
     ///
     /// The fields come in read, not as the ground and the page to read them from:
     /// both are fixed from one render to the next, so the run loop reads them once

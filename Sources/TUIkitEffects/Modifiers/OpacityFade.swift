@@ -22,7 +22,7 @@ enum OpacityFade {
     /// ``Color/compositing(_:over:)``, which mixes in linear light. Both are
     /// correct arithmetic for different questions, and this one is a FADE
     /// watched by an eye rather than a translucent layer measured by a meter.
-    /// See `Documentation/Opacity as composition.md`.
+    /// See `Documentation/Colour and styling/Opacity as composition.md`.
     ///
     /// Over the terminal's page before it has reported it, a colour below ½
     /// becomes that page, which the foreground slot can only spell 39. A glyph

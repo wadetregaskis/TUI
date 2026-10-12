@@ -461,7 +461,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
         // accent* block, in explicit palette colours, so it's readable on every
         // palette and visibly breathes while focused, the same affordance
         // List/Picker rows use. Where the accent or the page has no RGB there is
-        // nothing between them to breathe (`Documentation/Opacity as composition.md`
+        // nothing between them to breathe (`Documentation/Colour and styling/Opacity as composition.md`
         // §75) and the CELL is reversed instead — with the palette's pair stated
         // beside the 7. Never a bare `ESC[7m`, which is what this site has always
         // said: that exchanges the colours in force, which after a reset are the

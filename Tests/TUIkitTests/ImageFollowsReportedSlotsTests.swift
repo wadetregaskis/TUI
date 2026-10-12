@@ -32,7 +32,7 @@ struct ImageFollowsReportedSlotsTests {
     }
 
     /// Apple Terminal 455.1's "Basic" sixteen, as its OSC 4 replies reported them on
-    /// 2026-09-14 (Terminal-compatibility.md), in slot order.
+    /// 2026-09-14 (Terminal compatibility survey.md), in slot order.
     private static let appleTerminal = TerminalColors(
         foreground: rgb(0, 0, 0), background: rgb(255, 255, 255),
         slots: TerminalColors.Slots([

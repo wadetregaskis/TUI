@@ -62,7 +62,7 @@
 
 - **Per-row hover** for List/Table/Menu is deferred (pairs with
   the List/Table-on-ScrollView composition; see
-  `Documentation/Composing List and Table on ScrollView.md`).
+  `Documentation/Layout and scrolling/Composing List and Table on ScrollView.md`).
 - **Double-click semantics** were a stated non-goal and remain
   unimplemented.
 - `readEvent()` is not exposed on `TerminalProtocol`; if a

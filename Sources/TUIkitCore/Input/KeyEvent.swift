@@ -167,7 +167,7 @@ public enum Key: Hashable, Sendable {
     /// what Apple Terminal sends for **Shift+F5…Shift+F12**, because it has no
     /// modifier encoding for function keys at all and re-codes the chord as a
     /// different key — see ``KeyEvent/normalizingLegacyShiftedFunctionKeys()`` and
-    /// `Documentation/Terminal-compatibility.md`.
+    /// `Documentation/Terminals/Terminal compatibility survey.md`.
     case f13, f14, f15, f16, f17, f18, f19, f20
 
     /// The PC keyboard's Menu key (also called the Application key), which
@@ -368,7 +368,7 @@ extension KeyEvent {
             // Ctrl-_ and Ctrl-/ as well: the legacy encodings cannot tell the
             // three apart. Read as Ctrl-minus, the key TUIkit binds undo to
             // (the one zsh and Emacs bind to it too); see
-            // Documentation/Terminal-compatibility.md, "Undo and redo".
+            // Documentation/Terminals/Terminal compatibility survey.md, "Undo and redo".
             return KeyEvent(key: .character("-"), ctrl: true)
         case (ASCIIByte.printableStart + 1)...ASCIIByte.printableEnd:  // Skip space (0x20), handled above
             let char = Character(UnicodeScalar(byte))
@@ -551,7 +551,7 @@ extension KeyEvent {
     /// column m. It is read as F3 because TUIkit asks for no cursor report: its
     /// startup exchanges have been fenced by the status report, `CSI 5 n`,
     /// since 2026-10-05, for exactly this collision
-    /// (`Documentation/Terminal-compatibility.md`, "Asking the terminal —
+    /// (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the terminal —
     /// Device Attributes"). Anything that sends `CSI 6 n` again has to take
     /// F3 out of here first, or its report arrives as a keystroke;
     /// `CursorReportRequestScanTests` fails if any code under `Sources/`

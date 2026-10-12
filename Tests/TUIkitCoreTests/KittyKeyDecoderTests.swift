@@ -13,7 +13,7 @@ import Testing
 /// The shapes are the specification's
 /// (<https://sw.kovidgoyal.net/kitty/keyboard-protocol/>), as a terminal with
 /// flags 1, 2, 4, 8 and 16 pushed sends them. No terminal has been captured
-/// sending them yet; see `Documentation/Terminal-compatibility.md`.
+/// sending them yet; see `Documentation/Terminals/Terminal compatibility survey.md`.
 @Suite("Kitty keyboard protocol decoding")
 struct KittyKeyDecoderTests {
 

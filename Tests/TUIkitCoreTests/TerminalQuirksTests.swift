@@ -405,7 +405,7 @@ struct QuirkPermutationTests {
 /// A hand-built quirk set with an over-advancer (`.pullBack` tones, tag flags)
 /// gets the peak guard Terminal.app's clip has: a cluster whose claim fits the
 /// row but whose emission reaches past the edge is replaced with spaces of its
-/// claim. K3 in `Documentation/Ghostty-VT-adoption.md`, which turned autowrap
+/// claim. K3 in `Documentation/Terminals/Ghostty VT reference adoption study.md`, which turned autowrap
 /// off: such a peak pins the cursor at the last column, and the pull-back after
 /// it then lands short.
 @Suite("The right-edge clip under hand-built quirks")

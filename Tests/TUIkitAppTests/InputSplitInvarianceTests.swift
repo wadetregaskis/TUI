@@ -149,7 +149,7 @@ struct InputSplitInvarianceTests {
     /// The application-mode keys (`ESC O` and a byte, a modifier between them
     /// where a terminal sends one), whole and split at every byte: each must
     /// arrive as its key, and only its key. K1 in
-    /// `Documentation/Ghostty-VT-adoption.md`.
+    /// `Documentation/Terminals/Ghostty VT reference adoption study.md`.
     @Test("Every SS3 key spelling decodes to its key, split at every byte")
     func ss3SplitInvariance() {
         let keypadBytes = Array("pqrstuvwxyjklmnoXMI ".utf8)

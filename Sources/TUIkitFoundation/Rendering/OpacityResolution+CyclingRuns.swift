@@ -20,7 +20,7 @@ extension FrameBuffer {
     /// plus N re-colourings of finished lines, and the loop then never asks the
     /// view again. What made this hard to keep is that the colouring can only
     /// happen once the destination is known, which is here and not at the
-    /// modifier; see `Documentation/Opacity as composition.md` §6b.
+    /// modifier; see `Documentation/Colour and styling/Opacity as composition.md` §6b.
     ///
     /// A run covers the columns its fades cover and no more: a group of fades
     /// that overlap on a row, from its first covered column to its last. Its

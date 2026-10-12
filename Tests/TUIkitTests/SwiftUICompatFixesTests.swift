@@ -12,7 +12,7 @@ import TUIkit
 @testable import TUIkitView
 
 /// Regression coverage for the SwiftUI-parity surface in
-/// `Documentation/SwiftUI-compatibility.md` §1 Match (Binding dynamic-member
+/// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §1 Match (Binding dynamic-member
 /// lookup, `@State.init(initialValue:)`, generic `Stepper`, data-driven `List`,
 /// `task(id:)`, `sheet(onDismiss:)` / `sheet(item:)`, `navigationTitle`
 /// overloads). Each test locks in the public signature so it can't silently

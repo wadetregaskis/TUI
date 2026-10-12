@@ -35,7 +35,7 @@ and 3 does not, it is the foreground spelling. If none draws, the original
 conclusion stands and placeholders really are unimplemented.
 
 It also measures what U+10EEEE ADVANCES the cursor by on this host, which
-`Documentation/Terminal-compatibility.md` records as "one cell, on every host"
+`Documentation/Terminals/Terminal compatibility survey.md` records as "one cell, on every host"
 having measured Ghostty, Warp and Apple Terminal — **iTerm2 is absent from
 that table.** If it advances 0 or 2 here, every image row shears and no
 spelling would have helped.
@@ -197,7 +197,7 @@ def main():
             out()
 
         # What does a placeholder ADVANCE the cursor by here? Twelve of them,
-        # written from a known column, and ask. `Terminal-compatibility.md`
+        # written from a known column, and ask. `Terminal compatibility survey.md`
         # says one cell on every host and never measured iTerm2.
         os.write(fd, b"  advance: ")
         before = cursor_column(fd)

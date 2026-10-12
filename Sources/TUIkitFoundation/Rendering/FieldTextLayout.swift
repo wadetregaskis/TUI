@@ -33,7 +33,7 @@ extension FieldTextLayout {
     /// Where the accent or that ground has no RGB there is no tint to draw at all:
     /// every share of such a blend is one end or the other, so 60% of the accent is
     /// either a solid accent under text nobody can check for contrast or the ground
-    /// itself, which shows nothing (`Documentation/Opacity as composition.md` §75,
+    /// itself, which shows nothing (`Documentation/Colour and styling/Opacity as composition.md` §75,
     /// §87). The cell's own pair is exchanged instead — reverse video is the one
     /// highlight a terminal paints legibly whatever colours it keeps — and, since it is
     /// the CELL that is reversed, the ink is the field's own, a `.textFieldTextStyle`

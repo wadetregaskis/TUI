@@ -46,7 +46,7 @@ that is accepted, as the price of never testing a stale toolchain.
 WebAssembly is built by its own lane, on a pinned 6.3.3 container plus the
 matching Swift SDK — pinned because a Swift SDK loads only under the toolchain
 version it was built for, and still 6.3.3 because that is the only version the
-port has been measured with (see [`Documentation/WebAssembly.md`](Documentation/WebAssembly.md)).
+port has been measured with (see [`Documentation/WebAssembly port.md`](<Documentation/WebAssembly port.md>)).
 
 Linux additionally runs Swift 6.3 on arm64, and lint runs on Linux only — it
 gates everything else, so a style slip fails in a minute rather than after
@@ -120,7 +120,7 @@ because each fails in a way that does not name its cause:
 
 The port's shape — what needed a platform arm, what does not work in a browser,
 and the two latent bugs it turned up in platform-independent code — is in
-[`Documentation/WebAssembly.md`](Documentation/WebAssembly.md).
+[`Documentation/WebAssembly port.md`](<Documentation/WebAssembly port.md>).
 
 ### Windows
 
@@ -192,7 +192,7 @@ The known blockers, in rough order of difficulty:
    `faded_palette_sweep.py` — uses `pty`/`termios`, so it is POSIX-only; a
    Windows equivalent needs ConPTY. (`faded_palette_sweep.py` runs at `full`
    depth only, and is 7 min 15 s of the 11 min 23 s that costs; §68 of
-   `Documentation/Opacity as composition.md` explains what it catches that a
+   `Documentation/Colour and styling/Opacity as composition.md` explains what it catches that a
    walk cannot.)
    `Tools/Smoke/ci-pty-smoke.sh` is skipped on the Windows lanes for this
    reason, and they run `Stress --selfcheck` alone.

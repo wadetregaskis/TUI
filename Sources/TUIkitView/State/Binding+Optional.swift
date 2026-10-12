@@ -94,7 +94,7 @@ extension Binding {
     /// outcome. (It is also the reason `$dictionary[key, default: false]` does
     /// not compile in the first place — an autoclosure argument cannot form
     /// the key path a dynamic-member subscript needs. That is equally true of
-    /// SwiftUI; see `Documentation/SwiftUI-compatibility.md`.)
+    /// SwiftUI; see `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.)
     ///
     /// # TUIkit-only
     ///

@@ -87,7 +87,7 @@ enum NavigationCrumbs {
 
     /// The glyph between crumbs. `›` (U+203A) rather than `>` so it reads as
     /// chrome rather than as text, and it is single-width everywhere TUIkit
-    /// measures (see Terminal-compatibility.md).
+    /// measures (see Terminal compatibility survey.md).
     static var separator: String { "\u{203A}" }
 
     /// The blank cell every crumb sits behind, separators included.

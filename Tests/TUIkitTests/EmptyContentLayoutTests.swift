@@ -4,7 +4,7 @@
 //  What a stack gives content with nothing in it: a frame on a `nil`, on an
 //  empty `Group`, on `EmptyView`, and an empty stack between two siblings.
 //  SwiftUI's answers were measured with an `NSHostingView` probe and are
-//  recorded in `Documentation/SwiftUI-compatibility.md` §3, beside the two
+//  recorded in `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §3, beside the two
 //  places TUIkit answers differently.
 //
 //  Created by Wade Tregaskis

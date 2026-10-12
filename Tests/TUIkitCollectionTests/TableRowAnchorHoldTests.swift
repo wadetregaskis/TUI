@@ -3,7 +3,7 @@
 //
 //  The SIBLING of `ListRowAnchorHoldTests`. `Table` scrolls through the same
 //  `ItemListHandler` as `List`, which made it easy to assume it inherited the
-//  anchoring — `Documentation/Scroll-anchoring.md` §3.4 said "List / Table hold
+//  anchoring — `Documentation/Layout and scrolling/Scroll anchoring.md` §3.4 said "List / Table hold
 //  too". It did not: `Table.resolveHandler` never captured
 //  `environment.anchorPosition` at all, so every anchor behaviour (the row hold,
 //  the wheel release, the edge follow) was dead there while its twin worked.

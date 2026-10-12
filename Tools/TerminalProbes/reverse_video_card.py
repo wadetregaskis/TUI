@@ -44,7 +44,7 @@ Reading the card:
     the outer terminal.
 
 Record what you saw, with the host, its version and its colour profile or
-theme, in Documentation/Terminal-compatibility.md, "Reverse video (SGR 7)".
+theme, in Documentation/Terminals/Terminal compatibility survey.md, "Reverse video (SGR 7)".
 
 The terminal is restored on exit: SGR reset, cursor shown, termios put back.
 Nothing else is changed (no cursor shape, no modes, no colours set on the host).

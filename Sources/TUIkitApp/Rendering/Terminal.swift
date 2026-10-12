@@ -140,7 +140,7 @@ final class Terminal: TerminalProtocol {
     /// 2026-10-11, past which a paste arrived as its start. The stall timeout
     /// has been that way out since 2026-08-01, and all the limit still did was
     /// cap the memory a paste takes, which is what delivering it takes
-    /// (`Documentation/SwiftUI-API-completion-decisions-PASTE.md`, B-PASTE-1).
+    /// (`Documentation/SwiftUI parity/Decisions/Large pastes and over-long input sequences (PASTE).md`, B-PASTE-1).
     var inPasteMode: Bool = false {
         didSet { pasteScanCursor = 0 }
     }
@@ -425,7 +425,7 @@ final class Terminal: TerminalProtocol {
     /// (``outputModesOn``).
     ///
     /// The plan made Apple Terminal's card the precondition
-    /// (`Documentation/Ghostty-VT-adoption.md`, K3): its phantom right-edge
+    /// (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K3): its phantom right-edge
     /// repaint (`FrameDiffWriter.repaintRightEdge`) and the peak its clip lets
     /// an over-advancer reach at the last cell were both written against a row
     /// that wraps. So it runs with the terminal's default, which it asserts
@@ -479,7 +479,7 @@ extension Terminal {
         // No `ioctl` on wasip1, and nothing to ask it: a wasm program has no
         // controlling terminal to measure. The environment fallback below is
         // the whole answer there, which is why a WebAssembly host has to put the
-        // size in `COLUMNS`/`LINES` — see `Documentation/WebAssembly.md`.
+        // size in `COLUMNS`/`LINES` — see `Documentation/WebAssembly port.md`.
         #if !canImport(WASILibc)
             var windowSize = winsize()
 
@@ -607,7 +607,7 @@ extension Terminal {
         // does tmux without `focus-events on`, so the phase then simply stays
         // `.active`. A report sent the moment this is enabled can be swallowed
         // by the startup queries that read stdin next. See
-        // Documentation/Terminal-compatibility.md, "Focus reporting (mode 1004)".
+        // Documentation/Terminals/Terminal compatibility survey.md, "Focus reporting (mode 1004)".
         writeImmediate("\u{1B}[?1004h")
 
         // Ask to be told when the terminal's own palette changes (DEC mode
@@ -622,7 +622,7 @@ extension Terminal {
         // unmeasured. Its DECRQM is never sent: `CSI ? Ps $ p` is the
         // `?`-plus-intermediate shape Apple Terminal prints, and the answer
         // would only say whether the mode this process just set is set. See
-        // Documentation/Terminal-compatibility.md, "Colour-palette update
+        // Documentation/Terminals/Terminal compatibility survey.md, "Colour-palette update
         // notifications (mode 2031)".
         writeImmediate("\u{1B}[?2031h")
 
@@ -804,10 +804,10 @@ extension Terminal {
     /// None is restored on the way out: these are the defaults a shell
     /// expects. All five are shapes Apple Terminal consumes: `CSI r` has no
     /// `?` and no intermediate byte, `?69l`, `?6l` and `?1l` a `?` and no
-    /// intermediate (`Documentation/Terminal-compatibility.md`, "Asking the
+    /// intermediate (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the
     /// terminal — Device Attributes"), and `ESC >` is a two-byte VT100
     /// escape. Found by reading Ghostty's VT reference
-    /// (`Documentation/Ghostty-VT-adoption.md`, K2; DECLRMM, which K6 names,
+    /// (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K2; DECLRMM, which K6 names,
     /// joined in review).
     static let inheritedDefaults = "\u{1B}[r" + "\u{1B}[?69l" + "\u{1B}[?6l" + "\u{1B}[?1l" + "\u{1B}>"
 
@@ -852,7 +852,7 @@ extension Terminal {
     ///   nothing per frame. `?`, no intermediate byte: the shape Apple Terminal
     ///   consumes, which matters because over ssh it is sent before the host
     ///   is known. Found by reading Ghostty's VT reference
-    ///   (`Documentation/Ghostty-VT-adoption.md`, K3).
+    ///   (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K3).
     var outputModesOn: String {
         keepsAutowrap ? Self.autowrapOn : Self.autowrapOff
     }
@@ -1076,7 +1076,7 @@ extension Terminal {
     /// Sent to every host, as the startup's mode requests are. A terminal
     /// without the mode ignores it: `CSI ? Pm h` has a `?` and no intermediate
     /// byte, the shape measured clean on Apple Terminal, iTerm2, Ghostty and
-    /// Warp (`Documentation/Terminal-compatibility.md`, "Asking the terminal —
+    /// Warp (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the terminal —
     /// Device Attributes"). Nothing is asked first: its DECRQM query is the
     /// one shape Apple Terminal prints, and setting the mode needs no answer.
     /// `TUIKIT_SYNCHRONIZED_OUTPUT=0` turns it off, should a terminal take it

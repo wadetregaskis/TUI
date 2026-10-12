@@ -105,7 +105,7 @@ extension TerminalOutputTests {
 
 extension TerminalOutputTests {
 
-    /// K2 in `Documentation/Ghostty-VT-adoption.md`: origin mode left on by a
+    /// K2 in `Documentation/Terminals/Ghostty VT reference adoption study.md`: origin mode left on by a
     /// killed program offsets or clamps every absolute cursor move a frame
     /// makes into the region it left, left-right margins stop every row at
     /// the right margin, and application cursor keys or keypad change what
@@ -145,7 +145,7 @@ extension TerminalOutputTests {
         }
     }
 
-    /// K3 in `Documentation/Ghostty-VT-adoption.md`: a host that advances a
+    /// K3 in `Documentation/Terminals/Ghostty VT reference adoption study.md`: a host that advances a
     /// cluster further than TUIkit counted wrapped the row into the next one,
     /// and on the bottom row scrolled the screen. Off while the app runs; on
     /// again for whatever the terminal is handed to.
@@ -225,7 +225,7 @@ extension TerminalOutputTests {
 
 extension TerminalOutputTests {
 
-    /// Ghostty's VT reference, K6 in `Documentation/Ghostty-VT-adoption.md`:
+    /// Ghostty's VT reference, K6 in `Documentation/Terminals/Ghostty VT reference adoption study.md`:
     /// `CSI s` is DECSLRM, not a save, while left-right margin mode is on, and
     /// whether `CSI u` restores SGR is up to the terminal. `ESC 7` and `ESC 8`
     /// save and restore both the position and the styling everywhere.

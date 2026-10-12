@@ -35,7 +35,7 @@ struct QuirkTableView: View {
             Text(
                 client.program == .unidentified
                     ? "No model: an unidentified terminal is assumed to advance the way it paints."
-                    : "Measured with DSR — see Documentation/Terminal-compatibility.md."
+                    : "Measured with DSR — see Documentation/Terminals/Terminal compatibility survey.md."
             )
             .foregroundStyle(.palette.foregroundSecondary)
         }

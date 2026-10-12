@@ -41,7 +41,7 @@ import TUIkitCore
 /// Every symbol claims one cell by TUIkit's width tables, the East Asian
 /// Ambiguous ones (⇧, the arrows, ↖ and ↘) included, as the box drawing does.
 /// Which hosts have been measured to agree, and what a host does with "wide"
-/// ambiguous characters, is in `Documentation/Terminal-compatibility.md`,
+/// ambiguous characters, is in `Documentation/Terminals/Terminal compatibility survey.md`,
 /// "Key symbols".
 enum KeySymbols {
     /// The modifiers in `modifiers` that a shortcut is drawn with, in macOS's

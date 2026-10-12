@@ -262,7 +262,7 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
     /// Spelt with the selector, not bare: bare, U+26A0 is a text-presentation
     /// character that terminals draw one cell wide or two, while the selector
     /// form is a VS-16 pictograph, a measured row of the advance table in
-    /// `Terminal-compatibility.md` — claimed two cells, and compensated where a
+    /// `Terminal compatibility survey.md` — claimed two cells, and compensated where a
     /// host advances it one (Terminal.app, iTerm2) by the writer, as every
     /// VS-16 pictograph in an app's own text is.
     static var criticalMark: String { "\u{26A0}\u{FE0F}" }

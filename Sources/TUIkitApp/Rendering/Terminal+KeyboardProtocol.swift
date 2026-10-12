@@ -36,7 +36,7 @@ import WASILibc
 /// their own, on the terminals that answered.
 ///
 /// `CSI ? u` carries a `?` and no intermediate byte, the shape measured clean on
-/// Apple Terminal 455.1 (`Documentation/Terminal-compatibility.md`, "Asking the
+/// Apple Terminal 455.1 (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the
 /// terminal — Device Attributes"). It is not sent there anyway: Apple Terminal
 /// does not speak the protocol, so the round trip could only cost.
 ///

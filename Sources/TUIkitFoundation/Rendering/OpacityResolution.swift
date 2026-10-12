@@ -8,7 +8,7 @@
 //  background colour: there is no alpha to write and no sub-pixel coverage. So
 //  alpha is honoured exactly for COLOURS and becomes a DECISION for glyphs —
 //  two characters cannot occupy one cell at half strength each. The rule, and
-//  the reasoning behind picking it, is in `Documentation/Opacity as
+//  the reasoning behind picking it, is in `Documentation/Colour and styling/Opacity as
 //  composition.md` §6a; in short:
 //
 //  * **each channel blends with its own counterpart, independently**: the

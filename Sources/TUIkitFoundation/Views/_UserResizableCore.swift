@@ -122,7 +122,7 @@ struct _UserResizableCore<Content: View>: View, Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Measuring must not register focus or mutate the stored size — the
         // measure pass runs speculatively and more than once per frame. See
-        // `Documentation/Discarded render passes and redundant frames.md`.
+        // `Documentation/Performance/Discarded render passes and redundant frames.md`.
         //
         // But it MUST make the same size offer, and for a long time it did not:
         // it returned here, handing the content the whole space. A flexible

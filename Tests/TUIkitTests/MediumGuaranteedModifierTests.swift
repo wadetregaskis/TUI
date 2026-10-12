@@ -103,7 +103,7 @@ struct TextMonospacedTests {
 
     /// Identity, and that is why adding them alongside the `View` spellings is
     /// safe: which overload a call binds to cannot change what it does. The
-    /// style toggles are NOT like this — see Parity-decisions-pending.md §9.
+    /// style toggles are NOT like this — see Parity work blocked on a decision.md §9.
     /// The `View` overloads are a different symbol from `Text`'s, and a `Text`
     /// receiver always binds `Text`'s — so these are called on a stack, which is
     /// the only way the `View` copies are reached at all. The guarantee is that

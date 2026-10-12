@@ -3,7 +3,7 @@
 //
 //  The four answers to "given a cell, what is t?". Every expectation here was
 //  measured against real SwiftUI first, with `ImageRenderer` and a pixel
-//  readback — see `Documentation/Gradients where a colour is accepted.md` §3.
+//  readback — see `Documentation/Colour and styling/Gradients where a colour is accepted.md` §3.
 //  The interesting ones are the two nobody guesses: a sweep clamps to its
 //  NEARER end outside itself rather than wrapping, and a radial gradient's
 //  radius is horizontal cells with the vertical derived from the cell aspect.

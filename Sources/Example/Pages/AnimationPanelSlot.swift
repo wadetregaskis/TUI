@@ -42,7 +42,7 @@ extension AnimationPage {
         // place to demonstrate accidentally. Unreserved and empty, the stack
         // is no rows and takes no spacing, so the page closes up as before —
         // TUIkit's rule, not SwiftUI's, which would leave a spacing's gap
-        // (`Documentation/SwiftUI-compatibility.md`, "A child with no extent
+        // (`Documentation/SwiftUI parity/SwiftUI compatibility guide.md`, "A child with no extent
         // takes no stack spacing").
         //
         // Five rows, which is what the panel IS: a text row, a row of padding

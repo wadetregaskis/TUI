@@ -26,7 +26,7 @@ import TUIkit
 struct TerminalHyperlinkSupportTests {
 
     /// The measured table. Recorded 2026-09-02 — see
-    /// `Documentation/Terminal-compatibility.md`, "OSC 8 hyperlinks".
+    /// `Documentation/Terminals/Terminal compatibility survey.md`, "OSC 8 hyperlinks".
     @Test(
         "The capability table matches what was measured",
         arguments: [

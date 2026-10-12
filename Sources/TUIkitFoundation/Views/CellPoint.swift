@@ -11,7 +11,7 @@
 /// ``View/onContinuousHover(coordinateSpace:perform:)-(CoordinateSpace,_)``, a tap under
 /// ``View/onTapGesture(count:coordinateSpace:perform:)-(_,CoordinateSpace,_)`` — TUIkit hands it the
 /// cell, because that is all a terminal reports (see
-/// `Documentation/SwiftUI-compatibility.md` §2.2).
+/// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.2).
 public struct CellPoint: Hashable, Sendable {
     /// The column, in cells from the coordinate space's origin.
     public var x: Int

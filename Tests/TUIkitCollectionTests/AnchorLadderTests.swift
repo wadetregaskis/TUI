@@ -71,7 +71,7 @@ struct AnchorLadderTests {
         }
     }
 
-    /// The DEFAULT anchor mode is Window (`Documentation/Scroll-anchoring.md`
+    /// The DEFAULT anchor mode is Window (`Documentation/Layout and scrolling/Scroll anchoring.md`
     /// §1.1): technically *no* anchor — the position stays where it is in LINE
     /// coordinates, so prepending rows shifts what is on screen rather than
     /// holding the row that was there.

@@ -33,7 +33,7 @@ import time
 # What each impersonated terminal answers, and whether TUIkit should then
 # compensate. Apple Terminal's replies are measured (455.1 / macOS 15.7, through
 # ssh, identity_probe.py); Ghostty's DA strings were read from its shipped
-# binary and its XTVERSION from Documentation/Terminal-compatibility.md.
+# binary and its XTVERSION from Documentation/Terminals/Terminal compatibility survey.md.
 HOSTS = {
     "apple": (
         {b"\x1b[c": b"\x1b[?1;2c", b"\x1b[>c": b"\x1b[>1;95;0c"},

@@ -459,7 +459,7 @@ struct ButtonsPage: View {
     }
 
     /// Why this host answers the way it does — one observed reason each, from
-    /// `Documentation/Terminal-compatibility.md`, which is where any correction
+    /// `Documentation/Terminals/Terminal compatibility survey.md`, which is where any correction
     /// to them belongs first.
     private static func hyperlinkNoteKey(for program: TerminalClient.Program) -> String {
         switch program {

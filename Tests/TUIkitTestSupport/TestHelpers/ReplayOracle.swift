@@ -16,7 +16,7 @@
 //  cell, which nothing shows. Until 2026-09-25 the colours were compared as
 //  SPELLED and the attributes not at all, and a spinner in a reversed row, which
 //  the tick drew unreversed, passed: the two spellings differed only by the 7
-//  (`Documentation/Terminal-compatibility.md`, the ground note). The render is
+//  (`Documentation/Terminals/Terminal compatibility survey.md`, the ground note). The render is
 //  the oracle rather than the
 //  row the replay started from, because only a render knows what the screen
 //  should show at a later step; the row the replay starts from is what it

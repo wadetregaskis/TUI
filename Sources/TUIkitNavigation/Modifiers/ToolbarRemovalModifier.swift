@@ -3,7 +3,7 @@
 //
 //  `View.toolbar(removing:)`: take away a control the framework provides by
 //  default. TUIkit's window bars hold only what a `.toolbar` places in them
-//  (see `Documentation/SwiftUI-compatibility.md` §2.6); the one default item it
+//  (see `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6); the one default item it
 //  has is the split view's sidebar toggle, which lives on the split itself.
 //
 //  Created by Wade Tregaskis
@@ -140,7 +140,7 @@ extension View {
     ///
     /// The window's bars put no default item of their own beside what a
     /// `.toolbar` places in them, so the split view's handles are all there is
-    /// to remove (see `Documentation/SwiftUI-compatibility.md` §2.6).
+    /// to remove (see `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6).
     ///
     /// - Parameter defaultItemKind: The kind of control to remove, or `nil`.
     /// - Returns: A view whose split views omit that control.

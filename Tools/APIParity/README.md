@@ -84,7 +84,7 @@ synthesizes and a graph built from source therefore leaves out:
 ### Extra OPTIONAL arguments are not a difference
 
 The target is *source* compatibility, not identical declarations (see the two
-rules at the top of `Documentation/SwiftUI-compatibility.md`), so a TUIkit
+rules at the top of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`), so a TUIkit
 function may append parameters of its own after SwiftUI's — `.alert` carries
 `borderStyle:`/`borderColor:`/`titleColor:` here. Comparing labels alone reads
 those as absences, and the report claiming TUIkit has no `.alert` is simply
@@ -207,7 +207,7 @@ inserts the same space. Three things would, in increasing order of cost:
    an inventory of every symbol.
 2. **Differential rendering.** Compile the *same* snippet against both, render
    SwiftUI headlessly (`NSHostingView` + `cacheDisplay`, which
-   `Documentation/SwiftUI-compatibility.md` already cites for label metrics) and
+   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` already cites for label metrics) and
    TUIkit into a `FrameBuffer`, then compare *structural* facts rather than
    pixels: relative order, which things share a left edge, where text wraps,
    what is clipped. Pixels will never match; "these three labels line up" should.

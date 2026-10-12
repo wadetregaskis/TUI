@@ -30,7 +30,7 @@ struct LiveTerminalPaletteRenderTests {
         TerminalColors.RGB(red: red, green: green, blue: blue)
     }
 
-    /// Apple Terminal "Basic" as it reports itself (Terminal-compatibility.md, measured
+    /// Apple Terminal "Basic" as it reports itself (Terminal compatibility survey.md, measured
     /// 2026-09-14): black on white, and its sixteen.
     private static let appleTerminal = TerminalColors(
         foreground: rgb(0, 0, 0), background: rgb(255, 255, 255),

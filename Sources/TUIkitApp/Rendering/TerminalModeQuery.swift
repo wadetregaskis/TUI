@@ -35,7 +35,7 @@ import TUIkitFoundation
 /// DECRQM is `CSI ? Ps $ p`: a private-parameter marker *and* an intermediate
 /// byte, which is precisely the shape Apple Terminal's parser fails to consume —
 /// it prints the final `p` on the user's screen. See
-/// `Documentation/Terminal-compatibility.md`. So this is asked only of a host
+/// `Documentation/Terminals/Terminal compatibility survey.md`. So this is asked only of a host
 /// already identified as one that answers it, never blind.
 enum TerminalModeQuery {
 

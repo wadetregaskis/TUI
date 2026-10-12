@@ -103,7 +103,7 @@ struct TerminalImagePlaceholderWidthTests {
         #expect(String(Self.symbol).withTerminalAppCursorCompensation() != String(Self.symbol))
     }
 
-    /// Hazard 2 of `Documentation/Terminal graphics protocols.md`, pinned as a
+    /// Hazard 2 of `Documentation/Images and terminal graphics/Terminal graphics protocols.md`, pinned as a
     /// decision rather than left as an accident: a row carrying an image
     /// declines the cell-span diff and is rewritten whole.
     ///

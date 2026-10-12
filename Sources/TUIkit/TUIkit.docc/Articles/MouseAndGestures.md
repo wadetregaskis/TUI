@@ -153,7 +153,7 @@ view does not handle bubbles to an ancestor menu, the way the wheel does.
 Not every terminal will give you the right button: iTerm2 keeps it for its own
 menu by default, so TUIkit also accepts <kbd>Ctrl</kbd>-click, and
 <kbd>Shift</kbd>+<kbd>F10</kbd> opens the menu of whatever is focused. See
-`Documentation/Terminal-compatibility.md` for what each terminal forwards.
+`Documentation/Terminals/Terminal compatibility survey.md` for what each terminal forwards.
 A <kbd>Ctrl</kbd>-click is the secondary click: it never starts a text
 selection, a scroll view's background passes it on to a menu around it — and
 takes it as its click, focusing the scroll view, only where nothing else
@@ -337,7 +337,7 @@ WindowGroup { LogView() }
 Where a copy goes depends on where the user is: by OSC 52 to a terminal that
 writes it, to this machine's clipboard only when the terminal is on this
 machine, and otherwise nowhere — and the status bar says which. See
-`Documentation/Terminal-compatibility.md`, "OSC 52 clipboard writes".
+`Documentation/Terminals/Terminal compatibility survey.md`, "OSC 52 clipboard writes".
 
 There is no keyboard route to the screen selection: what it selects is what a
 pointer points at. Text the app means to be copied from the keyboard belongs in

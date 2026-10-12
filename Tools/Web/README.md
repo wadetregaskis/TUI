@@ -7,7 +7,7 @@ open http://127.0.0.1:8000/
 ```
 
 The design, the toolchain requirements and the list of what does not work are in
-[`Documentation/WebAssembly.md`](../../Documentation/WebAssembly.md). This file
+[`Documentation/WebAssembly port.md`](<../../Documentation/WebAssembly port.md>). This file
 is the map of the directory.
 
 | File | What it is |
@@ -39,8 +39,8 @@ __tuikit.send("q")      // put bytes in without going through the keyboard
 
 The demo loads `@xterm/addon-unicode-graphemes` deliberately. Without it
 xterm.js uses Unicode 6 widths, an emoji occupies one cell, and everything after
-it on the row shifts left — see `Documentation/WebAssembly.md` and the
-`xterm.js` section of `Documentation/Terminal-compatibility.md` for the
+it on the row shifts left — see `Documentation/WebAssembly port.md` and the
+`xterm.js` section of `Documentation/Terminals/Terminal compatibility survey.md` for the
 measurements.
 
 If the terminal stays blank, check the status line under it: `fetching…` and

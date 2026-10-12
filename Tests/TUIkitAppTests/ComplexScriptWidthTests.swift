@@ -224,7 +224,7 @@ struct ComplexScriptWidthTests {
                 the per-scalar rule \(row.perScalar). Settle it by measuring the row — \
                 `advance_probe.py` for the internal column, `landing_probe.py` + \
                 `landing_analyze.py` for the paint — on each host in \
-                Documentation/Terminal-compatibility.md, and only then change a rule.
+                Documentation/Terminals/Terminal compatibility survey.md, and only then change a rule.
                 """,
                 isIntermittent: false
             ) {

@@ -16,7 +16,7 @@ import TUIkit
 
 /// A frame that writes more than one row holds the terminal's display while
 /// it is drawn (DEC mode 2026), and nothing else does. Step V2 of the Ghostty
-/// adoption (`Documentation/Ghostty-VT-adoption.md`, O1).
+/// adoption (`Documentation/Terminals/Ghostty VT reference adoption study.md`, O1).
 @MainActor
 @Suite("Synchronized output (DEC mode 2026)")
 struct SynchronizedOutputTests {

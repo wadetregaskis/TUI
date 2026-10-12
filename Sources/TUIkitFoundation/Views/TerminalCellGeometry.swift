@@ -70,7 +70,7 @@ private struct TerminalCellPixelsKey: EnvironmentKey {
     /// invisible because it cannot bite here: the picture handed over has
     /// already been resampled to the box, so the fit is exact and there is
     /// nothing to centre. It would bite the moment an UNRESAMPLED image were
-    /// transmitted — see `Documentation/Compressed image transfer.md` §1.1.
+    /// transmitted — see `Documentation/Images and terminal graphics/Compressed image transfer.md` §1.1.
     static let defaultValue = TerminalCellPixels(width: 8, height: 16)
 }
 

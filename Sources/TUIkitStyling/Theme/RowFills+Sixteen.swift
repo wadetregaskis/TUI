@@ -20,7 +20,7 @@ extension RowFills {
     }
 
     /// Apple Terminal's sixteen, as its OSC 4 replies reported them (455.1, "Basic",
-    /// 2026-09-14; `Documentation/Terminal-compatibility.md`): the other table the
+    /// 2026-09-14; `Documentation/Terminals/Terminal compatibility survey.md`): the other table the
     /// shipped palettes carry picks for.
     static let appleTable: [UInt32] = [
         0x000000, 0x990000, 0x00A600, 0x999900, 0x0000B3, 0xB300B3, 0x00A6B3, 0xBFBFBF,

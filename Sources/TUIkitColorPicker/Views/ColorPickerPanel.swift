@@ -187,7 +187,7 @@ package struct _ColorPickerBody: View {
 
     /// Whether the opacity row is offered. Defaulted on, because a gradient stop —
     /// the other editor that embeds this body — is exactly the place a translucent
-    /// colour is worth editing (see `Documentation/Opacity as composition.md` §15).
+    /// colour is worth editing (see `Documentation/Colour and styling/Opacity as composition.md` §15).
     /// The tone-curve editor turns it off: a tone curve keeps each pixel's own alpha
     /// and ignores its stops'.
     var supportsOpacity: Bool = true
@@ -323,7 +323,7 @@ package struct _ColorPickerBody: View {
     /// have earned: the preview block above states its colour's opaque spelling
     /// and claims an ``OpacityRegion`` over its own cells, so dragging this fades
     /// the block toward the panel actually behind it. No checkerboard, no assumed
-    /// backdrop — see `Documentation/Opacity as composition.md` §27.
+    /// backdrop — see `Documentation/Colour and styling/Opacity as composition.md` §27.
     private var opacityRow: some View {
         HStack(spacing: 1) {
             Text("Opacity").foregroundStyle(.palette.foregroundTertiary)

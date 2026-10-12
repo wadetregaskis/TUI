@@ -91,7 +91,7 @@ extension View {
     /// RGBA, not RGB — so `.colorMultiply(.white.opacity(0.5))` leaves every hue
     /// alone and fades the subtree by half, and `.colorMultiply(.clear)` hides it.
     /// The alpha becomes a fade of the whole layer rather than of its colours: see
-    /// `Documentation/Opacity as composition.md` §25.
+    /// `Documentation/Colour and styling/Opacity as composition.md` §25.
     ///
     /// - Parameter color: The colour to multiply by.
     /// - Returns: A tinted view.

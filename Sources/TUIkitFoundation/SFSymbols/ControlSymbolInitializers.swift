@@ -14,7 +14,7 @@
 //  That degradation is why these belong in the framework at all. A modifier
 //  that accepts a request the medium cannot meet and drops it is a stub, and
 //  TUIkit deletes those so the call fails to compile
-//  (Documentation/SwiftUI-compatibility.md). This is the other case: the
+//  (Documentation/SwiftUI parity/SwiftUI compatibility guide.md). This is the other case: the
 //  request is met where the terminal can meet it, and where it cannot the
 //  fallback is the same view the developer would have written by hand. Nothing
 //  is silently lost — an icon that was never renderable is not a dropped

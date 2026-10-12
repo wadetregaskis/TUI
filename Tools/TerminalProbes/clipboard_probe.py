@@ -6,7 +6,7 @@ Attributes?
 
 TUIkit copies through OSC 52 where a terminal is known to write it, and through
 the system clipboard helper only when the terminal is on this machine (see
-`ClipboardWriter` and Documentation/Terminal-compatibility.md, "OSC 52
+`ClipboardWriter` and Documentation/Terminals/Terminal compatibility survey.md, "OSC 52
 clipboard writes"). This measures what that table rests on.
 
 Run INSIDE the terminal under test. Nothing here needs TUIkit built.

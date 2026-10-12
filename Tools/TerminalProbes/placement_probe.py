@@ -363,7 +363,7 @@ def main():
         #
         # Skipped outright on a terminal that answered no Kitty query, and that
         # is not tidiness. Apple Terminal does not parse APC — it PRINTS the
-        # payload (measured; see `Documentation/Terminal graphics protocols.md`)
+        # payload (measured; see `Documentation/Images and terminal graphics/Terminal graphics protocols.md`)
         # — so sending it megabytes of base64 would spray them across the
         # screen and take a long time doing it. A probe may not wedge the
         # terminal it is measuring.

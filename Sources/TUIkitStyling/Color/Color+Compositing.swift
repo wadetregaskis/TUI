@@ -68,7 +68,7 @@ extension Color {
     /// space every 8-bit compositor mixes in, and what SwiftUI is measured to
     /// use. `View.opacity(_:)`, the transition dissolve and every style
     /// derivation therefore go through ``opacity(_:over:)``; see
-    /// `Documentation/Opacity as composition.md`, rule 5, for the numbers and
+    /// `Documentation/Colour and styling/Opacity as composition.md`, rule 5, for the numbers and
     /// the reversal.
     ///
     /// Its ends follow ``lerp(_:_:phase:)``'s rule, weighted the same way: at an
@@ -89,7 +89,7 @@ extension Color {
         switch Self.blendEnds(self, surface, phase: 1 - alpha) {
         case .unresolved: return self
         // Opaque, as the arithmetic below always was: this blend ignores the alpha
-        // either colour carries (§44.1 of `Documentation/Opacity as composition.md`).
+        // either colour carries (§44.1 of `Documentation/Colour and styling/Opacity as composition.md`).
         case .decided(let answer): return answer.opaqueSpelling
         case .mix(let over, let under): (source, behind) = (over, under)
         }

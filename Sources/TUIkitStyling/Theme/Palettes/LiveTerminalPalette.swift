@@ -48,8 +48,8 @@
 /// any other: the tiers dim toward the reported page, faces are tints again and the
 /// highlights are fills. The colours are still *emitted* as slots and 39/49, so they keep
 /// following the user's profile; the report only says what they paint. See
-/// `Documentation/Opacity as composition.md` §75–§91 and
-/// `Documentation/Terminal-compatibility.md`.
+/// `Documentation/Colour and styling/Opacity as composition.md` §75–§91 and
+/// `Documentation/Terminals/Terminal compatibility survey.md`.
 ///
 /// ```swift
 /// WindowGroup { ContentView() }

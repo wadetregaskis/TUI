@@ -31,7 +31,7 @@
 /// mouse reporting open, and a terminal that forwards the modified click to
 /// the application cannot also act on it. iTerm2 is measured to do exactly
 /// that — ⌘-click arrives as the protocol's meta bit
-/// (`Documentation/Terminal-compatibility.md`, iTerm2 Input behaviour) — so
+/// (`Documentation/Terminals/Terminal compatibility survey.md`, iTerm2 Input behaviour) — so
 /// ⌘-click there reaches the app rather than the link. Shift is the
 /// conventional bypass for mouse reporting and is the gesture to try, but it
 /// is UNVERIFIED here and Ghostty's modifier-clicks are not captured at all.
@@ -44,7 +44,7 @@
 /// in between carry the link. The terminator is `ST` (`ESC \`) rather than the
 /// `BEL` xterm also accepts — that is the form the specification gives, it is
 /// what tmux writes, and all four measured hosts swallow both (see
-/// `Documentation/Terminal-compatibility.md`). `BEL` would additionally put a
+/// `Documentation/Terminals/Terminal compatibility survey.md`). `BEL` would additionally put a
 /// C0 control inside every link, which is a byte the row sanitiser has to
 /// reason about for no gain.
 ///
@@ -106,7 +106,7 @@ public struct TerminalHyperlink: Sendable, Equatable {
     /// is too long to send.
     ///
     /// Two rules beyond the encoding, both from the OSC 8 specification and
-    /// Ghostty's reference (`Documentation/Terminal-compatibility.md`, "A
+    /// Ghostty's reference (`Documentation/Terminals/Terminal compatibility survey.md`, "A
     /// `file:` link names its host"):
     ///
     /// - **A `file:` URI names its host.** `file:///path` (and `file:/path`)
@@ -130,7 +130,7 @@ public struct TerminalHyperlink: Sendable, Equatable {
     /// The longest URI, in bytes after encoding, that ``opening`` will send.
     ///
     /// 2083 is the cap VTE applies, and iTerm2 drops a link that long too
-    /// (`Documentation/Ghostty-VT-adoption.md`, K5; read, not measured here).
+    /// (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K5; read, not measured here).
     /// Sending one would buy nothing on either and cost every byte of it each
     /// time the row is redrawn.
     public static let maximumURILength = 2083

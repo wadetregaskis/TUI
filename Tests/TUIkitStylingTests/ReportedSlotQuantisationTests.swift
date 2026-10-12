@@ -21,7 +21,7 @@ struct ReportedSlotQuantisationTests {
     }
 
     /// Apple Terminal 455.1's "Basic" sixteen, as its OSC 4 replies reported them on
-    /// 2026-09-14 (Terminal-compatibility.md), in slot order. Only slot 0 is xterm's.
+    /// 2026-09-14 (Terminal compatibility survey.md), in slot order. Only slot 0 is xterm's.
     private static let appleBasic = [
         rgb(0, 0, 0), rgb(153, 0, 0), rgb(0, 166, 0), rgb(153, 153, 0),
         rgb(0, 0, 179), rgb(179, 0, 179), rgb(0, 166, 179), rgb(191, 191, 191),
@@ -30,7 +30,7 @@ struct ReportedSlotQuantisationTests {
     ]
 
     /// iTerm2 3.7.1's "Default" sixteen, as reported on 2026-09-14
-    /// (Terminal-compatibility.md), in slot order.
+    /// (Terminal compatibility survey.md), in slot order.
     private static let iTerm2Default = [
         rgb(21, 25, 30), rgb(167, 69, 50), rgb(87, 191, 56), rgb(199, 196, 63),
         rgb(46, 67, 192), rgb(177, 73, 184), rgb(89, 194, 198), rgb(199, 199, 199),
@@ -132,7 +132,7 @@ struct ReportedSlotQuantisationTests {
         }
     }
 
-    /// The example AppearanceAndColors.md and Terminal-compatibility.md give: `.red`,
+    /// The example AppearanceAndColors.md and Terminal compatibility survey.md give: `.red`,
     /// (255, 59, 48), is nearer xterm's and Apple Terminal's slot 9 than their slot 1, and
     /// nearer iTerm2's slot 1 (167, 69, 50) than its slot 9 (208, 126, 120).
     @Test("Color.red is SGR 91 by xterm's table and on Apple Terminal Basic, and 31 on iTerm2 Default")

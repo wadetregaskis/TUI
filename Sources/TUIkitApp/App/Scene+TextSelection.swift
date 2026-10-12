@@ -21,7 +21,7 @@ extension Scene {
     /// where an accidental drag leaves the clipboard alone. With this, every
     /// selection the user drags or double-clicks goes to the clipboard at the
     /// release, and the status bar says what became of it. See
-    /// `Documentation/Terminal-compatibility.md`, "OSC 52 clipboard writes",
+    /// `Documentation/Terminals/Terminal compatibility survey.md`, "OSC 52 clipboard writes",
     /// for where a copy goes.
     ///
     /// ```swift

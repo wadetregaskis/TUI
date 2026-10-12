@@ -95,7 +95,7 @@ struct ChromeGlyphAdvanceTests {
     /// 2026-10-05 symbols will be one host's, and the others still await it.
     /// (The coordinator's hand-rolled DSR of 2026-10-05 read all five at one
     /// cell on Apple Terminal 455.1, iTerm2 3.7.3, Warp v0.2026.09.30 and tmux
-    /// 3.7c; it is in `Documentation/Terminal-compatibility.md`, "Key symbols",
+    /// 3.7c; it is in `Documentation/Terminals/Terminal compatibility survey.md`, "Key symbols",
     /// and not a record, so nothing here asserts it.)
     private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
         let newKeySymbols: Set<String> = [

@@ -6,7 +6,7 @@ Why this exists: `TERM_PROGRAM` is how TUIkit recognises its host, and ssh does
 not forward it (OpenSSH sends `LANG` and `LC_*` only). A TUIkit app reached over
 ssh therefore sees an unidentified terminal and applies NO cursor-advance
 compensation, which shifts every row carrying an under-advancing cluster — the
-exact class of bug `Documentation/Terminal-compatibility.md` exists to record.
+exact class of bug `Documentation/Terminals/Terminal compatibility survey.md` exists to record.
 An escape query has no such problem: it is answered by the terminal itself, at
 the far end of however many hops.
 

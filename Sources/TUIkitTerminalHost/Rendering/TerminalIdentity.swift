@@ -83,7 +83,7 @@ extension TerminalHost {
     ///
     /// (Ghostty's and Warp's replies were read out of their shipped binaries;
     /// the XTVERSION column is the measured table in
-    /// `Documentation/Terminal-compatibility.md`.)
+    /// `Documentation/Terminals/Terminal compatibility survey.md`.)
     ///
     /// All three clauses carry weight, and each excludes something the others
     /// do not:

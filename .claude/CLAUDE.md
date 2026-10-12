@@ -61,7 +61,7 @@
   not motivated by profiling — tooling, unrelated fixes — are exempt.)
 
 ### Terminal-specific behaviour (non-negotiable)
-- **Consult and update `Documentation/Terminal-compatibility.md`** for any
+- **Consult and update `Documentation/Terminals/Terminal compatibility survey.md`** for any
   change that relies on terminal-specific behaviour (`TerminalHost`, cursor
   advance models, `FrameDiffWriter` compensation, chrome glyph selection).
   It is the canonical, version-stamped record of measured terminal

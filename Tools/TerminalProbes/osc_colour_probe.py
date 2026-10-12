@@ -468,7 +468,7 @@ def decrqss_reply(token):
 
 def decrqss_is_safe():
     """DECRQSS is a DCS. Apple Terminal prints a DCS payload (measured, see
-    Terminal-compatibility.md), and GNU screen passes a DCS payload through to its
+    Terminal compatibility survey.md), and GNU screen passes a DCS payload through to its
     outer terminal, where it would print on the real screen without moving
     screen's own cursor. So neither is asked; tmux consumes DCS itself."""
     if os.environ.get("STY"):

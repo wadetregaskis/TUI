@@ -4,7 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 //
-//  Translation fragment for the SwiftUI-compatibility (§4a) demo additions:
+//  Translation fragment for the SwiftUI compatibility guide's §4a demo additions:
 //  Text(_:format:), \.locale, .focusable, .searchable, and EditMode/EditButton.
 //  English is the source of truth; every other language mirrors the same key
 //  set. (This fragment was English-only when the §4a demos landed, which left

@@ -1,7 +1,7 @@
 # Measurement records
 
 Written by a probe and never by hand. These are the evidence behind the
-tables in `Documentation/Terminal-compatibility.md`. The doc explains what
+tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
 conditions. Eight kinds of file live here:
 

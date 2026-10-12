@@ -2,7 +2,7 @@
 //  ReplayedEraseFieldTests.swift
 //
 //  On every host that advances too little over some glyph — Apple Terminal,
-//  iTerm2, Ghostty, Warp (`Documentation/Terminal-compatibility.md`) — the
+//  iTerm2, Ghostty, Warp (`Documentation/Terminals/Terminal compatibility survey.md`) — the
 //  writer's cursor-advance compensation puts an erase (`ECH`, `ESC[nX`) in front
 //  of it, and an erase paints in whatever background is in force at that moment.
 //  So when a replayed frame is compensated matters as much as how: its fields
@@ -43,7 +43,7 @@ struct ReplayedEraseFieldTests {
         }
 
         /// Two cells claimed, fewer advanced — measured per host; see
-        /// `Documentation/Terminal-compatibility.md`.
+        /// `Documentation/Terminals/Terminal compatibility survey.md`.
         var glyph: String {
             switch self {
             case .appleTerminal, .iTerm2: "\u{2699}\u{FE0F}"  // ⚙️

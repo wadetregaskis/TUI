@@ -45,7 +45,7 @@ sends no graphics at all and shows only the Q10 card.
 **Never trust an `OK` alone.** The xterm.js image addon's beta acknowledges a
 placement and was measured drawing nothing, and iTerm2 3.6.11 answered `OK`
 to a placement whose two-mark placeholder cells it never drew
-(Terminal-compatibility.md: xterm.js's "Graphics" section, and "What each
+(Terminal compatibility survey.md: xterm.js's "Graphics" section, and "What each
 host advertises"). So before Q1 the probe places an id it never sent, which
 must answer `ENOENT`; a host that answers `OK` there leaves every automatic
 OK-against-ENOENT reading (Q6's, Q8's) null. And every automatic reading that
@@ -257,7 +257,7 @@ ST = b"\x1b\\"
 YES_NO = (("y", "yes"), ("n", "no"), ("s", "can't tell"))
 REFUSED_HOSTS = {
     "Apple_Terminal": "Apple Terminal prints APC payloads as text "
-                      "(Terminal-compatibility.md, \"What each host advertises\")",
+                      "(Terminal compatibility survey.md, \"What each host advertises\")",
 }
 # What a host's reply to a graphics command looks like: `ESC _ G keys ; message ESC \`.
 REPLY = re.compile(rb"\x1b_G([^;\x1b]*);([^\x1b]*)\x1b\\")

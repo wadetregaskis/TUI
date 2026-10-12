@@ -128,7 +128,7 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     ///   above `LocalizedStringKey` for a literal anyway once the initializer
     ///   takes another required argument, so the literal stops being a key with
     ///   no diagnostic. Swift 6.2 did not, which is how the concrete spelling
-    ///   shipped working and later broke — see `SwiftUI-compatibility.md` §4a.
+    ///   shipped working and later broke — see `SwiftUI compatibility guide.md` §4a.
     ///   The generic spelling is correct on both.
     ///
     /// SwiftUI has no equivalent — its `LocalizedStringKey` is opaque, and a

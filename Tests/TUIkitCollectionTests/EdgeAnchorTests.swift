@@ -1,7 +1,7 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  EdgeAnchorTests.swift
 //
-//  `Documentation/Scroll-anchoring.md` §1.1's two POSITIONAL modes: Top ("the
+//  `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1's two POSITIONAL modes: Top ("the
 //  view stays at the top, irrespective of rows being added, removed, or
 //  moved") and Bottom (follow-the-log). They name an EDGE, never a row — which
 //  is exactly what separates them from Row mode, and what these tests pin.

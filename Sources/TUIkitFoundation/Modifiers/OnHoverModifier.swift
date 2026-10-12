@@ -158,7 +158,7 @@ enum HoverTransition {
 ///
 /// The location is a ``CellPoint`` where SwiftUI's is a `CGPoint`: a terminal
 /// reports the pointer's cell and nothing finer (§2.2 of
-/// `Documentation/SwiftUI-compatibility.md`).
+/// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
 public enum HoverPhase: Equatable, Sendable {
     /// The pointer is over the view, at this cell.
     case active(CellPoint)

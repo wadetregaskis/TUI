@@ -94,7 +94,7 @@ extension TerminalClient {
     /// in OSC 8, against the same label bare — and all four hosts swallow every
     /// spelling on both screen buffers, an OSC command number nothing
     /// implements included (2026-09-02; see
-    /// `Documentation/Terminal-compatibility.md`).
+    /// `Documentation/Terminals/Terminal compatibility survey.md`).
     ///
     /// So the cost of being wrong here is a link that does nothing, not a
     /// corrupted row. That is why the table can be generous and why nothing

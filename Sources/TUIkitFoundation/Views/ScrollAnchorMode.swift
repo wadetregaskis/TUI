@@ -9,7 +9,7 @@ import TUIkitCore
 // MARK: - Anchor mode
 
 /// Which policy a scrollable applies to its persisted anchor when the data
-/// changes underneath it — the four modes of `Documentation/Scroll-anchoring.md`
+/// changes underneath it — the four modes of `Documentation/Layout and scrolling/Scroll anchoring.md`
 /// §1.1, made explicit rather than implied by which render path happens to run.
 ///
 /// | Mode | Meaning |

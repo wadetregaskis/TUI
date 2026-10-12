@@ -2,7 +2,7 @@
 //  GhosttyWarpCompatibilityTests.swift
 //
 //  Pins the Ghostty and Warp advance models + output paths against the
-//  DSR-measured behaviour recorded in Documentation/Terminal-compatibility.md
+//  DSR-measured behaviour recorded in Documentation/Terminals/Terminal compatibility survey.md
 //  (Ghostty 1.3.1, Warp v0.2026.07.08, alternate screen, 2026-07-14).
 //
 //  Created by LAYERED.work

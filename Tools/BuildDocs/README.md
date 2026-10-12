@@ -109,7 +109,7 @@ TUIkitCore's `OpacityRegion` …), and one for the `TUIkit/` that roots
 the unified build, which is the one `--strict` checks. The other way, one
 reference, needs the archive this script builds hosted somewhere and
 `.spi.yml`'s `external_links` pointed at it (decisions file
-`SwiftUI-API-completion-decisions-SPB1.md`, B-SPB1-2).
+`Step B1, TUIkitFoundation and the umbrella (SPB1).md`, B-SPB1-2).
 
 `check_spi_targets.py` fails the build (it runs first, and costs nothing) when
 the list lacks a module of `MODULES` or does not start with the umbrella: when

@@ -65,7 +65,7 @@ public struct DragSession: Identifiable {
 
     /// Location of the drag session in the local coordinate space — in the
     /// source view's own cells, a ``CellPoint`` where SwiftUI's is a `CGPoint`
-    /// (§2.2 of `Documentation/SwiftUI-compatibility.md`).
+    /// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
     public var location: CellPoint
 
     /// The index of the dragged item under the cursor.

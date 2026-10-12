@@ -61,7 +61,7 @@ private func isFlexibleAcross(
 /// its own doc comment) — only this `Layout`-value spelling does not. Owner's
 /// decision, 2026-09-20: deliberate, to fit more naturally into the terminal
 /// environment, the same top-left-reading reasoning
-/// `Documentation/SwiftUI-compatibility.md` §2.7 gives for a fixed `.frame`'s
+/// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.7 gives for a fixed `.frame`'s
 /// default; §2.10 states it for this type. Pass an explicit
 /// `alignment: .center` for the SwiftUI default.
 public struct VStackLayout: Layout, Sendable, Equatable {
@@ -179,7 +179,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
 /// default (matching `HStack`, which TUIkit's own `HStack` keeps), but this
 /// `Layout`-value spelling defaults to `.top` instead, to fit more naturally
 /// into the terminal environment. See
-/// `Documentation/SwiftUI-compatibility.md` §2.10.
+/// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.10.
 public struct HStackLayout: Layout, Sendable, Equatable {
     /// How subviews line up across the stack's height.
     public var alignment: VerticalAlignment
@@ -357,7 +357,7 @@ extension ZStackLayout: Animatable {
 /// `Layout`-value spelling does not. Owner's decision, 2026-09-20: deliberate,
 /// to fit more naturally into the terminal environment (the same reasoning as
 /// ``VStackLayout``'s and ``HStackLayout``'s alignment defaults — see
-/// `Documentation/SwiftUI-compatibility.md` §2.10).
+/// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.10).
 public struct ZStackLayout: Layout, Sendable, Equatable {
     /// Where subviews sit within the stack's own frame.
     public var alignment: Alignment

@@ -27,7 +27,7 @@ import TUIkitStyling
 /// is only the geometry — `OverlayLayer.placed(maxWidth:maxHeight:)` clamps to
 /// the screen and flips above the anchor when the panel would overflow the
 /// bottom, given `anchorHeight`. That is rules 1–3 of
-/// `Documentation/Tooltips.md` §5, already built and already tested.
+/// `Documentation/Controls and presentation/Tooltips and help in a terminal.md` §5, already built and already tested.
 ///
 /// ## What is deliberately not implemented yet
 ///

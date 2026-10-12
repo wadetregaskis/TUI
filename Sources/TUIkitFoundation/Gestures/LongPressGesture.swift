@@ -56,7 +56,7 @@ public struct LongPressGesture: Gesture {
 
     /// The maximum distance that the long press can move before the gesture
     /// fails, in cells along either axis — cells where SwiftUI counts points
-    /// (§2.1 of `Documentation/SwiftUI-compatibility.md`).
+    /// (§2.1 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
     public var maximumDistance: Int
 
     /// Creates a long-press gesture with a minimum duration and a maximum

@@ -231,7 +231,7 @@ extension ANSIRenderer {
     /// restated, the 7 exchanges exactly `ink` and `field`, and a 39 or 49 is
     /// emitted only where one of them is the terminal's own colour. What each host
     /// paints for SGR 7 is recorded under "Reverse video (SGR 7)" in
-    /// `Documentation/Terminal-compatibility.md`.
+    /// `Documentation/Terminals/Terminal compatibility survey.md`.
     ///
     /// A child that states its own colours still reverses its own pair: the
     /// restatement comes before whatever follows the reset.

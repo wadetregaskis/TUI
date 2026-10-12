@@ -28,7 +28,7 @@ private struct AlphaTestPalette: Palette {
 }
 
 /// A palette whose own slots are faded — the second tier of
-/// `Documentation/Opacity as composition.md` §16.1. `Palette` is a public protocol
+/// `Documentation/Colour and styling/Opacity as composition.md` §16.1. `Palette` is a public protocol
 /// of plain `var …: Color { get }` members and nothing normalises what a
 /// conformance returns, so this is a thing an app can write.
 private struct FadedSlotPalette: Palette {

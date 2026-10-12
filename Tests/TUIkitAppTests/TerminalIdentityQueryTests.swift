@@ -64,7 +64,7 @@ struct TerminalIdentityQueryTests {
         "No other terminal is mistaken for Apple Terminal",
         arguments: [
             // Ghostty 1.3.1 — DA strings read from the shipped binary; answers
-            // XTVERSION (Documentation/Terminal-compatibility.md).
+            // XTVERSION (Documentation/Terminals/Terminal compatibility survey.md).
             ("ghostty", "\u{1B}P>|ghostty 1.3.1\u{1B}\\\u{1B}[?62;22c\u{1B}[>1;10;0c"),
             // Warp — DA1 read from the shipped binary; answers XTVERSION.
             ("warp", "\u{1B}P>|Warp(v0.2026.07)\u{1B}\\\u{1B}[?62c\u{1B}[>0;95;0c"),
@@ -247,7 +247,7 @@ struct TerminalIdentityQueryTests {
     /// screen when the sequence carries BOTH a `?` private-parameter marker
     /// and an ECMA-48 intermediate byte (0x20…0x2F) — measured 2026-08-26 on
     /// 455.1 across all sixteen intermediates, with either half alone
-    /// consumed correctly. See `Documentation/Terminal-compatibility.md`.
+    /// consumed correctly. See `Documentation/Terminals/Terminal compatibility survey.md`.
     ///
     /// The startup query runs before anything is on screen and its whole
     /// point is to be harmless to a terminal that answers none of it, so a

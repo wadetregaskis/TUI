@@ -158,7 +158,7 @@ extension TrackConfiguration {
     /// ``TrackStyle/block``. The background is a solid fill, not a `░` shade
     /// glyph: mixing a full-cell solid block with a dithered shade makes the
     /// filled run read TALLER than the background on terminals whose font
-    /// draws `░▒▓` as a sparse crosshatch (iTerm2) — see Terminal-compatibility.md.
+    /// draws `░▒▓` as a sparse crosshatch (iTerm2) — see Terminal compatibility survey.md.
     /// A uniform two-tone bar reads at a consistent height everywhere (same
     /// reasoning as ``blockFine``).
     public static let block = TrackConfiguration(fullGlyph: "█", background: .solid)

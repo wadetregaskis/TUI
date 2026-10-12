@@ -8,7 +8,7 @@
 //  TUIkit WITHOUT `@testable`, so it sees exactly the public surface an app
 //  sees. Reach for one internal symbol and the target stops compiling.
 //
-//  See `Documentation/Animating your own view efficiently.md` and the
+//  See `Documentation/Performance/Animating your own view efficiently.md` and the
 //  `AnimatingYourOwnView` article.
 //
 //  Created by Wade Tregaskis

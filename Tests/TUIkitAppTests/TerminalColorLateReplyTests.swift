@@ -34,7 +34,7 @@ struct TerminalColorLateReplyTests {
     typealias RGB = TerminalColors.RGB
 
     /// Ghostty 1.3.1's default configuration, as it answered on 2026-09-14
-    /// (Documentation/Terminal-compatibility.md).
+    /// (Documentation/Terminals/Terminal compatibility survey.md).
     static let ghosttyBackground = RGB(red: 40, green: 44, blue: 52)
     static let ghosttyForeground = RGB(red: 255, green: 255, blue: 255)
     static let ghosttySlots = [
@@ -290,7 +290,7 @@ struct TerminalColorLatePublicationTests {
     }
 
     /// Apple Terminal 455.1's "Basic" sixteen, as its OSC 4 replies reported them
-    /// on 2026-09-14 (Documentation/Terminal-compatibility.md), in slot order.
+    /// on 2026-09-14 (Documentation/Terminals/Terminal compatibility survey.md), in slot order.
     private static let appleBasic = [
         rgb(0, 0, 0), rgb(153, 0, 0), rgb(0, 166, 0), rgb(153, 153, 0),
         rgb(0, 0, 179), rgb(179, 0, 179), rgb(0, 166, 179), rgb(191, 191, 191),

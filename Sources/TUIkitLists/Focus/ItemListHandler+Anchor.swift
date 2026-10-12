@@ -1,7 +1,7 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ItemListHandler+Anchor.swift
 //
-//  How `List` and `Table` honour `Documentation/Scroll-anchoring.md` §1.1 —
+//  How `List` and `Table` honour `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 —
 //  every mode, in one place, expressed in the list's ROW-based scroll offset:
 //
 //  - **Row**: a bound `.anchorPosition(.row(id))` (set directly, or via the

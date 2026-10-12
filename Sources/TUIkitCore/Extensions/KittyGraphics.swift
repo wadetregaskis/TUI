@@ -25,7 +25,7 @@
 /// refuses virtual placements *by name*, so a host table written from its
 /// feature list would have been wrong. The full comparison, and the
 /// measurements behind it, are in
-/// `Documentation/Terminal graphics protocols.md`.
+/// `Documentation/Images and terminal graphics/Terminal graphics protocols.md`.
 ///
 /// ## The three steps
 ///

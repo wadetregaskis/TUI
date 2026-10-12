@@ -1,0 +1,92 @@
+# PRs #60, #61, #62 — pass collectors, pending effect commit, diagnostics
+
+Commits 136–153 · 2026-07-21/22 · merged as `079f7d91`, `618e0c3f`, `da0c247c`
+
+The remaining three slices of the render-phase project `PR 59, render phase foundation.md` began. Taken
+together they change *when* a frame's effects happen: collected per traversal,
+committed once from the final one.
+
+> The full reasoning, the measurements, and the decision now live in
+> `Documentation/Performance/Discarded render passes and redundant frames.md`.
+
+## Decision
+
+**`defer`** — a real backlog item, not a shrug. It is the only design that
+closes the gap `a338e81f` pins, and there is no cheaper way to close it.
+
+### What it is
+
+- **`RenderPassCollectors`** (#60): fresh scratch instances per traversal, with
+  `adopt(from:)` on `KeyEventDispatcher`, `PreferenceStorage` and
+  `AppHeaderState`. Live managers adopt the *final* pass atomically, just before
+  `writeFrame`; the measurement pass and any superseded main pass are discarded
+  with their collectors and staged focus registrations.
+- **`PendingFrameEffects`** (#61): an ordered per-pass command log for lifetime
+  effects plus GC liveness sets, replayed once at frame commit **after** terminal
+  output. A task from a discarded pass is never started; `onAppear` observes the
+  frame that was actually written.
+- **A body-mutation diagnostic** (#62): a traversal window on `AppState` that
+  reports main-thread invalidations raised *while the tree is being traversed*,
+  with the mutating subtree's identity, deduplicated per frame. Background tasks
+  and post-commit effects stay silent. It diagnoses and still honours the
+  invalidation — never swallows it.
+
+### Why it is deferred rather than declined
+
+`cdea2eec` closed the frame-1 half of the discarded-walk leak by marking that
+walk as a measurement, which works because it is known to be throwaway *before*
+it runs. The header-correction re-render is not: the loop renders at the
+estimated height, learns the real one afterwards, and only then re-renders.
+Marking its first walk would suppress effects on every frame where the height
+turns out unchanged — nearly all of them. **Effects have to be staged and
+adopted from the last pass.** There is no third option.
+
+So this is scheduled work, blocked only on effort. Two things to weigh when it
+is picked up:
+
+1. **Cost.** Fresh collectors per traversal is an allocation per pass, and the
+   pending log is another. The owner already has a live perf concern (see
+   `PR 52, stable structural identity.md`); this wants `Stress --bench` on both sides, not just a green
+   suite.
+2. **Order.** #60 (collectors) is a prerequisite for #61 (pending effects); #62's
+   diagnostic is independent and cheaper, and would immediately be useful — it is
+   what found the `_ImageCore` defect below.
+
+`8d63dadf` is worth remembering when the diagnostic lands: they had to key the
+traversal window to the **traversing thread's identity** rather than
+`Thread.isMainThread`, which is not reliable under the Swift concurrency runtime
+on Linux.
+
+`5d394e63` ("Remove token lifecycle and hydration legacy") is the cleanup that
+falls out once effects commit from the final tree; it has no meaning apart from
+that.
+
+## PR #63 — `_ImageCore` writes state during traversal · `adapt` (`75a732fa`)
+
+Their diagnostic immediately caught one: `_ImageCore` wrote its `lastSource`
+box unconditionally on every render, so **every image frame** raised a
+body-side-effect violation. Their fix derives the placeholder from
+`lastSource != source` instead, leaving the mounted task as the only writer.
+
+Ours does the same unconditional write — `manageLoadLifecycle` ends with
+`lastSourceBox.value = source`, outside any change check — and `StateBox.value`'s
+`didSet` invalidates unconditionally (it cannot compare: `Value` is not
+constrained to `Equatable`). The measure half is already guarded here, with a
+thorough comment; the render-pass write is not.
+
+**It kept the demand-driven loop permanently dirty: a screen containing an
+`Image` never idled.** Confirmed and fixed in `75a732fa` — assign only on change.
+
+It took the right instrument to establish it. A unit test failed to
+discriminate, because the invalidation sink defers its mutation to the
+main-actor frame boundary and a synchronous `renderToBuffer` never gets there;
+that probe was deleted rather than left asserting something it did not test.
+`Tools/Profiling/IdleProbe` — an `Image` alone on screen, no focus animation
+anywhere near it — measured the real thing:
+
+    before   text 0.0% / 0 B/s   image 2.0% / 0 B/s   spinner 0.4% / 1280 B/s
+    after    text 0.0% / 0 B/s   image 0.0% / 0 B/s   spinner 0.2% / 1280 B/s
+
+The signature is what makes it unmistakable: **CPU with zero bytes written**.
+The loop re-rendered, the diff writer correctly found nothing to say, and the
+frame was thrown away — a genuinely animating spinner cost a quarter as much.

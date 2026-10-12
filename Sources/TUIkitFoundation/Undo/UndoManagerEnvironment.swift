@@ -66,7 +66,7 @@ extension EnvironmentValues {
     /// Each event's registrations are one undo step, as `UndoManager` groups
     /// them on macOS. Where Foundation has no `UndoManager` (Linux), TUIkit
     /// provides one with the same Swift surface. See
-    /// `Documentation/Terminal-compatibility.md`, "Undo and redo".
+    /// `Documentation/Terminals/Terminal compatibility survey.md`, "Undo and redo".
     public package(set) var undoManager: UndoManager? {
         get { self[UndoManagerKey.self] }
         set { self[UndoManagerKey.self] = newValue }

@@ -824,7 +824,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// A focused text field is the most expensive idle control there is: it used
     /// to re-render the whole screen 20 times a second to blink one cell. On the
     /// Example's Forms page that was 41% of a core to emit two writes per second
-    /// (`Documentation/Performance-profile-2026-08.md` §9).
+    /// (`Documentation/Performance/Full performance profile of Stress and the Example (2026-08).md` §9).
     struct CursorCycle {
         /// One caret state per frame of a full cycle.
         let states: [(visible: Bool, color: Color)]

@@ -19,7 +19,7 @@ extension Unicode.Scalar {
     /// The image is therefore made of ordinary cells — measured, clipped,
     /// scrolled, composited and diffed like any other text — which is the
     /// whole reason this framework can afford to draw pictures at all. See
-    /// `Documentation/Terminal graphics protocols.md`.
+    /// `Documentation/Images and terminal graphics/Terminal graphics protocols.md`.
     ///
     /// ## Why it needs naming here, in the width code
     ///

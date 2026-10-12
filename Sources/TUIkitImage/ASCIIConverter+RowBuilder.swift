@@ -72,7 +72,7 @@ extension ASCIIConverter {
 /// `case .palette(let palette)` copies the palette out of the enum's payload —
 /// four references retained and released for every cell, TWICE a cell in the
 /// default half-block renderer, before a distance is computed. §42 of
-/// `Documentation/Performance-profile-2026-08.md` priced that copy at 14.0 →
+/// `Documentation/Performance/Full performance profile of Stress and the Example (2026-08).md` priced that copy at 14.0 →
 /// 18.8 ns on a per-pixel lookup nothing else had changed.
 ///
 /// And the palette re-resolved its search index per cell: `searchIndex` is a

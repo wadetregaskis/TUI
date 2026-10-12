@@ -45,7 +45,7 @@ extension ItemListHandler {
     /// from an edge rather than a gesture the user can reach for: once a scroll
     /// had released the view to `.window`, selecting a row did nothing, so there
     /// was no way back to row-anchoring at all. **Re-selection IS the restore**
-    /// (owner decision, 2026-07-31, `Documentation/Scroll-anchoring.md` §3.1) —
+    /// (owner decision, 2026-07-31, `Documentation/Layout and scrolling/Scroll anchoring.md` §3.1) —
     /// which requires that it work precisely when the view has departed, since
     /// that is the only time there is anything to restore. The rationale the old
     /// guard carried — "the user never asked for anchoring" — is the *declared
@@ -137,7 +137,7 @@ extension ItemListHandler {
     /// Single-selection mode toggles instead — a DELIBERATE divergence from
     /// macOS, for the same reason the line above gives: no terminal reports the
     /// command key, so the platform's own way of clearing a selection is not
-    /// available to reproduce. See `SwiftUI-compatibility.md` §2.11. The
+    /// available to reproduce. See `SwiftUI compatibility guide.md` §2.11. The
     /// keyboard path (Space toggles at the focus cursor) is unchanged.
     /// Whether a release stamped `clickCount` on `row` completes a
     /// multi-click ON THAT ROW.
@@ -197,7 +197,7 @@ extension ItemListHandler {
             // Clicking the selected row again CLEARS the selection, where
             // macOS (and so SwiftUI) leaves it alone and reserves deselection
             // for command-click. Deliberate, and documented in
-            // `SwiftUI-compatibility.md` §2.11: command-click does not survive
+            // `SwiftUI compatibility guide.md` §2.11: command-click does not survive
             // most terminal clients, so a port that copied the platform rule
             // here would ship a single-selection list with no way at all to get
             // back to "nothing selected". An obvious way to clear it is worth

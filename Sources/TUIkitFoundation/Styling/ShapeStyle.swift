@@ -148,7 +148,7 @@ extension ShapeStyle {
     /// anchors the ramp at itself, so three stacked rows under a vertical
     /// gradient `.in(_:)` a tall rect all render alike. That is measured
     /// SwiftUI behaviour, not a simplification — see
-    /// `Documentation/Gradients where a colour is accepted.md` §4, where it is
+    /// `Documentation/Colour and styling/Gradients where a colour is accepted.md` §4, where it is
     /// why `.in(_:)` cannot express "one ramp spanning a set of views".
     /// ``View/gradientExtent(_:)`` is the modifier that can, and it wins over
     /// this one because it names an origin as well as a size.
@@ -171,7 +171,7 @@ extension ShapeStyle {
 /// — mix each colour toward the page's background and answer with a concrete
 /// colour. Two things were wrong with that once `Color` could carry an alpha.
 ///
-/// It was the guess `Documentation/Opacity as composition.md` exists to remove: a
+/// It was the guess `Documentation/Colour and styling/Opacity as composition.md` exists to remove: a
 /// style faded here is composited at the CELL, over whatever is actually behind
 /// it, and the palette's background is only that when nothing else is. A faded
 /// label over a coloured panel came out mixed toward the page.

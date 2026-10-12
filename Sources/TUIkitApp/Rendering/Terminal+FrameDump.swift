@@ -51,7 +51,7 @@ extension Terminal {
     /// terminal with left-right margin mode (DEC mode 69) on: Ghostty's
     /// reference lists it as DECSLRM there, which would set margins instead
     /// of saving anything. Found by reading Ghostty's VT reference
-    /// (`Documentation/Ghostty-VT-adoption.md`, K6).
+    /// (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K6).
     ///
     /// Autowrap on for the notice and off again after it, where the app runs
     /// with it off (``outputModesOn``): a path in a deep working directory

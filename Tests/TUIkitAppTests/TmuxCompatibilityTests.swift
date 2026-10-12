@@ -9,7 +9,7 @@
 //  behind these numbers was taken five ways — with Apple Terminal, iTerm2,
 //  Ghostty and Warp attached, and with no client at all — and all five agree on
 //  all 58 probed clusters, so this model is client-independent by measurement.
-//  See Documentation/Terminal-compatibility.md.
+//  See Documentation/Terminals/Terminal compatibility survey.md.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

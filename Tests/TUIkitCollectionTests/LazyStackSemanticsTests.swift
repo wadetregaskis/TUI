@@ -2,7 +2,7 @@
 //  LazyStackSemanticsTests.swift
 //
 //  Pins the documented lazy-stack semantics and their deviations from
-//  SwiftUI (see §2.8 of Documentation/SwiftUI-compatibility.md, grounded in
+//  SwiftUI (see §2.8 of Documentation/SwiftUI parity/SwiftUI compatibility guide.md, grounded in
 //  the LazyVStack docs and WWDC26's "Dive into lazy stacks and scrolling").
 //  If viewport-driven laziness inside ScrollView is ever implemented, the
 //  ScrollView cases here change intentionally.

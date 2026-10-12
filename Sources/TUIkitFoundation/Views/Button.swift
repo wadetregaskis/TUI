@@ -540,7 +540,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         // and the windowed scrolling a `Picker` drop-down has always had. On the
         // page — and inside an INLINE menu, whose rows really are page focus
         // stops — this is nil and nothing changes. See
-        // `Documentation/Unifying the menu implementations.md`.
+        // `Documentation/Controls and presentation/Unifying the menu implementations.md`.
         //
         // Claimed on the RENDER pass only. A measure runs the same rows through
         // here, and the identities it hands them are its own — so letting a

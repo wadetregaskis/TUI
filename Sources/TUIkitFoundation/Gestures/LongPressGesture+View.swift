@@ -39,7 +39,7 @@ extension View {
     ///   - maximumDistance: How far, in cells along either axis, the pointer
     ///     may move from where the press began before the gesture fails —
     ///     cells where SwiftUI counts points (§2.1 of
-    ///     `Documentation/SwiftUI-compatibility.md`). One cell by default, the
+    ///     `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). One cell by default, the
     ///     nearest a terminal comes to SwiftUI's ten points.
     ///   - action: The action to perform when a long press is recognized.
     ///   - onPressingChanged: A closure to run when the pressing state of the

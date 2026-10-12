@@ -1,0 +1,112 @@
+# PR #64 — `issue/14-cache-effect-loss`
+
+Commits 159–165 · 2026-07-22
+
+Three ways a memoised subtree can serve something wrong, all in the
+`EquatableView` / `RenderCache` seam. This is the closest upstream has come to
+our own code so far, and the one PR in the review where I have **stopped short
+of a verdict on purpose**.
+
+## Decision
+
+One `have`, **two `queued` pending investigation**, and the characterization
+test queued with them.
+
+Recording an honest "not yet checked" rather than guessing: each of the two is a
+plausible live defect in our tree, each needs a real repro to confirm, and a
+wrong `have` here would close a door on something that serves stale pixels.
+
+## `3b6f99d4` — effect-bearing content must bypass the cache · `have`
+
+A subtree carrying `onAppear` / `.task` / a key handler must not be served from
+cache, or its effects stop being registered on the frames the cache answers.
+
+Ours declines by a different route and it already covers this:
+`LifecycleModifier` calls `volatileReadTracker?.recordRenderSideEffect()` at all
+three of its registration sites, and `EquatableView` refuses to **store** a
+buffer whose render tripped the tracker (alongside hit-test regions, overlays,
+and a mid-render state write). Upstream reaches the same place by snapshotting a
+per-pass effect-registration probe; the mechanism differs, the contract holds.
+
+## `e84738728c` — nested entries alive across an outer hit · `adapt` (`6b5700fe`)
+
+**Reproduced, then fixed.** A cache hit at an outer `.equatable()` skips the
+subtree, so a nested `.equatable()` never reaches `markActive` and
+`removeInactive` collected its entry at the end of every hit frame. The steady
+state was one entry where there should have been two, and the first frame the
+outer value changed, the inner subtree re-rendered from scratch.
+
+Ours already solved exactly this for `StateStorage` — `retainSubtree`, declared
+per pass by the same cache-hit path — so the cache got the twin rather than
+upstream's `markSubtreeActive` naming. Following the pattern that exists beats
+importing a second one for the same idea. (The `markSubtreeActive` helper the
+comparison names was ours too, adopted from `24039100`; the three calls it made
+are inline on the hit path of the shared `renderValueMemoized` now, which is what
+extends them to `_MemoizedRow`.)
+
+Costs nothing measurable (four `Stress --bench` scenarios within noise,
+identical checksums), though that is a weak result: the harness barely uses
+`.equatable()`. What bounds the cost is the shape — the ancestor walk runs only
+for entries *not* visited this pass.
+
+## `c48e35d7` — style environment in the cache key · `adapt` (`2eca36d9`)
+
+**Reproduced, then fixed — but not the way upstream did it.** Their
+`EnvironmentFingerprint` joins two named style values into the key. Ours detects
+the change **at the modifier**: `EnvironmentModifier` compares the value it
+applied at this identity last pass and clears the subtree when it differs.
+
+Same correctness, better shape. A fixed list leaves every style value nobody
+remembered to add still broken; comparing at the point of application covers all
+of them, including ones added later, and costs one comparison per modifier per
+pass instead of a fingerprint per memoized view per lookup.
+
+A value that is not `Equatable` cannot be compared at all, and what that costs
+depends on the route. Through `EnvironmentModifier` the `.incomparable` answer is
+acted on — it travels down on the environment and every memo below declines to
+store — so the failure mode there is lost memoization, not stale pixels. **The
+two style slots this item is about are not on that route.** `ColorEnvironment`
+notes them itself and matches `.changed` alone, so an `.incomparable` answer
+would fall through ignored while `noteAppliedEnvironment` deadened the slot for
+good (`previous.isComparable = false`, `RenderCache.swift:1079`) — it could never
+report a change again and the subtree would keep the ink it was painted with,
+which is the opposite failure. What keeps them off that path is that the slots
+hold a resolved, `Equatable` `Paint` rather than the caller's `ShapeStyle`, so
+the answer is unreachable there rather than unhandled.
+
+Affordable only because of the once-per-pass short circuit: two-pass layout
+visits one modifier many times per frame, and structural identity guarantees its
+value cannot change between those visits. Interleaved A/B puts the whole thing
+inside noise (`deep` 6860→7013 and 6895→6933 µs, `textwall` 3875→3822 and
+3847→3880 µs).
+
+A measurement lesson worth keeping: the first readings said "+10 to 20%" and
+were worthless — they compared against a baseline taken earlier in the same
+session, and the machine drifts ~20% (one scenario measured 400µs and 485µs on
+*unmodified* code). Only interleaved A/B means anything here.
+
+## `d4f7d3aa` — characterizing the effect loss · `adapt`
+
+Their test suite pins issue #14 from the failing side: lifecycle slots, tasks,
+key handlers, status-bar items, focus registrations and nested cache entries all
+vanishing across `EquatableView` hits, each under a `withKnownIssue` marker.
+
+We have no such holes to characterize, so the useful half is the *checklist*.
+`EquatableViewEffectGateTests` now pins the same contract from the working side:
+each of the six effect categories, placed **inside** a memoized subtree, must
+decline the cache — plus the rule upstream identified as the first-frame source,
+that a measure pass never stores.
+
+The placement is the whole finding here. `Leaf().equatable().onAppear {}` puts
+the effect *above* the boundary, where it re-registers every frame and caching
+the leaf below is perfectly correct; the first draft of the suite tested that by
+mistake and every case "failed". Only the effect *below* the boundary is at
+risk. That distinction is now a test of its own so the next reader does not have
+to rediscover it.
+
+## Why one stopped short
+
+Guessing `have` on either would have closed a door: one was a live perf defect,
+the other serves stale pixels. `PR 45, runtime.md` records what it costs when a probe
+agrees with its author by accident — writing the repro first is what separated
+"plausible" from "confirmed" here.

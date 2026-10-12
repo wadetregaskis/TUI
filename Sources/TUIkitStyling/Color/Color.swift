@@ -68,7 +68,7 @@ public struct Color: Sendable, Hashable {
     /// so a translucent colour reaching one is a debug failure rather than a
     /// silently opaque cell. The public spellings — `Color.clear`, a real
     /// `opacity(_:)`, the `opacity:` initialisers — land only once the paths a
-    /// reader will actually use honour it. See `Documentation/Opacity as
+    /// reader will actually use honour it. See `Documentation/Colour and styling/Opacity as
     /// composition.md`.
     public var alpha: UInt8 = 255
 
@@ -330,7 +330,7 @@ public struct Color: Sendable, Hashable {
     /// free to make orange. A colour the framework chooses on the user's behalf
     /// has to be either a palette role, which the app's theme defines, or
     /// ``default``, which is explicitly the user's own. See "What an ANSI
-    /// colour actually paints" in `Documentation/Terminal-compatibility.md`.
+    /// colour actually paints" in `Documentation/Terminals/Terminal compatibility survey.md`.
     ///
     /// Being semantic, they resolve at render time and return `nil` from
     /// ``rgbComponents`` until they do — see ``resolve(with:)``.
@@ -466,7 +466,7 @@ public struct Color: Sendable, Hashable {
     ///
     /// Indices 16-255, the cube and the grey ramp, count as ordinary RGB, being
     /// conventionally fixed; see "What an ANSI colour actually paints" in
-    /// `Documentation/Terminal-compatibility.md`. A semantic colour is not one
+    /// `Documentation/Terminals/Terminal compatibility survey.md`. A semantic colour is not one
     /// until it is resolved.
     package var isTerminalDefined: Bool {
         switch value {
@@ -537,7 +537,7 @@ extension Color {
     /// floor leaves it as asked, and a focus breath in it holds still. It still
     /// emits its slot's code either way. Bold may draw a standard slot's text in its
     /// bright twin on some terminals; see "What an ANSI colour actually paints" in
-    /// `Documentation/Terminal-compatibility.md`.
+    /// `Documentation/Terminals/Terminal compatibility survey.md`.
     ///
     /// `Color.palette256(1)` is the same slot spelled by index, which stays `38;5;1`
     /// where the terminal has 256 colours, and measures the same way.

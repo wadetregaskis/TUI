@@ -86,7 +86,7 @@
 ///   "Placed" means the rows a walk at the given height budget reaches; past
 ///   the fold a windowed stack answers from the widest row it has drawn or
 ///   sampled, never below the band it is currently drawing. See §2.8 of
-///   `Documentation/SwiftUI-compatibility.md`.
+///   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 ///
 /// # Example
 ///

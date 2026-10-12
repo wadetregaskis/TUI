@@ -10,7 +10,7 @@ functions. No GUI, no external Python packages — just the macOS toolchain
 TUIkit's render pipeline is `@MainActor`-isolated, which blocks the
 `ordo-one/benchmark` suite from measuring whole-view rendering (it traps
 on a main-thread `DispatchSemaphore`; see
-`Documentation/Benchmark coverage and deferred MainActor benchmarks.md`).
+`Documentation/Performance/Benchmark coverage and deferred MainActor benchmarks.md`).
 Instruments has no such limitation — it samples whatever thread is running,
 and never needs to block the main actor to take a measurement — so the Time
 Profiler can measure the real render path end to end. This directory makes
@@ -141,7 +141,7 @@ anyview              727     1974.2     1996.2    +0.5%     -3.2%   +3.1%  indis
 
 `indistinguishable` is the answer that matters. Two changes were committed and
 reverted on 2026-08-12/13 (§31 and §33 of
-`Documentation/Performance-profile-2026-08.md`) because a hand-rolled A/B gave
+`Documentation/Performance/Full performance profile of Stress and the Example (2026-08).md`) because a hand-rolled A/B gave
 them a number with a sign where the honest answer was "cannot tell".
 
 Four things make it trustworthy, and each was validated by measurement:
@@ -449,7 +449,7 @@ python3 Tools/Profiling/analyze_stream.py /tmp/frames.ansi
 ```
 
 Two estimates price output changes before anybody builds them
-(`Documentation/Ghostty-VT-adoption.md`, O2 and O3):
+(`Documentation/Terminals/Ghostty VT reference adoption study.md`, O2 and O3):
 
 - **`--runs`** counts, against today's stream, what each of O3's four byte
   trims would save on its own: the padding a whole-line row writes after its

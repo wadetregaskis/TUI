@@ -1405,7 +1405,7 @@ extension MouseEventDispatcher {
     /// release (List/Table selection, tap gestures) would then see a bare
     /// click and, for example, replace a multi-selection instead of toggling
     /// one row into it. Both macOS terminals byte-captured so far report
-    /// symmetrically (see `Documentation/Terminal-compatibility.md`), making
+    /// symmetrically (see `Documentation/Terminals/Terminal compatibility survey.md`), making
     /// this a no-op there; the union stays as free defence-in-depth for
     /// unmeasured terminals.
     private func stampClickCount(_ event: MouseEvent) -> MouseEvent {

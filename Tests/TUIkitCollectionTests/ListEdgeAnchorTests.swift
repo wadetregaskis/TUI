@@ -1,7 +1,7 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ListEdgeAnchorTests.swift
 //
-//  `Documentation/Scroll-anchoring.md` §1.1 Bottom — follow-the-log — for
+//  `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 Bottom — follow-the-log — for
 //  `List` and `Table`. The ScrollView had this from the start;
 //  `ItemListHandler` had no edge behaviour at all, so `.defaultScrollAnchor(
 //  .bottom)` on a List was accepted and did nothing. Measured before the fix,

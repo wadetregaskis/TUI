@@ -187,7 +187,7 @@ fi
 # straight to the ANSI emitter trips the assertion in `Color+ANSICodes.swift`,
 # which in a debug build is a trap. Six such sites shipped past the whole unit
 # suite and past three re-counts of the ledger meant to list them, because every
-# one of those re-read the same list (§68 of `Documentation/Opacity as
+# one of those re-read the same list (§68 of `Documentation/Colour and styling/Opacity as
 # composition.md`). Only running the app finds the site nobody wrote down.
 #
 # NOT a walk, and that distinction is the whole reason this is a second script

@@ -52,7 +52,7 @@ struct MultiSelectionClickTests {
     /// click ENSURES the clicked row is selected and clears every other row —
     /// whichever of those two the click happens to need. The second half is the
     /// one a toggle would get wrong, and the one single-selection deliberately
-    /// does get wrong for want of a command key (`SwiftUI-compatibility.md`
+    /// does get wrong for want of a command key (`SwiftUI compatibility guide.md`
     /// §2.11), so it is asserted here rather than left to read like a special
     /// case of the first.
     @Test("A plain click makes the clicked row the sole selection")
@@ -168,7 +168,7 @@ struct MultiSelectionClickTests {
         // inherit the press's modifier or the click reads as a bare click —
         // replacing the whole selection instead of toggling one row into it.
         // (Byte captures show both macOS terminals report symmetrically — see
-        // Terminal-compatibility.md — so this guards unmeasured terminals.)
+        // Terminal compatibility survey.md — so this guards unmeasured terminals.)
         // The dispatcher carries the press's modifiers onto the matching
         // release; without that carry this test fails (selection collapses
         // to just the clicked row).
@@ -204,7 +204,7 @@ struct MultiSelectionClickTests {
     }
 
     /// The divergence, decided rather than inherited: see
-    /// `SwiftUI-compatibility.md` §2.11. macOS never deselects on a plain click
+    /// `SwiftUI compatibility guide.md` §2.11. macOS never deselects on a plain click
     /// — that is command-click's job — but command-click does not survive most
     /// terminal clients, so copying the rule here would leave a
     /// single-selection list with no way to return to "nothing selected" at

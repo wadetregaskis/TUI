@@ -37,7 +37,7 @@ struct HoverLadderTests {
     }
 
     /// Apple Terminal 455.1's "Basic" sixteen, as its OSC 4 replies reported them on
-    /// 2026-09-14 (Terminal-compatibility.md, "Apple Terminal.app 455.1, Basic").
+    /// 2026-09-14 (Terminal compatibility survey.md, "Apple Terminal.app 455.1, Basic").
     private static let appleBasic = [
         rgb(0, 0, 0), rgb(153, 0, 0), rgb(0, 166, 0), rgb(153, 153, 0),
         rgb(0, 0, 179), rgb(179, 0, 179), rgb(0, 166, 179), rgb(191, 191, 191),
@@ -53,7 +53,7 @@ struct HoverLadderTests {
     private static let appleSlotsWhiteInk = TerminalColors(
         foreground: rgb(255, 255, 255), background: rgb(40, 44, 52), slots: TerminalColors.Slots(appleBasic))
 
-    /// Ghostty 1.3.1's default, as measured on 2026-09-14 (Terminal-compatibility.md).
+    /// Ghostty 1.3.1's default, as measured on 2026-09-14 (Terminal compatibility survey.md).
     private static let ghostty = TerminalColors(
         foreground: rgb(255, 255, 255), background: rgb(40, 44, 52),
         slots: TerminalColors.Slots([

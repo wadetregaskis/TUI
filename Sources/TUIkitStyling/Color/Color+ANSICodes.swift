@@ -126,7 +126,7 @@ extension Color {
         // gets): this is an unmigrated path rather than a broken invariant, and it
         // degrades to what the framework did before alpha existed. Loud in a debug
         // build, never a crash in someone's terminal. Section 16 of
-        // `Documentation/Opacity as composition.md` lists which paths honour it.
+        // `Documentation/Colour and styling/Opacity as composition.md` lists which paths honour it.
         assert(
             isOpaque,
             "a translucent colour reached the ANSI emitter (alpha \(alpha)): the view "
@@ -193,7 +193,7 @@ extension Color {
         // gets): this is an unmigrated path rather than a broken invariant, and it
         // degrades to what the framework did before alpha existed. Loud in a debug
         // build, never a crash in someone's terminal. Section 16 of
-        // `Documentation/Opacity as composition.md` lists which paths honour it.
+        // `Documentation/Colour and styling/Opacity as composition.md` lists which paths honour it.
         assert(
             isOpaque,
             "a translucent colour reached the ANSI emitter (alpha \(alpha)): the view "

@@ -23,7 +23,7 @@ Terminal it disagrees with the paint for ZWJ sequences — it claims 5, 8, 11
 while the glyph composes into 2 cells and the row does not shear. So an advance
 recorded here that disagrees with TUIkit's width claim is a hypothesis about
 rendering, not a finding; confirm it with `visual_card.py` before compensating.
-See Documentation/Terminal-compatibility.md, "ZWJ: where DSR lies".
+See Documentation/Terminals/Terminal compatibility survey.md, "ZWJ: where DSR lies".
 """
 import datetime
 import os

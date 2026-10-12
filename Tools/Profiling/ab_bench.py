@@ -10,7 +10,7 @@ Why this exists
 
 The obvious A/B — run each binary a few times, compare the best of each — is
 wrong in three ways that between them cost two reverted commits (see §31 and
-§33 of `Documentation/Performance-profile-2026-08.md`):
+§33 of `Documentation/Performance/Full performance profile of Stress and the Example (2026-08).md`):
 
 1. **Wall clock measures the machine, not the code.** Every microsecond the
    scheduler spends elsewhere lands in the number. This reads the harness's

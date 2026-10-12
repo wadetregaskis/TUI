@@ -291,7 +291,7 @@ struct KittyGraphicsDiacriticTests {
     }
 
     /// What a row COSTS on the wire, pinned so the figure in
-    /// `Documentation/Terminal graphics protocols.md` cannot drift away from
+    /// `Documentation/Images and terminal graphics/Terminal graphics protocols.md` cannot drift away from
     /// the encoder. It moved once already: adding the id's high-byte mark put
     /// two bytes on every cell.
     @Test("A 12-cell row's byte cost")

@@ -125,7 +125,7 @@ The representation was chosen by benchmarking five candidates (compile time,
 lookup ns/op, first-access cost, binary size, correctness) and adversarially
 verifying the winner — the full record, methodology, and takeaways for baking any
 large static Swift table are in
-[Documentation/Baking a large static lookup table in Swift.md](../../Documentation/Baking%20a%20large%20static%20lookup%20table%20in%20Swift.md).
+[Documentation/Swift language/Baking a large static lookup table in Swift.md](<../../Documentation/Swift language/Baking a large static lookup table in Swift.md>).
 In brief:
 
 - A literal `[(String, Character)]` array — the obvious form — takes **~114 s**
@@ -145,7 +145,7 @@ initialiser's pass time, min of 3); packed, the same 8466 offsets are 2117
 elements (16,936 bytes, the last element's two unused lanes included) and take
 74 ms. The name offsets, `nameStarts` (8467 `UInt32`s), cost the same 0.3 s
 and were left as they were (`B-BT1-1` in
-`Documentation/SwiftUI-API-completion-decisions-BT1.md`) until front-coding
+`Documentation/SwiftUI parity/Decisions/Compile time and binary size/Release compile time and binary size, package side (BT1).md`) until front-coding
 replaced them with `blockStarts`, 531 elements.
 
 **Front-coded since 2026-10-11.** Until then `nameBlob` held every name in full,

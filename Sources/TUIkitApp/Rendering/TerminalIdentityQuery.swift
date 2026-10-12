@@ -35,7 +35,7 @@ import TUIkitFoundation
 /// arrived — the terminal went unidentified, so uncompensated, and the key was
 /// lost. No key sends `CSI 0 n`, so a key now is just a key: it is handed back
 /// with the other bytes that are not replies. (Ghostty's VT reference, by way
-/// of `Documentation/Ghostty-VT-adoption.md`, K4.)
+/// of `Documentation/Terminals/Ghostty VT reference adoption study.md`, K4.)
 ///
 /// **CSI queries only.** A DCS query (XTGETTCAP, `ESC P + q … ESC \`) is not
 /// safe here: Apple Terminal does not parse DCS and *prints the payload* —

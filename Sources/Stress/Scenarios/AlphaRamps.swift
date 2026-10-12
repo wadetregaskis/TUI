@@ -12,7 +12,7 @@ import TUIkit
 /// nothing else in this harness paints.
 ///
 /// `gradients` covers the ramp's *colour* cost and every one of its ramps is
-/// opaque, so the whole of `Documentation/Opacity as composition.md` §34 — a
+/// opaque, so the whole of `Documentation/Colour and styling/Opacity as composition.md` §34 — a
 /// ramp's alpha travelling as claims beside its bytes — was invisible to
 /// `ab_bench.py`. That is the same hole `gradients` was written to fill for
 /// gradients themselves, one layer down: a cost nothing measures is a cost

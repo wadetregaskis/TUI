@@ -118,7 +118,7 @@ struct TerminalLedgerConformanceTests {
     ///
     /// - **Warp's `vs16_wide_exception`, keycaps and tag-sequence flags** paint
     ///   the next character at 3 against a claim of 2. Already documented in
-    ///   `Documentation/Terminal-compatibility.md` as Warp limitations; each
+    ///   `Documentation/Terminals/Terminal compatibility survey.md` as Warp limitations; each
     ///   needs the claim widened for its class, which
     ///   ``TUIkitCore/TerminalWidthTraits`` does not express yet.
     /// - `warp/harp` (🪉 U+1FA89, the corpus row once misnamed "shovel")

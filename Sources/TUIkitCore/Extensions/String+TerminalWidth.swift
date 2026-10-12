@@ -213,7 +213,7 @@ extension Character {
     ///
     /// - Note: This is what the terminal *reserves*, which is not always what
     ///   a given terminal *advances* the cursor by — see
-    ///   `Documentation/Terminal-compatibility.md` for the emulators that
+    ///   `Documentation/Terminals/Terminal compatibility survey.md` for the emulators that
     ///   disagree and how ``FrameDiffWriter`` compensates.
     public var terminalWidth: Int {
         let scalars = unicodeScalars

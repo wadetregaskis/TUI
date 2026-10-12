@@ -9,7 +9,7 @@ import TUIkitCore
 // MARK: - Scroll anchor
 
 /// What a scrollable is anchored to — the user-facing vocabulary for
-/// `Documentation/Scroll-anchoring.md` §1.1, bound through
+/// `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1, bound through
 /// ``TUIkit/View/anchorPosition(_:)``.
 ///
 /// Note that ``top`` / ``bottom`` are **positional** policies while `row` is

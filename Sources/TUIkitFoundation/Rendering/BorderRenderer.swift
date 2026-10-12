@@ -189,7 +189,7 @@ extension BorderRenderer {
     /// A border colour is `.border(.red.opacity(0.5))`'s destination, and this is
     /// the half of that paint the emitters cannot do: `foregroundCodes` has no
     /// backdrop, so the bytes state ``Color/opaqueSpelling`` and the alpha travels
-    /// here. See `Documentation/Opacity as composition.md`.
+    /// here. See `Documentation/Colour and styling/Opacity as composition.md`.
     ///
     /// ## Why the frame and not the whole rectangle
     ///

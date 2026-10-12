@@ -16,7 +16,7 @@ import TUIkitStyling
 /// set of controls" — `ShapeStyle.in(_:)` fixes the ramp's *scale* but
 /// re-anchors at every leaf, and `gradient.mask(content)` costs either a
 /// duplicated copy of the content or its interactivity. Both were measured;
-/// see `Documentation/Gradients where a colour is accepted.md` §1.
+/// see `Documentation/Colour and styling/Gradients where a colour is accepted.md` §1.
 ///
 /// So this is an addition, kept separate from the SwiftUI spelling rather than
 /// changing its meaning: `.foregroundStyle(_:)` still means what it means, and

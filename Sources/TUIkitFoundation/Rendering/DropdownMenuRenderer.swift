@@ -466,7 +466,7 @@ package enum DropdownMenu {
     /// colour of its own.
     ///
     /// A `.pulse` takes its bright end, which is what such a breath holds anyway
-    /// wherever it cannot be measured (`Documentation/Opacity as composition.md` §79).
+    /// wherever it cannot be measured (`Documentation/Colour and styling/Opacity as composition.md` §79).
     private static func fillColor(_ highlight: HighlightFill) -> Color? {
         switch highlight {
         case .fill(let color): return color
@@ -640,7 +640,7 @@ package enum DropdownMenu {
         // What the highlighted row paints at each point of the cycle: the accent's tint,
         // or — where that tint cannot be measured — reverse video over the palette's own
         // pair, which is the same at every point, so the row is steady and its run is
-        // dropped below (`Documentation/Opacity as composition.md` §88). And where the
+        // dropped below (`Documentation/Colour and styling/Opacity as composition.md` §88). And where the
         // window has lost the terminal's focus, the still tint a `List` gives a
         // selection it does not hold the keys for: the row is still the one Return will
         // choose when the window comes back, so it stays, and it stops breathing. The

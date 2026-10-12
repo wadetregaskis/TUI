@@ -115,7 +115,7 @@ struct StyleCascadeTests {
         #expect(!sgrCodes(renderToBuffer(view, context: context())).contains("1"))
     }
 
-    // MARK: - A Text can now say NO (Parity-decisions-pending §9)
+    // MARK: - A Text can now say NO (Parity work blocked on a decision, §9)
 
     @Test("A Text's own .bold(false) beats an ancestor's .bold()")
     func textStatedFalseBeatsTheCascade() {
@@ -583,7 +583,7 @@ struct ListRowStyleCascadeTests {
     // rows). NOTE: container-level *attribute* cascade (e.g. `.bold()` on the
     // List itself) does not yet reach row text — the lazy row-buffer path does
     // not re-key on the style cascade. Tracked as a follow-up in
-    // Documentation/Styling-and-theming-design.md. Per-row attributes and broad
+    // Documentation/Colour and styling/Styling and theming design.md. Per-row attributes and broad
     // foreground (below) are the supported styling for rows today.
 
     @Test("Broad .foregroundStyle reaches List row text")

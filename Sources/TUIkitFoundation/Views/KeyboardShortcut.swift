@@ -81,7 +81,7 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
 /// The modifier keys a shortcut requires.
 ///
 /// TUI-specific reality: a terminal reports Control, Option/Alt and Shift, and
-/// does **not** report Command — see `Documentation/Terminal-compatibility.md`.
+/// does **not** report Command — see `Documentation/Terminals/Terminal compatibility survey.md`.
 /// Caps Lock and the numeric pad are reported only where the terminal speaks
 /// the kitty keyboard protocol (``EnvironmentValues/keyboardReporting``).
 /// A shortcut declared with ``command`` therefore can never fire here. That is
@@ -447,7 +447,7 @@ public enum CommandKeyBinding: Sendable, Hashable {
     /// Option / Alt. Reported as an ESC prefix or the high bit, and only when
     /// the terminal is configured for it (Apple Terminal composes accented
     /// characters instead unless "Use Option as Meta key" is on), so this is
-    /// the less reliable choice — see `Documentation/Terminal-compatibility.md`.
+    /// the less reliable choice — see `Documentation/Terminals/Terminal compatibility survey.md`.
     case option
 
     /// The bare key, no modifier. Closest to how a TUI usually binds commands,

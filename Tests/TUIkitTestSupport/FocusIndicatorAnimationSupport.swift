@@ -33,7 +33,7 @@ func focusedRender(_ view: some View, width: Int = 40, height: Int = 8) -> Frame
 /// hover lift was replayed away by runs that had never been told about the
 /// pointer — a colour-only difference, invisible to a `.stripped` comparison,
 /// and the whole of what the user saw. See §9 of
-/// `Documentation/Animating your own view efficiently.md`.
+/// `Documentation/Performance/Animating your own view efficiently.md`.
 ///
 /// The styling half is ``ANSICellDiff/identical``, which is the framework's own
 /// answer to "would a terminal show anything different" — the same judgement

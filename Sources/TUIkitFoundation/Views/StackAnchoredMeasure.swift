@@ -209,7 +209,7 @@ extension _VStackCore {
     /// walk of each at the width the content is drawn at, since the
     /// scrollbar's first round asks the other width only a screenful
     /// (`contentOverflowsCanvas`) — see "What ships" under §6b of
-    /// `Documentation/Locating things without drawing them.md`, which also
+    /// `Documentation/Layout and scrolling/Locating things without drawing them.md`, which also
     /// says why a count of rows built can move.
     private func reachedRows(
         _ children: ChildViewCollection, built: [ChildView], proposal: ProposedSize,

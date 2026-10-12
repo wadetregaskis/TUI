@@ -5,7 +5,7 @@
 //  answers at once, asked separately.
 //
 //  The most important tests here are the NEGATIVE ones: the split must be
-//  invisible to everything written before it. `Documentation/Scroll-anchoring.md`
+//  invisible to everything written before it. `Documentation/Layout and scrolling/Scroll anchoring.md`
 //  §1.1's behaviour was iterated on at length and is not up for renegotiation,
 //  so a role overload that changed it — even in a corner — would be a
 //  regression wearing a feature's clothes.

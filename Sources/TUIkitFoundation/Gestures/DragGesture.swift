@@ -38,7 +38,7 @@ import TUIkitCore
 /// pointer is `minimumDistance` cells from the press along either axis — at
 /// the press itself when that is zero — and ends with the release, which
 /// `onEnded` hears only if the drag started. Its value is in cells
-/// (§2.2 of `Documentation/SwiftUI-compatibility.md`).
+/// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
 public struct DragGesture: Gesture {
     /// The attributes of a drag gesture.
     public struct Value: Equatable, Sendable {

@@ -37,7 +37,7 @@ struct LocalizedTitleTests {
     ///
     /// Dot-separated and namespaced to this suite, so it cannot collide with an
     /// app's prose or another suite's registration — the same property that
-    /// makes the whole rule safe to adopt (see `SwiftUI-compatibility.md` §4a).
+    /// makes the whole rule safe to adopt (see `SwiftUI compatibility guide.md` §4a).
     static let key = "test.title.control"
     static let translation = "Localized!"
 

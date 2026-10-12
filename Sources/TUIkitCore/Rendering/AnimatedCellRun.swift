@@ -279,7 +279,7 @@ extension AnimationClock {
 /// 10 to 30 times a second, forever, to change two cells. Measured on the
 /// Example: the Forms page burned 42% of a core sitting still, and most of those
 /// frames came out byte-identical (see
-/// `Documentation/Performance-profile-2026-08.md`).
+/// `Documentation/Performance/Full performance profile of Stress and the Example (2026-08).md`).
 ///
 /// So a view that wants a few cells to animate says so *once*, when it renders,
 /// by leaving a run behind on its ``FrameBuffer``. The run loop replays it on

@@ -743,7 +743,7 @@ extension _NavigationSplitViewCore {
         // seam has to be repeated here or silently misses this control alone.
         // `help(_:)` is the first such thing: without this, `.help` on a split
         // divider works on hover and does nothing on the keyboard, which is the
-        // failure mode `Documentation/Parity-decisions-pending.md` predicted for
+        // failure mode `Documentation/SwiftUI parity/Parity work blocked on a decision.md` predicted for
         // exactly this site.
         FocusRegistration.publishHelpText(context: context, focusID: sectionID)
 
@@ -886,7 +886,7 @@ extension _NavigationSplitViewCore {
             dimmedTo: ViewConstants.focusBorderDim, over: palette.background)
         let pulse = palette.accentFillPulse()
         // What an ACTIVE divider fills with: that breath, or — where the accent or the page
-        // has no RGB, so there is nothing between them to fill with (`Documentation/Opacity
+        // has no RGB, so there is nothing between them to fill with (`Documentation/Colour and styling/Opacity
         // as composition.md` §75) — reverse video over the palette's own pair (§90).
         let highlight = palette.emphasisFill()
         // A breath with reverse video in it — at 16 colours where the palette's picks

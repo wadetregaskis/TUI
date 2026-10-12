@@ -649,7 +649,7 @@ struct LegacyFunctionKeyTests {
 /// The cursor keys and keypad in their application modes (DECCKM, DECKPAM),
 /// which a program turns on and which outlive it: every key arrives as
 /// `ESC O` and a byte. Only F1–F4 were read, so a TUIkit app started after a
-/// killed `vim` had dead arrows (K1 in `Documentation/Ghostty-VT-adoption.md`).
+/// killed `vim` had dead arrows (K1 in `Documentation/Terminals/Ghostty VT reference adoption study.md`).
 @Suite("Application-mode keys (SS3)")
 struct ApplicationModeKeyTests {
     private func parse(_ tail: String) -> KeyEvent? {

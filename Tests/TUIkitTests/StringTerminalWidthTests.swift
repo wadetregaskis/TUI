@@ -205,7 +205,7 @@ struct CharacterTerminalAppCursorAdvanceTests {
         // Flag emoji are formed by two regional-indicator scalars
         // (U+1F1E6…U+1F1FF). Terminal.app paints the flag as a 2-cell glyph
         // AND advances the cursor by 2 — DSR-measured on Terminal.app 455.1
-        // (macOS 15.7); see Documentation/Terminal-compatibility.md. An
+        // (macOS 15.7); see Documentation/Terminals/Terminal compatibility survey.md. An
         // earlier model treated the pair like a LONE indicator (advance 1),
         // and the spurious CUF shoved everything after a flag a cell right.
         for flag in ["🇺🇸", "🇬🇧", "🇩🇪", "🇯🇵", "🇫🇷"] {

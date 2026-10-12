@@ -17,7 +17,7 @@ import TUIkitFoundation
 /// exactly one client and holds the fence about half a second when that client
 /// does not answer: 516–539 ms for a single slot and 515–542 ms for the whole
 /// startup batch, over 312 exchanges (measured, tmux 3.7c —
-/// `Documentation/Terminal-compatibility.md`). Half a second spent there is half
+/// `Documentation/Terminals/Terminal compatibility survey.md`). Half a second spent there is half
 /// a second before anything is on screen. So they are asked for after the first
 /// frame instead, by ``noteFrameWritten()``.
 ///

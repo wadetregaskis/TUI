@@ -28,7 +28,7 @@ import TUIkitFoundation
 // resolved through the service instead of the key table. Mutation-tested on
 // 6.3.3: remove the attribute and that call does go to the generic form.
 //
-// What the shape preserves is the symmetry `SwiftUI-compatibility.md` §4a
+// What the shape preserves is the symmetry `SwiftUI compatibility guide.md` §4a
 // records: `warning(message: "alert.diskFull")` reaches the key overload and is
 // looked up, while `warning(message: computedString)` reaches the generic one
 // and STILL gets the translated `label.warning` title. Neither side gave up its

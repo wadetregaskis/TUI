@@ -1,6 +1,6 @@
 # Terminal probes
 
-Reproducible measurement tools behind `Documentation/Terminal-compatibility.md`.
+Reproducible measurement tools behind `Documentation/Terminals/Terminal compatibility survey.md`.
 Run each INSIDE the terminal under test; the recording probes (advance,
 mouse) write to `$PROBE_OUT` (mouse falls back to `./mouse_probe.log`
 when unset), the visual/aspect probes print to the terminal.
@@ -32,7 +32,7 @@ when unset), the visual/aspect probes print to the terminal.
   not count; whether the host also REORDERS is read off the
   `digits_after_rtl` row instead (the X cannot see it — see the card's own
   closing lines). Run in all four hosts 2026-09-01; the results and what
-  they settled are in Terminal-compatibility.md's "Right-to-left text"
+  they settled are in Terminal compatibility survey.md's "Right-to-left text"
   section.
 - `rtl_image_card.py` — the same question asked of a PICTURE rather than of a
   line of text: a gradient drawn from a ten-letter Hebrew ramp, printed five
@@ -47,7 +47,7 @@ when unset), the visual/aspect probes print to the terminal.
   all mirrored, `lrm` correct with the alignment column unmoved — but emitting
   the mark for real DESTROYED the Image page, so `lrm+coloured` and `lrm+wide`
   were added for the two axes that block lacked. STILL OPEN — see
-  Terminal-compatibility.md's "RTL characters as image PIXELS".
+  Terminal compatibility survey.md's "RTL characters as image PIXELS".
 - `breath_card.py` — how a host paints TUIkit's reversing row breaths: at 16
   colours, a cursor row whose breath runs between a slot fill and reverse video
   (the whole row the text's colour, every glyph on it the page's); without
@@ -58,7 +58,7 @@ when unset), the visual/aspect probes print to the terminal.
   sixteen (derived from rule.py, not captured): a host that reports its table
   gets fills placed against it, and xterm's picks replayed there mislead. Read
   on all four hosts 2026-09-30 — see "A 16-colour row breath" in
-  `Documentation/Terminal-compatibility.md`. Launch it from outside `~/Documents`
+  `Documentation/Terminals/Terminal compatibility survey.md`. Launch it from outside `~/Documents`
   in Ghostty (copy it to a temporary directory first): Ghostty has no access to
   that folder here, and the script's own open waits on a consent prompt.
 - `overhang_card.py` — does a chrome glyph's INK stay inside its cell? Each of
@@ -80,7 +80,7 @@ when unset), the visual/aspect probes print to the terminal.
   Ghostty. The mechanism it feeds is
   `TerminalWidthTraits.chromeOverhang` with the sets in
   `Sources/TUIkitCore/Extensions/ChromeOverhang.swift`; the reading is written
-  up in Terminal-compatibility.md, "The ink half". Record the FONT and its size
+  up in Terminal compatibility survey.md, "The ink half". Record the FONT and its size
   with the host — overhang is a font property at least as much as a host one,
   and the 2026-09-04 reading did NOT capture it, which is the one gap in it.
 - `visual_card.py` — static `|<c>|<c>|<c>|X` alignment card with a column
@@ -110,7 +110,7 @@ when unset), the visual/aspect probes print to the terminal.
   every read logged raw and decoded by a decoder written from the
   specification, independently of TUIkit's `KittyKeyDecoder`. Ctrl-C ends it;
   the flags are popped on the way out. Which keys to press is listed in
-  Terminal-compatibility.md, "The kitty keyboard protocol" → "To measure, per
+  Terminal compatibility survey.md, "The kitty keyboard protocol" → "To measure, per
   host". NOT YET RUN on any host (2026-10-04).
 - `key_probe.py` — the LEGACY encoding (no keyboard protocol pushed): asks
   for each key a sheet's grabber binds or its design rejected (↖ ↘ ⇞ ⇟, ↑ ↓,
@@ -119,7 +119,7 @@ when unset), the visual/aspect probes print to the terminal.
   its scrollback, or macOS taking ⌃↑ ⌃↓ for Mission Control. Run from the
   host's default profile, on both screens (`PROBE_ALT=1`), and note by hand
   whether the Mission Control shortcuts are on. JSON to `$PROBE_OUT`. See
-  Terminal-compatibility.md, "Keys a sheet's grabber uses". NOT YET RUN on
+  Terminal compatibility survey.md, "Keys a sheet's grabber uses". NOT YET RUN on
   any host (2026-10-06).
 - `sync_probe.py` — synchronized output (DEC mode 2026), which TUIkit wraps
   every multi-row frame in. Checks that `CSI ? 2026 h` `CSI ? 2026 l` prints
@@ -132,7 +132,7 @@ when unset), the visual/aspect probes print to the terminal.
   (2026-10-05). Its `leak_check` and `decrqm` have run, called by
   `hairline_probe.py`'s Q7, in Ghostty 1.3.1 and iTerm2 3.7.3 (2026-10-08):
   those fill the "pair prints nothing" and DECRQM cells of
-  Terminal-compatibility.md's synchronized-output table.
+  Terminal compatibility survey.md's synchronized-output table.
 - `clipboard_probe.py` — does the terminal put an application's OSC 52 write
   on the clipboard? Writes a nonce exactly as TUIkit spells it
   (`ESC ] 52 ; c ; <base64> ESC \`) and reads the clipboard back with this
@@ -179,7 +179,7 @@ when unset), the visual/aspect probes print to the terminal.
   string-terminated escape is not automatically safe. Whether a picture actually
   appeared is a question about pixels, so the probe draws a card and asks. The
   analysis and the recommendation are in
-  `Documentation/Terminal graphics protocols.md`.
+  `Documentation/Images and terminal graphics/Terminal graphics protocols.md`.
 - `placement_probe.py` — the follow-on question, and the one TUIkit's design
   rests on: with a *virtual* placement and Unicode placeholders, does a Kitty
   image behave like **cells**? It transmits a hue-ramp image, places it, writes
@@ -199,7 +199,7 @@ when unset), the visual/aspect probes print to the terminal.
   the other, for a person to compare. "Acknowledged" and "drawn" are
   different facts about a terminal, and the JSON records the first and asks
   for the second. Unmeasured on every host as of 2026-09-04; the rows in
-  `Documentation/Terminal-compatibility.md` ("Deflated transmissions") are
+  `Documentation/Terminals/Terminal compatibility survey.md` ("Deflated transmissions") are
   waiting on it.
 - `pixel_format_probe.py` — the question `OK` does not answer: which
   transmissions does a terminal actually **draw**? `placement_probe.py`
@@ -227,7 +227,7 @@ when unset), the visual/aspect probes print to the terminal.
   three-mark cells draw the picture, under either foreground spelling.** The
   encoder has written all three marks on every cell since 0d4d2015. The probe
   also reports what U+10EEEE advances the cursor by; iTerm2's line was never
-  captured, so `Terminal-compatibility.md`'s advance table still omits it.
+  captured, so `Terminal compatibility survey.md`'s advance table still omits it.
 - `hairline_probe.py` — can a Kitty **classic** placement (not a placeholder)
   draw a line one or two pixels thick exactly on the boundary between two text
   rows, so a list separator costs no row? Runs on the alternate screen and
@@ -254,7 +254,7 @@ when unset), the visual/aspect probes print to the terminal.
   3.7.3 (`data/ghostty-1.3.1-hairline.json`, `data/iterm2-3.7.3-hairline.json`):
   neither host meets a kill criterion. Ghostty needs `z=+1`, iTerm2's pixel
   unit is unknown, and one Ghostty question is OPEN. The findings are in
-  `Terminal-compatibility.md`, "A line on a row boundary".
+  `Terminal compatibility survey.md`, "A line on a row boundary".
 
   ```sh
   python3 hairline_probe.py          # the checks, then the cards
@@ -430,7 +430,7 @@ it takes to ask: whether each of OSC 10, OSC 11, OSC 4 and `CSI ? 996 n` is
 answered at all, how the reply is spelled and terminated, how long it takes,
 whether it can land after the `CSI 6n` / `CSI 5n` fence sent behind it, whether
 a batch costs one wait or one per query, and whether anything prints. Results
-and their versions are written up in `Documentation/Terminal-compatibility.md`,
+and their versions are written up in `Documentation/Terminals/Terminal compatibility survey.md`,
 "What an ANSI colour actually paints". As with `palette_probe.py`, no records
 are kept in `data/`.
 
@@ -464,7 +464,7 @@ cell reads as the host's parser rather than as mode 2031 being special.
 `selftest_m3m7.py` checks it against three scripted terminals (clean; an
 Apple-like one that prints a `?`-plus-intermediate final byte and a DCS payload;
 one that prints part of an SGR and reports late) and takes about a minute.
-Results are in `Documentation/Terminal-compatibility.md` under "Colour-palette
+Results are in `Documentation/Terminals/Terminal compatibility survey.md` under "Colour-palette
 update notifications" and "Reverse video (SGR 7)".
 
 `tmux_colour_harness.py` measures tmux itself: a real tmux on a private socket
@@ -536,7 +536,7 @@ python3 reverse_video_card.py --hold 20    # no keys; exits after 20 s
 
 It sets nothing on the host, and its only query is OSC 10/11, fenced by
 `CSI 5n`. Record what you saw, with the host, its version and its colour profile
-or theme, in `Documentation/Terminal-compatibility.md` under "Reverse video
+or theme, in `Documentation/Terminals/Terminal compatibility survey.md` under "Reverse video
 (SGR 7)". Under Warp, also record `appearance.text.enforce_minimum_contrast`
 (read it, don't change it). At its default, Warp may lighten a named foreground,
 and that would show up as a mismatch in the named rows for a reason other than

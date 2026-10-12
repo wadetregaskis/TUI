@@ -3,7 +3,7 @@
 //
 //  What a stop list means. Every expectation here was MEASURED against real
 //  SwiftUI first (ImageRenderer, pixels read back — see
-//  `Documentation/Gradients where a colour is accepted.md` §1), because all
+//  `Documentation/Colour and styling/Gradients where a colour is accepted.md` §1), because all
 //  three of these are behaviours a reasonable implementation gets wrong in a
 //  reasonable-looking way: sorting the stops on the way in, clamping locations
 //  to 0…1, or averaging a duplicate location instead of stepping at it.

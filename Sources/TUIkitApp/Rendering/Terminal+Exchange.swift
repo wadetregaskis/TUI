@@ -118,7 +118,7 @@ enum TerminalQueryReplies {
     /// `CSI 5 n`, a device status report: sent last, its answer `CSI 0 n`
     /// says every query before it has answered or declined to. Every measured
     /// host answered it, screen and Warp included
-    /// (`Documentation/Terminal-compatibility.md`, "Asking the terminal for
+    /// (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the terminal for
     /// its colours").
     static let statusFence = "\u{1B}[5n"
 

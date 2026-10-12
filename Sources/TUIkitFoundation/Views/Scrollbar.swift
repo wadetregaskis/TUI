@@ -720,7 +720,7 @@ package struct ScrollbarColors {
 /// the cells rather than decorating them: every input the drawn bar's colours
 /// have, these need too. Kept apart, the pointer's lift was left out of the
 /// runs and the first tick painted it away — see §9 of
-/// `Documentation/Animating your own view efficiently.md`.
+/// `Documentation/Performance/Animating your own view efficiently.md`.
 package struct ScrollbarPulse {
     /// The emphasis cycle, whose points become the frames.
     let cycle: SelectionEmphasisCycle

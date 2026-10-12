@@ -9,7 +9,7 @@ with DSR, which is a cursor *report* — on Terminal.app the report and the
 paint disagree for ZWJ sequences (DSR says 5, 8, 11; the glyphs paint 2 and
 the row does not shear). A DSR advance that disagrees with the claim is a
 hypothesis about rendering; this card is how it gets confirmed before anyone
-compensates for it. See Documentation/Terminal-compatibility.md,
+compensates for it. See Documentation/Terminals/Terminal compatibility survey.md,
 "ZWJ: where DSR lies".
 
 Run INSIDE the terminal under test and look at the X column.

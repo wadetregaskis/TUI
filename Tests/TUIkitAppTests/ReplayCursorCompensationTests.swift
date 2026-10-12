@@ -83,7 +83,7 @@ struct ReplayCursorCompensationTests {
     /// Terminal.app, drew everything after the emoji one cell to the left —
     /// which is precisely what an uncompensated emission measures as (77 vs 76
     /// in `Tools/TerminalProbes/row_probe.py`; see
-    /// `Documentation/Terminal-compatibility.md`).
+    /// `Documentation/Terminals/Terminal compatibility survey.md`).
     @Test("Every frame of a pulsing row is compensated, not just the first")
     func replayedFramesKeepTheCompensation() throws {
         let (run, built) = try breathingRow(width: 40)

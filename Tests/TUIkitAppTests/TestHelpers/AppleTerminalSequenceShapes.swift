@@ -11,7 +11,7 @@
 /// when the sequence carries BOTH a `?` private-parameter marker and an
 /// ECMA-48 intermediate byte (0x20…0x2F) — measured 2026-08-26 on 455.1
 /// across all sixteen intermediates, with either half alone consumed
-/// correctly. See `Documentation/Terminal-compatibility.md`, "Asking the
+/// correctly. See `Documentation/Terminals/Terminal compatibility survey.md`, "Asking the
 /// terminal — Device Attributes".
 ///
 /// - Returns: Each CSI in `bytes` with both, as written; empty when there is
@@ -49,7 +49,7 @@ func csiSequencesAppleTerminalLeaks(in bytes: String) -> [String] {
 /// parse — DCS (`ESC P`) and APC (`ESC _`), measured to print their payload,
 /// and PM (`ESC ^`) and SOS (`ESC X`), which nothing TUIkit sends unasked has
 /// any business carrying either. OSC (`ESC ]`) it parses. See
-/// `Documentation/Terminal-compatibility.md`, "Apple Terminal parses OSC and
+/// `Documentation/Terminals/Terminal compatibility survey.md`, "Apple Terminal parses OSC and
 /// does NOT parse DCS or APC".
 ///
 /// - Returns: Each introducer found in `bytes`, as `ESC` and its byte.

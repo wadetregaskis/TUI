@@ -8,7 +8,7 @@
 //  `terminalWidth` (`Character.terminalAppCursorAdvance` /
 //  `Character.iTerm2CursorAdvance`); this file holds the line rewriters.
 //  Every model value is DSR-measured — see
-//  Documentation/Terminal-compatibility.md, and update it when anything
+//  Documentation/Terminals/Terminal compatibility survey.md, and update it when anything
 //  here changes.
 //
 //  Created by Wade Tregaskis

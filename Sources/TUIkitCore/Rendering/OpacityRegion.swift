@@ -36,7 +36,7 @@
 /// Because a colour cannot be faded toward a surface the view cannot see. The
 /// render-time fade this replaces had to guess, and guessed the app
 /// background — right over nothing, wrong over any sibling that painted. See
-/// `Documentation/Opacity as composition.md`.
+/// `Documentation/Colour and styling/Opacity as composition.md`.
 public struct OpacityRegion: Equatable, Sendable {
     /// The region's left edge, in its buffer's coordinates.
     public var offsetX: Int

@@ -388,7 +388,7 @@ struct TerminalColorLateSlotsTests {
     typealias RGB = TerminalColors.RGB
 
     /// Apple Terminal 455.1's "Basic" sixteen, as a tmux client reported them
-    /// on 2026-09-14 (Documentation/Terminal-compatibility.md), in slot order.
+    /// on 2026-09-14 (Documentation/Terminals/Terminal compatibility survey.md), in slot order.
     private static let appleBasic = [
         RGB(red: 0, green: 0, blue: 0), RGB(red: 153, green: 0, blue: 0),
         RGB(red: 0, green: 166, blue: 0), RGB(red: 153, green: 153, blue: 0),

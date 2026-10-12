@@ -25,7 +25,7 @@
 /// colours where the palette leaves the page to the terminal, and ``light``
 /// where nothing said anything. A view pins it for its subtree by writing it
 /// (`.environment(\.colorScheme, .dark)`), and a whole appearance is a palette —
-/// `.palette(_:)` — as `Documentation/SwiftUI-compatibility.md` §2.5 records.
+/// `.palette(_:)` — as `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.5 records.
 public enum ColorScheme: CaseIterable, Hashable, Sendable {
     /// Dark content on a light page.
     case light

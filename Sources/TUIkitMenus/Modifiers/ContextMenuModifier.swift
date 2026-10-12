@@ -127,7 +127,7 @@ extension ContextMenuModifier: Renderable {
     /// It arrives as `ESC[21;2~` in iTerm2, Ghostty, Warp and xterm. Apple
     /// Terminal has no modifier encoding for function keys and sends `ESC[32~`
     /// (its alias for F18) instead; `Terminal.finalize` normalises that back to
-    /// Shift+F10 — see `Documentation/Terminal-compatibility.md`. A PC
+    /// Shift+F10 — see `Documentation/Terminals/Terminal compatibility survey.md`. A PC
     /// keyboard's Menu key does the same where the terminal reports it
     /// (``Key/menu``: under the kitty keyboard protocol only).
     ///
@@ -248,7 +248,7 @@ extension View {
     ///
     /// Where the terminal swallows right-click (iTerm2 does by default) a
     /// **Ctrl-click** opens it instead. Right-clicking works reliably in Apple
-    /// Terminal, Ghostty and Warp (see `Documentation/Terminal-compatibility.md`).
+    /// Terminal, Ghostty and Warp (see `Documentation/Terminals/Terminal compatibility survey.md`).
     ///
     /// From the keyboard: the modified view becomes a focus stop, and
     /// **Shift+F10** opens the menu while it is focused — the binding every

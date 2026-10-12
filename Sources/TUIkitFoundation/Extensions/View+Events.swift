@@ -162,7 +162,7 @@ extension View {
     ///
     /// The ``SpatialTapGesture`` it attaches with ``gesture(_:including:)``: the
     /// location is the cell of the click's release, a ``CellPoint`` where
-    /// SwiftUI's is a `CGPoint` (§2.2 of `Documentation/SwiftUI-compatibility.md`).
+    /// SwiftUI's is a `CGPoint` (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
     ///
     /// - Parameters:
     ///   - count: The number of taps or clicks required to trigger the action

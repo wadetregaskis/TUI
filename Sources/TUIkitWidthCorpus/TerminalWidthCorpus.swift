@@ -130,7 +130,7 @@ package enum TerminalWidthCorpus {
         // The complex-script rows, added 2026-09-04 and NOT YET MEASURED on any
         // host — see `TerminalLedgerConformanceTests.awaitingLandingMeasurement`
         // and the "Complex scripts" section of
-        // `Documentation/Terminal-compatibility.md` for the command that
+        // `Documentation/Terminals/Terminal compatibility survey.md` for the command that
         // measures them. They exist because the corpus was emoji-only, so the
         // one question the width rule cannot answer — what a cluster of three
         // or more ADVANCING scalars costs — had no sample to ask it of.

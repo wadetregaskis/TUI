@@ -15,7 +15,7 @@ between emitted and necessary is what the render path could in principle
 close.
 
 Two further analyses estimate output changes before anybody builds them
-(Documentation/Ghostty-VT-adoption.md, O2 and O3):
+(Documentation/Terminals/Ghostty VT reference adoption study.md, O2 and O3):
 
   --runs   The four byte trims of O3, each counted against today's stream:
            the padding after a whole-line row's `ESC[2K` (trailing blanks

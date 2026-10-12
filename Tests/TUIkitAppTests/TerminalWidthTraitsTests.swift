@@ -15,7 +15,7 @@ import TUIkit
 /// ALLOCATED wide rather than cut down to fit — see ``TerminalWidthTraits``.
 ///
 /// Every expectation here is a measurement taken on the alternate screen on
-/// 2026-08-26, recorded in `Documentation/Terminal-compatibility.md`.
+/// 2026-08-26, recorded in `Documentation/Terminals/Terminal compatibility survey.md`.
 @Suite("Terminal width traits")
 struct TerminalWidthTraitsTests {
 

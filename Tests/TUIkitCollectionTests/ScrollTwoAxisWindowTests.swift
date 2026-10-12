@@ -41,7 +41,7 @@
 //
 //  Still refused on a horizontal-capable view: a `scrollTo` seek, which rides
 //  this window. It has never worked there, and turning it on is a parity item
-//  of its own (`SwiftUI-semantic-audit-2026-08.md` names it) rather than a
+//  of its own (`SwiftUI semantic audit (2026-08).md` names it) rather than a
 //  by-product of this.
 //
 //  Created by Wade Tregaskis

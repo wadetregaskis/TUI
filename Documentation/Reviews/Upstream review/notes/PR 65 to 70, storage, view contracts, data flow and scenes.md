@@ -1,0 +1,55 @@
+# PRs #65–#70 — storage, view contracts, data flow, scenes
+
+Commits 166–205 · 2026-07-22 · the tail of the backlog
+
+Four substantive branches and two documentation ones. Judged at branch
+granularity: by this point the pattern of each was clear from its first commit,
+and the per-commit detail would not have changed a verdict.
+
+## PR #65 — AppStorage writer · one `have`, one `adapt`
+
+- **`b207e9ea` serialise writes · `have`.** `JSONFileStorage` already holds an
+  `NSLock` and drains through a serial `saveQueue`; concurrent writes cannot
+  interleave.
+- **`83090036` report persistence failures · `adapt` (`c0ce6aec`).** Ours dropped
+  them — `try? FileManager.default.createDirectory(…)` and the save path likewise
+  — so a read-only or full config directory failed silently and the app looked
+  like it saved. Done since, and wider than upstream's: `LocalizationService`
+  had the identical hole, and `StorageDiagnostics` *records* every failure
+  whether or not a handler is installed, because silence at the handler is not
+  the same as losing it. `@AppStorage` keeps SwiftUI's signature — a
+  property-wrapper setter cannot throw — so the reporting lives on the storage
+  layer, which has no SwiftUI counterpart to match.
+- **`a2bef92c` bind storage per runtime · `n-a`** — the `AppState.shared`
+  question again; see `PR 45, runtime.md`.
+
+## PRs #67, #69, #70 — the SwiftUI-parity batch · `defer`
+
+Three branches, one character: align the framework's *shape* with SwiftUI's.
+
+- **#67** — `ModifiedContent` in place of our `ModifiedView`, the `ViewBuilder`
+  result surface, and Swift 6.0 isolation on the core protocols.
+- **#69** — a public `DynamicProperty` contract with nested hydration, `Binding`'s
+  projection and conformance surface, the full `State` initializer family,
+  `AppStorage`'s typed initializers, `Bindable`.
+- **#70** — composable `Scene` modifiers with environment propagation.
+
+Deferred **as a batch, and not as upstream-review work.** `CLAUDE.md` requires
+public APIs to match SwiftUI exactly unless a terminal constraint forces a
+documented deviation, so each of these is a parity question to be answered
+against the real SDK — the method `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` was
+built with — rather than by reading what upstream happened to write. Some of it
+we already have (`@Bindable` shipped, `Binding`'s `@dynamicMemberLookup` and
+`init(projectedValue:)`, several `State` initializers); `DynamicProperty` as a
+public protocol we do not.
+
+The right next step is a fresh audit pass over
+`Documentation/SwiftUI parity/SwiftUI compatibility guide.md` covering the data-flow and
+view-modifier surfaces, with these three branches as one input among several —
+not a port. That is a piece of work in its own right, not triage.
+
+## The rest · `n-a` / `noise`
+
+Their DocC diagrams and Typst sources, API-compatibility manifest regenerations,
+a SwiftLint allowance for underscore-prefixed SwiftUI-parity type names, test
+recharacterizations, six merges and seven test-count badge bumps.

@@ -20,7 +20,7 @@ import TUIkitCore
 /// ## What it asks of the terminal, and what the terminal does with it
 ///
 /// A virtual placement is fit to its cell box **with the aspect ratio
-/// preserved and the picture centred** (`Documentation/Compressed image
+/// preserved and the picture centred** (`Documentation/Images and terminal graphics/Compressed image
 /// transfer.md` §1.1) — the terminal never stretches. So a horizontal ramp
 /// cannot be sent one pixel tall and stretched to the row, however tempting:
 /// it would be drawn as a hairline across the middle of the cells. The
@@ -33,7 +33,7 @@ import TUIkitCore
 ///
 /// The rows a horizontal ramp then carries are identical, and that is what
 /// ``SystemZlib`` is for: seventeen copies of one row deflate to little more
-/// than the row (`Documentation/Terminal graphics protocols.md` §10 has the
+/// than the row (`Documentation/Images and terminal graphics/Terminal graphics protocols.md` §10 has the
 /// measurements), so the picture costs on the wire about what the one-pixel
 /// strip would have.
 ///

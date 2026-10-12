@@ -104,7 +104,7 @@ public struct ScrollView<Content: View>: View {
     /// - Note: SwiftUI's `showsIndicators:` variant is deliberately absent —
     ///   it is soft-deprecated there in favour of `scrollIndicators(_:)`, and
     ///   TUIkit does not carry deprecated spellings (see
-    ///   `Documentation/SwiftUI-compatibility.md`). It was also a second,
+    ///   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). It was also a second,
     ///   hidden answer to the question `\.verticalScrollIndicatorVisibility`
     ///   already answers, which is exactly the confusion that splitting
     ///   visibility from style set out to end.

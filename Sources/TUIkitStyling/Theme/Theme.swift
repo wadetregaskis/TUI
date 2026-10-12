@@ -191,7 +191,7 @@ extension Palette {
     /// at 30% *composited over* the background rather than made translucent —
     /// terminals have no alpha, so the blend has to be resolved to a concrete
     /// cell colour (see ``Color/opacity(_:over:)``, and
-    /// `Documentation/Terminal-compatibility.md` on the 256-colour cube).
+    /// `Documentation/Terminals/Terminal compatibility survey.md` on the 256-colour cube).
     ///
     /// Over a background with no RGB (``Color/default``, or the terminal's own
     /// before it has reported it) there is no colour 30% of the way to show, so

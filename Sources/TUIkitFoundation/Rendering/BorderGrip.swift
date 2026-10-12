@@ -45,7 +45,7 @@ package enum BorderGrip {
         /// against a double-line border, where doubles would BE the border and
         /// the handle would say nothing at all. Both families are Box Drawing
         /// rather than pictographs, so every terminal in
-        /// `Documentation/Terminal-compatibility.md` advances them by exactly
+        /// `Documentation/Terminals/Terminal compatibility survey.md` advances them by exactly
         /// the cells claimed.
         static let doubled = Self(horizontal: "═", vertical: "║", corner: "╝")
         static let heavy = Self(horizontal: "━", vertical: "┃", corner: "┛")

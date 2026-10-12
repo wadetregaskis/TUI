@@ -162,7 +162,7 @@ extension RenderContext {
     /// excellent rule that measures the wrong thing, because a view nobody can
     /// see re-declares exactly as a visible one does. So a discarded render
     /// went on costing a full render twenty times a second while showing
-    /// nobody anything. See `Documentation/Opacity as composition.md` §92.
+    /// nobody anything. See `Documentation/Colour and styling/Opacity as composition.md` §92.
     ///
     /// The third demand channel needs nothing here: an `AnimatedCellRun` rides
     /// on the buffer, and `RenderLoop.recordActivity` builds `animatedClocks`

@@ -34,7 +34,7 @@
         /// > to reuse a freed one's address is a new name only because the view
         /// > holds the image it drew for as long as it draws it. Comparing the
         /// > pixels instead would mean hashing them on every frame. See
-        /// > `Documentation/SwiftUI-compatibility.md` (decisions B43).
+        /// > `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (decisions B43).
         ///
         /// - Parameters:
         ///   - cgImage: The base graphical image.
@@ -80,7 +80,7 @@
         /// > the old picture, where SwiftUI shows the new one. Make a new
         /// > `NSImage` for a new picture. Noticing an edit in place would mean
         /// > hashing the pixels on every frame, at a cost in proportion to the
-        /// > picture's size. See `Documentation/SwiftUI-compatibility.md`
+        /// > picture's size. See `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`
         /// > (decisions B43).
         ///
         /// - Parameter nsImage: The AppKit image to wrap.

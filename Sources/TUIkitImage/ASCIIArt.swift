@@ -17,7 +17,7 @@
 /// came out as an explicit black rectangle: invisible on a dark theme, glaring on a
 /// light one.
 ///
-/// See `Documentation/Opacity as composition.md` §42.
+/// See `Documentation/Colour and styling/Opacity as composition.md` §42.
 public struct ASCIIArt: Sendable, Equatable {
     /// The styled lines, one per cell row.
     public var lines: [String]
@@ -47,7 +47,7 @@ public struct ASCIIArt: Sendable, Equatable {
     /// not about one caller's mode. Empty for a picture with no fully transparent cell,
     /// which is nearly every picture: nothing is recorded and nothing allocated.
     ///
-    /// See `Documentation/Opacity as composition.md` §70.5.
+    /// See `Documentation/Colour and styling/Opacity as composition.md` §70.5.
     public var uncovered: [CoverageRun]
 
     public init(lines: [String], coverage: [CoverageRun] = [], uncovered: [CoverageRun] = []) {

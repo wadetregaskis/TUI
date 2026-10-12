@@ -5,7 +5,7 @@
 //  into per-column cells, one cell blended at a time, and the result re-emitted
 //  as a self-contained span. The RULES — which glyph draws, what "behind"
 //  means, what a yielded cell keeps — are documented at `OpacityResolution.swift`
-//  and in `Documentation/Opacity as composition.md` §10.
+//  and in `Documentation/Colour and styling/Opacity as composition.md` §10.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -621,7 +621,7 @@ extension FrameBuffer {
 
         // ``Color/opacity(_:over:)``, the ENCODED-sRGB mix, not
         // ``Color/compositing(_:over:)``'s linear-light one — see
-        // `OpacityFade.fading` and `Documentation/Opacity as composition.md`.
+        // `OpacityFade.fading` and `Documentation/Colour and styling/Opacity as composition.md`.
         //
         // TWO blends for the ink, in this order, because a colour's alpha and a
         // layer's resolve against different things — which is what compositing

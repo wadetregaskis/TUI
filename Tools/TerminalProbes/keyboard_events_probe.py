@@ -13,7 +13,7 @@ TUIkit's `KittyKeyDecoder`, so a disagreement between the two is worth a
 look: the log is the ground truth, and both decoders are claims about it.
 
 The keys worth pressing, and why, are listed in
-Documentation/Terminal-compatibility.md, "The kitty keyboard protocol" → "To
+Documentation/Terminals/Terminal compatibility survey.md, "The kitty keyboard protocol" → "To
 measure, per host". Record the terminal's version and Option-key setting with
 the log.
 

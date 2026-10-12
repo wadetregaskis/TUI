@@ -95,7 +95,7 @@ struct TerminalColorReport: Equatable, Sendable {
 /// ## Why OSC and not DCS
 ///
 /// Apple Terminal parses OSC but not DCS or APC, and no measured host printed
-/// any of these queries (`Documentation/Terminal-compatibility.md`, "Asking
+/// any of these queries (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking
 /// the terminal for its colours").
 enum TerminalColorQuery {
 

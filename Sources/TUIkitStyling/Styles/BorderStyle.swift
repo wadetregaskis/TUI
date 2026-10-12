@@ -46,7 +46,7 @@ public struct BorderStyle: Sendable, Hashable {
     ///
     /// True only for ``block``. `U+2588` does not cover its cell on every
     /// terminal — Terminal.app leaves hairline seams between adjacent full
-    /// blocks, recorded in `Documentation/Terminal-compatibility.md` — and
+    /// blocks, recorded in `Documentation/Terminals/Terminal compatibility survey.md` — and
     /// painting the cell the same colour as the glyph makes the pixels the
     /// glyph misses the right colour anyway. `TrackConfiguration.block` has
     /// always done this; a border made of the same glyph has the same problem.

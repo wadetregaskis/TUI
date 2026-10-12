@@ -225,7 +225,7 @@ struct CompositedFieldPerColumnTests {
     // MARK: - A stated terminal field
 
     /// Compositing reads a stated `ESC[49m` as no field and fills it
-    /// (`Terminal-compatibility.md`, the stated-49 note) — with the field under THAT
+    /// (`Terminal compatibility survey.md`, the stated-49 note) — with the field under THAT
     /// cell, like any other it fills.
     @Test("A stated terminal field in an overlay is filled with the field under each cell")
     func aStatedTerminalFieldIsFilledPerColumn() throws {

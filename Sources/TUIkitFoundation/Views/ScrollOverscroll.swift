@@ -7,7 +7,7 @@
 // MARK: - Allowance
 
 /// How far past an edge a scrollable may be pushed — §1.5 of
-/// `Documentation/Scroll-anchoring.md`.
+/// `Documentation/Layout and scrolling/Scroll anchoring.md`.
 ///
 /// Overscroll is the empty space a deliberate push reveals beyond the content:
 /// scroll up at the top and the content slides down, leaving blank rows above

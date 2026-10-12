@@ -7,7 +7,7 @@
 //  on them — because they do not fit, because it rebuilds the lines from a copy,
 //  or because it repaints those cells whole every tick itself — owes the runs two
 //  things they would otherwise have done: what they said about their cells'
-//  ALPHA (`Documentation/Opacity as composition.md` §69.4), and, where it drops
+//  ALPHA (`Documentation/Colour and styling/Opacity as composition.md` §69.4), and, where it drops
 //  runs that are still on screen, the renders that would have moved them. A
 //  producer that leaves a run behind stops asking to be re-rendered — that is
 //  the whole point of leaving one — so nothing else will ask.

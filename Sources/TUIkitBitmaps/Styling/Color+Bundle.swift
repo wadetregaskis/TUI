@@ -38,7 +38,7 @@ extension Color {
     /// > is what `NSColor(_:)` resolves a palette role against too. A subtree
     /// > under a `.palette(_:)` of the other scheme, or under a
     /// > `.environment(\.colorScheme, …)` pin, still gets that colour. See
-    /// > `Documentation/SwiftUI-API-completion-decisions-D6M.md` (B-D6M-1).
+    /// > `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md` (B-D6M-1).
     ///
     /// - Parameters:
     ///   - name: The name of the color resource to look for.

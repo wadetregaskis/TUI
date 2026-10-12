@@ -68,7 +68,7 @@ extension TerminalClient {
     ///
     /// None of the rows above is measured yet on the hosts themselves except
     /// tmux's: `clipboard_probe.py` is how they will be, and
-    /// `Documentation/Terminal-compatibility.md`, "OSC 52 clipboard writes",
+    /// `Documentation/Terminals/Terminal compatibility survey.md`, "OSC 52 clipboard writes",
     /// keeps the record.
     public static func honoursClipboardWrites(_ program: Program) -> Bool {
         support(of: program) == .honoured

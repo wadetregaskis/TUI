@@ -69,7 +69,7 @@ public enum TooltipTrigger: Sendable, Equatable, CaseIterable {
     ///
     /// - Important: Panels are placed independently and do **not** avoid one
     ///   another. On a page with several nearby controls they will overlap. See
-    ///   `Documentation/Tooltips.md` §5 — rules 4 and 5 are unbuilt, and mutual
+    ///   `Documentation/Controls and presentation/Tooltips and help in a terminal.md` §5 — rules 4 and 5 are unbuilt, and mutual
     ///   avoidance is a further rule nobody has designed. Reach for this on a
     ///   sparse page, or one panel at a time.
     case always

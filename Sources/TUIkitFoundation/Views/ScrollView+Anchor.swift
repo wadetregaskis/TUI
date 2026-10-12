@@ -2,7 +2,7 @@
 //  ScrollView+Anchor.swift
 //
 //  How a `ScrollView` honours the EDGE anchor modes of
-//  `Documentation/Scroll-anchoring.md` §1.1 — Bottom (follow-the-log) and Top —
+//  `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 — Bottom (follow-the-log) and Top —
 //  from the declared `defaultScrollAnchor` and, equally, from a bound
 //  `.anchorPosition`, which §3.2 defines as the code-side `anchor(to:)`.
 //

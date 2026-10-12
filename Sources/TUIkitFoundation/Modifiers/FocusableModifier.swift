@@ -35,7 +35,7 @@ extension View {
     /// the first: it takes the content OUT of the ring, so a control that
     /// registers a stop of its own — a `Button`, a `TextField` — stops being a
     /// Tab stop and stops answering Return. See the `.focusable` entry in
-    /// `Documentation/SwiftUI-compatibility.md` for the two ways that differs
+    /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` for the two ways that differs
     /// from SwiftUI, both of which follow from a terminal modifier addressing a
     /// SUBTREE where SwiftUI addresses one node: it reaches every control
     /// inside, and it is ADDITIVE — an inner `.focusable(true)` does not re-open
@@ -108,7 +108,7 @@ extension FocusableModifier: Renderable {
         // write `false` here. An inner `.focusable(true)` therefore does not
         // re-open a subtree an ancestor closed, which is how `.disabled(_:)`
         // composes two files over, and is recorded as a deviation in
-        // `Documentation/SwiftUI-compatibility.md`.
+        // `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
         if !isFocusable { contentContext.environment.isFocusSuppressed = true }
 
         // Tell the content whether it holds the focus, the way SwiftUI's

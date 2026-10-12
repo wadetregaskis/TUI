@@ -230,7 +230,7 @@ struct GroupRenderTests {
     // MARK: - The Rule Through Wrappers That Are Not `BufferModifier`s
     //
     // `.foregroundStyle` above goes through `_StyleEnvironmentView`. These are
-    // the other three wrappers `SwiftUI-compatibility.md` section 3 named as
+    // the other three wrappers `SwiftUI compatibility guide.md` section 3 named as
     // opaque, each one its own type with its own initialiser: `.opacity` builds
     // `_OpacityView`, `.frame` builds `FlexibleFrameView`, `.disabled` builds
     // `DisabledModifier`. The oracle is the same one SwiftUI's sentence gives —

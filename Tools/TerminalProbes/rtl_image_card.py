@@ -67,10 +67,10 @@ The blocks:
                    around it.
 
 U+202D … U+202C is not among them: Apple Terminal paints those two as the
-missing-glyph box (measured 2026-09-01, in `Terminal-compatibility.md`).
+missing-glyph box (measured 2026-09-01, in `Terminal compatibility survey.md`).
 
 Run INSIDE the terminal under test, and record what you saw in
-`Documentation/Terminal-compatibility.md` under "Right-to-left text".
+`Documentation/Terminals/Terminal compatibility survey.md` under "Right-to-left text".
 """
 import sys
 

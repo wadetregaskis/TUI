@@ -117,7 +117,7 @@ is a focus stop after the sheet's own controls:
 
 ↑ and ↓ reach the app in every terminal measured. Whether every terminal's
 default profile sends a bare ↖ and ↘ to the app, rather than keeping them to
-scroll its own buffer, is not yet measured (`Terminal-compatibility.md`, "Keys
+scroll its own buffer, is not yet measured (`Terminal compatibility survey.md`, "Keys
 a sheet's grabber uses"), so they are a convenience where they arrive, and ↑
 and ↓ the route that always works.
 

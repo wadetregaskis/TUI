@@ -19,7 +19,7 @@ enum UnreportedANSISlots {
     }
 
     /// Apple Terminal 455.1's "Basic" sixteen, as its OSC 4 replies reported them on
-    /// 2026-09-14 (Terminal-compatibility.md, "Apple Terminal.app 455.1, Basic"), in slot
+    /// 2026-09-14 (Terminal compatibility survey.md, "Apple Terminal.app 455.1, Basic"), in slot
     /// order. Only slot 0 is xterm's value.
     static let appleBasic = [
         rgb(0, 0, 0), rgb(153, 0, 0), rgb(0, 166, 0), rgb(153, 153, 0),

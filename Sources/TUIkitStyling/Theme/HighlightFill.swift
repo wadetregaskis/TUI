@@ -13,7 +13,7 @@
 /// A highlight is a tint — the accent, or a text tier, blended into the page. Where
 /// that tint or the ground has no RGB (``Color/default``, or a colour of the terminal's
 /// own that it has not reported), the blend has no RGB between its ends: every share of
-/// it is one end or the other (`Documentation/Opacity as composition.md` §75). Below
+/// it is one end or the other (`Documentation/Colour and styling/Opacity as composition.md` §75). Below
 /// half that is the ground, which says nothing at all; at half or more it is a solid
 /// colour whose contrast with the content on top of it nobody can check. Reverse video
 /// is the one highlight a terminal paints legibly whatever colours it keeps, so that is
@@ -33,7 +33,7 @@ package enum HighlightFill: Equatable, Sendable {
     /// Reverse video (SGR 7) over `ink` on `field`, both of which are STATED beside the
     /// 7. A bare 7 exchanges the colours in force, and after a reset those are the
     /// terminal's own pair rather than the palette's
-    /// (`Documentation/Terminal-compatibility.md`, "Reverse video (SGR 7)").
+    /// (`Documentation/Terminals/Terminal compatibility survey.md`, "Reverse video (SGR 7)").
     case reversed(ink: Color, field: Color)
 
     /// A breath with one end in reverse video, the other a fill (`nil` is the reversed

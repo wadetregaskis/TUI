@@ -18,7 +18,7 @@ import TUIkit
 /// These drive the resolution DIRECTLY rather than through `.opacity(_:)`,
 /// which still fades at render time and emits no region: this is the machinery
 /// landing ahead of the modifier that will use it. See
-/// `Documentation/Opacity as composition.md` §9.5 for why the two are separate
+/// `Documentation/Colour and styling/Opacity as composition.md` §9.5 for why the two are separate
 /// commits.
 @MainActor
 @Suite("Opacity resolution")

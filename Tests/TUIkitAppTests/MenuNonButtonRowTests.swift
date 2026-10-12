@@ -169,7 +169,7 @@ struct MenuNonButtonRowTests {
     // MARK: - Sticky toggles
 
     /// `.menuActionDismissBehavior(_:)`'s reason for existing, per
-    /// `Documentation/SwiftUI-compatibility.md`: "a sticky toggle and an
+    /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`: "a sticky toggle and an
     /// ordinary `Done` share a menu". Until a `Toggle` could be a row at all,
     /// the sticky half of that sentence had nothing to be true of.
     @Test(

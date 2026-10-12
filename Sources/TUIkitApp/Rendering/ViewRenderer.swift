@@ -86,7 +86,7 @@ final class ViewRenderer {
     /// however the bytes were produced, so a snapshot containing `⚙️` on
     /// Terminal.app puts the rest of its line one cell to the left without it.
     /// See ``FrameDiffWriter/compensatingCursorAdvance(_:)``
-    /// and `Documentation/Terminal-compatibility.md`.
+    /// and `Documentation/Terminals/Terminal compatibility survey.md`.
     private let writer: FrameDiffWriter
 
     /// Creates a new ViewRenderer.

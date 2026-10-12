@@ -3,7 +3,7 @@
 //
 //  `.foregroundStyle(gradient)` painting a leaf. Every expectation about WHERE
 //  the ramp runs was measured against real SwiftUI first — see
-//  `Documentation/Gradients where a colour is accepted.md` §1 — because the
+//  `Documentation/Colour and styling/Gradients where a colour is accepted.md` §1 — because the
 //  answer is not the one anyone guesses: the extent is the leaf's own layout
 //  block, not the styled subtree and not the line.
 //

@@ -3,7 +3,7 @@
 //
 //  `.anchorPosition(.row(id))` names a row and asks the viewport to HOLD it:
 //  as rows are inserted or removed around it, the scroll position moves so
-//  that the named row keeps its place on screen (Scroll-anchoring.md §1.2).
+//  that the named row keeps its place on screen (Scroll anchoring.md §1.2).
 //
 //  The anchored walk (§5e) gets this structurally — it lays rows out relative
 //  to the anchor, so the anchor's screen position is the coordinate system.

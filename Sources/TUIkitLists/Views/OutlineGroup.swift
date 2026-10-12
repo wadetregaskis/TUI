@@ -75,7 +75,7 @@ import TUIkitView
 /// - Note: ⌥-arrow depends on the terminal forwarding Option on an arrow key,
 ///   which not all of them do — Apple Terminal spends ⌥←/⌥→ on its own
 ///   word-motion bindings unless "Use Option as Meta key" is on. See
-///   `Documentation/Terminal-compatibility.md`. Plain Right and Left reach
+///   `Documentation/Terminals/Terminal compatibility survey.md`. Plain Right and Left reach
 ///   every branch regardless; the Option form is an accelerator, never the
 ///   only way in.
 ///

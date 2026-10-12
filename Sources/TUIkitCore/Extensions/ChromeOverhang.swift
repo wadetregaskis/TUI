@@ -32,7 +32,7 @@ extension TerminalWidthTraits {
     /// measurement read by a person, not a DSR reply: the machine version
     /// (`landing_probe.py`) needs screenshots, and those need a Screen
     /// Recording grant this project does not have.
-    /// `Documentation/Terminal-compatibility.md` carries the reading in full,
+    /// `Documentation/Terminals/Terminal compatibility survey.md` carries the reading in full,
     /// including what the card said about the rows that do NOT overhang.
     ///
     /// ## Why this follows the host, when the claim's own rule says otherwise
@@ -144,7 +144,7 @@ extension TerminalWidthTraits.ChromeOverhang {
     /// and the framework's most repeated glyph would double in cost. The card
     /// measured all six (`─ │ █ ▌ ▐ ▒`) contained on all four hosts; if one is
     /// ever measured to overhang, the fix is a different glyph — the choice
-    /// `Documentation/Terminal-compatibility.md` calls chrome glyph
+    /// `Documentation/Terminals/Terminal compatibility survey.md` calls chrome glyph
     /// selection — not a wider claim.
     func overhangs(_ value: UInt32) -> Bool {
         guard !(0x2500...0x259F).contains(value) else { return false }

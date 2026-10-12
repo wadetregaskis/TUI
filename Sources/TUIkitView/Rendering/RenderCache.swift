@@ -391,7 +391,7 @@ public final class RenderCache: @unchecked Sendable {
     /// It exists because `measureChild` consulted the memo through
     /// `context.environment.volatileReadTracker`: an `ObjectIdentifier` hash, an
     /// `[ObjectIdentifier: Any]` probe, a `swift_dynamicCast` and a retain, paid
-    /// ~14,400 times on a `fanout` frame (`Performance-profile-2026-08.md`
+    /// ~14,400 times on a `fanout` frame (`Full performance profile of Stress and the Example (2026-08).md`
     /// §3's measures/frame table). `RenderContext` already mirrors this cache as
     /// a stored field for the same reason, so from there this is one more load.
     ///

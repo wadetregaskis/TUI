@@ -98,7 +98,7 @@ extension Terminal {
     /// some two thousand characters; one longer is lost, not typed. Every CSI
     /// reply TUIkit asks for is under forty bytes: xterm's device attributes,
     /// `ESC[?63;1;2;4;6;9;15;16;18;21;22;28;29c`, the longest seen at 37
-    /// (`Documentation/Terminal-compatibility.md` has iTerm2's, at 33).
+    /// (`Documentation/Terminals/Terminal compatibility survey.md` has iTerm2's, at 33).
     ///
     /// A CSI is not only a key: DA, DSR and DECRPM answers arrive as CSIs, and
     /// the CSI walk's own 32-byte budget used to truncate a 37-byte

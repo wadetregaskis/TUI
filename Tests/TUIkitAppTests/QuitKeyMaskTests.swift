@@ -453,7 +453,7 @@ struct QuitKeyMaskTests {
 
     // MARK: - Which hosts send ⌃\'s byte for which chords
 
-    /// The owner's `cat -v` readings of 2026-10-06 (Terminal-compatibility.md,
+    /// The owner's `cat -v` readings of 2026-10-06 (Terminal compatibility survey.md,
     /// "The three that share ⌃\'s 0x1C"): Apple Terminal 2.14 sends the quit
     /// byte for ⌃⇧\ (⌃| on a US layout) and nothing for ⌃4; iTerm2 3.7.3 and
     /// Warp 0.2026.09.30 send it for both; Ghostty 1.3.1, in its legacy

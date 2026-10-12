@@ -20,7 +20,7 @@ import TUIkitFoundation
 /// point, on each axis.
 ///
 /// The reported "pixels" are not one unit across hosts, and that is the whole
-/// reason this exists. Measured on one Retina Mac (`Terminal-compatibility.md`,
+/// reason this exists. Measured on one Retina Mac (`Terminal compatibility survey.md`,
 /// "A cell's size in points"):
 ///
 /// | Host | `TIOCGWINSZ` per cell | in points |

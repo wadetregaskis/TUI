@@ -5,7 +5,7 @@ TUIkit lays cells out in logical order and assumes the terminal paints them
 that way. A terminal that implements the Unicode bidirectional algorithm does
 not: a Hebrew or Arabic letter reorders the run around it, so what TUIkit
 thinks is in column 7 is painted somewhere else and every column after it
-shears. Nothing in `Documentation/Terminal-compatibility.md` records which
+shears. Nothing in `Documentation/Terminals/Terminal compatibility survey.md` records which
 hosts do this, because it has never been measured.
 
 This card measures it. Every row is  |<sample>|X  and there are two answers
@@ -30,7 +30,7 @@ in it, one mechanical and one that needs a pair of eyes:
                   obeying them and the wrap would be a regression there.
 
 Run INSIDE the terminal under test and look at the X column, then record what
-you saw in Documentation/Terminal-compatibility.md.
+you saw in Documentation/Terminals/Terminal compatibility survey.md.
 """
 import sys
 

@@ -7,7 +7,7 @@
 //  answer against: `terminalWidth` is the CLAIM, the cells the layout reserves,
 //  and these are what the host actually does with them. The gap between the two
 //  is what `String+CursorCompensation.swift` closes, and the subject of
-//  `Documentation/Terminal-compatibility.md`.
+//  `Documentation/Terminals/Terminal compatibility survey.md`.
 //
 //  Every value here is measured, never derived. `Tools/TerminalProbes/` holds
 //  the probes and `Tools/TerminalProbes/data/` the records; a model changed

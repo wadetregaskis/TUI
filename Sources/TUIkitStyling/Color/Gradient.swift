@@ -30,7 +30,7 @@
 /// ## What a stop list means
 ///
 /// Three behaviours, each **measured against SwiftUI** rather than assumed
-/// (`Documentation/Gradients where a colour is accepted.md` §1) and each pinned
+/// (`Documentation/Colour and styling/Gradients where a colour is accepted.md` §1) and each pinned
 /// by a test here:
 ///
 /// - **Order does not matter.** An unsorted list renders as if sorted, so

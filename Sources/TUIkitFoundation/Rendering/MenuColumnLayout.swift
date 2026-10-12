@@ -26,7 +26,7 @@ import TUIkitCore
 /// This is the INLINE menu's assembly. A pop-up goes through
 /// ``renderMenuPopup(_:context:controller:)`` instead, which hands the same
 /// rows to the `Picker` drop-down's renderer — see
-/// `Documentation/Unifying the menu implementations.md`.
+/// `Documentation/Controls and presentation/Unifying the menu implementations.md`.
 @MainActor
 func renderMenuColumn(
     _ items: some View, context: RenderContext, capHeight: Int, borderColor: Color? = nil

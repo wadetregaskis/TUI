@@ -16,7 +16,7 @@
 #     keeping separate state that could disagree with it;
 #   - verify the ledger has not drifted from upstream's history.
 #
-# The ledger is Documentation/Upstream-review/ledger.tsv. It is the single
+# The ledger is Documentation/Reviews/Upstream review/ledger.tsv. It is the single
 # source of truth for position: "reviewed so far" is exactly "recorded there".
 # There is no cursor file to fall out of sync with it.
 #
@@ -40,7 +40,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-LEDGER="Documentation/Upstream-review/ledger.tsv"
+LEDGER="Documentation/Reviews/Upstream review/ledger.tsv"
 UPSTREAM_REF="upstream/main"
 
 # The controlled vocabulary. Anything outside this is rejected by `record`.
@@ -52,7 +52,7 @@ UPSTREAM_REF="upstream/main"
 #   n-a      does not apply to this fork (their tooling, CI, docs, vendored code)
 #   reject   applies, understood, deliberately not wanted here
 #   defer    worth doing, not now — a real backlog item, not a shrug
-#   queued   awaiting the owner's decision (see open-questions.md)
+#   queued   awaiting the owner's decision (see Open questions.md)
 #   noise    no reviewable content (badge bumps, empty merges, pure formatting)
 VERDICTS="adopt adapt inspired have n-a reject defer queued noise"
 

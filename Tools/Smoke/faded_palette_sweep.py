@@ -3,7 +3,7 @@
 
 A paint site that hands a translucent colour straight to the ANSI emitter trips
 the assertion in `Color+ANSICodes.swift`, which in a debug build is a trap. Six
-such sites were found this way (see §68 of `Documentation/Opacity as
+such sites were found this way (see §68 of `Documentation/Colour and styling/Opacity as
 composition.md`), none of which any audit of the list had ever had — a unit test
 only covers the sites somebody thought of, and every re-count of those re-read
 the same list.
