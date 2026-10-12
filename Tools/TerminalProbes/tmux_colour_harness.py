@@ -148,10 +148,14 @@ class ScriptedClient:
     def attach(self, tmux, socket, log):
         pid, fd = pty.fork()
         if pid == 0:
-            env = {k: v for k, v in os.environ.items()
-                   if not k.startswith(("TMUX", "TERM_PROGRAM", "LC_TERMINAL"))}
-            env["TERM"] = "xterm-256color"
-            os.execve(tmux, [tmux, "-L", socket, "attach", "-t", SESSION], env)
+            try:
+                env = {k: v for k, v in os.environ.items()
+                       if not k.startswith(("TMUX", "TERM_PROGRAM", "LC_TERMINAL"))}
+                env["TERM"] = "xterm-256color"
+                os.execve(tmux, [tmux, "-L", socket, "attach", "-t", SESSION], env)
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", PANE_ROWS + 1, PANE_COLUMNS, 0, 0))
         self.pid, self.fd = pid, fd
         log.event("attach", client=self.label, pid=pid)

@@ -42,7 +42,11 @@ os.makedirs(env["TUIKIT_CONFIG_DIR"], exist_ok=True)
 
 pid, fd = pty.fork()
 if pid == 0:
-    os.execvpe(args.binary, [args.binary], env)
+    try:
+        os.execvpe(args.binary, [args.binary], env)
+    except Exception:
+        pass
+    os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", args.rows, args.cols, 0, 0))
 screen = pyte.Screen(args.cols, args.rows)
 stream = pyte.ByteStream(screen)

@@ -63,12 +63,17 @@ env = dict(os.environ)
 env["TERM"] = "xterm-256color"
 env["LANG"] = "en_US.UTF-8"
 env["TUIKIT_CONFIG_DIR"] = tempfile.mkdtemp(prefix="tuikit-suspend-probe-")
-# Removed when the probe ends, however it ends; the forked child execs, so never runs it.
+# Removed when the probe ends, however it ends; the forked child execs, or ends by os._exit if exec fails, so
+# never runs it.
 atexit.register(shutil.rmtree, env["TUIKIT_CONFIG_DIR"], ignore_errors=True)
 
 pid, fd = pty.fork()
 if pid == 0:
-    os.execve(BINARY, [BINARY], env)
+    try:
+        os.execve(BINARY, [BINARY], env)
+    except Exception:
+        pass
+    os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
 

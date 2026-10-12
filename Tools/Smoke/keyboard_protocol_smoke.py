@@ -62,7 +62,7 @@ failures = []
 
 # Every child's config directory, under one of this run's own that atexit
 # removes: it runs on the SystemExit at the end, and on an exception, too. The
-# forked child never runs it: it execs.
+# forked child never runs it: it execs, or ends by os._exit if exec fails.
 SCRATCH = tempfile.mkdtemp(prefix="tuikit-kkp-smoke-")
 atexit.register(shutil.rmtree, SCRATCH, ignore_errors=True)
 
@@ -84,13 +84,17 @@ class FakeTerminal:
         config = tempfile.mkdtemp(dir=SCRATCH)
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
-            for key in STRIPPED:
-                os.environ.pop(key, None)
-            os.environ["TERM"] = "xterm-256color"
-            os.environ["LANG"] = "en_US.UTF-8"
-            os.environ["TUIKIT_CONFIG_DIR"] = config
-            os.environ.update(env or {})
-            os.execv(BINARY, [BINARY])
+            try:
+                for key in STRIPPED:
+                    os.environ.pop(key, None)
+                os.environ["TERM"] = "xterm-256color"
+                os.environ["LANG"] = "en_US.UTF-8"
+                os.environ["TUIKIT_CONFIG_DIR"] = config
+                os.environ.update(env or {})
+                os.execv(BINARY, [BINARY])
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 
     def pump(self, seconds):
         until = time.time() + seconds

@@ -93,12 +93,16 @@ def run(binary, replies, seconds, config_dir):
     """Run `binary` under a PTY answering `replies`; return everything it wrote."""
     pid, fd = pty.fork()
     if pid == 0:
-        for key in STRIPPED:
-            os.environ.pop(key, None)
-        os.environ["TERM"] = "xterm-256color"
-        # Never the real preferences.
-        os.environ["TUIKIT_CONFIG_DIR"] = config_dir
-        os.execv(binary, [binary])
+        try:
+            for key in STRIPPED:
+                os.environ.pop(key, None)
+            os.environ["TERM"] = "xterm-256color"
+            # Never the real preferences.
+            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.execv(binary, [binary])
+        except Exception:
+            pass
+        os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 
     out = b""
     pending = b""

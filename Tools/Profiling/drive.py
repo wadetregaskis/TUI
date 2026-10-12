@@ -354,13 +354,16 @@ def main():
 
     pid = os.fork()
     if pid == 0:  # child
-        os.close(master)
-        login_tty_compat(slave)  # setsid + TIOCSCTTY + dup2(0,1,2) + close
-        env = dict(os.environ)
-        env.update(TERM="xterm-256color", COLUMNS=str(args.cols), LINES=str(args.rows),
-                   TUIKIT_CONFIG_DIR=config_dir)
-        os.execve(args.binary, [args.binary], env)
-        os._exit(127)
+        try:
+            os.close(master)
+            login_tty_compat(slave)  # setsid + TIOCSCTTY + dup2(0,1,2) + close
+            env = dict(os.environ)
+            env.update(TERM="xterm-256color", COLUMNS=str(args.cols), LINES=str(args.rows),
+                       TUIKIT_CONFIG_DIR=config_dir)
+            os.execve(args.binary, [args.binary], env)
+        except Exception:
+            pass
+        os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 
     os.close(slave)
     total = 0

@@ -91,7 +91,8 @@ failures = []
 # Every child's config directory, and the file IdleProbe writes its child's
 # process ID to, under one directory of this run's own that atexit removes: it
 # runs on the SystemExit at the end, and on an exception, too. A forked child
-# never runs it: it execs, or, as a job's shell, ends by os._exit or a signal.
+# never runs it: it execs, or, as a job's shell, ends by os._exit or a signal,
+# and ends by os._exit if exec fails.
 SCRATCH = tempfile.mkdtemp(prefix="tuikit-quit-smoke-")
 atexit.register(shutil.rmtree, SCRATCH, ignore_errors=True)
 
@@ -128,17 +129,21 @@ class App:
         child_env.update(env or {})
         self.pid = os.fork()
         if self.pid == 0:
-            os.close(self.master)
-            os.setsid()
-            fcntl.ioctl(self.slave, termios.TIOCSCTTY, 0)
-            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-            if job:
-                self.run_as_job(child_env)
-            for fd in (0, 1, 2):
-                os.dup2(self.slave, fd)
-            if self.slave > 2:
-                os.close(self.slave)
-            os.execve(BINARY, [BINARY], child_env)
+            try:
+                os.close(self.master)
+                os.setsid()
+                fcntl.ioctl(self.slave, termios.TIOCSCTTY, 0)
+                resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+                if job:
+                    self.run_as_job(child_env)
+                for fd in (0, 1, 2):
+                    os.dup2(self.slave, fd)
+                if self.slave > 2:
+                    os.close(self.slave)
+                os.execve(BINARY, [BINARY], child_env)
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         self.status = None
 
     def run_as_job(self, child_env):
@@ -152,14 +157,18 @@ class App:
         signal.signal(signal.SIGTTOU, signal.SIG_IGN)
         app = os.fork()
         if app == 0:
-            os.setpgid(0, 0)
-            os.tcsetpgrp(self.slave, os.getpid())
-            signal.signal(signal.SIGTTOU, signal.SIG_DFL)
-            for fd in (0, 1, 2):
-                os.dup2(self.slave, fd)
-            if self.slave > 2:
-                os.close(self.slave)
-            os.execve(BINARY, [BINARY], child_env)
+            try:
+                os.setpgid(0, 0)
+                os.tcsetpgrp(self.slave, os.getpid())
+                signal.signal(signal.SIGTTOU, signal.SIG_DFL)
+                for fd in (0, 1, 2):
+                    os.dup2(self.slave, fd)
+                if self.slave > 2:
+                    os.close(self.slave)
+                os.execve(BINARY, [BINARY], child_env)
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         try:
             os.setpgid(app, app)
         except OSError:

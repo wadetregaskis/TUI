@@ -126,11 +126,15 @@ class Fake:
 def play(mode, out_path):
     pid, master = pty.fork()
     if pid == 0:
-        env = {k: v for k, v in os.environ.items() if k not in ("TMUX", "STY")}
-        env.update(PROBE_OUT=out_path, PROBE_LABEL="selftest-" + mode, PROBE_SUITE="m3m7",
-                   TERM_PROGRAM="Apple_Terminal" if mode == "apple" else "selftest",
-                   PROBE_HARD_LIMIT="60", PROBE_GRACE_DEFAULT="0.15", PROBE_GRACE_997="0.5")
-        os.execve(sys.executable, [sys.executable, PROBE], env)
+        try:
+            env = {k: v for k, v in os.environ.items() if k not in ("TMUX", "STY")}
+            env.update(PROBE_OUT=out_path, PROBE_LABEL="selftest-" + mode, PROBE_SUITE="m3m7",
+                       TERM_PROGRAM="Apple_Terminal" if mode == "apple" else "selftest",
+                       PROBE_HARD_LIMIT="60", PROBE_GRACE_DEFAULT="0.15", PROBE_GRACE_997="0.5")
+            os.execve(sys.executable, [sys.executable, PROBE], env)
+        except Exception:
+            pass
+        os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 100, 0, 0))
     fake = Fake(mode)
     deadline = time.monotonic() + 90

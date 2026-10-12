@@ -60,9 +60,13 @@ class App:
         self.stream = pyte.ByteStream(self.screen)
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
-            os.environ["TERM"] = "xterm-256color"
-            os.execv(binary, [binary])
+            try:
+                os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+                os.environ["TERM"] = "xterm-256color"
+                os.execv(binary, [binary])
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
 
     def drain(self, seconds):

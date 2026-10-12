@@ -64,17 +64,21 @@ class App:
         self.stream = pyte.ByteStream(self.screen)
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
-            os.environ["TERM"] = "xterm-256color"
-            # The language the environment asks for, so run 1 starts in English
-            # whatever this machine's own is. Every variable the service reads
-            # ahead of LANG goes too — LANGUAGE first, which German Linux
-            # desktops set — or it, not LANG, decides
-            # (LocalizationService+Detection.swift, `posixLanguageCodes`).
-            os.environ["LANG"] = "en_US.UTF-8"
-            for name in ("LANGUAGE", "LC_ALL", "LC_MESSAGES"):
-                os.environ.pop(name, None)
-            os.execv(binary, [binary, "--page", "theme"])
+            try:
+                os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+                os.environ["TERM"] = "xterm-256color"
+                # The language the environment asks for, so run 1 starts in English
+                # whatever this machine's own is. Every variable the service reads
+                # ahead of LANG goes too — LANGUAGE first, which German Linux
+                # desktops set — or it, not LANG, decides
+                # (LocalizationService+Detection.swift, `posixLanguageCodes`).
+                os.environ["LANG"] = "en_US.UTF-8"
+                for name in ("LANGUAGE", "LC_ALL", "LC_MESSAGES"):
+                    os.environ.pop(name, None)
+                os.execv(binary, [binary, "--page", "theme"])
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
 
     def drain(self, seconds):

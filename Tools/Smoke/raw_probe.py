@@ -91,12 +91,16 @@ class Child:
         self.all = bytearray()
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
-            os.environ["TUIKIT_CONFIG_DIR"] = os.path.join(
-                os.environ.get("TMPDIR", "/tmp"), "tuikit-raw-probe")
-            os.environ["TERM"] = "xterm-256color"
-            if term_program:
-                os.environ["TERM_PROGRAM"] = term_program
-            os.execv(binary, [binary])
+            try:
+                os.environ["TUIKIT_CONFIG_DIR"] = os.path.join(
+                    os.environ.get("TMPDIR", "/tmp"), "tuikit-raw-probe")
+                os.environ["TERM"] = "xterm-256color"
+                if term_program:
+                    os.environ["TERM_PROGRAM"] = term_program
+                os.execv(binary, [binary])
+            except Exception:
+                pass
+            os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 
     def drain(self, seconds):

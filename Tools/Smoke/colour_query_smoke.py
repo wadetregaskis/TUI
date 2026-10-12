@@ -155,16 +155,20 @@ def run(binary, case, config_dir, seconds):
     tmux, answers, fences, delay, key, environment, _ = CASES[case]
     pid, fd = pty.fork()
     if pid == 0:
-        for name in STRIPPED:
-            os.environ.pop(name, None)
-        os.environ["TERM"] = "xterm-256color"
-        os.environ["TUIKIT_CONFIG_DIR"] = config_dir
-        os.environ.update(environment)
-        if tmux:
-            # A socket that does not exist, so the app's tmux commands (its
-            # client-change hooks) fail rather than reach a real server.
-            os.environ["TMUX"] = os.path.join(config_dir, "no-such-tmux-socket") + ",1,0"
-        os.execv(binary, [binary])
+        try:
+            for name in STRIPPED:
+                os.environ.pop(name, None)
+            os.environ["TERM"] = "xterm-256color"
+            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ.update(environment)
+            if tmux:
+                # A socket that does not exist, so the app's tmux commands (its
+                # client-change hooks) fail rather than reach a real server.
+                os.environ["TMUX"] = os.path.join(config_dir, "no-such-tmux-socket") + ",1,0"
+            os.execv(binary, [binary])
+        except Exception:
+            pass
+        os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 
     out = b""
     scan = 0

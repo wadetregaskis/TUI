@@ -88,9 +88,13 @@ signal.alarm(int(args.seconds + args.warm + 30))
 config_dir = tempfile.mkdtemp(prefix="tuikit-animation-rate-")
 pid, fd = pty.fork()
 if pid == 0:
-    env = dict(os.environ, TERM="xterm-256color", TUIKIT_CONFIG_DIR=config_dir,
-               COLUMNS=str(args.cols), LINES=str(args.rows))
-    os.execve(args.binary, [args.binary, "--page", args.page], env)
+    try:
+        env = dict(os.environ, TERM="xterm-256color", TUIKIT_CONFIG_DIR=config_dir,
+                   COLUMNS=str(args.cols), LINES=str(args.rows))
+        os.execve(args.binary, [args.binary, "--page", args.page], env)
+    except Exception:
+        pass
+    os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", args.rows, args.cols, 0, 0))
 
 screen = pyte.Screen(args.cols, args.rows)

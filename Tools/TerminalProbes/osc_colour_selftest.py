@@ -51,11 +51,15 @@ def play(mode, out_path):
     """Runs the probe against a terminal scripted as `mode`; returns its record."""
     pid, master = pty.fork()
     if pid == 0:
-        env = {k: v for k, v in os.environ.items() if k not in ("TMUX", "STY")}
-        env.update(PROBE_OUT=out_path, PROBE_LABEL="selftest-" + mode, TERM_PROGRAM="selftest",
-                   PROBE_HARD_LIMIT="40", PROBE_GRACE_DEFAULT="0.15", PROBE_GRACE_OSC4="0.1",
-                   PROBE_GRACE_BATCH="0.2")
-        os.execve(sys.executable, [sys.executable, PROBE], env)
+        try:
+            env = {k: v for k, v in os.environ.items() if k not in ("TMUX", "STY")}
+            env.update(PROBE_OUT=out_path, PROBE_LABEL="selftest-" + mode, TERM_PROGRAM="selftest",
+                       PROBE_HARD_LIMIT="40", PROBE_GRACE_DEFAULT="0.15", PROBE_GRACE_OSC4="0.1",
+                       PROBE_GRACE_BATCH="0.2")
+            os.execve(sys.executable, [sys.executable, PROBE], env)
+        except Exception:
+            pass
+        os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
     row, col = 3, 1
     buffer = b""

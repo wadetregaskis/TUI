@@ -152,11 +152,15 @@ def main() -> int:
 
     pid, fd = pty.fork()
     if pid == 0:
-        os.environ["TUIKIT_CONFIG_DIR"] = config_dir
-        os.environ["TERM"] = "xterm-256color"
-        if args.scale:
-            os.environ["TUIKIT_STRESS_SCALE"] = str(args.scale)
-        os.execv(args.binary, [args.binary])
+        try:
+            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ["TERM"] = "xterm-256color"
+            if args.scale:
+                os.environ["TUIKIT_STRESS_SCALE"] = str(args.scale)
+            os.execv(args.binary, [args.binary])
+        except Exception:
+            pass
+        os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
 
     fcntl.ioctl(fd, termios.TIOCSWINSZ,
                 struct.pack("HHHH", args.rows, args.cols, 0, 0))
