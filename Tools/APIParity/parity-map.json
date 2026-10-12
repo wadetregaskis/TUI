@@ -302,7 +302,7 @@
         "View.pointerStyle*",
         "View.pointerVisibility*"
       ],
-      "why": "The mouse cursor's SHAPE. A terminal emulator owns its own pointer and its own cursor image; an application is told where a click landed and nothing more. No terminal protocol lets an app ask for a resize cursor over a divider."
+      "why": "The mouse pointer's SHAPE. Some terminals let an app set it by name with OSC 22 (Ghostty from 1.0.0, kitty and foot with CSS names; iTerm2 from 3.5.0 and xterm with X11 names), others do not, and none reports which names it takes. Refused until the lane the owner decided on 2026-10-12 lands (refusal review O12, option (b): honoured on measured hosts with a run-time check, inert elsewhere; design in Ghostty-VT-adoption.md §C4). `pointerVisibility` stays refused unless a probe shows the name `none` hides the pointer."
     },
     {
       "match": [
@@ -885,19 +885,19 @@
       "why": "Lines, runs and run slices with typographic bounds, handed to a `TextRenderer`. TUIkit's laid-out text is a `FrameBuffer` of styled strings with whole-cell widths: no glyphs, no baselines and no fractional positions. It waits with `TextRenderer` on O16 of the refusal review."
     },
     "Text.LayoutKey": {
-      "why": "The preference key that publishes anchored Text.Layout values (glyph geometry in a coordinate space) to ancestors. Depends entirely on the glyph-layout model TUIkit does not and cannot have — the app emits characters and the emulator does the typesetting."
+      "why": "The preference key that publishes anchored Text.Layout values to ancestors. Deferred with TextRenderer (owner, 2026-10-12; refusal review O16)."
     },
     "TextAttribute": {
-      "why": "Marker protocol for values attached via Text.customAttribute and read back inside a TextRenderer's glyph-run walk. It exists only to feed the custom-rendering pipeline, which has no terminal counterpart (no glyph runs, no drawing context)."
+      "why": "Marker protocol for values attached via Text.customAttribute and read back inside a TextRenderer's run walk. It exists only to feed the custom-rendering pipeline, deferred with TextRenderer (owner, 2026-10-12; refusal review O16)."
     },
     "TextInputFormattingControlPlacement": {
       "why": "Names the OS surfaces (the keyboard's accessory bar, an inspector, a menu) where the system's rich-text formatting controls appear, for `textInputFormattingControlVisibility`. A terminal app has no OS-drawn chrome on its fields: every cell on screen is written by the process itself."
     },
     "TextProxy": {
-      "why": "The handle a TextRenderer uses to resolve a Text into a Text.Layout of glyph runs with typographic bounds. Same reason as TextRenderer — TUIkit never materialises glyphs; it emits characters and lets the terminal rasterize."
+      "why": "The handle a TextRenderer uses to resolve a Text into a Text.Layout. Deferred with TextRenderer (owner, 2026-10-12; refusal review O16)."
     },
     "TextRenderer": {
-      "why": "Protocol whose draw(layout:in:) receives glyph runs and a GraphicsContext. TUIkit's rendering primitive is FrameBuffer (styled strings + integer cell widths); there is no rasterizer in-process, so there is no glyph, no outline, and no context to draw into."
+      "why": "Protocol whose draw(layout:in:) receives the text's laid-out lines, runs and slices and a GraphicsContext. Glyphs are not the blocker: a Text.Layout maps onto TUIkit's wrapped lines, style runs and grapheme clusters at known cells. The blocker is the GraphicsContext subset it would need (drawing a run with its style, opacity and a whole-cell translation), and typographic bounds, which have no honest value here. Deferred by the owner on 2026-10-12 (refusal review O16)."
     },
     "ToolbarTitleDisplayMode": {
       "why": "Exists only to feed `toolbarTitleDisplayMode(_:)`; a cell grid has a single glyph size (TUIkit has no Font type), so `.large`/`.inline`/`.inlineLarge` collapse to one representation."

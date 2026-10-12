@@ -43,10 +43,9 @@ that is decided and waits only on its implementation.
 
 **Still yours to answer.**
 
-- **A0 — the refusal review's O0–O17.** O0, the unit of a shape's path, gates
-  every shape and `clipShape`/`contentShape`. O8, whether APIs that are inert
-  on macOS ship inert, settles A11 and A51. O9, multi-scene apps, settles
-  A22 and A26.
+- **A0 — the refusal review's O8 and O11**, restated on 2026-10-12, with
+  (b) recommended for both. O8, whether APIs that are inert on macOS ship
+  inert, settles A11 and A51. The other sixteen were ruled on 2026-10-12.
 - **A18 — Apple-only API behind `#if canImport`.** Your 2026-10-04 answer
   allows it where it fails gracefully. Still open: whether that admits the
   `store: UserDefaults` spellings and Core Data's `FetchRequest` on Apple
@@ -66,16 +65,16 @@ default dissolve each wait on an A/B on the quiet machine, whose numbers
 decide them as agreed: A40 dissolves by default if that costs under about 1%
 when nothing animates.
 
-**Decided, lane owed.** A21 (with B3), A25, A42, B3, B19 (after its A/B),
-B20, B22 (a look at the faint tiers), B27 (once its question is answered),
-B28, B30 (the one missing reader), B31, B35.
+**Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
+A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
+A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
+at the faint tiers), B27 (once its question is answered), B28, B30 (the one
+missing reader), B31, B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
 
-**Waiting on another answer.** A11 (O8), A12 (O7), A22 and A26 (O9),
-A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3), A39 (A27), A41
-(O5), A51 (O8).
+**Waiting on another answer.** A11 and A51 (O8), A39 (A27).
 
 ---
 
@@ -93,29 +92,43 @@ The early Wave 17 review re-examined every existing refusal in
 
 Those 23 are written up, each with options and a recommendation, as O0–O17 in
 [`SwiftUI-API-completion-refusal-review.md`](SwiftUI-API-completion-refusal-review.md#owner-decision).
-They are not repeated here. In brief:
+They are not repeated here. **Ruled on 2026-10-12, all but O8 and O11**,
+whose questions were restated that day with (b) recommended for both; each
+ruling is in the review under its item. In brief, with the ruling:
 
 - **O0** The unit of a shape's path. This gates the whole Shapes cluster:
   `Shape`, `Rectangle` and its members (`path(in:)`, `inset(by:)`,
   `corners(in:)`, `InsetShape`), `clipShape`, `contentShape`, `background(_:in:)`.
-- **O1** Reduce-motion and the other accessibility preferences.
-- **O2** `PhaseAnimator` and `KeyframeAnimator`.
-- **O3** `CustomAnimation`.
-- **O4** Matched geometry and zoom transitions.
+  **Keep (B)**, square units: the display scale cancels out of the cell's
+  ratio, which (C)'s absolute size cannot say.
+- **O1** Reduce-motion and the other accessibility preferences. **(b), but
+  only `TUIKIT_REDUCE_MOTION`** (B53, shipped) unless TUIkit can be confident
+  the terminal is on the same machine; then the host's setting too, by the
+  clipboard's locality test. Lane owed.
+- **O2** `PhaseAnimator` and `KeyframeAnimator`. **(b)**; (c) is not easy,
+  so it is presented after (b).
+- **O3** `CustomAnimation`. **Detect, else live**: integrated lazily and
+  memoised, a finished animation is its own pre-sampled table.
+- **O4** Matched geometry and zoom transitions. **(b), with (a) where
+  possible.**
 - **O5** Materials and Glass (A41 lists the material symbols waiting on it).
-- **O6** `ShadowStyle`.
-- **O7** `ScrollEdgeEffectStyle`.
+  **(b) for both**; a cell-resolution blur is an optional add-on.
+- **O6** `ShadowStyle`. **(b)**, radius and offsets in cells.
+- **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`.
 - **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
-  and others. This reopens `submitLabel`.
-- **O9** Multi-scene apps.
-- **O10** File panels.
-- **O11** The `formatter:` APIs.
-- **O12** `PointerStyle`.
-- **O13** `Commands`, as a menu bar.
-- **O14** `ControlSize`.
-- **O15** `ButtonBorderShape`.
+  and others. This reopens `submitLabel`. **Restated; awaiting the owner.**
+- **O9** Multi-scene apps. **(b)**, leaving room for real windowing.
+- **O10** File panels. **(b)**, TUIkit-drawn open and save dialogs.
+- **O11** The `formatter:` APIs. **Restated; awaiting the owner.**
+- **O12** `PointerStyle`. **(b)**, inert where unsupported (the review's
+  facts about which terminals take OSC 22 were corrected).
+- **O13** `Commands`, as a menu bar. **A full menu bar**; the app header
+  optional, either, both or neither.
+- **O14** `ControlSize`. **(b)**, with extra render styles per size.
+- **O15** `ButtonBorderShape`. **Support it.**
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
-- **O17** The toolbar's `.title` and `.search` items.
+  **Defer.**
+- **O17** The toolbar's `.title` and `.search` items. **Do them.**
 
 ### A3. `layoutDirectionBehavior(_:)`: mirror now, or with right-to-left?
 
@@ -178,6 +191,10 @@ O8.
 They style content passing under a bar, and nothing passes under a bar here
 (B6). Refusal-review O7 already asks whether to ship them with the safe-area
 design; these two modifiers are that question's modifiers.
+
+**Decided with O7 (2026-10-12): lane owed.** `ScrollEdgeEffectStyle` ships
+with `.automatic` and `.hard` and no `.soft`, and both modifiers are honoured
+by the medium: nothing passes under a bar, since B6's safe area is not built.
 
 ### A16. Colours that resolve themselves, and HDR
 
@@ -313,6 +330,8 @@ means closing such a cover with its own presentations still up, and
 `.interactive` refusing to; under (a) or (c) the type has nothing to qualify
 and joins the decline.
 
+**Decided with O9 (2026-10-12): (b), so this ships with O9's lane.**
+
 ### A23. `matchedTransitionSource` waits on O4
 
 *`View.matchedTransitionSource(id:in:)`,
@@ -321,6 +340,9 @@ and joins the decline.
 The source half of the `.zoom` navigation transition, which O4 (matched
 geometry and zoom transitions) covers. `NavigationTransition` and `.automatic`
 shipped (the stack's own transition); `.zoom` and these two follow O4.
+
+**Decided with O4 (2026-10-12): lane owed,** after matched geometry; the
+source configuration needs O0's shapes (W1).
 
 ### A24. `presentationCornerRadius(_:)` waits on O0/O15
 
@@ -332,6 +354,9 @@ rounded (`╭`), `nil` the appearance's — applied to the sheet's box. But the 
 is drawn by the content (a `Dialog`, a `Panel`), not by the presenter, and what
 a radius means in cells is the question O0 (shapes) and O15
 (`ButtonBorderShape`) are already asking. It should be answered once, there.
+
+**Decided with O0 and O15 (2026-10-12):** square units, and button border
+shapes supported, so a radius has a cell reading. Lane owed after those two.
 
 ### A25. `searchSelection(_:)` waits on A13
 
@@ -369,6 +394,9 @@ O9 of the refusal review.
 **Recommendation:** follow O9. The dialog modifiers could ship today as
 environment writes, but whether SwiftUI's reach a view's alert, and not only
 an `AlertScene`, cannot be measured offscreen. Alerts are modal panels.
+
+**Decided with O9 (2026-10-12): option 1 under (b), lane owed** with O9's
+`SceneBuilder`.
 
 ### A27. Pixel effects: transforms, masks and `drawingGroup` (Wave 16)
 
@@ -469,6 +497,9 @@ itself — carrying a view from the source's frame to its own — and its
 position-only (whole cells, size snaps) to a full re-layout per frame.
 Nothing ships until O4 is answered.
 
+**Decided with O4 (2026-10-12): a full re-layout per frame, translating only
+when the sizes are equal.** Lane owed: about three to four days.
+
 ### A37. `phaseAnimator(_:trigger:content:animation:)` waits on O2
 
 *`View.phaseAnimator(_:trigger:content:animation:)`*
@@ -476,6 +507,8 @@ Nothing ships until O4 is answered.
 The animator views are O2 of the refusal review. If O2 goes (b), this is the
 trigger form of that live phase animator, and its completion advance would use the
 animation completions this wave adds.
+
+**Decided with O2 (2026-10-12): (b), lane owed.**
 
 ### A38. `Animation.shouldMerge` and `Animation.velocity` wait on O3
 
@@ -486,6 +519,10 @@ Both take an `AnimationContext`, which belongs to the `CustomAnimation`
 family that O3 of the refusal review reopens. They are the merge and velocity
 half of a custom animation's contract; with O3 (b) they would answer `false`
 and the closed-form velocity respectively.
+
+**Decided with O3 (2026-10-12): live, memoised integration**, so both become
+real rather than constant answers: `shouldMerge` is asked on a retarget to the
+same custom type, and the velocity is the integration's. Lane owed with O3.
 
 ### A39. The geometric visual effects wait on Wave 16 (A27)
 
@@ -543,6 +580,9 @@ whether TUIkit's should be a translucent palette surface composited over what
 is behind, its thickness an alpha and with no blur (recommended), or stay the
 `dimmed()`/`overlayBackground` substitution. These symbols ship or are
 declined with that answer.
+
+**Decided with O5 (2026-10-12): the translucent surface.** Lane owed: about a
+day.
 
 ### A42. Rich-text editing, now that P8 has shipped
 

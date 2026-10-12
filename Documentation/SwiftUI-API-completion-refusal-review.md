@@ -779,6 +779,16 @@ editing: defer it, not refuse it.
 
 ## OWNER DECISION
 
+**Status, 2026-10-12.** The owner ruled on every item below but O8 and O11,
+whose questions were restated that day and still await an answer (each now
+ends in the restated question and its recommendation). Each ruling is under
+its item, with what was found when it was researched (session notes
+`REFO/notes.md`, which has the design sketches for O10 and O13). The rulings
+come to about 47 lane-days in all (estimate), sequenced after the lanes
+running on 2026-10-12. The shapes lane (O0's W1) gates Glass, the
+`ShapeStyle` shadow, `ButtonBorderShape`'s `Shape` conformance and the zoom
+transition's source configuration.
+
 ### O0. Shapes: the unit of `Shape.path(in:)` — gates W1
 
 - **(A) Cells** (x = column, y = row).
@@ -799,6 +809,26 @@ editing: defer it, not refuse it.
 - **Price:** the same for all three. The decision only changes the transform at
   the rasterizer's input.
 
+**Ruled 2026-10-12: keep (B).** The owner asked whether (B) has (C)'s problem
+where the cell size cannot be read, and whether SwiftUI's unit is a display
+unit that needs the scale factor. Half right:
+
+- (B) and (C) read the same terminal report, but (B) needs only the cell's
+  height-to-width **ratio**, in which the display scale cancels. Where the
+  ratio is unknown (tmux, a host that reports zeros) TUIkit falls back to 2.0:
+  within 2% on Apple Terminal and Warp, circles 6–8% too tall on Ghostty and
+  21–29% on iTerm2. Even known, iTerm2's two reports disagree by about 6%.
+- (C) needs an **absolute** size, whose unit is device pixels on some hosts
+  and points on others, so its fallback can be wrong in scale by up to about
+  2.3×; a ported `lineWidth: 2` would be 2/7 of a cell on Apple Terminal and
+  2/16 on Ghostty.
+- SwiftUI's unit is the point, not the pixel: `pixelLength` is documented as
+  1 / `displayScale`.
+
+Literal constants (`lineWidth`, `cornerRadius`, `dash`) are then in columns,
+the same deliberate choice `.padding(20)` is. Lane owed: W1, about 12 commits
+(the rect tier about a day, the rasterizer two to three).
+
 ### O1. Accessibility preference reads (from P5) — M
 
 - **(a) Constant `false`.**
@@ -815,6 +845,27 @@ editing: defer it, not refuse it.
   need a reduce-motion exception.
 - **`accessibilityVoiceOverEnabled`:** leave it refused unless (b) can detect
   VoiceOver reading the terminal. A wrong `false` would mislead.
+
+**Ruled 2026-10-12: (b), but only `TUIKIT_REDUCE_MOTION`, unless TUIkit can
+be confident the terminal is on the same machine.** B53 (2026-10-04) had
+already decided the stricter half and shipped it: the environment variable
+plus the app-wide `Scene.reduceMotion(_:)`, OR-combined, and explicitly not
+the host's setting, because the machine an app runs on need not be the one its
+user sits at. The conflict above was settled on 2026-10-05 (A-D3M-1): reduce
+motion means movement in x and y, so the focus breath, spinners and the caret
+keep moving.
+
+TUIkit can be confident by positive evidence, with the test the clipboard
+already uses (`ClipboardLocality`): no `SSH_*` variable, no remote-session
+daemon or session keeper among the process's ancestors, and inside tmux
+every attached client passing the same test. Where it says local, the host's
+Reduce Motion can be OR'd in, in the app runner only, and re-read when the
+terminal regains focus; a wrong "local" can only add reduced motion. Lane
+owed: about a day (a refactor that gives the three locality rules one home
+first), with B53's docs. Until it lands, B53's rule is the behaviour. Still
+the owner's: whether to extend the host read to reduce transparency,
+differentiate without colour and contrast. `accessibilityVoiceOverEnabled`
+stays refused: every non-local session would answer a wrong `false`.
 
 ### O2. `PhaseAnimator` / `KeyframeAnimator` views (from P13) — M + M
 
@@ -835,6 +886,14 @@ editing: defer it, not refuse it.
     as `AnimatedBufferCycle`.
 - **Recommendation: (b) now, (c) as an optimisation.**
 
+**Ruled 2026-10-12: (b), and (c) if it is easy.** It is not: replaying
+colour-only phases means rendering the subtree once per phase, which
+multiplies its side effects, and a measuring render does not isolate them
+soundly (each persistent write is gated by hand, and the memo verifier cannot
+see the class). So (c) is presented after (b), not built with it. Lane owed:
+(b), about two days: `PhaseAnimator` and `KeyframeAnimator` as views with real
+bodies, and their four modifiers. A37 follows it.
+
 ### O3. `CustomAnimation` family — M
 
 - **The reason fails:** "State between frames forbids pre-sampling" is false
@@ -849,6 +908,19 @@ editing: defer it, not refuse it.
     deviation;
   - (c) live only.
 - **Recommendation: (b).**
+
+**2026-10-12: detect, else live.** The owner asked whether TUIkit can detect
+when pre-sampling is viable, use it then, and fall back to running live. It
+can, with no detection step: integrate each custom animation lazily on the
+frame grid, one frame at a time, memoising every step. If it finishes
+(`animate` returns `nil`), the memo is the pre-sampled table, and repeat,
+autoreverse, speed and delay work as for the built-in curves; if not, it keeps
+extending live. Reads are quantised to the frame clock, so the measure walk,
+the render walk and a discarded pass agree. A retarget to the same custom type
+follows SwiftUI's contract (merge if `shouldMerge` says so, else run both and
+add); a retarget onto a built-in curve restarts from rest, as today (B55,
+B58). Capping the records per slot (about 8) bounds the cost at about 8 calls
+a frame. Lane owed: about two and a half days. A38 follows it.
 
 ### O4. Matched geometry: `MatchedGeometryProperties` (+ W12 `matchedGeometryEffect`); zoom: `MatchedTransitionSourceConfiguration`, `EmptyMatchedTransitionSourceConfiguration` (+ W09 `matchedTransitionSource`, `NavigationTransition.zoom`)
 
@@ -868,6 +940,11 @@ configuration (background, `clipShape`) needs W1.
 **Recommendation:** (b), using (a) as the fast path when the sizes are equal.
 Matched geometry first, zoom after.
 
+**Ruled 2026-10-12: (b) as the baseline, (a) where possible.** `Namespace`
+and A2's geometry have shipped. Lane owed: `matchedGeometryEffect` about
+three to four days, then the zoom transition with `matchedTransitionSource`,
+whose source configuration needs W1. A23 and A36 follow it.
+
 ### O5. Materials and Glass: `MaterialActiveAppearance`, plus differentShape `Material`, W13's `*Material`, `\.backgroundMaterial`, P14's `Glass*`
 
 - **(a) Keep the substitution:** `dimmed()`/`overlayBackground`.
@@ -878,6 +955,16 @@ Matched geometry first, zoom after.
   - Active appearance follows `\.appearsActive` (terminal focus, DEC 1004).
 - **(c) Glass as (b) plus a highlighted border.**
 - **Recommendation:** (b) for Material (M), and defer Glass.
+
+**Ruled 2026-10-12: (b) for Material and for Glass.** No blur unless an
+insight makes it much simpler, and one does: at cell resolution a blur's job
+is to remove detail, and the detail is the glyphs. A frosted material can drop
+the glyphs beneath it, give each cell the average of its neighbours'
+effective colours (which the opacity compositor already resolves) and tint
+that; only a glyph's coverage is new, and a constant table answers it. That is
+an optional add-on of about two days, offered once (b) shows in the Example.
+Lane owed: the materials about a day; Glass one to two days after W1, since
+`glassEffect` takes a `Shape`. A41 follows it.
 
 ### O6. `ShadowStyle` (+ W16 `shadow`, W13 `ShapeStyle.shadow`) — M
 
@@ -895,6 +982,9 @@ darkens inside the edges.
 **Recommendation: (b), documented.** Choose (a) only if cell-radius shadows
 look too heavy in the Example.
 
+**Ruled 2026-10-12: (b), cells as-is**, documented. Lane owed: about two days;
+`ShapeStyle.shadow` after W1.
+
 ### O7. `ScrollEdgeEffectStyle` (+ W10 `scrollEdgeEffectStyle`/`Hidden`) — S–M
 
 - **`.hard`:** a divider rule where content passes under a bar.
@@ -905,6 +995,17 @@ look too heavy in the Example.
   scroll beneath.
 - **Recommendation:** decide together with the W05 safe-area design. Ship if
   bars overlay content.
+
+**Ruled 2026-10-12: only `.hard`; no `.soft` in the API**, so that mimicking
+content sliding under a bar fails to compile. What that reaches: only code
+that names `.soft` (a macOS 26 API) fails to compile. The idiom itself, a
+`safeAreaBar` or a toolbar over a `ScrollView`, still compiles and draws
+beside the view (B6), because making it an error would mean removing the
+`safeAreaBar` that shipped. Since B6's safe area is not being built
+(2026-10-12), nothing ever passes under a bar, so `.automatic`, `.hard` and
+`scrollEdgeEffectHidden` describe what TUIkit always draws and are honoured by
+the medium, tested as a guarantee. Lane owed: about half a day. A12 follows
+it.
 
 ### O8. "Inert on macOS too" (X4): `SubmitLabel`, `View.submitLabel(_:)`, `ToolbarTitleDisplayMode`, `TabBarMinimizeBehavior`, `SensoryFeedback` (P11), `ContentShapeKinds.contextMenuPreview`/`.hoverEffect` (P3)
 
@@ -924,6 +1025,22 @@ look too heavy in the Example.
   under reduced space, so honour it by collapsing to the compact strip
   (`TabViewStyle.compact`); `.onScrollDown` likewise. Decide with W15.
 
+**Restated 2026-10-12, at the owner's request; awaiting the owner.** Some
+SwiftUI APIs do nothing on macOS either, by Apple's documentation or by
+measurement: `submitLabel`, most `sensoryFeedback` kinds,
+`ToolbarTitleDisplayMode`, `scrollDismissesKeyboard` (A11) and
+`sectionIndexLabel` (A51). Multiplatform code calls them without `#if`,
+because they compile on macOS. Should TUIkit accept them and do nothing, as
+macOS does, or refuse them so they fail to compile? **Recommended: (b),
+strictly where Apple documents or a probe measures macOS as inert**, each with
+its evidence. A compile error tells a macOS developer nothing they do not
+already see on macOS, code shared with iOS keeps compiling, and no TUIkit
+capability is given up. An API that does something on macOS and nothing here
+stays refused (`TabBarMinimizeBehavior` is honoured, not stubbed). (b)
+settles A11 and A51; A21 is settled by B3 instead. About a day; the Example's
+text that says `.submitLabel` fails to compile changes with it, in its seven
+languages.
+
 ### O9. Multi-scene apps on one surface (from P15)
 
 **The scenes in question:** `Window`, `openWindow`/`dismissWindow`,
@@ -939,6 +1056,17 @@ look too heavy in the Example.
   apps, and `SettingsLink` and `openSettings` have an obvious TUI reading.
 - **Effort:** M for (c), L for (b).
 
+**Ruled 2026-10-12: (b) for now, unless there is a significant reason to do
+only (c); leave room for a real windowing model later.** There is no such
+reason: (c) is the first commits of (b). Every scene presentation goes through
+one internal presenter whose first policy is "secondary scenes are
+full-surface covers stacked over the main one", so a tiling or overlapping
+manager can later replace the policy, not the API. Lane owed: about five days,
+about ten commits, among them `SceneBuilder`'s variadic `buildBlock` and
+per-scene `@SceneStorage`. A22 and A26 follow it. Proposed, the owner's to
+confirm: ship `\.supportsMultipleWindows` as `true`, since `openWindow` then
+works.
+
 ### O10. File panels (from P16) — M–L
 
 `fileImporter`, `fileExporter` and `fileMover`.
@@ -951,6 +1079,11 @@ look too heavy in the Example.
   elsewhere, or a TUIkit `UTType` subset.
 - **Recommendation: (b).** The meaning, "let the user pick a file", fully
   survives.
+
+**Ruled 2026-10-12: (b), open and save dialogs drawn by TUIkit, adapted
+natively and elegantly to the terminal.** Lane owed: about six days, in a
+module of its own. On Linux, `fileExporter(item:)` and `FileDocument` wait on
+A18.
 
 ### O11. `TextField(…value:formatter:…)` / `Text(_:formatter:)` / `\(x, formatter:)` family
 
@@ -970,13 +1103,29 @@ on.
   Linux dispatch.
 - **Recommendation: (b).** This is common pre-iOS-15 code.
 
+**Restated 2026-10-12, at the owner's request; awaiting the owner.** Should
+TUIkit accept the older `Formatter`-based spellings, `Text(_:formatter:)`,
+`\(value, formatter:)` and `TextField(value:formatter:)`, beside the
+`format:` ones it ships? The refusal's reason ("the type safety taken out") is
+taste; the real constraint is Linux, where parsing through an arbitrary
+`Formatter` is internal, so `TextField` dispatches to the concrete parsers
+there and a custom `Formatter` subclass displays but does not parse (a
+documented platform deviation). **Recommended: (b), excluding the deprecated
+`onEditingChanged:` and `onCommit:` forms** (the owner's 2026-10-12 ruling: no
+deprecated SwiftUI API). About a day and a half.
+
 ### O12. `PointerStyle` family — M
 
 - **Why the reason fails:** "No terminal protocol lets an app ask for a resize
-  cursor" is false. OSC 22 sets the pointer shape by CSS cursor name.
-  - kitty and foot document it, and xterm implements it.
-  - Ghostty is believed to.
-  - iTerm2 and Apple Terminal are unmeasured and likely don't.
+  cursor" is false. OSC 22 sets the pointer shape by name.
+  - kitty and foot document it, with CSS names.
+  - Ghostty documents it from 1.0.0, with CSS names (corrected 2026-10-12:
+    this said "believed to").
+  - iTerm2 supports it from 3.5.0, with its own subset of X11 names, and xterm
+    takes X11 names, so the CSS-only table below is wrong for both (corrected
+    2026-10-12: this said iTerm2 likely does not).
+  - Apple Terminal is unmeasured.
+  The per-host names are in `Ghostty-VT-adoption.md` §C4.
 - **Mapping:**
 
   | PointerStyle | CSS cursor name |
@@ -1002,6 +1151,16 @@ on.
 - **Recommendation: (b),** after probing with `Tools/TerminalProbes` and a
   `Terminal-compatibility.md` entry, as CLAUDE.md requires.
 
+**Ruled 2026-10-12: (b), inert where unsupported.** The design is
+`Ghostty-VT-adoption.md` §C4: names per host, the shape resolved from the hover
+tracking, motion reporting only while a style is on screen, a reset on exit
+and suspend, and built-in shapes (text over fields, a pointer over links and
+buttons, resize over dividers and table columns) only where the reset is
+measured clean, with a run-time check of whether the host honours shapes.
+Lane owed: about two and a half days, plus a probe that takes screenshots,
+since the shape is not in the byte stream, and a `Terminal-compatibility.md`
+entry. `pointerVisibility` and `.image(_:hotSpot:)` stay refused.
+
 ### O13. `Commands*` family — L
 
 - **Why the reason fails:** "A terminal has no menu bar" is true, but the
@@ -1019,6 +1178,16 @@ on.
 - **CONFIRM:** `onCommand(_:perform:)` (an ObjC `Selector` and the responder
   chain).
 - **Recommendation: (b),** with (c) as a later addition.
+
+**Ruled 2026-10-12: a full menu bar; the app header optional, following a
+SwiftUI API close to its purpose; any combination of the two, neither, one or
+both.** The header half is built: A28 deleted `.appHeader`, the window's top
+bar comes from `.toolbar` items and `.navigationTitle`, every bar is opt-in,
+and a bare `WindowGroup` draws on every row. The menu bar is designed (A28
+§3.5, steps 8–9, with the owner's 2026-10-04 answers: declaring `.commands`
+shows it; F10, Alt-letter and a click open it; it is not in the Tab ring) and
+not built. Lane owed: about six days, a new leaf module over the app, chrome
+and menu modules; its Window menu comes with O9.
 
 ### O14. `ControlSize` (+ W06 `controlSize` modifiers) — M–L
 
@@ -1038,6 +1207,11 @@ Measured on macOS: `.large` makes a `Button` 20 → 28 pt tall, `.mini` 24×13.
 - **Why the reason fails:** "Every control is one row" is true, but the axis
   that survives is density.
 
+**Ruled 2026-10-12: (b), with extra render styles per size** where they help:
+a bordered button of three or more rows at `.large` or `.extraLarge`, say. One
+"button chrome" table with O15, the same density axis applied to the other
+controls. Lane owed: about three and a half days.
+
 ### O15. `ButtonBorderShape` (+ W04 `buttonBorderShape`) — M
 
 **Possible mapping:**
@@ -1054,6 +1228,10 @@ Measured on macOS: `.large` makes a `Button` 20 → 28 pt tall, `.mini` 24×13.
 **Why the reason fails:** "No radius exists" is true, but choosing between
 caps, brackets and a box IS choosing a border shape.
 
+**Ruled 2026-10-12: support it as best TUIkit can**, in O14's table. Lane
+owed: about a day and a half, after O14; its `Shape` conformance after W1.
+A24 rides on O0 and O15.
+
 ### O16. `TextRenderer` group: `TextRenderer`, `TextProxy`, `Text.Layout`, `Text.LayoutKey`, `TextAttribute` (+ W11 `textRenderer`, `customAttribute`) — L
 
 - **What maps:** `Text.Layout`'s lines, runs and slices map onto wrapped lines,
@@ -1068,12 +1246,22 @@ caps, brackets and a box IS choosing a border shape.
 - **Recommendation:** defer, but rewrite the reason. "No glyphs" is not the
   blocker; the size of the `GraphicsContext` subset is.
 
+**Ruled 2026-10-12: defer.** The parity map's reasons for `TextRenderer`,
+`TextProxy`, `TextAttribute` and `Text.LayoutKey` now say so (2026-10-12).
+
 ### O17. `ToolbarDefaultItemKind.title`, `.search` (W15)
 
 - **`.title`:** hide `NavigationStack`'s title crumb, which TUIkit's framework
   does draw (S). Recommend implementing it.
 - **`.search`:** pairs with `DefaultToolbarItem(kind:placement:)` for
   re-placing `.searchable`'s field. Decide with W15.
+
+**Ruled 2026-10-12: do these.** `.title` removes the window top bar's title
+slot and the stack's title crumb. `.search`: `DefaultToolbarItem(kind:
+.search, placement:)` draws `.searchable`'s field in that toolbar placement
+instead of at the top of the subtree, and `toolbar(removing: .search)` hides
+it. Lane owed: about a day, with the stale reasons it leaves (the map's and
+`ToolbarRemovalModifier`'s, which still say TUIkit draws no default title).
 
 ---
 
