@@ -196,6 +196,20 @@ The known blockers, in rough order of difficulty:
    walk cannot.)
    `Tools/Smoke/ci-pty-smoke.sh` is skipped on the Windows lanes for this
    reason, and they run `Stress --selfcheck` alone.
+5. **The system clipboard.** `SystemClipboard` (TUIkitApp) runs this
+   machine's helper (`pbcopy`, `wl-copy`, `xclip`/`xsel`), and
+   `ClipboardLocality` (TUIkitTerminalHost) allows it only when the user is
+   provably at this machine, from the ssh variables, the process chain and
+   tmux's clients. On Windows the locality test has no process walk and
+   answers "not local", so a copy goes by OSC 52 alone, and `SystemClipboard`
+   has no arm. A Win32 arm of each is part of the console layer's port:
+   `OpenClipboard` / `SetClipboardData(CF_UNICODETEXT)` / `GetClipboardData`
+   through `WinSDK`, with no subprocess, and locality from `SSH_CONNECTION`
+   (which OpenSSH for Windows sets) plus a Toolhelp32 walk of the parents.
+   Whether Windows Terminal writes OSC 52 is unmeasured. The clipboard
+   modifiers themselves (`copyable`, `cuttable`, `pasteDestination`,
+   `PasteButton`) and `ClipboardWriter` live in TUIkitFoundation and need
+   nothing more.
 
 Two things that are *not* blockers, despite looking like them: `@AppStorage`
 already falls back to JSON-file storage off Apple platforms, so the open

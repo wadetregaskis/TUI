@@ -25,61 +25,57 @@ would make it worth revisiting.
 
 ## Start here: the questions in one list
 
-Every gap `api_parity.py` still reports names one of these questions, and
-nothing else is waiting. The batch closed the rest: 2,022 gaps when it started,
-404 now, plus three overloads only CI's SDK lists. (The count rose from 392 at
-the end, when 14 drag-session modifiers a wrong refusal had hidden became gaps
-under A53.) Besides the gaps, the refusal review's implementable P items have
+Every gap `api_parity.py` still reports names one of these entries, and
+nothing else is waiting. The batch closed the rest: 2,022 gaps when it started
+and 404 when it ended (the count rose from 392 at the end, when 14
+drag-session modifiers a wrong refusal had hidden became gaps under A53); 232
+on 2026-10-12, plus three overloads only CI's SDK lists. Besides the gaps, the refusal review's implementable P items have
 shipped, and the one lane not run is Wave 11b, underline and strikethrough
 patterns and colours, which needs real terminals measured (screen capture
-needs your approval). Each line gives the recommendation in a few words; the
-entry has the options and their prices.
+needs your approval).
 
-**Questions other answers hang on.** Answer these first.
+**How your answers are recorded.** Your review of 2026-10-04 (A1–A54,
+B1–B37), my answers to its questions of 2026-10-05 (which you answered
+"Proceed", so their proposals count as approved) and your rulings of
+2026-10-12 are folded into the entries, each dated. An entry whose work has
+landed is removed, and no entry is renumbered. **Lane owed** marks an entry
+that is decided and waits only on its implementation.
+
+**Still yours to answer.**
 
 - **A0 — the refusal review's O0–O17.** O0, the unit of a shape's path, gates
   every shape and `clipShape`/`contentShape`. O8, whether APIs that are inert
-  on macOS ship inert, settles A11, A21 and A51. O9, multi-scene apps, settles
+  on macOS ship inert, settles A11 and A51. O9, multi-scene apps, settles
   A22 and A26.
-- **A18 — Apple-only API behind `#if canImport`.** Allow it where the feature
-  is honoured (what the batch has done). The `UserDefaults` storage
-  spellings wait on it (A35 shipped on it, 2026-10-05).
-- **A13 — text selection.** Shipped 2026-10-05: drag-select of what is drawn,
-  `textSelection(_:)`, OSC 52 copies, opt-in copy on release. The mouse
-  hand-off (A13.2) is deferred, with no key. A25 waits on A13.
+- **A18 — Apple-only API behind `#if canImport`.** Your 2026-10-04 answer
+  allows it where it fails gracefully. Still open: whether that admits the
+  `store: UserDefaults` spellings and Core Data's `FetchRequest` on Apple
+  platforms (option 1). O10's Linux file exporter depends on it.
+- **B2** — confirm that `\.legibilityWeight` should become writable.
+- **B10** — confirm the single-width badge glyphs (`+`, `↗`, `⊘`) in place
+  of ➕.
+- **B27** — report the scrolling's last speed when it goes idle, rather than
+  SwiftUI's literal (0, 0)?
+- **B30** — keep TUIkit's Window anchoring default, or hold the top row when
+  rows are inserted above it, as SwiftUI does by default?
+- A27 (pixel effects), A34 (the blur transition) and A48 (swipe actions):
+  each entry ends in a recommendation.
 
-**Looks and defaults.**
+**Decided, waiting on a measurement.** A16's colour provider and A40's
+default dissolve each wait on an A/B on the quiet machine, whose numbers
+decide them as agreed: A40 dissolves by default if that costs under about 1%
+when nothing animates.
 
-- A29, A46 — tables and lists borderless as SwiftUI's? Tables stripe by
-  default since 2026-10-07; whether the `.surface` prototype becomes a
-  default is open (A-D6L-1).
-- A40 — a content change dissolves under an animation by default? Keep it
-  instant.
-- A17 — `preferredColorScheme`? Keep it absent unless light palettes are
-  wanted for their own sake.
+**Decided, lane owed.** A21 (with B3), A25, A42, B3, B19 (after its A/B),
+B20, B22 (a look at the faint tiers), B27 (once its question is answered),
+B28, B30 (the one missing reader), B31, B35.
 
-**Features, priced.**
-
-- A3 — `layoutDirectionBehavior`: wait for right-to-left support.
-- A16 — colour providers: benchmark the provider first (the HDR half shipped
-  2026-10-05: `headroom(_:)`, the rest declined).
-- A21 — compact adaptation: leave out for now;
-  decide with B3 and O8.
-- A27 — pixel effects: decline the transforms, a cell-coverage `mask`,
-  `drawingGroup` as `compositingGroup`.
-- A33 — a colour's spoken name: decline.
-- A34 — the blur transition: a scale and a fade.
-- A48, A50 — swipe actions, tab search: a menu from a chord and a
-  horizontal scroll; defer until macOS 26 can be measured.
-- A53 — the drag-session behaviour (callbacks, configurations, containers,
-  formations): callbacks and configurations on today's single-item drags.
+**Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
+until macOS 26 or 27 can be measured.
 
 **Waiting on another answer.** A11 (O8), A12 (O7), A22 and A26 (O9),
-A23 and A36 (O4), A24 (O0, O15), A25 (A13), A37 (O2), A38 (O3), A39 (A27), A41
+A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3), A39 (A27), A41
 (O5), A51 (O8).
-
-A42 — rich-text editing — no longer waits: P8 shipped. Build it after the batch if
-rich text in an editor is wanted, else decline it.
 
 ---
 
@@ -141,6 +137,13 @@ cannot ship as a no-op, and one enum case cannot be made a compile error.
    same buffer mirror and would give it real use and tests.
 
 **Recommendation:** 2. Nothing ships until then.
+
+**Decided 2026-10-04: defer with right-to-left** (option 2; you left it to
+me). You also raised that a terminal's own bidi may mirror a Hebrew line a
+second time. That is the per-terminal survey right-to-left needs first: TUIkit
+already puts invisible left-to-right marks round its image glyphs to stop
+terminals reordering them, and one terminal (VTE) lets an app turn its
+reordering off; most do not (answer of 2026-10-05).
 `flipsForRightToLeftLayoutDirection(_:)` has shipped regardless: its
 condition is a right-to-left environment, which cannot occur yet (B1).
 
@@ -175,54 +178,6 @@ O8.
 They style content passing under a bar, and nothing passes under a bar here
 (B6). Refusal-review O7 already asks whether to ship them with the safe-area
 design; these two modifiers are that question's modifiers.
-
-### A13. Text selection: draw TUIkit's own, or leave it to the terminal?
-
-**2026-10-05: shipped** (the owner's answers): TUIkit selects what is drawn
-when a drag lands on nothing that uses it (Option-drag for a rectangle),
-`textSelection(_:)` scopes it, ⌘C / the copy chord and a right-click Copy
-copy it by OSC 52 or, only when the user is at this machine, the system
-clipboard; copy on release is opt-in (`Scene.textSelectionCopiesOnRelease`);
-no copy mode. **Deferred (2026-10-05):** the mouse hand-off (A13.2), and with
-it any key for it. Every candidate was declined: ⌃] (a partner of ⌃[), ⌃\\
-(the shell's quit, kept as the backup to ⌃C), ⌥M (types µ), ⎋ M (Escape must
-answer at once), the F-keys (prime, and unreliable where the OS takes them), and
-⌃^ (too obscure; Apple Terminal sends nothing for ⌃6 and `^^` for ⌃⇧6).
-Exact per-`Text` selection (A13.5) is remembered, not built. The lane's own calls are in
-`SwiftUI-API-completion-decisions-D4X.md`.
-
-*`View.textSelection(_:)`, `TextSelectability`, `EnabledTextSelectability`,
-`DisabledTextSelectability` (`.enabled`, `.disabled`, `allowsSelection`)*
-
-In SwiftUI, `.textSelection(.enabled)` lets the user select a `Text`'s
-characters and copy them; `.disabled`, the default, does not. A terminal
-already selects text itself, but only when the app is not reporting the
-mouse. TUIkit reports it whenever an app has anything clickable, and then
-most emulators select only with a modifier held (Option in iTerm2 and
-Terminal.app, Shift in xterm and kitty). That means neither value can be
-honoured as written today. `.disabled` cannot stop the emulator's own
-selection, and `.enabled` does not make selection reachable without the
-modifier.
-
-**Options.**
-
-1. **TUIkit's own selection.** A drag over text that allows it paints a
-   selection (the inverted-highlight rules apply), and Copy (⌘C where the
-   terminal forwards it, else Ctrl-Shift-C; plus a context-menu item) puts
-   the characters on the clipboard through the existing clipboard path
-   (OSC 52, else `pbcopy`/`wl-copy`/`xclip`). The keyboard route is required
-   too (see the no-mouse-only rule): Shift-arrows from a focused selectable
-   text. `.disabled` then means TUIkit draws no selection; the emulator's
-   modifier-drag still works, which is the terminal's, not the app's. About
-   3–4 days, mostly the keyboard route and the hit-testing of wrapped lines.
-2. **Ship `.enabled` as "selectable by the terminal" and omit `.disabled`.**
-   Honest about what happens, but a modifier-drag is not what a SwiftUI
-   developer means by selectable, and the default would be the one value
-   that does not compile.
-3. **Decline both** with a map entry naming the emulator's own selection.
-
-**Recommendation:** 1, after the rest of the batch. It is the only option
-under which SwiftUI source means what it says.
 
 ### A16. Colours that resolve themselves, and HDR
 
@@ -259,27 +214,6 @@ and `headroom(_:)`, and decline `exposureAdjust(_:)`. (b) Decline all of it.
 **Recommendation:** (a). All of these are macOS 26 APIs (the HDR half could
 not even be probed on this machine's macOS 15), and they are rare in ported
 code.
-
-### A17. `preferredColorScheme(_:)`
-
-*`View.preferredColorScheme(_:)`, `PreferredColorSchemeKey` (`Value`,
-`reduce(value:nextValue:)`)*
-
-The compatibility doc (§2.5) keeps this out on purpose. A terminal's look is
-a palette, and the write half of `\.colorScheme` is `.palette(_:)`. The
-Wave 17 review never saw it, because it was absent rather than mapped.
-
-**Options.**
-
-1. **Keep it absent**, and add a map entry pointing at §2.5.
-2. **Let it choose a palette's light or dark variant.** That needs palettes
-   to come in pairs. The built-in `SystemPalette`s would need a light twin
-   each, and a custom palette would declare its twin. The preference then
-   flows up to the scene, as SwiftUI's does, and picks between the pair. Two
-   to three days, mostly the light palettes' contrast work.
-
-**Recommendation:** 1 for this batch, 2 only if light palettes are wanted for
-their own sake.
 
 ### A18. Apple-only public API behind `#if canImport`: allowed or not?
 
@@ -319,6 +253,15 @@ the rule the batch has been following in practice.
 the environment at render, through a nested `@Environment`; that part is
 half a day whichever option is chosen.
 
+**Your answer of 2026-10-04:** `canImport` is fine if it fails gracefully.
+Absence at compile time is ideal; a failure at run time is acceptable only for
+icing, or with a capability query beside it (as the kitty keyboard protocol
+has). The shipped bridges meet that: each is honoured where it compiles.
+**Still open:** whether that admits option 1's framework spellings, the
+`store: UserDefaults` forms and Core Data's `FetchRequest` on Apple platforms.
+The refusal review's O10 depends on it: on Linux, `fileExporter(item:)` and
+`FileDocument` would be absent (or a small protocol of TUIkit's own).
+
 *Wave 9's entries (A20–A25, B34–B41, C9; A19 shipped 2026-10-06): SwiftUI's behaviour is from its own doc comments unless an entry says it was measured.*
 
 ### A21. Compact-size-class adaptation and `preferredCompactColumn`
@@ -350,6 +293,13 @@ the split never collapses and a popover never adapts.
 
 **Recommendation:** decide with B3 and O8: 2 if O8 is (b) and B3 stays
 "regular", 3 if B3 makes narrow terminals compact.
+
+**Decided 2026-10-12, with B3: option 3, lane owed.** B3's ruling is that
+TUIkit follows a compact class an app sets and changes no default, so when an
+app writes `.compact` a popover must adapt and a split view must collapse;
+shipping these inert would ignore the app's own setting. The defaults stay
+regular, so nothing changes for an app that sets nothing. The work (about two
+days, as priced above) goes with B3's lane.
 
 ### A22. `DismissBehavior` waits on O9
 
@@ -391,6 +341,9 @@ It binds the search field's `TextSelection`. That type, and whether TUIkit
 draws its own selection at all, is A13 (text selection) in the main decisions
 doc. Once `TextField` takes a selection binding, this is a few lines on the
 searchable's field.
+
+**No longer waits.** A13 shipped on 2026-10-05, and `TextField` takes a
+`TextSelection?` binding, so this is ordinary work: owed.
 
 ### A26. The scene-level dialog modifiers and optional scenes wait on O9
 
@@ -464,91 +417,15 @@ blend does not do.
 **Recommendation:** transforms (1); mask, the cell-coverage rule; drawingGroup
 (1), since nearly every use is the argument-free performance hint.
 
-*Wave 8a's remaining entries (A29, C10; A30, A31 and B44–B47 shipped 2026-10-06): SwiftUI's behaviour was measured on macOS 15.8, built against the macOS 26.2 SDK, with an offscreen `NSHostingView`; the probes are in the session notes, `w08a/probe`.*
+**You asked (2026-10-04)** whether linear and extended-linear blending could be
+supported. Yes (answer of 2026-10-05): blending happens in one place, in
+encoded sRGB by design today, and linear blending is decode, blend and
+re-encode through lookup tables, which is cheap. Extended-linear is the same on
+an SDR terminal, clamped at the end. Not yet decided.
 
-### A29. Should a table look like SwiftUI's by default — borderless and striped?
-
-*`AlternatingRowBackgroundBehavior.automatic`, `AutomaticTableStyle`,
-`TableStyle.automatic`*
-
-`.alternatingRowBackgrounds(_:)` shipped for tables and lists alike:
-`.enabled` stripes every other row with the tint a striped `ListStyle` has
-always drawn (the accent at 15% over the page), `.disabled` never stripes.
-`TableStyle` shipped too: `.bordered` is the rounded box every TUIkit table
-has always drawn, `.inset` draws no border.
-
-Both have an `.automatic`, and SwiftUI's macOS answers differ from TUIkit's
-look. Measured on macOS 15.8 (built against the macOS 26.2 SDK): a plain SwiftUI `Table`, `.automatic` and
-`.inset` alike, is an `NSTableView` of style `.inset` in a scroll view with no
-border, with `usesAlternatingRowBackgroundColors` on; `.bordered` is style
-`.fullWidth` in a scroll view with a line border, striped too. Stripes follow
-`.alternatingRowBackgrounds(.disabled)` under either style.
-
-Shipped: `.automatic` is bordered and unstriped — every TUIkit table keeps
-its look, and SwiftUI source that names a style or asks for stripes gets
-them.
-
-**Options.**
-
-1. **Bordered and unstriped by default** (shipped). The divergence is the two
-   defaults alone. Free.
-2. **SwiftUI's default: inset and striped.** Every table without a style
-   changes: the border goes, which gives the rows two lines and moves every
-   click target a line up and a cell left; half the rows draw a background,
-   so frames grow by a background SGR per striped row (row memos keep them,
-   but a churning table pays), under a tint palettes were tuned without.
-   Golden and render tests that read a table's bytes need re-baselining.
-   Half a day, most of it the tests.
-3. **Inset by default, unstriped.** The border is where a terminal table's
-   look differs most from a window's: a box around a table in a window of
-   boxes reads as one more panel. The two lines it frees are worth the most
-   on a short terminal. Same test cost as 2, without the stripe's.
-
-**Recommendation:** 1. A terminal's rows are a single line of text on a fixed
-grid, where a reader's eye does not drift between rows the way it does across
-a wide window, and a stripe the palette did not plan for is a cost every theme
-pays; the border is what tells a table from the text around it when nothing
-else draws a frame. 3 is the one to take if TUIkit apps tend to put tables
-inside their own bordered panels.
-
-**Decided (owner) and shipped 2026-10-07.** Tables stripe by default, as a
-macOS table does, starting on the second row (2a7586ff8), in a stripe colour
-chosen per palette and colour depth to stay legible and quieter than a
-selection; lists stay unstriped. The border stays the default. The distinct
-look the owner asked for — a surface for rows and header instead of a
-border — ships as the opt-in `.tableStyle(.surface)` / `.listStyle(.surface)`
-prototype (b5e9eb18d). Whether it becomes a default is A-D6L-1 in
-`SwiftUI-API-completion-decisions-D6L.md`.
+*Wave 8a's remaining entries (C10; A30, A31 and B44–B47 shipped 2026-10-06, A29 on 2026-10-07): SwiftUI's behaviour was measured on macOS 15.8, built against the macOS 26.2 SDK, with an offscreen `NSHostingView`; the probes are in the session notes, `w08a/probe`.*
 
 *Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in the session notes, `w11a/probe`. A pass on macOS 26 is owed.*
-
-### A33. `\(accessibilityName: color)`: a colour's spoken name
-
-*`LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)`*
-
-SwiftUI interpolates "a localized description of a color for accessibility".
-Measured on macOS 15, in light mode: `.red` reads `dark red`, `.blue` and
-`Color(red: 0.2, green: 0.4, blue: 0.8)` `dark blue`, `Color(white: 0.5)`
-`dark gray`, `.primary` `black`, the accent colour `dark blue`. The names
-come from Apple's accessibility colour naming, which is private and has no
-counterpart in the open-source Foundation.
-
-**Options:**
-
-1. **A namer of TUIkit's own:** a colour's resolved RGB in OKLCH, bucketed to
-   a dozen hue names with `dark`/`light`/`vivid` qualifiers, in the
-   framework's seven languages. It would not say what SwiftUI says for every
-   colour (`.red` is `dark red` there, which no simple rule predicts); a
-   palette colour names its resolved value. Half a day with the
-   translations.
-2. **Decline** (a `notImplemented` entry): code that uses it does not
-   compile, and the app says what it means in words.
-3. **Interpolate the colour's own description** (`String(describing:)`):
-   compiles, and reads `Color(…)` to a screen reader — the quiet wrong answer
-   the parity rules forbid.
-
-**Recommendation:** 2 now; 1 if a screen-reader user of a TUIkit app asks for
-it. Shipped: nothing, so it does not compile.
 
 *Wave 12's entries (A34–A40, B52–B61; its `Transaction.dismissBehavior` joined A22): SwiftUI's behaviour is from its doc comments unless an entry says it was measured; measurements are from probes built against the macOS 26.2 SDK and run on macOS 15, kept in the session notes, `w12/probe`.*
 
@@ -647,6 +524,13 @@ draws the change at once, as it always has; `contentTransition(_:)` shipped
 
 **Recommendation:** 1, until a port shows the default being relied on.
 
+**Your answer of 2026-10-04:** inclined to option 2, unless it costs when
+nothing is animating. **Agreed on 2026-10-05:** to dissolve from old to new,
+each `Text` needs its previous drawing kept from before the change, which is a
+cost on every frame of every app, not only while animating; so the option is
+A/B'd first, and option 2 is adopted if that costs under about 1%. The A/B is
+owed on the quiet machine. The recommendation above predates both.
+
 ### A41. Materials wait on O5
 
 *`ShapeStyle.ultraThinMaterial`, `.thinMaterial`, `.regularMaterial`,
@@ -679,6 +563,11 @@ the plain editor with styled runs, about two days; the selection type itself
 is a day on top of `TextSelection`, which has shipped. **Recommendation:**
 build it after the batch, with the formatting-definition constraints, if
 rich text in a terminal editor is wanted; otherwise decline the family.
+
+**Decided 2026-10-04: yes, build it.** Lane owed: about three days (the
+attributed editor two, the selection type one), with the
+formatting-definition constraints; the design is §7 of
+[`SwiftUI-API-completion-design-text-editing.md`](SwiftUI-API-completion-design-text-editing.md).
 
 *Wave 6b's entries (A43, B62–B65): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) by driving a SwiftUI `TextField` in an `NSWindow` with key events; the probes are in the session notes, `w06b/probe`.*
 
@@ -713,36 +602,6 @@ a column (probes in the session notes, `w10b/probe/`):
 
 *Wave 8b's entries (A46–A51, B72–B80, C11): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) with an offscreen `NSHostingView`; the probes are in the session notes, `w08b/probe`. macOS 26 APIs could not be probed.*
 
-### A46. Should a list look like SwiftUI's by default — borderless?
-
-*`DefaultListStyle`, `ListStyle.automatic`*
-
-The table's question (A29) asked of lists. Measured on macOS 15.8: a SwiftUI
-`List` with no style, and one with `.inset`, is an `NSTableView` of style
-`.inset` in a scroll view with no border; `.bordered` is style `.fullWidth` in
-a line-bordered scroll view; `.sidebar` is `.sourceList`; `.plain` is `.plain`.
-None stripes its rows.
-
-Shipped: `.automatic` is the bordered box every TUIkit list has always drawn,
-and `.bordered`, `.inset`, `.plain` and `.sidebar` draw as named.
-
-**Options.**
-
-1. **Bordered by default** (shipped). The divergence is the default alone.
-   Free.
-2. **SwiftUI's default: `.inset`.** Every list without a style loses its
-   border, which gives its rows two lines and moves every click target a line
-   up and a cell left, and its title (drawn in the top border today) needs a
-   line of its own. Golden and render tests that read a list's bytes need
-   re-baselining. Half a day, most of it the tests.
-
-**Recommendation:** answer it with A29, the same way. A list and a table side
-by side should not disagree about whether they are boxed; whichever answer
-A29 gets, this one takes.
-
-**Status 2026-10-07:** answered with A29: bordered by default, the opt-in
-`.listStyle(.surface)` prototype shipped, the default question is A-D6L-1.
-
 ### A48. Swipe actions: which keys and which pointer gesture?
 
 *`View.swipeActions(edge:allowsFullSwipe:content:)`,
@@ -774,6 +633,12 @@ no-mouse-only rule, so the route has to be chosen.
 **Recommendation:** 1. A swipe action is a context menu for one edge, and the
 menu brings its keyboard handling, dismissal and colours with it.
 
+**You asked (2026-10-04)** whether any terminal reports swipes. None reports
+a swipe as a gesture. Terminal.app and iTerm2 report a trackpad's horizontal
+scroll as the horizontal wheel buttons (Terminal-compatibility.md), which is
+what option 1 uses, and a full swipe could be inferred from a long burst
+(answer of 2026-10-05). Not yet decided.
+
 ### A50. Search in a tab view (macOS 26): the search tab and its activation
 
 *`TabSearchActivation` (`.automatic`, `.searchTabSelection`),
@@ -799,6 +664,8 @@ machine runs 15.8.
    meanwhile, which is the honest state.
 
 **Recommendation:** 2, then 1.
+
+**Decided 2026-10-04: defer** until a macOS 26 or 27 pass can measure it.
 
 ### A51. `sectionIndexLabel(_:)` joins O8
 
@@ -899,6 +766,9 @@ measure them on. Option 1 is what B10's fuller version asked for — a source
 told its item moved — and is the part of this family ported code reaches
 first.
 
+**Decided 2026-10-04: pinned** until macOS 26 or 27 can be measured; the
+macOS 15.8 notes here stay.
+
 *Lane 17g's entries (A54, B89–B94, C15), SwiftUI's gestures (refusal review P6): measured on macOS 15.8 (SDK 26.2) by sending synthesised `NSEvent`s into a window; the probes are in the session notes, `w17g/probe`.*
 
 What the probes established, and what now holds here too:
@@ -955,6 +825,10 @@ itself (reordering mixed-direction runs) is a separate and larger question,
 because the terminal does some of it on its own and inconsistently. That
 belongs in `Terminal-compatibility.md`, measured, before any design.
 
+**Your answers (2026-10-04, 2026-10-12):** right-to-left is still wanted, and
+out of scope for now: pinned until there is a solid plan, after everything
+else. A3 and B8's mirroring wait on it.
+
 ### B2. `\.legibilityWeight` is read-only (always `nil`)
 
 SwiftUI's is settable. Under `.bold`, every piece of system text is drawn
@@ -974,6 +848,21 @@ Alternatively, apply it once at the subtree's buffer, the way
 `SGRColorRewrite` applies a colour effect. The rewrite is cheaper to get
 complete, but it would also embolden non-text glyphs (borders, bars). That
 is a reason to prefer the per-site rule.
+
+**Asked 2026-10-12: confirm that it should become writable.** You asked
+whether this was already decided. Not in so many words: on 2026-10-04 you
+said it did not seem hard to support, asked whether the built-in views should
+switch to drawing through `Text`, and wanted an experiment and a benchmark
+before deciding; on 2026-10-05 I answered that they need not switch (a shared
+"one weight heavier" helper at each drawing site costs one environment read
+per control) and that I would A/B it. Neither the helper nor the A/B was
+built. If you confirm, the lane is 4–6 commits, about 1–1.5 days (estimate):
+the setter, keeping `nil` the default; the helper (faint→normal,
+normal→bold, bold stays bold); `Text`; the controls and chrome by family (58
+`ANSIRenderer.colorize(` calls in 28 files, plus the sites that build a style
+without it); tests under `.bold`; and the A/B on the quiet machine. Some
+terminals draw bold as a brighter colour (Terminal-compatibility.md), which the
+heavier weight inherits.
 
 ### B3. Size classes are settable, and nothing TUIkit draws reads them
 
@@ -996,6 +885,26 @@ The same reasoning covers `\.displayScale` and `\.isLuminanceReduced`:
 - `\.dynamicTypeSize` is the same, which also answers the old refusal of
   `DynamicTypeSize`. The refusal was true about terminals and wrong about
   the API, because macOS reads `.large` and ignores writes for text too.
+
+**Decided 2026-10-12: follow what an app sets, and change no default.** An
+app decides when a class is `.compact`, and TUIkit adapts where it can. (You
+asked the cost on 2026-10-04; the 2026-10-05 answer priced reporting
+`.compact` at nothing and the views that adapt to it, chiefly a split view
+collapsing, at one to two days.) Since A6, `.viewAligned` reads both classes
+for its paging limit; nothing else does. Following a written `.compact` means,
+by SwiftUI's own behaviour on iOS and iPadOS:
+
+- a popover adapts to a sheet (`presentationCompactAdaptation`, A21);
+- `NavigationSplitView` collapses into a stack showing
+  `preferredCompactColumn` (A21);
+- `Table` hides its headers and every column after the first (Apple's
+  `Table` documentation);
+- a `.sidebarAdaptable` `TabView` shows tabs instead of a sidebar.
+
+`\.dynamicTypeSize` and `\.displayScale` stay channels nothing reads: the
+terminal owns the font and the cell size. **Lane owed:** 5–7 commits, about 3
+days (estimate): the popover adaptation, the split-view collapse, the compact
+`Table` and the compact sidebar tab view, each with tests.
 
 ### B4. `DynamicProperty.update()` writes back (superseded by lane DYNP)
 
@@ -1050,6 +959,15 @@ something.
 content it is padding, and for a scroll view it is a content margin along the
 axes it scrolls (B25).
 
+**Decided 2026-10-12: SA-B is not built.** You asked on 2026-10-04 what
+safe-area support is worth. The 2026-10-05 answer: very little here. With no
+notch and no system bars, the only producers would be TUIkit's own bars, and
+the payoff is colour under a bar's blank cells; it would matter only if
+toolbars wanted content scrolling beneath them. You were not convinced, so the
+half that shipped is the behaviour, kept as a deliberate deviation. The
+refused symbols above stay refused, and B25's fuller version, which is SA-B,
+goes with it. The entry stays as the record of what the declined version was.
+
 ### B8. `KeyboardShortcut.Localization` is recorded, and every strategy behaves as `.custom`
 
 *`KeyboardShortcut.Localization` (`.automatic`, `.withoutMirroring`,
@@ -1080,7 +998,7 @@ That is honest on its own, because neither half has anything to act on:
 **The fuller version:**
 
 - *Mirroring* comes free with right-to-left layout, if B1 is ever taken up.
-  Mirror `[`/`]` and `{`/`}` under `.automatic` and leave them under the
+  Mirror the directional pairs under `.automatic` and leave them under the
   other two.
 - *Remapping* would need the key's position. The kitty keyboard protocol's
   "report alternate keys" enhancement sends the base-layout key alongside
@@ -1089,6 +1007,29 @@ That is honest on its own, because neither half has anything to act on:
   remapping table. That table is AppKit's, and it is not public, so it would
   have to be inferred per layout. I would not do it: an app that wants
   layout-aware shortcuts in a terminal is better served by bare keys.
+
+**Decided 2026-10-12: mirror once right-to-left lands** (B1); one commit then,
+the pairs under `.automatic` in a right-to-left environment. You asked how big
+AppKit's tables are, and whether TUIkit could copy them:
+
+- **The mirroring table is 10 characters, 5 pairs** (measured on macOS 15.8
+  through AppKit's own mirroring call over U+0020–U+2FFF): `(`↔`)`, `<`↔`>`,
+  `[`↔`]`, `{`↔`}`, `←`↔`→`. `NSMenuItem.h` in the macOS SDK documents the
+  same list, so TUIkit can write it from the documentation and copy nothing.
+- **The remapping is not a data file.** It is compiled AppKit code
+  (`NSKeyboardShortcut`'s localization methods, found through the Objective-C
+  runtime), possibly an algorithm over the layout's key map plus a cache of
+  well-known shortcuts; its size is unknown, since sizing it would mean
+  switching the system's input source through many layouts. It is Apple's
+  proprietary code, so it cannot be copied.
+- **Matching AppKit is not table-free either.** AppKit remaps only a shortcut
+  the current layout cannot type (`NSMenuItem.h`). The kitty protocol's
+  base-layout key gives a positional fallback, which TUIkit already uses for a
+  Ctrl or Alt chord on a non-Latin key, but matching every shortcut by
+  position would also move the reachable ones (⌘Z on the key labelled W on
+  AZERTY), and a terminal does not say which characters the user's layout can
+  type. Over ssh the local machine's layout is not the user's either. So the
+  remap stays out until there is a source for that.
 
 ### B9. Copy, cut and paste commands carry text, and exist only where `NSItemProvider` does
 
@@ -1116,6 +1057,29 @@ there rather than compiling to nothing.
 **The fuller version** would be a TUIkit-specific spelling that takes and
 returns `String`s and works on every platform: `onCopyCommand(text:)`, say.
 That is an addition, not a fix, so I have not made it. Say if you want it.
+
+**Answered 2026-10-12.** You asked whether this factors in OSC 52, and what
+portable versions would involve.
+
+- **OSC 52 is in the path**, since ef7e78788 (2026-10-05; this entry was
+  written before it). A command's copy goes through `ClipboardWriter`: OSC 52
+  to a terminal that writes it by default; this machine's helper (`pbcopy`,
+  `wl-copy`, `xclip`/`xsel`) only when the user is provably at this machine
+  (`ClipboardLocality`: the ssh variables, the process chain, the tmux
+  clients); OSC 52 "sent, maybe" otherwise (iTerm2, tmux); else "not copied",
+  said in the status bar. A paste never reads OSC 52 (it prompts on Ghostty):
+  it takes the terminal's bracketed paste, the app's own last copy, or the
+  local helper.
+- **The portable versions exist, and are SwiftUI's own:** `copyable(_:)`,
+  `cuttable(for:action:)`, `pasteDestination(for:action:validator:)` and
+  `PasteButton` need no `NSItemProvider`, and work on Linux through the same
+  route. A TUIkit-only `onCopyCommand(text:)` would duplicate them, so the
+  fuller version above is not wanted.
+- **Windows** needs Win32 arms of the system clipboard and of the locality
+  test, inside the console layer's port; CONTRIBUTING.md lists them with the
+  port's blockers.
+
+Nothing to build.
 
 ### B10. Item-provider drag and drop stays in the app, and only cancel and forbidden change a drop
 
@@ -1152,15 +1116,25 @@ drop completes with `.move` or `.delete`. SwiftUI's is `onDragSessionUpdated`,
 which the `DragSession*` family rule declines. About half a day for the
 badge; the callback belongs with that family's re-examination in Wave 17.
 
-### B18. `SectionConfiguration.actions` is always empty
+**Decided 2026-10-05; lane owed once the glyphs are confirmed.** You asked on
+2026-10-04 for a fleshed-out badge proposal (with ➕ for copy, say). The
+2026-10-05 answer, which "Proceed" approved: a one-cell badge at the drag
+preview's top-right corner, following the pointer, `+` in the accent colour
+for copy, `↗` for link, `⊘` in the error tint for forbidden, and nothing for
+move; the drop target's highlight can shift colour to match. It uses
+single-width symbols rather than ➕, because emoji widths vary between
+terminals and would knock the preview out of line. (A record of 2026-10-11
+listed the proposal as still owed; it was not.)
 
-*`SectionConfiguration.actions`, `SectionConfiguration.Actions`*
-
-Nothing in TUIkit can attach an action to a section yet: SwiftUI's
-`sectionActions(content:)` is a gap with its natural home in Wave 8, where
-`List` draws actions in section headers. So every section's actions are an
-empty view, which is the truth. When `sectionActions` lands, `actions` must
-start returning what it set.
+**To confirm (asked 2026-10-12): the single-width glyphs.** `+` is Narrow and
+`⊘` (U+2298) Neutral, one cell everywhere. `↗` (U+2197) is East Asian
+Ambiguous, as is `×` (U+00D7), the candidate for `.delete`, so each would need
+a measured row in Terminal-compatibility.md, as the other chrome glyphs have;
+Neutral alternatives are `⇗` (U+21D7) or `⤴` (U+2934) for link and `✕`
+(U+2715) for delete, whose ink still wants the same measurement. A plain
+`onDrop` proposes `.copy`, so `+` shows over most item-provider targets, which
+is macOS's look. Work: 1–2 commits, about half a day, plus the glyph
+measurements. The source-side callback stays with A53, which is pinned.
 
 ### B19. A guide does not travel out of a view type of the app's own
 
@@ -1205,6 +1179,24 @@ walk to answer the stack's guide question (the framework's layouts state
 `_definesExplicitAlignment = false` and are asked only when a subview may
 hold a guide). Stress's `customlayout` scenario is the one to A/B for that.
 
+**Decided 2026-10-12: explore the cost**, of the current version against the
+fuller one at least. (You asked for my recommendation on 2026-10-04; on
+2026-10-05 I recommended the fuller version, gated on an A/B, because a guide
+inside an app's own row view, decimal alignment say, is how SwiftUI code is
+commonly written; if `deep` or `kitchensink` cost more than about 1%, it comes
+back to you before landing.) **Lane owed**, about a day (estimate, more than
+the half day above): the witness defaults to `Body._providesAlignmentGuide`
+with `false` for `Never`, and stops where a body holds its own type, since
+`Optional` and the conditional view forward and a recursive body would
+recurse (an if/else in both arms would be 2ⁿ); `_handsOverChildren` already
+defaults to its body's this way. Tests for recursive and if/else bodies. The
+A/B can price all three versions on today's tree: a forwarding-off arm, where
+the containers' witnesses return `false` and the modifier's stays `true`,
+stands in for the original, which is 1,357 commits back. Scenarios: `deep`,
+`kitchensink`, `table`, `customlayout`, `fanout`, `anyview`, and `megalist`
+only where its verdict reproduces at more than one path layout. A-GUIDE-2
+needs the fuller version whichever way it is answered.
+
 ### B20. A stack's `spacing: nil` is the default preference, not each pair's
 
 *`HStack.init(alignment:spacing:content:)`, `VStack`, `LazyHStack`, `LazyVStack`,
@@ -1236,6 +1228,16 @@ by side. A day, and the plan's rule applies: an A/B on `deep`, `kitchensink`,
 `megalist` and `table` on a quiet machine before it lands. What shipped
 changes nothing on the stack path — `nil` becomes the old constant at `init` —
 so no A/B is owed for it.
+
+**Decided 2026-10-12: attempt the fuller version, mindful of performance.**
+(You asked for an example on 2026-10-04; on 2026-10-05 I gave
+`HStack { MyLayoutA(); MyLayoutB() }`, both asking for no space on the facing
+edges, and advised against it. Your ruling overrides that.) **Lane owed:** 2–3
+commits and an A/B on `deep`, `kitchensink` and `table` (`megalist` with
+B19's caveat). The shape that keeps the common path as it is (estimate): a
+static witness, "states a spacing preference", true only for `Layout`-backed
+views and their forwarding wrappers; a per-stack flag set while children are
+built; and per-gap distances only where two neighbours both state one.
 
 ### B22. The content levels, and the two- and three-style `foregroundStyle`
 
@@ -1276,6 +1278,10 @@ the palette's secondary tier, which is SwiftUI's behaviour.
 - A fuller version would carry the levels per palette (a palette naming its
   own faded tiers for an arbitrary foreground). That is a palette-protocol
   change, so I left it for you.
+
+**Decided 2026-10-05** (you asked for my recommendation on 2026-10-04): the
+cheap one, a live look at the faint tiers in 16 and 256 colours, owed; the
+per-palette tiers are skipped for now.
 
 ### B23. `ScrollPosition`: the request and the row are read separately, and `viewID` answers sooner than SwiftUI's
 
@@ -1381,7 +1387,8 @@ in SwiftUI does not reach the edges the safe area is on — is padded.
 `List` or a `TextEditor` into the safe area and insets its rows (measured: a
 `List`'s first row moves down 40 under `safeAreaPadding(.top, 40)`, with the
 list itself still at the top). Here those are padded whole, so their chrome
-moves in with their rows. The fuller version is B6's real safe area.
+moves in with their rows. The fuller version is B6's real safe area, which
+you declined on 2026-10-12, so this stays as shipped.
 
 ### B26. `ScrollGeometry`: the visible area excludes the bars, and a vertical view's content is as wide as it is shown
 
@@ -1445,6 +1452,29 @@ animated `scrollTo` is a jump here and changes no phase. `velocity` is always
   if a use turns up; I did not invent one nobody reads.
 - *`.animating`* comes with animated scrolling, which is its own feature.
 
+**Decided 2026-10-12: measure a velocity, if it is cheap.** It is, at run
+time (estimate): on each user scroll step a subtraction, a division, an
+averaging step and about three stores, and 24 bytes per scroll handler, which
+is a class, not the render context; nothing per frame, since it is read only
+when a phase change is reported to an observer. B91's drag estimator can be
+shared.
+
+**Asked 2026-10-12: what the number should mean.** TUIkit reports two
+changes. From idle to interacting, one step in, there is no rate yet: `nil`.
+From interacting to idle, 250 ms after the last step, the view is still.
+SwiftUI documents the velocity as the speed "at the time of the scroll phase
+change", and measured (0, 0) at its appear call and at both changes of an
+animated `scrollTo` (macOS 15.8, session notes `DECB/probe/phase`); its value
+when a user's scroll starts decelerating could not be driven offscreen. Read
+literally, TUIkit's change to idle reports (0, 0), and the number never says
+anything. **Recommended:** report the speed the scrolling had when its steps
+stopped. TUIkit's one change to idle stands for SwiftUI's two (interacting to
+decelerating, then to idle), and the speed belongs to the first; B91's
+precedent, measured on macOS, is that a still pointer keeps its last motion's
+velocity. That is a deliberate deviation, recorded when it ships. **Lane
+owed** once answered: 1–2 commits (the estimator shared as a pure refactor
+first).
+
 ### B28. `scrollIndicatorsFlash` returns the view: the indicators are already showing
 
 *`View.scrollIndicatorsFlash(onAppear:)`, `View.scrollIndicatorsFlash(trigger:)`*
@@ -1462,6 +1492,18 @@ indicator in either style.
 for half a second — to draw the eye, as a flash does. About two hours:
 the bar memo is keyed on the pulse already, and the trigger needs a
 per-view "last value" and a wake. I would only do it if a port asks.
+
+**Decided 2026-10-12: implement it.** (On 2026-10-04 you pointed out that
+TUIkit supports automatic visibility; the 2026-10-05 answer was that TUIkit's
+`.automatic` shows the bar whenever the content overflows, with no fading, so
+the bar is already visible whenever a flash could matter, and the alternative
+is a half-second pulse.) **Lane owed:** 2–3 commits, half a day to a day
+(estimate), more than the two hours above: bars are drawn in at least five
+views (`ScrollView`, `List`, `Table`, `TextEditor` and the field chrome);
+`trigger:` needs a last-value store per view (a small `_*Core` with negative
+state indices); and a focused bar already breathes, so the flash needs a
+distinct peak within the focus and selection colour rules. A view that is not
+flashing pays nothing.
 
 ### B29. `scrollTargetLayout()` marks a layout, and only `.viewAligned` reads it
 
@@ -1518,6 +1560,37 @@ finer than any terminal's row — and the switches share one byte with
 titled `Toggle`: 195 → 197, `ControlLayoutPaddingTests`); stored as two
 `Double`s and three `Bool`s it grew by twenty-four and left five undefined.
 
+**You asked (2026-10-12) what the gap is, and what I recommend.** Measured on
+macOS 15.8 (a 300×200 window, rows 20 high; session notes `DECB/probe/anchor`
+and `DECB/probe/disabled`):
+
+- **`ScrollViewProxy.scrollTo`:** the call's anchor wins over the
+  transaction's, and with none the transaction's applies. That is TUIkit's
+  rule exactly.
+- **`ScrollPosition.scrollTo(id:anchor:)`:** SwiftUI ignored the call's anchor
+  (`.top` and `.center` both landed at the minimal position) and applied the
+  transaction's even over a `.bottom` call. TUIkit honours the call's anchor
+  first. That looks like a SwiftUI defect, so TUIkit's rule stays, recorded as
+  a deliberate deviation.
+- **`.disabled`** stops SwiftUI's lazy-stack bottom follow and its hold of the
+  top row on an insertion above, as it stops TUIkit's follows. SwiftUI ignores
+  it for an eager `VStack`, which follows anyway; TUIkit treats eager and lazy
+  alike. Kept, and recorded.
+- **The larger gap is the default.** With no `scrollPosition` at all, SwiftUI
+  keeps the top row in place when rows are inserted above it (a lazy stack,
+  one insertion: the offset moves 200 → 300). TUIkit's Window default, from
+  your 2026-07-17 anchoring spec, leaves the offset in line coordinates, so the
+  rows shift and a "load earlier messages" list jumps.
+
+**Lane owed:** the reader missing inside TUIkit, above: a windowed
+`LazyVStack`'s `.anchorPosition(.row)` hold ignores "no adjustment" (the
+follow-up never happened). One commit, with a test.
+
+**Asked 2026-10-12:** keep TUIkit's Window default and record it as a
+deviation, or hold the top row by default as SwiftUI does? The second reverses
+part of `Scroll-anchoring.md`'s first slice for views that declare no anchor,
+at a cost not measured.
+
 ### B31. Bounce behaviour gates the overscroll allowance
 
 *`ScrollBounceBehavior` (`.automatic`, `.always`, `.basedOnSize`; its
@@ -1548,6 +1621,19 @@ horizontal value is recorded and decides nothing yet.
 under `.always`/`.automatic`, sprung back once the scroll phase returns to
 idle (B27 gives the moment). Half a day, and it changes the default feel
 of every scrollable, so it is yours to want.
+
+**Decided 2026-10-12: a bounce, if it is cheap.** (You asked on 2026-10-04
+whether a full bounce is easy; the 2026-10-05 answer proposed the scope
+below.) It is cheap at run time (estimate): nothing new per frame for a view
+that is not overscrolled, since the allowance and excursion tests run already;
+one wake request per step while it is; a spring-back of one to two frames,
+re-sliding a buffer already drawn; one flag per handler. **Scope:** `.always`
+gets a sprung allowance of one or two lines; `.automatic` keeps today's feel;
+an explicit `.scrollOverscroll` allowance keeps staying where it was pushed,
+since that is TUIkit's deliberate-push signal. **Lane owed:** 2–3 commits,
+half a day to a day, which includes detecting the end of a scroll without a
+phase observer (shared with B27) and the spring-back in `List` and `Table`.
+Nothing is paid by an app that does not write `.always`.
 
 ### B33. Slider ticks, neutral value, enabled bounds and thumb visibility, read from the documentation
 
@@ -1652,6 +1738,20 @@ choice as holding the focus (then a preference only ever acts on a reset), or
 make a scope-less preference inert. Neither has an obvious use. Not probed on
 a SwiftUI build: focus needs a key window, which an offscreen hosting view does
 not have.
+
+**Decided 2026-10-12: an explicit focus overrides the default focus, and the
+automatic choice must not count as held.** The first holds today: a focus the
+user, an `@FocusState` write, a pending request or `.defaultFocus` put
+somewhere is left alone (`FocusScopeTests`, `initialFocus` and
+`initialFocusInsideScope`). The second holds only on the render pass that
+makes the choice: each pass clears the mark (`FocusScopeRegistry.beginPass`), so a
+scope that appears on a later frame, while the focus is still the automatic
+pick, does not take it (`doesNotSteal`). So "who has focus" above is true for
+one pass only. **Lane owed, one commit:** keep the mark across frames until a
+real focus event (a user's move, a click, an app's write or `.defaultFocus`),
+and end it on any input delivered to the automatically focused control, so
+focus never moves from under someone typing; a new test for a scope that
+appears while the focus is still the automatic pick.
 
 ### B38. Search scopes show while the search is under way, by a terminal's reading of "presented" and "cancelled"
 

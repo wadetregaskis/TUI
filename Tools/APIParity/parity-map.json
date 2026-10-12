@@ -732,7 +732,7 @@
       "why": "Its one requirement, `effectValue(size:) -> ProjectionTransform`, has no representation here (see ProjectionTransform). TUIkit's geometry customisation point is `Layout`, which places children at whole cells."
     },
     "GeometryProxy.safeAreaInsets": {
-      "why": "Omitted on purpose, as decisions B6 records: TUIkit's chrome is subtracted from what a view is offered before layout, so no content runs under a bar and the insets would always be zero. It becomes real with the fuller safe area B6 prices."
+      "why": "Omitted on purpose, as decisions B6 records: TUIkit's chrome is subtracted from what a view is offered before layout, so no content runs under a bar and the insets would always be zero. The fuller safe area B6 priced, which would make it real, was declined by the owner on 2026-10-12."
     },
     "HelpLink.init(anchor:)": {
       "why": "Opens an anchor in an Apple Help book through AppKit's NSHelpManager; a terminal has no Help Viewer and Linux no help books. HelpLink(action:) and HelpLink(destination:) ship. See decisions C5."
@@ -758,6 +758,9 @@
     "InsettableShape": {
       "why": "It exists so `strokeBorder` can inset a shape by half its line width. A terminal's line is exactly one cell wide and its inset exactly one cell, which `padding` and `border` already express; shapes as a whole wait on O0 of the refusal review."
     },
+    "LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)": {
+      "why": "A colour's spoken name comes from Apple's accessibility colour naming, which is private and has no counterpart in the open-source Foundation, and a screen reader reads a terminal only through what is on screen, so a name would have to be drawn. Declined (owner, 2026-10-05; decisions A33, removed when this entry landed): code that uses it does not compile, and the app says what it means in words. Interpolating the colour's description instead would read `Color(…)` aloud, the quiet wrong answer."
+    },
     "MatchedGeometryProperties": {
       "why": "An option set (.position/.size/.frame) selecting which parts of a frame `matchedGeometryEffect` interpolates. With no interpolation to configure — see the matchedGeometryEffect entry, and Documentation/SwiftUI-compatibility.md:452 — the type has nothing to select between."
     },
@@ -775,6 +778,9 @@
     },
     "Path": {
       "why": "Bezier control points are fractional; the coordinate space here is integer cells only (CellRect, Sources/TUIkitFoundation/Views/GeometryReader.swift:77-95). 0 occurrences of a SwiftUI-like Path under Sources (the three \\bPath\\b hits are a navigation-path comment and a localisation string)."
+    },
+    "PreferredColorSchemeKey": {
+      "why": "The preference key behind `View.preferredColorScheme(_:)`, kept out with it (see that entry)."
     },
     "PreviewContext": {
       "why": "The canvas-supplied context protocol; no canvas can host a terminal view (see PreviewProvider)."
@@ -819,7 +825,7 @@
       "why": "Names which corners of a rounded rectangle are rounded; a terminal corner is one character that either IS the rounded glyph (╭) or is not (Sources/TUIkitStyling/Styles/BorderStyle.swift:69-128) — there is no partial-corner state to describe."
     },
     "SafeAreaRegions": {
-      "why": "An option set over `.container` and `.keyboard`. Neither is a live distinction here: a terminal has no on-screen keyboard, and the container region is the whole grid less the chrome the app declared, subtracted before layout (decisions B6)."
+      "why": "An option set over `.container` and `.keyboard`. Neither is a live distinction here: a terminal has no on-screen keyboard, and the container region is the whole grid less the chrome the app declared, subtracted before layout (decisions B6, whose fuller safe area the owner declined on 2026-10-12)."
     },
     "ScaledShape": {
       "why": "A Shape adapter for scaling; neither Shape nor sub-cell scaling exists (glyph size is the terminal's font, see scaleEffect)."
@@ -907,6 +913,9 @@
     },
     "View.minimumScaleFactor(_:)": {
       "why": "It permits shrinking the FONT to fit, down to a fraction of the nominal size. A TUIkit app does not own the font: cell size belongs to the emulator, is chosen by the user, and is identical for every glyph on screen. Nothing in the framework can scale one view's text without scaling the whole terminal."
+    },
+    "View.preferredColorScheme(_:)": {
+      "why": "Kept out on purpose (owner, 2026-10-04: omit for now; decisions A17, removed when this entry landed). A terminal's look is a palette, and the write half of `\\.colorScheme` is `.palette(_:)` (SwiftUI-compatibility.md §2.5). Choosing a light or dark variant would need palettes in pairs, which TUIkit's are not; it becomes possible if light palettes are wanted for their own sake."
     },
     "View.scrollInputBehavior(_:for:)": {
       "why": "Takes a ScrollInputKind, which has no value on macOS (see that entry), so no macOS source can call it."
