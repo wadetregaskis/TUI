@@ -72,13 +72,6 @@ extension DynamicProperty {
         address.assumingMemoryBound(to: Self.self).pointee.update()
     }
 
-    /// ``DynamicProperty/update()`` on a copy of the property at `address`,
-    /// which is then dropped.
-    static func updateCopy(at address: UnsafeMutableRawPointer) {
-        var copy = address.assumingMemoryBound(to: Self.self).pointee
-        copy.update()
-    }
-
     /// ``DynamicProperty/update()`` on `object`, an instance of this type, a
     /// class.
     static func updateObject(_ object: AnyObject) {

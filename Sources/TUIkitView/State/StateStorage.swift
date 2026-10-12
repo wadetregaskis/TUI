@@ -224,6 +224,11 @@ public final class StateStorage: @unchecked Sendable {
     /// has already been pruned does nothing.
     private var conditionalRecordsAfterSweep = 0
 
+    /// The objects whose contents the property walk has walked in this
+    /// render pass (``claimObjectContents(_:)``), each held weakly, so a new
+    /// object at a freed one's address is not taken for it.
+    private var objectsWalked: [ObjectIdentifier: WalkedObject] = [:]
+
     /// What each animating value in the tree is doing.
     ///
     /// Held here rather than standing alone because its lifetime is exactly
@@ -285,6 +290,18 @@ extension StateStorage {
         fresh.invalidationSink = renderCacheLink
         values[key] = fresh
         return fresh
+    }
+
+    /// Whether the property walk is the first in this render pass to reach
+    /// `object`, a class instance a view holds in a property field — and so
+    /// the one to walk what it holds: its `@State` bound to that view's key,
+    /// its `@Environment` resolved to that view's environment. Every later
+    /// walk in the pass leaves it as the first left it (``PropertyWalk``).
+    func claimObjectContents(_ object: AnyObject) -> Bool {
+        let id = ObjectIdentifier(object)
+        if let walked = objectsWalked[id], walked.object === object { return false }
+        objectsWalked[id] = WalkedObject(object: object)
+        return true
     }
 
     /// The record of the case the enum whose properties are keyed at `key`'s
@@ -494,6 +511,7 @@ extension StateStorage {
 
     /// Begins a new render pass by clearing the active identity set.
     public func beginRenderPass() {
+        if !objectsWalked.isEmpty { objectsWalked.removeAll(keepingCapacity: true) }
         animations.beginRenderPass()
         departures.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
@@ -590,6 +608,7 @@ extension StateStorage {
     /// Removes all stored state. Used during app cleanup.
     public func reset() {
         values.removeAll()
+        objectsWalked.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()
         activeIdentities.removeAll()
@@ -647,4 +666,10 @@ public final class StateBox<Value>: @unchecked Sendable {
     public init(_ value: Value) {
         self.value = value
     }
+}
+
+/// An object the property walk has walked in a render pass, held weakly
+/// (``StateStorage/claimObjectContents(_:)``).
+private struct WalkedObject {
+    weak var object: AnyObject?
 }

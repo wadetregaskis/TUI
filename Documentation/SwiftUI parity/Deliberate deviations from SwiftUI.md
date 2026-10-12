@@ -433,6 +433,27 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the API.
 - **Decided:** [B34](<Decisions/SwiftUI API completion decisions.md#b34-a-focused-value-reader-drawn-ahead-of-its-publisher-catches-up-a-frame-later>). **Lane.**
 
+### S6. What a class property holds is installed, by the first view that reaches it
+
+- **SwiftUI:** runs a class property's `update()`, but installs nothing inside
+  it: an `@State` there is a constant binding of its initial value, and an
+  `@Environment` reads its default, each with a run-time warning (measured
+  2026-10-10: session notes `DYNP/optional/op.out`, case vii-f).
+- **TUIkit:** installs what the object holds — held strongly, `unowned` or
+  `weak` — once per render pass, for the first view whose walk reaches it
+  ([PropertyWalk.swift](../Sources/TUIkitView/State/PropertyWalk.swift)): its
+  `@State` is bound to that view's key, its `@Environment` is that view's,
+  and its nested properties are updated in place. One object has one state,
+  so two views showing it read and write the same one, and an object made
+  anew with each value of the one view holding it keeps its state from frame
+  to frame. A later view in the pass reads what the first left: its
+  environment too.
+- **Why:** the owner's ruling (2026-10-12) keeps what TUIkit supported: a
+  class wrapper made per view value, and `@Environment(Model.self)` inside
+  one. Binding it per view, as before, sent one view's writes into another's
+  state and read another's environment in its closures (DYNV bugs 3 and 4).
+- **Decided:** [B-DYNVFIX-3](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-3-what-a-class-property-holds-belongs-to-the-first-view-in-each-render-pass-that-reaches-it). **Lane.**
+
 ---
 
 ## Environment
@@ -1409,4 +1430,4 @@ on. Each waits on the work, or on the ruling, its State names.
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](SwiftUI-compatibility.md#3-open-divergence) | Open divergence |
 | A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](SwiftUI-compatibility.md#a-child-with-no-extent-takes-no-stack-spacing) | Open divergence; the Example's Animation page relies on it |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy) | Known; fuller version priced |
-| Dynamic-property discovery bugs left: a class property's contents shared by two views; a stored modifier updated twice | session notes `DYNV/notes.md`, [decisions-DYNVFIX](SwiftUI-API-completion-decisions-DYNVFIX.md) | Being fixed (S2) |
+| Dynamic-property discovery bugs left: a stored modifier updated twice | session notes `DYNV/notes.md`, [decisions-DYNVFIX](SwiftUI-API-completion-decisions-DYNVFIX.md) | Being fixed (S2) |

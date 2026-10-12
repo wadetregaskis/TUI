@@ -67,14 +67,12 @@ package func prepareProperties<V>(
     walk.applyRoot(plan, at: &value)
 }
 
-/// How the app properties' `update()` runs where the walk is.
+/// Whether the app properties' `update()` runs where the walk is.
 enum UpdateMode {
     /// Not at all: inside a `weak` field, as SwiftUI updates none there.
     case none
     /// In place, so `body` reads what it changed.
     case inPlace
-    /// On a copy, keeping nothing: inside a class instance.
-    case onCopies
 }
 
 /// One walk of a value's properties, by its type's plan (``SlotPlan``).
@@ -92,6 +90,20 @@ enum UpdateMode {
 /// state, which case it last saw and the keys of the state it created while
 /// that case held (``EnumCaseRecord``); when another case replaces it, all of
 /// that is dropped.
+///
+/// **An object.** A class instance in a property field can be shared by many
+/// views, and one object has one set of stored properties. So what it holds —
+/// its `@State`, `@Environment`, ids, nested properties and their `update()`
+/// — belongs to the first view in each render pass whose walk reaches it
+/// (``StateStorage/claimObjectContents(_:)``): its `@State` is bound to that
+/// view's key, its `@Environment` is that view's, and every later holder in
+/// the pass leaves it as it is. Two views showing one object therefore read
+/// and write one state, as one object implies; an object made anew with each
+/// view value, held by that view alone, keeps its state from frame to frame.
+/// The object's own `update()` still runs before the body of every view that
+/// holds it (SwiftUI runs it, and installs nothing inside it: measured, DYNP
+/// `op.out` vii-f). Each object is reached at most once per walk, so objects
+/// that reach each other end the walk.
 @MainActor
 struct PropertyWalk {
     /// The identity every key shares.
@@ -112,9 +124,10 @@ struct PropertyWalk {
     /// only inside one.
     private var caseDepth = 0
 
-    /// The objects whose contents the walk is inside: objects that reach each
-    /// other are not walked round until the stack runs out.
-    private var objectsEntered: [ObjectIdentifier] = []
+    /// The objects the walk has reached: each is walked and updated once, so
+    /// objects that reach each other are not walked round until the stack
+    /// runs out.
+    private var objectsReached: [ObjectIdentifier] = []
 
     init(identity: ViewIdentity, storage: StateStorage?, environment: EnvironmentValues) {
         self.identity = identity
@@ -136,7 +149,8 @@ struct PropertyWalk {
         case .object:
             // A view that is a class: its fields are its own.
             let object = base.assumingMemoryBound(to: AnyObject.self).pointee
-            applyContents(of: object, scope: NestedScope.view, isOwn: true, updates: .onCopies)
+            objectsReached.append(ObjectIdentifier(object))
+            applyContents(of: object, scope: NestedScope.view, isOwn: true, updates: .inPlace)
         default:
             break
         }
@@ -241,11 +255,8 @@ struct PropertyWalk {
         _ updater: (any DynamicProperty.Type)?, at address: UnsafeMutableRawPointer, updates: UpdateMode
     ) {
         guard let updater else { return }
-        switch updates {
-        case .none: return
-        case .inPlace: updater.updateInPlace(at: address)
-        case .onCopies: updater.updateCopy(at: address)
-        }
+        guard updates == .inPlace else { return }
+        updater.updateInPlace(at: address)
     }
 
     // MARK: Existentials
@@ -297,17 +308,21 @@ struct PropertyWalk {
     // MARK: Objects
 
     /// A class instance in a field whose declared type `plan` names: what it
-    /// holds, walked in place, and then its own `update()`.
+    /// holds, walked in place if this is the first walk in the render pass to
+    /// reach it, and then its own `update()`.
     private mutating func applyObject(
         _ plan: ObjectPlan, _ object: AnyObject, position: Int, scope: UInt64, updates: UpdateMode
     ) {
         let id = ObjectIdentifier(object)
-        // An object the walk is already inside is one reached again through
-        // another: walked and updated where it was first reached.
-        guard !objectsEntered.contains(id) else { return }
-        let inner = NestedScope.container(at: position, ofType: type(of: object), in: scope)
-        applyContents(of: object, scope: inner, isOwn: false, updates: updates == .none ? .none : .onCopies)
-        if updates != .none, let updater = plan.updater {
+        // Reached already in this walk — through another object, or another
+        // field — it was walked and updated there.
+        guard !objectsReached.contains(id) else { return }
+        objectsReached.append(id)
+        if storage?.claimObjectContents(object) ?? true {
+            let inner = NestedScope.container(at: position, ofType: type(of: object), in: scope)
+            applyContents(of: object, scope: inner, isOwn: false, updates: updates)
+        }
+        if updates == .inPlace, let updater = plan.updater {
             updater.updateObject(object)
         }
     }
@@ -317,12 +332,10 @@ struct PropertyWalk {
     private mutating func applyContents(of object: AnyObject, scope: UInt64, isOwn: Bool, updates: UpdateMode) {
         let contents = PropertyPlans.contents(ofClass: type(of: object))
         guard !contents.steps.isEmpty else { return }
-        objectsEntered.append(ObjectIdentifier(object))
         withExtendedLifetime(object) {
             let base = Unmanaged.passUnretained(object).toOpaque()
             applySteps(of: contents, at: base, in: object, scope: scope, isOwn: isOwn, updates: updates)
         }
-        objectsEntered.removeLast()
     }
 
     // MARK: Enums

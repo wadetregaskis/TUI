@@ -68,3 +68,49 @@ names the compiler reserves to itself (binding one warns that it "will become
 an error"; session notes `DYNVFIX/probe/pb.swift`). For WebAssembly, a call
 through the `swiftcc` convention: a `@convention(thin)` function type, which
 Swift does not offer.
+
+### B-DYNVFIX-3. What a class property holds belongs to the first view in each render pass that reaches it
+
+*`DynamicProperty`, `@State`, `@Environment`*
+
+A class property — an object held strongly, `unowned` or `weak` in a field
+declared as a `DynamicProperty` class — can be shared by many views, and one
+object has one set of stored properties. The walks bound its `@State` and
+resolved its `@Environment` for each holding view in turn, so the last view
+drawn won: a write through one view's binding landed in another's state, and
+a closure made in one view's body read another's environment (DYNV bugs 3 and
+4). SwiftUI installs nothing inside a class (measured, DYNP `op.out` vii-f).
+The owner asked to keep what TUIkit supported: a class wrapper made anew with
+each view value (session notes `DYNV2/notes.md` §4.11), and an
+`@Environment(Model.self)` inside one, which reading uninstalled traps.
+
+**Shipped:** what the object holds is walked once per render pass, by the
+first view whose walk reaches it: its `@State` bound to that view's key (its
+identity, and the object's position and type there, as before), its
+`@Environment` resolved to that view's environment, its nested properties
+updated in place. Every later holder in the pass leaves it as it is, so all
+holders read and write one state — one object, one state — and an object made
+anew per view value, held by that view alone, keeps its state from frame to
+frame. The object's own `update()` still runs before each holder's body, as
+SwiftUI runs it. The pass's record holds each object weakly, so an object at a
+freed one's address is never taken for it.
+
+Two holders under different environments both read the first holder's. That
+is the rule's price, and the reason it is not "per reading view": a closure
+made in a view's body reads the object when it runs, after every holder has
+drawn, and nothing then says which view it came from.
+
+**Not chosen:**
+
+- *Keyed by the object's identity*: a freed object's address comes straight
+  back (memory note memo-key-hashes-an-address), and an object made per view
+  value would start afresh every frame, losing §4.11.
+- *The last view's, as before*: bug 4 — a closure in the first view reads the
+  second view's environment.
+- *SwiftUI's, installing nothing*: loses §4.11 and the environment model.
+
+**The fuller version:** none found that gives each holder its own environment
+in closures. Within `body`, each holder could read its own by resolving the
+object for the body and restoring it after; closures and anything evaluated
+later (a `ForEach` row, a `GeometryReader`) would then read the restored one,
+which is less coherent than one environment per object.

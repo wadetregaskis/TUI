@@ -39,11 +39,13 @@
 /// are, so a change to it draws the view again, as SwiftUI does (measured on
 /// macOS 15).
 /// A struct's own fields, an optional's wrapped value and an enum's payload
-/// are written back. In a class the view holds, and in an `indirect` enum
-/// case, `update()` still runs, on a copy, so what it changes is seen only
-/// through what the property holds by reference. A property held `unowned`
-/// is updated where it is (it is a class), and one held `weak` is not
-/// updated, as in SwiftUI (both measured on macOS 15).
+/// are written back. In an `indirect` enum case, `update()` still runs, on a
+/// copy, so what it changes is seen only through what the property holds by
+/// reference. A property held `unowned` is updated where it is (it is a
+/// class), and one held `weak` is not updated, as in SwiftUI (both measured
+/// on macOS 15). What a class property holds is bound, resolved and updated
+/// once per render pass, by the first view that reaches the object: one
+/// object has one state, whichever views show it.
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.
     ///

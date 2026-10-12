@@ -32,10 +32,12 @@ Shouting()`, is handled differently by the two frameworks.
   written back into the optional, and a type is no longer kept as holding
   nothing because it was first drawn with the optional `nil` (B-DYNP-2).
 - **A `weak` field** is an optional field too, `weak var p: Box?`. Its
-  `update()` does not run, as SwiftUI's does not (measured, case 4), and it
-  does not make its view one the write-back visits. What it holds is bound
-  and resolved, as for any optional; whether SwiftUI does that is
-  unmeasured.
+  `update()` does not run, as SwiftUI's does not (measured, case 4), nor
+  does that of anything it holds. What it holds is bound and resolved while
+  its object lives, as what any class property holds is: by the first view
+  in each render pass that reaches the object (decisions-DYNVFIX
+  B-DYNVFIX-3). SwiftUI installs nothing inside a class (measured, DYNP
+  `op.out` vii-f).
 
 The options:
 
