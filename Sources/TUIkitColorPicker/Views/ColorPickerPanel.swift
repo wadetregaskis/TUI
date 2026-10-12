@@ -180,8 +180,8 @@ public struct ColorPickerPanel: View {
 /// ``GradientEditorPanel`` hosts one to edit the selected gradient stop in
 /// place, instead of nesting dialogs).
 ///
-/// `package`: the gradient and tone-curve editors that embed it are
-/// TUIkitColorEditors' since C9b moved them out of this module.
+/// `package`: the tone-curve editor, which embeds one too, is
+/// TUIkitCurveEditors' (C9b moved it out of this module).
 package struct _ColorPickerBody: View {
     let selection: Binding<Color>
 

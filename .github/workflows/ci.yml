@@ -838,7 +838,7 @@ jobs:
   # TUIkitTables, TUIkitTabs and TUIkitGrid, which steps C2 to C4 peeled out of
   # TUIkitLists, and TUIkitNumericControls, TUIkitPickers, TUIkitSearch and
   # TUIkitForms, which steps C7, C8, C5 and C6 peeled out of TUIkitTextInput,
-  # and TUIkitColorEditors, which C9b peeled out of TUIkitColorPicker.
+  # and TUIkitCurveEditors, which C9b peeled out of TUIkitColorPicker.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -989,7 +989,7 @@ jobs:
       # built on TUIkitFoundation alone: the forms and the view groupings.
       # Step B4's leaf, TUIkitColorPicker, built on TUIkitFoundation,
       # TUIkitPresentation, TUIkitTabs, TUIkitTextInput and
-      # TUIkitNumericControls, and C9b's peel, TUIkitColorEditors, built on
+      # TUIkitNumericControls, and C9b's peel, TUIkitCurveEditors, built on
       # it, TUIkitImage, TUIkitPickers and TUIkitNumericControls, so they come
       # last. None imports
       # Darwin, Glibc or Musl or calls a termios, ioctl, signal or
@@ -997,7 +997,8 @@ jobs:
       # TUIkitBitmaps, TUIkitTextInput, TUIkitNavigation, TUIkitPresentation
       # and TUIkitTables, 2026-10-09, and TUIkitTabs, TUIkitGrid, TUIkitSearch,
       # TUIkitForms, TUIkitPickers and TUIkitNumericControls, 2026-10-10, and
-      # TUIkitColorEditors, 2026-10-11). Two have an `#if`, none around a
+      # TUIkitCurveEditors, as TUIkitColorEditors, 2026-10-11). Two have an
+      # `#if`, none around a
       # POSIX call:
       # TUIkitEffects one, `canImport(Symbols)` around the `.symbolEffect`
       # modifiers that take Apple's Symbols types (absent off macOS, as on
@@ -1088,10 +1089,10 @@ jobs:
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitColorPicker"
 
-      - name: "Build TUIkitColorEditors"
+      - name: "Build TUIkitCurveEditors"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitColorEditors"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitCurveEditors"
 
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
@@ -1274,10 +1275,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitColorPicker
-      - name: "Build TUIkitColorEditors"
+      - name: "Build TUIkitCurveEditors"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitColorEditors
+        run: swift build --target TUIkitCurveEditors
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.

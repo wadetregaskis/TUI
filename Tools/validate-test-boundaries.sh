@@ -47,7 +47,7 @@ cd "$(dirname "$0")/.."
 # TUIkitNavigation (step C1), TUIkitTables, TUIkitTabs and TUIkitGrid, peeled
 # out of TUIkitLists (steps C2 to C4), and TUIkitForms, TUIkitSearch,
 # TUIkitPickers and TUIkitNumericControls, peeled out of TUIkitTextInput
-# (steps C5 to C8), and TUIkitColorEditors, peeled out of TUIkitColorPicker
+# (steps C5 to C8), and TUIkitCurveEditors, peeled out of TUIkitColorPicker
 # (C9b): their tests stayed in the umbrella suite, which
 # `@testable import`s them. A module that gets a test target of its own gets a
 # row here, and joins the loop below.

@@ -33,8 +33,8 @@ import TUIkitFoundation
 /// the same swatch, and the synthesized `==` over them is what drops the cells
 /// painted in the previous colour.
 ///
-/// `package`: the gradient and tone-curve editors are TUIkitColorEditors' since
-/// C9b moved them out of this module.
+/// `package`: the tone-curve editor, which draws its stop chips with it, is
+/// TUIkitCurveEditors' (C9b moved it out of this module).
 package struct _ColorSwatchButtonStyle: ButtonStyle, Equatable {
     /// The colour on show — the swatch fill and the bullet's backdrop.
     let color: Color

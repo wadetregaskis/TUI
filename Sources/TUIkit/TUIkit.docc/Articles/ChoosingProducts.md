@@ -61,8 +61,8 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitSearch` | `.searchable`, search tokens and scopes | `TUIkitTextInput`, `TUIkitPickers` |
 | `TUIkitEffects` | transitions, `.symbolEffect`, `.visualEffect`, `.scrollTransition` | |
 | `TUIkitBitmaps` | `Image` from a file, a URL or a bundle, `AsyncImage`, the `.image*` options | `TUIkitImage` |
-| `TUIkitColorPicker` | `ColorPicker`, `ColorPickerPanel` | `TUIkitPresentation`, `TUIkitTabs`, `TUIkitTextInput`, `TUIkitNumericControls` |
-| `TUIkitColorEditors` | `GradientEditorPanel`, `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIkitColorPicker`, `TUIkitImage`, `TUIkitPickers` |
+| `TUIkitColorPicker` | `ColorPicker`, `ColorPickerPanel`, `GradientEditorPanel` | `TUIkitPresentation`, `TUIkitTabs`, `TUIkitTextInput`, `TUIkitNumericControls` |
+| `TUIkitCurveEditors` | `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIkitColorPicker`, `TUIkitImage`, `TUIkitPickers` |
 | `TUIkitAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics (Apple platforms) | `TUIkitBitmaps` |
 | `TUIkitMacros` | the `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUIkitCore` |
 

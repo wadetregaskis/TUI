@@ -206,7 +206,7 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # `localizationservice` TUIkitStrings', `terminalclient` TUIkitTerminalHost's
 # (the modules step B2 carved out of it), `windowgroup` TUIkitApp's (step B3),
 # `colorpicker` TUIkitColorPicker's (step B4), `gradienteditorpanel`
-# TUIkitColorEditors' (TUIkitColorPicker's from step B4 until C9b), `navigationstack`
+# TUIkitColorPicker's too (TUIkitColorEditors' from C9b to 2026-10-12), `navigationstack`
 # TUIkitNavigation's (step B5), `alert` TUIkitPresentation's (TUIkitNavigation's
 # from step B5 until step C1 peeled it out), `list` TUIkitLists' (step B6),
 # `table` TUIkitTables', `tabview` TUIkitTabs' and `grid` TUIkitGrid's

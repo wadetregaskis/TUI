@@ -8,7 +8,7 @@ of its own, and the ones carved out of it: TUIkitStrings and TUIkitTerminalHost
 below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitPresentation,
 TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome, TUIkitEffects,
 TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms, TUIkitSearch,
-TUIkitPickers and TUIkitNumericControls above it, and TUIkitColorEditors, peeled
+TUIkitPickers and TUIkitNumericControls above it, and TUIkitCurveEditors, peeled
 out of TUIkitColorPicker; and the TUIkit umbrella that
 `@_exported import`s them and declares nothing). That
 split is OUR business, not the reader's: `import TUIkit` is one API, so the
@@ -55,7 +55,7 @@ import sys
 # TUIkit) and the C image-decoder target are deliberately excluded. A module
 # carved out of TUIkitFoundation, or peeled out of a coarse group, joins this set then.
 MODULES = {
-    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorEditors", "TUIkitColorPicker", "TUIkitEffects",
+    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCurveEditors", "TUIkitEffects",
     "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls",
     "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
     "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",

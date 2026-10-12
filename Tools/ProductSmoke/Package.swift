@@ -15,8 +15,8 @@ let url = Context.environment["TUIKIT_PRODUCT_SMOKE_URL"] ?? "file:///run-Tools/
 
 /// Every library product of TUIkit. verify-products.sh fails if this and the package's own list differ.
 let products = [
-    "TUIkit", "TUIkitApp", "TUIkitFoundation", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorEditors",
-    "TUIkitColorPicker", "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
+    "TUIkit", "TUIkitApp", "TUIkitFoundation", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker",
+    "TUIkitCurveEditors", "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
     "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch",
     "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
     "TUIkitAppKit", "TUIkitMacros",

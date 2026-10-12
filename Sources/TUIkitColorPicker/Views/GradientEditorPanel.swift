@@ -5,7 +5,6 @@
 //  License: MIT
 
 import Foundation
-import TUIkitColorPicker
 import TUIkitFoundation
 import TUIkitNumericControls
 import TUIkitStyling
@@ -625,17 +624,26 @@ extension GradientEditorPanel {
     /// stop, its hit region, its drag capture — and moving it with the colour
     /// would hand a chip a new identity mid-drag, which is the one moment it
     /// must keep the one it has.
-    struct StopChip: Equatable {
-        let index: Int
-        let color: Color
-        let isSelected: Bool
+    ///
+    /// `package`, with ``chipRows(count:)``: `ToneCurveEditorPanel` lays out
+    /// and draws its own stop strip with them, from TUIkitCurveEditors.
+    package struct StopChip: Equatable {
+        package let index: Int
+        package let color: Color
+        package let isSelected: Bool
+
+        package init(index: Int, color: Color, isSelected: Bool) {
+            self.index = index
+            self.color = color
+            self.isSelected = isSelected
+        }
     }
 
     /// The stop strip's row layout for `count` chips — `wrappedRows` over
     /// uniform ``stopChipWidth`` items with 1-cell gaps in the preview-width
     /// budget. Shared by rendering and the live-drag geometry, so the two
     /// can never disagree about where a chip sits.
-    static func chipRows(count: Int) -> [[Int]] {
+    package static func chipRows(count: Int) -> [[Int]] {
         wrappedRows(
             itemWidths: Array(repeating: stopChipWidth, count: count),
             spacing: 1, budget: previewWidth)

@@ -496,8 +496,8 @@ custom_rules:
       - "Sources/TUIkit[A-Za-z]*/.*\\.swift$"
     excluded:
       - "Sources/TUIkit(Core|Styling|Image|AppKit|Macros|MacrosPlugin|WidthCorpus)/"
-      - "Sources/TUIkitColorPicker/Views/(SwatchPalettes|ColorPickerPanel|ColorPicker)\\.swift$"
-      - "Sources/TUIkitColorEditors/Views/(ToneCurveEditorPanel|GradientEditorPanel|ChannelCurveEditorPanel)\\.swift$"
+      - "Sources/TUIkitColorPicker/Views/(SwatchPalettes|ColorPickerPanel|ColorPicker|GradientEditorPanel)\\.swift$"
+      - "Sources/TUIkitCurveEditors/Views/(ToneCurveEditorPanel|ChannelCurveEditorPanel)\\.swift$"
       - "Sources/TUIkitFoundation/Rendering/OpacityBlend\\.swift$"
       - "Sources/TUIkitApp/Rendering/TerminalColorQuery\\.swift$"
       - "Sources/TUIkitFoundation/Modifiers/OpacityModifier\\.swift$"

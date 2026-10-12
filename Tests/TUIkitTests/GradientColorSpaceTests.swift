@@ -8,7 +8,7 @@
 //  License: MIT
 
 import Testing
-@testable import TUIkitColorEditors
+@testable import TUIkitColorPicker
 import TUIkitCore
 
 import TUIkit

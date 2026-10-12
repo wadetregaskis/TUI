@@ -153,8 +153,8 @@ The lane is therefore **required** on released toolchains. Observed state:
 | `TUIkitPickers` | peeled out of TUIkitTextInput at module split step C8 (2026-10-10), built on TUIkitFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
 | `TUIkitSearch` | peeled out of TUIkitTextInput at module split step C5 (2026-10-10), built on TUIkitFoundation and TUIkitTextInput, and since step C8 on TUIkitPickers, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation`, `TUIkitTextInput` and `TUIkitPickers` do) |
 | `TUIkitForms` | peeled out of TUIkitTextInput at module split step C6 (2026-10-10), built on TUIkitFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitColorPicker` | carved out of TUIkitFoundation at module split step B4 (2026-10-08), built on it and (since steps C3, B7, C7 and C1) on TUIkitTabs, TUIkitTextInput, TUIkitNumericControls and TUIkitPresentation (on TUIkitLists from step B6 until C3, on TUIkitNavigation from step B5 until C1, and on TUIkitImage and, from C8, TUIkitPickers until C9b took the editors out), with no POSIX API; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before all four of those do) |
-| `TUIkitColorEditors` | peeled out of TUIkitColorPicker at C9b (2026-10-11), built on it, on TUIkitImage, TUIkitPickers and TUIkitNumericControls, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitColorPicker` does) |
+| `TUIkitColorPicker` | carved out of TUIkitFoundation at module split step B4 (2026-10-08), built on it and (since steps C3, B7, C7 and C1) on TUIkitTabs, TUIkitTextInput, TUIkitNumericControls and TUIkitPresentation (on TUIkitLists from step B6 until C3, on TUIkitNavigation from step B5 until C1, and on TUIkitImage and, from C8, TUIkitPickers until C9b took the editors out; the gradient editor came back on 2026-10-12, needing neither), with no POSIX API; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before all four of those do) |
+| `TUIkitCurveEditors` | peeled out of TUIkitColorPicker at C9b (2026-10-11) as TUIkitColorEditors, renamed on 2026-10-12 when the gradient editor went back, built on it, on TUIkitImage, TUIkitPickers and TUIkitNumericControls, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitColorPicker` does) |
 | the four modules' own test targets | advisory, each with a 30-minute timeout |
 | `TUIkit`, build-tests, test, smoke | fail until the console layer is ported (TUIkitApp since module split step B3, which has no Windows step of its own: it is POSIX by design) |
 
@@ -583,7 +583,7 @@ anything at run time:
   `TUIkitNavigation`), `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
   (steps C2 to C4, peeled out of `TUIkitLists`), and `TUIkitForms`,
   `TUIkitSearch`, `TUIkitPickers` and `TUIkitNumericControls` (steps C5 to
-  C8, peeled out of `TUIkitTextInput`), and `TUIkitColorEditors` (C9b, peeled
+  C8, peeled out of `TUIkitTextInput`), and `TUIkitCurveEditors` (C9b, peeled
   out of `TUIkitColorPicker`).
   A test there imports `TUIkit`, as an app does, and adds `@testable import` of
   each module whose internals it reaches: `TUIkitApp` for the run loop and the
@@ -591,8 +591,8 @@ anything at run time:
   `Terminal`, and `applyRuntimeServices(from:)`, which builds a render pass's
   environment: 300 test files import `TUIkitApp` for it alone, decisions
   B-SPB3-1), `TUIkitColorPicker` for the colour picker's grids, handlers and
-  panel, `TUIkitColorEditors` for the gradient, tone-curve and channel-curve
-  editors', `TUIkitNavigation` for the navigation containers' (crumbs,
+  panel and the gradient editor's, `TUIkitCurveEditors` for the tone-curve and
+  channel-curve editors', `TUIkitNavigation` for the navigation containers' (crumbs,
   split-view widths, the inspector), `TUIkitPresentation` for the
   presentations' (sheet detents and sizing, alert buttons, dialog
   suppression),

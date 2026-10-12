@@ -29,8 +29,9 @@ import TUIkitPresentation
 /// presenting page going away all have to mean the same thing. Only Done says
 /// otherwise, and it says so by setting a flag first.
 ///
-/// `package`: ``ColorPickerPanel`` is here, and the other three panels are
-/// TUIkitColorEditors' since C9b moved them out of this module.
+/// `package`: ``ColorPickerPanel`` and ``GradientEditorPanel`` are here, and
+/// the two curve editors are TUIkitCurveEditors' (C9b moved them out of this
+/// module).
 package struct _EditorPanelChrome<Value, Content: View>: View {
     /// The dialog's title.
     let title: String

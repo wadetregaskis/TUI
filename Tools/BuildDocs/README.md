@@ -61,7 +61,7 @@ too until step C1 peeled them into `TUIkitPresentation`; `TUIkitLists`, step B6,
 `TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b; `TUIkitBitmaps`, step B5c; `TUIkitTextInput`, step
 B7, which compiled the forms, search, the pickers and the numeric controls too until steps C5 to C8 peeled them into
 `TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and `TUIkitNumericControls`; and
-`TUIkitColorEditors`, peeled out of `TUIkitColorPicker` at C9b), and
+`TUIkitCurveEditors`, peeled out of `TUIkitColorPicker` at C9b), and
 the `TUIkit` umbrella that `@_exported import`s the rest and declares nothing.
 That split buys layering, per-module test isolation and build time, and it is
 *ours*: a reader writing `import TUIkit` sees one API and should never have to

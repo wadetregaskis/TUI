@@ -20,13 +20,16 @@
 // `Tab`s; nothing of the lists'. TUIkitTextInput is the fourth since step B7
 // carved it: the panel's hex field is a `TextField`. TUIkitNumericControls is
 // the fifth since step C7 peeled it out of TUIkitTextInput, which gave the
-// picker it from step B7: the channel rows are `Slider`s. The gradient,
+// picker it from step B7: the channel rows are `Slider`s, and the gradient
+// editor's strips take their colours from the tracks' `TrackRenderer`. The
 // tone-curve and channel-curve editor panels, which host this module's panel
-// body, left for TUIkitColorEditors at C9b, and with them TUIkitImage (the
-// curve editors' `ASCIIToneCurve`) and TUIkitPickers (the channel-curve
-// editor's `RadioButtonGroup`), which nothing here uses since.
+// body, left at C9b, with the gradient editor, for TUIkitColorEditors (now
+// TUIkitCurveEditors: the gradient editor came back on 2026-10-12, needing
+// nothing this module did not have), and with them TUIkitImage (the curve
+// editors' `ASCIIToneCurve`) and TUIkitPickers (the channel-curve editor's
+// `RadioButtonGroup`), which nothing here uses since.
 // The umbrella, Sources/TUIkit, re-exports this module beside
-// TUIkitFoundation, and so does TUIkitColorEditors.
+// TUIkitFoundation, and so does TUIkitCurveEditors.
 @_exported import TUIkitFoundation
 @_exported import TUIkitNumericControls
 @_exported import TUIkitPresentation
