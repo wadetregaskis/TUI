@@ -73,9 +73,9 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         let chrome = context.environment.windowChrome
         // This frame's tooltip rows — not the line about a copy while it stands
         // in for the line of key hints' items, in their row
-        // (`StatusBarState.showsNoteInPlaceOfItems`).
+        // (`StatusBarState.linesAboveItems`).
         let hints = chrome == nil ? nil : context.environment.statusBar
-        let tooltip = hints.map { $0.showsNoteInPlaceOfItems ? [] : $0.tooltipLines } ?? []
+        let tooltip = hints?.linesAboveItems ?? []
         // Last frame's rows, in this frame's styles — and, below, this frame's
         // tooltip.
         let rows = chrome.map { reservedRows($0, tooltipRows: tooltip.count, height: height) } ?? Rows()

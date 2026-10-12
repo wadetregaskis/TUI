@@ -522,6 +522,12 @@ public final class StatusBarState: @unchecked Sendable {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _showsNoteInPlaceOfItems = false
 
+    /// The rows this frame adds to the bottom bar above its items: the
+    /// ``tooltipLines``, or none while they are the line about a copy shown
+    /// in place of the items (``showsNoteInPlaceOfItems``). Each is a row
+    /// taken from the page.
+    package var linesAboveItems: [String] { showsNoteInPlaceOfItems ? [] : tooltipLines }
+
     /// Whether the app's line of key hints (``StatusBar/init()``) drew a row of
     /// items this frame — the row a line about a copy can stand in for in the
     /// next. Recorded by the line as it draws; taken, and cleared, by the run
