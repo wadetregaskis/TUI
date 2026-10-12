@@ -5,9 +5,9 @@
 //  `body`, and into nothing else: not the value the caller holds, nor any
 //  copy of it. Two kinds of property keep their value in a box their copies
 //  share — an existential too big for its inline buffer, and an indirect
-//  enum — so a write into one in place would reach every copy. Both tests
-//  pass today; they guard the fixes DynamicPropertyDiscoveryTests calls for
-//  (session notes DYNV/notes.md).
+//  enum — so a write into one in place would reach every copy. They guard
+//  the property walk's existential and enum write-back (session notes
+//  DYNV/notes.md).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -99,12 +99,12 @@ struct DynamicPropertyCopyGuardTests {
         #expect((anyCopy.p as? BigCounting)?.updates == 0)
     }
 
-    /// Today an enum's payload is updated only on a copy, so nothing can go
-    /// wrong here. Writing the payload back in place (decisions-DYNP
-    /// B-DYNP-1's fuller version, which
-    /// `DynamicPropertyDiscoveryTests.enumPropertyPayloadWrittenBack` calls
-    /// for) must not write into an indirect case's box, which every copy of
-    /// the enum shares.
+    /// An enum's payload is written back in place, through its value
+    /// witnesses (decisions-DYNP B-DYNP-1;
+    /// `DynamicPropertyDiscoveryTests.enumPropertyPayloadWrittenBack`), but
+    /// never into an indirect case's box, which every copy of the enum
+    /// shares: that payload is updated on a copy (decisions-DYNVFIX
+    /// B-DYNVFIX-2).
     @Test("update() on an indirect enum property changes no value another copy shares")
     func indirectEnumIsNotWrittenInPlace() {
         let context = makeRenderContext(width: 20, height: 1)

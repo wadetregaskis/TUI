@@ -39,3 +39,32 @@ Its price: a load of the reference and a compare of its class per object
 field per body, in every view that holds any object, such as an
 `@Observable` model passed as `let model: Model`, whatever it holds. No use
 of the reach was found (DYNV §3).
+
+### B-DYNVFIX-2. An `indirect` enum case's payload, and every payload on WebAssembly and Windows, is updated on a copy
+
+*`DynamicProperty`*
+
+An enum's payload is now walked where it lies: projected out through the
+enum's value witnesses, updated, and its case put back, so what `update()`
+changes in it is written back, as SwiftUI writes it (DYNV bug 6;
+decisions-DYNP B-DYNP-1).
+
+**Shipped:** two kinds of payload are still walked on a copy the runtime
+makes, as every payload was before. Their `@Environment` is resolved and
+`update()` runs, but what `update()` changes in the payload's own values is
+not written back.
+
+- An `indirect` case's payload lies in a box every copy of the enum shares.
+  Written in place, it would change the caller's value and every copy of it
+  (`DynamicPropertyCopyGuardTests`).
+- On WebAssembly an indirect call checks the callee's signature, and a
+  value witness, a `swiftcc` function, does not match the C function type it
+  is called through here. Windows was not measured. Both use the copy.
+
+**The fuller version:** for an `indirect` case, allocate a new box holding the
+updated payload and store it in the view's copy of the enum. That needs the
+box's layout, or the runtime's `swift_allocBox` and `swift_projectBox`, whose
+names the compiler reserves to itself (binding one warns that it "will become
+an error"; session notes `DYNVFIX/probe/pb.swift`). For WebAssembly, a call
+through the `swiftcc` convention: a `@convention(thin)` function type, which
+Swift does not offer.

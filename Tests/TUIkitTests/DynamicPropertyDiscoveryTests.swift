@@ -74,6 +74,72 @@ private struct ExistentialSlotView<Tag>: View {
     }
 }
 
+// MARK: - Enum properties
+
+/// An app property that is an enum.
+private enum CountingCase: DynamicProperty {
+    case on(CountingValue)
+
+    var count: Int {
+        switch self {
+        case .on(let counting): counting.count
+        }
+    }
+}
+
+/// Holds the enum property in a field of a struct view.
+private struct EnumPropertyView: View {
+    let p: CountingCase
+
+    var body: some View {
+        Text(verbatim: "count \(p.count)")
+    }
+}
+
+/// A class, so that an enum whose two cases each hold one beside a property
+/// keeps its case in the spare bits of the reference: projecting the payload
+/// clears them, and only putting the case back restores it.
+private final class Marker {}
+
+/// Two payload cases of one shape.
+private enum TwoMarked: DynamicProperty {
+    case first(CountingValue, Marker)
+    case second(CountingValue, Marker)
+
+    var described: String {
+        switch self {
+        case .first(let counting, _): "first \(counting.count)"
+        case .second(let counting, _): "second \(counting.count)"
+        }
+    }
+}
+
+private struct TwoMarkedView: View {
+    let p: TwoMarked
+
+    var body: some View {
+        Text(verbatim: p.described)
+    }
+}
+
+/// A view that is an enum, with a custom `Mirror` that lists none of its
+/// payload.
+private enum ReflectingScreen: View {
+    case main(CountingValue)
+
+    var body: some View {
+        switch self {
+        case .main(let counting): Text(verbatim: "count \(counting.count)")
+        }
+    }
+}
+
+extension ReflectingScreen: @MainActor CustomReflectable {
+    var customMirror: Mirror {
+        Mirror(self, children: [:])
+    }
+}
+
 // MARK: - A plain class field first drawn holding a plain instance
 
 /// A plain class, not a property.
@@ -216,6 +282,37 @@ struct DynamicPropertyDiscoveryTests {
         #expect(lines(ReflectingCounter(taps: taps), context: context) == ["count 0"])
         taps.bindings["count"]?.wrappedValue = 3
         #expect(lines(ReflectingCounter(taps: taps), context: context) == ["count 3"])
+    }
+
+    /// The write-back updated an enum's payload on a copy (decisions-DYNP
+    /// B-DYNP-1, which named an enum VIEW; this is an enum PROPERTY in a
+    /// struct view, session notes DYNP/optional/notes.md §5.4), so body read
+    /// 0. The payload is now projected out through the enum's value
+    /// witnesses, updated where it lies, and the case put back. SwiftUI
+    /// writes it back too (op.out, case iii-b: count=1).
+    @Test("An enum app property in a struct view's field has what update() changed in its payload written back")
+    func enumPropertyPayloadWrittenBack() {
+        let context = makeRenderContext(width: 20, height: 1)
+        #expect(lines(EnumPropertyView(p: .on(CountingValue())), context: context) == ["count 1"])
+    }
+
+    /// Where an enum keeps its case in bits its payload shares, projecting
+    /// the payload clears them: the case is put back after the payload is
+    /// walked, so the enum still holds the case it held.
+    @Test("An enum whose case lies in its payload's spare bits keeps its case, and has its payload written back")
+    func spareBitCaseIsKept() {
+        let context = makeRenderContext(width: 20, height: 1)
+        #expect(lines(TwoMarkedView(p: .second(CountingValue(), Marker())), context: context) == ["second 1"])
+        #expect(lines(TwoMarkedView(p: .first(CountingValue(), Marker())), context: context) == ["first 1"])
+    }
+
+    /// An enum view's case and payload are read through its value witnesses
+    /// and the runtime's own reflection, never through a `customMirror`, so
+    /// a mirror that lists nothing still has the payload updated.
+    @Test("An enum view with a custom Mirror still has its payload's property updated")
+    func customMirrorEnumViewUpdates() {
+        let context = makeRenderContext(width: 20, height: 1)
+        #expect(lines(ReflectingScreen.main(CountingValue()), context: context) == ["count 1"])
     }
 
     /// The walks kept a view type as holding nothing when its first value

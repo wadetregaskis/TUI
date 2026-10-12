@@ -332,10 +332,52 @@ struct PropertyWalk {
     /// the state created while that one held is dropped first, so the new
     /// case's `@State` starts at its defaults, and nothing of the old case is
     /// left for it to find when it comes back.
+    ///
+    /// The payload is walked where it lies — projected out of the enum
+    /// through its value witnesses and the case put back after — so what
+    /// `update()` changes in it is written back, as SwiftUI writes it back
+    /// (measured, decisions-DYNP B-DYNP-1). Not an `indirect` case's: its
+    /// payload lies in a box every copy of the enum shares, so it is walked
+    /// on a copy, as it is where the witnesses are not called.
     private mutating func applyCase(
         of plan: EnumPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
     ) {
-        let (label, payload) = EnumCases.current(at: address, as: plan.type)
+        guard let witnesses = plan.cases.witnesses, let cases = plan.cases.cases else {
+            let (label, payload) = EnumCases.current(at: address, as: plan.type)
+            applyCase(label: label, scope: scope) { walk, caseScope in
+                guard let payload else { return }
+                walk.applyPayload(payload, scope: caseScope, updates: updates)
+            }
+            return
+        }
+        let tag = witnesses.tag(at: address)
+        let index = Int(tag)
+        guard index < cases.count else { return }
+        let current = cases[index]
+        // A case with no payload is recorded as `""`: what replaces it
+        // has nothing of it to drop.
+        applyCase(label: current.hasPayload ? current.label : "", scope: scope) { walk, caseScope in
+            guard current.hasPayload else { return }
+            let payload = plan.cases.payload(tag: tag, at: address, as: plan.type)
+            if payload.isNone { return }
+            if current.isIndirect {
+                let (_, copy) = EnumCases.current(at: address, as: plan.type)
+                guard let copy else { return }
+                walk.applyPayload(copy, scope: caseScope, updates: updates)
+                return
+            }
+            witnesses.projectPayload(at: address)
+            walk.applyPayload(payload, at: address, scope: caseScope, updates: updates)
+            witnesses.injectTag(tag, at: address)
+        }
+    }
+
+    /// The case `label`'s part of ``applyCase(of:at:scope:updates:)``: the
+    /// record of the case kept at `scope` checked, `body` walking the payload
+    /// in the case's scope, and what it created recorded.
+    private mutating func applyCase(
+        label: String, scope: UInt64, _ body: (inout Self, UInt64) -> Void
+    ) {
         let recordKey = StateStorage.StateKey(
             identity: identity, propertyIndex: StateStorage.StateKey.enumCaseIndex, scope: scope)
         let record = storage?.enumCaseRecord(at: recordKey)
@@ -344,11 +386,10 @@ struct PropertyWalk {
             record.keys.removeAll()
             record.label = label
         }
-        guard let payload else { return }
         let caseScope = NestedScope.enumCase(label, in: scope)
         let createdBefore = created.count
         caseDepth += 1
-        applyPayload(payload, scope: caseScope, updates: updates)
+        body(&self, caseScope)
         caseDepth -= 1
         // An enum whose cases have created no state keeps no record.
         guard created.count > createdBefore, let storage else { return }
@@ -363,6 +404,20 @@ struct PropertyWalk {
         // drops what it lists with it (``StateStorage/removeValues(forKeys:)``).
         created.removeSubrange(createdBefore...)
         if record == nil, caseDepth > 0 { created.append(recordKey) }
+    }
+
+    /// A case's payload where it lies, at `address`, `plan` planning it: a
+    /// tuple's elements each by its position, as SwiftUI takes each case's
+    /// payload as a tuple and keeps the elements that are properties, or the
+    /// one value at position 0.
+    private mutating func applyPayload(
+        _ plan: PayloadPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
+    ) {
+        if let elements = plan.elements {
+            applySteps(of: elements, at: address, in: nil, scope: scope, isOwn: false, updates: updates)
+        } else if let single = plan.single {
+            apply(single, at: address, position: 0, scope: scope, isOwn: false, updates: updates)
+        }
     }
 
     /// A case's payload, a copy the runtime made: what it holds walked on
@@ -391,18 +446,5 @@ struct PropertyWalk {
         of fields: FieldsPlan, at pointer: UnsafeMutablePointer<Value>, scope: UInt64, updates: UpdateMode
     ) {
         applySteps(of: fields, at: UnsafeMutableRawPointer(pointer), in: nil, scope: scope, isOwn: false, updates: updates)
-    }
-}
-
-/// An enum's current case, as the runtime's reflection reads it: never
-/// through a `customMirror`.
-enum EnumCases {
-    /// The name of the case of the enum at `address` — `""` for a case with
-    /// no payload — and a copy of its payload.
-    static func current<Enum>(at address: UnsafeMutableRawPointer, as _: Enum.Type) -> (label: String, payload: Any?) {
-        let value = address.assumingMemoryBound(to: Enum.self).pointee
-        guard RuntimeChildren.count(of: value, as: Enum.self) > 0 else { return ("", nil) }
-        let child = RuntimeChildren.child(of: value, as: Enum.self, at: 0)
-        return (child.name ?? "", child.value)
     }
 }

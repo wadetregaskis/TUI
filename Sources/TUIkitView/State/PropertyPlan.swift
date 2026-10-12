@@ -177,10 +177,13 @@ final class EnumPlan {
     let type: Any.Type
     /// Its own `update()`, run after its payload's, if it is an app property.
     let updater: (any DynamicProperty.Type)?
+    /// Its cases, and how its case is read and its payload reached.
+    let cases: EnumCasesPlan
 
     init(type: Any.Type, updater: (any DynamicProperty.Type)?) {
         self.type = type
         self.updater = updater
+        cases = EnumCasesPlan(type)
     }
 }
 

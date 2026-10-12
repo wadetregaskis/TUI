@@ -50,7 +50,7 @@ The options:
   Whether SwiftUI binds the `@State` inside such a property is unmeasured;
   the probe's value cannot tell.
 
-## B-DYNP-1. What `update()` changes is written back, except in an enum view's payload
+## B-DYNP-1. What `update()` changes is written back, an enum's payload included
 
 What shipped:
 
@@ -59,7 +59,7 @@ What shipped:
   This covers a struct view's own fields, including a property inside
   another, innermost first.
 - The fields are found and written through the runtime's field metadata
-  (`RuntimeFields`), and only for a view type that holds an app property.
+  (`RuntimeFields`), planned once per type (decisions-DYNVFIX).
 - Only a field whose declared type may hold a property is loaded. Any other
   field may be stored at a layout other than the one the runtime reports.
 - A class property, held strongly or `unowned`, is updated through its
@@ -67,25 +67,23 @@ What shipped:
   updated, as in SwiftUI (measured, case 4).
 - What `update()` reads of an `@Observable` object is observed as `body`'s
   reads are, as in SwiftUI (measured, case 5).
+- **An enum's payload** — an enum view's, or an enum property's — is written
+  back too, as SwiftUI writes it (measured, case 3: a counter that
+  `update()` increments in the payload's property reads 1 in `body`). Lane
+  DYNVFIX (2026-10-12) shipped what was this entry's fuller version: the
+  payload is projected out through the enum's value witnesses
+  (`destructiveProjectEnumData`), walked where it lies, and the case put back
+  (`destructiveInjectEnumTag`). The case is read the same way
+  (`getEnumTag`), and the cases' names and `indirect` flags come from the
+  enum's field descriptor. Each payload case's declared type is learned from
+  the first value seen holding it, through the runtime's reflection.
 
-The difference left: an enum view's payload. SwiftUI writes it back
-(measured, case 3: a counter that `update()` increments in the payload's
-property reads 1 in `body`). TUIkit runs `update()` on a copy, so `body` sees
-only what that copy changes by reference. The payload is not written in place
-because a multi-payload enum may keep its case in the payload's spare bits,
-which a write would clear.
+The differences left, each written up in decisions-DYNVFIX B-DYNVFIX-2:
 
-**The fuller version** would write the payload back through the enum's
-value witnesses. Project the payload out
-(`destructiveProjectEnumData`), update it, then put the tag back
-(`destructiveInjectEnumTag`). The price:
-
-- The value witness table would be read by its ABI layout: one more runtime
-  layout to depend on, beside the field metadata.
-- The payload's type would come from the value, not from the field metadata.
-- The cost would land only in views that are enums.
-
-Worth it when an app needs it.
+- An `indirect` case's payload lies in a box every copy of the enum shares,
+  so it is updated on a copy and not written back.
+- On WebAssembly, and on Windows (not measured there), the value witnesses
+  are not called: every payload is updated on a copy, as before this lane.
 
 ## B-DYNP-2. Each type is planned once from its declared fields; open fields are checked by value
 
@@ -116,7 +114,9 @@ is not looked into, whatever subclass it holds, as SwiftUI decides it
 
 **The cost.** An existential field costs a copy of what it holds and a plan
 lookup per body, in every view holding one, whatever it holds: the fuller
-version this entry used to price. An enum costs its case read per body,
-through the runtime's reflection: a copy of the payload and its case's name.
-Neither is measured; the `stateful` Stress scenario's `existential` and
-`enum-rows` variants price them.
+version this entry used to price. An enum costs a call of its tag witness
+per body, and, for a case whose payload holds something the walk acts on,
+two more to project the payload and put the case back (B-DYNP-1). A case
+whose payload holds nothing costs nothing more, once its payload's type is
+known. Neither is measured; the `stateful` Stress scenario's `existential`
+and `enum-rows` variants price them.
