@@ -206,7 +206,8 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # `localizationservice` TUIkitStrings', `terminalclient` TUIkitTerminalHost's
 # (the modules step B2 carved out of it), `windowgroup` TUIkitApp's (step B3),
 # `colorpicker` TUIkitColorPicker's (step B4), `gradienteditorpanel`
-# TUIkitColorPicker's too (TUIkitColorEditors' from C9b to 2026-10-12), `navigationstack`
+# TUIkitColorPicker's too (TUIkitColorEditors' from C9b to 2026-10-12),
+# `tonecurveeditorpanel` TUIkitCurveEditors' (named TUIkitColorEditors until then), `navigationstack`
 # TUIkitNavigation's (step B5), `alert` TUIkitPresentation's (TUIkitNavigation's
 # from step B5 until step C1 peeled it out), `list` TUIkitLists' (step B6),
 # `table` TUIkitTables', `tabview` TUIkitTabs' and `grid` TUIkitGrid's
@@ -219,7 +220,8 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # rest the lower modules'.
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text \
-    localizationservice terminalclient windowgroup colorpicker gradienteditorpanel navigationstack alert \
+    localizationservice terminalclient windowgroup colorpicker gradienteditorpanel tonecurveeditorpanel \
+    navigationstack alert \
     list table tabview grid statusbar anytransition menu asyncimage \
     textfield picker form searchfieldplacement slider; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
