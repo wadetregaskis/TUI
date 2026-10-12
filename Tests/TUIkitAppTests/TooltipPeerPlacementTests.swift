@@ -122,6 +122,53 @@ struct TooltipPeerPlacementTests {
         #expect(placed("S", in: out) != nil, "the ranked panel kept its place")
     }
 
+    /// A panel carried inside a view's displaced drawing (`.offset`,
+    /// `.position`, a transition: a layer at
+    /// `OverlayLayer.displacedDrawingZIndex`) is one of the page's, placed
+    /// with them in the screen's coordinates, and written back in its host's.
+    /// Found by review, 2026-10-12: the page's panels were placed without it,
+    /// and it was placed alone when its host composited, so the page's panel
+    /// covered the displaced view and the displaced panel covered the page's.
+    @Test("A panel inside displaced drawing is placed with the page's")
+    func displacedPanelJoinsTheSet() throws {
+        // "a" at (0, 0) on the page; "b" drawn by a displaced layer at (0, 1),
+        // its panel riding in the layer, attached below "b" in its coordinates.
+        var host = OverlayLayer(
+            offsetX: 0, offsetY: 1, content: FrameBuffer(lines: ["b"]),
+            zIndex: OverlayLayer.displacedDrawingZIndex, isOpaque: false)
+        host.content.overlays = [panel("Bravo", view: 0, 0, anchorWidth: 1, width: 8)]
+        let out = OverlayLayer.arrangingPeers(
+            [panel("Alpha", view: 0, 0, anchorWidth: 1, width: 8), host], maxWidth: 30, maxHeight: 10)
+        #expect(out.count == 2)
+        let alpha = try #require(placed("A", in: out))
+        let carried = try #require(out.first { $0.zIndex == OverlayLayer.displacedDrawingZIndex })
+        let local = try #require(placed("B", in: carried.content.overlays))
+        let bravo = CellRect(
+            x: local.x + carried.offsetX, y: local.y + carried.offsetY, width: local.width, height: local.height)
+        #expect(!overlap(alpha, bravo), "the panels overlap: \(alpha) \(bravo)")
+        for view in [CellRect(x: 0, y: 0, width: 1, height: 1), CellRect(x: 0, y: 1, width: 1, height: 1)] {
+            #expect(!overlap(alpha, view) && !overlap(bravo, view), "a panel covers a view: \(view)")
+        }
+        #expect(
+            carried.content.overlays.allSatisfy { $0.peerPlacement == nil && $0.anchorHeight == 0 },
+            "placed for good, so the batch it is lifted into leaves it where it is")
+    }
+
+    /// A displaced layer's panel with no room is dropped from the layer, as a
+    /// page's is from the page.
+    @Test("A panel inside displaced drawing with no room is dropped")
+    func displacedPanelWithNoRoomIsDropped() throws {
+        var host = OverlayLayer(
+            offsetX: 0, offsetY: 1, content: FrameBuffer(lines: ["second"]),
+            zIndex: OverlayLayer.displacedDrawingZIndex, isOpaque: false)
+        host.content.overlays = [panel("Second", view: 0, 0, anchorWidth: 6, width: 18)]
+        let out = OverlayLayer.arrangingPeers(
+            [panel("First", view: 0, 0, anchorWidth: 5, width: 18), host], maxWidth: 20, maxHeight: 5)
+        #expect(placed("F", in: out) != nil, "the first in reading order keeps its panel")
+        let carried = try #require(out.first { $0.zIndex == OverlayLayer.displacedDrawingZIndex })
+        #expect(carried.content.overlays.isEmpty, "the other is left out, not drawn over it")
+    }
+
     /// Everything else on the page passes through as it was, in its order: a
     /// drop-down is not a tooltip, and the set has no say over where it goes.
     @Test("Layers that are not panels of the set are untouched")

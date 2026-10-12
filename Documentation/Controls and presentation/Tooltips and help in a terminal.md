@@ -247,7 +247,11 @@ panel took the right-hand side of the rows the second needed.
 What this still does not do: rules 4 and 5 (a panel arrives at the root drawn,
 and its text does not, so it cannot be re-wrapped there), and a panel inside a
 presentation is placed with the others in that presentation, not with the
-page's beneath it.
+page's beneath it. A panel inside a view's displaced drawing (`.offset`,
+`.position`, a transition under way) is the page's, though it rides in that
+drawing's own layer: it is placed with the page's panels, where the layer
+will put it. Found by review: placed alone when its layer composited, it
+went over the page's panels, and theirs over its view.
 
 ## 6. API
 

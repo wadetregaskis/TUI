@@ -73,7 +73,8 @@ public enum TooltipTrigger: Sendable, Equatable, CaseIterable {
     /// for all of them, the ones that do not fit are left out rather than
     /// drawn over the others, and the view under the pointer, then the focused
     /// one, is placed first, so pointing at a view or focusing it brings its
-    /// panel back. See
+    /// panel back. A presentation's panels (a sheet's, a popover's) are placed
+    /// among themselves, over the page's as the presentation is. See
     /// `Documentation/Controls and presentation/Tooltips and help in a terminal.md` §5.
     case always
 }

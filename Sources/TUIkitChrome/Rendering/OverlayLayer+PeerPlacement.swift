@@ -45,64 +45,166 @@ extension OverlayLayer {
     ///
     /// Not rule 4 (avoid the pointer) or rule 5 (re-wrap narrower before
     /// giving up): a panel arrives here drawn, and its text is not.
+    ///
+    /// A panel inside a view's displaced drawing — a layer at
+    /// ``OverlayLayer/displacedDrawingZIndex``: `.offset`, `.position`, a
+    /// transition on its way — is one of these too, and is placed with them,
+    /// where its host will put it, and written back in the host's
+    /// coordinates. Such a layer is the view's own cells drawn elsewhere, not
+    /// a window over the page, and its panel rides in it until it composites:
+    /// placed then, in a batch of its own, it knew nothing of the page's
+    /// panels and the page's nothing of its view, so each could cover the
+    /// other's. A presentation's panels are still placed among themselves,
+    /// in the batch its content is lifted in.
     package static func arrangingPeers(
         _ layers: [OverlayLayer], maxWidth: Int, maxHeight: Int
     ) -> [OverlayLayer] {
-        guard layers.contains(where: { $0.peerPlacement != nil }) else { return layers }
-        let peers = layers.indices.compactMap { index -> Peer? in
-            let layer = layers[index]
-            guard let placement = layer.peerPlacement else { return nil }
-            return Peer(
-                index: index, rank: placement.rank,
-                anchor: CellRect(
-                    x: layer.offsetX, y: layer.offsetY - layer.anchorHeight,
-                    width: max(0, placement.anchorWidth), height: max(0, layer.anchorHeight)),
-                // As `placed(maxWidth:maxHeight:)` will clamp the content.
-                width: min(layer.content.width, maxWidth), height: min(layer.content.height, maxHeight))
-        }
-        .sorted(by: Peer.placedBefore)
+        guard layers.contains(where: \.carriesPeers) else { return layers }
+        var gathered: [Peer] = []
+        Peer.gather(layers, path: [], originX: 0, originY: 0, maxWidth: maxWidth, maxHeight: maxHeight, into: &gathered)
+        let peers = gathered.sorted(by: Peer.placedBefore)
         let area = CellRect(x: 0, y: 0, width: maxWidth, height: maxHeight)
         let views = peers.map(\.anchor)
         let wanted = peers.map { $0.firstChoice(in: area) }
         var arranged = layers
         var taken: [CellRect] = []
-        var dropped = Set<Int>()
+        var dropped = Set<[Int]>()
         for (position, peer) in peers.enumerated() {
             guard
                 let spot = peer.bestSpot(
                     in: area, avoiding: taken, sparing: views,
                     thenSparing: wanted[(position + 1)...].compactMap { $0 })
             else {
-                dropped.insert(peer.index)
+                dropped.insert(peer.path)
                 continue
             }
             taken.append(spot)
-            arranged[peer.index].offsetX = spot.x
-            arranged[peer.index].offsetY = spot.y
-            // Placed where it fits, so the compositor has nothing to flip it
-            // around; and placed, so a later batch does not place it again.
-            arranged[peer.index].anchorHeight = 0
-            arranged[peer.index].peerPlacement = nil
+            Self.update(&arranged, at: peer.path[...]) { layer in
+                // In the coordinates its offsets are in: its host's content,
+                // for a panel carried in displaced drawing.
+                layer.offsetX = spot.x - peer.originX
+                layer.offsetY = spot.y - peer.originY
+                // Placed where it fits, so the compositor has nothing to flip
+                // it around; and placed, so a later batch does not place it
+                // again.
+                layer.anchorHeight = 0
+                layer.peerPlacement = nil
+            }
         }
         guard !dropped.isEmpty else { return arranged }
-        return arranged.indices.filter { !dropped.contains($0) }.map { arranged[$0] }
+        return Self.removing(dropped, from: arranged, under: [])
+    }
+
+    /// Whether this layer is a panel of the set, or displaced drawing that
+    /// carries one: what ``arrangingPeers(_:maxWidth:maxHeight:)`` looks
+    /// for, so a frame with neither pays one scan of its layers.
+    fileprivate var carriesPeers: Bool {
+        peerPlacement != nil || (isDisplacedDrawing && content.overlays.contains(where: \.carriesPeers))
+    }
+
+    /// Whether this layer is a view's own drawing moved elsewhere rather than
+    /// a surface presented over the page; see ``displacedDrawingZIndex``.
+    fileprivate var isDisplacedDrawing: Bool {
+        zIndex == Self.displacedDrawingZIndex
+    }
+
+    /// Where this layer's content will have its top-left cell once
+    /// composited into a `maxWidth` × `maxHeight` area — the origin of the
+    /// coordinates the layers it carries are in. A layer that clips at the
+    /// screen's edge rather than moving back onto it keeps its offset there,
+    /// since the cut moves what it carries by the cells it cuts
+    /// (``placed(maxWidth:maxHeight:)``).
+    fileprivate func contentOrigin(maxWidth: Int, maxHeight: Int) -> (x: Int, y: Int) {
+        guard centered || clampsToScreen else { return (offsetX, offsetY) }
+        let placed = placed(maxWidth: maxWidth, maxHeight: maxHeight)
+        return (placed.x, placed.y)
+    }
+
+    /// Applies `change` to the layer at `path`: an index into `layers`, then
+    /// into each displaced host's own layers.
+    private static func update(
+        _ layers: inout [OverlayLayer], at path: ArraySlice<Int>, _ change: (inout OverlayLayer) -> Void
+    ) {
+        guard let index = path.first else { return }
+        if path.count == 1 {
+            change(&layers[index])
+        } else {
+            update(&layers[index].content.overlays, at: path.dropFirst(), change)
+        }
+    }
+
+    /// `layers`, at `prefix`, without the ones at the paths in `dropped`.
+    private static func removing(_ dropped: Set<[Int]>, from layers: [OverlayLayer], under prefix: [Int])
+        -> [OverlayLayer]
+    {
+        var kept: [OverlayLayer] = []
+        for (index, layer) in layers.enumerated() {
+            let path = prefix + [index]
+            if dropped.contains(path) { continue }
+            var layer = layer
+            if layer.isDisplacedDrawing, dropped.contains(where: { $0.count > path.count && $0.starts(with: path) }) {
+                layer.content.overlays = removing(dropped, from: layer.content.overlays, under: path)
+            }
+            kept.append(layer)
+        }
+        return kept
     }
 }
 
 /// One panel to place: where its view is, and how big it is.
 private struct Peer {
-    /// Its position in the caller's list.
-    let index: Int
+    /// Where it is: its index in the caller's list, then in each displaced
+    /// host's own layers.
+    let path: [Int]
     /// ``OverlayLayer/PeerPlacement/rank``.
     let rank: Int
-    /// The view it describes.
+    /// The view it describes, in the area's coordinates.
     let anchor: CellRect
     let width: Int
     let height: Int
+    /// Where the origin of its offsets is in the area: zero for a panel of
+    /// the caller's list, its host's content origin for one carried.
+    let originX: Int
+    let originY: Int
 
     /// Rank, then reading order, then the caller's order.
     static func placedBefore(_ lhs: Self, _ rhs: Self) -> Bool {
-        (lhs.rank, lhs.anchor.y, lhs.anchor.x, lhs.index) < (rhs.rank, rhs.anchor.y, rhs.anchor.x, rhs.index)
+        if (lhs.rank, lhs.anchor.y, lhs.anchor.x) != (rhs.rank, rhs.anchor.y, rhs.anchor.x) {
+            return (lhs.rank, lhs.anchor.y, lhs.anchor.x) < (rhs.rank, rhs.anchor.y, rhs.anchor.x)
+        }
+        return lhs.path.lexicographicallyPrecedes(rhs.path)
+    }
+
+    /// Appends the panels among `layers` to `peers`, and those carried in
+    /// the displaced drawing among them, at any depth. `originX`/`originY`
+    /// are where `layers`' offsets are measured from in the area.
+    static func gather(
+        _ layers: [OverlayLayer], path: [Int], originX: Int, originY: Int, maxWidth: Int, maxHeight: Int,
+        into peers: inout [Self]
+    ) {
+        for (index, layer) in layers.enumerated() where layer.carriesPeers {
+            if let placement = layer.peerPlacement {
+                peers.append(
+                    Self(
+                        path: path + [index], rank: placement.rank,
+                        anchor: CellRect(
+                            x: originX + layer.offsetX, y: originY + layer.offsetY - layer.anchorHeight,
+                            width: max(0, placement.anchorWidth), height: max(0, layer.anchorHeight)),
+                        // As `placed(maxWidth:maxHeight:)` will clamp the content.
+                        width: min(layer.content.width, maxWidth), height: min(layer.content.height, maxHeight),
+                        originX: originX, originY: originY))
+                continue
+            }
+            // Displaced drawing carrying panels: placed where its host's
+            // composite will lift it, which is its own offset from there.
+            var lifted = layer
+            lifted.offsetX += originX
+            lifted.offsetY += originY
+            let origin = lifted.contentOrigin(maxWidth: maxWidth, maxHeight: maxHeight)
+            gather(
+                layer.content.overlays, path: path + [index], originX: origin.x, originY: origin.y,
+                maxWidth: maxWidth, maxHeight: maxHeight, into: &peers)
+        }
     }
 
     /// The place this panel would take with nothing else on the page: what a

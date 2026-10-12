@@ -83,6 +83,23 @@ private struct DenseHelpApp: App {
     }
 }
 
+/// Two `Text`s with help, the second drawn through `.offset`, which floats
+/// its drawing (and the panel attached to it) as a layer of its own.
+private struct OffsetHelpApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("a-view").help("AAAA")
+                Text("b-view").help("BBBB").offset(x: 0, y: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .tooltips(.always)
+        }
+    }
+}
+
 /// Two buttons with help under `.onFocus` with no delay, the first focused
 /// from the first frame.
 private struct TwoHelpedButtonsApp: App {
@@ -354,6 +371,19 @@ struct HelpRunLoopTests {
         #expect(driver.shows("HELP-FOR-TEXT"), "\(style): the Text's panel was covered: \(driver.lines)")
         #expect(driver.shows("plain text"), "\(style): a panel covers the Text: \(driver.lines)")
         #expect(driver.shows("button"), "\(style): a panel covers the Button: \(driver.lines)")
+    }
+
+    /// Found by review, 2026-10-12: a panel inside `.offset` rode in the
+    /// offset's layer and was placed alone when that layer composited, so the
+    /// page's panel went directly below its view, over the offset view, and
+    /// the offset view's panel over the page's.
+    @Test("Under .always a panel inside .offset is placed with the page's")
+    func alwaysPlacesAnOffsetViewsPanelWithThePages() {
+        let driver = HelpDriver(OffsetHelpApp())
+        driver.step()
+        for text in ["a-view", "b-view", "AAAA", "BBBB"] {
+            #expect(driver.shows(text), "\(text) is covered: \(driver.lines)")
+        }
     }
 
     /// No room for both panels: the first in reading order has its panel and
