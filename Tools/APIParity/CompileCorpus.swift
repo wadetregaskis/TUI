@@ -3037,6 +3037,22 @@ private struct ComposeButton: View {
     }
 }
 
+/// Help on views that cannot take the focus, in each of SwiftUI's three forms:
+/// a localized key, a `Text`, and a string made at run time.
+@MainActor
+private struct CoverageSummary: View {
+    let percent: Int
+    let lastRun: String
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Coverage").help("Lines the tests ran at least once")
+            Text("\(percent)%").help(Text("Measured on the last run"))
+            Image(systemName: "checkmark.circle").help(lastRun)
+        }
+    }
+}
+
 /// SwiftUI's own `transition(_:)` example: a view that slides in and out
 /// as a button toggles it inside `withAnimation`.
 @MainActor
