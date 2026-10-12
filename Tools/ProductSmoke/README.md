@@ -12,6 +12,9 @@ Tools/ProductSmoke/verify-products.sh          # with $SWIFT, else swift
 Tools/ProductSmoke/verify-products.sh --keep   # and keep the scratch directory
 ```
 
+`test_verify_products.py` tests the script's product list check with a stand-in for `swift`
+(`python3 -m unittest discover -s Tools/ProductSmoke -p 'test_*.py'`; no build).
+
 A new library product needs an app here: add `Sources/Uses<Product>/main.swift` and the product's name to
 `Package.swift`'s `products`. The manifest reads TUIkit's URL from `TUIKIT_PRODUCT_SMOKE_URL`, which the script
 sets, so the fixture is not meant to be opened on its own. It must never hold a dynamic product: Swift Build turns

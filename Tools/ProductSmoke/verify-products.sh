@@ -73,7 +73,10 @@ print("\n".join(sorted(p["name"] for p in package["products"] if "library" in p[
 apps=$(cd Tools/ProductSmoke/Sources && ls -d Uses* | sed 's/^Uses//' | sort)
 if [ "$declared" != "$apps" ]; then
     echo "error: the library products and Tools/ProductSmoke's apps differ:" >&2
-    diff <(echo "$declared") <(echo "$apps") | sed 's/^</  product without an app:/; s/^>/  app without a product:/' | grep -v '^[0-9]' >&2
+    # diff exits 1 when the lists differ, which they do here; under pipefail
+    # that is the pipeline's status, and errexit would stop the script before
+    # it says what to do.
+    diff <(echo "$declared") <(echo "$apps") | sed 's/^</  product without an app:/; s/^>/  app without a product:/' | grep -v '^[0-9]' >&2 || true
     echo "Give each product an app, Tools/ProductSmoke/Sources/Uses<Product>/main.swift, and list it in" >&2
     echo "Tools/ProductSmoke/Package.swift's products." >&2
     exit 1

@@ -215,6 +215,13 @@ jobs:
       - name: Dedup check tool tests
         run: python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'
 
+      # The product smoke test's check that its apps and the manifest's
+      # library products match, and what it prints when they do not, with a
+      # stand-in for `swift`: no build, under a second. The fixture itself
+      # runs on the macOS swift.org 6.4 lane (`product_smoke`).
+      - name: Product smoke script tests
+        run: python3 -m unittest discover -s Tools/ProductSmoke -p 'test_*.py'
+
       # Fails on a new unexplained gap, on a gap CLOSED but not recorded, on a
       # new argument-label deviation, and on a map entry that has gone stale.
       # The last two are the ones no human notices: a map nobody audits stops
