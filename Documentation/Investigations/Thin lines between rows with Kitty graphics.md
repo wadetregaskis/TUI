@@ -1,6 +1,6 @@
 # Thin lines between rows with Kitty graphics
 
-> **Status:** open. Researched 2026-10-08, and the probe that gates it run the same day by the owner on Ghostty and
+> **Status:** open. Researched 2026-10-08; the probe that gates it was run the same day by the owner, on Ghostty and
 > iTerm2; the prototype (about 5–6 days) waits to be scheduled, and the default for list separators (decisions
 > A-D6L-2) waits on it. **Asked by:** the owner, 2026-10-04 (A47: Kitty-graphics thin lines are "a later project …
 > keep in mind, not now"). **Working notes** (not in git): `KGP/research.md` (the design, revised after a review),
@@ -26,9 +26,10 @@ rows instead, at no cost in rows, and what would it take?
   marker; the writer turns marker runs into placements and keeps a model of what the terminal holds. A sheet or menu
   over the list then hides the line without special cases, and a scroll clip cuts it. SGR 58 is not the marker: it
   is the code SwiftUI-style underline colours will need, and it would colour a link's underline on a marked row.
-- **Per host,** from source reading and then the probe: kitty, Ghostty and Rio look clean; iTerm2 works with
-  quirks; WezTerm deletes the line on `ESC[2K`, which starts every whole-line rewrite, so the layer must re-place it;
-  Konsole hides `z<0` under painted cells and TUIkit cannot yet recognise Konsole.
+- **Per host:** from source reading, kitty, Ghostty and Rio looked clean and iTerm2 workable with quirks; the probe
+  then found that Ghostty needs the line above the text (`z=+1`), and so the host identified first, and that iTerm2
+  gives no pixel unit to crop by. WezTerm deletes the line on `ESC[2K`, which starts every whole-line rewrite, so the
+  layer must re-place it there; Konsole hides `z<0` under painted cells, and TUIkit cannot yet recognise Konsole.
 
 ## Key measurements
 

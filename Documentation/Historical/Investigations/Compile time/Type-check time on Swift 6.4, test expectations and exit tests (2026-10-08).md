@@ -3,9 +3,9 @@
 > **Status:** decided; the test rewrites landed 2026-10-08, and the test-target split that followed on 2026-10-10.
 > Two items stay open elsewhere: exit tests' bodies (decisions A-TC1-1, the owner's) and the `#expect` scaling
 > report, drafted for the owner to file. **Decided by:** the owner set the target and the rule (6.4 first, no
-> regression on 6.2 or 6.3); lanes TC1 and TC2 chose the rewrites by it. **Working notes** (not in git): `TC1/` (the 6.2.4 profile), `TC2/` (6.4
-> against 6.2.4: `profile.md`, `baseline.md`), `EXITTC/` (`research.md`, and `expect-scaling/` with the report and
-> its reproducer), `buildtime/typecheck/`.
+> regression on 6.2 or 6.3); lanes TC1 and TC2 chose the rewrites by it. **Working notes** (not in git): `TC1/`
+> (the 6.2.4 profile), `TC2/` (6.4 against 6.2.4: `profile.md`, `baseline.md`), `EXITTC/` (`research.md`, and
+> `expect-scaling/` with the report and its reproducer), `buildtime/typecheck/`.
 
 ## Question
 
@@ -23,8 +23,8 @@ double type-check is reported, fixed, avoidable by a flag, and still in 6.4.
 - **What is slower on 6.4 is specific:** the first use of an overload set in each frontend (5–14 ms against 2–6 ms,
   paid once per batch job); a leading-dot operand of `==` inside `#expect` (`== .rgb(…)`: +67% on the 159 lines that
   had one), since it is inferred through every `==` in scope; and a per-`#expect` floor about 10% higher.
-- **The library had nothing left to fix on 6.4;** every candidate rewrite saved under 5 ms and was reverted. The test
-  targets did: four rewrites saved 1.65 s on 6.4, 1.03 s on 6.3.3 and 1.02 s on 6.2.4, slower on no compiler.
+- **The library had nothing left to fix on 6.4;** every candidate rewrite saved under 5 ms and was reverted. In the
+  test targets, four rewrites saved 1.65 s on 6.4, 1.03 s on 6.3.3 and 1.02 s on 6.2.4, slower on no compiler.
 - **The cost of an `#expect` grows with how many a module holds:** linear up to about 8,000, then 2.3 to 2.5 times
   the CPU for twice the expectations. It follows the number of `#expect` expansions, not suites or tests. TUIkitTests
   held about 25,000. That made splitting the test targets worth doing.

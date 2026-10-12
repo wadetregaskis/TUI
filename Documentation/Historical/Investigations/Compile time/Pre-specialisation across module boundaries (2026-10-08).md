@@ -3,8 +3,8 @@
 > **Status:** decided 2026-10-08: adopt neither attribute; `@inlinable` (the split plan's tier 2) stays the remedy
 > for a hot generic call that crosses a module boundary. Two small non-generic rewrites it suggested landed during
 > the split. **Decided:** recommended 2026-10-08 and reported to the owner; the coordinator's ledger records the
-> question as decided (no ruling text of the owner's is quoted here). **Working notes** (not in git): `PRESPEC/recommendation.md` (with `research.md`,
-> `experiment.md` and the crossing-by-crossing `inventory.md`).
+> question as decided (no ruling text of the owner's is quoted here). **Working notes** (not in git):
+> `PRESPEC/recommendation.md` (with `research.md`, `experiment.md` and the crossing-by-crossing `inventory.md`).
 
 ## Question
 
@@ -41,8 +41,9 @@ requirements or stored properties.
 | a library type made generic over a client type | generic |
 | a partial specialisation (`T: _Trivial(64)`) called with concrete types | the optimised client's compiler crashes |
 
-Each pre-made body is code every app keeps, used or not, unless it builds with `-internalize-at-link`: in the toy,
-six bodies were about 1,004 B, and the linked `__text` grew by 868 B.
+Each pre-made body is code every app keeps, used or not, unless TUIkit is compiled with `-internalize-at-link` (on
+macOS release builds by default since 2026-10-11): in the toy, six bodies were about 1,004 B, and the linked
+`__text` grew by 868 B.
 
 ## Reasoning
 

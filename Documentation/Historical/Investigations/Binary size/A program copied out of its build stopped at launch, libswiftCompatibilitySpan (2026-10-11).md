@@ -1,9 +1,9 @@
 # A program copied out of its build stopped at launch: libswiftCompatibilitySpan (2026-10-11)
 
 > **Status:** fixed and landed, 2026-10-11 (`02863940b` to `aafa4a3cf`), with a CI check; two upstream reports are
-> drafted for the owner to file. **Decided by:** the owner, 2026-10-11 ("land NODQ", for now). **Working notes** (not in git):
-> `SIZE3/q/span/` (the cause), `SIZE3/q/spanq/` (the whole chain, the upstream drafts, and the downsides of
-> swift-collections' fix), `NODQ/` (the replacement's gates).
+> drafted for the owner to file. **Decided by:** the owner, 2026-10-11, who approved landing the replacement "for
+> now". **Working notes** (not in git): `SIZE3/q/span/` (the cause), `SIZE3/q/spanq/` (the whole chain, the
+> upstream drafts, and the downsides of swift-collections' fix), `NODQ/` (the replacement's gates).
 
 ## Question
 

@@ -37,7 +37,7 @@ The development machine, an arm64 macOS 15.8.1 VM with 12 cores, shared with oth
 | what | before | after | how |
 |---|--:|--:|---|
 | clean release build, Xcode's 6.2.4 | 77.8 s | 63.1 s after the coarse stage (plan: 57.4 s); 57.3 s after step C2; 57.9 s after C5 and C6 | before: quiet box (plan rev. 4); after: one paired build per step, busy machine |
-| clean release build, 6.4.0 | 102.4 s at the end of phase A | 69.2 s after C2; 69.1–72.2 s over C3 to C6 | `TC2/baseline.md`; each step's commit |
+| clean release build, 6.4.0 | 102.4 s at the end of phase A | 69.2 s after C2; 69.1–72.2 s over C3 to C6 | before: `TC2/baseline.md`, a busy machine; after: each step's commit |
 | peak memory of the build | 3.7–3.8 GB | 1.94 GB (Xcode's) and 2.25 GB (6.4.0) after B7 | before: the M3 trial's one-module baseline, quiet box; after: B7's commit |
 | hello world, `TUIkit` against `TUIkitApp`, 6.4.0, clean build `-j 12` | 75.1, 68.9 s | 62.8, 58.7 s (−15.6%) | quiet window, two alternating rounds |
 | the same, stripped | 9,552,376 B | 5,964,832 B (−37.6%) | with the internalize trait |
@@ -53,9 +53,9 @@ writes; its text appeared at about 1.5 s for both, because the PTY never answers
 ## Reasoning
 
 - **Why less than the model:** the plan's model was fitted on the M3 trial split's quiet-box timings and does not
-  model contention between parallel jobs, and the later measurements were taken on a shared machine. The critical path after the coarse stage
-  was View, TUIkitFoundation, TUIkitLists, TUIkitColorPicker and the umbrella, so TUIkitFoundation's job still
-  bounds the build.
+  model contention between parallel jobs, and the later measurements were taken on a shared machine. The critical
+  path after the coarse stage was View, TUIkitFoundation, TUIkitLists, TUIkitColorPicker and the umbrella, so
+  TUIkitFoundation's job still bounds the build.
 - **Why products matter more than parallelism for apps:** a release build compiles each module as one job whose type
   checking and SIL optimisation are single-threaded, so an app that compiles fewer modules saves more than one that
   compiles the same modules in parallel.

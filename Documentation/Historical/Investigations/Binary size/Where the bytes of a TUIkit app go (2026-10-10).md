@@ -8,7 +8,7 @@
 ## Question
 
 What makes a release binary that uses TUIkit large, and what can shrink it? SIZE2 asked it from the flags'
-side (2026-10-08). The owner then asked for a byte analysis of the built libraries "from many angles", and how API
+side (2026-10-08). The owner then asked for a byte analysis of the built libraries from many angles, and how API
 usage affects an app's size (2026-10-10), and, reading the first answer: "11.5 MiB for hello world is horrifying".
 
 ## Answer
@@ -18,9 +18,9 @@ usage affects an app's size (2026-10-10), and, reading the first answer: "11.5 M
 - **Every app carried all of TUIkit.** Hello kept 98.9% of the library bytes it linked, and each of 17 apps that
   added one API family to it was exactly one 16 KB page larger. Every public symbol and every conformance record is
   a root for the linker's dead stripping, so using less API saved nothing.
-- **So the levers are about roots and products, not flags.** Per-module products, `-internalize-at-link`, keeping
-  TUIkit's symbols out of the export table, and a few package changes. `-deduplicate` and `strip` are the app's own
-  choices, and the rest needs an upstream change or a redesign.
+- **So the levers that matter cut the roots or what is linked:** per-module products, `-internalize-at-link`,
+  keeping TUIkit's symbols out of the export table, and a few package changes. `strip` and `-deduplicate` are the
+  app's own choices, and the rest needs an upstream change or a redesign.
 - **Debug information is most of the built libraries (54.6% of the objects) and none of an app.** The owner ruled
   that only final-app bytes matter; TUIkit keeps building with `-g`.
 

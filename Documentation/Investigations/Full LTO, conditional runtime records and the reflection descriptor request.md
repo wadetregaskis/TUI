@@ -20,8 +20,8 @@ follow-up asking for the feature request.)
   LLVM module: so the whole program must be one module (full LTO), with internalize.
 - **It shrinks a hello world by 36% on its own**, more than any flag TUIkit can apply, but **the compiler stops it
   short**: closure-capture and builtin reflection descriptors are still always kept, and so are multi-payload-enum
-  descriptors in every released Swift 6 (Swift's main branch stopped emitting them on 2026-10-08). They name types such as `_TableCore`, which keeps those
-  types' descriptors, whose conformance records keep their code. Made conditional too, a hello world would be
+  descriptors in every released Swift 6 (Swift's main branch stopped emitting them on 2026-10-08). They name types
+  such as `_TableCore`, which keeps those types' descriptors, whose conformance records keep their code. Made conditional too, a hello world would be
   3.73 MB, −67.6% (emulated).
 - **Not recommended today.** The flags are hidden and experimental, and their known problems apply to TUIkit (below).
   For an app that uses few modules, per-module products already do better: a hello world on `TUIkitApp` with the
