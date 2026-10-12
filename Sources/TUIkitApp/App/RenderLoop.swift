@@ -100,7 +100,7 @@ internal final class RenderLoop<A: App> {
 
     /// The tooltip text the status bar was sized for this frame, before the
     /// walk; `nil` when it shows none. What
-    /// ``requestStatusBarTooltipAdoption(nowNanos:scheduler:)`` holds the
+    /// ``requestTooltipFrames(nowNanos:scheduler:)`` holds the
     /// walk's answer against. Not private, for the reason ``terminalColors``
     /// gives.
     var statusBarTooltipText: String?
@@ -456,10 +456,11 @@ extension RenderLoop {
 
         endRenderPass()
         // After `endRenderPass`, which drops a focus tooltip the drawn walk
-        // did not publish again: the bar was sized before the walk, so a
-        // tooltip the walk changed is the next frame's to draw, and this asks
-        // for that frame (`RenderLoop+StatusBar.swift`).
-        requestStatusBarTooltipAdoption(nowNanos: frameNowNanos, scheduler: animationScheduler)
+        // did not publish again, and after `setRegions`, which may have put a
+        // view with help under the resting pointer: a tooltip the walk changed
+        // is the next frame's to draw (the bar was sized before the walk), and
+        // a delay the reshape started needs its wake (`RenderLoop+StatusBar.swift`).
+        requestTooltipFrames(nowNanos: frameNowNanos, scheduler: animationScheduler)
 
         // A frame is on screen. Under tmux that is when the sixteen ANSI slots
         // are asked for — the startup exchange left them out, because tmux holds

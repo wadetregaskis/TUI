@@ -17,8 +17,10 @@ the focus moves off its control (`TooltipState.beginWalk`, `endFrame`,
 `syncFocus`); `HelpRunLoopTests` drives both through the run loop. And as
 the bar is sized before the walk, a walk that changes what it shows (a Tab
 under `.onFocus` with no delay, revealed help whose text changes, help the
-focused control drops) asks for the next frame, which draws it
-(`RenderLoop.requestStatusBarTooltipAdoption`; a review found the gap).
+focused control drops) asks for the next frame, which draws it; and a
+view with help that the frame's reshape slides under a resting pointer gets
+the wake at the end of its delay, which it could not ask for itself, having
+drawn already (`RenderLoop.requestTooltipFrames`; a review found both gaps).
 `help(_:)`, `TooltipState`, `TooltipStyle`,
 `TooltipTrigger` (`.never` / `.automatic` / `.onFocus` / `.always`), the three
 subtree modifiers, the `?` help key and **both presentations** are on `main`. What is not built is §5's rules 4 and 5 — prefer a

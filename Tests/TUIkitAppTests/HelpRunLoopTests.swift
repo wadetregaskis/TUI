@@ -153,6 +153,44 @@ private struct PlayButton: View {
     }
 }
 
+/// A focused button that puts a row above two `Text`s with help, so the
+/// first slides under a pointer resting on the second: a hover that the
+/// frame's reshape starts once the walk is over, rather than a mouse event
+/// between frames. (The pointer has to rest on a view that hears it: the
+/// dispatcher re-resolves the hover after a reshape only for a pointer that
+/// was over one.)
+private struct SlidingHelpApp: App {
+    var style: TooltipStyle = .statusBar
+
+    init() {}
+
+    init(style: TooltipStyle) {
+        self.style = style
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            SlidingHelpPage()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .tooltipStyle(style)
+        }
+        .mouseSupport(.full)
+    }
+}
+
+private struct SlidingHelpPage: View {
+    @State private var inserted = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button("insert") { inserted = true }
+            if inserted { Text("new row") }
+            Text("slides").help("HELP-SLIDES")
+            Text("rested on").help("HELP-RESTED-ON")
+        }
+    }
+}
+
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class HelpDriver<A: App> {
@@ -333,6 +371,31 @@ struct HelpRunLoopTests {
         #expect(driver.shows("HELP-FOR-TEXT"), "\(style): hover showed nothing")
         driver.run(until: 1.5)
         #expect(driver.shows("HELP-FOR-TEXT"), "\(style): the help went while the pointer rested")
+    }
+
+    /// Found by review, 2026-10-12: a reshape that slides a view with help
+    /// under a resting pointer makes it the hover candidate after the walk
+    /// (`MouseEventDispatcher.setRegions` re-resolves the hover), and the
+    /// wake for the end of its delay was asked for only during the walk, by
+    /// the view itself — which had already drawn. Nothing woke for it, and
+    /// its help never showed while the pointer rested.
+    @Test("A view a reshape slides under the resting pointer shows its help after the delay",
+          arguments: TooltipStyle.allCases)
+    func reshapeSlidesAViewUnderThePointer(style: TooltipStyle) throws {
+        let driver = HelpDriver(SlidingHelpApp(style: style))
+        let restedOn = try #require(driver.position(of: "rested on"))
+        // On the second `Text`, until its help shows: nothing is pending then,
+        // so no wake of its own can stand in for the one under test.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: restedOn.x + 1, y: restedOn.y))
+        driver.step()
+        driver.run(until: 0.7)
+        #expect(driver.shows("HELP-RESTED-ON"), "precondition: \(style) shows the rested-on view's help")
+        #expect(driver.app.send(KeyEvent(key: .enter)), "the button took the press")
+        driver.step()
+        #expect(driver.position(of: "slides")?.y == restedOn.y, "precondition: the first Text slid under the pointer")
+        let pressed = driver.now
+        while driver.now < pressed + 700_000_000, driver.stepIfAsked() {}
+        #expect(driver.shows("HELP-SLIDES"), "\(style): nothing woke for the delay: \(driver.lines)")
     }
 
     /// **Known defect, found 2026-10-12 and not fixed here** (decisions

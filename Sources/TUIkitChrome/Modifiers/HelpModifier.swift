@@ -169,7 +169,12 @@ extension HelpModifier: Renderable {
         // The delay expires between frames, and nothing else will redraw for it
         // — a still-held focus least of all. Declared every frame while either
         // slot is pending, and it stops as soon as the tooltip is showing or the
-        // candidate goes away: one wake per hover or focus, not a poll.
+        // candidate goes away: one wake per hover or focus, not a poll. The run
+        // loop asks for it too once the frame is drawn, for a candidate the
+        // frame's reshape sets after this has drawn (`RenderLoop.requestTooltipFrames`);
+        // asked here as well because, asked while drawing, it is a render side
+        // effect, which keeps a memoizing ancestor from serving this view as it
+        // was stored while its tooltip is pending (`RenderContext.requestWake`).
         if let deadline = tooltips.pendingDeadlineNanos(
             nowNanos: context.environment.frameNowNanos)
         {

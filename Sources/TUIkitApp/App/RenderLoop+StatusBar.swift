@@ -59,11 +59,20 @@ extension RenderLoop {
         statusBar.tooltipLines = []
     }
 
-    /// Asks for the next frame when the walk changed the tooltip the status
-    /// bar shows: called once the frame is drawn, with the frame's instant.
+    /// Asks for the frames the tooltip owes once this one is drawn: called
+    /// after the frame's hit-test regions are published, with its instant.
     ///
-    /// The bar is sized before the walk, from the candidate the last walk
-    /// left (``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``),
+    /// **The end of a delay.** A view with help asks for the wake at the end
+    /// of its delay as it draws (`HelpModifier`), which covers a pointer that
+    /// arrived between frames. It does not cover a pointer the frame itself
+    /// put a view under: publishing the regions re-resolves the hover under a
+    /// resting pointer (`MouseEventDispatcher.setRegions`), so a reshape that
+    /// slides a view with help under it makes that view the candidate after
+    /// it has drawn, and nothing would wake when its delay ran out.
+    ///
+    /// **The next frame, when the walk changed the tooltip the status bar
+    /// shows.** The bar is sized before the walk, from the candidate the last
+    /// walk left (``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``),
     /// and the focused control publishes its help during the walk. So a walk
     /// can leave a different answer from the one the bar was drawn with: the
     /// focus moved to a control whose help shows at once (`.onFocus` with no
@@ -79,7 +88,10 @@ extension RenderLoop {
     /// asks again only if its own walk changes the answer once more — which
     /// help text that differs on every walk, with nothing else changing,
     /// would do at the frame-rate cap for as long as it shows in the bar.
-    func requestStatusBarTooltipAdoption(nowNanos: Int64, scheduler: AnimationScheduler?) {
+    func requestTooltipFrames(nowNanos: Int64, scheduler: AnimationScheduler?) {
+        if let deadline = tuiContext.tooltipState.pendingDeadlineNanos(nowNanos: nowNanos) {
+            scheduler?.requestWake("tooltip-delay", at: deadline)
+        }
         guard statusBarTooltip(nowNanos: nowNanos) != statusBarTooltipText else { return }
         // A wake an instant after this frame: the next frame the cap allows.
         scheduler?.requestWake("status-bar-tooltip", at: nowNanos &+ 1)
