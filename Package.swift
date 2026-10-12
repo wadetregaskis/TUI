@@ -36,9 +36,10 @@ let package = Package(
         // ── À la carte: one product per module ──────────────────────────────────────────────────────────
         // For an app that wants to compile and link less than the whole framework, and for a LIBRARY built on
         // TUIkit, which should depend on these and never on `TUIkit`: anything in an app's graph that depends
-        // on `TUIkit` gives that app the whole framework, whatever the app itself lists. Each module
-        // re-exports the modules it is built on (its Sources/<module>/Exports.swift), so a client imports the
-        // modules whose names it uses and gets their foundations with them. Mixing these with `TUIkit` in one
+        // on `TUIkit` gives that app the whole framework, whatever the app itself lists. Each module from
+        // TUIkitFoundation up re-exports the modules it is built on (its Sources/<module>/Exports.swift), so a
+        // client imports the modules whose names it uses and gets their foundations with them; the four
+        // low-level ones, TUIkitAppKit and TUIkitMacros re-export nothing. Mixing these with `TUIkit` in one
         // app is safe: each module is linked into it once. What is not: a `.dynamic` library product of the
         // client's own built from TUIkit while an app also links a TUIkit product statically (two copies of
         // the shared modules with SwiftPM's native build system; Swift Build turns them into dynamic
@@ -106,8 +107,12 @@ let package = Package(
         .library(name: "TUIkitTextInput", targets: ["TUIkitTextInput"]),
 
         // ── Low-level (no deps) ─────────────────────────────────────────────────────────────────────────
-        // The four modules everything above is built on, which TUIkitFoundation re-exports; products of
-        // their own since before the split, and the four that build on Windows today.
+        // The four modules beneath TUIkitFoundation: products of their own since before the split, and the
+        // four that build on Windows today. TUIkitFoundation is built on TUIkitCore, TUIkitStyling and
+        // TUIkitView and re-exports them; TUIkitImage is the bitmap path's (TUIkitBitmaps, TUIkitColorEditors
+        // and TUIkitAppKit use it). None of the four re-exports another, so a client of TUIkitView or
+        // TUIkitImage imports TUIkitCore or TUIkitStyling itself where it names their types; the product
+        // brings them, so it needs no product of theirs.
         .library(name: "TUIkitCore", targets: ["TUIkitCore"]),
         .library(name: "TUIkitStyling", targets: ["TUIkitStyling"]),
 

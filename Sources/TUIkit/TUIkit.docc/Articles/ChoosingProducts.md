@@ -66,10 +66,13 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics (Apple platforms) | `TUIkitBitmaps` |
 | `TUIkitMacros` | the `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUIkitCore` |
 
-Every product in the table but `TUIkitMacros` brings `TUIkitFoundation` too, and every module but `TUIkitAppKit` and
-`TUIkitMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
+Every product in the table but `TUIkitMacros` brings `TUIkitFoundation` too, and every module in it but `TUIkitAppKit`
+and `TUIkitMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
 them: `import TUIkitTables` gives you `List` as well. `TUIkitFoundation`, `TUIkitCore`, `TUIkitStyling`,
-`TUIkitView` and `TUIkitImage` are products too, for a library that needs nothing more.
+`TUIkitView` and `TUIkitImage` are products too, for a library that needs nothing more. `TUIkitFoundation`
+re-exports `TUIkitCore`, `TUIkitStyling` and `TUIkitView`, but those four lower modules re-export nothing: a file
+that imports `TUIkitView` or `TUIkitImage` also imports the module of each lower type it names, `TUIkitStyling` for
+`Color` and `TUIkitCore` for `FrameBuffer`. The product brings those modules, so they need no product of their own.
 
 ### The products decide what is built; the imports only what you can see
 

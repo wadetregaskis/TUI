@@ -48,3 +48,23 @@ declare, measured. It cost 47.9 s locally (swift.org 6.4.0, clean, 2026-10-11).
 **Fuller version.** Run it on the Linux 6.4 lane as well, where SwiftPM's default build system has not been checked.
 Price: one more debug build of every module per run there; it would catch a Linux-only import (a module that names a
 sibling only inside an `#if os(Linux)` arm), which the macOS lane cannot see.
+
+## B-C9B-3 — The four lower modules keep re-exporting nothing; the docs say what to import beside them
+
+**Shipped.** `TUIkitCore`, `TUIkitStyling`, `TUIkitView` and `TUIkitImage`, products of their own since before the
+split, have no `Exports.swift`, though `TUIkitView`'s API names `TUIkitCore`'s `FrameBuffer` (`Renderable`) and
+`TUIkitStyling`'s `Color` (a `View` there), and `TUIkitImage`'s names `Color` (`ASCIIPalette`). So a client of
+either product alone imports those modules beside it: with only `import TUIkitView`, a primitive view fails with
+"cannot find type 'FrameBuffer' in scope" and `Color.red` with "cannot find 'Color' in scope" (swift.org 6.4.0,
+2026-10-11). Choosing Products, the module index's note and Package.swift now say so (the round-1 review found them
+claiming every module re-exports what it is built on), and the product fixture's apps for the two write the three and
+two imports the docs prescribe, with no other product: they build and run with swift.org 6.4.0 (Swift Build, no
+missing-dependency warning) and Xcode's 6.2.4 (SwiftPM's own build system). A library of views is pointed at
+`TUIkitFoundation`, which re-exports `TUIkitCore`, `TUIkitStyling` and `TUIkitView`, as before.
+
+**Fuller version, and its price.** Give `TUIkitView` an `Exports.swift` re-exporting `TUIkitCore` and
+`TUIkitStyling`, and `TUIkitImage` one re-exporting `TUIkitStyling`, as the split's plan (§4, Q4) gives every module
+it carved: then one import covers either product, and the docs' rule has no exception but the opt-in two. Price: a
+change to two of the modules that build on Windows today, and to what every file that imports `TUIkitView` sees
+(TUIkit's own modules import both already, so no name should resolve differently; unmeasured). Not done in a review
+round, which fixes the docs to the code.

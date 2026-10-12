@@ -1,9 +1,10 @@
 # Product smoke test
 
 One tiny app per library product of TUIkit (`Sources/Uses<Product>/main.swift`), each depending on that product
-alone, importing its module and using one of its views or types. `verify-products.sh` stages the working tree as a
-versioned package (`Tools/stage-versioned-package.sh`), builds every app against it as a client would, runs each,
-and fails if the fixture's apps and the manifest's library products differ. CI runs it on the macOS swift.org 6.4
+alone, importing its module (and what the docs say to import beside it) and using one of its views or types.
+`verify-products.sh` stages the working tree as a versioned package (`Tools/stage-versioned-package.sh`), builds
+every app against it as a client would, runs each, and fails if the fixture's apps and the manifest's library
+products differ. CI runs it on the macOS swift.org 6.4
 lane; the script's header says what it catches and what it costs.
 
 ```bash

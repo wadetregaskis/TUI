@@ -14,8 +14,10 @@ error: value of type 'Text' has no member 'tableStyle'
 ```
 
 Look the name up below: add the **Product** to your target's `dependencies:` and `import` the module of the same
-name. A product brings the modules its module is built on with it, and its module re-exports them, so one import
-covers them: `TUIkitTables` gives you `List` too.
+name. A product brings the modules its module is built on with it, and from `TUIkitFoundation` up its module
+re-exports them, so one import covers them: `TUIkitTables` gives you `List` too. `TUIkitCore`, `TUIkitStyling`,
+`TUIkitView` and `TUIkitImage` re-export nothing: beside `TUIkitView` or `TUIkitImage`, import the module of each
+lower name you use, which their products bring (<doc:ChoosingProducts>).
 
 **Name** is how you would find it in the reference: a type, protocol, function or macro by itself, and a member
 another module adds to a type (most often a modifier on `View`) after the type's name, as in `View.tableStyle(_:)`.

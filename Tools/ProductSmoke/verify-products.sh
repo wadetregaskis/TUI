@@ -17,10 +17,14 @@
 #     scans every target's imports, and fails on an undeclared one, or warns
 #     where that module happens to be built already, which this script fails
 #     on too; which is why CI runs it on the swift.org 6.4 lane;
-#   - a module whose re-exports do not give an importer what its own API
-#     needs: each app imports only its product's module (TUIkitAppKit's and
-#     TUIkitMacros' beside the one they extend, as their docs say), with
-#     MemberImportVisibility on;
+#   - a module whose re-exports do not give an importer what the docs say
+#     they do: each app writes only the imports Choosing Products tells a
+#     client of its product to write (its product's module; beside it, for
+#     TUIkitAppKit and TUIkitMacros the module they extend, and for
+#     TUIkitView and TUIkitImage, which re-export nothing, the lower modules
+#     whose types their API names), with MemberImportVisibility on, and uses
+#     a name from beneath its module where there is one. One or two names
+#     each: a re-export no app happens to use goes unchecked;
 #   - a product that does not resolve, or whose name has drifted from its
 #     module's.
 #
