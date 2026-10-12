@@ -1,0 +1,79 @@
+== vstack spacing 10
+   x: x0 y0 w20 h10
+   h: x0 y20 w30 h10
+   a: x0 y40 w20 h10
+   b: x0 y60 w20 h10
+   f: x0 y80 w40 h10
+   y: x0 y100 w20 h10
+== hstack spacing 10
+   x: x0 y0 w20 h10
+   h: x30 y0 w30 h10
+   a: x70 y0 w20 h10
+   b: x100 y0 w20 h10
+   f: x130 y0 w40 h10
+   y: x180 y0 w20 h10
+== zstack
+   a: x0 y0 w20 h10
+   b: x0 y0 w20 h10
+   f: x0 y0 w40 h10
+   h: x0 y0 w30 h10
+== section alone
+   h: x5 y0 w30 h10
+   a: x10 y18 w20 h10
+   b: x10 y36 w20 h10
+   f: x0 y54 w40 h10
+== section padded in vstack
+   h: x5 y0 w30 h10
+   a: x5 y10 w20 h10
+   b: x5 y20 w20 h10
+   f: x5 y30 w40 h10
+== lazyvstack spacing 10
+   h: x0 y0 w30 h10
+   a: x0 y20 w20 h10
+   b: x0 y40 w20 h10
+   f: x0 y60 w40 h10
+== lazyhstack spacing 10
+   h: x0 y0 w30 h10
+   a: x40 y0 w20 h10
+   b: x70 y0 w20 h10
+   f: x100 y0 w40 h10
+== grid
+   g0: x0 y0 w20 h10
+   g1: x23 y0 w20 h10
+   h: x0 y13 w30 h10
+   a: x0 y26 w20 h10
+   b: x0 y39 w20 h10
+   f: x0 y52 w40 h10
+== isExpanded false in vstack
+== isExpanded true in vstack
+   a: x0 y26 w20 h10
+== foreach of sections in vstack
+   h0: x0 y0 w30 h10
+   a0: x0 y12 w20 h10
+   h1: x0 y24 w30 h10
+   a1: x0 y36 w20 h10
+== text section in vstack
+   hdr: x0 y0 w44 h16
+   ftr: x0 y32 w39 h16
+== text plain in vstack
+   hdr: x0 y0 w44 h16
+   ftr: x0 y32 w39 h16
+== proxied zindex
+   bottom: x0 y0 w30 h10
+   top: x0 y0 w30 h10
+isExpanded false: count=1 tags=nil sizes=8x16
+isExpanded true: count=3 tags=nil,nil,nil sizes=8x16,7x16,8x16
+section in group: count=2 tags=nil,nil sizes=8x16,7x16
+section empty header: count=1 tags=nil sizes=7x16
+section empty header: count=1 tags=nil sizes=7x16
+section empty header: count=1 tags=nil sizes=7x16
+isExpanded true: count=3 tags=nil,nil,nil sizes=8x16,7x16,8x16
+isExpanded true: count=3 tags=nil,nil,nil sizes=8x16,7x16,8x16
+isExpanded false: count=1 tags=nil sizes=8x16
+isExpanded false: count=1 tags=nil sizes=8x16
+section in group: count=2 tags=nil,nil sizes=8x16,7x16
+section in group: count=2 tags=nil,nil sizes=8x16,7x16
+section empty header: count=1 tags=nil sizes=7x16
+isExpanded false: count=1 tags=nil sizes=8x16
+section in group: count=2 tags=nil,nil sizes=8x16,7x16
+isExpanded true: count=3 tags=nil,nil,nil sizes=8x16,7x16,8x16

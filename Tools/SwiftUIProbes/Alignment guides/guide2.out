@@ -1,0 +1,36 @@
+== ZStack
+ZStack(leading) G w=1 guide=5 | S w=6 || G.x=0 G.y=0 G.w=1 S.x=5 S.y=0 S.w=6 outer.w=11 outer.h=1
+ZStack(leading) G w=1 guide=25 | S w=6 || G.x=0 G.y=0 G.w=1 S.x=25 S.y=0 S.w=6 outer.w=31 outer.h=1
+ZStack(leading) G w=1 guide=-10 | S w=6 || G.x=10 G.y=0 G.w=1 S.x=0 S.y=0 S.w=6 outer.w=11 outer.h=1
+ZStack(trailing) G w=3 guide=0 | S w=6 || G.x=6 G.y=0 G.w=3 S.x=0 S.y=0 S.w=6 outer.w=9 outer.h=1
+ZStack(trailing) G w=3 guide=10 | S w=6 || G.x=0 G.y=0 G.w=3 S.x=4 S.y=0 S.w=6 outer.w=10 outer.h=1
+ZStack(top) G h=1 guide=5 | S h=6 || G.x=0 G.y=0 G.w=1 S.x=0 S.y=5 S.w=1 outer.w=1 outer.h=11
+== LazyVStack
+LazyVStack(leading) G w=1 guide=5 | S w=6 || G.x=0 G.y=0 G.w=1 S.x=0 S.y=1 S.w=6 outer.w=1 outer.h=2
+LazyVStack(leading) G w=1 guide=-10 | S w=6 || G.x=0 G.y=0 G.w=1 S.x=0 S.y=1 S.w=6 outer.w=1 outer.h=2
+LazyVStack(trailing) G w=3 guide=0 | S w=6 || G.x=0 G.y=0 G.w=3 S.x=-3 S.y=1 S.w=6 outer.w=3 outer.h=2
+== single child .frame(width: 20)
+.frame(width: 20, alignment: .leading) C w=6 guide=0 || C.x=0 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .leading) C w=6 guide=5 || C.x=-5 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .leading) C w=6 guide=25 || C.x=-25 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .leading) C w=6 guide=-5 || C.x=5 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .trailing) C w=6 guide=0 || C.x=20 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .trailing) C w=6 guide=5 || C.x=15 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .trailing) C w=6 guide=25 || C.x=-5 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .trailing) C w=6 guide=-5 || C.x=25 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .center) C w=6 guide=0 || C.x=10 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .center) C w=6 guide=5 || C.x=5 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .center) C w=6 guide=25 || C.x=-15 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+.frame(width: 20, alignment: .center) C w=6 guide=-5 || C.x=15 C.y=0 C.w=6 F.x=0 F.y=0 F.w=20 outer.w=20 outer.h=1
+== single child .overlay on a 20-wide base
+.overlay(alignment: .leading) C w=6 guide=5 || B.x=0 B.y=0 B.w=20 C.x=-5 C.y=0 C.w=6 outer.w=20 outer.h=1
+.overlay(alignment: .leading) C w=6 guide=-5 || B.x=0 B.y=0 B.w=20 C.x=5 C.y=0 C.w=6 outer.w=20 outer.h=1
+.overlay(alignment: .leading) C w=6 guide=25 || B.x=0 B.y=0 B.w=20 C.x=-25 C.y=0 C.w=6 outer.w=20 outer.h=1
+== a stack inside a fixed frame (its guide propagates)
+VStack(trailing){G w=3 guide=0; S w=6}.frame(width: 20, alignment: .trailing) || G.x=17 G.y=0 G.w=3 S.x=11 S.y=1 S.w=6 V.x=11 V.y=0 V.w=9 outer.w=20 outer.h=2
+VStack(leading){G w=1 guide=5; S w=6}.frame(width: 20, alignment: .leading) || G.x=0 G.y=0 G.w=1 S.x=5 S.y=1 S.w=6 V.x=0 V.y=0 V.w=11 outer.w=20 outer.h=2
+VStack(leading){VStack(leading){A w=5 guide=0; B w=5 guide=-100}; C w=6} || A.x=0 A.y=0 A.w=5 B.x=100 B.y=1 B.w=5 C.x=0 C.y=2 C.w=6 V.x=0 V.y=0 V.w=105 outer.w=105 outer.h=3
+== a region set by a flexible child (host is 400 wide)
+VStack(trailing){G w=3 guide=0; S w=6; F maxWidth .infinity} || G.x=400 G.y=0 G.w=3 S.x=394 S.y=1 S.w=6 F.x=0 F.y=2 F.w=400 outer.w=403 outer.h=3
+VStack(leading){G w=1 guide=5; S w=6; F maxWidth .infinity} || G.x=0 G.y=0 G.w=1 S.x=5 S.y=1 S.w=6 F.x=5 F.y=2 F.w=400 outer.w=405 outer.h=3
+VStack(center){G w=6 guide=0; S w=6; F maxWidth .infinity} || G.x=200 G.y=0 G.w=6 S.x=197 S.y=1 S.w=6 F.x=0 F.y=2 F.w=400 outer.w=400 outer.h=3

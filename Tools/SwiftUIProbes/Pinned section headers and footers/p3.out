@@ -1,0 +1,54 @@
+== grid debug
+  rep 60x600
+  off 0 x5: H0@0+30 r0@30+120 F0@150+20 H1@170+30 r1@200+100
+  off 0 x100: ?@0+300
+  off 0 x150: ?@0+300
+  off 0 x200: ?@0+300
+  off 0 x280: ?@0+300
+  rep 60x600
+  off 100 x5: H0@0+30 r0@30+20 F0@50+20 H1@70+30 r1@100+120 F1@220+20 H2@240+30 r2@270+30
+  off 100 x100: ?@0+300
+  off 100 x150: ?@0+300
+  off 100 x200: ?@0+300
+  off 100 x280: ?@0+300
+  rep 60x600
+  off 140 x5: H0@0+10 F0@10+20 H1@30+30 r1@60+120 F1@180+20 H2@200+30 r2@230+70
+  off 140 x100: ?@0+300
+  off 140 x150: ?@0+300
+  off 140 x200: ?@0+300
+  off 140 x280: ?@0+300
+== list plain
+  window frame Optional((-5000.0, -5000.0, 300.0, 300.0))
+  off 0 clip 0: H0=y5007h14 H1=y5447h14 F0=y5419h14 row0=y5032h40 row7=y5368h40 row100=y5472h40
+  off 60 clip 60: H0=y5007h14 H1=y5387h14 F0=y5359h14 row0=y4972h40 row7=y5308h40 row100=y5412h40
+  off 200 clip 200: H0=y5007h14 H1=y5247h14 F0=y5219h14 row0=y4832h40 row7=y5168h40 row100=y5272h40
+  off 400 clip 400: H0=y5007h14 H1=y5047h14 F0=y5019h14 row0=y4832h40 row7=y4968h40 row100=y5072h40
+== list sidebar
+  window frame Optional((-5000.0, -5000.0, 300.0, 300.0))
+  off 0 clip 0: H0=y5015h14 H1=y5431h14 row0=y5036h40 row7=y5372h40 row100=y5452h40
+  off 60 clip 60: H0=y4955h14 H1=y5371h14 row0=y4976h40 row7=y5312h40 row100=y5392h40
+  off 200 clip 200: H0=y4955h14 H1=y5231h14 row0=y4976h40 row7=y5172h40 row100=y5252h40
+  off 400 clip 400: H0=y4955h14 H1=y5031h14 row0=y4976h40 row7=y4972h40 row100=y5052h40
+== list inset
+  window frame Optional((-5000.0, -5000.0, 300.0, 300.0))
+  off 0 clip 0: H0=y5007h14 H1=y5477h14 F0=y5429h14 row0=y5042h40 row7=y5378h40
+  off 60 clip 60: H0=y5007h14 H1=y5417h14 F0=y5369h14 row0=y4982h40 row7=y5318h40
+  off 200 clip 200: H0=y5007h14 H1=y5277h14 F0=y5229h14 row0=y4982h40 row7=y5178h40 row100=y5302h40
+  off 400 clip 400: H0=y5007h14 H1=y5077h14 F0=y5029h14 row0=y4982h40 row7=y4978h40 row100=y5102h40
+== list automatic
+  window frame Optional((-5000.0, -5000.0, 300.0, 300.0))
+  off 0 clip 0: H0=y5007h14 H1=y5477h14 F0=y5429h14 row0=y5042h40 row7=y5378h40
+  off 60 clip 60: H0=y5007h14 H1=y5417h14 F0=y5369h14 row0=y4982h40 row7=y5318h40
+  off 200 clip 200: H0=y5007h14 H1=y5277h14 F0=y5229h14 row0=y4982h40 row7=y5178h40 row100=y5302h40
+  off 400 clip 400: H0=y5007h14 H1=y5077h14 F0=y5029h14 row0=y4982h40 row7=y4978h40 row100=y5102h40
+== lazyvstack pinned (control)
+  window frame Optional((-5000.0, -5000.0, 300.0, 300.0))
+  off 0 clip 0: H0=y5000h16 row0=y5016h40 row7=y5296h40
+  off 60 clip 60: H0=y5000h16 H1=y5292h16 F0=y5276h16 row0=y5016h40 row7=y5236h40
+  off 200 clip 200: H0=y5000h16 H1=y5152h16 F0=y5136h16 row0=y5016h40 row7=y5096h40 row100=y5168h40
+  off 400 clip 400: H0=y5000h16 H1=y5000h16 F0=y5136h16 F1=y5288h16 row0=y5016h40 row7=y5096h40 row100=y4968h40
+== seek under pinned header
+  scrollTo(3, .top) clip 150: H0@0+30 r0@30+170 F0@200+20 H1@220+30 r1@250+50
+  scrollTo(103, .top) clip 520: H1@0+30 r1@30+170 F1@200+20 H2@220+30 r2@250+50
+  scrollTo(105, .top) clip 600: H1@0+30 r1@30+90 F1@120+20 H2@140+30 r2@170+130
+  scrollTo(7, .top) clip 310: H0@0+30 r0@30+10 F0@40+20 H1@60+30 r1@90+210

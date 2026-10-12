@@ -1,0 +1,17 @@
+== propagation: inner VStack(leading){G w=1 guide=5; S w=6}
+VStack(leading){inner; C w=6} || G.x=0 G.y=0 G.w=1 S.x=5 S.y=1 S.w=6 V.x=0 V.y=0 V.w=11 C.x=0 C.y=2 C.w=6 outer.w=11 outer.h=3
+ZStack(leading){inner; C w=6} || G.x=0 G.y=0 G.w=1 S.x=5 S.y=1 S.w=6 V.x=0 V.y=0 V.w=11 C.x=0 C.y=0.50 C.w=6 outer.w=11 outer.h=2
+inner.frame(width: 20, alignment: .leading) || G.x=0 G.y=0 G.w=1 S.x=5 S.y=1 S.w=6 V.x=0 V.y=0 V.w=11 outer.w=20 outer.h=2
+inner.frame(width: 20, alignment: .center) || G.x=4.50 G.y=0 G.w=1 S.x=9.50 S.y=1 S.w=6 V.x=4.50 V.y=0 V.w=11 outer.w=20 outer.h=2
+C w=6 guide 5 .padding(0).frame(width: 20, alignment: .leading) || C.x=-5 C.y=0 C.w=6 outer.w=20 outer.h=1
+inner.overlay base 20 leading || B.x=0 B.y=0 B.w=20 G.x=0 G.y=-0.50 G.w=1 S.x=5 S.y=0.50 S.w=6 V.x=0 V.y=-0.50 V.w=11 outer.w=20 outer.h=1
+== propagation: inner VStack(trailing){G w=1 guide=0; S w=6}
+VStack(trailing){inner; C w=6} || G.x=6 G.y=0 G.w=1 S.x=0 S.y=1 S.w=6 V.x=0 V.y=0 V.w=7 C.x=1 C.y=2 C.w=6 outer.w=7 outer.h=3
+inner.frame(width: 20, alignment: .trailing) || G.x=19 G.y=0 G.w=1 S.x=13 S.y=1 S.w=6 V.x=13 V.y=0 V.w=7 outer.w=20 outer.h=2
+== LazyVStack without fixedSize (host 400 wide)
+LazyVStack(leading){G w=1 guide=5; S w=6} || G.x=0 G.y=0 G.w=1 S.x=0 S.y=1 S.w=6 outer.w=400 outer.h=2
+LazyVStack(trailing){G w=3 guide=0; S w=6} || G.x=397 G.y=0 G.w=3 S.x=394 S.y=1 S.w=6 outer.w=400 outer.h=2
+LazyVStack(center){G w=6 guide=0; S w=6} || G.x=197 G.y=0 G.w=6 S.x=197 S.y=1 S.w=6 outer.w=400 outer.h=2
+ScrollView{LazyVStack(leading){G w=1 guide=5; S w=6}} || G.x=0 G.y=0 G.w=1 S.x=0 S.y=1 S.w=6 outer.w=400 outer.h=200
+ScrollView{LazyVStack(trailing){G w=3 guide=0; S w=6}} || G.x=397 G.y=0 G.w=3 S.x=394 S.y=1 S.w=6 outer.w=400 outer.h=200
+VStack(leading){G w=1 guide=5; S w=6}.frame(maxWidth: .infinity) || G.x=194.50 G.y=0 G.w=1 S.x=199.50 S.y=1 S.w=6 outer.w=400 outer.h=2

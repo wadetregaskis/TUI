@@ -1,0 +1,178 @@
+BUILD: OPTCONF (Optional: DynamicProperty where Wrapped: DynamicProperty)
+#### plain
+== B1 plain field: first draw
+   plain body tick=0 count=1 limit=Optional(3) kept=5
+   updates: [(key: "plain", value: 1)]
+-- poke plain
+== B1 plain field: after poke (kept := 9, tick += 1)
+   plain body tick=1 count=1 limit=Optional(3) kept=9
+   updates: [(key: "plain", value: 1)]
+#### optional
+== B2 optional field: first draw
+   optional body tick=0 count=1 limit=Optional(3) kept=5
+   updates: [(key: "optional", value: 1)]
+-- poke optional
+== B2 optional field: after poke (kept := 9, tick += 1)
+   optional body tick=1 count=1 limit=Optional(3) kept=9
+   updates: [(key: "optional", value: 1)]
+#### holder
+2026-10-10 23:45:35.374337-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:35.374385-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (i) non-DP struct field: first draw
+   holder body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke holder
+2026-10-10 23:45:35.685871-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:35.685901-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (i) non-DP struct field: after poke (kept := 9, tick += 1)
+   holder body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### holderDP
+== (ii) DP struct field: first draw
+   holderDP body tick=0 count=1 limit=Optional(3) kept=5
+   updates: [(key: "holderDP", value: 1)]
+-- poke holderDP
+== (ii) DP struct field: after poke (kept := 9, tick += 1)
+   holderDP body tick=1 count=1 limit=Optional(3) kept=9
+   updates: [(key: "holderDP", value: 1)]
+#### enumField
+2026-10-10 23:45:37.009935-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:37.009980-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (iii) non-DP enum field: first draw
+   enumField body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke enumField
+2026-10-10 23:45:37.320997-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:37.321024-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (iii) non-DP enum field: after poke (kept := 9, tick += 1)
+   enumField body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### enumDPField
+== (iii-b) DP enum field: first draw
+   enumDPField body tick=0 count=1 limit=Optional(3) kept=5
+   updates: [(key: "enumDPField", value: 1)]
+-- poke enumDPField
+== (iii-b) DP enum field: after poke (kept := 9, tick += 1)
+   enumDPField body tick=1 count=1 limit=Optional(3) kept=9
+   updates: [(key: "enumDPField", value: 1)]
+#### tuple
+2026-10-10 23:45:38.660962-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:38.661011-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (iv) tuple field: first draw
+   tuple body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke tuple
+2026-10-10 23:45:38.979146-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:38.979176-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (iv) tuple field: after poke (kept := 9, tick += 1)
+   tuple body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### array
+2026-10-10 23:45:39.490492-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:39.490533-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (iv-b) array field: first draw
+   array body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke array
+2026-10-10 23:45:39.793138-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:39.793174-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (iv-b) array field: after poke (kept := 9, tick += 1)
+   array body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### existential
+2026-10-10 23:45:40.295423-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:40.295466-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-a) any DynamicProperty field: first draw
+   existential body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke existential
+2026-10-10 23:45:40.599303-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:40.599335-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-a) any DynamicProperty field: after poke (kept := 9, tick += 1)
+   existential body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### anyField
+2026-10-10 23:45:41.104256-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:41.104311-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-a2) Any field: first draw
+   anyField body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke anyField
+2026-10-10 23:45:41.415114-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:41.415144-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-a2) Any field: after poke (kept := 9, tick += 1)
+   anyField body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### generic
+== (vii-b) generic field T = Full: first draw
+   generic body tick=0 count=1 limit=Optional(3) kept=5
+   updates: [(key: "generic", value: 1)]
+-- poke generic
+== (vii-b) generic field T = Full: after poke (kept := 9, tick += 1)
+   generic body tick=1 count=1 limit=Optional(3) kept=9
+   updates: [(key: "generic", value: 1)]
+#### modStored
+2026-10-10 23:45:42.745216-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:42.745258-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-c) ViewModifier field, not applied: first draw
+   modStored body tick=0 count=0 limit=nil kept=5
+   updates: []
+-- poke modStored
+2026-10-10 23:45:43.056760-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:43.056788-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-c) ViewModifier field, not applied: after poke (kept := 9, tick += 1)
+   modStored body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### modApplied
+2026-10-10 23:45:43.568624-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:43.568673-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-c2) ViewModifier field, applied: first draw
+   modApplied body tick=0 count=0 limit=nil kept=5
+   modifier body p: count=1 limit=Optional(3) kept=5
+   updates: [(key: "modApplied", value: 1)]
+-- poke modApplied
+2026-10-10 23:45:43.888819-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:43.888849-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-c2) ViewModifier field, applied: after poke (kept := 9, tick += 1)
+   modApplied body tick=1 count=0 limit=nil kept=5
+   updates: []
+#### classProp
+2026-10-10 23:45:44.396556-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:44.396597-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-f) class property held strongly: first draw
+   classProp body tick=0 count=1 limit=nil kept=5
+   updates: [(key: "classProp", value: 1)]
+-- poke classProp
+2026-10-10 23:45:44.708437-0700 op-optconf[52410:10240064] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+2026-10-10 23:45:44.708463-0700 op-optconf[52410:10240064] [SwiftUI] Accessing Environment<Optional<Int>>'s value outside of being installed on a View. This will always read the default value and will not update.
+== (vii-f) class property held strongly: after poke (kept := 9, tick += 1)
+   classProp body tick=1 count=2 limit=nil kept=5
+   updates: [(key: "classProp", value: 1)]
+#### flip
+== (vi) optional nil at first draw
+   flip body tick=0 nil
+   updates: []
+-- poke flip-on
+== (vi) after nil -> some
+   flip body tick=0 count=1 limit=Optional(3) kept=5
+   updates: [(key: "flip", value: 1)]
+-- poke flip
+== (vi) after poke (kept := 9, tick += 1)
+   flip body tick=1 count=1 limit=Optional(3) kept=9
+   updates: [(key: "flip", value: 1)]
+#### binding
+== (vii-d) Binding children: first draw
+   binding parent body
+   binding child body b=1
+   optional-binding child body b=Optional(1)
+   updates: []
+-- poke binding
+== (vii-d) after value := 2
+   binding child body b=2
+   optional-binding child body b=Optional(2)
+   updates: []
+#### weak
+== (vii-e) weak class field under OPTCONF
+   weak body n=0
+   updates: [(key: "weakClass", value: 1)]
+DONE

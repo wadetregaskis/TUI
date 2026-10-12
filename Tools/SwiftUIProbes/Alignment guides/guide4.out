@@ -1,0 +1,16 @@
+== LazyVStack with Text rows (host 400 wide)
+LazyVStack(leading){Text x guide 20; Text xxxxxx} || G.x=0 G.y=0 G.w=7.50 G.h=15 S.x=0 S.y=15 S.w=45 S.h=15 outer.w=400 outer.h=30
+LazyVStack(leading){Text x guide d.width; Text xxxxxx} (in-extent) || G.x=0 G.y=0 G.w=7.50 G.h=15 S.x=0 S.y=15 S.w=45 S.h=15 outer.w=400 outer.h=30
+LazyVStack(leading){ForEach 0..<2 {box w=1 guide 5}; box w=6} || G.x=0 G.y=0 G.w=1 G.h=1 S.x=0 S.y=1 S.w=6 S.h=1 outer.w=400 outer.h=2
+== LazyHStack (host 200 tall)
+LazyHStack(top){G h=1 guide 5; S h=6} || G.x=0 G.y=0 G.w=1 G.h=1 S.x=1 S.y=0 S.w=1 S.h=6 outer.w=2 outer.h=200
+== propagation of the inner stack's OWN alignment guide
+VStack(leading){VStack(leading){G w=6 guide=2; S w=6}; C w=6} || G.x=0 G.y=0 G.w=6 G.h=1 S.x=2 S.y=1 S.w=6 S.h=1 V.x=0 V.y=0 V.w=8 V.h=2 C.x=0 C.y=2 C.w=6 C.h=1 outer.w=8 outer.h=3
+VStack(leading){VStack(leading){G w=1 guide=5}; C w=6} (single child) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack(leading){VStack(center){G w=1 leading guide=5; S w=6}; C w=6} (other guide) || G.x=2.50 G.y=0 G.w=1 G.h=1 S.x=0 S.y=1 S.w=6 S.h=1 V.x=0 V.y=0 V.w=6 V.h=2 C.x=0 C.y=2 C.w=6 C.h=1 outer.w=6 outer.h=3
+VStack(trailing){VStack(leading){G w=1 trailing guide=0; S w=6}; C w=6} (other guide) || G.x=0 G.y=0 G.w=1 G.h=1 S.x=0 S.y=1 S.w=6 S.h=1 V.x=0 V.y=0 V.w=6 V.h=2 C.x=0 C.y=2 C.w=6 C.h=1 outer.w=6 outer.h=3
+HStack(top){HStack(top){G h=1 guide=5; S h=6}; C h=6} || G.x=0 G.y=0 G.w=1 G.h=1 S.x=1 S.y=5 S.w=1 S.h=6 V.x=0 V.y=0 V.w=2 V.h=11 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=11
+HStack(top){HStack(center){G h=1 top guide=5; S h=6}; C h=6} (other guide) || G.x=0 G.y=2.50 G.w=1 G.h=1 S.x=1 S.y=0 S.w=1 S.h=6 V.x=0 V.y=0 V.w=2 V.h=6 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+VStack(leading){ZStack(leading){G w=1 guide=5; S w=6}; C w=6} || G.x=0 G.y=0 G.w=1 G.h=1 S.x=5 S.y=0 S.w=6 S.h=1 V.x=0 V.y=0 V.w=11 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack(leading){ZStack(center){G w=1 leading guide=5; S w=6}; C w=6} (other guide) || G.x=2.50 G.y=0 G.w=1 G.h=1 S.x=0 S.y=0 S.w=6 S.h=1 V.x=0 V.y=0 V.w=6 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+VStack(leading){HStack{G w=1 leading guide=5; S w=6}; C w=6} || G.x=0 G.y=0 G.w=1 G.h=1 S.x=1 S.y=0 S.w=6 S.h=1 V.x=0 V.y=0 V.w=7 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=7 outer.h=2

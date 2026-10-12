@@ -1,0 +1,40 @@
+== grid center spacing 0
+  y5: clear@0+125 H0@125+50 clear@175+125
+  y35: clear@0+40 r0@40+20 clear@60+80 r0@140+20 clear@160+80 r0@240+20 clear@260+40
+  y75: clear@0+40 r0@40+20 clear@60+240
+  y160: clear@0+40 r1@40+20 clear@60+80 r1@140+20 clear@160+80 r1@240+20 clear@260+40
+  y185: clear@0+40 r1@40+20 clear@60+80 r1@140+20 clear@160+80 r1@240+20 clear@260+40
+  x5: clear@0+300
+  x150: H0@0+30 r0@30+40 clear@70+40 F0@110+20 H1@130+30 r1@160+40 clear@200+40 F1@240+20 clear@260+40
+== grid leading spacing 0
+  y5: H0@0+50 clear@50+250
+  y35: r0@0+20 clear@20+80 r0@100+20 clear@120+80 r0@200+20 clear@220+80
+  y75: r0@0+20 clear@20+280
+  y160: r1@0+20 clear@20+80 r1@100+20 clear@120+80 r1@200+20 clear@220+80
+  y185: r1@0+20 clear@20+80 r1@100+20 clear@120+80 r1@200+20 clear@220+80
+  x5: H0@0+30 r0@30+80 F0@110+20 H1@130+30 r1@160+80 F1@240+20 clear@260+40
+  x150: clear@0+300
+== grid center spacing 10
+  y5: clear@0+125 H0@125+50 clear@175+125
+  y35: clear@0+300
+  y75: clear@0+40 r0@40+20 clear@60+80 r0@140+20 clear@160+80 r0@240+20 clear@260+40
+  y160: clear@0+300
+  y185: clear@0+125 H1@125+50 clear@175+125
+  x5: clear@0+300
+  x150: H0@0+30 clear@30+10 r0@40+40 clear@80+60 F0@140+20 clear@160+10 H1@170+30 clear@200+10 r1@210+40 clear@250+50
+== vstack center
+  y5: clear@0+125 H0@125+50 clear@175+125
+  y35: clear@0+140 r0@140+20 clear@160+140
+  y75: clear@0+140 r0@140+20 clear@160+140
+  y160: clear@0+140 r0@140+20 clear@160+140
+  y185: clear@0+140 r0@140+20 clear@160+140
+  x5: clear@0+300
+  x150: H0@0+30 r0@30+160 F0@190+20 H1@210+30 r1@240+60
+== vstack leading
+  y5: H0@0+50 clear@50+250
+  y35: r0@0+20 clear@20+280
+  y75: r0@0+20 clear@20+280
+  y160: r0@0+20 clear@20+280
+  y185: r0@0+20 clear@20+280
+  x5: H0@0+30 r0@30+160 F0@190+20 H1@210+30 r1@240+60
+  x150: clear@0+300

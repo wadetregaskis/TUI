@@ -1,0 +1,66 @@
+BUILD: plain
+#### E1 enum view, cases One / Two, chosen by value at one position
+== first draw (a)
+   a kept=5
+-- a.kept := 9
+== a.kept := 9
+   a kept=9
+== a -> b
+   b first=1 second=2
+-- b.first := 7
+== b.first := 7
+   b first=7 second=2
+== b -> a (does a.kept come back 9, or reset to 5?)
+   a kept=5
+== a -> b (does b.first come back 7, or reset to 1?)
+   b first=1 second=2
+#### E1b enum view, cases a(One) / b(One)
+== first draw (a)
+   same.a kept=5
+-- sa.kept := 9
+== sa.kept := 9
+   same.a kept=9
+== a -> b (does b inherit 9?)
+   same.b kept=5
+== b -> a
+   same.a kept=5
+#### E5 enum view, same case, payload's Int changing
+== first draw
+   tagged n=0 kept=5
+-- t.kept := 9
+== t.kept := 9 (installed from a two-value payload?)
+   tagged n=0 kept=9
+== n := 1, same case
+   tagged n=1 kept=9
+#### E2 enum property in a struct view
+== first draw (a)
+   edp a kept=5 own=0
+-- edp.a.kept := 9
+== edp.a.kept := 9
+   edp a kept=9 own=0
+-- edp.own := 3
+== edp.own := 3
+   edp a kept=9 own=3
+== a -> b
+   edp b first=1 second=2 own=3
+-- edp.b.first := 7
+== edp.b.first := 7
+   edp b first=7 second=2 own=3
+== b -> a (a.kept 9 or 5? own 3?)
+   edp a kept=5 own=3
+#### E4 optional property: some -> nil -> some
+2026-10-11 02:02:50.522575-0700 skey[66378:10652272] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+== first draw (some)
+   opt kept=5 own=0
+-- opt.kept := 9
+== opt.kept := 9
+-- opt.own := 3
+2026-10-11 02:02:51.142816-0700 skey[66378:10652272] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+== opt.own := 3
+   opt kept=5 own=3
+== some -> nil
+   opt kept=nil own=3
+2026-10-11 02:02:51.756683-0700 skey[66378:10652272] [SwiftUI] Accessing State's value outside of being installed on a View. This will result in a constant Binding of the initial value and will not update.
+== nil -> some (kept 9 or 5? own 3?)
+   opt kept=5 own=3
+DONE

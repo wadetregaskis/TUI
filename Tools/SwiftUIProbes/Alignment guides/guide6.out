@@ -1,0 +1,7 @@
+== two children, both explicit (inner VStack(center), outer VStack(leading) with C w=6)
+inner{G w=1 leading 5; S w=6 leading 1} || G.x=2.50 G.y=0 G.w=1 S.x=0 S.y=1 S.w=6 V.x=0 V.y=0 V.w=6 C.x=0 C.y=2 C.w=6 outer.w=6 outer.h=3
+== custom alignment .mark, two children, one explicit
+outer VStack(.mark){inner VStack(center){G w=1 mark 5; S w=6}; C w=6} || G.x=2.25 G.y=0 G.w=1 S.x=-0.25 S.y=1 S.w=6 V.x=-0.25 V.y=0 V.w=6 C.x=7.25 C.y=2 C.w=6 outer.w=13.50 outer.h=3
+outer VStack(.mark){inner HStack{G w=1 mark 5; S w=6}; C w=6} || G.x=0 G.y=0 G.w=1 S.x=1 S.y=0 S.w=6 V.x=0 V.y=0 V.w=7 C.x=5 C.y=1 C.w=6 outer.w=11 outer.h=2
+== built-in .leading, inner HStack, two children, guide on the second
+outer VStack(leading){inner HStack{S w=6; G w=1 leading 0}; C w=6} || G.x=6 G.y=0 G.w=1 S.x=0 S.y=0 S.w=6 V.x=0 V.y=0 V.w=7 C.x=0 C.y=1 C.w=6 outer.w=7 outer.h=2

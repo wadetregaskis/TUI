@@ -1,0 +1,41 @@
+== 1 plain struct field
+   plain body count=1
+   updates: [(key: "plain", value: 1)]
+== 2 optional field
+   optional body count=0
+   updates: []
+== 2b optional field: environment inside
+   optional-reading body limit=nil kept=Optional(5)
+   updates: []
+== 2c plain field: environment inside (control)
+   plain-reading body limit=Optional(3) kept=5
+   updates: []
+== 3 enum view
+   enum body count=1
+   updates: [(key: "enum", value: 1)]
+== 4 class fields: strong + weak
+   class body strong.n=1 weak.n=0
+   updates: [(key: "strongClass", value: 1)]
+== 4b class field: unowned
+   unowned body held.n=1
+   updates: [(key: "unownedClass", value: 1)]
+== 5a observing first draw
+   observing body cached=0
+   updates: []
+== 5b after model.value = 7 (body rerun?)
+   observing body cached=7
+   updates: []
+== 5c control first draw
+   control body cached=0
+   updates: []
+== 5d control after model2.value = 7 (expect no body)
+   updates: []
+== 6 metatype fields
+   thin body count=1 pair=38
+   updates: [(key: "thin", value: 1)]
+== 7a enum blank first
+   enum body blank
+   updates: []
+== 7b enum then main
+   enum body count=1
+   updates: [(key: "enum2", value: 1)]

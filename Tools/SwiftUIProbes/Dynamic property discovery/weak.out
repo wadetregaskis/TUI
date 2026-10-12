@@ -1,0 +1,9 @@
+weakBox   =0x149612ba0
+strongBox =0x149611db0
+== strong Optional<Box> field, Optional conforming
+   update() self=0x149611db0
+   strong-optional body n=1
+== weak Box? field, Optional conforming
+   update() self=0x14df04141
+   weak body n=0
+weakBox.n=0 strongBox.n=1

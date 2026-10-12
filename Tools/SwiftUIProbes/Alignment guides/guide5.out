@@ -1,0 +1,10 @@
+== single child .background on a 20-wide base
+.background(alignment: .trailing) C w=6 guide=0 || B.x=0 B.y=0 B.w=20 C.x=20 C.y=0 C.w=6 outer.w=20 outer.h=1
+.background(alignment: .trailing) C w=6 guide=5 || B.x=0 B.y=0 B.w=20 C.x=15 C.y=0 C.w=6 outer.w=20 outer.h=1
+.background(alignment: .trailing) C w=6 guide=-5 || B.x=0 B.y=0 B.w=20 C.x=25 C.y=0 C.w=6 outer.w=20 outer.h=1
+.background(alignment: .leading) C w=6 guide=0 || B.x=0 B.y=0 B.w=20 C.x=0 C.y=0 C.w=6 outer.w=20 outer.h=1
+.background(alignment: .leading) C w=6 guide=5 || B.x=0 B.y=0 B.w=20 C.x=-5 C.y=0 C.w=6 outer.w=20 outer.h=1
+.background(alignment: .leading) C w=6 guide=-5 || B.x=0 B.y=0 B.w=20 C.x=5 C.y=0 C.w=6 outer.w=20 outer.h=1
+== single child .frame(height: 20) vertical
+.frame(height: 20, alignment: .top) C h=6 guide=5 || C.x=0 C.y=-5 C.w=1 outer.w=1 outer.h=20
+.frame(height: 20, alignment: .top) C h=6 guide=-5 || C.x=0 C.y=5 C.w=1 outer.w=1 outer.h=20

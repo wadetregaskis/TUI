@@ -1,0 +1,84 @@
+group-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+tuple-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+anyview-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+section-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+if-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+nested-foreach: count=6 tags=nil,nil,nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10,20x10,20x10
+padded-group-rows: count=4 tags=nil,nil,nil,nil sizes=26x16,26x16,26x16,26x16
+tagged-group-rows: count=4 tags=Optional(10),Optional(10),Optional(11),Optional(11) sizes=20x10,20x10,20x10,20x10
+subviews-of-group-rows: count=4 tags=Optional(0),Optional(0),Optional(1),Optional(1) sizes=20x10,20x10,20x10,20x10
+row-with-spacer: count=4 tags=nil,nil,nil,nil sizes=20x10,8x8,20x10,8x8
+tuple-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+tuple-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+empty-rows: count=0 tags= sizes=
+empty-rows: count=0 tags= sizes=
+row-optional-nil: count=0 tags= sizes=
+row-optional-nil: count=0 tags= sizes=
+group-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+group-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+if-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+if-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+section-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+section-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+nested-foreach: count=6 tags=nil,nil,nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10,20x10,20x10
+nested-foreach: count=6 tags=nil,nil,nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10,20x10,20x10
+padded-group-rows: count=4 tags=nil,nil,nil,nil sizes=26x16,26x16,26x16,26x16
+padded-group-rows: count=4 tags=nil,nil,nil,nil sizes=26x16,26x16,26x16,26x16
+subviews-of-group-rows: count=4 tags=Optional(0),Optional(0),Optional(1),Optional(1) sizes=20x10,20x10,20x10,20x10
+subviews-of-group-rows: count=4 tags=Optional(0),Optional(0),Optional(1),Optional(1) sizes=20x10,20x10,20x10,20x10
+row-with-spacer: count=4 tags=nil,nil,nil,nil sizes=20x10,8x8,20x10,8x8
+row-with-spacer: count=4 tags=nil,nil,nil,nil sizes=20x10,8x8,20x10,8x8
+tagged-group-rows: count=4 tags=Optional(10),Optional(10),Optional(11),Optional(11) sizes=20x10,20x10,20x10,20x10
+tagged-group-rows: count=4 tags=Optional(10),Optional(10),Optional(11),Optional(11) sizes=20x10,20x10,20x10,20x10
+anyview-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+anyview-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+tuple-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+group-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+padded-group-rows: count=4 tags=nil,nil,nil,nil sizes=26x16,26x16,26x16,26x16
+section-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+tagged-group-rows: count=4 tags=Optional(10),Optional(10),Optional(11),Optional(11) sizes=20x10,20x10,20x10,20x10
+nested-foreach: count=6 tags=nil,nil,nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10,20x10,20x10
+if-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+row-with-spacer: count=4 tags=nil,nil,nil,nil sizes=20x10,8x8,20x10,8x8
+subviews-of-group-rows: count=4 tags=Optional(0),Optional(0),Optional(1),Optional(1) sizes=20x10,20x10,20x10,20x10
+anyview-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+== hstack of group rows
+   a0: x0 y0 w20 h10
+   b0: x25 y0 w20 h10
+   a1: x50 y0 w20 h10
+   b1: x75 y0 w20 h10
+== vstack of tuple rows
+   a0: x0 y0 w20 h10
+   b0: x0 y15 w20 h10
+   a1: x0 y30 w20 h10
+   b1: x0 y45 w20 h10
+== hstack of anyview rows
+   a0: x0 y0 w20 h10
+   b0: x25 y0 w20 h10
+   a1: x50 y0 w20 h10
+   b1: x75 y0 w20 h10
+== hstack of row+spacer
+   a0: x0 y0 w20 h10
+   a1: x102 y0 w20 h10
+== lazyvstack in scroll of tuple rows
+   a0: x140 y0 w20 h10
+   b0: x140 y15 w20 h10
+   a1: x140 y30 w20 h10
+   b1: x140 y45 w20 h10
+   a2: x140 y60 w20 h10
+   b2: x140 y75 w20 h10
+== list of tuple rows
+   a0: x16 y17 w20 h10
+   b0: x16 y41 w20 h10
+   a1: x16 y65 w20 h10
+   b1: x16 y89 w20 h10
+== zstack of tuple rows
+   b0: x0 y0 w40 h10
+   b1: x0 y0 w40 h10
+   a1: x5 y0 w30 h10
+   a0: x10 y0 w20 h10
+== grid of tuple rows
+   a0: x0 y0 w20 h10
+   b0: x0 y18 w20 h10
+   a1: x0 y36 w20 h10
+   b1: x0 y54 w20 h10
