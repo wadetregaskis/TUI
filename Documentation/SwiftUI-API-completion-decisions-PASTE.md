@@ -94,8 +94,11 @@ screen did not change. Its footprint peaked at 171.5 MiB from 4.4 MiB
 before, 2.6 times the paste, and was 19.8 MiB once the paste had gone;
 `ps` put its resident size at 340 MiB at the peak and still after, the
 resident size keeping freed storage until the kernel wants it back. The
-paste took about ten seconds to go quiet, as the parser reads 4 KiB a pass
-of the run loop (`Terminal.readChunk`). All measurements, not benchmarks.
+paste took about ten seconds to go quiet (9.8 s). The same 64 MiB written
+the same way to `cat` through a PTY took 6.6 s (PASTE2/probe/pty_writer_speed.py,
+while a test suite ran), so the PTY and the writer set most of that pace,
+and the parser, reading 4 KiB a pass of the run loop (`Terminal.readChunk`),
+at most the rest. All measurements, not benchmarks.
 
 On a 32-bit platform (WebAssembly's) the buffer's growth now stops at
 `Int.max` rather than overflowing, which trapped at about 1.4 GiB, so the
