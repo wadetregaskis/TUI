@@ -122,6 +122,10 @@ extension HelpModifier: Renderable {
                 return true
             case .exited:
                 tooltips.leaving(captured)
+                // Under `.always` the panel IS stored, ranked first for the
+                // pointer (`TooltipState.placementRank`), so its leaving is a
+                // change to report, as the arrival was.
+                if trigger.showsEverything { drawing.changed() }
                 return true
             default:
                 // Claim nothing else, so clicks and the wheel still reach
@@ -150,10 +154,12 @@ extension HelpModifier: Renderable {
         // a wrong answer.
         if trigger.showsEverything {
             // Every panel, unprompted and for as long as the subtree is on screen.
-            // No candidate is consulted: this mode is not "which tooltip is
-            // showing" but "all of them", so there is nothing to resolve and
-            // nothing to wait for.
-            TooltipPopover.attach(text: text, to: &buffer, context: context)
+            // Nothing is resolved and nothing waits: this mode is not "which
+            // tooltip is showing" but "all of them". The slots only RANK the
+            // panel, so the root, which places the set together, gives the
+            // hovered and the focused view's panels the room first.
+            TooltipPopover.attach(
+                text: text, to: &buffer, context: context, peerRank: tooltips.placementRank(of: text))
         } else if let showing = tooltips.resolved(nowNanos: context.environment.frameNowNanos),
             showing.style == .popover, showing.text == text
         {

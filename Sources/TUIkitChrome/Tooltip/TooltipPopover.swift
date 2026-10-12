@@ -38,6 +38,15 @@ import TUIkitStyling
 /// panel wraps to a fixed sensible width and takes the placement the shared rule
 /// gives it. A tooltip in the way is dismissed by moving the pointer, or by the
 /// help key if it was revealed by one.
+///
+/// ## Many panels at once
+///
+/// Under `.tooltips(.always)` every `help(_:)` attaches a panel, and the shared
+/// rule places each as if it were alone, so a `Button`'s covered a `Text`'s.
+/// Those panels carry a ``OverlayLayer/peerPlacement`` and the screen root
+/// places them together (`OverlayLayer.arrangingPeers`): rules 1–3 for each,
+/// plus no panel over another and as little as possible over the other views
+/// with help, in reading order, dropping what does not fit.
 @MainActor
 enum TooltipPopover {
 
@@ -54,17 +63,26 @@ enum TooltipPopover {
     ///   - text: The help text.
     ///   - buffer: The control's own buffer — the anchor.
     ///   - context: The render context, for the palette and the available width.
-    static func attach(text: String, to buffer: inout FrameBuffer, context: RenderContext) {
+    ///   - peerRank: For a panel drawn as one of a set (`.tooltips(.always)`),
+    ///     its ``OverlayLayer/PeerPlacement/rank``: the root then places it
+    ///     among the others rather than where it would go alone. `nil` for the
+    ///     one tooltip a frame shows.
+    static func attach(
+        text: String, to buffer: inout FrameBuffer, context: RenderContext, peerRank: Int? = nil
+    ) {
         let panel = panel(text: text, maxWidth: context.availableWidth, context: context)
         guard !panel.lines.isEmpty else { return }
-        buffer.overlays.append(
-            OverlayLayer(
-                // Directly beneath the control, left-aligned to it — §5's rule 1.
-                // `anchorHeight` is what lets `placed(maxWidth:maxHeight:)` flip
-                // it ABOVE rather than off the bottom of the screen, and the
-                // anchor is the whole control so a flipped panel clears it.
-                offsetX: 0, offsetY: buffer.height, content: panel,
-                level: .popover, anchorHeight: buffer.height))
+        var layer = OverlayLayer(
+            // Directly beneath the control, left-aligned to it — §5's rule 1.
+            // `anchorHeight` is what lets `placed(maxWidth:maxHeight:)` flip
+            // it ABOVE rather than off the bottom of the screen, and the
+            // anchor is the whole control so a flipped panel clears it.
+            offsetX: 0, offsetY: buffer.height, content: panel,
+            level: .popover, anchorHeight: buffer.height)
+        if let peerRank {
+            layer.peerPlacement = OverlayLayer.PeerPlacement(anchorWidth: buffer.width, rank: peerRank)
+        }
+        buffer.overlays.append(layer)
     }
 
     /// The bordered panel: the text wrapped, boxed, and opaque.

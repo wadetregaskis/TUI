@@ -72,8 +72,8 @@ notes `MISC12/notes.md` §3, a headless app over the real run loop):
 
 The lane owed: fix both defects first, with tests that drive the run loop for
 each presentation and trigger; then an app-wide route to every view's help,
-either `.always` panels that avoid one another (placement rules not yet
-designed: [Future options](<../Future options.md#tooltip-placement-rules-4-and-5-and-panels-that-avoid-each-other>))
+either `.always` panels that avoid one another (built 2026-10-12:
+[Tooltips](<../Controls and presentation/Tooltips and help in a terminal.md#many-panels-at-once-built-2026-10-12>) §5)
 or a keyboard "help browse" mode that steps through every view with help, one
 tooltip at a time, whose key is the owner's to choose; and the Example page
 `Tooltips and help in a terminal.md` §8 planned, which was never built. The text below is the

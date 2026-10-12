@@ -49,8 +49,11 @@ extension FrameBuffer {
         // scroll view — a pinned stack that is not scrolled — and the flow
         // already shows it where it belongs (`OverlayLayer.scrollPin`). So
         // is one lifted out of a layer's content below.
-        var queue = result.overlays.filter { $0.scrollPin == nil }
-            .enumerated().map { (order: $0.offset, layer: $0.element) }
+        // Panels drawn as a set (`.tooltips(.always)`) are placed together,
+        // here and in each lifted batch, where every one of them is known.
+        var queue = OverlayLayer.arrangingPeers(
+            result.overlays.filter { $0.scrollPin == nil }, maxWidth: maxWidth, maxHeight: maxHeight
+        ).enumerated().map { (order: $0.offset, layer: $0.element) }
         result.overlays = []
         var nextOrder = queue.count
         var drawsRemaining = 256
@@ -135,7 +138,8 @@ extension FrameBuffer {
             }
             // What this layer's content carried, lifted by the composite: into
             // the queue, not the next pass.
-            for lifted in result.overlays where lifted.scrollPin == nil {
+            let liftedLayers = OverlayLayer.arrangingPeers(result.overlays, maxWidth: maxWidth, maxHeight: maxHeight)
+            for lifted in liftedLayers where lifted.scrollPin == nil {
                 queue.append((order: nextOrder, layer: lifted))
                 nextOrder += 1
             }

@@ -24,21 +24,28 @@ private struct HelpPageApp: App {
     var trigger: TooltipTrigger = .automatic
     var style: TooltipStyle = .statusBar
     var delay: Double = 0.6
+    /// Whether the views sit at the top-left corner rather than in the
+    /// middle of the window, so a status bar growing at the foot moves none
+    /// of them.
+    var topLeading = false
 
     init() {}
 
-    init(trigger: TooltipTrigger, style: TooltipStyle, delay: Double = 0.6) {
+    init(trigger: TooltipTrigger, style: TooltipStyle, delay: Double = 0.6, topLeading: Bool = false) {
         self.trigger = trigger
         self.style = style
         self.delay = delay
+        self.topLeading = topLeading
     }
 
     var body: some Scene {
         WindowGroup {
-            VStack(alignment: .leading, spacing: 0) {
-                Button("button") {}.help("HELP-FOR-BUTTON")
-                Text("plain text").help("HELP-FOR-TEXT")
-                Button("no help") {}
+            Group {
+                if topLeading {
+                    page.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else {
+                    page
+                }
             }
             .tooltips(trigger)
             .tooltipStyle(style)
@@ -46,6 +53,32 @@ private struct HelpPageApp: App {
         }
         // Motion reporting, which a live app turns on for the frame after a
         // view asks; a headless one applies only what the scene says.
+        .mouseSupport(.full)
+    }
+
+    private var page: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button("button") {}.help("HELP-FOR-BUTTON")
+            Text("plain text").help("HELP-FOR-TEXT")
+            Button("no help") {}
+        }
+    }
+}
+
+/// Two `Text`s with help, one above the other at the top-left corner, every
+/// panel shown: on a 22 × 5 screen there is room for one panel of theirs.
+private struct DenseHelpApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("first").help("FIRST-HELP-TEXT")
+                Text("second").help("SECOND-HELP-TEXT")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .tooltips(.always)
+        }
         .mouseSupport(.full)
     }
 }
@@ -142,5 +175,83 @@ struct HelpRunLoopTests {
         #expect(driver.app.send(KeyEvent(key: .tab)))
         driver.step()
         #expect(!driver.shows("HELP-FOR-BUTTON"), "\(style): the help stayed after the focus left")
+    }
+
+    // MARK: - Views that cannot take the focus
+
+    /// The owner's 2026-10-12 ruling: `help(_:)` works on a view that cannot
+    /// take the focus, by hover. It always did (MISC12 §3.2 cases A and B);
+    /// pinned here through the run loop so it stays that way — and it stays
+    /// up for as long as the pointer rests, frame after frame.
+    @Test("Hovering a view that cannot take the focus shows its help", arguments: TooltipStyle.allCases)
+    func hoverOnANonFocusableView(style: TooltipStyle) throws {
+        let driver = Driver(HelpPageApp(trigger: .automatic, style: style, topLeading: true))
+        let text = try #require(driver.position(of: "plain text"))
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: text.x + 1, y: text.y))
+        driver.step()
+        #expect(!driver.shows("HELP-FOR-TEXT"), "\(style): shown before the pointer had rested")
+        driver.run(until: 0.7)
+        #expect(driver.shows("HELP-FOR-TEXT"), "\(style): hover showed nothing")
+        driver.run(until: 1.5)
+        #expect(driver.shows("HELP-FOR-TEXT"), "\(style): the help went while the pointer rested")
+    }
+
+    /// **Known defect, found 2026-10-12 and not fixed here** (decisions
+    /// A-HELP-1). The status bar grows upwards for a tooltip, so the page
+    /// above it is a row or two shorter; a page laid out in the middle of the
+    /// window moves up, the view slides out from under a resting pointer, the
+    /// dispatcher reports it left, and the tooltip goes, the page moves back,
+    /// the pointer is on the view again and the delay restarts. Measured: shown
+    /// for one frame in every 0.6 s. The popover moves nothing and is
+    /// unaffected (the pin above runs both styles). When this starts passing,
+    /// drop `withKnownIssue` and the decisions entry.
+    @Test("A hover tooltip in the status bar stays up over a page laid out in the middle")
+    func hoverOverACentredPage() throws {
+        let driver = Driver(HelpPageApp(trigger: .automatic, style: .statusBar))
+        let text = try #require(driver.position(of: "plain text"))
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: text.x + 1, y: text.y))
+        driver.run(until: 0.7)
+        let shownFrames = (0..<30).reduce(0) { count, _ in
+            driver.step()
+            return count + (driver.shows("HELP-FOR-TEXT") ? 1 : 0)
+        }
+        withKnownIssue("A-HELP-1: the bar's growth moves a centred page out from under the pointer") {
+            #expect(shownFrames == 30, "shown in \(shownFrames) of 30 frames")
+        }
+    }
+
+    /// The app-wide feature, `.tooltips(.always)`, with a focusable and a
+    /// non-focusable view: both panels are readable, and neither covers the
+    /// other view. Measured before the panels were placed as a set (MISC12
+    /// §3.2 case F), the `Button`'s covered the `Text`'s.
+    @Test("Under .always every panel is drawn whole, over neither view", arguments: TooltipStyle.allCases)
+    func alwaysShowsEveryPanel(style: TooltipStyle) {
+        let driver = Driver(HelpPageApp(trigger: .always, style: style))
+        driver.step()
+        #expect(driver.shows("HELP-FOR-BUTTON"), "\(style): \(driver.lines)")
+        #expect(driver.shows("HELP-FOR-TEXT"), "\(style): the Text's panel was covered: \(driver.lines)")
+        #expect(driver.shows("plain text"), "\(style): a panel covers the Text: \(driver.lines)")
+        #expect(driver.shows("button"), "\(style): a panel covers the Button: \(driver.lines)")
+    }
+
+    /// No room for both panels: the first in reading order has its panel and
+    /// the other is left out rather than drawn over it — and pointing at the
+    /// view that lost its panel brings that one back, which is how a reader
+    /// gets at every view's help on a page too dense for all of them.
+    @Test("On a page too dense for every panel, the hovered view's panel is the one drawn")
+    func densePageRanksTheHoveredView() {
+        let driver = HelpDriver(DenseHelpApp(), width: 22, height: 5)
+        driver.step()
+        #expect(driver.shows("FIRST-HELP-TEXT"), "the first in reading order is drawn: \(driver.lines)")
+        #expect(!driver.shows("SECOND-HELP-TEXT"), "and the second is left out: \(driver.lines)")
+        // The second `Text` is on the second row, under the first's panel.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: 2, y: 1))
+        driver.step()
+        #expect(driver.shows("SECOND-HELP-TEXT"), "the hovered view's panel is drawn: \(driver.lines)")
+        #expect(!driver.shows("FIRST-HELP-TEXT"), "in place of the other: \(driver.lines)")
+        // And the pointer leaving gives the room back to reading order.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: 20, y: 4))
+        driver.step()
+        #expect(driver.shows("FIRST-HELP-TEXT"), "reading order again after the pointer left: \(driver.lines)")
     }
 }

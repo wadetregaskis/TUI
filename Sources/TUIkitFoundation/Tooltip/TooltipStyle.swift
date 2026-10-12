@@ -67,20 +67,24 @@ public enum TooltipTrigger: Sendable, Equatable, CaseIterable {
     /// Always as popovers, whatever ``EnvironmentValues/tooltipStyle`` says,
     /// because the status bar has one row and this mode has many tooltips.
     ///
-    /// - Important: Panels are placed independently and do **not** avoid one
-    ///   another. On a page with several nearby controls they will overlap. See
-    ///   `Documentation/Controls and presentation/Tooltips and help in a terminal.md` §5 — rules 4 and 5 are unbuilt, and mutual
-    ///   avoidance is a further rule nobody has designed. Reach for this on a
-    ///   sparse page, or one panel at a time.
+    /// Panels are placed together, so none covers another: each beside its own
+    /// view (below, then above, then to a side), covering as little of the
+    /// other views with help as it can, in reading order. On a page too dense
+    /// for all of them, the ones that do not fit are left out rather than
+    /// drawn over the others, and the view under the pointer, then the focused
+    /// one, is placed first, so pointing at a view or focusing it brings its
+    /// panel back. See
+    /// `Documentation/Controls and presentation/Tooltips and help in a terminal.md` §5.
     case always
 }
 
 extension TooltipTrigger {
     /// Whether a focus candidate shows without being asked for by the help key.
     ///
-    /// Not `.always`: that mode does not route through the candidate slots at all
-    /// — every `help(_:)` draws its own panel where it stands — so a focus
-    /// candidate would be a second, redundant presentation of one of them.
+    /// Not `.always`: that mode resolves no candidate — every `help(_:)` draws
+    /// its own panel, and the slots only decide which panels are placed first —
+    /// so a focus candidate would be a second, redundant presentation of one
+    /// of them.
     var revealsOnFocus: Bool { self == .onFocus }
 
     /// Whether every `help(_:)` in the subtree draws its own panel unprompted.

@@ -222,6 +222,18 @@ public struct OverlayLayer: Sendable, Equatable {
     /// it belongs.
     package var scrollPin: ScrollPin?
 
+    /// How this layer is placed among the other panels of its set: `nil` for
+    /// every layer but a tooltip panel under `.tooltips(.always)`.
+    ///
+    /// Such a layer is one of many panels drawn at once, each beside the view
+    /// it describes, and the screen root places the set together
+    /// (`OverlayLayer.arrangingPeers`) instead of each where
+    /// ``placed(maxWidth:maxHeight:)`` would put it alone, which is how a
+    /// `Button`'s panel came to cover a `Text`'s. The view it describes is the
+    /// rectangle at ``offsetX``, ``offsetY`` − ``anchorHeight``,
+    /// ``PeerPlacement/anchorWidth`` wide and ``anchorHeight`` tall.
+    package var peerPlacement: PeerPlacement?
+
     /// Whether this layer is a scroll view's content drawn past the scroll
     /// view's bounds, under `scrollClipDisabled(_:)`.
     ///
@@ -604,6 +616,29 @@ public struct OverlayLayer: Sendable, Equatable {
         copy.offsetX += dx
         copy.offsetY += dy
         return copy
+    }
+}
+
+// MARK: - Peer Placement
+
+extension OverlayLayer {
+    /// What the root needs to place a panel among its peers — see
+    /// ``OverlayLayer/peerPlacement``.
+    package struct PeerPlacement: Sendable, Equatable {
+        /// The width of the view the panel describes, in cells. Its height is
+        /// the layer's ``OverlayLayer/anchorHeight``, which the flip on
+        /// overflow already reads.
+        package var anchorWidth: Int
+
+        /// Which panels are placed first, lowest first; reading order breaks a
+        /// tie. A panel placed earlier is the one that gets the room on a page
+        /// too dense for all of them.
+        package var rank: Int
+
+        package init(anchorWidth: Int, rank: Int) {
+            self.anchorWidth = anchorWidth
+            self.rank = rank
+        }
     }
 }
 

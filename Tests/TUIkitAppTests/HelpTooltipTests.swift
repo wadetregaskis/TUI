@@ -745,9 +745,10 @@ struct TooltipOnFocusTests {
 /// `tooltips(.always)` — the first-launch tour: every `help(_:)` in the subtree
 /// draws its own panel, unprompted, for as long as the subtree is on screen.
 ///
-/// This mode does not go through the candidate slots at all, which is what makes
-/// it two lines rather than a redesign: there is no "which tooltip is showing" to
-/// resolve, so `HelpModifier` simply attaches its own panel.
+/// This mode resolves no candidate: there is no "which tooltip is showing", so
+/// `HelpModifier` simply attaches its own panel, and the screen root places the
+/// set (`TooltipPeerPlacementTests`, and `HelpRunLoopTests` through the run
+/// loop).
 @MainActor
 @Suite("Tooltips shown all at once")
 struct TooltipAlwaysTests {

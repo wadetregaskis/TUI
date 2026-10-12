@@ -19,7 +19,8 @@ placement not under the pointer, and re-wrap to a narrower box before rejecting 
 placement. Both are new constraints on
 `OverlayLayer.placed(maxWidth:maxHeight:)` rather than uses of it, and the design
 itself ranks rule 4 below 1–3; the panel takes the placement the shared rule
-gives it. §7's three open questions are answered by the code: the tooltip row
+gives it. The panels of `.always` avoid one another since 2026-10-12: they
+are placed as a set (§5, "Many panels at once"). §7's three open questions are answered by the code: the tooltip row
 sits ABOVE the shortcut items so both show (Q1), innermost wins by ordinary
 environment cascade (Q2), and `help(_:)` does make a `Text` hit-testable, which
 its own doc comment now says (Q3). Written before building because
@@ -208,6 +209,39 @@ disappears — it is not in the focus ring at all, which is simply not
 registering. It **dismisses on any click**, as the escape hatch for the case
 where it is in the way despite rule 4.
 
+### Many panels at once (built 2026-10-12)
+
+Under `.always` every `help(_:)` draws its panel, and the shared rule placed
+each as if it were alone: measured on 2026-10-12, a `Button`'s panel covered a
+`Text`'s. Those panels are now placed as a set, at the screen root, where all of
+them are known (`OverlayLayer.arrangingPeers`, from `compositingOverlays`; each
+panel carries an `OverlayLayer.peerPlacement` naming the view it describes).
+One at a time, in a fixed order, each takes a place that:
+
+- is beside its view: below or above it sharing a column, or to its right or
+  left sharing a row and no further off than the panel is wide;
+- is on screen, and covers neither its own view (rule 3) nor a panel already
+  placed;
+- of those, covers the fewest cells of the other views with help, then the
+  fewest of the places the panels still to come would take first, then comes
+  first in rules 1–2's order (below, above, right, left, each nearest the spot
+  aligned with the view).
+
+The order is the hovered view's panel, then the focused view's, then the rest
+in **reading order** of their views (top to bottom, left to right), so the
+same page draws the same panels whatever order its views were built in. A
+panel with no such place is **left out**, not drawn over another: two
+half-covered panels read worse than one whole one. Because the hovered and
+focused views go first, pointing at a view (or focusing it) brings back a
+panel that lost its place. The look-ahead (the places later panels want) is
+what keeps every panel in a column of one-row views: without it the first
+panel took the right-hand side of the rows the second needed.
+
+What this still does not do: rules 4 and 5 (a panel arrives at the root drawn,
+and its text does not, so it cannot be re-wrapped there), and a panel inside a
+presentation is placed with the others in that presentation, not with the
+page's beneath it.
+
 ## 6. API
 
 ```swift
@@ -243,10 +277,9 @@ the *candidate* rather than being applied by the run loop, for the reason
 loop has only the root environment to read. Without it the bar would show the
 hovered tooltip as a second, redundant presentation of a panel already on screen.
 
-> **Caveat.** Panels under `.always` are placed independently and do **not** avoid
-> one another — §5's rules 4 and 5 are unbuilt, and mutual avoidance is a further
-> rule nobody has designed. On a page with several nearby controls they overlap.
-> It suits a sparse page, or one subtree at a time.
+Panels under `.always` avoid one another and the views they describe (§5, "Many
+panels at once"). On a page too dense for all of them some are left out; the
+hovered and the focused view's panels are placed first.
 
 ## 7. Open questions for the owner
 

@@ -282,6 +282,20 @@ public final class TooltipState: @unchecked Sendable {
             style: focused.style)
     }
 
+    /// Where the panel for `text` comes in the order the panels of
+    /// ``TooltipTrigger/always`` are placed: 0 for the view under the pointer,
+    /// 1 for the focused one, 2 for the rest, which go in reading order.
+    ///
+    /// The slots are consulted with no delay and no help key: the panel is up
+    /// already, and the rank only decides who keeps it when the page is too
+    /// dense for all of them. Pointing at a view, or focusing it, is then how
+    /// a reader brings back a panel that lost its place.
+    package func placementRank(of text: String) -> Int {
+        if hovered?.text == text { return 0 }
+        if focused?.text == text { return 1 }
+        return 2
+    }
+
     /// The tooltip a frame is drawing.
     package struct Resolved {
         package var text: String

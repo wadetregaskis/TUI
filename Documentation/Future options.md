@@ -247,22 +247,22 @@ target, beside one module-only probe target) showing the floor matters.
 
 ## Features
 
-### Tooltip placement rules 4 and 5, and panels that avoid each other
+### Tooltip placement rules 4 and 5
 
 **What it is.** `Tooltips and help in a terminal.md` §5's popover rules 4 (prefer a placement not
 under the pointer) and 5 (re-wrap to a narrower box before rejecting a
-placement), and a rule, not yet designed, for panels under
-`.tooltips(.always)` to avoid one another.
+placement). The third part this entry used to carry, panels under
+`.tooltips(.always)` that avoid one another, was built on 2026-10-12 (§5, "Many
+panels at once"): they are placed as a set at the screen root, in reading
+order, and one with no room is left out rather than drawn over another.
 
-**Why not now.** Unbuilt since the tooltips shipped (2026-09-09): the panel
-takes the placement the shared overlay rule gives it. Measured on 2026-10-12
-(session notes `MISC12/notes.md` §3.2): under `.always`, a `Button`'s panel
-covers a `Text`'s, so only one is readable.
+**Why not now.** Unbuilt since the tooltips shipped (2026-09-09): a single
+panel takes the placement the shared overlay rule gives it. Rule 5 needs the
+TEXT where the placement is decided, and a panel reaches the screen root
+drawn; rule 4 needs the pointer there.
 
-**What would reopen it.** Anything that shows several panels at once: the
-owner's 2026-10-12 ruling that `help(_:)` must work on views that cannot take
-the focus, by hover and by an app-wide help feature, makes this the next
-placement work if that feature is `.always`.
+**What would reopen it.** A panel seen in the way of the pointer in use, or a
+panel left out under `.always` that a narrower wrap would have kept.
 
 ### Handing the mouse to the terminal (A13.2)
 
