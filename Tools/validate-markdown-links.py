@@ -122,6 +122,15 @@ def slug(heading):
     return kept.replace(' ', '-')
 
 
+def without_emphasis(heading):
+    """The heading with `_emphasis_` markers removed outside code spans: inside one, `_OpacityView` keeps its
+    underscore, as GitHub's slug does."""
+    parts = re.split(r'(`[^`]*`)', heading)
+    return ''.join(part if part.startswith('`') and part.endswith('`') and len(part) > 1
+                   else re.sub(r'(?<!\w)_{1,3}(?=\S)|(?<=\S)_{1,3}(?!\w)', '', part)
+                   for part in parts)
+
+
 def anchors(text):
     """Every anchor a Markdown file offers: its headings' slugs (repeats numbered) and HTML ids."""
     found, seen = set(), {}
@@ -134,7 +143,7 @@ def anchors(text):
             heading = line.strip()
         if heading is None:
             continue
-        base = slug(re.sub(r'(?<!\w)_{1,3}(?=\S)|(?<=\S)_{1,3}(?!\w)', '', heading))
+        base = slug(without_emphasis(heading))
         count = seen.get(base, 0)
         seen[base] = count + 1
         found.add(base if count == 0 else f'{base}-{count}')
@@ -236,11 +245,14 @@ SAMPLES = [
     ('an untracked directory does not', '[w](<Working notes/x.md>)', ['<Working notes/x.md>']),
     ('a reference definition', '[ref]: missing.md\n[ok]: <c d.md>', ['missing.md']),
     ('out of the repository', '[o](../../outside.md)', ['../../outside.md']),
+    ('a leading underscore inside code stays in the slug', '[o](<c d.md#c-1-_opacityview-stays>)', []),
+    ('emphasis underscores outside code go', '[e](<c d.md#emphasised-word>)', []),
 ]
 SAMPLE_FILES = {
     'docs/a.md': '# Title here\n',
     'docs/b.md': '',
-    'docs/c d.md': '# A heading\n## Repeat\n## Repeat\n### B-X1-1. `update()` writes back\n',
+    'docs/c d.md': '# A heading\n## Repeat\n## Repeat\n### B-X1-1. `update()` writes back\n'
+                   '### C-1. `_OpacityView` stays\n## _Emphasised_ word\n',
     'docs/sub/x.md': '',
     'README.md': '',
     'p (x).md': '',
