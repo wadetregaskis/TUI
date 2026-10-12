@@ -98,6 +98,13 @@ internal final class RenderLoop<A: App> {
     /// frame drawn at another size stamps `RenderCache.terminalResizedAtNanos`.
     private var lastFrameSize: (width: Int, height: Int)?
 
+    /// The tooltip text the status bar was sized for this frame, before the
+    /// walk; `nil` when it shows none. What
+    /// ``requestStatusBarTooltipAdoption(nowNanos:scheduler:)`` holds the
+    /// walk's answer against. Not private, for the reason ``terminalColors``
+    /// gives.
+    var statusBarTooltipText: String?
+
     /// What the last render reported, so the run loop can decide whether an
     /// animation tick can be replayed without rendering again.
     private(set) var lastActivity = RenderActivity(
@@ -448,6 +455,11 @@ extension RenderLoop {
         )
 
         endRenderPass()
+        // After `endRenderPass`, which drops a focus tooltip the drawn walk
+        // did not publish again: the bar was sized before the walk, so a
+        // tooltip the walk changed is the next frame's to draw, and this asks
+        // for that frame (`RenderLoop+StatusBar.swift`).
+        requestStatusBarTooltipAdoption(nowNanos: frameNowNanos, scheduler: animationScheduler)
 
         // A frame is on screen. Under tmux that is when the sixteen ANSI slots
         // are asked for — the startup exchange left them out, because tmux holds

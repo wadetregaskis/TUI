@@ -14,7 +14,11 @@ focus candidate at the top of every walk: the bar is sized before the walk
 republishes it, and a frame runs that reset twice. The candidate now lives
 until the end of a frame whose drawn walk did not publish it again, or until
 the focus moves off its control (`TooltipState.beginWalk`, `endFrame`,
-`syncFocus`); `HelpRunLoopTests` drives both through the run loop.
+`syncFocus`); `HelpRunLoopTests` drives both through the run loop. And as
+the bar is sized before the walk, a walk that changes what it shows (a Tab
+under `.onFocus` with no delay, revealed help whose text changes, help the
+focused control drops) asks for the next frame, which draws it
+(`RenderLoop.requestStatusBarTooltipAdoption`; a review found the gap).
 `help(_:)`, `TooltipState`, `TooltipStyle`,
 `TooltipTrigger` (`.never` / `.automatic` / `.onFocus` / `.always`), the three
 subtree modifiers, the `?` help key and **both presentations** are on `main`. What is not built is §5's rules 4 and 5 — prefer a

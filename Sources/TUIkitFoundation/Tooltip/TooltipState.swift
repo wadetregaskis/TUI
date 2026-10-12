@@ -249,8 +249,8 @@ public final class TooltipState: @unchecked Sendable {
     /// focus moved by a key between frames takes its tooltip with it in the
     /// frame that shows the move. Kept until the end of a walk proved it gone,
     /// the candidate of a control the reader had tabbed off would have been
-    /// drawn in the status bar once more, and nothing would have drawn the
-    /// frame that took it out. Not folded into ``beginWalk()``: that marks the
+    /// drawn in the status bar once more, on the frame that shows the focus
+    /// on another control. Not folded into ``beginWalk()``: that marks the
     /// walk, while this is a comparison against something outside this type.
     package func syncFocus(focusID: String?) {
         if let focused, focused.focusID != focusID { self.focused = nil }

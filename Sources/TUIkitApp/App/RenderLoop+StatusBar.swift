@@ -36,8 +36,9 @@ extension RenderLoop {
         // copy's line to stand in for; this frame's line records it afresh.
         let lineShowedItems = statusBar.lineShowsItems
         statusBar.lineShowsItems = false
-        if let showing = tuiContext.tooltipState.resolved(nowNanos: nowNanos), showing.style == .statusBar {
-            statusBar.tooltipLines = TextWrapping.wrap(showing.text, width: width)
+        statusBarTooltipText = statusBarTooltip(nowNanos: nowNanos)
+        if let text = statusBarTooltipText {
+            statusBar.tooltipLines = TextWrapping.wrap(text, width: width)
             return
         }
         // The copy's line yields to a tooltip, which the user asked for, and
@@ -56,5 +57,40 @@ extension RenderLoop {
             return
         }
         statusBar.tooltipLines = []
+    }
+
+    /// Asks for the next frame when the walk changed the tooltip the status
+    /// bar shows: called once the frame is drawn, with the frame's instant.
+    ///
+    /// The bar is sized before the walk, from the candidate the last walk
+    /// left (``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``),
+    /// and the focused control publishes its help during the walk. So a walk
+    /// can leave a different answer from the one the bar was drawn with: the
+    /// focus moved to a control whose help shows at once (`.onFocus` with no
+    /// delay), help the reader revealed changed its text under the focus, or
+    /// the focused control no longer carries help. Nothing else would draw
+    /// the frame that shows it: a held focus may breathe by replaying the
+    /// frame on screen rather than by rendering one, and a candidate due now
+    /// has no deadline to wake for (`TooltipState.pendingDeadlineNanos`).
+    ///
+    /// The next frame, as the window's chrome adopts a change of its rows a
+    /// frame later (`WindowChromeHost.settle`) rather than walking the scene a
+    /// second time. That frame's bar is sized from what this walk left, and
+    /// asks again only if its own walk changes the answer once more — which
+    /// help text that differs on every walk, with nothing else changing,
+    /// would do at the frame-rate cap for as long as it shows in the bar.
+    func requestStatusBarTooltipAdoption(nowNanos: Int64, scheduler: AnimationScheduler?) {
+        guard statusBarTooltip(nowNanos: nowNanos) != statusBarTooltipText else { return }
+        // A wake an instant after this frame: the next frame the cap allows.
+        scheduler?.requestWake("status-bar-tooltip", at: nowNanos &+ 1)
+    }
+
+    /// The text of the tooltip the status bar shows at `nowNanos`, `nil` when
+    /// none shows there.
+    private func statusBarTooltip(nowNanos: Int64) -> String? {
+        guard let showing = tuiContext.tooltipState.resolved(nowNanos: nowNanos),
+            showing.style == .statusBar
+        else { return nil }
+        return showing.text
     }
 }
