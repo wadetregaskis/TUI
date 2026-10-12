@@ -71,6 +71,7 @@ struct MyApp: App {
 
 ### Products and Modules
 
+- <doc:ChoosingProducts>
 - <doc:ModuleIndex>
 
 ### App Structure

@@ -191,7 +191,35 @@ Then add it to your target:
 )
 ```
 
-> **Tip:** `import TUIkit` re-exports all sub-modules. For finer control you can import individual modules: `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, or `TUIkitImage`.
+`import TUIkit` is the whole framework, as `import SwiftUI` is SwiftUI, and the `TUIkit` product is the simplest way to depend on it. Start there.
+
+### Depending on fewer modules
+
+TUIkit is built as separate modules, and each module an app may want on its own is a library product too. An app that lists the products of only the modules it uses compiles and links only those and what they are built on:
+
+```swift
+.executableTarget(
+    name: "YourApp",
+    dependencies: [
+        .product(name: "TUIkitApp", package: "TUIkit"),     // App, WindowGroup, Text, stacks, Button, …
+        .product(name: "TUIkitTables", package: "TUIkit"),  // Table, and List with it
+    ]
+)
+```
+
+```swift
+import TUIkitApp
+import TUIkitTables
+```
+
+Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a hello world is 5,964,832 bytes on `TUIkitApp` against 9,552,376 on `TUIkit` (−37.6%), and compiles 8 of TUIkit's modules where the umbrella compiles 26. Launch time and memory have not been measured.
+
+- **The products decide what is built; the imports only which names you can see.** Depending on `TUIkit` and writing `import TUIkitTables` builds and links everything.
+- **A forgotten product** reads `cannot find 'Table' in scope` or `value of type 'Text' has no member 'tableStyle'`, naming no module. The documentation's *Which Module Provides It* page (built by `Tools/BuildDocs/build-docs.sh`) lists every public name with its module and product.
+- **Mixing is safe**: an app can list `TUIkit` beside module products, or use a library that depends on `TUIkit`, and each module is linked once. But then the app is as large as the `TUIkit` app, so a **library** built on TUIkit should depend on module products (or `TUIkitFoundation`), never on `TUIkit`.
+- **Never build a `.dynamic` library from TUIkit while an app also links a TUIkit product statically**: SwiftPM's own build system gives the app two copies of the shared modules, and Swift Build turns them into dynamic libraries the app must ship, and can fail to link another app in the package.
+
+[Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md) has the product list, what each brings with it, and where the module still shows when you use the umbrella: the debugger's and `String(reflecting:)`'s type names (`TUIkitLists.List<…>`), `NavigationPath`'s saved form, the `TUIkit_TUIkitStrings` resource bundle, and `renderOnce`, which is `TUIkitApp`'s.
 
 ### Shipping a program
 
@@ -205,6 +233,7 @@ TUIkit itself needs no library beside the executable on any macOS it supports. A
 
 `swift build -c release` does not strip the program (measured), and two link flags shrink it further; each of these costs something only you can weigh. The figures are for a stripped hello-world app (`Text("Hello, world")` in a `WindowGroup`), built with Swift 6.4.0 on 2026-10-11; Xcode's Swift 6.2.4 is within a point. The Xcode settings named are untried in Xcode unless marked measured.
 
+- **Depend on fewer modules** ([above](#depending-on-fewer-modules)): −37.6% for the hello world on `TUIkitApp` alone (stripped, with the trait below on); the link flags below apply to it as well. *Cost:* a product per module you use, in your `Package.swift`.
 - **`strip`**: 20.9 MB → 9.7 MB, the symbol tables and the debug map. *Cost:* crash reports and profiles show addresses, so keep the dSYM to symbolicate them. `dsymutil` makes one and must run before `strip`; `swift build -c release` already runs it and leaves `MyApp.dSYM` beside the executable (measured, 6.2.4 and 6.4.0). In Xcode, Strip Linked Product (`STRIP_INSTALLED_PRODUCT`) with `DEBUG_INFORMATION_FORMAT = dwarf-with-dsym`; Xcode applies it only when it installs or archives the product (`DEPLOYMENT_POSTPROCESSING = YES`, per Xcode's build-setting reference), so a plain Release build stays unstripped.
 - **TUIkit's `DeadStripUnusedAPI` trait, on by default**: −14.7% with `swift build -c release`, the TUIkit API the app never calls. It works through the linker's dead stripping, so an Xcode app needs `DEAD_CODE_STRIPPING = YES`, which is not Xcode's default (measured, Xcode 26.3). *Cost:* a statically linked app whose `dlopen`ed plugin calls TUIkit API the app itself never calls: the plugin no longer loads. Such an app turns the trait off with `.package(url: …, from: …, traits: [])`, which turns off every default trait of TUIkit's (today, only this one).
 - **`-Xlinker -no_exported_symbols`**: −3.3%. *Cost:* a plugin linked against the executable (`-bundle_loader`), or a `dlsym` on it, no longer finds its symbols; but `strip` already cuts the executable's exports to one (measured 2026-10-10), so a stripped app loses nothing more. In Xcode, `LD_EXPORT_SYMBOLS = NO`: the setting Swift Build names when it finds the flag in `OTHER_LDFLAGS`, where `-Xlinker` puts it (with `swift build` on 6.4.0 it warns, and applies the flag all the same: measured).
@@ -334,7 +363,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 
 ## Architecture
 
-- **Modular package**: 5 Swift library modules + 1 in-tree C target (see Project Structure below)
+- **Modular package**: 28 Swift library modules, a macro plugin and 1 in-tree C target, offered as 26 library products: the `TUIkit` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIkitAppKit` and `TUIkitMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md); Project Structure below)
 - **No singletons for state**: application state flows through the Environment system
 - **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
 - **Linux compatible**: works on macOS and Linux (XDG paths supported)
@@ -344,6 +373,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 ### Package dependencies
 
 - [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
+- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` macros' compiler plugin, built only for an app that depends on the `TUIkitMacros` product (every client resolves and fetches it)
 - [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUIKIT_BENCHMARKS` flag: `TUIKIT_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
 
 ## Project structure
@@ -461,7 +491,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-The package also vends each lower library as an individual product. `import TUIkit` re-exports `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and `ColorPickerPanel`), `TUIkitColorEditors` (the gradient, tone-curve and channel-curve editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUIkitNumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`), so the umbrella import gives full API access; import the lower modules individually for finer control. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+`import TUIkit` re-exports every module: `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitColorPicker` (`ColorPicker` and `ColorPickerPanel`), `TUIkitColorEditors` (the gradient, tone-curve and channel-curve editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUIkitNumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`). Each of these is also a library product of its own (TUIkitStrings and TUIkitTerminalHost come with `TUIkitFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

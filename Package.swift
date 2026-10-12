@@ -42,7 +42,9 @@ let package = Package(
         // app is safe: each module is linked into it once. What is not: a `.dynamic` library product of the
         // client's own built from TUIkit while an app also links a TUIkit product statically (two copies of
         // the shared modules with SwiftPM's native build system; Swift Build turns them into dynamic
-        // libraries, which the app must then ship, and can fail to link a second app of the package).
+        // libraries, which the app must then ship, and can fail to link a second app of the package). The
+        // user guide is Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md, and the docs' generated
+        // ModuleIndex page lists every public name with its module and product.
         //
         // TUIkitApp: `App`, `Scene`, `WindowGroup` and the Scene modifiers, the run loop and the terminal
         // (POSIX: it has no Windows build), and `renderOnce`. Every app needs it, beside the products of the

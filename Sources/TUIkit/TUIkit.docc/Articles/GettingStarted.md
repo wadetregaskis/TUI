@@ -29,6 +29,9 @@ let package = Package(
 )
 ```
 
+The `TUIkit` product is the whole framework, and `import TUIkit` gives you all of it. An app can instead depend on
+the products of only the modules it uses, and then compiles and links less: see <doc:ChoosingProducts>.
+
 ## Creating Your First App
 
 Adopt the ``App`` protocol and mark it `@main`. Put it in a file called

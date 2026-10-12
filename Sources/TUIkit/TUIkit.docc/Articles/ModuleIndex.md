@@ -5,8 +5,8 @@ Find the module, and the library product, that each public name of TUIkit comes 
 ## Overview
 
 An app that depends on the `TUIkit` product never needs this page: `import TUIkit` is the whole framework. An app or
-a library that depends on per-module products instead gets only the modules of the products it lists, and a name
-from any other module is an error that names no module:
+a library that depends on per-module products instead (<doc:ChoosingProducts>) gets only the modules of the products
+it lists, and a name from any other module is an error that names no module:
 
 ```
 error: cannot find 'Table' in scope
