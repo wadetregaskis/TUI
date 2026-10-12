@@ -29,13 +29,17 @@ nobody else has those files. What a reader needs from an investigation belongs i
 ## Index
 
 Each row names the working-notes folders that hold the investigation's raw material, for whoever has
-them; the summary is what everyone else reads.
+them; the summary is what everyone else reads. `Historical/Investigations/` groups its summaries in
+topic folders (`Binary size/`, `Compile time/`, `Module split/`); a summary that moves there joins its
+topic's folder, or starts one when a second summary shares its topic.
 
 ### Still being decided (this folder)
 
 | summary | decision | working notes |
 |---|---|---|
-| Binary size: [Full LTO, conditional runtime records and the reflection descriptor request](<Binary size/Full LTO, conditional runtime records and the reflection descriptor request.md>) (2026-10-10, 2026-10-11) | deferred; a feature request is drafted for the owner to file | `SIZE3/q/lto`, `CONDREQ` |
+| Binary size: [Full LTO, conditional runtime records and the reflection descriptor request](<Full LTO, conditional runtime records and the reflection descriptor request.md>) (2026-10-10, 2026-10-11) | deferred; a feature request is drafted for the owner to file | `SIZE3/q/lto`, `CONDREQ` |
+| Dynamic properties: [Finding dynamic properties from values or from types](<Finding dynamic properties from values or from types.md>) (2026-10-10 to 2026-10-12) | the hybrid approved, keeping TUIkit's reaches; being built | `DYNP/optional`, `DYNV`, `DYNV2`, `DYNVFIX` |
+| Terminal graphics: [Thin lines between rows with Kitty graphics](<Thin lines between rows with Kitty graphics.md>) (2026-10-08) | feasible on Ghostty and iTerm2; the prototype waits to be scheduled | `KGP` |
 
 ### Decided (`Historical/Investigations/`)
 
@@ -69,3 +73,9 @@ These investigations already have a committed record of their own, so they have 
 | Swift 6.3.3's release error in `Theme.swift` (2026-10-08) | `R63` | the message of commit `fed3b535e`, which holds the two-module reduction and the SIL that shows the lost isolation |
 | Test targets split by area (2026-10-10) | `TT1`, `TT2` | decisions [TT2](<../SwiftUI parity/Decisions/Compile time and binary size/Test targets split by area (TT2).md>), and [Future options](<../Future options.md#the-rest-of-the-test-targets-expect-floor>) |
 | Pay-for-use run-loop services (2026-10-11) | `PAYU` | [Future options](<../Future options.md#pay-for-use-run-loop-services>) (deferred by the owner, 2026-10-12) |
+| Large pastes and over-long input sequences (2026-10-11, 2026-10-12) | `PASTE`, `PASTE2` | decisions [PASTE](<../SwiftUI parity/Decisions/Large pastes and over-long input sequences (PASTE).md>) |
+| Alignment guides outside their view, and the owner's questions on them (2026-10-11, 2026-10-12) | `GUIDE`, `GUIDE2` | decisions [GUIDE](<../SwiftUI parity/Decisions/Alignment guides outside their view (GUIDE).md>) |
+| The owner's 2026-10-12 rulings on the B entries and the O items | `DECB`, `REFO` | the main [decisions document](<../SwiftUI parity/Decisions/SwiftUI API completion decisions.md>) and [Refusals re-examined](<../SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md>) |
+| State keys inside a `DynamicProperty` (2026-10-11) | `SKEY` | decisions [SKEY](<../SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md>) |
+| Deliberate behavioural differences from SwiftUI (2026-10-12) | `DEVS` | [Deliberate deviations from SwiftUI](<../SwiftUI parity/Deliberate deviations from SwiftUI.md>) |
+| The decisions files of the other API-completion lanes | the lane's tag | [Decisions](<../SwiftUI parity/Decisions>), one file per lane |

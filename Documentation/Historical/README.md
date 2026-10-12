@@ -18,6 +18,9 @@ cluttering the live documentation in `Documentation/`.
   point in time is obvious.
 - This is the docs counterpart to `.claude/plans/done/` (completed
   plans).
+- `Investigations/` holds the one-page summaries of investigations
+  whose decision has landed, dated and grouped by topic; they move here
+  from `Documentation/Investigations/`, whose README indexes both.
 - Genuinely **transient** scratch files — working notes, question
   trackers, throwaway TODOs — should not be committed at all. They don't
   belong here either; keep them out of version control.

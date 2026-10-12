@@ -8,7 +8,7 @@
 ## Question
 
 Every app kept all of TUIkit because public symbols and conformance records are dead-strip roots
-([where the bytes go](<../../Historical/Investigations/Binary size/Where the bytes of a TUIkit app go (2026-10-10).md>)).
+([where the bytes go](<../Historical/Investigations/Binary size/Where the bytes of a TUIkit app go (2026-10-10).md>)).
 `-internalize-at-link` removes the first kind of root. Can the second go too, so that an app keeps only the types it
 uses, and is the build mode that does it ready to recommend? (The SIZE3 review's question 9, and the owner's
 follow-up asking for the feature request.)
@@ -70,5 +70,5 @@ It is the app's build that would choose the mode, not TUIkit's, so it could only
 ## What would reopen it
 
 The descriptor fix upstream, then a run-time A/B. Until both exist TUIkit does not recommend the mode; the decision
-is recorded in [Future options](<../../Future options.md#full-lto-with-conditional-runtime-records>). The draft request
+is recorded in [Future options](<../Future options.md#full-lto-with-conditional-runtime-records>). The draft request
 waits for the owner to file it at swiftlang/swift.

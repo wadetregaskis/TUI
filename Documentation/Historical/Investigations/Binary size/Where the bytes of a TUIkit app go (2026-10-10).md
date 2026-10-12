@@ -53,7 +53,7 @@ runtime metadata 5.3%.
   keeps its witness table and its code. Hence Hello keeping `Table`'s renderer. Products cut what is linked;
   internalize cuts the public-symbol roots; the records need full LTO with conditional records, which the compiler
   does not yet make complete (see the open
-  [LTO page](<../../../Investigations/Binary size/Full LTO, conditional runtime records and the reflection descriptor request.md>)).
+  [LTO page](<../../../Investigations/Full LTO, conditional runtime records and the reflection descriptor request.md>)).
 - **Who may set a flag.** A link flag in TUIkit's manifest lands on the developer's whole program, so TUIkit sets
   only compile flags of its own and an unexport list limited to its own modules, each behind a trait
   ([who the flags reach](<Which links TUIkit's flags reach, and the debug map (2026-10-11).md>)).
