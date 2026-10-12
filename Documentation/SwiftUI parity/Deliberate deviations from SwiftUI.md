@@ -364,10 +364,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   probe). With a
   retroactive `extension Optional: DynamicProperty`, SwiftUI binds it and
   keeps its state across a `nil`.
-- **TUIkit:** looks through the optional. The `@State` inside is bound, the
-  `@Environment` resolved, `update()` run and what it changes written back,
-  and the state survives a `nil` gap, as SwiftUI does with the conformance. A
-  `weak` field is not updated, as in SwiftUI.
+- **TUIkit:** looks through the optional: the walk's plan names the field,
+  and each body a `nil` check says whether a property is there (S2). The
+  `@State` inside is bound, the `@Environment` resolved, `update()` run and
+  what it changes written back, and the state survives a `nil` gap, as SwiftUI
+  does with the conformance. A `weak` field is not updated, as in SwiftUI.
 - **Why:** TUIkit does not copy a SwiftUI limitation without a very good
   reason, and this one looks incidental. It lets a property be present
   conditionally without moving it into a child view. The cost is portability
@@ -406,13 +407,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** never binds a property held in an `any DynamicProperty` or
   `Any` field (measured 2026-10-10: `Tools/SwiftUIProbes/Dynamic property discovery/notes.md`,
   cases (vii-a) and (vii-a2)).
-- **TUIkit:** binds it, with its concrete type in its state key: a new type
-  starts at its defaults, and an earlier type that comes back while the view
-  stays finds the state it left.
+- **TUIkit:** binds, resolves and updates it, whatever the field held on the
+  first frame: the walk's plan names the field, and each body reads what it
+  holds (S2). Its concrete type is in its state key: a new type starts at its
+  defaults, and an earlier type that comes back while the view stays finds
+  the state it left.
 - **Why:** a property whose type changes at one view identity keeps the view's
   own state, which no workaround on SwiftUI keeps whole.
-- **Decided:** [B-SKEY-1](<Decisions/State keys inside a DynamicProperty (SKEY).md#b-skey-1-an-existential-propertys-new-type-starts-afresh-and-an-earlier-type-that-comes-back-finds-what-it-left>). **Lane** (it exists while S2's
-  walk does).
+- **Decided:** [B-SKEY-1](SwiftUI-API-completion-decisions-SKEY.md#b-skey-1-an-existential-propertys-new-type-starts-afresh-and-an-earlier-type-that-comes-back-finds-what-it-left). **Owner** (2026-10-12: keep
+  existential fields).
 
 ### S4. A binding to a collection's element outlives the element
 

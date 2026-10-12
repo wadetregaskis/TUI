@@ -16,8 +16,16 @@
 /// state is kept for the place the view is in the tree, and the environment is
 /// the one in force there.
 ///
+/// The framework finds a view's properties from its fields' declared types,
+/// once per view type, as SwiftUI does: a custom `Mirror` changes nothing,
+/// and a field that cannot hold a property is never read. It also finds one
+/// in an optional, an existential (whatever the field held first), a class
+/// property's own fields, and a modifier stored in a field, where SwiftUI
+/// finds none.
+///
 /// Each `@State` is kept for where it is declared in the view, whatever the
-/// view's other fields hold. In an enum, a view that is one or a property
+/// view's other fields hold, and for each place the view is drawn at.
+/// In an enum, a view that is one or a property
 /// that is one, a case that replaces another starts the `@State` it holds at
 /// their defaults, as SwiftUI's does (measured on macOS 15).
 ///

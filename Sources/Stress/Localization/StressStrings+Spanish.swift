@@ -193,7 +193,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "Filas de controles: {0} — {1} filas",
         "stress.scenario.stateful.title": "Filas con estado",
         "stress.scenario.stateful.blurb": "Filas compuestas que contienen cada una property wrappers, redibujadas en cada fotograma, de modo que el body de cada fila se ejecuta.",
-        "stress.scenario.stateful.stresses": "recorridos de propiedades en cada body (Mirror, casts, enlace, resolución del entorno) · reescritura de las DynamicProperty de la app · cachés negativas por tipo",
+        "stress.scenario.stateful.stresses": "recorrido de propiedades en cada body (planes por tipo, enlace, resolución del entorno) · reescritura de las DynamicProperty de la app · campos abiertos comprobados por valor",
         "stress.scenario.stateful.heading": "Filas con estado: {0} — {1} filas",
         "stress.scenario.kitchensink.title": "Todo en uno",
         "stress.scenario.kitchensink.blurb": "Vista dividida: lista grande en la barra lateral + detalle de cuadrícula de paneles densa, juntos.",

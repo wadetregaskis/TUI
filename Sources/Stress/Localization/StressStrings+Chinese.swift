@@ -191,7 +191,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "控件行：{0} — {1} 行",
         "stress.scenario.stateful.title": "有状态的行",
         "stress.scenario.stateful.blurb": "每行各自持有属性包装器的复合行，每帧重绘，因此每一行的 body 都会运行。",
-        "stress.scenario.stateful.stresses": "每次 body 的属性遍历（Mirror、类型转换、绑定、环境解析）· 应用 DynamicProperty 的回写 · 按类型的否定缓存",
+        "stress.scenario.stateful.stresses": "每次 body 的属性遍历（按类型的计划、绑定、环境解析）· 应用 DynamicProperty 的回写 · 按值检查的开放字段",
         "stress.scenario.stateful.heading": "有状态的行：{0} — {1} 行",
         "stress.scenario.kitchensink.title": "大杂烩",
         "stress.scenario.kitchensink.blurb": "分栏视图：大列表侧边栏 + 密集面板网格详情，二者同时。",

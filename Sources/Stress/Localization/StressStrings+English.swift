@@ -204,7 +204,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "Control rows: {0} — {1} rows",
         "stress.scenario.stateful.title": "Stateful Rows",
         "stress.scenario.stateful.blurb": "Composite rows that each hold property wrappers, redrawn every frame, so every row's body runs.",
-        "stress.scenario.stateful.stresses": "per-body property walks (Mirror, casts, binding, environment resolution) · app DynamicProperty write-back · per-type negative caches",
+        "stress.scenario.stateful.stresses": "per-body property walk (per-type plans, binding, environment resolution) · app DynamicProperty write-back · open fields checked by value",
         "stress.scenario.stateful.heading": "Stateful rows: {0} — {1} rows",
         "stress.scenario.kitchensink.title": "Kitchen Sink",
         "stress.scenario.kitchensink.blurb": "Split view: big list sidebar + dense panel-grid detail, together.",

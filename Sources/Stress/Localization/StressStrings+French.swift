@@ -193,7 +193,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "Lignes de contrôles : {0} — {1} lignes",
         "stress.scenario.stateful.title": "Lignes à état",
         "stress.scenario.stateful.blurb": "Lignes composites qui portent chacune des property wrappers, redessinées à chaque image, si bien que le body de chaque ligne s'exécute.",
-        "stress.scenario.stateful.stresses": "parcours des propriétés à chaque body (Mirror, casts, liaison, résolution de l'environnement) · réécriture des DynamicProperty de l'app · caches négatifs par type",
+        "stress.scenario.stateful.stresses": "parcours des propriétés à chaque body (plans par type, liaison, résolution de l'environnement) · réécriture des DynamicProperty de l'app · champs ouverts vérifiés par valeur",
         "stress.scenario.stateful.heading": "Lignes à état : {0} — {1} lignes",
         "stress.scenario.kitchensink.title": "Tout-en-un",
         "stress.scenario.kitchensink.blurb": "Vue divisée : grande liste en barre latérale + détail en grille de panneaux dense, ensemble.",

@@ -193,7 +193,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "Steuerelement-Zeilen: {0} — {1} Zeilen",
         "stress.scenario.stateful.title": "Zeilen mit Zustand",
         "stress.scenario.stateful.blurb": "Zusammengesetzte Zeilen mit je eigenen Property-Wrappern, in jedem Frame neu gezeichnet, sodass der Body jeder Zeile läuft.",
-        "stress.scenario.stateful.stresses": "Property-Durchläufe pro Body (Mirror, Casts, Bindung, Umgebungsauflösung) · Zurückschreiben von App-DynamicProperties · Negativ-Caches pro Typ",
+        "stress.scenario.stateful.stresses": "Property-Durchlauf pro Body (Pläne pro Typ, Bindung, Umgebungsauflösung) · Zurückschreiben von App-DynamicProperties · offene Felder nach Wert geprüft",
         "stress.scenario.stateful.heading": "Zeilen mit Zustand: {0} — {1} Zeilen",
         "stress.scenario.kitchensink.title": "Komplettpaket",
         "stress.scenario.kitchensink.blurb": "Geteilte Ansicht: große Listen-Seitenleiste + dichtes Panel-Raster-Detail, zusammen.",

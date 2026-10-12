@@ -2,11 +2,12 @@
 //  StatefulRows.swift
 //
 //  Composite rows that each hold property wrappers, redrawn every frame, so
-//  every row's body runs and pays the property walks (resolve and bind, each
-//  a `Mirror` walk unless a per-type negative cache skips the type) and, for
-//  an app property, the copy and write-back of `updatedBody`. The variants
-//  differ only in what each row holds, so an A/B of two TUIkit builds on one
-//  variant prices that kind of field (session notes DYNV/notes.md).
+//  every row's body runs and pays the property walk (one lookup of the type's
+//  plan, then, for a type holding a property, a copy of the row and one step
+//  per planned field, `PropertyPlans`) and, for an app property, its
+//  `update()` and write-back. The variants differ only in what each row
+//  holds, so an A/B of two TUIkit builds on one variant prices that kind of
+//  field (session notes DYNV/notes.md).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -42,11 +43,11 @@ enum StatefulRowsScenario {
     @MainActor
     static let variants: [ScenarioVariant] = [
         variant("state-env", "each row holds one @State and one @Environment", .stateAndEnvironment),
-        variant("plain", "each row holds no property wrapper: the negative caches skip it after its first body", .plain),
+        variant("plain", "each row holds no property wrapper: its type is planned as holding nothing", .plain),
         variant("app-property", "each row also holds an app DynamicProperty struct with a @State: copy and write-back per body", .appProperty),
-        variant("optional-property", "each row holds an optional app property, present on even rows: walked every body", .optionalProperty),
-        variant("existential", "each row holds its app property as `any DynamicProperty`", .existential),
-        variant("enum-rows", "each row is an enum view with no property anywhere: walked every body (B-DYNP-2)", .enumRow),
+        variant("optional-property", "each row holds an optional app property, present on even rows: a nil check every body", .optionalProperty),
+        variant("existential", "each row holds its app property as `any DynamicProperty`: its dynamic type read every body", .existential),
+        variant("enum-rows", "each row is an enum view with no property anywhere: its case read every body (B-DYNP-2)", .enumRow),
     ]
 }
 

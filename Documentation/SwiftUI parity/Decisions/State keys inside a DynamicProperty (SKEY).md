@@ -30,9 +30,11 @@ measured on macOS 15 (SwiftUI 6.5.4) with an offscreen `NSHostingView`
   be, and its price.
 - **C-SKEY-n — declined.** With the reason.
 
-There is no A or C entry. Both B entries exist only while TUIkit looks
-through optionals and existentials; if A-DYNP-1 goes the other way, no walk
-reaches either case.
+There is no A or C entry. Both B entries exist because TUIkit looks through
+optionals and existentials, which the owner decided to keep (decisions-DYNP
+A-DYNP-1, 2026-10-12; existential fields, 2026-10-12). Since lane DYNVFIX
+(2026-10-12) the walk plans each type from its declared fields
+(decisions-DYNVFIX), which changes the price of each fuller version below.
 
 ## B. Shipped the safe option
 
@@ -51,11 +53,10 @@ comes back is reset, as SwiftUI resets it.
 
 **The fuller version** would reset on every change of type, as for an enum's
 case, keeping a record of the type as the walk keeps one of an enum's case.
-Its price: `Mirror` opens an existential, so the walk cannot tell an
-existential field from a field of a concrete type by the value it finds.
-Every container in every view holding an app property or a modifier would
-pay a record lookup on every frame, or the walk would read each type's
-declared fields to find its existential ones.
+Its price, now that the walk plans each type and knows its existential fields
+(decisions-DYNVFIX): a record lookup per existential field per body, in a view
+holding one; and the gain above, an earlier type finding its state again, is
+lost.
 
 ### B-SKEY-2. A view's own `@State` keep their declaration-order keys
 
@@ -71,7 +72,7 @@ binds neither (A-DYNP-1), and neither is how `@State` is declared:
 `@State var x: T?` is a `State<T?>`, which never shifts anything.
 
 **The fuller version** would key the view's own properties by field position
-too. The walk already counts positions for the containers, so it would cost
+too. The walk's plan already knows each field's position, so it would cost
 nothing per frame. Its price: every composite view's keys and `@FocusState`
 and `@Namespace` ids would be renumbered, along with every test that reads a
 composite view's state by its index.

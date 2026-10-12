@@ -191,7 +191,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "コントロール行: {0} — {1} 行",
         "stress.scenario.stateful.title": "状態を持つ行",
         "stress.scenario.stateful.blurb": "それぞれがプロパティラッパーを持つ複合行。毎フレーム再描画されるので、すべての行の body が実行されます。",
-        "stress.scenario.stateful.stresses": "body ごとのプロパティ走査（Mirror、キャスト、バインド、環境の解決）· アプリの DynamicProperty の書き戻し · 型ごとのネガティブキャッシュ",
+        "stress.scenario.stateful.stresses": "body ごとのプロパティ走査（型ごとのプラン、バインド、環境の解決）· アプリの DynamicProperty の書き戻し · 値で確かめる開いたフィールド",
         "stress.scenario.stateful.heading": "状態を持つ行: {0} — {1} 行",
         "stress.scenario.kitchensink.title": "全部入り",
         "stress.scenario.kitchensink.blurb": "分割ビュー：大きなリストのサイドバー + 高密度パネルグリッドの詳細を同時に。",

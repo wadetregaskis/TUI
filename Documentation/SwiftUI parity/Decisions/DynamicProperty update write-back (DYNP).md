@@ -17,7 +17,13 @@ that of the main decisions file:*
   be, and its price.
 - **C-DYNP-n — declined.** With the reason.
 
-## A-DYNP-1. A property in an optional field: TUIkit treats it as present, SwiftUI ignores it
+## A-DYNP-1. A property in an optional field: TUIkit treats it as present, SwiftUI ignores it — decided: keep it
+
+*Decided by the owner (2026-10-11 and 2026-10-12): keep it, "at least until we
+find a concrete reason (e.g. correctness issue) not to". Lane DYNVFIX
+(2026-10-12) made the walk plan it by type and check it by value: the plan
+names the optional field, and each body a `nil` check says whether a property
+is there (decisions-DYNVFIX).*
 
 An app's property in an optional field, such as `var p: Shouting? =
 Shouting()`, is handled differently by the two frameworks.
@@ -29,8 +35,8 @@ Shouting()`, is handled differently by the two frameworks.
 - **TUIkit.** It looks through the optional, as its property walks always
   have. The `@State` inside is bound, the `@Environment` inside is resolved,
   and `update()` runs. Since this lane, what `update()` changes is also
-  written back into the optional, and a type is no longer kept as holding
-  nothing because it was first drawn with the optional `nil` (B-DYNP-2).
+  written back into the optional. What a value of the type gets never
+  depends on whether the first value drawn held `nil` (B-DYNP-2).
 - **A `weak` field** is an optional field too, `weak var p: Box?`. Its
   `update()` does not run, as SwiftUI's does not (measured, case 4), nor
   does that of anything it holds. What it holds is bound and resolved while

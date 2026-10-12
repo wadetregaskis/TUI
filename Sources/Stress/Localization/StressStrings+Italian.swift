@@ -193,7 +193,7 @@ extension StressStrings {
         "stress.scenario.controls.heading": "Righe di controlli: {0} — {1} righe",
         "stress.scenario.stateful.title": "Righe con stato",
         "stress.scenario.stateful.blurb": "Righe composite che contengono ciascuna dei property wrapper, ridisegnate a ogni frame, così il body di ogni riga viene eseguito.",
-        "stress.scenario.stateful.stresses": "visite delle proprietà a ogni body (Mirror, cast, binding, risoluzione dell'ambiente) · riscrittura delle DynamicProperty dell'app · cache negative per tipo",
+        "stress.scenario.stateful.stresses": "visita delle proprietà a ogni body (piani per tipo, binding, risoluzione dell'ambiente) · riscrittura delle DynamicProperty dell'app · campi aperti verificati per valore",
         "stress.scenario.stateful.heading": "Righe con stato: {0} — {1} righe",
         "stress.scenario.kitchensink.title": "Tutto in uno",
         "stress.scenario.kitchensink.blurb": "Vista divisa: grande elenco nella barra laterale + dettaglio a griglia di pannelli densa, insieme.",
