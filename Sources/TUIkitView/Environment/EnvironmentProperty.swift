@@ -157,23 +157,39 @@ final class EnvironmentBox {
 /// made in the first place's body reads the first place's environment, as
 /// SwiftUI resolves each place's copy (the `@State` twin of this is DYNV bug
 /// 1; ``State/bindState(at:to:key:)``).
+///
+/// A box resolved for a place that is not drawn in the pass that finds it at
+/// another — a value kept across frames, moved — is unplaced at the pass's
+/// end (``StateStorage/noteDisplacedEnvironment(_:from:)``), so the next body
+/// resolves it where it lies, rather than in a box of its own every body.
 protocol PlaceResolvedEnvironment {
     /// Hands the wrapper at `address`, in the copy of a view drawn at
-    /// `place`, `environment`.
-    static func resolveEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity)
+    /// `place`, `environment`; a box resolved for another place is told to
+    /// `storage`.
+    static func resolveEnvironment(
+        at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
+        storage: StateStorage?)
 }
 
 extension Environment: PlaceResolvedEnvironment {
-    static func resolveEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity) {
+    static func resolveEnvironment(
+        at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
+        storage: StateStorage?
+    ) {
         let wrapper = address.assumingMemoryBound(to: Self.self)
         let box = wrapper.pointee.box
+        // An identity compare: it stops at the first node the two identities
+        // share, so it walks the whole chain only for a kept value's, whose
+        // nodes are another frame's.
         if let resolved = box.place, resolved != place {
             // Resolved for another place in this or an earlier pass: this
-            // place's copy gets a box of its own.
+            // place's copy gets a box of its own, and if that place is not
+            // drawn in this pass, the box is unplaced at its end.
             let own = EnvironmentBox()
             own.environment = environment
             own.place = place
             wrapper.pointee.box = own
+            storage?.noteDisplacedEnvironment(box, from: resolved)
             return
         }
         box.environment = environment

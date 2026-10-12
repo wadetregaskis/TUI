@@ -246,6 +246,10 @@ public final class StateStorage: @unchecked Sendable {
     /// ``AnimationCompletionTracker``.
     public let animationCompletions = AnimationCompletionTracker()
 
+    /// The `@Environment` boxes a view value drawn this pass held resolved
+    /// for another place (``noteDisplacedEnvironment(_:from:)``), by box.
+    private var displacedEnvironments: [ObjectIdentifier: DisplacedEnvironment] = [:]
+
     /// Creates an empty state storage.
     public init() {
         animations.completionTracker = animationCompletions
@@ -304,6 +308,16 @@ extension StateStorage {
         if let walked = objectsWalked[id], walked.object === object { return false }
         objectsWalked[id] = WalkedObject(object: object)
         return true
+    }
+
+    /// Notes that a view value drawn in this pass held `box`, an
+    /// `@Environment`'s, resolved for `place`, another place. If `place` is
+    /// not drawn in this pass, the value was kept and moved: at the pass's
+    /// end the box is unplaced, so the next body resolves it where it lies
+    /// rather than in a box of its own every body (``Environment``'s
+    /// `resolveEnvironment(at:_:place:storage:)`).
+    func noteDisplacedEnvironment(_ box: EnvironmentBox, from place: ViewIdentity) {
+        displacedEnvironments[ObjectIdentifier(box)] = DisplacedEnvironment(box: box, place: place)
     }
 
     /// The record of the case the enum whose properties are keyed at `key`'s
@@ -580,6 +594,13 @@ extension StateStorage {
         for key in staleTrackedKeys {
             trackedValues.removeValue(forKey: key)
         }
+        if !displacedEnvironments.isEmpty {
+            for displaced in displacedEnvironments.values where displaced.box.place == displaced.place
+                && !activeIdentities.contains(displaced.place) && !retained.retains(displaced.place) {
+                displaced.box.place = nil
+            }
+            displacedEnvironments.removeAll(keepingCapacity: true)
+        }
         // Drop branch records for conditionals no longer in the tree, once
         // enough have gathered (`conditionalRecordsAfterSweep`), so the table
         // does not grow without bound. Retained rows keep theirs: if a
@@ -623,6 +644,7 @@ extension StateStorage {
         }
         values.removeAll()
         objectsWalked.removeAll()
+        displacedEnvironments.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()
         activeIdentities.removeAll()
@@ -697,6 +719,13 @@ extension StateBox: DroppableBox {
     func markDropped() {
         wasDropped = true
     }
+}
+
+/// An `@Environment`'s box found resolved for another place
+/// (``StateStorage/noteDisplacedEnvironment(_:from:)``).
+private struct DisplacedEnvironment {
+    let box: EnvironmentBox
+    let place: ViewIdentity
 }
 
 /// An object the property walk has walked in a render pass, held weakly

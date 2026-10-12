@@ -154,12 +154,17 @@ place's state in that place's copy (measured, DYNV `dv.out`, `twice` and
 **Shipped:** `@State` and `@Environment` are bound once; a place whose copy
 holds one bound to another place is given its own, in that copy. Each place
 reads and writes its own state, and a closure made in its body reads its own
-environment. A value drawn at one place pays one pointer compare per wrapper
-per body. A `@State` whose box the storage has dropped — its place pruned,
-the storage reset, its enum case left — is bound afresh, wherever the value
-is next drawn: a value kept across frames reads its place's state again,
-an `indirect` case's included, and is not given a backing of its own on
-every body from then on.
+environment. A value drawn at one place pays, per wrapper per body, a
+pointer compare for a `@State` and an identity compare for an
+`@Environment`, which stops at the first node the two identities share: at
+once for a value its parent's body made, along the whole chain for one kept
+from an earlier frame. A `@State` whose box the storage has dropped — its
+place pruned, the storage reset, its enum case left — is bound afresh,
+wherever the value is next drawn: a value kept across frames reads its
+place's state again, an `indirect` case's included, and is not given a
+backing of its own on every body from then on. An `@Environment` resolved
+for a place that a pass finding the value elsewhere does not draw is
+unplaced at that pass's end, and resolved where it lies from then on.
 
 **Left, the same class:** TUIkit's `@FocusState`, `@Namespace`,
 `@FocusedValue` and `@FocusedBinding` keep a store that every copy shares, and

@@ -251,7 +251,7 @@ struct PropertyWalk {
             bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
         }
         if let placed = leaf.placeEnvironment {
-            placed.resolveEnvironment(at: address, environment, place: identity)
+            placed.resolveEnvironment(at: address, environment, place: identity, storage: storage)
         } else if let resolvable = leaf.environment {
             resolvable.resolveEnvironment(at: address, environment)
         }

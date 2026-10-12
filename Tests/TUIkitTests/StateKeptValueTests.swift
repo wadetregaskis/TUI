@@ -8,7 +8,8 @@
 //  whose box was dropped is bound afresh, so the kept value reads its place's
 //  state again — the new box, at its default, as SwiftUI resets a case it
 //  leaves (session notes SKEY/probe/skey.out, E1) — and allocates no backing
-//  of its own on every body from then on.
+//  of its own on every body from then on. An `@Environment` box resolved for
+//  a place no longer drawn is resolved where it lies again, the same way.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -66,8 +67,54 @@ private indirect enum IndirectScreen: View {
     }
 }
 
+private struct KeptAccent: EnvironmentKey {
+    static let defaultValue = "plain"
+}
+
+extension EnvironmentValues {
+    fileprivate var keptAccent: String {
+        get { self[KeptAccent.self] }
+        set { self[KeptAccent.self] = newValue }
+    }
+}
+
+/// A view reading an `@Environment`, whose value hands out a reader of it
+/// from itself, outside any body.
+private struct KeptReader: View {
+    @Environment(\.keptAccent) private var accent
+
+    /// A reader of this value's environment — the value kept — not of a
+    /// body's copy.
+    var keptRead: () -> String {
+        let accent = _accent
+        return { accent.wrappedValue }
+    }
+
+    var body: some View {
+        Text(verbatim: "accent \(accent)")
+    }
+}
+
+/// `reader` drawn in one place under one accent.
+private struct FirstPlace: View {
+    let reader: KeptReader
+
+    var body: some View {
+        VStack { reader }.environment(\.keptAccent, "red")
+    }
+}
+
+/// `reader` drawn in another place, a different identity, under another.
+private struct SecondPlace: View {
+    let reader: KeptReader
+
+    var body: some View {
+        HStack { reader }.environment(\.keptAccent, "blue")
+    }
+}
+
 @MainActor
-@Suite("@State in a view value kept across frames")
+@Suite("@State and @Environment in a view value kept across frames")
 struct StateKeptValueTests {
 
     /// One frame as the render loop draws it: the pass begun, the view
@@ -113,5 +160,22 @@ struct StateKeptValueTests {
         #expect(frame(kept, context) == "count 0", "its place was pruned: it starts again at its default")
         kept.keptBinding.wrappedValue = 5
         #expect(frame(kept, context) == "count 5")
+    }
+
+    /// A kept value drawn at one place, then moved to another: its box,
+    /// resolved for the first place, went on being found at another place
+    /// every body, and each body's copy was given a box of its own, so the
+    /// kept value's own reader read the first place's environment forever.
+    /// The box is unplaced at the end of the first pass that does not draw
+    /// the first place, and resolved where it lies from then on.
+    @Test("A kept view value moved to another place reads that place's environment once the move has been drawn")
+    func keptValueMovedResolvesInPlace() {
+        let context = makeRenderContext(width: 30, height: 1)
+        let kept = KeptReader()
+        #expect(frame(FirstPlace(reader: kept), context) == "accent red")
+        #expect(kept.keptRead() == "red")
+        #expect(frame(SecondPlace(reader: kept), context) == "accent blue")
+        #expect(frame(SecondPlace(reader: kept), context) == "accent blue")
+        #expect(kept.keptRead() == "blue", "the first place is no longer drawn")
     }
 }
