@@ -5298,6 +5298,28 @@ Not measured per terminal — this follows xterm's `ctlseqs` definition rather
 than an observation, and no terminal surveyed here was seen to send 8–11 during
 the probes (no five-button mouse was attached).
 
+## Wheel reports per notch — a host's choice, not normalised
+
+Terminals send different numbers of wheel reports for one notch of a mouse
+wheel, because most of them pass on the operating system's accelerated scroll
+delta. A third-party measurement on one Mac (OpenAI Codex's tui2
+`scroll_input_model.md`, logs of 2025-12-19; that machine's scroll settings are
+unknown, and it was **not reproduced here**) counted: iTerm2 1, WezTerm 1,
+Apple Terminal 3, kitty 3, Alacritty 3, Ghostty 9, Warp 9. TUIkit scrolls 3 rows
+per report, so one notch moves 3 to 27 rows depending on the host.
+
+**Decided 2026-10-12 (the owner): TUIkit does not normalise it.** "Each
+terminal client's scroll speed is a choice they make, and by extension their
+users' choice for using that client." Merging the reports that arrive in one
+read into one step was considered and declined.
+
+No terminal sends a scroll delta, a phase or a velocity (session notes
+`SCROLLX/notes.md`, 2026-10-12, from each host's source): SwiftUI's
+`ScrollPhaseChangeContext.velocity` is therefore (0, 0) at the start and end of
+scrolling (B27). Mode 1016 (SGR-Pixels) reports pixel positions, not scroll
+amounts, and shares one setting with 1006 (the last mode set wins); see
+[Future options](<../Future options.md#sgr-pixels-mouse-reports-mode-1016>).
+
 ## Focus reporting (mode 1004)
 
 **Status: tmux 3.7c MEASURED; every native host UNMEASURED.**

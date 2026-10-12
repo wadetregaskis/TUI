@@ -296,3 +296,25 @@ keyboard selection.
 
 **What would reopen it.** A port whose users select across a wrapped `Text`
 beside other content, where the screen selection picks up the neighbours.
+
+## Input
+
+### SGR-Pixels mouse reports (mode 1016)
+
+**What it is.** xterm's mode 1016 reports the pointer in pixels instead of
+cells. iTerm2, Ghostty, kitty, foot and WezTerm implement it (session notes
+`SCROLLX/notes.md`, 2026-10-12, from each terminal's source).
+
+**Why not now.** It carries no scroll amount, phase or velocity, so it does not
+help B27, and no TUIkit feature needs sub-cell positions today. Its hazards:
+1006 and 1016 are one setting, the last one set wins, and TUIkit re-sends
+`?1006h` on every tracking-mode change, which would silently drop a 1016
+session back to cells; teardown would need `?1016l`; and iTerm2 reports 1016
+positions in points but its 2048 sizes in device pixels (2x apart on Retina),
+so the cell size must come from `OSC 1337 ReportCellSize` there.
+
+**What would reopen it.** A feature that needs sub-cell pointer positions
+(pixel-precise drags over images, a canvas), or an upstream pointer-events
+protocol with scroll deltas: kitty's maintainer called one "the proper
+solution" on 2026-07-21 (kitty #10273), "someday".
+
