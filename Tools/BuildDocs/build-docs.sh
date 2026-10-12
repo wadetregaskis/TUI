@@ -223,12 +223,11 @@ if [ ${#MISSING[@]} -gt 0 ]; then
     echo "error: no page for ${MISSING[*]} — the modules did not get unified" >&2
     exit 1
 fi
-# And the module index is the generated one, not the template's note.
-INDEX_PAGE="$ARCHIVE/data/documentation/tuikit/moduleindex.json"
-if [ ! -e "$INDEX_PAGE" ] || ! grep -q 'TUIkitTables' "$INDEX_PAGE"; then
-    echo "error: the module index page is missing or was not generated ($INDEX_PAGE)" >&2
-    exit 1
-fi
+# And the module index is the generated one, not the template's note: its
+# summary line, and a table with as many rows as that line counts. A module's
+# name is no evidence, since the template's prose names modules too.
+python3 Tools/BuildDocs/which_module.py \
+    --verify-rendered "$ARCHIVE/data/documentation/tuikit/moduleindex.json"
 
 # The other regression guard: DocC said nothing. Counted per SOURCE LINE, not per
 # warning, because one bad link in a `View` extension is reported once per

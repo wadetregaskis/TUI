@@ -156,6 +156,88 @@ class WhichModuleTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             which_module.render("# Title\n\nNo heading.\n", self.rows)
 
+    def test_the_summary_line_is_what_the_rendered_check_reads_back(self):
+        match = which_module.SUMMARY_PATTERN.search(which_module.render(TEMPLATE, self.rows))
+        self.assertIsNotNone(match)
+        self.assertEqual(int(match.group(1).replace(",", "")), len(self.rows))
+
+
+# DocC's render JSON, in the shape `docc convert` writes for an article (checked with Xcode 26.3's docc): a paragraph's
+# inline content, and a table whose first row is its header and each of whose cells is a list of blocks.
+def text(value):
+    return {"type": "text", "text": value}
+
+
+def code(value):
+    return {"type": "codeVoice", "code": value}
+
+
+def paragraph(*inlines):
+    return {"type": "paragraph", "inlineContent": list(inlines)}
+
+
+def table(rows):
+    return {
+        "type": "table",
+        "header": "row",
+        "rows": [[[paragraph(code(cell) if index and not column else text(cell))] for column, cell in enumerate(row)]
+                 for index, row in enumerate(rows)],
+    }
+
+
+def page(*blocks):
+    return {"kind": "article", "primaryContentSections": [{"kind": "content", "content": list(blocks)}]}
+
+
+ROWS = [["List", "Structure", "KitLists", "KitLists"], ["Table", "Structure", "KitTables", "KitTables"]]
+
+
+class RenderedIndexTests(unittest.TestCase):
+    def test_the_templates_note_is_not_taken_for_the_index(self):
+        # The template names modules in its prose, as the real one does ("`TUIkitTables` gives you `List` too"), so
+        # the page that a build which skipped the generator renders holds a module's name all the same.
+        template_page = page(
+            paragraph(text("Look the name up below. "), code("TUIkitTables"), text(" gives you "), code("List"),
+                      text(" too.")),
+            paragraph(text("This copy of the page has no index.")),
+        )
+        self.assertIn("TUIkitTables", json.dumps(template_page))
+        self.assertIn("no generated summary line", which_module.rendered_index_problem(template_page))
+
+    def test_the_generated_index_passes(self):
+        summary = which_module.SUMMARY.format(names=len(ROWS), modules=2)
+        self.assertIsNone(which_module.rendered_index_problem(
+            page(paragraph(text(summary)), table([which_module.COLUMNS] + ROWS))))
+
+    def test_a_table_short_of_its_summary_line_fails(self):
+        summary = which_module.SUMMARY.format(names=1_234, modules=2)
+        rendered = page(paragraph(text(summary)), table([which_module.COLUMNS] + ROWS))
+        problem = which_module.rendered_index_problem(rendered)
+        self.assertEqual(problem, "its table has 2 rows where its summary line counts 1,234")
+
+    def test_a_summary_line_without_the_table_fails(self):
+        summary = which_module.SUMMARY.format(names=len(ROWS), modules=2)
+        problem = which_module.rendered_index_problem(page(paragraph(text(summary)), table([["A", "B"]] + ROWS)))
+        self.assertIn("no table headed Name, Kind, Module, Product", problem)
+
+    def test_the_catalogs_template_has_neither_the_summary_line_nor_the_table(self):
+        template = pathlib.Path(__file__).resolve().parents[2] / "Sources/TUIkit/TUIkit.docc/Articles/ModuleIndex.md"
+        content = template.read_text()
+        self.assertIsNone(which_module.SUMMARY_PATTERN.search(content))
+        self.assertNotIn("| " + " | ".join(which_module.COLUMNS) + " |", content)
+
+    def test_verify_rendered_sets_the_exit_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            good = pathlib.Path(directory) / "good.json"
+            good.write_text(json.dumps(page(
+                paragraph(text(which_module.SUMMARY.format(names=len(ROWS), modules=2))),
+                table([which_module.COLUMNS] + ROWS))))
+            bad = pathlib.Path(directory) / "bad.json"
+            bad.write_text(json.dumps(page(paragraph(code("TUIkitTables")))))
+            self.assertEqual(which_module.main(["--verify-rendered", str(good)]), 0)
+            self.assertEqual(which_module.main(["--verify-rendered", str(bad)]), 1)
+            self.assertEqual(which_module.main(["--verify-rendered", str(pathlib.Path(directory) / "none.json")]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -140,8 +140,11 @@ project's parallel lanes would then conflict on. The catalog's own
 `## The index` heading and replaces the rest, which there tells a reader of an
 ungenerated copy (the Swift Package Index's, which documents each module as an
 archive of its own) where to look instead. The script checks that the built
-page is the generated one. `test_which_module.py` tests the generator on
-hand-written graphs (`python3 -m unittest discover -s Tools/BuildDocs`).
+page is the generated one (`which_module.py --verify-rendered`: the page's
+summary line, and a table with as many rows as that line counts; the
+template's prose names modules too, so a module's name proves nothing).
+`test_which_module.py` tests the generator on hand-written graphs, and the check
+on hand-written render JSON (`python3 -m unittest discover -s Tools/BuildDocs`).
 
 ## The regression guard
 

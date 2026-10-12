@@ -32,9 +32,15 @@ TUIkitTerminalHost is TUIkitFoundation, the module that re-exports them.
 
 Usage:
     which_module.py SYMBOL_GRAPH_DIR --describe DESCRIBE_JSON --template ARTICLE [--output FILE]
+    which_module.py --verify-rendered PAGE_JSON
 
 TEMPLATE is the catalog's own ModuleIndex.md. Everything up to and including its `## The index` heading is kept;
 what follows it there (a note for a reader of an ungenerated copy) is replaced by the table.
+
+--verify-rendered checks that DocC's render JSON of the page (`data/documentation/tuikit/moduleindex.json` in the
+archive) is the generated index, not the template: that it holds the generated summary line, and a table under the
+index's header with as many rows as that line counts. build-docs.sh runs it after converting. The template names
+modules too (`TUIkitTables` gives you `List` too), so a search of the page for a module's name cannot tell them apart.
 
 Python 3 standard library only.
 """
@@ -42,10 +48,20 @@ Python 3 standard library only.
 import argparse
 import json
 import pathlib
+import re
 import sys
+from typing import Optional
 
 HEADING = "## The index"
 UMBRELLA = "TUIkit"
+COLUMNS = ["Name", "Kind", "Module", "Product"]
+# The line above the table, which only a generated page has; --verify-rendered reads the count back from it.
+SUMMARY = (
+    "{names:,} names from {modules} modules, generated from the symbol graphs of the build these pages were made from."
+)
+SUMMARY_PATTERN = re.compile(
+    r"([\d,]+) names from (\d+) modules, generated from the symbol graphs of the build these pages were made from\."
+)
 
 
 def products_by_module(describe: dict) -> dict[str, str]:
@@ -141,24 +157,88 @@ def render(template: str, rows: list[tuple[str, str, str, str]]) -> str:
     modules = sorted({row[2] for row in rows})
     lines = [
         head,
-        f"{len(rows):,} names from {len(modules)} modules, generated from the symbol graphs of the build these pages "
-        "were made from.",
+        SUMMARY.format(names=len(rows), modules=len(modules)),
         "",
-        "| Name | Kind | Module | Product |",
-        "|---|---|---|---|",
+        "| " + " | ".join(COLUMNS) + " |",
+        "|" + "---|" * len(COLUMNS),
     ]
     for name, kind, module, product in rows:
         lines.append(f"| {cell(name)} | {kind} | {module} | {product} |")
     return "\n".join(lines) + "\n"
 
 
+def plain_text(node) -> str:
+    """The text of a piece of DocC render JSON: its inline content's text and code, run together."""
+    if isinstance(node, list):
+        return "".join(plain_text(item) for item in node)
+    if not isinstance(node, dict):
+        return ""
+    if node.get("type") == "text":
+        return node.get("text", "")
+    if node.get("type") == "codeVoice":
+        return node.get("code", "")
+    return plain_text(node.get("inlineContent", []))
+
+
+def rendered_index_problem(page: dict) -> Optional[str]:
+    """Why DocC's render JSON of the ModuleIndex page is not the generated index, or None when it is."""
+    paragraphs: list[str] = []
+    tables: list[dict] = []
+
+    def walk(node):
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+        elif isinstance(node, dict):
+            if node.get("type") == "paragraph":
+                paragraphs.append(plain_text(node))
+            elif node.get("type") == "table":
+                tables.append(node)
+                return
+            for value in node.values():
+                walk(value)
+
+    walk(page)
+    summary = next((match for text in paragraphs if (match := SUMMARY_PATTERN.search(text))), None)
+    if summary is None:
+        return "it has no generated summary line (\"N names from M modules, generated from the symbol graphs …\")"
+    index = next(
+        (table for table in tables if table.get("rows") and [plain_text(c) for c in table["rows"][0]] == COLUMNS),
+        None,
+    )
+    if index is None:
+        return "it has no table headed " + ", ".join(COLUMNS)
+    expected = int(summary.group(1).replace(",", ""))
+    found = len(index["rows"]) - 1
+    if found != expected or found == 0:
+        return f"its table has {found:,} rows where its summary line counts {expected:,}"
+    return None
+
+
+def verify_rendered(path: pathlib.Path) -> int:
+    if not path.exists():
+        print(f"error: the module index page is missing ({path})", file=sys.stderr)
+        return 1
+    problem = rendered_index_problem(json.loads(path.read_text()))
+    if problem:
+        print(f"error: the module index page was not generated ({path}): {problem}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("graphs", type=pathlib.Path, help="the directory dump-symbol-graph wrote")
-    parser.add_argument("--describe", type=pathlib.Path, required=True, help="`swift package describe --type json`")
-    parser.add_argument("--template", type=pathlib.Path, required=True, help="the catalog's ModuleIndex.md")
+    parser.add_argument("graphs", type=pathlib.Path, nargs="?", help="the directory dump-symbol-graph wrote")
+    parser.add_argument("--describe", type=pathlib.Path, help="`swift package describe --type json`")
+    parser.add_argument("--template", type=pathlib.Path, help="the catalog's ModuleIndex.md")
     parser.add_argument("--output", type=pathlib.Path, help="where to write the article (default: stdout)")
+    parser.add_argument("--verify-rendered", type=pathlib.Path, metavar="PAGE_JSON",
+                        help="check that DocC's render JSON of the page is the generated index, and exit")
     args = parser.parse_args(argv)
+    if args.verify_rendered:
+        return verify_rendered(args.verify_rendered)
+    if not (args.graphs and args.describe and args.template):
+        parser.error("SYMBOL_GRAPH_DIR, --describe and --template are required to generate the index")
 
     products = products_by_module(json.loads(args.describe.read_text()))
     rows = build_index(args.graphs, products)
