@@ -34,7 +34,7 @@ struct StatePropertyWrapperTests {
         let identity = ViewIdentity(path: "Root/State")
 
         var state = State(wrappedValue: "initial")
-        withUnsafeMutablePointer(to: &state) {
+        _ = withUnsafeMutablePointer(to: &state) {
             State<String>.bindState(
                 at: UnsafeMutableRawPointer($0), to: storage,
                 key: StateStorage.StateKey(identity: identity, propertyIndex: 0))

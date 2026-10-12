@@ -166,16 +166,19 @@ protocol PlaceResolvedEnvironment {
     /// Hands the wrapper at `address`, in the copy of a view drawn at
     /// `place`, `environment`; a box resolved for another place is told to
     /// `storage`.
+    ///
+    /// - Returns: Whether the wrapper at `address` was changed — given a box
+    ///   of its own — rather than its shared box resolved.
     static func resolveEnvironment(
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
-        storage: StateStorage?)
+        storage: StateStorage?) -> Bool
 }
 
 extension Environment: PlaceResolvedEnvironment {
     static func resolveEnvironment(
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
         storage: StateStorage?
-    ) {
+    ) -> Bool {
         let wrapper = address.assumingMemoryBound(to: Self.self)
         let box = wrapper.pointee.box
         // An identity compare: it stops at the first node the two identities
@@ -190,10 +193,11 @@ extension Environment: PlaceResolvedEnvironment {
             own.place = place
             wrapper.pointee.box = own
             storage?.noteDisplacedEnvironment(box, from: resolved)
-            return
+            return true
         }
         box.environment = environment
         box.place = place
+        return false
     }
 }
 

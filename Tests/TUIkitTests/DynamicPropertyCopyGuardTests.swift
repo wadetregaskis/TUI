@@ -66,6 +66,35 @@ private struct IndirectView: View {
     }
 }
 
+/// A property holding only a `@State`, too big for an existential's inline
+/// buffer: nothing in it is updated.
+private struct BigStamp: DynamicProperty {
+    @State var seen = 0
+    var padding: (Int, Int, Int) = (0, 0, 0)
+}
+
+/// A class property holding a boxed existential.
+private final class StampBag: DynamicProperty {
+    var p: any DynamicProperty = BigStamp()
+}
+
+/// Holds the bag `weak`: nothing in it is updated, its `@State` is bound.
+private struct WeakBagView: View {
+    weak var bag: StampBag?
+
+    var body: some View {
+        Text(verbatim: "seen \((bag?.p as? BigStamp)?.seen ?? -1)")
+    }
+}
+
+/// The address of the box the bag's existential's value lies in: the
+/// field's first word, read where the field lies — a copy of the
+/// existential, as an argument, can be given a box of its own.
+@MainActor
+private func boxAddress(_ bag: StampBag) -> UInt {
+    withUnsafeMutablePointer(to: &bag.p) { UnsafeRawPointer($0).load(as: UInt.self) }
+}
+
 @MainActor
 @Suite("DynamicProperty write-back into shared boxes")
 struct DynamicPropertyCopyGuardTests {
@@ -114,5 +143,22 @@ struct DynamicPropertyCopyGuardTests {
         #expect(lines(view, context: context) == first, "each frame starts from the value given")
         #expect(view.p.updates == 0)
         #expect(copy.p.updates == 0)
+    }
+
+    /// What an existential holds was walked on a copy cast out of it and
+    /// assigned back after every walk, so a value too big for its buffer
+    /// was put in a new box every body, even where the walk changed nothing:
+    /// a `@State` already bound, in an object held `weak` (whose contents are
+    /// bound and never updated). It is assigned back only if the walk
+    /// changed the copy.
+    @Test("An existential the walk changes nothing in keeps the box its value lies in")
+    func unchangedExistentialKeepsItsBox() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let bag = StampBag()
+        #expect(lines(WeakBagView(bag: bag), context: context) == ["seen 0"])
+        let box = boxAddress(bag)
+        #expect(lines(WeakBagView(bag: bag), context: context) == ["seen 0"])
+        #expect(boxAddress(bag) == box)
+        withExtendedLifetime(bag) {}
     }
 }

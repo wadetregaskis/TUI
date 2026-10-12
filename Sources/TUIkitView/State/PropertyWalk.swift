@@ -150,6 +150,12 @@ struct PropertyWalk {
     /// can be reached, while it walks it, by anything holding the object.
     var objectDepth = 0
 
+    /// How many times the walk has changed a value where it lies — given a
+    /// `@State` a backing, or an `@Environment` a box, of its own, or run an
+    /// app property's `update()` in place — so a copy it walked is assigned
+    /// back only when it differs.
+    private var changes = 0
+
     init(identity: ViewIdentity, storage: StateStorage?, environment: EnvironmentValues, isMeasuring: Bool) {
         self.identity = identity
         self.storage = storage
@@ -264,10 +270,10 @@ struct PropertyWalk {
                 // Binding finds the box under `key` or creates it, and the
                 // count of what is stored grows only when it creates one.
                 let stored = storage.count
-                state.bindState(at: address, to: storage, key: key)
+                if state.bindState(at: address, to: storage, key: key) { changes += 1 }
                 if storage.count != stored { created.append(key) }
-            } else {
-                state.bindState(at: address, to: storage, key: key)
+            } else if state.bindState(at: address, to: storage, key: key) {
+                changes += 1
             }
         }
         if let bound = leaf.identity {
@@ -275,19 +281,22 @@ struct PropertyWalk {
             bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
         }
         if let placed = leaf.placeEnvironment {
-            placed.resolveEnvironment(at: address, environment, place: identity, storage: storage)
+            if placed.resolveEnvironment(at: address, environment, place: identity, storage: storage) {
+                changes += 1
+            }
         } else if let resolvable = leaf.environment {
             resolvable.resolveEnvironment(at: address, environment)
         }
     }
 
     /// An app property's own `update()`, after what it holds has been walked.
-    private func runUpdate(
+    private mutating func runUpdate(
         _ updater: (any DynamicProperty.Type)?, at address: UnsafeMutableRawPointer, updates: UpdateMode
     ) {
         guard let updater else { return }
         guard updates == .inPlace else { return }
         updater.updateInPlace(at: address)
+        changes += 1
     }
 
     // MARK: Existentials
@@ -338,11 +347,14 @@ struct PropertyWalk {
         scope: UInt64, isOwn: Bool, updates: UpdateMode
     ) {
         guard var copy = field.pointee as? Value else { return }
+        let changesBefore = changes
         applyTyped(slot, at: &copy, position: position, scope: scope, isOwn: isOwn, updates: updates)
-        // Assigned back even where nothing is updated: binding a `@State`, or
-        // resolving an `@Environment`, at a second place gives the copy a
-        // backing or box of its own, which must reach the field.
-        guard let updated = copy as? Existential else { return }
+        // Assigned back only if the walk changed the copy: an `update()` run
+        // in it, or a `@State` or `@Environment` at a second place given a
+        // backing or box of its own, which must reach the field. Nothing
+        // else: making the existential anew allocates a box for a value too
+        // big for its buffer.
+        guard changes != changesBefore, let updated = copy as? Existential else { return }
         field.pointee = updated
     }
 

@@ -628,7 +628,12 @@ protocol StateBindable {
     /// Binds the property at `address`, a value of this type, to the storage
     /// `storage` keeps under `key`, created with the property's default if
     /// there is none.
-    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey)
+    ///
+    /// - Returns: Whether the property at `address` was changed — given a
+    ///   backing of its own — rather than its shared backing bound.
+    static func bindState(
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey
+    ) -> Bool
 }
 
 extension State: StateBindable {
@@ -638,20 +643,23 @@ extension State: StateBindable {
     /// been dropped; if it is bound to another box still kept, the value is
     /// being drawn at a second place, and this copy is given a backing of its
     /// own, so the two places never share their state.
-    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) {
+    static func bindState(
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey
+    ) -> Bool {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
         let box = storage.storage(for: key, default: backing.defaultValue)
-        if backing.box === box { return }
+        if backing.box === box { return false }
         // Rebound where its box is gone, not given a backing in this copy:
         // the copy may be one the runtime made (an `indirect` case's
         // payload), which `body` never reads, and a value kept across frames
         // would otherwise allocate a backing on every body from then on.
         guard backing.isBound, !backing.box.wasDropped else {
             backing.bind(to: box)
-            return
+            return false
         }
         state.pointee.backing = StateBacking(defaultValue: backing.defaultValue, boundTo: box)
+        return true
     }
 }
 
