@@ -506,7 +506,7 @@ struct DynamicPropertyTests {
                 await MainActor.run {
                     let log = UpdateLog()
                     var view = MetatypeFieldsView(log: log)
-                    updateDynamicProperties(of: &view)
+                    prepareForBody(&view, identity: ViewIdentity(path: "Root/Metatypes"), storage: StateStorage())
                     #expect(log.updates == 1, "the app property beside the metatypes was updated")
                 }
             }
@@ -514,13 +514,11 @@ struct DynamicPropertyTests {
     #endif
 
     /// The review of the write-back: TUIkit's own `@GestureState` holds a
-    /// `@State` the walk binds, but its `update()` does nothing, so a view
-    /// holding it is not copied and listed on every body to run it.
+    /// `@State` the walk binds, but its `update()` does nothing, so the walk
+    /// plans none for it.
     @Test("TUIkit's own @GestureState does not make its view run the app-property update")
     func gestureStateIsNotAnAppProperty() {
-        let holdsAppProperty = bindStateProperties(
-            of: GestureStateView(), identity: ViewIdentity(path: "Root/GestureState"), storage: StateStorage())
-        #expect(!holdsAppProperty)
+        #expect(PropertyPlans.appPropertyType(GestureState<Int>.self) == nil)
         let context = makeRenderContext(width: 20, height: 1)
         #expect(line(GestureStateView(), context: context) == "idle")
     }
@@ -573,14 +571,14 @@ struct DynamicPropertyTests {
                 == "teal")
     }
 
-    /// What keeps the caches worth having: a `ModifiedContent` whose modifier
-    /// holds no optional property, enum or class is still kept per type, so it
-    /// is not walked on every frame.
-    @Test("A modifier with nothing that varies by value leaves its ModifiedContent cacheable")
-    func plainModifierStaysCacheable() {
-        #expect(!NestedProperties.walkDependsOnValue(ModifiedContent<Text, AccentTag>.self))
-        #expect(!NestedProperties.walkDependsOnValue(ModifiedContent<Text, EmptyModifier>.self))
-        #expect(NestedProperties.walkDependsOnValue(ModifiedContent<Text, OptionalAccentTag>.self))
+    /// What keeps the walk cheap: a `ModifiedContent` whose modifier holds no
+    /// property is planned as holding nothing, so its body is evaluated with
+    /// no walk and no copy; one whose modifier holds one is walked.
+    @Test("A modifier holding no property leaves its ModifiedContent with nothing to walk")
+    func plainModifierHasNothingToWalk() {
+        #expect(propertyPlan(for: ModifiedContent<Text, EmptyModifier>.self) == nil)
+        #expect(propertyPlan(for: ModifiedContent<Text, AccentTag>.self) != nil)
+        #expect(propertyPlan(for: ModifiedContent<Text, OptionalAccentTag>.self) != nil)
     }
 
     /// The second review of the write-back: a field is loaded only if its
@@ -623,18 +621,13 @@ struct DynamicPropertyTests {
     }
 
     /// The second review of the write-back: it passes over a property held
-    /// `weak`, and what that holds, so the binding walk must not count one,
-    /// or a view holding only such properties is copied and its fields
-    /// listed on every body for nothing.
-    @Test("A view whose app properties are all held weak is not one the write-back visits")
-    func weakOnlyIsNotVisited() {
+    /// `weak`, and what that holds, as SwiftUI updates neither.
+    @Test("A view whose app properties are all held weak has none of them updated")
+    func weakOnlyIsNotUpdated() {
         let object = UpdatingObject()
         let holding = HoldingObject(inner: Updating(log: UpdateLog()))
         withExtendedLifetime((object, holding)) {
             let view = OnlyWeakView(weakly: object, holding: holding)
-            let holdsAppProperty = bindStateProperties(
-                of: view, identity: ViewIdentity(path: "Root/OnlyWeak"), storage: StateStorage())
-            #expect(!holdsAppProperty)
             let context = makeRenderContext(width: 20, height: 1)
             #expect(line(view, context: context) == "0 0", "neither is updated, as before")
         }

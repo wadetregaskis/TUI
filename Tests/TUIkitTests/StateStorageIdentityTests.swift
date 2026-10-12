@@ -37,19 +37,19 @@ struct StateStorageIdentityTests {
 
         // Bind a freshly-constructed view's @State to its render identity, then
         // mutate through it (writing to the persistent storage box).
-        let first = OneStateView()
-        bindStateProperties(of: first, identity: identity, storage: storage)
+        var first = OneStateView()
+        prepareForBody(&first, identity: identity, storage: storage)
         first.value = 99
 
         // A reconstructed view bound at the SAME identity sees the persisted value
         // — even though its own default is 42.
-        let second = OneStateView()
-        bindStateProperties(of: second, identity: identity, storage: storage)
+        var second = OneStateView()
+        prepareForBody(&second, identity: identity, storage: storage)
         #expect(second.value == 99)
 
         // A different identity is independent (gets its own default).
-        let other = OneStateView()
-        bindStateProperties(of: other, identity: ViewIdentity(path: "OtherView"), storage: storage)
+        var other = OneStateView()
+        prepareForBody(&other, identity: ViewIdentity(path: "OtherView"), storage: storage)
         #expect(other.value == 42)
     }
 
@@ -66,14 +66,14 @@ struct StateStorageIdentityTests {
         let storage = testStorage()
         let identity = ViewIdentity(path: "MultiStateView")
 
-        let first = TwoStateView()
-        bindStateProperties(of: first, identity: identity, storage: storage)
+        var first = TwoStateView()
+        prepareForBody(&first, identity: identity, storage: storage)
         first.number = 20
         first.text = "world"
 
         // Reconstruct + rebind at the same identity: each @State keeps its own slot.
-        let second = TwoStateView()
-        bindStateProperties(of: second, identity: identity, storage: storage)
+        var second = TwoStateView()
+        prepareForBody(&second, identity: identity, storage: storage)
         #expect(second.number == 20)
         #expect(second.text == "world")
     }

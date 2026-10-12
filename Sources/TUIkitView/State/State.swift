@@ -282,21 +282,20 @@ public protocol RenderInvalidationSink: AnyObject, Sendable {
 ///
 /// `@State` no longer self-hydrates here: it binds to its view's *own* render
 /// identity in `renderToBuffer` / `measureChild` (see
-/// `bindStateProperties(of:identity:storage:)`), not by construction order in
+/// `prepareProperties(of:plan:identity:storage:environment:)`), not by construction order in
 /// an enclosing scope.
 public enum StateRegistration {
     /// The environment of the `body` currently being evaluated, or `nil`
     /// outside one.
     ///
     /// This is a **fallback**, not the mechanism. `@Environment` resolves
-    /// primarily from a per-view reference box that
-    /// `resolveEnvironmentProperties(of:in:)` fills immediately before `body` —
+    /// primarily from a per-view reference box that the property walk
+    /// (`PropertyWalk`) fills immediately before `body` —
     /// the equivalent of SwiftUI updating a `DynamicProperty` before its view's
     /// body runs, and what makes an `@Environment` read work inside a captured
     /// closure. This value covers only the paths that publish an environment
-    /// without running that resolution: the measure pass
-    /// (`measureCompositeBody`), `App.body` (an `App` is not a `View`, so
-    /// nothing populates its boxes), and `@FocusState` reaching for a
+    /// without running that resolution — `App.body`'s, where a read the walk
+    /// cannot reach looks here — and `@FocusState` reaching for a
     /// `FocusManager` before a `.focused` modifier has wired one.
     ///
     /// It is a `@TaskLocal` rather than a mutable global because the scoping is
@@ -515,8 +514,8 @@ public struct Binding<Value> {
 ///
 /// `@State` binds to persistent storage at **render time, by the view's own
 /// structural identity** — not at construction. When `renderToBuffer` (or
-/// `measureChild`) processes a view, `bindStateProperties(of:identity:storage:)`
-/// walks its `@State` properties (in declaration order) and points each at the
+/// `measureChild`) processes a view, the property walk (`PropertyWalk`)
+/// visits its `@State` properties (in declaration order) and points each at the
 /// `StateStorage` slot keyed by `(this view's identity, property index)`.
 ///
 /// Keying by the view's *own* identity — rather than the scope it was
@@ -530,7 +529,7 @@ public struct Binding<Value> {
 public struct State<Value> {
     /// Reference-typed backing whose `box` can be (re)bound to the persistent
     /// `StateStorage` slot at render time — see ``StateBacking`` and
-    /// ``bindStateProperties(of:identity:storage:)``.
+    /// ``prepareProperties(of:plan:identity:storage:environment:)``.
     private let backing: StateBacking<Value>
 
     /// The current state value.
@@ -576,7 +575,7 @@ public struct State<Value> {
 // MARK: - State backing
 
 /// Reference-typed backing for ``State`` so the storage box can be rebound at
-/// render time through the value-type copy a `Mirror` walk produces.
+/// render time through any copy of the `State` value.
 final class StateBacking<Value> {
     let defaultValue: Value
     var box: StateBox<Value>
@@ -619,7 +618,7 @@ extension State: StateBindable {
 /// nested inside an app's `DynamicProperty`, a modifier or an enum's case,
 /// from where it lies there (`NestedScope`). Public so a type in a module
 /// layered above `TUIkitView` can participate in the same
-/// `bindStateProperties(of:identity:storage:)` walk that binds `@State`.
+/// property walk (`PropertyWalk`) that binds `@State`.
 public protocol RenderIdentityBindable {
     /// Binds this property to a stable id derived from its view's render
     /// `path` and declaration `propertyIndex`. For a property nested inside
@@ -627,94 +626,4 @@ public protocol RenderIdentityBindable {
     /// where in the view that is, and `propertyIndex` is the property's
     /// position there.
     func bindRenderIdentity(path: String, propertyIndex: Int)
-}
-
-/// Binds every `@State` (and ``RenderIdentityBindable``, e.g. `@FocusState`)
-/// property of `view` to storage/ids keyed by the view's own render `identity`
-/// + declaration order — or, for one nested inside another property, where it
-/// is declared there (``NestedScope``). Mirrors ``resolveEnvironmentProperties``.
-///
-/// `view` is not constrained to `View`: the render loop binds an `App`'s
-/// `@State` with it too, at the root identity, before evaluating `App.body`.
-///
-/// - Returns: Whether `view` holds an app's ``DynamicProperty`` — anywhere
-///   the walk descends — whose `update()` must run before `body`: the caller
-///   then evaluates it with ``updatedBody(of:)``.
-@MainActor
-@discardableResult
-package func bindStateProperties<V>(of view: V, identity: ViewIdentity, storage: StateStorage) -> Bool {
-    let typeID = ObjectIdentifier(V.self)
-    if StateBindingCache.typesWithoutState.contains(typeID) { return false }
-    var index = 0
-    var hasContainers = false
-    var hasAppProperties = false
-    bindStateProperties(
-        nestedIn: view, identity: identity, storage: storage, index: &index,
-        hasContainers: &hasContainers, hasAppProperties: &hasAppProperties)
-    // A type holding an app's `DynamicProperty` is never skipped, even with
-    // nothing in it to bind: its `update()` has to run before every body. Nor
-    // is one whose next value may hold what this one did not (a `nil`
-    // optional of a property, an enum's case with no payload).
-    if index == 0 && !hasContainers && !NestedProperties.walkDependsOnValue(V.self) {
-        StateBindingCache.typesWithoutState.insert(typeID)
-    }
-    return hasAppProperties
-}
-
-/// The view's own level of ``bindStateProperties(of:identity:storage:)``: its
-/// own `@State` and `@FocusState` keyed by declaration order, and what it
-/// holds inside any property that has properties of its own to bind — an
-/// app's ``DynamicProperty``, or a ``ViewModifier`` stored in a
-/// ``ModifiedContent``, either of which may declare `@State` as a view does —
-/// handed to a ``NestedPropertyWalk``, which notes whether it met an app
-/// property, whose ``DynamicProperty/update()`` the caller runs
-/// (``updateDynamicProperties(of:)``).
-///
-/// A nested property is keyed by where it is declared (``NestedScope``), not
-/// by the next index of the view's own counter: what an optional, an
-/// existential or an enum case before it holds then moves no key. A view
-/// that is an enum holds only what its case does, keyed that way too. A
-/// stored VIEW is not descended into: it binds its state at its own identity
-/// when it renders.
-@MainActor
-private func bindStateProperties(
-    nestedIn value: Any, identity: ViewIdentity, storage: StateStorage, index: inout Int,
-    hasContainers: inout Bool, hasAppProperties: inout Bool
-) {
-    let mirror = Mirror(reflecting: value)
-    if NestedProperties.isEnum(value) {
-        hasContainers = true
-        var walk = NestedPropertyWalk(identity: identity, storage: storage)
-        walk.bindCase(of: mirror, scope: NestedScope.view)
-        if walk.hasAppProperties { hasAppProperties = true }
-        return
-    }
-    // Every stored value's position, counted for a container's scope; the
-    // view's own properties keep the counter that counts only them.
-    var position = 0
-    for child in mirror.children {
-        if let bindable = child.value as? StateBindable {
-            bindable.bindState(to: storage, key: StateStorage.StateKey(identity: identity, propertyIndex: index))
-            index += 1
-        } else if let idBindable = child.value as? RenderIdentityBindable {
-            // Shares the same declaration-order counter as @State so mixing
-            // @State and @FocusState in one view keeps stable, non-colliding
-            // keys regardless of their relative order.
-            idBindable.bindRenderIdentity(path: identity.path, propertyIndex: index)
-            index += 1
-        } else if let container = NestedProperties.container(child.value) {
-            hasContainers = true
-            var walk = NestedPropertyWalk(identity: identity, storage: storage)
-            walk.bindContents(
-                ofContainer: container, label: child.label, in: value, position: position,
-                scope: NestedScope.view)
-            if walk.hasAppProperties { hasAppProperties = true }
-        }
-        position += 1
-    }
-}
-
-@MainActor
-private enum StateBindingCache {
-    static var typesWithoutState: Set<ObjectIdentifier> = []
 }

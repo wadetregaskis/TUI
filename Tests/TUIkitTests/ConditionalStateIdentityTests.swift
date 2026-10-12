@@ -6,7 +6,7 @@
 //
 //  Two views swapped by a conditional (if-else / switch) must not share @State.
 //  @State binds to the *view's own render identity* (in renderToBuffer /
-//  measureChild, via `bindStateProperties`), and a conditional branch carries a
+//  measureChild, via the property walk), and a conditional branch carries a
 //  distinct identity (`#true` / `#false`) — so each branch's @State lives in its
 //  own slot. This holds whether the branches are constructed directly in the
 //  body or deferred through a wrapper; both are guarded below.

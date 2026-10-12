@@ -25,7 +25,7 @@ import TUIkit
 ///
 /// **Why it works (and the mechanism this guards):** `@State` binds to its
 /// persistent `StateBox` at render time, keyed by the view's own structural
-/// identity (`bindStateProperties(of:identity:storage:)`). A lifecycle closure
+/// identity (the property walk, `PropertyWalk`). A lifecycle closure
 /// captures the view value, whose `StateBacking` (a reference type) points at
 /// that same box; the box outlives view reconstruction in `StateStorage`. An
 /// in-place `append` is a get-modify-writeback through `State.wrappedValue`'s

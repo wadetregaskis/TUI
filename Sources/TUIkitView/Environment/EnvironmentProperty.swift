@@ -52,8 +52,8 @@ import TUIkitCore
 ///
 /// The rendering pipeline resolves each view's environment *at render time*
 /// (after any `.environment()` modifiers applied by parents) and stores it in a
-/// reference box held by this wrapper — see `resolveEnvironmentProperties(of:in:)`,
-/// which the renderer calls before evaluating a view's `body`. Because the box
+/// reference box held by this wrapper — see the property walk (`PropertyWalk`),
+/// which the renderer runs before evaluating a view's `body`. Because the box
 /// is a reference shared with any closure that captures the view (a `Button`
 /// action, an `.onKeyEvent` handler, a `Binding`'s `set:`), `@Environment`
 /// resolves correctly **inside those closures too** — not only during `body` —
@@ -72,10 +72,9 @@ public struct Environment<Value> {
     // Each is one pointer wide, deliberately. The observable lookup used to be a
     // `(EnvironmentValues) -> Value?` closure, which is two words and took the
     // whole wrapper to 32 bytes — past the 24-byte inline buffer of an
-    // existential. `resolveEnvironmentProperties` reaches every `@Environment`
-    // property through `Mirror`, whose children hand each one back as `Any`,
-    // so an over-large wrapper meant a heap allocation per property per view
-    // per `body`. Two optionals and the box are 24 bytes.
+    // existential, which every view holding one paid a heap allocation for
+    // when the property walk reflected it. Two optionals and the box are 24
+    // bytes.
     //
     // Two optionals rather than an enum of the two, which is what this was:
     // the enum is generic (it is `Value`'s), so the per-pass memos' value hash
@@ -93,7 +92,7 @@ public struct Environment<Value> {
 
     /// Reference box holding the environment captured at the owning view's
     /// render. Shared with closures that capture the view, so they see the same
-    /// resolved environment. Populated by ``resolveEnvironmentProperties(of:in:)``.
+    /// resolved environment. Populated by the property walk (`PropertyWalk`).
     private let box = EnvironmentBox()
 
     /// Creates an environment property wrapper for the given key path.
@@ -172,62 +171,20 @@ extension Environment: EnvironmentResolvable {
     }
 }
 
-/// Populates every `@Environment` property of `view` with `environment`, so the
-/// view (and any closure that captures it) resolves them against the environment
-/// active at *this* view's render.
-///
-/// Mirrors SwiftUI's `DynamicProperty` update step. The renderer calls this once
-/// per view, just before evaluating its `body`. To keep that cheap it caches,
-/// per view *type*, whether the type has any `@Environment` properties at all —
-/// types that have none (the overwhelming majority of leaf/layout views) skip
-/// reflection entirely after the first sighting. A type that has some is
-/// reflected on every render.
-///
-/// Why not cache the properties' key paths instead, so a type that has them
-/// skips `Mirror` too? That was tried, and measured -11.6% on a menu frame whose
-/// rows each had three `@Environment` properties. It needs the standard
-/// library's `_forEachFieldWithKeyPath`, and that is `@_spi(Reflection)`: Apple's
-/// SDKs build `Swift` from its public interface, which has no SPI in it, so
-/// Xcode's own toolchain does not see the function at all and TUIkit stopped
-/// building there. Only swift.org toolchains, which ship the private interface,
-/// compiled it. There is no public API that yields a stored property's key path,
-/// so reflection per render is the price of building with Xcode.
-@MainActor
-public func resolveEnvironmentProperties<V>(of view: V, in environment: EnvironmentValues) {
-    let typeID = ObjectIdentifier(V.self)
-    if EnvironmentResolutionCache.typesWithoutEnvironment.contains(typeID) { return }
-
-    // A framework view that names its own properties skips the reflection.
-    if let named = view as? any ResolvesOwnEnvironment {
-        named.resolveOwnEnvironment(environment)
-        #if DEBUG
-            EnvironmentResolutionCache.verifyOwnResolution(of: view, typeID: typeID)
-        #endif
-        return
-    }
-
-    // Not kept where the next value may hold what this one did not: a `nil`
-    // optional of a property, an enum's case with no payload — here or in a
-    // property or modifier the walk descends into, at any depth.
-    if !resolveEnvironmentProperties(nestedIn: view, in: environment),
-        !NestedProperties.walkDependsOnValue(V.self) {
-        EnvironmentResolutionCache.typesWithoutEnvironment.insert(typeID)
-    }
-}
-
 /// A framework view that hands its own `@Environment` properties their
-/// environment, so the renderer need not reflect over it to find them.
+/// environment, which the property walk then leaves to it.
 ///
-/// ``resolveEnvironmentProperties(of:in:)`` otherwise walks the view with
-/// `Mirror` on every `body` — boxing each stored property into `Any`, a copy
-/// of the content a style host wraps among them — and casts each one. A style
-/// host around a common control (a `ProgressView`'s, a `Label`'s) paid that on
-/// every measure and render: on a dashboard of progress bars, measured cold,
-/// the walk was 12% of the frame. Listing the properties costs nothing.
+/// The walk reflected the view with `Mirror` on every `body` when this was
+/// written — boxing each stored property into `Any`, a copy of the content a
+/// style host wraps among them — and cast each one. A style host around a
+/// common control (a `ProgressView`'s, a `Label`'s) paid that on every
+/// measure and render: on a dashboard of progress bars, measured cold, the
+/// walk was 12% of the frame. The walk now plans each type's fields once
+/// (`PropertyPlans`), so listing them saves little.
 ///
 /// A debug build checks each conforming type the first time it renders: every
-/// `@Environment` the reflection would have found must have been resolved, so
-/// a property added without being listed fails the first test that draws it.
+/// `@Environment` of the view's own must have been resolved, so a property
+/// added without being listed fails the first test that draws it.
 @MainActor
 package protocol ResolvesOwnEnvironment {
     /// Resolves every `@Environment` property of this view against
@@ -241,66 +198,10 @@ extension Environment {
     var isResolved: Bool { box.environment != nil }
 }
 
-/// Reads ``Environment/isResolved`` through an existential, as `Mirror` hands
-/// the wrappers back.
-private protocol ResolutionInspectable {
+/// Reads ``Environment/isResolved`` of the wrapper at an address, for a debug
+/// build's check of a ``ResolvesOwnEnvironment`` view.
+protocol ResolutionInspectable {
     var isResolved: Bool { get }
 }
 
 extension Environment: ResolutionInspectable {}
-
-/// One level of ``resolveEnvironmentProperties(of:in:)``, descending into any
-/// property that holds properties of its own — an app's ``DynamicProperty``, or
-/// a ``ViewModifier`` stored in a ``ModifiedContent``, either of which may read
-/// `@Environment` as a view does — or into an enum's case that holds more
-/// than one value (``NestedProperties/tuplePayload(of:_:)``). A stored
-/// VIEW is not descended into: it resolves its own when it renders.
-///
-/// - Returns: Whether anything was resolved.
-@MainActor
-private func resolveEnvironmentProperties(nestedIn value: Any, in environment: EnvironmentValues) -> Bool {
-    var found = false
-    let mirror = Mirror(reflecting: value)
-    for child in mirror.children {
-        if let resolvable = child.value as? EnvironmentResolvable {
-            resolvable.resolveEnvironment(environment)
-            found = true
-        } else if let container = NestedProperties.container(child.value),
-            resolveEnvironmentProperties(nestedIn: container, in: environment) {
-            found = true
-        }
-    }
-    // An enum's case holding more than one value is one child, a tuple,
-    // which neither branch takes. Asked only where nothing was found: an
-    // enum has one child at most, so a level that resolved something is not
-    // one of these, and pays nothing for the question.
-    if !found, let payload = NestedProperties.tuplePayload(of: value, mirror) {
-        found = resolveEnvironmentProperties(nestedIn: payload, in: environment)
-    }
-    return found
-}
-
-/// Per-type memo of which view types have no `@Environment` properties, so they
-/// can skip reflection on every subsequent render. Render is single-threaded
-/// (`@MainActor`), so a plain `Set` is sufficient.
-@MainActor
-private enum EnvironmentResolutionCache {
-    static var typesWithoutEnvironment: Set<ObjectIdentifier> = []
-
-    #if DEBUG
-        /// The ``ResolvesOwnEnvironment`` types already checked.
-        static var verifiedOwnResolution: Set<ObjectIdentifier> = []
-
-        /// Checks, once per type, that `view`'s own resolution reached every
-        /// `@Environment` property reflection finds on it.
-        static func verifyOwnResolution(of view: Any, typeID: ObjectIdentifier) {
-            guard verifiedOwnResolution.insert(typeID).inserted else { return }
-            for child in Mirror(reflecting: view).children {
-                guard let wrapper = child.value as? ResolutionInspectable else { continue }
-                assert(
-                    wrapper.isResolved,
-                    "\(type(of: view)).resolveOwnEnvironment(_:) does not resolve \(child.label ?? "a property")")
-            }
-        }
-    #endif
-}

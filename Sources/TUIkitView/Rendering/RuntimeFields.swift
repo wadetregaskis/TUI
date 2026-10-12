@@ -228,6 +228,22 @@ package enum RuntimeFields {
         return found
     }
 
+    /// The stored fields `type`, a class, declares itself — not its
+    /// superclasses' — in declaration order, each offset from the start of an
+    /// instance. Empty for anything that is not a class.
+    package static func ownClassFields(of type: Any.Type) -> [Field] {
+        var found: [Field] = []
+        _ = forEachListed(of: type, options: .classType) { _, offset, fieldType, kind, isStrong in
+            found.append(
+                Field(
+                    owner: type, index: found.count, offset: offset, type: fieldType, kind: kind,
+                    isStrong: isStrong))
+            return true
+        }
+        guard let superclass = (type as? AnyClass).flatMap(_getSuperclass) else { return found }
+        return Array(found.dropFirst(runtimeRecursiveFieldCount(superclass)))
+    }
+
     /// The one walk over the runtime's entry points both listings share.
     private static func forEachListed(
         of type: Any.Type, options: Options,

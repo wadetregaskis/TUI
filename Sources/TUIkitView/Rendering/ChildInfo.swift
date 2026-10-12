@@ -799,27 +799,28 @@ private func measureCompositeBody<V: View>(
     _ view: V, proposal: ProposedSize, context: RenderContext
 ) -> ViewSize {
     let childContext = context.withChildIdentity(type: V.Body.self)
-    // Resolve `@Environment` into its boxes exactly as the render path does.
-    // This used to be a `StateRegistration.withHydration` task local instead,
-    // which was both slower and *wrong* here: hydration publishes an environment
-    // for the fallback to find but never fills the boxes, so a measure-time
+    // The properties prepared exactly as the render path prepares them:
+    // `@Environment` resolved into its boxes, `@State` bound. Resolving used
+    // to be a `StateRegistration.withHydration` task local instead, which was
+    // both slower and *wrong* here: hydration publishes an environment for
+    // the fallback to find but never fills the boxes, so a measure-time
     // `@Environment` read that happened to consult its box got the default. A
     // view branching on `\.terminalWidth` would measure the subtree it would
     // have rendered at 80 columns, whatever the terminal actually was.
-    resolveEnvironmentProperties(of: view, in: context.environment)
-    let hasAppProperties = bindStateProperties(
-        of: view, identity: context.identity, storage: context.stateStorage!)
+    let plan = propertyPlan(for: V.self)
     // As the render path evaluates it, `update()` inside the scope where there
     // is one: see `evaluateCompositeBody`.
     guard let cache = context.renderCache, cache.readingTypes.contains(V.self) else {
+        guard let plan else { return measureChild(view.body, proposal: proposal, context: childContext) }
         return measureChild(
-            hasAppProperties ? updatedBody(of: view) : view.body, proposal: proposal, context: childContext)
+            preparedBody(of: view, plan: plan, context: context), proposal: proposal, context: childContext)
     }
     let sentinel = cache.leases.isActive ? cache.leases.sentinel(at: context.identity) : nil
     let body = withObservationTracking(
         {
             sentinel?.touch()
-            return hasAppProperties ? updatedBody(of: view) : view.body
+            guard let plan else { return view.body }
+            return preparedBody(of: view, plan: plan, context: context)
         },
         onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
     return measureChild(body, proposal: proposal, context: childContext)

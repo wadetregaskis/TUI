@@ -87,46 +87,36 @@ value witnesses. Project the payload out
 
 Worth it when an app needs it.
 
-## B-DYNP-2. The per-type "nothing here" caches decide from declared types
+## B-DYNP-2. Each type is planned once from its declared fields; open fields are checked by value
 
-The binding walk and the environment walk each keep, per view type, whether
-the type holds nothing to bind or resolve, so they can skip it on every later
-frame. What a walk finds can depend on the value: a `nil` optional of a
-property holds nothing, a present one does, and an enum view's children are
-its current case's payload.
+*Rewritten by lane DYNVFIX (2026-10-12), which replaced the two `Mirror`
+walks and their per-type "nothing here" caches with one walk planned per
+type (`PropertyPlans`; decisions-DYNVFIX). The caches decided from declared
+types too, but with two holes: an existential field, and a class field whose
+subclass is a property, were not counted, so a type first seen holding
+nothing there was kept as holding nothing for good.*
 
-**Shipped.** A type is kept only if its declared fields say no value of it
-can hold more. That rules out an enum, and a struct with a field that is an
-optional of something a walk acts on: a `@State`, a property bound to its
-view's identity, an `@Environment`, an app's property, or a modifier. The
-same is asked of every property and modifier the walks descend into, at any
-depth, since a walk finds their fields as it finds the view's: a modifier
-holding an optional property makes its `ModifiedContent` count, and so does
-a property or modifier field that is an enum or a class (what a class
-instance holds can change). Such a type is walked on every frame, as a type
-with state already is. Each type is decided once, from the runtime's field
-metadata, so a `ModifiedContent` whose modifier holds none of these is still
-kept.
+**Shipped.** The walk plans each type once, from the runtime's field
+metadata: which fields hold a `@State`, an `@Environment`, an id-bound
+property, or a property or modifier to look inside, and at which offsets.
+A type whose fields can hold none of these is planned as holding nothing,
+and its body costs one lookup and no copy. Where a field's declared type is
+open, the plan names the field and each body the value says what is there:
 
-**Not counted.** An existential field, and a class field whose subclass is
-a property. What either holds is known only from its value, so a type first
-seen holding nothing there is still kept as holding nothing.
+- an optional: a `nil` check;
+- an existential (`any P`, `Any`; not `any View`, a stored view, which binds
+  its own properties when it renders): its dynamic type, read each body, and
+  that type's plan;
+- an enum (a view that is one, or a property or modifier): its current case,
+  each body.
 
-**The fuller version** would count those too. Its price: every view holding
-an `any` field would be walked on every frame, whatever it holds.
+Nothing depends on the first value drawn. A field declared as a plain class
+is not looked into, whatever subclass it holds, as SwiftUI decides it
+(decisions-DYNVFIX B-DYNVFIX-1).
 
-**The cost of counting every enum.** A view that is an enum, and a property
-or modifier that is one, counts whatever its cases hold. That includes one
-with no property anywhere, such as `enum Tab: View { case home, settings }`,
-which until this lane was kept after its first sighting. It is now walked on
-every frame: two `Mirror` walks per `body`, a cast, and four hash lookups.
-That is unmeasured; no A/B scenario has an enum view, and TUIkit's own
-`ConditionalView` is drawn without a `body`, so the walks never see it.
-Narrowing it to the enums whose payloads can hold a property would need each
-case's payload type. The runtime's mirror entry points list no fields for an
-enum type (`swift_reflectionMirror_recursiveCount` answers 0 for one with
-three cases, two with payloads; `Tools/SwiftUIProbes/Dynamic properties/enumfields.swift`), so
-those types would have to be read from the enum's field descriptor and
-resolved from their mangled names: a second runtime layout to depend on,
-beside the field metadata. Worth it if an app's enum views show up in a
-profile.
+**The cost.** An existential field costs a copy of what it holds and a plan
+lookup per body, in every view holding one, whatever it holds: the fuller
+version this entry used to price. An enum costs its case read per body,
+through the runtime's reflection: a copy of the payload and its case's name.
+Neither is measured; the `stateful` Stress scenario's `existential` and
+`enum-rows` variants price them.

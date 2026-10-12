@@ -3,7 +3,7 @@
 //
 //  The SwiftUI-shaped declarative focus API: `@FocusState`, `.focused(_:)`,
 //  `.focused(_:equals:)`, `.defaultFocus(_:_:)`. Driven through the real render
-//  path (bindStateProperties + FocusManager), so the value↔focusID wiring and
+//  path (the property walk + FocusManager), so the value↔focusID wiring and
 //  the default-focus override are exercised end to end.
 //
 //  Created by Wade Tregaskis

@@ -201,7 +201,7 @@ is held in a reference box (`StateBox`), keyed by:
 
 Declaring `@State var count = 0` stores nothing. The `init` only records the default, in a
 box of its own that belongs to no identity. The property is bound when its view renders:
-`bindStateProperties(of:identity:storage:)` walks the view's properties in declaration order
+the property walk, planned once per view type from its fields, visits them in declaration order
 and points each `@State` at the box stored under the view's identity and that index. An
 existing box keeps its value; a missing one is created with the default. The measure pass
 binds the same way, under the same identity, so a view is measured and drawn with the same

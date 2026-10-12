@@ -576,10 +576,10 @@ struct DynamicPropertyStateKeyTests {
     func focusStateAfterOptionalProperty() {
         let storage = StateStorage()
         let identity = ViewIdentity(path: "FocusRoot")
-        let without = OptionalFocusView(p: nil)
-        bindStateProperties(of: without, identity: identity, storage: storage)
-        let with = OptionalFocusView(p: FocusHolder())
-        bindStateProperties(of: with, identity: identity, storage: storage)
+        var without = OptionalFocusView(p: nil)
+        prepareForBody(&without, identity: identity, storage: storage)
+        var with = OptionalFocusView(p: FocusHolder())
+        prepareForBody(&with, identity: identity, storage: storage)
 
         #expect(!without.ownID.isEmpty)
         #expect(with.ownID == without.ownID, "the view's own @FocusState keeps its id")

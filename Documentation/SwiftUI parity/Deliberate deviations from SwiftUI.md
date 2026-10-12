@@ -375,7 +375,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [A-DYNP-1](<Decisions/DynamicProperty update write-back (DYNP).md#a-dynp-1-a-property-in-an-optional-field-tuikit-treats-it-as-present-swiftui-ignores-it>). **Owner** (2026-10-11 and
   2026-10-12: keep unless a concrete correctness reason appears).
 
-### S2. Dynamic properties are found from the view's values, not its declared types
+### S2. Dynamic properties are planned from declared types, and reach further than SwiftUI's
 
 - **SwiftUI:** finds a view type's dynamic properties once, from the declared
   types of its fields, and installs each at its field's offset in every copy
@@ -384,18 +384,19 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   was measured: a field declared as a plain class holding a property subclass
   is never updated, and a dead `unowned` field that is not a property is never
   read).
-- **TUIkit:** before each `body`, walks the view's stored values with `Mirror`
-  ([EnvironmentProperty.swift](../../Sources/TUIkitView/Environment/EnvironmentProperty.swift#L196-L281),
-  [State.swift](../../Sources/TUIkitView/State/State.swift#L645-L716)). So it reaches
-  properties held in optionals (S1), in existentials (S3), inside class
-  instances, and in stored modifiers. Only the write-back of `update()` works
-  from declared types (`RuntimeFields`).
-- **Why:** the walk predates the write-back and needs no knowledge of the
-  runtime's layouts. The optional and existential reach are wanted; the reach
-  into class instances and stored modifiers produces confirmed bugs, and a
-  plan built from declared types is proposed (session notes `DYNV/notes.md`).
-- **Decided:** **Under review** (2026-10-12: the owner asked for an answer per
-  bug, with real-world examples, before approving the change).
+- **TUIkit:** plans each type once from its fields' declared types
+  ([PropertyPlan.swift](../Sources/TUIkitView/State/PropertyPlan.swift)), so
+  a custom `Mirror` changes nothing, a field that cannot hold a property is
+  never read, and a field declared as a plain class is not looked into, as in
+  SwiftUI. It reaches further: into properties held in optionals (S1) and
+  existentials (S3), checked by value each body, into the contents of class
+  properties (held strongly, `unowned` or `weak`), and into modifiers stored
+  in fields.
+- **Why:** the owner's ruling (2026-10-12): keep what TUIkit supports even
+  where SwiftUI does not, and fix the bugs inside each reach rather than
+  dropping it (session notes `DYNV/notes.md`, `DYNV2/notes.md`).
+- **Decided:** [decisions-DYNVFIX](SwiftUI-API-completion-decisions-DYNVFIX.md).
+  **Owner** (2026-10-12).
 
 ### S3. A property in an existential field is bound, per concrete type
 
@@ -1408,4 +1409,4 @@ on. Each waits on the work, or on the ruling, its State names.
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
 | An enum view's `update()` changes are not written back | [B-DYNP-1](<Decisions/DynamicProperty update write-back (DYNP).md#b-dynp-1-what-update-changes-is-written-back-except-in-an-enum-views-payload>) | Known; fuller version priced |
-| Dynamic-property discovery bugs (shared state, custom mirrors, class contents, stored modifiers, dead `unowned` fields) | session notes `DYNV/notes.md` | Owner reviewing (S2) |
+| Dynamic-property discovery bugs left: one value drawn at two places shares its `@State`; a class property's contents shared by two views; a stored modifier updated twice | session notes `DYNV/notes.md`, [decisions-DYNVFIX](SwiftUI-API-completion-decisions-DYNVFIX.md) | Being fixed (S2) |

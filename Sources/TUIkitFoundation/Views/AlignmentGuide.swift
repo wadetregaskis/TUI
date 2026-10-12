@@ -278,14 +278,12 @@ package func explicitGuide<V: View>(
     guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
     // The body as the measure walk evaluates it: `@Environment` resolved and
     // `@State` bound at this view's identity, so it is the body that is drawn.
-    resolveEnvironmentProperties(of: view, in: context.environment)
-    var hasAppProperties = false
-    if let storage = context.stateStorage {
-        hasAppProperties = bindStateProperties(of: view, identity: context.identity, storage: storage)
+    let childContext = context.withChildIdentity(type: V.Body.self)
+    guard let plan = propertyPlan(for: V.self) else {
+        return explicitGuide(of: view.body, query, in: dimensions, context: childContext)
     }
     return explicitGuide(
-        of: hasAppProperties ? updatedBody(of: view) : view.body, query, in: dimensions,
-        context: context.withChildIdentity(type: V.Body.self))
+        of: preparedBody(of: view, plan: plan, context: context), query, in: dimensions, context: childContext)
 }
 
 // MARK: - Reading a Child's Guide

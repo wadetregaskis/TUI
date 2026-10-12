@@ -102,7 +102,7 @@ The context is passed down the view tree. Each view can create a modified copy f
 
 `app.body` is evaluated fresh each frame, producing a ``WindowGroup`` that wraps the root view. The `WindowGroup` implements `SceneRenderable` and bridges from the scene layer to the view layer.
 
-> Note: `app.body` builds new view values on every frame. `@State` values survive because `State.init` only records the default: as each view renders, `bindStateProperties(of:identity:storage:)` binds its `@State` properties to the boxes `StateStorage` keeps under the view's structural identity and each property's declaration index.
+> Note: `app.body` builds new view values on every frame. `@State` values survive because `State.init` only records the default: as each view renders, the property walk binds its `@State` properties to the boxes `StateStorage` keeps under the view's structural identity and each property's declaration index.
 
 ### Step 6: Render the Scene and Its Chrome
 

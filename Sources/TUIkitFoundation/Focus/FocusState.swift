@@ -122,8 +122,7 @@ public final class FocusStateStore<Value: Hashable> {
     weak var focusManager: FocusManager?
 
     /// The manager from the environment this `@FocusState`'s view rendered in,
-    /// filled by `resolveEnvironmentProperties` alongside the `@Environment`
-    /// boxes.
+    /// filled by the property walk alongside the `@Environment` boxes.
     ///
     /// This used to be read live off `StateRegistration.activeEnvironment`,
     /// which meant the render path had to publish a task local around *every*

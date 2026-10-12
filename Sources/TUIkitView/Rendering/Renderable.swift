@@ -303,9 +303,7 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
 @inline(__always)
 @MainActor
 package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) -> V.Body {
-    resolveEnvironmentProperties(of: view, in: context.environment)
-    let hasAppProperties = bindStateProperties(
-        of: view, identity: context.identity, storage: context.stateStorage!)
+    let plan = propertyPlan(for: V.self)
     // Read inside the scope, so the lease the scope is armed under can
     // cancel it: `nil` — nothing extra read, and a scope that reads nothing
     // arms nothing — until the type is known to read and leases are on.
@@ -313,12 +311,13 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
     let body = withObservationTracking(
         {
             sentinel?.touch()
-            // What an app property's `update()` left, written back, for the
-            // view that holds one; any other — nearly all of them — is
-            // evaluated as it is, and pays for no copy (`updatedBody(of:)`).
-            // Inside the scope: what `update()` reads is observed as what
-            // `body` reads is, as SwiftUI observes it.
-            return hasAppProperties ? updatedBody(of: view) : view.body
+            // A view holding a property is evaluated on a copy the property
+            // walk prepared; any other — nearly all of them — as it is, and
+            // pays for no copy (`preparedBody(of:plan:context:)`). Inside the
+            // scope: what an app property's `update()` reads is observed as
+            // what `body` reads is, as SwiftUI observes it.
+            guard let plan else { return view.body }
+            return preparedBody(of: view, plan: plan, context: context)
         },
         onChange: observedChange(
             of: context, kind: context.isMeasuring ? .bodyMeasure : .bodyRender, reader: V.self,
