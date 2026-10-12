@@ -20,8 +20,8 @@ build product is kept here. `Tools/TerminalProbes/` is the same idea for termina
 
 On the development Mac, an Apple-silicon VM running macOS 15.8 (15.8.1 where a note gives the point release;
 SwiftUI 6.5.4), against the macOS 26.2 SDK of Xcode 26.3, between 2026-10-03 and 2026-10-11; where the notes name
-the compiler, it was Xcode's Swift 6.2.4. API that is new in macOS 26 could not be run there, so no probe measures it. Each folder
-below says what its citing documents state about the machine.
+the compiler, it was Xcode's Swift 6.2.4. API that is new in macOS 26 could not be run there, so no probe
+measures it. Each folder below says what its citing documents state about the machine.
 
 ## Building and running one
 
@@ -65,7 +65,7 @@ messages cite that path), and what cites it.
 - **Was:** `DYNP/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/DynamicProperty update write-back (DYNP).md`;
   `Tests/TUIkitTests/DynamicPropertyTests.swift`, `Tests/TUIkitTests/ObservableInvalidationScopeTests.swift`. The
-  other probes here that host a view reuse its harness.
+  probes of the next three folders reuse its harness.
 
 ### Dynamic property discovery
 
@@ -77,8 +77,8 @@ messages cite that path), and what cites it.
   (`weak.out`), `passmod.swift` (`passmod.out`), `notes.md`.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-10.
 - **Was:** `DYNP/optional/`.
-- **Cited by:** `Sources/TUIkitView/State/DynamicProperty.swift`, `Sources/TUIkitView/State/NestedPropertyBinding.swift`;
-  `Tests/TUIkitTests/DynamicPropertyStateKeyTests.swift`;
+- **Cited by:** `Sources/TUIkitView/State/DynamicProperty.swift`,
+  `Sources/TUIkitView/State/NestedPropertyBinding.swift`; `Tests/TUIkitTests/DynamicPropertyStateKeyTests.swift`;
   `Documentation/SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
@@ -125,12 +125,12 @@ messages cite that path), and what cites it.
 ### Sections and subview counting
 
 - **Asks:** how SwiftUI counts the subviews of a `ForEach` row that is a `Group`, a tuple, an `AnyView`, a
-  `Section` or an `if` (`b15.swift`); how a `Section` with a header and a footer lays out in stacks, lazy stacks, a `ZStack` and a `Grid`, and
-  collapsed (`b16.swift`);
-  how `Spacer`s and alignment guides behave when a container proxies its subviews (`b17.swift`); how a tag and a
-  `ForEach` in a body come through `ForEach(subviews:)` and `Group(subviews:)` (`cv.swift`); layout values and guides read by a `Layout` (`lv.swift`);
-  whether `zIndex` survives `ForEach(subviews:)` in a `ZStack`, from the pixels (`z.swift`). All are built with `common.swift`, whose `Counter` layout
-  and `probe(_:)` modifier print what a container saw.
+  `Section` or an `if` (`b15.swift`); how a `Section` with a header and a footer lays out in stacks, lazy stacks,
+  a `ZStack` and a `Grid`, and collapsed (`b16.swift`); how `Spacer`s and alignment guides behave when a container
+  proxies its subviews (`b17.swift`); how a tag and a `ForEach` in a body come through `ForEach(subviews:)` and
+  `Group(subviews:)` (`cv.swift`); layout values and guides read by a `Layout` (`lv.swift`); whether `zIndex`
+  survives `ForEach(subviews:)` in a `ZStack`, from the pixels (`z.swift`). All are built with `common.swift`,
+  whose `Counter` layout and `probe(_:)` modifier print what a container saw.
 - **Ran:** macOS 15.8, 2026-10-04. `cv.swift`, `lv.swift` and `z.swift` kept no output.
 - **Was:** `D1S/probe/`.
 - **Cited by:** `Sources/TUIkitView/Core/AnyViewMembers.swift`; `Tests/TUIkitTests/AnyViewMembersTests.swift`,
