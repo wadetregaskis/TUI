@@ -74,8 +74,7 @@ package protocol FrameworkDynamicProperty: DynamicProperty {}
 /// A dynamic property TUIkit itself provides that holds properties the walks
 /// must reach — `@GestureState` keeps its value in a `@State` — but whose
 /// ``DynamicProperty/update()`` does nothing: descended into as an app's
-/// property is, but not counted as one, so a view holding it is not copied
-/// on every body to run that `update()`.
+/// property is, but not counted as one, so that `update()` is never run.
 package protocol FrameworkPropertyContainer: DynamicProperty {}
 
 extension State: FrameworkDynamicProperty {}

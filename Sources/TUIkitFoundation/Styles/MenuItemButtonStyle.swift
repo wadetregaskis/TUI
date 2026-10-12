@@ -61,13 +61,16 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
     /// on the row. This view is `Renderable`, so it has the render context that
     /// a `ButtonStyle`'s body does not — and the row sits directly inside it
     /// with no modifier between, so the values are the same ones it would have
-    /// resolved for itself. What it saves is the resolution: three
-    /// `EnvironmentBox` allocations, a reflective walk over the row's fields
-    /// that hands each back as `Any`, and three existential casts, per row, on
-    /// every measure and every render.
-    /// On the `menus` stress scenario `resolveEnvironmentProperties`'s inner
-    /// loop was **5.9% of the frame** and `Environment.wrappedValue` another
-    /// **5.0%**, and every reflecting view on that path was this row.
+    /// resolved for itself. What it saves is the resolution, per row, on every
+    /// measure and every render: a copy of the row and three `@Environment`s
+    /// resolved into it (the walk is planned per type, `PropertyPlans`); its
+    /// `palette` field is read where it lies instead, and the row is not
+    /// copied while that holds no property. When the walk still reflected —
+    /// three `EnvironmentBox` allocations, a walk over the row's fields
+    /// handing each back as `Any`, three existential casts — the `menus`
+    /// stress scenario measured its inner loop (`resolveEnvironmentProperties`,
+    /// since replaced) at **5.9% of the frame** and `Environment.wrappedValue`
+    /// at another **5.0%**, and every reflecting view on that path was this row.
     private func row(in context: RenderContext) -> _MenuItemRow {
         _MenuItemRow(
             configuration: configuration,

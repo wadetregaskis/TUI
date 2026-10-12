@@ -37,7 +37,7 @@ private struct WidthBranchingView: View {
 /// answered 80 whatever the terminal was, and a view branching on it measured
 /// the subtree it would have rendered at 80 columns.
 ///
-/// Both walks now run the same `resolveEnvironmentProperties`, which is also
+/// Both walks now run the same property walk (`preparedBody`), which is also
 /// what let the task local come off the two hottest paths in the framework.
 @MainActor
 @Suite("Measure-time environment resolution")
