@@ -47,6 +47,11 @@ them; the summary is what everyone else reads.
 | Binary size: [Whether -deduplicate is safe for TUIkit](<../Historical/Investigations/Binary size/Whether -deduplicate is safe for TUIkit (2026-10-11).md>) | safe today; the app's opt-in; `Tools/DedupCheck` in CI | `SIZE3/fu/dedup`, `SIZE3/fu/dedup-pty`, `SIZE3/q/dedup-check` |
 | Binary size: [Which links TUIkit's flags reach, and the debug map](<../Historical/Investigations/Binary size/Which links TUIkit's flags reach, and the debug map (2026-10-11).md>) | no app-wide flags from the package, except TUIkit's own unexport patterns | `SYMS` |
 | Binary size: [SwiftUI's size beside TUIkit's](<../Historical/Investigations/Binary size/SwiftUI's size beside TUIkit's (2026-10-10).md>) | context only | `SIZE3/q/swiftui` |
+| Compile time: [Type-check time on Swift 6.4, test expectations and exit tests](<../Historical/Investigations/Compile time/Type-check time on Swift 6.4, test expectations and exit tests (2026-10-08).md>) | test rewrites and the test-target split landed; exit tests are the owner's (A-TC1-1) | `TC1`, `TC2`, `EXITTC`, `buildtime/typecheck` |
+| Compile time: [Selective optimisation attributes](<../Historical/Investigations/Compile time/Selective optimisation attributes (2026-10-08).md>) | the hint cache only; no attribute | `OPTN` |
+| Compile time: [Pre-specialisation across module boundaries](<../Historical/Investigations/Compile time/Pre-specialisation across module boundaries (2026-10-08).md>) | adopt none; `@inlinable` stays the remedy | `PRESPEC` |
+| Module split: [The module split's run-time cost, step by step](<../Historical/Investigations/Module split/The module split's run-time cost, step by step (2026-10-10).md>) | recovered; `table-tail` +0.55% left open | `SPB5`, `SPB5b`, `SPB6`, `CTL`, `RES`, `perf/results` |
+| Module split: [What the module split delivered](<../Historical/Investigations/Module split/What the module split delivered, build time, size and tests (2026-10-11).md>) | landed: modules, products, four test targets | `buildtime`, `perf/c9bt`, `TT1`, `TT2` |
 
 ### Recorded elsewhere
 
@@ -59,3 +64,8 @@ These investigations already have a committed record of their own, so they have 
 | The machine outliner and mergeable traps (2026-10-11) | `SYMS` | [Future options](<../Future options.md#the-machine-outliner-and-mergeable-traps>) |
 | Per-module library products, and mixing them with the umbrella (2026-10-11) | `C9B` | [Per-module products](<../Historical/Per-module products (2026-10-11).md>) and decisions [C9B](<../SwiftUI parity/Decisions/Module split/Library products for every module (C9B).md>) |
 | Running without the resource bundle (2026-10-10) | `BNDL` | decisions [BNDL](<../SwiftUI parity/Decisions/Compile time and binary size/Running without the resource bundle (BNDL).md>) |
+| Where a clean release build's time goes (2026-10-07) | `buildtime` | [Compile time and binary size analysis](<../Historical/Compile time and binary size analysis (2026-10-07).md>) |
+| The module map, and how to split the module (2026-10-07) | `buildtime/split2` | [Module split plan, revision 4](<../Historical/Module split plan, revision 4 (2026-10-07).md>), and the decisions file of each step in [Decisions/Module split](<../SwiftUI parity/Decisions/Module split>) |
+| Swift 6.3.3's release error in `Theme.swift` (2026-10-08) | `R63` | the message of commit `fed3b535e`, which holds the two-module reduction and the SIL that shows the lost isolation |
+| Test targets split by area (2026-10-10) | `TT1`, `TT2` | decisions [TT2](<../SwiftUI parity/Decisions/Compile time and binary size/Test targets split by area (TT2).md>), and [Future options](<../Future options.md#the-rest-of-the-test-targets-expect-floor>) |
+| Pay-for-use run-loop services (2026-10-11) | `PAYU` | [Future options](<../Future options.md#pay-for-use-run-loop-services>) (deferred by the owner, 2026-10-12) |
