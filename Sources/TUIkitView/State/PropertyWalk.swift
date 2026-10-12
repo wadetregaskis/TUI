@@ -299,7 +299,10 @@ struct PropertyWalk {
     ) {
         guard var copy = field.pointee as? Value else { return }
         applyTyped(slot, at: &copy, position: position, scope: scope, isOwn: isOwn, updates: updates)
-        guard updates == .inPlace, let updated = copy as? Existential else { return }
+        // Assigned back even where nothing is updated: binding a `@State`, or
+        // resolving an `@Environment`, at a second place gives the copy a
+        // backing or box of its own, which must reach the field.
+        guard let updated = copy as? Existential else { return }
         field.pointee = updated
     }
 

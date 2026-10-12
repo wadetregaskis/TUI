@@ -131,6 +131,42 @@ private struct SameReaderTwice: View {
     }
 }
 
+/// A modifier stored in a view, holding an app property as an existential:
+/// nothing in it is updated, but its `@State` is still bound.
+private struct HeldKept: ViewModifier {
+    let kept: any DynamicProperty
+
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
+/// Reads the `@State` inside the stored modifier's existential.
+private struct HeldKeptChild: View {
+    let name: String
+    let held: HeldKept
+    let taps: SharedValueTaps
+
+    var body: some View {
+        let kept = held.kept as? KeptCount
+        if let kept { taps.bindings[name] = kept.$count }
+        return Text(verbatim: "\(name) \(kept?.count ?? -1)")
+    }
+}
+
+/// One stored modifier value handed to two children.
+private struct TwoChildrenOneHeld: View {
+    let taps: SharedValueTaps
+
+    var body: some View {
+        let held = HeldKept(kept: KeptCount())
+        return VStack {
+            HeldKeptChild(name: "a", held: held, taps: taps)
+            HeldKeptChild(name: "b", held: held, taps: taps)
+        }
+    }
+}
+
 @MainActor
 @Suite("@State in a value rendered at two places")
 struct StateSharedValueTests {
@@ -174,5 +210,17 @@ struct StateSharedValueTests {
         #expect(lines(SameReaderTwice(readers: readers), context: context) == ["red", "blue"])
         #expect(readers.readers["red"]?() == "red")
         #expect(readers.readers["blue"]?() == "blue")
+    }
+
+    /// The same where the `@State` lies in an existential inside a stored
+    /// modifier, where nothing is updated: the second place's own backing
+    /// is still assigned back into its copy of the existential.
+    @Test("A @State in an existential inside a stored modifier handed to two children keeps one for each")
+    func oneHeldValueTwoChildren() {
+        let context = makeRenderContext(width: 20, height: 2)
+        let taps = SharedValueTaps()
+        #expect(lines(TwoChildrenOneHeld(taps: taps), context: context) == ["a 0", "b 0"])
+        taps.bindings["a"]?.wrappedValue = 5
+        #expect(lines(TwoChildrenOneHeld(taps: taps), context: context) == ["a 5", "b 0"])
     }
 }
