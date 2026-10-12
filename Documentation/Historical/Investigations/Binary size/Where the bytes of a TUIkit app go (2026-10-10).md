@@ -1,9 +1,10 @@
 # Where the bytes of a TUIkit app go (2026-10-10)
 
 > **Status:** decided, and the levers TUIkit controls have landed (2026-10-10 to 2026-10-12). **Decided by:** the
-> owner. **Working notes** (not in git): `SIZE2/research.md` (2026-10-08) and `SIZE3/` (2026-10-10), whose
-> long-form report is `SIZE3/report.md`, its answers to the review `SIZE3/answers.md`, and its follow-up questions
-> `SIZE3/q/`. Whether the long-form report is committed is still the owner's call.
+> owner. **The long-form report** is committed: [Where the bytes go in a release build](<../../Binary size study (2026-10-10)/Where the bytes go in a release build.md>)
+> and [How the measurements were taken](<../../Binary size study (2026-10-10)/How the measurements were taken.md>).
+> **Working notes** (not in git): `SIZE2/research.md` (2026-10-08) and `SIZE3/` (2026-10-10): its answers to the
+> review `SIZE3/answers.md` and its follow-up questions `SIZE3/q/`.
 
 ## Question
 

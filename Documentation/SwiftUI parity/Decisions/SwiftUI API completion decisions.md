@@ -451,7 +451,7 @@ an SDR terminal, clamped at the end. Not yet decided.
 
 *Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in the session notes, `w11a/probe`. A pass on macOS 26 is owed.*
 
-*Wave 12's entries (A34–A40, B52–B61; its `Transaction.dismissBehavior` joined A22): SwiftUI's behaviour is from its doc comments unless an entry says it was measured; measurements are from probes built against the macOS 26.2 SDK and run on macOS 15, kept in the session notes, `w12/probe`.*
+*Wave 12's entries (A34–A40, B52–B61; its `Transaction.dismissBehavior` joined A22): SwiftUI's behaviour is from its doc comments unless an entry says it was measured; measurements are from probes built against the macOS 26.2 SDK and run on macOS 15, kept in [`Tools/SwiftUIProbes/Animation curves, springs and keyframes`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes>).*
 
 ### A34. `BlurReplaceTransition`: a fade in place of the blur, or wait for W16?
 
@@ -609,7 +609,7 @@ formatting-definition constraints; the design is §7 of
 
 *Wave 10b's entries (B66–B71; A44 shipped, and A45 on 2026-10-07: a `List` pins its section headers under every style but `.sidebar`), pinned section headers and footers.* What SwiftUI does was measured on macOS 15.8, with offscreen `NSHostingView`s
 in scroll views scrolled through their `NSScrollView`, reading the pixels down
-a column (probes in the session notes, `w10b/probe/`):
+a column (probes in [`Tools/SwiftUIProbes/Pinned section headers and footers`](<../../../Tools/SwiftUIProbes/Pinned section headers and footers>)):
 
 - A header pins to the viewport's top while its section's **content** is under
   it. The content's last row pushes it up and away — the footer's top when the
@@ -1907,7 +1907,7 @@ the eight named curves), `Animation.timingCurve(_:duration:)`*
 
 The Bézier curves share the solver an `Animation`'s timing curve uses (the
 Wave 17 review asked for one formula, not two), and match SwiftUI's values and
-velocities to the sixth place (measured, `w12/probe/p3.swift`). Two readings
+velocities to the sixth place (measured, [`p3.swift`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes/p3.swift>)). Two readings
 differ from what SwiftUI answers, in the documentation's favour:
 
 - **Out-of-range input is clamped**, as `value(at:)` and `velocity(at:)`
@@ -1945,7 +1945,7 @@ not a limit: TUIkit already drew springs in closed form. `Spring` is that
 closed form made public — one implementation (`SpringMotion`) behind both the
 type's arithmetic and the curve a spring animation is drawn with — and every
 number was checked against SwiftUI's `Spring` on a probe
-(`w12/probe/p4.swift`, `p5.swift`): values, velocities with and without a
+([`p4.swift`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes/p4.swift>), [`p5.swift`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes/p5.swift>)): values, velocities with and without a
 starting velocity in all three damping regimes, force, `update`, the
 settling durations, the conversions, the presets.
 
@@ -2002,7 +2002,7 @@ and `KeyframeTimeline` cannot be written without them. `KeyframeAnimator` and
 `keyframeAnimator` — the views that play a timeline — stay with O2.
 
 **Shipped,** with every curve rule taken from SwiftUI's own timelines
-(`w12/probe/p6.swift`, `p7.swift`) and pinned by tests to six places:
+([`p6.swift`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes/p6.swift>), [`p7.swift`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes/p7.swift>)) and pinned by tests to six places:
 adjacent cubic keyframes form a Catmull–Rom spline at rest at both ends; a
 cubic keyframe starts at the velocity the keyframe of another kind before it
 ended at, and ends at the next one's starting velocity; a named velocity
