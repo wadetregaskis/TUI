@@ -1,6 +1,13 @@
 # Tooltips — `help(_:)` in a terminal
 
-**Status: shipped, 2026-09-09.** `help(_:)`, `TooltipState`, `TooltipStyle`,
+**Status: shipped, 2026-09-09; a follow-up is owed (2026-10-12).** The owner
+ruled on 2026-10-12 that `help(_:)` must work on views that cannot take the
+focus, by hover and by an app-wide help feature (`Parity-decisions-pending.md`
+§1). Hover already does. Two defects found then are open until that lane
+lands: a focus-revealed tooltip never reaches the status bar, the default
+presentation, so `?` shows nothing with the default style; and `.onFocus` with
+a delay above zero never shows, because its delay restarts every frame.
+`help(_:)`, `TooltipState`, `TooltipStyle`,
 `TooltipTrigger` (`.never` / `.automatic` / `.onFocus` / `.always`), the three
 subtree modifiers, the `?` help key and **both presentations** are on `main`. What is not built is §5's rules 4 and 5 — prefer a
 placement not under the pointer, and re-wrap to a narrower box before rejecting a
@@ -45,6 +52,8 @@ The specification is the project owner's, and is taken as given:
 - SwiftUI's `help(_:)`, shown on **mouse hover after a configurable delay** or
   on **keyboard focus** — but *not* when focus arrives from a mouse click.
 - A view that cannot take focus shows its tooltip on hover only.
+  (Superseded 2026-10-12: also through an app-wide help feature, which is
+  owed; see the status above.)
 - Tooltips are switchable on and off, and the **presentation is the app's
   choice**, from (1) a row in the status bar above the shortcuts, or (2) a
   popover attached to the control.

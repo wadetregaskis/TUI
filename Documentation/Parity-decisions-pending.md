@@ -32,10 +32,11 @@ cannot be honoured by some controls and forgotten by others. The
 reasoning is in those commits; the entries are gone from here rather than
 marked done, as this file's last section requires.
 
-Last reviewed: 2026-09-10. **One entry left**, and it is a genuine decision
-rather than a blocked one: `View.help(_:)` now SHIPS (tooltips, both
-presentations, the `?` key), so what remains here is the question the design
-could not settle for itself. The two opacity entries went by being built.
+Last reviewed: 2026-10-12. **No question is left.** The last entry, §1
+(`View.help(_:)`), shipped on 2026-09-09 and its remaining question was
+answered by the owner on 2026-10-12; it stays below, marked, only until the
+lane that ruling asks for lands. Then this file has nothing left in it and
+moves to `Historical/`. The two opacity entries went by being built.
 
 **The entry ends in a recommendation.** It is a recommendation, not a decision:
 the point of this file is that the call is not mine to make. But an option list
@@ -45,6 +46,38 @@ you can disagree with.
 ---
 
 ## 1. `View.help(_:)` — what a tooltip means with no pointer
+
+**Answered; lane owed.** `help(_:)` shipped on 2026-09-09 (aaa61874f and the
+commits after it; [`Tooltips.md`](Tooltips.md)): both presentations, a status
+bar row above the key hints that grows upwards, and the popover, chosen by the
+app; the `?` key reveals the focused control's help. Both questions below were
+settled then: the bar took a row of its own above the items (question 1), and
+a `Text` with `help(_:)` became hoverable (question 2). **The owner ruled on
+2026-10-12 that `help(_:)` must work on views that cannot take the focus, by
+mouse hover and by an app-wide help feature.** Measured that day (session
+notes `MISC12/notes.md` §3, a headless app over the real run loop):
+
+- Hover on a non-focusable `Text` works, in both presentations.
+- The app-wide feature today is `.tooltips(.always)`, which an app sets. It
+  draws a non-focusable view's help too, but the panels are placed
+  independently and overlap: a `Button`'s covered a `Text`'s.
+- No keyboard route reaches a non-focusable view's help: `?` and `.onFocus`
+  act only on the focused control.
+- Two defects in the focus path, both from a per-walk reset that runs before
+  the status bar is resolved: a focus-revealed tooltip never reaches the
+  status bar, the default presentation, so `?` shows nothing there; and
+  `.onFocus` with any delay above zero never shows, because the delay restarts
+  every frame. The unit tests drive `TooltipState` directly, so neither
+  showed.
+
+The lane owed: fix both defects first, with tests that drive the run loop for
+each presentation and trigger; then an app-wide route to every view's help,
+either `.always` panels that avoid one another (placement rules not yet
+designed: [Future options](Future-options.md#tooltip-placement-rules-4-and-5-and-panels-that-avoid-each-other))
+or a keyboard "help browse" mode that steps through every view with help, one
+tooltip at a time, whose key is the owner's to choose; and the Example page
+`Tooltips.md` §8 planned, which was never built. The text below is the
+question as it stood on 2026-09-10.
 
 **The gap.** `help(_:)` in its `LocalizedStringKey`, `Text` and `StringProtocol`
 overloads.
