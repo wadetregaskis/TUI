@@ -155,10 +155,13 @@ let package = Package(
         // narrower one would refuse any app that also depends on a package
         // wanting a newer swift-syntax (a 602..<603 cap did, measured with
         // one requiring `from: "603.0.0"`). SwiftPM resolves the newest in
-        // range; it takes swift-syntax PREBUILT only for 602.0.0 on a Swift
-        // 6.2 toolchain (Linux and Windows; measured: no prebuilts published
-        // for 603 or 604), so an app on 6.2 that wants them pins
-        // `exact: "602.0.0"` itself. See decisions B-D6M-2.
+        // range, and takes swift-syntax PREBUILT only where one is published
+        // for that version and toolchain: 602.0.0 for Swift 6.2 (Linux and
+        // Windows; measured: none for 603, nor for 604 under 6.2), and
+        // 604.0.0 for swift.org's Swift 6.4.0 on macOS (SwiftPM fetched it,
+        // 2026-10-07, and Tools/ProductSmoke's build used it). So an app on
+        // 6.2 that wants them pins `exact: "602.0.0"` itself. See decisions
+        // B-D6M-2.
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"700.0.0"),
         // ordo-one/benchmark is added conditionally at the bottom of this file
         // (gated on TUIKIT_BENCHMARKS), so the default build/test graph stays
