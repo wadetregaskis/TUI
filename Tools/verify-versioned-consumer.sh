@@ -45,7 +45,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PROJECT_DIR="$PWD"
 TEMP_DIR="$(mktemp -d)"
 PACKAGE_REPO="$TEMP_DIR/TUIkit"
 CONSUMER_DIR="$TEMP_DIR/Consumer"
@@ -53,36 +52,10 @@ CONSUMER_DIR="$TEMP_DIR/Consumer"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 printf '── Staging the working tree as a versioned package\n'
-mkdir -p "$PACKAGE_REPO" "$CONSUMER_DIR/Sources/Consumer"
-
-# The WHOLE tree, not just Sources/ and the manifests.
-#
-# SwiftPM validates every target's path when it loads a manifest, including
-# targets the consumer will never build. Ours declares four outside Sources/ —
-# Tools/EmojiBugScanner, Tools/EmojiBenchmark, Tools/Profiling/RenderHarness,
-# Benchmarks/TUIkitBenchmarks — so a staging area holding only Sources/ fails
-# resolution with "invalid custom path", which says nothing about whether the
-# package is consumable. (It said exactly that on this gate's first run.)
-#
-# A consumer clones the repository, so copying the tree is also the faithful
-# thing. It costs nothing at build time: the consumer builds the TUIkit product
-# and only what that product needs, so Tests/ and the harnesses are never
-# compiled.
-#
-# Excludes are the artefacts a clone would not carry. `.build` in particular
-# holds the host's own build products, which would be both enormous and wrong.
-tar -cf - --exclude=./.git --exclude=./.build --exclude=./.swiftpm -C "$PROJECT_DIR" . \
-    | tar -xf - -C "$PACKAGE_REPO"
-
-git -C "$PACKAGE_REPO" init --quiet
-git -C "$PACKAGE_REPO" config user.name "TUIkit consumer gate"
-git -C "$PACKAGE_REPO" config user.email "consumer-gate@localhost"
-git -C "$PACKAGE_REPO" add .
-git -C "$PACKAGE_REPO" commit --quiet -m "Working tree under test"
-# The version is arbitrary — what matters is that the consumer asks for it
-# EXACTLY, so SwiftPM resolves through the version machinery rather than
-# treating the dependency as a local checkout.
-git -C "$PACKAGE_REPO" tag 1.0.0
+mkdir -p "$CONSUMER_DIR/Sources/Consumer"
+# The whole working tree, in a repository of its own tagged 1.0.0, which the
+# consumer asks for exactly (stage-versioned-package.sh says why).
+Tools/stage-versioned-package.sh "$PACKAGE_REPO" 1.0.0
 
 cat > "$CONSUMER_DIR/Package.swift" <<EOF
 // swift-tools-version: 6.2
