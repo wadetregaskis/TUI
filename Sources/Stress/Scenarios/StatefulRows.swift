@@ -103,7 +103,7 @@ private struct StatefulRowsView: View {
                 seed: config.seed, index: index, tick: tick,
                 stamp: index.isMultiple(of: 2) ? RowStamp() : nil)
         case .existential:
-            ExistentialRow(seed: config.seed, index: index, tick: tick, stamp: RowStamp())
+            ExistentialRow(seed: config.seed, index: index, tick: tick, stamp: WideRowStamp())
         case .enumRow:
             if index.isMultiple(of: 2) {
                 EnumRow.even(seed: config.seed, index: index, tick: tick)
@@ -186,6 +186,15 @@ private struct OptionalPropertyRow: View {
     }
 }
 
+/// `RowStamp` with room beside it: too big for an existential's three-word
+/// inline buffer, so the existential row prices the boxed path — the value
+/// copied out of its box each body and, since `update()` changes it, put in a
+/// box anew.
+private struct WideRowStamp: DynamicProperty {
+    var stamp = RowStamp()
+    var padding = (0, 0)
+}
+
 private struct ExistentialRow: View {
     let seed: UInt64
     let index: Int
@@ -195,7 +204,7 @@ private struct ExistentialRow: View {
     var stamp: any DynamicProperty
 
     var body: some View {
-        rowText(seed, index, tick, taps + accent + ((stamp as? RowStamp)?.value ?? 0))
+        rowText(seed, index, tick, taps + accent + ((stamp as? WideRowStamp)?.stamp.value ?? 0))
     }
 }
 
