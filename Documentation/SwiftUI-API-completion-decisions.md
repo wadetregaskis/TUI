@@ -1004,7 +1004,8 @@ safe-area support is worth. The 2026-10-05 answer: very little here. With no
 notch and no system bars, the only producers would be TUIkit's own bars, and
 the payoff is colour under a bar's blank cells; it would matter only if
 toolbars wanted content scrolling beneath them. You were not convinced, so the
-half that shipped is the behaviour, kept as a deliberate deviation. The
+half that shipped is the behaviour, kept as a deliberate deviation
+([SwiftUI-deviations.md L10](SwiftUI-deviations.md#l10-safeareainset-puts-the-bar-beside-the-view-there-is-no-safe-area)). The
 refused symbols above stay refused, and B25's fuller version, which is SA-B,
 goes with it. The entry stays as the record of what the declined version was.
 
@@ -1070,56 +1071,6 @@ AppKit's tables are, and whether TUIkit could copy them:
   AZERTY), and a terminal does not say which characters the user's layout can
   type. Over ssh the local machine's layout is not the user's either. So the
   remap stays out until there is a source for that.
-
-### B9. Copy, cut and paste commands carry text, and exist only where `NSItemProvider` does
-
-*`View.onCopyCommand(perform:)`, `View.onCutCommand(perform:)`,
-`View.onPasteCommand(of:perform:)`, `View.onPasteCommand(of:validator:perform:)`*
-
-**Shipped:**
-
-- On Apple platforms, all four, on the focus path's command stage.
-- The keys are SwiftUI's ⌘C, ⌘X and ⌘V resolved through `\.commandKey`
-  (Control by default). A paste is also the terminal's own bracketed paste.
-- A copy or cut writes the text of every item that loads as a string, one
-  per line. A paste offers one item, the clipboard's text, and triggers only
-  for a type that accepts text.
-
-The terminal's clipboard holds one string, so what does not read as text (an
-image, a file promise) is not written. That is the medium, not a stub: the
-action still runs, and a cut still deletes.
-
-**Absent on Linux**, because swift-corelibs-foundation has no `NSItemProvider`
-and there is no `UniformTypeIdentifiers`. Gated
-`#if canImport(UniformTypeIdentifiers)`, so the same source fails to compile
-there rather than compiling to nothing.
-
-**The fuller version** would be a TUIkit-specific spelling that takes and
-returns `String`s and works on every platform: `onCopyCommand(text:)`, say.
-That is an addition, not a fix, so I have not made it. Say if you want it.
-
-**Answered 2026-10-12.** You asked whether this factors in OSC 52, and what
-portable versions would involve.
-
-- **OSC 52 is in the path**, since ef7e78788 (2026-10-05; this entry was
-  written before it). A command's copy goes through `ClipboardWriter`: OSC 52
-  to a terminal that writes it by default; this machine's helper (`pbcopy`,
-  `wl-copy`, `xclip`/`xsel`) only when the user is provably at this machine
-  (`ClipboardLocality`: the ssh variables, the process chain, the tmux
-  clients); OSC 52 "sent, maybe" otherwise (iTerm2, tmux); else "not copied",
-  said in the status bar. A paste never reads OSC 52 (it prompts on Ghostty):
-  it takes the terminal's bracketed paste, the app's own last copy, or the
-  local helper.
-- **The portable versions exist, and are SwiftUI's own:** `copyable(_:)`,
-  `cuttable(for:action:)`, `pasteDestination(for:action:validator:)` and
-  `PasteButton` need no `NSItemProvider`, and work on Linux through the same
-  route. A TUIkit-only `onCopyCommand(text:)` would duplicate them, so the
-  fuller version above is not wanted.
-- **Windows** needs Win32 arms of the system clipboard and of the locality
-  test, inside the console layer's port; CONTRIBUTING.md lists them with the
-  port's blockers.
-
-Nothing to build.
 
 ### B10. Item-provider drag and drop stays in the app, and only cancel and forbidden change a drop
 
@@ -1323,90 +1274,6 @@ the palette's secondary tier, which is SwiftUI's behaviour.
 cheap one, a live look at the faint tiers in 16 and 256 colours, owed; the
 per-palette tiers are skipped for now.
 
-### B23. `ScrollPosition`: the request and the row are read separately, and `viewID` answers sooner than SwiftUI's
-
-*`ScrollPosition.init(idType:edge:)`, `.init(idType:point:)`, `.init(idType:x:)`,
-`.init(idType:x:y:)`, `.init(idType:y:)`, `.point`, `.x`, `.y`, `.viewID`,
-`.scrollTo(point:)`, `.scrollTo(x:)`, `.scrollTo(x:y:)`; and the behaviour of
-`.isPositionedByUser` and `.viewID(type:)`*
-
-Measured in SwiftUI:
-
-- after `scrollTo(y: 100)`, `point`, `viewID` and `edge` are all `nil` and
-  `isPositionedByUser` is `false` (so `y` holds the request — `y` itself is
-  macOS 26 only and could not be read here);
-- after an animated `scrollTo(id: 10)`, `viewID` is `10` and
-  `isPositionedByUser` is still `false`.
-
-So SwiftUI's readings are the *request*, until the user scrolls. TUIkit's were
-the *report*: every frame the windowed stack named the row at the anchor,
-overwrote the request with it, and set `isPositionedByUser` — on the first
-frame too, with nobody having touched anything. With `x`, `y` and `point`
-added that model would have answered a request for one frame and then
-forgotten it.
-
-**Shipped:**
-
-- The request (`edge`, `x`, `y`, `point`, an asked-for row) and the reported
-  row are held separately. The request stays readable until the user scrolls,
-  which drops it, as SwiftUI's does.
-- `isPositionedByUser` is set by a user scroll and nothing else — the wheel,
-  the keys, the scrollbar, a drag's auto-scroll, on either axis. Writable, as
-  SwiftUI's is: `true` drops an edge or offset request.
-- `viewID(type:)` still answers with the row the view reports after a
-  programmatic scroll and on the first frame — TUIkit's existing, deliberate
-  read-back ("reading tells you where it ended up"). SwiftUI answers `nil`
-  there until the user scrolls past a row. A reading SwiftUI would give is
-  never different here; it is only present sooner.
-- `viewID` (type-erased, `any Hashable & Sendable`) returns a *reported* row
-  only when the position was made with `idType:`. A `ForEach` id is only
-  `Hashable` by signature, and `Sendable` is a marker protocol no run-time cast
-  can recover. An id the app passed in comes back either way.
-- `x`, a `CellPoint`, and `.leading`/`.trailing` move the horizontal axis.
-  These are arithmetic, not a row seek, so they need nothing from the
-  row-windowing handshake that keeps `scrollTo(id:)` vertical.
-
-**The alternative** is SwiftUI's reading exactly: `viewID` stays `nil` until
-the user scrolls. That would break the `ScrollPosition` read-back tests (the
-first frame and the programmatic scrolls report a row today) and take away
-an answer apps can use, for no behaviour SwiftUI code depends on. I don't
-recommend it.
-
-### B24. Content margins: where TUIkit applies them, and what a scroll indicator's margin moves
-
-*`View.contentMargins(_:_:for:)` (both), `View.contentMargins(_:for:)`,
-`ContentMarginPlacement` (`.automatic`, `.scrollContent`, `.scrollIndicators`)*
-
-Measured in SwiftUI: a `ScrollView` and a grouped `Form` apply content
-margins; `List`, `Table`, `TextEditor` and a columns `Form` ignore them
-entirely on macOS. TUIkit matches that list. Its grouped `Form` does not
-scroll, so there the margins are padding around the sections — the picture a
-scrolled-to-the-top SwiftUI form shows.
-
-**What is a judgement:** the indicator half. SwiftUI's scrollers overlay the
-content, and a margin moves an overlay. TUIkit's bar is a column (or row) of
-the viewport, so:
-
-- a vertical bar is shortened by the top and bottom margins and moved in by
-  the trailing one, and the columns it moves in by come out of the content;
-- a horizontal bar is shortened by the leading and trailing margins and lifted
-  by the bottom one;
-- margins too large for the space leave the bar one cell long rather than
-  removing it;
-- the "N more above / below" lines (`.scrollIndicatorStyle(.text)`, a TUIkit
-  style SwiftUI code never asks for) are lines of the viewport, not a
-  scroller, and do not move.
-
-I did not measure where an overlay scroller goes under a cross-axis margin —
-the probes read geometry, and an idle overlay scroller is not drawn — so
-"moved in" follows `NSScrollView.scrollerInsets`, which insets a scroller
-from every edge.
-
-**The alternative** is to inset the bars along their axis only, and leave a
-trailing margin to the content alone. That keeps every bar at the viewport's
-edge, which a terminal user may find more natural; it is a two-line change if
-you prefer it.
-
 ### B25. `safeAreaPadding` is padding, or a scroll view's content margin
 
 *`View.safeAreaPadding(_:)` (both), `View.safeAreaPadding(_:_:)`*
@@ -1429,37 +1296,6 @@ in SwiftUI does not reach the edges the safe area is on — is padded.
 list itself still at the top). Here those are padded whole, so their chrome
 moves in with their rows. The fuller version is B6's real safe area, which
 you declined on 2026-10-12, so this stays as shipped.
-
-### B26. `ScrollGeometry`: the visible area excludes the bars, and a vertical view's content is as wide as it is shown
-
-*`ScrollGeometry` and its members, `View.onScrollGeometryChange(for:of:action:)`*
-
-Every reading matches SwiftUI's as measured (offset before the origin by the
-margins, `bounds` and `visibleRect` at the offset, container less the
-insets). Two numbers have no SwiftUI counterpart to measure against:
-
-- **`containerSize` leaves out the bars.** SwiftUI's scrollers overlay the
-  content, so its visible area is the frame. TUIkit's bar is a column (or row)
-  of the viewport, so the area the content is seen through is the viewport
-  less the bar, and less the "N more" lines where `.visible` reserves them.
-  That keeps the reading apps rely on exact: `visibleRect.maxY` reaches
-  `contentSize.height + contentInsets.bottom` at the bottom, and no further.
-- **A vertical-only view's `contentSize.width` is the width it lays its
-  content out at**, not the content's own width. The content is not measured
-  across separately, and a windowed stack's drawn band is not its whole
-  width; SwiftUI's would be the content's frame, which for full-width rows
-  (the common case) is the same number.
-
-**The alternative** for the first is the whole frame, bars included, which
-makes `visibleRect` one cell wider than what can be seen. I don't recommend
-it. For the second, a measure of the content's own width every frame a
-geometry observer is attached — the cost `contentExtents` already pays for a
-horizontally scrolling view. Cheap to add if a use turns up.
-
-The observers' callbacks are a render side effect, as `onGeometryChange`'s
-are, so a memo above a reporting scroll view does not keep its picture.
-A/B owed on a scroll-heavy scenario with an observer attached; a scroll view
-without one pays one emptiness test per frame.
 
 ### B27. Scroll phases: `.interacting` until a quarter of a second of quiet, and no velocity
 
@@ -1545,26 +1381,6 @@ state indices); and a focused bar already breathes, so the flash needs a
 distinct peak within the focus and selection colour rules. A view that is not
 flashing pays nothing.
 
-### B29. `scrollTargetLayout()` marks a layout, and only `.viewAligned` reads it
-
-*`View.scrollTargetLayout(isEnabled:)`*
-
-In SwiftUI the mark tells a scroll view which views to report through
-`.scrollPosition(id:)` and a `ScrollPosition`; without it nothing is reported,
-which is why every SwiftUI example pairs the two. TUIkit reports its windowed
-stack's rows whether or not they are marked, so the mark adds nothing to the
-one reader TUIkit has, and the modifier returns the view. Tested as the
-pairing: seek and read-back work with the mark on the stack.
-
-**Since 2026-10-05 (A6)** the modifier is an environment mark, and the
-view-aligned target behaviour reads it: `.viewAligned` on a `ScrollView` aligns
-to the rows of the marked stack. `onScrollTargetVisibilityChange` is its other
-SwiftUI reader, still unbuilt; the read-back above still reports unmarked
-stacks' rows too.
-
-What SwiftUI reports and TUIkit does not is a marked *eager* `VStack`'s rows
-(an existing gap of the read-back, documented on `ScrollPosition.viewID`).
-
 ### B30. The `Transaction` scroll members: what "no adjustment" suspends
 
 *`Transaction.scrollTargetAnchor`, `Transaction.scrollContentOffsetAdjustmentBehavior`
@@ -1611,11 +1427,13 @@ and `DECB/probe/disabled`):
   (`.top` and `.center` both landed at the minimal position) and applied the
   transaction's even over a `.bottom` call. TUIkit honours the call's anchor
   first. That looks like a SwiftUI defect, so TUIkit's rule stays, recorded as
-  a deliberate deviation.
+  a deliberate deviation
+  ([SwiftUI-deviations.md R11](SwiftUI-deviations.md#r11-scrollpositionscrolltoidanchor-honours-its-own-anchor)).
 - **`.disabled`** stops SwiftUI's lazy-stack bottom follow and its hold of the
   top row on an insertion above, as it stops TUIkit's follows. SwiftUI ignores
   it for an eager `VStack`, which follows anyway; TUIkit treats eager and lazy
-  alike. Kept, and recorded.
+  alike. Kept, and recorded
+  ([SwiftUI-deviations.md R12](SwiftUI-deviations.md#r12-no-adjustment-suspends-an-eager-stacks-follow-too)).
 - **The larger gap is the default.** With no `scrollPosition` at all, SwiftUI
   keeps the top row in place when rows are inserted above it (a lazy stack,
   one insertion: the offset moves 200 → 300). TUIkit's Window default, from

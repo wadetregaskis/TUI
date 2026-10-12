@@ -62,6 +62,14 @@ struct ContentView: View {
 Every bar is the app's to place: an app that declares no `.toolbar` draws on
 every row of the terminal, and `q` still quits.
 
+SwiftUI code should compile against TUIkit and mean the same thing; what a
+terminal cannot honour fails to compile rather than doing nothing.
+[Documentation/SwiftUI-compatibility.md](Documentation/SwiftUI-compatibility.md)
+is the porting guide, and
+[Documentation/SwiftUI-deviations.md](Documentation/SwiftUI-deviations.md)
+lists the places where TUIkit deliberately behaves differently from SwiftUI,
+and why.
+
 ## Features
 
 ### Core

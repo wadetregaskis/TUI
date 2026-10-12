@@ -8,6 +8,11 @@ TUIkit's stated rule (see `.claude/CLAUDE.md` → *SwiftUI API Parity*): public
 APIs match SwiftUI signatures exactly **unless terminal constraints require
 deviation**, and any deviation is documented. This file is that documentation.
 
+Where code that compiles against both frameworks deliberately **behaves**
+differently, [SwiftUI-deviations.md](SwiftUI-deviations.md) lists it, one entry
+per difference: what SwiftUI does and how that is known, what TUIkit does, why,
+and where it was decided. Read it before "fixing" a difference from SwiftUI.
+
 ---
 
 ## Two rules that decide every case
@@ -94,7 +99,7 @@ accepts a `Double`. Keep these two ideas separate while reading the rest.
 4. [**No overlap** — one framework has it, the other doesn't](#4-no-overlap)
    - [4a. SwiftUI has it, TUIkit should add it](#4a-swiftui-has-it--tuikit-should-add-it)
    - [4b. SwiftUI has it, TUIkit won't (bitmap vs. text-cell)](#4b-swiftui-has-it--tuikit-wont-bitmap-vs-text-cell)
-   - [4c. TUIkit-only (no SwiftUI equivalent)](#4c-tuikit-only)
+   - [4c. TUIkit-only (no SwiftUI equivalent)](#4c-tuikit-only-no-swiftui-equivalent)
 5. [Summary](#5-summary)
 
 ---
