@@ -315,7 +315,8 @@ The same holds within the limit for a sequence longer than a read (4 KiB,
 pass in all, as above. Until the limits went up (2026-10-12) the skip took
 over at 4 KiB, a read, so this is the wait every sequence that long had
 before. Review round 1 of lane PASTE2 found the higher limits had left the
-sequences between a read and the limit with the shorter wait: a 32 KiB
+sequences between a read and the limit with the wait that never starts
+again: a 32 KiB
 clipboard answer arriving in 4 KiB pieces with a quiet pass between them
 was dropped at the eighth pause and its last piece typed out, base64, `BEL`
 (Ctrl-G) and all; a kitty key report of 5 to 16 KiB the same, its digits and
