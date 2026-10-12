@@ -1330,7 +1330,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   keeping the warning colour on the border and title.
 - **Why:** a terminal cannot draw the large picture; the owner asked for the
   sign.
-- **Decided:** [B-D3M-1](SwiftUI-API-completion-decisions-D3M.md#b-d3m-1-a-critical-dialogs-caution-sign-is-the--emoji-not-a-full-size-icon). **Owner** (asked for it; the large
+- **Decided:** [B-D3M-1](SwiftUI-API-completion-decisions-D3M.md#b-d3m-1-a-critical-dialogs-caution-sign-is-the-%EF%B8%8F-emoji-not-a-full-size-icon). **Owner** (asked for it; the large
   picture is a later project).
 
 ---

@@ -165,11 +165,11 @@ environment cannot be compared, and the slot then cannot be kept honest.
 > different and stronger reason.
 >
 > `RenderCache.noteAppliedEnvironment` does test `value is any Equatable`
-> ([RenderCache.swift:1061](Sources/TUIkitView/Rendering/RenderCache.swift:1061)),
+> ([RenderCache.swift:1061](../Sources/TUIkitView/Rendering/RenderCache.swift#L1061)),
 > but it only RETURNS `.incomparable`; it never sets that flag. The only writes
 > are in `EnvironmentModifier`
-> ([Environment.swift:47](Sources/TUIkitView/Environment/Environment.swift:47)
-> and [:140](Sources/TUIkitView/Environment/Environment.swift:140)), on the
+> ([Environment.swift:47](../Sources/TUIkitView/Environment/Environment.swift#L47)
+> and [:140](../Sources/TUIkitView/Environment/Environment.swift#L140)), on the
 > strength of its own `.incomparable` arm — and the slot proposed here is not
 > published through that modifier. `_StyleEnvironmentView` publishes it, matches
 > `.changed` alone, and so refuses nothing. Nor does an existential answer `no`
@@ -179,7 +179,7 @@ environment cannot be compared, and the slot then cannot be kept honest.
 > The real consequence of `.incomparable` at a site that matches `.changed`
 > alone is that the answer falls through ignored and the slot is DEADENED
 > (`previous.isComparable = false`,
-> [RenderCache.swift:1079](Sources/TUIkitView/Rendering/RenderCache.swift:1079)):
+> [RenderCache.swift:1079](../Sources/TUIkitView/Rendering/RenderCache.swift#L1079)):
 > it can never report a change again, so the subtree keeps the ink it was
 > painted with. Wrong pixels, not lost memoization. Since `ShapeStyle` ships
 > with no `Equatable` refinement, a third-party style in that slot is exactly
@@ -202,7 +202,7 @@ reaches a `Paint` through its own `resolve(in:)`, exactly as SwiftUI's does.
 ## 3. The type family
 
 `UnitPoint` already exists in TUIkit with all ten SwiftUI constants
-([UnitPoint.swift](Sources/TUIkitFoundation/Views/UnitPoint.swift)), so most of this is
+([UnitPoint.swift](../Sources/TUIkitFoundation/Views/UnitPoint.swift)), so most of this is
 source-**identical**.
 
 | SwiftUI | TUIkit | note |
@@ -231,7 +231,7 @@ error. It does not: `startRadius: 5, endRadius: 200` — the overwhelmingly comm
 spelling — compiles unchanged under `Int` and silently means 200 *cells*. `Int`
 only rejects the rare fractional literal. The honest argument for `Int` is
 **consistency**: every other dimension in TUIkit is `Int` cells
-([frame(width:height:)](Sources/TUIkitFoundation/Extensions/View+Layout.swift:232)), and a
+([frame(width:height:)](../Sources/TUIkitFoundation/Extensions/View+Layout.swift#L232)), and a
 `CGFloat` here would be the sole exception. That is a weaker argument than
 revision 2 made, and it is the true one. Whichever is chosen, the spec hole must
 be closed: **a radius is measured along the horizontal axis in cells, and the
@@ -277,7 +277,7 @@ emitted no foreground SGR — in a walk over the assembled buffer. **That premis
 is false and the walk is too expensive.**
 
 *False:* no leaf emits ink with the foreground unset.
-[Text.swift:717](Sources/TUIkitFoundation/Views/Text.swift:717) fills
+[Text.swift:717](../Sources/TUIkitFoundation/Views/Text.swift#L717) fills
 `cascaded.foreground ?? environment.foregroundStyle ?? palette.foreground` and
 `ANSIRenderer` emits codes whenever `foregroundColor != nil`. Counted across the
 framework: **152 styled-emission sites in 41 files**, 31 of them reading
@@ -293,7 +293,7 @@ costs **~330 µs**, one `splicing` per line **~350 µs**, `ansiSGRStateAt` per l
 the frame, every frame, and loses to the manual N-modifier version (40 nodes ×
 1.5–5 µs ≈ 60–200 µs) by 2–5×. That fails requirement (b) outright.
 
-**The walk is avoidable.** [VStack.swift:265](Sources/TUIkitFoundation/Views/VStack.swift:265):
+**The walk is avoidable.** [VStack.swift:265](../Sources/TUIkitFoundation/Views/VStack.swift#L265):
 
 ```
 // === PASS 1: Measure every child's natural size ===
@@ -365,7 +365,7 @@ gradient there would collapse at each of them, differently.
 **A one-cell view is not this case in principle but is in practice.** A `Toggle`'s
 indicator has a position, so it *could* sample. But its colour is state-derived
 (`palette.accent` when on, `foreground` when off, hovered variants —
-[_ToggleCore.swift:144](Sources/TUIkitFoundation/Views/_ToggleCore.swift:144)), and a
+[_ToggleCore.swift:144](../Sources/TUIkitFoundation/Views/_ToggleCore.swift#L144)), and a
 derived colour must stay stated or the control loses its signalling. Under
 `.subtree` such controls therefore keep their own colours and do **not**
 participate. Revision 2 claimed the opposite; it was wrong, and the honest rule
@@ -422,12 +422,12 @@ hand** when used.
 ### 7.1 Nothing when unused
 
 `EnvironmentValues` is `[ObjectIdentifier: Any]`
-([EnvironmentKey.swift:46](Sources/TUIkitCore/Environment/EnvironmentKey.swift:46)),
+([EnvironmentKey.swift:46](../Sources/TUIkitCore/Environment/EnvironmentKey.swift#L46)),
 not a struct of fields — so revision 2's "one more field, one optional read" was
 wrong twice over. The framework already hoisted `renderCache` and `stateStorage`
 out of that dictionary into `RenderContext` because those getters measured
 **4.5% and 5.2% of CPU**
-([RenderContext.swift:42](Sources/TUIkitView/Rendering/RenderContext.swift:42)),
+([RenderContext.swift:42](../Sources/TUIkitView/Rendering/RenderContext.swift#L42)),
 and the `.foregroundStyle` doc explicitly refuses a per-`Text` store lookup on
 exactly that ground.
 
@@ -458,7 +458,7 @@ measure pass must skip gradient work entirely (`context.isMeasuring`) or
 
 A leaf resolves its own ramp. The one real subtlety is that
 `TextRunAttribution` splits on **source-run membership walking `Character`s**
-([Text+Concatenation.swift:133](Sources/TUIkitFoundation/Views/Text+Concatenation.swift:133)),
+([Text+Concatenation.swift:133](../Sources/TUIkitFoundation/Views/Text+Concatenation.swift#L133)),
 while a gradient needs **display-cell-indexed** bands — character index ≠ cell
 index for CJK and emoji, and a band boundary must not split a two-cell glyph.
 Plus §1's finding that the extent is the whole text block: `t` comes from the
@@ -486,7 +486,7 @@ six. Truecolor is one run per cell: **760–960 bytes for a 40-cell line against
   review's conclusion here was wrong; the byte measurement stands, its
   consequence does not.
 - **At any depth but `.palette256`, `quantisedRamp` returns raw interpolated
-  RGB** ([Color+Downsampling.swift:118](Sources/TUIkitStyling/Color/Color+Downsampling.swift:118)),
+  RGB** ([Color+Downsampling.swift:118](../Sources/TUIkitStyling/Color/Color+Downsampling.swift#L118)),
   so every cell is a distinct `Color`. Run-grouping must happen on the
   **depth-resolved** colour or a 16-colour terminal emits one SGR per cell to
   paint runs that render identically.
@@ -500,7 +500,7 @@ Against the manual alternative:
 
 ### 7.3 Two fixes to `quantisedRamp` this needs anyway
 
-Both visible at [Color+Downsampling.swift:110](Sources/TUIkitStyling/Color/Color+Downsampling.swift:110):
+Both visible at [Color+Downsampling.swift:110](../Sources/TUIkitStyling/Color/Color+Downsampling.swift#L110):
 
 - **It samples before it consults its cache** (`sampled` is built at :111–117,
   the lookup is at :122–125), so a cache *hit* still pays the whole
@@ -627,7 +627,7 @@ The survey first, because it changed the mechanism. A container knows a child's
 offset **along its own axis** before it renders it — `VStack` distributes
 heights in PASS 1, `HStack` widths — and its **cross-axis** offset only
 afterwards, because alignment needs the rendered sizes
-([VStack.swift:297](../Sources/TUIkitFoundation/Views/VStack.swift:297) renders every
+([VStack.swift:297](../Sources/TUIkitFoundation/Views/VStack.swift#L297) renders every
 child before PASS 3 computes `alignmentWidth`). So the cross-axis offset is
 predicted from the child's MEASURED size, which is exact wherever measure and
 render agree and shifts a colour rather than a cell when they do not.

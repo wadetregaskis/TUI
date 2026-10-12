@@ -248,6 +248,15 @@ jobs:
           python3 Tools/validate-markdown-tables.py --self-test
           python3 Tools/validate-markdown-tables.py
 
+      # The same, for links: a relative link or an anchor that names nothing
+      # renders as an ordinary link, and the reader finds out by following it.
+      # The documentation's names carry spaces and parentheses and its files
+      # move between topic folders, so every tracked .md is checked.
+      - name: Markdown links and anchors resolve
+        run: |
+          python3 Tools/validate-markdown-links.py --self-test
+          python3 Tools/validate-markdown-links.py
+
   # ── macOS ──────────────────────────────────────────────────────────────────
   macos:
     name: ${{ matrix.name }}
