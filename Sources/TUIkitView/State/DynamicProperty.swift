@@ -49,7 +49,8 @@
 /// A struct's own fields, an optional's wrapped value and an enum's payload
 /// are written back. In an `indirect` enum case, `update()` still runs, on a
 /// copy, so what it changes is seen only through what the property holds by
-/// reference. A property held `unowned` is updated where it is (it is a
+/// reference; so it does in every enum's payload on WebAssembly and Windows,
+/// where the walk cannot reach a payload where it lies. A property held `unowned` is updated where it is (it is a
 /// class), and one held `weak` is not updated, as in SwiftUI (both measured
 /// on macOS 15). What a class property holds is bound, resolved and updated
 /// by one view, the first drawn that reaches the object, while that view's

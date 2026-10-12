@@ -224,6 +224,53 @@ private struct MemoFirstCounterViews: View {
     }
 }
 
+// MARK: - An enum in an object's storage
+
+/// A class app property holding an enum property: its field lies in the
+/// object's storage, which anything holding the object can read.
+private final class ModeOwner: DynamicProperty {
+    var mode: Mode
+
+    init(_ mode: Mode) {
+        self.mode = mode
+    }
+}
+
+/// An enum property with two payload cases whose payload holds a reference,
+/// so its case lies in the reference's spare bits.
+private enum Mode: DynamicProperty {
+    case first(ModePayload)
+    case second(ModePayload)
+}
+
+private struct ModePayload: DynamicProperty {
+    let reader: ModeReader
+}
+
+/// A class property inside the enum's payload, whose `update()` reads the
+/// enum back through its owner.
+private final class ModeReader: DynamicProperty {
+    weak var owner: ModeOwner?
+    var seen = "nothing"
+
+    func update() {
+        guard let owner else { return }
+        switch owner.mode {
+        case .first: seen = "first"
+        case .second: seen = "second"
+        }
+    }
+}
+
+private struct ModeOwnerView: View {
+    let owner: ModeOwner
+    let reader: Handed<ModeReader>
+
+    var body: some View {
+        Text(verbatim: "seen \(reader.object.seen)")
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty objects")
 struct DynamicPropertyObjectTests {
@@ -364,6 +411,20 @@ struct DynamicPropertyObjectTests {
         taps.bindings["a"]?.wrappedValue = 5
         #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 5", "b 5"])
         #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 5", "b 5"])
+    }
+
+    /// An enum's payload was projected out of the enum where it lay, inside
+    /// the object's storage, and its properties updated before the case was
+    /// put back: an `update()` there that read the enum through the object
+    /// saw it with its case cleared from the payload's spare bits, the first
+    /// case. Inside an object, the enum is walked on a copy and assigned back.
+    @Test("An update() inside an enum held by a class property reads the enum's own case through the object")
+    func enumInObjectStorageKeepsItsCase() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let reader = ModeReader()
+        let owner = ModeOwner(.second(ModePayload(reader: reader)))
+        reader.owner = owner
+        #expect(lines(ModeOwnerView(owner: owner, reader: Handed(object: reader)), context: context) == ["seen second"])
     }
 
     /// A pass that walks the tree twice — a geometry reader's correction, the

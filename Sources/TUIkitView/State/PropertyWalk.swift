@@ -141,6 +141,10 @@ struct PropertyWalk {
     /// runs out.
     private var objectsReached: [ObjectIdentifier] = []
 
+    /// How many objects' storage the walk is inside, where what it walks
+    /// can be reached, while it walks it, by anything holding the object.
+    var objectDepth = 0
+
     init(identity: ViewIdentity, storage: StateStorage?, environment: EnvironmentValues, isMeasuring: Bool) {
         self.identity = identity
         self.storage = storage
@@ -357,6 +361,8 @@ struct PropertyWalk {
     private mutating func applyContents(of object: AnyObject, scope: UInt64, isOwn: Bool, updates: UpdateMode) {
         let contents = PropertyPlans.contents(ofClass: type(of: object))
         guard !contents.steps.isEmpty else { return }
+        objectDepth += 1
+        defer { objectDepth -= 1 }
         withExtendedLifetime(object) {
             let base = Unmanaged.passUnretained(object).toOpaque()
             applySteps(of: contents, at: base, in: object, scope: scope, isOwn: isOwn, updates: updates)

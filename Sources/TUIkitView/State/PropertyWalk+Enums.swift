@@ -22,7 +22,44 @@ extension PropertyWalk {
     /// (measured, decisions-DYNP B-DYNP-1). Not an `indirect` case's: its
     /// payload lies in a box every copy of the enum shares, so it is walked
     /// on a copy, as it is where the witnesses are not called.
+    ///
+    /// Inside an object's storage the enum is walked on a copy, assigned back
+    /// after: while its payload is projected out, the field holds no valid
+    /// value — a case kept in its payload's spare bits reads as another — and
+    /// an `update()` the payload's walk runs may read the field back through
+    /// a reference to the object (a child property's `weak var parent`).
     mutating func applyCase(
+        of plan: EnumPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
+    ) {
+        if objectDepth > 0, plan.cases.witnesses != nil {
+            applyCaseOnCopy(of: plan, at: address, as: plan.type, scope: scope, updates: updates)
+        } else {
+            applyCaseWhereItLies(of: plan, at: address, scope: scope, updates: updates)
+        }
+    }
+
+    /// ``applyCase(of:at:scope:updates:)`` on a copy of the enum of type
+    /// `Enum` at `address`, assigned back to it after.
+    private mutating func applyCaseOnCopy<Enum>(
+        of plan: EnumPlan, at address: UnsafeMutableRawPointer, as _: Enum.Type, scope: UInt64,
+        updates: UpdateMode
+    ) {
+        let field = address.assumingMemoryBound(to: Enum.self)
+        var copy = field.pointee
+        applyTypedCase(of: plan, at: &copy, scope: scope, updates: updates)
+        field.pointee = copy
+    }
+
+    /// ``applyCaseWhereItLies(of:at:scope:updates:)`` on the enum `pointer`
+    /// points to, typed so that `&value` reaches it without a closure.
+    private mutating func applyTypedCase<Enum>(
+        of plan: EnumPlan, at pointer: UnsafeMutablePointer<Enum>, scope: UInt64, updates: UpdateMode
+    ) {
+        applyCaseWhereItLies(of: plan, at: UnsafeMutableRawPointer(pointer), scope: scope, updates: updates)
+    }
+
+    /// ``applyCase(of:at:scope:updates:)`` on the enum where it lies.
+    private mutating func applyCaseWhereItLies(
         of plan: EnumPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
     ) {
         guard let witnesses = plan.cases.witnesses, let cases = plan.cases.cases else {

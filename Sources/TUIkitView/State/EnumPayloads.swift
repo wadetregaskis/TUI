@@ -22,14 +22,19 @@
 //    its name (swift/RemoteInspection/Records.h).
 //
 //  The value witnesses are `swiftcc` functions, called here through a C
-//  function type. For two pointers and a 32-bit integer the two conventions
-//  pass the same registers on arm64 and x86_64 (measured on macOS arm64:
-//  session notes `DYNVFIX/probe/vwt.swift`, for a native enum, a generic one
-//  instantiated at run time and the standard library's `Optional`). On
+//  function type. Measured on macOS arm64 only (session notes
+//  `DYNVFIX/probe/vwt.swift`, for a native enum, a generic one instantiated
+//  at run time and the standard library's `Optional`). On Linux, arm64 and
+//  x86_64, it is reasoned, not measured: for two pointers and a 32-bit
+//  integer `swiftcc` passes the arguments in the C argument registers and
+//  returns in the C return register, and a witness takes no `self`, error or
+//  async context, the only parameters it gives registers of their own. On
 //  WebAssembly an indirect call checks the callee's signature, which a
 //  `swiftcc` one does not match, and on Windows it was not measured: there
 //  the walk falls back to a copy of the payload the runtime makes, and what
-//  `update()` changes there is not written back.
+//  `update()` changes there is not written back. An `arm64e` build, which
+//  TUIkit does not make, would have to authenticate the table's signed
+//  function pointers before calling them.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

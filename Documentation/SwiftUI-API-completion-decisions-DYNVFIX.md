@@ -47,7 +47,11 @@ of the reach was found (DYNV §3).
 An enum's payload is now walked where it lies: projected out through the
 enum's value witnesses, updated, and its case put back, so what `update()`
 changes in it is written back, as SwiftUI writes it (DYNV bug 6;
-decisions-DYNP B-DYNP-1).
+decisions-DYNP B-DYNP-1). An enum in a class property's storage is walked so
+on a copy and assigned back: while its payload is projected out the field
+holds no valid value, and an `update()` in the payload can read it through
+the object. The calls were measured on macOS arm64 only; Linux, on arm64 and
+x86_64, follows from the calling conventions and is not measured.
 
 **Shipped:** two kinds of payload are still walked on a copy the runtime
 makes, as every payload was before. Their `@Environment` is resolved and
