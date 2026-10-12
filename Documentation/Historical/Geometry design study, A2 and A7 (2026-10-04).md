@@ -1,5 +1,16 @@
 # A2 (+A7): anchors, named coordinate spaces, scroll visibility — design study
 
+> **Historical (moved 2026-10-12).** The design study behind decisions A2 and
+> A7, written before anything was built; it no longer describes the code.
+> **Decided since.** The owner's answers of 2026-10-04 took its
+> recommendation, G4: markers as the truth and the carried origin as a
+> prediction, a wrong answer corrected in the same frame, readers declining
+> the memos above them, `scrollTransition` predicted, and the containers
+> converted proactively. Lane D5G built it (2026-10-05 and 2026-10-06, from
+> f65680341 to aa1cd5d31), and its own calls are in
+> `SwiftUI-API-completion-decisions-D5G.md`. A2 and A7 left the decisions doc
+> when they shipped.
+
 *Read-only study at `f56c419d`, 2026-10-04. Inputs: decisions doc A2 (line 178) and
 A7 (line 386); the W05 brief §3.3 (G1's full mechanics, probes L/M);
 `plan/a2_g3_idea.md` (G3); `Documentation/Locating things without drawing them.md`

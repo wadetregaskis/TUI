@@ -3,7 +3,7 @@
 *Lane D5G implemented the owner's decisions A2 (coordinate spaces,
 `GeometryProxy.frame(in:)`, anchors, `scrollTransition`) and A7
 (`onScrollVisibilityChange`), by the design study
-[`SwiftUI-API-completion-design-A2-geometry.md`](SwiftUI-API-completion-design-A2-geometry.md)
+[the A2 design study](Historical/Geometry%20design%20study%2C%20A2%20and%20A7%20%282026-10-04%29.md)
 and the owner's answers to its §9. This file holds the judgement calls the
 work reached that those answers did not already settle, in the format of
 [`SwiftUI-API-completion-decisions.md`](SwiftUI-API-completion-decisions.md):*

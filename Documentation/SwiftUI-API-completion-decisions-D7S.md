@@ -2,7 +2,7 @@
 
 *Lane D7S implemented the owner's decision A19 — resizable sheets and a live
 page behind them, designs A then C of
-`SwiftUI-API-completion-design-A19-sheets.md` (2026-10-06). Each call below
+`Historical/Live sheets design study, A19 (2026-10-04).md` (2026-10-06). Each call below
 came up on the way. The safe option shipped; the alternative and its price are
 given. Numbered as the main decisions document is: A = owner decision, B =
 basic shipped, C = declined.*

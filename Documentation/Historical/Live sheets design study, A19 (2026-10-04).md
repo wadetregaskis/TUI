@@ -1,5 +1,16 @@
 # A19 — sheets the reader can resize, with a live page behind
 
+> **Historical (moved 2026-10-12).** The design study behind decisions A19,
+> written before anything was built; it no longer describes the code.
+> **Decided since.** The owner answered its questions on 2026-10-04 and
+> 2026-10-05: the page **reflows** above a docked live sheet, so nothing
+> focusable sits hidden beneath it ("a mapping of these live sheets to
+> vertical split views"), and the sheet is a full-width band. Lane D7S built
+> designs A then C (2026-10-06, from 55e40a24f), with the calls it made on the
+> way, among them a grabber that is a rule of its own rather than a stamp on
+> the content's border, in `SwiftUI-API-completion-decisions-D7S.md`. Design B
+> was not built. The A19 entry left the decisions doc when it shipped.
+
 Design study, 2026-10-04, read against `main` at `f56c419d0`. Read-only: nothing
 here was built, run or measured. Every cost below is an estimate; every
 performance figure is a prediction for the A/B in §9 to confirm or refute.

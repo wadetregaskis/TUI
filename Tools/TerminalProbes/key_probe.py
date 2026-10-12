@@ -13,7 +13,7 @@ Shortcuts → Mission Control. Record whether they are.
 
 The keys asked are a detented sheet's grabber's (↑ ↓, ↖ ↘ Home and End) and the
 ones its design rejected or deferred (⇞ ⇟, ⌃↑ ⌃↓, ⇧↑, ⌥↑) — see
-Documentation/SwiftUI-API-completion-design-A19-sheets.md §4 and
+Documentation/Historical/Live sheets design study, A19 (2026-10-04).md §4 and
 Documentation/Terminal-compatibility.md, "Keys a sheet's grabber uses".
 
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
