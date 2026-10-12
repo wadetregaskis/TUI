@@ -97,3 +97,7 @@ be consumed when there is help on screen to show, which needs every
 `help(_:)` to register itself in a way that replays when its row is served
 from the memo, as `requestFeature` does. About half a lane-day to one, with
 tests; and whether `?` should take on that meaning is yours to say.
+
+What an app can do today is what the Example's Help & Tooltips page does: offer
+the trigger as a setting the keyboard can reach, so `.always` is one choice
+away.

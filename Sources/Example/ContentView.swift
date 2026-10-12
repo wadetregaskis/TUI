@@ -45,6 +45,7 @@ enum DemoPage: Int, CaseIterable {
     case navigation
     case animation
     case layering
+    case help
 
     /// The page to open on, so a demo page can be inspected without navigating
     /// to it — `Example --page emoji`.
@@ -312,6 +313,8 @@ struct ContentView: View {
             AnimationPage().statusBarItems(subPageItems(pageSetter: pageSetter))
         case .layering:
             LayeringPage().statusBarItems(subPageItems(pageSetter: pageSetter))
+        case .help:
+            HelpPage().statusBarItems(subPageItems(pageSetter: pageSetter))
         }
     }
 

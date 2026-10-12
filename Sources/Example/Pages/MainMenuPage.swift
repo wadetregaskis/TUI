@@ -100,6 +100,7 @@ struct MainMenuPage: View {
         Entry(page: .navigation, key: "menu.item.navigation", shortcut: "g"),
         Entry(page: .animation, key: "menu.item.animation", shortcut: "a"),
         Entry(page: .layering, key: "menu.item.layering", shortcut: "o"),
+        Entry(page: .help, key: "menu.item.help", shortcut: "h"),
     ]
 
     /// Subtitle for the SF Symbols feature box: a few thematic glyphs — the

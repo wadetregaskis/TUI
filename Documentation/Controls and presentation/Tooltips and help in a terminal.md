@@ -304,3 +304,7 @@ hovered and the focused view's panels are placed first.
 3. Presentation 1, with the two-pass height. Evaluate.
 4. Presentation 2, on the overlay placement machinery.
 5. The Example demo, which is also where the presentations get compared.
+   Built 2026-10-12: the Help & Tooltips page (`Example --page help`, menu key
+   `h`) has a `Button`, a `Toggle`, two `Text`s and a `TextField` with help,
+   and pickers for the presentation and the trigger, `.always` included,
+   which is also how a keyboard reader sees the two `Text`s' help there.
