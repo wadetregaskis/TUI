@@ -10,14 +10,14 @@ nothing below needs your attention.
 
 TUIkit is also built as separate modules, and each module an app may want on its own is a library product of its
 own. An app can list the products of the modules it uses instead of `TUIkit`, and SwiftPM then compiles and links
-only those modules and the ones they are built on. Measured on 2026-10-11 with Swift 6.4.0 (`swift build -c
+only those modules and the ones they are built on. Measured on 2026-10-12 with Swift 6.4.0 (`swift build -c
 release` with TUIkit's default traits, then `strip`), a hello world (`Text("Hello, world")` in a `WindowGroup`):
 
 | The app depends on | Stripped size | TUIkit modules compiled |
 |---|--:|--:|
-| `TUIkit` | 9,552,376 bytes | 25, the umbrella, and the C image decoder |
-| `TUIkitApp` | 5,964,832 bytes (−37.6%) | 8 |
-| `TUIkitApp` and `TUIkitColorPicker`, with one `ColorPicker` | 7,833,208 bytes | 14 |
+| `TUIkit` | 9,241,968 bytes | 25, the umbrella, and the C image decoder |
+| `TUIkitApp` | 5,751,768 bytes (−37.8%) | 8 |
+| `TUIkitApp` and `TUIkitColorPicker`, with one `ColorPicker` | 7,613,568 bytes | 14 |
 
 Launch time and memory use have not been measured.
 
