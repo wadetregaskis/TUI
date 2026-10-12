@@ -57,6 +57,7 @@ A `clients` order takes about a minute and a half when the probe's forwarded OSC
 4 go to the silent client, because each probe run then ends at its 20 s limit.
 """
 import argparse
+import atexit
 import fcntl
 import json
 import os
@@ -283,6 +284,7 @@ def run_clients(args):
     tmux = tmux_binary()
     directory = out_dir()
     control = tempfile.mkdtemp(prefix="tmux_colour_clients-")
+    atexit.register(shutil.rmtree, control, ignore_errors=True)  # however the run ends; the pane is another process
     socket = "tuikit-colour-%d" % os.getpid()
     first, second = args.order[0], args.order[1]
     clients = clients_for(args.order)
@@ -420,6 +422,7 @@ def run_batch(args):
     tmux = tmux_binary()
     directory = out_dir()
     control = tempfile.mkdtemp(prefix="tmux_colour_batch-")
+    atexit.register(shutil.rmtree, control, ignore_errors=True)  # after pane.json is read; the pane is another process
     socket = "tuikit-colour-%d" % os.getpid()
     pane_path = os.path.join(control, "pane.json")
     client = ScriptedClient(args.client, b"abab/b2b2/bfbf", b"2828/2c2c/3434", scheme=1,

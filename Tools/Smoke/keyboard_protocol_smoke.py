@@ -34,10 +34,12 @@ Usage:  python3 Tools/Smoke/keyboard_protocol_smoke.py [path-to-binary]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR.
 """
 
+import atexit
 import os
 import pty
 import re
 import select
+import shutil
 import signal
 import sys
 import tempfile
@@ -58,6 +60,12 @@ STRIPPED = (
 
 failures = []
 
+# Every child's config directory, under one of this run's own that atexit
+# removes: it runs on the SystemExit at the end, and on an exception, too. The
+# forked child never runs it: it execs.
+SCRATCH = tempfile.mkdtemp(prefix="tuikit-kkp-smoke-")
+atexit.register(shutil.rmtree, SCRATCH, ignore_errors=True)
+
 
 def check(condition, label):
     print(("ok   " if condition else "FAIL ") + label)
@@ -73,13 +81,14 @@ class FakeTerminal:
         self.stack = []
         self.out = b""
         self.pending = b""
+        config = tempfile.mkdtemp(dir=SCRATCH)
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             for key in STRIPPED:
                 os.environ.pop(key, None)
             os.environ["TERM"] = "xterm-256color"
             os.environ["LANG"] = "en_US.UTF-8"
-            os.environ["TUIKIT_CONFIG_DIR"] = tempfile.mkdtemp(prefix="tuikit-kkp-smoke-")
+            os.environ["TUIKIT_CONFIG_DIR"] = config
             os.environ.update(env or {})
             os.execv(BINARY, [BINARY])
 

@@ -23,10 +23,12 @@ Exits 0 on success; prints FAIL lines and exits 1 otherwise. Uses an isolated
 TUIKIT_CONFIG_DIR so the probe never touches real preferences.
 """
 
+import atexit
 import fcntl
 import os
 import pty
 import select
+import shutil
 import signal
 import struct
 import sys
@@ -61,6 +63,8 @@ env = dict(os.environ)
 env["TERM"] = "xterm-256color"
 env["LANG"] = "en_US.UTF-8"
 env["TUIKIT_CONFIG_DIR"] = tempfile.mkdtemp(prefix="tuikit-suspend-probe-")
+# Removed when the probe ends, however it ends; the forked child execs, so never runs it.
+atexit.register(shutil.rmtree, env["TUIKIT_CONFIG_DIR"], ignore_errors=True)
 
 pid, fd = pty.fork()
 if pid == 0:

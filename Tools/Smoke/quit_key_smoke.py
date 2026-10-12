@@ -61,11 +61,13 @@ Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
 core files (RLIMIT_CORE 0 in the child).
 """
 
+import atexit
 import fcntl
 import os
 import re
 import resource
 import select
+import shutil
 import signal
 import struct
 import sys
@@ -85,6 +87,13 @@ STRIPPED = (
 )
 
 failures = []
+
+# Every child's config directory, and the file IdleProbe writes its child's
+# process ID to, under one directory of this run's own that atexit removes: it
+# runs on the SystemExit at the end, and on an exception, too. A forked child
+# never runs it: it execs, or, as a job's shell, ends by os._exit or a signal.
+SCRATCH = tempfile.mkdtemp(prefix="tuikit-quit-smoke-")
+atexit.register(shutil.rmtree, SCRATCH, ignore_errors=True)
 
 
 def check(condition, label):
@@ -114,7 +123,7 @@ class App:
         child_env.update({
             "TERM": "xterm-256color",
             "LANG": "en_US.UTF-8",
-            "TUIKIT_CONFIG_DIR": tempfile.mkdtemp(prefix="tuikit-quit-smoke-"),
+            "TUIKIT_CONFIG_DIR": tempfile.mkdtemp(dir=SCRATCH),
         })
         child_env.update(env or {})
         self.pid = os.fork()
@@ -268,7 +277,7 @@ def check_quit(app, mark, name):
 
 def spawn_child_file():
     """A path for IdleProbe to write its child's process ID to."""
-    handle, path = tempfile.mkstemp(prefix="tuikit-quit-smoke-child-")
+    handle, path = tempfile.mkstemp(prefix="child-", dir=SCRATCH)
     os.close(handle)
     os.unlink(path)
     return path

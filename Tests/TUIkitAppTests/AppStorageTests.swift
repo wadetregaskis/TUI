@@ -74,7 +74,12 @@ struct JSONFileStorageTests {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("tuikit-appstorage-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: url) }
-        body(JSONFileStorage(fileURL: url), url)
+        let storage = JSONFileStorage(fileURL: url)
+        // A write queues its save on the storage's own queue, which could
+        // land after the removal above and leave the file behind: flush it
+        // first (defers run last-declared first).
+        defer { storage.synchronize() }
+        body(storage, url)
     }
 
     private func expectRoundTrip<T: Codable & Equatable>(_ value: T) {
@@ -272,6 +277,7 @@ struct JSONFileStorageTests {
         try? "this is not valid json".write(to: url, atomically: true, encoding: .utf8)
 
         let storage = JSONFileStorage(fileURL: url)
+        defer { storage.synchronize() }  // the write below queues a save: land it before the removal
         let value: String? = storage.value(forKey: "k")
         #expect(value == nil)  // didn't crash; treated as empty
         // …and it's still usable.

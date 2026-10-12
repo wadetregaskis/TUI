@@ -539,8 +539,9 @@ struct LocalizedTitleTests {
         // …and that default is worth having: an isolated service in another
         // language returns a different word for each. (Isolated, so the shared
         // service — which every other test reads — is never re-pointed.)
-        let german = LocalizationService(
-            configDirectoryPath: NSTemporaryDirectory() + "tuikit-alert-\(UUID().uuidString)")
+        let directory = NSTemporaryDirectory() + "tuikit-alert-\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: directory) }
+        let german = LocalizationService(configDirectoryPath: directory)
         german.setLanguage(.german)
         #expect(german.string(for: LocalizationKey.Label.warning) == "Warnung")
         #expect(german.string(for: LocalizationKey.Label.success) == "Erfolg")

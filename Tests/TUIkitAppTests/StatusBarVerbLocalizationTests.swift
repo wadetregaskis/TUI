@@ -22,13 +22,25 @@ import TUIkit
 @testable import TUIkitTestSupport
 
 @Suite("Status bar verb localization")
-struct StatusBarVerbLocalizationTests {
+final class StatusBarVerbLocalizationTests {
+
+    /// The config directories `isolated(_:)` made: `setLanguage` writes the
+    /// choice into one. swift-testing builds a fresh suite instance per test,
+    /// so each test removes its own, passed or failed.
+    private var directories: [String] = []
+
+    deinit {
+        for directory in directories {
+            try? FileManager.default.removeItem(atPath: directory)
+        }
+    }
 
     /// A service pointed at its own config directory, so setting a language
     /// here can never re-point the shared one every other suite reads.
     private func isolated(_ language: LocalizationService.Language) -> LocalizationService {
-        let service = LocalizationService(
-            configDirectoryPath: NSTemporaryDirectory() + "tuikit-verbs-\(UUID().uuidString)")
+        let directory = NSTemporaryDirectory() + "tuikit-verbs-\(UUID().uuidString)"
+        directories.append(directory)
+        let service = LocalizationService(configDirectoryPath: directory)
         service.setLanguage(language)
         return service
     }

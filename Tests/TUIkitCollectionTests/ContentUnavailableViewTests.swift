@@ -115,8 +115,11 @@ struct ContentUnavailableViewTests {
         // Every language must keep the `%@`, or the query vanishes rather than
         // merely landing in the wrong place.
         for language in LocalizationService.Language.allCases {
-            let isolated = LocalizationService(
-                configDirectoryPath: NSTemporaryDirectory() + "tuikit-cuv-\(UUID().uuidString)")
+            // `setLanguage` writes the choice into the directory: gone at the
+            // end of each pass.
+            let directory = NSTemporaryDirectory() + "tuikit-cuv-\(UUID().uuidString)"
+            defer { try? FileManager.default.removeItem(atPath: directory) }
+            let isolated = LocalizationService(configDirectoryPath: directory)
             isolated.setLanguage(language)
             #expect(
                 isolated.string(for: LocalizationKey.Label.noResultsFor).contains("%@"),
