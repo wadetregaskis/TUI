@@ -592,8 +592,9 @@ extension Terminal {
     /// then copies them into the string, once: it allocates nothing else (its
     /// body is inlinable, and reads contiguous storage where it lies). It is
     /// new in macOS 15. On macOS 14 this is Foundation's decoder, which decoded
-    /// every paste until 2026-10-12; the two keep a byte-order mark alike
-    /// (measured), and turn down the same bytes as far as the tests here go.
+    /// every paste until 2026-10-12, so a paste there decodes as it did; the
+    /// two keep a byte-order mark alike (measured on macOS 15, the only macOS
+    /// these tests run on: the macOS 14 path is not exercised by them).
     nonisolated static func utf8Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String? {
         if #available(macOS 15, *) {
             return String(validating: bytes, as: UTF8.self)
