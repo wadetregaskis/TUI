@@ -834,11 +834,14 @@ extension RenderLoop {
         statusBar.beginSceneRender()
         windowChrome.beginWalk()
         // And for a tooltip's FOCUS candidate, republished by the focused
-        // control every render for the same reason. Its hover candidate is not
-        // cleared here: the pointer stays where it is between frames, and only
-        // an `.exited` event knows it has left.
-        tuiContext.tooltipState.beginRenderPass()
-        tuiContext.tooltipState.syncReveal(focusID: focusManager.currentFocusedID)
+        // control every walk — marked, not cleared: the status bar is sized
+        // from it before the walk republishes it, and `endRenderPass` drops it
+        // if the drawn walk did not (`TooltipState.endFrame`). One the focus
+        // has moved off goes now. Its hover candidate is not touched: the
+        // pointer stays where it is between frames, and only an `.exited`
+        // event knows it has left.
+        tuiContext.tooltipState.beginWalk()
+        tuiContext.tooltipState.syncFocus(focusID: focusManager.currentFocusedID)
     }
 
     /// Evaluates `App.body` with the App's `@State` bound under ``rootIdentity``
@@ -978,6 +981,7 @@ extension RenderLoop {
         tuiContext.stateStorage.endRenderPass()
         tuiContext.renderCache.removeInactive()
         tuiContext.renderCache.logFrameStats()
+        tuiContext.tooltipState.endFrame()
     }
 
     /// Clears the render cache when environment values affecting visual output changed.

@@ -311,7 +311,7 @@ package enum FocusRegistration {
         // settings, and the run loop that resolves the tooltip has only the
         // root's.
         tooltips.focusing(
-            text, handlerID: nil, nowNanos: context.environment.frameNowNanos,
+            text, focusID: focusID, handlerID: nil, nowNanos: context.environment.frameNowNanos,
             style: trigger.presentation(context.environment.tooltipStyle),
             delaySeconds: context.environment.tooltipDelay,
             revealsItself: trigger.revealsOnFocus)

@@ -3,10 +3,15 @@
 **Status: shipped, 2026-09-09; a follow-up is owed (2026-10-12).** The owner
 ruled on 2026-10-12 that `help(_:)` must work on views that cannot take the
 focus, by hover and by an app-wide help feature (`Parity work blocked on a decision.md`
-§1). Hover already does. Two defects found then are open until that lane
-lands: a focus-revealed tooltip never reaches the status bar, the default
-presentation, so `?` shows nothing with the default style; and `.onFocus` with
-a delay above zero never shows, because its delay restarts every frame.
+§1). Hover already does. Two defects found then are fixed: a focus-revealed
+tooltip never reached the status bar, the default presentation, so `?` showed
+nothing with the default style; and `.onFocus` with a delay above zero never
+showed, because its delay restarted every frame. Both came from clearing the
+focus candidate at the top of every walk: the bar is sized before the walk
+republishes it, and a frame runs that reset twice. The candidate now lives
+until the end of a frame whose drawn walk did not publish it again, or until
+the focus moves off its control (`TooltipState.beginWalk`, `endFrame`,
+`syncFocus`); `HelpRunLoopTests` drives both through the run loop.
 `help(_:)`, `TooltipState`, `TooltipStyle`,
 `TooltipTrigger` (`.never` / `.automatic` / `.onFocus` / `.always`), the three
 subtree modifiers, the `?` help key and **both presentations** are on `main`. What is not built is §5's rules 4 and 5 — prefer a

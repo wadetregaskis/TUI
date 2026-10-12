@@ -179,16 +179,19 @@ struct HelpTooltipTests {
     }
 
     /// The reveal belongs to the view it was granted for, so moving the focus
-    /// drops it rather than carrying the tooltip along.
-    @Test("Moving the focus drops a reveal")
+    /// drops it rather than carrying the tooltip along — and the candidate with
+    /// it, which the status bar is sized from before the next walk could prove
+    /// it gone.
+    @Test("Moving the focus drops a reveal and the candidate")
     func revealDoesNotFollowFocus() {
         let h = harness()
         _ = frame(Button("Rebuild") {}.help("Rebuild the index"), h)
         #expect(h.tooltips.toggleKeyboardReveal(focusID: h.focus.currentFocusedID))
         #expect(h.tooltips.keyboardRevealed)
 
-        h.tooltips.syncReveal(focusID: "somewhere-else")
+        h.tooltips.syncFocus(focusID: "somewhere-else")
         #expect(!h.tooltips.keyboardRevealed, "the reveal did not travel")
+        #expect(h.tooltips.focused == nil, "the candidate did not stay behind")
     }
 
     // MARK: - The hover half, and its delay
@@ -298,7 +301,7 @@ struct HelpKeyTests {
     /// A candidate, as the focused control would have published it during the
     /// frame.
     private func publishFocusCandidate(_ fixture: Fixture, text: String = "Rebuild the index") {
-        fixture.tooltips.focusing(text, handlerID: nil, nowNanos: 0)
+        fixture.tooltips.focusing(text, focusID: "rebuild", handlerID: nil, nowNanos: 0)
     }
 
     @Test("? reveals the focused view's tooltip, and again hides it")
@@ -588,7 +591,10 @@ struct TooltipOnFocusTests {
         return (tui, focus, env)
     }
 
-    /// One frame at `now`, driving the same per-frame clears the run loop does.
+    /// One frame at `now`, driving the same per-walk resets the run loop does —
+    /// TWICE, as `RenderLoop.render` runs them (the frame opens with one and
+    /// its walk with another). A harness that ran them once per frame is how
+    /// `.onFocus` restarting its delay every frame passed these tests.
     @discardableResult
     private func frame<V: View>(
         _ view: V, _ h: (tui: TUIContext, focus: FocusManager, env: EnvironmentValues),
@@ -596,14 +602,17 @@ struct TooltipOnFocusTests {
     ) -> FrameBuffer {
         var env = h.env
         env.frameNowNanos = now
-        h.tui.tooltipState.beginRenderPass()
-        h.tui.tooltipState.syncReveal(focusID: h.focus.currentFocusedID)
         h.focus.beginRenderPass()
+        for _ in 0..<2 {
+            h.tui.tooltipState.beginWalk()
+            h.tui.tooltipState.syncFocus(focusID: h.focus.currentFocusedID)
+        }
         let buffer = renderToBuffer(
             view,
             context: RenderContext(
                 availableWidth: 40, availableHeight: 10, environment: env, tuiContext: h.tui))
         h.focus.endRenderPass()
+        h.tui.tooltipState.endFrame()
         return buffer
     }
 
@@ -636,7 +645,7 @@ struct TooltipOnFocusTests {
     }
 
     /// **The bug this design is most likely to have.** The deadline has to
-    /// survive `beginRenderPass`'s clear. If it does not, every frame republishes
+    /// survive the per-walk reset. If it does not, every frame republishes
     /// a deadline `tooltipDelay` into ITS OWN future and the tooltip never
     /// arrives however long the reader waits.
     @Test("The deadline survives the per-frame republication")

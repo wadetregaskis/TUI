@@ -20,11 +20,22 @@ import TUIkitCore
 ///
 /// A hover candidate is set by an `.entered` mouse event and survives until
 /// `.exited`, because the pointer stays where it is between frames. A focus
-/// candidate is republished by whichever view holds the focus on every render
-/// and is therefore **cleared at the top of each frame** — exactly as
-/// `StatusBarState.activationLabelOverride` is, and for the same reason: its
-/// absence has to be the default, or a view that lost the focus would leave its
-/// help text behind.
+/// candidate is republished by whichever view holds the focus on every walk of
+/// the scene, and is **dropped at the end of a frame whose last walk did not
+/// publish it again**, or as soon as the focus moves off the view that
+/// published it: its absence has to be the default, or a view that lost the
+/// focus would leave its help text behind.
+///
+/// Dropped at the END of the frame, not cleared at the top of each walk as it
+/// was until 2026-10-12, because two readers come before the focused control
+/// publishes again. The status bar's rows are sized before the walk
+/// (`RenderLoop.resolveStatusBarTooltip`), so a slot cleared at the top of the
+/// walk never reached the bar: `?` showed nothing in the default presentation.
+/// And a frame runs the per-walk reset twice (the frame opens with one, and the
+/// walk itself with another: `RenderLoop.beginSceneRender`), so a deadline
+/// saved from the slot as it was cleared was saved from an empty slot by the
+/// second, and ``TooltipTrigger/onFocus`` restarted its delay every frame and
+/// never showed.
 ///
 /// Keeping them apart is what makes "hover wins over focus" a one-line rule
 /// rather than a race between two publishers. The pointer is a deliberate act
@@ -47,6 +58,11 @@ public final class TooltipState: @unchecked Sendable {
         /// RECT is not stored: only the dispatcher knows where the compositor
         /// finally put the region, and it knows it after this is published.
         var handlerID: HitTestRegion.HandlerID?
+        /// The focus identity of the control that published a focus candidate;
+        /// `nil` for a hover candidate. What lets the run loop drop the
+        /// candidate the moment the focus moves (``syncFocus(focusID:)``),
+        /// rather than at the end of the walk that proves it gone.
+        var focusID: String?
         /// The frame clock when this became the candidate — the re-entry test,
         /// not the deadline.
         var sinceNanos: Int64
@@ -76,8 +92,13 @@ public final class TooltipState: @unchecked Sendable {
     /// The pointer's candidate. Set on `.entered`, cleared on `.exited`.
     private(set) var hovered: Candidate?
 
-    /// The focused view's candidate, republished every render.
+    /// The focused view's candidate: the one the focused control last
+    /// published. Kept across walks; see the type's discussion.
     private(set) var focused: Candidate?
+
+    /// Whether the walk under way has published ``focused`` again: what
+    /// ``endFrame()`` asks of the frame's last walk.
+    private var focusRepublished = false
 
     /// Whether the keyboard has asked for the focused view's tooltip.
     ///
@@ -95,17 +116,6 @@ public final class TooltipState: @unchecked Sendable {
 
     /// The focus identity `keyboardRevealed` was granted for.
     private var revealedFocusID: String?
-
-    /// The focus candidate's text and deadline as of the previous frame.
-    ///
-    /// The focus slot is cleared and refilled every frame, so a candidate that
-    /// computed a fresh deadline each time would never reach one — it would sit
-    /// permanently `tooltipDelay` in the future and ``TooltipTrigger/onFocus``
-    /// would show nothing at all. Only these two fields outlive the frame;
-    /// keeping the whole `Candidate` would invite reading last frame's handler
-    /// id, which belongs to a dispatcher generation that is gone.
-    private var previousFocusText: String?
-    private var previousFocusDeadline: Int64 = 0
 
     /// The key that reveals the focused view's tooltip. `?` by default, `nil` to
     /// claim no key at all.
@@ -170,36 +180,46 @@ public final class TooltipState: @unchecked Sendable {
         hovered = nil
     }
 
-    /// Records the focused view's help text for this frame.
+    /// Records the focused view's help text for this walk.
     ///
     /// - Parameters:
+    ///   - focusID: The focus identity of the control publishing it.
     ///   - revealsItself: Whether the subtree asked for
     ///     ``TooltipTrigger/onFocus``, so this shows without the help key.
     func focusing(
-        _ text: String, handlerID: HitTestRegion.HandlerID?, nowNanos: Int64,
+        _ text: String, focusID: String, handlerID: HitTestRegion.HandlerID?, nowNanos: Int64,
         style: TooltipStyle = .statusBar, delaySeconds: Double = 0,
         revealsItself: Bool = false
     ) {
         // Continuing to hold the focus keeps the ORIGINAL deadline; taking it
-        // starts a new one. Compared on the text rather than on a focus id for
-        // the same reason `hovering` is — and because the same control can be
-        // re-registered under a rebuilt id while plainly still being the thing
-        // the reader is looking at.
-        let deadline =
-            previousFocusText == text
-            ? previousFocusDeadline
-            : nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000)
+        // starts a new one. A candidate a moved focus left behind is already
+        // gone (`syncFocus`), so one still here is this control's own from an
+        // earlier walk. Compared on the text, as `hovering` compares, so help
+        // text that changes under the focus is new help with a new wait.
+        var deadline = nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000)
+        if let focused, focused.text == text { deadline = focused.showAtNanos }
         focused = Candidate(
-            text: text, handlerID: handlerID, sinceNanos: nowNanos,
+            text: text, handlerID: handlerID, focusID: focusID, sinceNanos: nowNanos,
             showAtNanos: deadline, revealsItself: revealsItself, style: style)
+        focusRepublished = true
     }
 
-    /// Clears the per-frame focus slot. Called by the run loop before the frame,
-    /// beside the status bar's own per-frame overrides.
-    package func beginRenderPass() {
-        previousFocusText = focused?.text
-        previousFocusDeadline = focused?.showAtNanos ?? 0
-        focused = nil
+    /// Opens a walk of the scene. Called by the run loop at the top of every
+    /// walk, beside the status bar's own per-walk resets.
+    ///
+    /// Clears nothing: the focus candidate stays readable until the walk's
+    /// focused control publishes it again, because the status bar is sized
+    /// from it before the walk begins. Whether that happens is what
+    /// ``endFrame()`` asks.
+    package func beginWalk() {
+        focusRepublished = false
+    }
+
+    /// Closes the frame: a focus candidate its last walk did not publish again
+    /// belongs to a control that has gone or no longer carries help, and goes
+    /// with it. The last walk, because it is the one drawn.
+    package func endFrame() {
+        if !focusRepublished { focused = nil }
     }
 
     // MARK: - The keyboard reveal
@@ -222,12 +242,18 @@ public final class TooltipState: @unchecked Sendable {
         return true
     }
 
-    /// Drops a reveal that belongs to a view the focus has left.
+    /// Drops the focus candidate and the reveal when they belong to a view the
+    /// focus has left.
     ///
-    /// Called each frame with the current focus identity. Not folded into
-    /// ``beginRenderPass()``: that clears a slot the frame is about to refill,
-    /// while this is a comparison against something outside this type.
-    package func syncReveal(focusID: String?) {
+    /// Called at the top of each walk with the current focus identity, so a
+    /// focus moved by a key between frames takes its tooltip with it in the
+    /// frame that shows the move. Kept until the end of a walk proved it gone,
+    /// the candidate of a control the reader had tabbed off would have been
+    /// drawn in the status bar once more, and nothing would have drawn the
+    /// frame that took it out. Not folded into ``beginWalk()``: that marks the
+    /// walk, while this is a comparison against something outside this type.
+    package func syncFocus(focusID: String?) {
+        if let focused, focused.focusID != focusID { self.focused = nil }
         guard keyboardRevealed, revealedFocusID != focusID else { return }
         keyboardRevealed = false
         revealedFocusID = nil
