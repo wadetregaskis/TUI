@@ -30,6 +30,9 @@ enum PropertyPlans {
     private static let classContents = permanentTable([ObjectIdentifier: FieldsPlan]())
     /// Each tuple's elements, as an enum case's payload.
     private static let payloads = permanentTable([ObjectIdentifier: FieldsPlan]())
+    /// The plan of each class an object was found to be, as its exact type:
+    /// an object plan for a property or modifier class, none for any other.
+    private static let exactClasses = permanentTable([ObjectIdentifier: SlotPlan]())
 
     /// The plan for a value of `type` evaluated as a body's root, or `nil` if
     /// no value of it holds anything the walk acts on: nearly every view,
@@ -83,12 +86,36 @@ enum PropertyPlans {
             guard step.reference == nil, !step.appliesModifier else { return nil }
             var slot = step.slot
             if case .optional(let optional) = slot.action { slot = optional.wrapped }
-            guard case .existential(let existential) = slot.action, existential.layout != .other else {
+            switch slot.action {
+            case .existential(let existential) where existential.layout != .other:
+                probes.append(
+                    RootProbe(offset: step.offset, kind: .existential(existential.layout), empty: existential.empty))
+            case .dynamicClass(let plan):
+                probes.append(
+                    RootProbe(
+                        offset: step.offset, kind: .object(declared: UInt(bitPattern: ObjectIdentifier(plan.type))),
+                        empty: plan.empty))
+            default:
                 return nil
             }
-            probes.append(RootProbe(offset: step.offset, kind: .existential(existential.layout), empty: existential.empty))
         }
         return probes
+    }
+
+    /// The plan for a value whose exact type is `type`, as an existential's
+    /// or a plain class field's value is found to be: a class is planned by
+    /// whether it is a property or modifier, as no subclass of it can be
+    /// there; any other type as a stored value of it is.
+    static func exact(_ type: Any.Type) -> SlotPlan {
+        guard RuntimeFields.Kind(of: type).isClass else { return slot(type) }
+        let key = ObjectIdentifier(type)
+        if let plan = exactClasses.pointee[key] { return plan }
+        let plan =
+            isContainerType(type)
+            ? SlotPlan(.object(ObjectPlan(type: type, updater: appPropertyType(type))), isModifier: type is any ViewModifier.Type)
+            : SlotPlan(.none)
+        exactClasses.pointee[key] = plan
+        return plan
     }
 
     /// The plan for a stored value of declared type `type`.
@@ -145,7 +172,14 @@ enum PropertyPlans {
             guard isContainerType(type) else { return .none }
             return .enumeration(EnumPlan(type: type, updater: appPropertyType(type)))
         case let kind where kind.isClass:
-            guard isContainerType(type) else { return .none }
+            guard isContainerType(type) else {
+                // A plain class held strongly: a subclass of it may be a
+                // property, which SwiftUI never looks for (measured, session
+                // notes DYNV/probe/dv2-main.out, `subclass`) and TUIkit did,
+                // the owner kept (decisions-DYNVFIX B-DYNVFIX-1). Not a
+                // Core Foundation class, which nothing subclasses.
+                return kind == .foreignClass ? .none : .dynamicClass(DynamicClassPlan(type: type))
+            }
             return .object(ObjectPlan(type: type, updater: appPropertyType(type)))
         default:
             // A tuple, a function, a metatype: not looked into, by SwiftUI

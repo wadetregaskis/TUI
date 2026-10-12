@@ -18,7 +18,7 @@ the main decisions file:*
 
 ## B. Shipped the safe option
 
-### B-DYNVFIX-1. A property subclass behind a field declared as a plain class is not updated
+### B-DYNVFIX-1. A property subclass behind a plain class field is reached through its object's class each body; not one held `weak` or `unowned`
 
 *`DynamicProperty`*
 
@@ -27,18 +27,36 @@ subclass that is a property, `CachingRowDelegate: RowDelegate,
 DynamicProperty`. TUIkit's walks found it from the value, but kept a view type
 as holding nothing when its first value held a plain instance there, so
 whether the property was ever updated depended on the first value drawn
-(DYNV bug 10).
+(DYNV bug 10). SwiftUI never looks: it decides by the declared type
+(measured, `DYNV/probe/dv2-main.out`, `subclass`: never updated; declared as
+the subclass, updated).
 
-**Shipped:** the declared type decides, as SwiftUI decides it (measured,
-`DYNV/probe/dv2-main.out`, `subclass`: never updated; declared as the
-subclass, updated). To have the property updated, declare the field as the
-subclass, or make the base class the property.
+**Shipped:** TUIkit keeps the reach (the owner's ruling: keep what TUIkit
+supports). Each body, a field held strongly whose declared type is a plain
+class has its object's class read where the reference lies; an object of a
+subclass that is a property is walked as any class property is
+(B-DYNVFIX-3) — its `@State` bound, its `@Environment` resolved, its
+`update()` run — whatever the field held first. An `@Environment(Model.self)`
+in such a subclass, which traps when read unresolved, reads the model. A
+class found not to be a property is noted in the field's plan, so the next
+body that finds it there reads no further. A Core Foundation class is not
+looked into: nothing subclasses one.
 
-**The fuller version** would look at every object field's value each body.
-Its price: a load of the reference and a compare of its class per object
-field per body, in every view that holds any object, such as an
-`@Observable` model passed as `let model: Model`, whatever it holds. No use
-of the reach was found (DYNV §3).
+**Not kept: a field held `weak` or `unowned`.** Loading an `unowned` one whose
+object has gone traps — the reason a field that cannot hold a property is
+never read (DYNV bug 9) — and the field metadata says of a field only that it
+is not strong, so a `weak` one cannot be told from an optional `unowned` one
+without parsing the field's mangled type. The fuller version reads the
+ownership from the mangled name (its last two characters, `Xw` for `weak`,
+after skipping its symbolic references) and loads `weak` fields; its price is
+that parsing, once per type, and a reflection call per such field per body.
+
+**The price** of what is kept: per body, per such field, a load of the
+reference and of its class and a compare, in every view holding an object —
+an `@Observable` model passed as `let model: Model` among them. Such a view
+holds nothing else the walk acts on, so it is probed where it lies before
+any copy of it is made (`SlotPlan.probes`), and evaluated as it is when its
+objects are of their declared classes.
 
 ### B-DYNVFIX-2. An `indirect` enum case's payload, and every payload on WebAssembly and Windows, is updated on a copy
 

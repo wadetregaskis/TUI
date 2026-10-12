@@ -6,11 +6,14 @@
 //  any copy of it is made: if no field holds anything the walk acts on, its
 //  body is evaluated on the view as it is, as a view holding no property's
 //  is. Such a field's dynamic type is read where it lies, never by copying
-//  the value out into an `Any`.
+//  the value out into an `Any`. A field declared as a plain class is one of
+//  them: the object in it may be of a subclass that is a property, which is
+//  walked as any class property is (decisions-DYNVFIX B-DYNVFIX-1).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 import TUIkit
@@ -61,6 +64,53 @@ private struct ShapeHolder: View {
     }
 }
 
+// MARK: - A property subclass behind a plain class field
+
+private struct ProbeAccent: EnvironmentKey {
+    static let defaultValue = "plain"
+}
+
+extension EnvironmentValues {
+    fileprivate var probeAccent: String {
+        get { self[ProbeAccent.self] }
+        set { self[ProbeAccent.self] = newValue }
+    }
+}
+
+/// A plain class, not a property.
+private class RowDelegate {
+    func title() -> String { "plain" }
+}
+
+/// A subclass of it that is a property, reading the environment.
+private final class AccentDelegate: RowDelegate, DynamicProperty {
+    @Environment(\.probeAccent) private var accent
+
+    override func title() -> String { accent }
+}
+
+/// An observable model.
+@Observable
+private final class ProbeModel {
+    var name = "model"
+}
+
+/// A subclass that is a property, reading a model from the environment.
+private final class ModelDelegate: RowDelegate, DynamicProperty {
+    @Environment(ProbeModel.self) private var model
+
+    override func title() -> String { model.name }
+}
+
+/// A field declared as the plain class.
+private struct DelegateRow: View {
+    let delegate: RowDelegate
+
+    var body: some View {
+        Text(verbatim: delegate.title())
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty probes")
 struct DynamicPropertyProbeTests {
@@ -83,5 +133,34 @@ struct DynamicPropertyProbeTests {
         _ = renderToBuffer(ShapeHolder(token: token, shape: Square(), counts: counts), context: context)
         _ = renderToBuffer(ShapeHolder(token: token, shape: Square(), counts: counts), context: context)
         #expect(counts.retains["shape"] == counts.retains["plain"])
+    }
+
+    /// The plan read only the declared type of a field, as SwiftUI does: a
+    /// property subclass behind a plain class field was given nothing, so
+    /// its `@Environment` read its default. TUIkit reached it from the value
+    /// before the plans (when the type's first value held it), and keeps the
+    /// reach: the object's class is read each body.
+    @Test("A property subclass behind a field declared as a plain class reads its view's environment")
+    func subclassBehindPlainFieldIsResolved() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let row = DelegateRow(delegate: AccentDelegate()).environment(\.probeAccent, "red")
+        #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "red")
+        let plain = DelegateRow(delegate: RowDelegate())
+        #expect(renderToBuffer(plain, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "plain")
+    }
+
+    /// The same for an `@Environment(Model.self)`, which, never resolved,
+    /// traps when read. An exit test, so the trap fails this test and not
+    /// the run.
+    @Test("A property subclass behind a plain class field reading an observable model from the environment draws")
+    func subclassBehindPlainFieldReadsModel() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let context = makeRenderContext(width: 20, height: 1)
+                let row = DelegateRow(delegate: ModelDelegate()).environment(ProbeModel())
+                let drawn = renderToBuffer(row, context: context)
+                #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+            }
+        }
     }
 }

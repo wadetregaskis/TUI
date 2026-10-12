@@ -239,6 +239,8 @@ struct PropertyWalk {
         case .object(let plan):
             let object = address.assumingMemoryBound(to: AnyObject.self).pointee
             applyObject(plan, object, position: position, scope: scope, updates: updates)
+        case .dynamicClass(let plan):
+            applyDynamicClass(plan, at: address, position: position, scope: scope, updates: updates)
         }
     }
 
@@ -316,7 +318,7 @@ struct PropertyWalk {
             dynamicType = type(of: field.pointee as Any)
         }
         if plan.empty.contains(dynamicType) { return }
-        let slot = PropertyPlans.slot(dynamicType)
+        let slot = PropertyPlans.exact(dynamicType)
         if slot.isNone {
             plan.empty.insert(dynamicType)
             return
@@ -356,6 +358,24 @@ struct PropertyWalk {
     }
 
     // MARK: Objects
+
+    /// The object in a field declared as a plain class, which `plan` plans:
+    /// walked as a class property if its class is one — a subclass of the
+    /// declared class — and nothing otherwise. A class found not to be one
+    /// is noted, so the next body that finds it there reads no further.
+    private mutating func applyDynamicClass(
+        _ plan: DynamicClassPlan, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64,
+        updates: UpdateMode
+    ) {
+        guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)) else { return }
+        if ObjectIdentifier(objectType) == ObjectIdentifier(plan.type) || plan.empty.contains(objectType) { return }
+        guard case .object(let objectPlan) = PropertyPlans.exact(objectType).action else {
+            plan.empty.insert(objectType)
+            return
+        }
+        let object = address.assumingMemoryBound(to: AnyObject.self).pointee
+        applyObject(objectPlan, object, position: position, scope: scope, updates: updates)
+    }
 
     /// A class instance in a field whose declared type `plan` names: what it
     /// holds, walked in place if this walk's view is the object's claimant,

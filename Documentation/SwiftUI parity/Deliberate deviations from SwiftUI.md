@@ -387,11 +387,14 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   read).
 - **TUIkit:** plans each type once from its fields' declared types
   ([PropertyPlan.swift](../Sources/TUIkitView/State/PropertyPlan.swift)), so
-  a custom `Mirror` changes nothing, a field that cannot hold a property is
-  never read, and a field declared as a plain class is not looked into, as in
-  SwiftUI. It reaches further: into properties held in optionals (S1) and
-  existentials (S3), checked by value each body, into the contents of class
-  properties (held strongly, `unowned` or `weak`; S6), and into modifiers
+  a custom `Mirror` changes nothing, and a field that cannot hold a property
+  is never read. It reaches further: into properties held in optionals (S1)
+  and existentials (S3), checked by value each body; into a property subclass
+  held strongly in a field declared as a plain class, by its object's class
+  each body
+  ([B-DYNVFIX-1](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-1-a-property-subclass-behind-a-plain-class-field-is-reached-through-its-objects-class-each-body-not-one-held-weak-or-unowned));
+  into the contents of class properties (held strongly, `unowned` or `weak`;
+  S6); and into modifiers
   stored in fields, whose `@State` is bound and `@Environment` resolved but
   whose properties' `update()` runs only where the modifier is applied, once,
   as SwiftUI's does (measured, DYNP `op.out` vii-c2;

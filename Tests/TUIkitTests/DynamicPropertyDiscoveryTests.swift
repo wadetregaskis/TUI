@@ -339,17 +339,18 @@ struct DynamicPropertyDiscoveryTests {
     /// subclass that is a property, B-DYNP-2's other "Not counted" case: a
     /// type first drawn holding a plain instance was kept as holding nothing,
     /// and the property it held next was never updated, where a type first
-    /// drawn holding the property was. The declared type now decides, as in
-    /// SwiftUI (session notes DYNV/probe/dv2-main.out, `subclass`: count=0;
-    /// declared as the subclass, count=1): a plain class field is never
-    /// looked into.
+    /// drawn holding the property was. Each body now reads the object's
+    /// class, so the subclass is updated whatever came first. SwiftUI never
+    /// updates it (session notes DYNV/probe/dv2-main.out, `subclass`:
+    /// count=0); TUIkit keeps the reach it had (decisions-DYNVFIX
+    /// B-DYNVFIX-1).
     @Test("What a plain class field's value gets does not depend on what the field held first")
     func classFieldFirstPlain() {
         enum FirstHoldsProperty {}
         enum FirstHoldsPlain {}
         let context = makeRenderContext(width: 20, height: 1)
         let fromTheStart = lines(BaseFieldView<FirstHoldsProperty>(object: CountingSubclass()), context: context)
-        #expect(fromTheStart == ["count 0"], "the declared type is not a property")
+        #expect(fromTheStart == ["count 1"], "the subclass is a property")
         #expect(lines(BaseFieldView<FirstHoldsPlain>(object: PlainBase()), context: context) == ["count -1"])
         let later = lines(BaseFieldView<FirstHoldsPlain>(object: CountingSubclass()), context: context)
         #expect(later == fromTheStart)

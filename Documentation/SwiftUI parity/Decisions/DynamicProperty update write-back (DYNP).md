@@ -114,15 +114,19 @@ open, the plan names the field and each body the value says what is there:
   its own properties when it renders): its dynamic type, read each body, and
   that type's plan;
 - an enum (a view that is one, or a property or modifier): its current case,
-  each body.
+  each body;
+- a plain class held strongly: its object's class, read each body, for a
+  subclass that is a property (decisions-DYNVFIX B-DYNVFIX-1).
 
-Nothing depends on the first value drawn. A field declared as a plain class
-is not looked into, whatever subclass it holds, as SwiftUI decides it
-(decisions-DYNVFIX B-DYNVFIX-1).
+Nothing depends on the first value drawn.
 
-**The cost.** An existential field costs a copy of what it holds and a plan
-lookup per body, in every view holding one, whatever it holds: the fuller
-version this entry used to price. An enum costs a call of its tag witness
+**The cost.** An existential or plain class field costs, per body, a read of
+its value's type where it lies and a compare: with the declared class, and
+with the two types last found there holding nothing. A view whose planned
+fields are all of these is read so before any copy of it is made, and, when
+they hold nothing, evaluated as it is. A type not yet known costs a plan
+lookup, and one holding a property a copy of the view and of what the field
+holds. An enum costs a call of its tag witness
 per body, and, for a case whose payload holds something the walk acts on,
 two more to project the payload and put the case back (B-DYNP-1). A case
 whose payload holds nothing costs nothing more, once its payload's type is

@@ -42,6 +42,9 @@ package final class SlotPlan {
         case existential(ExistentialPlan)
         /// A class instance whose declared type is a property or modifier.
         case object(ObjectPlan)
+        /// A class instance whose declared type is a plain class: one of its
+        /// subclasses may be a property.
+        case dynamicClass(DynamicClassPlan)
     }
 
     let action: Action
@@ -59,7 +62,8 @@ package final class SlotPlan {
     let isModifier: Bool
 
     /// For a view whose every field the walk acts on only if its value says
-    /// so — an existential, or an optional of one — what is read of each
+    /// so — an existential, a plain class, or an optional of either — what is
+    /// read of each
     /// field before the view is copied: if none finds anything, `body` is
     /// evaluated on the view as it is (``preparedBody(of:plan:context:isMeasuring:)``).
     let probes: [RootProbe]?
@@ -216,6 +220,23 @@ final class EnumPlan {
         self.type = type
         self.updater = updater
         cases = EnumCasesPlan(type)
+    }
+}
+
+/// A field held strongly whose declared type is a class that is not a
+/// property: the object in it may be of a subclass that is one, so its class
+/// is read each body, where the reference lies (``DynamicTypes``). The
+/// declared class, the usual case, and a class noted as holding nothing, cost
+/// a compare.
+@MainActor
+final class DynamicClassPlan {
+    /// The declared class.
+    let type: Any.Type
+    /// The subclasses found in such a field that are not properties.
+    let empty = EmptyTypes()
+
+    init(type: Any.Type) {
+        self.type = type
     }
 }
 

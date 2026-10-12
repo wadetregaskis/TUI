@@ -135,13 +135,17 @@ struct EmptyTypes {
 }
 
 /// One field of a view that the walk acts on only if its value says so — an
-/// existential holding a property — read before the view is copied, so a
-/// view whose such fields hold nothing is evaluated as it is
+/// existential holding a property, a plain class field holding a subclass
+/// that is one — read before the view is copied, so a view whose such fields
+/// hold nothing is evaluated as it is
 /// (``preparedBody(of:plan:context:isMeasuring:)``).
 struct RootProbe {
     enum Kind {
         /// An existential (or an optional of one) laid out so.
         case existential(ExistentialLayout)
+        /// A plain class held strongly (or an optional of one), the bits of
+        /// its declared class's identifier.
+        case object(declared: UInt)
     }
 
     /// The field's byte offset in the view.
@@ -155,7 +159,11 @@ struct RootProbe {
     func findsSomething(at address: UnsafeRawPointer) -> Bool {
         let read: DynamicTypeRead
         switch kind {
-        case .existential(let layout): read = DynamicTypes.existential(at: address, layout)
+        case .existential(let layout):
+            read = DynamicTypes.existential(at: address, layout)
+        case .object(let declared):
+            read = DynamicTypes.object(at: address)
+            if case .type(let type) = read, UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
         }
         switch read {
         case .empty: return false
