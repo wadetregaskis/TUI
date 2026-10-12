@@ -111,6 +111,20 @@ struct InputByteBuffer {
         }
     }
 
+    /// Calls `body` with the first `count` bytes where they lie, copying
+    /// nothing.
+    ///
+    /// How a bracketed paste becomes its string: the decoder reads the
+    /// buffer's storage, so the string is the one copy of the paste made on
+    /// its way to the app.
+    func withUnsafeBufferPointer<Result>(
+        prefix count: Int, _ body: (UnsafeBufferPointer<UInt8>) throws -> Result
+    ) rethrows -> Result {
+        precondition(count >= 0 && count <= self.count, "InputByteBuffer: a prefix longer than the buffer")
+        let start = head
+        return try storage.withUnsafeBufferPointer { try body(UnsafeBufferPointer(rebasing: $0[start..<(start + count)])) }
+    }
+
     /// Removes and returns the first byte, or `nil` when the buffer is empty.
     mutating func popFirst() -> UInt8? {
         guard head < tail else { return nil }
@@ -206,7 +220,7 @@ struct InputByteBuffer {
         if live + needed <= storage.count && head >= live {
             moveLive(to: 0)
         } else {
-            rebuild(capacity: grownCapacity(toHold: live + needed), liveAt: 0)
+            rebuild(capacity: Self.grownCapacity(from: storage.count, toHold: live + needed), liveAt: 0)
         }
     }
 
@@ -218,14 +232,19 @@ struct InputByteBuffer {
         if needed + live <= storage.count {
             moveLive(to: needed)
         } else {
-            rebuild(capacity: grownCapacity(toHold: needed + live), liveAt: needed)
+            rebuild(capacity: Self.grownCapacity(from: storage.count, toHold: needed + live), liveAt: needed)
         }
     }
 
-    /// The capacity to grow to for `required` bytes: half as much again, or
-    /// `required` if that is more.
-    private func grownCapacity(toHold required: Int) -> Int {
-        max(required, storage.count + storage.count / 2)
+    /// The capacity to grow `capacity` to for `required` bytes: half as much
+    /// again, or `required` if that is more.
+    ///
+    /// Half as much again stops at `Int.max` rather than overflowing. Only a
+    /// 32-bit `Int` gets there (WebAssembly's): a paste has no size limit, and
+    /// past about 1.4 GiB the half added would take it over, which traps.
+    /// Stopping there leaves the allocation to say whether the memory exists.
+    static func grownCapacity(from capacity: Int, toHold required: Int) -> Int {
+        max(required, capacity + min(capacity / 2, Int.max - capacity))
     }
 
     /// Moves the live bytes, within the storage, to start at `offset`.

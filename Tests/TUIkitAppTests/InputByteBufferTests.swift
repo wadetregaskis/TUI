@@ -242,6 +242,31 @@ struct InputByteBufferTests {
         #expect(buffer.firstIndex(of: 0x1B, in: 1..<1) == notFound)
         #expect(buffer.firstIndex(of: 9, in: 0..<6) == notFound, "the bytes removed from the front are not searched")
     }
+
+    /// What a paste's string is made from: the live bytes from the front,
+    /// where they lie, however far the front has moved into the storage.
+    @Test("The first bytes are lent in place, from wherever the front is")
+    func prefixIsLentInPlace() {
+        var buffer = InputByteBuffer(minimumCapacity: 8)
+        buffer.append(contentsOf: [1, 2, 3, 4, 5, 6])
+        buffer.removeFirst(2)
+        #expect(buffer.withUnsafeBufferPointer(prefix: 3) { Array($0) } == [3, 4, 5])
+        #expect(buffer.withUnsafeBufferPointer(prefix: 0) { $0.count } == 0)
+        #expect(buffer.withUnsafeBufferPointer(prefix: 4) { Array($0) } == [3, 4, 5, 6])
+        #expect(buffer.bytesMoved == 0, "lending copies nothing")
+    }
+
+    /// A paste has no size limit, so the growth rule is asked for sizes up to
+    /// what the platform's `Int` holds. Half as much again from two thirds of
+    /// `Int.max` up overflows, which traps; a 32-bit `Int` (WebAssembly's)
+    /// gets there at about 1.4 GiB.
+    @Test("Growth by half stops at Int.max rather than overflowing")
+    func growthSaturates() {
+        #expect(InputByteBuffer.grownCapacity(from: 100, toHold: 101) == 150)
+        #expect(InputByteBuffer.grownCapacity(from: 100, toHold: 400) == 400, "what is needed, when that is more")
+        #expect(InputByteBuffer.grownCapacity(from: Int.max / 3 * 2 + 3, toHold: 1) == Int.max)
+        #expect(InputByteBuffer.grownCapacity(from: Int.max - 1, toHold: Int.max) == Int.max)
+    }
 }
 
 @Suite("The input event queue")

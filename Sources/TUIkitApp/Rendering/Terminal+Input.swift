@@ -496,8 +496,7 @@ extension Terminal {
     /// While `inPasteMode` is set, scans ``input`` for the
     /// paste end marker. If found, builds a paste event from the
     /// content between markers and consumes through the end marker.
-    /// Otherwise returns `nil`, and leaves the buffer intact unless the
-    /// paste has run past ``pasteByteLimit`` (``dropPasteBeyondLimit()``).
+    /// Otherwise returns `nil` and leaves the buffer intact.
     private func tryExtractPaste() -> TerminalInput? {
         let endMarker = Self.pasteEnd
         guard input.count >= endMarker.count else { return nil }
@@ -506,8 +505,7 @@ extension Terminal {
         // than restarting at zero. Note: the start marker is no longer in the
         // buffer — `readEvent()` consumed it before setting `inPasteMode`.
         //
-        // Nothing is consumed from the front while a paste is open (except past
-        // the limit, which resets the cursor with what it drops), so a byte
+        // Nothing is consumed from the front while a paste is open, so a byte
         // ruled out on one pass is still that same byte, still ruled out, on
         // the next; and one pass happens per `readEvent()`, each of which adds
         // at most one 4 KiB drain. Rescanning from zero therefore made a paste
@@ -544,47 +542,19 @@ extension Terminal {
         // drain and `0 1 ~` in the next — has to be matched from its first
         // byte, and that first byte is inside the tail we just failed on.
         pasteScanCursor = input.count - (endMarker.count - 1)
-        dropPasteBeyondLimit()
         return nil
-    }
-
-    /// Once the open paste has run past ``pasteByteLimit``, sets its first
-    /// bytes aside in ``keptPaste`` and drops the rest of it as the end-marker
-    /// scan rules them out.
-    ///
-    /// The paste stays OPEN: what is dropped is paste content, and the end
-    /// marker, or the stall timeout, still ends it. Ending paste mode here
-    /// instead, as the limit did until 2026-10-11, handed every later byte of
-    /// the same paste to the key parser — pasted letters fired shortcuts, and
-    /// an 8 MiB paste of prose quit Stress at its first `q`.
-    ///
-    /// Only bytes before ``pasteScanCursor`` go: they are content, ruled out
-    /// as the start of the marker. The few after it may begin the marker, so
-    /// they stay for the next pass, and a marker straddling the limit or a
-    /// read boundary is still found. Linear, like the scan: each byte is
-    /// dropped once, and nothing is copied but the kept part, once.
-    private func dropPasteBeyondLimit() {
-        let content = pasteScanCursor
-        if keptPaste == nil {
-            guard content > pasteByteLimit else { return }
-            keptPaste = pasteBytes(first: content)
-        }
-        guard content > 0 else { return }
-        consume(content)
-        pasteScanCursor = 0
     }
 
     /// Ends a paste whose end marker never arrived, delivering whatever was
     /// buffered as the paste it evidently was.
     ///
     /// Delivering beats discarding: the bytes are the user's pasted text, and
-    /// the alternative to both is the wedge this exists to prevent. A paste past
-    /// the limit delivers its kept part, as its end marker would have. With
-    /// nothing buffered or kept it just leaves paste mode — there is nothing
-    /// to deliver, and a paste event carrying "" would be noise.
+    /// the alternative to both is the wedge this exists to prevent. With
+    /// nothing buffered it just leaves paste mode — there is nothing to
+    /// deliver, and a paste event carrying "" would be noise.
     private func abandonStalledPaste() -> TerminalInput? {
         defer { inPasteMode = false }
-        guard keptPaste != nil || !input.isEmpty else { return nil }
+        guard !input.isEmpty else { return nil }
 
         let event = pasteEvent(bufferedContent: input.count)
         consume(input.count)
@@ -592,17 +562,39 @@ extension Terminal {
     }
 
     /// The paste event for the first `length` bytes of ``input``, which it
-    /// copies and does not consume — or, for a paste that ran past
-    /// ``pasteByteLimit``, for the part of it kept in ``keptPaste``.
+    /// reads where they lie and does not consume.
     ///
     /// One copy of this for the two ways a paste ends, at its end marker and
     /// at the stall timeout, so that what the app is handed cannot differ
     /// between them. Text that is not UTF-8 is read a byte to a character
     /// (Latin-1) rather than dropped.
+    ///
+    /// The string is made straight from the buffer's storage, so it is the
+    /// one copy of the paste on its way to the app. Until 2026-10-12 the bytes
+    /// were copied into an array first: one more copy the size of the paste,
+    /// alive with the buffer and the string, which made a 64 MiB paste peak
+    /// at 3.6 times its size where it now peaks at 2.6 (measured, macOS; see
+    /// ``inPasteMode``).
     private func pasteEvent(bufferedContent length: Int) -> TerminalInput {
-        let content = keptPaste ?? pasteBytes(first: length)
-        let text = String(bytes: content, encoding: .utf8) ?? Self.latin1Text(content)
+        let text = input.withUnsafeBufferPointer(prefix: length) { bytes in
+            Self.utf8Text(bytes) ?? Self.latin1Text(bytes)
+        }
         return .key(KeyEvent(key: .paste(text)))
+    }
+
+    /// `bytes` as a string, or `nil` when they are not UTF-8.
+    ///
+    /// The standard library's validating initialiser checks the bytes and
+    /// then copies them into the string, once: it allocates nothing else (its
+    /// body is inlinable, and reads contiguous storage where it lies). It is
+    /// new in macOS 15. On macOS 14 this is Foundation's decoder, which decoded
+    /// every paste until 2026-10-12; the two keep a byte-order mark alike
+    /// (measured), and turn down the same bytes as far as the tests here go.
+    nonisolated static func utf8Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String? {
+        if #available(macOS 15, *) {
+            return String(validating: bytes, as: UTF8.self)
+        }
+        return String(bytes: bytes, encoding: .utf8)
     }
 
     /// `bytes` read a byte to a character, as Latin-1: what a paste that is
@@ -614,18 +606,18 @@ extension Terminal {
     /// else. Two earlier spellings each built an array on the way, though
     /// neither reads as if it did. Mapping each byte to a `Character` (until
     /// 2026-10-11) made an array of 16-byte `Character`s: 256 MiB for a paste
-    /// at the 16 MiB limit. Appending `Unicode.Scalar`s to the string's
+    /// of 16 MiB. Appending `Unicode.Scalar`s to the string's
     /// `unicodeScalars` (the same day) made one of 4-byte scalars: the
     /// standard library's `append(contentsOf:)` there is not inlinable, and
     /// its body maps the sequence to a `[UInt32]`, decodes that as UTF-32 into
     /// a second string and concatenates the two, so the reserved capacity was
-    /// thrown away and the text copied once more: decoding a paste at the
-    /// limit grew the process by 144 MiB, where writing the UTF-8 grows it by
-    /// the 32 MiB of the text (measured, `PasteLimitTests`).
+    /// thrown away and the text copied once more: decoding a paste of 16 MiB
+    /// grew the process by 144 MiB, where writing the UTF-8 grows it by
+    /// the 32 MiB of the text (measured, `LargePasteTests`).
     ///
     /// `nonisolated`: it reads nothing of the terminal's, and that test calls
     /// it from an exit test's body, which is not on the main actor.
-    nonisolated static func latin1Text(_ bytes: [UInt8]) -> String {
+    nonisolated static func latin1Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String {
         let length = bytes.count + bytes.reduce(0) { $0 + Int($1 >> 7) }
         return String(unsafeUninitializedCapacity: length) { buffer in
             var index = 0
@@ -642,32 +634,6 @@ extension Terminal {
             }
             return index
         }
-    }
-
-    /// A copy of the first `length` bytes of ``input`` or, when that is more
-    /// than ``pasteByteLimit``, of as many as the limit holds without cutting
-    /// a Unicode scalar's UTF-8 bytes in two.
-    ///
-    /// A character cut in two would cost more than its own bytes: the paste
-    /// would not be UTF-8, and ``pasteEvent(bufferedContent:)`` would read
-    /// every byte of it as a character of its own, garbling every other
-    /// non-ASCII character in it. A character of several scalars (a flag, a
-    /// letter and its combining accent) can still be cut between them: the
-    /// paste stays UTF-8, and only that character loses its later scalars,
-    /// with the rest of what is past the limit.
-    private func pasteBytes(first length: Int) -> [UInt8] {
-        var end = length
-        if length > pasteByteLimit {
-            end = pasteByteLimit
-            // A continuation byte (10xxxxxx) at the cut belongs to the character
-            // before it. Three at most: no character is longer than four bytes,
-            // and bytes that are not UTF-8 go to the Latin-1 reading whatever.
-            while end > max(0, pasteByteLimit - 3), input[end] & 0xC0 == 0x80 { end -= 1 }
-        }
-        var content = [UInt8]()
-        content.reserveCapacity(end)
-        for index in 0..<end { content.append(input[index]) }
-        return content
     }
 
     /// Whether the parser is holding something that needs another

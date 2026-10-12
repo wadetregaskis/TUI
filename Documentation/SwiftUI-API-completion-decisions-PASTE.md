@@ -23,16 +23,83 @@ There is no A or C entry.
 
 ## B. Shipped the safe option
 
-### B-PASTE-1. A paste past 16 MiB arrives as its first 16 MiB
+### B-PASTE-1. A paste of any size arrives whole
 
-A bracketed paste is one `KeyEvent.Key.paste` event whatever its length, and
-nothing between its markers is read as a key. The limit on what is delivered
-went from 1 MiB to 16 MiB (`Terminal.maxPasteBytes`). Past it, the paste
-stays open to its end marker, or to the stall timeout, as before; the app is
-given the first 16 MiB, cut back to a whole Unicode scalar so that it stays
-UTF-8, and the rest is dropped as it arrives. A character of several scalars
-that straddles the cut (a flag, a letter and its combining accent) keeps only
-the scalars before it.
+*Rewritten 2026-10-12 by lane PASTE2, when the owner asked for pastes of any
+size. Until then this entry was "A paste past 16 MiB arrives as its first
+16 MiB".*
+
+A bracketed paste is one `KeyEvent.Key.paste` event whatever its length,
+nothing between its markers is read as a key, and nothing in it is dropped:
+there is no size limit. `Terminal.maxPasteBytes`, and the code that kept a
+paste's start past it, are gone.
+
+**Where the limit came from** (`git log -S maxPasteBytes`):
+
+- 64 KiB, b3d563040 (2026-02-14), the commit that added bracketed paste:
+  "Safety limit to prevent infinite buffering on malformed input." The paste
+  was read there by a loop that held the run loop, a millisecond's sleep at
+  a time, until the end marker came; the limit bounded what it buffered,
+  not how long it waited.
+- 1 MiB, 893381180 (2026-05-28), when paste mode became a state of the
+  parser: "Anything beyond this is treated as a misbehaving terminal and
+  discarded so it can't pin memory forever." It was then the one way out of
+  paste mode besides the end marker. The same commit had paste mode count no
+  quiet passes, as "the maxPasteBytes guard handles the pathological case";
+  it handled only a paste that kept coming, and one whose marker was lost
+  and that then went quiet stayed open for good.
+- 8a51ca1f7 (2026-08-01) gave a lost end marker its own way out, the stall
+  timeout below: "Paste mode had exactly two exits: the `ESC[201~` end
+  marker, or one mebibyte of content. Nothing else."
+- 16 MiB, 76fd454a2 (2026-10-11, lane PASTE): twice the 8 MiB paste that
+  quit Stress. Past it the paste stayed open and arrived as its first
+  16 MiB.
+
+**What the 16 MiB still protected against: the memory one paste takes, and
+nothing else.** A paste whose end marker is lost ends at the stall timeout,
+holding only what came before the pause. The scan for the marker has been
+linear since 2026-09-04 (it resumes where it stopped). And nothing writes the
+app's standard input but the terminal, which sends between the markers what
+the user pasted: a paste is as long as the clipboard the user chose, which
+the terminal already holds. So the limit capped the parser's memory by
+refusing the user's paste, and the memory it saved is the memory that
+delivering the paste takes.
+
+**What a paste of N bytes costs inside TUIkit**, before the app has it:
+
+- The input buffer grows by half whenever it is full, so it ends at most
+  1.5 N, and while it grows its old storage and its new one are both alive.
+  The copying stays linear: the growth moved 2.7 N bytes in all for 64 MiB.
+- The string is made straight from the buffer's storage
+  (`String(validating:as:)`; on macOS 14, which lacks it, Foundation's
+  decoder), so it is the one copy of the paste: N for UTF-8, up to 2 N for
+  a paste that is not UTF-8 and is read as Latin-1. Until 2026-10-12 the
+  bytes were copied into an array first, a third copy alive with the other
+  two.
+- Once the paste is delivered the buffer goes back to its 12 KiB baseline,
+  and the string is the app's.
+
+Measured with a probe of the buffer and the decode (session notes,
+PASTE2/probe; macOS 15, Xcode's Swift 6.2.4, `-O`): the peak of the
+process's footprint over what it was before the paste, as a multiple of N.
+8 MiB 2.46, 16 MiB 2.81, 32 MiB 2.58, 64 MiB 2.56 (3.56 with the array
+copy), 128 MiB 2.12. The spread is where N falls among the buffer's sizes,
+plus about 12 MiB of freed storage the allocator keeps. Delivering raises the
+peak by N over what the open paste held, 2 N with the copy, which
+`LargePasteTests` pins at 16 MiB.
+
+And in the app (session notes, PASTE2/pty_paste_check.py: release Stress in
+a PTY, one 64 MiB bracketed paste of prose): Stress went on running and its
+screen did not change. Its footprint peaked at 171.5 MiB from 4.4 MiB
+before, 2.6 times the paste, and was 19.8 MiB once the paste had gone;
+`ps` put its resident size at 340 MiB at the peak and still after, the
+resident size keeping freed storage until the kernel wants it back. The
+paste took about ten seconds to go quiet, as the parser reads 4 KiB a pass
+of the run loop (`Terminal.readChunk`). All measurements, not benchmarks.
+
+On a 32-bit platform (WebAssembly's) the buffer's growth now stops at
+`Int.max` rather than overflowing, which trapped at about 1.4 GiB, so the
+address space is the limit there.
 
 **The stall timeout is the one way the rest of a paste is still read as
 keys**, and this lane leaves it as it was. A terminal that stops sending in
@@ -48,22 +115,6 @@ an animation cannot shorten it. Its price: the parser counts passes and
 reads no clock today, and the tests that drive it pass by pass would each
 need a clock of their own.
 
-**Why 16 MiB.** The paste that quit Stress was 8 MiB of prose, and pasting a
-multi-megabyte log into a `TextEditor` is plausible, so the limit has to sit
-well above that: 16 MiB is twice the measured case. What it costs, from the
-code (not measured):
-
-- Within the limit, the input buffer grows by half each time it is full, so
-  it holds up to about 1.5 times the paste. At the end marker the content is
-  copied once into an array and decoded once into a `String`. A 16 MiB paste
-  peaks near 56 MiB (24 + 16 + 16), the 8 MiB one near 28 MiB. Once it is
-  delivered the buffer goes back to its 12 KiB baseline and the array is
-  freed. The `String` is the app's.
-- Past the limit, the kept 16 MiB is copied out of the buffer once, and the
-  buffer shrinks to its baseline at the same moment, so the rest streams
-  through 12 KiB however long it runs: about 40 MiB at that moment, 32 MiB at
-  delivery.
-
 Then the app holds the text, and what that costs is larger than anything
 above. From the code, not measured:
 
@@ -73,8 +124,8 @@ above. From the code, not measured:
   into the same shape first, so a paste of many lines peaks near 300 MiB
   (those lines, the paste and its copy with line breaks normalised, and the
   lines joined back into the text), and a paste of one line near twice that,
-  because the line it goes into is copied. This is the largest cost the
-  raise from 1 MiB opens up, and it is on the common path: UTF-8 text.
+  because the line it goes into is copied. This is the largest cost that
+  lifting the limit opens up, and it is on the common path: UTF-8 text.
   (Review round 2; the first version of this list left it out.)
 - Its undo keeps up to 50 texts from before an edit (`TextUndoHistory`),
   each the whole document. Once a 16 MiB paste is in, each later edit adds
@@ -95,35 +146,28 @@ above. From the code, not measured:
   (`verticalSource`, `softWrapLayout`): 256 MiB and a grapheme walk of the
   whole text, several times a frame.
 
-Before this lane neither control was handed more than 1 MiB of paste in one
-event: whatever came after that was typed into it, a key at a time. The same
-costs apply to any document that size an app puts in an editor; a paste is
-now one way to make one. A measurement is owed: a 16 MiB paste into a
-focused `TextField`, and into a `TextEditor` above a long document with a
-few keys typed after it, in a release build. A `TextEditor` that kept its
-text as UTF-8, and its undo as edits rather than copies, would remove most
-of it; that is a redesign of the editor, outside this lane.
+Until lane PASTE neither control was handed more than 1 MiB of paste in one
+event: whatever came after that was typed into it, a key at a time. Lane
+PASTE handed over up to 16 MiB, and since 2026-10-12 a paste of any size
+arrives whole. The same costs apply to any document that size an app puts in
+an editor; a paste is one way to make one. A measurement is owed: a 16 MiB
+paste into a focused `TextField`, and into a `TextEditor` above a long
+document with a few keys typed after it, in a release build. A `TextEditor`
+that kept its text as UTF-8, and its undo as edits rather than copies, would
+remove most of it; that is a redesign of the editor, outside these lanes.
 
-**Why not the other two shapes.**
+**Why one event, not several.** Each chunk would be a paste of its own.
+`onPasteCommand(of:validator:perform:)` and `pasteDestination` would run once
+per chunk, each with part of the text. `TextField` and `TextEditor` record
+one undo step per key event that changes their text (`TextEditorHandler`'s
+`undoHistory.record`), so Ctrl-Z would take back only the last chunk, and the
+history would keep every intermediate text, quadratic in the number of
+chunks. A chunk boundary can also fall between a character and its combining
+marks.
 
-- *Deliver nothing past the limit.* Throws away a paste the user meant,
-  with no signal that it happened; a cut paste at least shows its start.
-- *Deliver in several chunks.* Each chunk would be a paste of its own.
-  `onPasteCommand(of:validator:perform:)` and `pasteDestination` would run
-  once per chunk, each with part of the text. `TextField` and `TextEditor`
-  record one undo step per key event that changes their text
-  (`TextEditorHandler`'s `undoHistory.record`), so Ctrl-Z would take back
-  only the last chunk, and the history would keep every intermediate text,
-  quadratic in the number of chunks. A chunk boundary can also fall between
-  a character and its combining marks.
-
-**The fuller version** would tell the user the paste was cut, as the status
-bar already says "Nothing to paste here" for three seconds. Its price: the
-event would have to carry the cut (a field on `KeyEvent.Key.paste`, or a case
-of its own), which touches every place that reads a paste (about ten, in
-TUIkitTextInput, TUIkitFoundation and Stress), plus a status message in
-the seven string tables of TUIkitStrings. Raising the limit further instead
-costs memory in proportion: 2.5 to 3.5 times the limit at the peak.
+**The fuller version** is in the controls, not the parser: the editor
+redesign above, so that what a large paste costs once it arrives is
+proportionate to it too.
 
 ### B-PASTE-2. The rest of an over-long sequence is skipped, until its end or a pause
 

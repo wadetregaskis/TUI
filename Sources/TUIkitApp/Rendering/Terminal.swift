@@ -121,11 +121,23 @@ final class Terminal: TerminalProtocol {
     /// across as many `readEvent()` calls as it takes for the end
     /// marker to arrive — no blocking, no `usleep`. The run loop
     /// stays responsive even for very large pastes.
+    ///
+    /// A paste of any length is held whole and arrives whole: there is no
+    /// limit on it but memory. At its peak the parser holds the buffer's room
+    /// for the paste, at most one and a half times it since the buffer grows
+    /// by half, and the one string made from it; the room goes back once the
+    /// paste is delivered. (Measured on macOS at 64 MiB, with what the
+    /// allocator keeps of freed storage: 2.6 times the paste, where a copy
+    /// into an array on the way made it 3.6.)
+    ///
+    /// Until 2026-10-12 there was a limit: 1 MiB from 2026-05-28, when it was
+    /// the one way out of a paste whose end marker was lost, and 16 MiB from
+    /// 2026-10-11, past which a paste arrived as its start. The stall timeout
+    /// has been that way out since 2026-08-01, and all the limit still did was
+    /// cap the memory a paste takes, which is what delivering it takes
+    /// (`Documentation/SwiftUI-API-completion-decisions-PASTE.md`, B-PASTE-1).
     var inPasteMode: Bool = false {
-        didSet {
-            pasteScanCursor = 0
-            keptPaste = nil
-        }
+        didSet { pasteScanCursor = 0 }
     }
 
     /// How many leading bytes of ``input`` have already been checked and ruled
@@ -136,37 +148,8 @@ final class Terminal: TerminalProtocol {
     /// nonsense, and leaving a stale one behind would skip past the next
     /// paste's marker. Nothing is consumed from the front while a paste is
     /// open, so an index taken on one pass still means the same byte on the
-    /// next — except past ``pasteByteLimit``, where the bytes the cursor has
-    /// passed are dropped and the cursor goes back to zero with them.
+    /// next.
     var pasteScanCursor: Int = 0
-
-    /// The most of one bracketed paste that reaches the app: 16 MiB.
-    ///
-    /// A longer paste still ends at its end marker (or the stall timeout), and
-    /// nothing before that is ever read as a key. The app is given its first
-    /// 16 MiB, cut back to a whole Unicode scalar, and the rest is dropped as
-    /// it arrives, so no paste holds more memory than this, however long it is.
-    /// Until 2026-10-11 the limit was 1 MiB and ended paste mode: the rest of
-    /// the paste then went to the key parser, and an 8 MiB paste of prose quit
-    /// Stress on its first `q`. Why 16 MiB, and what else was weighed:
-    /// `Documentation/SwiftUI-API-completion-decisions-PASTE.md`, B-PASTE-1.
-    static let maxPasteBytes = 16 << 20
-
-    /// ``maxPasteBytes``, as this terminal applies it.
-    ///
-    /// Stored rather than read from the constant only so that tests can
-    /// lower it: going past the real limit would cost each of them 16 MiB of
-    /// input to feed.
-    var pasteByteLimit = Terminal.maxPasteBytes
-
-    /// The first ``pasteByteLimit`` bytes of the open paste, set aside when
-    /// it ran past the limit, or `nil` while it has not.
-    ///
-    /// Kept apart from ``input`` so that the bytes behind it can be dropped
-    /// as the end-marker scan passes them, and the buffer can shrink back to
-    /// its baseline while the rest of the paste streams through it. Cleared
-    /// with ``inPasteMode``.
-    var keptPaste: [UInt8]?
 
     /// Frames during which we couldn't make progress on whatever
     /// sits at the front of the input buffer. Increments only when
