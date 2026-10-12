@@ -218,8 +218,8 @@ struct OverlongSequenceTests {
 
     // The two waits are the same length and are counted differently: the
     // skip's starts again from each byte it consumes, while an unfinished
-    // sequence's within the cap counts only the passes on which nothing
-    // arrives. These pin what decisions-PASTE B-PASTE-2 says of each, which
+    // sequence's shorter than a read counts only the passes on which nothing
+    // arrives (one longer than a read waits as the skip does, below). These pin what decisions-PASTE B-PASTE-2 says of each, which
     // its first version got wrong.
 
     /// Every other pass a `j`, as a key held to auto-repeat is read.
@@ -257,17 +257,59 @@ struct OverlongSequenceTests {
         #expect(waitOutThenType(terminal, source) == [Self.key("b")])
     }
 
-    /// Within the cap, typing joins an unfinished string sequence too, but
-    /// cannot make its wait longer: after eight quiet passes in all it is
+    /// Shorter than a read, typing joins an unfinished string sequence too,
+    /// but cannot make its wait longer: after eight quiet passes in all it is
     /// dropped with what joined it, and every repeat after that is a key.
     /// The eight are the first pass (a pass whose bytes all came in the read
     /// that starts it, into an empty buffer, counts as quiet) and the odd
     /// ones to the thirteenth, so the `j`s of passes 14 to 62 arrive.
-    @Test("Typing after an unfinished sequence within the cap does not lengthen its wait")
+    @Test("Typing after an unfinished sequence shorter than a read does not lengthen its wait")
     func typingDoesNotLengthenTheWaitWithinTheCap() {
         let (terminal, source) = makeTerminal()
         source.bytes = Self.esc + Self.bytes("]52;c;QUJD")
         #expect(typeWhileWaiting(terminal, source, passes: 64) == Array(repeating: Self.key("j"), count: 25))
+    }
+
+    /// Longer than a read, an unfinished sequence's wait starts again from
+    /// each read that adds to it, as the skip's does, so its price is the
+    /// skip's: typing joins it for as long as the typing lasts, and the key
+    /// after a pause is the app's.
+    @Test("Typing after an unfinished sequence longer than a read starts its wait again")
+    func typingAfterLongSequenceStartsItsWaitAgain() {
+        let (terminal, source) = makeTerminal()
+        source.bytes = Self.esc + Self.bytes("]52;c;") + Self.bytes(String(repeating: "QUJD", count: Terminal.readChunk / 4))
+        #expect(typeWhileWaiting(terminal, source, passes: 64).isEmpty)
+        #expect(terminal.hasPendingInput, "the wait ran out while bytes kept arriving")
+        #expect(waitOutThenType(terminal, source) == [Self.key("b")])
+    }
+
+    /// A reply within its limit arriving a read at a time, with a pause after
+    /// each read shorter than the wait but adding up to more, is held whole:
+    /// a clipboard answer of 32 KiB is swallowed, and a key report of 12 KiB
+    /// decodes. Review round 1 of lane PASTE2: counted in all, the pauses
+    /// dropped what had arrived at the eighth, and the rest was typed out, the
+    /// answer's base64 and `BEL`, the report's digits and `u`.
+    @Test("A sequence within its limit arriving in pieces, with pauses, is not cut off and typed", arguments: [1, 6])
+    func piecesWithPausesAreHeldWhole(pausesAfterEachRead: Int) {
+        let answer = Self.esc + Self.bytes("]52;c;") + Self.bytes(String(repeating: "QUJD+z09", count: 4096)) + [0x07]
+        let report = Self.keyReport(length: 12 << 10)
+        for (sequence, delivered, after) in [(answer, [], "b"), (report.bytes, report.typed, "x")] as [([UInt8], [TerminalInput], Character)] {
+            let (terminal, source) = makeTerminal(readLimit: Terminal.readChunk)
+            terminal.keyboardEnhancement = .requested
+            var events: [TerminalInput] = []
+            for start in stride(from: 0, to: sequence.count, by: Terminal.readChunk) {
+                source.bytes += sequence[start..<min(start + Terminal.readChunk, sequence.count)]
+                repeat {
+                    if let event = terminal.readEvent() { events.append(event) }
+                } while !source.isDry
+                for _ in 0..<pausesAfterEachRead {
+                    if let event = terminal.readEvent() { events.append(event) }
+                }
+            }
+            source.bytes += Self.bytes(String(after))
+            events += drain(terminal, source)
+            #expect(events == delivered + [Self.key(after)], "\(sequence.count) bytes")
+        }
     }
 
     /// A clipboard answer past the limit with the Escape key after it, sized

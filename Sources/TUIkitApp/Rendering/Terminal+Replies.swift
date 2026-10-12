@@ -163,8 +163,9 @@ extension Terminal {
     /// ``resolveStuckPartial()`` ends it if the rest never comes.
     ///
     /// That wait starts again from each byte consumed here. An unfinished
-    /// sequence's never starts again: it counts every quiet pass, however many
-    /// bytes arrive between them. So a reply's rest that arrives in pieces,
+    /// sequence's starts again only once it is longer than a read
+    /// (`restartWaitOfLongSequence()`); shorter, it counts every quiet pass,
+    /// however many bytes arrive between them. So a reply's rest that arrives in pieces,
     /// with pauses shorter than the wait between them, is not cut off part
     /// way and typed out however many pauses there are; the price is that
     /// typing during the skip — a key held to auto-repeat — keeps it going

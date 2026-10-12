@@ -267,7 +267,7 @@ for the wait every lone `ESC` gets: the Escape arrives eleven passes after
 the skip's last byte (about 275 ms), and a key typed in that time joins it
 as an Option chord (Escape then `j` is Option-j).
 
-A string sequence within the limit whose end is lost is not the same,
+A string sequence shorter than a read whose end is lost is not the same,
 though the first version of this entry said it was (review round 2). Bytes
 typed after one join it too, but its wait counts only the passes on which nothing
 arrives, and never starts again, so typing cannot make it longer: after
@@ -282,6 +282,20 @@ ssh; not measured) would see its skip end part way, and its rest typed out.
 Starting again costs only when a reply past its limit loses its end, which has
 not been observed on any terminal, and then only for as long as the typing
 lasts.
+
+The same holds within the limit for a sequence longer than a read (4 KiB,
+`Terminal.readChunk`): each read that adds to it starts its wait again
+(`restartWaitOfLongSequence()`), and only a shorter one counts every quiet
+pass in all, as above. Until the limits went up (2026-10-12) the skip took
+over at 4 KiB, a read, so this is the wait every sequence that long had
+before. Review round 1 of lane PASTE2 found the higher limits had left the
+sequences between a read and the limit with the shorter wait: a 32 KiB
+clipboard answer arriving in 4 KiB pieces with a quiet pass between them
+was dropped at the eighth pause and its last piece typed out, base64, `BEL`
+(Ctrl-G) and all; a kitty key report of 5 to 16 KiB the same, its digits and
+`u`. Typing cannot make a sequence a read long before its wait drops it:
+it adds about a byte a pass, and would need a key on every pass for over a
+minute.
 
 An `ESC` in front of the sequence is the Escape key: no terminal puts a
 meta prefix on a reply, and no key runs to the limit. It is delivered first, and

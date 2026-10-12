@@ -158,8 +158,12 @@ final class Terminal: TerminalProtocol {
     /// Frames during which we couldn't make progress on whatever
     /// sits at the front of the input buffer. Increments only when
     /// a drain produced no new bytes *and* the buffer still has an
-    /// unparseable partial at the front. Resets on any drained byte
-    /// or successful extract.
+    /// unparseable partial at the front. Resets on a successful
+    /// extract; on a drained byte while a paste is open, or one the
+    /// skip of an over-long sequence consumes; and on a read that adds
+    /// to an unfinished sequence longer than a read
+    /// (`restartWaitOfLongSequence()`). Not on a read that adds to a
+    /// shorter one, whose wait counts every quiet pass in all.
     ///
     /// Two roles:
     /// - Bare-Esc disambiguation: `0x1B` alone looks identical to

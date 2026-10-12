@@ -816,7 +816,34 @@ extension Terminal {
             return resolveStuckPartial()
         }
 
+        restartWaitOfLongSequence()
         return nil
+    }
+
+    /// Starts the dead-sequence wait again for the unfinished sequence at the
+    /// front of the buffer, which a read has just added to, once it is longer
+    /// than a read (``readChunk``).
+    ///
+    /// A sequence that long is arriving as a stream, a reply or a key report
+    /// carrying a long text. Typing that joins a lost one adds about a byte a
+    /// pass: it would take over a minute of a key on every pass to make one a
+    /// read long, and the wait drops it at the eighth pass without one.
+    ///
+    /// Started again by each read that adds to it, the wait is the one the
+    /// skip of a sequence past its limit has (``skipAbandonedSequence()``),
+    /// which took over every sequence at 4 KiB, a read, until the limits went
+    /// to 16 and 64 KiB on 2026-10-12. For a sequence between a read and its
+    /// limit the wait then counted only quiet passes, however many bytes came
+    /// between them (review round 1 of lane PASTE2): a reply arriving in
+    /// pieces, with pauses adding up to the wait (a slow link, under ssh; not
+    /// measured), was dropped part way and its rest typed out as keys, a
+    /// clipboard answer's base64 or a key report's digits.
+    ///
+    /// Shorter than a read, the wait still counts every quiet pass in all, so
+    /// typing after a lost sequence cannot make it longer (decisions-PASTE,
+    /// B-PASTE-2).
+    private func restartWaitOfLongSequence() {
+        if input.count > Self.readChunk { staleFrames = 0 }
     }
 
     /// Called once per stale frame while a partial sits at the front of the
