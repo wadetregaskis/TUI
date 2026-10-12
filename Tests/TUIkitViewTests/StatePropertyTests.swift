@@ -33,8 +33,12 @@ struct StatePropertyWrapperTests {
         storage.renderCache = cache
         let identity = ViewIdentity(path: "Root/State")
 
-        let state = State(wrappedValue: "initial")
-        state.bindState(to: storage, key: StateStorage.StateKey(identity: identity, propertyIndex: 0))
+        var state = State(wrappedValue: "initial")
+        withUnsafeMutablePointer(to: &state) {
+            State<String>.bindState(
+                at: UnsafeMutableRawPointer($0), to: storage,
+                key: StateStorage.StateKey(identity: identity, propertyIndex: 0))
+        }
 
         // Seed a cached buffer at the state's identity, then mutate it.
         cache.store(

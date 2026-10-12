@@ -522,15 +522,19 @@ public struct Binding<Value> {
 /// constructed in — is what keeps conditionally-swapped views (`if` / `switch`
 /// branches, which carry distinct `#true` / `#false` identities) from aliasing
 /// each other's state. Values survive view reconstruction because the same
-/// identity always resolves to the same `StateBox`.
+/// identity always resolves to the same `StateBox`. One value drawn at two
+/// places keeps a state for each: each place's copy is bound to its own box,
+/// as SwiftUI installs each place's state in its own copy.
 ///
 /// Mutations signal re-renders through `AppState.shared`.
 @propertyWrapper
 public struct State<Value> {
-    /// Reference-typed backing whose `box` can be (re)bound to the persistent
+    /// Reference-typed backing whose `box` is bound to the persistent
     /// `StateStorage` slot at render time — see ``StateBacking`` and
-    /// ``prepareProperties(of:plan:identity:storage:environment:)``.
-    private let backing: StateBacking<Value>
+    /// ``prepareProperties(of:plan:identity:storage:environment:)``. A `var`
+    /// because a value drawn at a second place has its backing replaced, in
+    /// that place's copy, by one of its own.
+    private var backing: StateBacking<Value>
 
     /// The current state value.
     public var wrappedValue: Value {
@@ -574,19 +578,41 @@ public struct State<Value> {
 
 // MARK: - State backing
 
-/// Reference-typed backing for ``State`` so the storage box can be rebound at
-/// render time through any copy of the `State` value.
+/// Reference-typed backing for ``State``: the box the state's value is in,
+/// which the property walk binds to the one `StateStorage` keeps for the
+/// place the view is drawn at, and the default it was declared with.
+///
+/// Every copy of a `State` value shares its backing, so a binding or closure
+/// made from any of them reads and writes the box it was bound to. A value
+/// drawn at two places would share one box between them, the second place
+/// binding the first's copies to its own (DYNV bug 1); so a backing is bound
+/// once, and a place whose copy holds one already bound elsewhere is given a
+/// backing of its own, in that copy (``State/bindState(at:to:key:)``), as
+/// SwiftUI installs each place's state in that place's copy (measured,
+/// session notes `DYNV/probe/dv.out`, `twice` and `value`).
 final class StateBacking<Value> {
     let defaultValue: Value
-    var box: StateBox<Value>
+    private(set) var box: StateBox<Value>
+    /// Whether ``box`` is one `StateStorage` keeps, rather than the one made
+    /// with the backing, which holds what is written before it is bound.
+    private(set) var isBound = false
 
     init(_ value: Value) {
         self.defaultValue = value
         self.box = StateBox(value)
     }
 
-    func bind(to storage: StateStorage, key: StateStorage.StateKey) {
-        box = storage.storage(for: key, default: defaultValue)
+    /// A backing bound to `box` from the start.
+    init(defaultValue: Value, boundTo box: StateBox<Value>) {
+        self.defaultValue = defaultValue
+        self.box = box
+        self.isBound = true
+    }
+
+    /// Binds the backing to `box`.
+    func bind(to box: StateBox<Value>) {
+        self.box = box
+        isBound = true
     }
 }
 
@@ -595,14 +621,28 @@ final class StateBacking<Value> {
 /// A `@State` property that can be bound to storage at render time (mirrors
 /// ``EnvironmentResolvable``).
 protocol StateBindable {
-    /// Binds this property to the storage `storage` keeps under `key`,
-    /// created with the property's default if there is none.
-    func bindState(to storage: StateStorage, key: StateStorage.StateKey)
+    /// Binds the property at `address`, a value of this type, to the storage
+    /// `storage` keeps under `key`, created with the property's default if
+    /// there is none.
+    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey)
 }
 
 extension State: StateBindable {
-    func bindState(to storage: StateStorage, key: StateStorage.StateKey) {
-        backing.bind(to: storage, key: key)
+    /// Binds the `@State` at `address` — in the copy of a view whose body is
+    /// about to be evaluated — to the box `storage` keeps under `key`. Its
+    /// backing is bound if it is not yet; if it is bound to another box, the
+    /// value is being drawn at a second place, and this copy is given a
+    /// backing of its own, so the two places never share their state.
+    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) {
+        let state = address.assumingMemoryBound(to: Self.self)
+        let backing = state.pointee.backing
+        let box = storage.storage(for: key, default: backing.defaultValue)
+        if backing.box === box { return }
+        guard backing.isBound else {
+            backing.bind(to: box)
+            return
+        }
+        state.pointee.backing = StateBacking(defaultValue: backing.defaultValue, boundTo: box)
     }
 }
 

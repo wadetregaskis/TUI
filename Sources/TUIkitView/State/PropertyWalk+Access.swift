@@ -10,13 +10,6 @@
 
 import TUIkitCore
 
-extension StateBindable {
-    /// ``StateBindable/bindState(to:key:)`` on the `@State` at `address`.
-    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) {
-        address.assumingMemoryBound(to: Self.self).pointee.bindState(to: storage, key: key)
-    }
-}
-
 extension RenderIdentityBindable {
     /// ``RenderIdentityBindable/bindRenderIdentity(path:propertyIndex:)`` on
     /// the property at `address`.
