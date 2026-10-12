@@ -71,11 +71,18 @@ delivering the paste takes.
   1.5 N, and while it grows its old storage and its new one are both alive.
   The copying stays linear: the growth moved 2.7 N bytes in all for 64 MiB.
 - The string is made straight from the buffer's storage
-  (`String(validating:as:)`; on macOS 14, which lacks it, Foundation's
-  decoder), so it is the one copy of the paste: N for UTF-8, up to 2 N for
-  a paste that is not UTF-8 and is read as Latin-1. Until 2026-10-12 the
-  bytes were copied into an array first, a third copy alive with the other
-  two.
+  (`String(validating:as:)`), so it is the one copy of the paste: N for
+  UTF-8, up to 2 N for a paste that is not UTF-8 and is read as Latin-1.
+  Until 2026-10-12 the bytes were copied into an array first, a third copy
+  alive with the other two. Not on macOS 14, which lacks
+  `String(validating:as:)`: there the decoder is still Foundation's
+  `String(bytes:encoding:)`, which is not inlinable, so macOS 14's own runs,
+  and its source (the Swift overlay's `NSStringAPI.swift`) copies the bytes
+  into an array before decoding them. So on macOS 14 the third copy is
+  alive while the decode runs, as before (recalled from that source, not
+  measured: these tests run on macOS 15 and later; review round 1 of lane
+  PASTE2, which found the first version of this list claiming one copy
+  there too).
 - Once the paste is delivered the buffer goes back to its 12 KiB baseline,
   and the string is the app's.
 
@@ -100,9 +107,20 @@ while a test suite ran), so the PTY and the writer set most of that pace,
 and the parser, reading 4 KiB a pass of the run loop (`Terminal.readChunk`),
 at most the rest. All measurements, not benchmarks.
 
-On a 32-bit platform (WebAssembly's) the buffer's growth now stops at
-`Int.max` rather than overflowing, which trapped at about 1.4 GiB, so the
-address space is the limit there.
+On a 32-bit platform (WebAssembly's) a paste past about 1.4 GiB can still
+end the process, and one of 2 GiB must (from the code, not run: the suite
+does not run there). The buffer's growth rule now stops at `Int.max` rather
+than overflowing, which trapped at about 1.4 GiB, but that only moves the
+trap: the growth then asks for 2 GiB, and that storage and the string made
+from the paste need well over 3 GiB of the 4 GiB a 32-bit process
+addresses, beside the app's own memory. An allocation that cannot be made
+traps, the buffer's sums of its size and a read's (`tail + needed`)
+overflow once its storage nears `Int.max`, and no `String` there holds
+2 GiB. The first version of this entry said the address space was the limit
+there, as if the paste were then refused rather than fatal (review round 1
+of lane PASTE2). Not trapping would take a size past which a 32-bit
+platform cuts or refuses a paste, the limit this lane removed; it is not
+done, as no terminal paste of a gibibyte into a WebAssembly app is known.
 
 **The stall timeout is the one way the rest of a paste is still read as
 keys**, and this lane leaves it as it was. A terminal that stops sending in

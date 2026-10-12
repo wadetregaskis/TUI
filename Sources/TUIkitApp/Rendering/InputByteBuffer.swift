@@ -127,7 +127,8 @@ struct InputByteBuffer {
     ///
     /// How a bracketed paste becomes its string: the decoder reads the
     /// buffer's storage, so the string is the one copy of the paste made on
-    /// its way to the app.
+    /// its way to the app (on macOS 14 Foundation's decoder makes one more;
+    /// see `Terminal.utf8Text(_:)`).
     func withUnsafeBufferPointer<Result>(
         prefix count: Int, _ body: (UnsafeBufferPointer<UInt8>) throws -> Result
     ) rethrows -> Result {
@@ -256,7 +257,15 @@ struct InputByteBuffer {
     /// Half as much again stops at `Int.max` rather than overflowing. Only a
     /// 32-bit `Int` gets there (WebAssembly's): a paste has no size limit, and
     /// past about 1.4 GiB the half added would take it over, which traps.
-    /// Stopping there leaves the allocation to say whether the memory exists.
+    /// Stopping there keeps this rule from trapping, but does not make such a
+    /// paste fit. The next growth asks for 2 GiB, and that storage and the
+    /// string made from the paste need well over 3 GiB of the 4 GiB a 32-bit
+    /// process addresses; an allocation that cannot be made traps, and the
+    /// buffer's own sums (`tail + needed`) overflow once its storage nears
+    /// `Int.max`. So a paste
+    /// past about 1.4 GiB can still end the process there, and one of 2 GiB,
+    /// which no `String` there could hold, must (decisions-PASTE, B-PASTE-1;
+    /// from the code, not run).
     static func grownCapacity(from capacity: Int, toHold required: Int) -> Int {
         max(required, capacity + min(capacity / 2, Int.max - capacity))
     }
