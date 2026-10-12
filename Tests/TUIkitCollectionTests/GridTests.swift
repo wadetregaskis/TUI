@@ -542,6 +542,44 @@ struct GridTests {
         #expect(rendered.map { $0.trimmingCharacters(in: .whitespaces) } == ["0a 0b 1a 1b"])
     }
 
+    /// The residual the decisions doc's B21 recorded before multi-view
+    /// `ForEach` rows and composite bodies handed their views over: a
+    /// `ForEach` of rows was taken apart only by `Grid`, `GridLayout` and the
+    /// stack layouts `AnyLayout` switches with, so in a plain stack or an
+    /// app's own layout each looped row stayed one child, drawn as its cells
+    /// stacked vertically. A row is its cells in every container, as a `Group`
+    /// is its members (W05 probe: a custom layout over two rows of two sees
+    /// four subviews).
+    @Test("In a plain stack or an app's layout a ForEach of rows is cells too")
+    func loopOfRowsUnderAPlainContainer() {
+        let row = lines(
+            HStack {
+                ForEach(0..<2) { index in
+                    GridRow { Text("\(index)a"); Text("\(index)b") }
+                }
+            })
+        #expect(row.map { $0.trimmingCharacters(in: .whitespaces) } == ["0a 0b 1a 1b"])
+
+        // Trailing alignment tells four children from two rows: as one child,
+        // a row stacked its own cells and the column aligned the stack whole.
+        let column = lines(
+            VStack(alignment: .trailing) {
+                ForEach(0..<2) { _ in
+                    GridRow { Text("a"); Text("bbb") }
+                }
+            })
+        #expect(Array(column.prefix(4)) == ["  a", "bbb", "  a", "bbb"])
+
+        let counted = CellCount()
+        _ = lines(
+            CountsSubviews(counted: counted) {
+                ForEach(0..<2) { index in
+                    GridRow { Text("\(index)a"); Text("\(index)b") }
+                }
+            })
+        #expect(counted.count == 4)
+    }
+
     /// The case `measureMatchesRender` cannot see, because it measures and
     /// renders in ONE context, so the proposal and `availableWidth` never
     /// disagree.

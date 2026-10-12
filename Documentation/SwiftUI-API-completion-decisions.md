@@ -1233,42 +1233,6 @@ by side. A day, and the plan's rule applies: an A/B on `deep`, `kitchensink`,
 changes nothing on the stack path — `nil` becomes the old constant at `init` —
 so no A/B is owed for it.
 
-### B21. `GridRow` outside a grid is its cells, not an `HStack`
-
-*`GridRow`*
-
-`GridRow`'s body was `HStack(alignment: alignment ?? .center, spacing: 1)
-{ content }`, on the stated belief that SwiftUI degrades a row outside a grid
-to a horizontal arrangement. The W05 probe refutes it: in SwiftUI
-`VStack { GridRow { a; b } }` is pixel-identical to `VStack { a; b }` and
-different from `HStack { a; b }`, and a custom `Layout` over two rows of two
-sees four subviews. So this is a parity fix, not the reversal of a deliberate
-deviation — but it moves pixels, so it is listed.
-
-A row now hands its cells to the container around it, as a `Group` hands its
-members, each marked so a grid still knows where one row ends and the next
-begins. What changes for an app:
-
-- A `GridRow` in a stack or a custom layout contributes its cells, not one
-  row-shaped child. A `GridRow` drawn on its own stacks its cells vertically,
-  as any run of views does.
-- A `ForEach` of rows inside a `Grid` lines its cells up in the grid's
-  columns whatever its elements. Before, a looped row whose element is
-  `Equatable` reached the grid inside `ForEach`'s row memo, which the grid's
-  row test did not look through, so the row spanned the grid as one cell; and
-  a looped row's cells were resolved under the grid's identity rather than
-  the row's, so two rows' cells could share a `@State` box. Both read from the
-  code; the first is now pinned by a test.
-- A row with no cells at all (`GridRow { if false { … } }`) is no row.
-  `GridRow { EmptyView() }` is still a row one line tall: an `EmptyView` is a
-  child here.
-
-**Residual:** a `ForEach` of rows is taken apart only by containers that lay
-cells out — `Grid`, `GridLayout`, and the stack layouts `AnyLayout` switches
-it with. In a `VStack`, an `HStack` or an app's own layout each looped row is
-still one child (B15's multi-view row, which shipped 2026-10-05: re-check
-this residual against it), drawn as its cells stacked vertically.
-
 ### B22. The content levels, and the two- and three-style `foregroundStyle`
 
 *`HierarchicalShapeStyle`, `HierarchicalShapeStyleModifier`,
