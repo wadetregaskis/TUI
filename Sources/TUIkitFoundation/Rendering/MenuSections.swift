@@ -15,7 +15,8 @@ import TUIkitView
 /// what every TUIkit menu (a pop-up `Menu`, a `.contextMenu`, an inline
 /// `Menu`) stacks as its rows.
 ///
-/// Measured on macOS 15.8 (`D1S/probe2/menuapp`, SwiftUI's own `NSMenu` for a
+/// Measured on macOS 15.8
+/// (`Tools/SwiftUIProbes/Sections and subview counting/menuapp.swift`, SwiftUI's own `NSMenu` for a
 /// `CommandMenu` read back): each section is wrapped in separators and its
 /// header is a section-header item — a small grey title, never highlighted or
 /// chosen — followed by its items; a menu shows no separator at its top or

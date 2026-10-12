@@ -1,0 +1,6 @@
+== sections
+ popup: delegate=Optional(<_TtGCVV7SwiftUIP10$1b7b9a28c18AppKitPopUpAdaptor12PlatformView11CoordinatorVVS_22MenuStyleConfiguration5Label___: 0x13584f7f0>) items=0
+== sections-first
+ popup: delegate=Optional(<_TtGCVV7SwiftUIP10$1b7b9a28c18AppKitPopUpAdaptor12PlatformView11CoordinatorVVS_22MenuStyleConfiguration5Label___: 0x134f5d9c0>) items=0
+== foreach-sections
+ popup: delegate=Optional(<_TtGCVV7SwiftUIP10$1b7b9a28c18AppKitPopUpAdaptor12PlatformView11CoordinatorVVS_22MenuStyleConfiguration5Label___: 0x1358a6fa0>) items=0

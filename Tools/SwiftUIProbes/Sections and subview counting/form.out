@@ -1,0 +1,30 @@
+== columns: collapsed section
+   head: x0 y0 w32 h16
+== columns: expanded section
+   head: x0 y0 w32 h16
+   row: x0 y24 w20 h10
+== grouped: collapsed section
+   head: x30 y20 w33 h16
+== grouped: expanded section
+   head: x30 y20 w33 h16
+   row: x30 y59 w20 h10
+== grouped: if-wrapped section
+   top: x30 y33 w20 h10
+   head: x30 y86 w33 h16
+   row: x30 y125 w20 h10
+== grouped: plain section
+   top: x30 y33 w20 h10
+   head: x30 y86 w33 h16
+   row: x30 y125 w20 h10
+== grouped: group-wrapped section
+   top: x30 y33 w20 h10
+   head: x30 y86 w33 h16
+   row: x30 y125 w20 h10
+== columns: if-wrapped section
+   top: x0 y0 w20 h10
+   head: x0 y14 w32 h16
+   row: x0 y38 w20 h10
+== columns: plain section
+   top: x0 y0 w20 h10
+   head: x0 y14 w32 h16
+   row: x0 y38 w20 h10

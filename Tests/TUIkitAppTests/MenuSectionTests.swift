@@ -2,7 +2,8 @@
 //  MenuSectionTests.swift
 //
 //  A `Section` in a menu, as SwiftUI's macOS menus draw one (measured on
-//  macOS 15.8, `D1S/probe2/menuapp`: SwiftUI's own `NSMenu` read back): set
+//  macOS 15.8, `Tools/SwiftUIProbes/Sections and subview counting/menuapp.swift`:
+//  SwiftUI's own `NSMenu` read back): set
 //  off by separators — none at the menu's top or bottom, never two in a row —
 //  under its header as a section-header title, which is no item. Until then
 //  a section in a menu was its parts (decisions B16): its header a line of

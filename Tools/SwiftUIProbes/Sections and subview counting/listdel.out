@@ -1,0 +1,19 @@
+rows: 6
+ row 0 Optional(SwiftUI.ListTableCellView)
+ row 1 Optional(SwiftUI.ListTableCellView)
+ row 2 Optional(SwiftUI.ListTableCellView)
+ row 3 Optional(SwiftUI.ListTableCellView)
+ row 4 Optional(SwiftUI.ListTableCellView)
+ row 5 Optional(SwiftUI.ListTableCellView)
+selection: ["a"]
+delete: handled false log [] items ["a", "b", "c"] rows 6
+selection2: ["b"]
+key window: false first responder: Optional(<SwiftUI.SwiftUIOutlineListView: 0x14b04a600>)
+after sendEvent: log []
+responds delete: SwiftUIOutlineListView
+ performed true
+ log after delete:: ["delete [1]"] items ["a", "c"]
+ log after deleteBackward:: ["delete [1]"] items ["a", "c"]
+ log after deleteForward:: ["delete [1]"] items ["a", "c"]
+delete target: nil
+deleteKey: log ["delete [1]"] items ["a", "c"] rows 4

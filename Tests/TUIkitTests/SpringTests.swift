@@ -2,7 +2,8 @@
 //  SpringTests.swift
 //
 //  Every expected number here was printed by SwiftUI's own `Spring` (macOS 26.2
-//  SDK, `w12/probe/p4.swift` and `p5.swift`), to six places.
+//  SDK, `Tools/SwiftUIProbes/Animation curves, springs and keyframes/p4.swift` and
+//  `p5.swift`), to six places.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

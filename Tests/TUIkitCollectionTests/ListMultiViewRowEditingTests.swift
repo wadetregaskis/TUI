@@ -5,7 +5,8 @@
 //  element (decisions B15), and its `.onDelete` still addresses ELEMENTS: a
 //  Delete on any of an element's rows removes that element, every one of its
 //  rows with it, as SwiftUI's does (measured on macOS 15.8,
-//  `D1S/probe2/listdel`: the second view of an element selected, `delete:`
+//  `Tools/SwiftUIProbes/Sections and subview counting/listdel.swift`: the second
+//  view of an element selected, `delete:`
 //  hands `.onDelete` that element's offset). The list refused both gestures
 //  over such a loop before, rather than hand one row's place to the wrong
 //  element.

@@ -1,0 +1,47 @@
+settle 0.5 zeta 0.1 -> response 0.068144 zeta 0.1 settling 1.001274
+settle 1.0 zeta 0.1 -> response 0.136289 zeta 0.1 settling 1.872446
+settle 2.0 zeta 0.1 -> response 0.272578 zeta 0.1 settling 3.515348
+settle 0.5 zeta 0.3 -> response 0.163882 zeta 0.3 settling 0.820182
+settle 1.0 zeta 0.3 -> response 0.327765 zeta 0.3 settling 1.533217
+settle 2.0 zeta 0.3 -> response 0.65553 zeta 0.3 settling 2.873417
+settle 0.5 zeta 0.5 -> response 0.247041 zeta 0.5 settling 0.749112
+settle 1.0 zeta 0.5 -> response 0.494082 zeta 0.5 settling 1.400279
+settle 2.0 zeta 0.5 -> response 0.988163 zeta 0.5 settling 2.622615
+settle 0.5 zeta 0.8 -> response 0.349287 zeta 0.8 settling 0.669975
+settle 1.0 zeta 0.8 -> response 0.698574 zeta 0.8 settling 1.252368
+settle 2.0 zeta 0.8 -> response 1.397149 zeta 0.8 settling 2.344073
+settle 0.5 zeta 0.95 -> response 0.372115 zeta 0.95 settling 0.607411
+settle 1.0 zeta 0.95 -> response 0.744229 zeta 0.95 settling 1.135508
+settle 2.0 zeta 0.95 -> response 1.488458 zeta 0.95 settling 2.124387
+settle 0.5 zeta 1.0 -> response 0.340242 zeta 1.0 settling 0.6
+settle 1.0 zeta 1.0 -> response 0.680483 zeta 1.0 settling 1.1
+settle 2.0 zeta 1.0 -> response 1.360967 zeta 1.0 settling 2.1
+settle 0.5 zeta 1.5 -> response 0.340242 zeta 1.0 settling 0.6
+settle 1.0 zeta 1.5 -> response 0.680483 zeta 1.0 settling 1.1
+settle 2.0 zeta 1.5 -> response 1.360967 zeta 1.0 settling 2.1
+settle 0.5 zeta 2.0 -> response 0.340242 zeta 1.0 settling 0.6
+settle 1.0 zeta 2.0 -> response 0.680483 zeta 1.0 settling 1.1
+settle 2.0 zeta 2.0 -> response 1.360967 zeta 1.0 settling 2.1
+bounce -1.0 -> zeta nan bounce nan stiffness inf
+bounce -0.99 -> zeta 100.0 bounce -0.99 stiffness 3158115.494678
+bounce -0.5 -> zeta 2.0 bounce -0.5 stiffness 1105.395693
+bounce 0.0 -> zeta 1.0 bounce 0.0 stiffness 157.91367
+bounce 0.5 -> zeta 0.5 bounce 0.5 stiffness 157.91367
+bounce 0.99 -> zeta 0.01 bounce 0.99 stiffness 157.91367
+bounce 1.0 -> zeta 0.0 bounce 1.0 stiffness 157.91367
+bounce 1.5 -> zeta 0.0 bounce 1.0 stiffness 157.91367
+bounce -1.5 -> zeta nan bounce nan stiffness inf
+pair 0.441374 0.810461
+pair settle 1.227677
+scaled settle 1.227677
+crit scaled settle 0.9
+crit neg target 0.9
+zero target 0.0 0.0
+force fromValue 70.160376
+velocity fromValue 11.38553
+settle fromValue 1.120573
+v0 big 1.06969
+msd zeta0 inf 0.0
+dur0 nan
+true
+true

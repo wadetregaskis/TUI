@@ -129,14 +129,23 @@ messages cite that path), and what cites it.
   a `ZStack` and a `Grid`, and collapsed (`b16.swift`); how `Spacer`s and alignment guides behave when a container
   proxies its subviews (`b17.swift`); how a tag and a `ForEach` in a body come through `ForEach(subviews:)` and
   `Group(subviews:)` (`cv.swift`); layout values and guides read by a `Layout` (`lv.swift`); whether `zIndex`
-  survives `ForEach(subviews:)` in a `ZStack`, from the pixels (`z.swift`). All are built with `common.swift`,
-  whose `Counter` layout and `probe(_:)` modifier print what a container saw.
-- **Ran:** macOS 15.8, 2026-10-04. `cv.swift`, `lv.swift` and `z.swift` kept no output.
-- **Was:** `D1S/probe/`.
-- **Cited by:** `Sources/TUIkitView/Core/AnyViewMembers.swift`; `Tests/TUIkitTests/AnyViewMembersTests.swift`,
+  survives `ForEach(subviews:)` in a `ZStack`, from the pixels (`z.swift`). Then, a second round: a view of the
+  app's own whose body is several views, beside others in a container, in a loop or behind an `if`
+  (`composite.swift`); a `Section` in a `Form` of each style, collapsed and expanded (`form.swift`), and inside a
+  view of the app's own (`formcomposite.swift`); deleting the second view of an element's multi-view `List` row
+  (`listdel.swift`); and a `Section` in a menu, read from the `NSMenu` of a `CommandMenu` (`menuapp.swift`;
+  `menu.swift` tried a `Menu` in a window first, and its pop-up had no items offscreen). All are built with
+  `common.swift`, whose `Counter` layout and `probe(_:)` modifier print what a container saw.
+- **Ran:** macOS 15.8, 2026-10-04 and 2026-10-05. `cv.swift`, `lv.swift` and `z.swift` kept no output.
+- **Was:** `D1S/probe/`, and `D1S/probe2/` for the second round.
+- **Cited by:** `Sources/TUIkitView/Core/AnyViewMembers.swift`, `Sources/TUIkitView/Rendering/CompositeMembers.swift`,
+  `Sources/TUIkitForms/Views/FormContentExtraction.swift`, `Sources/TUIkitFoundation/Rendering/MenuSections.swift`,
+  `Sources/TUIkitLists/Views/ListRowEditOwner.swift`; `Tests/TUIkitTests/AnyViewMembersTests.swift`,
   `Tests/TUIkitTests/SubviewLayoutTraitsTests.swift`, `Tests/TUIkitCollectionTests/ForEachRowMembersTests.swift`,
   `Tests/TUIkitCollectionTests/ForEachRowVaryingMembersTests.swift`,
-  `Tests/TUIkitCollectionTests/SectionPartsTests.swift`;
+  `Tests/TUIkitCollectionTests/SectionPartsTests.swift`, `Tests/TUIkitCollectionTests/CompositeMembersTests.swift`,
+  `Tests/TUIkitCollectionTests/ListMultiViewRowEditingTests.swift`,
+  `Tests/TUIkitControlTests/FormWrappedSectionTests.swift`, `Tests/TUIkitAppTests/MenuSectionTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Sections and subview counting in stacks and loops (D1S).md`.
 
 ### Pinned section headers and footers
@@ -152,4 +161,19 @@ messages cite that path), and what cites it.
 - **Was:** `w10b/probe/`.
 - **Cited by:** `Tests/TUIkitCollectionTests/PinnedRowSectionTests.swift`,
   `Tests/TUIkitCollectionTests/LazyGridSectionTests.swift`; wave 10b's entries in
+  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
+
+### Animation curves, springs and keyframes
+
+- **Asks:** what SwiftUI's animation types compute, with no view: whether each transition has motion
+  (`p1.swift`); how an `Animation` describes and mirrors itself (`p2.swift`); each `UnitCurve`'s values and
+  velocities (`p3.swift`); a `Spring`'s parameters, values and velocities by each way of making one (`p4.swift`,
+  `p5.swift`); a `KeyframeTimeline`'s values over time (`p6.swift`, `p7.swift`); and the environment's default
+  `contentTransition` and how `ContentTransition`s compare (`p8.swift`). Each is a program alone (`@main`, no
+  shared file); the numbers print to six places.
+- **Ran:** against the macOS 26.2 SDK, on the development Mac, 2026-10-03. `p1`, `p2`, `p3` and `p8` kept no
+  output; their results are in wave 12's decisions.
+- **Was:** `w12/probe/`.
+- **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`; `Tests/TUIkitTests/KeyframeTimelineTests.swift`,
+  `Tests/TUIkitTests/SpringTests.swift`, `Tests/TUIkitTests/UnitCurveTests.swift`; wave 12's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.

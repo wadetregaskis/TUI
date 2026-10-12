@@ -22,7 +22,8 @@ private let inputs: [Double] = [0.1, 0.25, 0.5, 0.75, 0.9]
 @Suite("Unit curves")
 struct UnitCurveTests {
 
-    // Values measured on SwiftUI (macOS 26.2 SDK), `w12/probe/p3.swift`.
+    // Values measured on SwiftUI (macOS 26.2 SDK),
+    // `Tools/SwiftUIProbes/Animation curves, springs and keyframes/p3.swift`.
 
     @Test("The named Bézier curves give SwiftUI's values and velocities")
     func namedBeziers() {

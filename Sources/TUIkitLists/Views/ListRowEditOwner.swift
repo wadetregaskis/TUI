@@ -24,7 +24,8 @@ import TUIkitFoundation
 /// a span stand in for the whole mapping — with ``elements`` saying which
 /// element each row draws, for a loop whose rows are several views each
 /// (decisions B15): a delete on any of an element's rows removes that element,
-/// as SwiftUI's does (measured on macOS 15.8, `D1S/probe2/listdel`: the second
+/// as SwiftUI's does (measured on macOS 15.8,
+/// `Tools/SwiftUIProbes/Sections and subview counting/listdel.swift`: the second
 /// view of an element selected, `delete:` hands `.onDelete` that element's
 /// offset and both of its rows go).
 struct ListRowEditOwner {

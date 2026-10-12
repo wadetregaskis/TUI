@@ -32,7 +32,8 @@ extension Optional where Wrapped: View {
 /// when its `body` is a provider of children, or `nil` for any other view —
 /// which is the one child it always was.
 ///
-/// Measured on macOS 15.8 (`D1S/probe2/composite`): `struct Rows: View { var
+/// Measured on macOS 15.8
+/// (`Tools/SwiftUIProbes/Sections and subview counting/composite.swift`): `struct Rows: View { var
 /// body: some View { a; b } }` beside a view is three subviews of a `Layout`,
 /// an `HStack` lays all three along its row, a `VStack` spaces each, a `ZStack`
 /// overlaps them, `Group(subviews:)` counts two, a `List` draws three rows; so

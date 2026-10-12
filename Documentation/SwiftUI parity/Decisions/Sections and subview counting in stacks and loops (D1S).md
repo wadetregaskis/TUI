@@ -7,8 +7,7 @@ option shipped and is written up here, in that document's three parts: A needs
 a decision, B shipped the safe option (with the fuller version and its price),
 C declined with a parity-map reason. SwiftUI's behaviour was measured on macOS
 15.8 with offscreen `NSHostingView`s (probes in
-[`Tools/SwiftUIProbes/Sections and subview counting/`](<../../../Tools/SwiftUIProbes/Sections and subview counting/>); the
-`D1S/probe2/…` ones are in the maintainers' working notes).*
+[`Tools/SwiftUIProbes/Sections and subview counting/`](<../../../Tools/SwiftUIProbes/Sections and subview counting/>)).*
 
 ## B. Shipped the safe option
 
@@ -154,7 +153,8 @@ the first frame. A day, with an A/B on `megalist` shaped with such rows.
 `Picker`, `View.alignmentGuide(_:computeValue:)`*
 
 A view of the app's own whose `body` is several views is now, to the container
-resolving it, those views, as SwiftUI's is (measured, `D1S/probe2/composite`):
+resolving it, those views, as SwiftUI's is (measured,
+`Tools/SwiftUIProbes/Sections and subview counting/composite.swift`):
 a tuple, a loop, an `if` (none while false), a `Group` of those or a `Section`
 as a body is taken apart — one inside another, and a loop of them, too — with
 the view's `@State` bound at its own identity and every view of its body at
@@ -164,7 +164,7 @@ static witness `View._handsOverChildren`, a few witness calls down the chain of
 apart: the stacks and lazy stacks, `ZStack`, a `Layout`, `Grid` and the lazy
 grids, `ViewThatFits`, the split views, a menu's items, a `List` and its
 sections, the subview and section APIs; and a `Form` reads through it
-(measured, `D1S/probe2/formcomposite`), evaluating its body in its walk. A
+(measured, `Tools/SwiftUIProbes/Sections and subview counting/formcomposite.swift`), evaluating its body in its walk. A
 `Picker`'s options and a text field's suggestions are read by walks of their
 own that see nothing in such a view, as in any view of the app's own. Four
 shapes are still one child:

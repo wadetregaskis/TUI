@@ -1,0 +1,173 @@
+default mass 1.0 stiffness 157.91367 damping 25.132741 dampingRatio 1.0 response 0.5 duration 0.5 bounce 0.0 settling 0.8
+default value [0.0, 0.131311, 0.35774, 0.821026, 0.986399, 0.999953]
+default value v0=2 [0.0, 0.18466, 0.414661, 0.842633, 0.988267, 0.99996]
+default velocity [0.0, 4.212253, 4.494374, 1.706017, 0.147447, 0.000551]
+default velocity v0=2 [2.0, 4.608828, 4.348291, 1.520924, 0.127715, 0.00047]
+default force 105.868882
+default settle eps 0.01 0.6 eps 0.001 0.8 v0=5 0.7
+default update 0.1 0.35774 4.494374
+default update 0.2 0.715416 2.558283
+default fromValue 3.073219
+d0.5b0.3 mass 1.0 stiffness 157.91367 damping 17.592919 dampingRatio 0.7 response 0.5 duration 0.5 bounce 0.3 settling 1.044713
+d0.5b0.3 value [0.0, 0.145715, 0.423302, 0.984087, 1.014498, 1.000072]
+d0.5b0.3 value v0=2 [0.0, 0.20799, 0.495589, 1.003418, 1.011827, 1.000086]
+d0.5b0.3 velocity [0.0, 4.917049, 5.707558, 1.526265, -0.210951, 0.001159]
+d0.5b0.3 velocity v0=2 [2.0, 5.530017, 5.589214, 1.218012, -0.192944, 0.000758]
+d0.5b0.3 force 109.638793
+d0.5b0.3 settle eps 0.01 0.78295 eps 0.001 1.044713 v0=5 0.963528
+d0.5b0.3 update 0.1 0.423302 5.707558
+d0.5b0.3 update 0.2 0.873711 2.953807
+d0.5b0.3 fromValue 3.269906
+d1b-0.5 mass 1.0 stiffness 276.348923 damping 25.132741 dampingRatio 2.0 response 1.0 duration 1.0 bounce -0.5 settling 4.2
+d1b-0.5 value [0.0, 0.033576, 0.096998, 0.292983, 0.535728, 0.799926]
+d1b-0.5 value v0=2 [0.0, 0.089596, 0.16584, 0.353042, 0.575325, 0.816991]
+d1b-0.5 velocity [1.0, 2.105805, 2.358892, 2.185527, 1.781623, 1.336839]
+d1b-0.5 velocity v0=2 [3.0, 2.630699, 2.434701, 2.090102, 1.714974, 1.30811]
+d1b-0.5 force 194.695322
+d1b-0.5 settle eps 0.01 2.8 eps 0.001 4.2 v0=5 4.1
+d1b-0.5 update 0.1 0.096998 2.358892
+d1b-0.5 update 0.2 0.265783 2.219498
+d1b-0.5 fromValue 2.290993
+msd mass 1.0 stiffness 100.0 damping 10.0 dampingRatio 0.5 response 0.628319 duration 0.628319 bounce 0.5 settling 1.739903
+msd value [0.0, 0.104405, 0.3403, 1.02336, 1.074591, 1.00217]
+msd value v0=2 [0.0, 0.179875, 0.447001, 1.078182, 1.057002, 1.003247]
+msd velocity [0.0, 3.773452, 5.335072, 2.741099, -0.879424, 0.053855]
+msd velocity v0=2 [2.0, 4.809951, 5.587458, 2.14616, -0.85272, 0.038744]
+msd force 70.0
+msd settle eps 0.01 1.279386 eps 0.001 1.739903 v0=5 1.381551
+msd update 0.1 0.3403 5.335072
+msd update 0.2 0.849426 4.192796
+msd fromValue 3.0209
+msd-over mass 2.0 stiffness 100.0 damping 28.284271 dampingRatio 1.0 response 0.888577 duration 0.888577 bounce 0.0 settling 1.4
+msd-over value [0.0, 0.04955, 0.158279, 0.527504, 0.86782, 0.993145]
+msd-over value v0=2 [0.0, 0.119769, 0.256893, 0.612861, 0.896963, 0.994844]
+msd-over velocity [0.0, 1.755471, 2.465343, 2.133922, 0.72858, 0.042466]
+msd-over velocity v0=2 [2.0, 2.663326, 2.754176, 1.871785, 0.580793, 0.032154]
+msd-over force 60.857864
+msd-over settle eps 0.01 1.0 eps 0.001 1.4 v0=5 1.2
+msd-over update 0.1 0.158279 2.465343
+msd-over update 0.2 0.413064 2.431167
+msd-over fromValue 2.474837
+msd-over-allowed mass 2.0 stiffness 300.0 damping 40.0 dampingRatio 1.414214 response 0.888577 duration 0.888577 bounce -0.292893 settling 2.5
+msd-over-allowed value [0.0, 0.045542, 0.136943, 0.422484, 0.720956, 0.935475]
+msd-over-allowed value v0=2 [0.0, 0.107466, 0.216805, 0.488503, 0.753625, 0.943035]
+msd-over-allowed velocity [1.0, 2.548115, 2.996558, 2.650462, 1.816726, 1.188989]
+msd-over-allowed velocity v0=2 [3.0, 3.21854, 3.125427, 2.485124, 1.721433, 1.166847]
+msd-over-allowed force 205.0
+msd-over-allowed settle eps 0.01 1.7 eps 0.001 2.5 v0=5 2.4
+msd-over-allowed update 0.1 0.136943 2.996558
+msd-over-allowed update 0.2 0.374788 2.779283
+msd-over-allowed fromValue 2.410828
+response mass 1.0 stiffness 438.649084 damping 20.943951 dampingRatio 0.5 response 0.3 duration 0.3 bounce 0.5 settling 0.892636
+response value [0.0, 0.365609, 0.887787, 1.054361, 1.003918, 0.999989]
+response value v0=2 [0.0, 0.417055, 0.925344, 1.046444, 1.004123, 0.999987]
+response velocity [0.0, 11.283298, 8.237302, -1.736359, 0.044828, -0.000447]
+response velocity v0=2 [2.0, 11.474604, 7.675124, -1.679271, 0.032711, -0.000383]
+response force 318.514838
+response settle eps 0.01 0.672755 eps 0.001 0.892636 v0=5 0.837973
+response update 0.1 0.887787 8.237302
+response update 0.2 1.142095 -1.391079
+response fromValue 4.66336
+settling mass 1.0 stiffness 80.897373 damping 14.390875 dampingRatio 0.8 response 0.698574 duration 0.698574 bounce 0.2 settling 1.252368
+settling value [0.0, 0.079388, 0.248595, 0.748367, 1.009077, 1.000301]
+settling value v0=2 [0.0, 0.148328, 0.341331, 0.808197, 1.01343, 1.000086]
+settling velocity [0.0, 2.788526, 3.751043, 2.42005, 0.176088, -0.008712]
+settling velocity v0=2 [2.0, 3.637644, 3.919304, 2.062308, 0.095285, -0.006215]
+settling force 53.477592
+settling settle eps 0.01 0.932361 eps 0.001 1.252368 v0=5 1.121472
+settling update 0.1 0.248595 3.751043
+settling update 0.2 0.609318 3.13413
+settling fromValue 2.745784
+settling-eps mass 1.0 stiffness 37.40625 damping 9.785704 dampingRatio 0.8 response 1.027325 duration 1.027325 bounce 0.2 settling 1.774322
+settling-eps value [0.0, 0.03968, 0.134477, 0.509552, 0.911132, 1.011517]
+settling-eps value v0=2 [0.0, 0.11754, 0.254356, 0.636905, 0.956695, 1.009457]
+settling-eps velocity [0.0, 1.456222, 2.242121, 2.381897, 0.852188, -0.03852]
+settling-eps velocity v0=2 [2.0, 2.614949, 2.800063, 2.116555, 0.58405, -0.041399]
+settling-eps force 23.161835
+settling-eps settle eps 0.01 1.30372 eps 0.001 1.774322 v0=5 1.432609
+settling-eps update 0.1 0.134477 2.242121
+settling-eps update 0.2 0.385261 2.566095
+settling-eps fromValue 2.40343
+bouncy mass 1.0 stiffness 157.91367 damping 17.592919 dampingRatio 0.7 response 0.5 duration 0.5 bounce 0.3 settling 1.044713
+bouncy value [0.0, 0.145715, 0.423302, 0.984087, 1.014498, 1.000072]
+bouncy value v0=2 [0.0, 0.20799, 0.495589, 1.003418, 1.011827, 1.000086]
+bouncy velocity [0.0, 4.917049, 5.707558, 1.526265, -0.210951, 0.001159]
+bouncy velocity v0=2 [2.0, 5.530017, 5.589214, 1.218012, -0.192944, 0.000758]
+bouncy force 109.638793
+bouncy settle eps 0.01 0.78295 eps 0.001 1.044713 v0=5 0.963528
+bouncy update 0.1 0.423302 5.707558
+bouncy update 0.2 0.873711 2.953807
+bouncy fromValue 3.269906
+smooth mass 1.0 stiffness 157.91367 damping 25.132741 dampingRatio 1.0 response 0.5 duration 0.5 bounce 0.0 settling 0.8
+smooth value [0.0, 0.131311, 0.35774, 0.821026, 0.986399, 0.999953]
+smooth value v0=2 [0.0, 0.18466, 0.414661, 0.842633, 0.988267, 0.99996]
+smooth velocity [0.0, 4.212253, 4.494374, 1.706017, 0.147447, 0.000551]
+smooth velocity v0=2 [2.0, 4.608828, 4.348291, 1.520924, 0.127715, 0.00047]
+smooth force 105.868882
+smooth settle eps 0.01 0.6 eps 0.001 0.8 v0=5 0.7
+smooth update 0.1 0.35774 4.494374
+smooth update 0.2 0.715416 2.558283
+smooth fromValue 3.073219
+snappy mass 1.0 stiffness 157.91367 damping 21.36283 dampingRatio 0.85 response 0.5 duration 0.5 bounce 0.15 settling 0.876827
+snappy value [0.0, 0.13821, 0.388102, 0.894509, 1.00602, 0.999966]
+snappy value v0=2 [0.0, 0.195767, 0.451921, 0.915351, 1.005777, 0.999968]
+snappy velocity [0.0, 4.544508, 5.038908, 1.645581, -0.019148, 0.000181]
+snappy velocity v0=2 [2.0, 5.03851, 4.899359, 1.411328, -0.026007, 0.0002]
+snappy force 107.753838
+snappy settle eps 0.01 0.661258 eps 0.001 0.876827 v0=5 0.824524
+snappy update 0.1 0.388102 5.038908
+snappy update 0.2 0.786369 2.731708
+snappy fromValue 3.164307
+bouncy(1,0.1) mass 1.0 stiffness 39.478418 damping 7.539822 dampingRatio 0.6 response 1.0 duration 1.0 bounce 0.4 settling 2.246759
+bouncy(1,0.1) value [0.0, 0.043341, 0.151088, 0.601646, 1.055903, 1.00932]
+bouncy(1,0.1) value v0=2 [0.0, 0.125292, 0.282568, 0.749099, 1.091413, 1.000596]
+bouncy(1,0.1) velocity [0.0, 1.617653, 2.595313, 2.910605, 0.700943, -0.172205]
+bouncy(1,0.1) velocity v0=2 [2.0, 2.913073, 3.301801, 2.595544, 0.321397, -0.125068]
+bouncy(1,0.1) force 25.838902
+bouncy(1,0.1) settle eps 0.01 1.63598 eps 0.001 2.246759 v0=5 2.045087
+bouncy(1,0.1) update 0.1 0.151088 2.595313
+bouncy(1,0.1) update 0.2 0.449964 3.119972
+bouncy(1,0.1) fromValue 2.453263
+snappy(1,0.1) mass 1.0 stiffness 39.478418 damping 9.424778 dampingRatio 0.75 response 1.0 duration 1.0 bounce 0.25 settling 1.83567
+snappy(1,0.1) value [0.0, 0.042093, 0.143142, 0.543011, 0.952093, 1.013394]
+snappy(1,0.1) value v0=2 [0.0, 0.120534, 0.264425, 0.670705, 0.991963, 1.009723]
+snappy(1,0.1) velocity [0.0, 1.548359, 2.394025, 2.520585, 0.78701, -0.072461]
+snappy(1,0.1) velocity v0=2 [2.0, 2.724885, 2.964678, 2.231073, 0.507055, -0.064652]
+snappy(1,0.1) force 24.896424
+snappy(1,0.1) settle eps 0.01 1.347047 eps 0.001 1.83567 v0=5 1.519515
+snappy(1,0.1) update 0.1 0.143142 2.394025
+snappy(1,0.1) update 0.2 0.410972 2.734418
+snappy(1,0.1) fromValue 2.429426
+smooth(1,0.1) mass 1.0 stiffness 39.478418 damping 11.309734 dampingRatio 0.9 response 1.0 duration 1.0 bounce 0.1 settling 1.556731
+smooth(1,0.1) value [0.0, 0.040901, 0.135847, 0.493961, 0.868474, 1.000387]
+smooth(1,0.1) value v0=2 [0.0, 0.116037, 0.248048, 0.606298, 0.910806, 1.001389]
+smooth(1,0.1) velocity [0.0, 1.483125, 2.214772, 2.217433, 0.835594, 0.01978]
+smooth(1,0.1) velocity v0=2 [2.0, 2.551555, 2.674108, 1.959015, 0.619886, 0.007673]
+smooth(1,0.1) force 23.953946
+smooth(1,0.1) settle eps 0.01 1.149544 eps 0.001 1.556731 v0=5 1.310637
+smooth(1,0.1) update 0.1 0.135847 2.214772
+smooth(1,0.1) update 0.2 0.377489 2.422565
+smooth(1,0.1) fromValue 2.40754
+critical mass 1.0 stiffness 157.91367 damping 25.132741 dampingRatio 1.0 response 0.5 duration 0.5 bounce 0.0 settling 0.8
+critical value [0.0, 0.131311, 0.35774, 0.821026, 0.986399, 0.999953]
+critical value v0=2 [0.0, 0.18466, 0.414661, 0.842633, 0.988267, 0.99996]
+critical velocity [0.0, 4.212253, 4.494374, 1.706017, 0.147447, 0.000551]
+critical velocity v0=2 [2.0, 4.608828, 4.348291, 1.520924, 0.127715, 0.00047]
+critical force 105.868882
+critical settle eps 0.01 0.6 eps 0.001 0.8 v0=5 0.7
+critical update 0.1 0.35774 4.494374
+critical update 0.2 0.715416 2.558283
+critical fromValue 3.073219
+FluidSpringAnimation(response: 0.5000000000000001, dampingFraction: 0.7000000000000002, blendDuration: 0.0)
+FluidSpringAnimation(response: 0.5000000000000001, dampingFraction: 0.7000000000000002, blendDuration: 0.2)
+SpringAnimation(mass: 1.0, stiffness: 157.91367041742973, damping: 25.132741228718345, initialVelocity: SwiftUI._Velocity<Swift.Double>(valuePerSecond: 0.0))
+SpringAnimation(mass: 1.0, stiffness: 157.91367041742964, damping: 17.59291886010284, initialVelocity: SwiftUI._Velocity<Swift.Double>(valuePerSecond: 2.0))
+SpringAnimation(mass: 1.0, stiffness: 100.0, damping: 10.0, initialVelocity: SwiftUI._Velocity<Swift.Double>(valuePerSecond: 0.0))
+SpringAnimation(mass: 1.0, stiffness: 157.91367041742973, damping: 20.106192982974676, initialVelocity: SwiftUI._Velocity<Swift.Double>(valuePerSecond: 0.0))
+FluidSpringAnimation(response: 0.3, dampingFraction: 0.6, blendDuration: 0.0)
+FluidSpringAnimation(response: 0.4, dampingFraction: 0.8, blendDuration: 0.1)
+FluidSpringAnimation(response: 0.15, dampingFraction: 0.85, blendDuration: 0.25)
+FluidSpringAnimation(response: 0.2, dampingFraction: 0.8, blendDuration: 0.1)
+FluidSpringAnimation(response: 0.2, dampingFraction: 0.75, blendDuration: 0.1)
+FluidSpringAnimation(response: 0.5, dampingFraction: 1.0, blendDuration: 0.0)
+FluidSpringAnimation(response: 0.55, dampingFraction: 0.825, blendDuration: 0.0)

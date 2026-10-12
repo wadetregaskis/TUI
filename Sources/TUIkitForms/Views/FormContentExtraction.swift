@@ -70,7 +70,8 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // A view of the app's own whose body is several views, a loop, an `if` or
     // a section — what a stack takes apart (`compositeMembers(of:context:)`,
     // decisions D1S, B-D1S-6) — is read through its body, as SwiftUI's form
-    // reads it (measured, `D1S/probe2/formcomposite`: such a section and such
+    // reads it (measured,
+    // `Tools/SwiftUIProbes/Sections and subview counting/formcomposite.swift`: such a section and such
     // rows lay out as written bare, in both styles): `struct General: View { var
     // body: some View { Section("General") { … } } }` is a section of the
     // form, its `Toggle` in the control column. It was a plain row, drawn as
@@ -136,7 +137,8 @@ extension LabeledContent: FormContentExtractor {
 /// A collapsible section's header is a `List`'s — behind a disclosure
 /// triangle, one control the keyboard and a click toggle — and its rows and
 /// footer are drawn only while it is expanded, as SwiftUI collapses a form's
-/// section in either style (measured on macOS 15.8, `D1S/probe2/form`).
+/// section in either style (measured on macOS 15.8,
+/// `Tools/SwiftUIProbes/Sections and subview counting/form.swift`).
 extension Section: FormContentExtractor where Parent: View, Content: View, Footer: View {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         let header: AnyView? =
@@ -194,7 +196,8 @@ extension EmptyView: FormContentExtractor {
 
 /// A form reads its rows through a `Group`, as SwiftUI's does: a section in
 /// one is a section of the form, a control a control row (measured on macOS
-/// 15.8, `D1S/probe2/form`). It was a plain row before, drawn as written — a
+/// 15.8, `Tools/SwiftUIProbes/Sections and subview counting/form.swift`).
+/// It was a plain row before, drawn as written — a
 /// `Section` in one had no form styling, a `Toggle` no place in the control
 /// column.
 extension Group: FormContentExtractor where Content: View {

@@ -3,14 +3,16 @@
 //
 //  A `Form` reads its content through a `Group`, an `if` and an `if`/`else`,
 //  as SwiftUI's does: a section in one is laid out as the same section written
-//  bare (measured on macOS 15.8, `D1S/probe2/form`, in both styles). Until
+//  bare (measured on macOS 15.8,
+//  `Tools/SwiftUIProbes/Sections and subview counting/form.swift`, in both styles). Until
 //  then the form drew such a wrapper as one plain row: since a `Section`
 //  outside a `List` became its parts (decisions B16), a section in an `if`
 //  lost its form header styling, and a `Toggle` in one never had its place in
 //  the control column. An `if` keeps one place among the form's elements, so
 //  the rows after it keep their identities as it comes and goes. So does a
 //  view of the app's own whose body is a section or several rows — the
-//  usual way a form is factored (`D1S/probe2/formcomposite`) — its `@State`
+//  usual way a form is factored
+//  (`Tools/SwiftUIProbes/Sections and subview counting/formcomposite.swift`) — its `@State`
 //  kept.
 //
 //  Created by Wade Tregaskis

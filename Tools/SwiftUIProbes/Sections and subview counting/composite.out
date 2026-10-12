@@ -1,0 +1,63 @@
+rows: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+nested: count=2 tags=nil,nil sizes=20x10,20x10
+loopbody: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+ifbody-false: count=1 tags=nil sizes=20x10
+ifbody-true: count=2 tags=nil,nil sizes=20x10,20x10
+padded-pair: count=2 tags=nil,nil sizes=24x14,24x14
+foreach-of-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+rows-padded: count=2 tags=nil,nil sizes=26x16,26x16
+subviews: count=2 tags=nil,nil sizes=20x10,20x10
+rows-padded: count=2 tags=nil,nil sizes=26x16,26x16
+rows-padded: count=2 tags=nil,nil sizes=26x16,26x16
+ifbody-false: count=1 tags=nil sizes=20x10
+ifbody-false: count=1 tags=nil sizes=20x10
+loopbody: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+loopbody: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+padded-pair: count=2 tags=nil,nil sizes=24x14,24x14
+padded-pair: count=2 tags=nil,nil sizes=24x14,24x14
+subviews: count=2 tags=nil,nil sizes=20x10,20x10
+subviews: count=2 tags=nil,nil sizes=20x10,20x10
+nested: count=2 tags=nil,nil sizes=20x10,20x10
+nested: count=2 tags=nil,nil sizes=20x10,20x10
+foreach-of-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+foreach-of-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+ifbody-true: count=2 tags=nil,nil sizes=20x10,20x10
+ifbody-true: count=2 tags=nil,nil sizes=20x10,20x10
+rows: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+rows: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+ifbody-false: count=1 tags=nil sizes=20x10
+ifbody-true: count=2 tags=nil,nil sizes=20x10,20x10
+nested: count=2 tags=nil,nil sizes=20x10,20x10
+loopbody: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+padded-pair: count=2 tags=nil,nil sizes=24x14,24x14
+rows-padded: count=2 tags=nil,nil sizes=26x16,26x16
+rows: count=3 tags=nil,nil,nil sizes=20x10,20x10,20x10
+foreach-of-rows: count=4 tags=nil,nil,nil,nil sizes=20x10,20x10,20x10,20x10
+subviews: count=2 tags=nil,nil sizes=20x10,20x10
+== hstack of rows
+   ra: x0 y0 w20 h10
+   rb: x25 y0 w20 h10
+   c: x50 y0 w20 h10
+== vstack of rows
+   ra: x0 y0 w20 h10
+   rb: x0 y15 w20 h10
+   c: x0 y30 w20 h10
+== hstack of stateful rows
+   sa0: x0 y0 w20 h10
+   sb: x25 y0 w20 h10
+   c: x50 y0 w20 h10
+== hstack of rows padded
+   ra: x3 y3 w20 h10
+   rb: x34 y3 w20 h10
+   c: x62 y3 w20 h10
+== list of rows
+   ra: x16 y17 w20 h10
+   rb: x16 y41 w20 h10
+   c: x16 y65 w20 h10
+== hstack of loopbody
+   l0: x0 y0 w20 h10
+   l1: x25 y0 w20 h10
+   l2: x50 y0 w20 h10
+== zstack of rows
+   ra: x0 y0 w20 h10
+   rb: x0 y0 w20 h10

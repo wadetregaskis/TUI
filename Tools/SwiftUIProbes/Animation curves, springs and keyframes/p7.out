@@ -1,0 +1,15 @@
+spring delta 0.01 duration 0.6
+bouncy delta 0.01 duration 0.78295
+spring delta 1.0 duration 0.9999999999999999
+bouncy delta 1.0 duration 1.306476
+spring delta 100.0 duration 1.4000000000000001
+bouncy delta 100.0 duration 1.830001
+v0=5 duration 0.8999999999999999
+cubic-spring [0.15625, 0.5, 0.84375, 1.0, 0.178974]
+cubic-move-cubic 2.0 [0.15625, 0.5, 0.84375, 1.0, 2.53125, 1.5, 0.46875]
+cubic-cubic(sv) [0.015625, 0.125, 0.421875, 1.265625, 0.875]
+cubic(ev)-cubic [0.25, 0.75, 1.125, 0.84375, 0.5]
+easeIn-cubic [0.84375, 0.5, 0.15625]
+zero-dur 1.0 [nan, 0.5, 0.0]
+cubic-after-spring [1.049208, 0.996292, 0.585218, 0.257728, 0.033864]
+spring vel at 0.3 0.546019 1.03393

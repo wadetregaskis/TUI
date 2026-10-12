@@ -1,0 +1,39 @@
+== Probe1
+- 'Loose' 
+- '' separator,disabled
+- 'First' sectionHeader
+- 'A' 
+- 'B' 
+- '' separator,disabled
+- '' separator,disabled
+- 'Second' sectionHeader
+- 'C' 
+- '' separator,disabled
+- '' separator,disabled
+- 'D' 
+- '' separator,disabled
+- 'Sub' 
+    - '' separator,disabled
+    - 'Inner' sectionHeader
+    - 'E' 
+    - '' separator,disabled
+    - 'F' 
+== Probe2
+- '' separator,disabled
+- 'First' sectionHeader
+- 'A' 
+- '' separator,disabled
+- '' separator,disabled
+- 'Second' sectionHeader
+- 'C' 
+- '' separator,disabled
+- 'Tail' 
+== Probe3
+- '' separator,disabled
+- 'S0' sectionHeader
+- 'x0' 
+- '' separator,disabled
+- '' separator,disabled
+- 'S1' sectionHeader
+- 'x1' 
+- '' separator,disabled

@@ -11,7 +11,7 @@ import TUIkitCore
 /// velocity known, so a value at any time is one segment's arithmetic.
 ///
 /// The rules are SwiftUI's, measured on its own timelines
-/// (`w12/probe/p6.swift`, `p7.swift`):
+/// (`Tools/SwiftUIProbes/Animation curves, springs and keyframes/p6.swift`, `p7.swift`):
 ///
 /// - A **cubic** keyframe is a Hermite segment. Its start velocity is the one
 ///   it names, else — after another cubic — the Catmull–Rom tangent through

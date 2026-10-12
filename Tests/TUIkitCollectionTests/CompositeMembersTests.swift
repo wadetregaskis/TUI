@@ -3,7 +3,8 @@
 //
 //  A view of the app's own whose `body` is several views is, to the container
 //  laying it out, those views — as SwiftUI's is (measured on macOS 15.8,
-//  `D1S/probe2/composite`): beside a view it is three subviews of a `Layout`,
+//  `Tools/SwiftUIProbes/Sections and subview counting/composite.swift`): beside
+//  a view it is three subviews of a `Layout`,
 //  an `HStack` lays all three along its row, `Group(subviews:)` counts two, a
 //  `List` draws three rows; so is one inside another, a body that is a loop,
 //  and one that is an `if` (none while false); a loop of them is each one's

@@ -1,0 +1,32 @@
+== grouped: plain section
+   top: x30 y33 w20 h10
+   head: x30 y86 w33 h16
+   row: x30 y125 w20 h10
+== grouped: section of the app's own
+   top: x30 y33 w20 h10
+   head: x30 y86 w33 h16
+   row: x30 y125 w20 h10
+== columns: plain section
+   top: x0 y0 w20 h10
+   head: x0 y14 w32 h16
+   row: x0 y38 w20 h10
+== columns: section of the app's own
+   top: x0 y0 w20 h10
+   head: x0 y14 w32 h16
+   row: x0 y38 w20 h10
+== columns: rows bare
+   label: x0 y0 w35 h16
+   value: x43 y3 w20 h10
+   toggle: x62 y24 w32 h16
+== columns: rows of the app's own
+   label: x0 y0 w35 h16
+   value: x43 y3 w20 h10
+   toggle: x62 y24 w32 h16
+== grouped: rows bare
+   label: x30 y30 w35 h16
+   value: x350 y33 w20 h10
+   toggle: x30 y67 w32 h16
+== grouped: rows of the app's own
+   label: x30 y30 w35 h16
+   value: x350 y33 w20 h10
+   toggle: x30 y67 w32 h16

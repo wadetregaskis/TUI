@@ -2,7 +2,8 @@
 //  KeyframeTimelineTests.swift
 //
 //  Every expected value was printed by SwiftUI's own KeyframeTimeline (macOS
-//  26.2 SDK, `w12/probe/p6.swift` and `p7.swift`) to six places.
+//  26.2 SDK, `Tools/SwiftUIProbes/Animation curves, springs and keyframes/p6.swift`
+//  and `p7.swift`) to six places.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
