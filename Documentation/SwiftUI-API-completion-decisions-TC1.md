@@ -46,6 +46,28 @@ longer shows what the child process checks. The lane's brief said "contorting
 a test is not [fine]", so nothing shipped. **Options:** (a) do it for all 38;
 (b) only where the body is over ~20 lines; (c) leave them (the default).
 
+**2026-10-12, the owner asked what the price means.** An exit test's trailing
+closure is the code the *child process* runs: Swift Testing relaunches the test
+binary to run only that closure, and the parent checks how the child exited,
+with the child's own `#expect`s forwarded to it. So the closure's body *is*
+what the child checks. Moved into a helper, the test reads only
+
+```swift
+await #expect(processExitsWith: .success) {
+    await MainActor.run { Self.overridePublishesBody() }
+}
+```
+
+and its setup and expectations are in another function. **What was measured
+since** (session notes `EXITTC/research.md` §8.1, on 6.4.0): the exit tests'
+in-place type-check totals about 2 s of a ~700 s whole-module type check of the
+test target (≈0.2%), so the −7 to −10 s above overstated it at least 3.5
+times. There are now 47 exit tests in 25 files across seven test targets. The
+recommendation stays **(c), leave them**; if the saving is ever wanted, a
+smaller rewrite keeps the body in the test as a local `inChild()` function
+passed as `performing:` ([Future options](Future-options.md#exit-tests-bodies-as-functions)).
+Still yours to answer.
+
 ## B. Shipped the safe option
 
 ### B-TC1-1. TUIkitTests' `#expect` floor: only the outliers were rewritten
@@ -88,6 +110,17 @@ import and `@testable`.
   test targets that import only their module: the floor there is half, and
   each target compiles in parallel. This is the structural lever, and it
   belongs to the split's test-target plan rather than to this lane.
+
+**Status, 2026-10-10.** Lane TT2 (b377b5f24) split the umbrella suite into four
+test targets **by area**, each under 8,000 `#expect`s, rather than into
+module-only targets: all four still import the umbrella and `@testable`
+TUIkitTestSupport. Measured by TT2 (CPU, two repeats): a one-file test edit
+costs about 18 CPU s instead of about 60, and a rebuild of every test file
+100 s (6.2.4) and 228 s (6.4.0) less, at or above what the module-only lever
+was estimated to buy; wall time moved only 5 to 12 s. What is left is the import
+part of the floor, unmeasured since the split (at most about 72 CPU s a full
+rebuild, by estimate); both fuller versions are recorded in
+[Future options](Future-options.md#the-rest-of-the-test-targets-expect-floor).
 
 ## C. Declined
 

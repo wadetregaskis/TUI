@@ -19,6 +19,10 @@ Three parts:
 Each entry names the SwiftUI symbols it covers, so `api_parity.py` output can be
 traced back to it.
 
+Ideas that were measured or designed and then deliberately not taken, here or in
+the lane files, are in [`Future-options.md`](Future-options.md), each with what
+would make it worth revisiting.
+
 ## Start here: the questions in one list
 
 Every gap `api_parity.py` still reports names one of these questions, and

@@ -18,9 +18,16 @@ qualifiers and private discriminators removed). None is a timing; the coordinato
 
 ## A. Needs your decision
 
-### A-SPH2-1. A `static let` read from another module calls its addressor
+### A-SPH2-1. A `static let` read from another module calls its addressor — decided: keep the addressor
 
 *Every module boundary — no API*
+
+**Owner (2026-10-12): keep the addressor.** A read of a global from another module stays one call, as shipped.
+Computed constants (`@inlinable static var` in place of `static let`, for the per-row readers named below) stay a
+future optimisation, taken up only if a profile shows a real-world cost from these calls; they are recorded in
+[Future options](Future-options.md#computed-constants-for-globals-read-across-modules). The ruling does not cover
+`LocalizationService.shared`'s 157 sites: removing them belongs to replacing the singleton, a design change of its
+own.
 
 Inside one module the optimiser inlines a global's addressor into each read: a check of the global's once-token,
 `swift_once` on the slow path, and a load. From another module it cannot see the addressor's body, so each read is a
@@ -51,9 +58,18 @@ hand another module a global's constant value. The options:
   singleton read would remove the 157 sites, and is the "No Singletons" rule's direction too; it is a design change
   of its own, not an annotation.
 
-### A-SPH2-2. A feature-object slot costs a cast on every read
+### A-SPH2-2. A feature-object slot costs a cast on every read — decided: the cast stays
 
 *Sources/TUIkitFoundation/Environment/FeatureObjectSlots.swift (step K1, a2195f6bd) — no API*
+
+**Owner (2026-10-12): keep the `as?`.** TUIkit uses `unsafeDowncast` only where the cast is guaranteed by
+construction, and here it is not. That a slot holds its accessor's type is a convention: `subscript(featureObject:)`
+is `package`, so any module of the package can write any object into any slot, and only review would notice. With
+`as?` a wrong object reads as absent; with `unsafeDowncast` it would be undefined behaviour in release. The second
+option below rests on that convention, so it is not taken. A design that does make the cast provable, typed slot
+keys written through one generic subscript into private storage, is recorded in
+[Future options](Future-options.md#typed-feature-object-keys); it needs storage of its own in `EnvironmentValues`,
+at a price not measured.
 
 K1 made the navigation coordinator, the dialog suppression toggle, the search objects and the notification service
 `AnyObject?` environment slots that the substrate declares and clears, each read through its feature's typed
