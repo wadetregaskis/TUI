@@ -19,7 +19,7 @@ release` with TUIkit's default traits, then `strip`), a hello world (`Text("Hell
 | `TUIkitApp` | 5,751,768 bytes (−37.8%) | 8 |
 | `TUIkitApp` and `TUIkitColorPicker`, with one `ColorPicker` | 7,613,568 bytes | 14 |
 
-Launch time and memory use have not been measured.
+On a quiet machine (Swift 6.4.0, release, 12 jobs, 2026-10-11), the hello world on `TUIkitApp` built clean in 62.8 and 58.7 s against 68.9 and 75.1 s on `TUIkit`, reached its first output in 6.8 ms against 7.1 ms, and used 2.76 MiB against 2.85 MiB (`footprint`; medians of 20 alternated launches).
 
 ### Depending on modules
 

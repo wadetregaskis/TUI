@@ -221,7 +221,7 @@ import TUIkitApp
 import TUIkitTables
 ```
 
-Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a hello world is 5,964,832 bytes on `TUIkitApp` against 9,552,376 on `TUIkit` (−37.6%), and compiles 8 of TUIkit's modules where the umbrella compiles 26. Launch time and memory have not been measured.
+Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a hello world is 5,964,832 bytes on `TUIkitApp` against 9,552,376 on `TUIkit` (−37.6%), and compiles 8 of TUIkit's modules where the umbrella compiles 26. On a quiet machine the same day (release, 12 jobs, two clean builds each), it built in 62.8 and 58.7 s against 68.9 and 75.1 s, reached its first output in 6.8 ms against 7.1 ms, and used 2.76 MiB against 2.85 MiB (`footprint`; medians of 20 launches each, alternated).
 
 - **The products decide what is built; the imports only which names you can see.** Depending on `TUIkit` and writing `import TUIkitTables` builds and links everything.
 - **A forgotten product** reads `cannot find 'Table' in scope` or `value of type 'Text' has no member 'tableStyle'`, naming no module. The documentation's *Which Module Provides It* page (built by `Tools/BuildDocs/build-docs.sh`) lists every public name with its module and product.
