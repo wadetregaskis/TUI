@@ -53,8 +53,10 @@ enum PropertyPlans {
             if let own = type as? any ResolvesOwnEnvironment.Type {
                 fields = FieldsPlan(type: type, steps: fields.steps.filter { !$0.isEnvironmentOnly }, updater: nil)
                 plan = SlotPlan(.fields(fields), ownEnvironment: own)
+            } else if fields.steps.isEmpty {
+                plan = SlotPlan(.none)
             } else {
-                plan = SlotPlan(fields.steps.isEmpty ? .none : .fields(fields))
+                plan = SlotPlan(.fields(fields), probes: rootProbes(fields))
             }
         case .enum:
             plan = SlotPlan(.enumeration(EnumPlan(type: type, updater: nil)))
@@ -69,6 +71,24 @@ enum PropertyPlans {
         }
         roots.pointee[key] = plan
         return plan
+    }
+
+    /// What is read of each of a view's fields before the view is copied, if
+    /// every field the walk acts on is one whose value says whether it does
+    /// (``SlotPlan/probes``): an existential, or an optional of one, laid out
+    /// so that its dynamic type can be read where it lies.
+    private static func rootProbes(_ fields: FieldsPlan) -> [RootProbe]? {
+        var probes: [RootProbe] = []
+        for step in fields.steps {
+            guard step.reference == nil, !step.appliesModifier else { return nil }
+            var slot = step.slot
+            if case .optional(let optional) = slot.action { slot = optional.wrapped }
+            guard case .existential(let existential) = slot.action, existential.layout != .other else {
+                return nil
+            }
+            probes.append(RootProbe(offset: step.offset, kind: .existential(existential.layout), empty: existential.empty))
+        }
+        return probes
     }
 
     /// The plan for a stored value of declared type `type`.

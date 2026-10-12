@@ -58,12 +58,20 @@ package final class SlotPlan {
     /// but nothing in it updated (``FieldsPlan/Step/appliesModifier``).
     let isModifier: Bool
 
+    /// For a view whose every field the walk acts on only if its value says
+    /// so — an existential, or an optional of one — what is read of each
+    /// field before the view is copied: if none finds anything, `body` is
+    /// evaluated on the view as it is (``preparedBody(of:plan:context:isMeasuring:)``).
+    let probes: [RootProbe]?
+
     init(
-        _ action: Action, ownEnvironment: (any ResolvesOwnEnvironment.Type)? = nil, isModifier: Bool = false
+        _ action: Action, ownEnvironment: (any ResolvesOwnEnvironment.Type)? = nil, isModifier: Bool = false,
+        probes: [RootProbe]? = nil
     ) {
         self.action = action
         self.ownEnvironment = ownEnvironment
         self.isModifier = isModifier
+        self.probes = probes
     }
 
     /// Whether the walk does nothing with a value of the planned type.
@@ -176,14 +184,20 @@ final class OptionalPlan {
 }
 
 /// An existential field: any value may be in it, so its dynamic type is read
-/// each body and planned as any field of that type would be.
+/// each body, where it lies (``DynamicTypes``), and planned as any field of
+/// that type would be.
 @MainActor
 final class ExistentialPlan {
     /// The declared existential type, which the field's storage is laid out as.
     let type: Any.Type
+    /// How the type's values are laid out.
+    let layout: ExistentialLayout
+    /// The dynamic types found in such a field holding nothing.
+    let empty = EmptyTypes()
 
     init(type: Any.Type) {
         self.type = type
+        layout = ExistentialLayout(type)
     }
 }
 

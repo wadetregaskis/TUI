@@ -43,6 +43,11 @@ package func propertyPlan<V>(for _: V.Type) -> SlotPlan? {
 package func preparedBody<V: View>(
     of view: V, plan: SlotPlan, context: RenderContext, isMeasuring: Bool
 ) -> V.Body {
+    // A view whose fields say by their values whether the walk acts on them,
+    // all holding nothing: evaluated as it is, with no copy made.
+    if let probes = plan.probes, !probesFindSomething(in: view, probes) {
+        return view.body
+    }
     var prepared = view
     prepareProperties(
         of: &prepared, plan: plan, identity: context.identity, storage: context.stateStorage,
@@ -229,7 +234,7 @@ struct PropertyWalk {
             apply(optional.wrapped, at: address, position: position, scope: scope, isOwn: isOwn, updates: updates)
         case .existential(let existential):
             applyExistential(
-                at: address, as: existential.type, position: position, scope: scope, isOwn: isOwn,
+                existential, at: address, as: existential.type, position: position, scope: scope, isOwn: isOwn,
                 updates: updates)
         case .object(let plan):
             let object = address.assumingMemoryBound(to: AnyObject.self).pointee
@@ -285,28 +290,44 @@ struct PropertyWalk {
 
     // MARK: Existentials
 
-    /// The existential of declared type `Existential` at `address`: what it
-    /// holds, walked by its dynamic type's plan on a copy that is then
-    /// assigned back. Assigned, not written in place: a value too big for the
-    /// existential's inline buffer lies in a box its copies share.
+    /// The existential of declared type `Existential` at `address`, which
+    /// `plan` plans: what it holds, walked by its dynamic type's plan on a copy
+    /// that is then assigned back. Assigned, not written in place: a value too
+    /// big for the existential's inline buffer lies in a box its copies share.
+    /// The dynamic type is read where the value lies (``DynamicTypes``), and
+    /// one found holding nothing is noted, so the next body that finds it
+    /// there — and the probe before a view is copied — reads no further.
     private mutating func applyExistential<Existential>(
-        at address: UnsafeMutableRawPointer, as _: Existential.Type, position: Int, scope: UInt64, isOwn: Bool,
-        updates: UpdateMode
+        _ plan: ExistentialPlan, at address: UnsafeMutableRawPointer, as _: Existential.Type, position: Int,
+        scope: UInt64, isOwn: Bool, updates: UpdateMode
     ) {
         let field = address.assumingMemoryBound(to: Existential.self)
-        // `type(of:)` of the value as `Any` is its dynamic type, however
-        // deeply existentials are nested — `Existential` is generic here, so
-        // `as Any` wraps the existential itself rather than what it holds.
-        let dynamicType = type(of: field.pointee as Any)
+        let dynamicType: Any.Type
+        switch DynamicTypes.existential(at: UnsafeRawPointer(address), plan.layout) {
+        case .empty:
+            return
+        case .type(let type):
+            dynamicType = type
+        case .unknown:
+            // `type(of:)` of the value as `Any` is its dynamic type, however
+            // deeply existentials are nested — `Existential` is generic here,
+            // so `as Any` wraps the existential itself rather than what it
+            // holds.
+            dynamicType = type(of: field.pointee as Any)
+        }
+        if plan.empty.contains(dynamicType) { return }
         let slot = PropertyPlans.slot(dynamicType)
-        if slot.isNone { return }
+        if slot.isNone {
+            plan.empty.insert(dynamicType)
+            return
+        }
         // A modifier in an existential is stored, never the one applied.
         applyOpened(
             field, as: dynamicType, slot: slot, position: position, scope: scope, isOwn: isOwn,
             updates: slot.isModifier ? .none : updates)
     }
 
-    /// ``applyExistential(at:as:position:scope:isOwn:updates:)``, with what
+    /// ``applyExistential(_:at:as:position:scope:isOwn:updates:)``, with what
     /// the existential at `field` holds cast out to `Value`, its own type: a
     /// cast between two generic types is made at run time, and unwraps the
     /// existential however deeply it is nested.
