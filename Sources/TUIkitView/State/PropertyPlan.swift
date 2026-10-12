@@ -51,9 +51,19 @@ package final class SlotPlan {
     /// own environment-only fields the plan then leaves out.
     let ownEnvironment: (any ResolvesOwnEnvironment.Type)?
 
-    init(_ action: Action, ownEnvironment: (any ResolvesOwnEnvironment.Type)? = nil) {
+    /// Whether the planned value is a ``ViewModifier`` (or an optional of
+    /// one). A modifier's properties are updated only where it is APPLIED —
+    /// as the `modifier` of the ``ModifiedContent`` being drawn — and once
+    /// there; one stored anywhere else has its properties bound and resolved,
+    /// but nothing in it updated (``FieldsPlan/Step/appliesModifier``).
+    let isModifier: Bool
+
+    init(
+        _ action: Action, ownEnvironment: (any ResolvesOwnEnvironment.Type)? = nil, isModifier: Bool = false
+    ) {
         self.action = action
         self.ownEnvironment = ownEnvironment
+        self.isModifier = isModifier
     }
 
     /// Whether the walk does nothing with a value of the planned type.
@@ -104,6 +114,10 @@ final class FieldsPlan {
         /// For a field held `weak` or `unowned`, how it is loaded: never as
         /// its declared type, whose layout is not the field's.
         let reference: ReferenceField?
+        /// Whether the field is the modifier a ``ModifiedContent`` that is
+        /// being drawn applies: the one place a modifier's properties are
+        /// updated (``SlotPlan/isModifier``).
+        var appliesModifier = false
 
         /// Whether all the step does is hand an environment in: what a
         /// ``ResolvesOwnEnvironment`` view does itself.
@@ -242,6 +256,9 @@ enum PropertyPlans {
         switch RuntimeFields.Kind(of: type) {
         case .struct:
             var fields = fieldsPlan(of: type, updater: nil)
+            if type is any AppliedModifierHolder.Type {
+                fields = FieldsPlan(type: type, steps: markingAppliedModifier(in: fields, of: type), updater: nil)
+            }
             if let own = type as? any ResolvesOwnEnvironment.Type {
                 fields = FieldsPlan(type: type, steps: fields.steps.filter { !$0.isEnvironmentOnly }, updater: nil)
                 plan = SlotPlan(.fields(fields), ownEnvironment: own)
@@ -267,9 +284,32 @@ enum PropertyPlans {
     static func slot(_ type: Any.Type) -> SlotPlan {
         let key = ObjectIdentifier(type)
         if let plan = slots.pointee[key] { return plan }
-        let plan = SlotPlan(action(forStored: type))
+        let action = action(forStored: type)
+        let plan = SlotPlan(action, isModifier: isModifier(type, action))
         slots.pointee[key] = plan
         return plan
+    }
+
+    /// Whether a stored value of `type`, planned as `action`, is a modifier,
+    /// or an optional of one.
+    private static func isModifier(_ type: Any.Type, _ action: SlotPlan.Action) -> Bool {
+        switch action {
+        case .optional(let optional): optional.wrapped.isModifier
+        case .fields, .enumeration, .object: type is any ViewModifier.Type
+        default: false
+        }
+    }
+
+    /// `fields`' steps, the step of `type`'s `modifier` field marked as the
+    /// one whose modifier is applied: `type` is a ``ModifiedContent`` being
+    /// drawn, whose body applies it.
+    private static func markingAppliedModifier(in fields: FieldsPlan, of type: Any.Type) -> [FieldsPlan.Step] {
+        let names = RuntimeFields.fields(of: type).map(\.name)
+        var steps = fields.steps
+        for index in steps.indices where names[steps[index].position] == "modifier" {
+            steps[index].appliesModifier = true
+        }
+        return steps
     }
 
     /// What is done with a stored value of declared type `type`.

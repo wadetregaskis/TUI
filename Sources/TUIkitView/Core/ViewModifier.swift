@@ -194,6 +194,12 @@ public struct ModifiedContent<Content, Modifier> {
 
 extension ModifiedContent: Equatable where Content: Equatable, Modifier: Equatable {}
 
+/// A view whose body applies the ``ViewModifier`` in its `modifier` field: the
+/// one place the property walk updates a modifier's properties (`PropertyPlans`).
+protocol AppliedModifierHolder {}
+
+extension ModifiedContent: AppliedModifierHolder where Content: View, Modifier: ViewModifier {}
+
 extension ModifiedContent: View where Content: View, Modifier: ViewModifier {
     /// The modifier's body, built around this content.
     public var body: some View {

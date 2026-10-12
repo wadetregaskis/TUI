@@ -114,3 +114,27 @@ in closures. Within `body`, each holder could read its own by resolving the
 object for the body and restoring it after; closures and anything evaluated
 later (a `ForEach` row, a `GeometryReader`) would then read the restored one,
 which is less coherent than one environment per object.
+
+### B-DYNVFIX-4. A stored modifier's properties are updated only where the modifier is applied
+
+*`ViewModifier`, `DynamicProperty`*
+
+The walks looked inside every `ViewModifier` value, so a modifier stored in a
+view's field had its properties bound, resolved, updated and written back as
+the view's — and then the copy the view's body applied was updated again: its
+`update()` ran twice per body (DYNV bug 5). TUIkit's own `.transaction(_:)`
+and `.animation(_:)` store the modifier they wrap, and `.concat(_:)` the two it
+joins, so they did the same. SwiftUI updates only the copy applied, once
+(measured: DYNP `op.out` vii-c2; DYNV `dv2-main.out`, `txn`, `concat`).
+
+**Shipped:** a modifier is *applied* only as the `modifier` of the
+`ModifiedContent` being drawn, and only there is anything in it updated. One
+stored anywhere else — a view's field, a property, the modifier a wrapper
+holds — keeps what TUIkit gave it beyond SwiftUI: its `@State` is bound and its
+`@Environment` resolved, so the holding view's body can read them. But nothing
+in it is updated.
+
+**Lost:** `update()` on the properties of a modifier stored in a field and
+never applied. SwiftUI gives such a field nothing. Updating it there, and not
+again where it is applied, would need to know, before `body` runs, whether the
+copy `body` applies came from that field, which nothing says.

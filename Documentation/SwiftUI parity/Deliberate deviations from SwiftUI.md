@@ -390,8 +390,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   never read, and a field declared as a plain class is not looked into, as in
   SwiftUI. It reaches further: into properties held in optionals (S1) and
   existentials (S3), checked by value each body, into the contents of class
-  properties (held strongly, `unowned` or `weak`), and into modifiers stored
-  in fields.
+  properties (held strongly, `unowned` or `weak`; S6), and into modifiers
+  stored in fields, whose `@State` is bound and `@Environment` resolved but
+  whose properties' `update()` runs only where the modifier is applied, once,
+  as SwiftUI's does (measured, DYNP `op.out` vii-c2;
+  [B-DYNVFIX-4](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-4-a-stored-modifiers-properties-are-updated-only-where-the-modifier-is-applied)).
 - **Why:** the owner's ruling (2026-10-12): keep what TUIkit supports even
   where SwiftUI does not, and fix the bugs inside each reach rather than
   dropping it (session notes `DYNV/notes.md`, `DYNV2/notes.md`).
@@ -1430,4 +1433,3 @@ on. Each waits on the work, or on the ruling, its State names.
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](SwiftUI-compatibility.md#3-open-divergence) | Open divergence |
 | A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](SwiftUI-compatibility.md#a-child-with-no-extent-takes-no-stack-spacing) | Open divergence; the Example's Animation page relies on it |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy) | Known; fuller version priced |
-| Dynamic-property discovery bugs left: a stored modifier updated twice | session notes `DYNV/notes.md`, [decisions-DYNVFIX](SwiftUI-API-completion-decisions-DYNVFIX.md) | Being fixed (S2) |
