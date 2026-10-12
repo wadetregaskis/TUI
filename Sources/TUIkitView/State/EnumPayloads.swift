@@ -14,12 +14,9 @@
 //    `getEnumTag`, `destructiveProjectEnumData` and
 //    `destructiveInjectEnumTag` (swift/ABI/ValueWitness.def). Each takes the
 //    value's address and the metadata, and the tag where it writes one.
-//  - The enum's field descriptor, reached from its nominal type descriptor
-//    (the metadata's second word): one record per case, payload cases first
-//    in declaration order and then the empty ones — record `i` is the case
-//    whose tag is `i` — each with a flags word (bit 0: the case is
-//    `indirect`), its payload's mangled type (absent for an empty case), and
-//    its name (swift/RemoteInspection/Records.h).
+//  - The enum's field descriptor (`FieldDescriptors`): one record per case,
+//    by tag, each with a flags word (bit 0: the case is `indirect`), its
+//    payload's mangled type (absent for an empty case), and its name.
 //
 //  The value witnesses are `swiftcc` functions, called here through a C
 //  function type. Measured on macOS arm64 only (session notes
@@ -172,37 +169,16 @@ struct EnumWitnesses {
 /// `type`'s cases, by tag, from its field descriptor — or `nil` if it has
 /// none to read.
 private func enumCases(of type: Any.Type) -> [EnumCasesPlan.Case]? {
-    // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
-    // swiftlint:disable:next function_address_identity
-    let metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
-    let word = MemoryLayout<Int>.size
-    guard let description = metadata.load(fromByteOffset: word, as: UnsafeRawPointer?.self),
-        // Flags, parent, name and access function come first: 32 bits each.
-        let fields = relativeTarget(at: description + 16)
-    else { return nil }
-    let recordSize = Int(fields.load(fromByteOffset: 10, as: UInt16.self))
-    let count = Int(fields.load(fromByteOffset: 12, as: UInt32.self))
-    guard recordSize >= 12 else { return nil }
+    guard let records = FieldDescriptors.records(ofValueType: type) else { return nil }
     var cases: [EnumCasesPlan.Case] = []
-    cases.reserveCapacity(count)
-    for index in 0..<count {
-        let record = fields + 16 + index * recordSize
-        let flags = record.load(as: UInt32.self)
-        let name = relativeTarget(at: record + 8).map {
-            String(cString: $0.assumingMemoryBound(to: CChar.self))
-        }
+    cases.reserveCapacity(records.count)
+    for record in records {
+        let name = record.name.map { String(cString: $0.assumingMemoryBound(to: CChar.self)) }
         cases.append(
             EnumCasesPlan.Case(
-                label: name ?? "", isIndirect: flags & 1 != 0, hasPayload: relativeTarget(at: record + 4) != nil))
+                label: name ?? "", isIndirect: record.flags & 1 != 0, hasPayload: record.mangledTypeName != nil))
     }
     return cases
-}
-
-/// The address a 32-bit relative pointer at `address` points to, or `nil`
-/// for a null one.
-private func relativeTarget(at address: UnsafeRawPointer) -> UnsafeRawPointer? {
-    let offset = address.load(as: Int32.self)
-    return offset == 0 ? nil : address + Int(offset)
 }
 
 /// An enum's current case, as the runtime's reflection reads it: never
