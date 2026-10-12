@@ -3249,3 +3249,119 @@ private enum CorpusScreen: View {
         }
     }
 }
+
+// MARK: - Where SwiftUI finds a view's properties (lane DYNVFIX)
+
+/// An app property that is an enum: what `update()` changes in its payload is
+/// written back before `body` reads it, as SwiftUI writes it back.
+private struct CorpusElapsed: DynamicProperty {
+    var ticks = 0
+
+    mutating func update() {
+        ticks += 1
+    }
+}
+
+private enum CorpusStopwatch: DynamicProperty {
+    case running(CorpusElapsed)
+    case stopped
+}
+
+@MainActor
+private struct CorpusLap: View {
+    var watch: CorpusStopwatch
+
+    var body: some View {
+        if case .running(let elapsed) = watch {
+            Text("\(elapsed.ticks)")
+        } else {
+            Text("stopped")
+        }
+    }
+}
+
+/// A view whose custom mirror leaves its `@State` out keeps it all the same.
+@MainActor
+private struct CorpusLogin: View, CustomReflectable {
+    let account: String
+    @State private var password = ""
+
+    nonisolated var customMirror: Mirror { Mirror(self, children: ["account": account]) }
+
+    var body: some View {
+        SecureField("Password", text: $password)
+    }
+}
+
+/// A view holding a back-reference `unowned`, which `body` never reads.
+private final class CorpusConnection {
+    func retry() {}
+}
+
+@MainActor
+private struct CorpusRetryBar: View {
+    unowned let connection: CorpusConnection
+    @Environment(\.isEnabled) private var enabled
+
+    var body: some View {
+        Button("Retry") { connection.retry() }.disabled(!enabled)
+    }
+}
+
+/// One view value placed twice: two tallies.
+@MainActor
+private struct CorpusTallyButton: View {
+    @State private var taps = 0
+
+    var body: some View {
+        Button("Tally \(taps)") { taps += 1 }
+    }
+}
+
+@MainActor
+private struct CorpusToolbar: View {
+    var body: some View {
+        let tally = CorpusTallyButton()
+        HStack {
+            tally
+            Spacer()
+            tally
+        }
+    }
+}
+
+/// A modifier stored in a view and applied: its properties update once.
+private struct CorpusDimmed: ViewModifier {
+    @Environment(\.isEnabled) private var enabled
+
+    func body(content: Content) -> some View {
+        content.opacity(enabled ? 1 : 0.5)
+    }
+}
+
+@MainActor
+private struct CorpusInbox: View {
+    let dimming = CorpusDimmed()
+
+    var body: some View {
+        Text("Inbox")
+            .modifier(dimming)
+            .modifier(CorpusDimmed().transaction { $0.animation = nil })
+    }
+}
+
+/// A class property: its own `update()` runs before each holder's body.
+private final class CorpusCoordinator: DynamicProperty {
+    weak var parent: CorpusCoordinator?
+    var detail: CorpusCoordinator?
+}
+
+@MainActor
+private struct CorpusFormView: View {
+    let coordinator: CorpusCoordinator
+
+    var body: some View {
+        Text("Form")
+    }
+}
+
