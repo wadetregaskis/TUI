@@ -129,7 +129,9 @@ extensions of TUIkitView's types), and writes the index of every public type,
 function and modifier with its module and product into a staged copy of the
 catalog, as the `ModuleIndex` article. The product comes from
 `swift package describe --type json`. The script's docstring says which symbols
-get a row.
+get a row. A library product's module with no row fails the build, as graphs
+that missed it would, except TUIkitAppKit off Apple platforms, where all of it
+is `#if canImport(AppKit)` (build-docs.sh passes `--allow-empty` there).
 
 It is generated with the reference rather than committed beside it, so it is
 never staler than the reference and no commit that changes the API has to

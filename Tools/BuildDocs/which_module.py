@@ -32,10 +32,15 @@ TUIkitTerminalHost is TUIkitFoundation, the module that re-exports them.
 
 Usage:
     which_module.py SYMBOL_GRAPH_DIR --describe DESCRIBE_JSON --template ARTICLE [--output FILE]
+                    [--allow-empty MODULE ...]
     which_module.py --verify-rendered PAGE_JSON
 
 TEMPLATE is the catalog's own ModuleIndex.md. Everything up to and including its `## The index` heading is kept;
 what follows it there (a note for a reader of an ungenerated copy) is replaced by the table.
+
+Every library product's module must contribute a row, or the graphs did not cover it and the script fails, except a
+module named with --allow-empty: one that declares nothing on the platform the docs are built on. build-docs.sh
+names TUIkitAppKit off Apple platforms, since all of it is `#if canImport(AppKit)`.
 
 --verify-rendered checks that DocC's render JSON of the page (`data/documentation/tuikit/moduleindex.json` in the
 archive) is the generated index, not the template: that it holds the generated summary line, and a table under the
@@ -232,6 +237,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--describe", type=pathlib.Path, help="`swift package describe --type json`")
     parser.add_argument("--template", type=pathlib.Path, help="the catalog's ModuleIndex.md")
     parser.add_argument("--output", type=pathlib.Path, help="where to write the article (default: stdout)")
+    parser.add_argument("--allow-empty", action="append", default=[], metavar="MODULE",
+                        help="a module that may declare no public name on this platform (repeat for several)")
     parser.add_argument("--verify-rendered", type=pathlib.Path, metavar="PAGE_JSON",
                         help="check that DocC's render JSON of the page is the generated index, and exit")
     args = parser.parse_args(argv)
@@ -242,10 +249,14 @@ def main(argv: list[str]) -> int:
 
     products = products_by_module(json.loads(args.describe.read_text()))
     rows = build_index(args.graphs, products)
-    missing = sorted(m for m in products if m != UMBRELLA and not any(row[2] == m for row in rows))
+    empty = sorted(m for m in products if m != UMBRELLA and not any(row[2] == m for row in rows))
+    missing = [m for m in empty if m not in args.allow_empty]
     if missing:
         print("error: no symbols for " + ", ".join(missing) + " — did dump-symbol-graph cover them?", file=sys.stderr)
         return 1
+    for module in empty:
+        print(f"note: {module} declares no public name on this platform, so the index has no row for it",
+              file=sys.stderr)
     article = render(args.template.read_text(), rows)
     if args.output:
         args.output.write_text(article)

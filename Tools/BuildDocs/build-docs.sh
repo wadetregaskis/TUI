@@ -141,10 +141,15 @@ mkdir -p "$CATALOG_STAGE"
 cp -R Sources/TUIkit/TUIkit.docc "$CATALOG_STAGE/"
 CATALOG="$CATALOG_STAGE/TUIkit.docc"
 swift package describe --type json > "$CATALOG_STAGE/describe.json"
+# Off Apple platforms TUIkitAppKit declares nothing (all of it is
+# `#if canImport(AppKit)`), which the generator otherwise takes for graphs
+# that missed a module. Expanded unquoted below: one word, or none.
+ALLOW_EMPTY=""
+[ "$(uname -s)" = Darwin ] || ALLOW_EMPTY="--allow-empty=TUIkitAppKit"
 python3 Tools/BuildDocs/which_module.py "$SYMBOL_GRAPHS" \
     --describe "$CATALOG_STAGE/describe.json" \
     --template Sources/TUIkit/TUIkit.docc/Articles/ModuleIndex.md \
-    --output "$CATALOG/Articles/ModuleIndex.md"
+    --output "$CATALOG/Articles/ModuleIndex.md" $ALLOW_EMPTY
 
 if [ "$PREVIEW" -eq 1 ]; then
     echo "==> Serving — open http://localhost:$PORT/documentation/tuikit"

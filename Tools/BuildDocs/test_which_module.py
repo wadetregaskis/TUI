@@ -1,10 +1,13 @@
 """Tests for which_module.py, on hand-written symbol graphs: `python3 -m unittest discover -s Tools/BuildDocs`."""
 
+import contextlib
+import io
 import json
 import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import which_module  # noqa: E402
@@ -155,6 +158,43 @@ class WhichModuleTests(unittest.TestCase):
     def test_a_template_without_the_heading_is_an_error(self):
         with self.assertRaises(ValueError):
             which_module.render("# Title\n\nNo heading.\n", self.rows)
+
+    def generate(self, *options):
+        """Runs the script's main over the miniature; its exit status, its stderr, and the article or None."""
+        describe = self.graphs / "describe.json"
+        describe.write_text(json.dumps(DESCRIBE))
+        template = self.graphs / "ModuleIndex.md"
+        template.write_text(TEMPLATE)
+        output = self.graphs / "Generated.md"
+        errors = io.StringIO()
+        # The miniature's umbrella is Kit, which declares nothing, as TUIkit's does.
+        with mock.patch.object(which_module, "UMBRELLA", "Kit"), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(errors):
+            status = which_module.main([str(self.graphs), "--describe", str(describe), "--template", str(template),
+                                        "--output", str(output), *options])
+        return status, errors.getvalue(), output.read_text() if output.exists() else None
+
+    def test_every_product_module_with_rows_generates(self):
+        status, _, article = self.generate()
+        self.assertEqual(status, 0)
+        self.assertIn("| KitLists | KitLists |", article)
+
+    def test_a_product_module_without_a_row_fails(self):
+        # As a module looks when the graphs missed it, or when it declares nothing on this platform.
+        (self.graphs / "KitLists.symbols.json").write_text(json.dumps({"module": {"name": "KitLists"}, "symbols": []}))
+        status, errors, article = self.generate()
+        self.assertEqual(status, 1)
+        self.assertIn("no symbols for KitLists", errors)
+        self.assertIsNone(article)
+
+    def test_a_module_allowed_to_be_empty_generates_without_it(self):
+        # TUIkitAppKit off Apple platforms: all of it is `#if canImport(AppKit)`.
+        (self.graphs / "KitLists.symbols.json").write_text(json.dumps({"module": {"name": "KitLists"}, "symbols": []}))
+        status, errors, article = self.generate("--allow-empty", "KitLists")
+        self.assertEqual(status, 0)
+        self.assertIn("note: KitLists declares no public name", errors)
+        self.assertNotIn("| KitLists |", article)
+        self.assertIn("| KitTables | KitTables |", article)
 
     def test_the_summary_line_is_what_the_rendered_check_reads_back(self):
         match = which_module.SUMMARY_PATTERN.search(which_module.render(TEMPLATE, self.rows))
