@@ -169,7 +169,7 @@ the text they exist for, so they wait with this entry.
 `EnvironmentValues.scrollDismissesKeyboardMode`*
 
 It is about the software keyboard, which macOS does not have either, so on
-macOS every mode is inert — exactly refusal-review O8's question. Under O8's
+macOS every mode is inert — exactly the refusal review's O8 question. Under O8's
 recommended (b) it ships as a recorded, documented-inert value, as macOS's is;
 under (a) it is declined with `submitLabel`. Nothing to decide here apart from
 O8.

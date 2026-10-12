@@ -434,7 +434,7 @@ custom_rules:
   # module interface. swift.org toolchains ship that — every local gate here,
   # Linux, WASM — and Xcode's SDKs do not, so an SPI import builds everywhere
   # this repository is checked and fails in Xcode, where most apps are built.
-  # It has shipped twice: Performance-profile §58 (EnvironmentProperty,
+  # It has shipped twice: the 2026-08 performance profile §58 (EnvironmentProperty,
   # 2026-09-14) and its addendum (TypeWalk, 2026-09-28), each found only when a
   # push reached CI's Xcode lanes. `RuntimeFields` is the route to field
   # metadata that builds in Xcode.

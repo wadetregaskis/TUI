@@ -88,8 +88,8 @@ package struct ClaimingRow: Sendable {
     /// separable, and every caller today emits its own SGR introducer per run anyway.
     ///
     /// `inverted` states the pair beside an SGR 7 rather than painting it directly — what a
-    /// highlight whose colours cannot be measured draws (``HighlightFill``, `Documentation/
-    /// Opacity as composition.md` §90). It is part of how the cell is PAINTED, not a second
+    /// highlight whose colours cannot be measured draws (``HighlightFill``, `Documentation/Colour and
+    /// styling/Opacity as composition.md` §90). It is part of how the cell is PAINTED, not a second
     /// kind of cell, which is why it belongs here with the rest of the pairing: a caller
     /// passes the two colours it wants exchanged, already opaque, and so owes no claim.
     @inlinable

@@ -248,7 +248,7 @@ extension RenderCache {
         /// at all, an ADDRESS, which names a value only while that value lives.
         /// A class instance or a closure's context freed during a pass can have
         /// its address handed straight back to the next allocation, and a view
-        /// holding the newcomer has the old view's bytes (Performance-profile
+        /// holding the newcomer has the old view's bytes (the 2026-08 performance profile,
         /// §60, §62: still open for references and closures). An erased view's
         /// box, the one such address §60 found in a key, is never hashed: its
         /// content is.

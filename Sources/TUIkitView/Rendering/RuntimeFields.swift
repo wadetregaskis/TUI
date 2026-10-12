@@ -17,7 +17,7 @@
 //  the compiler reserves (it calls it itself, and warns that binding it
 //  "will become an error"); the kind answers the same question.
 //
-//  Performance-profile §58 turned down `@_silgen_name` for the same trap one
+//  The 2026-08 performance profile, §58, turned down `@_silgen_name` for the same trap one
 //  level up: `_forEachFieldWithKeyPath` takes a stdlib struct that is not
 //  `@frozen`, passed indirectly, so binding it meant guessing an ABI. These
 //  take a metadata pointer, an `Int`, and a pointer to a C struct the runtime

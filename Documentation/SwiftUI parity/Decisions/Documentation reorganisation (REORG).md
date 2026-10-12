@@ -6,8 +6,8 @@ written by the lane that carried out the owner's request of 2026-10-12: "use hum
 into subfolders when there's multiple related items (related in topic, not merely date)." Every
 document under `Documentation/` but `Historical/` moved or was renamed (116 files, `git mv`, so
 `git log --follow` keeps their history), and every reference to one, in the documentation, the code's
-comments, the tools, CI and `.claude/CLAUDE.md`, names the new path. The old-to-new mapping is the
-session notes' `REORG/mapping.tsv`. No document was split, merged or rewritten. It holds only what
+comments, the tools, CI and `.claude/CLAUDE.md`, names the new path. `git diff -M --name-status b95d6039f bbe8e918f`
+lists every old-to-new name. No document was split, merged or rewritten. It holds only what
 that work raised that the request did not settle, in the main file's three parts.*
 
 - **A. Needs your decision.** Nothing has shipped for these. None.

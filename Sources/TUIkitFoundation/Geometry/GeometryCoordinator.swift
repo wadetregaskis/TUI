@@ -3,8 +3,8 @@
 //
 //  Who answers "where is this view?" for the views that ask: the requests a
 //  walk registers, what their owners found, and what is reported when the
-//  frame ends. Design study A2 (`Documentation/SwiftUI-API-completion-design-
-//  A2-geometry.md`).
+//  frame ends. Design study A2 (`Documentation/Historical/Geometry design study,
+//  A2 and A7 (2026-10-04).md`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT

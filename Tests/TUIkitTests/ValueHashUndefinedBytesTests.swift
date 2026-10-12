@@ -333,7 +333,7 @@ struct ValueHashUndefinedBytesTests {
 
     /// Two values of a struct imported from C that differ only in a bitfield,
     /// at one identity in one pass — the shape of a form's labels measured
-    /// twice (Performance-profile §60). Taking the gap the bitfields sit in
+    /// twice (the 2026-08 performance profile, §60). Taking the gap the bitfields sit in
     /// for padding, the plan
     /// read the rest and keyed both alike, and the second was served the
     /// first's size.
