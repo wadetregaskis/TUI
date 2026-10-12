@@ -17,7 +17,9 @@ Look the name up below: add the **Product** to your target's `dependencies:` and
 name. A product brings the modules its module is built on with it, and from `TUIkitFoundation` up its module
 re-exports them, so one import covers them: `TUIkitTables` gives you `List` too. `TUIkitCore`, `TUIkitStyling`,
 `TUIkitView` and `TUIkitImage` re-export nothing: beside `TUIkitView` or `TUIkitImage`, import the module of each
-lower name you use, which their products bring (<doc:ChoosingProducts>).
+lower name you use, which their products bring. `TUIkitAppKit` and `TUIkitMacros` re-export nothing either, and are
+imported beside the others: `TUIkitFoundation` (or any module above it) for `Color` beside `TUIkitAppKit`, and
+`TUIkitCore` beside `TUIkitMacros` for the code `@Animatable` expands to (<doc:ChoosingProducts>).
 
 **Name** is how you would find it in the reference: a type, protocol, function or macro by itself, and a member
 another module adds to a type (most often a modifier on `View`) after the type's name, as in `View.tableStyle(_:)`.
