@@ -6,9 +6,9 @@
 
 // TUIkitPresentation re-exports the modules it is built on, as each module of
 // the split re-exports its direct dependencies (Documentation/Historical/Module
-// split plan, revision 4, §4), so `import TUIkitPresentation` will give an app
+// split plan, revision 4, §4), so `import TUIkitPresentation` gives an app
 // the presentations (alerts, confirmation dialogs, `Dialog`, sheets,
-// full-screen covers and modals) once per-module products ship:
+// full-screen covers and modals):
 // TUIkitFoundation, and TUIkitChrome (a presentation draws its notifications
 // with Chrome's `notificationHost(width:)`, and a modal docks its presenter's
 // focus through Chrome's presentation dock), so `.toolbar`, `.help` and

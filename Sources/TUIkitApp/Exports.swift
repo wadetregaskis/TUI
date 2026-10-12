@@ -6,8 +6,8 @@
 
 // TUIkitApp re-exports the modules it is built on, as each module of the split
 // re-exports its direct dependencies (Documentation/Historical/Module split
-// plan, revision 4, §4), so `import TUIkitApp` will be a whole app's import
-// once per-module products ship: TUIkitFoundation, and TUIkitChrome since step
+// plan, revision 4, §4), so `import TUIkitApp` is a whole app's import:
+// TUIkitFoundation, and TUIkitChrome since step
 // B5b, so `.toolbar`, `.help` and `.statusBarItems` come with it. Beside what
 // it gives an importer, it keeps their names, and through TUIkitFoundation's
 // own re-exports the lower and side modules' (`FrameBuffer`, `RenderContext`,

@@ -6,10 +6,10 @@
 
 // TUIkitTabs re-exports the modules it is built on, as each module of the
 // split re-exports its direct dependencies (Documentation/Historical/Module
-// split plan, revision 4, §4), so `import TUIkitTabs` will give an app tab
+// split plan, revision 4, §4), so `import TUIkitTabs` gives an app tab
 // views (`TabView`, `Tab`, `TabSection`, `TabContent` with its builder and
-// modifiers, the tab strip, sidebar and customization, and the tab styles)
-// once per-module products ship: TUIkitFoundation, and TUIkitLists (a
+// modifiers, the tab strip, sidebar and customization, and the tab styles):
+// TUIkitFoundation, and TUIkitLists (a
 // `.sidebarAdaptable` tab view lists its tabs in a `List`, and a tab body is
 // painted on the lists' lifted surface), so `List` comes with it too. Beside
 // what it gives an importer, it keeps their names, and through

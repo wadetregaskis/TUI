@@ -20,16 +20,95 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
+        // What a client's target lists among its `dependencies:` decides what SwiftPM compiles and links into
+        // it: the closure of the targets of the products it names. Its `import` lines decide only which names
+        // its files can see. So a target that depends on `TUIkit` compiles and links every module below,
+        // whichever of them it imports, and one that depends on `TUIkitLists` alone compiles and links
+        // TUIkitLists and what TUIkitLists is built on, and nothing else (measured on a miniature of this
+        // package: Documentation/Historical/Per-module products (2026-10-11).md, which also has the rest of
+        // what is said here).
+
+        // ── The umbrella: the default ───────────────────────────────────────────────────────────────────
+        // `import TUIkit` is the whole framework, as `import SwiftUI` is the whole of SwiftUI: every module
+        // below but TUIkitAppKit and TUIkitMacros, which are opt-in. Start here; the README and the docs do.
+        .library(name: "TUIkit", targets: ["TUIkit"]),
+
+        // ── À la carte: one product per module ──────────────────────────────────────────────────────────
+        // For an app that wants to compile and link less than the whole framework, and for a LIBRARY built on
+        // TUIkit, which should depend on these and never on `TUIkit`: anything in an app's graph that depends
+        // on `TUIkit` gives that app the whole framework, whatever the app itself lists. Each module
+        // re-exports the modules it is built on (its Sources/<module>/Exports.swift), so a client imports the
+        // modules whose names it uses and gets their foundations with them. Mixing these with `TUIkit` in one
+        // app is safe: each module is linked into it once. What is not: a `.dynamic` library product of the
+        // client's own built from TUIkit while an app also links a TUIkit product statically (two copies of
+        // the shared modules with SwiftPM's native build system; Swift Build turns them into dynamic
+        // libraries, which the app must then ship, and can fail to link a second app of the package).
+        //
+        // TUIkitApp: `App`, `Scene`, `WindowGroup` and the Scene modifiers, the run loop and the terminal
+        // (POSIX: it has no Windows build), and `renderOnce`. Every app needs it, beside the products of the
+        // views it uses; a library of views does not. Re-exports TUIkitChrome and TUIkitFoundation.
+        .library(name: "TUIkitApp", targets: ["TUIkitApp"]),
+        // TUIkitFoundation: what every module below is built on and re-exports: `View` and `Text`, the
+        // stacks, `ScrollView`, `Button`, `Toggle`, `Label`, `Image(systemName:)`, layout, state, the
+        // environment, focus and rendering. It re-exports TUIkitCore, TUIkitStyling, TUIkitView, and the two
+        // modules carved beside it that have no product of their own, TUIkitStrings (localization, the SF
+        // Symbols names, the resource bundle) and TUIkitTerminalHost (the terminal's identity and quirks).
+        // For a library of views that needs no other module; it cannot run an app (that is TUIkitApp).
+        .library(name: "TUIkitFoundation", targets: ["TUIkitFoundation"]),
+        // TUIkitBitmaps: `Image` from a file, a URL or a bundle, `AsyncImage`, the `.image*` rendering
+        // options and `.terminalGraphics(_:)`. Re-exports TUIkitImage (the decoders and `ASCIIConverter`).
+        .library(name: "TUIkitBitmaps", targets: ["TUIkitBitmaps"]),
+        // TUIkitChrome: what is drawn around the content: the `StatusBar` view and `.statusBarItems`, the
+        // toolbars, the notifications, tooltips and `.help`. TUIkitApp and TUIkitPresentation re-export it,
+        // so an app rarely names it; a product of its own lets a library that adds a toolbar item or a status
+        // bar item depend on it without TUIkitApp's console layer, which has no Windows build.
+        .library(name: "TUIkitChrome", targets: ["TUIkitChrome"]),
+        // TUIkitColorPicker: `ColorPicker` with its panel and swatches, and the gradient, tone-curve and
+        // channel-curve editor panels. Re-exports TUIkitImage, TUIkitNumericControls, TUIkitPickers,
+        // TUIkitPresentation, TUIkitTabs and TUIkitTextInput, which its panels are made of.
+        .library(name: "TUIkitColorPicker", targets: ["TUIkitColorPicker"]),
+        // TUIkitEffects: transitions, content transitions, `.symbolEffect`, `.visualEffect`,
+        // `.scrollTransition` and the colour effects.
+        .library(name: "TUIkitEffects", targets: ["TUIkitEffects"]),
+        // TUIkitForms: `Form`, `LabeledContent`, `GroupBox`, `Card` and `Panel`, and their styles.
+        .library(name: "TUIkitForms", targets: ["TUIkitForms"]),
+        // TUIkitGrid: `Grid`, `GridRow`, `LazyVGrid`, `LazyHGrid` and `GridItem`.
+        .library(name: "TUIkitGrid", targets: ["TUIkitGrid"]),
+        // TUIkitLists: `List`, `OutlineGroup`, `EditMode`, the list styles and the rows' separators, insets,
+        // backgrounds, reordering and shortcuts.
+        .library(name: "TUIkitLists", targets: ["TUIkitLists"]),
+        // TUIkitMenus: `Menu`, `ControlGroup`, `.contextMenu`, `.menuStyle` and the menu styles.
+        .library(name: "TUIkitMenus", targets: ["TUIkitMenus"]),
+        // TUIkitNavigation: `NavigationStack`, `NavigationPath`, `NavigationLink`, the split views and the
+        // inspector.
+        .library(name: "TUIkitNavigation", targets: ["TUIkitNavigation"]),
+        // TUIkitNumericControls: `Slider`, `Stepper`, `Gauge` and `ProgressView`, and their styles.
+        .library(name: "TUIkitNumericControls", targets: ["TUIkitNumericControls"]),
+        // TUIkitPickers: `Picker` and its styles, `RadioButtonGroup` and `DatePicker`.
+        .library(name: "TUIkitPickers", targets: ["TUIkitPickers"]),
+        // TUIkitPresentation: `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover`, `modal`
+        // and the presentation modifiers. Re-exports TUIkitChrome.
+        .library(name: "TUIkitPresentation", targets: ["TUIkitPresentation"]),
+        // TUIkitSearch: `.searchable`, the search tokens and scopes, `searchSuggestions` and
+        // `dismissSearch`. Re-exports TUIkitTextInput and TUIkitPickers.
+        .library(name: "TUIkitSearch", targets: ["TUIkitSearch"]),
+        // TUIkitTables: `Table`, its columns, rows and builders, the table styles and row drag and drop.
+        // Re-exports TUIkitLists.
+        .library(name: "TUIkitTables", targets: ["TUIkitTables"]),
+        // TUIkitTabs: `TabView`, `Tab`, `TabSection` and the tab styles. Re-exports TUIkitLists.
+        .library(name: "TUIkitTabs", targets: ["TUIkitTabs"]),
+        // TUIkitTextInput: `TextField`, `SecureField` and `TextEditor`.
+        .library(name: "TUIkitTextInput", targets: ["TUIkitTextInput"]),
+
         // ── Low-level (no deps) ─────────────────────────────────────────────────────────────────────────
+        // The four modules everything above is built on, which TUIkitFoundation re-exports; products of
+        // their own since before the split, and the four that build on Windows today.
         .library(name: "TUIkitCore", targets: ["TUIkitCore"]),
         .library(name: "TUIkitStyling", targets: ["TUIkitStyling"]),
 
         // ── Mid-level ───────────────────────────────────────────────────────────────────────────────────
         .library(name: "TUIkitView", targets: ["TUIkitView"]),
         .library(name: "TUIkitImage", targets: ["TUIkitImage"]),
-
-        // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
-        .library(name: "TUIkit", targets: ["TUIkit"]),
 
         // ── Bridges to Apple's graphics types (NSColor, CGColor, CGImage, NSImage) ────────────────────────
         // A module of its own so that nothing TUIkit is built from imports
@@ -376,8 +455,8 @@ let package = Package(
         // TUIkitColorPicker, the only two leaves that name it. Of the framework's other modules only the umbrella,
         // which re-exports it, and TUIkitAppKit, whose `CGImage` and `NSImage` bridges make an `RGBAImage`, name
         // it; the tests and tools aside, nothing else does. TUIkitFoundation does not depend on it since this step,
-        // so once per-module products ship, an app that uses none of TUIkitBitmaps, TUIkitColorPicker and
-        // TUIkitAppKit links neither TUIkitImage nor CSTBImage.
+        // so an app that depends on none of the TUIkit, TUIkitBitmaps, TUIkitColorPicker, TUIkitAppKit and
+        // TUIkitImage products links neither TUIkitImage nor CSTBImage.
         .target(
             name: "TUIkitBitmaps",
             dependencies: ["TUIkitFoundation", "TUIkitImage"],

@@ -6,9 +6,9 @@
 
 // TUIkitTextInput re-exports the module it is built on, as each module of the
 // split re-exports its direct dependencies (Documentation/Historical/Module
-// split plan, revision 4, §4), so `import TUIkitTextInput` will give an app the
-// text inputs (`TextField`, `SecureField` and `TextEditor`) once per-module
-// products ship (the forms left for TUIkitForms at step C6, search for
+// split plan, revision 4, §4), so `import TUIkitTextInput` gives an app the
+// text inputs (`TextField`, `SecureField` and `TextEditor`)
+// (the forms left for TUIkitForms at step C6, search for
 // TUIkitSearch at step C5, the pickers for TUIkitPickers at step C8, and the
 // numeric controls for TUIkitNumericControls at step C7). Beside what it gives
 // an importer, it keeps TUIkitFoundation's names, and through its own

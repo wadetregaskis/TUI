@@ -6,10 +6,10 @@
 
 // TUIkitTables re-exports the modules it is built on, as each module of the
 // split re-exports its direct dependencies (Documentation/Historical/Module
-// split plan, revision 4, §4), so `import TUIkitTables` will give an app
+// split plan, revision 4, §4), so `import TUIkitTables` gives an app
 // tables (`Table`, its columns, rows, builders and customization, outline
-// rows, the table styles and row drag and drop) once per-module products
-// ship: TUIkitFoundation, and TUIkitLists (a table's rows run on the list's
+// rows, the table styles and row drag and drop):
+// TUIkitFoundation, and TUIkitLists (a table's rows run on the list's
 // row engine: its handler, the row memo, row selection, reorder and context
 // menus), so `List` comes with it too (plan §4: "Tables re-exports Lists").
 // Beside what it gives an importer, it keeps their names, and through

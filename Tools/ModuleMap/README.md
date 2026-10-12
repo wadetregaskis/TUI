@@ -396,8 +396,11 @@ not drag declarations down.
 
 **Renaming a module.** Module names live in `rules.json`, the generated `map.json` and the directory names: rename
 it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: the module's own target), then
-`assign --write`. Names are free to change until per-module products
-ship.
+`assign --write`. Since 2026-10-11 each module the umbrella re-exports is also a library product of its own, so a
+module's name is public API: renaming or removing one breaks the build of every client that lists it, and moving a
+public type into another module changes its `String(reflecting:)` and the mangled names a saved `NavigationPath`
+holds, for umbrella clients too. Prefer a move down the map (into a module every leaf re-exports), which breaks no
+client's imports (Documentation/Historical/Per-module products (2026-10-11).md, E4).
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the
 `explain` output for anything surprising, then `assign --write`, and commit `rules.json` and `map.json` together.

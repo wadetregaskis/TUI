@@ -6,9 +6,9 @@
 
 // TUIkitBitmaps re-exports the modules it is built on, as each module of the
 // split re-exports its direct dependencies (Documentation/Historical/Module
-// split plan, revision 4, §4), so `import TUIkitBitmaps` will give an app
+// split plan, revision 4, §4), so `import TUIkitBitmaps` gives an app
 // `Image(_:)` from a file or URL, `Image(_:bundle:)`, `AsyncImage` and the
-// `.image*` options once per-module products ship, and TUIkitImage's
+// `.image*` options, and TUIkitImage's
 // `ASCIIToneCurve`, `ASCIICharacterSet` and the rest those options take.
 // Beside what it gives an importer, it keeps TUIkitFoundation's names, and
 // through its own re-exports the lower and side modules', in scope in every
