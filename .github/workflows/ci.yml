@@ -193,6 +193,13 @@ jobs:
       - name: Module map tool tests
         run: python3 -m unittest discover -s Tools/ModuleMap
 
+      # The module index generator's rules (which symbols get a row, which
+      # product a module's symbols name, the article it writes) on hand-written
+      # symbol graphs: no build, well under a second. The docs job runs the
+      # generator itself, over the real graphs.
+      - name: Module index tool tests
+        run: python3 -m unittest discover -s Tools/BuildDocs -p 'test_*.py'
+
       # The clipboard probe's guards for the user's clipboard — what it puts
       # back, what it refuses to write over, when it takes the leak check — on
       # a file standing in for the clipboard; and the hairline probe's escapes,

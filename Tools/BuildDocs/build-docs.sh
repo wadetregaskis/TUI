@@ -115,17 +115,41 @@ if [ "$PREVIEW" -eq 1 ]; then
     # empties its destination first), rather than a fresh temporary that every
     # preview would leave behind. Not signal handling around a child server
     # instead: `exec` keeps `kill <pid>` and Ctrl-C going straight to DocC.
+    # The catalog is staged the same way, for the module index below.
     STAGED=".build/docs-preview-symbols"
+    CATALOG_STAGE=".build/docs-preview-catalog"
 else
     STAGED="$(mktemp -d)"
-    trap 'rm -f "$DUMP_LOG"; rm -rf "$STAGED"' EXIT
+    CATALOG_STAGE="$(mktemp -d)"
+    trap 'rm -f "$DUMP_LOG"; rm -rf "$STAGED" "$CATALOG_STAGE"' EXIT
 fi
 python3 Tools/BuildDocs/unify_symbol_graphs.py "$SYMBOL_GRAPHS" "$STAGED"
+
+# The "which module provides it" index (ModuleIndex.md), generated from the
+# same graphs while their file names still say which module each symbol is
+# from (the unifier renames them all to TUIkit). Generated here rather than
+# committed, so it is never staler than the reference it is part of and no
+# commit that changes the API has to regenerate it (which_module.py says
+# more). It is written into a COPY of the catalog: the catalog's own
+# ModuleIndex.md is the template, a page whose index section says it was not
+# generated, which is what a build that does not run this script (the Swift
+# Package Index's) shows. A preview therefore serves the copy, and does not
+# pick up an edit to the catalog until it is run again.
+echo "==> Generating the module index"
+rm -rf "$CATALOG_STAGE"
+mkdir -p "$CATALOG_STAGE"
+cp -R Sources/TUIkit/TUIkit.docc "$CATALOG_STAGE/"
+CATALOG="$CATALOG_STAGE/TUIkit.docc"
+swift package describe --type json > "$CATALOG_STAGE/describe.json"
+python3 Tools/BuildDocs/which_module.py "$SYMBOL_GRAPHS" \
+    --describe "$CATALOG_STAGE/describe.json" \
+    --template Sources/TUIkit/TUIkit.docc/Articles/ModuleIndex.md \
+    --output "$CATALOG/Articles/ModuleIndex.md"
 
 if [ "$PREVIEW" -eq 1 ]; then
     echo "==> Serving — open http://localhost:$PORT/documentation/tuikit"
     rm -f "$DUMP_LOG"
-    exec "$DOCC" preview Sources/TUIkit/TUIkit.docc \
+    exec "$DOCC" preview "$CATALOG" \
         --port "$PORT" \
         --fallback-display-name TUIkit \
         --fallback-bundle-identifier dev.tuikit.TUIkit \
@@ -141,13 +165,13 @@ DIAGNOSTICS="$(mktemp -t docc-diagnostics)"
 # previous one, so a trap naming only $DIAGNOSTICS left each run's unified
 # symbol graphs ($STAGED, about 400 MB) behind in $TMPDIR (53 of them, 7.3 GB,
 # by 2026-10-09).
-trap 'rm -f "$DUMP_LOG" "$DIAGNOSTICS"; rm -rf "$STAGED"' EXIT
+trap 'rm -f "$DUMP_LOG" "$DIAGNOSTICS"; rm -rf "$STAGED" "$CATALOG_STAGE"' EXIT
 # `tee` rather than a plain redirect: the diagnostics still go to the console,
 # where anyone running this by hand reads them. `PIPESTATUS[0]` is docc's own
 # status, which the pipe would otherwise swallow — and `set -o pipefail` cannot
 # be relied on to say WHICH side failed.
 set +e
-"$DOCC" convert Sources/TUIkit/TUIkit.docc \
+"$DOCC" convert "$CATALOG" \
     --fallback-display-name TUIkit \
     --fallback-bundle-identifier dev.tuikit.TUIkit \
     --additional-symbol-graph-dir "$STAGED" \
@@ -197,6 +221,12 @@ for symbol in view color binding state environmentvalues framebuffer palette tex
 done
 if [ ${#MISSING[@]} -gt 0 ]; then
     echo "error: no page for ${MISSING[*]} — the modules did not get unified" >&2
+    exit 1
+fi
+# And the module index is the generated one, not the template's note.
+INDEX_PAGE="$ARCHIVE/data/documentation/tuikit/moduleindex.json"
+if [ ! -e "$INDEX_PAGE" ] || ! grep -q 'TUIkitTables' "$INDEX_PAGE"; then
+    echo "error: the module index page is missing or was not generated ($INDEX_PAGE)" >&2
     exit 1
 fi
 

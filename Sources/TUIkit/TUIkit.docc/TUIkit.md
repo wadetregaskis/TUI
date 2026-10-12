@@ -69,6 +69,10 @@ struct MyApp: App {
 - <doc:LayoutSystem>
 - <doc:Localization>
 
+### Products and Modules
+
+- <doc:ModuleIndex>
+
 ### App Structure
 
 - ``App``

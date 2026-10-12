@@ -117,6 +117,32 @@ the umbrella stopped declaring anything, at step B1, a list naming only it
 would have published an empty reference. A module carved out of
 `TUIkitFoundation` joins `MODULES`, and then the list.
 
+## The module index
+
+Unifying the graphs hides which module declares a symbol, and since every module
+is a library product of its own (2026-10-11), a client that depends on
+per-module products needs to know: a name from a module it has no product for
+is an error that names no module. So before the graphs are unified,
+`which_module.py` reads them, while their file names still say which module each
+symbol comes from (`TUIkitTables@TUIkitView.symbols.json` holds TUIkitTables'
+extensions of TUIkitView's types), and writes the index of every public type,
+function and modifier with its module and product into a staged copy of the
+catalog, as the `ModuleIndex` article. The product comes from
+`swift package describe --type json`. The script's docstring says which symbols
+get a row.
+
+It is generated with the reference rather than committed beside it, so it is
+never staler than the reference and no commit that changes the API has to
+regenerate it: a committed table with a freshness check would make every such
+commit dump the symbol graphs (a build) and touch one shared file, which the
+project's parallel lanes would then conflict on. The catalog's own
+`ModuleIndex.md` is the template: the generator keeps it up to its
+`## The index` heading and replaces the rest, which there tells a reader of an
+ungenerated copy (the Swift Package Index's, which documents each module as an
+archive of its own) where to look instead. The script checks that the built
+page is the generated one. `test_which_module.py` tests the generator on
+hand-written graphs (`python3 -m unittest discover -s Tools/BuildDocs`).
+
 ## The regression guard
 
 After converting, the script asserts that pages exist for a handful of types
