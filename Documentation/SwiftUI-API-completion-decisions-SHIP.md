@@ -33,17 +33,30 @@ and "macOS 26 · Xcode 26" (6.3), each needing a release build first: about
 three minutes of `-O` compile per lane per run (176 s for the whole package on
 the development machine with 6.4.0; runners unmeasured), plus the step's four.
 
-### B-SHIP-2. Package.swift's unsafe flags: compile flags behind a trait, no link flags
+### B-SHIP-2. Package.swift's unsafe flags: every one behind a trait; link flags only TUIkit's unexport patterns
 
 *`Tools/validate-package-manifest.sh` (commit "A macOS release build lets the
-app's link drop …")*
+app's link drop …"; the link-flag exception from the commit that keeps
+TUIkit's symbols out of the app's export table, 2026-10-12)*
 
 **Shipped:** the manifest check, which failed on any `unsafeFlags` because
-SwiftPM used to refuse them in a versioned dependency, now fails on an
-`unsafeFlags` LINKER setting (it would land on the app's own link: the owner's
-rule that app-wide link flags are the developer's opt-in) and on a COMPILE one
-whose condition names no trait. No compiler flag undoes another, so the trait
-is the client's only way out (`traits: []`).
+SwiftPM used to refuse them in a versioned dependency, fails on any
+`unsafeFlags` setting whose condition names no trait (no compiler flag undoes
+another, and no link flag undoes `-unexported_symbol`, so the trait is the
+client's only way out), and on an `unsafeFlags` LINKER setting (it would land
+on the app's own link: the owner's rule that app-wide link flags are the
+developer's opt-in), with one exception since 2026-10-12, the owner's
+"-unexported_symbol sounds worth doing": a linker setting whose flags are
+nothing but `-Xlinker -unexported_symbol -Xlinker '_$s<length><module>*'`,
+where `<module>` is a target of this manifest named `TUIkit…` and
+`<length>` its length. Such a pattern matches only symbols Swift mangles for a
+TUIkit module, so it changes nothing of the app's own; the check refuses a
+wider wildcard, another package's module, a wrong length, a list file, or any
+other flag beside the patterns (its self-test has each case). It is still an
+app-wide link flag in one sense, which Package.swift and the README spell
+out: it lands on a developer's own `.dynamic` library too, and ld refuses it
+beside an export list (B-SHIP2-1 in
+[`SwiftUI-API-completion-decisions-SHIP2.md`](SwiftUI-API-completion-decisions-SHIP2.md)).
 
 **The looser alternative:** allow compile flags without a trait. Simpler, and
 no client could turn such a flag off; nothing in the package needs it today.

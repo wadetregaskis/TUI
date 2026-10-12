@@ -120,6 +120,13 @@ also a TUIkit product statically:
 An app that reaches TUIkit only through your dynamic library works with either build system, as long as no app in
 the same package also links a TUIkit product statically. Static mixes, the ordinary kind, are all fine.
 
+In a macOS release build, TUIkit's default trait `UnexportTUIkitSymbols` keeps TUIkit's symbols out of what your
+dynamic library exports (its own symbols still go out), so an app that uses TUIkit's API through the library fails to
+link with "Undefined symbols", or, built against an older build of the library, to launch with "Symbol not found".
+An app that calls only your library's own API is unaffected. To export TUIkit from your library, depend on TUIkit
+with that trait off and the other default one kept, `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`
+(the README's "Shipping size" has what each trait does).
+
 ## Where the module shows
 
 Whichever products you depend on, a type's full name includes the module that declares it, not `TUIkit`:

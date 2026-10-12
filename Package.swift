@@ -43,7 +43,9 @@ let package = Package(
         // app is safe: each module is linked into it once. What is not: a `.dynamic` library product of the
         // client's own built from TUIkit while an app also links a TUIkit product statically (two copies of
         // the shared modules with SwiftPM's native build system; Swift Build turns them into dynamic
-        // libraries, which the app must then ship, and can fail to link a second app of the package). The
+        // libraries, which the app must then ship, and can fail to link a second app of the package). And
+        // in a macOS release build such a library exports none of TUIkit's symbols, so a client cannot use
+        // TUIkit through it (the trait `UnexportTUIkitSymbols`, at the end of this file). The
         // user guide is Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md, and the docs' generated
         // ModuleIndex page lists every public name with its module and product.
         //
@@ -735,11 +737,11 @@ let package = Package(
     ]
 )
 
-// ── App size: the trait `DeadStripUnusedAPI` (default on) ─────────────────────────────────────────────
-// Swift marks every public symbol "no dead strip", so that code outside the link could call it. An app
-// linking TUIkit statically, as every SwiftPM app does, therefore keeps ALL of TUIkit's public API, called
-// or not. `-internalize-at-link` drops that mark from TUIkit's own symbols, and the app's linker keeps what
-// the app reaches (`swift build -c release` passes `-dead_strip`; an Xcode app needs
+// ── App size: the traits `DeadStripUnusedAPI` and `UnexportTUIkitSymbols` (both default on) ──────────────
+// `DeadStripUnusedAPI`. Swift marks every public symbol "no dead strip", so that code outside the link could
+// call it. An app linking TUIkit statically, as every SwiftPM app does, therefore keeps ALL of TUIkit's public
+// API, called or not. `-internalize-at-link` drops that mark from TUIkit's own symbols, and the app's linker keeps
+// what the app reaches (`swift build -c release` passes `-dead_strip`; an Xcode app needs
 // `DEAD_CODE_STRIPPING = YES`, which Xcode's default is not). Measured 2026-10-11, stripped: a hello-world
 // app -14.7% and Stress -12.1% on Swift 6.4.0, -14.9% and -12.3% on Xcode's 6.2.4.
 //
@@ -747,23 +749,52 @@ let package = Package(
 // calls. That symbol is no longer in the app, and the plugin fails to load (measured with a small
 // library). A dylib that links TUIkit in, TUIkit's own or one of the app's, is unaffected: ld keeps every
 // symbol a dylib exports as a dead-strip root (measured on a dylib product of TUIkit's modules, the same link
-// SwiftPM makes for an app's dylib), unless that dylib's own link narrows its exports.
+// SwiftPM makes for an app's dylib), unless that dylib's own link narrows its exports, as the next trait does.
 //
-// The opt-out is the app's: `.package(url: …, from: …, traits: [])`. That turns off EVERY default trait
-// of TUIkit's (today this is the only one); no compiler flag undoes `-internalize-at-link`, so the trait
-// is the only way out. The trait is named for what it lets the app's linker do, not for the compiler flag.
+// `UnexportTUIkitSymbols`. A program exports every external symbol it defines, TUIkit's that the linker kept among
+// them, in a table (the export trie) whose bytes `strip` leaves in place. One `-unexported_symbol` pattern per TUIkit
+// module, `_$s` + the module name's length + the name + `*`, the start of every symbol Swift mangles for a
+// declaration of that module, takes them out of it. Measured 2026-10-12, stripped, against `DeadStripUnusedAPI`
+// alone: a hello-world app -3.2% and Stress -2.9%, on Swift 6.4.0 and on Xcode's 6.2.4 (the hello world's export
+// table 317 KB -> 9 KB; what is left is the app's own and TUIkit's extensions of other modules' types, such as
+// `$sSS10TUIkitCoreE…`, whose symbols start with the extended type's module). It is a link flag, so it lands on
+// every final link that contains a TUIkit module, a `.dynamic` library product of the developer's as well, with the
+// patterns of the modules in that link. What it breaks (measured with a small library built the same way, on both
+// toolchains):
+// - A plugin dlopened into a statically linked app that calls ANY TUIkit API through the app: `dlopen` fails with
+//   "symbol not found in flat namespace". With `DeadStripUnusedAPI` alone, only one calling API the app never calls.
+// - A `.dynamic` library containing TUIkit exports none of TUIkit's symbols (its own still go out), and keeps only
+//   the TUIkit code its own code reaches. A client that uses TUIkit through it fails to link ("Undefined symbols:
+//   type metadata accessor for …"), or, linked against an older build of the library, to launch ("Symbol not
+//   found"). A client of the library's own API alone is unaffected.
+// - ld refuses `-unexported_symbol` beside an export list: a link that also passes `-no_exported_symbols`,
+//   `-exported_symbol` or `-exported_symbols_list` (as Xcode's `LD_EXPORT_SYMBOLS = NO` and `EXPORTED_SYMBOLS_FILE`
+//   do) stops with "-unexported_symbol cannot be used with -exported_symbol*". `-unexported_symbol '*'`, which takes
+//   the rest of the program's exports out as well, combines with it.
+// That last is why it is a trait of its own rather than part of `DeadStripUnusedAPI`: a developer whose link needs an
+// export list turns off this one and keeps the dead stripping.
+//
+// The opt-out is the app's: `.package(url: …, from: …, traits: [])` turns off EVERY default trait of TUIkit's
+// (today these two), and `traits: ["DeadStripUnusedAPI"]` keeps that one alone. No compiler flag undoes
+// `-internalize-at-link` and no link flag undoes `-unexported_symbol`, so the traits are the only way out.
+// `DeadStripUnusedAPI` is named for what it lets the app's linker do, not for its compiler flag.
 //
 // On every module a library product ships (the same closure Tools/check-span-compatibility.sh reads),
-// in macOS release builds only: debug builds, and so `swift test` and DocC's symbol graphs, compile as
+// in macOS release builds only: debug builds, and so `swift test` and DocC's symbol graphs, compile and link as
 // before. Not on Linux or Windows: unmeasured there. SwiftPM 6.2 and later accept `unsafeFlags` from a
 // dependency resolved by version (swift-package-manager #8896, in 6.2 as #8914), and this package needs
-// 6.2; Tools/validate-package-manifest.sh keeps them to compile flags, which reach TUIkit's own compiles
-// and nothing of the app's.
+// 6.2; Tools/validate-package-manifest.sh keeps them behind a trait, and link flags to these patterns, which
+// match TUIkit's own symbols and nothing of the app's.
 package.traits.formUnion([
-    .default(enabledTraits: ["DeadStripUnusedAPI"]),
+    .default(enabledTraits: ["DeadStripUnusedAPI", "UnexportTUIkitSymbols"]),
     .trait(
         name: "DeadStripUnusedAPI",
         description: "Lets an app's static link drop the TUIkit API it never calls (macOS release builds)."
+    ),
+    .trait(
+        name: "UnexportTUIkitSymbols",
+        description: "Keeps TUIkit's symbols out of the export table of every program and library linking it "
+            + "(macOS release builds)."
     ),
 ])
 let libraryModules: Set<String> = {
@@ -784,6 +815,16 @@ for target in package.targets where target.type == .regular && libraryModules.co
         .unsafeFlags(
             ["-Xfrontend", "-internalize-at-link"],
             .when(platforms: [.macOS], configuration: .release, traits: ["DeadStripUnusedAPI"])
+        )
+    ]
+    // The Swift modules only: CSTBImage is C, whose symbols carry no module prefix.
+    guard target.name.hasPrefix("TUIkit") else { continue }
+    // `_$s`, the name's length, the name: how Swift begins the symbol of every declaration in module `name`.
+    // A link flag, so on each final link that contains this module, and only those.
+    target.linkerSettings = (target.linkerSettings ?? []) + [
+        .unsafeFlags(
+            ["-Xlinker", "-unexported_symbol", "-Xlinker", "_$s\(target.name.utf8.count)\(target.name)*"],
+            .when(platforms: [.macOS], configuration: .release, traits: ["UnexportTUIkitSymbols"])
         )
     ]
 }

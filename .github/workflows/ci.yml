@@ -131,8 +131,9 @@ jobs:
       # Milliseconds, and it guards a failure nothing else can see: a manifest
       # with a path/branch/revision dependency builds and tests perfectly here
       # while being impossible for anyone to depend on, and one with an
-      # unsafeFlags linker setting, or a compile one no trait can turn off,
-      # imposes a flag on every client's build. The expensive half of that
+      # unsafeFlags linker setting other than TUIkit's own unexport patterns,
+      # or any unsafeFlags no trait can turn off, imposes a flag on every
+      # client's build. The expensive half of that
       # question is the `consumer` job below. The self-test first: it proves
       # each check fires on its construct, and on nothing else, so a pattern
       # that stopped matching fails here rather than passing every manifest.
@@ -588,12 +589,13 @@ jobs:
         if: matrix.release_build
         run: Tools/check-span-compatibility.sh
 
-      # The README's "Shipping size" offers app developers two link flags that
-      # change their whole program, `-Xlinker -deduplicate` and `-Xlinker
-      # -no_exported_symbols`, and TUIkit has to stay correct under them.
+      # The README's "Shipping size" offers app developers a link flag that
+      # changes their whole program, `-Xlinker -deduplicate`, beside TUIkit's
+      # default traits, which take TUIkit's symbols out of the program's
+      # export table; TUIkit has to stay correct under them.
       # `-deduplicate` gives byte-identical functions one address, so two key
       # paths to computed properties whose getters compile alike compare and
-      # hash equal. This relinks Stress with both and checks that nothing in
+      # hash equal. This relinks Stress with it and checks that nothing in
       # TUIkit depends on an address the fold changed
       # (Tools/DedupCheck/README.md), then links Stress, Example and IdleProbe
       # as the recipe does, strips them, and runs --selfcheck (render memo
@@ -603,11 +605,9 @@ jobs:
       # Links only: the Release build step compiled everything. Measured on the
       # development machine with Swift 6.4.0 (Swift Build), after this lane's
       # steps run there: 4 s a link, 3 s for the check, 243 s in all, nearly
-      # all of it the PTY smoke; runners unmeasured. Swift Build warns per
-      # module that OTHER_LDFLAGS should not carry -no_exported_symbols, and
-      # applies it all the same; the script counts those lines rather than
-      # printing 108 of them. One toolchain: this lane's 6.4 is the one TUIkit
-      # targets first and the only macOS lane with a release build to relink.
+      # all of it the PTY smoke; runners unmeasured. One toolchain: this
+      # lane's 6.4 is the one TUIkit targets first and the only macOS lane
+      # with a release build to relink.
       # What folds depends on the machine code each compiler emits for TUIkit's
       # code, so the answer is per toolchain: Xcode's 6.2.4 folds one pair
       # 6.4.0 does not (allowed in the manifest, with its review). A new pair

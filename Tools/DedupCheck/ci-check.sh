@@ -1,21 +1,21 @@
 #!/bin/bash
 # ci-check.sh : TUIkit's programs linked, stripped and run as the README's "Shipping size" recipe ships them.
 #
-# The README offers app developers two link flags that change the whole program, `-Xlinker -deduplicate` and
-# `-Xlinker -no_exported_symbols`. This keeps TUIkit correct under them:
+# The README offers app developers a link flag that changes the whole program, `-Xlinker -deduplicate`, beside
+# TUIkit's default traits, whose `UnexportTUIkitSymbols` takes TUIkit's symbols out of the program's export table (it
+# replaced the README's `-Xlinker -no_exported_symbols`, which ld refuses beside it). This keeps TUIkit correct under
+# them:
 #
-#   1. Relinks Stress with both flags and `--disable-dead-strip`, so that every key path TUIkit's objects form is in
-#      it (a dead-stripped Stress keeps 227 to 288 of 315), and runs dedup_check.py on it and the release objects.
-#   2. Relinks Stress, Example and IdleProbe with both flags, as an app developer would, and strips them.
+#   1. Relinks Stress with the flag and `--disable-dead-strip`, so that every key path TUIkit's objects form is in it
+#      (a dead-stripped Stress keeps 227 to 288 of 315), and runs dedup_check.py on it and the release objects.
+#   2. Relinks Stress, Example and IdleProbe with the flag, as an app developer would, and strips them.
 #   3. Runs `Stress --selfcheck`, with the render-memo verifier, and the quick PTY smoke (Tools/Smoke/ci-pty-smoke.sh:
 #      the walks, the handshake, the kitty keyboard protocol, the quit key's SIGQUIT handler) on the stripped
 #      programs.
 #
-# It compiles nothing: run `swift build -c release` first, and every step here is a link. It leaves the three
-# programs deduplicated and stripped in the release directory. macOS only (both flags are ld64's). `$SWIFT` (default
-# `swift`) is the toolchain, as CI's workflow sets it. Swift Build (6.4's default) warns, once per module, that
-# OTHER_LDFLAGS should not carry -no_exported_symbols, and applies it all the same (measured with 6.4.0): 27 identical
-# lines a link, which `link` below counts instead of printing.
+# It compiles nothing: run `swift build -c release` first, with the default traits, and every step here is a link.
+# It leaves the three programs deduplicated and stripped in the release directory. macOS only (the flag and the
+# trait's are ld64's). `$SWIFT` (default `swift`) is the toolchain, as CI's workflow sets it.
 #
 #   swift build -c release && Tools/DedupCheck/ci-check.sh
 #
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 if [[ "$(uname -s)" != Darwin ]]; then
-    echo "ci-check: macOS only (-deduplicate and -no_exported_symbols are ld64's); nothing to check"
+    echo "ci-check: macOS only (-deduplicate is ld64's); nothing to check"
     exit 0
 fi
 # -P: the physical path, as `swift build --show-bin-path` prints it, so that the bin path relative to the package
@@ -32,7 +32,7 @@ fi
 cd -P "$(dirname "$0")/../.."
 # Unquoted on purpose: CI's $SWIFT is a command line (`xcrun --toolchain … swift`).
 SWIFT=${SWIFT:-swift}
-flags=(-Xlinker -deduplicate -Xlinker -no_exported_symbols)
+flags=(-Xlinker -deduplicate)
 bin=$($SWIFT build -c release --show-bin-path)
 relbin=${bin#"$PWD"/}
 if [[ "$relbin" == /* ]]; then
@@ -48,28 +48,14 @@ case "$bin" in
     *) objects=$bin ;;
 esac
 
-# Runs a link and prints its output, less Swift Build's warning about -no_exported_symbols in OTHER_LDFLAGS (it names
-# LD_EXPORT_SYMBOLS, which `swift build` cannot set), which it counts. Any other line, warning or not, is shown.
-noise='The OTHER_LDFLAGS build setting is not allowed to contain -no_exported_symbols'
-link() {
-    local out status=0 count
-    out=$("$@" 2>&1) || status=$?
-    count=$(grep -c -F "$noise" <<<"$out" || true)
-    grep -v -F "$noise" <<<"$out" || true
-    if [[ "$count" -gt 0 ]]; then
-        echo "($count of Swift Build's warnings that OTHER_LDFLAGS should not carry -no_exported_symbols, not shown)"
-    fi
-    return "$status"
-}
-
 echo "── dedup check: Stress linked whole with ${flags[*]} ──"
-link $SWIFT build -c release --product Stress --disable-dead-strip "${flags[@]}"
+$SWIFT build -c release --product Stress --disable-dead-strip "${flags[@]}"
 python3 Tools/DedupCheck/dedup_check.py --binary "$bin/Stress" --objects "$objects" --demangle "$SWIFT demangle"
 
 products=(Stress Example IdleProbe)
 for product in "${products[@]}"; do
     echo "── $product linked with ${flags[*]}, then stripped ──"
-    link $SWIFT build -c release --product "$product" "${flags[@]}"
+    $SWIFT build -c release --product "$product" "${flags[@]}"
     strip "$bin/$product"
 done
 
