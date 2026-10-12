@@ -123,7 +123,10 @@ the same package also links a TUIkit product statically. Static mixes, the ordin
 In a macOS release build, TUIkit's default trait `UnexportTUIkitSymbols` keeps TUIkit's symbols out of what your
 dynamic library exports (its own symbols still go out), so an app that uses TUIkit's API through the library fails to
 link with "Undefined symbols", or, built against an older build of the library, to launch with "Symbol not found".
-An app that calls only your library's own API is unaffected. To export TUIkit from your library, depend on TUIkit
+An app that calls only your library's own API is unaffected, except where that API extends a TUIkit type or protocol
+(`extension Color { static var brand }`, `extension View { func card() }`) or conforms one to your protocol: Swift
+names those symbols after the TUIkit module, so they leave your library's exports with TUIkit's, and an app calling
+one fails to link unless the compiler copied its body into the app. To export TUIkit from your library, depend on TUIkit
 with that trait off and the other default one kept, `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`
 (the README's "Shipping size" has what each trait does).
 

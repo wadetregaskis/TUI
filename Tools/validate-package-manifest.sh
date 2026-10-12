@@ -22,8 +22,12 @@
 #     developer's whole program: `-deduplicate` changes which of the app's own
 #     key paths compare equal, and a strip flag strips the app's symbols.
 #     Those are the developer's to choose; the README offers them, with what
-#     each costs. That pattern matches only symbols Swift mangles for a
-#     TUIkit module, so it changes nothing of the app's own.
+#     each costs. That pattern matches only symbols Swift names under a
+#     TUIkit module, and takes them out of what the link exports: TUIkit's
+#     own, and the app's own extensions of TUIkit's types and protocols,
+#     which Swift names after the extended type's module (Package.swift's
+#     trait comment says what that costs a developer's dynamic library and
+#     plugins). A trait of its own turns it off.
 #   - Any flag only behind a trait. A compile flag reaches every client's
 #     build of TUIkit, and no compiler flag undoes another; a link flag has
 #     no counter-flag either. So the trait is the client's only way to turn
@@ -134,7 +138,7 @@ check_manifest() {
         printf '     A package'"'"'s linker flags land on the app'"'"'s final link and change\n'
         printf '     the developer'"'"'s whole program. Offer the flag in the README instead.\n'
         printf '     The one allowed is -Xlinker -unexported_symbol -Xlinker '"'"'_$s<length><module>*'"'"'\n'
-        printf '     for a target of this package named TUIkit…, which touches only TUIkit'"'"'s symbols.\n'
+        printf '     for a target of this package named TUIkit…, which touches only what Swift names under it.\n'
         failures=$((failures + 1))
     fi
     if grep -qx '?' <<<"$settings"; then

@@ -57,12 +57,16 @@ developer's opt-in), with one exception since 2026-10-12, the owner's
 "-unexported_symbol sounds worth doing": a linker setting whose flags are
 nothing but `-Xlinker -unexported_symbol -Xlinker '_$s<length><module>*'`,
 where `<module>` is a target of this manifest named `TUIkit…` and
-`<length>` its length. Such a pattern matches only symbols Swift mangles for a
-TUIkit module, so it changes nothing of the app's own; the check refuses a
+`<length>` its length. Such a pattern matches only symbols Swift names under a
+TUIkit module; the check refuses a
 wider wildcard, another package's module, a wrong length, a list file, or any
-other flag beside the patterns (its self-test has each case). It is still an
-app-wide link flag in one sense, which Package.swift and the README spell
-out: it lands on a developer's own `.dynamic` library too, and ld refuses it
+other flag beside the patterns (its self-test has each case). It still
+reaches the app in three ways, which Package.swift and the README spell out:
+it lands on a developer's own `.dynamic` library too; the developer's own
+extensions of TUIkit's types and protocols, whose symbols Swift names after
+the extended type's module, leave the exports with TUIkit's (this entry first
+said the patterns changed nothing of the app's own, which the lane's review
+found false the same day); and ld refuses it
 beside an export list (B-SHIP2-1 in
 [`SwiftUI-API-completion-decisions-SHIP2.md`](SwiftUI-API-completion-decisions-SHIP2.md)).
 

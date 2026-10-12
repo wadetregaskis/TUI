@@ -768,10 +768,17 @@ let package = Package(
 // toolchains):
 // - A plugin dlopened into a statically linked app that calls ANY TUIkit API through the app: `dlopen` fails with
 //   "symbol not found in flat namespace". With `DeadStripUnusedAPI` alone, only one calling API the app never calls.
-// - A `.dynamic` library containing TUIkit exports none of TUIkit's symbols (its own still go out), and keeps only
-//   the TUIkit code its own code reaches. A client that uses TUIkit through it fails to link ("Undefined symbols:
-//   type metadata accessor for …"), or, linked against an older build of the library, to launch ("Symbol not
-//   found"). A client of the library's own API alone is unaffected.
+// - A `.dynamic` library containing TUIkit exports none of TUIkit's symbols (its own still go out, but for the next
+//   point's), and keeps only the TUIkit code its own code reaches. A client that uses TUIkit through it fails to
+//   link ("Undefined symbols: type metadata accessor for …"), or, linked against an older build of the library, to
+//   launch ("Symbol not found"). A client of the library's own API alone is unaffected, unless it calls one of:
+// - The developer's own extensions of TUIkit's types and protocols (`extension Color { static var brand }`,
+//   `extension View { func card() }`) and conformances of TUIkit's types to the developer's protocols. Swift begins
+//   their symbols with the extended type's module, so the patterns take them out of the app's or the library's
+//   exports with TUIkit's (measured: a `.dynamic` library's three such declarations, 5 symbols exported -> 0). A
+//   client that calls one fails to link ("Undefined symbols", naming the member), unless Swift's cross-module
+//   optimization copied its body into the client, as it did for one built on public API alone; and a plugin that
+//   calls one in the app fails to load ("symbol not found in flat namespace").
 // - ld refuses `-unexported_symbol` beside an export list: a link that also passes `-no_exported_symbols`,
 //   `-exported_symbol` or `-exported_symbols_list` (as Xcode's `LD_EXPORT_SYMBOLS = NO` and `EXPORTED_SYMBOLS_FILE`
 //   do) stops with "-unexported_symbol cannot be used with -exported_symbol*". `-unexported_symbol '*'`, which takes
@@ -789,7 +796,8 @@ let package = Package(
 // before. Not on Linux or Windows: unmeasured there. SwiftPM 6.2 and later accept `unsafeFlags` from a
 // dependency resolved by version (swift-package-manager #8896, in 6.2 as #8914), and this package needs
 // 6.2; Tools/validate-package-manifest.sh keeps them behind a trait, and link flags to these patterns, which
-// match TUIkit's own symbols and nothing of the app's.
+// match only what Swift names under a TUIkit module: TUIkit's own symbols, and those of the developer's extensions
+// of TUIkit's types above.
 package.traits.formUnion([
     .default(enabledTraits: ["DeadStripUnusedAPI", "UnexportTUIkitSymbols"]),
     .trait(
@@ -798,8 +806,8 @@ package.traits.formUnion([
     ),
     .trait(
         name: "UnexportTUIkitSymbols",
-        description: "Keeps TUIkit's symbols out of the export table of every program and library linking it "
-            + "(macOS release builds)."
+        description: "Keeps TUIkit's symbols, and those of extensions of TUIkit's types, out of the export table of "
+            + "every program and library linking it (macOS release builds)."
     ),
 ])
 let libraryModules: Set<String> = {
