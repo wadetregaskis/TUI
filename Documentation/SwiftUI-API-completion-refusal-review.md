@@ -779,9 +779,8 @@ editing: defer it, not refuse it.
 
 ## OWNER DECISION
 
-**Status, 2026-10-12.** The owner ruled on every item below but O8 and O11,
-whose questions were restated that day and still await an answer (each now
-ends in the restated question and its recommendation). Each ruling is under
+**Status, 2026-10-12.** The owner ruled on every item below; O8 and O11, whose questions were restated that day,
+were ruled in his second message of the day (under each item). Each ruling is under
 its item, with what was found when it was researched (session notes
 `REFO/notes.md`, which has the design sketches for O10 and O13). The rulings
 come to about 47 lane-days in all (estimate), sequenced after the lanes
@@ -1009,6 +1008,10 @@ it.
 
 ### O8. "Inert on macOS too" (X4): `SubmitLabel`, `View.submitLabel(_:)`, `ToolbarTitleDisplayMode`, `TabBarMinimizeBehavior`, `SensoryFeedback` (P11), `ContentShapeKinds.contextMenuPreview`/`.hoverEffect` (P3)
 
+**Owner, 2026-10-12 (second message):** omit them. "We already have the general rule that we don't implement SwiftUI API we
+can't actually do anything sensible with." So the APIs that are inert on macOS too stay refused, failing to compile, as
+`submitLabel` already does; A11 and A51 stay refused.
+
 - **(a) Refuse anything TUIkit cannot do, even when macOS SwiftUI cannot
   either.** This is the submitLabel precedent.
 - **(b) Accept where Apple documents, or a probe measures, macOS SwiftUI as
@@ -1086,6 +1089,11 @@ module of its own. On Linux, `fileExporter(item:)` and `FileDocument` wait on
 A18.
 
 ### O11. `TextField(…value:formatter:…)` / `Text(_:formatter:)` / `\(x, formatter:)` family
+
+**Owner, 2026-10-12 (second message):** deferred. The `Formatter`-based forms are not deprecated in SwiftUI (only the
+`TextField` initialisers with `onEditingChanged:`/`onCommit:` are), but Linux's internal `getObjectValue` makes the
+parse direction costly, so they wait: "we can always add them later if we change our mind." They stay refused until
+then.
 
 The stated reason, "type safety taken out", is taste, not the medium.
 

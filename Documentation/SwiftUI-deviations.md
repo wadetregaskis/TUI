@@ -317,12 +317,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B6](SwiftUI-API-completion-decisions.md#b6-safeareainset-puts-the-bar-beside-the-view-there-is-no-safe-area), [B25](SwiftUI-API-completion-decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin). **Owner** (2026-10-12: not
   convinced; do not build the safe area).
 
-### L11. An alignment guide stops at the next modifier
+### L11. An alignment guide stops at a border, a frame or an offset
 
 - **SwiftUI:** `.alignmentGuide` passes out through the modifiers written after
   it, each translating it by where it put its content (measured, including
   `.padding(0)`: [§1](SwiftUI-compatibility.md#1-match), the Layout row).
-- **TUIkit:** a guide is read off the outermost view, so `.border()`, a
+- **TUIkit:** `.padding` passes a guide on, translated by its inset
+  (`PaddingModifier`'s `_translatesAlignmentGuides`), but `.border()`, a
   `.frame` or an `.offset` written after it stops it; so does a view of the
   app's own whose `body` is one view (L3's lazy stacks honour a guide that
   reaches them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off
@@ -1379,7 +1380,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | A windowed `LazyVStack`'s held row ignores `scrollContentOffsetAdjustmentBehavior = .disabled` | [B30](SwiftUI-API-completion-decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends) | Known gap; lane owed, one commit |
 | With no scroll anchor declared, rows inserted above the top row move it; SwiftUI holds it by default (measured, lazy stack) | [B30](SwiftUI-API-completion-decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends), [Scroll-anchoring.md](Scroll-anchoring.md) | Awaiting the owner: keep TUIkit's Window default (the owner's 2026-07-17 spec) as a deviation, or hold the row as SwiftUI does |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
-| A paste past 16 MiB arrives as its first 16 MiB | [B-PASTE-1](SwiftUI-API-completion-decisions-PASTE.md#b-paste-1-a-paste-past-16-mib-arrives-as-its-first-16-mib) | Owner 2026-10-12: accept pastes of any size |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](SwiftUI-API-completion-refusal-review.md#o1-accessibility-preference-reads-from-p5--m) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | A guide pushes a view at most 4,096 cells, which a scroll view's canvas shows (measured) | [B-GUIDE-2](SwiftUI-API-completion-decisions-GUIDE.md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported) | Owner 2026-10-12: too low, and a cap must not hide logic errors. Decided: 2^20, a push past it reported through `SoftTrap`; lane owed |
 | Markdown in control title keys is not parsed | [B87](SwiftUI-API-completion-decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet) | Recommended: do it |

@@ -74,6 +74,12 @@ fits.
 
 ### A-GUIDE-2. SwiftUI does not report a built-in guide out of a stack of several views
 
+**Owner, 2026-10-12 (second message):** follow SwiftUI, option (a): an edge or centre guide stays inside a container of several
+views, and baselines and custom guides travel, as SwiftUI's do. "Requiring extra code (that SwiftUI doesn't) to
+suppress some guides, or otherwise disambiguate them, is not a good idea" — which rules out (b), whose way to keep a
+guide local is an extra modifier SwiftUI code never has. The averaging of edge guides (`VStack(.center) { G (leading 5);
+S (leading 1) }` centring the row at 4) goes. Lane owed, after B19's A/B.
+
 *`VStack`, `HStack`, `ZStack` reporting their children's guides
 (`StackGuidePropagation.swift`, `_HStackCore`/`_ZStackCore.explicitGuide`)*
 
@@ -222,7 +228,8 @@ measure and the render would each bound the run by their own budget.
 
 **Owner (2026-10-12): 4,096 is too low, and a cap must not hide logic
 errors. Decided: raise the bound to 2^20 (1,048,576 cells) and report a push
-past it as a logic error; lane owed.** Measured since (session notes
+past it as a logic error; lane owed.** The owner added (second message): an environment variable overrides the
+2^20 default, as a safety net. Measured since (session notes
 `GUIDE2/notes.md` §4):
 
 - **4,096 hides real layouts.** A `ZStack(alignment: .topLeading)` that places
@@ -260,6 +267,11 @@ where SwiftUI would place it — visible only through two explicit guides more
 than 4,096 cells apart.
 
 ### B-GUIDE-3. One child whose guide would put it outside its region is held inside it
+
+**Owner, 2026-10-12 (second message):** "Try to support it. If you run into significant issues, let me know and we'll discuss."
+Lane owed: generalise `scrollClipDisabled`'s overflow layers so a single child, a guide placement, fixed-size content
+and a move/offset bounce can draw past their region in SwiftUI's stacking order, while lists, tables, menus, sheets and
+scroll views keep clipping (session notes `GUIDE2/notes.md` §5).
 
 *`.frame(width:height:alignment:)`, `.overlay(alignment:content:)`,
 `.background(alignment:content:)` — `horizontalGuidePlacement`,

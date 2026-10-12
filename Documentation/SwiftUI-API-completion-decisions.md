@@ -43,16 +43,6 @@ that is decided and waits only on its implementation.
 
 **Still yours to answer.**
 
-- **A0 — the refusal review's O8 and O11**, restated on 2026-10-12, with
-  (b) recommended for both. O8, whether APIs that are inert on macOS ship
-  inert, settles A11 and A51. The other sixteen were ruled on 2026-10-12.
-- **A18 — Apple-only API behind `#if canImport`.** Your 2026-10-04 answer
-  allows it where it fails gracefully. Still open: whether that admits the
-  `store: UserDefaults` spellings and Core Data's `FetchRequest` on Apple
-  platforms (option 1). O10's Linux file exporter depends on it.
-- **B2** — confirm that `\.legibilityWeight` should become writable.
-- **B10** — confirm the single-width badge glyphs (`+`, `↗`, `⊘`) in place
-  of ➕.
 - **B27** — report the scrolling's last speed when it goes idle, rather than
   SwiftUI's literal (0, 0)?
 - **B30** — keep TUIkit's Window anchoring default, or hold the top row when
@@ -92,8 +82,8 @@ The early Wave 17 review re-examined every existing refusal in
 
 Those 23 are written up, each with options and a recommendation, as O0–O17 in
 [`SwiftUI-API-completion-refusal-review.md`](SwiftUI-API-completion-refusal-review.md#owner-decision).
-They are not repeated here. **Ruled on 2026-10-12, all but O8 and O11**,
-whose questions were restated that day with (b) recommended for both; each
+They are not repeated here. **Ruled on 2026-10-12, all eighteen** (O8 and O11 in the owner's second message:
+O8 refuses the APIs that are inert on macOS too, so A11 and A51 stay refused; O11 is deferred, not refused for good); each
 ruling is in the review under its item. In brief, with the ruling:
 
 - **O0** The unit of a shape's path. This gates the whole Shapes cluster:
@@ -233,6 +223,12 @@ not even be probed on this machine's macOS 15), and they are rare in ported
 code.
 
 ### A18. Apple-only public API behind `#if canImport`: allowed or not?
+
+**Owner, 2026-10-12 (second message):** option 1. "Yes, we can use platform-specific API. I prefer not to if we
+have a reasonable alternative, but certainly if it's intrinsically tied to a specific platform (or the presence of a
+specific supporting package/module/whatever), then that's fine." So the `store: UserDefaults` spellings and
+`defaultAppStorage(_:)` ship behind `canImport`, Core Data's `FetchRequest` becomes possible for Apple-only apps, and
+O10's Linux file exporter may be absent where its type is Apple-only. Lane owed.
 
 *Policy, with these symbols waiting on it: `AppStorage`/`SceneStorage`'s
 `store: UserDefaults` spellings, `View.defaultAppStorage(_:)`,
@@ -889,6 +885,8 @@ Alternatively, apply it once at the subtree's buffer, the way
 complete, but it would also embolden non-text glyphs (borders, bars). That
 is a reason to prefer the per-site rule.
 
+**Owner, 2026-10-12 (second message):** yes, make it writable. Lane owed (the helper, the A/B).
+
 **Asked 2026-10-12: confirm that it should become writable.** You asked
 whether this was already decided. Not in so many words: on 2026-10-04 you
 said it did not seem hard to support, asked whether the built-in views should
@@ -1116,6 +1114,9 @@ move; the drop target's highlight can shift colour to match. It uses
 single-width symbols rather than ➕, because emoji widths vary between
 terminals and would knock the preview out of line. (A record of 2026-10-11
 listed the proposal as still owed; it was not.)
+
+**Owner, 2026-10-12 (second message):** the single-width glyphs are confirmed. Lane owed, with a measured
+Terminal-compatibility.md row for `↗`, which is East Asian Ambiguous.
 
 **To confirm (asked 2026-10-12): the single-width glyphs.** `+` is Narrow and
 `⊘` (U+2298) Neutral, one cell everywhere. `↗` (U+2197) is East Asian
