@@ -514,22 +514,29 @@ extension Terminal {
         // quadratic in its own size — a 512 KiB paste took 52 s of CPU in a
         // debug build, against 0.44 s for 64 KiB, and the run loop calls this
         // twice per frame while it waits.
+        //
+        // Only an `ESC` can begin the marker, and `memchr` finds each one, so
+        // the rest is compared at those alone. Until 2026-10-12 every byte was
+        // compared through the buffer's checked subscript: about 200 ns a byte
+        // in a debug build, 3.5 s to scan a 16 MiB paste of prose where
+        // `memchr` takes 0.1 s, and 0.34 s against 0.04 s for 64 MiB
+        // optimised (measured, macOS, Swift 6.2.4).
         let searchEnd = input.count - endMarker.count + 1
-        if pasteScanCursor < searchEnd {
-            for start in pasteScanCursor..<searchEnd {
-                var match = true
-                for i in 0..<endMarker.count where input[start + i] != endMarker[i] {
-                    match = false
-                    break
-                }
-                if !match { continue }
-
+        var start = pasteScanCursor
+        while start < searchEnd, let escape = input.firstIndex(of: endMarker[0], in: start..<searchEnd) {
+            var match = true
+            for i in 1..<endMarker.count where input[escape + i] != endMarker[i] {
+                match = false
+                break
+            }
+            if match {
                 // Content is everything before the marker.
-                let event = pasteEvent(bufferedContent: start)
-                consume(start + endMarker.count)
+                let event = pasteEvent(bufferedContent: escape)
+                consume(escape + endMarker.count)
                 inPasteMode = false
                 return event
             }
+            start = escape + 1
         }
 
         // No end marker yet. Back the cursor up by one byte less than the

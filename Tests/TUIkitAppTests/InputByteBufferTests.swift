@@ -224,6 +224,24 @@ struct InputByteBufferTests {
         #expect(buffer.count == appended)
         #expect(buffer.bytesMoved <= 3 * appended, "\(buffer.bytesMoved) bytes moved for \(appended) appended")
     }
+
+    /// What a paste's end-marker scan finds each `ESC` with: offsets from the
+    /// front, however far the front has moved into the storage, and only
+    /// within the range asked about.
+    @Test("A byte is found by its offset from the front, within the range searched")
+    func firstIndexWithinRange() {
+        var buffer = InputByteBuffer(minimumCapacity: 16)
+        buffer.append(contentsOf: [9, 9, 9, 1, 0x1B, 2, 3, 0x1B, 4])
+        buffer.removeFirst(3)
+        #expect(buffer.firstIndex(of: 0x1B, in: 0..<6) == 1)
+        #expect(buffer.firstIndex(of: 0x1B, in: 2..<6) == 4)
+        // Compared with a named `nil`: SwiftLint takes `firstIndex(…) == nil` for
+        // the collection method and asks for `contains`, which this has not.
+        let notFound: Int? = nil
+        #expect(buffer.firstIndex(of: 0x1B, in: 2..<4) == notFound, "the second ESC is past the range")
+        #expect(buffer.firstIndex(of: 0x1B, in: 1..<1) == notFound)
+        #expect(buffer.firstIndex(of: 9, in: 0..<6) == notFound, "the bytes removed from the front are not searched")
+    }
 }
 
 @Suite("The input event queue")

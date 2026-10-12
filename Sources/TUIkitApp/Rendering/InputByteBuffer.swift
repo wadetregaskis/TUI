@@ -4,6 +4,16 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+#if canImport(Glibc)
+    import Glibc
+#elseif canImport(Musl)
+    import Musl
+#elseif canImport(Darwin)
+    import Darwin
+#elseif canImport(WASILibc)
+    import WASILibc
+#endif
+
 // MARK: - The bytes read from the terminal and not yet parsed
 
 /// The bytes ``Terminal`` has read from standard input and not yet parsed: one
@@ -81,6 +91,24 @@ struct InputByteBuffer {
         // unsigned one.
         precondition(UInt(bitPattern: offset) < UInt(bitPattern: count), "InputByteBuffer: offset out of range")
         return storage[head &+ offset]
+    }
+
+    /// The offset from the front of the first `byte` at an offset in `range`,
+    /// or `nil` when there is none.
+    ///
+    /// `memchr`, so that a long search runs at the C library's speed in a
+    /// debug build too: what a bracketed paste's end-marker scan finds each
+    /// `ESC` with (``Terminal``'s `tryExtractPaste()`).
+    func firstIndex(of byte: UInt8, in range: Range<Int>) -> Int? {
+        precondition(range.lowerBound >= 0 && range.upperBound <= count, "InputByteBuffer: a search outside the buffer")
+        guard !range.isEmpty else { return nil }
+        let start = head
+        return storage.withUnsafeBufferPointer { buffer in
+            // swiftlint:disable:next force_unwrapping
+            let front = UnsafeRawPointer(buffer.baseAddress!) + start
+            guard let found = memchr(front + range.lowerBound, Int32(byte), range.count) else { return nil }
+            return front.distance(to: UnsafeRawPointer(found))
+        }
     }
 
     /// Removes and returns the first byte, or `nil` when the buffer is empty.
