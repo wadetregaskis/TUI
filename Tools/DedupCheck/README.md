@@ -60,7 +60,8 @@ python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'     # the tool's
 `ci-check.sh` runs on the "macOS 26 · Swift 6.4" and "macOS 15 · Xcode 26" (Xcode's 6.2.4) lanes, after their release
 builds, because which functions fold is the compiler's: it relinks Stress whole with `-Xlinker -deduplicate` and runs
 the check, then links Stress, Example and IdleProbe with the same flag as an app developer would (TUIkit's default
-traits on, so TUIkit's symbols are out of the export table), strips them, and runs `Stress --selfcheck` (render memo
+traits on, so TUIkit's symbols are out of the export table, which it checks: none of the three may export a
+symbol of a TUIkit module), strips them, and runs `Stress --selfcheck` (render memo
 verified) and the quick PTY smoke on the stripped programs. Links only, no compile. Run it locally the same way, after
 `swift build -c release`.
 

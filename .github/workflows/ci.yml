@@ -604,7 +604,9 @@ jobs:
       # hash equal. This relinks Stress with it and checks that nothing in
       # TUIkit depends on an address the fold changed
       # (Tools/DedupCheck/README.md), then links Stress, Example and IdleProbe
-      # as the recipe does, strips them, and runs --selfcheck (render memo
+      # as the recipe does, checks that they export no symbol of a TUIkit
+      # module (the default traits' patterns reached the link), strips them,
+      # and runs --selfcheck (render memo
       # verified) and the quick PTY smoke on what a developer would ship. After
       # the Span check, which reads the programs this step strips.
       #
