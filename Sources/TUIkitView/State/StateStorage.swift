@@ -288,7 +288,9 @@ extension StateStorage {
         let fresh = StateBox(defaultValue())
         fresh.identity = key.identity
         fresh.invalidationSink = renderCacheLink
-        values[key] = fresh
+        // A box of another type under the key — the property's type changed
+        // at its place — is dropped.
+        (values.updateValue(fresh, forKey: key) as? any DroppableBox)?.markDropped()
         return fresh
     }
 
@@ -328,10 +330,19 @@ extension StateStorage {
     /// one inside the case — has what it lists removed with it.
     func removeValues(forKeys keys: [StateKey]) {
         for key in keys {
-            if let record = values.removeValue(forKey: key) as? EnumCaseRecord {
+            if let record = dropValue(forKey: key) as? EnumCaseRecord {
                 removeValues(forKeys: record.keys)
             }
         }
+    }
+
+    /// Removes what is stored under `key`, telling a box it is no longer
+    /// kept (``StateBox/wasDropped``), and returns it.
+    @discardableResult
+    private func dropValue(forKey key: StateKey) -> AnyObject? {
+        let removed = values.removeValue(forKey: key)
+        (removed as? any DroppableBox)?.markDropped()
+        return removed
     }
 
     /// The storage for a property **if one already exists**, never creating it.
@@ -561,7 +572,7 @@ extension StateStorage {
             !activeIdentities.contains($0.identity) && !retained.retains($0.identity)
         }
         for key in staleKeys {
-            values.removeValue(forKey: key)
+            dropValue(forKey: key)
         }
         let staleTrackedKeys = trackedValues.keys.filter {
             !activeIdentities.contains($0.identity) && !retained.retains($0.identity)
@@ -596,7 +607,7 @@ extension StateStorage {
     public func invalidateDescendants(of ancestor: ViewIdentity) {
         let staleKeys = values.keys.filter { ancestor.isAncestor(of: $0.identity) }
         for key in staleKeys {
-            values.removeValue(forKey: key)
+            dropValue(forKey: key)
         }
         let staleTrackedKeys = trackedValues.keys.filter { ancestor.isAncestor(of: $0.identity) }
         for key in staleTrackedKeys {
@@ -607,6 +618,9 @@ extension StateStorage {
 
     /// Removes all stored state. Used during app cleanup.
     public func reset() {
+        for value in values.values {
+            (value as? any DroppableBox)?.markDropped()
+        }
         values.removeAll()
         objectsWalked.removeAll()
         trackedValues.removeAll()
@@ -660,11 +674,28 @@ public final class StateBox<Value>: @unchecked Sendable {
         }
     }
 
+    /// Whether the ``StateStorage`` that kept this box has dropped it: its
+    /// view's place pruned, the storage reset, its enum case left. A `@State`
+    /// still bound to it is then bound afresh (``State``'s `bindState`).
+    private(set) var wasDropped = false
+
     /// Creates a state box with an initial value.
     ///
     /// - Parameter value: The initial value.
     public init(_ value: Value) {
         self.value = value
+    }
+}
+
+/// A box ``StateStorage`` keeps, told when the storage drops it.
+protocol DroppableBox: AnyObject {
+    /// Notes that the storage no longer keeps the box.
+    func markDropped()
+}
+
+extension StateBox: DroppableBox {
+    func markDropped() {
+        wasDropped = true
     }
 }
 

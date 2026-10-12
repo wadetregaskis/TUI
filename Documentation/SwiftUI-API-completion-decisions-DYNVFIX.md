@@ -155,7 +155,11 @@ place's state in that place's copy (measured, DYNV `dv.out`, `twice` and
 holds one bound to another place is given its own, in that copy. Each place
 reads and writes its own state, and a closure made in its body reads its own
 environment. A value drawn at one place pays one pointer compare per wrapper
-per body.
+per body. A `@State` whose box the storage has dropped — its place pruned,
+the storage reset, its enum case left — is bound afresh, wherever the value
+is next drawn: a value kept across frames reads its place's state again,
+an `indirect` case's included, and is not given a backing of its own on
+every body from then on.
 
 **Left, the same class:** TUIkit's `@FocusState`, `@Namespace`,
 `@FocusedValue` and `@FocusedBinding` keep a store that every copy shares, and

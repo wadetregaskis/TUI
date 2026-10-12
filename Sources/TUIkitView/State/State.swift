@@ -585,11 +585,15 @@ public struct State<Value> {
 /// Every copy of a `State` value shares its backing, so a binding or closure
 /// made from any of them reads and writes the box it was bound to. A value
 /// drawn at two places would share one box between them, the second place
-/// binding the first's copies to its own (DYNV bug 1); so a backing is bound
-/// once, and a place whose copy holds one already bound elsewhere is given a
-/// backing of its own, in that copy (``State/bindState(at:to:key:)``), as
-/// SwiftUI installs each place's state in that place's copy (measured,
-/// session notes `DYNV/probe/dv.out`, `twice` and `value`).
+/// binding the first's copies to its own (DYNV bug 1); so a backing stays
+/// bound to its box while the storage keeps that box, and a place whose copy
+/// holds one bound to another kept box is given a backing of its own, in that
+/// copy (``State/bindState(at:to:key:)``), as SwiftUI installs each place's
+/// state in that place's copy (measured, session notes `DYNV/probe/dv.out`,
+/// `twice` and `value`). Once the storage drops the box — its place pruned,
+/// the storage reset, its enum case left — the backing is bound afresh, so a
+/// value kept across frames reads its place's state again, and pays for no
+/// backing of its own on every body.
 final class StateBacking<Value> {
     let defaultValue: Value
     private(set) var box: StateBox<Value>
@@ -630,15 +634,20 @@ protocol StateBindable {
 extension State: StateBindable {
     /// Binds the `@State` at `address` — in the copy of a view whose body is
     /// about to be evaluated — to the box `storage` keeps under `key`. Its
-    /// backing is bound if it is not yet; if it is bound to another box, the
-    /// value is being drawn at a second place, and this copy is given a
-    /// backing of its own, so the two places never share their state.
+    /// backing is bound if it is not yet, or if the box it is bound to has
+    /// been dropped; if it is bound to another box still kept, the value is
+    /// being drawn at a second place, and this copy is given a backing of its
+    /// own, so the two places never share their state.
     static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
         let box = storage.storage(for: key, default: backing.defaultValue)
         if backing.box === box { return }
-        guard backing.isBound else {
+        // Rebound where its box is gone, not given a backing in this copy:
+        // the copy may be one the runtime made (an `indirect` case's
+        // payload), which `body` never reads, and a value kept across frames
+        // would otherwise allocate a backing on every body from then on.
+        guard backing.isBound, !backing.box.wasDropped else {
             backing.bind(to: box)
             return
         }
