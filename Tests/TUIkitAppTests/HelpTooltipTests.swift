@@ -83,6 +83,30 @@ struct HelpTooltipTests {
             "the focused button claimed it, got \(String(describing: h.tooltips.focused?.text))")
     }
 
+    /// A literal is a localization key, as `Text`'s is and as SwiftUI's
+    /// `help(_:)` takes it; a computed `String` equal to the key is shown as
+    /// written. The literal used to reach the `StringProtocol` overload, which
+    /// was not disfavoured as SwiftUI's is, so every `.help("key")` in an app
+    /// showed its key (found by the Example's Help page, 2026-10-12).
+    @Test("A literal is looked up as a key, a computed string is not")
+    func literalIsAKey() {
+        _ = Self.registered
+        let h = harness()
+        _ = frame(Button("Rebuild") {}.help("test.help.literal"), h)
+        #expect(h.tooltips.focused?.text == "Help, translated", "got \(String(describing: h.tooltips.focused?.text))")
+        let computed = "test.help" + ".literal"
+        let other = harness()
+        _ = frame(Button("Rebuild") {}.help(computed), other)
+        #expect(other.tooltips.focused?.text == computed, "a computed string was looked up")
+    }
+
+    /// The suite's one registration, made on first use: `register` empties the
+    /// global render memo, so once rather than per test (`LocalizedTitleTests`
+    /// explains it).
+    private static let registered: Void = {
+        LocalizationService.shared.register(translations: ["en": ["test.help.literal": "Help, translated"]])
+    }()
+
     /// …and an unfocused one does not, so the candidate always belongs to exactly
     /// one control.
     @Test("An unfocused control publishes no focus candidate")

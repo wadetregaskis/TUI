@@ -228,11 +228,15 @@ extension View {
 
     /// Adds help text to this view, displayed as written.
     ///
-    /// Generic over `StringProtocol`, which is both SwiftUI's own spelling and
-    /// what keeps a *literal* binding to the key overload above — see
-    /// ``LocalizedStringKey``.
+    /// Generic over `StringProtocol` AND disfavoured, both as SwiftUI declares
+    /// it (`@_disfavoredOverload … help<S>(_ text: S) where S : StringProtocol`
+    /// in the macOS SDK's interface): together they are what keeps a *literal*
+    /// binding to the key overload above, so `.help("…")` is looked up as
+    /// `Text("…")` is — see ``LocalizedStringKey``. Without the attribute the
+    /// literal went to this overload and was shown as written, key and all.
     ///
     /// - Parameter text: The help text.
+    @_disfavoredOverload
     public func help<S: StringProtocol>(_ text: S) -> some View {
         HelpModifier(content: self, text: String(text))
     }
