@@ -443,7 +443,9 @@ extension Terminal {
         // followed by a mouse report typed out the report's coordinates.
         //
         // Resuming where the last walk of the same sequence stopped, so one
-        // arriving a few bytes a read is walked once (`sequenceWalkStart(_:)`).
+        // arriving a few bytes a read is walked once (`sequenceWalkStart(_:)`);
+        // not behind a meta prefix, whose walk starts over each pass
+        // (`sequenceWalk`).
         var i = sequenceWalkStart(2)
         let cap = min(input.count, Self.maxControlSequenceBytes)
 

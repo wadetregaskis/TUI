@@ -256,7 +256,15 @@ parsed); and the walk. Each pass of the run loop walked a sequence still
 arriving from its start, so one arriving a byte a read cost its length
 squared over two: tolerable under 4 KiB, not at 64. The walks now resume
 where the last stopped, while the buffer's front has not moved (since
-2026-10-12).
+2026-10-12). Except behind a meta prefix, `ESC ESC [ …`: the prefix is taken
+off for the walk and put back, which moves the front, so that walk starts
+over every pass, and one arriving a byte a read still costs its length
+squared over two, some 134 million byte checks at 16 KiB, at most 16 K a
+pass. Only the Escape key pressed straight before a sequence puts a prefix
+there, and every sequence TUIkit expects is under a hundred bytes but a key
+report carrying a long text. Resuming there too would take the prefix's
+offset carried through every walk; not done (review round 1 of lane PASTE2
+found the first version of this paragraph claiming every walk resumes).
 And the colour answers the parser keeps (`noteVolunteeredColorReply`) are
 not copied out when longer than all it keeps (4 KiB): an OSC 52 answer to
 another program would have been copied whole, to be dropped.
@@ -316,7 +324,8 @@ it adds about a byte a pass, and would need a key on every pass for over a
 minute.
 
 An `ESC` in front of the sequence is the Escape key: no terminal puts a
-meta prefix on a reply, and no key runs to the limit. It is delivered first, and
+meta prefix on a reply, and no key is known to run to the limit (a key
+report would need some two thousand characters from one key; above). It is delivered first, and
 the sequence is skipped after it. The first version of this entry had it
 wrong (review round 1): the `ESC` was put on whatever was read after the
 skip, or dropped with the sequence when its rest had not arrived, so an

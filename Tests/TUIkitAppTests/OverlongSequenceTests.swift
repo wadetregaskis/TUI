@@ -162,9 +162,9 @@ struct OverlongSequenceTests {
         for (overlong, rest) in [
             (Self.esc + Self.bytes("[") + Self.overlongParameters, Self.bytes("2;3m")),
             (Self.esc + Self.bytes("]52;c;") + Self.overlongPayload, Self.bytes("QUJD") + Self.esc + Self.bytes("\\")),
-            // Behind an `ESC`, which is the Escape key (no key runs to the
-            // limit) and is delivered first, not put back in front of the
-            // rest, where it would end the skip.
+            // Behind an `ESC`, which is the Escape key (no key is known to
+            // run to the limit) and is delivered first, not put back in front
+            // of the rest, where it would end the skip.
             (Self.esc + Self.esc + Self.bytes("[") + Self.overlongParameters, Self.bytes("2;3m")),
         ] {
             let (terminal, source) = makeTerminal()

@@ -210,6 +210,15 @@ final class Terminal: TerminalProtocol {
     /// not moved, so that a sequence arriving a few bytes a read is read once,
     /// not once a pass of the run loop. See `sequenceWalkStart(_:)` in
     /// `Terminal+Replies.swift`.
+    ///
+    /// Not behind a meta prefix (`ESC ESC [ …`): `tryExtractMetaPrefixed()`
+    /// takes the prefix off for the walk and puts it back, and both move the
+    /// front, so that walk starts from the sequence's start every pass. One
+    /// arriving a byte a read then costs its length squared over two, at most
+    /// a limit's worth a pass (16 KiB for a CSI). Only the Escape key pressed
+    /// straight before a sequence puts one there, and every sequence TUIkit
+    /// expects is under a hundred bytes but a key report carrying a long
+    /// text (decisions-PASTE, B-PASTE-2).
     var sequenceWalk = (frontGeneration: -1, stoppedAt: 0)
 
     /// The family of the over-long escape sequence whose rest the parser is
