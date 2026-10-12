@@ -1333,6 +1333,27 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-D3M-1](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-1-a-critical-dialogs-caution-sign-is-the-%EF%B8%8F-emoji-not-a-full-size-icon>). **Owner** (asked for it; the large
   picture is a later project).
 
+### W6. Help shows in the status bar by default, and the keyboard can ask for it
+
+- **SwiftUI:** `help(_:)` gives the view a help tag, which macOS shows as a
+  tooltip beside the pointer once it rests on the view (Apple's
+  documentation; the delay, and whether the keyboard can show one, not
+  measured).
+- **TUIkit:** the same text shows once the pointer rests on the view
+  (`tooltipDelay`, 0.6 s), on any view, as a row of the status bar by default
+  or as a panel beside the view under `tooltipStyle(.popover)`; the focused
+  control's also shows on the help key `?`, and under `.tooltips(.onFocus)`
+  when a control has the focus. `HelpRunLoopTests` pins hover, `?` and
+  `.onFocus` through the run loop.
+- **Why:** a terminal has no tooltip surface of its own: a row of chrome
+  never covers the page, a panel does, and the choice is the app's. A key is
+  the keyboard's way of pointing at the focused control.
+- **Decided:** the owner's specification in
+  [Tooltips and help in a terminal](<../Controls and presentation/Tooltips and help in a terminal.md>)
+  (2026-08-24; both presentations, the app's choice, confirmed when they
+  shipped, 2026-09-09), and the owner's 2026-10-12 ruling that views that
+  cannot take the focus have help too. **Owner**.
+
 ---
 
 ## Lifecycle
