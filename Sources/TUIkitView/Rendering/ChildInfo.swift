@@ -813,14 +813,15 @@ private func measureCompositeBody<V: View>(
     guard let cache = context.renderCache, cache.readingTypes.contains(V.self) else {
         guard let plan else { return measureChild(view.body, proposal: proposal, context: childContext) }
         return measureChild(
-            preparedBody(of: view, plan: plan, context: context), proposal: proposal, context: childContext)
+            preparedBody(of: view, plan: plan, context: context, isMeasuring: true), proposal: proposal,
+            context: childContext)
     }
     let sentinel = cache.leases.isActive ? cache.leases.sentinel(at: context.identity) : nil
     let body = withObservationTracking(
         {
             sentinel?.touch()
             guard let plan else { return view.body }
-            return preparedBody(of: view, plan: plan, context: context)
+            return preparedBody(of: view, plan: plan, context: context, isMeasuring: true)
         },
         onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
     return measureChild(body, proposal: proposal, context: childContext)

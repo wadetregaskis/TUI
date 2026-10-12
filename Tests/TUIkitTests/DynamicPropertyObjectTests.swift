@@ -2,10 +2,10 @@
 //  DynamicPropertyObjectTests.swift
 //
 //  What the property walk does with what a class property holds: its
-//  `@State`, `@Environment` and nested properties belong to the first view
-//  in each render pass that reaches the object, so views sharing one object
-//  share one state, and an object made anew with each view value keeps its
-//  state (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
+//  `@State`, `@Environment` and nested properties belong to one view, the
+//  first drawn that reaches the object, for as long as that view's state
+//  lives, so views sharing one object share one state, and an object made
+//  anew with each view value keeps its state (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
 //  class (measured on macOS 15.8.1, SwiftUI 6.5.4: session notes
 //  DYNP/optional/op.out, case vii-f); the walk did, per view, so one view's
 //  writes landed in another's state (DYNV bugs 3 and 4, session notes
@@ -27,6 +27,7 @@ import TUIkit
 private final class Taps {
     var bindings: [String: Binding<Int>] = [:]
     var readers: [String: () -> String] = [:]
+    var texts: [String: Binding<String>] = [:]
 }
 
 // MARK: - A class property shared by two views
@@ -153,6 +154,76 @@ private struct WeakCounterView: View {
     }
 }
 
+// MARK: - Claims across render passes
+
+/// A class app property holding a draft's text, shared by the two
+/// candidates of a `ViewThatFits`.
+private final class Draft: DynamicProperty {
+    @State var text = ""
+}
+
+/// A candidate showing the draft, `wide` enough not to fit, or not.
+private struct DraftView: View {
+    let name: String
+    let wide: Bool
+    let draft: Draft
+    let taps: Taps
+
+    var body: some View {
+        taps.texts[name] = draft.$text
+        let padding = wide ? String(repeating: "-", count: 40) : ""
+        return Text(verbatim: "\(name) \(draft.text)\(padding)")
+    }
+}
+
+/// A class property passed through a view that does not hold it as one, so
+/// the views it is handed to are the first to reach it.
+private struct Handed<Object: AnyObject> {
+    let object: Object
+}
+
+/// The wide candidate, measured and never drawn on a narrow terminal, ahead
+/// of the narrow one.
+private struct DraftCandidates: View {
+    let draft: Handed<Draft>
+    let taps: Taps
+
+    var body: some View {
+        ViewThatFits {
+            DraftView(name: "wide", wide: true, draft: draft.object, taps: taps)
+            DraftView(name: "narrow", wide: false, draft: draft.object, taps: taps)
+        }
+    }
+}
+
+/// `CounterView` as a memoised row: equal while its name is.
+private struct MemoCounterView: View, Equatable {
+    let name: String
+    let counter: SharedCounter
+    let taps: Taps
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool { lhs.name == rhs.name }
+
+    var body: some View {
+        taps.bindings[name] = counter.$count
+        return Text(verbatim: "\(name) \(counter.count)")
+    }
+}
+
+/// One counter, shown first by a memoised view and then by one drawn every
+/// frame.
+private struct MemoFirstCounterViews: View {
+    let counter: Handed<SharedCounter>
+    let taps: Taps
+
+    var body: some View {
+        VStack {
+            MemoCounterView(name: "a", counter: counter.object, taps: taps).equatable()
+            CounterView(name: "b", counter: counter.object, taps: taps)
+        }
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty objects")
 struct DynamicPropertyObjectTests {
@@ -163,14 +234,28 @@ struct DynamicPropertyObjectTests {
         }
     }
 
+    /// One frame as the render loop draws it, its render cache the one its
+    /// state's writes invalidate: invalidations drained, the pass begun, the
+    /// view drawn, what was not drawn pruned.
+    private func frame<V: View>(_ view: V, _ tui: TUIContext, width: Int = 20, height: Int = 2) -> [String] {
+        let context = RenderContext(availableWidth: width, availableHeight: height, tuiContext: tui)
+        tui.renderCache.beginRenderPass()
+        tui.stateStorage.beginRenderPass()
+        defer {
+            tui.stateStorage.endRenderPass()
+            tui.renderCache.removeInactive()
+        }
+        return lines(view, context: context)
+    }
+
     /// The walks bound the `@State` inside a class instance to each holding
     /// view's storage in turn, through the one backing the instance holds,
     /// so the last view drawn won: a write through view a's binding landed
     /// in view b's state and not in a's (drawn `["a 0", "b 5"]`). SwiftUI
     /// installs no property inside a class (op.out, case vii-f: the binding
     /// is a constant, with a run-time warning), so the write changes
-    /// nothing. TUIkit keeps binding what an object holds, by the first view
-    /// in each render pass that reaches it: one object, one state, which
+    /// nothing. TUIkit keeps binding what an object holds, by one view, the
+    /// first drawn that reaches it: one object, one state, which
     /// both views read and write. What passes: a sees its own write, or b is
     /// untouched (a constant binding, as in SwiftUI).
     @Test("A write through one view's binding to a class property's @State never lands only in another view")
@@ -202,7 +287,8 @@ struct DynamicPropertyObjectTests {
     /// the instance's one box for each view in turn, so a closure made in
     /// view a's body read view b's environment. SwiftUI does not resolve it
     /// at all (op.out, case vii-f), so the closure reads the default. TUIkit
-    /// resolves it to the environment of the first view that reaches it.
+    /// resolves it to the environment of its claimant, the first view drawn
+    /// that reaches it.
     @Test("A class property's @Environment read in a view's closure is never another view's environment")
     func sharedObjectEnvironmentInClosure() {
         let context = makeRenderContext(width: 20, height: 2)
@@ -245,5 +331,56 @@ struct DynamicPropertyObjectTests {
         taps.bindings["weak"]?.wrappedValue = 3
         #expect(lines(WeakCounterView(counter: counter, taps: taps), context: context) == ["weak 3"])
         withExtendedLifetime(counter) {}
+    }
+
+    /// A claim that lasted one render pass was taken by the first walk to
+    /// reach the object, and a measure is a walk: the wide candidate, measured
+    /// and never drawn, took it, bound the draft to its own key, and that key
+    /// was pruned at the end of every pass, so what the narrow candidate's
+    /// field wrote was gone by the next frame. A measure's claim is now only
+    /// provisional: the candidate drawn takes it, and keeps it.
+    @Test("A class property shared by a measured candidate and the drawn one keeps what the drawn one writes")
+    func measuredHolderDoesNotKeepTheClaim() {
+        let tui = TUIContext()
+        let taps = Taps()
+        let draft = Draft()
+        #expect(frame(DraftCandidates(draft: Handed(object: draft), taps: taps), tui) == ["narrow"])
+        taps.texts["narrow"]?.wrappedValue = "hi"
+        #expect(frame(DraftCandidates(draft: Handed(object: draft), taps: taps), tui) == ["narrow hi"])
+        #expect(frame(DraftCandidates(draft: Handed(object: draft), taps: taps), tui) == ["narrow hi"])
+    }
+
+    /// The first view to reach the object was a memoised one; on a frame
+    /// that served it from the memo, its walk did not run, and the next
+    /// holder took a claim that lasted only the pass: the object's `@State`
+    /// was bound to that holder's key, and it drew its own default. A claim
+    /// now lasts while its claimant's state does, which a memo hit keeps.
+    @Test("A class property's first holder served from the memo keeps its claim, and the next holder reads its state")
+    func memoServedClaimantKeepsTheClaim() {
+        let tui = TUIContext()
+        let taps = Taps()
+        let counter = SharedCounter()
+        #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 0", "b 0"])
+        taps.bindings["a"]?.wrappedValue = 5
+        #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 5", "b 5"])
+        #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 5", "b 5"])
+    }
+
+    /// A pass that walks the tree twice — a geometry reader's correction, the
+    /// first frame's walk for the window chrome — walked an object's
+    /// contents on its first walk only, so a closure made in the drawn walk
+    /// read the environment of the walk thrown away. The claimant walks them
+    /// on every walk of its own, and the last decides.
+    @Test("A class property's @Environment is the one of its claimant's last walk in a pass")
+    func lastWalkInAPassResolvesTheObject() {
+        let tui = TUIContext()
+        let taps = Taps()
+        let object = SharedObject()
+        let context = RenderContext(availableWidth: 20, availableHeight: 1, tuiContext: tui)
+        tui.stateStorage.beginRenderPass()
+        _ = lines(ObjectView(name: "a", object: object, taps: taps).environment(\.discoveryAccent, "red"), context: context)
+        _ = lines(ObjectView(name: "a", object: object, taps: taps).environment(\.discoveryAccent, "blue"), context: context)
+        tui.stateStorage.endRenderPass()
+        #expect(taps.readers["a"]?() == "blue")
     }
 }

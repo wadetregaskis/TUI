@@ -22,7 +22,7 @@ package func propertyPlan<V>(for _: V.Type) -> SlotPlan? {
 }
 
 /// `view`'s `body`, evaluated on a copy of `view` that the property walk has
-/// prepared (``prepareProperties(of:plan:identity:storage:environment:)``)
+/// prepared (``prepareProperties(of:plan:identity:storage:environment:isMeasuring:)``)
 /// with `plan`, its type's (``propertyPlan(for:)``).
 ///
 /// Never inlined, so the copy is made here and nowhere else. Held by the
@@ -34,13 +34,19 @@ package func propertyPlan<V>(for _: V.Type) -> SlotPlan? {
 /// its body as well (release Stress, Xcode 6.2.4: `measureCompositeBody`
 /// gained two `Optional` metadata fetches and four `___chkstk_darwin` probes
 /// per call, `evaluateCompositeBody`'s body closure two probes).
+///
+/// `isMeasuring` says whether the body is evaluated for a measure. Not
+/// `context`'s: a measure asked for from a render — a `ViewThatFits` choosing
+/// its candidate — evaluates a composite's body with the render's context.
 @MainActor
 @inline(never)
-package func preparedBody<V: View>(of view: V, plan: SlotPlan, context: RenderContext) -> V.Body {
+package func preparedBody<V: View>(
+    of view: V, plan: SlotPlan, context: RenderContext, isMeasuring: Bool
+) -> V.Body {
     var prepared = view
     prepareProperties(
         of: &prepared, plan: plan, identity: context.identity, storage: context.stateStorage,
-        environment: context.environment)
+        environment: context.environment, isMeasuring: isMeasuring)
     return prepared.body
 }
 
@@ -53,12 +59,15 @@ package func preparedBody<V: View>(of view: V, plan: SlotPlan, context: RenderCo
 /// `value` is not constrained to `View`: the render loop prepares an `App`
 /// with it too, at the root identity, before evaluating `App.body`. Without
 /// `storage` (a guide asked for outside a render), no `@State` is bound.
+/// `isMeasuring` says whether the body is evaluated for a measure, whose
+/// claim on a class property's contents is only provisional
+/// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``).
 @MainActor
 package func prepareProperties<V>(
     of value: inout V, plan: SlotPlan, identity: ViewIdentity, storage: StateStorage?,
-    environment: EnvironmentValues
+    environment: EnvironmentValues, isMeasuring: Bool
 ) {
-    var walk = PropertyWalk(identity: identity, storage: storage, environment: environment)
+    var walk = PropertyWalk(identity: identity, storage: storage, environment: environment, isMeasuring: isMeasuring)
     // `&value` goes as a typed pointer argument, not through a closure passed
     // to `withUnsafeMutablePointer`: in a release build such a closure
     // carries a run-time check that it runs on the main actor, where a call
@@ -94,22 +103,25 @@ enum UpdateMode {
 /// **An object.** A class instance in a property field can be shared by many
 /// views, and one object has one set of stored properties. So what it holds —
 /// its `@State`, `@Environment`, ids, nested properties and their `update()`
-/// — belongs to the first view in each render pass whose walk reaches it
-/// (``StateStorage/claimObjectContents(_:)``): its `@State` is bound to that
-/// view's key, its `@Environment` is that view's, and every later holder in
-/// the pass leaves it as it is. Two views showing one object therefore read
-/// and write one state, as one object implies; an object made anew with each
-/// view value, held by that view alone, keeps its state from frame to frame.
-/// The object's own `update()` still runs before the body of every view that
-/// holds it (SwiftUI runs it, and installs nothing inside it: measured, DYNP
-/// `op.out` vii-f). Each object is reached at most once per walk, so objects
-/// that reach each other end the walk.
+/// — belongs to one view, its claimant: the first view drawn whose walk
+/// reaches it, for as long as that view's state lives
+/// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``). Its `@State`
+/// is bound to the claimant's key, its `@Environment` is the claimant's, and
+/// every other holder leaves it as the claimant left it. Two views showing one
+/// object therefore read and write one state, as one object implies; an
+/// object made anew with each view value, held by that view alone, keeps its
+/// state from frame to frame. The object's own `update()` still runs before
+/// the body of every view that holds it (SwiftUI runs it, and installs nothing
+/// inside it: measured, DYNP `op.out` vii-f). Each object is reached at most
+/// once per walk, so objects that reach each other end the walk.
 @MainActor
 struct PropertyWalk {
     /// The identity every key shares.
     let identity: ViewIdentity
     let storage: StateStorage?
     let environment: EnvironmentValues
+    /// Whether the body is evaluated for a measure.
+    let isMeasuring: Bool
 
     /// The next of the view's own declaration-order indices.
     private var ownIndex = 0
@@ -129,10 +141,11 @@ struct PropertyWalk {
     /// runs out.
     private var objectsReached: [ObjectIdentifier] = []
 
-    init(identity: ViewIdentity, storage: StateStorage?, environment: EnvironmentValues) {
+    init(identity: ViewIdentity, storage: StateStorage?, environment: EnvironmentValues, isMeasuring: Bool) {
         self.identity = identity
         self.storage = storage
         self.environment = environment
+        self.isMeasuring = isMeasuring
     }
 
     /// Walks the value at `root`, whose type's root plan is `plan`.
@@ -320,8 +333,8 @@ struct PropertyWalk {
     // MARK: Objects
 
     /// A class instance in a field whose declared type `plan` names: what it
-    /// holds, walked in place if this is the first walk in the render pass to
-    /// reach it, and then its own `update()`.
+    /// holds, walked in place if this walk's view is the object's claimant,
+    /// and then its own `update()`.
     private mutating func applyObject(
         _ plan: ObjectPlan, _ object: AnyObject, position: Int, scope: UInt64, updates: UpdateMode
     ) {
@@ -330,7 +343,7 @@ struct PropertyWalk {
         // field — it was walked and updated there.
         guard !objectsReached.contains(id) else { return }
         objectsReached.append(id)
-        if storage?.claimObjectContents(object) ?? true {
+        if storage?.claimObjectContents(object, for: identity, isMeasuring: isMeasuring) ?? true {
             let inner = NestedScope.container(at: position, ofType: type(of: object), in: scope)
             applyContents(of: object, scope: inner, isOwn: false, updates: updates)
         }

@@ -881,7 +881,7 @@ extension RenderLoop {
             var prepared = app
             prepareProperties(
                 of: &prepared, plan: plan, identity: rootIdentity, storage: tuiContext.stateStorage,
-                environment: environment)
+                environment: environment, isMeasuring: false)
             return prepared.body
         }
         tuiContext.stateStorage.markActive(rootIdentity)

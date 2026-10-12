@@ -439,26 +439,27 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the API.
 - **Decided:** [B34](<Decisions/SwiftUI API completion decisions.md#b34-a-focused-value-reader-drawn-ahead-of-its-publisher-catches-up-a-frame-later>). **Lane.**
 
-### S6. What a class property holds is installed, by the first view that reaches it
+### S6. What a class property holds is installed, by one view, the first drawn that reaches it
 
 - **SwiftUI:** runs a class property's `update()`, but installs nothing inside
   it: an `@State` there is a constant binding of its initial value, and an
   `@Environment` reads its default, each with a run-time warning (measured
   2026-10-10: session notes `DYNP/optional/op.out`, case vii-f).
 - **TUIkit:** installs what the object holds — held strongly, `unowned` or
-  `weak` — once per render pass, for the first view whose walk reaches it
+  `weak` — for one view at a time, its claimant: the first view drawn whose
+  walk reaches it, for as long as that view's state lives
   ([PropertyWalk.swift](../Sources/TUIkitView/State/PropertyWalk.swift)): its
-  `@State` is bound to that view's key, its `@Environment` is that view's,
-  and its nested properties are updated in place. One object has one state,
-  so two views showing it read and write the same one, and an object made
-  anew with each value of the one view holding it keeps its state from frame
-  to frame. A later view in the pass reads what the first left: its
+  `@State` is bound to the claimant's key, its `@Environment` is the
+  claimant's, and its nested properties are updated in place. One object has
+  one state, so two views showing it read and write the same one, and an
+  object made anew with each value of the one view holding it keeps its state
+  from frame to frame. Every other holder reads what the claimant left: its
   environment too.
 - **Why:** the owner's ruling (2026-10-12) keeps what TUIkit supported: a
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
   state and read another's environment in its closures (DYNV bugs 3 and 4).
-- **Decided:** [B-DYNVFIX-3](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-3-what-a-class-property-holds-belongs-to-the-first-view-in-each-render-pass-that-reaches-it). **Lane.**
+- **Decided:** [B-DYNVFIX-3](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-that-reaches-it-while-that-views-state-lives). **Lane.**
 
 ---
 

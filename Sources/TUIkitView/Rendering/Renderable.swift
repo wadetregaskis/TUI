@@ -313,11 +313,11 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
             sentinel?.touch()
             // A view holding a property is evaluated on a copy the property
             // walk prepared; any other — nearly all of them — as it is, and
-            // pays for no copy (`preparedBody(of:plan:context:)`). Inside the
+            // pays for no copy (`preparedBody(of:plan:context:isMeasuring:)`). Inside the
             // scope: what an app property's `update()` reads is observed as
             // what `body` reads is, as SwiftUI observes it.
             guard let plan else { return view.body }
-            return preparedBody(of: view, plan: plan, context: context)
+            return preparedBody(of: view, plan: plan, context: context, isMeasuring: context.isMeasuring)
         },
         onChange: observedChange(
             of: context, kind: context.isMeasuring ? .bodyMeasure : .bodyRender, reader: V.self,

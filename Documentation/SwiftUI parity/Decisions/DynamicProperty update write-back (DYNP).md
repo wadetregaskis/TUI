@@ -40,9 +40,9 @@ Shouting()`, is handled differently by the two frameworks.
 - **A `weak` field** is an optional field too, `weak var p: Box?`. Its
   `update()` does not run, as SwiftUI's does not (measured, case 4), nor
   does that of anything it holds. What it holds is bound and resolved while
-  its object lives, as what any class property holds is: by the first view
-  in each render pass that reaches the object (decisions-DYNVFIX
-  B-DYNVFIX-3). SwiftUI installs nothing inside a class (measured, DYNP
+  its object lives, as what any class property holds is: by one view, the
+  first drawn that reaches the object, while that view's state lives
+  (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a class (measured, DYNP
   `op.out` vii-f).
 
 The options:

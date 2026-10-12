@@ -283,7 +283,8 @@ package func explicitGuide<V: View>(
         return explicitGuide(of: view.body, query, in: dimensions, context: childContext)
     }
     return explicitGuide(
-        of: preparedBody(of: view, plan: plan, context: context), query, in: dimensions, context: childContext)
+        of: preparedBody(of: view, plan: plan, context: context, isMeasuring: true), query, in: dimensions,
+        context: childContext)
 }
 
 // MARK: - Reading a Child's Guide

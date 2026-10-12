@@ -20,7 +20,8 @@ func prepareForBody<V>(
     environment: EnvironmentValues = EnvironmentValues()
 ) {
     guard let plan = propertyPlan(for: V.self) else { return }
-    prepareProperties(of: &value, plan: plan, identity: identity, storage: storage, environment: environment)
+    prepareProperties(
+        of: &value, plan: plan, identity: identity, storage: storage, environment: environment, isMeasuring: false)
 }
 
 #endif

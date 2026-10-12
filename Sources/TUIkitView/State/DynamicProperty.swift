@@ -52,8 +52,8 @@
 /// reference. A property held `unowned` is updated where it is (it is a
 /// class), and one held `weak` is not updated, as in SwiftUI (both measured
 /// on macOS 15). What a class property holds is bound, resolved and updated
-/// once per render pass, by the first view that reaches the object: one
-/// object has one state, whichever views show it.
+/// by one view, the first drawn that reaches the object, while that view's
+/// state lives: one object has one state, whichever views show it.
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.
     ///

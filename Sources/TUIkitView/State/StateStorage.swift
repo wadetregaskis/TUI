@@ -224,10 +224,10 @@ public final class StateStorage: @unchecked Sendable {
     /// has already been pruned does nothing.
     private var conditionalRecordsAfterSweep = 0
 
-    /// The objects whose contents the property walk has walked in this
-    /// render pass (``claimObjectContents(_:)``), each held weakly, so a new
-    /// object at a freed one's address is not taken for it.
-    private var objectsWalked: [ObjectIdentifier: WalkedObject] = [:]
+    /// The view each class property's contents belong to, by object
+    /// (``claimObjectContents(_:for:isMeasuring:)``), each object held
+    /// weakly, so a new object at a freed one's address is not taken for it.
+    private var objectClaims: [ObjectIdentifier: ObjectClaim] = [:]
 
     /// What each animating value in the tree is doing.
     ///
@@ -298,15 +298,32 @@ extension StateStorage {
         return fresh
     }
 
-    /// Whether the property walk is the first in this render pass to reach
-    /// `object`, a class instance a view holds in a property field — and so
-    /// the one to walk what it holds: its `@State` bound to that view's key,
-    /// its `@Environment` resolved to that view's environment. Every later
-    /// walk in the pass leaves it as the first left it (``PropertyWalk``).
-    func claimObjectContents(_ object: AnyObject) -> Bool {
+    /// Whether the walk of the view at `claimant` walks what `object`, a
+    /// class instance the view holds in a property field, holds: its
+    /// `@State` bound to the view's key, its `@Environment` resolved to the
+    /// view's environment (``PropertyWalk``).
+    ///
+    /// An object's contents belong to one view at a time, its claimant: the
+    /// first whose walk reaches it while it has none. The claimant walks
+    /// them on every walk of its own — the last of a pass that walks the
+    /// tree twice decides — and every other holder leaves them as the
+    /// claimant left them. A claim made by a measure is only provisional: the
+    /// first view drawn that reaches the object takes it from a measured one,
+    /// which may never be drawn (a `ViewThatFits` candidate). A claim lasts
+    /// while its claimant's state does: it is dropped at the end of a pass
+    /// in which its claimant was neither drawn nor retained (by a memo hit or
+    /// a windowing container), and the next holder to reach the object then
+    /// claims it, its state starting at that holder's key.
+    func claimObjectContents(_ object: AnyObject, for claimant: ViewIdentity, isMeasuring: Bool) -> Bool {
         let id = ObjectIdentifier(object)
-        if let walked = objectsWalked[id], walked.object === object { return false }
-        objectsWalked[id] = WalkedObject(object: object)
+        if let claim = objectClaims[id], claim.object === object {
+            if claim.claimant == claimant {
+                if !isMeasuring, !claim.isDrawn { objectClaims[id]?.isDrawn = true }
+                return true
+            }
+            if claim.isDrawn || isMeasuring { return false }
+        }
+        objectClaims[id] = ObjectClaim(object: object, claimant: claimant, isDrawn: !isMeasuring)
         return true
     }
 
@@ -536,7 +553,6 @@ extension StateStorage {
 
     /// Begins a new render pass by clearing the active identity set.
     public func beginRenderPass() {
-        if !objectsWalked.isEmpty { objectsWalked.removeAll(keepingCapacity: true) }
         animations.beginRenderPass()
         departures.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
@@ -601,6 +617,14 @@ extension StateStorage {
             }
             displacedEnvironments.removeAll(keepingCapacity: true)
         }
+        // A claim lasts while its claimant's state does; one only a measure
+        // made goes with the pass.
+        if !objectClaims.isEmpty {
+            objectClaims = objectClaims.filter { _, claim in
+                claim.object != nil && claim.isDrawn
+                    && (activeIdentities.contains(claim.claimant) || retained.retains(claim.claimant))
+            }
+        }
         // Drop branch records for conditionals no longer in the tree, once
         // enough have gathered (`conditionalRecordsAfterSweep`), so the table
         // does not grow without bound. Retained rows keep theirs: if a
@@ -634,6 +658,9 @@ extension StateStorage {
         for key in staleTrackedKeys {
             trackedValues.removeValue(forKey: key)
         }
+        if !objectClaims.isEmpty {
+            objectClaims = objectClaims.filter { !ancestor.isAncestor(of: $0.value.claimant) }
+        }
         animations.removeDescendants(of: ancestor)
     }
 
@@ -643,7 +670,7 @@ extension StateStorage {
             (value as? any DroppableBox)?.markDropped()
         }
         values.removeAll()
-        objectsWalked.removeAll()
+        objectClaims.removeAll()
         displacedEnvironments.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()
@@ -728,8 +755,13 @@ private struct DisplacedEnvironment {
     let place: ViewIdentity
 }
 
-/// An object the property walk has walked in a render pass, held weakly
-/// (``StateStorage/claimObjectContents(_:)``).
-private struct WalkedObject {
+/// The view a class property's contents belong to
+/// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``).
+private struct ObjectClaim {
+    /// The object, held weakly.
     weak var object: AnyObject?
+    /// The view whose walk walks what the object holds.
+    let claimant: ViewIdentity
+    /// Whether the claimant has been drawn holding it, not only measured.
+    var isDrawn: Bool
 }

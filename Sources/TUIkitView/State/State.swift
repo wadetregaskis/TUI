@@ -282,7 +282,7 @@ public protocol RenderInvalidationSink: AnyObject, Sendable {
 ///
 /// `@State` no longer self-hydrates here: it binds to its view's *own* render
 /// identity in `renderToBuffer` / `measureChild` (see
-/// `prepareProperties(of:plan:identity:storage:environment:)`), not by construction order in
+/// `prepareProperties(of:plan:identity:storage:environment:isMeasuring:)`), not by construction order in
 /// an enclosing scope.
 public enum StateRegistration {
     /// The environment of the `body` currently being evaluated, or `nil`
@@ -531,7 +531,7 @@ public struct Binding<Value> {
 public struct State<Value> {
     /// Reference-typed backing whose `box` is bound to the persistent
     /// `StateStorage` slot at render time — see ``StateBacking`` and
-    /// ``prepareProperties(of:plan:identity:storage:environment:)``. A `var`
+    /// ``prepareProperties(of:plan:identity:storage:environment:isMeasuring:)``. A `var`
     /// because a value drawn at a second place has its backing replaced, in
     /// that place's copy, by one of its own.
     private var backing: StateBacking<Value>
