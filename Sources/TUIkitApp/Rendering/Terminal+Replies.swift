@@ -47,18 +47,42 @@ extension Terminal {
     /// `nil` too for a sequence with no terminator in its first
     /// ``maxReplyBytes``; the caller tells that from one still arriving by the
     /// buffer's length, and skips its rest (``skipAbandonedSequence()``).
+    ///
+    /// Resumes where the last walk of the same sequence stopped
+    /// (``sequenceWalkStart(_:)``).
     func stringSequenceLength() -> Int? {
-        var index = 2
+        var index = sequenceWalkStart(2)
         let cap = min(input.count, Self.maxReplyBytes)
         while index < cap {
             if input[index] == 0x07 { return index + 1 }  // BEL
             if input[index] == 0x1B {
-                guard index + 1 < input.count else { return nil }  // ST's tail is still coming
+                guard index + 1 < input.count else { break }  // ST's tail is still coming
                 return input[index + 1] == 0x5C ? index + 2 : index
             }
             index += 1
         }
+        noteSequenceWalk(stoppedAt: index)
         return nil
+    }
+
+    /// Where a walk of the escape sequence at the front of the input buffer
+    /// starts: at `offset`, or further on, where the last walk of the same
+    /// sequence stopped without finding its end.
+    ///
+    /// The same sequence while the buffer's front has not moved
+    /// (``InputByteBuffer/frontGeneration``): the bytes that walk read are
+    /// still there, unchanged, and none of them ended it. Until 2026-10-12
+    /// each walk began at the sequence's start, so one arriving a byte a read
+    /// was read once a byte: quadratic in its length, which the cap held to
+    /// 4 KiB.
+    func sequenceWalkStart(_ offset: Int) -> Int {
+        sequenceWalk.frontGeneration == input.frontGeneration ? max(offset, sequenceWalk.stoppedAt) : offset
+    }
+
+    /// Records that a walk of the sequence at the front read up to `offset`
+    /// without finding its end, for ``sequenceWalkStart(_:)``.
+    func noteSequenceWalk(stoppedAt offset: Int) {
+        sequenceWalk = (input.frontGeneration, offset)
     }
 
     /// Hard cap on a terminal reply, past which its bytes are skipped as they

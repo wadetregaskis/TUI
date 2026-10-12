@@ -441,7 +441,10 @@ extension Terminal {
         // ending at the second `[`: a meta-sending terminal's Option-[, which
         // is `ESC [`, followed by a paste typed the paste out as keys, and
         // followed by a mouse report typed out the report's coordinates.
-        var i = 2
+        //
+        // Resuming where the last walk of the same sequence stopped, so one
+        // arriving a few bytes a read is walked once (`sequenceWalkStart(_:)`).
+        var i = sequenceWalkStart(2)
         let cap = min(input.count, Self.maxReplyBytes)
 
         while i < cap {
@@ -477,6 +480,7 @@ extension Terminal {
         // wait is bounded by `deadSequenceStaleFrames`, not by the cap: the cap
         // only catches a terminal that keeps sending, since a pass on which
         // bytes arrive does not count toward that wait.)
+        noteSequenceWalk(stoppedAt: i)
         return nil
     }
 

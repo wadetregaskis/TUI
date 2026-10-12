@@ -192,6 +192,17 @@ final class Terminal: TerminalProtocol {
     /// out to be a split sequence's introducer rather than the Escape key.
     var pendingAltEsc: Bool = false
 
+    /// How far a walk of the escape sequence at the front of ``input`` read
+    /// without finding where it ends, and the buffer's
+    /// ``InputByteBuffer/frontGeneration`` then.
+    ///
+    /// The next walk of a sequence that is still arriving starts there rather
+    /// than at the sequence's start, while the generation says the front has
+    /// not moved, so that a sequence arriving a few bytes a read is read once,
+    /// not once a pass of the run loop. See `sequenceWalkStart(_:)` in
+    /// `Terminal+Replies.swift`.
+    var sequenceWalk = (frontGeneration: -1, stoppedAt: 0)
+
     /// The family of the over-long escape sequence whose rest the parser is
     /// skipping, or `nil` when it is skipping nothing.
     ///

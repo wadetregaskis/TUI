@@ -243,6 +243,40 @@ struct InputByteBufferTests {
         #expect(buffer.firstIndex(of: 9, in: 0..<6) == notFound, "the bytes removed from the front are not searched")
     }
 
+    /// What tells the parser that the escape sequence it walked is still the
+    /// one at the front: the count moves when the front does, and only then.
+    @Test("The front's generation moves with the front, and only with it")
+    func frontGenerationMovesWithTheFront() {
+        var buffer = InputByteBuffer(minimumCapacity: 4)
+        var seen = buffer.frontGeneration
+        func moved() -> Bool {
+            defer { seen = buffer.frontGeneration }
+            return buffer.frontGeneration != seen
+        }
+        buffer.append(contentsOf: [1, 2, 3, 4, 5, 6])
+        #expect(!moved(), "appending, and growing for it, leave the front alone")
+        _ = buffer.append(upTo: 8) { room in
+            room[0] = 7
+            return 1
+        }
+        #expect(!moved(), "a read leaves the front alone")
+        buffer.removeFirst(0)
+        #expect(!moved(), "removing nothing removes nothing")
+        buffer.removeFirst(1)
+        #expect(moved())
+        _ = buffer.popFirst()
+        #expect(moved())
+        buffer.prepend(2)
+        #expect(moved())
+        buffer.prepend(contentsOf: [])
+        #expect(!moved(), "putting nothing back puts nothing back")
+        buffer.prepend(contentsOf: [0, 1])
+        #expect(moved())
+        buffer.reallocate(capacity: 64)
+        #expect(!moved(), "moving the bytes into new storage leaves them where they were, counted from the front")
+        #expect(buffer.contents == [0, 1, 2, 3, 4, 5, 6, 7])
+    }
+
     /// What a paste's string is made from: the live bytes from the front,
     /// where they lie, however far the front has moved into the storage.
     @Test("The first bytes are lent in place, from wherever the front is")

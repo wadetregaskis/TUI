@@ -105,6 +105,35 @@ struct OverlongSequenceTests {
             "\(introducer.debugDescription) ended by \(terminator)")
     }
 
+    /// A sequence arriving a byte a read, a CSI and a string sequence: after
+    /// each pass the next walk is to start at the end of what has arrived,
+    /// not at the sequence's start, so walking it stays linear in its length.
+    /// (Until 2026-10-12 every walk began at the start: a sequence of n bytes
+    /// arriving a byte a read cost n²/2 byte checks.) And it still parses:
+    /// nothing in it is typed, and the key after it is.
+    @Test("A sequence arriving a byte a read is walked on from where the last walk stopped", arguments: ["[", "]52;c;"])
+    func walkResumesWhereItStopped(introducer: String) {
+        let (terminal, source) = makeTerminal(readLimit: 1)
+        let end = introducer == "[" ? Self.bytes("m") : [0x07]
+        source.bytes =
+            Self.esc + Self.bytes(introducer) + Self.bytes(String(repeating: "1;", count: 500)) + end + Self.bytes("b")
+
+        var events: [TerminalInput] = []
+        var resumes: [(next: Int, arrived: Int)] = []
+        while !source.isDry {
+            if let event = terminal.readEvent() { events.append(event) }
+            if terminal.input.count > 2, terminal.input[0] == 0x1B {
+                resumes.append((terminal.sequenceWalkStart(2), terminal.input.count))
+            }
+        }
+        events += drain(terminal, source)
+
+        #expect(resumes.count > 400, "the sequence was not walked a few bytes at a time")
+        let restart = resumes.first { $0.next != $0.arrived }
+        #expect(restart == nil, "a walk would start over: \(restart.map { "\($0)" } ?? "")")
+        #expect(events == [Self.key("b")])
+    }
+
     /// A new sequence before the terminator cuts the over-long one short, as
     /// it cuts a short one: the new one parses, from its own `ESC`.
     @Test("A new sequence cuts the skip short and parses")

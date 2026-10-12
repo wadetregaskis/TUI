@@ -71,6 +71,17 @@ struct InputByteBuffer {
     /// reads it.
     private(set) var bytesMoved = 0
 
+    /// A count that moves whenever the bytes at the front do: at every removal
+    /// from the front and every byte put back there. Appending, and moving the
+    /// live bytes within the storage or into new storage, leave it alone.
+    ///
+    /// While it stands where it stood, the first bytes read then are still
+    /// the first bytes, in the same places, with only more behind them. That
+    /// is what lets the parser's walk over an escape sequence that has not
+    /// finished arriving resume where it stopped (``Terminal``'s
+    /// `sequenceWalk`). Wrapping: only whether it moved matters.
+    private(set) var frontGeneration = 0
+
     /// A buffer with room for `minimumCapacity` bytes, at least one.
     init(minimumCapacity: Int) {
         storage = [UInt8](repeating: 0, count: max(1, minimumCapacity))
@@ -136,6 +147,7 @@ struct InputByteBuffer {
     /// Removes `n` bytes from the front.
     mutating func removeFirst(_ n: Int) {
         precondition(n >= 0 && n <= count, "InputByteBuffer: removing more bytes than it holds")
+        if n > 0 { frontGeneration &+= 1 }
         head += n
         if head == tail {
             head = 0
@@ -145,6 +157,7 @@ struct InputByteBuffer {
 
     /// Puts `byte` back at the front.
     mutating func prepend(_ byte: UInt8) {
+        frontGeneration &+= 1
         makeRoomInFront(1)
         head -= 1
         storage[head] = byte
@@ -153,6 +166,7 @@ struct InputByteBuffer {
     /// Puts `bytes` back at the front, in their order.
     mutating func prepend(contentsOf bytes: [UInt8]) {
         guard !bytes.isEmpty else { return }
+        frontGeneration &+= 1
         makeRoomInFront(bytes.count)
         head -= bytes.count
         let start = head
