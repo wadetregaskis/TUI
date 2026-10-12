@@ -85,3 +85,7 @@ Tools/Web/site/manifest.json
 Tools/Web/site/resources/
 Tools/Web/site/probe-data/
 Tools/Web/site/glyph-probe.html
+
+# Working notes: investigation notes, scripts, probes and measurements kept beside the repository but never
+# committed (large or easily reproduced). Their committed summaries are Documentation/Investigations/.
+/Documentation/Working notes/
