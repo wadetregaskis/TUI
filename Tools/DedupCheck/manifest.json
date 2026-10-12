@@ -1,5 +1,5 @@
 {
-  "_doc": "Reviewed facts for dedup_check.py (README.md beside it). `modules` names the modules whose objects are TUIkit's and checked; every other module's are the app's, reported only. Every other entry is a regex matched against DEMANGLED names. Adding an entry is a review: say where the key paths or addresses come from and why folding cannot change the answer.",
+  "_doc": "Reviewed facts for dedup_check.py (README.md beside it). `modules` names the modules whose objects are TUIkit's and checked; every other module's are the app's, reported only. The entries of `key_path_consumers`, `c_function_addresses` and `address_identity` are regexes matched against DEMANGLED names; `key_path_aliases` lists exact MANGLED getter names. Adding an entry is a review: say where the key paths or addresses come from and why folding cannot change the answer.",
   "modules": {
     "pattern": "TUIkit[A-Za-z]*",
     "except": ["TUIkitTestSupport", "TUIkitWidthCorpus"],
