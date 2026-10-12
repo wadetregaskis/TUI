@@ -19,8 +19,9 @@
 #
 #   swift build -c release && Tools/DedupCheck/ci-check.sh
 #
-# Run by CI's "macOS 26 · Swift 6.4" lane (.github/workflows/ci.yml, the step "Deduplicated, stripped release
-# programs pass the dedup check, selfcheck and PTY smoke"), after its release build.
+# Run by CI's "macOS 26 · Swift 6.4" and "macOS 15 · Xcode 26" (6.2.4) lanes (.github/workflows/ci.yml, the step
+# "Deduplicated, stripped release programs pass the dedup check, selfcheck and PTY smoke"), after their release builds:
+# which functions fold is the compiler's.
 set -euo pipefail
 
 if [[ "$(uname -s)" != Darwin ]]; then

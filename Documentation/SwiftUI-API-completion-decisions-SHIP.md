@@ -13,25 +13,33 @@ work raised that was not already decided, in the main file's three parts.*
 
 ## B. Shipped the safe option
 
-### B-SHIP-1. The `-deduplicate` check runs on one toolchain, 6.4
+### B-SHIP-1. The `-deduplicate` check runs on two toolchains, 6.4 and 6.2.4
 
 *`.github/workflows/ci.yml` (the step "Deduplicated, stripped release programs
 …"), `Tools/DedupCheck/ci-check.sh`*
 
 **Shipped:** the check, and the stripped `--selfcheck` and PTY smoke, on the
-"macOS 26 · Swift 6.4" lane only, which already builds release, so the step
-only links (243 s on the development machine, nearly all of it the PTY smoke).
+"macOS 26 · Swift 6.4" lane, which already built release, so there the step
+only links (243 s on the development machine, nearly all of it the PTY smoke);
+and, since 2026-10-12 (the owner: "Run the dedup check on 6.2.4 in CI too, if
+the behaviour is known to differ vs 6.4"; it is), on "macOS 15 · Xcode 26"
+(Xcode's 6.2.4), which gained a release build for it. There it costs about ten
+minutes a run on the development machine (busy, -j 3): 187 s of release
+build, 9 s of the Span check, which reads the same build, and 384 s of the
+step; runners unmeasured.
 
 **What it misses:** which functions fold is the compiler's and the linker's.
 Xcode's 6.2.4 folds `EnvironmentValues.buttonStyle` with
 `installedButtonAppearance` and 6.4.0 does not (measured 2026-10-10; allowed in
-the manifest with its review). A new pair that only 6.2 or 6.3 folds would
-pass CI.
+the manifest with its review). swift.org's 6.3.3 folds that same pair and no
+other (K1 8 of 320 getters, one equal group, as 6.2.4; measured 2026-10-12 as
+a stand-in for the 6.3 lane's Xcode toolchain), so the 6.2.4 lane answers for
+6.3 today. A new pair that only 6.3 folds would pass CI.
 
-**Fuller version and price:** the same step on "macOS 15 · Xcode 26" (6.2.4)
-and "macOS 26 · Xcode 26" (6.3), each needing a release build first: about
-three minutes of `-O` compile per lane per run (176 s for the whole package on
-the development machine with 6.4.0; runners unmeasured), plus the step's four.
+**Fuller version and price:** the same step on "macOS 26 · Xcode 26" (6.3),
+which needs a release build first: 260 s of build with 6.3.3 on the
+development machine, plus the step's six minutes or so (runners unmeasured).
+Worth it only once 6.3 is known to fold differently from 6.2.4.
 
 ### B-SHIP-2. Package.swift's unsafe flags: every one behind a trait; link flags only TUIkit's unexport patterns
 

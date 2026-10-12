@@ -277,6 +277,10 @@ jobs:
             solver_scopes: 2000
             # The module map runs here only: see that step.
             module_map: true
+            # The release build, for the dedup check after it: 6.2.4 folds a
+            # pair 6.4.0 does not (see that step). The Span check reads it too.
+            release_build: true
+            dedup_check: true
           - name: "macOS 26 · Xcode 26"
             runner: macos-26
             xcode: "26"
@@ -552,9 +556,10 @@ jobs:
       # not build TUIkitFoundation in release ("sending 'value' risks causing
       # data races", Theme.swift; a 6.3 optimiser clone that loses a function's
       # actor isolation, see the comment there) while every lane here was
-      # green. On two lanes, one per compiler that matters most: this one
-      # (swift.org's 6.4, the main target) and Linux's 6.3 on arm64 (see that
-      # step). No tests in release: the suite runs once, in debug, above.
+      # green. On three lanes: swift.org's 6.4 on macOS 26, the main target;
+      # Xcode's 6.2.4 on macOS 15, for the dedup check below, whose answer is
+      # the compiler's; and Linux's 6.3 on arm64 (see that step). No tests in
+      # release: the suite runs once, in debug, above.
       # Release has a directory of its own under `.build`, so this shares the
       # checkouts with the Build step and disturbs nothing it built; before
       # the type-check budget, which must stay last.
@@ -582,7 +587,8 @@ jobs:
       # at launch on macOS 14 and 15. The script says why at length and how to
       # read a failure. Here because this lane builds release, what ships, with
       # 6.4, whose SwiftPM binds the library strongly where 6.2.4's bound
-      # swift-collections' reference weakly. It reads every library module's
+      # swift-collections' reference weakly; on the 6.2.4 lane's release build
+      # too, which costs it nothing more. It reads every library module's
       # objects as well as Stress and Example, because no executable here
       # links TUIkitAppKit.
       - name: Release executables and library modules link no Span back-deployment library
@@ -605,14 +611,18 @@ jobs:
       # Links only: the Release build step compiled everything. Measured on the
       # development machine with Swift 6.4.0 (Swift Build), after this lane's
       # steps run there: 4 s a link, 3 s for the check, 243 s in all, nearly
-      # all of it the PTY smoke; runners unmeasured. One toolchain: this
-      # lane's 6.4 is the one TUIkit targets first and the only macOS lane
-      # with a release build to relink.
-      # What folds depends on the machine code each compiler emits for TUIkit's
-      # code, so the answer is per toolchain: Xcode's 6.2.4 folds one pair
-      # 6.4.0 does not (allowed in the manifest, with its review). A new pair
-      # only 6.2 or 6.3 folds would pass here; giving their
-      # lanes a release build to catch it would cost each a full -O compile.
+      # all of it the PTY smoke; runners unmeasured. What folds depends on the
+      # machine code each compiler emits for TUIkit's code, so the answer is
+      # per toolchain, and it runs on two: swift.org's 6.4, the one TUIkit
+      # targets first, and Xcode's 6.2.4 on macOS 15, which folds
+      # `buttonStyle` with `installedButtonAppearance` where 6.4.0 does not
+      # (allowed in the manifest, with its review). There it costs the lane
+      # its release build as well: on 2026-10-12, on the development machine
+      # at -j 3 and busy, 187 s of build, 9 s of Span check and 384 s of this
+      # step, about ten minutes (runners unmeasured). Not on the 6.3 lane:
+      # swift.org's 6.3.3 folds that same pair and no other (measured the same
+      # day), so the 6.2.4 lane's run answers for it today; a pair only 6.3
+      # folds would pass.
       - name: Deduplicated, stripped release programs pass the dedup check, selfcheck and PTY smoke
         if: matrix.dedup_check
         timeout-minutes: 20
