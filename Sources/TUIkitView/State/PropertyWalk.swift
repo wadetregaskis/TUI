@@ -191,6 +191,11 @@ struct PropertyWalk {
         isOwn: Bool, updates: UpdateMode
     ) {
         for step in fields.steps {
+            // A modifier stored here, not applied, has nothing in it updated:
+            // it is updated where it is applied, once (DYNV bug 5: a modifier
+            // stored in a view and applied, or wrapped by `.transaction(_:)`,
+            // ran its properties' `update()` twice).
+            let stepUpdates = step.slot.isModifier && !step.appliesModifier ? UpdateMode.none : updates
             if let reference = step.reference {
                 let loaded =
                     if let object {
@@ -201,13 +206,8 @@ struct PropertyWalk {
                 guard let loaded else { continue }
                 applyObject(
                     reference.object, loaded, position: step.position, scope: scope,
-                    updates: reference.isOptional ? .none : updates)
+                    updates: reference.isOptional ? .none : stepUpdates)
             } else {
-                // A modifier stored here, not applied, has nothing in it
-                // updated: it is updated where it is applied, once (DYNV bug
-                // 5: a modifier stored in a view and applied, or wrapped by
-                // `.transaction(_:)`, ran its properties' `update()` twice).
-                let stepUpdates = step.slot.isModifier && !step.appliesModifier ? UpdateMode.none : updates
                 apply(
                     step.slot, at: base + step.offset, position: step.position, scope: scope, isOwn: isOwn,
                     updates: stepUpdates)
@@ -381,12 +381,14 @@ struct PropertyWalk {
     ) {
         guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)) else { return }
         if ObjectIdentifier(objectType) == ObjectIdentifier(plan.type) || plan.empty.contains(objectType) { return }
-        guard case .object(let objectPlan) = PropertyPlans.exact(objectType).action else {
+        let exact = PropertyPlans.exact(objectType)
+        guard case .object(let objectPlan) = exact.action else {
             plan.empty.insert(objectType)
             return
         }
         let object = address.assumingMemoryBound(to: AnyObject.self).pointee
-        applyObject(objectPlan, object, position: position, scope: scope, updates: updates)
+        // A modifier class in a field is stored, never the one applied.
+        applyObject(objectPlan, object, position: position, scope: scope, updates: exact.isModifier ? .none : updates)
     }
 
     /// A class instance in a field whose declared type `plan` names: what it

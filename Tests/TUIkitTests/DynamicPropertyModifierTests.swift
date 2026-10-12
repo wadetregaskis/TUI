@@ -100,6 +100,45 @@ private final class TapBox {
     var binding: Binding<Int>?
 }
 
+// MARK: - A modifier class in a field
+
+/// A plain class, not a property and not a modifier.
+private class Decoration {}
+
+/// A subclass of it that is a modifier and an app property, counting its
+/// updates. `update()` is nonisolated, as `DynamicProperty` declares it: the
+/// class is on the main actor as a modifier.
+private final class CountingDecoration: Decoration, ViewModifier, DynamicProperty {
+    nonisolated(unsafe) var updates = 0
+
+    nonisolated func update() {
+        updates += 1
+    }
+
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
+/// Holds the modifier in a field declared as the plain class, and never
+/// applies it.
+private struct PlainFieldDecoration: View {
+    let decoration: Decoration
+
+    var body: some View {
+        Text(verbatim: "x")
+    }
+}
+
+/// Holds the modifier `unowned`, and never applies it.
+private struct UnownedDecoration: View {
+    unowned let decoration: CountingDecoration
+
+    var body: some View {
+        Text(verbatim: "x")
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty modifiers")
 struct DynamicPropertyModifierTests {
@@ -154,5 +193,21 @@ struct DynamicPropertyModifierTests {
         #expect(lines(view(), context: context) == ["red 0"])
         taps.binding?.wrappedValue = 4
         #expect(lines(view(), context: context) == ["red 4"])
+    }
+
+    /// A modifier class reached through a field declared as a plain class,
+    /// or held `unowned`, is stored, never applied, as one held strongly in a
+    /// field of its own type is: its `update()` ran on every body (review of
+    /// 55bb84039, 2026-10-12).
+    @Test("A modifier class behind a plain class field, or held unowned, is never updated where it is only stored")
+    func storedModifierClassIsNotUpdated() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let decoration = CountingDecoration()
+        _ = lines(PlainFieldDecoration(decoration: decoration), context: context)
+        _ = lines(PlainFieldDecoration(decoration: decoration), context: context)
+        #expect(decoration.updates == 0, "behind a plain class field")
+        _ = lines(UnownedDecoration(decoration: decoration), context: context)
+        _ = lines(UnownedDecoration(decoration: decoration), context: context)
+        #expect(decoration.updates == 0, "held unowned")
     }
 }

@@ -222,7 +222,8 @@ enum PropertyPlans {
         guard RuntimeFields.Kind(of: declared).isClass, isContainerType(declared) else { return nil }
         let object = ObjectPlan(type: declared, updater: isOptional ? nil : appPropertyType(declared))
         return FieldsPlan.Step(
-            offset: field.offset, position: position, slot: SlotPlan(.object(object)),
+            offset: field.offset, position: position,
+            slot: SlotPlan(.object(object), isModifier: declared is any ViewModifier.Type),
             reference: ReferenceField(owner: owner, index: ownIndex, isOptional: isOptional, object: object))
     }
 

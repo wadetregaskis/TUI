@@ -171,9 +171,10 @@ joins, so they did the same. SwiftUI updates only the copy applied, once
 **Shipped:** a modifier is *applied* only as the `modifier` of the
 `ModifiedContent` being drawn, and only there is anything in it updated. One
 stored anywhere else — a view's field, a property, the modifier a wrapper
-holds — keeps what TUIkit gave it beyond SwiftUI: its `@State` is bound and its
-`@Environment` resolved, so the holding view's body can read them. But nothing
-in it is updated.
+holds, an existential, a modifier class held `weak` or `unowned` or behind a
+field declared as a plain class — keeps what TUIkit gave it beyond SwiftUI: its
+`@State` is bound and its `@Environment` resolved, so the holding view's body
+can read them. But nothing in it is updated.
 
 **Lost:** `update()` on the properties of a modifier stored in a field and
 never applied. SwiftUI gives such a field nothing. Updating it there, and not
