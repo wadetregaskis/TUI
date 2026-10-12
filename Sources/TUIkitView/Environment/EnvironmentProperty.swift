@@ -93,7 +93,9 @@ public struct Environment<Value> {
     /// Reference box holding the environment captured at the owning view's
     /// render. Shared with closures that capture the view, so they see the same
     /// resolved environment. Populated by the property walk (`PropertyWalk`).
-    private let box = EnvironmentBox()
+    /// A `var` because a value drawn at a second place has its box replaced,
+    /// in that place's copy, by one of its own.
+    private var box = EnvironmentBox()
 
     /// Creates an environment property wrapper for the given key path.
     ///
@@ -145,6 +147,38 @@ public struct Environment<Value> {
 /// captured at render even though it runs later.
 final class EnvironmentBox {
     var environment: EnvironmentValues?
+    /// The identity of the view the box was resolved for, by the property
+    /// walk; `nil` until then.
+    var place: ViewIdentity?
+}
+
+/// An `@Environment` the property walk resolves for the place its view is
+/// drawn at: one value drawn at two places gets a box for each, so a closure
+/// made in the first place's body reads the first place's environment, as
+/// SwiftUI resolves each place's copy (the `@State` twin of this is DYNV bug
+/// 1; ``State/bindState(at:to:key:)``).
+protocol PlaceResolvedEnvironment {
+    /// Hands the wrapper at `address`, in the copy of a view drawn at
+    /// `place`, `environment`.
+    static func resolveEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity)
+}
+
+extension Environment: PlaceResolvedEnvironment {
+    static func resolveEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity) {
+        let wrapper = address.assumingMemoryBound(to: Self.self)
+        let box = wrapper.pointee.box
+        if let resolved = box.place, resolved != place {
+            // Resolved for another place in this or an earlier pass: this
+            // place's copy gets a box of its own.
+            let own = EnvironmentBox()
+            own.environment = environment
+            own.place = place
+            wrapper.pointee.box = own
+            return
+        }
+        box.environment = environment
+        box.place = place
+    }
 }
 
 /// A `@Environment` wrapper that can be handed its resolved environment.

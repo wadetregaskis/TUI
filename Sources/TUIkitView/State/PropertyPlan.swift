@@ -84,13 +84,17 @@ struct Leaf {
     /// A property handed its view's environment (`@Environment`,
     /// `@FocusedValue`, `@FocusState`'s manager).
     let environment: (any EnvironmentResolvable.Type)?
+    /// For an `@Environment`, how it is handed one for the place its view is
+    /// drawn at, in place of ``environment``.
+    let placeEnvironment: (any PlaceResolvedEnvironment.Type)?
 
     /// The leaf for `type`, or `nil` if it is none of the three.
     static func of(_ type: Any.Type) -> Self? {
         let leaf = Self(
             state: type as? any StateBindable.Type,
             identity: type as? any RenderIdentityBindable.Type,
-            environment: type as? any EnvironmentResolvable.Type)
+            environment: type as? any EnvironmentResolvable.Type,
+            placeEnvironment: type as? any PlaceResolvedEnvironment.Type)
         return leaf.state == nil && leaf.identity == nil && leaf.environment == nil ? nil : leaf
     }
 

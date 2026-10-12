@@ -138,3 +138,33 @@ in it is updated.
 never applied. SwiftUI gives such a field nothing. Updating it there, and not
 again where it is applied, would need to know, before `body` runs, whether the
 copy `body` applies came from that field, which nothing says.
+
+### B-DYNVFIX-5. One value drawn at two places keeps a `@State` and an `@Environment` for each place; TUIkit's other wrappers still share one
+
+*`@State`, `@Environment`, `@FocusState`, `@Namespace`, `@FocusedValue`,
+`@FocusedBinding`*
+
+Every copy of a property wrapper shares what it keeps behind a reference, and
+the walk bound it for each place in turn, so one view value drawn at two
+places — `HStack { tally; tally }`, or one property value handed to two child
+views — ended bound to the second place (DYNV bug 1). SwiftUI installs each
+place's state in that place's copy (measured, DYNV `dv.out`, `twice` and
+`value`).
+
+**Shipped:** `@State` and `@Environment` are bound once; a place whose copy
+holds one bound to another place is given its own, in that copy. Each place
+reads and writes its own state, and a closure made in its body reads its own
+environment. A value drawn at one place pays one pointer compare per wrapper
+per body.
+
+**Left, the same class:** TUIkit's `@FocusState`, `@Namespace`,
+`@FocusedValue` and `@FocusedBinding` keep a store that every copy shares, and
+are bound or resolved through it. One value drawn at two places still ends
+with the second place's id or focus manager.
+
+**The fuller version** gives each the same treatment: a binding at the
+property's address, and a store of its own for a copy at a second place. Its
+price: each wrapper's binding moves from an instance method its public
+protocol (`RenderIdentityBindable`, `EnvironmentResolvable`) declares to one
+at an address, in TUIkitFoundation, where they live, and the case is rare:
+the same focus field or namespace drawn twice at once.

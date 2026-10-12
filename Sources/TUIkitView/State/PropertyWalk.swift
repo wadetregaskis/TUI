@@ -250,7 +250,9 @@ struct PropertyWalk {
             let path = isOwn ? identity.path : NestedScope.identityPath(of: identity, in: scope)
             bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
         }
-        if let resolvable = leaf.environment {
+        if let placed = leaf.placeEnvironment {
+            placed.resolveEnvironment(at: address, environment, place: identity)
+        } else if let resolvable = leaf.environment {
             resolvable.resolveEnvironment(at: address, environment)
         }
     }

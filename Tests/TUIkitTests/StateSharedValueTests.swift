@@ -13,7 +13,9 @@
 //  stay apart (measured on macOS 15.8.1, SwiftUI 6.5.4, offscreen
 //  NSHostingView: session notes DYNV/probe/dv.swift, cases `twice` and
 //  `value`, output dv.out). TUIkit now does the same: a place whose copy
-//  holds a backing bound to another place is given a backing of its own.
+//  holds a backing bound to another place is given a backing of its own. An
+//  `@Environment`'s box, shared the same way, is given one for each place
+//  too.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -87,6 +89,48 @@ private struct TwoChildrenOneValue: View {
     }
 }
 
+private struct SharedAccent: EnvironmentKey {
+    static let defaultValue = "plain"
+}
+
+extension EnvironmentValues {
+    fileprivate var sharedAccent: String {
+        get { self[SharedAccent.self] }
+        set { self[SharedAccent.self] = newValue }
+    }
+}
+
+/// What each placement's closure reads, by the environment it drew under.
+@MainActor
+private final class AccentReaders {
+    var readers: [String: () -> String] = [:]
+}
+
+/// A view reading the environment, handing out a closure that reads it.
+private struct AccentReader: View {
+    let readers: AccentReaders
+    @Environment(\.sharedAccent) private var accent
+
+    var body: some View {
+        let reader = self
+        readers.readers[accent] = { reader.accent }
+        return Text(verbatim: accent)
+    }
+}
+
+/// One reader value placed under two environments.
+private struct SameReaderTwice: View {
+    let readers: AccentReaders
+
+    var body: some View {
+        let reader = AccentReader(readers: readers)
+        return VStack {
+            reader.environment(\.sharedAccent, "red")
+            reader.environment(\.sharedAccent, "blue")
+        }
+    }
+}
+
 @MainActor
 @Suite("@State in a value rendered at two places")
 struct StateSharedValueTests {
@@ -117,5 +161,18 @@ struct StateSharedValueTests {
         #expect(lines(TwoChildrenOneValue(taps: taps), context: context) == ["a 0", "b 0"])
         taps.bindings["a"]?.wrappedValue = 5
         #expect(lines(TwoChildrenOneValue(taps: taps), context: context) == ["a 5", "b 0"])
+    }
+
+    /// The `@Environment` twin: the box an `@Environment` resolves into was
+    /// shared by every copy, so a closure made in the first placement's body
+    /// read the second placement's environment. Each place's copy now gets a
+    /// box of its own, as SwiftUI resolves each place's copy.
+    @Test("One view value placed under two environments: each placement's closure reads its own")
+    func sameReaderTwice() {
+        let context = makeRenderContext(width: 20, height: 2)
+        let readers = AccentReaders()
+        #expect(lines(SameReaderTwice(readers: readers), context: context) == ["red", "blue"])
+        #expect(readers.readers["red"]?() == "red")
+        #expect(readers.readers["blue"]?() == "blue")
     }
 }
