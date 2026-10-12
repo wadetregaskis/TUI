@@ -23,38 +23,64 @@ There is no C entry.
 
 ## A. Needs your decision
 
-### A-HELP-1. A hover tooltip in the status bar flickers over a page laid out in the middle
+### A-HELP-1. A hover tooltip in the status bar flickers over a page laid out in the middle — decided: option 1, fixed
+
+**Decided 2026-10-12 by the coordinator: option 1, and fixed.**
 
 **Found while pinning hover on a non-focusable view through the run loop**
-(`HelpRunLoopTests.hoverOverACentredPage`, a `withKnownIssue` test; not
-caused by this lane, and older than it). The status bar grows upwards for a
-tooltip (Tooltips §4, "Bar grows and shrinks with the tooltip"), so the page
-above it loses a row or more. A page laid out in the middle of the window
-moves up with it; the view slides out from under the resting pointer; the
-dispatcher re-resolves the hover after the reshape and reports `.exited`; the
-tooltip goes, the page moves back under the pointer, `.entered` arrives, and
-the delay starts again. Measured headless at 50 × 14 with the default style
-and delay: the help is on screen for one frame in every 0.6 s. A page laid out
-from the top (most pages: a title, then a scroll view) does not move and is
-not affected, nor is the popover, which moves nothing; the research probe
-looked at one frame and so saw it shown.
+(`HelpRunLoopTests.hoverOverACentredPage`; not caused by this lane, and older
+than it). The status bar grows upwards for a tooltip (Tooltips §4, "Bar grows
+and shrinks with the tooltip"), so the page above it loses a row or more. A
+page laid out in the middle of the window (as a `WindowGroup` lays out one
+that does not fill it) moves up with it; the view slides out from under the
+resting pointer; the dispatcher re-resolves the hover after the reshape and
+reports `.exited`; the tooltip goes, the page moves back under the pointer,
+`.entered` arrives, and the delay starts again. Measured headless at 50 × 14
+with the default style and delay: the help was on screen for one frame in
+every 0.6 s. Once a walk's change to the bar asked for its frame (the review
+fix e73abfced), it was on screen for one frame and did not come back while
+the pointer rested: the re-entry came after the walk, and nothing woke for its
+delay. A page laid out from the top (most pages: a title, then a scroll view)
+does not move and was not affected, nor was the popover, which moves nothing.
 
-Options:
+Options, as offered:
 
-1. **Hold the hover through the tooltip's own reflow (recommended).** In a
-   frame whose bar rows changed because of a tooltip, the hover transitions
-   the reshape synthesises are not hover changes: the candidate stays, marked
-   displaced, until the pointer next moves and does not land on its view
-   again. No visual change, and it fixes the class (anything the bar's growth
-   moves). About half a lane-day: `RenderLoop` marks the reshape around
-   `setRegions`, `TooltipState` keeps the displaced candidate, the dispatcher
-   reports real motion so it can be let go, and tests.
-2. **Reserve the row always**, §4's own fallback: the bar keeps a tooltip row
-   whether or not one shows. One row of every app's page, permanently, and a
-   help text that wraps to two rows still moves the page.
+1. **Hold the hover through the tooltip's own reflow (recommended; chosen).**
+   In a frame whose bar rows changed because of a tooltip, the hover
+   transitions the reshape synthesises are not hover changes: the candidate
+   stays, marked displaced, until the pointer next moves and does not land on
+   its view again. No visual change, and it fixes the class (anything the
+   bar's growth moves).
+2. **Reserve the row always**, §4's own fallback: one row of every app's page,
+   permanently, and a help text that wraps to two rows still moves the page.
 3. **Draw a hover tooltip's bar over the foot of the page** instead of
-   shrinking it. No shift, but it covers the page's last rows while it shows:
-   a change to the presentation §4 chose. About half a lane-day.
+   shrinking it: a change to the presentation §4 chose.
+
+**What was built.** The run loop notes a frame whose status-bar tooltip
+changed the rows the bar takes from the page
+(`RenderLoop.resolveStatusBarTooltip`, `StatusBarState.linesAboveItems`) and
+marks the reshape that publishing the frame's regions makes
+(`RenderLoop.publishHitTestRegions`). An exit in that reshape moves the hover
+candidate to `TooltipState.held`, which is shown in preference to the
+candidate the pointer is really over, until:
+
+- the pointer moves to another cell (`TooltipState.notePointerMoved`, told by
+  the dispatcher), and the move does not put it on the held view again; one
+  that does takes it back, its delay served;
+- or no pointer could rest on the held view any more: gone from the screen,
+  or behind something that takes the hover, such as a sheet's backdrop
+  (`MouseEventDispatcher.reachesHoverObserver`, asked as the reshape closes).
+
+Only the tooltip holds: the controls and the other hover observers
+(`.onHover`) hear the transitions as before, since the pointer is over
+something else. While the help is held, the view now under the pointer may
+light its own hover face, and a view with help that the reshape put under the
+pointer becomes the candidate once the held one goes. A related gap closed
+in the same round: a view with help that a reshape slides under a resting
+pointer gets the wake at the end of its delay (`RenderLoop.requestTooltipFrames`).
+Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
+`hoverRestsOverACentredPage` (only the frames something asks for),
+`heldHelpStaysOnItsView`, `heldHelpGoesWithItsView`.
 
 ## B. Shipped the safe option
 

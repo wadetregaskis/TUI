@@ -191,6 +191,66 @@ private struct SlidingHelpPage: View {
     }
 }
 
+/// The review's page (2026-10-12): three rows of `Text`, the first with help,
+/// laid out in the middle of the window, as a `WindowGroup` lays out a page
+/// that does not fill it. Nothing on it hovers but the help, so nothing else
+/// asks for a frame.
+private struct CentredTextsApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("alpha").help("HELP-A")
+                Text("beta")
+                Text("gamma")
+            }
+        }
+        .mouseSupport(.full)
+    }
+}
+
+/// A centred page like that one under a focused button, which takes the
+/// `Text` with help away (another takes its row) or presents a sheet over the
+/// page. Five rows, so the bar's row moves it as it moves three.
+private struct CentredHelpUnderAButtonApp: App {
+    var presentsSheet = false
+
+    init() {}
+
+    init(presentsSheet: Bool) {
+        self.presentsSheet = presentsSheet
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            CentredHelpUnderAButtonPage(presentsSheet: presentsSheet)
+        }
+        .mouseSupport(.full)
+    }
+}
+
+private struct CentredHelpUnderAButtonPage: View {
+    let presentsSheet: Bool
+    @State private var removed = false
+    @State private var sheetShown = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button("press") {
+                if presentsSheet { sheetShown = true } else { removed = true }
+            }
+            if removed { Text("other") } else { Text("alpha").help("HELP-A") }
+            Text("beta")
+            Text("gamma")
+            Text("delta")
+        }
+        .sheet(isPresented: $sheetShown) {
+            Text("SHEET-BODY")
+        }
+    }
+}
+
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class HelpDriver<A: App> {
@@ -398,15 +458,16 @@ struct HelpRunLoopTests {
         #expect(driver.shows("HELP-SLIDES"), "\(style): nothing woke for the delay: \(driver.lines)")
     }
 
-    /// **Known defect, found 2026-10-12 and not fixed here** (decisions
-    /// A-HELP-1). The status bar grows upwards for a tooltip, so the page
-    /// above it is a row or two shorter; a page laid out in the middle of the
-    /// window moves up, the view slides out from under a resting pointer, the
-    /// dispatcher reports it left, and the tooltip goes, the page moves back,
-    /// the pointer is on the view again and the delay restarts. Measured: shown
-    /// for one frame in every 0.6 s. The popover moves nothing and is
-    /// unaffected (the pin above runs both styles). When this starts passing,
-    /// drop `withKnownIssue` and the decisions entry.
+    /// Decided 2026-10-12 (decisions-HELP A-HELP-1, option 1). The status bar
+    /// grows upwards for a tooltip, so the page above it is a row shorter, and
+    /// a page laid out in the middle of the window moves up; the view slides
+    /// out from under a resting pointer. Taken as the pointer leaving, that
+    /// took the tooltip away, gave the row back, slid the view under the
+    /// pointer again and restarted the delay: shown for one frame in every
+    /// 0.6 s. A reshape the bar's rows for a tooltip cause is not a hover
+    /// change to the tooltip (`TooltipState.held`). This steps every frame
+    /// (`step`), so a frame drawn for any reason keeps it; the popover moves
+    /// nothing and never had the defect (`hoverOnANonFocusableView`).
     @Test("A hover tooltip in the status bar stays up over a page laid out in the middle")
     func hoverOverACentredPage() throws {
         let driver = Driver(HelpPageApp(trigger: .automatic, style: .statusBar))
@@ -417,9 +478,84 @@ struct HelpRunLoopTests {
             driver.step()
             return count + (driver.shows("HELP-FOR-TEXT") ? 1 : 0)
         }
-        withKnownIssue("A-HELP-1: the bar's growth moves a centred page out from under the pointer") {
-            #expect(shownFrames == 30, "shown in \(shownFrames) of 30 frames")
+        #expect(shownFrames == 30, "shown in \(shownFrames) of 30 frames")
+    }
+
+    /// The review's reproduction (2026-10-12), stepping only the frames
+    /// something asked for, as the live loop draws them. Once a walk's
+    /// change to the bar asked for its frame (e73abfced), the help was on
+    /// screen for one frame and did not come back while the pointer rested:
+    /// the frame after it drew the bar empty, the page moved back, and the
+    /// re-entry that restarted the delay came after the walk, which no wake
+    /// answered.
+    @Test("Over a centred page the hovered help shows after its delay, stays while the pointer rests, and goes when it moves off")
+    func hoverRestsOverACentredPage() throws {
+        let driver = HelpDriver(CentredTextsApp())
+        let alpha = try #require(driver.position(of: "alpha"))
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: alpha.x + 1, y: alpha.y))
+        driver.step()
+        #expect(!driver.shows("HELP-A"), "shown before the pointer had rested")
+        #expect(driver.stepIfAsked(), "nothing asked for the frame at the end of the delay")
+        #expect(driver.shows("HELP-A"), "the delay's frame showed nothing: \(driver.lines)")
+        #expect(driver.position(of: "alpha")?.y != alpha.y, "precondition: the bar's growth moved the page")
+        let shownFrames = (0..<30).reduce(0) { count, _ in
+            driver.stepIfAsked()
+            return count + (driver.shows("HELP-A") ? 1 : 0)
         }
+        #expect(shownFrames == 30, "shown in \(shownFrames) of 30 frames while the pointer rested")
+        // Off the page, on the same row: the help goes, and the move is what
+        // asks for the frame that takes it away.
+        #expect(
+            driver.app.send(MouseEvent(button: .none, phase: .moved, x: 45, y: alpha.y)),
+            "nothing asked for the frame that takes the help away")
+        driver.step()
+        driver.stepIfAsked()
+        #expect(!driver.shows("HELP-A"), "the help stayed after the pointer moved off: \(driver.lines)")
+    }
+
+    /// The bar moved the page, so the help's view is a row from the pointer:
+    /// a pointer that moves onto it where it now is keeps the help up, its
+    /// delay served, as one that moves off takes it away.
+    @Test("A help held through the bar's reflow stays when the pointer moves onto its view again")
+    func heldHelpStaysOnItsView() throws {
+        let driver = HelpDriver(CentredTextsApp())
+        let alpha = try #require(driver.position(of: "alpha"))
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: alpha.x + 1, y: alpha.y))
+        driver.step()
+        driver.stepIfAsked()
+        let moved = try #require(driver.position(of: "alpha"))
+        #expect(driver.shows("HELP-A"), "precondition: shown: \(driver.lines)")
+        #expect(moved.y != alpha.y, "precondition: the bar's growth moved the page")
+        #expect(
+            driver.app.send(MouseEvent(button: .none, phase: .moved, x: moved.x + 2, y: moved.y)),
+            "precondition: the move onto the view was heard")
+        driver.step()
+        #expect(driver.shows("HELP-A"), "the help went as the pointer moved onto its view: \(driver.lines)")
+        // Every frame, so a delay restarted by the move cannot pass unseen.
+        let shownFrames = (0..<10).reduce(0) { count, _ in
+            driver.step()
+            return count + (driver.shows("HELP-A") ? 1 : 0)
+        }
+        #expect(shownFrames == 10, "shown in \(shownFrames) of 10 frames after the pointer moved onto its view")
+    }
+
+    /// No hover transition reaches a held help's view, the pointer being
+    /// elsewhere, so the frame itself asks whether a pointer could still rest
+    /// on it: one whose view has gone, or that a sheet covers, goes.
+    @Test("A help held through the bar's reflow goes when its view goes or is covered", arguments: [false, true])
+    func heldHelpGoesWithItsView(presentsSheet: Bool) throws {
+        let driver = HelpDriver(CentredHelpUnderAButtonApp(presentsSheet: presentsSheet))
+        let alpha = try #require(driver.position(of: "alpha"))
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: alpha.x + 1, y: alpha.y))
+        driver.step()
+        driver.stepIfAsked()
+        #expect(driver.shows("HELP-A"), "precondition: shown: \(driver.lines)")
+        #expect(driver.position(of: "alpha")?.y != alpha.y, "precondition: the bar's growth moved the page")
+        #expect(driver.app.send(KeyEvent(key: .enter)), "the button took the press")
+        driver.step()
+        driver.stepIfAsked()
+        #expect(driver.shows("SHEET-BODY") == presentsSheet, "precondition: the sheet: \(driver.lines)")
+        #expect(!driver.shows("HELP-A"), "the help outlived its view: \(driver.lines)")
     }
 
     /// The app-wide feature, `.tooltips(.always)`, with a focusable and a

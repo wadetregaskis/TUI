@@ -29,8 +29,44 @@ extension RenderLoop {
     /// from the CANDIDATE, not from the root environment — `tooltipStyle` is a
     /// subtree setting, so a panel asking for a popover inside an app that uses
     /// the bar is answered by the panel.
-    func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64, scheduler: AnimationScheduler?) {
-        let width = windowChrome.style.barContentWidth(terminalWidth)
+    ///
+    /// - Returns: Whether the tooltip the bar shows changed the rows the bar
+    ///   takes from the page: what ``publishHitTestRegions(_:tooltipMovedThePage:)``
+    ///   is told.
+    func resolveStatusBarTooltip(terminalWidth: Int, nowNanos: Int64, scheduler: AnimationScheduler?) -> Bool {
+        let shownBefore = statusBarTooltipText
+        let rowsBefore = statusBar.linesAboveItems.count
+        fillStatusBarTooltipLines(
+            width: windowChrome.style.barContentWidth(terminalWidth), nowNanos: nowNanos, scheduler: scheduler)
+        return statusBarTooltipText != shownBefore && statusBar.linesAboveItems.count != rowsBefore
+    }
+
+    /// Publishes the frame's hit-test regions, which re-resolves the hover
+    /// under a resting pointer (`MouseEventDispatcher.setRegions`), holding a
+    /// hover tooltip through a reshape its own rows in the bar caused.
+    ///
+    /// The bar grows upwards for a tooltip, so a page laid out in the middle
+    /// of the window moves as the tooltip comes or goes, and the view under
+    /// the resting pointer slides out from under it. The dispatcher reports
+    /// that as the pointer leaving; to the tooltip it is not
+    /// (`TooltipState.held`, decisions-HELP A-HELP-1). Other hover observers
+    /// and the controls hear the transitions as before: the pointer IS over
+    /// something else now.
+    ///
+    /// - Parameter tooltipMovedThePage: What
+    ///   ``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``
+    ///   returned this frame.
+    func publishHitTestRegions(_ regions: [HitTestRegion], tooltipMovedThePage: Bool) {
+        let tooltips = tuiContext.tooltipState
+        let dispatcher = tuiContext.mouseEventDispatcher
+        tooltips.beginReshape(movedByTooltip: tooltipMovedThePage)
+        dispatcher.setRegions(regions)
+        tooltips.endReshape { dispatcher.reachesHoverObserver($0) }
+    }
+
+    /// Fills the status bar's rows above its items for this frame: the body
+    /// of ``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``.
+    private func fillStatusBarTooltipLines(width: Int, nowNanos: Int64, scheduler: AnimationScheduler?) {
         statusBar.showsNoteInPlaceOfItems = false
         // Whether last frame's line of key hints drew a row of items for the
         // copy's line to stand in for; this frame's line records it afresh.

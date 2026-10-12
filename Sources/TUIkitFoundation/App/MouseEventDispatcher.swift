@@ -49,6 +49,11 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// clears it.
     weak var screenSelection: ScreenSelection?
 
+    /// The app's tooltips (``TooltipState``), when wired: told when the
+    /// pointer moves to another cell, which is what ends a tooltip held while
+    /// the status bar's own rows moved the page under a resting pointer.
+    weak var tooltipState: TooltipState?
+
     /// Per-frame handlers keyed by ``HitTestRegion/HandlerID``.
     ///
     /// `RenderLoop.beginRenderPass()` clears the table at the start of
@@ -1182,6 +1187,20 @@ extension MouseEventDispatcher {
         return (nil, observer)
     }
 
+    /// Whether the hover observer registered this frame as `id` is one a
+    /// pointer can reach: whether a pointer on the first cell of its region
+    /// would be heard by it, rather than by nothing (no such region: the view
+    /// is gone, or clipped away) or by something in front of it that takes
+    /// the hover (a sheet's backdrop, an open menu).
+    ///
+    /// For a tooltip held while the status bar's own rows moved the page
+    /// under a resting pointer (`TooltipState.held`): the pointer is not on
+    /// its view, so the hover machine reports nothing that happens to it.
+    package func reachesHoverObserver(_ id: HitTestRegion.HandlerID) -> Bool {
+        guard let region = regions.last(where: { $0.handlerID == id }) else { return false }
+        return resolveHover(at: region.offsetX, y: region.offsetY).observer?.handlerID == id
+    }
+
     /// The handler ids of every region containing the given (absolute)
     /// point, innermost-first. Drop targeting matches these against the
     /// frame's registered drop targets.
@@ -1287,12 +1306,19 @@ extension MouseEventDispatcher {
     /// transitions on its own, and the motion wants a render when either does.
     private func dispatchMotion(_ event: MouseEvent) -> Bool {
         let resolved = resolveHover(at: event.x, y: event.y)
+        // A report from the cell the pointer was already on moves nothing.
+        let movedCell = lastMotionPosition.map { $0.x != event.x || $0.y != event.y } ?? true
         // Real motion supersedes any reshape bookkeeping: `advancing` hands
         // each lane back with its pending exit dropped.
         lastMotionPosition = (event.x, event.y)
         var fired = false
         hover = advancing(hover, to: resolved.target, by: event, fired: &fired)
         observedHover = advancing(observedHover, to: resolved.observer, by: event, fired: &fired)
+        // After the lanes, whose `.entered` takes back a tooltip held through
+        // the status bar's reflow when the move lands on its view again
+        // (`TooltipState.held`); one the move left behind goes, and its
+        // going is the frame this motion asks for.
+        if movedCell, tooltipState?.notePointerMoved() == true { fired = true }
         return fired
     }
 

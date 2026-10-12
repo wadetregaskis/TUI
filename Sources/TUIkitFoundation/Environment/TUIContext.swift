@@ -452,6 +452,9 @@ package final class TUIContext: @unchecked Sendable {
         // dispatcher stamps the session with absolute cursor positions.
         self.dragAndDropSession.dispatcher = self.mouseEventDispatcher
         self.mouseEventDispatcher.dragAndDropSession = self.dragAndDropSession
+        // The pointer moving is what ends a tooltip held through the status
+        // bar's reflow (`TooltipState.held`).
+        self.mouseEventDispatcher.tooltipState = self.tooltipState
         self.preferences = PreferenceStorage()
         self.stateStorage = StateStorage()
         self.renderCache = RenderCache(valueHashPlans: .tuikit())
@@ -498,6 +501,8 @@ package final class TUIContext: @unchecked Sendable {
         // See init(): drop targeting hit-tests the dispatcher's regions.
         self.dragAndDropSession.dispatcher = self.mouseEventDispatcher
         self.mouseEventDispatcher.dragAndDropSession = self.dragAndDropSession
+        // See init(): the pointer moving ends a tooltip held through a reflow.
+        self.mouseEventDispatcher.tooltipState = self.tooltipState
         self.preferences = preferences
         self.stateStorage = stateStorage
         self.renderCache = renderCache

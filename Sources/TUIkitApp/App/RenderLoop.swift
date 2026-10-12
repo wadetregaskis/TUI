@@ -423,7 +423,7 @@ extension RenderLoop {
         // triggers all land between frames (a mouse event, a key press, the
         // scheduled wake for the hover delay), so the candidate is already known
         // and the bar can be sized for it in this pass rather than the next.
-        resolveStatusBarTooltip(
+        let tooltipMovedThePage = resolveStatusBarTooltip(
             terminalWidth: terminalWidth, nowNanos: frameNowNanos, scheduler: animationScheduler)
         publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
         invalidateCacheIfEnvironmentChanged(environment: environment)
@@ -442,8 +442,10 @@ extension RenderLoop {
         // Publish the frame's hit-test regions so the dispatcher can route
         // mouse events arriving between this frame and the next. They are in
         // the screen's coordinates, which are the pointer's: the chrome is
-        // drawn into the frame with the page, so nothing is translated.
-        tuiContext.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        // drawn into the frame with the page, so nothing is translated. A
+        // hover tooltip is held through a reshape the bar's rows for it
+        // caused (`RenderLoop+StatusBar.swift`).
+        publishHitTestRegions(buffer.hitTestRegions, tooltipMovedThePage: tooltipMovedThePage)
         // What the frame's geometry observers are owed, now it is drawn (`GeometryCoordinator`).
         tuiContext.mouseEventDispatcher.geometry.endFrame(frame: buffer, retainedBy: tuiContext.stateStorage)
 

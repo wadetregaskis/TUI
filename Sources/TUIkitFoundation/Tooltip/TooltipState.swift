@@ -19,7 +19,9 @@ import TUIkitCore
 /// ## Two slots, with different lifetimes
 ///
 /// A hover candidate is set by an `.entered` mouse event and survives until
-/// `.exited`, because the pointer stays where it is between frames. A focus
+/// `.exited`, because the pointer stays where it is between frames — or, when
+/// the page moved under the pointer because the status bar took a tooltip's
+/// rows, until the pointer itself moves (`held`). A focus
 /// candidate is republished by whichever view holds the focus on every walk of
 /// the scene, and is **dropped at the end of a frame whose last walk did not
 /// publish it again**, or as soon as the focus moves off the view that
@@ -92,6 +94,34 @@ public final class TooltipState: @unchecked Sendable {
     /// The pointer's candidate. Set on `.entered`, cleared on `.exited`.
     private(set) var hovered: Candidate?
 
+    /// A hover candidate kept through the status bar's own reflow, and shown
+    /// in preference to ``hovered``: the pointer has not moved, but the page
+    /// has, under it, because the bar took or gave back a tooltip's rows.
+    ///
+    /// The bar grows upwards for a status-bar tooltip, so a page laid out in
+    /// the middle of the window (as a `WindowGroup` lays out one that does
+    /// not fill it) moves with it, and the view under a resting pointer
+    /// slides out from under it. Taken as the pointer leaving, that took the
+    /// tooltip away, gave the row back, slid the view under the pointer again
+    /// and restarted its delay: help on screen for one frame in every delay,
+    /// or, once a walk's change to the bar asked for its frame, for one frame
+    /// and not again (decisions-HELP A-HELP-1). So the hover transitions such
+    /// a reshape makes (``beginReshape(movedByTooltip:)``) are not hover
+    /// changes to the tooltip: the candidate the exit would have dropped is
+    /// held here until the pointer moves and does not land on its view again
+    /// (``notePointerMoved()``), or until no pointer could rest on its view
+    /// any more (``endReshape(reaching:)``). ``hovered`` goes on recording
+    /// what the pointer is over, and is the candidate again once this goes.
+    private var held: Candidate?
+
+    /// Whether the reshape under way is the status bar's own reflow; see
+    /// ``held``.
+    private var reshapeIsTooltipReflow = false
+
+    /// The pointer's candidate as a frame shows it: the one ``held`` through
+    /// the bar's reflow, or else the one the pointer is over.
+    private var pointerCandidate: Candidate? { held ?? hovered }
+
     /// The focused view's candidate: the one the focused control last
     /// published. Kept across walks; see the type's discussion.
     private(set) var focused: Candidate?
@@ -162,6 +192,13 @@ public final class TooltipState: @unchecked Sendable {
         // boundary, and a region that was re-registered at a different id this
         // frame is still the same view under the pointer. Compared on the text
         // rather than the id for exactly that reason — ids are per-frame.
+        // The view held through the bar's reflow, under the pointer again, is
+        // the same candidate too, its delay already served (``held``).
+        if let held, held.text == text {
+            hovered = held
+            self.held = nil
+            return
+        }
         if let hovered, hovered.text == text { return }
         hovered = Candidate(
             text: text, handlerID: handlerID, sinceNanos: nowNanos,
@@ -175,9 +212,54 @@ public final class TooltipState: @unchecked Sendable {
     /// the child fires `.exited` for it while the pointer is still inside the
     /// container, and the container's own `.entered` may already have replaced
     /// the candidate.
+    ///
+    /// Moved out from under the pointer by the status bar's own rows, the
+    /// candidate is held rather than dropped (``held``).
     package func leaving(_ text: String) {
         guard hovered?.text == text else { return }
+        if reshapeIsTooltipReflow, held == nil { held = hovered }
         hovered = nil
+    }
+
+    // MARK: - A page moving under a resting pointer
+
+    /// Opens the frame's reshape: the dispatcher re-resolving the hover
+    /// against the frame's regions under a resting pointer
+    /// (`MouseEventDispatcher.setRegions`).
+    ///
+    /// - Parameter movedByTooltip: Whether this frame's status-bar tooltip
+    ///   changed the rows the bar takes from the page, so that the page may
+    ///   have moved under the pointer because of the tooltip (``held``).
+    package func beginReshape(movedByTooltip: Bool) {
+        reshapeIsTooltipReflow = movedByTooltip
+    }
+
+    /// Closes the frame's reshape, and lets go of a ``held`` candidate whose
+    /// view no pointer could rest on now: gone from the screen, or behind
+    /// something that takes the hover, such as a sheet's backdrop. The hover
+    /// machine reports neither for a view the pointer is not over.
+    ///
+    /// - Parameter reaching: Whether a pointer on the region a handler
+    ///   registered this frame would be heard by that handler
+    ///   (`MouseEventDispatcher.reachesHoverObserver`).
+    package func endReshape(reaching: (HitTestRegion.HandlerID) -> Bool) {
+        reshapeIsTooltipReflow = false
+        guard let held else { return }
+        if let id = held.handlerID, reaching(id) { return }
+        self.held = nil
+    }
+
+    /// Lets go of a ``held`` candidate: the pointer has moved to another
+    /// cell, and not onto the held view, or the hover machine's `.entered`
+    /// would have taken it back (``hovering(_:handlerID:nowNanos:style:delaySeconds:)``).
+    /// Called by the dispatcher once a move has run the hover machine.
+    ///
+    /// - Returns: Whether one was let go: the frame that takes it away is
+    ///   owed, and nothing else may ask for it.
+    package func notePointerMoved() -> Bool {
+        guard held != nil else { return false }
+        held = nil
+        return true
     }
 
     /// Records the focused view's help text for this walk.
@@ -267,11 +349,11 @@ public final class TooltipState: @unchecked Sendable {
     /// - Returns: The text, its source, the region to anchor a popover to, and
     ///   how to present it.
     package func resolved(nowNanos: Int64) -> Resolved? {
-        if let hovered {
-            guard nowNanos >= hovered.showAtNanos else { return nil }
+        if let pointer = pointerCandidate {
+            guard nowNanos >= pointer.showAtNanos else { return nil }
             return Resolved(
-                text: hovered.text, source: .hover, handlerID: hovered.handlerID,
-                style: hovered.style)
+                text: pointer.text, source: .hover, handlerID: pointer.handlerID,
+                style: pointer.style)
         }
         guard let focused, keyboardRevealed || focused.revealsItself else { return nil }
         // The help key IS the wait — a press has already taken longer than any
@@ -316,8 +398,8 @@ public final class TooltipState: @unchecked Sendable {
     /// matching ``resolved(nowNanos:)`` — the slot that would not be shown even
     /// once its own deadline passed is not worth waking for.
     package func pendingDeadlineNanos(nowNanos: Int64) -> Int64? {
-        if let hovered {
-            return hovered.showAtNanos > nowNanos ? hovered.showAtNanos : nil
+        if let pointer = pointerCandidate {
+            return pointer.showAtNanos > nowNanos ? pointer.showAtNanos : nil
         }
         guard let focused, focused.revealsItself, !keyboardRevealed,
             focused.showAtNanos > nowNanos
