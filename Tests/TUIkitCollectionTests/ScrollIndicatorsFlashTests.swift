@@ -35,14 +35,15 @@ struct ScrollIndicatorsFlashTests {
 
         init(style: ScrollIndicatorStyle) { self.style = style }
 
-        /// The frame's lines as drawn, escapes and all.
-        func render<V: View>(_ view: V, atNanos nanos: Int64) -> [String] {
+        /// The frame's lines as drawn, escapes and all — a frame of the run
+        /// loop, which can be followed by more (`canAnimate`), unless `oneOff`.
+        func render<V: View>(_ view: V, atNanos nanos: Int64, oneOff: Bool = false) -> [String] {
             var environment = EnvironmentValues()
             environment.focusManager = focusManager
             environment.scrollIndicatorStyle = style
             environment.verticalScrollIndicatorVisibility = .visible
             environment.applyRuntimeServices(from: tuiContext)
-            environment.frameNowNanos = nanos
+            environment.animationFrame = AnimationFrame(nowNanos: nanos, canAnimate: !oneOff)
             let context = RenderContext(
                 availableWidth: 24, availableHeight: 8,
                 environment: environment, tuiContext: tuiContext)
@@ -167,6 +168,19 @@ struct ScrollIndicatorsFlashTests {
                 !differs(
                     chrome.scrollIndicatorsFlash(trigger: 1), chrome, at: Self.start + 2_000 * Self.millisecond,
                     triggered, "\(style), changed"))
+        }
+    }
+
+    /// A render nothing follows — a snapshot — showed the flash's first step,
+    /// half lit, and never the rest (lane SCROLLB's review): changes snap
+    /// where `canAnimate` is false.
+    @Test("A one-off render draws no flash", arguments: Kind.allCases)
+    func oneOffRenderDrawsNoFlash(_ kind: Kind) {
+        for style in kind.styles {
+            let lit = Frames(style: style).render(
+                kind.view().scrollIndicatorsFlash(onAppear: true), atNanos: Self.start, oneOff: true)
+            let still = Frames(style: style).render(kind.view(), atNanos: Self.start, oneOff: true)
+            #expect(lit == still, "\(kind) \(style)")
         }
     }
 

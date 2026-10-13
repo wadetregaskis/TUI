@@ -85,7 +85,13 @@ package struct ScrollIndicatorFlash: Sendable {
             start = max(start ?? appeared, appeared)
         }
         guard let start else { return nil }
-        let elapsed = context.environment.frameNowNanos - start
+        // A render nothing follows on a timer — a snapshot, a frame dump —
+        // draws no flash: it showed the first step, half lit, and never the
+        // rest (`AnimationFrame.canAnimate`, whose rule is that changes snap
+        // there). One read for both halves, as `AnimatableResolution` reads it.
+        let frame = context.environment.animationFrame
+        guard frame.canAnimate else { return nil }
+        let elapsed = frame.nowNanos - start
         guard elapsed >= 0, elapsed < Self.stepNanos * Int64(Self.steps) else { return nil }
         let step = Int(elapsed / Self.stepNanos)
         context.requestWake(
