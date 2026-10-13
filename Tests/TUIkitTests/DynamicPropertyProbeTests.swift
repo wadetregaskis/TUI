@@ -45,6 +45,15 @@ private struct Square: Shape {
     var corners = (0, 0, 0, 0)
 }
 
+/// Two more shapes that are no property, so a field finds three in turn.
+private struct Disc: Shape {
+    var radius = 1
+}
+
+private struct Wedge: Shape {
+    var sides = (3, 4, 5)
+}
+
 /// Holds the token and nothing the walk acts on.
 private struct PlainHolder: View {
     let token: Token
@@ -272,6 +281,25 @@ struct DynamicPropertyProbeTests {
         _ = renderToBuffer(PlainHolder(token: token, counts: counts), context: context)
         // The first body of the type finds `Square` unknown and walks it.
         _ = renderToBuffer(ShapeHolder(token: token, shape: Square(), counts: counts), context: context)
+        _ = renderToBuffer(ShapeHolder(token: token, shape: Square(), counts: counts), context: context)
+        #expect(counts.retains["shape"] == counts.retains["plain"])
+    }
+
+    /// The types a field was found holding nothing in were kept two to a
+    /// plan, and a plan is kept per declared type, so every `any Shape`
+    /// field shares one: with three shapes in turn, each body found its
+    /// type evicted, and the view was copied and walked again (review of
+    /// 4388af345). A type found holding nothing anywhere is known to hold
+    /// nothing everywhere.
+    @Test("A view whose existential holds one of three types holding no property is evaluated as it is")
+    func existentialHoldingOneOfThreeIsNotCopied() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let token = Token()
+        let counts = Counts()
+        _ = renderToBuffer(PlainHolder(token: token, counts: counts), context: context)
+        for shape: any Shape in [Square(), Disc(), Wedge()] {
+            _ = renderToBuffer(ShapeHolder(token: token, shape: shape, counts: counts), context: context)
+        }
         _ = renderToBuffer(ShapeHolder(token: token, shape: Square(), counts: counts), context: context)
         #expect(counts.retains["shape"] == counts.retains["plain"])
     }

@@ -33,6 +33,9 @@ enum PropertyPlans {
     /// The plan of each class an object was found to be, as its exact type:
     /// an object plan for a property or modifier class, none for any other.
     private static let exactClasses = permanentTable([ObjectIdentifier: SlotPlan]())
+    /// Every type an existential or a plain class field was found holding
+    /// whose exact plan is none (``EmptyTypes``).
+    static let emptyTypes = permanentTable(Set<ObjectIdentifier>())
 
     /// The plan for a value of `type` evaluated as a body's root, or `nil` if
     /// no value of it holds anything the walk acts on: nearly every view,

@@ -208,7 +208,7 @@ final class ExistentialPlan {
     /// How the type's values are laid out.
     let layout: ExistentialLayout
     /// The dynamic types found in such a field holding nothing.
-    let empty = EmptyTypes()
+    let empty = EmptyTypes(everywhere: PropertyPlans.emptyTypes)
 
     init(type: Any.Type) {
         self.type = type
@@ -244,7 +244,7 @@ final class DynamicClassPlan {
     /// The declared class.
     let type: Any.Type
     /// The subclasses found in such a field that are not properties.
-    let empty = EmptyTypes()
+    let empty = EmptyTypes(everywhere: PropertyPlans.emptyTypes)
 
     init(type: Any.Type) {
         self.type = type

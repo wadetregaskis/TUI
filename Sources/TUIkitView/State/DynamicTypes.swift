@@ -107,30 +107,53 @@ enum DynamicTypes {
 
 /// Dynamic types a field was found holding that hold nothing the walk acts
 /// on, kept so the next body that finds one there reads no further: the last
-/// two, so a field alternating between two types re-plans neither.
+/// two found in this field, compared first, and every one found in any field,
+/// asked when neither is it.
+///
+/// A plan is kept per declared type, so every `Any` field shares one, and
+/// every `any Palette` field another: with three types in turn the last two
+/// kept missing, and each view holding one was copied and walked on every
+/// body (review of 4388af345, 2026-10-12). Whether a type holds nothing is
+/// the type's alone (``PropertyPlans/exact(_:)``), so one answer serves every
+/// field.
 ///
 /// Read by the probe that runs before a view is copied
-/// (``RootProbe/findsSomething(at:)``), so kept behind a pointer that is
+/// (``RootProbe/findsSomething(at:)``), so kept behind pointers that are
 /// never freed, as the plans holding it never are: a stored property of a
 /// class is checked for exclusive access at run time on every read.
 struct EmptyTypes {
     private let entries: UnsafeMutablePointer<UInt>
+    /// Every type found holding nothing, in any field
+    /// (``PropertyPlans/emptyTypes``).
+    private let everywhere: UnsafeMutablePointer<Set<ObjectIdentifier>>
 
-    init() {
+    init(everywhere: UnsafeMutablePointer<Set<ObjectIdentifier>>) {
         entries = .allocate(capacity: 2)
         entries.initialize(repeating: 0, count: 2)
+        self.everywhere = everywhere
     }
 
-    /// Whether `type` is one of the two last noted.
+    /// Whether `type` is known to hold nothing: one of the two last noted
+    /// here, or one noted in any field, which this field then notes.
     func contains(_ type: Any.Type) -> Bool {
         let bits = UInt(bitPattern: ObjectIdentifier(type))
-        return entries[0] == bits || entries[1] == bits
+        if entries[0] == bits || entries[1] == bits { return true }
+        guard everywhere.pointee.contains(ObjectIdentifier(type)) else { return false }
+        note(bits)
+        return true
     }
 
-    /// Notes `type`, dropping the older of the two.
+    /// Notes `type`, here and for every field.
     func insert(_ type: Any.Type) {
+        note(UInt(bitPattern: ObjectIdentifier(type)))
+        everywhere.pointee.insert(ObjectIdentifier(type))
+    }
+
+    /// Notes the type with identifier `bits` here, dropping the older of the
+    /// two.
+    private func note(_ bits: UInt) {
         entries[1] = entries[0]
-        entries[0] = UInt(bitPattern: ObjectIdentifier(type))
+        entries[0] = bits
     }
 }
 
