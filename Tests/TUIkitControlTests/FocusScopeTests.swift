@@ -169,6 +169,29 @@ struct FocusScopeTests {
             "the neighbour the focus went to was the manager's choice too: nobody had touched it")
     }
 
+    @Test("A wheel over the automatically focused control ends the choice, as a key does")
+    func wheelEndsTheAutomaticChoice() {
+        for scrolls in [false, true] {
+            let harness = InputChainHarness()
+            let log = Log()
+            log.show = false
+            let page = { ListPage(log: log) }
+            harness.frame(page())
+            harness.frame(page())
+            #expect(harness.focusManager.currentFocusedID == "list")
+            if scrolls {
+                #expect(harness.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 2, y: 1)), "the list took the wheel")
+                harness.frame(page())
+            }
+            log.show = true
+            harness.frame(page())
+            harness.frame(page())
+            #expect(
+                (harness.focusManager.currentFocusedID == "list") == scrolls,
+                scrolls ? "the list was being scrolled, so its focus was held" : "untouched, the list's focus was the manager's")
+        }
+    }
+
     @Test("resetFocus moves the focus back to the preferred control from inside the scope")
     func resetFromInside() {
         let harness = InputChainHarness()
@@ -244,5 +267,28 @@ private struct ScopedOnly: View {
                 .prefersDefaultFocus(in: scope)
         }
         .focusScope(scope)
+    }
+}
+
+/// A list holding the launch focus, and a scope with a preference below it.
+private struct ListPage: View {
+    @Namespace private var scope
+    let log: Log
+
+    var body: some View {
+        let scope = scope
+        return VStack {
+            List(0..<30, id: \.self) { index in Text("row \(index)") }
+                .focusID("list")
+                .frame(height: 4)
+            if log.show {
+                VStack {
+                    Button("first") { log.pressed.append("first") }
+                    Button("preferred") { log.pressed.append("preferred") }
+                        .prefersDefaultFocus(in: scope)
+                }
+                .focusScope(scope)
+            }
+        }
     }
 }

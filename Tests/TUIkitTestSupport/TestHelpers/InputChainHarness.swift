@@ -185,10 +185,11 @@ final class InputChainHarness {
     }
 
     /// Hands a mouse event, in terminal cells, to the dispatcher, and reports
-    /// whether it asked for a frame.
+    /// whether it asked for a frame — noting it with the focus manager, as the
+    /// app's funnel does.
     @discardableResult
     func mouse(_ event: MouseEvent) -> Bool {
-        tui.mouseEventDispatcher.dispatch(event)
+        tui.mouseEventDispatcher.dispatch(event, noting: focusManager)
     }
 
     /// Moves the pointer through `path` over the view `build` makes, with a

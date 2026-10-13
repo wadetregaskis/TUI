@@ -59,8 +59,8 @@ extension View {
     ///   presented, or later — the preferred control takes it, rather than the
     ///   first control on the screen or in the sheet. The focus manager's own
     ///   first-control choice does not count as holding it until something
-    ///   happens to it: the user moves the focus, clicks, or presses a key
-    ///   while it holds the focus, or the app or a
+    ///   happens to it: the user moves the focus, clicks or scrolls it, or
+    ///   presses a key while it holds the focus, or the app or a
     ///   `.defaultFocus(_:_:priority:)` puts the focus somewhere. A focus put
     ///   somewhere that way is left alone. Once applied, the preference is
     ///   spent until its scope leaves the screen and comes back.
@@ -176,8 +176,9 @@ final class FocusScopeRegistry {
     /// on another control, an app's write and `.defaultFocus` all go through),
     /// an explicit focus of this very control (`FocusManager.focus(_:)`, a
     /// click on it), or any key offered to it
-    /// (`FocusManager.noteInputToFocusedControl()`), so the focus never moves
-    /// from under someone typing.
+    /// (`FocusManager.noteInputToFocusedControl()`), or a press or wheel over it
+    /// that a handler took (`FocusManager.notePointerInput(_:consumed:regions:)`),
+    /// so the focus never moves from under someone typing or scrolling.
     var autoFocusedID: String?
 
     /// Starts a walk: this walk's declarations replace the last walk's.
@@ -244,11 +245,40 @@ extension FocusManager {
     }
 
     /// Input reached the focused control: a key offered to it, or taken by an
-    /// `onKeyPress` on its way there. From now on its focus counts as held,
-    /// even where the manager chose it, so a preference that comes due later
-    /// leaves it alone (B35).
+    /// `onKeyPress` on its way there, or a press or wheel over it that a
+    /// handler took (``notePointerInput(_:consumed:regions:)``). From now on
+    /// its focus counts as held, even where the manager chose it, so a
+    /// preference that comes due later leaves it alone (B35).
     package func noteInputToFocusedControl() {
         focusScopes.autoFocusedID = nil
+    }
+
+    /// A mouse press or wheel that a handler took, over the control the
+    /// manager focused by itself, is input that reached it, as a key offered to
+    /// it is (B35). A click on a control mostly focuses it, which ends the
+    /// choice already (``focus(_:)``); a wheel scrolls a list without asking
+    /// for the focus, so a scope that appeared later took the focus from under
+    /// someone scrolling.
+    ///
+    /// "Over" is any region at the pointer that carries the control's focus
+    /// id, whichever handler took the event — a row's button inside an
+    /// automatically focused list is input to the list too. Only a press and a
+    /// wheel: hovering is not input, and the rest of a held gesture follows a
+    /// press that already was. A click elsewhere that moves no focus leaves the
+    /// choice the manager's.
+    ///
+    /// - Parameters:
+    ///   - event: The event, in the screen's coordinates, as dispatched.
+    ///   - consumed: Whether a handler took it.
+    ///   - dispatcher: The dispatcher it went through, holding the last
+    ///     frame's regions.
+    package func notePointerInput(_ event: MouseEvent, consumed: Bool, regions dispatcher: MouseEventDispatcher) {
+        guard consumed, event.phase == .pressed || event.phase == .scrolled,
+            let chosen = focusScopes.autoFocusedID,
+            dispatcher.matchingRegions(at: event.x, y: event.y, includingWheelOnly: true)
+                .contains(where: { $0.focusID == chosen })
+        else { return }
+        noteInputToFocusedControl()
     }
 
     /// Reevaluates default focus in `namespace`'s scope — see
@@ -455,3 +485,19 @@ extension _PrefersDefaultFocusModifier: SingleContentWrapper {
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _FocusScopeModifier: DrawsContentUnchanged {}
 extension _PrefersDefaultFocusModifier: DrawsContentUnchanged {}
+
+extension MouseEventDispatcher {
+    /// ``dispatch(_:)``, then ``FocusManager/notePointerInput(_:consumed:regions:)``:
+    /// the app's mouse funnel in one call, so an event that reached the
+    /// control the manager focused by itself ends that choice's standing (B35).
+    ///
+    /// - Parameters:
+    ///   - event: The event, in the screen's coordinates.
+    ///   - focusManager: The manager whose automatic choice it may end.
+    /// - Returns: Whether a handler consumed it.
+    package func dispatch(_ event: MouseEvent, noting focusManager: FocusManager) -> Bool {
+        let consumed = dispatch(event)
+        focusManager.notePointerInput(event, consumed: consumed, regions: self)
+        return consumed
+    }
+}

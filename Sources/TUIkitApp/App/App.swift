@@ -889,7 +889,7 @@ extension AppRunner {
                 // In the screen's coordinates, which are the frame's: the
                 // chrome is drawn into the frame with the page, so nothing
                 // needs translating.
-                if tuiContext.mouseEventDispatcher.dispatch(mouseEvent) {
+                if tuiContext.mouseEventDispatcher.dispatch(mouseEvent, noting: focusManager) {
                     appState.setNeedsRender()
                 }
 

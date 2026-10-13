@@ -160,7 +160,7 @@ package final class HeadlessApp<A: App> {
     @discardableResult
     package func send(_ event: MouseEvent) -> Bool {
         focusManager.noteInputSource(.pointer)
-        return tuiContext.mouseEventDispatcher.dispatch(event)
+        return tuiContext.mouseEventDispatcher.dispatch(event, noting: focusManager)
     }
 
     /// Changes the terminal's size, as `SIGWINCH` reports it: the next frame

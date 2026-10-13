@@ -621,8 +621,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   measurable offscreen).
 - **TUIkit:** a screen or a newly presented sheet focuses its first control by
   itself. That automatic choice does not count as a view having the focus
-  until something happens to it: the user moves the focus, clicks, or presses
-  a key while it holds the focus, or the app or `.defaultFocus` moves it. Until
+  until something happens to it: the user moves the focus, clicks or scrolls
+  it, or presses a key while it holds the focus, or the app or `.defaultFocus`
+  moves it. Until
   then a preferred default takes over from it, on whichever frame its scope
   appears (pinned by `takesTheUntouchedAutomaticFocus`, `doesNotSteal` and
   `declinedKeyEndsTheAutomaticChoice`). A focus the user, an `@FocusState`

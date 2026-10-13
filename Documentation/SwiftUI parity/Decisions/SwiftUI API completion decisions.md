@@ -1701,7 +1701,8 @@ appears while the focus is still the automatic pick.
 **Shipped 2026-10-13 (BITEMS1):** the mark lasts across frames. It ends when
 the focus moves off the chosen control by any path, when anything focuses
 that control explicitly (a click on it), and when a key is offered to it —
-taken or not, or taken by an `onKeyPress` on its way there. The first-control
+taken or not, or taken by an `onKeyPress` on its way there — or a press or a
+wheel over it is taken (`wheelEndsTheAutomaticChoice`). The first-control
 fallback at the end of a pass is the manager's choice too, as is the
 neighbour an untouched choice falls back to when it leaves, at a pass's end
 or unregistered by the app (`unregisterKeepsTheChoiceAutomatic`); a
