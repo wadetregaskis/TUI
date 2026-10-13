@@ -233,9 +233,12 @@ public final class StateStorage: @unchecked Sendable {
 
     /// The hub of each object a render walk has reached in a property field
     /// (``ObjectHub``), by object: each holds its object weakly, so a new
-    /// object at a freed one's address is not taken for it. Swept of dead
-    /// objects' hubs at the end of a pass once it has doubled since the last
-    /// sweep (``objectHubsAfterSweep``).
+    /// object at a freed one's address is not taken for it — its hub takes
+    /// that entry, and the dead object's hub goes. Swept of dead objects'
+    /// hubs at the end of a pass once it has doubled since the last sweep
+    /// (``objectHubsAfterSweep``): until then, a dead object's hub waits for
+    /// one of the two, and an app whose new objects keep landing at the
+    /// addresses of a few freed ones may not sweep for a long time.
     var objectHubs: [ObjectIdentifier: ObjectHub] = [:]
 
     /// How many hubs the last sweep of ``objectHubs`` kept.

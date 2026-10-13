@@ -128,12 +128,20 @@ is the new one's.
 **Price:** on the per-value path alone, per `@State` of an object taking its
 place's box while the last one is alive (a `Button`'s action keeps it so), a
 box made and a dictionary entry on the old object's hub, which go with that
-hub once the object has gone and the hub table is swept; nothing for an app
-holding no object made in a pass. The box is kept with no sink until a walk
-takes it back: sunk to the hub that keeps it, the two kept each other, and
-every such pass leaked a hub and its boxes (review2 of lane DYNVCLAIM,
-d29a46eaf). One left to an object walked earlier in the same pass, which has
-a box of its own by then, is never taken, and stays until the object goes.
+hub once the object has gone and either the hub table is swept or an object
+made at the gone one's address takes its entry; nothing for an app holding no
+object made in a pass. The sweep waits for the table to double, and in the
+common form the allocator hands the new objects a few freed addresses round,
+so the table holds a handful of hubs and is not swept: a gone object's hub
+waits for its address to be given again, which may never come (the loop of
+`perValueObjectsHubGoesAfterTheNextOneTookItsPlace`, unpinned: its first hub
+stayed in 12 runs of 20, its object gone, held by its entry alone). Bounded:
+after a pass, the table holds at most 64 hubs past twice what the last sweep
+kept. The box is kept with no sink until a walk takes it back: sunk to the
+hub that keeps it, the two kept each other, and every such pass leaked a hub
+and its boxes (review2 of lane DYNVCLAIM, d29a46eaf). One left to an object
+walked earlier in the same pass, which has a box of its own by then, is never
+taken, and stays until the object goes.
 
 **The fuller version:** none without losing §4.11's common form. Taking a
 place's state only from a predecessor that has died tells the two apart only
