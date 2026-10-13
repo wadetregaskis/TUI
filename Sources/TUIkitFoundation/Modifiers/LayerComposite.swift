@@ -37,11 +37,10 @@ private enum LayerPlacement {
     case alone(FrameBuffer)
     /// The layer has nothing at all in it: the base is unchanged.
     case baseOnly
-    /// The layer, rendered, and its offset in the base's frame — and what of
-    /// it a guide put past the base's frame, drawn there
-    /// (`FrameBuffer.splitPlacing(at:inWidth:height:)`), in the base's
-    /// coordinates.
-    case placed(FrameBuffer, at: (x: Int, y: Int), overflow: [OverlayLayer])
+    /// The layer, rendered, and its offset in the base's frame. What of it a
+    /// guide put past the base's frame rides among its floating layers, drawn
+    /// there (`OverflowingPlacement.insideCarryingOverflow`).
+    case placed(FrameBuffer, at: (x: Int, y: Int))
 }
 
 /// `layer` rendered in `baseBuffer`'s frame and placed in it by `alignment` —
@@ -140,10 +139,10 @@ private func placeLayer<Layer: View>(
                 ? max(baseBuffer.height, position.y + overlaySize.height) : baseBuffer.height)
         if !overlayBuffer.fits(at: position, inWidth: region.width, height: region.height) {
             let placement = overlayBuffer.splitPlacing(at: position, inWidth: region.width, height: region.height)
-            return .placed(placement.inside, at: placement.insideOrigin, overflow: placement.overflow)
+            return .placed(placement.insideCarryingOverflow, at: placement.insideOrigin)
         }
     }
-    return .placed(overlayBuffer, at: position, overflow: [])
+    return .placed(overlayBuffer, at: position)
 }
 
 /// `composite` cut back to `baseBuffer`'s box.
@@ -194,11 +193,11 @@ func compositeLayer<Layer: View>(
     _ layer: Layer, over baseBuffer: FrameBuffer, alignment: Alignment,
     context: RenderContext, modifierType: Any.Type
 ) -> FrameBuffer {
-    let (overlayBuffer, offset, overflow): (FrameBuffer, (x: Int, y: Int), [OverlayLayer])
+    let (overlayBuffer, offset): (FrameBuffer, (x: Int, y: Int))
     switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
     case .alone(let buffer): return buffer
     case .baseOnly: return baseBuffer
-    case .placed(let buffer, let at, let past): (overlayBuffer, offset, overflow) = (buffer, at, past)
+    case .placed(let buffer, let at): (overlayBuffer, offset) = (buffer, at)
     }
 
     // Composite the overlay onto the base, asking for a render at each step of a
@@ -210,13 +209,12 @@ func compositeLayer<Layer: View>(
             token: layerWakeToken("overlay-base-run", context: context, modifierType: modifierType),
             forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
     }
-    var composite = clampedToBase(
+    // What the layer draws past the base's frame rides among its floating
+    // layers, lifted after the base's: over whatever the base floats past it.
+    return clampedToBase(
         baseBuffer.compositedCarryingClaimsOverNothing(
             with: overlayBuffer, at: offset, palette: context.environment.palette),
         baseBuffer)
-    // Drawn after the base, so over whatever the base floats past its frame.
-    if !overflow.isEmpty { composite.overlays.append(contentsOf: overflow) }
-    return composite
 }
 
 /// `layer` laid out in `baseBuffer`'s frame, by `alignment`, with the base
@@ -241,11 +239,11 @@ func compositeLayer<Layer: View>(
     _ layer: Layer, under baseBuffer: FrameBuffer, alignment: Alignment,
     context: RenderContext, modifierType: Any.Type
 ) -> FrameBuffer {
-    let (layerBuffer, offset, overflow): (FrameBuffer, (x: Int, y: Int), [OverlayLayer])
+    let (layerBuffer, offset): (FrameBuffer, (x: Int, y: Int))
     switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
     case .alone(let buffer): return buffer
     case .baseOnly: return baseBuffer
-    case .placed(let buffer, let at, let past): (layerBuffer, offset, overflow) = (buffer, at, past)
+    case .placed(let buffer, let at): (layerBuffer, offset) = (buffer, at)
     }
 
     // `_ZStackCore`'s sequence for two children: a blank canvas the base's
@@ -254,9 +252,10 @@ func compositeLayer<Layer: View>(
     // shows and whose frames turn it.
     let palette = context.environment.palette
     var result = FrameBuffer(emptyWithWidth: baseBuffer.width, height: baseBuffer.height)
+    // What the layer draws past the base's frame rides among its floating
+    // layers, lifted before the base's: under whatever the base floats past
+    // it, and cut under the base's cells as the base lands.
     result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, palette: palette)
-    // Before the base, so under whatever the base floats past its frame.
-    if !overflow.isEmpty { result.overlays.append(contentsOf: overflow) }
     let showingThrough = result.runsShowingThrough(baseBuffer, at: (x: 0, y: 0))
     if !showingThrough.isEmpty {
         context.requestWake(

@@ -103,7 +103,7 @@ extension FrameBuffer {
                 .placedHorizontally(inWidth: width, offset: min(offset, width))
         }
         let placement = splitPlacing(at: (x: offset, y: 0), inWidth: width, height: height)
-        var inside = placement.inside
+        var inside = placement.insideCarryingOverflow
         if offset >= width {
             // Wholly past the edge: its rows still stand in the column, blank.
             var blank = FrameBuffer(emptyWithWidth: 0, height: height)
@@ -111,12 +111,11 @@ extension FrameBuffer {
             blank.overlays = inside.overlays
             inside = blank
         }
-        var placed = inside.placedHorizontally(inWidth: width, offset: placement.insideOrigin.x)
+        let placed = inside.placedHorizontally(inWidth: width, offset: placement.insideOrigin.x)
         // A column stacks its rows by their heights; a cut that lost a row
         // would pull the rows after it up. Such a row keeps the cut it always
         // had.
         guard placed.height == height else { return placedHorizontally(inWidth: width, offset: offset) }
-        placed.overlays.append(contentsOf: placement.overflow)
         return placed
     }
 }

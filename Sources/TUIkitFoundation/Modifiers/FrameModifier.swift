@@ -392,11 +392,9 @@ extension FlexibleFrameView: Renderable {
         let placement = source.splitPlacing(
             at: position, inWidth: horizontalGuide == nil ? max(targetWidth, source.width) : targetWidth,
             height: region.height)
-        var framed = placeBuffer(
-            placement.inside, toWidth: targetWidth, height: targetHeight,
+        return placeBuffer(
+            placement.insideCarryingOverflow, toWidth: targetWidth, height: targetHeight,
             guideOffset: placement.insideOrigin.x, verticalOffset: placement.insideOrigin.y)
-        framed.overlays.append(contentsOf: placement.overflow)
-        return framed
     }
 
     /// `buffer` placed in a `targetWidth` × `targetHeight` frame `verticalOffset`

@@ -178,6 +178,44 @@ struct PlacementOverflowTests {
         #expect(column(guide: 0) == ["aaaa", "x", "bbbb"])
     }
 
+    @Test("What a view floats is drawn over the part of it past its region, as over the part inside")
+    func ownFloatingLayersOverItsOverflow() {
+        // Each placed view carries an `.offset` mark over its second cell,
+        // which the placement draws past the region. The mark is the view's
+        // own, drawn over the view's cells wherever they land, as SwiftUI
+        // draws a view's offset content over the view; drawn under its
+        // overflow, the mark vanished.
+        func marked(_ text: String) -> some View {
+            Text(text).overlay(alignment: .leading) { Text("Z").offset(x: 1) }
+        }
+        let screen = Screen(width: 30, height: 4)
+        // A frame: rrrr is three cells left of its frame, over bbbb.
+        var lines = screen.render(
+            HStack(spacing: 0) {
+                Text("bbbb")
+                marked("rrrr").alignmentGuide(.leading) { _ in 3 }.frame(width: 4, alignment: .leading)
+            })
+        #expect(lines.first == "brZrr", "\(lines)")
+        // An overlay: the badge a row above the label and a column right.
+        lines = screen.render(
+            Text("Inbox")
+                .overlay(alignment: .topTrailing) {
+                    marked("3x").alignmentGuide(.top) { _ in 1 }.alignmentGuide(.trailing) { _ in 0 }
+                }
+                .padding(1))
+        #expect(lines.first == "      3Z", "\(lines)")
+        // A column's overhang (decisions B-GUIDE-1): GGG past the column.
+        lines = screen.render(
+            VStack(alignment: .trailing, spacing: 0) {
+                marked("GGG").alignmentGuide(.trailing) { _ in 0 }
+                Text("SSSSSS")
+                Text("f").frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(width: 20)
+            .padding(.trailing, 10))
+        #expect(lines.first == String(repeating: " ", count: 20) + "GZG", "\(lines)")
+    }
+
     @Test("Only the cells it paints are drawn past the region; its blanks erase nothing")
     func blanksEraseNothing() {
         let screen = Screen()

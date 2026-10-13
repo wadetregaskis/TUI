@@ -286,6 +286,24 @@ package struct OverflowingPlacement {
     /// under what comes after it, with their hit regions, runs and opacity
     /// regions travelling with them.
     package var overflow: [OverlayLayer]
+
+    /// ``inside`` carrying ``overflow`` among its floating layers, in its own
+    /// coordinates, so the overflow lands where it was drawn wherever the
+    /// caller places ``inside`` (at ``insideOrigin``).
+    ///
+    /// Ahead of the view's own floating layers, which draw over it: the
+    /// overflow is the view's cells, and what the view floats — an `.offset`
+    /// decoration, a deeper view's overflow — is drawn over its cells, past
+    /// the region as in it. Appended after them, a badge's own `.offset`
+    /// mark vanished under the badge's overflow, both at the same level and
+    /// z index.
+    package var insideCarryingOverflow: FrameBuffer {
+        guard !overflow.isEmpty else { return inside }
+        var carrier = inside
+        carrier.overlays =
+            overflow.map { $0.shifted(byX: -insideOrigin.x, y: -insideOrigin.y) } + inside.overlays
+        return carrier
+    }
 }
 
 extension FrameBuffer {

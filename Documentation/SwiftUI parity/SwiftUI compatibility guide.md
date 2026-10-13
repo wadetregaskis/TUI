@@ -889,7 +889,8 @@ mechanism, generalised (decisions-GUIDE B-GUIDE-3, 2026-10-12): a single child
 that its explicit guide places outside its `.frame`, `.overlay` or
 `.background` draws the part the region holds in it and the rest as overflow
 layers, marked and cut under later content exactly as a scroll view's are,
-with the hit regions of the cells they draw; so does a `.move` or `.offset`
+with the hit regions of the cells they draw, and under what the view itself
+floats (an `.offset` mark on it); so does a `.move` or `.offset`
 transition's overshoot (below). Nothing that fits its region pays anything:
 the placement asks whether the view fits (four comparisons) before it splits
 anything. What clips still clips: a `ScrollView` cuts these layers at its

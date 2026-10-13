@@ -54,7 +54,7 @@ extension FrameBuffer {
                 .placedVertically(inHeight: height, topPadding: min(topPadding, height))
         }
         let placement = splitPlacing(at: (x: 0, y: topPadding), inWidth: width, height: height)
-        var inside = placement.inside
+        var inside = placement.insideCarryingOverflow
         if topPadding >= height {
             // Wholly past the edge: its column still stands in the row, blank.
             var blank = FrameBuffer(emptyWithWidth: width, height: 0)
@@ -62,13 +62,12 @@ extension FrameBuffer {
             blank.overlays = inside.overlays
             inside = blank
         }
-        var placed = inside.placedVertically(inHeight: height, topPadding: placement.insideOrigin.y)
+        let placed = inside.placedVertically(inHeight: height, topPadding: placement.insideOrigin.y)
         // A row lays its columns out by their widths, and a cut keeps only the
         // width its lines draw: a column that declares more than it draws (a
         // footprint) would narrow and pull the columns after it left. Such a
         // column keeps the cut it always had.
         guard placed.width == width else { return placedVertically(inHeight: height, topPadding: topPadding) }
-        placed.overlays.append(contentsOf: placement.overflow)
         return placed
     }
 }
