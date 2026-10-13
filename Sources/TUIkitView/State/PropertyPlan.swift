@@ -62,10 +62,10 @@ package final class SlotPlan {
     let isModifier: Bool
 
     /// For a view whose every field the walk acts on only if its value says
-    /// so — an existential, a plain class, or an optional of either — what is
-    /// read of each
-    /// field before the view is copied: if none finds anything, `body` is
-    /// evaluated on the view as it is (``preparedBody(of:plan:context:isMeasuring:)``).
+    /// so — an existential, a plain class held strongly or `unowned`, or an
+    /// optional of either — what is read of each field before the view is
+    /// copied: if none finds anything, `body` is evaluated on the view as it
+    /// is (``preparedBody(of:plan:context:isMeasuring:)``).
     let probes: [RootProbe]?
 
     init(
@@ -158,19 +158,30 @@ final class FieldsPlan {
     }
 }
 
-/// A field held `weak` or `unowned` whose declared type is a property class:
-/// loaded through the runtime's own reflection entry point, which knows how
-/// each ownership is stored (``PropertyPlans/loadReference(of:index:in:)``).
+/// A field held `weak` or `unowned` whose declared type is a class: loaded
+/// through the runtime's own reflection entry point, which knows how each
+/// ownership is stored (``PropertyPlans/loadReference(_:at:)``).
 struct ReferenceField {
     /// The struct, or class, that declares the field, and its index among
     /// that type's own fields.
     let owner: Any.Type
     let index: Int
+    /// The field's declared class: an optional's wrapped one.
+    let declared: Any.Type
     /// Whether it is held `weak` (or `unowned` as an optional): never
     /// updated, as SwiftUI updates none (measured, DYNP case 4).
     let isOptional: Bool
-    /// The plan for the object it holds.
-    let object: ObjectPlan
+    /// The plan for the object it holds, when the declared class is a
+    /// property or a modifier; `nil` for a plain class, whose object is
+    /// planned by its own class (the step's ``SlotPlan/Action/dynamicClass(_:)``).
+    let object: ObjectPlan?
+    /// Whether the field holds the object's own address, so its class can be
+    /// read there before it is loaded: an `unowned` reference to a native
+    /// Swift object, whose memory its unowned count keeps while the field
+    /// holds it, alive or not. Only for a plain class: an object of a class
+    /// that is not a property is then never loaded, which traps if it has
+    /// gone (DYNV bug 9).
+    let readsClassInPlace: Bool
 }
 
 /// An optional of something the walk acts on.
@@ -223,11 +234,11 @@ final class EnumPlan {
     }
 }
 
-/// A field held strongly whose declared type is a class that is not a
-/// property: the object in it may be of a subclass that is one, so its class
-/// is read each body, where the reference lies (``DynamicTypes``). The
-/// declared class, the usual case, and a class noted as holding nothing, cost
-/// a compare.
+/// A field whose declared type is a class that is not a property: the object
+/// in it may be of a subclass that is one, so its class is read each body,
+/// where the reference lies (``DynamicTypes``) — or, for one held `weak`,
+/// from the object loaded. The declared class, the usual case, and a class
+/// noted as holding nothing, cost a compare.
 @MainActor
 final class DynamicClassPlan {
     /// The declared class.

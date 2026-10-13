@@ -83,7 +83,17 @@ enum PropertyPlans {
     private static func rootProbes(_ fields: FieldsPlan) -> [RootProbe]? {
         var probes: [RootProbe] = []
         for step in fields.steps {
-            guard step.reference == nil, !step.appliesModifier else { return nil }
+            guard !step.appliesModifier else { return nil }
+            if let reference = step.reference {
+                // A plain class held `unowned`: its class is read where it
+                // lies, as a strong one's is. Any other is loaded.
+                guard reference.readsClassInPlace, case .dynamicClass(let plan) = step.slot.action else { return nil }
+                probes.append(
+                    RootProbe(
+                        offset: step.offset, kind: .object(declared: UInt(bitPattern: ObjectIdentifier(plan.type))),
+                        empty: plan.empty))
+                continue
+            }
             var slot = step.slot
             if case .optional(let optional) = slot.action { slot = optional.wrapped }
             switch slot.action {
@@ -177,7 +187,8 @@ enum PropertyPlans {
                 // property, which SwiftUI never looks for (measured, session
                 // notes DYNV/probe/dv2-main.out, `subclass`) and TUIkit did,
                 // the owner kept (decisions-DYNVFIX B-DYNVFIX-1). Not a
-                // Core Foundation class, which nothing subclasses.
+                // Core Foundation class, which nothing subclasses. One held
+                // `weak` or `unowned` is planned by `plainReferenceStep`.
                 return kind == .foreignClass ? .none : .dynamicClass(DynamicClassPlan(type: type))
             }
             return .object(ObjectPlan(type: type, updater: appPropertyType(type)))
@@ -204,8 +215,9 @@ enum PropertyPlans {
 
     /// The step for one field at `position`, or `nil` if the walk does
     /// nothing with it. A field held `weak` or `unowned` is loaded only if its
-    /// declared type is a property class; any other is never read, which
-    /// matters for one whose object has gone.
+    /// declared type is a property class, or a plain class whose object is of
+    /// a subclass that is one; any other is never read, which matters for one
+    /// whose object has gone.
     private static func step(
         for field: RuntimeFields.Field, position: Int, owner: Any.Type, ownIndex: Int
     ) -> FieldsPlan.Step? {
@@ -219,12 +231,81 @@ enum PropertyPlans {
         if isOptional, let optional = declared as? any OptionalPropertyHolder.Type {
             declared = optional.wrappedType
         }
-        guard RuntimeFields.Kind(of: declared).isClass, isContainerType(declared) else { return nil }
+        guard RuntimeFields.Kind(of: declared).isClass, isContainerType(declared) else {
+            return plainReferenceStep(
+                for: field, declared: declared, isOptional: isOptional, position: position, owner: owner,
+                ownIndex: ownIndex)
+        }
         let object = ObjectPlan(type: declared, updater: isOptional ? nil : appPropertyType(declared))
         return FieldsPlan.Step(
             offset: field.offset, position: position,
             slot: SlotPlan(.object(object), isModifier: declared is any ViewModifier.Type),
-            reference: ReferenceField(owner: owner, index: ownIndex, isOptional: isOptional, object: object))
+            reference: ReferenceField(
+                owner: owner, index: ownIndex, declared: declared, isOptional: isOptional, object: object,
+                readsClassInPlace: false))
+    }
+
+    /// The step for a field held `weak` or `unowned` whose declared type,
+    /// `declared`, is a plain class, or held `weak` as a class-bound
+    /// existential: its object may be of a class that is a property, which
+    /// SwiftUI never looks for and TUIkit's walks found (decisions-DYNVFIX
+    /// B-DYNVFIX-1). The field's ownership is read from its mangled type name
+    /// (``FieldDescriptors``), which the field metadata gives only as "not
+    /// strong":
+    ///
+    /// - `weak`: loaded each body, `nil` once its object has gone.
+    /// - `unowned`, of a native Swift class: its object's class read where
+    ///   the reference lies, and the object loaded only if that class is a
+    ///   property — so one of any other class, dead or alive, is never loaded
+    ///   (DYNV bug 9), and one of a property class traps if it has gone, as a
+    ///   dead `unowned` property does (decided, as for a field declared as a
+    ///   property class).
+    /// - `unowned` of a class with an Objective-C ancestor: never loaded. Where
+    ///   Objective-C interoperates, such a reference is kept as one of its weak
+    ///   references, which only the runtime reads, and the runtime traps on
+    ///   one whose object has gone.
+    /// - `unowned` of an existential: never loaded, as on Apple platforms
+    ///   it is kept the same way whenever its object could be an
+    ///   Objective-C one.
+    /// - `unowned(unsafe)`, or an ownership that cannot be read: never
+    ///   loaded. Nothing keeps the object's memory, so nothing of it can be
+    ///   read safely.
+    private static func plainReferenceStep(
+        for field: RuntimeFields.Field, declared: Any.Type, isOptional: Bool, position: Int, owner: Any.Type,
+        ownIndex: Int
+    ) -> FieldsPlan.Step? {
+        // Not an Objective-C class or a Core Foundation one, which no Swift
+        // subclass that is a property is declared as.
+        let isClass = RuntimeFields.Kind(of: declared) == .class
+        guard isClass || ExistentialLayout(declared) == .object else { return nil }
+        let readsClassInPlace: Bool
+        switch FieldDescriptors.ownership(ofField: ownIndex, named: field.name, in: owner) {
+        case .weak:
+            readsClassInPlace = false
+        case .unowned where isClass && isNativeClass(declared):
+            readsClassInPlace = true
+        default:
+            return nil
+        }
+        return FieldsPlan.Step(
+            offset: field.offset, position: position, slot: SlotPlan(.dynamicClass(DynamicClassPlan(type: declared))),
+            reference: ReferenceField(
+                owner: owner, index: ownIndex, declared: declared, isOptional: isOptional, object: nil,
+                readsClassInPlace: readsClassInPlace))
+    }
+
+    /// Whether every object of class `type`, a subclass's included, is a
+    /// native Swift object: no class it descends from is an Objective-C
+    /// class, which Swift reaches through a wrapper of another kind.
+    private static func isNativeClass(_ type: Any.Type) -> Bool {
+        #if _runtime(_ObjC)
+            var next: AnyClass? = type as? AnyClass
+            while let current = next {
+                guard RuntimeFields.Kind(of: current) == .class else { return false }
+                next = _getSuperclass(current)
+            }
+        #endif
+        return true
     }
 
     /// The fields of `type`, a class, the walk acts on — its superclasses'
@@ -272,16 +353,15 @@ enum PropertyPlans {
     private static func loadReference<Owner>(
         _ reference: ReferenceField, at base: UnsafeMutableRawPointer, in _: Owner.Type
     ) -> AnyObject? {
-        let value = RuntimeChildren.child(
-            of: base.assumingMemoryBound(to: Owner.self).pointee, as: Owner.self, at: reference.index
-        ).value
-        return object(value, as: reference.object.type)
+        let value = RuntimeChildren.value(
+            of: base.assumingMemoryBound(to: Owner.self).pointee, as: Owner.self, at: reference.index)
+        return object(value, as: reference.declared)
     }
 
     /// The object held in the field `reference` names, in `object`.
     static func loadReference(_ reference: ReferenceField, in object: AnyObject) -> AnyObject? {
-        let value = RuntimeChildren.child(of: object, as: reference.owner, at: reference.index).value
-        return self.object(value, as: reference.object.type)
+        let value = RuntimeChildren.value(of: object, as: reference.owner, at: reference.index)
+        return self.object(value, as: reference.declared)
     }
 
     /// `value`, a field's contents the runtime copied out, as an instance of

@@ -115,8 +115,9 @@ open, the plan names the field and each body the value says what is there:
   that type's plan;
 - an enum (a view that is one, or a property or modifier): its current case,
   each body;
-- a plain class held strongly: its object's class, read each body, for a
-  subclass that is a property (decisions-DYNVFIX B-DYNVFIX-1).
+- a plain class, held strongly, `weak` or `unowned`: its object's class,
+  read each body, for a subclass that is a property (decisions-DYNVFIX
+  B-DYNVFIX-1).
 
 Nothing depends on the first value drawn.
 

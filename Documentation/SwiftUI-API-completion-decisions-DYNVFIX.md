@@ -18,7 +18,7 @@ the main decisions file:*
 
 ## B. Shipped the safe option
 
-### B-DYNVFIX-1. A property subclass behind a plain class field is reached through its object's class each body; not one held `weak` or `unowned`
+### B-DYNVFIX-1. A property subclass behind a plain class field is reached through its object's class each body, held strongly, weak or unowned
 
 *`DynamicProperty`*
 
@@ -32,31 +32,63 @@ whether the property was ever updated depended on the first value drawn
 the subclass, updated).
 
 **Shipped:** TUIkit keeps the reach (the owner's ruling: keep what TUIkit
-supports). Each body, a field held strongly whose declared type is a plain
-class has its object's class read where the reference lies; an object of a
-subclass that is a property is walked as any class property is
-(B-DYNVFIX-3) — its `@State` bound, its `@Environment` resolved, its
-`update()` run — whatever the field held first. An `@Environment(Model.self)`
-in such a subclass, which traps when read unresolved, reads the model. A
-class found not to be a property is noted in the field's plan, so the next
-body that finds it there reads no further. A Core Foundation class is not
-looked into: nothing subclasses one.
+supports). Each body, a field whose declared type is a plain class has its
+object's class read; an object of a subclass that is a property is walked as
+any class property is (B-DYNVFIX-3) — its `@State` bound, its `@Environment`
+resolved, its `update()` run — whatever the field held first. An
+`@Environment(Model.self)` in such a subclass, which traps when read
+unresolved, reads the model. A class found not to be a property is noted in
+the field's plan, so the next body that finds it there reads no further. A
+Core Foundation or Objective-C class is not looked into: no Swift subclass of
+it is declared there.
 
-**Not kept: a field held `weak` or `unowned`.** Loading an `unowned` one whose
-object has gone traps — the reason a field that cannot hold a property is
-never read (DYNV bug 9) — and the field metadata says of a field only that it
-is not strong, so a `weak` one cannot be told from an optional `unowned` one
-without parsing the field's mangled type. The fuller version reads the
-ownership from the mangled name (its last two characters, `Xw` for `weak`,
-after skipping its symbolic references) and loads `weak` fields; its price is
-that parsing, once per type, and a reflection call per such field per body.
+How the field holds the object decides how its class is read. The field
+metadata says of a field only whether it is strong, so the ownership is read
+from the field's mangled type name in its field descriptor, once per type
+(`Xw` for `weak`, `Xo` for `unowned`, `Xu` for `unowned(unsafe)`;
+[FieldDescriptors.swift](../Sources/TUIkitView/Rendering/FieldDescriptors.swift)):
 
-**The price** of what is kept: per body, per such field, a load of the
-reference and of its class and a compare, in every view holding an object —
-an `@Observable` model passed as `let model: Model` among them. Such a view
-holds nothing else the walk acts on, so it is probed where it lies before
+- **Strong:** the class is read where the reference lies.
+- **`weak`**, a plain class or a class-bound existential (`weak var delegate:
+  (any RowDelegating)?`): the object is loaded each body, through the
+  runtime's own reflection entry point — `nil` once it has gone — and its
+  class read. It is not updated, as a property held `weak` is not.
+- **`unowned`:** the class is read where the reference lies, whose memory the
+  unowned count keeps, dead or alive. An object of a class that is not a
+  property is never loaded, so a dead one never traps (DYNV bug 9); one of a
+  property subclass is loaded as Swift loads it, and traps if it has gone, as
+  a dead `unowned` property does (decided for a field declared as a property
+  class). It is updated, unless the field is optional.
+
+**Not reached:**
+
+- `unowned(unsafe)`: nothing keeps the object's memory, so nothing of it is
+  read.
+- `unowned` of a class with an Objective-C ancestor, on Apple platforms:
+  the runtime keeps such a reference as an Objective-C weak reference, which
+  only the runtime reads, and it traps on one whose object has gone. A class
+  with none, and every class on Linux, is read in place.
+- `unowned` of an existential: on Apple platforms it is kept the same way
+  whenever its object could be an Objective-C one, and elsewhere it is left
+  out with it, its storage unmeasured.
+- A field whose descriptor cannot be read: where pointers are signed
+  (arm64e, which TUIkit does not build), and in a module built without
+  reflection metadata, whose fields are not listed at all.
+
+The fuller version, for `unowned` on Apple platforms, checks whether the
+object has gone before loading it. The runtime's check (`swift_isDeallocating`)
+is a name the compiler reserves (binding it warns that it "will become an
+error"), so it would mean reading the object's reference count bits, whose
+layout is the runtime's private one.
+
+**The price**, per body, per such field: a load of the reference and of its
+class and a compare, held strongly or `unowned`; a call into the runtime's
+reflection, held `weak`. In every view holding an object — an `@Observable`
+model passed as `let model: Model` among them. A view holding nothing else
+the walk acts on, held strongly or `unowned`, is probed where it lies before
 any copy of it is made (`SlotPlan.probes`), and evaluated as it is when its
-objects are of their declared classes.
+objects are of their declared classes; one holding an object `weak` is copied
+and walked on every body. Unmeasured: the A/B is owed.
 
 ### B-DYNVFIX-2. An `indirect` enum case's payload, and every payload on WebAssembly and Windows, is updated on a copy
 

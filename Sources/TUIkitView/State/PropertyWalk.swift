@@ -197,16 +197,17 @@ struct PropertyWalk {
             // ran its properties' `update()` twice).
             let stepUpdates = step.slot.isModifier && !step.appliesModifier ? UpdateMode.none : updates
             if let reference = step.reference {
-                let loaded =
-                    if let object {
-                        PropertyPlans.loadReference(reference, in: object)
-                    } else {
-                        PropertyPlans.loadReference(reference, at: base)
+                let referenceUpdates = reference.isOptional ? .none : stepUpdates
+                guard let objectPlan = reference.object else {
+                    if case .dynamicClass(let plan) = step.slot.action {
+                        applyHeldPlainObject(
+                            plan, reference, at: base, offset: step.offset, in: object, position: step.position,
+                            scope: scope, updates: referenceUpdates)
                     }
-                guard let loaded else { continue }
-                applyObject(
-                    reference.object, loaded, position: step.position, scope: scope,
-                    updates: reference.isOptional ? .none : stepUpdates)
+                    continue
+                }
+                guard let loaded = load(reference, at: base, in: object) else { continue }
+                applyObject(objectPlan, loaded, position: step.position, scope: scope, updates: referenceUpdates)
             } else {
                 apply(
                     step.slot, at: base + step.offset, position: step.position, scope: scope, isOwn: isOwn,
@@ -379,16 +380,65 @@ struct PropertyWalk {
         _ plan: DynamicClassPlan, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64,
         updates: UpdateMode
     ) {
-        guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)) else { return }
-        if ObjectIdentifier(objectType) == ObjectIdentifier(plan.type) || plan.empty.contains(objectType) { return }
-        let exact = PropertyPlans.exact(objectType)
-        guard case .object(let objectPlan) = exact.action else {
-            plan.empty.insert(objectType)
-            return
-        }
+        guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)),
+            let found = propertyClassPlan(objectType, in: plan)
+        else { return }
         let object = address.assumingMemoryBound(to: AnyObject.self).pointee
         // A modifier class in a field is stored, never the one applied.
-        applyObject(objectPlan, object, position: position, scope: scope, updates: exact.isModifier ? .none : updates)
+        applyObject(found.plan, object, position: position, scope: scope, updates: found.isModifier ? .none : updates)
+    }
+
+    /// The object in a field declared as a plain class and held `weak` or
+    /// `unowned`, which `plan` plans and `reference` says how to load (in
+    /// the struct at `base`, or in `object`, whose storage `base` is): walked
+    /// as a class property if its class is one, and nothing otherwise. An
+    /// `unowned` one's class is read where the reference lies first, so an
+    /// object of a class that is not a property is never loaded, which traps
+    /// if it has gone (DYNV bug 9); a `weak` one is loaded, `nil` once it has
+    /// gone.
+    private mutating func applyHeldPlainObject(
+        _ plan: DynamicClassPlan, _ reference: ReferenceField, at base: UnsafeMutableRawPointer, offset: Int,
+        in object: AnyObject?, position: Int, scope: UInt64, updates: UpdateMode
+    ) {
+        let loaded: AnyObject
+        let found: (plan: ObjectPlan, isModifier: Bool)
+        if reference.readsClassInPlace {
+            guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(base + offset)),
+                let classPlan = propertyClassPlan(objectType, in: plan),
+                let held = load(reference, at: base, in: object)
+            else { return }
+            (loaded, found) = (held, classPlan)
+        } else {
+            guard let held = load(reference, at: base, in: object),
+                let classPlan = propertyClassPlan(type(of: held), in: plan)
+            else { return }
+            (loaded, found) = (held, classPlan)
+        }
+        // A modifier class in a field is stored, never the one applied.
+        applyObject(found.plan, loaded, position: position, scope: scope, updates: found.isModifier ? .none : updates)
+    }
+
+    /// The plan of `type`, the class of an object found in a field `plan`
+    /// plans, if it is a property or modifier class — never the declared
+    /// class, nor one noted as holding nothing, which a class found not to be
+    /// one then is — and whether it is a modifier.
+    private func propertyClassPlan(_ type: Any.Type, in plan: DynamicClassPlan) -> (plan: ObjectPlan, isModifier: Bool)? {
+        if ObjectIdentifier(type) == ObjectIdentifier(plan.type) || plan.empty.contains(type) { return nil }
+        let exact = PropertyPlans.exact(type)
+        guard case .object(let objectPlan) = exact.action else {
+            plan.empty.insert(type)
+            return nil
+        }
+        return (objectPlan, exact.isModifier)
+    }
+
+    /// The object in the field `reference` names: in `object`'s storage,
+    /// when given, or in the struct at `base`.
+    private func load(_ reference: ReferenceField, at base: UnsafeMutableRawPointer, in object: AnyObject?)
+        -> AnyObject?
+    {
+        if let object { return PropertyPlans.loadReference(reference, in: object) }
+        return PropertyPlans.loadReference(reference, at: base)
     }
 
     /// A class instance in a field whose declared type `plan` names: what it

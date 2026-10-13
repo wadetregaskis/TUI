@@ -50,4 +50,14 @@ package enum RuntimeChildren {
         defer { free?(name) }
         return (name.map { String(cString: $0) }, child)
     }
+
+    /// The child at `index` of `value`, viewed as `type`, without its name:
+    /// a field loaded each body, which has no use for a string made of it.
+    package static func value<T>(of value: T, as type: Any.Type, at index: Int) -> Any {
+        var name: UnsafePointer<CChar>?
+        var free: RuntimeNameFree?
+        let child = runtimeChild(of: value, type: type, index: index, outName: &name, outFreeFunc: &free)
+        free?(name)
+        return child
+    }
 }

@@ -16,6 +16,10 @@
 import Observation
 import Testing
 
+#if canImport(ObjectiveC)
+    import ObjectiveC
+#endif
+
 import TUIkit
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
@@ -111,6 +115,143 @@ private struct DelegateRow: View {
     }
 }
 
+// MARK: - A property subclass held weak or unowned
+
+/// A subclass that is a property, reading the environment and counting its
+/// updates.
+private final class CountingDelegate: RowDelegate, DynamicProperty {
+    @Environment(\.probeAccent) private var accent
+    private(set) var updates = 0
+
+    func update() {
+        updates += 1
+    }
+
+    override func title() -> String { "\(accent) \(updates)" }
+}
+
+/// The plain class held `weak`.
+private struct WeakDelegateRow: View {
+    weak var delegate: RowDelegate?
+
+    var body: some View {
+        Text(verbatim: delegate?.title() ?? "gone")
+    }
+}
+
+/// A class-bound protocol the plain class conforms to.
+private protocol Titled: AnyObject {
+    func title() -> String
+}
+
+extension RowDelegate: Titled {}
+
+/// The protocol held `weak`.
+private struct WeakTitledRow: View {
+    weak var titled: (any Titled)?
+
+    var body: some View {
+        Text(verbatim: titled?.title() ?? "gone")
+    }
+}
+
+/// The plain class held `unowned`.
+private struct UnownedDelegateRow: View {
+    unowned let delegate: RowDelegate
+
+    var body: some View {
+        Text(verbatim: delegate.title())
+    }
+}
+
+/// The plain class held `unowned`, as an optional.
+private struct OptionalUnownedDelegateRow: View {
+    unowned var delegate: RowDelegate?
+
+    var body: some View {
+        Text(verbatim: delegate?.title() ?? "none")
+    }
+}
+
+/// The plain class held `unowned(unsafe)`.
+private struct UnsafeDelegateRow: View {
+    unowned(unsafe) let delegate: RowDelegate
+
+    var body: some View {
+        Text(verbatim: delegate.title())
+    }
+}
+
+/// The plain class held `unowned` and never read, as an event handler's
+/// target might be held.
+private struct UnreadDelegateRow: View {
+    unowned let delegate: RowDelegate
+
+    var body: some View {
+        Text(verbatim: "unread")
+    }
+}
+
+/// The plain class held `unowned`, beside the token.
+private struct UnownedDelegateHolder: View {
+    let token: Token
+    unowned let delegate: RowDelegate
+    let counts: Counts
+
+    var body: some View {
+        counts.retains["unowned"] = _getRetainCount(token)
+        return Text(verbatim: "unowned")
+    }
+}
+
+/// A class property holding the plain class `weak`: its contents are walked
+/// as the view's are.
+private final class DelegateOwner: DynamicProperty {
+    weak var delegate: RowDelegate?
+
+    init(_ delegate: RowDelegate) {
+        self.delegate = delegate
+    }
+}
+
+private struct DelegateOwnerRow: View {
+    let owner: DelegateOwner
+
+    var body: some View {
+        Text(verbatim: owner.delegate?.title() ?? "gone")
+    }
+}
+
+#if canImport(ObjectiveC)
+    /// A plain class with an Objective-C ancestor.
+    private class ObjCDelegate: NSObject {
+        func title() -> String { "plain" }
+    }
+
+    /// A subclass of it that is a property, reading the environment.
+    private final class ObjCAccentDelegate: ObjCDelegate, DynamicProperty {
+        @Environment(\.probeAccent) private var accent
+
+        override func title() -> String { accent }
+    }
+
+    private struct WeakObjCRow: View {
+        weak var delegate: ObjCDelegate?
+
+        var body: some View {
+            Text(verbatim: delegate?.title() ?? "gone")
+        }
+    }
+
+    private struct UnownedObjCRow: View {
+        unowned let delegate: ObjCDelegate
+
+        var body: some View {
+            Text(verbatim: delegate.title())
+        }
+    }
+#endif
+
 @MainActor
 @Suite("DynamicProperty probes")
 struct DynamicPropertyProbeTests {
@@ -163,4 +304,130 @@ struct DynamicPropertyProbeTests {
             }
         }
     }
+
+    private func line<V: View>(_ view: V, context: RenderContext) -> String? {
+        renderToBuffer(view, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// A field held `weak` or `unowned` whose declared type was a plain
+    /// class was never read: the field metadata says only "not strong", and
+    /// a dead `unowned` one traps when loaded (DYNV bug 9). So a property
+    /// subclass there read its `@Environment`'s default, where the walk
+    /// before the plans reached it. The field's ownership is read from its
+    /// mangled type name: a `weak` one is loaded, and an `unowned` one's
+    /// object class read where it lies. As for a field declared as a property
+    /// class, a `weak` one is not updated and an `unowned` one is.
+    @Test("A property subclass held weak or unowned in a field declared as a plain class reads its view's environment")
+    func subclassHeldWeakOrUnownedIsResolved() {
+        // A context, and so a state storage, per holder: the object's
+        // contents belong to the first view drawn that reaches it.
+        let delegate = CountingDelegate()
+        let weak = WeakDelegateRow(delegate: delegate).environment(\.probeAccent, "red")
+        #expect(line(weak, context: makeRenderContext(width: 20, height: 1)) == "red 0")
+        let unownedContext = makeRenderContext(width: 20, height: 1)
+        let unowned = UnownedDelegateRow(delegate: delegate).environment(\.probeAccent, "blue")
+        #expect(line(unowned, context: unownedContext) == "blue 1")
+        #expect(line(unowned, context: unownedContext) == "blue 2")
+        let optional = OptionalUnownedDelegateRow(delegate: delegate).environment(\.probeAccent, "green")
+        #expect(line(optional, context: makeRenderContext(width: 20, height: 1)) == "green 2")
+        withExtendedLifetime(delegate) {}
+    }
+
+    /// The review's case (2026-10-12): an `@Environment(Model.self)` in a
+    /// property subclass held `weak` traps when read unresolved. An exit
+    /// test, so the trap fails this test and not the run.
+    @Test("A property subclass held weak behind a plain class field reading an observable model draws")
+    func subclassHeldWeakReadsModel() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let context = makeRenderContext(width: 20, height: 1)
+                let delegate = ModelDelegate()
+                let row = WeakDelegateRow(delegate: delegate).environment(ProbeModel())
+                #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+                withExtendedLifetime(delegate) {}
+            }
+        }
+    }
+
+    /// A class-bound existential held `weak` is loaded the same way: its
+    /// object's class says whether it is a property.
+    @Test("A property held weak in a class-bound existential field reads its view's environment")
+    func propertyHeldWeakInExistentialIsResolved() {
+        let delegate = AccentDelegate()
+        let row = WeakTitledRow(titled: delegate).environment(\.probeAccent, "red")
+        #expect(line(row, context: makeRenderContext(width: 20, height: 1)) == "red")
+        withExtendedLifetime(delegate) {}
+    }
+
+    /// A class property's own `weak` field is reached the same way.
+    @Test("A property subclass held weak by a class property reads the holding view's environment")
+    func subclassHeldWeakInsideAnObjectIsResolved() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let delegate = AccentDelegate()
+        #expect(line(DelegateOwnerRow(owner: DelegateOwner(delegate)).environment(\.probeAccent, "red"), context: context) == "red")
+        withExtendedLifetime(delegate) {}
+    }
+
+    /// `unowned(unsafe)` keeps nothing of its object alive, its memory
+    /// included, so nothing of it is ever read: a property there is not
+    /// reached.
+    @Test("A property subclass held unowned(unsafe) is never loaded")
+    func subclassHeldUnownedUnsafeIsNotLoaded() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let delegate = CountingDelegate()
+        #expect(line(UnsafeDelegateRow(delegate: delegate).environment(\.probeAccent, "red"), context: context) == "plain 0")
+        withExtendedLifetime(delegate) {}
+    }
+
+    /// A dead object held `unowned` in a field declared as a class that is
+    /// not final: its class is read where it lies, which the unowned count
+    /// keeps, and an object of a class that is not a property is never
+    /// loaded, so it does not trap (DYNV bug 9). An exit test.
+    @Test("A view holding a dead plain object unowned, which body never reads, still draws")
+    func deadPlainObjectHeldUnownedIsNeverLoaded() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let context = makeRenderContext(width: 20, height: 1)
+                var delegate: RowDelegate? = RowDelegate()
+                let view = UnreadDelegateRow(delegate: delegate!)
+                delegate = nil
+                _ = renderToBuffer(view, context: context)
+                _ = renderToBuffer(view, context: context)
+                var weakDelegate: RowDelegate? = AccentDelegate()
+                let weakView = WeakDelegateRow(delegate: weakDelegate)
+                weakDelegate = nil
+                #expect(renderToBuffer(weakView, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "gone")
+            }
+        }
+    }
+
+    /// A view holding a plain object `unowned` is probed where it lies, as
+    /// one holding it strongly is: evaluated with no copy of the view.
+    @Test("A view holding a plain object unowned is evaluated as it is, with no copy of the view")
+    func plainObjectHeldUnownedIsNotCopied() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let token = Token()
+        let counts = Counts()
+        let delegate = RowDelegate()
+        _ = renderToBuffer(PlainHolder(token: token, counts: counts), context: context)
+        _ = renderToBuffer(UnownedDelegateHolder(token: token, delegate: delegate, counts: counts), context: context)
+        #expect(counts.retains["unowned"] == counts.retains["plain"])
+        withExtendedLifetime(delegate) {}
+    }
+
+    #if canImport(ObjectiveC)
+        /// Where Objective-C interoperates, an `unowned` reference to an
+        /// object with an Objective-C ancestor is kept as one of its weak
+        /// references, which only the runtime reads, and the runtime traps
+        /// on a dead one: such a field is never loaded. A `weak` one is.
+        @Test("A property subclass of an Objective-C class is reached held weak, and not held unowned")
+        func objectiveCSubclassHeldWeakNotUnowned() {
+            let delegate = ObjCAccentDelegate()
+            let weak = WeakObjCRow(delegate: delegate).environment(\.probeAccent, "red")
+            #expect(line(weak, context: makeRenderContext(width: 20, height: 1)) == "red")
+            let unowned = UnownedObjCRow(delegate: delegate).environment(\.probeAccent, "blue")
+            #expect(line(unowned, context: makeRenderContext(width: 20, height: 1)) == "red")
+            withExtendedLifetime(delegate) {}
+        }
+    #endif
 }
