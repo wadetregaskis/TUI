@@ -1540,6 +1540,12 @@ extension ItemListHandler {
     /// row, a list scrolled deep and fed rows at its top read every id above
     /// the held row on every frame that brought some — and an id can cost a
     /// build of its row (``id(at:)``).
+    ///
+    /// What that comes to: a row moved by k places, k up to 64, is found in
+    /// about 2k id reads. One moved further — a "load earlier" of a hundred
+    /// rows — or an id that is nowhere — the top row deleted (a delete chord on
+    /// the top row of a list scrolled deep), or its id changed — costs 129 reads
+    /// and then the scan from the first row: O(the row's position), not O(k).
     func index(of id: SelectionValue, near origin: Int) -> Int? {
         for distance in 0...64 {
             for candidate in distance == 0 ? [origin] : [origin - distance, origin + distance]

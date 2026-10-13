@@ -767,7 +767,9 @@ frame moves the offset by however far that row moved (`StackTopRowHold.swift`)
 rows inserted or removed above from a reorder. It is a shift, not a placement: a scroll made since the last frame is kept, and a
 frame whose content above did not change moves nothing. Found at its ordinal the
 row costs one key read; found elsewhere, a search outward from where it was,
-then over every key. Gone, the row after it is put where it was — unless the row
+then over every key: about 2k reads for a row moved k places, k up to 64, and
+for one moved further, or one that is nowhere (removed, or its id changed),
+about 130 reads and a scan from the first row — O(its position). Gone, the row after it is put where it was — unless the row
 before it is still right before that place (for a first row, which has none,
 the row after it still as far after the place the top row had): then only the
 row in that place changed (its id did, `ForEach(names, id: \.self)` with the
