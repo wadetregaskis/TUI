@@ -629,7 +629,7 @@ enum StatePlace {
     /// the place's, the one kept under the view's key.
     case value
     /// In the storage of an object the view claims
-    /// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``): its box is
+    /// (``StateStorage/claimObjectContents(_:for:environment:isMeasuring:)``): its box is
     /// the object's, which every view holding the object shares. A backing
     /// already bound keeps its box, kept under the claimant's key from then
     /// on (``StateStorage/keep(_:for:)``) — and so does one whose box the

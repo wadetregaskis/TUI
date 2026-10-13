@@ -172,6 +172,13 @@ protocol PlaceResolvedEnvironment {
     static func resolveEnvironment(
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
         storage: StateStorage?) -> Bool
+
+    /// Hands the wrapper at `address`, in an object another view claims,
+    /// `environment` if it has never been handed one, and leaves it resolved
+    /// for no place, so that the next walk to resolve it resolves it as its
+    /// own. One already handed an environment is left as it is
+    /// (``ObjectContentsClaim/fillEnvironment(_:)``).
+    static func fillEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues)
 }
 
 extension Environment: PlaceResolvedEnvironment {
@@ -198,6 +205,11 @@ extension Environment: PlaceResolvedEnvironment {
         box.environment = environment
         box.place = place
         return false
+    }
+
+    static func fillEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues) {
+        let box = address.assumingMemoryBound(to: Self.self).pointee.box
+        if box.environment == nil { box.environment = environment }
     }
 }
 

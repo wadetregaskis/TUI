@@ -178,6 +178,19 @@ state — and an object made anew per view value, held by that view alone,
 keeps its state from frame to frame. The object's own `update()` still runs
 before each holder's body, as SwiftUI runs it.
 
+A view measured before the claimant has walked the object in a pass — a
+holder at a new identity, its `.id` changed, or one appearing ahead of the
+claimant in a stack, which measures every child before it draws any — reads
+the object as the claimant last left it. A property set on the object since
+was never walked, so an `@Environment(Model.self)` in it trapped when that
+measure read it, and an `@Environment(\.key)` read the key's default (review
+5, 2026-10-12). Such a measure now hands each `@Environment` in the object
+that has none the environment of the claimant's last walk, which the claim
+keeps. It binds nothing, runs no `update()`, and moves no claim and no state,
+so no body reads an `@Environment` never resolved. A view drawn never needs
+this: the first drawn in a pass takes the claim and walks the object before
+its body reads it.
+
 A claim with no holder drawn lasts while the claimant's state does: it is
 dropped at the end of a pass in which the claimant was neither drawn nor kept
 (by a memo hit, or a container that windows its rows), and the next holder to

@@ -66,7 +66,7 @@ package func preparedBody<V: View>(
 /// `storage` (a guide asked for outside a render), no `@State` is bound.
 /// `isMeasuring` says whether the body is evaluated for a measure, whose
 /// claim on a class property's contents is only provisional
-/// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``).
+/// (``StateStorage/claimObjectContents(_:for:environment:isMeasuring:)``).
 @MainActor
 package func prepareProperties<V>(
     of value: inout V, plan: SlotPlan, identity: ViewIdentity, storage: StateStorage?,
@@ -110,10 +110,13 @@ enum UpdateMode {
 /// its `@State`, `@Environment`, ids, nested properties and their `update()`
 /// — belongs to one view, its claimant: in each render pass, the first view
 /// drawn whose walk reaches it
-/// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``). Its `@State`
-/// boxes are the object's, kept under the claimant's key whichever view
-/// that is (``StatePlace/object(revivesDropped:)``), its `@Environment` is
-/// the claimant's, and every other holder leaves it as the claimant left it.
+/// (``StateStorage/claimObjectContents(_:for:environment:isMeasuring:)``).
+/// Its `@State` boxes are the object's, kept under the claimant's key
+/// whichever view that is (``StatePlace/object(revivesDropped:)``), its
+/// `@Environment` is the claimant's, and every other holder leaves it as the
+/// claimant left it — but for a measure made before the claimant has walked
+/// it in the pass, which hands an `@Environment` there that has none the
+/// claimant's last environment, so that no body reads one never resolved.
 /// Two views showing one object therefore read and write one state, as one
 /// object implies, and the state goes with the object when another view
 /// shows it; an object made anew with each view value, held by that view
@@ -130,6 +133,10 @@ struct PropertyWalk {
     let environment: EnvironmentValues
     /// Whether the body is evaluated for a measure.
     let isMeasuring: Bool
+    /// Whether the walk only hands `environment` to each `@Environment` that
+    /// has none, in an object another view claims
+    /// (``ObjectContentsClaim/fillEnvironment(_:)``).
+    private let fillsEnvironmentOnly: Bool
 
     /// The next of the view's own declaration-order indices.
     private var ownIndex = 0
@@ -171,6 +178,25 @@ struct PropertyWalk {
         self.storage = storage
         self.environment = environment
         self.isMeasuring = isMeasuring
+        self.fillsEnvironmentOnly = false
+    }
+
+    /// A walk that hands `environment`, the claimant's, to each
+    /// `@Environment` that has none in an object another view claims
+    /// (``ObjectContentsClaim/fillEnvironment(_:)``), and does nothing else.
+    /// Without storage, it binds no `@State`, consults no claim and keeps no
+    /// enum's case, so an object it reaches inside is filled the same way;
+    /// it runs no `update()`, as it is handed ``UpdateMode/none``. It starts
+    /// with the objects `walk` has reached, and what it reaches after is its
+    /// own: an object it fills is still walked by `walk` if `walk` reaches it
+    /// elsewhere.
+    private init(filling environment: EnvironmentValues, for walk: Self) {
+        self.identity = walk.identity
+        self.storage = nil
+        self.environment = environment
+        self.isMeasuring = walk.isMeasuring
+        self.fillsEnvironmentOnly = true
+        self.objectsReached = walk.objectsReached
     }
 
     /// Walks the value at `root`, whose type's root plan is `plan`.
@@ -264,6 +290,10 @@ struct PropertyWalk {
     private mutating func applyLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, isOwn: Bool
     ) {
+        if fillsEnvironmentOnly {
+            leaf.placeEnvironment?.fillEnvironment(at: address, environment)
+            return
+        }
         var index = position
         if isOwn, leaf.isIndexed {
             // `@State`, `@FocusState` and `@Namespace` share the one counter,
@@ -443,8 +473,10 @@ struct PropertyWalk {
     }
 
     /// A class instance in a field whose declared type `plan` names: what it
-    /// holds, walked in place if this walk's view is the object's claimant,
-    /// and then its own `update()`.
+    /// holds, walked in place if this walk's view is the object's claimant —
+    /// or, for a measure that reaches it before its claimant has walked it in
+    /// the pass, each `@Environment` there that has none handed the
+    /// claimant's last environment — and then its own `update()`.
     private mutating func applyObject(
         _ plan: ObjectPlan, _ object: AnyObject, position: Int, scope: UInt64, updates: UpdateMode
     ) {
@@ -453,13 +485,21 @@ struct PropertyWalk {
         // field — it was walked and updated there.
         guard !objectsReached.contains(id) else { return }
         objectsReached.append(id)
-        let claim = storage?.claimObjectContents(object, for: identity, isMeasuring: isMeasuring) ?? .walk
-        if claim != .skip {
+        let claim =
+            storage?.claimObjectContents(object, for: identity, environment: environment, isMeasuring: isMeasuring)
+            ?? .walk
+        switch claim {
+        case .walk:
             let inner = NestedScope.container(at: position, ofType: type(of: object), in: scope)
             let outer = objectCaseDepth
             objectCaseDepth = caseDepth
             applyContents(of: object, scope: inner, isOwn: false, updates: updates)
             objectCaseDepth = outer
+        case .fillEnvironment(let claimantEnvironment):
+            var fill = Self(filling: claimantEnvironment, for: self)
+            fill.applyContents(of: object, scope: scope, isOwn: false, updates: .none)
+        case .skip:
+            break
         }
         if updates == .inPlace, let updater = plan.updater {
             updater.updateObject(object)

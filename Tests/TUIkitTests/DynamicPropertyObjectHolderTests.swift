@@ -11,6 +11,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 import TUIkit
@@ -23,6 +24,7 @@ import TUIkit
 private final class HolderTaps {
     var counts: [String: Binding<Int>] = [:]
     var texts: [String: Binding<String>] = [:]
+    var reads: [String] = []
 }
 
 /// A class app property holding a `@State`: one instance, handed to every
@@ -145,6 +147,105 @@ private struct TwoItemRows: View {
     }
 }
 
+// MARK: - A property set on an object since its claimant walked it
+
+private struct HolderAccent: EnvironmentKey {
+    static let defaultValue = "plain"
+}
+
+extension EnvironmentValues {
+    fileprivate var holderAccent: String {
+        get { self[HolderAccent.self] }
+        set { self[HolderAccent.self] = newValue }
+    }
+}
+
+/// An observable model read from the environment inside a class property.
+@Observable
+private final class ScreenModel {
+    var name = "model"
+}
+
+/// An app property set on a screen between frames: nothing has walked it
+/// when it is first read.
+private struct ScreenChild: DynamicProperty {
+    @Environment(ScreenModel.self) var model
+    @Environment(\.holderAccent) var accent
+}
+
+/// A class app property whose child property is set between frames.
+private final class Screen: DynamicProperty {
+    var child: ScreenChild?
+    var generation = 0
+}
+
+/// A view showing the name of the model the screen's child reads.
+private struct ModelScreenView: View {
+    let screen: Screen
+
+    var body: some View {
+        Text(verbatim: screen.child?.model.name ?? "-")
+    }
+}
+
+/// A view showing the accent the screen's child reads, noting each read: a
+/// measure's and a draw's.
+private struct AccentScreenView: View {
+    let name: String
+    let screen: Screen
+    let taps: HolderTaps
+
+    var body: some View {
+        let accent = screen.child?.accent ?? "-"
+        taps.reads.append("\(name) \(accent)")
+        return Text(verbatim: "\(name) \(accent)")
+    }
+}
+
+/// The screen, shown by a view whose identity is the screen's generation, in
+/// a stack that measures it before drawing it.
+private struct ReloadedScreen: View {
+    let screen: Passed<Screen>
+
+    var body: some View {
+        VStack {
+            ModelScreenView(screen: screen.object).id(screen.object.generation)
+            Text(verbatim: "load")
+        }
+        .environment(ScreenModel())
+    }
+}
+
+/// The screen, shown by a view and, when `showsB`, by another one above it,
+/// which the stack measures first.
+private struct ModelScreenPair: View {
+    let showsB: Bool
+    let screen: Passed<Screen>
+
+    var body: some View {
+        VStack {
+            if showsB { ModelScreenView(screen: screen.object) }
+            ModelScreenView(screen: screen.object)
+        }
+        .environment(ScreenModel())
+    }
+}
+
+/// ``ModelScreenPair``, showing the accent.
+private struct AccentScreenPair: View {
+    let showsB: Bool
+    let screen: Passed<Screen>
+    let taps: HolderTaps
+
+    var body: some View {
+        VStack {
+            if showsB { AccentScreenView(name: "b", screen: screen.object, taps: taps) }
+            AccentScreenView(name: "a", screen: screen.object, taps: taps)
+        }
+        .environment(\.holderAccent, "red")
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty objects changing holder")
 struct DynamicPropertyObjectHolderTests {
@@ -230,5 +331,61 @@ struct DynamicPropertyObjectHolderTests {
         #expect(tui.renderCache.rowWork.servedDrawing > served, "the row left is served from the memo")
         taps.counts["b"]?.wrappedValue = 7
         #expect(frame(view(false, 2), tui, height: 2).first == "b 7")
+    }
+
+    /// A view measured before the claimant of the object it shows had walked
+    /// it in the pass read the object's contents as the claimant left them:
+    /// a property set on the object since had an `@Environment(Model.self)`
+    /// never handed an environment, and reading it trapped (review5 of
+    /// DYNVFIX). Here the holder's identity changes as the property is set,
+    /// so the stack measures it at its new identity while the claim is the
+    /// old one's. An `@Environment` with none is handed the claimant's last.
+    /// In an exit test, so that the trap fails this test alone.
+    @Test("A view measured at a new identity reads an @Environment object in a property set on its object since")
+    func holderMeasuredAtANewIdentityReadsTheModel() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let tests = DynamicPropertyObjectHolderTests()
+                let tui = TUIContext()
+                let screen = Passed(object: Screen())
+                #expect(tests.frame(ReloadedScreen(screen: screen), tui, height: 2) == ["-", "load"])
+                screen.object.child = ScreenChild()
+                screen.object.generation += 1
+                #expect(tests.frame(ReloadedScreen(screen: screen), tui, height: 2) == ["model", "load"])
+            }
+        }
+    }
+
+    /// The same for a second view showing the object, appearing above its
+    /// claimant as the property is set: the stack measures it first.
+    @Test("A view appearing above an object's claimant reads an @Environment object in a property set on it since")
+    func holderAppearingAboveTheClaimantReadsTheModel() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let tests = DynamicPropertyObjectHolderTests()
+                let tui = TUIContext()
+                let screen = Passed(object: Screen())
+                #expect(tests.frame(ModelScreenPair(showsB: false, screen: screen), tui, height: 2) == ["-"])
+                screen.object.child = ScreenChild()
+                #expect(tests.frame(ModelScreenPair(showsB: true, screen: screen), tui, height: 2) == ["model", "model"])
+            }
+        }
+    }
+
+    /// Without the trap: such a measure read the default for a key-path
+    /// `@Environment`, so the view was measured under one environment and
+    /// drawn under another. It reads the claimant's.
+    @Test("A view measured before its object's claimant walks it reads the claimant's environment in a property set since")
+    func holderMeasuredBeforeTheClaimantReadsItsEnvironment() {
+        let tui = TUIContext()
+        let taps = HolderTaps()
+        let screen = Passed(object: Screen())
+        let view = { (showsB: Bool) in AccentScreenPair(showsB: showsB, screen: screen, taps: taps) }
+        #expect(frame(view(false), tui, height: 2) == ["a -"])
+        screen.object.child = ScreenChild()
+        taps.reads.removeAll()
+        #expect(frame(view(true), tui, height: 2) == ["b red", "a red"])
+        #expect(taps.reads.contains("b red"))
+        #expect(taps.reads.allSatisfy { $0.hasSuffix(" red") }, "read: \(taps.reads)")
     }
 }
