@@ -428,6 +428,27 @@ struct PlacementOverflowTests {
         }
     }
 
+    @Test("A tab view's panel is drawn over what its tab draws past its region")
+    func tabPanelOverItsContentsOverflow() {
+        // The hanging marker above, in a bordered tab view's panel: the line
+        // wraps to the panel less its insets, and the marker pushes it three
+        // cells past them, two onto the inset and one onto the panel's right
+        // wall, which it drew over on every line.
+        let screen = Screen(width: 24, height: 10)
+        let lines = screen.render(
+            TabView(selection: .constant(0)) {
+                Tab("A", value: 0) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("100").alignmentGuide(.leading) { $0[.trailing] }
+                        Text(String(repeating: "a", count: 40))
+                    }
+                }
+            }
+            .tabViewStyle(.bordered))
+        #expect(lines.contains { $0.hasPrefix("│") && $0.contains("aaaa") }, "\(lines)")
+        #expect(staysInsideItsBorders(lines), "\(lines)")
+    }
+
     @Test("A surface keeps its content's overflow inside its box")
     func surfaceKeepsItInside() {
         // A popover-like surface 6 wide at column 2 whose content carries a

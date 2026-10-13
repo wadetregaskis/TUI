@@ -839,6 +839,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             contentsOf: visibleContent.shiftedHitTestRegions(byX: contentShiftX, y: contentStartY))
         buffer.overlays.append(
             contentsOf: visibleContent.shiftedOverlays(byX: contentShiftX, y: contentStartY))
+        // The strip, the walls and the bottom rule are drawn over what the tab
+        // draws past its region, as a box's border is; past them it is still
+        // drawn (decisions-GUIDE3 B-GUIDE3-5).
+        buffer.coverOverflowUnderBorder(innerWidth: interior, topRows: contentStartY)
         // …and the runs, for the same reason and by the same shift: a focused
         // control inside the tab breathes only if its run reaches the root, and
         // the assignment above replaced the buffer's runs with the strip's.
