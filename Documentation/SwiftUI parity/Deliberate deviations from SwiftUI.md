@@ -1127,7 +1127,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the content overflows. A vertical bar is shortened by the top and bottom
   margins and moved in by the trailing one, under `.automatic` and
   `.scrollIndicators` margins; `.scrollContent` margins leave it at the edge.
-  `scrollIndicatorsFlash` returns the view.
+  `scrollIndicatorsFlash` highlights the indicators for half a second instead
+  of revealing them.
 - **Why:** a bar is a column of cells and cannot float over content.
   TUIkit's `.scrollContent` follows SwiftUI's documentation, not macOS's
   behaviour, which contradicts it: an app that wants the bar left at the edge
@@ -1135,7 +1136,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** decisions B24, folded here and removed on 2026-10-12 (the owner
   asked what was recommended; keeping this rule was, with the measurement
   above); [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-returns-the-view-the-indicators-are-already-showing>). **Medium**. The owner asked for a flash to be
-  built (2026-10-12), which is [slated](#slated-to-change).
+  built (2026-10-12): a highlight, shipped 2026-10-13.
 
 ### R6. Rows are reported without `scrollTargetLayout()`
 
@@ -1513,7 +1514,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable, and only `.viewAligned` reads them (the size classes). On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tuikit-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults |
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
-| `scrollIndicatorsFlash` draws nothing | [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-returns-the-view-the-indicators-are-already-showing>) | Owner 2026-10-12: implement |
 | No bounce | [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>) | Owner 2026-10-12: the bounce under `.always`; lane owed |
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |

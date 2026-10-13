@@ -178,6 +178,10 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// pins it answering.
     var verticalScrollbarMemoHits = 0
 
+    /// When this list or table first drew, for a flash of its indicators on
+    /// appearing (`scrollIndicatorsFlash`); stamped by ``syncFrameInputs``.
+    package var indicatorFlash = ScrollIndicatorFlash()
+
     /// A `Table`'s composed row lines, kept across frames.
     ///
     /// Here, rather than in the render cache, for the reason `TableRowMemo.swift`

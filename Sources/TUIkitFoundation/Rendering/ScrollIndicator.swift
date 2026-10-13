@@ -150,6 +150,9 @@ func scrollIndicatorBreath(palette: any Palette, over surface: Color) -> (dim: C
 ///     becomes the ``AnimatedCellRun`` the run loop replays, so the pulse costs no
 ///     further render passes. `nil`, or an unfocused cycle, draws the resting line
 ///     and yields no run.
+///   - flash: How strongly a `scrollIndicatorsFlash` lights the line this frame
+///     (``ScrollIndicatorFlash/strength(context:)``), or `nil`. A flashing line
+///     is drawn still, whatever `cycle` says.
 ///   - surface: What the line sits on: the ground a focused line spends its two
 ///     ends' alphas against (``scrollIndicatorBreath(palette:over:)``) — even when
 ///     `.selectionIndicatorStyle(.none)` leaves it still, one frame and no run, so
@@ -172,12 +175,24 @@ package func renderScrollIndicator(
     palette: any Palette,
     approximate: Bool = false,
     cycle: SelectionEmphasisCycle?,
+    flash: Double? = nil,
     over surface: Color,
     locale: Locale = .current
 ) -> ScrollIndicatorLine {
     let parts = scrollIndicatorParts(
         direction: direction, count: count, unit: unit, width: width,
         approximate: approximate, locale: locale)
+    // A flash (`scrollIndicatorsFlash`) draws the line still, `flash` of the way
+    // from the breath's resting end to the peak a bar's flash reaches — past the
+    // accent a focused line breathes to, so its flash is told from its breath —
+    // focused or not, and with no run, which would replay the breath over it from
+    // its first tick. Both ends spent, so the line owes no claim.
+    if let flash {
+        let rest = scrollIndicatorBreath(palette: palette, over: surface).dim
+        let peak = ScrollbarColors.flashPeak(palette).spendingAlpha(over: surface)
+        return ScrollIndicatorLine(
+            drawn: parts.line(ink: Color.lerp(rest, peak, phase: flash)), animation: nil)
+    }
     // Unfocused: nothing replays these cells, so the resting colour CARRIES its
     // alpha, and the line claims it (§29.2). A focused line spends below, breathing
     // or not.

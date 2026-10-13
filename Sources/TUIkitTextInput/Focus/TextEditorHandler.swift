@@ -27,6 +27,10 @@ final class TextEditorHandler: PersistedFocusable {
     var canBeFocused: Bool
     var text: Binding<String>
 
+    /// When the editor first drew, for a flash of its scroll bar on appearing
+    /// (`scrollIndicatorsFlash`).
+    var indicatorFlash = ScrollIndicatorFlash()
+
     /// The cursor line (0-based).
     var cursorLine = 0
     /// The cursor column, a character offset into the cursor line.

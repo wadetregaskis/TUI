@@ -107,6 +107,11 @@ extension ItemListHandler {
         (declaredAnchorMode, declaredOpeningAnchorMode) = environment.declaredAnchorModes
         offsetAdjustmentSuspended = environment.transaction.disablesScrollContentOffsetAdjustment
         windowHold = environment.scrollWindowHold
+        // The first pass is the frame the view appeared on, where a flash of
+        // its indicators on appearing starts (`scrollIndicatorsFlash`).
+        if indicatorFlash.appearedAtNanos == nil {
+            indicatorFlash.noteAppearance(atNanos: environment.frameNowNanos)
+        }
         self.reorderFeedback = reorderFeedback
         self.keyboardMoveIsLive = keyboardMoveIsLive
         self.rowHeight = rowHeight

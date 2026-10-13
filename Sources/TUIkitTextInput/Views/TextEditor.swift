@@ -323,7 +323,14 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         // text the app has replaced since, taken out of it.
         handler.undoManager = context.environment.undoManager
         handler.departedUndoSteps = context.environment.departedUndoSteps
-        if !context.isMeasuring { handler.forgetHistoryIfReplaced() }
+        if !context.isMeasuring {
+            handler.forgetHistoryIfReplaced()
+            // The first render pass is when the editor appeared, where a flash
+            // of its bar on appearing starts.
+            if handler.indicatorFlash.appearedAtNanos == nil {
+                handler.indicatorFlash.noteAppearance(atNanos: context.environment.frameNowNanos)
+            }
+        }
         // The height a page key steps by is the one drawn, never a measure's
         // probe (as the wrap width and the scroll are, in `window`): a
         // container that measures by rendering, after the editor's real
@@ -413,7 +420,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             bar = appendScrollbar(
                 to: &output, height: height, extent: window.extent,
                 offset: window.offset, barColumn: contentWidth,
-                isFocused: context.indicatesFocus(isFocused), context: context)
+                isFocused: context.indicatesFocus(isFocused),
+                flash: handler.indicatorFlash.strength(context: context), context: context)
         }
 
         var buffer = FrameBuffer(lines: output)
@@ -445,23 +453,25 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     /// alone looks correct in a screenshot and is wrong over time.
     private func appendScrollbar(
         to output: inout [String], height: Int, extent: Int, offset: Int,
-        barColumn: Int, isFocused: Bool, context: RenderContext
+        barColumn: Int, isFocused: Bool, flash: Double?, context: RenderContext
     ) -> (runs: [AnimatedCellRun], claims: [OpacityRegion]) {
+        // Pulses the accent while the editor is focused — the shared
+        // focus-indicator convention (ScrollbarColors.focusIndicating). The
+        // editor's bar is not a mouse target (it registers no region of its
+        // own), so there is no hovered cell to answer.
+        let colors = ScrollbarColors.focusIndicating(isFocused: isFocused, hoveredCell: nil, context: context)
         var bar = ScrollbarRenderer.verticalScrollbar(
             height: height, extent: extent, viewport: height, offset: offset,
             arrows: .none, proportional: true,
-            // Pulses the accent while the editor is focused — the shared
-            // focus-indicator convention (ScrollbarColors.focusIndicating).
-            // The editor's bar is not a mouse target (it registers no region of
-            // its own), so there is no hovered cell to answer.
-            colors: .focusIndicating(isFocused: isFocused, hoveredCell: nil, context: context))
+            colors: flash.map { colors.flashing($0, in: context.environment.palette) } ?? colors)
         // One cell per row the editor drew — an unpainted space past the bar's
         // end, as it always was — so no claim outlives the row it was for.
         let rows = min(height, output.count)
         bar.fit(toCount: rows, field: nil)
         for index in 0..<rows { output[index] += bar.lines[index] }
         let claims = bar.claims(atColumn: barColumn)
-        guard
+        // A flashing bar is still: the breath's runs would paint over the flash.
+        guard flash == nil,
             let pulse = ScrollbarColors.focusPulse(
                 isFocused: isFocused, hoveredCell: nil, context: context)
         else { return ([], claims) }

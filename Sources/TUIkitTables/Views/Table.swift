@@ -1460,7 +1460,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             height: contentHeight, extent: data.count, viewport: contentHeight, offset: visibleRange.lowerBound,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: .resting(in: palette))
+            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)))
 
         // Content-only row lines; the bar cell is merged in at the END, keyed by
         // absolute line index, so an overscroll slide moves the rows and leaves
@@ -1867,7 +1867,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             offset: metrics.offset,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: .resting(in: palette))
+            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)))
     }
 
     /// The wrapped lines of each cell of a row plus the row's height (its tallest
@@ -2253,6 +2253,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let indicatorCycle =
             drawsIndicator
             ? scrollIndicatorCycle(isFocused: tableHasFocus, context: context) : nil
+        // A flash (`scrollIndicatorsFlash`), asked only when a line is drawn.
+        let indicatorFlash = drawsIndicator ? handler.indicatorFlash.strength(context: context) : nil
         let numberLocale = context.environment.locale
         let indicatorSurface = context.environment.enclosingSurface
         var lines: [String] = []
@@ -2272,7 +2274,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 direction: .up,
                 count: window.showsAbove ? max(1, window.range.lowerBound) : 0,
                 unit: .rows,
-                width: contentWidth, palette: palette, cycle: indicatorCycle,
+                width: contentWidth, palette: palette, cycle: indicatorCycle, flash: indicatorFlash,
                 over: indicatorSurface, locale: numberLocale)
             appendIndicator(indicator, to: &lines, runs: &chromeRuns, claims: &chromeClaims)
         }
@@ -2349,7 +2351,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let indicator = renderScrollIndicator(
                 direction: .down, count: data.count - window.range.upperBound,
                 unit: .rows,
-                width: contentWidth, palette: palette, cycle: indicatorCycle,
+                width: contentWidth, palette: palette, cycle: indicatorCycle, flash: indicatorFlash,
                 over: indicatorSurface, locale: numberLocale)
             appendIndicator(indicator, to: &lines, runs: &chromeRuns, claims: &chromeClaims)
         }
@@ -2937,6 +2939,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let indicatorCycle =
             indicators.above || indicators.below
             ? scrollIndicatorCycle(isFocused: tableHasFocus, context: context) : nil
+        // A flash (`scrollIndicatorsFlash`), asked only when a line is drawn.
+        let indicatorFlash =
+            indicators.above || indicators.below ? handler.indicatorFlash.strength(context: context) : nil
         let numberLocale = context.environment.locale
         let indicatorSurface = context.environment.enclosingSurface
         // The "N more" indicators are chrome — they describe where the content
@@ -2951,7 +2956,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if indicators.above {
             let indicator = renderScrollIndicator(
                 direction: .up, count: drawnAbove, unit: .rows, width: contentWidth,
-                palette: palette, cycle: indicatorCycle, over: indicatorSurface, locale: numberLocale)
+                palette: palette, cycle: indicatorCycle, flash: indicatorFlash, over: indicatorSurface,
+                locale: numberLocale)
             appendIndicator(indicator, to: &lines, runs: &chromeRuns, claims: &chromeClaims)
         }
         let visibleRange = handler.drawnVisibleRange
@@ -3059,7 +3065,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if indicators.below {
             let indicator = renderScrollIndicator(
                 direction: .down, count: drawnBelow, unit: .rows, width: contentWidth,
-                palette: palette, cycle: indicatorCycle, over: indicatorSurface, locale: numberLocale)
+                palette: palette, cycle: indicatorCycle, flash: indicatorFlash, over: indicatorSurface,
+                locale: numberLocale)
             appendIndicator(indicator, to: &lines, runs: &chromeRuns, claims: &chromeClaims)
         }
         // The row lines are handed back separately for a `.cursor` drag's

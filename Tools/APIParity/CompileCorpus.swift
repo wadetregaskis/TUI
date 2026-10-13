@@ -2297,6 +2297,37 @@ private struct LoadEarlierShapes: View {
     }
 }
 
+// MARK: - Scroll indicator flash, phase velocity and bounce (lane SCROLLB)
+
+/// SwiftUI's own example for `scrollIndicatorsFlash(trigger:)`, its
+/// `onAppear:` twin, a phase observer reading the velocity, and a bounce under
+/// `.always`.
+@MainActor
+private struct ScrollFlashPhaseBounceShapes: View {
+    @State private var isPresented = false
+    @State private var flashCount = 0
+
+    var body: some View {
+        VStack {
+            ScrollView { Text("flashes on a change") }
+                .scrollIndicatorsFlash(trigger: flashCount)
+                .sheet(isPresented: $isPresented) { Text("sheet") }
+                .onChange(of: isPresented) { _, newValue in
+                    if newValue { flashCount += 1 }
+                }
+            ScrollView { Text("flashes on appearing") }
+                .scrollIndicatorsFlash(onAppear: true)
+                .onScrollPhaseChange { _, newPhase, context in
+                    if newPhase == .idle, let velocity = context.velocity, velocity.dy == 0 {
+                        flashCount += 1
+                    }
+                }
+            List(0..<20, id: \.self) { Text("row \($0)") }
+                .scrollBounceBehavior(.always)
+        }
+    }
+}
+
 // MARK: - Scroll content background (lane D2S)
 
 /// SwiftUI's own example, its commonest idiom, and `.visible`.

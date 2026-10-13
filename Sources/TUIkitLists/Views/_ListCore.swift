@@ -1894,6 +1894,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let indicatorCycle =
             drawsIndicator
             ? scrollIndicatorCycle(isFocused: listHasFocus, context: context) : nil
+        // A flash (`scrollIndicatorsFlash`), asked only when a line is drawn.
+        let indicatorFlash = drawsIndicator ? handler.indicatorFlash.strength(context: context) : nil
         let numberLocale = context.environment.locale
         let indicatorSurface = context.environment.enclosingSurface
 
@@ -1908,8 +1910,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // `always` case.
             topIndicator = renderScrollIndicator(
                 direction: .up, count: (origin.offset > 0 || origin.topClip > 0) ? max(1, origin.offset) : 0,
-                unit: .rows, width: rowWidth, palette: palette, cycle: indicatorCycle, over: indicatorSurface,
-                locale: numberLocale)
+                unit: .rows, width: rowWidth, palette: palette, cycle: indicatorCycle, flash: indicatorFlash,
+                over: indicatorSurface, locale: numberLocale)
         }
 
         // The content area fills EXACTLY, under either granularity: the bottom
@@ -2011,7 +2013,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 unit: .rows,
                 width: rowWidth,
                 palette: palette,
-                cycle: indicatorCycle,
+                cycle: indicatorCycle, flash: indicatorFlash,
                 over: indicatorSurface,
                 locale: numberLocale
             )
@@ -2196,12 +2198,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // pulses and never lifts under the pointer, so those inputs are constants.
         let arrows = context.environment.scrollbarArrows
         let proportional = context.environment.scrollbarProportionalThumb
+        // A flash (`scrollIndicatorsFlash`) lights the resting colours.
+        let flash = handler.indicatorFlash.strength(context: context)
         let key = ScrollbarMemo<ClaimingColumn>.Key(
             length: contentHeight, extent: extentLines, viewport: contentHeight, offset: offsetLines,
             arrows: arrows, proportional: proportional,
             isFocused: false, isScrollEnabled: true, hoveredCell: nil,
             palette: ComparablePalette(palette), depth: ColorDepth.current,
-            terminalColors: TerminalColors.current, cycle: nil)
+            terminalColors: TerminalColors.current, cycle: nil, flash: flash)
         if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
             handler.verticalScrollbarMemoHits += 1
             return remembered.bar
@@ -2209,7 +2213,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let bar = ScrollbarRenderer.verticalScrollbar(
             height: contentHeight, extent: extentLines, viewport: contentHeight, offset: offsetLines,
             arrows: arrows, proportional: proportional,
-            colors: .resting(in: palette))
+            colors: .resting(in: palette, flash: flash))
         handler.verticalScrollbarMemo = ScrollbarMemo(key: key, bar: bar, runs: [])
         return bar
     }

@@ -52,7 +52,7 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B28, B31, B35.
+at the faint tiers), B31, B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1384,6 +1384,21 @@ views (`ScrollView`, `List`, `Table`, `TextEditor` and the field chrome);
 state indices); and a focused bar already breathes, so the flash needs a
 distinct peak within the focus and selection colour rules. A view that is not
 flashing pays nothing.
+
+**Shipped 2026-10-13 (SCROLLB):** both forms, in `ScrollView` (both bars and
+its "N more" lines), `List` and `Table` (bar or lines) and `TextEditor` (its
+bar). The field chrome draws no scroll indicator (`FieldChrome` is the caps
+only), so there is nothing there to flash. A flash is half a second — ten
+steps of three 1/60 s ticks — rising in two, held for four, fading over four;
+the thumb and arrows, or the lines, go from where they rest to one
+`hoveredForeground` step past the focused breath's far end (the focus
+identity's own colour, so a focused bar's flash is told from its breathing),
+drawn still, without the breath's runs. `trigger:` keeps its last value in a
+`_ScrollIndicatorsFlashCore` (state index −150, a new reserved range); the
+scrollable keeps when it first drew, for `onAppear:`. A scrollable that is not
+flashing asks for no frame; where it draws an indicator, the flash costs one
+environment read a frame. The peak and the shape are the lane's call:
+[B-SCROLLB-1](<Scroll indicator flash and bounce (SCROLLB).md#b-scrollb-1-a-flash-peaks-one-hover-step-past-a-focused-bars-breath>).
 
 ### B30. The `Transaction` scroll members: what "no adjustment" suspends
 

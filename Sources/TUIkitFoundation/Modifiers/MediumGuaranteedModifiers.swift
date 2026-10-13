@@ -157,35 +157,6 @@ extension View {
     public func flipsForRightToLeftLayoutDirection(_ enabled: Bool) -> some View {
         self
     }
-
-    /// Flashes the scroll indicators of the scrollable views in this hierarchy
-    /// when they first appear — mirrors SwiftUI's
-    /// `scrollIndicatorsFlash(onAppear:)`.
-    ///
-    /// A flash exists because an overlay scroller is hidden until something
-    /// scrolls, so a person cannot otherwise tell the content goes on. A
-    /// terminal's indicators are not overlays: a scroll view whose content
-    /// overflows draws its bar, or its "N more" lines, on its first frame and on
-    /// every frame after, as macOS's legacy scrollers are. SwiftUI flashes only
-    /// the indicators configured to be visible; those are the ones drawn here,
-    /// and they are already in view.
-    ///
-    /// - Parameter onAppear: Whether to flash on appearing. Moot: they show.
-    /// - Returns: This view, unchanged.
-    public func scrollIndicatorsFlash(onAppear: Bool) -> some View {
-        self
-    }
-
-    /// Flashes the scroll indicators of the scrollable views in this hierarchy
-    /// when `value` changes — mirrors SwiftUI's `scrollIndicatorsFlash(trigger:)`.
-    ///
-    /// Already shown, for the reason ``scrollIndicatorsFlash(onAppear:)`` gives.
-    ///
-    /// - Parameter value: The value whose change asks for a flash.
-    /// - Returns: This view, unchanged.
-    public func scrollIndicatorsFlash(trigger value: some Equatable) -> some View {
-        self
-    }
 }
 
 // MARK: - Autocorrection, as an environment value

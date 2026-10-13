@@ -736,6 +736,7 @@ extension _ScrollViewCore {
         palette: any Palette,
         surface: Color,
         cycle: SelectionEmphasisCycle?,
+        flash: Double? = nil,
         locale: Locale,
         always: Bool = false,
         reserving: Bool = false
@@ -747,7 +748,7 @@ extension _ScrollViewCore {
         if reserving {
             return reservingScrollIndicators(
                 around: buffer, handler: handler, width: width, palette: palette,
-                surface: surface, cycle: cycle, locale: locale)
+                surface: surface, cycle: cycle, flash: flash, locale: locale)
         }
 
         var lines = buffer.lines
@@ -772,6 +773,7 @@ extension _ScrollViewCore {
                 palette: palette,
                 approximate: handler.contentHeightIsEstimate,
                 cycle: cycle,
+                flash: flash,
                 over: surface,
                 locale: locale
             )
@@ -790,6 +792,7 @@ extension _ScrollViewCore {
                 palette: palette,
                 approximate: handler.contentHeightIsEstimate,
                 cycle: cycle,
+                flash: flash,
                 over: surface,
                 locale: locale
             )
@@ -855,13 +858,14 @@ extension _ScrollViewCore {
         palette: any Palette,
         surface: Color,
         cycle: SelectionEmphasisCycle?,
+        flash: Double?,
         locale: Locale
     ) -> FrameBuffer {
         func line(_ direction: ScrollIndicatorDirection, count: Int) -> ScrollIndicatorLine {
             renderScrollIndicator(
                 direction: direction, count: count, unit: .lines, width: width,
                 palette: palette, approximate: handler.contentHeightIsEstimate,
-                cycle: cycle, over: surface, locale: locale)
+                cycle: cycle, flash: flash, over: surface, locale: locale)
         }
         let above = line(.up, count: handler.rowsAbove)
         let below = line(.down, count: handler.rowsBelow)

@@ -70,6 +70,7 @@ public final class StateStorage: @unchecked Sendable {
     /// | -120… | `GestureAttachment` (`gesture(_:including:)` and its siblings) |
     /// | -130… | the property walk's record of an enum's case (`enumCaseIndex`) |
     /// | -140… | the property walk's record of a view holding an object (`objectHolderIndex`) |
+    /// | -150… | `_ScrollIndicatorsFlashCore` (`scrollIndicatorsFlash(trigger:)`, a tracked value) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with

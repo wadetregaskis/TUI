@@ -326,9 +326,13 @@ extension _ScrollViewCore {
     /// reflecting the handler's scroll position at sub-cell precision. The
     /// content's hit-test regions sit at `x < contentWidth`, so the appended
     /// column never disturbs them.
+    ///
+    /// `flash` is how strongly a `scrollIndicatorsFlash` lights the bar this
+    /// frame, or `nil`; a flashing bar is drawn still, without the focus
+    /// breath's runs, which would paint the flash over from their first tick.
     func appendVerticalScrollbar(
         to buffer: FrameBuffer, contentWidth: Int, margins: EdgeInsets = EdgeInsets(),
-        handler: ScrollViewHandler, isFocused: Bool, context: RenderContext
+        handler: ScrollViewHandler, isFocused: Bool, flash: Double? = nil, context: RenderContext
     ) -> FrameBuffer {
         let rows = buffer.height
         guard rows > 0 else { return buffer }
@@ -342,8 +346,10 @@ extension _ScrollViewCore {
         // from the first tick, so a pulse that does not know about the
         // pointer paints the lift away and it never returns while the pointer
         // sits there.
-        let pulse = ScrollbarColors.focusPulse(
-            isFocused: isFocused, hoveredCell: handler.hoveredBarCell, context: context)
+        let pulse =
+            flash == nil
+            ? ScrollbarColors.focusPulse(
+                isFocused: isFocused, hoveredCell: handler.hoveredBarCell, context: context) : nil
         let key = ScrollbarMemo<ClaimingColumn>.Key(
             length: height, extent: handler.contentHeight, viewport: handler.viewportHeight,
             offset: handler.scrollOffset, arrows: context.environment.scrollbarArrows,
@@ -351,7 +357,7 @@ extension _ScrollViewCore {
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
             hoveredCell: handler.hoveredBarCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
-            cycle: pulse?.cycle)
+            cycle: pulse?.cycle, flash: flash)
         let memo: ScrollbarMemo<ClaimingColumn>
         if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
             handler.verticalScrollbarMemoHits += 1
@@ -361,6 +367,8 @@ extension _ScrollViewCore {
             // accent while focused (see ScrollbarColors.focusIndicating). The
             // runs that pulse it are one scrollbar render PER PULSE FRAME,
             // which is why the bar and its runs are kept with their inputs.
+            let colors = ScrollbarColors.focusIndicating(
+                isFocused: isFocused, hoveredCell: handler.hoveredBarCell, context: context)
             let bar = ScrollbarRenderer.verticalScrollbar(
                 height: height,
                 extent: handler.contentHeight,
@@ -368,8 +376,7 @@ extension _ScrollViewCore {
                 offset: handler.scrollOffset,
                 arrows: context.environment.scrollbarArrows,
                 proportional: context.environment.scrollbarProportionalThumb,
-                colors: .focusIndicating(
-                    isFocused: isFocused, hoveredCell: handler.hoveredBarCell, context: context))
+                colors: flash.map { colors.flashing($0, in: palette) } ?? colors)
             let runs =
                 pulse.map { pulse in
                     ScrollbarRenderer.verticalScrollbarRuns(
@@ -431,7 +438,8 @@ extension _ScrollViewCore {
     /// bottom-right where the two meet.
     func appendHorizontalScrollbar(
         to buffer: FrameBuffer, contentWidth: Int, margins: EdgeInsets = EdgeInsets(),
-        hasVerticalBar: Bool, handler: ScrollViewHandler, isFocused: Bool, context: RenderContext
+        hasVerticalBar: Bool, handler: ScrollViewHandler, isFocused: Bool, flash: Double? = nil,
+        context: RenderContext
     ) -> FrameBuffer {
         let palette = context.environment.palette
         let axis = handler.horizontal
@@ -443,8 +451,11 @@ extension _ScrollViewCore {
         // pulses, and the run that pulses it is one bar render per frame of the
         // pulse cycle. Drawn afresh every frame, the horizontal bar was 35.6% of
         // a keystroke in a two-axis editor (`Stress --session editor`).
-        let pulse = ScrollbarColors.focusPulse(
-            isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context)
+        // Still while it flashes, as the vertical bar is.
+        let pulse =
+            flash == nil
+            ? ScrollbarColors.focusPulse(
+                isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context) : nil
         let key = ScrollbarMemo<ClaimingRow>.Key(
             length: length, extent: axis.extent, viewport: axis.viewportHeight,
             offset: axis.scrollOffset, arrows: context.environment.scrollbarArrows,
@@ -452,12 +463,14 @@ extension _ScrollViewCore {
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
             hoveredCell: axis.hoveredBarCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
-            cycle: pulse?.cycle)
+            cycle: pulse?.cycle, flash: flash)
         let memo: ScrollbarMemo<ClaimingRow>
         if let remembered = handler.horizontalScrollbarMemo, remembered.key == key {
             handler.horizontalScrollbarMemoHits += 1
             memo = remembered
         } else {
+            let colors = ScrollbarColors.focusIndicating(
+                isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context)
             let bar = ScrollbarRenderer.horizontalScrollbar(
                 width: length,
                 extent: axis.extent,
@@ -465,8 +478,7 @@ extension _ScrollViewCore {
                 offset: axis.scrollOffset,
                 arrows: context.environment.scrollbarArrows,
                 proportional: context.environment.scrollbarProportionalThumb,
-                colors: .focusIndicating(
-                    isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context))
+                colors: flash.map { colors.flashing($0, in: palette) } ?? colors)
             let run = pulse.flatMap { pulse in
                 ScrollbarRenderer.horizontalScrollbarRun(
                     width: length,
@@ -560,6 +572,8 @@ package struct ScrollbarMemo<Bar> {
         /// memo either — it lives on the handler, not in the cache.
         package let terminalColors: TerminalColors
         package let cycle: SelectionEmphasisCycle?
+        /// How strongly a `scrollIndicatorsFlash` lit the bar, or `nil`.
+        package let flash: Double?
 
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUIkitLists makes these, for the lists' scrollbars.
@@ -576,7 +590,8 @@ package struct ScrollbarMemo<Bar> {
             palette: ComparablePalette,
             depth: ColorDepth,
             terminalColors: TerminalColors,
-            cycle: SelectionEmphasisCycle?
+            cycle: SelectionEmphasisCycle?,
+            flash: Double? = nil
         ) {
             self.length = length
             self.extent = extent
@@ -591,6 +606,7 @@ package struct ScrollbarMemo<Bar> {
             self.depth = depth
             self.terminalColors = terminalColors
             self.cycle = cycle
+            self.flash = flash
         }
     }
 

@@ -75,6 +75,18 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// How many times ``horizontalScrollbarMemo`` answered.
     var horizontalScrollbarMemoHits = 0
 
+    /// When this view first drew, for a flash of its indicators on appearing
+    /// (`scrollIndicatorsFlash`).
+    var indicatorFlash = ScrollIndicatorFlash()
+
+    /// Spends the opening frame (``hasOpened``) on a render pass at `nanos` on
+    /// the frame clock, the first time noting it as when the view appeared.
+    /// An autoclosure, so the frames after the first read no clock.
+    func open(atNanos nanos: @autoclosure () -> Int64) {
+        if !hasOpened { indicatorFlash.noteAppearance(atNanos: nanos()) }
+        hasOpened = true
+    }
+
     /// The unique focus identifier for this scroll view.
     public var focusID: String
 

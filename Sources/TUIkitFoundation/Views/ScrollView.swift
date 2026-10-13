@@ -589,7 +589,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         }
         // The opening frame is now spent: from here on the `.sizeChanges`
         // anchor governs. Render passes only — a measure must not consume it.
-        if !context.isMeasuring { handler.hasOpened = true }
+        // It is also when the view appeared, where a flash of its indicators
+        // on appearing starts.
+        if !context.isMeasuring { handler.open(atNanos: context.environment.frameNowNanos) }
 
         // The chrome's indicator answer, here and below, and never the
         // environment's: only the chrome knows the viewport is too short for the
@@ -983,6 +985,12 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // of the viewport the floor is about, so testing it declined to draw the
         // pair into the very lines reserved for it. Unreserved, the two heights
         // are one number, which is why `.automatic` draws exactly what it did.
+        //
+        // A flash (`scrollIndicatorsFlash`) is asked once, for whichever of the
+        // indicators below are drawn, and only when one is.
+        let flash =
+            chrome.textIndicators || chrome.verticalBar || chrome.horizontalBar
+            ? handler.indicatorFlash.strength(context: context) : nil
         if chrome.textIndicators {
             visibleBuffer = applyScrollIndicators(
                 to: visibleBuffer,
@@ -997,6 +1005,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
                 // that scrolls only horizontally has no vertical indicators.
                 cycle: chrome.reservesIndicatorLines || handler.hasContentAbove || handler.hasContentBelow
                     ? scrollIndicatorCycle(isFocused: isFocused, context: context) : nil,
+                flash: flash,
                 locale: context.environment.locale,
                 // Reserved is drawn at every offset: the two are one answer.
                 always: chrome.reservesIndicatorLines,
@@ -1009,7 +1018,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         if chrome.verticalBar {
             visibleBuffer = appendVerticalScrollbar(
                 to: visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
-                handler: handler, isFocused: isFocused, context: context)
+                handler: handler, isFocused: isFocused, flash: flash, context: context)
             attachScrollbarMouseHandler(
                 to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
                 handler: handler, focusID: persistedFocusID, context: context)
@@ -1018,7 +1027,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             visibleBuffer = appendHorizontalScrollbar(
                 to: visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
                 hasVerticalBar: chrome.verticalBar, handler: handler,
-                isFocused: isFocused, context: context)
+                isFocused: isFocused, flash: flash, context: context)
             attachHorizontalScrollbarMouseHandler(
                 to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
                 handler: handler, focusID: persistedFocusID, context: context)
