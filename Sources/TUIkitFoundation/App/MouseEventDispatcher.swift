@@ -209,9 +209,17 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     private var lastMotionPosition: (x: Int, y: Int)?
 
     /// Where the pointer rests while that is known: the cell of the last
-    /// report that carried one — a move, a press, a drag, a release, a wheel
-    /// tick — or `nil` from when the terminal may have stopped reporting
-    /// where it goes until it next does.
+    /// report of its motion — a move, or a drag's, which arrives as
+    /// `.dragged` and never as `.moved` — or `nil` from when the terminal may
+    /// have stopped reporting where it goes until it next does.
+    ///
+    /// Not a press's cell, a release's or a wheel tick's. While motion is
+    /// reported the terminal reports the move to that cell first, so they add
+    /// nothing; and a press reported with no move before it — a script's
+    /// right-click — made its cell where the pointer rests for the reshape the
+    /// press itself caused, which entered the row of the context menu it
+    /// opened under the pointer, a pointer-opened menu with its first item
+    /// highlighted (the Stress menus session).
     ///
     /// Forgotten when the terminal's reporting stops covering motion (a
     /// frame-final support without it, ``setActiveSupport(_:isFrameFinal:)``)
@@ -979,10 +987,10 @@ extension MouseEventDispatcher {
                 """)
         }
 
-        // Every report says where the pointer is, a dropped one too: a drag's
-        // moves arrive as `.dragged`, never as `.moved` (`restingPosition`).
-        // The synthetic phases are the dispatcher's own and report nothing.
-        if event.phase != .entered, event.phase != .exited { restingPosition = (event.x, event.y) }
+        // Every report of the pointer's motion says where it is, a dropped one
+        // too: a drag's moves arrive as `.dragged`, never as `.moved`
+        // (`restingPosition`).
+        if event.phase == .moved || event.phase == .dragged { restingPosition = (event.x, event.y) }
 
         // Honour the active MouseSupport configuration: drop events
         // whose category isn't enabled. The terminal may still send

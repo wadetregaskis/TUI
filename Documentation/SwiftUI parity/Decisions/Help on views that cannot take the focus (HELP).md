@@ -138,8 +138,8 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   entering what it slid under the cell of the last move after a page that
   asked for no motion, a Ctrl-Z or a drag had left that cell behind, so a
   help showed for a view the pointer was not on. The dispatcher keeps where
-  the pointer rests from every report that carries a position, and forgets
-  it when the reporting stops covering motion and at a suspend
+  the pointer rests from every report of its motion, a drag's included, and
+  forgets it when the reporting stops covering motion and at a suspend
   (`MouseEventDispatcher.restingPosition`,
   `HoverReshapeRunLoopTests.noEntryAfterAGapInReporting`,
   `HoverReshapeTests.reshapeEntersOnlyWhereThePointerIsKnown`). Not the
