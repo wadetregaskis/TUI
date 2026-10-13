@@ -92,7 +92,7 @@ struct LazyStackZeroExtentGapTests {
         var context = makeBareRenderContext(width: 20, height: 5)
         context.gradientFrame = GradientFrame(width: 20, height: 5, isProvisional: true)
         let children = resolveChildViews(from: stack.content, context: context)
-        let placement = stack.windowGradientPlacement(children, context: context)
+        let placement = stack.windowGradientPlacement(children, gaps: StackGaps(uniform: stack.spacing), context: context)
         let columns = placement.offsets.map(\.x)
         #expect(columns == [0, 1, 3])
         #expect(placement.frame?.width == 4)

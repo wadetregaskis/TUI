@@ -158,7 +158,7 @@ extension _HStackCore {
     /// - Returns: The settled frame (`nil` when no ramp spans this row) and one
     ///   offset per child, short of `children` where the fold cut the walk.
     func windowGradientPlacement(
-        _ children: [ChildView], context: RenderContext
+        _ children: [ChildView], gaps: StackGaps, context: RenderContext
     ) -> (frame: GradientFrame?, offsets: [(x: Int, y: Int)]) {
         guard context.placesChildren else { return (nil, []) }
 
@@ -174,8 +174,7 @@ extension _HStackCore {
             let fixedWidth = zip(children, sizes)
                 .reduce(0) { $0 + ($1.0.isSpacer ? 0 : $1.1.width) }
             // The columns that will occupy cells, counted as `renderWindow` counts them.
-            let occupied = spacerCount + zip(children, sizes).count { !$0.0.isSpacer && $0.1.width > 0 }
-            let totalSpacing = totalLinearSpacing(occupiedChildren: occupied, spacing: spacing)
+            let totalSpacing = gaps.total(count: children.count) { children[$0].isSpacer || sizes[$0].width > 0 }
             let forSpacers = max(0, context.availableWidth - fixedWidth - totalSpacing)
             spacerWidth = forSpacers / spacerCount
             spacerRemainder = forSpacers % spacerCount
@@ -184,6 +183,7 @@ extension _HStackCore {
         var placed: [(child: ChildView, size: ViewSize, x: Int)] = []
         var running = 0
         var spacerIndex = 0
+        var walk = StackGapWalk(gaps)
         for (index, child) in children.enumerated() {
             let width: Int
             if child.isSpacer {
@@ -196,11 +196,12 @@ extension _HStackCore {
             }
             // `renderWindow`'s gap rule, so the fold lands where its walk stops
             // and the ramp spans the columns the row draws.
-            let spacingBefore = linearSpacing(before: width, placedExtent: running, spacing: spacing)
+            let spacingBefore = walk.gap(before: index, extent: width)
             guard running + spacingBefore + width <= context.availableWidth else { break }
             running += spacingBefore
             placed.append((child, sizes[index], running))
             running += width
+            walk.place(index, extent: width)
         }
 
         // The row is as tall as its tallest placed child, or fills what it was

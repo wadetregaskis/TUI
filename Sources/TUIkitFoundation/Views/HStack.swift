@@ -134,6 +134,12 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         }
     }
 
+    /// The gaps between `children`, this row's resolved for this walk: every
+    /// one the row's `spacing`.
+    private func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
+        StackGaps(uniform: spacing)
+    }
+
     /// The single sizing routine shared by `sizeThatFits` and `renderToBuffer`,
     /// so the two passes cannot disagree about widths or height — measuring each
     /// child once at its ideal, distributing, then re-measuring heights at the
@@ -147,7 +153,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     ///   answers with its children's ideal widths summed and nothing
     ///   distributed — see the comment at the distribution.
     private func resolvedLayout(
-        _ children: [ChildView], availableWidth: Int, asksIdealWidth: Bool = false,
+        _ children: [ChildView], gaps: StackGaps, availableWidth: Int, asksIdealWidth: Bool = false,
         context: RenderContext
     ) -> ResolvedRowLayout {
         let count = children.count
@@ -213,21 +219,19 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         var distributable = availableWidth
         if asksIdealWidth {
             var idealTotal = 0
-            var occupying = 0
             for index in ideal.indices {
                 idealTotal += max(0, ideal[index])
-                // Who occupies the axis, by `distributeLinearSpace`'s own rule.
-                if fills[index] || ideal[index] > 0 { occupying += 1 }
             }
-            distributable = min(
-                availableWidth,
-                idealTotal + totalLinearSpacing(occupiedChildren: occupying, spacing: max(0, spacing)))
+            // Who occupies the axis, by `distributeLinearSpace`'s own rule; a
+            // gap by pair is never negative, and the one `spacing` is clamped.
+            let gapTotal = max(0, gaps.total(count: ideal.count) { fills[$0] || ideal[$0] > 0 })
+            distributable = min(availableWidth, idealTotal + gapTotal)
         }
         // A priority decides who is offered space first (`layoutPriority(_:)`);
         // with none, nothing below is measured.
         let priorities = layoutPriorities(of: children)
         let widths = distributeLinearSpace(
-            naturalSizes: ideal, isFlexible: fills, available: distributable, spacing: spacing,
+            naturalSizes: ideal, isFlexible: fills, available: distributable, gaps: gaps,
             priorities: priorities,
             minimumSizes: priorities.map { _ in
                 minimumLengths(of: children, horizontally: true, across: nil, context: context)
@@ -286,7 +290,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         // so both take that same branch.
         let totalWidth =
             widths.reduce(0, +)
-            + totalLinearSpacing(occupiedChildren: widths.count { $0 > 0 }, spacing: spacing)
+            + gaps.total(count: widths.count) { widths[$0] > 0 }
         return ResolvedRowLayout(
             widths: widths,
             totalWidth: min(totalWidth, max(0, availableWidth)),
@@ -333,7 +337,8 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         let widthLimit = proposal.width ?? context.availableWidth
         let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
         let layout = resolvedLayout(
-            children, availableWidth: widthLimit, asksIdealWidth: asksIdealWidth, context: context)
+            children, gaps: gaps(between: children, context: context), availableWidth: widthLimit,
+            asksIdealWidth: asksIdealWidth, context: context)
         // Natural when its children are AND the row is at least as tall as the
         // tallest answer it was built from. A row reads the vertical budget
         // nowhere: it measures children at their ideal, distributes WIDTH, and
@@ -411,10 +416,12 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
         var width = 0
         var height = 1
-        for size in sizes {
+        var walk = StackGapWalk(gaps(between: children, context: measureContext))
+        for (index, size) in sizes.enumerated() {
             // A gap only between columns that occupy cells, as `renderWindow`
             // assembles them: see `linearSpacing(before:placedExtent:spacing:)`.
-            let next = width + linearSpacing(before: size.width, placedExtent: width, spacing: spacing) + size.width
+            let next = width + walk.gap(before: index, extent: size.width) + size.width
+            walk.place(index, extent: size.width)
             if next > widthLimit {
                 // Saturated: content extends past the limit. Report the LIMIT
                 // — see the identical break in _VStackCore.windowSizeThatFits:
@@ -466,7 +473,8 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         let children = resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return FrameBuffer() }
 
-        let layout = resolvedLayout(children, availableWidth: context.availableWidth, context: context)
+        let gaps = gaps(between: children, context: context)
+        let layout = resolvedLayout(children, gaps: gaps, availableWidth: context.availableWidth, context: context)
         let finalWidths = layout.widths
 
         // The row is as tall as the tallest child, bounded by the space the
@@ -505,17 +513,19 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         let gradientFrame = context.gradientContentFrame(
             width: layout.totalWidth, height: rowHeight)
         var gradientX = 0
+        var gradientWalk = StackGapWalk(gaps)
         var buffers: [FrameBuffer?] = []
         buffers.reserveCapacity(children.count)
         for (index, child) in children.enumerated() {
             // The ramp advances by what the row DRAWS. A column of no cells is
             // appended through `appendHorizontally`'s contributes-nothing branch
             // and earns no gap, so it must not push the ramp along by one
-            // either. `gradientX > 0` rather than `index > 0` because that same
-            // branch withholds the gap while nothing has been placed yet (its
-            // `spacingApplied = priorWidth > 0 ? spacing : 0`), so a LEADING
-            // empty child must not indent the ramp.
-            if gradientX > 0, finalWidths[index] > 0 { gradientX += spacing }
+            // either. Nor does a column before any column has drawn cells,
+            // because that same branch withholds the gap while nothing has been
+            // placed yet (its `spacingApplied = priorWidth > 0 ? spacing : 0`),
+            // so a LEADING empty child must not indent the ramp.
+            gradientX += gradientWalk.gap(before: index, extent: finalWidths[index])
+            gradientWalk.place(index, extent: finalWidths[index])
             var childContext = context
             // A spacer renders nothing and takes no ramp position: its context
             // is never used, so nothing is measured or built for it.
@@ -562,12 +572,16 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
         var result = FrameBuffer()
         var placedIndex = 0
+        // `appendHorizontally` charges the gap it is handed only between two
+        // pieces that both draw cells; the walk names which gap that is.
+        var walk = StackGapWalk(gaps)
         for index in children.indices {
-            let spacingToApply = index > 0 ? spacing : 0
             guard let buffer = buffers[index] else {
+                let width = finalWidths[index]
                 result.appendHorizontally(
-                    FrameBuffer(emptyWithWidth: finalWidths[index], height: rowHeight),
-                    spacing: spacingToApply)
+                    FrameBuffer(emptyWithWidth: width, height: rowHeight),
+                    spacing: walk.gap(before: index, extent: width))
+                walk.place(index, extent: width)
                 continue
             }
             defer { placedIndex += 1 }
@@ -582,14 +596,44 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                     buffer.placedVerticallyDrawingOverhang(
                         inHeight: rowHeight, topPadding: $0.offsets[placedIndex], isMeasuring: context.isMeasuring)
                 } ?? buffer.verticallyAligned(toHeight: rowHeight, alignment: alignment)
-            result.appendHorizontally(aligned, spacing: spacingToApply)
+            result.appendHorizontally(aligned, spacing: walk.gap(before: index, extent: aligned.width))
+            walk.place(index, extent: aligned.width)
         }
 
-        reportTargetLayout(buffers: buffers, spacerWidths: finalWidths, context: context)
+        reportTargetLayout(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, context: context)
 
         // Final guard: the assembled row never exceeds the space we were given,
         // even when inter-child spacing alone would overflow a tiny terminal.
         return result.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+    }
+
+    /// What a lazy row holding `spacerCount` spacers renders before its walk:
+    /// every column (`nil` for a spacer), and each spacer's share of what they
+    /// leave — the quotient, and the remainder handed out a column at a time.
+    /// Nothing at all for a row with none, which keeps its laziness.
+    private func windowSpacerShares(
+        _ children: [ChildView], spacerCount: Int, gaps: StackGaps, context: RenderContext,
+        columnContext: (Int) -> RenderContext
+    ) -> (eagerBuffers: [FrameBuffer?], spacerWidth: Int, spacerRemainder: Int) {
+        guard spacerCount > 0 else { return ([], 0, 0) }
+        let availableWidth = context.availableWidth
+        let eagerBuffers = children.enumerated().map { index, child in
+            child.isSpacer
+                ? nil
+                : child.render(
+                    width: availableWidth, height: context.availableHeight,
+                    context: columnContext(index))
+        }
+        let fixedWidth = eagerBuffers.compactMap { $0?.width }.reduce(0, +)
+        // Gaps between the columns that will occupy cells — every spacer and
+        // every column that drew some — the count `distributeLinearSpace`
+        // reserves for the eager row. One per child left a Spacer beside an
+        // `EmptyView` a `spacing` short of flush.
+        let totalSpacing = gaps.total(count: children.count) {
+            children[$0].isSpacer || (eagerBuffers[$0]?.width ?? 0) > 0
+        }
+        let availableForSpacers = max(0, availableWidth - fixedWidth - totalSpacing)
+        return (eagerBuffers, availableForSpacers / spacerCount, availableForSpacers % spacerCount)
     }
 
     /// `.window` render (lazy `LazyHStack`): append whole children left-to-right
@@ -615,7 +659,8 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         // column renders, and this path renders as it walks — so the placement
         // is measured up front, stopping at the same fold the walk will. Costs
         // nothing without a `.gradientExtent(.subtree)` above.
-        let (gradientFrame, gradientOffsets) = windowGradientPlacement(children, context: context)
+        let gaps = gaps(between: children, context: context)
+        let (gradientFrame, gradientOffsets) = windowGradientPlacement(children, gaps: gaps, context: context)
         func columnContext(_ index: Int) -> RenderContext {
             guard index < gradientOffsets.count else { return context }
             return context.placingChild(
@@ -627,27 +672,8 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         // early-stop: pre-render everything, as the single-pass path always
         // did. The common spacer-less lazy stack keeps its laziness below.
         let spacerCount = children.count { $0.isSpacer }
-        var eagerBuffers: [FrameBuffer?] = []
-        var spacerWidth = 0
-        var spacerRemainder = 0
-        if spacerCount > 0 {
-            eagerBuffers = children.enumerated().map { index, child in
-                child.isSpacer
-                    ? nil
-                    : child.render(
-                        width: availableWidth, height: context.availableHeight,
-                        context: columnContext(index))
-            }
-            let fixedWidth = eagerBuffers.compactMap { $0?.width }.reduce(0, +)
-            // Gaps between the columns that will occupy cells — every spacer and
-            // every column that drew some — the count `distributeLinearSpace`
-            // reserves for the eager row. One per child left a Spacer beside an
-            // `EmptyView` a `spacing` short of flush.
-            let totalSpacing = totalLinearSpacing(occupiedChildren: spacerCount + eagerBuffers.count { ($0?.width ?? 0) > 0 }, spacing: spacing)
-            let availableForSpacers = max(0, availableWidth - fixedWidth - totalSpacing)
-            spacerWidth = availableForSpacers / spacerCount
-            spacerRemainder = availableForSpacers % spacerCount
-        }
+        let (eagerBuffers, spacerWidth, spacerRemainder) = windowSpacerShares(
+            children, spacerCount: spacerCount, gaps: gaps, context: context, columnContext: columnContext)
 
         // === PASS 1: Collect the children that fit (rendering on demand)
         //             and compute the max height ===
@@ -658,33 +684,37 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         var currentWidth = 0
         var spacerIndex = 0
 
-        // Every gap below is `linearSpacing(before:placedExtent:spacing:)`, the
-        // rule PASS 2's `appendHorizontally` applies: a column of no cells earns
-        // none. Charged per index, the fit-check spent a gap per `EmptyView` that
+        // Every gap below is `linearSpacing(before:placedExtent:spacing:)`'s
+        // rule, by pair (`StackGapWalk`), the rule PASS 2's
+        // `appendHorizontally` applies: a column of no cells earns none.
+        // Charged per index, the fit-check spent a gap per `EmptyView` that
         // PASS 2 never drew, and stopped before a column that fitted.
+        var walk = StackGapWalk(gaps)
         for (index, child) in children.enumerated() {
             if child.isSpacer {
                 let extraWidth = spacerIndex < spacerRemainder ? 1 : 0
                 let width = max(child.spacerMinLength ?? 0, spacerWidth + extraWidth)
-                let spacingToApply = linearSpacing(before: width, placedExtent: currentWidth, spacing: spacing)
+                let spacingToApply = walk.gap(before: index, extent: width)
                 if currentWidth + spacingToApply + width > availableWidth { break }
                 // Spacer height is set to maxHeight in pass 2
                 collected.append((FrameBuffer(emptyWithWidth: width, height: 1), spacingToApply, nil))
                 currentWidth += spacingToApply + width
+                walk.place(index, extent: width)
                 spacerIndex += 1
             } else if spacerCount > 0 {
                 let buffer = eagerBuffers[index]!
-                let spacingToApply = linearSpacing(before: buffer.width, placedExtent: currentWidth, spacing: spacing)
+                let spacingToApply = walk.gap(before: index, extent: buffer.width)
                 if currentWidth + spacingToApply + buffer.width > availableWidth { break }
                 maxHeight = max(maxHeight, buffer.height)
                 collected.append((buffer, spacingToApply, child))
                 currentWidth += spacingToApply + buffer.width
+                walk.place(index, extent: buffer.width)
             } else {
                 // Fit-check on a (side-effect-free) measure BEFORE rendering —
                 // see renderWindow in VStack.swift: rendering-to-check fired
                 // the first overflowing child's lifecycle every frame.
                 let measured = child.measure(proposal: .unspecified, context: context)
-                let spacingToApply = linearSpacing(before: measured.width, placedExtent: currentWidth, spacing: spacing)
+                let spacingToApply = walk.gap(before: index, extent: measured.width)
                 if currentWidth + spacingToApply + measured.width > availableWidth {
                     // Saturated: the column does not fit whole. Render what
                     // shows, clipped at the cell, so the row fills the limit
@@ -714,11 +744,12 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                 let buffer = child.render(
                     width: availableWidth, height: context.availableHeight,
                     context: columnContext(index))
-                let renderedGap = linearSpacing(before: buffer.width, placedExtent: currentWidth, spacing: spacing)
+                let renderedGap = walk.gap(before: index, extent: buffer.width)
                 if currentWidth + renderedGap + buffer.width > availableWidth { break }
                 maxHeight = max(maxHeight, buffer.height)
                 collected.append((buffer, renderedGap, child))
                 currentWidth += renderedGap + buffer.width
+                walk.place(index, extent: buffer.width)
             }
         }
 
@@ -786,19 +817,18 @@ extension _HStackCore: AlignmentGuideQuerying {
         let context = context.publishingContainerAxis(.horizontal)
         let children = resolveChildViews(from: content, context: context)
         guard anyAlignmentGuide(in: children) else { return nil }
-        let layout = resolvedLayout(children, availableWidth: dimensions.width, context: context)
+        let gaps = gaps(between: children, context: context)
+        let layout = resolvedLayout(children, gaps: gaps, availableWidth: dimensions.width, context: context)
         let rowHeight = max(1, min(layout.height, dimensions.height))
         var frames: [(x: Int, y: Int, width: Int, height: Int)] = []
         frames.reserveCapacity(children.count)
         var x = 0
-        var placedAny = false
+        var walk = StackGapWalk(gaps)
         var placedIndex = 0
         for (index, child) in children.enumerated() {
             let width = layout.widths[index]
-            if width > 0 {
-                if placedAny { x += spacing }
-                placedAny = true
-            }
+            x += walk.gap(before: index, extent: width)
+            walk.place(index, extent: width)
             if child.isSpacer {
                 frames.append((x: x, y: 0, width: width, height: 0))
             } else {

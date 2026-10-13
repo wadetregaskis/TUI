@@ -109,14 +109,18 @@ extension _HStackCore {
     /// a spacer's (`nil`) the width the layout gave it — placed as
     /// `appendHorizontally` places it, a gap only once a column has drawn cells
     /// and none for one that draws none. Spacers are not views to settle on.
-    func reportTargetLayout(buffers: [FrameBuffer?], spacerWidths: [Int], context: RenderContext) {
+    func reportTargetLayout(
+        buffers: [FrameBuffer?], spacerWidths: [Int], gaps: StackGaps, context: RenderContext
+    ) {
         guard let reply = targetLayoutReply(context: context) else { return }
         var spans: [TargetLayoutSpans.Span] = []
         var cursor = 0
+        var walk = StackGapWalk(gaps)
         for (index, buffer) in buffers.enumerated() {
             let width = buffer?.width ?? spacerWidths[index]
             guard width > 0 else { continue }
-            if cursor > 0 { cursor += spacing }
+            cursor += walk.gap(before: index, extent: width)
+            walk.place(index, extent: width)
             if buffer != nil { spans.append(.init(origin: cursor, length: width)) }
             cursor += width
         }

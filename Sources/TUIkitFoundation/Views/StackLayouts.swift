@@ -217,7 +217,7 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         // See `VStackLayout.sizeThatFits` — same reasoning, other axis.
         let natural = ProposedSize(width: nil, height: proposal.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
-        let gaps = max(0, subviews.count - 1) * resolvedSpacing
+        let gaps = gaps(between: subviews).total(count: subviews.count) { _ in true }
         let content = sizes.map(\.width).reduce(0, +) + gaps
         let flexible = sizes.contains { $0.isWidthFlexible }
         let width: Int
@@ -243,11 +243,12 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         let natural = ProposedSize(width: nil, height: bounds.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         let priorities = subviewPriorities(subviews)
+        let gaps = gaps(between: subviews)
         let widths = distributeLinearSpace(
             naturalSizes: sizes.map(\.width),
             isFlexible: sizes.map(\.isWidthFlexible),
             available: bounds.width,
-            spacing: resolvedSpacing,
+            gaps: gaps,
             priorities: priorities,
             minimumSizes: priorities.map { _ in
                 subviews.map { $0.sizeThatFits(ProposedSize(width: 0, height: bounds.height)).width }
@@ -258,8 +259,15 @@ public struct HStackLayout: Layout, Sendable, Equatable {
             subview.place(
                 at: (x: x, y: bounds.y + alignedOffset(for: sizes[index].height, in: bounds.height)),
                 proposal: ProposedSize(width: width, height: sizes[index].height))
-            x += width + (width > 0 ? resolvedSpacing : 0)
+            // The gap to the next subview, after one that took any width.
+            x += width + (width > 0 && index + 1 < subviews.count ? gaps.between(index, index + 1) : 0)
         }
+    }
+
+    /// The gaps between `subviews`: every one ``spacing``, or the distance
+    /// views prefer when it is `nil`.
+    private func gaps(between subviews: Subviews) -> StackGaps {
+        StackGaps(uniform: resolvedSpacing)
     }
 
     /// See ``VStackLayout/alignedOffset(for:in:)`` — same reasoning, other axis.

@@ -15,7 +15,7 @@
 /// *only* thing that distinguishes them.
 ///
 /// - `clip`: the eager behaviour. Every child is laid out via
-///   ``distributeLinearSpace(naturalSizes:isFlexible:available:spacing:)``,
+///   ``distributeLinearSpace(naturalSizes:isFlexible:available:spacing:priorities:minimumSizes:)``,
 ///   which places leading children at their natural size and clips the trailing
 ///   overflow *at the cell* (a child can be cut mid-content). The reported size
 ///   is the analytic sum-and-clamp.
@@ -67,7 +67,7 @@ package enum StackOverflow {
 ///   - spacing: The gap rendered between adjacent non-empty children.
 ///   - priorities: Each child's ``View/layoutPriority(_:)``, or `nil` when every
 ///     one is `0` — the common case, distributed as above. See
-///     ``distributeLinearSpace(byPriority:minimumSizes:naturalSizes:isFlexible:available:spacing:)``.
+///     ``distributeLinearSpace(byPriority:minimumSizes:naturalSizes:isFlexible:available:gaps:)``.
 ///   - minimumSizes: Each child's size when offered nothing on this axis;
 ///     read only with `priorities`.
 /// - Returns: One allocated size per child; placed sizes + their gaps sum to
@@ -76,15 +76,26 @@ func distributeLinearSpace(
     naturalSizes: [Int], isFlexible: [Bool], available: Int, spacing: Int = 0,
     priorities: [Double]? = nil, minimumSizes: [Int]? = nil
 ) -> [Int] {
+    distributeLinearSpace(
+        naturalSizes: naturalSizes, isFlexible: isFlexible, available: available, gaps: StackGaps(uniform: spacing),
+        priorities: priorities, minimumSizes: minimumSizes)
+}
+
+/// ``distributeLinearSpace(naturalSizes:isFlexible:available:spacing:priorities:minimumSizes:)`` with
+/// the gaps a ``StackGaps`` gives each pair of neighbours, each clamped at zero
+/// as the single `spacing` is.
+func distributeLinearSpace(
+    naturalSizes: [Int], isFlexible: [Bool], available: Int, gaps: StackGaps,
+    priorities: [Double]? = nil, minimumSizes: [Int]? = nil
+) -> [Int] {
     if let priorities, let minimumSizes {
         return distributeLinearSpace(
             byPriority: priorities, minimumSizes: minimumSizes, naturalSizes: naturalSizes,
-            isFlexible: isFlexible, available: available, spacing: spacing)
+            isFlexible: isFlexible, available: available, gaps: gaps)
     }
     let total = max(0, available)
     var result = naturalSizes.map { max(0, $0) }
     let flexIndices = result.indices.filter { isFlexible[$0] }
-    let gap = max(0, spacing)
 
     var nonFlexTotal = 0
     var flexTotal = 0
@@ -110,7 +121,12 @@ func distributeLinearSpace(
             if result[index] > 0 { occupying += 1 }
         }
     }
-    let allSpacing = totalLinearSpacing(occupiedChildren: occupying, spacing: gap)
+    // A gap by pair is never negative (``StackGaps``), so only the one
+    // `spacing` needs the clamp.
+    let allSpacing =
+        gaps.isUniform
+        ? totalLinearSpacing(occupiedChildren: occupying, spacing: max(0, gaps.uniform))
+        : gaps.total(count: result.count) { isFlexible[$0] || result[$0] > 0 }
 
     if nonFlexTotal + flexTotal + allSpacing <= total {
         // Everything (content + every gap) fits; flexible children absorb the surplus.
@@ -130,9 +146,9 @@ func distributeLinearSpace(
         // whole stack going blank when the gaps alone would exceed `available`.
         for index in flexIndices { result[index] = 0 }
         var used = 0
-        var placedAny = false
+        var lastPlaced: Int?
         for index in result.indices where !isFlexible[index] {
-            let leadingGap = placedAny ? gap : 0
+            let leadingGap = lastPlaced.map { max(0, gaps.between($0, index)) } ?? 0
             let room = total - used - leadingGap
             if room <= 0 {
                 result[index] = 0
@@ -142,7 +158,7 @@ func distributeLinearSpace(
             result[index] = size
             if size > 0 {
                 used += leadingGap + size
-                placedAny = true
+                lastPlaced = index
             }
         }
     }
@@ -205,6 +221,109 @@ func linearSpacing(before extent: Int, placedExtent: Int, spacing: Int) -> Int {
     placedExtent > 0 && extent > 0 ? spacing : 0
 }
 
+// MARK: - Stack Gaps
+
+/// The gaps a stack draws between the children that occupy its axis: every
+/// one its `spacing`, or one per pair of neighbours.
+///
+/// A gap belongs between two children that OCCUPY the axis, as everywhere in
+/// this file (``totalLinearSpacing(occupiedChildren:spacing:)``): a child of
+/// no extent between them is not their neighbour and takes no part. So a gap
+/// is asked of the two children it separates — ``between(_:_:)`` — rather than
+/// of a position, and a walk asks it of the last child it placed that occupies
+/// the axis and the one it is about to place (``StackGapWalk``).
+///
+/// Uniform — every gap ``uniform`` — unless a stack resolves `spacing: nil`
+/// per pair and a child states a ``ViewSpacing`` of its own; then a gap one of
+/// whose two neighbours states one is the distance the pair's facing edges ask
+/// for. A gap by pair is never negative, where a stated `spacing` may be.
+struct StackGaps {
+    /// Every gap, when ``isUniform``; otherwise the gap between two children
+    /// neither of which states a preference.
+    let uniform: Int
+
+    /// Per child, the spacing it states, or `nil` for one that states none;
+    /// `nil` throughout when every gap is ``uniform``.
+    private let preferences: [ViewSpacing?]?
+
+    /// The axis the children follow each other along.
+    private let axis: Axis
+
+    /// Gaps of `uniform` between every pair.
+    init(uniform: Int) {
+        self.uniform = uniform
+        self.preferences = nil
+        self.axis = .horizontal
+    }
+
+    /// Gaps by pair: between two children neither of which states a spacing,
+    /// `uniform`; otherwise the distance their ``ViewSpacing``s ask for along
+    /// `axis`, a child that states none taking the default.
+    ///
+    /// - Parameters:
+    ///   - uniform: The gap between two children that state nothing — the
+    ///     distance two default ``ViewSpacing``s ask for along `axis`.
+    ///   - preferences: One per child, `nil` where the child states none.
+    ///   - axis: The axis the children follow each other along.
+    init(uniform: Int, preferences: [ViewSpacing?], along axis: Axis) {
+        self.uniform = uniform
+        self.preferences = preferences
+        self.axis = axis
+    }
+
+    /// Whether every gap is ``uniform``.
+    var isUniform: Bool { preferences == nil }
+
+    /// The gap between the children at `previous` and `next`, two that occupy
+    /// the axis with none that does between them.
+    func between(_ previous: Int, _ next: Int) -> Int {
+        guard let preferences, preferences[previous] != nil || preferences[next] != nil else { return uniform }
+        return (preferences[previous] ?? ViewSpacing()).distance(to: preferences[next] ?? ViewSpacing(), along: axis)
+    }
+
+    /// The gaps between the first `count` children for which `occupies` holds,
+    /// in order: ``totalLinearSpacing(occupiedChildren:spacing:)`` by pair.
+    func total(count: Int, occupies: (Int) -> Bool) -> Int {
+        guard !isUniform else {
+            return totalLinearSpacing(occupiedChildren: (0..<count).count(where: occupies), spacing: uniform)
+        }
+        var total = 0
+        var previous: Int?
+        for index in 0..<count where occupies(index) {
+            if let previous { total += between(previous, index) }
+            previous = index
+        }
+        return total
+    }
+}
+
+/// A walk that places a stack's children in order, and the gap it charges
+/// before each: ``linearSpacing(before:placedExtent:spacing:)``'s rule — none
+/// before a child of no extent, none before the first that has any — with
+/// each gap ``StackGaps/between(_:_:)`` the last child placed that occupies
+/// the axis and the next.
+struct StackGapWalk {
+    let gaps: StackGaps
+
+    /// The last child placed that occupies the axis.
+    private var lastOccupying: Int?
+
+    init(_ gaps: StackGaps) {
+        self.gaps = gaps
+    }
+
+    /// The gap before child `index`, whose extent along the axis is `extent`.
+    func gap(before index: Int, extent: Int) -> Int {
+        guard extent > 0, let lastOccupying else { return 0 }
+        return gaps.between(lastOccupying, index)
+    }
+
+    /// Records child `index` as placed at `extent`.
+    mutating func place(_ index: Int, extent: Int) {
+        if extent > 0 { lastOccupying = index }
+    }
+}
+
 /// Adds `amount` cells across `indices`, either evenly or proportionally to
 /// `weights`, handing out any rounding remainder one cell at a time.
 private func addLinearSpace(_ amount: Int, to indices: [Int], of result: inout [Int], weights: [Int]?) {
@@ -251,11 +370,17 @@ private func addLinearSpace(_ amount: Int, to indices: [Int], of result: inout [
 /// the fitting branches charge them.
 private func distributeLinearSpace(
     byPriority priorities: [Double], minimumSizes: [Int], naturalSizes: [Int], isFlexible: [Bool],
-    available: Int, spacing: Int
+    available: Int, gaps: StackGaps
 ) -> [Int] {
-    var occupying = 0
-    for index in naturalSizes.indices where isFlexible[index] || naturalSizes[index] > 0 { occupying += 1 }
-    var remaining = max(0, max(0, available) - totalLinearSpacing(occupiedChildren: occupying, spacing: max(0, spacing)))
+    // Every gap between the children that occupy the axis, as the
+    // one-priority path charges them.
+    let occupies = { (index: Int) in isFlexible[index] || naturalSizes[index] > 0 }
+    let allSpacing =
+        gaps.isUniform
+        ? totalLinearSpacing(
+            occupiedChildren: naturalSizes.indices.count(where: occupies), spacing: max(0, gaps.uniform))
+        : gaps.total(count: naturalSizes.count, occupies: occupies)
+    var remaining = max(0, max(0, available) - allSpacing)
     var result = [Int](repeating: 0, count: naturalSizes.count)
     for level in Set(priorities).sorted(by: >) {
         let members = naturalSizes.indices.filter { priorities[$0] == level }
