@@ -196,6 +196,25 @@ struct StackSpacingPerPairTests {
         #expect(read.distances == [1, 1, 0], "an EmptyView member's own preference is the default")
     }
 
+    @Test("A stack layout puts its gaps only between subviews that take room, and measures what it draws")
+    func layoutGapsSkipEmptyMembers() {
+        let row = HStackLayout()
+        #expect(lines(row { Text("a"); EmptyView(); Text("b") }) == ["a b"])
+        #expect(lines(HStack { Text("Name:"); row { Text("x"); EmptyView() } }) == ["Name: x"])
+        let hides = false
+        let erased = AnyLayout(HStackLayout())
+        #expect(lines(erased { Text("a"); if hides { Text("x") } else { EmptyView() }; Text("b") }) == ["a b"])
+        let tight = row { Text("a"); EmptyView(); Row { Text("b") } }
+        #expect(lines(tight) == ["ab"], "the gap is the one between a and b, not a's to the empty view")
+        #expect(TUIkitView.measureChild(tight, proposal: .unspecified, context: context).width == 2)
+        let spaced = HStackLayout(spacing: 1)
+        let spacedRow = spaced { Text("a"); EmptyView(); Text("b") }
+        #expect(TUIkitView.measureChild(spacedRow, proposal: .unspecified, context: context).width == 3)
+        let column = VStackLayout(spacing: 1)
+        let stacked = column { Text("a"); EmptyView(); Text("b") }
+        #expect(TUIkitView.measureChild(stacked, proposal: .unspecified, context: context).height == 3)
+    }
+
     @Test("Not yet: a view of the app's own whose body is a tight layout states the default (SwiftUI: wrapped +0)")
     func appViewsDoNotForward() {
         #expect(lines(HStack { Wrapped(text: "a"); Text("b") }) == ["a b"])

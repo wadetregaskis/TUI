@@ -99,7 +99,12 @@ public struct VStackLayout: Layout, Sendable, Equatable {
         // filled all of it and pushed every later sibling past the viewport.
         let natural = ProposedSize(width: proposal.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
-        let gaps = max(0, subviews.count - 1) * resolvedSpacing
+        // The gaps the distribution reserves: between the subviews that occupy
+        // the column, a flexible one even at a natural height of zero
+        // (`distributeLinearSpace`). One per pair of subviews counted a gap
+        // beside an `EmptyView` member, which is drawn with none.
+        let occupying = sizes.count(where: { $0.isHeightFlexible || $0.height > 0 })
+        let gaps = totalLinearSpacing(occupiedChildren: occupying, spacing: resolvedSpacing)
         let content = sizes.map(\.height).reduce(0, +) + gaps
         let flexible = sizes.contains { $0.isHeightFlexible }
         let height: Int
@@ -218,7 +223,11 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         // See `VStackLayout.sizeThatFits` — same reasoning, other axis.
         let natural = ProposedSize(width: nil, height: proposal.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
-        let gaps = gaps(between: subviews).total(count: subviews.count) { _ in true }
+        // See `VStackLayout.sizeThatFits` — the gaps the distribution reserves,
+        // each between the two subviews it separates.
+        let gaps = gaps(between: subviews).total(count: subviews.count) {
+            sizes[$0].isWidthFlexible || sizes[$0].width > 0
+        }
         let content = sizes.map(\.width).reduce(0, +) + gaps
         let flexible = sizes.contains { $0.isWidthFlexible }
         let width: Int
@@ -254,14 +263,22 @@ public struct HStackLayout: Layout, Sendable, Equatable {
             minimumSizes: priorities.map { _ in
                 subviews.map { $0.sizeThatFits(ProposedSize(width: 0, height: bounds.height)).width }
             })
+        // Each gap is the one between the last subview that took any width and
+        // the next that takes some — the distribution's own rule, by pair
+        // (`StackGapWalk`), as `_HStackCore` walks it. Charged after every
+        // subview that took width, a gap by pair was asked of a subview and its
+        // immediate successor, which an `EmptyView` member between two others
+        // is: the row reserved one gap and placed another.
+        var walk = StackGapWalk(gaps)
         var x = bounds.x
         for (index, subview) in subviews.enumerated() {
             let width = widths[index]
+            x += walk.gap(before: index, extent: width)
+            walk.place(index, extent: width)
             subview.place(
                 at: (x: x, y: bounds.y + alignedOffset(for: sizes[index].height, in: bounds.height)),
                 proposal: ProposedSize(width: width, height: sizes[index].height))
-            // The gap to the next subview, after one that took any width.
-            x += width + (width > 0 && index + 1 < subviews.count ? gaps.between(index, index + 1) : 0)
+            x += width
         }
     }
 
