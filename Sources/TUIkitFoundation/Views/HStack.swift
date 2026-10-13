@@ -718,9 +718,14 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
         // === PASS 2: Apply vertical alignment and build result ===
         // Explicit guides resolve over the columns actually placed — a lazy row
-        // stops at the first child that will not fit, so that is the run.
+        // stops at the first child that will not fit, so that is the run. A run
+        // taller than the space the row was given is placed as the eager row
+        // places it: every guide on one line, each column padded to that space,
+        // not to the run, and what hangs below drawn past it (decisions
+        // B-GUIDE-1) — padded to the run, a push of up to 2^20 rows built that
+        // many lines for each column, every frame (decisions B-GUIDE-2).
         let guideRun = placedGuideRun(collected, minimumExtent: maxHeight, context: context)
-        let finalHeight = guideRun?.extent ?? maxHeight
+        let finalHeight = guideRun.map { min($0.extent, max(0, context.availableHeight)) } ?? maxHeight
 
         var result = FrameBuffer()
         var placedIndex = 0
@@ -734,8 +739,8 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             defer { placedIndex += 1 }
             let aligned =
                 guideRun.map {
-                    buffer.placedVertically(
-                        inHeight: finalHeight, topPadding: $0.offsets[placedIndex])
+                    buffer.placedVerticallyDrawingOverhang(
+                        inHeight: finalHeight, topPadding: $0.offsets[placedIndex], isMeasuring: context.isMeasuring)
                 } ?? buffer.verticallyAligned(toHeight: maxHeight, alignment: alignment)
             result.appendHorizontally(aligned, spacing: spacingToApply)
         }

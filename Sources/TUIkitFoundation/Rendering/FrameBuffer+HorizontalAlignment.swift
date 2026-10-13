@@ -88,11 +88,19 @@ extension FrameBuffer {
     /// For a run of explicit guides wider than the column that holds it: every
     /// guide stays on one line and the overhang is drawn past the edge, off
     /// the screen where the edge is the screen's, as SwiftUI's is past its
-    /// window (decisions B-GUIDE-1). A buffer that fits, or a measure pass,
-    /// takes ``placedHorizontally(inWidth:offset:)`` unchanged.
+    /// window (decisions B-GUIDE-1). A buffer that fits takes
+    /// ``placedHorizontally(inWidth:offset:)`` unchanged. A measure pass draws
+    /// nothing past the edge: it keeps the part inside, as the clamp after it
+    /// would cut the line, without first padding the line out to the push,
+    /// which may be 2^20 cells (decisions B-GUIDE-2).
     func placedHorizontallyDrawingOverhang(inWidth width: Int, offset: Int, isMeasuring: Bool) -> FrameBuffer {
-        guard offset + self.width > width, !isMeasuring else {
+        guard offset + self.width > width else {
             return placedHorizontally(inWidth: width, offset: offset)
+        }
+        guard !isMeasuring else {
+            let width = max(0, width)
+            return clamped(toWidth: max(0, width - offset), height: height)
+                .placedHorizontally(inWidth: width, offset: min(offset, width))
         }
         let placement = splitPlacing(at: (x: offset, y: 0), inWidth: width, height: height)
         var inside = placement.inside

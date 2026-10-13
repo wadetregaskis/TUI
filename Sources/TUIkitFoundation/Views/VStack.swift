@@ -782,7 +782,12 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // A lazy stack stops at the first row that will not fit, so the run is
         // the realized rows, which is why a guide is best used on content whose
         // realized set is stable. (SwiftUI's lazy stacks ignore explicit guides
-        // altogether, measured; decisions-GUIDE A-GUIDE-1.)
+        // altogether, measured; decisions-GUIDE A-GUIDE-1.) A run wider than
+        // the space the column was given is placed as the eager column places
+        // it: every guide on one line, each row padded to that space, not to
+        // the run, and what hangs past its edge drawn past it (decisions
+        // B-GUIDE-1) — padded to the run, a push of up to 2^20 cells built a
+        // line that long for each row, every frame (decisions B-GUIDE-2).
         let guideRun = placedGuideRun(
             collected, fixedExtent: nil, minimumExtent: maxWidth, context: context)
 
@@ -796,7 +801,9 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             defer { placedIndex += 1 }
             let alignedBuffer =
                 guideRun.map {
-                    buffer.placedHorizontally(inWidth: $0.extent, offset: $0.offsets[placedIndex])
+                    buffer.placedHorizontallyDrawingOverhang(
+                        inWidth: min($0.extent, max(0, context.availableWidth)), offset: $0.offsets[placedIndex],
+                        isMeasuring: context.isMeasuring)
                 } ?? buffer.horizontallyAligned(toWidth: maxWidth, alignment: alignment)
             result.appendVertically(alignedBuffer, spacing: spacingToApply)
         }

@@ -41,10 +41,17 @@ extension FrameBuffer {
     /// The vertical twin of
     /// ``placedHorizontallyDrawingOverhang(inWidth:offset:isMeasuring:)``: this
     /// buffer `topPadding` rows down a row `height` tall, what lies below the
-    /// row's bottom edge drawn past it rather than left for a clamp to cut.
+    /// row's bottom edge drawn past it rather than left for a clamp to cut —
+    /// and on a measure pass cut there, without first padding the column with
+    /// as many blank rows as the push.
     func placedVerticallyDrawingOverhang(inHeight height: Int, topPadding: Int, isMeasuring: Bool) -> FrameBuffer {
-        guard topPadding + self.height > height, !isMeasuring else {
+        guard topPadding + self.height > height else {
             return placedVertically(inHeight: height, topPadding: topPadding)
+        }
+        guard !isMeasuring else {
+            let height = max(0, height)
+            return clamped(toWidth: width, height: max(0, height - topPadding))
+                .placedVertically(inHeight: height, topPadding: min(topPadding, height))
         }
         let placement = splitPlacing(at: (x: 0, y: topPadding), inWidth: width, height: height)
         var inside = placement.inside

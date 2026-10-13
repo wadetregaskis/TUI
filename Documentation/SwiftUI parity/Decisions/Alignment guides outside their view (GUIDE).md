@@ -205,8 +205,8 @@ more than that mechanism.
 
 **Shipped (2026-10-12, lane GUIDE3): the overflow-layer version.** A run of
 explicit guides larger than a region that cannot grow — a column a flexible
-child fills, a lazy column's window, the space a `VStack`, `HStack` or
-`ZStack` was given — keeps every guide on one line (`AlignmentGuideRun.resolve`
+child fills, a lazy column's window, the space a `VStack`, `HStack`, `ZStack`
+or lazy stack was given — keeps every guide on one line (`AlignmentGuideRun.resolve`
 with `holdsChildrenInside: false`), and what hangs past the region's edge is
 drawn past it through B-GUIDE-3's mechanism
 (`FrameBuffer.placedHorizontallyDrawingOverhang`, its vertical twin, and the
@@ -217,7 +217,9 @@ around it, off the screen where the edge is the screen's. Measured above,
 proposal, not SwiftUI's 403 — so a sibling after it is placed where it always
 was and draws over the overhang. A measure pass places nothing past the
 region, and a stack reporting a guide out of itself reports it from where it
-is drawn.
+is drawn. Each child is padded to the region, never to the run, on a measure
+pass too, so a push under the 2^20 bound does not build a line (or a column of
+blank rows) that long every frame (review of the lane, 2026-10-12).
 
 ### B-GUIDE-2. One guide pushes a view at most 4,096 cells, whatever the container's extent — decided: 2^20, and a push past it reported
 

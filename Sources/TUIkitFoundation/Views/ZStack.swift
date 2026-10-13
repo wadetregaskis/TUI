@@ -153,13 +153,15 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // A guided run larger than the space the stack was given keeps every
         // guide on one line, and what hangs past that space is drawn past it,
         // in the layer's place in the stacking order (decisions B-GUIDE-1),
-        // rather than being cut by the clamp every view passes through.
+        // rather than being cut by the clamp every view passes through. The
+        // canvas is that space, not the run, on a measure pass too, which
+        // keeps only what is inside: a run can be 2^20 cells (decisions
+        // B-GUIDE-2), and a canvas that size was built every frame.
         let guided = horizontalRun != nil || verticalRun != nil
-        let drawsOverhang =
-            guided && !context.isMeasuring
-            && (frameWidth > context.availableWidth || frameHeight > context.availableHeight)
-        let drawnWidth = drawsOverhang ? min(frameWidth, max(0, context.availableWidth)) : frameWidth
-        let drawnHeight = drawsOverhang ? min(frameHeight, max(0, context.availableHeight)) : frameHeight
+        let overhangs =
+            guided && (frameWidth > context.availableWidth || frameHeight > context.availableHeight)
+        let drawnWidth = overhangs ? min(frameWidth, max(0, context.availableWidth)) : frameWidth
+        let drawnHeight = overhangs ? min(frameHeight, max(0, context.availableHeight)) : frameHeight
         var result = FrameBuffer(
             lines: Array(
                 repeating: String(repeating: " ", count: drawnWidth),
@@ -175,11 +177,11 @@ private struct _ZStackCore<Content: View>: View, Renderable {
             var dy =
                 verticalRun?.offsets[index]
                 ?? alignment.vertical.childOffset(childHeight: buffer.height, in: frameHeight)
-            if drawsOverhang, !buffer.fits(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight) {
+            if overhangs, !buffer.fits(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight) {
                 let placement = buffer.splitPlacing(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight)
                 // Before this layer's cells land, so the layers after it cut
                 // what it draws past the stack, as they cut each other.
-                result.overlays.append(contentsOf: placement.overflow)
+                if !context.isMeasuring { result.overlays.append(contentsOf: placement.overflow) }
                 (buffer, dx, dy) = (placement.inside, placement.insideOrigin.x, placement.insideOrigin.y)
             }
             showingThrough += result.runsShowingThrough(buffer, at: (x: dx, y: dy))

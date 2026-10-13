@@ -351,6 +351,63 @@ struct PlacementOverflowTests {
         #expect(lines.contains(String(repeating: " ", count: 14) + "SSSSSS"), "\(lines)")
     }
 
+    @Test("A lazy column outside a scroll view pads its rows to its space, not its run, and draws the overhang past it")
+    func lazyColumnPadsToItsSpace() {
+        // As the eager column in `columnOverhang`: GGG's guide puts it at 20,
+        // past the 20-wide column, where it is drawn. Padded to the run, each
+        // row was a line as long as the push, cut by the frame around it.
+        let screen = Screen(width: 30, height: 4)
+        let lines = screen.render(
+            LazyVStack(alignment: .trailing, spacing: 0) {
+                Text("GGG").alignmentGuide(.trailing) { _ in 0 }
+                Text("SSSSSS")
+                Text("f").frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(width: 20)
+            .padding(.trailing, 10))
+        #expect(lines.first == String(repeating: " ", count: 20) + "GGG", "\(lines)")
+
+        let pushed = LazyVStack(alignment: .leading, spacing: 0) {
+            Text("g").alignmentGuide(.leading) { _ in -100_000 }
+            Text("ssssss")
+        }
+        let buffer = renderToBuffer(pushed, context: makeBareRenderContext(width: 20, height: 4))
+        #expect(buffer.width <= 20, "\(buffer.width)")
+    }
+
+    @Test("A lazy row pads its columns to its space, not its run, and draws the overhang below it")
+    func lazyRowPadsToItsSpace() {
+        let screen = Screen(width: 10, height: 6)
+        let lines = screen.render(
+            LazyHStack(alignment: .top, spacing: 0) {
+                Text("g").alignmentGuide(.top) { _ in -3 }
+                Text("s")
+            }
+            .frame(height: 2)
+            .padding(.bottom, 4))
+        #expect(Array(lines.prefix(4)) == [" s", "", "", "g"], "\(lines)")
+
+        let pushed = LazyHStack(alignment: .top, spacing: 0) {
+            Text("g").alignmentGuide(.top) { _ in -100_000 }
+            Text("s")
+        }
+        let buffer = renderToBuffer(pushed, context: makeBareRenderContext(width: 10, height: 4))
+        #expect(buffer.height <= 4, "\(buffer.height)")
+    }
+
+    @Test("A ZStack measured in less space than its run builds a canvas that space, not the run")
+    func zStackMeasureCanvas() {
+        let canvas = ZStack(alignment: .topLeading) {
+            Text("a")
+            Text("b").alignmentGuide(.leading) { _ in -100_000 }
+        }
+        var context = makeBareRenderContext(width: 20, height: 2)
+        context.isMeasuring = true
+        let buffer = renderToBuffer(canvas, context: context)
+        #expect(buffer.width == 20, "\(buffer.width)")
+        #expect(buffer.overlays.isEmpty, "a measure pass draws nothing past the space")
+    }
+
     // MARK: - Measuring
 
     @Test("A measure pass draws nothing past the region and sizes as before")
