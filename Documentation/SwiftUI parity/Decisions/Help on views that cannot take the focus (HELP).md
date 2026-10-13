@@ -105,6 +105,12 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   for its tooltip (`WindowChromeState.tooltipRows`), and a held help stays
   while the pointer rests on one of them. Pinned for every chrome style and
   a help of one line and of two (`HelpRunLoopTests.hoverOnARowTheBarCovers`).
+  A sheet, an alert, a popover or a menu presented over the page while the
+  pointer rests there takes the help away: the hold on the covered rows
+  lasts while what is presented in front is what was when it began
+  (`TooltipState.heldModalSection`; the lane's review found the help left
+  in the bar over a sheet a key presented,
+  `HelpRunLoopTests.heldHelpOnACoveredRowGoesUnderASheet`).
   Left: a pointer that moves along a covered row lets the help go, the row
   comes back under it, and the help returns after its delay; and a view
   removed from the page while the pointer rests on its covered row keeps

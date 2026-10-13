@@ -254,29 +254,48 @@ private struct CentredHelpUnderAButtonPage: View {
 /// growing for a hover tooltip moves nothing and covers the page's last
 /// visible rows instead — as many as the tooltip takes, `helpLines` of text
 /// in the bar's chrome style.
+///
+/// `presentsSheet`: a focused button above the rows presents a sheet over the
+/// page when pressed.
 private struct FullWindowRowsApp: App {
     var chrome: ChromeStyle = .bordered
     var helpLines = 1
+    var presentsSheet = false
 
     init() {}
 
-    init(chrome: ChromeStyle, helpLines: Int) {
+    init(chrome: ChromeStyle, helpLines: Int, presentsSheet: Bool = false) {
         self.chrome = chrome
         self.helpLines = helpLines
+        self.presentsSheet = presentsSheet
     }
 
     var body: some Scene {
         WindowGroup {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<40, id: \.self) { index in
-                        Text("row \(index)").help(help(index))
-                    }
-                }
-            }
+            FullWindowRowsPage(helpLines: helpLines, presentsSheet: presentsSheet)
         }
         .windowToolbarStyle(WindowToolbarStyleCase.drawing(chrome).style)
         .mouseSupport(.full)
+    }
+}
+
+private struct FullWindowRowsPage: View {
+    let helpLines: Int
+    let presentsSheet: Bool
+    @State private var sheetShown = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if presentsSheet { Button("present") { sheetShown = true } }
+                ForEach(0..<40, id: \.self) { index in
+                    Text("row \(index)").help(help(index))
+                }
+            }
+        }
+        .sheet(isPresented: $sheetShown) {
+            Text("SHEET-BODY")
+        }
     }
 
     /// One line at the bar's width, or two: a 50-column bar's content is 46
@@ -330,6 +349,18 @@ private final class HelpDriver<A: App> {
     /// Whether `text` is anywhere on the screen.
     func shows(_ text: String) -> Bool {
         lines.contains { $0.contains(text) }
+    }
+
+    /// The `helpLines`-th row of `FullWindowRowsApp`'s from the bottom of
+    /// the screen: its index, and where it is drawn.
+    func visibleRow(helpLines: Int) -> (index: Int, x: Int, y: Int)? {
+        let visible = lines.enumerated().compactMap { row, line -> (index: Int, x: Int, y: Int)? in
+            guard let range = line.range(of: #"row \d+"#, options: .regularExpression),
+                let index = Int(line[range].dropFirst(4))
+            else { return nil }
+            return (index, line.distance(from: line.startIndex, to: range.lowerBound), row)
+        }
+        return visible.dropLast(helpLines - 1).last
     }
 
     /// Where `text` first appears on the screen: its column and row.
@@ -650,13 +681,7 @@ struct HelpRunLoopTests {
     func hoverOnARowTheBarCovers(chrome: ChromeStyle, helpLines: Int) throws {
         let driver = HelpDriver(FullWindowRowsApp(chrome: chrome, helpLines: helpLines))
         // The last visible row, and the one `helpLines - 1` above it.
-        let visible = driver.lines.enumerated().compactMap { row, line -> (index: Int, x: Int, y: Int)? in
-            guard let range = line.range(of: #"row \d+"#, options: .regularExpression),
-                let index = Int(line[range].dropFirst(4))
-            else { return nil }
-            return (index, line.distance(from: line.startIndex, to: range.lowerBound), row)
-        }
-        let target = try #require(visible.dropLast(helpLines - 1).last, "no rows: \(driver.lines)")
+        let target = try #require(driver.visibleRow(helpLines: helpLines), "no rows: \(driver.lines)")
         let help = "HELP-\(target.index)"
         driver.app.send(MouseEvent(button: .none, phase: .moved, x: target.x + 1, y: target.y))
         driver.step()
@@ -686,6 +711,31 @@ struct HelpRunLoopTests {
         driver.step()
         driver.stepIfAsked()
         #expect(!driver.shows(help), "\(chrome): the help stayed after the pointer moved off: \(driver.lines)")
+    }
+
+    /// Found by the BUGS13 lane's review: a help held while the pointer rests
+    /// on the rows its bar covers was kept without asking whether its view
+    /// is still in front, so a sheet a key (or a timer) presented over the
+    /// page left the covered row's help in the bar, over the sheet, until the
+    /// pointer moved.
+    @Test("Help held on a row its bar covers goes when a sheet comes up over the page",
+          arguments: ChromeStyle.allCases)
+    func heldHelpOnACoveredRowGoesUnderASheet(chrome: ChromeStyle) throws {
+        let driver = HelpDriver(FullWindowRowsApp(chrome: chrome, helpLines: 1, presentsSheet: true))
+        let target = try #require(driver.visibleRow(helpLines: 1), "no rows: \(driver.lines)")
+        let help = "HELP-\(target.index)"
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: target.x + 1, y: target.y))
+        driver.step()
+        driver.stepIfAsked()
+        #expect(driver.shows(help), "precondition: \(chrome): shown: \(driver.lines)")
+        #expect(
+            driver.position(of: "row \(target.index)") == nil,
+            "precondition: \(chrome): the bar covers the row: \(driver.lines)")
+        #expect(driver.app.send(KeyEvent(key: .enter)), "\(chrome): the button took the press")
+        driver.step()
+        driver.stepIfAsked()
+        #expect(driver.shows("SHEET-BODY"), "precondition: \(chrome): the sheet: \(driver.lines)")
+        #expect(!driver.shows(help), "\(chrome): the page's help stayed over the sheet: \(driver.lines)")
     }
 
     /// The app-wide feature, `.tooltips(.always)`, with a focusable and a

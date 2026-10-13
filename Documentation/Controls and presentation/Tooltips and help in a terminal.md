@@ -202,7 +202,8 @@ transitions as before. A page that fills the window does not move: the bar's
 rows cover its last visible rows, and the view under the pointer with them.
 A pointer resting on the rows the bar took for its tooltip still counts as on
 the tooltip's own view, so the help stays there too
-(`WindowChromeState.tooltipRows`).
+(`WindowChromeState.tooltipRows`), until a sheet, an alert, a popover or a
+menu is presented over the page (`TooltipState.heldModalSection`).
 
 Growing has one consequence below the layout. The bar grows *upwards*, so its
 top edge moves a row with every tooltip that comes or goes — and the frame
