@@ -638,6 +638,8 @@ extension ScrollableOffsetState {
         if excursion != 0, (excursion < 0) == (delta > 0) {
             let unwind = min(abs(delta), abs(excursion))
             overscrollState.excursion = excursion + (delta > 0 ? unwind : -unwind)
+            // Still scrolling: a sprung bounce waits until the steps stop.
+            overscrollState.notePush()
             let leftover = delta > 0 ? delta - unwind : delta + unwind
             if leftover != 0 { scrollFine(by: leftover) }
             releaseAnchorOnUserScroll()
@@ -674,6 +676,9 @@ extension ScrollableOffsetState {
         //    edge to become anchored to.
         if maxOffset > 0 { engageEdgeAnchor(delta < 0 ? .top : .bottom) }
         guard overscrollState.isAllowed else { return false }
+        // A push, or one held against the limit: a sprung bounce (B31) waits
+        // until the steps stop, whether or not this one moved it.
+        overscrollState.notePush()
         let limit = delta < 0 ? -overscrollState.top : overscrollState.bottom
         let target = excursion + delta
         let clamped = delta < 0 ? max(limit, target) : min(limit, target)

@@ -23,14 +23,19 @@ import TUIkitView
 ///
 /// - ``basedOnSize`` allows the push only when the content overflows, so
 ///   content that fits sits still — the common reason to write this.
-/// - ``always`` allows it whatever the content's size, which is TUIkit's
-///   default, as it is SwiftUI's.
-/// - ``automatic`` leaves it to the view: here, as ``always``.
+/// - ``always`` allows it whatever the content's size, and bounces: an end
+///   given no allowance may be pushed two lines (one in a view under eight
+///   lines tall), held while the scrolling goes on and sprung back a line a
+///   frame once it has been quiet for a quarter of a second — when the scroll
+///   goes idle (``ScrollPhase``). An end given an allowance keeps its push.
+/// - ``automatic`` leaves it to the view: here, the allowance whatever the
+///   content's size, and no bounce.
 ///
-/// With no allowance — the default — there is nothing to push into, and no
-/// scrollable is pushed past its edges at all; macOS under a mouse wheel does
-/// not bounce either. TUIkit's allowance is vertical only, so a horizontal
-/// behaviour has nothing to decide yet.
+/// Without `.always` and with no allowance — the default — there is nothing to
+/// push into, and no scrollable is pushed past its edges at all; macOS under a
+/// mouse wheel does not bounce either. Reaches `ScrollView`, `List` and
+/// `Table`. TUIkit's allowance is vertical only, so a horizontal behaviour has
+/// nothing to decide yet.
 public struct ScrollBounceBehavior: Hashable, Sendable {
     enum Kind: UInt8, Sendable {
         case automatic, always, basedOnSize
@@ -39,10 +44,12 @@ public struct ScrollBounceBehavior: Hashable, Sendable {
     let kind: Kind
 
     /// The view decides: here, the allowance applies whatever the content's
-    /// size, as under ``always``.
+    /// size, as under ``always``, with no bounce.
     public static var automatic: Self { Self(kind: .automatic) }
 
-    /// The allowance applies whatever the content's size.
+    /// The allowance applies whatever the content's size, and an end given
+    /// none bounces: pushed a line or two, it springs back once the scrolling
+    /// stops.
     public static var always: Self { Self(kind: .always) }
 
     /// The allowance applies only while the content overflows the view.
@@ -57,6 +64,14 @@ public struct ScrollBounceBehavior: Hashable, Sendable {
     func allowsOverscroll(overflowing: Bool) -> Bool {
         kind != .basedOnSize || overflowing
     }
+
+    /// Whether an end with no allowance of its own gets the sprung one — the
+    /// bounce, under ``always`` alone (decisions B31).
+    ///
+    /// `@usableFromInline` for `EnvironmentValues.overscrollAllowances(overflowing:)`,
+    /// as ``allowsOverscroll(overflowing:)`` is.
+    @usableFromInline
+    var springs: Bool { kind == .always }
 }
 
 // MARK: - Environment
@@ -89,15 +104,20 @@ extension EnvironmentValues {
 
     /// The overscroll allowances (``View/scrollOverscroll(top:bottom:)``) a
     /// scrollable is given this frame, after its vertical bounce behaviour:
-    /// none under ``ScrollBounceBehavior/basedOnSize`` while its content fits.
+    /// none under ``ScrollBounceBehavior/basedOnSize`` while its content fits;
+    /// and whether an end given none gets the sprung bounce, under
+    /// ``ScrollBounceBehavior/always`` (`ScrollOverscrollState.resolve`).
     ///
     /// `@inlinable` (module split step A3): `ItemListHandler` asks it as it
     /// settles its overscroll, in the Lists group, which leaves the substrate
     /// at B6.
     @inlinable
-    package func overscrollAllowances(overflowing: Bool) -> (top: ScrollOverscroll, bottom: ScrollOverscroll) {
-        verticalScrollBounceBehavior.allowsOverscroll(overflowing: overflowing)
-            ? (scrollOverscrollTop, scrollOverscrollBottom) : (.none, .none)
+    package func overscrollAllowances(
+        overflowing: Bool
+    ) -> (top: ScrollOverscroll, bottom: ScrollOverscroll, springs: Bool) {
+        let behavior = verticalScrollBounceBehavior
+        return behavior.allowsOverscroll(overflowing: overflowing)
+            ? (scrollOverscrollTop, scrollOverscrollBottom, behavior.springs) : (.none, .none, false)
     }
 }
 

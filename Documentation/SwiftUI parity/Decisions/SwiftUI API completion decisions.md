@@ -52,7 +52,7 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B31, B35.
+at the faint tiers), B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1530,6 +1530,18 @@ since that is TUIkit's deliberate-push signal. **Lane owed:** 2–3 commits,
 half a day to a day, which includes detecting the end of a scroll without a
 phase observer (shared with B27) and the spring-back in `List` and `Table`.
 Nothing is paid by an app that does not write `.always`.
+
+**Shipped 2026-10-13 (SCROLLB):** under `.always` an end the app gave no
+allowance gets a sprung one — two lines, one in a view under eight lines tall
+([B-SCROLLB-2](<Scroll indicator flash and bounce (SCROLLB).md#b-scrollb-2-the-bounce-is-two-lines-one-in-a-view-under-eight-lines-tall-per-end>)).
+A push into it is held while the user's steps keep coming, and once they have
+been quiet for 250 ms (B27's `ScrollPhase.quietNanos`, no phase observer
+needed) it springs back a line a 50 ms frame, in `ScrollView`, `List` and
+`Table` alike (`ScrollableOffsetState.settleOverscroll`). `.automatic` and
+`.basedOnSize` are as they were, and an allowance the app asked for stays
+where it was pushed under every behaviour. Cost: a bounce-free view's frame is
+unchanged but for one more comparison as its allowance is resolved; a pushed
+view asks for the frames of its spring.
 
 ### B33. Slider ticks, neutral value, enabled bounds and thumb visibility, read from the documentation
 

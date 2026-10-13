@@ -1716,8 +1716,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // while the List twin meant "viewport lines − n"; and being a frame
         // stale, the first blocked tick resolved against a fresh handler's
         // default of 1.
-        handler.resolveOverscroll(
-            environment: context.environment, contentHeight: contentHeight)
+        handler.resolveOverscroll(context: context, contentHeight: contentHeight)
         // Clamp, snap off the resting duplicate, apply the anchor — the sequence
         // `_ListCore` and the single-line path below run too, and the render-pass
         // guard that has to wrap it. See `settleScrollPosition`.
@@ -2773,8 +2772,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             reorderFeedback: context.environment.rowReorderFeedback,
             keyboardMoveIsLive: false,
             rowHeight: nil)
-        handler.resolveOverscroll(
-            environment: context.environment, contentHeight: contentHeight)
+        handler.resolveOverscroll(context: context, contentHeight: contentHeight)
         // Resolve row ids lazily: the selection handler only ever asks for the
         // visible window + the focused row (O(1) each via `data[index].id`), so
         // materialising a full id array here was O(total) waste — and `_TableCore`

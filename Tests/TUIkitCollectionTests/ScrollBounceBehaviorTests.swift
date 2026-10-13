@@ -27,10 +27,11 @@ struct ScrollBounceBehaviorTests {
         let focusManager = FocusManager()
 
         @discardableResult
-        func render<V: View>(_ view: V, height: Int = 6) -> [String] {
+        func render<V: View>(_ view: V, height: Int = 6, atNanos nanos: Int64 = 0) -> [String] {
             var environment = EnvironmentValues()
             environment.focusManager = focusManager
             environment.applyRuntimeServices(from: tuiContext)
+            environment.frameNowNanos = nanos
             let context = RenderContext(
                 availableWidth: 20, availableHeight: height,
                 environment: environment, tuiContext: tuiContext)
@@ -47,6 +48,10 @@ struct ScrollBounceBehaviorTests {
 
         var scrollView: ScrollViewHandler? {
             focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        }
+
+        var rowList: ItemListHandler<Int>? {
+            focusManager.activeSection?.focusables.compactMap { $0 as? ItemListHandler<Int> }.first
         }
     }
 
@@ -125,6 +130,111 @@ struct ScrollBounceBehaviorTests {
         #expect(excursion(.always) == 1)
         #expect(excursion(.basedOnSize) == 0)
     }
+}
+
+// MARK: - The bounce under `.always` (decisions B31)
+
+extension ScrollBounceBehaviorTests {
+    /// The scrollables a bounce reaches.
+    enum Bouncer: String, CaseIterable, Sendable {
+        case scrollView, list, table
+
+        @MainActor
+        func view(_ behavior: ScrollBounceBehavior?, bottom: ScrollOverscroll = .none) -> AnyView {
+            let scrollable: AnyView =
+                switch self {
+                case .scrollView:
+                    AnyView(ScrollView { VStack(spacing: 0) { ForEach(0..<30, id: \.self) { Text("row \($0)") } } })
+                case .list:
+                    AnyView(List(0..<30, id: \.self) { Text("row \($0)") })
+                case .table:
+                    AnyView(
+                        Table((0..<30).map { BounceRow(id: $0) }) { TableColumn("Name", value: \.name) })
+                }
+            let allowed = scrollable.scrollOverscroll(bottom: bottom)
+            return behavior.map { AnyView(allowed.scrollBounceBehavior($0)) } ?? AnyView(allowed)
+        }
+    }
+
+    private static let start: Int64 = 1_000_000_000
+    private static let millisecond: Int64 = 1_000_000
+
+    /// Renders `view` twice, scrolls it to its end, and pushes past it
+    /// `pushes` times; returns the frames and the scrollable.
+    private func pushedAtTheEnd(
+        _ bouncer: Bouncer, _ view: AnyView, pushes: Int, height: Int = 12
+    ) -> (Frames, any ScrollableOffsetState)? {
+        let frames = Frames()
+        frames.render(view, height: height, atNanos: Self.start)
+        frames.render(view, height: height, atNanos: Self.start)
+        let scrollable: (any ScrollableOffsetState)? =
+            bouncer == .scrollView ? frames.scrollView : frames.rowList
+        guard let scrollable else { return nil }
+        scrollable.scrollOffset = scrollable.maxOffset
+        frames.render(view, height: height, atNanos: Self.start)
+        for _ in 0..<pushes { _ = scrollable.userScrollFine(by: 1) }
+        frames.render(view, height: height, atNanos: Self.start)
+        return (frames, scrollable)
+    }
+
+    @Test(
+        "Under .always a push past the end is held while the steps come, and springs back once they stop",
+        arguments: Bouncer.allCases)
+    func alwaysSpringsBack(_ bouncer: Bouncer) {
+        let view = bouncer.view(.always)
+        guard let pushed = pushedAtTheEnd(bouncer, view, pushes: 3) else {
+            Issue.record("precondition: a scrollable")
+            return
+        }
+        let (frames, scrollable) = pushed
+        #expect(scrollable.overscrollState.excursion == 2, "pushed as far as the bounce allows: two lines")
+        func excursion(at milliseconds: Int64) -> Int {
+            frames.render(view, height: 12, atNanos: Self.start + milliseconds * Self.millisecond)
+            return scrollable.overscrollState.excursion
+        }
+        #expect(excursion(at: 200) == 2, "not quiet a quarter of a second yet")
+        _ = scrollable.userScrollFine(by: 1)
+        #expect(excursion(at: 400) == 2, "held: another step against the edge")
+        #expect(excursion(at: 600) == 2, "quiet for 200 ms only")
+        #expect(excursion(at: 650) == 1, "quiet: the first line back")
+        #expect(excursion(at: 700) == 0, "and the second, a frame later")
+        #expect(excursion(at: 2_000) == 0)
+    }
+
+    @Test("The bounce is one line in a view under eight lines tall")
+    func smallViewsBounceALine() {
+        let pushed = pushedAtTheEnd(.scrollView, Bouncer.scrollView.view(.always), pushes: 3, height: 6)
+        #expect(pushed?.1.overscrollState.excursion == 1)
+    }
+
+    @Test(
+        "Without .always nothing bounces: no push at all, as before",
+        arguments: Bouncer.allCases, [ScrollBounceBehavior?.none, .automatic, .basedOnSize])
+    func otherBehavioursDoNotBounce(_ bouncer: Bouncer, behavior: ScrollBounceBehavior?) {
+        let pushed = pushedAtTheEnd(bouncer, bouncer.view(behavior), pushes: 3)
+        #expect(pushed?.1.overscrollState.excursion == 0)
+    }
+
+    @Test(
+        "An allowance the app asked for stays where it was pushed, under .always and .automatic alike",
+        arguments: Bouncer.allCases, [ScrollBounceBehavior.always, .automatic])
+    func explicitAllowanceStays(_ bouncer: Bouncer, behavior: ScrollBounceBehavior) {
+        let view = bouncer.view(behavior, bottom: .rows(3))
+        guard let pushed = pushedAtTheEnd(bouncer, view, pushes: 3) else {
+            Issue.record("precondition: a scrollable")
+            return
+        }
+        let (frames, scrollable) = pushed
+        #expect(scrollable.overscrollState.excursion == 3)
+        frames.render(view, height: 12, atNanos: Self.start + 5_000 * Self.millisecond)
+        #expect(scrollable.overscrollState.excursion == 3, "a deliberate push stays")
+    }
+}
+
+/// A table row for the bounce cases.
+private struct BounceRow: Identifiable {
+    let id: Int
+    var name: String { "row \(id)" }
 }
 
 /// Reports the bounce behaviours it is drawn under.

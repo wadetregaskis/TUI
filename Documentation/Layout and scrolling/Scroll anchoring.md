@@ -57,6 +57,10 @@ Settings for whether — and by how much — the scroll position may exceed the
 content, at both ends, specifiable as **absolute** rows (`5`) and
 **relative** expressions (`height − 1`).
 
+A push into an allowance stays where it was pushed. The one exception is
+SwiftUI's bounce: under `.scrollBounceBehavior(.always)` an end given no
+allowance springs back once the scroll goes idle (§3.3, 2026-10-13).
+
 ---
 
 ## 2. What exists today, mapped honestly
@@ -307,6 +311,22 @@ lines drawn past the edge) that the clamp permits, the renderer honours, and
 the indicators ignore. Data-indexing consumers then need no audit at all,
 and the sticky-edge detector reads the excursion directly — which is a
 cleaner "deliberate push" signal than inferring it from a clamped offset.
+
+**A sprung bounce under `.always` (2026-10-13, decisions B31).** The
+allowance above stays where it was pushed, because a deliberate push is the
+signal. SwiftUI's bounce springs back, and the owner ruled that `.always`
+gets one: an end with no allowance of its own may be pushed two lines (one in
+a content area under eight lines, B-SCROLLB-2), the push held while the
+user's steps keep coming, and once they have been quiet for 250 ms — the
+moment B27 takes a scroll to be idle — the excursion steps back a line a 50 ms
+frame. It rides the same excursion, so everything above holds: the offset never
+leaves its range, the indicators ignore it, and a step past the edge still
+engages it. A step marks the push at event time (`notePush`, no clock there);
+the render that resolves the allowance stamps it with its frame's time and asks
+for the frames the spring needs (`ScrollableOffsetState.settleOverscroll`, one
+call for `ScrollView`, `List` and `Table`). `.automatic` (the default) and
+`.basedOnSize` keep the allowance as it was, and an end the app gave an
+allowance keeps its push under `.always` too.
 
 ---
 

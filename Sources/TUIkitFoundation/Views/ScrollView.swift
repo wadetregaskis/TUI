@@ -550,11 +550,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // frame because a `.viewport`-relative allowance moves with the terminal,
         // and an existing excursion is pulled back inside a shrunken one.
         // Gated by `.scrollBounceBehavior`, on whether the content overflowed
-        // when this view last measured it.
-        let allowances = context.environment.overscrollAllowances(
-            overflowing: handler.contentHeight > contentViewportHeight)
-        handler.overscrollState.resolve(
-            top: allowances.top, bottom: allowances.bottom, viewportHeight: contentViewportHeight)
+        // when this view last measured it; a `.always` bounce springs back here.
+        handler.settleOverscroll(
+            viewportHeight: contentViewportHeight, overflowing: handler.contentHeight > contentViewportHeight,
+            context: context)
 
         // A freshly WRITTEN edge anchor jumps to that edge (see the helper);
         // must precede the glue check, whose `seekingTail` read is one-shot.

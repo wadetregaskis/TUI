@@ -1608,8 +1608,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // §1.5: how far past its edges this view may be pushed, re-resolved
         // every frame (a `.viewport`-relative allowance moves with the
         // terminal) and pulling any existing excursion back inside it.
-        handler.resolveOverscroll(
-            environment: context.environment, contentHeight: contentHeight)
+        handler.resolveOverscroll(context: context, contentHeight: contentHeight)
         // Wire up id resolution + the selectable-index set. For an all-content
         // windowed list (the hot path) both are O(1): ids resolve lazily per
         // visible row through `idAt`, and an empty `selectableIndices` already

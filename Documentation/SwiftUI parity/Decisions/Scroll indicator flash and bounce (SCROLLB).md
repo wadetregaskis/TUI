@@ -38,3 +38,21 @@ from their first tick.
 tables (`Tools/RowFillValues`), checked by the colour rules' verifier at every
 depth for every shipped palette, as the focus and selection colours are: half a
 day, and only worth it if a palette's flash turns out hard to see.
+
+### B-SCROLLB-2. The bounce is two lines, one in a view under eight lines tall, per end
+
+*`ScrollBounceBehavior.always`, `View.scrollBounceBehavior(_:axes:)`*
+
+The ruling gives `.always` a sprung allowance of one or two lines.
+
+**Shipped:** two lines; one in a view whose content area is under eight lines,
+so a push never hides more than a quarter of a small view. The allowance is per
+end: an end the app gave an allowance (`.scrollOverscroll`) keeps it, and its
+push stays where it was put; an end it gave none springs. A pushed bounce is
+held while the steps keep coming and springs back one line a 50 ms frame once
+they have been quiet for 250 ms (B27's quiet, `ScrollPhase.quietNanos`), so a
+two-line push is gone in two frames.
+
+**The fuller version** would let the app size the bounce — say a
+`.scrollOverscroll` spelling for a sprung allowance. No SwiftUI spelling asks
+for one; an hour if a port wants it.
