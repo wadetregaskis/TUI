@@ -72,7 +72,11 @@ not settle:
 The badge sits on the preview's top-right cell, not beside it: the preview's
 frame is what a `DropInfo` reports and what a cancelled drag walks home from,
 and a cell beyond it would make the carried picture wider than that frame. It
-hides the preview's corner cell while it shows.
+hides the preview's corner cell while it shows. Precisely, it covers the last
+cell of the top row, which is that corner for a rectangular preview, and
+every row keeps its own width, so a ragged preview shows the page after its
+short rows as it does unbadged. A top row of one cell wears the badge beside it, the one
+place the picture grows by a cell: covering it hid a one-glyph drag whole.
 
 ### B-BITEMS1-2. A stated spacing edge outweighs a default one, as in SwiftUI
 

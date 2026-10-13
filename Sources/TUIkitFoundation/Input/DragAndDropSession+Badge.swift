@@ -49,13 +49,22 @@ extension DragAndDropSession {
         active?.targeted?.proposedOperation?()
     }
 
-    /// `preview` with `operation`'s badge in its top-right cell, or `preview`
-    /// unchanged where the operation wears none or there is no cell to put it in.
+    /// `preview` with `operation`'s badge on the last cell of its top row, or
+    /// `preview` unchanged where the operation wears none or there is no cell
+    /// to put it in.
     ///
     /// On the preview, not beside it: the preview's frame is what a drop
     /// reports through ``DropInfo``, and a badge outside it would make the
     /// picture the pointer carries wider than that frame. The badge names no
     /// background, so it is drawn on whatever the corner cell stood on.
+    ///
+    /// Where the top row ENDS, which is the top-right corner of every
+    /// rectangular preview, and with every row kept to its own width: a row
+    /// shorter than the widest lets the page show through the cells after it,
+    /// and compositing the badge padded every row to the widest with blanks
+    /// that covered the page there. A top row of one cell wears the badge
+    /// beside it instead, since covering that cell hid the whole picture of a
+    /// one-glyph drag; a blank top row starts with it.
     ///
     /// - Parameters:
     ///   - preview: The picture the pointer carries, as it is lifted.
@@ -68,7 +77,20 @@ extension DragAndDropSession {
         guard let operation, let glyph = operation.badgeGlyph, preview.width > 0, preview.height > 0 else {
             return preview
         }
+        var widths = preview.lines.indices.map { row in
+            preview.linesAreUniformWidth ? preview.width : preview.lineWidths?[row] ?? preview.lines[row].strippedLength
+        }
+        let column = widths[0] > 1 ? widths[0] - 1 : widths[0]
+        widths[0] = max(widths[0], column + 1)
         let badge = FrameBuffer(text: glyph.styled(foreground: operation.badgeColor(in: palette)))
-        return preview.composited(with: badge, at: (x: preview.width - 1, y: 0))
+        // Composited for its payloads — whatever ran or was hit under the
+        // badge's cell punched, as under any overlay — then each row given back
+        // its own width, which compositing padded to the widest.
+        let composited = preview.composited(with: badge, at: (x: column, y: 0))
+        var lines = preview.lines
+        lines[0] = composited.lines[0].ansiAwarePrefix(visibleCount: widths[0])
+        return composited.replacingLines(
+            lines, width: composited.width, uniformWidth: widths.allSatisfy { $0 == composited.width },
+            lineWidths: widths)
     }
 }

@@ -1123,7 +1123,7 @@ measurements. The source-side callback stays with A53, which is pinned.
 
 **Shipped 2026-10-13 (BITEMS1):** the badge, in the preview's top-right
 cell (on the preview rather than beside it, so the picture stays the frame a
-`DropInfo` reports): `+` in the accent colour for `.copy`, `↗` in the accent
+`DropInfo` reports; beside a top row of one cell, which it would hide): `+` in the accent colour for `.copy`, `↗` in the accent
 for `.alias`, `⊘` in the error colour for `.forbidden`, nothing for `.move`.
 `onDrop(of:isTargeted:perform:)` proposes `.copy`; `onDrop(of:delegate:)`
 proposes what `dropUpdated` last returned, once `validateDrop` said yes.

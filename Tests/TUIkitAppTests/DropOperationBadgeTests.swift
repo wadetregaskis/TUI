@@ -56,6 +56,30 @@ struct DropOperationBadgeTests {
         #expect(DragAndDropSession.badged(preview, operation: nil, palette: palette).lines == preview.lines)
     }
 
+    @Test("The badge sits where the preview's top row ends, and no row gains blank cells over the page")
+    func raggedTopRow() {
+        let palette = EnvironmentValues().palette
+        let badged = DragAndDropSession.badged(FrameBuffer(lines: ["ab", "cdef"]), operation: .copy, palette: palette)
+        #expect(badged.lines[0].stripped == "a+", "\(badged.lines[0].debugDescription)")
+        #expect(badged.lines[1] == "cdef")
+        #expect(badged.width == 4 && badged.height == 2)
+        let blankTop = DragAndDropSession.badged(FrameBuffer(lines: ["", "cd"]), operation: .copy, palette: palette)
+        #expect(blankTop.lines[0].stripped == "+", "a blank top row has no cell to cover, so the badge starts it")
+        let raggedBelow = DragAndDropSession.badged(FrameBuffer(lines: ["abcd", "c"]), operation: .copy, palette: palette)
+        #expect(raggedBelow.lines[0].stripped == "abc+")
+        #expect(raggedBelow.lines[1] == "c", "a shorter row below keeps its own width")
+        #expect(raggedBelow.lineWidths == nil || raggedBelow.lineWidths == [4, 1])
+    }
+
+    @Test("A top row of one cell wears the badge beside it, so the picture is not hidden whole")
+    func oneCellPreview() {
+        let palette = EnvironmentValues().palette
+        let badged = DragAndDropSession.badged(FrameBuffer(lines: ["x"]), operation: .copy, palette: palette)
+        #expect(badged.lines[0].stripped == "x+", "\(badged.lines[0].debugDescription)")
+        let tall = DragAndDropSession.badged(FrameBuffer(lines: ["x", "yz"]), operation: .forbidden, palette: palette)
+        #expect(tall.lines[0].stripped == "x\u{2298}" && tall.lines[1] == "yz")
+    }
+
     #if canImport(UniformTypeIdentifiers)
         /// A delegate that takes the drag or not, and proposes `operation`.
         private struct Proposing: DropDelegate {
