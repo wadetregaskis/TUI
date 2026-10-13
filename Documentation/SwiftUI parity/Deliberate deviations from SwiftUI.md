@@ -1048,14 +1048,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   rest Apple's documentation).
 - **TUIkit:** an offset is whole rows and columns; an animated `scrollTo`
   jumps. A user scroll is `.interacting` until 250 ms pass with no step; the
-  other three phases never occur; the velocity is `nil`. An overscroll
+  other three phases never occur; the velocity is (0, 0) at every report,
+  as SwiftUI's is where it was measured. An overscroll
   allowance stays where it was pushed (bounce behaviour decides only when it
   applies).
 - **Why:** a terminal reports no gesture phases and no momentum.
 - **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at
-  both changes, as SwiftUI reports it, and to add a bounce under `.always`;
-  both are [slated](#slated-to-change).
+  both changes, as SwiftUI reports it (shipped 2026-10-13), and to add a
+  bounce under `.always`, which is [slated](#slated-to-change).
 
 ### R2. A default scroll anchor quantises to three edges, and ignores x
 
@@ -1513,7 +1514,7 @@ on. Each waits on the work, or on the ruling, its State names.
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
 | `scrollIndicatorsFlash` draws nothing | [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-returns-the-view-the-indicators-are-already-showing>) | Owner 2026-10-12: implement |
-| No scroll velocity, no bounce | [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>) | Owner 2026-10-12: the bounce under `.always`; the velocity is (0, 0) at both changes, as SwiftUI reports it; lane owed |
+| No bounce | [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>) | Owner 2026-10-12: the bounce under `.always`; lane owed |
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |

@@ -52,7 +52,7 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B27, B28, B31, B35.
+at the faint tiers), B28, B31, B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1350,7 +1350,10 @@ velocity is never `nil`. The owner also asked whether any terminal extension
 reports more about a wheel or a trackpad. None reports a delta, a phase or a
 velocity: [Terminal compatibility survey.md](<../../Terminals/Terminal compatibility survey.md#wheel-reports-per-notch--a-hosts-choice-not-normalised>)
 records what a notch sends, and [Future options.md](<../../Future options.md>)
-parks SGR-Pixels (mode 1016). **Lane owed:** one commit.
+parks SGR-Pixels (mode 1016).
+
+**Shipped 2026-10-13 (SCROLLB):** the velocity is `(0, 0)` at every report —
+the first frame's and both changes — and never `nil`.
 
 ### B28. `scrollIndicatorsFlash` returns the view: the indicators are already showing
 

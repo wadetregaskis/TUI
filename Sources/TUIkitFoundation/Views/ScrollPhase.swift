@@ -75,11 +75,17 @@ public struct ScrollPhaseChangeContext: Sendable {
     /// The scroll view's geometry when its phase changed.
     public let geometry: ScrollGeometry
 
-    /// How fast the view was scrolling, or `nil` when that is not known.
+    /// How fast the view was scrolling when its phase changed, in cells per
+    /// second, or `nil` when that is not known.
     ///
-    /// Always `nil`: a terminal's scrolling comes in discrete steps, and
-    /// nothing measures a speed from them. SwiftUI's is `nil` in the same
-    /// circumstance, and `(0, 0)` where it does measure.
+    /// Always `(0, 0)` here, and never `nil`: at the first report and at both
+    /// of the changes a terminal produces. That is what SwiftUI reports where
+    /// it was measured — `(0, 0)` at its appear call and at both changes of an
+    /// animated `scrollTo` (macOS 15.8; decisions B27). A terminal reports no
+    /// speed, only discrete steps: the change to ``ScrollPhase/interacting``
+    /// comes one step in, before there is a rate, and the change to
+    /// ``ScrollPhase/idle`` a quarter of a second after the last step, when the
+    /// view is still.
     public let velocity: CellVector?
 }
 
@@ -184,7 +190,7 @@ extension _ScrollViewCore {
             let old = handler.reportedPhases[index]
             guard old != phase else { continue }
             handler.reportedPhases[index] = phase
-            let made = changeContext ?? ScrollPhaseChangeContext(geometry: geometry(), velocity: nil)
+            let made = changeContext ?? ScrollPhaseChangeContext(geometry: geometry(), velocity: .zero)
             changeContext = made
             observer.action(old ?? phase, phase, made)
         }

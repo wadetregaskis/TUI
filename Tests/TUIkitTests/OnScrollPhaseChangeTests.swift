@@ -77,6 +77,7 @@ struct OnScrollPhaseChangeTests {
         frames.render(scrolling(log))
         #expect(log.changes.count == 1)
         #expect(log.changes.first.map { $0.old == .idle && $0.new == .idle } == true)
+        #expect(log.contexts.first?.velocity == .zero, "as SwiftUI's appear call reports it (B27)")
         frames.render(scrolling(log))
         #expect(log.changes.count == 1, "nothing changed")
     }
@@ -90,7 +91,7 @@ struct OnScrollPhaseChangeTests {
         frames.render(scrolling(log))
         #expect(log.changes.last.map { $0.old == .idle && $0.new == .interacting } == true)
         #expect(log.contexts.last?.geometry.contentOffset.y == 3)
-        #expect(log.contexts.last?.velocity == nil)
+        #expect(log.contexts.last?.velocity == .zero, "(0, 0) at the change to interacting, never nil (B27)")
 
         // Not quiet long enough yet.
         frames.now += ScrollPhase.quietNanos / 2
@@ -107,6 +108,7 @@ struct OnScrollPhaseChangeTests {
         frames.render(scrolling(log))
         #expect(log.changes.last.map { $0.old == .interacting && $0.new == .idle } == true)
         #expect(log.changes.count == 3)
+        #expect(log.contexts.last?.velocity == .zero, "and at the change to idle")
     }
 
     @Test("A programmatic scroll changes no phase, as SwiftUI's unanimated one does not")
