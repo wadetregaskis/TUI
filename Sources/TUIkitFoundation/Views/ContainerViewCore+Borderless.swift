@@ -71,7 +71,10 @@ extension _ContainerViewCore {
 
         var result = FrameBuffer(lines: lines, width: innerWidth, uniformWidth: true)
         // Content sits at column 0 (no wall), shifted down by the title rows.
-        var carriedOverlays = bodyBuffer.shiftedOverlays(byX: 0, y: titleRows)
+        // The title comes before the body, and is drawn under its overflow;
+        // the divider and the footer come after it, and are drawn over it.
+        var carriedOverlays = carriedBodyOverlays(
+            bodyBuffer, footer: footerBuffer, separatorRows: footerSeparatorRows, shiftedByX: 0, y: titleRows)
         var carriedRuns = bodyBuffer.shiftedAnimatedCells(byX: 0, y: titleRows)
         var carriedRegions = bodyBuffer.shiftedHitTestRegions(byX: 0, y: titleRows)
         var carriedOpacity = bodyBuffer.shiftedOpacityRegions(byX: 0, y: titleRows)
@@ -83,6 +86,9 @@ extension _ContainerViewCore {
             carriedOpacity += footerBuf.shiftedOpacityRegions(byX: 0, y: footerRow)
         }
         result.overlays = carriedOverlays
+        if footerSeparatorRows > 0, !bodyBuffer.overlaysHoldNoOverflow {
+            result.coverOverflow(underRects: [(x: 0, y: titleRows + bodyBuffer.lines.count, width: innerWidth, height: 1)])
+        }
         result.hitTestRegions = carriedRegions
         result.animatedCells = carriedRuns
         // The fourth payload. This rebuilds with a bare `FrameBuffer(lines:)`,

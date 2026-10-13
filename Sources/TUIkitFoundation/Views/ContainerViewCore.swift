@@ -690,7 +690,8 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // footer. The body content sits one row below the top border
         // and one column inside the left border; the footer follows
         // the body and its optional separator.
-        var carriedOverlays = bodyBuffer.shiftedOverlays(byX: 1, y: 1)
+        var carriedOverlays = carriedBodyOverlays(
+            bodyBuffer, footer: footerBuffer, separatorRows: style.showFooterSeparator ? 1 : 0, shiftedByX: 1, y: 1)
         // The shift moves the body's regions past the border; it does not grow
         // them, so the rule itself is outside every rect a reveal can see and a
         // focused control lands with its frame one row off-screen. Record the
@@ -723,6 +724,10 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
                 bottom: footerRow + footerBuf.lines.count)
         }
         result.overlays = carriedOverlays
+        // The rules are drawn over what the body and the footer draw past
+        // their regions, as SwiftUI's border is (decisions-GUIDE3 B-GUIDE3-5).
+        let dividerRow = hasFooter && style.showFooterSeparator ? 1 + bodyBuffer.lines.count : nil
+        Self.coverOverflowUnderRules(of: &result, innerWidth: innerWidth, dividerRow: dividerRow)
         result.hitTestRegions = carriedRegions
         result.animatedCells = animatedCells(
             bodyBuffer: bodyBuffer, footerBuffer: footerBuffer, innerWidth: innerWidth,

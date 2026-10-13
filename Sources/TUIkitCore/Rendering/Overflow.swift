@@ -216,6 +216,26 @@ extension FrameBuffer {
         overlaysAreFreeOfOverflow = free
     }
 
+    /// Cuts the overflow this buffer carries (``OverlayLayer/isOverflow``)
+    /// away beneath `rects` of it: chrome a container draws by hand around
+    /// content it composed, rather than through a combining operation —
+    /// a border's rules, a footer's divider. SwiftUI draws a border over what
+    /// its content draws past its frame, and past the border the overflow is
+    /// still drawn (measured; decisions-GUIDE3 B-GUIDE3-5).
+    ///
+    /// Nothing unless the buffer carries overflow, which is almost never.
+    package mutating func coverOverflow(underRects rects: [(x: Int, y: Int, width: Int, height: Int)]) {
+        guard !overlaysHoldNoOverflow else { return }
+        var covered = overlays
+        for rect in rects {
+            covered = covered.flatMap { layer -> [OverlayLayer] in
+                guard layer.isOverflow else { return [layer] }
+                return layer.excluding(x: rect.x, y: rect.y, width: rect.width, height: rect.height)
+            }
+        }
+        overlays = covered
+    }
+
     /// `layers` with the overflow among them cut away where `later`,
     /// placed at `position`, paints.
     private static func covering(

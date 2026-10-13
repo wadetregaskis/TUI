@@ -896,7 +896,10 @@ the placement asks whether the view fits (four comparisons) before it splits
 anything. What clips still clips: a `ScrollView` cuts these layers at its
 viewport, `.clipped()` at its frame, a `List` inside its border, a `Table` at
 the cell, and a surface — a menu, a popover, a sheet, a dialog — at its edge
-(decisions-GUIDE3 B-GUIDE3-3). Content larger than its frame or base is still
+(decisions-GUIDE3 B-GUIDE3-3). A border, a box's divider and its footer are
+drawn over what the content draws past its region, and past the border it is
+still drawn, as SwiftUI's border is (measured; decisions-GUIDE3 B-GUIDE3-5).
+Content larger than its frame or base is still
 cut to it, as before (decisions-GUIDE3 B-GUIDE3-1).
 
 **A presentation is not content and is never clipped.** A menu, a drop-down, a

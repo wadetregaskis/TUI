@@ -351,6 +351,52 @@ struct PlacementOverflowTests {
         #expect(!lines.contains { $0.dropFirst(12).contains("r") }, "nothing past the table: \(lines)")
     }
 
+    @Test("A border is drawn over what its content draws past its region; past the border it is still drawn")
+    func borderOverItsContentsOverflow() {
+        // A hanging marker (alignmentGuide's DocC, LayoutSystem.md) in a
+        // bordered box on a 20-wide screen: the body is 16 cells inside the
+        // box's padding, and the marker's guide pushes a 16-cell line two
+        // cells past it — one onto the padding, one onto the right rule,
+        // which SwiftUI's `border`, an overlay, draws over. It drew the
+        // letter there.
+        func box(marker: String) -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(marker).alignmentGuide(.leading) { $0[.trailing] }
+                Text(String(repeating: "a", count: 16))
+            }
+            .border()
+        }
+        var screen = Screen(width: 20, height: 4)
+        var lines = screen.render(box(marker: "10"))
+        #expect(staysInsideItsBorders(lines), "\(lines)")
+        #expect(lines.contains("│   " + String(repeating: "a", count: 15) + "│"), "\(lines)")
+        // Three cells past the body: onto the padding, under the rule, and
+        // past the box, where nothing covers it.
+        screen = Screen(width: 30, height: 4)
+        lines = screen.render(box(marker: "100").padding(.trailing, 10))
+        #expect(lines.contains("│    " + String(repeating: "a", count: 14) + "│a"), "\(lines)")
+    }
+
+    @Test("A footer, and its divider, are drawn over what the body above them draws past its region")
+    func footerOverTheBodysOverflow() {
+        // A badge hung one and two rows below its label, onto the divider
+        // and the footer that come after the body: drawn over them, it hid
+        // the rule and the footer's "FF".
+        for push in [0.0, -1.0] {
+            let screen = Screen(width: 20, height: 8)
+            let lines = screen.render(
+                Panel("T") {
+                    Text("xxxxxxxxxx").overlay(alignment: .bottomLeading) {
+                        Text("YY").alignmentGuide(.bottom) { _ in push }
+                    }
+                } footer: {
+                    Text("FF")
+                })
+            #expect(!lines.contains { $0.contains("Y") }, "push \(push): \(lines)")
+            #expect(lines.contains { $0.contains("│ FF") }, "push \(push): \(lines)")
+        }
+    }
+
     @Test("A surface keeps its content's overflow inside its box")
     func surfaceKeepsItInside() {
         // A popover-like surface 6 wide at column 2 whose content carries a

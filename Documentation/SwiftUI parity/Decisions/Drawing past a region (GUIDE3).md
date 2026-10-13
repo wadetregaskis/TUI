@@ -130,6 +130,36 @@ drawing a bounce past a surface's edge while keeping a guided view inside
 would take a second kind of overflow layer (one more stored flag on
 `OverlayLayer`, read at the four cuts above): about half a day (estimate).
 
+### B-GUIDE3-5. A border, and a box's footer, are drawn over what the content draws past its region
+
+*`.border()`, `ContainerView` (`Panel` and the other boxes), their footers*
+
+A bordered box composes its rules, its divider and its footer around its
+body by hand, not through a combining operation, so the overflow its body
+carried was drawn over all of them. The review of the lane found it through
+B-GUIDE-1's overhang: a hanging marker whose guide pushes a full-width line
+past the body drew the line's last letters over the box's right rule (the
+box's one-cell padding takes the first). SwiftUI draws a border over what its
+content draws past the content's frame, and what lies past the border is
+still drawn (measured 2026-10-12, probe `GUIDE3/probe/g3b.swift`: a 20-point
+view pushed 5 points past its frame by a guide or an `.offset`, under
+`.border(green, width: 2)`: the border's pixels are green, the 5 points past
+it red; with `.padding(2)` before the border, the same).
+
+Shipped: the box cuts the overflow its body and footer carry under its rules
+and its divider (`FrameBuffer.coverOverflow(underRects:)`), and the footer,
+which comes after the body, cuts the body's overflow where it paints, as a
+stack's next child does; a borderless box's divider and footer do the same,
+and its title, which comes before the body, does not. Past the rules the
+overflow is still drawn, under whatever comes after the box
+(`PlacementOverflowTests` "A border is drawn over…", "A footer, and its
+divider…").
+
+**The fuller version** is SwiftUI's picture of the case that found it: the
+stack grows past its proposal and the border moves out to enclose the
+overhang. That is the change to every container's contract that B-GUIDE-1
+prices at 1.5 to 2.5 weeks.
+
 ### B-GUIDE3-4. `.offset` and `.position` still float over the views after them
 
 *`View.offset(x:y:)`, `View.position(x:y:)`; deviations L6*
