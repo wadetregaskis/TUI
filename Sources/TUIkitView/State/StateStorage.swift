@@ -246,8 +246,10 @@ public final class StateStorage: @unchecked Sendable {
     var objectIDs = 0
 
     /// The `@Environment` boxes inside class properties' objects that walks
-    /// other than the objects' primary holders' resolved, each with what it
-    /// held before (``pushEnvironmentRestore(_:previous:hub:)``): put back,
+    /// other than the objects' primary holders' render walks resolved, each
+    /// with what it held before (``pushEnvironmentRestore(_:previous:)``), and
+    /// those a primary's render walk resolved inside another holder's content
+    /// (``notePrimaryEnvironment(_:_:)``): put back,
     /// last first, after the holder's content (``restoreEnvironments(to:)``).
     var environmentRestores: [EnvironmentRestore] = []
 

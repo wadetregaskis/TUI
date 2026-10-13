@@ -132,21 +132,49 @@ extension StateStorage {
         @inline(__always) get { restoreDepth.pointee }
     }
 
-    /// Notes that a walk other than `hub`'s object's primary holder's is
-    /// about to hand `box`, an `@Environment`'s inside the object, its view's
-    /// environment, `box` holding `previous` until then.
-    func pushEnvironmentRestore(_ box: EnvironmentBox, previous: EnvironmentValues?, hub: ObjectHub?) {
-        environmentRestores.append(
-            EnvironmentRestore(box: box, previous: previous, hub: hub, primaryWalks: hub?.primaryWalks ?? 0))
+    /// Notes that a walk other than a render walk by its object's primary
+    /// holder is about to hand `box`, an `@Environment`'s inside the object,
+    /// its view's environment, `box` holding `previous` until then.
+    func pushEnvironmentRestore(_ box: EnvironmentBox, previous: EnvironmentValues?) {
+        environmentRestores.append(EnvironmentRestore(box: box, previous: previous))
         restoreDepth.pointee = environmentRestores.count
+    }
+
+    /// Notes that a render walk by its object's primary holder is about to
+    /// hand `box`, an `@Environment`'s inside the object, `environment`: the
+    /// object's at rest. Outside every other holder's content, nothing is
+    /// noted, and `box` keeps it. Inside one — a note for `box` waiting — the
+    /// outermost such note puts `environment` back when it is put back, as the
+    /// object's at rest, and a note of the primary's own puts back what `box`
+    /// holds now, the enclosing holder's, after the primary's content. A load
+    /// and a compare when nothing is waiting.
+    @inline(__always)
+    func notePrimaryEnvironment(_ box: EnvironmentBox, _ environment: EnvironmentValues) {
+        if restoreDepth.pointee > 0 { notePrimaryInsideHolders(box, environment) }
+    }
+
+    @inline(never)
+    private func notePrimaryInsideHolders(_ box: EnvironmentBox, _ environment: EnvironmentValues) {
+        // The outermost note for the box holds what it held before every
+        // holder whose content this walk lies in handed it theirs. A loop, not
+        // `firstIndex(where:)`: no closure handed to the standard library.
+        var outermost = 0
+        while outermost < environmentRestores.count, environmentRestores[outermost].box !== box {
+            outermost += 1
+        }
+        guard outermost < environmentRestores.count else { return }
+        environmentRestores[outermost].rest = environment
+        pushEnvironmentRestore(box, previous: box.environment)
     }
 
     /// Puts back, last first, what the walks noted since the count was
     /// `depth` handed the `@Environment`s inside objects: each box gets what
-    /// it held before — or, if its object's primary holder walked since, the
-    /// primary's environment — and none is set back to `nil`. Called after a
-    /// composite body's content is drawn or measured, at the pass's end, and
-    /// nowhere else: a load and a compare when nothing is waiting.
+    /// it held before — or, for the outermost note of a box whose object's
+    /// primary holder walked inside the noting holder's content, the
+    /// primary's environment, the object's at rest — and none is set back to
+    /// `nil`. Called after a composite body's content is drawn or measured,
+    /// at the pass's end, and nowhere else: a load and a compare when nothing
+    /// is waiting.
     @inline(__always)
     func restoreEnvironments(to depth: Int) {
         if restoreDepth.pointee > depth { popEnvironmentRestores(to: depth) }
@@ -156,7 +184,7 @@ extension StateStorage {
     private func popEnvironmentRestores(to depth: Int) {
         while environmentRestores.count > depth {
             let restore = environmentRestores.removeLast()
-            if let hub = restore.hub, hub.primaryWalks != restore.primaryWalks, let rest = hub.rest {
+            if let rest = restore.rest {
                 restore.box.environment = rest
             } else if let previous = restore.previous {
                 restore.box.environment = previous
@@ -167,14 +195,15 @@ extension StateStorage {
 }
 
 /// An `@Environment`'s box inside a class property's object that a walk other
-/// than the object's primary holder's resolved, and what to put back
-/// (``StateStorage/restoreEnvironments(to:)``).
+/// than a render walk by the object's primary holder resolved, and what to
+/// put back (``StateStorage/restoreEnvironments(to:)``).
 struct EnvironmentRestore {
     let box: EnvironmentBox
     /// What the box held before the walk.
     let previous: EnvironmentValues?
-    /// The object's hub, if a render walk made one.
-    let hub: ObjectHub?
-    /// The hub's ``ObjectHub/primaryWalks`` when the walk resolved the box.
-    let primaryWalks: Int
+    /// The object's environment at rest, put back in place of ``previous``:
+    /// the primary holder's, set when the primary's render walk ran inside
+    /// the content of the walk that noted this, the outermost note for the
+    /// box (``StateStorage/notePrimaryEnvironment(_:_:)``).
+    var rest: EnvironmentValues?
 }

@@ -217,8 +217,11 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   as long as it holds it — notes what each box held, and the two places a
   body's content is evaluated (a composite view's render and its measure) put
   it back, last first, after the content; the end of the pass puts back what
-  is left. A box is never put back to `nil`, and one whose primary walked in
-  the meantime gets the primary's environment. So:
+  is left. The primary's render walk notes nothing outside other holders'
+  content; inside one, it notes the enclosing holder's environment, put back
+  after the primary's content, and the outermost note for the box puts the
+  primary's back, as the object's at rest. A box is never put back to `nil`.
+  So:
   - during a holder's walk, its body, and the drawing or measuring of what
     that body built, the object reads that holder's environment — the
     innermost holder's where holders nest, the outer one's again after the
@@ -251,7 +254,9 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   token; per `@State` in it, a load and a pointer compare. A write takes a
   lock and invalidates each holder, usually one to three. Per `@Environment`
   in an object, a store per walk, and for a walk other than the primary's
-  render walk a note and its restore. An object made with
+  render walk a note and its restore; for the primary's render walk inside
+  another holder's content, a scan of the notes waiting for the box's
+  outermost, and a note. An object made with
   each view value brings a hub (about 64 bytes, estimated) a pass, swept once
   the table has doubled. Nested properties' `update()` inside an object runs
   once per holder walk, as the object's own does; the claim ran them for one

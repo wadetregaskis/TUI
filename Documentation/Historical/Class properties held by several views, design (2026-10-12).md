@@ -199,7 +199,15 @@ pushes the box's previous environment. After the holder's content, entries pushe
 since the holder's mark are popped, last first, at the two places a body's content
 is evaluated (the composite render site and the composite measure); the pass's end
 pops whatever is left. A pop restores the previous environment, never `nil`; if the
-primary walked inside the scope, the object's at rest instead.
+primary walked inside the scope, the object's at rest instead. *Built (review1 of
+the lane): a primary nested in another holder's content pushed nothing, so the
+outer holder's content after it read the primary's, and every entry pushed before
+the primary's walk, a middle holder's too, popped to the object's at rest. Now a
+primary walk inside another holder's content pushes the enclosing holder's
+environment and sets the box's outermost entry to put the primary's back; only
+that entry restores the object's at rest. The hub keeps neither an environment at
+rest nor a count of the primary's walks: the environment at rest held the storage,
+which keeps the hub, so no storage that drew an object ever went.*
 
 Whose environment a shared object's `@Environment` reads: during a holder's walk,
 its body, and the drawing or measuring of what that body built — that holder's,

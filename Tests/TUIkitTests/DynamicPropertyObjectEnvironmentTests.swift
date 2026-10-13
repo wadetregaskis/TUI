@@ -117,13 +117,17 @@ private struct OuterHolder: View {
 /// property — `Passed` is not one, and is not looked into — so it reads it as
 /// the outer holder's content does.
 private struct RowReader: View {
+    var name = "row"
+    /// A value new each frame, so the row is drawn again rather than served
+    /// from the memo: what it reads of the object is not in its value.
+    var frame = 0
     let object: Passed<Accented>
     let taps: AccentTaps
 
     var body: some View {
         let accent = object.object.accent
-        taps.reads["row", default: []].append(accent)
-        return Text(verbatim: "row \(accent)")
+        taps.reads[name, default: []].append(accent)
+        return Text(verbatim: "\(name) \(accent)")
     }
 }
 
@@ -138,6 +142,27 @@ private struct NestedHolders: View {
         VStack {
             AccentView(name: "first", object: object.object, taps: taps).environment(\.objectAccent, "first")
             OuterHolder(object: object.object, taps: taps).environment(\.objectAccent, "outer")
+        }
+    }
+}
+
+/// A view holding the object in a field when `held` is it, whose content —
+/// `content`, then a row drawn anew each frame (not one a `ForEach` serves
+/// from its row memo, blind to what its closure captures) — reads it: the
+/// row after `content` reads this view's environment when it holds the
+/// object.
+private struct HoldingLevel<Content: View>: View {
+    let name: String
+    let frame: Int
+    let held: Accented?
+    let object: Passed<Accented>
+    let taps: AccentTaps
+    let content: Content
+
+    var body: some View {
+        VStack {
+            content
+            RowReader(name: name, frame: frame, object: object, taps: taps)
         }
     }
 }
@@ -233,5 +258,75 @@ struct DynamicPropertyObjectEnvironmentTests {
         #expect(frame(view(), tui, height: 3) == ["first first", "inner inner", "row outer"])
         #expect(taps.reads["row"]?.allSatisfy { $0 == "outer" } == true, "\(taps.reads["row"] ?? [])")
         #expect(taps.readers["first"]?() == "first", "at rest, the first holder's")
+    }
+
+    /// The first holder of the object, drawn first while the view around it
+    /// held nothing, is its primary; once the outer view holds it too, the
+    /// primary's walk, nested in the outer one's content, handed the object
+    /// its environment and noted nothing to put back, so the outer view's
+    /// row after it read the inner one's (review1 of lane DYNVCLAIM,
+    /// a36532985 (1)). The outer view's content reads the outer view's after
+    /// the inner one's; at rest, the primary's.
+    @Test("A holder's content read after its object's primary holder, nested in it, reads the outer holder's environment")
+    func outerHoldersContentReadsItsOwnEnvironmentAfterTheNestedPrimary() {
+        let tui = TUIContext()
+        let taps = AccentTaps()
+        let object = Passed(object: Accented())
+        let view = { (holds: Bool, frame: Int) in
+            HoldingLevel(
+                name: "row", frame: frame, held: holds ? object.object : nil, object: object, taps: taps,
+                content: AccentView(name: "inner", object: object.object, taps: taps)
+                    .environment(\.objectAccent, "inner")
+            )
+            .environment(\.objectAccent, "outer")
+        }
+        #expect(frame(view(false, 1), tui) == ["inner inner", "row inner"])
+        #expect(frame(view(true, 2), tui) == ["inner inner", "row outer"])
+        #expect(frame(view(true, 3), tui) == ["inner inner", "row outer"])
+        #expect(taps.readers["inner"]?() == "inner", "at rest, the primary's")
+    }
+
+    /// Two holders around the primary: each one's content after what it
+    /// nests reads its own environment — the middle one's put back after the
+    /// primary's content, the outermost one's after the middle one's — and
+    /// at rest the object reads the primary's.
+    @Test("Holders nested around their object's primary each read their own environment after what they nest")
+    func holdersNestedAroundThePrimaryEachReadTheirOwnAfterIt() {
+        let tui = TUIContext()
+        let taps = AccentTaps()
+        let object = Passed(object: Accented())
+        let view = { (holds: Bool, frame: Int) in
+            HoldingLevel(
+                name: "row1", frame: frame, held: holds ? object.object : nil, object: object, taps: taps,
+                content: HoldingLevel(
+                    name: "row2", frame: frame, held: holds ? object.object : nil, object: object, taps: taps,
+                    content: AccentView(name: "inner", object: object.object, taps: taps)
+                        .environment(\.objectAccent, "inner")
+                )
+                .environment(\.objectAccent, "middle")
+            )
+            .environment(\.objectAccent, "outer")
+        }
+        #expect(frame(view(false, 1), tui, height: 3) == ["inner inner", "row2 inner", "row1 inner"])
+        #expect(frame(view(true, 2), tui, height: 3) == ["inner inner", "row2 middle", "row1 outer"])
+        #expect(frame(view(true, 3), tui, height: 3) == ["inner inner", "row2 middle", "row1 outer"])
+        #expect(taps.readers["inner"]?() == "inner", "at rest, the primary's")
+    }
+
+    /// The object's environment at rest was kept on its hub, which the
+    /// storage keeps: the environment holds the storage, so a storage that
+    /// had drawn a class property never went (review1 of lane DYNVCLAIM,
+    /// a36532985 (4)). It goes with its context.
+    @Test("A state storage that drew a class property goes with its context")
+    func storageThatDrewAnObjectGoesWithItsContext() {
+        weak var storage: StateStorage?
+        do {
+            let tui = TUIContext()
+            storage = tui.stateStorage
+            let taps = AccentTaps()
+            let object = Passed(object: Accented())
+            #expect(frame(TwoAccents(first: "red", second: "blue", object: object, taps: taps), tui) == ["a red", "b blue"])
+        }
+        #expect(storage == nil)
     }
 }

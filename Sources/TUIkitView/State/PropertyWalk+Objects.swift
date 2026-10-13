@@ -34,13 +34,26 @@ extension PropertyWalk {
         /// The hub of the object such a box is taken from
         /// (``ObjectStateContext/predecessor``).
         var predecessor: ObjectHub?
-        /// Whether what the walk hands the object's `@Environment`s is put
-        /// back after its view's content: for every walk but a render walk by
-        /// the object's primary holder, whose environment is the object's at
-        /// rest.
-        let restoresEnvironment: Bool
+        /// What the walk notes of what it hands the object's `@Environment`s
+        /// (``StateStorage/restoreEnvironments(to:)``).
+        let environmentNotes: EnvironmentNotes
         /// What its `@State` has said of it so far in this walk.
         var found = ObjectKind.unknown
+    }
+
+    /// What a walk of an object notes of what it hands the object's
+    /// `@Environment`s, so that its view's content reads its view's
+    /// environment and, after that, the object reads what it read before.
+    enum EnvironmentNotes {
+        /// Nothing: the walk has no storage to note it in.
+        case none
+        /// What each box held, put back after the view's content
+        /// (``StateStorage/pushEnvironmentRestore(_:previous:)``): every walk
+        /// but a render walk by the object's primary holder.
+        case putBack
+        /// That the environment is the object's at rest: a render walk by its
+        /// primary holder (``StateStorage/notePrimaryEnvironment(_:_:)``).
+        case atRest
     }
 
     /// `scope`, a scope inside the object the walk is in, in the key space of
@@ -170,7 +183,7 @@ extension PropertyWalk {
         guard contents.mayInstall, let storage else {
             return ObjectWalk(
                 object: object, hub: nil, token: nil, idPath: nil, placeScope: placeScope, adoptsPlace: false,
-                restoresEnvironment: false)
+                environmentNotes: .none)
         }
         // Whether the object was made in this pass, with a value of the view
         // holding it, as its first `@State` says before any of its ids is
@@ -181,16 +194,13 @@ extension PropertyWalk {
         if !isMeasuring {
             let (hub, token, previous, predecessor) = storage.registerHolder(
                 identity, of: object, at: placeScope, kind: kind)
+            // The primary's environment is the object's at rest, for closures
+            // and whatever else reads it outside every holder's content.
             let isPrimary = hub.primary == identity
-            if isPrimary {
-                // The object's environment at rest, for closures and whatever
-                // else reads it outside every holder's content.
-                hub.rest = environment
-                hub.primaryWalks &+= 1
-            }
             return ObjectWalk(
                 object: object, hub: hub, token: token, idPath: hub.idPath, placeScope: placeScope,
-                adoptsPlace: previous == .perValue, predecessor: predecessor, restoresEnvironment: !isPrimary)
+                adoptsPlace: previous == .perValue, predecessor: predecessor,
+                environmentNotes: isPrimary ? .atRest : .putBack)
         }
         // A measure registers nothing, and puts back what it hands. Before
         // any render walk has made the object a hub, it binds the ids the
@@ -202,12 +212,12 @@ extension PropertyWalk {
             if hub.takesChainIDs, kind() == .longLived { storage.giveOwnIDs(to: hub) }
             return ObjectWalk(
                 object: object, hub: hub, token: nil, idPath: hub.idPath, placeScope: placeScope,
-                adoptsPlace: previous?.lastObject == .perValue, restoresEnvironment: true)
+                adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack)
         }
         let chained = previous.flatMap { $0.lastObject != .longLived && kind() != .longLived ? $0.hub.idPath : nil }
         return ObjectWalk(
             object: object, hub: nil, token: nil, idPath: chained, placeScope: placeScope,
-            adoptsPlace: previous?.lastObject == .perValue, restoresEnvironment: true)
+            adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack)
     }
 
     /// What `object` holds, walked in place, in `scope`: its storage is
@@ -227,12 +237,14 @@ extension PropertyWalk {
     /// its `@State` bound as the object's (``State/bindObjectState(at:to:key:in:isMeasuring:)``),
     /// its ids made from the object's (``ObjectHub/idPath``), and its
     /// `@Environment` resolved, in place, to the walking view's environment —
-    /// put back after the view's content unless the walk is a render walk by
-    /// the object's primary holder (``StateStorage/restoreEnvironments(to:)``).
-    /// So while a holder's body and what it built run, the object reads that
-    /// holder's environment, the innermost holder's where holders nest; and
-    /// anywhere else — an event's closure, a task, between passes — its
-    /// primary's, as of the primary's last render walk.
+    /// put back after the view's content (``StateStorage/restoreEnvironments(to:)``),
+    /// or, for a render walk by the object's primary holder, noted as the
+    /// object's at rest (``StateStorage/notePrimaryEnvironment(_:_:)``). So
+    /// while a holder's body and what it built run, the object reads that
+    /// holder's environment, the innermost holder's where holders nest, and
+    /// the outer one's again after the inner one's content; and anywhere else
+    /// — an event's closure, a task, between passes — its primary's, as of
+    /// the primary's last render walk.
     mutating func applyObjectLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, in object: ObjectWalk
     ) {
@@ -259,8 +271,12 @@ extension PropertyWalk {
         }
         if let placed = leaf.placeEnvironment {
             let box = placed.environmentBox(at: address)
-            if object.restoresEnvironment, let storage {
-                storage.pushEnvironmentRestore(box, previous: box.environment, hub: object.hub)
+            if let storage {
+                switch object.environmentNotes {
+                case .putBack: storage.pushEnvironmentRestore(box, previous: box.environment)
+                case .atRest: storage.notePrimaryEnvironment(box, environment)
+                case .none: break
+                }
             }
             box.environment = environment
         } else if let resolvable = leaf.environment {

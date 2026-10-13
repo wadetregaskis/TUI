@@ -53,18 +53,10 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
 
     /// The view the object reads its environment as at rest: the first
     /// holder drawn on a hub with none, for as long as it holds the object.
-    /// Main actor only.
+    /// Its render walk leaves the object its environment, where every other
+    /// walk's is put back after its view's content
+    /// (``StateStorage/notePrimaryEnvironment(_:_:)``). Main actor only.
     var primary: ViewIdentity?
-
-    /// The environment the object's `@Environment`s read at rest: the
-    /// primary's, as of its last render walk. Main actor only.
-    var rest: EnvironmentValues?
-
-    /// How many render walks the primary has made: what tells a restore that
-    /// the primary walked while another holder's environment was in place, so
-    /// the object is put back to ``rest`` rather than to what that holder
-    /// found (``StateStorage/restoreEnvironments(to:)``). Main actor only.
-    var primaryWalks = 0
 
     /// What the object's `@State` held in each place's box that the object
     /// made next at that place took over while this one was alive, by the
