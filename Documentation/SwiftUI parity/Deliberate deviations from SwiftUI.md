@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. Five of these (L12, E3, T8, T10, V7) are awaiting the owner's ruling, and each may yet become a fix. |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12, E3 and T10 are to change, T8 keeps its filter and gains a bell, and V7 is under review. |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -356,7 +356,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   directly". The semantic audit disputes that (flexibility says who grows,
   priority who shrinks first).
 - **Decided:** [LayoutValueKey.swift](../../Sources/TUIkitFoundation/Views/LayoutValueKey.swift#L114-L121).
-  **Recorded**, with no ruling; awaiting the owner. [§1](<SwiftUI compatibility guide.md#1-match>) (the
+  **Owner** (2026-10-13): "we should support layout priority properly": the
+  built-in stacks are to offer space by priority, as SwiftUI's do;
+  [slated](#slated-to-change). [§1](<SwiftUI compatibility guide.md#1-match>) (the
   Custom layout row) still lists it as a match.
 
 ### L13. A guide pushes a view at most 2^20 cells, and a runaway guide is reported
@@ -565,8 +567,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   app groups `12.000` while its words are German.
 - **Decided:** [LocalizationService+Language.swift](../../Sources/TUIkitStrings/Localization/LocalizationService+Language.swift#L35-L43),
   [ServiceEnvironment+Runtime.swift](../../Sources/TUIkitApp/Environment/ServiceEnvironment+Runtime.swift#L40-L43).
-  **Recorded**, with no ruling; awaiting the owner (semantic audit item 7: the
-  fallback for an unshipped language was nobody's choice).
+  **Owner** (2026-10-13): to change: the app's language with the region of
+  the user's locale (`en-GB`, `de-GB`), so dates and numbers follow the user's
+  region; [slated](#slated-to-change).
 
 ---
 
@@ -858,8 +861,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a terminal has no autofill, so the type was given a meaning a
   terminal can carry.
 - **Decided:** [TextContentType.swift](../../Sources/TUIkitStyling/Styles/TextContentType.swift#L11-L17).
-  **Recorded**, with no ruling; awaiting the owner (the semantic audit's item
-  66 asked for the filter to move to a TUI-only modifier).
+  **Owner** (2026-10-13): kept: "We should not accept invalid characters in
+  an email address field", but not silently: a dropped character rings the
+  terminal's bell. The sets are to admit every valid character (an address's
+  local part may hold ``!#$%&'*/=?^`{|}~``, which `.emailAddress` drops today);
+  [slated](#slated-to-change).
 
 ### T9. A date field's order is fixed
 
@@ -887,8 +893,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   in the current locale.
 - **Decided:** [LocalizedStringKey.swift](../../Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift#L500-L511),
   [Localization](../../Sources/TUIkit/TUIkit.docc/Articles/Localization.md#L137-L141),
-  [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Recorded**, with no ruling; awaiting the owner.
-  Normalising the specifiers at lookup would close it.
+  [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Owner** (2026-10-13): normalise the
+  specifiers at lookup, so a catalog keyed as SwiftUI keys it is found;
+  [slated](#slated-to-change).
 
 ---
 
@@ -1389,9 +1396,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   suggestions in one are not offered. A `Form` reads through a view of the
   app's own only when its body is several views, a loop, an `if` or a
   section.
-- **Why:** not recorded.
+- **Why:** not recorded, and not a choice: the picker's walk (a closed list
+  of seven view types, `Picker.swift`) predates the member resolution that
+  `List` and `Group(subviews:)` use. A `Section`, a `Group`, an `AnyView` and a
+  modifier after `.tag` drop options too (read from the code, 2026-10-13).
 - **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Subviews row, under "Differs").
-  **Recorded**, with no ruling; awaiting the owner.
+  **Under review** (2026-10-13: the owner asked what the problem is; the
+  answer recommends reading options through the member resolution).
 
 ---
 
@@ -1520,6 +1531,10 @@ on. Each waits on the work, or on the ruling, its State names.
 | A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
+| The built-in stacks ignore `layoutPriority` (L12) | [L12](#l12-layoutpriority-is-read-only-by-a-custom-layout) | Owner 2026-10-13: support it properly; lane owed |
+| `textContentType`'s filter drops characters silently, and `.emailAddress` drops some valid ones (T8) | [T8](#t8-textcontenttype-filters-what-can-be-typed) | Owner 2026-10-13: keep the filter, ring the bell for a dropped character, admit every valid character; lane owed |
+| An interpolated key holds `%@` for every value (T10) | [T10](#t10-an-interpolated-key-holds--for-every-value) | Owner 2026-10-13: normalise the specifiers at lookup; lane owed |
+| `\.locale` has no region (E3) | [E3](#e3-locale-is-the-apps-language-without-a-region) | Owner 2026-10-13: the app's language with the user's region; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
