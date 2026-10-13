@@ -146,13 +146,21 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         // to be missing for as long as they were: the class was noticed and one
         // instance of it fixed.
         var runs: [AnimatedCellRun] = []
-        var overlays: [OverlayLayer] = []
+        // The parts' layers, gathered as a stack gathers its children's: what
+        // a part draws past its region is cut where a later part paints, so it
+        // is drawn over the parts before it and under the parts after it. A
+        // buffer of no lines, not the section's: it only carries the layers,
+        // so that the stack's own two steps (`coverOverflow(under:at:)`,
+        // `appendOverlays(of:shiftedByX:y:)`) do the work and keep the hint
+        // that none is overflow: a part that carries no layer costs a test.
+        var layers = FrameBuffer()
         var regions: [HitTestRegion] = []
         var faded: [OpacityRegion] = []
         func take(_ buffer: FrameBuffer) {
             let dy = lines.count
             runs += buffer.shiftedAnimatedCells(byX: 0, y: dy)
-            overlays += buffer.shiftedOverlays(byX: 0, y: dy)
+            layers.coverOverflow(under: buffer, at: (x: 0, y: dy))
+            layers.appendOverlays(of: buffer, shiftedByX: 0, y: dy)
             regions += buffer.shiftedHitTestRegions(byX: 0, y: dy)
             faded += buffer.shiftedOpacityRegions(byX: 0, y: dy)
             lines.append(contentsOf: buffer.lines)
@@ -162,7 +170,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         // stack grafts an off-band row: a focus move onto one still finds where
         // to scroll.
         func carry(_ buffer: FrameBuffer, at dy: Int) {
-            overlays += buffer.shiftedOverlays(byX: 0, y: dy)
+            layers.appendOverlays(of: buffer, shiftedByX: 0, y: dy)
             regions += buffer.shiftedHitTestRegions(byX: 0, y: dy)
         }
 
@@ -208,7 +216,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         }
 
         var buffer = FrameBuffer(lines: lines)
-        buffer.overlays = overlays
+        buffer.overlays = layers.overlays
         buffer.hitTestRegions = regions
         // A measure pass draws nothing, so a run left on it would describe cells
         // that were never on screen — and keep the animation clock alive from a

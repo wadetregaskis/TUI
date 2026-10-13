@@ -133,7 +133,7 @@ would take a second kind of overflow layer (one more stored flag on
 ### B-GUIDE3-5. A border, and a box's footer, are drawn over what the content draws past its region
 
 *`.border()`, `ContainerView` (`Panel` and the other boxes), their footers;
-a bordered `TabView`'s panel; the window bars*
+a bordered `TabView`'s panel; the window bars; a `Section`'s parts*
 
 A bordered box composes its rules, its divider and its footer around its
 body by hand, not through a combining operation, so the overflow its body
@@ -165,7 +165,11 @@ edge. A hanging marker in a tab pushed the tab's lines over the panel's right
 wall ("A tab view's panel…"). A window bar (`.appHeader`, the bottom bar)
 frames content laid out before it: a `.bordered` bar's four rules, and a
 `.rule` bar's one rule, are drawn over what that content draws past its
-region ("A window bar's rules…").
+region ("A window bar's rules…"). And a `Section` drawn as one view (a view's
+whole body, a scroll view's content) stacks its header, content and footer by
+hand: what a part draws past its region is now cut where a later part paints,
+as a stack's next child cuts it, where every part's layers were lifted uncut
+("A section's parts…").
 
 **The fuller version** is SwiftUI's picture of the case that found it: the
 stack grows past its proposal and the border moves out to enclose the

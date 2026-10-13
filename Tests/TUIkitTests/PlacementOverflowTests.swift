@@ -450,6 +450,19 @@ struct PlacementOverflowTests {
         #expect(staysInsideItsBorders(lines), "\(lines)")
     }
 
+    @Test("A section's parts are drawn over what the parts before them draw past their regions")
+    func sectionPartsOverEarlierOverflow() {
+        // A section on its own stacks its header, content and footer by hand,
+        // and lifted their layers uncut: a badge hung below the header drew
+        // over the content, and one hung below the content over the footer.
+        func badged(_ label: String) -> some View {
+            Text(label).overlay(alignment: .bottomLeading) { Text("YY").alignmentGuide(.bottom) { _ in 0 } }
+        }
+        let screen = Screen()
+        let lines = screen.render(Section { badged("cccc") } header: { badged("hhhh") } footer: { Text("FFFF") })
+        #expect(Array(lines.prefix(3)) == ["hhhh", "cccc", "FFFF"], "\(lines)")
+    }
+
     @Test("A window bar's rules are drawn over what its content draws past its region")
     func barRulesOverItsContentsOverflow() {
         // A bar frames content laid out before it: a badge hung below its
