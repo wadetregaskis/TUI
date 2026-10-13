@@ -80,8 +80,9 @@ RESET = CSI + "0m"
 FLANK = CSI + "48;5;201m" + "  " + RESET
 CHROME_CLASSES = ("chrome_key", "chrome_glyph")
 # The rows of those classes, as `ChromeGlyphAdvanceTests` counts them: the 29 of
-# 2026-09-04 and the five keyboard symbols of 2026-10-05.
-CHROME_ROWS = 34
+# 2026-09-04, the five keyboard symbols of 2026-10-05 and the two drop badges of
+# 2026-10-13.
+CHROME_ROWS = 36
 
 # Not part of the corpus: the rows that say whether this card is legible at all
 # on this host. `pad` is EXTRA cells after the cluster, and it is 0 everywhere:

@@ -318,14 +318,20 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // The LIFTED frame: for the first ~120 ms the picture is still on its
         // way out of the row it came from. See `liftedPreviewFrame()` for why
         // that blend lives at the draw site rather than in the anchor math.
+        //
+        // It wears a badge in its top-right cell naming the operation the
+        // destination under it proposes, macOS's pointer badge (decisions B10).
         if let frame = dragSession?.liftedPreviewFrame(),
             let preview = dragSession?.liftedPreviewContent()
         {
+            let palette = context.environment.palette
             centered.overlays.append(
                 OverlayLayer(
                     offsetX: frame.x,
                     offsetY: frame.y - rowsAbove,
-                    content: Self.card(preview, palette: context.environment.palette),
+                    content: DragAndDropSession.badged(
+                        Self.card(preview, palette: palette), operation: dragSession?.proposedOperation,
+                        palette: palette),
                     level: .notification,
                     // Pinned to the pointer: clipped at the screen edge, never
                     // slid back onto it. Sliding is what made a wide preview

@@ -213,6 +213,10 @@ struct TerminalLedgerConformanceTests {
         // symbols. Not even their advance is in a record yet (see
         // `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement`).
         "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
+        // The drop-operation badges added 2026-10-13 (decisions B10): their
+        // advance is read (Terminal compatibility survey.md, "The drop-operation
+        // badge"), their landing and ink are not.
+        "chrome_drop_link", "chrome_drop_forbidden",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

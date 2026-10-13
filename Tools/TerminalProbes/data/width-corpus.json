@@ -1326,6 +1326,22 @@
    "scalars": [
     "U+2502"
    ]
+  },
+  {
+   "id": "chrome_drop_link",
+   "class": "chrome_glyph",
+   "text": "↗",
+   "scalars": [
+    "U+2197"
+   ]
+  },
+  {
+   "id": "chrome_drop_forbidden",
+   "class": "chrome_glyph",
+   "text": "⊘",
+   "scalars": [
+    "U+2298"
+   ]
   }
  ]
 }

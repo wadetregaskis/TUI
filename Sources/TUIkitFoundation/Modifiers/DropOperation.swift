@@ -12,10 +12,19 @@
 /// What a drop does with what it carries — SwiftUI's `DropOperation`, which a
 /// ``DropProposal`` names.
 ///
-/// Drags in TUIkit never leave the app, and nothing is drawn at the pointer to
-/// say which operation is proposed, so of these only ``cancel`` and
+/// Drags in TUIkit never leave the app, so of these only ``cancel`` and
 /// ``forbidden`` change what happens: either refuses the drop. The others
 /// accept it, and what they mean to the data is the app's to carry out.
+///
+/// What a destination proposes is shown as macOS shows it, by a badge: one
+/// cell at the top-right corner of the drag's preview, while the drag is over
+/// the destination — `+` in the accent colour for ``copy``, `↗` for ``alias``,
+/// `⊘` in the error colour for ``forbidden``, and nothing for ``move``,
+/// ``delete`` or ``cancel``. A view with `onDrop(of:isTargeted:perform:)`
+/// proposes ``copy``; one with `onDrop(of:delegate:)` proposes what its
+/// delegate's `dropUpdated(info:)` last returned. TUIkit's other destinations
+/// (`dropDestination`, a list's insertion and reordering) propose nothing and
+/// show no badge.
 public enum DropOperation: Hashable, Sendable {
     /// Cancel the drag: nothing is dropped.
     case cancel

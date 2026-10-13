@@ -122,6 +122,14 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// track the pointer the whole time it is over it.
         package var hovering: ((_ x: Int, _ y: Int) -> Void)?
 
+        /// The operation this destination proposes for the drag over it now,
+        /// which the preview's badge names (``DropOperation/badgeGlyph``), or
+        /// `nil` — and no badge — for a destination that proposes none.
+        ///
+        /// Asked while the drag is over the destination, after its `hovering`
+        /// has heard the move, so a delegate's latest proposal is the answer.
+        package var proposedOperation: (() -> DropOperation?)?
+
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUIkitLists makes these, for the lists, and
         /// TUIkitTables, for the tables.
@@ -130,13 +138,15 @@ package final class DragAndDropSession: @unchecked Sendable {
             accepts: @escaping (Any) -> Bool,
             perform: @escaping (Any, MouseEvent) -> Bool,
             setTargeted: @escaping (Bool) -> Void,
-            hovering: ((_ x: Int, _ y: Int) -> Void)? = nil
+            hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
+            proposedOperation: (() -> DropOperation?)? = nil
         ) {
             self.handlerID = handlerID
             self.accepts = accepts
             self.perform = perform
             self.setTargeted = setTargeted
             self.hovering = hovering
+            self.proposedOperation = proposedOperation
         }
     }
 

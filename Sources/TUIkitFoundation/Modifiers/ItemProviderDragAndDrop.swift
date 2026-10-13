@@ -69,8 +69,9 @@
     /// ``DropOperation/cancel`` or ``DropOperation/forbidden`` refuses the drop
     /// (it never reaches ``performDrop(info:)``, and the drag goes home); any
     /// other operation accepts it, and what it means to the data is the
-    /// delegate's to carry out — a TUIkit drag never leaves the app, and
-    /// nothing at the pointer shows the operation.
+    /// delegate's to carry out — a TUIkit drag never leaves the app. The drag's
+    /// preview wears a badge naming the operation proposed now (see
+    /// ``DropOperation``).
     @MainActor
     public protocol DropDelegate {
         /// Whether the view will take this drop. Asked once, as the drag comes
@@ -150,7 +151,8 @@
         ///
         /// A drag from ``onDrag(_:)`` carries its provider; one from TUIkit's
         /// `draggable(_:)` with a string or a URL carries it as a provider of
-        /// text or a URL.
+        /// text or a URL. The view proposes ``DropOperation/copy``, so a drag
+        /// over it wears the copy badge, `+`.
         ///
         /// - Parameters:
         ///   - supportedContentTypes: The types the view takes.
@@ -187,7 +189,9 @@
                     perform: { payload, info in
                         action(ItemProviders.of(payload, conformingTo: supportedContentTypes), info.location)
                     },
-                    setTargeted: { isTargeted?.wrappedValue = $0 })
+                    setTargeted: { isTargeted?.wrappedValue = $0 },
+                    // What SwiftUI's view without a delegate proposes.
+                    proposedOperation: { .copy })
             }
         }
 
@@ -213,7 +217,8 @@
                     accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
                     perform: session.perform,
                     setTargeted: session.setTargeted,
-                    hoveringInfo: session.hovering)
+                    hoveringInfo: session.hovering,
+                    proposedOperation: session.proposedOperation)
             }
         }
     }
@@ -273,6 +278,12 @@
             }
             guard state.validated == true else { return }
             if let proposal = delegate.dropUpdated(info: info) { state.operation = proposal.operation }
+        }
+
+        /// The operation the delegate proposes now, for the preview's badge:
+        /// `nil` until it has validated the drag, and when it refused it.
+        func proposedOperation() -> DropOperation? {
+            state.validated == true ? state.operation : nil
         }
 
         func perform(_ payload: Any, _ info: DropInfo) -> Bool {

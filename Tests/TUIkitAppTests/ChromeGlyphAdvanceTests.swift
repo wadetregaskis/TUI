@@ -97,19 +97,25 @@ struct ChromeGlyphAdvanceTests {
     /// cell on Apple Terminal 455.1, iTerm2 3.7.3, Warp v0.2026.09.30 and tmux
     /// 3.7c; it is in `Documentation/Terminals/Terminal compatibility survey.md`, "Key symbols",
     /// and not a record, so nothing here asserts it.)
+    ///
+    /// The two drop-operation badges joined on 2026-10-13 (`↗ ⊘`, decisions
+    /// B10). `advance_probe.py` read both at one cell on all four hosts and
+    /// tmux that day, but the records were not rewritten (the survey's "The
+    /// drop-operation badge" says why), so they wait here too.
     private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
         let newKeySymbols: Set<String> = [
             "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
         ]
+        let awaiting = newKeySymbols.union(["chrome_drop_link", "chrome_drop_forbidden"])
         return [
-            .ghostty: newKeySymbols, .iTerm2: newKeySymbols,
-            .appleTerminal: newKeySymbols, .warp: newKeySymbols,
+            .ghostty: awaiting, .iTerm2: awaiting,
+            .appleTerminal: awaiting, .warp: awaiting,
         ]
     }()
 
     @Test("Every chrome glyph is a corpus row of one of the two chrome classes")
     func theSuiteHasSomethingToMeasure() {
-        #expect(Self.chromeRows.count == 34, "\(Self.chromeRows.count) chrome rows")
+        #expect(Self.chromeRows.count == 36, "\(Self.chromeRows.count) chrome rows")
     }
 
     /// The probes measure the corpus and nothing else (`advance_probe.py`'s

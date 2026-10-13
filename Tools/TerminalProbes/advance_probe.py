@@ -242,6 +242,10 @@ BATTERY.update({
     "chrome_shade": "\u2592",  # ▒ track groove — EAW Ambiguous
     "chrome_box_h": "\u2500",  # ─ border — EAW Ambiguous
     "chrome_box_v": "\u2502",  # │ border — EAW Ambiguous
+    # Added 2026-10-13: the badges a drag's preview wears to name the drop's
+    # operation (decisions B10). `+` is ASCII; these two are not.
+    "chrome_drop_link": "\u2197",  # ↗ DropOperation.alias — EAW Ambiguous
+    "chrome_drop_forbidden": "\u2298",  # ⊘ DropOperation.forbidden — EAW Neutral
 })
 
 def cursor_col(fd):

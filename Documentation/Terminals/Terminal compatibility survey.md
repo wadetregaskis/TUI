@@ -530,6 +530,56 @@ symbols are the default everywhere until a measurement above says otherwise,
 and such a host's default would be set where the app runner reads
 `TUIKIT_KEY_SYMBOLS` (`TerminalClient.keyNotationRequested`).
 
+### The drop-operation badge — advance measured 2026-10-13
+
+Since 2026-10-13 a drag's preview wears a one-cell badge in its top-right
+corner naming the operation the destination under it proposes (decisions
+B10): `+` for a copy, `↗` for a link, `⊘` for a drop that is not allowed
+(`DropOperation.badgeGlyph`). The badge is composited over the preview's
+corner cell, so a glyph that advanced or drew two cells would push the
+preview's last column out of line or overhang the page beside it.
+
+| Glyph | Codepoint | Operation | East Asian Width | Corpus row | Advance / ink |
+|---|---|---|---|---|---|
+| `+` | U+002B | copy | Narrow | (ASCII) | 1, by definition |
+| `↗` | U+2197 | alias (link) | **Ambiguous** | `chrome_drop_link` | measured 2026-10-13: 1 on every host reached / ink **UNMEASURED** |
+| `⊘` | U+2298 | forbidden | Neutral | `chrome_drop_forbidden` | measured 2026-10-13: 1 on every host reached / ink **UNMEASURED** |
+
+**Advance measured with `advance_probe.py`**, its battery extended by the two
+rows, run in each host from a `.command` file on the primary screen, on
+macOS 15.8.1:
+
+| Host | Version | `↗` | `⊘` |
+|---|---|---|---|
+| Apple Terminal | 455.1 | 1 | 1 |
+| iTerm2, ambiguous narrow (the default) | 3.7.4 | 1 | 1 |
+| iTerm2, "ambiguous characters are wide" | — | UNMEASURED (`↗` expected 2, with the borders) | UNMEASURED |
+| Ghostty (mode 2027 set) | 1.3.1 | 1 | 1 |
+| Warp | v0.2026.09.30.08.29 | 1 | 1 |
+| kitty | — | UNMEASURED (did not launch, as on 2026-10-05) | UNMEASURED |
+| tmux, its own grid | 3.7c | 1 | 1 |
+
+`↗` therefore joins the arrows and the borders in the class the "Key symbols"
+section describes: one cell with each host's default settings, two where a
+host is set to draw ambiguous characters wide, which TUIkit answers with
+autowrap off rather than a wider claim. `⊘` is Neutral and measured one cell
+everywhere reached.
+
+The same runs re-read every other row of the battery. Apple Terminal, Ghostty
+and Warp matched their committed records row for row. **iTerm2 3.7.4 did not,
+on nine rows outside the chrome classes**: `hangul_jamo_lv` 3 → 2,
+`hangul_jamo_lvt` 4 → 2, `keycap_0`, `keycap_1`, `keycap_hash` and
+`keycap_star` 1 → 2, `skin_lifter_bare` 2 → 3, `skin_thumbs` and `zwj_skin`
+2 → 4 (committed record → this run). Whether that is the new version or a
+profile setting (its Unicode version) was not followed up; the run's record
+is kept with the lane's notes, not committed. No record was rewritten, so
+`ChromeGlyphAdvanceTests` lists the two badge rows as awaiting measurement on
+every host until a re-run is committed. **The ink is
+unmeasured**: what a DSR cannot see — a glyph overhanging its cell, or a font
+with no glyph for it drawing a box — needs `overhang_card.py` (which draws the
+two rows now) read by a person. Until it is, the claim is one cell and no
+host widens it.
+
 ## Identifying the host terminal
 
 Every per-terminal model in this document is only as good as the answer to

@@ -214,6 +214,9 @@ package enum TerminalWidthCorpus {
         Entry(id: "chrome_shade", category: "chrome_glyph", text: "\u{2592}"),  // ▒ track groove — EAW Ambiguous
         Entry(id: "chrome_box_h", category: "chrome_glyph", text: "\u{2500}"),  // ─ border — EAW Ambiguous
         Entry(id: "chrome_box_v", category: "chrome_glyph", text: "\u{2502}"),  // │ border — EAW Ambiguous
+        // The drop-operation badges a drag's preview wears (decisions B10), added 2026-10-13.
+        Entry(id: "chrome_drop_link", category: "chrome_glyph", text: "\u{2197}"),  // ↗ DropOperation.alias — EAW Ambiguous
+        Entry(id: "chrome_drop_forbidden", category: "chrome_glyph", text: "\u{2298}"),  // ⊘ DropOperation.forbidden
     ]
 
     /// Entries of one category.
@@ -319,7 +322,9 @@ package enum TerminalWidthCorpus {
                 + "row inside it. Most are East Asian AMBIGUOUS. ADVANCE measured "
                 + "2026-09-04: 1 on all four hosts. INK card-read the same day "
                 + "(`overhang_card.py`): not one of the thirteen overhangs on any host, "
-                + "and for these a wide claim would never have been the remedy anyway.",
+                + "and for these a wide claim would never have been the remedy anyway. "
+                + "↗ ⊘, the drop-operation badges added 2026-10-13: advance 1 on four hosts "
+                + "and tmux by `advance_probe.py`, no record rewritten; ink UNMEASURED.",
         "combining":
             "Base + combining mark(s) (NFD é, and one with three stacked): one cell, "
                 + "agreed everywhere — the marks are Mn and advance nothing.",

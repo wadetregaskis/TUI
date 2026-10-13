@@ -1121,6 +1121,20 @@ Neutral alternatives are `⇗` (U+21D7) or `⤴` (U+2934) for link and `✕`
 is macOS's look. Work: 1–2 commits, about half a day, plus the glyph
 measurements. The source-side callback stays with A53, which is pinned.
 
+**Shipped 2026-10-13 (BITEMS1):** the badge, in the preview's top-right
+cell (on the preview rather than beside it, so the picture stays the frame a
+`DropInfo` reports): `+` in the accent colour for `.copy`, `↗` in the accent
+for `.alias`, `⊘` in the error colour for `.forbidden`, nothing for `.move`.
+`onDrop(of:isTargeted:perform:)` proposes `.copy`; `onDrop(of:delegate:)`
+proposes what `dropUpdated` last returned, once `validateDrop` said yes.
+`↗` and `⊘` are corpus rows now, measured one cell by `advance_probe.py` on
+Apple Terminal, iTerm2, Ghostty, Warp and tmux (Terminal compatibility
+survey.md, "The drop-operation badge"; ink unmeasured). Three choices of the
+lane's own are in [B-BITEMS1-1](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-1-a-delete-wears-no-badge-and-only-the-item-provider-drops-propose-one>):
+`.delete` and `.cancel` wear none, TUIkit's own `dropDestination` and a
+list's drops propose nothing, and no destination highlight shifts colour
+(TUIkit draws none for these views; the app's `isTargeted` does).
+
 ### B19. A guide does not travel out of a view type of the app's own
 
 *`View.alignmentGuide(_:computeValue:)`, `Layout.explicitAlignment(of:in:proposal:subviews:cache:)`*

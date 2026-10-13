@@ -378,6 +378,8 @@ package enum DropZone {
     ///   - hoveringInfo: Told the same, as the ``DropInfo`` a drop there would
     ///     be handed — for a destination that answers each move, as SwiftUI's
     ///     drop delegate does.
+    ///   - proposedOperation: The operation the destination proposes for the
+    ///     drag over it, which the preview's badge names; `nil` for none.
     @MainActor
     package static func install(
         on buffer: inout FrameBuffer, context: RenderContext,
@@ -385,7 +387,8 @@ package enum DropZone {
         perform: @escaping (Any, DropInfo) -> Bool,
         setTargeted: @escaping (Bool) -> Void,
         hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
-        hoveringInfo: ((DropInfo) -> Void)? = nil
+        hoveringInfo: ((DropInfo) -> Void)? = nil,
+        proposedOperation: (() -> DropOperation?)? = nil
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -439,7 +442,8 @@ package enum DropZone {
             handlerID: id,
             accepts: accepts,
             perform: { payload, event in perform(payload, info(at: event, carrying: payload)) },
-            setTargeted: setTargeted
+            setTargeted: setTargeted,
+            proposedOperation: proposedOperation
         )
         if hovering != nil || hoveringInfo != nil {
             target.hovering = { x, y in
