@@ -317,9 +317,12 @@ allowance above stays where it was pushed, because a deliberate push is the
 signal. SwiftUI's bounce springs back, and the owner ruled that `.always`
 gets one: an end with no allowance of its own may be pushed two lines (one in
 a content area under eight lines, B-SCROLLB-2), the push held while the
-user's steps keep coming, and once they have been quiet for 250 ms — the
-moment B27 takes a scroll to be idle — the excursion steps back a line a 50 ms
-frame. It rides the same excursion, so everything above holds: the offset never
+user's steps keep coming, and once they have been quiet for 250 ms — B27's
+quiet, timed from the frame that drew the last step, so within a frame of when
+an observed phase goes idle — the excursion steps back a line a 50 ms
+frame. A step is any user step past the end, an arrow or page key's as a
+wheel's, as for any allowance (§1.3's push); SwiftUI's keyboard scrolling does
+not rubber-band (unmeasured; B-SCROLLB-3). It rides the same excursion, so everything above holds: the offset never
 leaves its range, the indicators ignore it, and a step past the edge still
 engages it. A step marks the push at event time (`notePush`, no clock there);
 the render that resolves the allowance stamps it with its frame's time and asks
@@ -790,7 +793,7 @@ reveal. Treated as a seek's, it turned the reveal off, and Tab onto the row belo
 the screen as rows arrived above left the focus off screen. A frame that holds drops an
 overscroll excursion (§1.5), as a seek does. Only a push past the bottom can be
 standing then — at the top nothing is held — and only under an allowance the
-app asked for.
+app asked for, or `.always`'s bounce.
 
 The anchored walk places rows from its anchor, so there the row found becomes
 the anchor, with as many of its lines above the viewport's top as the last frame

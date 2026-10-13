@@ -120,8 +120,10 @@ public struct ScrollOverscrollState: Sendable, Equatable {
 
     /// Springs a sprung excursion back toward the content: held while the
     /// user's steps keep coming, then a line a frame once they have been quiet
-    /// for ``ScrollPhase/quietNanos`` — the moment a scroll goes idle (B27).
-    /// Returns when the next frame is owed, on the frame clock, or `nil` when
+    /// for ``ScrollPhase/quietNanos`` (B27's quiet). Timed from the render
+    /// that saw the last step, as a step has no clock, so it can trail an
+    /// observed phase's return to idle, timed from the step's event, by up to
+    /// a frame. Returns when the next frame is owed, on the frame clock, or `nil` when
     /// none is: no excursion, or one the app's own allowance holds.
     ///
     /// Asked on render passes with an excursion only, so a scrollable at its

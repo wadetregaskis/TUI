@@ -1052,7 +1052,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   as SwiftUI's is where it was measured. An overscroll
   allowance the app asked for stays where it was pushed (bounce behaviour
   decides only when it applies); `.always` adds a bounce of a line or two on an
-  end with none, sprung back a line a frame once the scroll goes idle.
+  end with none, sprung back a line a frame once the scroll goes idle, and
+  pushed by an arrow or page key at the end as by the wheel.
 - **Why:** a terminal reports no gesture phases and no momentum.
 - **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at

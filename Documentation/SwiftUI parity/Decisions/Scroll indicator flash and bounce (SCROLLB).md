@@ -56,3 +56,25 @@ two-line push is gone in two frames.
 **The fuller version** would let the app size the bounce — say a
 `.scrollOverscroll` spelling for a sprung allowance. No SwiftUI spelling asks
 for one; an hour if a port wants it.
+
+### B-SCROLLB-3. An arrow or page key at the end pushes the bounce, as the wheel does
+
+*`ScrollBounceBehavior.always`*
+
+Every user step past an end takes one path (`userScrollFine`): the wheel, the
+arrow and page keys, the scrollbar's arrows. It is what makes a step that only
+reaches the edge a graze and the next one a push (§1.3 of `Scroll
+anchoring.md`), and an allowance the app asks for has always been pushed by a
+key as by the wheel. SwiftUI's keyboard scrolling does not rubber-band on macOS
+(unmeasured; the lane's review says so), and nor does a mouse wheel there: its
+bounce is a trackpad's.
+
+**Shipped:** the sprung allowance is an allowance like the others, so a key
+pushes it too, and it springs back as a wheel's push does. A key at the end
+shows the end, briefly, rather than doing nothing.
+
+**The fuller version** pushes the bounce under the wheel only: the step's
+source passed down to `userScrollFine` from its callers (the wheel, the key
+handlers, the scrollbar's arrows and page track, the "N more" lines), and a
+key's step left to graze the sprung end. An hour or two; the two allowances
+would then answer different inputs, which is why it was not the default.
