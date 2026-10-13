@@ -51,7 +51,11 @@ good (review1, ac4bf0644).
 - An object made on demand in a body and kept, first shown in the pass it was
   made in after an object that looked per-value at the same place, looks
   per-value too: it shares that object's ids for that pass, as it takes its
-  place's state (B-DYNVCLAIM-3), and has its own from its next walk on.
+  place's state (B-DYNVCLAIM-3), and has its own from its next walk on. Its
+  `@FocusState` and `@Namespace` ids so change once, after that pass: what
+  that frame keyed by them — a `@FocusState`'s mapping in the focus manager,
+  a `matchedGeometryEffect` pairing — is keyed by the new ones a frame later
+  (review2 of lane DYNVCLAIM, 69d852485).
 - An object whose `@State` lies only behind an optional, an existential, an
   enum's case or a nested object says what it is only when the walk reaches
   that: it may share a chain's ids for the one walk that finds it long-lived.
