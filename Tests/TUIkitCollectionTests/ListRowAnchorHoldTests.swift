@@ -30,7 +30,8 @@ struct ListRowAnchorHoldTests {
     /// returned as the ANSI-stripped visible lines. The shared `tui`/`fm`
     /// persist the handler across calls (the hold lives on it).
     private func renderFrame(
-        items: [Int], anchored: Int?, tui: TUIContext, fm: FocusManager
+        items: [Int], anchored: Int?, tui: TUIContext, fm: FocusManager,
+        windowHold: ScrollWindowHold = .topRow
     ) -> [String] {
         let list = List(selection: .constant(Int?.none)) {
             ForEach(items, id: \.self) { Text("row \($0)") }
@@ -41,6 +42,7 @@ struct ListRowAnchorHoldTests {
 
         var env = EnvironmentValues()
         env.focusManager = fm
+        env.scrollWindowHold = windowHold
         env.applyRuntimeServices(from: tui)
         let context = RenderContext(
             availableWidth: 24, availableHeight: Self.viewport, environment: env, tuiContext: tui)
@@ -191,11 +193,14 @@ struct ListRowAnchorHoldTests {
             "row \(anchored) moved: was line \(before), now \(after)")
     }
 
-    /// The contrast: with no bound row anchor, the List does NOT hold — it
-    /// keeps its OFFSET, so the rows on screen shift down by the number
-    /// inserted above them. Guards that the hold is what does the work (and
-    /// that an un-anchored List is unaffected by the new machinery).
-    @Test("Without a bound anchor the same insert DOES move the row")
+    /// The contrast: with no bound row anchor and `.scrollWindowHold(.offset)`,
+    /// the List does NOT hold — it keeps its OFFSET, so the rows on screen
+    /// shift down by the number inserted above them. Guards that the hold is
+    /// what does the work. (Under the default, `.topRow`, the row at the top
+    /// keeps its line instead — `ScrollWindowHoldTests` — which since
+    /// 2026-10-12 is what an un-anchored List does; this case used to say so of
+    /// every un-anchored List.)
+    @Test("Without a bound anchor, under the offset hold, the same insert DOES move the row")
     func withoutAnchorTheRowMoves() throws {
         let tui = TUIContext()
         let fm = FocusManager()
@@ -204,7 +209,7 @@ struct ListRowAnchorHoldTests {
         // Drive to where row 20 is visible (via an anchor), then drop the
         // anchor: the comparison needs the row on screen to begin with.
         _ = settle(items: items, anchored: 20, tui: tui, fm: fm)
-        let before = renderFrame(items: items, anchored: nil, tui: tui, fm: fm)
+        let before = renderFrame(items: items, anchored: nil, tui: tui, fm: fm, windowHold: .offset)
 
         // Watch the row at the TOP of the viewport, not the row 20 the
         // anchored tests watch. Holding the offset pushes row 20 five rows
@@ -219,7 +224,7 @@ struct ListRowAnchorHoldTests {
             "row \(watched) was not on screen to begin with: \(before)")
 
         items.insert(contentsOf: 100..<105, at: 5)
-        let after = renderFrame(items: items, anchored: nil, tui: tui, fm: fm)
+        let after = renderFrame(items: items, anchored: nil, tui: tui, fm: fm, windowHold: .offset)
         let lineAfter = try #require(
             screenLine(of: watched, in: after),
             "row \(watched) left the screen entirely: \(after)")

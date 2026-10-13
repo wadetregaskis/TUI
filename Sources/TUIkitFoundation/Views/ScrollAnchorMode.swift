@@ -17,7 +17,15 @@ import TUIkitCore
 /// | ``top`` | The view stays at the top, whatever rows are added / removed / moved. |
 /// | ``bottom`` | The view stays at the bottom (follow-the-log). |
 /// | ``row`` | A designated row keeps its place on screen as rows change around it. |
-/// | ``window`` | *No* anchor (the default): the position stays where it is in LINE coordinates unless something explicitly moves it. |
+/// | ``window`` | *No* anchor (the default): the rows on screen stay where they are unless something explicitly moves them — the row at the top keeps its line as the content above it changes, or, under ``ScrollWindowHold/offset``, the offset keeps its value in lines. |
+///
+/// Only ``row`` holds a row of its own. ``top`` and ``bottom`` are
+/// **positional** (see ``ScrollAnchor``'s doc comment: they name an edge, not a
+/// row): at their edge they keep the view there, and away from it they are
+/// Window. That is why a prepend under ``top`` shows the new first rows rather
+/// than following the old one down — and why the top-row hold is the scroll
+/// view's to switch on (``ScrollContentWindow/topRowHold``), which knows
+/// whether the view is at an edge, and not a property of the mode.
 ///
 /// ``row`` is designated through its own API — ``ScrollAnchor/row(_:)`` written
 /// into a bound ``TUIkit/View/anchorPosition(_:)`` — per the spec's guardrail
@@ -37,21 +45,6 @@ package enum ScrollAnchorMode: Equatable, Sendable {
     case bottom
     case row
     case window
-
-    /// Whether the persisted anchor should be re-bound to its row's stable key
-    /// each frame (holding that ROW in place as ordinals shift around it), or
-    /// left on its ordinal (holding the position in LINE coordinates, so an
-    /// insert above shifts the content down).
-    ///
-    /// **Only ``row`` re-binds** — it is the one *identity* policy. ``top`` and
-    /// ``bottom`` are **positional** (see ``ScrollAnchor``'s doc comment: they
-    /// name an edge, not a row), so their policy lives entirely in the
-    /// offset/clamp logic and they must leave the ordinal alone. Re-binding
-    /// under ``top`` was a spec violation with teeth: on the anchored walk a
-    /// prepend held the row that happened to be at the top instead of staying
-    /// at the top, i.e. Top silently behaved as Row — the very confusion §1.1
-    /// separates the modes to avoid.
-    var holdsRowIdentity: Bool { self == .row }
 
     /// The mode a scrollable runs in given its ``EnvironmentValues/defaultScrollAnchor``.
     ///

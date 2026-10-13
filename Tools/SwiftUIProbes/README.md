@@ -222,3 +222,22 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`; `Tests/TUIkitTests/KeyframeTimelineTests.swift`,
   `Tests/TUIkitTests/SpringTests.swift`, `Tests/TUIkitTests/UnitCurveTests.swift`; wave 12's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
+
+### Scroll anchoring
+
+- **Asks:** what a scroll view does with no scroll position bound when the content above the row at its top
+  changes (`hold.swift`): rows inserted above, rows removed above, a row above growing, rows inserted below or
+  inside the viewport, the top row itself removed, every row replaced — in a `LazyVStack`, an eager `VStack` and a
+  `List`, scrolled to row 10, part way into it, or at the top, with no `defaultScrollAnchor` and with each of
+  `.top`, `.bottom` and `.center`, unlabelled and for `.sizeChanges`; each change made plainly and again under
+  `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled`. It prints the clip view's origin before and
+  after, and the row at the viewport's top: for a stack computed from the origin, its rows being 20 points tall
+  (so after a row above grows it names the row the grown layout would put there — a lazy stack lays out no row
+  off screen, so that case says only that the origin did not move), for a `List` read from its `NSTableView`.
+  Top-level code, built alone.
+- **Ran:** macOS 15.8, a 300×200 window, 2026-10-12.
+- **Was:** `SCROLLANCHOR/probe/hold/`.
+- **Cited by:** `Sources/TUIkitFoundation/Views/ScrollWindowHold.swift`,
+  `Tests/TUIkitCollectionTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
+  anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
+  `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.

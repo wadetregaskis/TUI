@@ -198,6 +198,7 @@ struct MyApp: App {
 - ``ScrollPosition``
 - ``ScrollViewProxy``
 - ``ScrollAnchor``
+- ``ScrollWindowHold``
 - ``ScrollFollowMargin``
 - ``ScrollGranularity``
 - ``ScrollTargetBehavior``

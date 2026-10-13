@@ -170,18 +170,18 @@ extension _VStackCore {
 
     /// The exact full walk's designation: same rule, but the geometry comes
     /// from the walked slots (which carry every row's true y and height)
-    /// rather than from arithmetic.
+    /// rather than from arithmetic. Returns whether a row was held.
     func holdDesignatedRow(
         slots: [RowSlot], window: inout ScrollContentWindow, context: RenderContext
-    ) {
+    ) -> Bool {
         let state = uniformWindowState(context: context)
         guard let key = designatedRowKey(context: context) else {
             state.clearDesignatedAnchor()
-            return
+            return false
         }
         guard let index = slots.firstIndex(where: { $0.child.identityChildKey == key }) else {
             state.forgetDesignatedAnchor(unlessHolding: key)
-            return
+            return false
         }
         state.letGoOfHeldRow(key, context: context)
         let offset = state.offsetHoldingDesignatedRow(
@@ -189,5 +189,6 @@ extension _VStackCore {
             window: window, totalHeight: slots.last.map { $0.y + $0.height } ?? 0)
         window.offset = offset
         window.reply?.seekResolvedOffset = offset
+        return true
     }
 }

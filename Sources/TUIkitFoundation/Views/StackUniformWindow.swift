@@ -277,6 +277,12 @@ final class StackWindowState {
         /// anchor-relative by construction.
         var anchorHeldScreenLine = 0
 
+        /// The row at the viewport's top when the uniform or exact path last
+        /// drew a frame, for ``ScrollWindowHold/topRow`` to hold on the next —
+        /// see `StackTopRowHold.swift`. The anchored walk holds its top row
+        /// through ``anchorKey`` instead.
+        var heldTopRow: HeldTopRow?
+
         /// The absolute offset the anchor was last derived against. Scroll
         /// input arrives as a new absolute offset; the DIFFERENCE is walked
         /// in row space (one line up looks at one row, §3), so estimates
@@ -451,10 +457,12 @@ extension _VStackCore {
                 totalHeight: totalHeight, proposal: proposal, context: childContext)
         else { return nil }
         // A designated row overrides the offset: the position follows the ROW.
-        // Exact here — a uniform row's absolute y is arithmetic.
-        var (window, resolvedAnchor) = holdingDesignatedRow(
-            in: seeking.window, children: children, state: state,
-            rowY: { $0 * pitch }, rowHeight: extent,
+        // Exact here — a uniform row's absolute y is arithmetic. With neither
+        // it nor a seek, the row at the top keeps its line as the content
+        // above it changes (`StackTopRowHold.swift`).
+        let topRows = TopRowGeometry(count: count, key: { children.key(at: $0) }, y: { $0 * pitch })
+        var (window, resolved, verified) = holdingRow(
+            after: seeking, children: children, state: state, rows: topRows, rowHeight: extent,
             totalHeight: totalHeight, context: context)
         // The offset can lie past the content THIS hypothesis describes: the
         // opening frame of a bottom-anchored view is placed at the tail a
@@ -550,12 +558,9 @@ extension _VStackCore {
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo
-        // The anchor correction wins over the seek: when both happen on one
-        // frame the seek chose a row and the designation then held it, so the
-        // corrected offset is the one actually rendered.
-        if let resolved = resolvedAnchor ?? seeking.resolved {
-            window.reply?.seekResolvedOffset = resolved
-        }
+        if let resolved { window.reply?.seekResolvedOffset = resolved }
+        state.rememberTopRow(
+            atLine: window.offset, of: totalHeight, hold: window.topRowHold, ordinal: { $0 / pitch }, in: topRows, verified: verified)
         return result
     }
 

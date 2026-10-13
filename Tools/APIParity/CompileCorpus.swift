@@ -2267,6 +2267,36 @@ private struct ScrollAnchorRoleShapes: View {
     }
 }
 
+// MARK: - The top-row hold (lane SCROLLANCHOR)
+
+/// "Load earlier messages": rows inserted above the ones being read keep the
+/// reader's place with no anchor declared, and a change made under "no
+/// adjustment" moves them with it — SwiftUI's two halves of the same idiom.
+@MainActor
+private struct LoadEarlierShapes: View {
+    @State private var messages = Array(100..<140)
+
+    var body: some View {
+        ScrollView {
+            LazyVStack {
+                Button("Load earlier") { loadEarlier() }
+                ForEach(messages, id: \.self) { Text("message \($0)") }
+            }
+        }
+    }
+
+    private func loadEarlier() {
+        guard let first = messages.first else { return }
+        messages.insert(contentsOf: (first - 20)..<first, at: 0)
+    }
+
+    private func loadEarlierAndShowThem() {
+        var transaction = Transaction()
+        transaction.scrollContentOffsetAdjustmentBehavior = .disabled
+        withTransaction(transaction) { loadEarlier() }
+    }
+}
+
 // MARK: - Scroll content background (lane D2S)
 
 /// SwiftUI's own example, its commonest idiom, and `.visible`.

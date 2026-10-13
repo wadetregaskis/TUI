@@ -63,12 +63,15 @@ extension _ScrollViewCore {
     /// render once this frame's is known (`syncHorizontalAxis`); on a view that
     /// does not scroll horizontally that extent fits, so it lands on 0, which
     /// is SwiftUI's clamp to the content.
-    func applyPositionOffset(handler: ScrollViewHandler, context: RenderContext) {
-        guard let box = pageScrollPosition(context.environment) else { return }
+    ///
+    /// Returns whether it placed the view — an edge or an offset — which the
+    /// top-row hold must then leave where it is (`topRowHold`).
+    func applyPositionOffset(handler: ScrollViewHandler, context: RenderContext) -> Bool {
+        guard let box = pageScrollPosition(context.environment) else { return false }
         let position = box.binding.wrappedValue
         guard let target = position.target,
             handler.lastAppliedPositionToken != position.requestToken, position.requestToken > 0
-        else { return }
+        else { return false }
         switch target {
         case .edge(let edge):
             handler.lastAppliedPositionToken = position.requestToken
@@ -87,8 +90,9 @@ extension _ScrollViewCore {
             if let y { handler.jumpProgrammatically(to: max(0, min(y, handler.maxOffset))) }
             if let x { handler.horizontal.scrollToOffset(max(0, min(x, handler.horizontal.maxOffset))) }
         case .id:
-            break  // Handled by the key seek — see `positionSeek`.
+            return false  // Handled by the key seek — see `positionSeek`.
         }
+        return true
     }
 
     /// Writes the row now under the anchor back to a bound ``ScrollPosition``.

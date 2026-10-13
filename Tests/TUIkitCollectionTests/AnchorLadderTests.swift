@@ -71,20 +71,21 @@ struct AnchorLadderTests {
         }
     }
 
-    /// The DEFAULT anchor mode is Window (`Documentation/Layout and scrolling/Scroll anchoring.md`
-    /// §1.1): technically *no* anchor — the position stays where it is in LINE
-    /// coordinates, so prepending rows shifts what is on screen rather than
-    /// holding the row that was there.
+    /// Window mode with no top-row hold (`Documentation/Layout and
+    /// scrolling/Scroll anchoring.md` §1.1, `.scrollWindowHold(.offset)`): the
+    /// position stays where it is in LINE coordinates, so prepending rows
+    /// shifts what is on screen rather than holding the row that was there. A
+    /// window injected here asks for no hold, as a scroll view under
+    /// `.offset` does; the hold itself, which a scroll view asks for by
+    /// default since 2026-10-12, is `ScrollWindowHoldTests`' — it moves the
+    /// offset, which only a real scroll view adopts.
     ///
-    /// This test previously asserted the opposite ("prepending must hold the
-    /// view"). That was the anchored path's *placeholder* policy, which §2 of
-    /// the spec explicitly flags as Row semantics applied silently as the
-    /// default, to be corrected when this feature landed — it now is. The
-    /// row-holding counterpart belongs to Row mode, which has no public
-    /// designator yet (spec guardrail #1: it arrives via its own API, not by
-    /// overloading the `UnitPoint` anchor), so it is deliberately not asserted
-    /// here rather than faked through a mode that merely happens to re-bind.
-    @Test("Window mode (the default): prepending shifts the view, line-coordinate stable")
+    /// History: this test first asserted the hold ("prepending must hold the
+    /// view") as the anchored path's placeholder policy; slice 1 (624b040d)
+    /// made Window the line-coordinate default and retargeted it here; B30
+    /// (2026-10-12) made the hold the default again, as SwiftUI's, with this
+    /// as the way to opt out of it.
+    @Test("Window mode without the top-row hold: prepending shifts the view, line-coordinate stable")
     func insertAboveShiftsTheViewInWindowMode() {
         let tuiContext = TUIContext()
         var items = Array(1_000..<1_400)  // 400 rows, variable heights
@@ -109,10 +110,8 @@ struct AnchorLadderTests {
         }
     }
 
-    @Test("Window mode never re-binds; the row-holding modes do")
+    @Test("No anchor resolves to Window, an edge anchor to its edge")
     func modePolicyBranch() {
-        #expect(ScrollAnchorMode.window.holdsRowIdentity == false)
-        #expect(ScrollAnchorMode.row.holdsRowIdentity == true)
         // No anchor asked for → Window, the spec's default.
         #expect(ScrollAnchorMode.resolved(defaultScrollAnchor: nil) == .window)
         #expect(ScrollAnchorMode.resolved(defaultScrollAnchor: .bottom) == .bottom)

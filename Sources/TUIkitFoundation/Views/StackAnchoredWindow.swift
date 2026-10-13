@@ -100,22 +100,30 @@ private final class AnchoredWindowFrame {
     /// preserving `anchorOffsetWithin`. A dead ladder (the list was
     /// replaced) leaves the clamped index fallback — approximate, and
     /// correct at the ends (§5f).
-    func rebindAnchor(mode: ScrollAnchorMode) {
+    ///
+    /// Only when `holdsRow`: the anchor is a designated row, or the row at the
+    /// top that ``ScrollWindowHold/topRow`` holds this frame. Otherwise the
+    /// position stays where it is in line coordinates — the ordinal is kept,
+    /// and an insert above shifts the content down — which is what the view
+    /// does at its top, following its tail, under ``ScrollWindowHold/offset``,
+    /// and for a change made under "no adjustment". See
+    /// `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 and §5.
+    ///
+    /// Returns how many ordinals the re-bind moved the anchor — the rows the
+    /// change put above it, less those it took away — or `0`.
+    @discardableResult
+    func rebindAnchor(holdsRow: Bool) -> Int {
         let count = children.count
-        guard count > 0 else { return }
+        guard count > 0 else { return 0 }
+        let before = state.anchorOrdinal
         state.anchorOrdinal = min(max(0, state.anchorOrdinal), count - 1)
-        // WINDOW mode (the spec's default) is *no* anchor: the position stays
-        // where it is in line coordinates, so the ordinal is kept as-is and an
-        // insert above shifts the content down. Only the row-holding modes
-        // re-bind the ordinal to its key below. See
-        // `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 / §2.
-        guard mode.holdsRowIdentity else { return }
-        guard let anchorKey = state.anchorKey else { return }
-        guard children.key(at: state.anchorOrdinal) != anchorKey else { return }
+        guard holdsRow else { return 0 }
+        guard let anchorKey = state.anchorKey else { return 0 }
+        guard children.key(at: state.anchorOrdinal) != anchorKey else { return 0 }
 
         if let found = locate(key: anchorKey) {
             state.anchorOrdinal = found
-            return
+            return found - before
         }
         // Nearest first, and of the two equally near — the rows either side of
         // a deleted one — the one below, which the delete moved into its place:
@@ -130,9 +138,10 @@ private final class AnchoredWindowFrame {
             if let found = locate(key: key) {
                 state.anchorOrdinal = found
                 state.anchorKey = key
-                return
+                return found - before
             }
         }
+        return 0
     }
 
     /// The ordinal holding `key`: nearby ring search first, then the full
@@ -568,6 +577,33 @@ extension _VStackCore {
         return newOffset
     }
 
+    /// Re-binds the anchor to its row's key when something holds a row: a
+    /// designated row, held by its key; with none — a designation naming no
+    /// row is none (`applyDesignatedAnchor`) — the anchor is the row at the
+    /// top, held by its key when the scroll view asks for the top-row hold this
+    /// frame (``ScrollContentWindow/topRowHold``) and left on its ordinal
+    /// otherwise. The offset follows a held top row by the running pitch, so
+    /// the scrollbar and "N more above" keep up with the rows the change put
+    /// above it — exact when it is the first row — and `lastDerivedOffset`
+    /// moves with it, so the walk sees only a scroll made since the last
+    /// frame. Returns that offset, to report, or `nil`.
+    private func rebindingAnchor(
+        frame: AnchoredWindowFrame, state: StackWindowState, window: inout ScrollContentWindow,
+        designatedKey: String?
+    ) -> Int? {
+        let holdsTopRow =
+            designatedKey == nil && window.topRowHold == .holding && window.seek == nil && window.offset >= 0
+        let moved = frame.rebindAnchor(holdsRow: designatedKey != nil || holdsTopRow)
+        guard holdsTopRow, moved != 0 else { return nil }
+        let followed =
+            state.anchorOrdinal == 0
+            ? state.anchorOffsetWithin
+            : max(1, window.offset + moved * state.estimatedPitch(spacing: spacing))
+        state.lastDerivedOffset += followed - window.offset
+        window.offset = followed
+        return followed
+    }
+
     /// Makes a seek's target the anchor: its top at `top`, and `offset` the
     /// offset the seek moved to. The anchor walk that follows (`advanceAnchor`)
     /// moves from there to the offset, so the lines of the target the offset
@@ -660,17 +696,10 @@ extension _VStackCore {
         let designatedKey = applyDesignatedAnchor(
             frame: frame, state: state, window: window, context: context, mode: anchorMode)
 
-        // A designation naming no row is none (`applyDesignatedAnchor`), and
-        // the anchor is re-bound as with none: by the declared mode. Re-bound
-        // as `.row`, the row at the top was held by its key in the missing
-        // row's place, and an insert above it left the rows where they were,
-        // where with no designation they move down.
-        frame.rebindAnchor(
-            mode: anchorMode == .row && designatedKey == nil
-                ? declaredMode
-                : anchorMode)
-
         var window = window
+        let topRowOffset = rebindingAnchor(
+            frame: frame, state: state, window: &window, designatedKey: designatedKey)
+
         // A seek moves from the rows on screen, and reads them from the anchor:
         // a near target is walked to from it (`nilAnchorSeekOffset`), a far one
         // takes the edge its ordinal is on (`resolveAnchoredSeek`). The anchor
@@ -785,7 +814,7 @@ extension _VStackCore {
         // Answer the seek only on success: a nil (spacer bail) falls to the
         // exact path, which re-resolves against its own geometry. A hold that
         // moved the offset after the seek has the last word.
-        if buffer != nil, let offset = heldOffset ?? resolvedSeek {
+        if buffer != nil, let offset = heldOffset ?? resolvedSeek ?? topRowOffset {
             window.reply?.seekResolvedOffset = offset
         }
         if buffer != nil {

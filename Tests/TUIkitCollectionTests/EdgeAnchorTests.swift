@@ -248,17 +248,4 @@ struct EdgeAnchorTests {
         }
         #expect(after.last == 39, "the write jumped to the tail: \(after)")
     }
-
-    // MARK: - The policy itself
-
-    /// `.top`/`.bottom` are POSITIONAL and `.row` is IDENTITY — the distinction
-    /// `ScrollAnchor`'s doc comment exists to protect. Only the identity policy
-    /// may re-bind the persisted anchor to a row key.
-    @Test("Only Row mode holds row identity")
-    func onlyRowHoldsIdentity() {
-        #expect(ScrollAnchorMode.row.holdsRowIdentity == true)
-        #expect(ScrollAnchorMode.top.holdsRowIdentity == false)
-        #expect(ScrollAnchorMode.bottom.holdsRowIdentity == false)
-        #expect(ScrollAnchorMode.window.holdsRowIdentity == false)
-    }
 }

@@ -566,7 +566,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // the content renders, so the frame carrying the request already shows
         // the destination — `.bottom` by raising the tail-seek flag the End key
         // uses, so the glue below pins it exactly against the real height.
-        if !context.isMeasuring { applyPositionOffset(handler: handler, context: context) }
+        // A position request aims at a line of the content as it now is, so
+        // the top-row hold below must not move the frame it placed.
+        let requested = !context.isMeasuring && applyPositionOffset(handler: handler, context: context)
         let seekingTail = handler.seekingTail
         if !context.isMeasuring { handler.seekingTail = false }
         let wasGluedToBottom =
@@ -608,7 +610,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
             slide: contentSlide(handler: handler, viewportHeight: contentViewportHeight, context: context),
             seek: pendingSeek, edgeInset: chrome.edgeInset, handler: handler, checkpoint: checkpoint,
-            context: context, settledExtents: settledExtents)
+            context: context, settledExtents: settledExtents,
+            topRowHold: topRowHold(handler: handler, glued: wasGluedToBottom, placed: requested || pendingSeek != nil, context: context))
         let (seekOffset, contentExtent) = (firstDrawing.seekOffset, firstDrawing.extents)
         var drawing = ScrollContentDrawing(
             buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines,

@@ -106,6 +106,7 @@ extension ItemListHandler {
         anchorPositionBinding = environment.anchorPosition?.binding
         (declaredAnchorMode, declaredOpeningAnchorMode) = environment.declaredAnchorModes
         offsetAdjustmentSuspended = environment.transaction.disablesScrollContentOffsetAdjustment
+        windowHold = environment.scrollWindowHold
         self.reorderFeedback = reorderFeedback
         self.keyboardMoveIsLive = keyboardMoveIsLive
         self.rowHeight = rowHeight

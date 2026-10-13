@@ -1238,6 +1238,36 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
   2026-10-12. **Lane.**
 
+### R13. `List` and `Table` hold the row at their top
+
+- **SwiftUI (measured, macOS 15.8, 2026-10-12,
+  `Tools/SwiftUIProbes/Scroll anchoring/hold.swift` cases 13–15):** a lazy stack
+  in a scroll view keeps the row at its top in place when rows are inserted
+  above it; a `List` does not — its origin stays, and the rows move down. iOS
+  is not measured.
+- **TUIkit:** `List` and `Table` keep their top row in place too, under the
+  default `ScrollWindowHold.topRow` (`ItemListHandler.holdTopRow`,
+  `ScrollWindowHoldTests`); `.scrollWindowHold(.offset)` gives macOS's
+  behaviour.
+- **Why:** the owner's ruling is to keep the reader's place when rows arrive
+  above, and a list is where that matters most; one rule for every scrollable.
+- **Decided:** [A-SCROLLANCHOR-1](<Decisions/Scroll anchoring default (SCROLLANCHOR).md#a-scrollanchor-1-list-and-table-hold-their-top-row-where-macoss-list-does-not>).
+  **Under review.**
+
+### R14. Removing rows above the top row does not move the rows on screen
+
+- **SwiftUI (measured, macOS 15.8, 2026-10-12,
+  `Tools/SwiftUIProbes/Scroll anchoring/hold.swift` case 2):** a lazy stack
+  holds its top row through an insertion above it, not a removal: five rows
+  removed above leave the origin where it was, and the rows on screen move up.
+- **TUIkit:** the top row keeps its line whichever way the content above it
+  changed — inserted, removed, or a measured row above resized
+  (`ScrollWindowHoldTests`).
+- **Why:** the reader's place does not depend on which way the rows above
+  changed, and one rule is simpler to rely on.
+- **Decided:** [B-SCROLLANCHOR-1](<Decisions/Scroll anchoring default (SCROLLANCHOR).md#b-scrollanchor-1-a-removal-above-and-a-row-above-growing-are-held-as-an-insertion-is>).
+  **Lane.**
+
 ---
 
 ## Lists, tables and controls
@@ -1480,7 +1510,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | No scroll velocity, no bounce | [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>) | Owner 2026-10-12: the bounce under `.always`; the velocity is (0, 0) at both changes, as SwiftUI reports it; lane owed |
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
-| With no scroll anchor declared, rows inserted above the top row move it; SwiftUI holds it by default (measured, lazy stack) | [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [Scroll anchoring.md](<../Layout and scrolling/Scroll anchoring.md>) | Owner 2026-10-12: hold the row as SwiftUI does, configurable either way; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |

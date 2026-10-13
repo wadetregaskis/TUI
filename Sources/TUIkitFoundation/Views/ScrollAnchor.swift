@@ -30,9 +30,11 @@ public enum ScrollAnchor<ID: Hashable>: Equatable {
     /// Keep this specific row in place as rows change around it.
     case row(ID)
 
-    /// Explicitly *no* anchor: the position stays where it is in line
-    /// coordinates. Distinct from a `nil` binding — see
-    /// ``TUIkit/View/anchorPosition(_:)``.
+    /// Explicitly *no* anchor — released, as a user scroll releases one: what
+    /// is on screen stays where it is as the content changes, by the
+    /// ``ScrollWindowHold`` in force — the row at the top keeps its line (the
+    /// default), or the offset keeps its value in lines. Distinct from a `nil`
+    /// binding — see ``TUIkit/View/anchorPosition(_:)``.
     case window
 }
 
@@ -115,8 +117,10 @@ extension View {
     ///
     /// The binding is **optional, and `nil` is meaningful**: it means *no
     /// departure from the declared anchor*, i.e. whatever
-    /// ``TUIkit/View/defaultScrollAnchor(_:)`` said (or Window, its default).
-    /// A non-`nil` value overrides that declaration.
+    /// ``TUIkit/View/defaultScrollAnchor(_:)`` said (or Window, its default —
+    /// where the rows on screen stay put as the content changes, as
+    /// ``ScrollWindowHold`` says). A non-`nil` value overrides that
+    /// declaration.
     ///
     /// ```swift
     /// List { … }

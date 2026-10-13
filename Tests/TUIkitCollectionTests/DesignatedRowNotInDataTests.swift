@@ -47,6 +47,14 @@ struct DesignatedRowNotInDataTests {
         .frame(height: 8)
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
+        // Under the offset hold, rows inserted above the top move the rows on
+        // screen when nothing holds one — which is what tells a missing
+        // designation that holds the row at the top by its key (the anchored
+        // window's old defect) from one that holds nothing. Under the default,
+        // `.topRow`, the row at the top keeps its line either way
+        // (`ScrollWindowHoldTests`), so the two would agree for the wrong
+        // reason too.
+        environment.scrollWindowHold = .offset
         environment.applyRuntimeServices(from: tuiContext)
         if let row {
             environment.anchorPosition = AnchorPositionBinding(.constant(.row(AnyHashable(row))))

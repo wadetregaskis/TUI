@@ -73,11 +73,12 @@ struct TableRowAnchorHoldTests {
     /// the rows get `frameHeight(_:) - 3`.
     private func renderFrame(
         multiLine: Bool, ids: [Int], anchored: Int?, tui: TUIContext, fm: FocusManager,
-        hiddenIndicators: Bool = false
+        hiddenIndicators: Bool = false, windowHold: ScrollWindowHold = .topRow
     ) -> [String] {
         let height = frameHeight(multiLine)
         var env = EnvironmentValues()
         env.focusManager = fm
+        env.scrollWindowHold = windowHold
         env.applyRuntimeServices(from: tui)
         if let anchored {
             env.anchorPosition = AnchorPositionBinding(.constant(.row(AnyHashable(anchored))))
@@ -223,11 +224,13 @@ struct TableRowAnchorHoldTests {
             "row \(anchored) moved: was line \(before), now \(after)")
     }
 
-    /// The contrast, matching `ListRowAnchorHoldTests`: with no bound anchor a
-    /// Table does NOT hold, so the machinery is provably what does the work and
-    /// an un-anchored Table is unaffected by it.
+    /// The contrast, matching `ListRowAnchorHoldTests`: with no bound anchor
+    /// and `.scrollWindowHold(.offset)` a Table does NOT hold, so the machinery
+    /// is provably what does the work. (Under the default, `.topRow`, the row
+    /// at the top keeps its line instead — `ScrollWindowHoldTests` — which
+    /// since 2026-10-12 is what an un-anchored Table does.)
     @Test(
-        "Without a bound anchor the same insert DOES move the row",
+        "Without a bound anchor, under the offset hold, the same insert DOES move the row",
         arguments: [false, true])
     func withoutAnchorTheRowMoves(multiLine: Bool) throws {
         let tui = TUIContext()
@@ -235,7 +238,8 @@ struct TableRowAnchorHoldTests {
         var ids = Array(0..<30)
 
         _ = settle(multiLine: multiLine, ids: ids, anchored: 20, tui: tui, fm: fm)
-        let before = renderFrame(multiLine: multiLine, ids: ids, anchored: nil, tui: tui, fm: fm)
+        let before = renderFrame(
+            multiLine: multiLine, ids: ids, anchored: nil, tui: tui, fm: fm, windowHold: .offset)
 
         // Watch the row at the TOP of the viewport, not the row 20 the
         // anchored tests watch. Holding the offset pushes row 20 five rows past
@@ -248,7 +252,8 @@ struct TableRowAnchorHoldTests {
             "row \(watched) was not on screen to begin with: \(before)")
 
         ids.insert(contentsOf: 100..<105, at: 5)
-        let after = renderFrame(multiLine: multiLine, ids: ids, anchored: nil, tui: tui, fm: fm)
+        let after = renderFrame(
+            multiLine: multiLine, ids: ids, anchored: nil, tui: tui, fm: fm, windowHold: .offset)
         let lineAfter = try #require(
             screenLine(of: watched, in: after),
             "row \(watched) left the screen entirely: \(after)")

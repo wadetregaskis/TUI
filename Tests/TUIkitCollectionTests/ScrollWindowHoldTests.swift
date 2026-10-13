@@ -1,0 +1,394 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ScrollWindowHoldTests.swift
+//
+//  `ScrollWindowHold` (`Documentation/Layout and scrolling/Scroll anchoring.md`
+//  §5): with nothing else holding it, a scroll view keeps the row at the top
+//  of its viewport — and the rows on screen with it — where it is as rows are
+//  inserted, removed or resized above it, as SwiftUI's lazy stacks do
+//  (`Tools/SwiftUIProbes/Scroll anchoring/hold.out`); `.scrollWindowHold(.offset)`
+//  keeps the offset in lines instead. Every case runs on each of a lazy
+//  stack's three windowed paths, which hold the row each in its own way, and
+//  on `List` and on both of `Table`'s row composers, which share
+//  `ItemListHandler.holdTopRow()` but wire it each from its own place.
+//
+//  Harness note: a real `ScrollView` is rendered and its VISIBLE lines read,
+//  because the hold moves the offset and only the scroll view adopts it (see
+//  `DesignatedRowAnchorTests`).
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+import TUIkit
+@testable import TUIkitApp
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+@testable import TUIkitTestSupport
+@testable import TUIkitView
+
+@MainActor
+@Suite("Scroll window hold")
+struct ScrollWindowHoldTests {
+
+    /// The three windowed paths of a `LazyVStack`: arithmetic over equal rows,
+    /// and over rows of three heights the exact walk (up to 256 rows) and the
+    /// anchored walk (more).
+    enum StackPath: String, CaseIterable, Sendable {
+        case uniform, exactWalk, anchoredWalk
+
+        var count: Int { self == .anchoredWalk ? 300 : 60 }
+    }
+
+    /// A row, and how many lines it has been made taller. Carried in the data
+    /// rather than read from beside it, so a change of it is a change of what
+    /// the `ForEach` is handed.
+    struct Row: Hashable, Identifiable, Sendable {
+        let id: Int
+        var extra = 0
+        var name: String { "row \(id)" }
+        var tallName: String { Array(repeating: name, count: 4).joined(separator: " ") }
+    }
+
+    /// One scroll view over a lazy stack, rendered frame by frame as its rows
+    /// change.
+    @MainActor
+    private final class Scroller {
+        let path: StackPath
+        var items: [Row]
+        var hold: ScrollWindowHold?
+        var declared: UnitPoint?
+        var position = ScrollPosition()
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+
+        init(_ path: StackPath) {
+            self.path = path
+            items = (0..<path.count).map { Row(id: $0) }
+        }
+
+        /// Inserts rows `ids` before the first row.
+        func insert(_ ids: Range<Int>) { items.insert(contentsOf: ids.map { Row(id: $0) }, at: 0) }
+
+        private var scrollView: some View {
+            let path = path
+            return ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(items, id: \.id) { row in
+                        Text("row \(row.id)").frame(height: (path == .uniform ? 1 : row.id % 3 + 1) + row.extra)
+                    }
+                }
+            }
+            .scrollPosition(Binding(get: { self.position }, set: { self.position = $0 }))
+            .defaultScrollAnchor(declared)
+        }
+
+        @discardableResult
+        func frame(_ transaction: Transaction = Transaction()) -> [String] {
+            var environment = EnvironmentValues()
+            environment.focusManager = focusManager
+            environment.verticalScrollIndicatorVisibility = .hidden
+            environment.transaction = transaction
+            if let hold { environment.scrollWindowHold = hold }
+            environment.applyRuntimeServices(from: tuiContext)
+            let context = RenderContext(
+                availableWidth: 20, availableHeight: 8, environment: environment, tuiContext: tuiContext)
+            tuiContext.preferences.beginRenderPass()
+            tuiContext.stateStorage.beginRenderPass()
+            tuiContext.renderCache.beginRenderPass()
+            focusManager.beginRenderPass()
+            let buffer = renderToBuffer(scrollView, context: context)
+            focusManager.endRenderPass()
+            tuiContext.stateStorage.endRenderPass()
+            tuiContext.renderCache.removeInactive()
+            return buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        }
+
+        /// Scrolls to line `y` and lets the view settle there.
+        @discardableResult
+        func scrolled(to y: Int) -> [String] {
+            frame()
+            position.scrollTo(y: y)
+            frame()
+            return frame()
+        }
+    }
+
+    /// The rows a frame shows, top to bottom.
+    private func rows(_ lines: [String]) -> [Int] {
+        lines.compactMap { $0.hasPrefix("row ") ? Int($0.dropFirst(4)) : nil }
+    }
+
+    // MARK: - The default holds
+
+    @Test("Rows inserted above the top row leave the rows on screen where they are", arguments: StackPath.allCases)
+    func insertionAboveIsHeld(path: StackPath) {
+        let scroller = Scroller(path)
+        let before = scroller.scrolled(to: 30)
+        #expect(rows(before).first.map { $0 > 5 } == true, "precondition: scrolled away from the top \(before)")
+        scroller.insert(1_000..<1_005)
+        let after = scroller.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+        // And it stays held: the next frame moves nothing.
+        #expect(scroller.frame() == before)
+    }
+
+    @Test("Rows removed above the top row leave the rows on screen where they are", arguments: StackPath.allCases)
+    func removalAboveIsHeld(path: StackPath) {
+        let scroller = Scroller(path)
+        let before = scroller.scrolled(to: 30)
+        scroller.items.removeSubrange(0..<5)
+        let after = scroller.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+    }
+
+    /// The exact walk alone: it measures every row each frame, so it is the
+    /// one path that sees a row off screen above grow. The other two price
+    /// such a row as they last measured it — by the hypothesis's pitch, or not
+    /// at all, the anchored walk placing rows from the top row down — so the
+    /// rows on screen do not move there either way.
+    @Test("A row above the top row growing leaves the rows on screen where they are")
+    func growthAboveIsHeld() {
+        let path = StackPath.exactWalk
+        let scroller = Scroller(path)
+        let before = scroller.scrolled(to: 30)
+        scroller.items[2].extra = 3
+        let after = scroller.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+    }
+
+    @Test("When the top row itself goes, the row after it takes its place", arguments: StackPath.allCases)
+    func removedTopRowIsReplacedByTheNext(path: StackPath) {
+        let scroller = Scroller(path)
+        // A line that starts a row, so the row at the top is whole.
+        var before = scroller.scrolled(to: 30)
+        if before.first?.isEmpty != false { before = scroller.scrolled(to: 31) }
+        guard let top = rows(before).first, before.first == "row \(top)" else {
+            Issue.record("precondition: a whole row at the top \(before)")
+            return
+        }
+        // The row at the top and the five above it go.
+        scroller.items.removeAll { (top - 5)...top ~= $0.id }
+        let after = scroller.frame()
+        #expect(rows(after).first == top + 1, "before: \(before)\nafter:  \(after)")
+    }
+
+    // MARK: - Where it holds nothing
+
+    @Test("At its top, a view shows rows inserted above, as SwiftUI's does", arguments: StackPath.allCases)
+    func atTheTopTheNewRowsShow(path: StackPath) {
+        let scroller = Scroller(path)
+        scroller.frame()
+        scroller.frame()
+        scroller.insert(1_000..<1_005)
+        let after = scroller.frame()
+        #expect(rows(after).first == 1_000, "\(after)")
+    }
+
+    @Test("Under .scrollWindowHold(.offset) the rows on screen move with the rows inserted above", arguments: StackPath.allCases)
+    func offsetHoldMovesTheRows(path: StackPath) {
+        let scroller = Scroller(path)
+        scroller.hold = .offset
+        let before = scroller.scrolled(to: 30)
+        scroller.insert(1_000..<1_005)
+        let after = scroller.frame()
+        guard let first = rows(before).first, let moved = rows(after).first else {
+            Issue.record("precondition: rows on screen \(before) \(after)")
+            return
+        }
+        #expect(moved < first, "the same lines now show earlier rows: before \(before)\nafter \(after)")
+    }
+
+    @Test("A change made under no adjustment is not held, and the next one is", arguments: StackPath.allCases)
+    func disabledAdjustmentIsNotHeld(path: StackPath) {
+        let scroller = Scroller(path)
+        let before = scroller.scrolled(to: 30)
+        var disabled = Transaction()
+        disabled.scrollContentOffsetAdjustmentBehavior = .disabled
+        scroller.insert(1_000..<1_005)
+        let released = scroller.frame(disabled)
+        #expect(released != before, "not held: \(released)")
+        scroller.insert(2_000..<2_003)
+        #expect(scroller.frame() == released, "held from where the change left it")
+    }
+
+    @Test("A bottom-anchored view following its tail follows it through rows inserted above")
+    func followingTheTailIsUnaffected() {
+        let scroller = Scroller(.uniform)
+        scroller.declared = .bottom
+        scroller.frame()
+        let before = scroller.frame()
+        #expect(rows(before).last == 59, "precondition: at the tail \(before)")
+        scroller.insert(1_000..<1_005)
+        scroller.items.append(Row(id: 60))
+        #expect(rows(scroller.frame()).last == 60, "the follow, not the hold, places it")
+    }
+
+    @Test("A bottom-anchored view scrolled up from its tail is held, as SwiftUI's is", arguments: StackPath.allCases)
+    func releasedBottomAnchorIsHeld(path: StackPath) {
+        let scroller = Scroller(path)
+        scroller.declared = .bottom
+        let before = scroller.scrolled(to: 30)
+        scroller.insert(1_000..<1_005)
+        #expect(scroller.frame() == before, "before: \(before)")
+    }
+
+    // MARK: - List and Table
+
+    enum ListKind: String, CaseIterable, Sendable { case list, table, multiLineTable }
+
+    /// One `List` or `Table`, rendered frame by frame as its rows change.
+    @MainActor
+    private final class Lister {
+        let kind: ListKind
+        var items = (0..<40).map { Row(id: $0) }
+        var anchor: ScrollAnchor<Int>?
+        var hold: ScrollWindowHold?
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+
+        init(_ kind: ListKind) { self.kind = kind }
+
+        /// Inserts rows `ids` before the first row.
+        func insert(_ ids: Range<Int>) { items.insert(contentsOf: ids.map { Row(id: $0) }, at: 0) }
+
+        private var height: Int { kind == .multiLineTable ? 20 : 8 }
+
+        private var view: AnyView {
+            let anchor = Binding.constant(self.anchor)
+            switch kind {
+            case .list:
+                return AnyView(List(items) { Text($0.name) }.anchorPosition(anchor))
+            case .table:
+                return AnyView(
+                    Table(items, selection: .constant(Int?.none)) { TableColumn("Name", value: \Row.name) }
+                        .anchorPosition(anchor))
+            case .multiLineTable:
+                return AnyView(
+                    Table(items, selection: .constant(Int?.none)) {
+                        TableColumn("Name", value: \Row.tallName).lineLimit(2)
+                    }
+                    .anchorPosition(anchor))
+            }
+        }
+
+        @discardableResult
+        func frame(_ transaction: Transaction = Transaction()) -> [String] {
+            var environment = EnvironmentValues()
+            environment.focusManager = focusManager
+            environment.verticalScrollIndicatorVisibility = .hidden
+            environment.transaction = transaction
+            if let hold { environment.scrollWindowHold = hold }
+            environment.applyRuntimeServices(from: tuiContext)
+            let context = RenderContext(
+                availableWidth: 28, availableHeight: height, environment: environment, tuiContext: tuiContext)
+            tuiContext.preferences.beginRenderPass()
+            tuiContext.stateStorage.beginRenderPass()
+            tuiContext.renderCache.beginRenderPass()
+            focusManager.beginRenderPass()
+            let buffer = renderToBuffer(view.frame(height: height), context: context)
+            focusManager.endRenderPass()
+            tuiContext.stateStorage.endRenderPass()
+            tuiContext.renderCache.removeInactive()
+            return buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        }
+
+        /// Scrolls down by designating row 25 from off screen, which brings it
+        /// into view, and then letting the designation go.
+        @discardableResult
+        func scrolledDown() -> [String] {
+            anchor = .row(25)
+            frame()
+            frame()
+            anchor = nil
+            frame()
+            return frame()
+        }
+    }
+
+    /// The first row each line shows, top to bottom (a line of a `Table` row
+    /// that wraps names it more than once).
+    private func listedRows(_ lines: [String]) -> [Int] {
+        lines.compactMap { line in line.firstMatch(of: /row (\d+)/).flatMap { Int($0.1) } }
+    }
+
+    @Test("A List's or Table's rows inserted above the top row leave the rows on screen where they are", arguments: ListKind.allCases)
+    func listInsertionAboveIsHeld(kind: ListKind) {
+        let lister = Lister(kind)
+        let before = lister.scrolledDown()
+        #expect(listedRows(before).first.map { $0 > 5 } == true, "precondition: scrolled down \(before)")
+        lister.insert(1_000..<1_005)
+        let after = lister.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+        #expect(lister.frame() == before)
+    }
+
+    @Test("A List's or Table's rows removed above the top row leave the rows on screen where they are", arguments: ListKind.allCases)
+    func listRemovalAboveIsHeld(kind: ListKind) {
+        let lister = Lister(kind)
+        let before = lister.scrolledDown()
+        lister.items.removeSubrange(0..<5)
+        let after = lister.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+    }
+
+    @Test("At its top, a List or Table shows rows inserted above", arguments: ListKind.allCases)
+    func listAtTheTopTheNewRowsShow(kind: ListKind) {
+        let lister = Lister(kind)
+        lister.frame()
+        lister.frame()
+        lister.insert(1_000..<1_005)
+        #expect(listedRows(lister.frame()).first == 1_000)
+    }
+
+    @Test("Under .scrollWindowHold(.offset) a List's or Table's rows move with the rows inserted above", arguments: ListKind.allCases)
+    func listOffsetHoldMovesTheRows(kind: ListKind) {
+        let lister = Lister(kind)
+        lister.hold = .offset
+        let before = lister.scrolledDown()
+        lister.insert(1_000..<1_005)
+        let after = lister.frame()
+        guard let first = listedRows(before).first, let moved = listedRows(after).first else {
+            Issue.record("precondition: rows on screen \(before) \(after)")
+            return
+        }
+        #expect(moved < first, "the same lines now show earlier rows: before \(before)\nafter \(after)")
+    }
+
+    @Test("A change made under no adjustment is not held in a List, and the next one is")
+    func listDisabledAdjustmentIsNotHeld() {
+        let lister = Lister(.list)
+        let before = lister.scrolledDown()
+        var disabled = Transaction()
+        disabled.scrollContentOffsetAdjustmentBehavior = .disabled
+        lister.insert(1_000..<1_005)
+        let released = lister.frame(disabled)
+        #expect(released != before, "not held: \(released)")
+        lister.insert(2_000..<2_003)
+        #expect(lister.frame() == released, "held from where the change left it")
+    }
+
+    /// The cursor is a row INDEX: left where it was, it would point at the row
+    /// five above the one the user was on — drawn five lines up, or off screen
+    /// above, where the next arrow key's reveal would scroll back to it and
+    /// undo the hold.
+    @Test("The focus cursor moves with the rows the hold keeps in place")
+    func cursorMovesWithTheHeldRows() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 40, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        handler.itemIDs = Array(0..<40)
+        func settle() {
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        settle()
+        handler.scrollOffset = 10
+        handler.focusedIndex = 12
+        settle()
+        handler.itemIDs = Array(100..<105) + Array(0..<40)
+        handler.itemCount = 45
+        settle()
+        #expect(handler.scrollOffset == 15)
+        #expect(handler.id(at: handler.focusedIndex) == 12)
+    }
+}

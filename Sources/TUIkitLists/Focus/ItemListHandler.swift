@@ -1273,6 +1273,29 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// by `syncFrameInputs`; read by ``applyAnchorHold()``.
     var offsetAdjustmentSuspended = false
 
+    /// What the list keeps in place when the rows above its top row change
+    /// (``ScrollWindowHold``), synced each render by `syncFrameInputs`; and
+    /// the one the last frame was drawn under, so a frame that takes up
+    /// ``ScrollWindowHold/topRow`` after one that did not only keeps track of
+    /// the row — the rows may have moved under one remembered before then.
+    var windowHold = ScrollWindowHold.topRow
+    var lastWindowHold = ScrollWindowHold.offset
+
+    /// The row at the top of the viewport when the last frame was drawn — the
+    /// first row at or below ``scrollOffset`` with an id, a section's header
+    /// having none — with its ordinal then and the id of the row after it,
+    /// which takes its place if it leaves the data. What
+    /// ``ScrollWindowHold/topRow`` holds: see ``holdTopRow()``.
+    var heldTopID: SelectionValue?
+    var heldTopNextID: SelectionValue?
+    var heldTopOrdinal = 0
+
+    /// The ``scrollOffset`` the held row was remembered at, and whether this
+    /// frame found it where it was — together, whether remembering it again
+    /// would read anything new.
+    var heldTopOffset = 0
+    var heldTopVerified = false
+
     /// Last glued frame's ``itemCount``, so the Bottom follow can tell a frame
     /// where the tail actually ADVANCED (rows arrived — carry the focus cursor
     /// along) from a steady glued frame (nothing changed — leave the cursor

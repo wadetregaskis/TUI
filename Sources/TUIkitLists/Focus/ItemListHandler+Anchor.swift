@@ -9,11 +9,13 @@
 //    it on its screen line as rows change around it. The counterpart of the
 //    LazyVStack windowed paths' `offsetHoldingDesignatedRow`.
 //  - **Bottom**: follow-the-log — the offset tracks the tail as rows arrive.
-//  - **Top** and **Window**: nothing to do. Both are satisfied by leaving the
-//    offset alone, because a row-indexed offset already IS line coordinates
-//    (Window), and no data change moves an offset of 0 away from the top.
-//    Snapping to the top unconditionally would be worse than useless: it would
-//    nail a `.defaultScrollAnchor(.top)` list to row 0 and make it unscrollable.
+//  - **Top** and **Window**: nothing to do here. No data change moves an
+//    offset of 0 away from the top, and snapping to the top unconditionally
+//    would be worse than useless: it would nail a `.defaultScrollAnchor(.top)`
+//    list to row 0 and make it unscrollable. Away from the top, the row at the
+//    top keeps its line as the rows above it change (`holdTopRow`, the
+//    default ``ScrollWindowHold/topRow``), or, under
+//    ``ScrollWindowHold/offset``, the row-indexed offset stays as it is.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -177,6 +179,81 @@ extension ItemListHandler {
         // until then the two move together.
         focusedIndex = tailRowIndex
         bottomFollowCursor = focusedIndex
+    }
+
+    /// The top-row hold (``ScrollWindowHold/topRow``, `Documentation/Layout and
+    /// scrolling/Scroll anchoring.md` §5): moves ``scrollOffset`` by however
+    /// many rows were inserted or removed above the row remembered at the top
+    /// (``rememberTopRow()``), so it — and the rows on screen with it — keeps
+    /// its line, as SwiftUI's lazy stacks keep theirs. When that row itself
+    /// went, the row that followed it takes its place.
+    ///
+    /// A SHIFT, not a placement, so a scroll made since the last frame is kept,
+    /// and one whose rows above the top did not change moves nothing — one id
+    /// read. Nothing is held at the top (rows inserted above show, as
+    /// SwiftUI's do, measured), while following the tail (the follow places
+    /// the frame), for a change made under "no adjustment", or under
+    /// ``ScrollWindowHold/offset``; a held `.row` anchor, applied after this,
+    /// has the last word.
+    ///
+    /// The focus cursor moves with the rows when it is on the top row or below
+    /// it: it is a row index, so left alone it would point at another row —
+    /// and the next key's reveal would scroll back to it, undoing the hold.
+    ///
+    /// Render pass only, before the clamps; ``settleScrollPosition(measuring:overflowing:drawsTextIndicators:firstRowHeight:)``
+    /// calls it.
+    func holdTopRow() {
+        defer { lastWindowHold = windowHold }
+        heldTopVerified = false
+        guard windowHold == .topRow, let heldID = heldTopID else { return }
+        if id(at: heldTopOrdinal) == heldID {
+            heldTopVerified = true
+            return
+        }
+        let declared = ScrollAnchorMode.governing(
+            opening: declaredOpeningAnchorMode, standing: declaredAnchorMode, hasOpened: hasOpened)
+        let mode = ScrollAnchorMode.effective(
+            boundAnchor: anchorPositionBinding?.wrappedValue, declared: declared)
+        let followsTail = mode == .bottom && scrollOffset >= bottomFollowBound
+        guard lastWindowHold == .topRow, hasOpened, !offsetAdjustmentSuspended, !followsTail,
+            scrollOffset > 0 || scrollTopClipLines > 0,
+            let now = index(of: heldID) ?? heldTopNextID.flatMap(index(of:))
+        else { return }
+        let shift = now - heldTopOrdinal
+        scrollOffset = max(0, scrollOffset + shift)
+        if focusedIndex >= heldTopOrdinal, itemCount > 0 {
+            focusedIndex = max(0, min(itemCount - 1, focusedIndex + shift))
+        }
+    }
+
+    /// Remembers the row at the top of the viewport for the next frame's
+    /// ``holdTopRow()``: the first row at or below ``scrollOffset`` that has an
+    /// id (a section's header has none), within a viewport of rows, and the id
+    /// of the row after it. Reads nothing when the offset is where it was
+    /// remembered and this frame found the row there — nor at the top, where
+    /// nothing is held: a list at rest at its top, which most are most of the
+    /// time, pays nothing at all (an id can cost a build of its row, see
+    /// ``id(at:)``). A scroll away from the top in the same frame as a change
+    /// above is then not held, which needs both at once.
+    func rememberTopRow() {
+        guard windowHold == .topRow, scrollOffset > 0 || scrollTopClipLines > 0 else {
+            heldTopID = nil
+            return
+        }
+        if heldTopVerified, heldTopOffset == scrollOffset { return }
+        heldTopOffset = scrollOffset
+        heldTopID = nil
+        heldTopNextID = nil
+        var ordinal = scrollOffset
+        while ordinal < min(itemCount, scrollOffset + max(1, viewportHeight)) {
+            if let id = id(at: ordinal) {
+                heldTopID = id
+                heldTopOrdinal = ordinal
+                heldTopNextID = self.id(at: ordinal + 1)
+                return
+            }
+            ordinal += 1
+        }
     }
 
     /// The last row a cursor can sit on. `selectableIndices` is empty for an

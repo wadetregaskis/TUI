@@ -52,7 +52,7 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B27, B28, B30 (the default), B31, B35.
+at the faint tiers), B27, B28, B31, B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1456,6 +1456,18 @@ inserted above the top row keep the reader's place. Make it configurable
 either way, and redesign TUIkit's existing anchoring API where that makes it
 cleaner (pre-1.0, no compatibility spellings). **Lane owed** (SCROLLANCHOR),
 together with the missing reader above; the cost is measured in that lane.
+
+**Shipped 2026-10-12 (SCROLLANCHOR):** with nothing else holding it, a scroll
+view keeps the row at the top of its viewport where it is as rows are
+inserted, removed or resized above it — a lazy stack on all three of its paths,
+`List` and `Table` — and holds nothing at the top, while following the tail,
+for a seek, or for a change made under "no adjustment".
+`.scrollWindowHold(.offset)` (TUI-specific: no SwiftUI spelling expresses it,
+measured) keeps the offset in lines, the old default. Design in `Scroll
+anchoring.md` §5; the lane's own entries in [Scroll anchoring default
+(SCROLLANCHOR).md](<Scroll anchoring default (SCROLLANCHOR).md>), one of them
+yours: A-SCROLLANCHOR-1, whether `List` and `Table` should hold as they now do
+or keep their offset as macOS's `List` does (measured). Cost: an A/B is owed.
 
 ### B31. Bounce behaviour gates the overscroll allowance
 

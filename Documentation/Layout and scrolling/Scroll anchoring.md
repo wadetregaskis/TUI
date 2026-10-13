@@ -20,7 +20,7 @@ and holds the open recommendations.
 | **Top** | The view stays at the top, irrespective of rows being added, removed, or moved. |
 | **Bottom** | The view stays at the bottom, irrespective of row changes (follow-the-log). |
 | **Row** | A specific row stays in the same place on screen wherever possible, as other rows change around it. If a scroll is *forced* (rows above it removed, screen space must fill), the row pins to the nearest achievable position — and the anchor setting itself is unchanged. |
-| **Window** (default) | Technically *no anchor*: the scroll position stays where it is **in line coordinates** unless an explicit action moves it (user scrolling, focus-driven reveal) or it must move to avoid rendering gaps (rows removed off the bottom → scroll up so no erroneous blank lines, observing the over/underscroll settings). |
+| **Window** (default) | Technically *no anchor*: what is on screen stays where it is unless an explicit action moves it (user scrolling, focus-driven reveal) or it must move to avoid rendering gaps (rows removed off the bottom → scroll up so no erroneous blank lines, observing the over/underscroll settings). *Revised by the owner on 2026-10-12 (§5):* by default the row at the top keeps its line as rows are inserted, removed or resized above it, as SwiftUI's lazy stacks keep theirs; `.scrollWindowHold(.offset)` keeps the scroll position **in line coordinates** instead, which is what this row said until then. |
 
 ### 1.2 User adjustability (code-settable, default on)
 
@@ -65,7 +65,7 @@ content, at both ends, specifiable as **absolute** rows (`5`) and
 |---|---|
 | Bottom mode | **Shipped**, on every scrollable (`db848b03`, `2d9931e3`). Starts at the tail and follows appends; scrolling up releases it and scrolling back re-engages, because engagement is POSITIONAL (being at the tail *is* the follow — no stored flag to fall out of step). Available from the declaration *and* from a bound `.anchorPosition`, whose write jumps to the edge (§3.2's `anchor(to:)`). **End re-engages** it explicitly. "At the tail" means the tail **as last drawn** — content AND viewport from the frame the user is looking at (`ScrollViewHandler.tailAsLastDrawn`, the `ScrollView` twin of `ItemListHandler.bottomFollowBound`): judged against this frame's viewport, a terminal that shrank released the follow (`df0bd527`). A glued frame whose tail is an estimate re-glues until the tail holds still (at most four passes): once was not enough for a burst of wrapping lines, and the log let go of its end (`a489def4`). A glued frame renders at the tail as last drawn and moves to the new tail AFTER the render, so a tail that moved further than the band's one row of margin — a terminal that shrank (fewer lines, or narrower so the rows wrap taller), or several rows arriving at once — needs the band drawn again there (`coverSnappedViewport`). The full walk under 256 rows returned no slice, so nothing could see that it had drawn only the rows around the old offset: the frame showed blank lines where the newest rows belong, and the follow held, so the next frame drew them — whenever something next changed. It now reports the lines it drew (`ScrollContentReply.drawnLines`), which `coverSnappedViewport` checks as it checks a slice (2026-09-23; found by the Stress `chat` session under `--resize-every 25`). |
 | Top mode | **Shipped** (`28ef33e6`), and smaller than it looks. Top asks only that the view stay at the start, and a scroll offset of 0 is not moved by *any* data change — so once the edge modes stopped hijacking the row-identity re-bind (below), Top needed no offset logic at all. Writing `.top` into the binding jumps there; after that it is positional like Bottom. It is deliberately indistinguishable from Window once the user has scrolled away — snapping back unconditionally would nail a `.defaultScrollAnchor(.top)` view to the top and make it unscrollable, which is worse than useless. |
-| Window mode (default) | **Resolved (slice 1).** Was divergent: the uniform-extent path behaved as Window, but the anchored (variable-height) path re-bound its anchor to the row's identity every frame (§5f ladder), so an insert-above *held the row* — Row semantics, silently, as the default. Policy is now explicit: `ScrollAnchorMode` (Top/Bottom/Row/Window) is resolved from the environment and passed to `rebindAnchor(mode:)`, which **skips the key re-bind in Window mode**, keeping the ordinal and therefore the position in line coordinates. The ladder machinery is untouched — it now runs only for the row-holding modes, exactly the one branch this row predicted. `AnchorLadderTests` asserts the new default (prepending shifts the view); the test that asserted the placeholder row-holding default was retargeted, not deleted. Note the trade-off the original entry recorded: identity-binding also stabilised against extent-estimate error, so Window leans harder on the estimate — watch for drift on very large variable-height data. |
+| Window mode (default) | **Revised 2026-10-12 (§5):** the default holds the row at the top again — on every scrollable that can, away from the top edge, as a policy the scroll view decides each frame — and what the rest of this row describes, the position kept in line coordinates, is `.scrollWindowHold(.offset)`. **Resolved (slice 1).** Was divergent: the uniform-extent path behaved as Window, but the anchored (variable-height) path re-bound its anchor to the row's identity every frame (§5f ladder), so an insert-above *held the row* — Row semantics, silently, as the default. Policy is now explicit: `ScrollAnchorMode` (Top/Bottom/Row/Window) is resolved from the environment and passed to `rebindAnchor(mode:)`, which **skips the key re-bind in Window mode**, keeping the ordinal and therefore the position in line coordinates. The ladder machinery is untouched — it now runs only for the row-holding modes, exactly the one branch this row predicted. `AnchorLadderTests` asserts the new default (prepending shifts the view); the test that asserted the placeholder row-holding default was retargeted, not deleted. Note the trade-off the original entry recorded: identity-binding also stabilised against extent-estimate error, so Window leans harder on the estimate — watch for drift on very large variable-height data. |
 | Row mode | **Shipped.** `.anchorPosition(_:)` designates a row, and every scrollable holds it — the three stack render paths, `List`, and `Table` (`017683fa`; Table had never been wired to the anchor at all). See §3.4. The one remaining restriction is that a raw stack must be LAZY. |
 | Gap avoidance | **Resolved.** Clamping (`maxOffset`) prevents scrolling past the end, and content shrinkage pulls the view up; the caveat this row used to carry — "no over/underscroll allowance to observe" — predates §1.5 shipping. It now observes one, and §1.1's "observing the over/underscroll settings" is satisfied in the way that reads backwards at first: after a shrink the offset clamps to the new `maxOffset` while a **legal excursion survives**, so the content can still sit off its edge. That is the allowance being honoured, not a gap — blank space the app permitted is not erroneous. In particular a view whose content shrinks until it FITS may still hold its excursion, which §3.3 records as an owner decision ("a view whose content already fits may still overscroll") and `ScrollStickyEdgeTests.fittingContentStillOverscrolls` pins. Do not "fix" it: measured 2026-07-31, and it looks like a bug precisely until you find those two. |
 | User adjustability toggle | **Shipped** (`bc3c829d`) as `.scrollDisabled(_:)`, SwiftUI's own name. Gates gestures only — wheel, scrollbar, scroll keys, drag auto-scroll — while `scrollTo`, anchors and reveal-on-focus keep working, and a List still follows its selection. Chrome renders in a disabled state, and a blocked wheel tick chains to the parent rather than being swallowed. See below. |
@@ -629,6 +629,149 @@ While the feature is pending, work on the branch observes:
    *placeholder policy*, not the final default.~~ **Discharged (slice 1):**
    the default is now explicitly Window. The surviving half of the rule
    still holds — anything depending on hold-the-row semantics goes through
-   `rebindAnchor`/`ScrollAnchorMode` so the policy switch stays one branch.
+   one decision per family of scrollables, so the policy switch stays one
+   branch: since 2026-10-12 (§5) that is the scroll view's
+   (`_ScrollViewCore.topRowHold`, handed to its stack as
+   `ScrollContentWindow.topRowHold`) and `ItemListHandler.holdTopRow`'s, and
+   `rebindAnchor(holdsRow:)` is told, not asked.
 3. Scroll-clamping changes keep the allowance parameter in mind (no new
    call sites that assume `[0, maxOffset]` is closed forever).
+
+---
+
+## 5. The top-row hold (2026-10-12)
+
+**Owner ruling (decisions B30, 2026-10-12):** follow SwiftUI — with no anchor
+declared, rows inserted above the top row keep the reader's place — and make it
+configurable either way.
+
+### What SwiftUI does
+
+Measured on macOS 15.8, a 300×200 window with rows 20 points tall
+(`Tools/SwiftUIProbes/Scroll anchoring/hold.swift`, its output beside it):
+
+- A `LazyVStack` in a `ScrollView`, scrolled to row 10, keeps row 10 at the top
+  when five rows are inserted above it: the origin moves 200 → 300. Part way
+  into the row it keeps the part too (210 → 310).
+- **At the top it holds nothing:** at origin 0 the five new rows show, and the
+  origin stays 0.
+- A removal above is not held: the origin stays 200 and row 15 comes to the
+  top. Nor is the top row itself: removed, the row after it takes its place.
+- `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled` stops the
+  hold in every case.
+- `defaultScrollAnchor` changes nothing here, unlabelled or for `.sizeChanges`,
+  at `.top`, `.center` or `.bottom`: scrolled away from its edge, every one
+  holds the row alike. So no SwiftUI spelling expresses the opt-out.
+- An eager `VStack` holds nothing, and neither does macOS's `List` (its origin
+  stays, its rows move).
+
+### What TUIkit does
+
+With nothing else holding it, a scroll view keeps the row at the top of its
+viewport on its line as rows are inserted, removed or resized above it, and the
+rows on screen with it. Nothing else holds it in Window mode — no anchor
+declared, or released from one by a scroll (a bound `.anchorPosition` reading
+`.window`) — or when an edge mode is away from its edge: a `.bottom` view
+scrolled up from its tail, a `.top` one scrolled down, as SwiftUI's are held.
+
+It holds nothing:
+
+- **at the top**, where rows inserted above show, as in SwiftUI. This is the
+  top edge's positional engagement, as being at the tail is the bottom's, and
+  why a prepend under `.top` still shows the new rows (§3.4, "The edge modes
+  are POSITIONAL") — the re-bind that made Top behave as Row stays gone;
+- **while following the tail**, which places the frame itself;
+- **for a seek or a `.scrollPosition` request** made that frame, which aims at a
+  line of the content as it now is;
+- **for a change made under "no adjustment"**, which moves the rows with it; the
+  row is held from where that change left it on the next one.
+
+A designated row (`.anchorPosition(.row(id))`) is held as ever and wins; a
+designation naming no row in the data is none, and the top row is held.
+
+| Scrollable | Holds? | How |
+|---|---|---|
+| `LazyVStack` in a `ScrollView`, equal rows | Yes | The offset moves by however far the row remembered at the top moved: arithmetic |
+| … rows of different heights, up to 256 | Yes | The same, from the walked slots, which also see a row above it grow |
+| … more than 256 | Yes | Structurally: the anchor is the top row, re-bound to its key; the offset follows by the running pitch |
+| `List`, `Table` (both row composers) | Yes | `ItemListHandler.holdTopRow`: the row offset moves by the rows inserted or removed above, and the focus cursor with it |
+| An eager `VStack` | No | Drawn whole and clipped, with no window to hold — as SwiftUI's eager stack does not hold (decisions C-SCROLLANCHOR-1) |
+
+`.scrollWindowHold(.offset)` (TUI-specific, with `\.scrollWindowHold`) keeps the
+scroll position in line coordinates instead — slice 1's Window exactly.
+
+Two things go further than SwiftUI and are recorded as deliberate deviations:
+`List` and `Table` hold, where macOS's `List` does not (R13; decisions
+A-SCROLLANCHOR-1 asks whether to keep that), and a removal above, or a row above
+growing, is held as an insertion is (R14) — "the reader's place" does not
+depend on which way the rows above changed.
+
+### What it reverses of slice 1, and why
+
+Slice 1 (`624b040d`) stopped the anchored walk re-binding its anchor to the top
+row's key for a view that declared no anchor. That re-bind held rows as the
+default, silently, on one render path of three, as a side effect of which path
+ran — a placeholder the spec had flagged. The ruling brings the hold back as the
+default, and slice 1's reason stands: the hold is now a policy, the same on
+every path and every scrollable, decided by the scroll view each frame, held to
+the edges' positional rules, and switched off by one modifier.
+
+### How it holds
+
+The uniform and exact paths place rows at absolute content y, so holding the row
+moves the offset. When a frame is drawn the stack remembers the row at the top —
+its key, its ordinal, its y, and the key of the row after it — and on the next
+frame moves the offset by however far that row moved (`StackTopRowHold.swift`).
+It is a shift, not a placement: a scroll made since the last frame is kept, and a
+frame whose content above did not change moves nothing. Found at its ordinal the
+row costs one key read; found elsewhere, a search outward from where it was,
+then over every key. Gone, the row after it is put where it was. The correction
+reaches the scroll view as a designation's does, as `seekResolvedOffset`, and is
+adopted as one is (`jumpProgrammatically`): a frame that holds drops an
+overscroll excursion (§1.5), as a seek does. Only a push past the bottom can be
+standing then — at the top nothing is held — and only under an allowance the
+app asked for.
+
+The anchored walk holds structurally: its anchor IS the row at the top, and when
+the scroll view asks for the hold it re-binds the anchor to its key
+(`rebindAnchor(holdsRow:)`), its ladder handing the anchor to the nearest
+surviving row when that one is gone.
+
+`List` and `Table` scroll in rows, so the hold is a row count
+(`ItemListHandler.holdTopRow`), applied before the clamps so that every rule
+after it has the last word. Their focus cursor is a row index, so it moves too
+when it is on the top row or below it: left where it was it would point at
+another row, and the next key's reveal would scroll back to it, undoing the
+hold.
+
+Nothing is remembered at the top, so a scrollable at rest there pays nothing.
+Elsewhere a frame whose content did not change pays one key (or id) read.
+
+### Estimates (§2's trade-off)
+
+Slice 1 recorded that the re-bind it removed also steadied the anchored walk
+against extent-estimate error, and that Window leaned harder on the estimate.
+With the hold, the anchored walk holds by key again: the rows on screen are laid
+out from the held row whatever the running pitch says, so a refined estimate
+moves the scrollbar, never the rows. The offset follows the held row by the rows
+the change put above it times the running pitch, so the scrollbar and "N more
+above" keep up — moving `lastDerivedOffset` with it, so the walk sees only a
+scroll made since the last frame — and when the held row is the first, the
+offset is exact: the lines of it above the viewport.
+
+The exact walk measures every row. The uniform path places rows by one pitch,
+verified against every row it draws — the rows it never drew are priced at it.
+The hold measures the remembered row in the geometry of the frame being drawn,
+so if the uniform path's pitch is refuted — the frame then drawn by the exact
+walk — the offset moves by the difference between the row's true y and the one
+the pitch gave it, and the row keeps its line. That is by construction; no test
+covers it: in the case tried — one row above the screen taller than the
+rest — the pitch was refuted before any frame was drawn by it (why was not
+traced).
+
+### Cost
+
+One key or id read a frame where the content above did not change; nothing at
+the top, nothing under `.offset`. A/B owed on the quiet machine: `scrollfollow`,
+`scrolleager`, `megalist`, `tables-scroll`, `table-churn`, `table-tail`,
+`table`, the list scenarios, `kitchensink`, `churn`.

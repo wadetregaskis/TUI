@@ -28,7 +28,7 @@ struct ScrollContentWindow: Sendable, Hashable {
             lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow
         else { return false }
-        return lhs.reportsTargetLayout == rhs.reportsTargetLayout
+        return lhs.reportsTargetLayout == rhs.reportsTargetLayout && lhs.topRowHold == rhs.topRowHold
     }
 
     func hash(into hasher: inout Hasher) {
@@ -41,6 +41,7 @@ struct ScrollContentWindow: Sendable, Hashable {
         hasher.combine(linesAbove)
         hasher.combine(linesBelow)
         hasher.combine(reportsTargetLayout)
+        hasher.combine(topRowHold)
     }
 
     /// The scroll offset in the coordinates of the stack that consumes this
@@ -168,6 +169,16 @@ struct ScrollContentWindow: Sendable, Hashable {
     /// nothing for it.
     var reportsTargetLayout = false
 
+    /// What the stack that consumes this window does about the row at the
+    /// viewport's top (``ScrollWindowHold``): nothing, keep track of it, or
+    /// keep track of it and hold it in place this frame. The scroll view
+    /// decides, being the one that knows what else moves its offset — it
+    /// holds nothing while at its top, while following its tail, for a seek
+    /// or a position request, or for a change made under "no adjustment" —
+    /// and asks it of a frame's first drawing only. A window made by anything
+    /// else (a test injecting one) asks nothing.
+    var topRowHold = TopRowHold.off
+
     /// Whether any of the scroll content lies below the viewport, for a stack
     /// whose own content ends at `stackBottom` (in its coordinates): its rows,
     /// or what is drawn below it (``linesBelow``).
@@ -207,6 +218,23 @@ struct ScrollContentWindow: Sendable, Hashable {
         window.reply = reply
         return window
     }
+}
+
+/// What a windowed stack does about the row at the top of the viewport — see
+/// ``ScrollContentWindow/topRowHold``.
+enum TopRowHold: UInt8, Sendable, Hashable {
+    /// Nothing, and what is remembered is left as it is: the scroll view keeps
+    /// its offset in lines (``ScrollWindowHold/offset``), or this is a second
+    /// drawing of a frame whose first one already did what there was to do.
+    case off
+
+    /// Remember which row is at the top, so a later frame can hold it, but
+    /// move nothing this frame.
+    case tracking
+
+    /// Move the offset by however far the content above moved the row
+    /// remembered at the top, so it keeps its line.
+    case holding
 }
 
 /// The Stage-6 reply channel from a windowed stack back to its ScrollView:

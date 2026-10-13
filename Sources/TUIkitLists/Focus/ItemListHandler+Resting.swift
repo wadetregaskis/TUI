@@ -201,6 +201,10 @@ extension ItemListHandler {
         firstRowHeight: @autoclosure () -> Int
     ) {
         guard !measuring else { return }
+        // Before the clamps, which then hold it to the rows there are: the
+        // hold moves the offset by however far the rows above moved the top
+        // row, and every rule below has the last word over it.
+        holdTopRow()
         clampScrollOffset()
         clampTopClip()
         // After the clamps, which is what puts the offset AT the whole-row
@@ -210,6 +214,7 @@ extension ItemListHandler {
             overflowing: overflowing, drawsTextIndicators: drawsTextIndicators,
             firstRowHeight: firstRowHeight())
         applyAnchorHold()
+        rememberTopRow()
     }
 
     /// Re-resolves this frame's overscroll allowance (§1.5) — how far past its

@@ -58,6 +58,13 @@ extension _ScrollViewCore {
         isChrome ? nil : environment.scrollPositionBinding
     }
 
+    /// See ``pageAnchorPosition(_:)``: what the view keeps in place when the
+    /// content above its top row changes — or the default, the top row, for a
+    /// framework scroller.
+    func pageWindowHold(_ environment: EnvironmentValues) -> ScrollWindowHold {
+        isChrome ? .topRow : environment.scrollWindowHold
+    }
+
     /// See ``pageAnchorPosition(_:)``: the scroll observers this view may
     /// claim.
     func pageScrollObservers(_ environment: EnvironmentValues) -> ScrollObservers {
@@ -151,6 +158,37 @@ extension _ScrollViewCore {
         case .bottom: handler.seekingTail = true
         default: break
         }
+    }
+
+    /// What this frame's first drawing of the content does about the row at
+    /// the top of the viewport (``ScrollContentWindow/topRowHold``), under
+    /// ``ScrollWindowHold/topRow``: holds it in place — moving the offset by
+    /// however far the content above it moved it — unless something else
+    /// places the frame, and keeps track of it either way.
+    ///
+    /// Something else places it at the top (an offset of 0 shows the rows
+    /// inserted above, as SwiftUI's does, measured: that is positional
+    /// engagement with the top edge, as following the tail is with the
+    /// bottom), while following the tail (the follow places it), for a seek
+    /// or a `.scrollPosition` request this frame (they aim at a line of the
+    /// content as it now is), and for a change made under
+    /// `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled`. A
+    /// designated row is the stack's own to hold, and wins over this.
+    ///
+    /// - Parameters:
+    ///   - glued: Whether the frame follows the tail.
+    ///   - placed: Whether a seek or a position request placed the frame.
+    func topRowHold(
+        handler: ScrollViewHandler, glued: Bool, placed: Bool, context: RenderContext
+    ) -> TopRowHold {
+        guard !context.isMeasuring else { return .off }
+        let hold = pageWindowHold(context.environment)
+        defer { handler.lastWindowHold = hold }
+        guard hold == .topRow, axes.contains(.vertical) else { return .off }
+        let holds =
+            handler.lastWindowHold == .topRow && !glued && !placed && handler.scrollOffset > 0
+            && !context.environment.transaction.disablesScrollContentOffsetAdjustment
+        return holds ? .holding : .tracking
     }
 
     /// How many lines down the viewport this frame draws content SHORTER than

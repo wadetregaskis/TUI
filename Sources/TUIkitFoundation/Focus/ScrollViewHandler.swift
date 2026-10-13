@@ -211,6 +211,12 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// pass, never by a measure.
     var tailAsLastDrawn = 0
 
+    /// The ``ScrollWindowHold`` the last frame was drawn under: a frame that
+    /// takes up ``ScrollWindowHold/topRow`` after one that did not only keeps
+    /// track of the row at the top — the content may have moved under a row
+    /// remembered before then (`_ScrollViewCore.topRowHold`).
+    var lastWindowHold = ScrollWindowHold.offset
+
     /// The declared anchor as an EDGE, for the shared user-scroll path
     /// (``ScrollableOffsetState/declaredEdgeAnchor``). Row and Window name no
     /// edge, so they answer `nil`.

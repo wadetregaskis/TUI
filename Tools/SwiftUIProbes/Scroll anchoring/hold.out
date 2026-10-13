@@ -1,0 +1,52 @@
+1 lazy, none, wheel to row 10, insert 5 above              automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+1 lazy, none, wheel to row 10, insert 5 above              disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+1p lazy, none, proxy row 10 top, insert 5 above            automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+1p lazy, none, proxy row 10 top, insert 5 above            disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+2 lazy, none, row 10, remove rows 0-4                      automatic origin 200 -> 200 | top row 10+0 -> row 15+0
+2 lazy, none, row 10, remove rows 0-4                      disabled  origin 200 -> 200 | top row 10+0 -> row 15+0
+3 lazy, none, row 10, row 3 grows 20->60                   automatic origin 200 -> 200 | top row 10+0 -> row 8+0
+3 lazy, none, row 10, row 3 grows 20->60                   disabled  origin 200 -> 200 | top row 10+0 -> row 8+0
+4 lazy, none, at top (0), insert 5 above                   automatic origin 0 -> 0 | top row 0+0 -> row -5+0
+4 lazy, none, at top (0), insert 5 above                   disabled  origin 0 -> 0 | top row 0+0 -> row -5+0
+5 lazy, none, row 10 +10 (210), insert 5 above             automatic origin 210 -> 310 | top row 10+10 -> row 10+10
+5 lazy, none, row 10 +10 (210), insert 5 above             disabled  origin 210 -> 210 | top row 10+10 -> row 5+10
+6 lazy, none, row 10, insert 5 below viewport              automatic origin 200 -> 200 | top row 10+0 -> row 10+0
+6 lazy, none, row 10, insert 5 below viewport              disabled  origin 200 -> 200 | top row 10+0 -> row 10+0
+7 lazy, none, row 10, insert 2 inside viewport             automatic origin 200 -> 200 | top row 10+0 -> row 10+0
+7 lazy, none, row 10, insert 2 inside viewport             disabled  origin 200 -> 200 | top row 10+0 -> row 10+0
+8 lazy, none, row 10, remove row 10 (the top row)          automatic origin 200 -> 200 | top row 10+0 -> row 11+0
+8 lazy, none, row 10, remove row 10 (the top row)          disabled  origin 200 -> 200 | top row 10+0 -> row 11+0
+9 lazy, none, row 10, replace all ids (100..<140)          automatic origin 200 -> 200 | top row 10+0 -> row 110+0
+9 lazy, none, row 10, replace all ids (100..<140)          disabled  origin 200 -> 200 | top row 10+0 -> row 110+0
+10 eager, none, row 10, insert 5 above                     automatic origin 200 -> 200 | top row 10+0 -> row 5+0
+10 eager, none, row 10, insert 5 above                     disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+11 eager, none, row 10, remove rows 0-4                    automatic origin 200 -> 200 | top row 10+0 -> row 15+0
+11 eager, none, row 10, remove rows 0-4                    disabled  origin 200 -> 200 | top row 10+0 -> row 15+0
+12 eager, none, at top, insert 5 above                     automatic origin 0 -> 0 | top row 0+0 -> row -5+0
+12 eager, none, at top, insert 5 above                     disabled  origin 0 -> 0 | top row 0+0 -> row -5+0
+13 list, none, wheel down 200, insert 5 above              automatic origin 200 -> 200 | top row 6 -> row 2
+13 list, none, wheel down 200, insert 5 above              disabled  origin 200 -> 200 | top row 6 -> row 2
+14 list, none, at top, insert 5 above                      automatic origin 0 -> 16 | top index -1 -> row -5
+14 list, none, at top, insert 5 above                      disabled  origin 0 -> 16 | top index -1 -> row -5
+15 list, none, wheel down 200, remove rows 0-4             automatic origin 200 -> 200 | top row 6 -> row 11
+15 list, none, wheel down 200, remove rows 0-4             disabled  origin 200 -> 200 | top row 6 -> row 11
+16 lazy, .top, row 10, insert 5 above                      automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+16 lazy, .top, row 10, insert 5 above                      disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+17 lazy, .top sizeChanges, row 10, insert 5 above          automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+17 lazy, .top sizeChanges, row 10, insert 5 above          disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+18 lazy, .top, at top, insert 5 above                      automatic origin 0 -> 0 | top row 0+0 -> row -5+0
+18 lazy, .top, at top, insert 5 above                      disabled  origin 0 -> 0 | top row 0+0 -> row -5+0
+19 lazy, .top sizeChanges, at top, insert 5 above          automatic origin 0 -> 0 | top row 0+0 -> row -5+0
+19 lazy, .top sizeChanges, at top, insert 5 above          disabled  origin 0 -> 0 | top row 0+0 -> row -5+0
+20 lazy, .bottom, row 10 (mid), insert 5 above             automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+20 lazy, .bottom, row 10 (mid), insert 5 above             disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+21 lazy, .bottom sizeChanges, row 10, insert 5 above       automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+21 lazy, .bottom sizeChanges, row 10, insert 5 above       disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+22 lazy, .center, row 10, insert 5 above                   automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+22 lazy, .center, row 10, insert 5 above                   disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+23 lazy, .center sizeChanges, row 10, insert 5 above       automatic origin 200 -> 300 | top row 10+0 -> row 10+0
+23 lazy, .center sizeChanges, row 10, insert 5 above       disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+24 eager, .top sizeChanges, row 10, insert 5 above         automatic origin 200 -> 200 | top row 10+0 -> row 5+0
+24 eager, .top sizeChanges, row 10, insert 5 above         disabled  origin 200 -> 200 | top row 10+0 -> row 5+0
+25 list, .top sizeChanges, wheel 200, insert 5 above       automatic origin 200 -> 200 | top row 6 -> row 2
+25 list, .top sizeChanges, wheel 200, insert 5 above       disabled  origin 200 -> 200 | top row 6 -> row 2

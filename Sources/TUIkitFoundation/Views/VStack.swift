@@ -898,26 +898,12 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // wrapping row's slot is its wrapped height.
         let slots = naturalRowSlots(width: width, context: childContext, keepsMeasuresLive: true)
 
-        // A pending scrollTo: exact on this path — the slots carry every
-        // row's true y. Re-aim the window before choosing the render set,
-        // and report the offset so the ScrollView adopts it this frame.
-        var window = window
-        if let seek = window.seek {
-            window.seek = nil
-            if let index = slots.firstIndex(where: { $0.child.matchesSeekKey(seek.key) }) {
-                let total = slots.last.map { $0.y + $0.height } ?? 0
-                let newOffset = window.offset(
-                    realising: seek, targetY: slots[index].y, rowHeight: slots[index].height,
-                    stackHeight: total)
-                window.offset = newOffset
-                window.reply?.seekResolvedOffset = newOffset
-            }
-        }
-
-        // A designated anchor row overrides the offset so it keeps its screen
-        // line as rows come and go around it. Exact here: the slots carry
-        // every row's true y and height.
-        holdDesignatedRow(slots: slots, window: &window, context: context)
+        // A pending scrollTo, a designated row, or else the row at the top
+        // re-aims the window before the render set is chosen — exact on this
+        // path, the slots carrying every row's true y (`placingExactWalk`).
+        let topRows = TopRowGeometry(
+            count: slots.count, key: { slots[$0].child.identityChildKey }, y: { slots[$0].y })
+        let (window, verified) = placingExactWalk(window, slots: slots, rows: topRows, context: context)
 
         // The offset can be STALE beyond the walked content — the data
         // shrank this frame, and the ScrollView clamps only after this
@@ -930,6 +916,9 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         let walkedTotal = slots.last.map { $0.y + $0.height } ?? 0
         let top = min(window.offset, max(0, walkedTotal - window.viewportHeight))
         let bottom = top + window.viewportHeight
+        uniformWindowState(context: context).rememberTopRow(
+            atLine: top, of: walkedTotal, hold: window.topRowHold,
+            ordinal: { Self.slotIndex(at: $0, in: slots) }, in: topRows, verified: verified)
 
         // The sample is taken at the offset clamped to the scroll CONTENT's
         // extent instead, which a section's footer below the stack extends past

@@ -298,7 +298,7 @@ extension _ScrollViewCore {
         verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, slide: Int = 0, seek: ScrollToRequest? = nil,
         edgeInset: Int = 0, handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
         context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
-        remeasured: Bool = false
+        topRowHold: TopRowHold = .off, remeasured: Bool = false
     ) -> (
         buffer: FrameBuffer,
         slice: (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?,
@@ -368,7 +368,10 @@ extension _ScrollViewCore {
             // columns and this window has nothing to say about them.
             seek: axes.contains(.vertical) ? seek : nil,
             // The rows of a marked stack, for a behaviour to settle on.
-            reportsTargetLayout: handler?.scrollTargeting != nil)
+            reportsTargetLayout: handler?.scrollTargeting != nil,
+            // The row at the top, held as the content above it changes — on
+            // the frame's first drawing, which the caller says.
+            topRowHold: context.isMeasuring ? .off : topRowHold)
         measureContext.availableWidth = extents.width
         measureContext.availableHeight = extents.height
         // The content is placed at minus the offsets this drawing is made at,
@@ -397,7 +400,10 @@ extension _ScrollViewCore {
                 horizontal: horizontal,
                 verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
                 horizontalScrollOffset: horizontalScrollOffset, slide: slide, edgeInset: edgeInset,
-                handler: handler, checkpoint: checkpoint, context: context, remeasured: true)
+                handler: handler, checkpoint: checkpoint, context: context,
+                // The first drawing held what there was to hold; this one,
+                // at the offset that drawing settled on, only keeps track.
+                topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
             redrawn.seekOffset = contentReply.seekResolvedOffset
             return redrawn
         }
