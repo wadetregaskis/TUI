@@ -96,8 +96,8 @@ recommended.
 
 *`LazyVStack` over more than 256 rows of different heights*
 
-The anchored walk holds the row structurally — its anchor is the top row,
-re-bound to its key — so the rows on screen are exact. Its offset is not: the
+The anchored walk holds the row structurally — the top row, found by its key,
+becomes its anchor — so the rows on screen are exact. Its offset is not: the
 rows inserted above are never measured (that is the walk's point), so the
 offset moves by their count times the running pitch, keeping the scrollbar and
 "N more above" near the truth; when the held row is the first, the offset is

@@ -191,6 +191,18 @@ extension _ScrollViewCore {
         return holds ? .holding : .tracking
     }
 
+    /// What a later drawing of the content in the same frame — drawn again
+    /// where a focus snap, a re-glue or a reader of this view's space moved
+    /// the offset — does about the row at the top: keeps track of it whenever
+    /// the frame's first drawing did anything about it, so that the next
+    /// frame holds the row this one ends up showing. That is what the anchored
+    /// walk takes its anchor from (`rebindingAnchor`): remembered at the first
+    /// drawing, a snap several screens long was walked again from there on the
+    /// next frame, by estimate.
+    func redrawnTopRowHold(handler: ScrollViewHandler, context: RenderContext) -> TopRowHold {
+        !context.isMeasuring && axes.contains(.vertical) && handler.lastWindowHold == .topRow ? .tracking : .off
+    }
+
     /// How many lines down the viewport this frame draws content SHORTER than
     /// it: the ``ScrollAnchorRole/alignment`` anchor's `y` of the room left
     /// over, rounded down to a line — `0` for content that fills the viewport,

@@ -376,7 +376,8 @@ extension _ScrollViewCore {
             horizontal: horizontal, verticalScrollOffset: handler.scrollOffset,
             horizontalScrollOffset: handler.horizontal.scrollOffset,
             slide: contentSlide(handler: handler, viewportHeight: viewportHeight, context: context),
-            checkpoint: checkpoint, context: context)
+            checkpoint: checkpoint, context: context,
+            topRowHold: redrawnTopRowHold(handler: handler, context: context))
         drawing = ScrollContentDrawing(
             buffer: recovered.buffer, slice: recovered.slice, drawnLines: recovered.drawnLines,
             placement: recovered.placement)

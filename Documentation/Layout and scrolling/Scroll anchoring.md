@@ -707,7 +707,7 @@ designation naming no row in the data is none, and the top row is held.
 |---|---|---|
 | `LazyVStack` in a `ScrollView`, equal rows | Yes | The offset moves by however far the row remembered at the top moved: arithmetic |
 | … rows of different heights, up to 256 | Yes | The same, from the walked slots, which also see a row above it grow |
-| … more than 256 | Yes | Structurally: the anchor is the top row, re-bound to its key; the offset follows by the running pitch |
+| … more than 256 | Yes | The remembered row becomes the anchor, wherever the change put it; the offset follows by the running pitch |
 | `List`, `Table` (both row composers) | Yes | `ItemListHandler.holdTopRow`: the row offset moves by the rows inserted or removed above, and the focus cursor with it |
 | An eager `VStack` | No | Drawn whole and clipped, with no window to hold — as SwiftUI's eager stack does not hold (decisions C-SCROLLANCHOR-1) |
 
@@ -734,7 +734,8 @@ the edges' positional rules, and switched off by one modifier.
 
 The uniform and exact paths place rows at absolute content y, so holding the row
 moves the offset. When a frame is drawn the stack remembers the row at the top —
-its key, its ordinal, its y, and the key of the row after it — and on the next
+its key, its ordinal, its y, the line at the viewport's top, and the key of the
+row after it — and on the next
 frame moves the offset by however far that row moved (`StackTopRowHold.swift`)
 — if the row after it moved as far, which is what tells rows inserted or removed
 above from a reorder. It is a shift, not a placement: a scroll made since the last frame is kept, and a
@@ -747,12 +748,17 @@ overscroll excursion (§1.5), as a seek does. Only a push past the bottom can be
 standing then — at the top nothing is held — and only under an allowance the
 app asked for.
 
-The anchored walk holds structurally: its anchor IS the row at the top, and when
-the scroll view asks for the hold it re-binds the anchor to its key
-(`rebindAnchor(holdsRow:followsReorder:)`) — unless the row last drawn after
-it is no longer as far after it — its ladder handing the anchor to the nearest
-surviving row when that one is gone. A designated row is followed through a
-reorder, as ever.
+The anchored walk places rows from its anchor, so there the row found becomes
+the anchor, with as many of its lines above the viewport's top as the last frame
+showed (`rebindingAnchor`), and when it draws a frame it remembers its anchor as
+the other two remember their top row. It is one memory, kept by whichever path
+drew the frame — and by the frame's last drawing, after a snap or a re-glue — so
+a stack that crosses 256 rows holds its row across: "load earlier" onto a list
+of 250 rows of different heights, or a capped log trimmed from the top back under
+256. Held by the anchored walk's own anchor (until 2026-10-13), the hold was lost
+going over, and taken from a frame drawn long before coming back. A designated
+row is followed through a reorder by its key, as ever (`rebindAnchor(holdsRow:)`),
+its ladder handing it to the nearest surviving row when it is gone.
 
 `List` and `Table` scroll in rows, so the hold is a row count
 (`ItemListHandler.holdTopRow`), applied before the clamps so that every rule

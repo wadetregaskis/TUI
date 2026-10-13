@@ -277,10 +277,9 @@ final class StackWindowState {
         /// anchor-relative by construction.
         var anchorHeldScreenLine = 0
 
-        /// The row at the viewport's top when the uniform or exact path last
-        /// drew a frame, for ``ScrollWindowHold/topRow`` to hold on the next —
-        /// see `StackTopRowHold.swift`. The anchored walk holds its top row
-        /// through ``anchorKey`` instead.
+        /// The row at the viewport's top when the stack last drew a frame, on
+        /// whichever path, for ``ScrollWindowHold/topRow`` to hold on the next
+        /// — see `StackTopRowHold.swift`. On the anchored walk it is the anchor.
         var heldTopRow: HeldTopRow?
 
         /// The absolute offset the anchor was last derived against. Scroll

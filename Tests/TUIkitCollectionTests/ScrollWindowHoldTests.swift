@@ -193,6 +193,42 @@ struct ScrollWindowHoldTests {
         #expect(!rows(after).contains(top), "row \(top) was followed: before \(before)\nafter \(after)")
     }
 
+    /// The exact walk draws up to 256 rows of different heights and the
+    /// anchored walk more; a change that takes the count across holds the
+    /// row at the top as any other does — rows inserted above it ("load
+    /// earlier"), and rows trimmed from the top of a capped log. Each path
+    /// kept the row in its own memory, so the hold was lost crossing over, or
+    /// taken from a frame long gone.
+    @Test("Rows inserted above the top row are held as the stack crosses from the exact walk to the anchored")
+    func heldAcrossIntoTheAnchoredWalk() {
+        let scroller = Scroller(.exactWalk)
+        scroller.items = (0..<250).map { Row(id: $0) }
+        var before = scroller.scrolled(to: 30)
+        if before.first?.isEmpty != false { before = scroller.scrolled(to: 31) }
+        scroller.insert(1_000..<1_020)
+        let after = scroller.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+        #expect(scroller.frame() == before)
+    }
+
+    @Test("Rows removed above the top row are held as the stack crosses from the anchored walk to the exact")
+    func heldAcrossIntoTheExactWalk() {
+        let scroller = Scroller(.anchoredWalk)
+        scroller.items = (0..<270).map { Row(id: $0) }
+        // Scrolled once, with the exact walk drawing, then grown onto the
+        // anchored walk at the end and scrolled on: the exact walk's memory of
+        // its top row is the first scroll's.
+        scroller.items = (0..<250).map { Row(id: $0) }
+        scroller.scrolled(to: 30)
+        scroller.items += (250..<270).map { Row(id: $0) }
+        var before = scroller.scrolled(to: 100)
+        if before.first?.isEmpty != false { before = scroller.scrolled(to: 101) }
+        scroller.items.removeSubrange(0..<20)
+        let after = scroller.frame()
+        #expect(after == before, "before: \(before)\nafter:  \(after)")
+        #expect(scroller.frame() == before)
+    }
+
     @Test("At its top, a view shows rows inserted above, as SwiftUI's does", arguments: StackPath.allCases)
     func atTheTopTheNewRowsShow(path: StackPath) {
         let scroller = Scroller(path)

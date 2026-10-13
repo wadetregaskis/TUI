@@ -7,13 +7,15 @@
 //  leave that row — and the rows on screen with it — where they are, as
 //  SwiftUI's lazy stacks do.
 //
-//  The anchored walk gets this structurally: its anchor IS the row at the top,
-//  re-bound to its key each frame (`rebindAnchor`). The uniform and exact
-//  paths place rows at absolute content y, so there holding the row means
-//  moving the OFFSET by however far the change moved it — remembered here as
-//  the row's key and y when a frame is drawn, and compared on the next one.
-//  The correction travels up the Stage-6 reply channel as `seekResolvedOffset`,
-//  as a designated row's does (`StackDesignatedAnchor.swift`).
+//  Every path remembers the row at the top here when it draws a frame — its
+//  key, its ordinal, its top, and the line of the viewport's top — and finds
+//  where it went on the next one (`heldTopRowPlace`), so the hold survives a
+//  stack crossing from one path to another. The uniform and exact paths place
+//  rows at absolute content y, so there holding the row means moving the
+//  OFFSET by however far the change moved it; the correction travels up the
+//  Stage-6 reply channel as `seekResolvedOffset`, as a designated row's does
+//  (`StackDesignatedAnchor.swift`). The anchored walk places rows from its
+//  anchor, so there the row found becomes the anchor (`rebindingAnchor`).
 //
 //  It is a SHIFT, not a placement: the offset the frame was asked for moves by
 //  the distance the remembered row moved. So a scroll made since the last
@@ -35,9 +37,18 @@ struct HeldTopRow {
     var key: String
     var runIndex: Int
 
-    /// Where it was: its ordinal and its top, in the stack's coordinates.
+    /// Where it was: its ordinal and its top, in the stack's coordinates —
+    /// the anchored walk's own, which place rows from its anchor by estimate,
+    /// when that path drew it.
     var ordinal: Int
     var y: Int
+
+    /// The stack's line at the viewport's top when it was remembered: `top - y`
+    /// lines of the row lie above the viewport's top — fewer than none for a
+    /// row held below it, a designated one on the anchored walk. What the
+    /// anchored walk takes its anchor from when it holds the row, whichever
+    /// path drew the frame before (`rebindingAnchor`).
+    var top: Int
 
     /// The key of the row after it, which takes its place if it leaves the
     /// data, as the anchored walk's ladder hands the anchor to the row below a
@@ -52,42 +63,55 @@ struct HeldTopRow {
 /// stack's coordinates — arithmetic for equal rows, the walked slot for the
 /// exact walk.
 struct TopRowGeometry {
-    let count: Int
-    let key: (Int) -> String?
+    let keys: RowKeys
     let y: (Int) -> Int
+
+    init(count: Int, key: @escaping (Int) -> String?, y: @escaping (Int) -> Int) {
+        keys = RowKeys(count: count, key: key)
+        self.y = y
+    }
 }
 
 extension StackWindowState {
 
-    /// How far the content above moved the row remembered at the top since the
-    /// last frame — `0` when nothing above it changed, which costs one key read
-    /// — and whether it was found at its ordinal; `nil` when there is no row
-    /// to hold: none remembered, or neither it nor the row after it is in the
-    /// data any more (the rows were replaced).
+    /// The ordinal that holds the place of the row remembered at the top —
+    /// its own, found where the content above moved it, which costs one key
+    /// read when nothing above it changed — and whether it was found at the
+    /// ordinal it had; `nil` when there is no row to hold: none remembered, or
+    /// neither it nor the row after it is in the data any more (the rows were
+    /// replaced).
     ///
-    /// A remembered row found at its ordinal was moved by a height change above
-    /// it alone, which only the exact walk's slots can see; one found elsewhere,
-    /// still followed by the row that followed it, was moved by rows inserted or
-    /// removed above it. One found elsewhere WITHOUT that row after it was moved
-    /// by the rows being rearranged — a sort — and is not followed: SwiftUI
-    /// holds no row through a reorder (measured,
-    /// `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`), and following one
-    /// would scroll a sorted list to wherever its top row went. One gone is
-    /// replaced by the row after it, put where it was.
-    func heldTopRowShift(in rows: TopRowGeometry) -> (shift: Int, inPlace: Bool)? {
+    /// A remembered row found elsewhere, still followed by the row that
+    /// followed it, was moved by rows inserted or removed above it. One found
+    /// elsewhere WITHOUT that row after it was moved by the rows being
+    /// rearranged — a sort — and is not followed: SwiftUI holds no row through
+    /// a reorder (measured, `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`),
+    /// and following one would scroll a sorted list to wherever its top row
+    /// went. One gone is replaced by the row after it, put where it was.
+    func heldTopRowPlace(in keys: RowKeys) -> (ordinal: Int, inPlace: Bool)? {
         guard let held = heldTopRow else { return nil }
-        if held.ordinal < rows.count, rows.key(held.ordinal) == held.key {
-            return (rows.y(held.ordinal) - held.y, true)
+        if keys[held.ordinal] == held.key { return (held.ordinal, true) }
+        if let ordinal = keys.ordinal(of: held.key, runIndex: held.runIndex, near: held.ordinal) {
+            guard held.nextKey == nil || keys[ordinal + held.nextOffset] == held.nextKey else { return nil }
+            return (ordinal, false)
         }
-        if let ordinal = Self.ordinal(of: held.key, runIndex: held.runIndex, near: held.ordinal, in: rows) {
-            let next = ordinal + held.nextOffset
-            guard held.nextKey == nil || (next < rows.count && rows.key(next) == held.nextKey) else { return nil }
-            return (rows.y(ordinal) - held.y, false)
-        }
-        if let next = held.nextKey, let ordinal = Self.ordinal(of: next, runIndex: 0, near: held.ordinal, in: rows) {
-            return (rows.y(ordinal) - held.y, false)
+        if let next = held.nextKey, let ordinal = keys.ordinal(of: next, runIndex: 0, near: held.ordinal) {
+            return (ordinal, false)
         }
         return nil
+    }
+
+    /// How far the content above moved the row remembered at the top since the
+    /// last frame (``heldTopRowPlace(in:)``): `0` when nothing above it
+    /// changed. A row found at its ordinal (`inPlace`) was moved by a height
+    /// change above it alone, which only the exact walk's slots can see — or
+    /// it was remembered in the anchored walk's lines, and this is the frame
+    /// the stack left that path on: the shift takes it from those to these.
+    func heldTopRowShift(in rows: TopRowGeometry) -> (shift: Int, inPlace: Bool)? {
+        guard let held = heldTopRow, let place = heldTopRowPlace(in: rows.keys) else {
+            return nil
+        }
+        return (rows.y(place.ordinal) - held.y, place.inPlace)
     }
 
     /// Remembers the row at `line` of the stack — the top of the viewport the
@@ -99,55 +123,72 @@ extension StackWindowState {
         in rows: TopRowGeometry, verified: Bool
     ) {
         guard hold != .off else { return }
-        rememberTopRow(atOrdinal: line > 0 && line < extent ? ordinal(line) : -1, in: rows, verified: verified)
-    }
-
-    /// Remembers the row at line `offset` of the stack — the top of the
-    /// viewport this frame was drawn at — for the next frame's hold. Nothing
-    /// is read when it is the row already remembered, at the same place, and
-    /// this frame's ``heldTopRowShift(in:)`` found it there (`verified`); and
-    /// nothing is kept at the top (an `ordinal` of `-1`), where nothing is
-    /// held, so a stack at rest there pays nothing at all.
-    func rememberTopRow(atOrdinal ordinal: Int, in rows: TopRowGeometry, verified: Bool) {
-        guard ordinal >= 0, ordinal < rows.count else {
+        let found = line > 0 && line < extent ? ordinal(line) : -1
+        guard found >= 0, found < rows.keys.count else {
             heldTopRow = nil
             return
         }
-        let y = rows.y(ordinal)
-        if verified, let held = heldTopRow, held.ordinal == ordinal, held.y == y { return }
-        guard let key = rows.key(ordinal) else {
+        rememberTopRow(atOrdinal: found, y: rows.y(found), top: line, in: rows.keys, verified: verified)
+    }
+
+    /// Remembers the row at `ordinal`, its top at `y` and the viewport's top at
+    /// line `top` of the stack — the frame being drawn — for the next frame's
+    /// hold. Nothing is read when it is the
+    /// row already remembered, at the same place, and this frame found it there
+    /// (`verified`); and nothing is kept at the top (an `ordinal` of `-1`, or
+    /// none), where nothing is held, so a stack at rest there pays nothing at
+    /// all.
+    func rememberTopRow(atOrdinal ordinal: Int, y: Int, top: Int, in keys: RowKeys, verified: Bool) {
+        guard ordinal >= 0, ordinal < keys.count else {
+            heldTopRow = nil
+            return
+        }
+        if verified, let held = heldTopRow, held.ordinal == ordinal, held.y == y {
+            heldTopRow?.top = top
+            return
+        }
+        guard let rowKey = keys[ordinal] else {
             heldTopRow = nil
             return
         }
         var first = ordinal
-        while first > 0, rows.key(first - 1) == key { first -= 1 }
+        while keys[first - 1] == rowKey { first -= 1 }
         var next = ordinal + 1
-        while next < rows.count, rows.key(next) == key { next += 1 }
+        while keys[next] == rowKey { next += 1 }
         heldTopRow = HeldTopRow(
-            key: key, runIndex: ordinal - first, ordinal: ordinal, y: y,
-            nextKey: next < rows.count ? rows.key(next) : nil, nextOffset: next - ordinal)
+            key: rowKey, runIndex: ordinal - first, ordinal: ordinal, y: y, top: top,
+            nextKey: keys[next], nextOffset: next - ordinal)
     }
+}
+
+/// A stack's rows as the top-row hold reads them: `count` of them, each one's
+/// key read by `key` (which never builds a row for a lazy `ForEach`), `nil`
+/// past either end.
+struct RowKeys {
+    let count: Int
+    let key: (Int) -> String?
+
+    subscript(ordinal: Int) -> String? { ordinal >= 0 && ordinal < count ? key(ordinal) : nil }
 
     /// The ordinal holding the `runIndex`-th view of `key`'s row: found by a
     /// search outward from where it was (data shifts are usually small), then
     /// over every key — the documented Ω(n) id→ordinal cost, paid only on a
     /// frame whose content above the top row changed.
-    private static func ordinal(of key: String, runIndex: Int, near origin: Int, in rows: TopRowGeometry) -> Int? {
+    func ordinal(of rowKey: String, runIndex: Int, near origin: Int) -> Int? {
         var found: Int?
         search: for distance in 0...64 {
-            for candidate in [origin - distance, origin + distance]
-            where candidate >= 0 && candidate < rows.count && rows.key(candidate) == key {
+            for candidate in [origin - distance, origin + distance] where self[candidate] == rowKey {
                 found = candidate
                 break search
             }
         }
         if found == nil {
-            found = (0..<rows.count).first { rows.key($0) == key }
+            found = (0..<count).first { self[$0] == rowKey }
         }
         guard var first = found else { return nil }
-        while first > 0, rows.key(first - 1) == key { first -= 1 }
+        while self[first - 1] == rowKey { first -= 1 }
         var ordinal = first
-        while ordinal - first < runIndex, ordinal + 1 < rows.count, rows.key(ordinal + 1) == key { ordinal += 1 }
+        while ordinal - first < runIndex, self[ordinal + 1] == rowKey { ordinal += 1 }
         return ordinal
     }
 }
@@ -202,6 +243,29 @@ extension _VStackCore {
         let topRow = holdingTopRow(in: &window, rows: rows, state: uniformWindowState(context: context))
         if let resolved = topRow.resolved { window.reply?.seekResolvedOffset = resolved }
         return (window, topRow.verified)
+    }
+
+    /// Remembers the anchored walk's anchor — the row at the top, or a
+    /// designated row held below it — for the next frame's top-row hold,
+    /// whichever path draws it
+    /// (``StackWindowState/rememberTopRow(atOrdinal:y:top:in:verified:)``): its
+    /// top in this walk's lines is the offset less the lines of it above the
+    /// viewport's top. Nothing is read when it is the row remembered, where it
+    /// was; nothing at all at the top, nor when the scroll view keeps its
+    /// offset in lines.
+    func rememberAnchoredTopRow(
+        state: StackWindowState, window: ScrollContentWindow, children: ChildViewCollection
+    ) {
+        guard window.topRowHold != .off else { return }
+        guard window.offset > 0 else {
+            state.heldTopRow = nil
+            return
+        }
+        let held = state.heldTopRow
+        state.rememberTopRow(
+            atOrdinal: state.anchorOrdinal, y: window.offset - state.anchorOffsetWithin, top: window.offset,
+            in: RowKeys(count: children.count, key: { children.key(at: $0) }),
+            verified: held?.key == state.anchorKey && held?.ordinal == state.anchorOrdinal)
     }
 
     /// The slot whose row — or the spacing above it — holds line `y` of the

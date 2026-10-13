@@ -175,8 +175,9 @@ struct ScrollContentWindow: Sendable, Hashable {
     /// decides, being the one that knows what else moves its offset — it
     /// holds nothing while at its top, while following its tail, for a seek
     /// or a position request, or for a change made under "no adjustment" —
-    /// and asks it of a frame's first drawing only. A window made by anything
-    /// else (a test injecting one) asks nothing.
+    /// and asks a frame's first drawing to hold, and any later drawing of the
+    /// same frame only to keep track. A window made by anything else (a test
+    /// injecting one) asks nothing.
     var topRowHold = TopRowHold.off
 
     /// Whether any of the scroll content lies below the viewport, for a stack
@@ -224,12 +225,14 @@ struct ScrollContentWindow: Sendable, Hashable {
 /// ``ScrollContentWindow/topRowHold``.
 enum TopRowHold: UInt8, Sendable, Hashable {
     /// Nothing, and what is remembered is left as it is: the scroll view keeps
-    /// its offset in lines (``ScrollWindowHold/offset``), or this is a second
-    /// drawing of a frame whose first one already did what there was to do.
+    /// its offset in lines (``ScrollWindowHold/offset``), or does not scroll
+    /// vertically.
     case off
 
     /// Remember which row is at the top, so a later frame can hold it, but
-    /// move nothing this frame.
+    /// move nothing this frame — asked too of every drawing of a frame after
+    /// its first (a snap or a re-glue moved the offset after it), so the row
+    /// remembered is the one the frame ends up showing.
     case tracking
 
     /// Move the offset by however far the content above moved the row

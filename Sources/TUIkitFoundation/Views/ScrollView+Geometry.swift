@@ -77,7 +77,8 @@ extension _ScrollViewCore {
                 contentWidth: width, viewportHeight: height, horizontal: horizontal,
                 verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
                 slide: contentSlide(handler: handler, viewportHeight: height, context: context),
-                checkpoint: checkpoint, context: context)
+                checkpoint: checkpoint, context: context,
+                topRowHold: redrawnTopRowHold(handler: handler, context: context))
             handler.contentHeight = redrawn.slice?.totalHeight ?? redrawn.buffer.height
             handler.contentHeightIsEstimate = redrawn.slice?.totalIsEstimate ?? false
             handler.clampScrollOffset()

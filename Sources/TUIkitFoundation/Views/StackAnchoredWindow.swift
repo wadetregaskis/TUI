@@ -101,34 +101,23 @@ private final class AnchoredWindowFrame {
     /// replaced) leaves the clamped index fallback — approximate, and
     /// correct at the ends (§5f).
     ///
-    /// Only when `holdsRow`: the anchor is a designated row, or the row at the
-    /// top that ``ScrollWindowHold/topRow`` holds this frame — which is not
-    /// followed through a reorder (`followsReorder` false): found away from the
-    /// row last drawn after it, the rows were rearranged, a sort, and the
-    /// ordinal is kept, as SwiftUI holds no row through a reorder (measured).
-    /// A designated row is followed wherever it goes. Otherwise the
-    /// position stays where it is in line coordinates — the ordinal is kept,
-    /// and an insert above shifts the content down — which is what the view
-    /// does at its top, following its tail, under ``ScrollWindowHold/offset``,
-    /// and for a change made under "no adjustment". See
+    /// Only when `holdsRow`: the anchor is a designated row, followed wherever
+    /// it goes. Otherwise the ordinal is kept — the position stays where it is
+    /// in line coordinates, and an insert above shifts the content down —
+    /// unless the row at the top is held this frame, from the memory every
+    /// path keeps of it (`rebindingAnchor`). See
     /// `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 and §5.
-    ///
-    /// Returns how many ordinals the re-bind moved the anchor — the rows the
-    /// change put above it, less those it took away — or `0`.
-    @discardableResult
-    func rebindAnchor(holdsRow: Bool, followsReorder: Bool = true) -> Int {
+    func rebindAnchor(holdsRow: Bool) {
         let count = children.count
-        guard count > 0 else { return 0 }
-        let before = state.anchorOrdinal
+        guard count > 0 else { return }
         state.anchorOrdinal = min(max(0, state.anchorOrdinal), count - 1)
-        guard holdsRow else { return 0 }
-        guard let anchorKey = state.anchorKey else { return 0 }
-        guard children.key(at: state.anchorOrdinal) != anchorKey else { return 0 }
+        guard holdsRow else { return }
+        guard let anchorKey = state.anchorKey else { return }
+        guard children.key(at: state.anchorOrdinal) != anchorKey else { return }
 
         if let found = locate(key: anchorKey) {
-            guard followsReorder || keepsItsNeighbour(anchorKey, from: before, at: found) else { return 0 }
             state.anchorOrdinal = found
-            return found - before
+            return
         }
         // Nearest first, and of the two equally near — the rows either side of
         // a deleted one — the one below, which the delete moved into its place:
@@ -143,25 +132,9 @@ private final class AnchoredWindowFrame {
             if let found = locate(key: key) {
                 state.anchorOrdinal = found
                 state.anchorKey = key
-                return found - before
+                return
             }
         }
-        return 0
-    }
-
-    /// Whether the row last drawn after the anchor, at `before`, is still the
-    /// same distance after it now that it is at `found`: rows inserted or
-    /// removed above move both alike, a reorder takes them apart. Asked of
-    /// last frame's drawn rows (``StackWindowState/rowOrdinalMemo``), so only
-    /// on a frame whose anchor moved. With no row drawn after it, yes.
-    private func keepsItsNeighbour(_ anchorKey: String, from before: Int, at found: Int) -> Bool {
-        guard
-            let next = state.rowOrdinalMemo
-                .filter({ $0.value > before && $0.key != anchorKey })
-                .min(by: { $0.value < $1.value })
-        else { return true }
-        let ordinal = found + next.value - before
-        return ordinal < children.count && children.key(at: ordinal) == next.key
     }
 
     /// The ordinal holding `key`: nearby ring search first, then the full
@@ -619,30 +592,49 @@ extension _VStackCore {
         return newOffset
     }
 
-    /// Re-binds the anchor to its row's key when something holds a row: a
-    /// designated row, held by its key; with none — a designation naming no
-    /// row is none (`applyDesignatedAnchor`) — the anchor is the row at the
-    /// top, held by its key when the scroll view asks for the top-row hold this
-    /// frame (``ScrollContentWindow/topRowHold``) and left on its ordinal
-    /// otherwise. The offset follows a held top row by the running pitch, so
-    /// the scrollbar and "N more above" keep up with the rows the change put
-    /// above it — exact when it is the first row — and `lastDerivedOffset`
-    /// moves with it, so the walk sees only a scroll made since the last
+    /// Re-binds the anchor when something holds a row: a designated row, by
+    /// its key (`rebindAnchor`); with none — a designation naming no row is
+    /// none (`applyDesignatedAnchor`) — the row at the top, when the scroll
+    /// view asks for the top-row hold this frame
+    /// (``ScrollContentWindow/topRowHold``), and the anchor is left on its
+    /// ordinal otherwise.
+    ///
+    /// The row at the top is the one every path remembers when it draws a
+    /// frame (``StackWindowState/heldTopRow``), found where the change put it
+    /// (``StackWindowState/heldTopRowPlace(in:)``): it becomes the anchor, with
+    /// as many of its lines above the viewport's top as the last frame showed —
+    /// whichever path drew it. Held by this walk's own anchor, a stack that
+    /// crossed 256 rows lost the row the exact walk had remembered, and one
+    /// that crossed back was held from a frame drawn long before.
+    ///
+    /// The offset follows the row by the running pitch, so the scrollbar and
+    /// "N more above" keep up with the rows the change put above it — exact
+    /// when it is the first row — and `lastDerivedOffset` is the remembered
+    /// top moved with it, so the walk sees only a scroll made since the last
     /// frame. Returns that offset, to report, or `nil`.
     private func rebindingAnchor(
         frame: AnchoredWindowFrame, state: StackWindowState, window: inout ScrollContentWindow,
         designatedKey: String?
     ) -> Int? {
-        let holdsTopRow =
-            designatedKey == nil && window.topRowHold == .holding && window.seek == nil && window.offset >= 0
-        let moved = frame.rebindAnchor(
-            holdsRow: designatedKey != nil || holdsTopRow, followsReorder: designatedKey != nil)
-        guard holdsTopRow, moved != 0 else { return nil }
-        let followed =
-            state.anchorOrdinal == 0
-            ? state.anchorOffsetWithin
-            : max(1, window.offset + moved * state.estimatedPitch(spacing: spacing))
-        state.lastDerivedOffset += followed - window.offset
+        frame.rebindAnchor(holdsRow: designatedKey != nil)
+        let children = frame.children
+        guard designatedKey == nil, window.topRowHold == .holding, window.seek == nil, window.offset >= 0,
+            let held = state.heldTopRow,
+            let place = state.heldTopRowPlace(in: RowKeys(count: children.count, key: { children.key(at: $0) }))
+        else { return nil }
+        let moved = place.ordinal - held.ordinal
+        state.anchorOrdinal = place.ordinal
+        state.anchorOffsetWithin = held.top - held.y
+        let followed: Int
+        if moved == 0 {
+            followed = window.offset
+        } else if place.ordinal == 0 {
+            followed = state.anchorOffsetWithin
+        } else {
+            followed = max(1, window.offset + moved * state.estimatedPitch(spacing: spacing))
+        }
+        state.lastDerivedOffset = held.top + followed - window.offset
+        guard followed != window.offset else { return nil }
         window.offset = followed
         return followed
     }
@@ -864,6 +856,7 @@ extension _VStackCore {
             recordDrawnRows(
                 band: drawn, all: placed.map(\.ordinal) + grafts.map(\.ordinal), of: children, state: state,
                 context: context)
+            rememberAnchoredTopRow(state: state, window: window, children: children)
         }
         return buffer
     }
