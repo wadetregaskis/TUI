@@ -101,6 +101,8 @@ enum TooltipPopover {
         let innerWidth = (wrapped.map(\.strippedLength).max() ?? 0) + 2
         let border = context.environment.appearance.borderStyle
         let palette = context.environment.palette
+        // The help text is text: a tier heavier under a bold legibility weight.
+        let bold = context.environment.legibilityWeight.drawsPlainBold
         let lines =
             [
                 BorderRenderer.standardTopBorder(
@@ -112,7 +114,7 @@ enum TooltipPopover {
                         + ANSIRenderer.colorize(
                             line.padToVisibleWidth(innerWidth - 2),
                             foreground: palette.foreground.opaqueSpelling,
-                            background: palette.background.opaqueSpelling) + " ",
+                            background: palette.background.opaqueSpelling, bold: bold) + " ",
                     innerWidth: innerWidth, style: border, color: palette.border)
             }
             + [

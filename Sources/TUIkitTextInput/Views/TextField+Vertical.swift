@@ -138,7 +138,8 @@ extension _TextFieldCore {
             displayCharacter: TextFieldHandler.verticalDisplayCharacter, surface: chrome.surface,
             contentForeground: cascaded.foreground,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
-            appearsActive: context.environment.appearsActive)
+            appearsActive: context.environment.appearsActive,
+            legibilityWeight: context.environment.legibilityWeight)
         let rows = renderer.buildRows(
             TextFieldContentRenderer.Rows(
                 layout: layout, characters: source.characters, isPrompt: source.isPrompt,

@@ -92,12 +92,20 @@ struct TableRowInk {
     /// (`insideListRow`): a list's cursor row may reverse its content where the
     /// palette's highlight cannot be measured, and a reversal fills the blanks
     /// between cells with whatever ink is in force (decisions B-SPF2-2).
-    init(introducer: String?, under background: RowBackground, bandsAcrossRow: Bool, insideListRow: Bool = false) {
+    ///
+    /// `bold` says the introducer states bold — the cells under a bold
+    /// legibility weight — which SGR 39 would leave running past the cells: so
+    /// under a still fill the close is SGR 22 and 39 together, ending the
+    /// weight with the colour and still leaving the fill.
+    init(
+        introducer: String?, under background: RowBackground, bandsAcrossRow: Bool, insideListRow: Bool = false,
+        bold: Bool = false
+    ) {
         let reverses: Bool
         let close: String
         switch background {
         case .fixed:
-            (reverses, close) = (false, ANSIRenderer.defaultForeground)
+            (reverses, close) = (false, bold ? Self.normalWeightDefaultForeground : ANSIRenderer.defaultForeground)
         case .reversed, .pulsingReversal:
             (reverses, close) = (true, ANSIRenderer.reset)
         case .none, .pulsing:
@@ -105,6 +113,11 @@ struct TableRowInk {
         }
         self.init(introducer: introducer, close: close, shares: !reverses && !bandsAcrossRow && !insideListRow)
     }
+
+    /// SGR 22 and 39: the terminal's own weight and foreground again, the
+    /// background left in force — the close of a bold run of cells under a
+    /// still fill.
+    static let normalWeightDefaultForeground = "\u{1B}[22;39m"
 
     /// Writes the selection mark `glyph` in `colour`.
     ///

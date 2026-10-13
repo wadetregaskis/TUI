@@ -771,7 +771,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 inactiveFg: inactiveFg, hoveredIndex: hoveredTabBox(context: context).value,
                 palette: palette, inactiveBg: inactiveBg,
                 border: border, surface: surface, interior: interior, boxWidth: boxWidth,
-                alignment: alignment))
+                alignment: alignment, legibility: context.environment.legibilityWeight))
         /// Every line of the box, the strip's first. Each carries its own claims,
         /// placed on the row it lands on when the box is flattened below.
         var box = strip.lines
@@ -1060,7 +1060,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             rows: rows, selectedIndex: selectedIndex,
             hoveredIndex: hoveredTabBox(context: context).value,
             chip: chip, palette: palette,
-            width: panelWidth, alignment: alignment)
+            width: panelWidth, alignment: alignment, legibility: context.environment.legibilityWeight)
         let (stripLines, regions) = (strip.lines, strip.regions)
         let claims = strip.claims
 

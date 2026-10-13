@@ -162,7 +162,8 @@ struct _ButtonStyleBody: View, Renderable {
             paddedLabel,
             foreground: labelFg.opaqueSpelling,
             background: buttonBg.opaqueSpelling,
-            bold: isBold && !isDisabled
+            // A tier heavier under a bold legibility weight, as every label is.
+            bold: context.environment.legibilityWeight.applied(bold: isBold && !isDisabled, faint: false).bold
         )
 
         var buffer = FrameBuffer(lines: [openCap + styledLabel + closeCap])
@@ -242,7 +243,9 @@ struct _ButtonStyleBody: View, Renderable {
 
         var textStyle = TextStyle()
         textStyle.foregroundColor = foregroundColor
-        textStyle.isBold = isBold && !isDisabled
+        textStyle.isBold = context.environment.legibilityWeight.applied(
+            bold: isBold && !isDisabled, faint: false
+        ).bold
 
         // The focus indicator is handed to the run loop as a finished cycle
         // rather than re-derived every tick: the two prefix cells are the

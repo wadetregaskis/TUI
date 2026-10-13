@@ -4058,8 +4058,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 }
                 if shouldRenderBadge && lineIndex == 0 {
                     return renderLineWithBadge(
-                        line: line, badge: badge!, rowWidth: rowWidth,
-                        backgroundColor: backgroundColor, ink: badgeInk, gutter: gutter)
+                        line: line, badge: badge!, rowWidth: rowWidth, backgroundColor: backgroundColor,
+                        ink: badgeInk, gutter: gutter, bold: context.environment.legibilityWeight.drawsPlainBold)
                 } else {
                     return renderPlainLine(
                         line: line,
@@ -4748,15 +4748,18 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         rowWidth: Int,
         backgroundColor: Color?,
         ink: Color,
-        gutter: String
+        gutter: String,
+        bold: Bool
     ) -> String {
         let placement = badgePlacement(
             line: line, badge: badge, rowWidth: rowWidth, gutterCells: 1)
         // Opaque bytes: a faded `foregroundTertiary` reached the emitter here and
         // trapped (§68.2). Its alpha is claimed by `renderRow`, over the columns
         // `placement` names, so both come from the one arithmetic.
+        // `bold` under a bold legibility weight: the badge is text, a tier
+        // heavier as the row's own is.
         let styledBadge = ANSIRenderer.colorize(
-            badge.displayText, foreground: ink.opaqueSpelling)
+            badge.displayText, foreground: ink.opaqueSpelling, bold: bold)
         let paddedLine =
             gutter + placement.fitted
             + String(repeating: " ", count: placement.fillPadding) + styledBadge + " "

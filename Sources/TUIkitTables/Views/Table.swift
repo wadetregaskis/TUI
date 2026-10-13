@@ -2425,13 +2425,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // move when `renderRow` was rewritten.
         var cellStyle = TextStyle()
         cellStyle.foregroundColor = foreground.opaqueSpelling
+        // The cells are text: a tier heavier under a bold legibility weight.
+        let boldCells = context.environment.legibilityWeight.drawsPlainBold
+        if boldCells { cellStyle.isBold = true }
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
         // Each line states the ink once per run of plain cells (`TableRowInk`),
         // and starts with none in force.
         let rowInk = TableRowInk(
             introducer: cellSequence, under: visual.background, bandsAcrossRow: bandsAcrossRow,
-            insideListRow: context.environment.listRowEditRestrictions != nil)
+            insideListRow: context.environment.listRowEditRestrictions != nil, bold: boldCells)
         let cellCount = min(columns.count, columnWidths.count)
         var claims: [OpacityRegion] = []
 
@@ -5397,11 +5400,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // `band` at all is the shape §18.3 warns about, and the answer is the same
         // either way now that both arms claim (§36).
         cellStyle.foregroundColor = cellInk.opaqueSpelling
+        // The cells are text: a tier heavier under a bold legibility weight.
+        let boldCells = context.environment.legibilityWeight.drawsPlainBold
+        if boldCells { cellStyle.isBold = true }
         let cellSequence = bandsAcrossRow ? nil : ANSIRenderer.styleSequence(for: cellStyle)
         var rampSequences: [String?] = []
         var ink = TableRowInk(
             introducer: cellSequence, under: visualState.background, bandsAcrossRow: bandsAcrossRow,
-            insideListRow: context.environment.listRowEditRestrictions != nil)
+            insideListRow: context.environment.listRowEditRestrictions != nil, bold: boldCells)
 
         // One buffer for the whole row. The previous form built a `[String]` of
         // styled cells, `joined` them, and concatenated the indicator and the
@@ -5669,6 +5675,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return firstLine.truncatedToWidth(columnWidths[$0], mode: columns[$0].truncationMode)
         }
         let widths = clipped.map(\.strippedLength)
+        // The cells are text: a tier heavier under a bold legibility weight, as
+        // the rows they are a picture of are.
+        let bold = context.environment.legibilityWeight.drawsPlainBold
 
         var gridX: [Int] = []
         var cursor = gutter
@@ -5697,7 +5706,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 let target = gridX[index] + Int(travel.rounded())
                 let start = max(column, target)
                 line += String(repeating: " ", count: start - column)
-                line += ANSIRenderer.colorize(clipped[index], foreground: foregroundColor)
+                line += ANSIRenderer.colorize(clipped[index], foreground: foregroundColor, bold: bold)
                 column = start + widths[index]
             }
             return line

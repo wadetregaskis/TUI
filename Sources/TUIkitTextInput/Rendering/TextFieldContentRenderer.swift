@@ -67,6 +67,15 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// Held here for the reason ``cursorSpeed`` is.
     var appearsActive: Bool = true
 
+    /// The legibility weight the field draws under (`\.legibilityWeight`):
+    /// under ``LegibilityWeight/bold`` its text — what was typed, the prompt,
+    /// the character under the caret — is a tier heavier, as every piece of
+    /// text is (decisions B2). A field's text is always plain, so that is
+    /// bold; the chrome around it, the caps and the `▾`, is not text.
+    ///
+    /// Held here for the reason ``cursorSpeed`` is.
+    var legibilityWeight: LegibilityWeight?
+
     /// The entered-text foreground, resolved to a concrete colour. A
     /// `.textFieldTextStyle` override may be a *semantic* colour (e.g.
     /// `.palette.accent`); resolving it against the palette here keeps a
@@ -137,10 +146,10 @@ struct TextFieldContentRenderer: FieldTextLayout {
             // read. So the focused-and-empty case renders the prompt too, just
             // with the caret sitting on it; only typing displaces it.
             guard isFocused else {
-                return buildPromptContent(
-                    palette: palette, background: backgroundColor, width: contentWidth)
+                return weighted(
+                    buildPromptContent(palette: palette, background: backgroundColor, width: contentWidth))
             }
-            return buildTextWithCursor(
+            return weighted(buildTextWithCursor(
                 text: promptString(),
                 cursorPosition: 0,
                 selectionRange: nil,
@@ -154,9 +163,9 @@ struct TextFieldContentRenderer: FieldTextLayout {
                 // The PROMPT is never masked, so it draws itself even under a
                 // secure field's bullet mapping.
                 displayOverride: { $0 }
-            )
+            ))
         } else if isFocused {
-            return buildTextWithCursor(
+            return weighted(buildTextWithCursor(
                 text: text,
                 cursorPosition: cursorPosition,
                 selectionRange: selectionRange,
@@ -166,15 +175,26 @@ struct TextFieldContentRenderer: FieldTextLayout {
                 cursorTiming: cursorTiming,
                 background: backgroundColor,
                 width: contentWidth
-            )
+            ))
         } else {
-            return buildTextContent(
+            return weighted(buildTextContent(
                 text: text,
                 palette: palette,
                 background: backgroundColor,
                 width: contentWidth
-            )
+            ))
         }
+    }
+
+    /// `content` as the field's ``legibilityWeight`` draws it: its line and
+    /// every frame of its caret bold under ``LegibilityWeight/bold``, and as it
+    /// is otherwise. Whole frames, the caret's own glyph with them: the caret
+    /// is drawn in a stated colour, which no terminal brightens for bold.
+    func weighted(_ content: FieldContent) -> FieldContent {
+        guard legibilityWeight.drawsPlainBold else { return content }
+        return FieldContent(
+            line: ANSIRenderer.applyPersistentBold(content.line), caret: content.caret?.drawnBold(),
+            claims: content.claims)
     }
 
     /// The coalescing accumulator a focused field's cells are written into:

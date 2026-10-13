@@ -507,7 +507,8 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         row.append(String(TerminalSymbols.openCap), cells: 1, ink: caps.colorNow)
         row.append(
             content, cells: content.strippedLength, ink: labelFg, field: buttonBg,
-            bold: isFocused && !isDisabled)
+            // A tier heavier under a bold legibility weight, as every label is.
+            bold: context.environment.legibilityWeight.applied(bold: isFocused && !isDisabled, faint: false).bold)
         row.append(String(TerminalSymbols.closeCap), cells: 1, ink: caps.colorNow)
         return (row.text, caps.runs(width: row.cells), row.claims)
     }

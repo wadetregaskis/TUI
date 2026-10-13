@@ -555,6 +555,13 @@ struct _DatePickerCore: View, Renderable, Layoutable {
             line += ANSIRenderer.render(cell.text, with: style.resolved(with: palette))
         }
 
+        // Every component and separator is text: under a bold legibility weight
+        // the field is a tier heavier, its breathing component's frames too —
+        // and the stepper beside it, which is not text, is not.
+        if context.environment.legibilityWeight.drawsPlainBold {
+            line = ANSIRenderer.applyPersistentBold(line)
+            runs = runs.map { $0.drawnBold() }
+        }
         let fieldWidth = line.strippedLength
         let showsStepper = isStepperField && context.environment.datePickerShowsStepper
         if showsStepper {

@@ -217,15 +217,21 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
 
         let palette = context.environment.palette
         let month = handler.displayedMonth
-        var lines = [header(month: month, isFocused: isFocused, calendar: calendar, palette: palette)]
-        lines.append(weekdayRow(calendar: calendar, palette: palette))
+        let legibility = context.environment.legibilityWeight
+        var lines = [
+            header(month: month, isFocused: isFocused, legibility: legibility, calendar: calendar, palette: palette)
+        ]
+        // The weekdays and the days are all text, so under a bold legibility
+        // weight each line of them is drawn a tier heavier, whole.
+        var grid = [weekdayRow(calendar: calendar, palette: palette)]
         let days = monthGrid(month: month, calendar: calendar)
         for week in 0..<6 {
-            lines.append(
+            grid.append(
                 (0..<7).map { column in
                     dayCell(days[week * 7 + column], isDisabled: isDisabled, calendar: calendar, palette: palette)
                 }.joined())
         }
+        lines += legibility.drawsPlainBold ? grid.map(ANSIRenderer.applyPersistentBold) : grid
         var buffer = FrameBuffer(lines: lines)
         if !isDisabled, !context.isMeasuring {
             attachMouseHandler(to: &buffer, handler: handler, days: days, focusID: persistedFocusID, context: context)
@@ -269,7 +275,9 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
     // MARK: Drawing
 
     /// ` ◀   October 2026   ▶`: the month centred between the two arrows.
-    private func header(month: Date, isFocused: Bool, calendar: Calendar, palette: any Palette) -> String {
+    private func header(
+        month: Date, isFocused: Bool, legibility: LegibilityWeight?, calendar: Calendar, palette: any Palette
+    ) -> String {
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.timeZone = calendar.timeZone
@@ -283,7 +291,9 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
             + String(repeating: " ", count: inner - left - fitted.count)
         let arrow = (isFocused ? palette.accent : palette.foregroundSecondary).opaqueSpelling
         return ANSIRenderer.colorize(" \(TerminalSymbols.leftArrow)", foreground: arrow)
-            + ANSIRenderer.colorize(titleText, foreground: palette.foreground.opaqueSpelling, bold: isFocused)
+            + ANSIRenderer.colorize(
+                titleText, foreground: palette.foreground.opaqueSpelling,
+                bold: legibility.applied(bold: isFocused, faint: false).bold)
             + ANSIRenderer.colorize("\(TerminalSymbols.rightArrow) ", foreground: arrow)
     }
 

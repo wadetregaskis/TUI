@@ -19,7 +19,7 @@ extension _TabViewCore {
     func compactStripLines(
         rows: [[Int]], selectedIndex: Int, hoveredIndex: Int?,
         chip: ActiveChipCycle, palette: any Palette,
-        width: Int, alignment: HorizontalAlignment
+        width: Int, alignment: HorizontalAlignment, legibility: LegibilityWeight?
     ) -> (
         lines: [String], regions: [(x: Int, y: Int, width: Int, height: Int, index: Int)],
         animatedCells: [AnimatedCellRun], claims: [OpacityRegion]
@@ -46,7 +46,8 @@ extension _TabViewCore {
             var row = ClaimingRow()
             row.append("▐", cells: 1, ink: background)
             row.append(contentsOf: tabLabelBody(
-                index, background: background, foreground: foreground, active: active, palette: palette))
+                index, background: background, foreground: foreground, active: active, palette: palette,
+                legibility: legibility))
             row.append("▌", cells: 1, ink: background)
             return row
         }
@@ -101,6 +102,8 @@ extension _TabViewCore {
         let interior: Int
         let boxWidth: Int
         let alignment: HorizontalAlignment
+        /// `\.legibilityWeight`, which draws the tabs' labels a tier heavier.
+        let legibility: LegibilityWeight?
     }
 
     /// Draws the folder-tab strip: per row, a line of tab tops and a line of
@@ -132,7 +135,7 @@ extension _TabViewCore {
         func drawLabel(_ index: Int, background: Color, foreground: Color, active: Bool) -> ClaimingRow {
             tabLabelBody(
                 index, background: background, foreground: foreground, active: active,
-                palette: style.palette)
+                palette: style.palette, legibility: style.legibility)
         }
 
         var lines: [ClaimingRow] = []
@@ -238,18 +241,24 @@ extension _TabViewCore {
     /// A tab with no badge is the one ` title ` run it always was, so its bytes
     /// do not change with the badge's arrival.
     func tabLabelBody(
-        _ index: Int, background: Color, foreground: Color, active: Bool, palette: any Palette
+        _ index: Int, background: Color, foreground: Color, active: Bool, palette: any Palette,
+        legibility: LegibilityWeight?
     ) -> ClaimingRow {
         var row = ClaimingRow()
         let badge = tabs[index].badgeSuffix
+        // The title and the badge are text: a tier heavier under a bold
+        // legibility weight, the active title bold either way.
+        let bold = legibility.applied(bold: active, faint: false).bold
         guard !badge.isEmpty else {
             let title = " \(tabs[index].title) "
-            row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: active)
+            row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: bold)
             return row
         }
         let title = " \(tabs[index].title)"
-        row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: active)
-        row.append(badge, cells: badge.strippedLength, ink: palette.foregroundTertiary, field: background)
+        row.append(title, cells: title.strippedLength, ink: foreground, field: background, bold: bold)
+        row.append(
+            badge, cells: badge.strippedLength, ink: palette.foregroundTertiary, field: background,
+            bold: legibility.drawsPlainBold)
         row.append(" ", cells: 1, ink: foreground, field: background)
         return row
     }

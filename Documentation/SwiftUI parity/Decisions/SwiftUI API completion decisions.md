@@ -880,6 +880,27 @@ is a reason to prefer the per-site rule.
 
 **Owner, 2026-10-12 (second message):** yes, make it writable. Lane owed (the helper, the A/B).
 
+**Shipped 2026-10-13, the per-site rule.** `\.legibilityWeight` is settable,
+`nil` by default. One helper, `LegibilityWeight?.applied(bold:faint:)`, steps a
+weight a tier up under `.bold` — faint → plain, plain → bold, bold stays — and
+every site that draws text uses it: `Text` (after a secondary scale's step down,
+before redaction's dim), and each control that draws its own text rather than a
+`Text` — a field's contents, prompt and caret cell (`TextField`, `SecureField`,
+the vertical field, `TextEditor`), a button style's string label, a picker's
+closed label, the stepper's and slider's read-outs, both date pickers, a tab's
+title and badge, a navigation crumb, a list row's badge, a table's cells and its
+reorder preview, the status bar's labels and help, a tooltip, a notification, a
+spinner's label, the 256-colour grid's numbers. A site whose lines are all text
+wraps them in `ANSIRenderer.applyPersistentBold` (with `AnimatedCellRun.drawnBold`
+for frames the run loop paints itself); one that mixes text with chrome passes
+the weight to the text's own run. Borders, caps, arrows, indicators, swatches,
+images and rules are not text and are never stepped, which is why the per-site
+rule was chosen over a rewrite of a subtree's buffer. A faint that means
+something other than a weight (disabled, `.dimmed()`, `.invalidated`) is not
+stepped. Tests: `LegibilityWeightTests`, `LegibilityWeightControlTests`,
+`LegibilityWeightChromeTests`. Cost where no weight is set: one environment
+read per `Text` and per control that draws its own text; the A/B is owed.
+
 **Asked 2026-10-12: confirm that it should become writable.** You asked
 whether this was already decided. Not in so many words: on 2026-10-04 you
 said it did not seem hard to support, asked whether the built-in views should

@@ -408,7 +408,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
             surface: chrome.surface,
             contentForeground: cascaded.foreground,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
-            appearsActive: context.environment.appearsActive
+            appearsActive: context.environment.appearsActive,
+            legibilityWeight: context.environment.legibilityWeight
         )
 
         let fieldContent = renderer.buildContent(

@@ -557,8 +557,10 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
             // A whitespace-only label is honoured, not dropped: it is an explicit
             // request for trailing space (e.g. the no-break-space padding labels
             // some apps use for alignment — U+00A0 satisfies `isWhitespace`).
+            // The label is text: a tier heavier under a bold legibility weight.
             let styledLabel = ANSIRenderer.colorize(
-                label, foreground: palette.foreground.opaqueSpelling)
+                label, foreground: palette.foreground.opaqueSpelling,
+                bold: context.environment.legibilityWeight.drawsPlainBold)
             output = coloredSpinner + " " + styledLabel
             labelColumns = (coloredSpinner.strippedLength + 1, styledLabel.strippedLength)
         } else {

@@ -410,7 +410,12 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             ?? renderRows(
                 displayLines, handler: handler, width: contentWidth, height: height,
                 tabWidth: tabWidth, caret: caret, styling: styling)
-        var output = rows.lines
+        // Under a bold legibility weight the text is a tier heavier, as a
+        // field's is (`TextFieldContentRenderer.weighted(_:)`): the rows and
+        // the caret's frames, before the bar, which is not text, joins them.
+        let drawsBold = context.environment.legibilityWeight.drawsPlainBold
+        var output = drawsBold ? rows.lines.map(ANSIRenderer.applyPersistentBold) : rows.lines
+        let caretRun = drawsBold ? rows.caret?.drawnBold() : rows.caret
 
         var bar: (runs: [AnimatedCellRun], claims: [OpacityRegion]) = ([], [])
         if window.hasVerticalOverflow {
@@ -433,7 +438,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         // a clock — over whatever took their place.
         if !context.isMeasuring {
             buffer.animatedCells += bar.runs
-            if let caretRun = rows.caret { buffer.animatedCells.append(caretRun) }
+            if let caretRun { buffer.animatedCells.append(caretRun) }
         }
         registerMouse(
             context: context, buffer: &buffer, handler: handler,

@@ -133,6 +133,10 @@ private struct LuminanceReducedKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct LegibilityWeightKey: EnvironmentKey {
+    static let defaultValue: LegibilityWeight? = nil
+}
+
 // MARK: - The values
 
 extension EnvironmentValues {
@@ -210,13 +214,24 @@ extension EnvironmentValues {
     /// a compile error instead.
     public var layoutDirection: LayoutDirection { .leftToRight }
 
-    /// The weight the user has asked text to be drawn at: always `nil`, meaning
-    /// no preference — macOS's answer under the default setting.
+    /// The weight the user has asked text to be drawn at: `nil` unless
+    /// something sets it, meaning no preference — macOS's answer under the
+    /// default setting, and a terminal reports none.
     ///
-    /// Read-only, where SwiftUI's is settable: SwiftUI draws all of its text a
-    /// weight heavier under ``LegibilityWeight/bold``, control labels included,
-    /// and TUIkit does not yet, so a write would be accepted and ignored.
-    public var legibilityWeight: LegibilityWeight? { nil }
+    /// Under ``LegibilityWeight/bold`` every piece of text TUIkit draws is a
+    /// tier heavier — faint draws plain, plain draws bold, bold stays bold —
+    /// as SwiftUI draws all of its text a weight heavier, control labels
+    /// included (measured: light → regular, regular → bold, bold stays). A
+    /// terminal has three weights where a font has nine, so the step is one
+    /// of those. What faint means other than a weight — a disabled control,
+    /// ``View/dimmed()``, a redacted `.invalidated` figure — is not a weight,
+    /// and stays faint; nor does anything that is not text, a border or a
+    /// bar, get heavier. Some terminals draw bold as a brighter colour (the
+    /// terminal compatibility survey), which the heavier text inherits.
+    public var legibilityWeight: LegibilityWeight? {
+        get { self[LegibilityWeightKey.self] }
+        set { self[LegibilityWeightKey.self] = newValue }
+    }
 
     /// Whether this device can present a remote immersive space: `false`.
     /// Read-only, as in SwiftUI.

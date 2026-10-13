@@ -62,7 +62,8 @@ private struct _NavigationCrumbLabel: View, Renderable, Layoutable {
         let isFocused = configuration.isFocused && configuration.isEnabled
 
         var style = TextStyle()
-        style.isBold = isFocused
+        // A tier heavier under a bold legibility weight, as every label is.
+        style.isBold = context.environment.legibilityWeight.applied(bold: isFocused, faint: false).bold
         // Focus and hover are the same claim on the same cells, so they cannot
         // both draw: focus is the more emphatic of the two, and a pointer
         // resting on the crumb it already focused should not freeze the breath.

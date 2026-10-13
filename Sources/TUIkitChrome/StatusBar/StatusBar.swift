@@ -334,7 +334,8 @@ private struct _StatusBarCore: View, Renderable {
                 escapeOverride: escapeOverride,
                 keyNotation: keyNotation,
                 activationOverride: activationOverride,
-                isHovered: item.id == hoveredID && itemIsClickable(item)
+                isHovered: item.id == hoveredID && itemIsClickable(item),
+                legibility: context.environment.legibilityWeight
             )
             return ItemLayout(
                 item: item,
@@ -436,8 +437,9 @@ private struct _StatusBarCore: View, Renderable {
         // Opaque in the bytes. The slot's own alpha is claimed over these rows by
         // `finished(buffer:…)`, the one place that knows where they sit.
         let colour = context.environment.palette.foregroundSecondary.opaqueSpelling
+        let bold = context.environment.legibilityWeight.drawsPlainBold
         return tooltipLines.map {
-            ANSIRenderer.colorize($0.padToVisibleWidth(width), foreground: colour)
+            ANSIRenderer.colorize($0.padToVisibleWidth(width), foreground: colour, bold: bold)
         }
     }
 
@@ -502,7 +504,8 @@ private struct _StatusBarCore: View, Renderable {
         escapeOverride: String?,
         keyNotation: KeyNotation,
         activationOverride: String?,
-        isHovered: Bool
+        isHovered: Bool,
+        legibility: LegibilityWeight?
     ) -> String {
         let shortcutStyled = ANSIRenderer.render(
             keyNotation.spelling(item.shortcut),
@@ -533,6 +536,9 @@ private struct _StatusBarCore: View, Renderable {
                 var textStyle = TextStyle()
                 textStyle.foregroundColor = colours.label.opaqueSpelling
                 textStyle.isUnderlined = isHovered
+                // A tier heavier under a bold legibility weight; the shortcut
+                // is bold already, and stays so.
+                textStyle.isBold = legibility.drawsPlainBold
                 return textStyle
             }()
         )

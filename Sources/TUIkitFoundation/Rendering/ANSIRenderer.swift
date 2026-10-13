@@ -33,6 +33,9 @@ package enum ANSIRenderer {
     /// Dim/faint text style code.
     static let dim = "\(csi)2m"
 
+    /// Bold text style code.
+    static let bold = "\(csi)1m"
+
     // MARK: - SGR Style Codes
 
     /// Named constants for ANSI SGR (Select Graphic Rendition) attribute codes.
@@ -216,6 +219,21 @@ extension ANSIRenderer {
     /// - Returns: The string with persistent dim applied.
     package static func applyPersistentDim(_ string: String) -> String {
         wrapping(string, restoring: dim, opening: dim, padding: 0, closing: reset) ?? string
+    }
+
+    /// Wraps a string in bold (SGR 1) that persists across ANSI resets: the
+    /// bold twin of ``applyPersistentDim(_:)``, for the same reason.
+    ///
+    /// What a control that draws its own text — a field's contents, a status
+    /// bar's items — does with that text under ``LegibilityWeight/bold``
+    /// (`\.legibilityWeight`): its lines of TEXT, never its chrome, so a border
+    /// or a bar beside them is not drawn heavier. A run inside that was faint
+    /// as a weight should be stepped where it is drawn instead; this only adds.
+    ///
+    /// - Parameter string: The text to draw bold.
+    /// - Returns: The string with persistent bold applied.
+    package static func applyPersistentBold(_ string: String) -> String {
+        wrapping(string, restoring: bold, opening: bold, padding: 0, closing: reset) ?? string
     }
 
     /// Wraps a string in reverse video (SGR 7) over a stated pair, restated after

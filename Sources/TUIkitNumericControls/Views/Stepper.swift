@@ -541,6 +541,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
             emphasis: cycle,
             valueStyle: context.environment.styleCascade.resolve(
                 for: [.all, .text, .control(.stepper)]),
+            legibilityWeight: context.environment.legibilityWeight,
             isDisabled: isDisabled
         )
 
@@ -812,6 +813,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         palette: any Palette,
         emphasis: SelectionEmphasisCycle,
         valueStyle: StyleAttributes,
+        legibilityWeight: LegibilityWeight?,
         isDisabled: Bool
     ) -> (content: String, valueClaim: OpacityRegion?) {
         // Arrow and value colors:
@@ -860,7 +862,8 @@ private struct _StepperCore: View, Renderable, Layoutable {
         let valueText = ANSIRenderer.colorize(
             " \(shown) ",
             foreground: effectiveValueColor.opaqueSpelling,
-            bold: !isDisabled && (valueStyle.bold ?? false),
+            // A tier heavier under a bold legibility weight: the read-out is text.
+            bold: legibilityWeight.applied(bold: !isDisabled && (valueStyle.bold ?? false), faint: false).bold,
             underline: !isDisabled && (valueStyle.underline ?? false))
 
         // Pulsing arrows indicate focus - no extra markers needed

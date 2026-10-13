@@ -218,6 +218,7 @@ struct _SliderCore: View, Renderable, Layoutable {
             trackWidth: trackWidth,
             valueStyle: context.environment.styleCascade.resolve(
                 for: [.all, .text, .control(.slider)]),
+            legibilityWeight: context.environment.legibilityWeight,
             isDisabled: isDisabled,
             showsValue: showsValue,
             fillScaling: context.environment.trackFillGradientScaling,
@@ -627,6 +628,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         indicator: SelectionEmphasisCycle,
         trackWidth: Int,
         valueStyle: StyleAttributes,
+        legibilityWeight: LegibilityWeight?,
         isDisabled: Bool,
         showsValue: Bool,
         fillScaling: TrackGradientScaling,
@@ -720,7 +722,8 @@ struct _SliderCore: View, Renderable, Layoutable {
         let valueLabel = ANSIRenderer.colorize(
             valueDisplay,
             foreground: valueLabelColor.opaqueSpelling,
-            bold: !isDisabled && (valueStyle.bold ?? false),
+            // A tier heavier under a bold legibility weight: the read-out is text.
+            bold: legibilityWeight.applied(bold: !isDisabled && (valueStyle.bold ?? false), faint: false).bold,
             underline: !isDisabled && (valueStyle.underline ?? false)) + padding
 
         // What the track came back as, in CELLS — which is not always the

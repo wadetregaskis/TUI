@@ -532,7 +532,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   ignored is what rule 2 forbids.
 - **Decided:** [B1](<Decisions/SwiftUI API completion decisions.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<Decisions/SwiftUI API completion decisions.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
   owner still wants right-to-left, out of scope for now). `\.legibilityWeight`
-  was the third such value; it is [slated to change](#slated-to-change).
+  was a third, and is settable and honoured since 2026-10-13 ([B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-read-only-always-nil>)).
 
 ### E2. Reduce motion holds TUIkit's own spatial animations still
 
@@ -1476,7 +1476,6 @@ on. Each waits on the work, or on the ruling, its State names.
 
 | Difference | Where | State |
 |---|---|---|
-| `\.legibilityWeight` is read-only `nil`; SwiftUI's `.bold` draws text a weight heavier (measured) | [B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-read-only-always-nil>) | Owner 2026-10-12: make it writable; lane owed, with an A/B |
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable, and only `.viewAligned` reads them (the size classes). On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tuikit-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults |
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |

@@ -2809,6 +2809,16 @@ is not bold, and on the hosts that treat bold as a weight the twin is a step
 wherever the profile paints it differently from its slot. Inferred from the
 table above; not measured on a hovered control.
 
+**Under a bold legibility weight (2026-10-13).** `\.legibilityWeight == .bold`
+draws every piece of text bold (decisions B2), and only text: never a border, a
+bar, a glyph or a picture, so the rule above about decorative bold still holds
+for all of those. It is not decoration — it is the weight the app asked for —
+so a label drawn in one of the sixteen named colours is painted in its bright
+twin on a host that brightens bold (iTerm2 by default), and a hover's lift on it
+shows no change there, as for a focused button's label above. Colours stated as
+`38;2` or `38;5;n ≥ 16` keep their colour. Inferred from the table; not measured
+under the setting.
+
 ### Reverse video (SGR 7) — cursor behaviour measured 2026-09-14; paint measured 2026-09-19
 
 **Status:**

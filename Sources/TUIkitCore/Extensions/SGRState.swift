@@ -598,6 +598,9 @@ public struct SGRState: Sendable, Equatable {
     /// Whether bold (SGR 1) is in force.
     package var isBold: Bool { attributes & Self.bit(1) != 0 }
 
+    /// Whether faint (SGR 2) is in force.
+    package var isFaint: Bool { attributes & Self.bit(2) != 0 }
+
     /// Whether an attribute in force draws in the foreground colour on a blank
     /// cell — underline, blink, strike — so the foreground is visible there.
     package var paintsInkOnBlankCell: Bool {

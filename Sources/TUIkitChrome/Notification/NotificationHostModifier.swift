@@ -111,7 +111,12 @@ extension NotificationHostModifier: Renderable {
             let wrappedLines = NotificationTiming.wordWrap(entry.message, maxWidth: textWidth)
             var contentLines: [String] = []
             for line in wrappedLines {
-                let styledLine = pad + ANSIRenderer.colorize(line, foreground: fgColor)
+                // A tier heavier under a bold legibility weight: the message is text.
+                let styledLine =
+                    pad
+                    + ANSIRenderer.colorize(
+                        line, foreground: fgColor,
+                        bold: context.environment.legibilityWeight.drawsPlainBold)
                 contentLines.append(styledLine.padToVisibleWidth(innerWidth))
             }
 

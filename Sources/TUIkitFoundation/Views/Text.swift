@@ -807,6 +807,15 @@ extension Text: Renderable, Layoutable {
                 result.isDim = true
             }
         }
+        // A legibility weight steps the resolved WEIGHT a tier up — after the
+        // scale, so text under `.bold` is a tier heavier than it would be
+        // whatever its scale, and before redaction's dim, which is not a
+        // weight. Only a weight that changes is written back: an unstated
+        // flag stays unstated.
+        let weight = context.environment.legibilityWeight.applied(
+            bold: result.isBold == true, faint: result.isDim == true)
+        if weight.bold != (result.isBold == true) { result.isBold = weight.bold }
+        if weight.faint != (result.isDim == true) { result.isDim = weight.faint }
         // Redaction is the system speaking, not a style: `.invalidated` says the
         // content is STALE, not absent — so it is shown and dimmed rather than
         // replaced with a skeleton, even where the text asked not to be dimmed.

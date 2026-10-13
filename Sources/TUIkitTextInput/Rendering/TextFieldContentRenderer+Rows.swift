@@ -66,7 +66,8 @@ extension TextFieldContentRenderer {
     ) -> [FieldContent] {
         let layout = rows.layout
         let caretRow = isFocused ? layout.row(of: rows.caret, affinity: rows.affinity) : nil
-        return (rows.firstRow..<(rows.firstRow + rows.count)).map { index in
+
+        func unweighted(_ index: Int) -> FieldContent {
             guard index < layout.rows.count else {
                 return buildTextContent(text: "", palette: palette, background: surface, width: rows.width)
             }
@@ -93,6 +94,9 @@ extension TextFieldContentRenderer {
                 palette: palette, cursorStyle: cursorStyle, cursorTimer: cursorTimer,
                 cursorTiming: cursorTiming, background: surface, width: rows.width)
         }
+
+        // Each row weighted as a single-line field's content is (`weighted(_:)`).
+        return (rows.firstRow..<(rows.firstRow + rows.count)).map { index in weighted(unweighted(index)) }
     }
 
     /// The caret's offset within `row`, moved back until it is drawn inside the

@@ -328,6 +328,7 @@ struct _Color256GridCore: View, Renderable {
         let (lines, cells) = Self.renderGrid(
             cursor: handler.cursor, indicator: indicator,
             cellWidth: cellWidth, showNumbers: showNumbers,
+            numbersBold: context.environment.legibilityWeight.drawsPlainBold,
             palette: context.environment.palette, arrangement: arrangement)
         handler.placements = cells
 
@@ -443,7 +444,7 @@ struct _Color256GridCore: View, Renderable {
     /// ``View/selectionIndicatorStyle(_:)``.
     static func renderGrid(
         cursor: Int, indicator: SelectionEmphasis, cellWidth: Int, showNumbers: Bool,
-        palette: any Palette,
+        numbersBold: Bool = false, palette: any Palette,
         arrangement: Palette256Layout.Arrangement = Palette256Layout.preferred
     ) -> (lines: [String], cells: [Palette256Layout.Cell]) {
         let rows = Palette256Layout.rows(arrangement)
@@ -469,7 +470,7 @@ struct _Color256GridCore: View, Renderable {
                     line += cellText(
                         index: index, cellWidth: cellWidth,
                         mark: index == cursor ? cursorMark : nil, showNumbers: showNumbers,
-                        palette: palette)
+                        numbersBold: numbersBold, palette: palette)
                     cells.append(Palette256Layout.Cell(index: index, x: x, y: y, width: cellWidth))
                 } else {
                     line += String(repeating: " ", count: cellWidth)  // gap
@@ -509,7 +510,7 @@ struct _Color256GridCore: View, Renderable {
     /// cannot disagree.
     static func cellText(
         index: Int, cellWidth: Int, mark: (color: Color, isBold: Bool)?, showNumbers: Bool,
-        palette: any Palette
+        numbersBold: Bool = false, palette: any Palette
     ) -> String {
         let color = Color.palette256(UInt8(index))
         let foreground = ContrastingLabel.on(color, palette: palette)
@@ -523,7 +524,9 @@ struct _Color256GridCore: View, Renderable {
                 foreground: mark.color, background: color, bold: mark.isBold)
         }
         if showNumbers {
-            return ANSIRenderer.colorize(centred(String(index), in: cellWidth), foreground: foreground, background: color)
+            // The index is text: `numbersBold` under a bold legibility weight.
+            return ANSIRenderer.colorize(
+                centred(String(index), in: cellWidth), foreground: foreground, background: color, bold: numbersBold)
         }
         return ANSIRenderer.colorize(String(repeating: " ", count: cellWidth), background: color)
     }
