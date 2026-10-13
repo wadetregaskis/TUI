@@ -2,11 +2,10 @@
 //  DynamicPropertyObjectTests.swift
 //
 //  What the property walk does with what a class property holds: its
-//  `@State`, `@Environment` and nested properties belong to one view, the
-//  first drawn in each render pass that reaches the object, its state going
-//  with it from view to view, so views sharing one object share one state,
-//  and an object made anew with each view value keeps its state
-//  (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
+//  `@State` is the object's own, so views sharing one object share one
+//  state, whichever of them draws it, and an object made anew with each view
+//  value keeps its view's state; its `@Environment` is resolved by the first
+//  view drawn holding it (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
 //  class (measured on macOS 15.8.1, SwiftUI 6.5.4:
 //  `Tools/SwiftUIProbes/Dynamic property discovery/op.out`, case vii-f); the walk did, per view, so one view's
 //  writes landed in another's state (DYNV bugs 3 and 4, session notes
@@ -155,7 +154,7 @@ private struct WeakCounterView: View {
     }
 }
 
-// MARK: - Claims across render passes
+// MARK: - Holders across render passes
 
 /// A class app property holding a draft's text, shared by the two
 /// candidates of a `ViewThatFits`.
@@ -340,10 +339,10 @@ struct DynamicPropertyObjectTests {
     /// in view b's state and not in a's (drawn `["a 0", "b 5"]`). SwiftUI
     /// installs no property inside a class (op.out, case vii-f: the binding
     /// is a constant, with a run-time warning), so the write changes
-    /// nothing. TUIkit keeps binding what an object holds, by one view, the
-    /// first drawn that reaches it: one object, one state, which
-    /// both views read and write. What passes: a sees its own write, or b is
-    /// untouched (a constant binding, as in SwiftUI).
+    /// nothing. TUIkit binds what an object holds as the object's own: one
+    /// object, one state, which both views read and write. What passes: a
+    /// sees its own write, or b is untouched (a constant binding, as in
+    /// SwiftUI).
     @Test("A write through one view's binding to a class property's @State never lands only in another view")
     func sharedObjectStateWrite() {
         let context = makeRenderContext(width: 20, height: 2)
@@ -373,8 +372,8 @@ struct DynamicPropertyObjectTests {
     /// the instance's one box for each view in turn, so a closure made in
     /// view a's body read view b's environment. SwiftUI does not resolve it
     /// at all (op.out, case vii-f), so the closure reads the default. TUIkit
-    /// resolves it to the environment of its claimant, the first view drawn
-    /// that reaches it.
+    /// resolves it to the environment of its primary holder, the first view
+    /// drawn that reaches it.
     @Test("A class property's @Environment read in a view's closure is never another view's environment")
     func sharedObjectEnvironmentInClosure() {
         let context = makeRenderContext(width: 20, height: 2)
@@ -386,16 +385,20 @@ struct DynamicPropertyObjectTests {
 
     /// A class property made anew with each value of the one view that holds
     /// it keeps its `@State` from frame to frame and reads its view's
-    /// environment: what holds it is bound to that view's key, as before
-    /// (session notes DYNV2/notes.md §4.11; SwiftUI installs neither).
+    /// environment: made in the pass that walks it, its `@State` is its
+    /// place's, as a view value's is, and the next value's object takes it
+    /// (session notes DYNV2/notes.md §4.11; SwiftUI installs neither). Drawn
+    /// in frames, as the run loop draws them: what tells such an object from
+    /// one made before is the pass its `@State` was made in.
     @Test("A class property made anew with each view value keeps its @State and reads its view's environment")
     func perValueObjectKeepsState() {
-        let context = makeRenderContext(width: 30, height: 1)
+        let tui = TUIContext()
         let taps = Taps()
         let view = { PagerView(taps: taps).environment(\.discoveryAccent, "red") }
-        #expect(lines(view(), context: context) == ["page 0 red"])
+        #expect(frame(view(), tui, width: 30, height: 1) == ["page 0 red"])
         taps.bindings["page"]?.wrappedValue = 5
-        #expect(lines(view(), context: context) == ["page 5 red"])
+        #expect(frame(view(), tui, width: 30, height: 1) == ["page 5 red"])
+        #expect(frame(view(), tui, width: 30, height: 1) == ["page 5 red"])
     }
 
     /// An `@Environment(Model.self)` inside a class property is resolved,
@@ -423,10 +426,10 @@ struct DynamicPropertyObjectTests {
     /// reach the object, and a measure is a walk: the wide candidate, measured
     /// and never drawn, took it, bound the draft to its own key, and that key
     /// was pruned at the end of every pass, so what the narrow candidate's
-    /// field wrote was gone by the next frame. A measure's claim is now only
-    /// provisional: the candidate drawn takes it, and keeps it.
+    /// field wrote was gone by the next frame. The draft's `@State` is its
+    /// own now, which no view's key holds, and a measure makes nothing for it.
     @Test("A class property shared by a measured candidate and the drawn one keeps what the drawn one writes")
-    func measuredHolderDoesNotKeepTheClaim() {
+    func measureOnlyHolderLeavesTheDrawnOnesState() {
         let tui = TUIContext()
         let taps = Taps()
         let draft = Draft()
@@ -439,12 +442,11 @@ struct DynamicPropertyObjectTests {
     /// The first view to reach the object was a memoised one; on a frame
     /// that served it from the memo, its walk did not run, and the next
     /// holder took a claim that lasted only the pass: the object's `@State`
-    /// was bound to that holder's key, and it drew its own default. The next
-    /// holder drawn still takes the claim, as the claimant is not drawn in
-    /// that pass, but the object's `@State` now goes with the claim, so the
-    /// new claimant draws what the first holder wrote.
-    @Test("A class property's first holder served from the memo hands the claim, and the object's @State, to the next holder")
-    func memoServedClaimantHandsTheStateToTheNextHolder() {
+    /// was bound to that holder's key, and it drew its own default. The
+    /// object's `@State` is its own now: the holder drawn reads it as the
+    /// memo-served one left it.
+    @Test("A class property's first holder served from the memo leaves the object's @State as it is for the next holder")
+    func memoServedHolderLeavesTheStateAsItIs() {
         let tui = TUIContext()
         let taps = Taps()
         let counter = SharedCounter()
@@ -459,8 +461,8 @@ struct DynamicPropertyObjectTests {
     /// candidate drawn read the wide one's state, and what it wrote before
     /// the next frame went into the wide one's box, dropped with it at that
     /// frame's end; the next frame showed the default (review of 5af4853ba,
-    /// 2026-10-12). The view drawn takes the claim in the pass it is drawn
-    /// in, and the object's state with it.
+    /// 2026-10-12). The object's state is its own, so whichever view is
+    /// drawn reads and writes it.
     @Test("A class property whose drawn holder changes on a resize keeps its @State and what the new holder writes")
     func holderChangeOnResizeKeepsTheState() {
         let tui = TUIContext()
@@ -476,10 +478,10 @@ struct DynamicPropertyObjectTests {
         #expect(frame(view(), tui) == ["narrow abcd"])
     }
 
-    /// The same when the claimant's row is removed: the row left drew the
-    /// removed row's state for a frame, and lost what it wrote then.
-    @Test("A class property whose claimant's row is removed keeps its @State in the row left")
-    func claimantRowRemovedKeepsTheState() {
+    /// The same when the first holder's row is removed: the row left drew
+    /// the removed row's state for a frame, and lost what it wrote then.
+    @Test("A class property whose first holder's row is removed keeps its @State in the row left")
+    func holderRowRemovedKeepsTheState() {
         let tui = TUIContext()
         let taps = Taps()
         let counter = SharedCounter()
@@ -514,9 +516,10 @@ struct DynamicPropertyObjectTests {
     /// A pass that walks the tree twice — a geometry reader's correction, the
     /// first frame's walk for the window chrome — walked an object's
     /// contents on its first walk only, so a closure made in the drawn walk
-    /// read the environment of the walk thrown away. The claimant walks them
-    /// on every walk of its own, and the last decides.
-    @Test("A class property's @Environment is the one of its claimant's last walk in a pass")
+    /// read the environment of the walk thrown away. The primary holder, the
+    /// first drawn, resolves them on every walk of its own, and the last
+    /// decides.
+    @Test("A class property's @Environment is the one of its primary holder's last walk in a pass")
     func lastWalkInAPassResolvesTheObject() {
         let tui = TUIContext()
         let taps = Taps()

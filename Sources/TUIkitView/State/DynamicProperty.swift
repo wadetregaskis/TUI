@@ -52,10 +52,13 @@
 /// reference; so it does in every enum's payload on WebAssembly and Windows,
 /// where the walk cannot reach a payload where it lies. A property held `unowned` is updated where it is (it is a
 /// class), and one held `weak` is not updated, as in SwiftUI (both measured
-/// on macOS 15). What a class property holds is bound, resolved and updated
-/// by one view, the first drawn in each render pass that reaches the object,
-/// its state going with it from view to view: one object has one state,
-/// whichever views show it.
+/// on macOS 15). What a class property holds is the object's: every view
+/// holding it binds its `@State` to the object's own state, so one object
+/// has one state whichever views show it, and a write to it redraws every
+/// view drawn holding it. An object made anew with each value of the view
+/// holding it keeps that view's state from frame to frame, as a view value's
+/// `@State` does. Its `@Environment` is the first view's drawn holding it.
+/// SwiftUI installs nothing inside a class (measured on macOS 15).
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.
     ///

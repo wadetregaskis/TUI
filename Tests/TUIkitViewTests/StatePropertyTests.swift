@@ -37,7 +37,7 @@ struct StatePropertyWrapperTests {
         _ = withUnsafeMutablePointer(to: &state) {
             State<String>.bindState(
                 at: UnsafeMutableRawPointer($0), to: storage,
-                key: StateStorage.StateKey(identity: identity, propertyIndex: 0), place: .value)
+                key: StateStorage.StateKey(identity: identity, propertyIndex: 0))
         }
 
         // Seed a cached buffer at the state's identity, then mutate it.

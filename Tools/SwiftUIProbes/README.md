@@ -92,6 +92,23 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
+### Class properties held by several views
+
+- **Asks:** what SwiftUI does with a class `DynamicProperty` holding a `@State`, a nested struct property with a
+  `@State`, an `@Environment` and an `update()` counter, when one object is held by several views at once, by a
+  view an `if`/`else` swaps, by `ViewThatFits` candidates, by `ForEach` rows one of which is removed, by a child of
+  a view keeping the object in its own `@State`, and made anew with each view value; and whether its
+  `@Environment(Model.self)` resolves (`cls.swift`, one case a process: `./cls two`, `swap`, `vtf`, `rows`, `held`,
+  `perValue`, `envModel`; `cls.out`). And SwiftUI's model of "the views that read an object are its dependents":
+  one `@Observable` shown by two views, one behind an `.equatable()` that always compares equal, written once
+  (`memo.swift`, `memo.out`). Answers: `update()` runs before each holder's body, measured-only candidates
+  included; `@State` inside the class is a constant and `@Environment` its default; an object made per view value
+  starts afresh; `@Environment(Model.self)` there traps; the write to the observable redraws both views.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-12; `cls.swift` against the macOS 15.5 SDK.
+- **Was:** `DYNVCLAIM/swiftui-first/` (`cls.swift`) and `DYNVCLAIM/object-owned/swiftui/` (`memo.swift`).
+- **Cited by:** `Sources/TUIkitView/State/PropertyWalk.swift`, `Sources/TUIkitView/State/PropertyWalk+Objects.swift`;
+  `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`.
+
 ### State keys in dynamic properties
 
 - **Asks:** what SwiftUI does with the `@State` inside an enum view's cases, an enum property's cases and a

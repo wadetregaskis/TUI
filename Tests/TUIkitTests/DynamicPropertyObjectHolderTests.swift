@@ -1,12 +1,12 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  DynamicPropertyObjectHolderTests.swift
 //
-//  A class property's `@State` is the object's: it goes with the object
-//  whichever view draws it, so the object's state survives a change of the
-//  view holding it (decisions-DYNVFIX B-DYNVFIX-3). The storage kept each box
-//  under its claimant's key, and dropped it with that key — the claimant's
-//  place pruned, an `if`/`else` flipped, its key given to another object's
-//  box — though the object still held it, with its value.
+//  A class property's `@State` is the object's own, which no view's key
+//  holds, so the object's state survives a change of the view holding it
+//  (decisions-DYNVFIX B-DYNVFIX-3). The storage kept each box under the key
+//  of the view that claimed the object, and dropped it with that key — the
+//  view's place pruned, an `if`/`else` flipped, its key given to another
+//  object's box — though the object still held it, with its value.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -147,7 +147,7 @@ private struct TwoItemRows: View {
     }
 }
 
-// MARK: - A property set on an object since its claimant walked it
+// MARK: - A property set on an object since its first holder walked it
 
 private struct HolderAccent: EnvironmentKey {
     static let defaultValue = "plain"
@@ -273,8 +273,8 @@ struct DynamicPropertyObjectHolderTests {
     /// dropped the first's, though the first item still held it. When the
     /// first row was next drawn, it bound the item afresh, at its default,
     /// and going back bound the first item to the second's box (review of
-    /// 8de82a920, 2026-10-12). An object's box is its own: the storage keeps
-    /// it again when the object is next claimed.
+    /// 8de82a920, 2026-10-12). An object's box is its own, which no view's
+    /// key holds.
     @Test("A detail view moving from one memo-served row's object to the next leaves the first object's @State as it was")
     func detailMovingBetweenRowsKeepsEachObjectsState() {
         let tui = TUIContext()
@@ -311,13 +311,13 @@ struct DynamicPropertyObjectHolderTests {
         #expect(frame(view(true), tui, height: 1) == ["editor abcd"])
     }
 
-    /// The row left was served from the memo in the pass its object's
-    /// claimant was removed, so it walked nothing and took no claim; the
-    /// claimant's state was dropped at the pass's end, and the row, next
+    /// The row left was served from the memo in the pass the object's first
+    /// holder was removed, so it walked nothing and took no claim; the first
+    /// holder's state was dropped at the pass's end, and the row, next
     /// drawn, bound the object afresh, at its default (review of 8de82a920).
     /// What the row's binding wrote in between was lost with it.
-    @Test("A class property whose claimant leaves while the other holder is served from the memo keeps its @State")
-    func claimantLeavingWhileTheOtherHolderIsMemoServedKeepsTheState() {
+    @Test("A class property whose first holder leaves while the other holder is served from the memo keeps its @State")
+    func holderLeavingWhileTheOtherIsMemoServedKeepsTheState() {
         let tui = TUIContext()
         let taps = HolderTaps()
         let item = Passed(object: Item())
@@ -334,14 +334,15 @@ struct DynamicPropertyObjectHolderTests {
         #expect(frame(view(false, 2), tui, height: 2).first == "b 7")
     }
 
-    /// A view measured before the claimant of the object it shows had walked
-    /// it in the pass read the object's contents as the claimant left them:
-    /// a property set on the object since had an `@Environment(Model.self)`
+    /// A view measured before the object's first holder had walked it in the
+    /// pass read the object's contents as the first holder left them: a
+    /// property set on the object since had an `@Environment(Model.self)`
     /// never handed an environment, and reading it trapped (review5 of
     /// DYNVFIX). Here the holder's identity changes as the property is set,
-    /// so the stack measures it at its new identity while the claim is the
-    /// old one's. An `@Environment` with none is handed the claimant's last.
-    /// In an exit test, so that the trap fails this test alone.
+    /// so the stack measures it at its new identity while the first holder
+    /// is the old one. Every holder walks the object before its body, and
+    /// hands an `@Environment` with none its own. In an exit test, so that
+    /// the trap fails this test alone.
     @Test("A view measured at a new identity reads an @Environment object in a property set on its object since")
     func holderMeasuredAtANewIdentityReadsTheModel() async {
         await #expect(processExitsWith: .success) {
@@ -358,9 +359,9 @@ struct DynamicPropertyObjectHolderTests {
     }
 
     /// The same for a second view showing the object, appearing above its
-    /// claimant as the property is set: the stack measures it first.
-    @Test("A view appearing above an object's claimant reads an @Environment object in a property set on it since")
-    func holderAppearingAboveTheClaimantReadsTheModel() async {
+    /// first holder as the property is set: the stack measures it first.
+    @Test("A view appearing above an object's first holder reads an @Environment object in a property set on it since")
+    func holderAppearingAboveTheFirstHolderReadsTheModel() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
                 let tests = DynamicPropertyObjectHolderTests()
@@ -375,9 +376,9 @@ struct DynamicPropertyObjectHolderTests {
 
     /// Without the trap: such a measure read the default for a key-path
     /// `@Environment`, so the view was measured under one environment and
-    /// drawn under another. It reads the claimant's.
-    @Test("A view measured before its object's claimant walks it reads the claimant's environment in a property set since")
-    func holderMeasuredBeforeTheClaimantReadsItsEnvironment() {
+    /// drawn under another. Under one environment, both holders read it.
+    @Test("A view measured before its object's first holder walks it reads the environment in a property set since")
+    func holderMeasuredBeforeTheFirstHolderReadsItsEnvironment() {
         let tui = TUIContext()
         let taps = HolderTaps()
         let screen = Passed(object: Screen())

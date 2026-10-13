@@ -83,6 +83,19 @@ package final class SlotPlan {
         if case .none = action { return true }
         return false
     }
+
+    /// Whether a value of the planned type may hold one of TUIkit's own
+    /// properties outside any object it holds: an enum's case and an
+    /// existential's value are known only from a value, so each may. What an
+    /// object in it holds is that object's, not counted here.
+    var mayInstall: Bool {
+        switch action {
+        case .leaf, .enumeration, .existential: true
+        case .fields(let fields): fields.mayInstall
+        case .optional(let optional): optional.wrapped.mayInstall
+        case .none, .object, .dynamicClass: false
+        }
+    }
 }
 
 /// One of TUIkit's own dynamic properties, as the walk handles it: each part
@@ -150,11 +163,25 @@ final class FieldsPlan {
     /// The type's own `update()`, run after its fields', if it is an app's
     /// property (not one of TUIkit's, whose `update()` does nothing).
     let updater: (any DynamicProperty.Type)?
+    /// Whether a value of the type may hold one of TUIkit's own properties
+    /// outside the objects it holds (``SlotPlan/mayInstall``): a class whose
+    /// contents may not holds nothing a view's walk installs, and the walk of
+    /// an object of it only runs the `update()`s in it.
+    let mayInstall: Bool
 
     init(type: Any.Type, steps: [Step], updater: (any DynamicProperty.Type)?) {
         self.type = type
         self.steps = steps
         self.updater = updater
+        // A loop, not `contains(where:)`: a closure handed to the standard
+        // library from here is checked, in a release build, to run on the
+        // main actor. A field held `weak` or `unowned` holds an object.
+        var mayInstall = false
+        for step in steps where step.reference == nil && step.slot.mayInstall {
+            mayInstall = true
+            break
+        }
+        self.mayInstall = mayInstall
     }
 }
 

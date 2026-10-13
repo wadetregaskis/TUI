@@ -75,7 +75,14 @@ enum NestedScope {
     /// the view's own properties, and the path with the scope after it for
     /// a nested one, so the two never meet.
     static func identityPath(of identity: ViewIdentity, in scope: UInt64) -> String {
-        scope == view ? identity.path : "\(identity.path)::\(String(scope, radix: 16))"
+        identityPath(ofPath: identity.path, in: scope)
+    }
+
+    /// ``identityPath(of:in:)`` for a property inside a class property's
+    /// object, whose ids are made from the object's `path`
+    /// (``ObjectHub/idPath``), its contents' scopes rooted at the object.
+    static func identityPath(ofPath path: String, in scope: UInt64) -> String {
+        scope == view ? path : "\(path)::\(String(scope, radix: 16))"
     }
 
     private static func step(_ parent: UInt64, _ first: UInt64, _ second: UInt64) -> UInt64 {

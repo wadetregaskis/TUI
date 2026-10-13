@@ -479,44 +479,34 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the API.
 - **Decided:** [B34](<Decisions/SwiftUI API completion decisions.md#b34-a-focused-value-reader-drawn-ahead-of-its-publisher-catches-up-a-frame-later>). **Lane.**
 
-### S6. What a class property holds is installed, by one view, the first drawn that reaches it
+### S6. What a class property holds is installed as the object's, and every view holding it is redrawn by its writes
 
 - **SwiftUI:** runs a class property's `update()`, but installs nothing inside
   it: an `@State` there is a constant binding of its initial value, and an
   `@Environment` reads its default, each with a run-time warning (measured
   2026-10-10: `Tools/SwiftUIProbes/Dynamic property discovery/op.out`, case vii-f).
 - **TUIkit:** installs what the object holds — held strongly, `unowned` or
-  `weak` — for one view at a time, its claimant: in each render pass, the
-  first view drawn whose walk reaches it, the object's state going with it
-  when that is another view
-  ([PropertyWalk.swift](../../Sources/TUIkitView/State/PropertyWalk.swift)): its
-  `@State` is bound to the claimant's key, its `@Environment` is the
-  claimant's, and its nested properties are updated in place. One object has
-  one state, so two views showing it read and write the same one, and an
-  object made anew with each value of the one view holding it keeps its state
-  from frame to frame. Every other holder reads what the claimant left: its
-  environment too.
+  `weak` — as the object's
+  ([PropertyWalk+Objects.swift](../../Sources/TUIkitView/State/PropertyWalk+Objects.swift)).
+  Its `@State` is the object's own, which no view's key holds: two views
+  showing one object read and write one state, no change of the views holding
+  it moves or drops it, and a write redraws every view drawn holding it, one
+  served from the memo included. An object made anew with each value of the
+  one view holding it keeps that view's state from frame to frame, as a view
+  value's `@State` does. Its ids are its own. Its `@Environment` is resolved by
+  the first view drawn holding it. Every holder walks it before its body, and
+  its own `update()` runs there, as SwiftUI's does.
 - **Why:** the owner's ruling (2026-10-12) keeps what TUIkit supported: a
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
   state and read another's environment in its closures (DYNV bugs 3 and 4).
-- **Open:** a redesign of the claim is in progress (lane DYNVCLAIM). Until it
-  lands, a holder served from the value memo is not redrawn by a write to the
-  object's `@State` once the claim has moved to another holder, so it shows
-  the old value until something else redraws it. A class property never bound
-  before can take another live object's `@State` box at its holder's key, so
-  two objects share one state; the box then moves between their keys on every
-  walk, a scan of the state table each time, and a write redraws whichever
-  holder walked last. `@State` inside an enum's case inside the object is
-  lost, or shared, when its holder moves between objects. An
-  environment-scoped action read through the object, such as `dismiss`, acts
-  for the claimant, so a sheet sharing its page's object and calling it calls
-  the page's, and stays open. A measure can take a provisional claim, binding
-  the object's `@State` and resolving its `@Environment`, so for a class
-  property a measure does change state. And the walk pays a scan of the state
-  table whenever a box changes keys, and a weak reference, a side table, every
-  body for an object made anew per view value that holds nothing.
-- **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it>). **Lane.**
+- **Left:** an environment-scoped action read through the object, such as
+  `dismiss`, acts for the first view drawn holding it, so a sheet sharing its
+  page's object and calling the object's `dismiss` calls the page's, and stays
+  open; read it in the view instead. And the `@State` in an enum's case inside
+  a long-lived object is the case's payload's: setting the case anew starts it
+  at its defaults, and a payload kept and put back brings its state back.
+- **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-and-an-object-made-with-a-view-value-keeps-its-views-state>). **Lane.**
 
 ---
 
@@ -1493,4 +1483,4 @@ on. Each waits on the work, or on the ruling, its State names.
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
-| A class property's claim (S6): a memo-served holder misses a write once the claim moves, two live objects can share one `@State`, `@State` in an enum case in the object is lost or shared, an environment-scoped action read through the object acts for the claimant, and a measure can claim | [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it>) | Known; redesign in progress (DYNVCLAIM) |
+| A class property (S6): a closure made in a view other than the first drawn holding the object reads the first one's environment (a sheet's Done calling its page's `dismiss`); the `@State` in an enum case in a long-lived object follows the case's payload | [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-and-an-object-made-with-a-view-value-keeps-its-views-state>) | Known; the fuller version priced |

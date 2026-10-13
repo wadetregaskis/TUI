@@ -98,8 +98,10 @@ extension PropertyWalk {
     mutating func applyCase(
         label: String, scope: UInt64, _ body: (inout Self, UInt64) -> Void
     ) {
+        // Inside an object, at the view's key: the record of an object made
+        // with a view value is its place's (``keyScope(_:)``).
         let recordKey = StateStorage.StateKey(
-            identity: identity, propertyIndex: StateStorage.StateKey.enumCaseIndex, scope: scope)
+            identity: identity, propertyIndex: StateStorage.StateKey.enumCaseIndex, scope: keyScope(scope))
         let record = storage?.enumCaseRecord(at: recordKey)
         if let record, record.label != label {
             storage?.removeValues(forKeys: record.keys)

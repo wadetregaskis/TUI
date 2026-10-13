@@ -69,6 +69,7 @@ public final class StateStorage: @unchecked Sendable {
     /// | -110… | `_ContentTransitionView` (`contentTransition(_:)`, a tracked value) |
     /// | -120… | `GestureAttachment` (`gesture(_:including:)` and its siblings) |
     /// | -130… | the property walk's record of an enum's case (`enumCaseIndex`) |
+    /// | -140… | the property walk's record of a view holding an object (`objectHolderIndex`) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with
@@ -118,6 +119,12 @@ public final class StateStorage: @unchecked Sendable {
         /// above, because a view that is itself an enum keeps its record in
         /// its own scope, `0`.
         package static let enumCaseIndex = -130
+
+        /// Where the property walk records that a view drawn holds an object
+        /// in a field, at the field's scope (``HolderToken``). From the table
+        /// above: kept at the view's own identity, so it lives exactly as long
+        /// as the view's own state.
+        package static let objectHolderIndex = -140
 
         /// The fields folded into one word before `Hasher` sees any — see
         /// ``mixHashWord(_:_:)``, and ``RenderCache/MeasureKey`` for why a
@@ -224,11 +231,19 @@ public final class StateStorage: @unchecked Sendable {
     /// has already been pruned does nothing.
     private var conditionalRecordsAfterSweep = 0
 
-    /// The view each class property's contents belong to, by object
-    /// (``claimObjectContents(_:for:environment:isMeasuring:)``), each object
-    /// held weakly, so a new object at a freed one's address is not taken for
-    /// it.
-    var objectClaims: [ObjectIdentifier: ObjectClaim] = [:]
+    /// The hub of each object a render walk has reached in a property field
+    /// (``ObjectHub``), by object: each holds its object weakly, so a new
+    /// object at a freed one's address is not taken for it. Swept of dead
+    /// objects' hubs at the end of a pass once it has doubled since the last
+    /// sweep (``objectHubsAfterSweep``).
+    var objectHubs: [ObjectIdentifier: ObjectHub] = [:]
+
+    /// How many hubs the last sweep of ``objectHubs`` kept.
+    var objectHubsAfterSweep = 0
+
+    /// How many objects have been given ids of their own
+    /// (``ObjectHub/idPath``): a count per storage, not a global.
+    var objectIDs = 0
 
     /// What each animating value in the tree is doing.
     ///
@@ -250,10 +265,6 @@ public final class StateStorage: @unchecked Sendable {
     /// The `@Environment` boxes a view value drawn this pass held resolved
     /// for another place (``noteDisplacedEnvironment(_:from:)``), by box.
     private var displacedEnvironments: [ObjectIdentifier: DisplacedEnvironment] = [:]
-
-    /// The render pass under way, counted by ``beginRenderPass()``: the pass
-    /// an object's claimant was last drawn in (``ObjectClaim/drawnPass``).
-    var renderPass = 0
 
     /// The render pass under way, or the last one: a serial from one count
     /// for the process (``renderPassSerials``), taken by
@@ -537,7 +548,6 @@ extension StateStorage {
 
     /// Begins a new render pass by clearing the active identity set.
     public func beginRenderPass() {
-        renderPass &+= 1
         currentPass = renderPassSerials.withLock { serial in
             // Wrapping, and skipping `0`: at sixty passes a second the count
             // goes round after two years and three months.
@@ -620,13 +630,13 @@ extension StateStorage {
             }
             displacedEnvironments.removeAll(keepingCapacity: true)
         }
-        // A claim lasts while its claimant's state does; one only a measure
-        // made goes with the pass.
-        if !objectClaims.isEmpty {
-            objectClaims = objectClaims.filter { _, claim in
-                claim.object != nil && claim.drawnPass != nil
-                    && (activeIdentities.contains(claim.claimant) || retained.retains(claim.claimant))
-            }
+        // A view that held an object and was neither drawn nor retained has
+        // had its `HolderToken` pruned above, and the object's hub forgot it.
+        // The hubs of objects that have gone go once enough have gathered:
+        // an object made with each value of a view brings a hub a pass.
+        if objectHubs.count > 2 * objectHubsAfterSweep + 64 {
+            objectHubs = objectHubs.filter { $0.value.object != nil }
+            objectHubsAfterSweep = objectHubs.count
         }
         // Drop branch records for conditionals no longer in the tree, once
         // enough have gathered (`conditionalRecordsAfterSweep`), so the table
@@ -661,9 +671,6 @@ extension StateStorage {
         for key in staleTrackedKeys {
             trackedValues.removeValue(forKey: key)
         }
-        if !objectClaims.isEmpty {
-            objectClaims = objectClaims.filter { !ancestor.isAncestor(of: $0.value.claimant) }
-        }
         animations.removeDescendants(of: ancestor)
     }
 
@@ -673,7 +680,8 @@ extension StateStorage {
             (value as? any DroppableBox)?.markDropped()
         }
         values.removeAll()
-        objectClaims.removeAll()
+        objectHubs.removeAll()
+        objectHubsAfterSweep = 0
         displacedEnvironments.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()
@@ -719,7 +727,9 @@ public final class StateBox<Value>: @unchecked Sendable {
     /// and — because the sink defers the mutation to the main-actor frame
     /// boundary — a `@State` written from a background `Task` never races the
     /// single-threaded cache. `nil` before the box is first hydrated, in which
-    /// case nothing has been cached for it yet.
+    /// case nothing has been cached for it yet. For a box a class property's
+    /// object holds, the object's ``ObjectHub``, which hands the invalidation
+    /// to that context's link for every view drawn holding the object.
     ///
     /// Strong: the link holds nothing that holds the box, and it is stamped
     /// at every hydration, where a weak store — which this was — made the
@@ -755,12 +765,6 @@ protocol DroppableBox: AnyObject {
 extension StateBox: DroppableBox {
     func markDropped() {
         wasDropped = true
-    }
-
-    /// Notes that the storage keeps the box again
-    /// (``StateStorage/keep(_:for:)``).
-    func markKept() {
-        wasDropped = false
     }
 }
 

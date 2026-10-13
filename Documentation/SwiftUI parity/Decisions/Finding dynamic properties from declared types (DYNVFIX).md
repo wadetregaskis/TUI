@@ -143,9 +143,9 @@ WebAssembly, a call
 through the `swiftcc` convention: a `@convention(thin)` function type, which
 Swift does not offer.
 
-### B-DYNVFIX-3. What a class property holds belongs to one view, the first drawn in each pass that reaches it, and its state goes with it
+### B-DYNVFIX-3. What a class property holds is the object's: every view drawn holding it is redrawn by its writes, and an object made with a view value keeps its view's state
 
-*`DynamicProperty`, `@State`, `@Environment`*
+*`DynamicProperty`, `@State`, `@Environment`, `@FocusState`, `@Namespace`*
 
 A class property — an object held strongly, `unowned` or `weak` in a field
 declared as a `DynamicProperty` class — can be shared by many views, and one
@@ -153,135 +153,137 @@ object has one set of stored properties. The walks bound its `@State` and
 resolved its `@Environment` for each holding view in turn, so the last view
 drawn won: a write through one view's binding landed in another's state, and
 a closure made in one view's body read another's environment (DYNV bugs 3 and
-4). SwiftUI installs nothing inside a class (measured, DYNP `op.out` vii-f).
-The owner asked to keep what TUIkit supported: a class wrapper made anew with
+4). SwiftUI installs nothing inside a class: its `@State` is a constant, its
+`@Environment` reads its default, and `update()` runs before each holder's
+body (measured: DYNP `op.out` vii-f;
+`Tools/SwiftUIProbes/Class properties held by several views/cls.out`). The
+owner asked to keep what TUIkit supported: a class wrapper made anew with
 each view value (session notes `DYNV2/notes.md` §4.11), and an
 `@Environment(Model.self)` inside one, which reading uninstalled traps.
 
-**Shipped:** what the object holds belongs to one view at a time, its
-claimant: in each render pass, the first view drawn whose walk reaches the
-object. A view only measured — a `ViewThatFits` candidate, the first frame's
-walk for the window chrome — never takes it from another view, and claims it
-only until a view drawn reaches it. When a view drawn takes it from another
-— a claimant that has left (a `ViewThatFits` switch on a resize, a row
-removed, a tab switched), or is only measured or served from the memo in
-this pass — the object's `@State` goes with it: each box it holds is kept
-under the new claimant's key from then on, so the new claimant draws the
-object's state, and what it writes is kept. The claimant walks what the
-object holds on each of its own walks — its
-`@State` bound to the claimant's key (its identity, and the object's position
-and type there, as before), its `@Environment` resolved to the claimant's
-environment, its nested properties updated in place — and the last walk of a
-pass that walks the tree twice decides. Every other holder leaves it as the
-claimant left it, so all holders read and write one state — one object, one
-state — and an object made anew per view value, held by that view alone,
-keeps its state from frame to frame. The object's own `update()` still runs
-before each holder's body, as SwiftUI runs it.
+**Shipped** (lane DYNVCLAIM, 2026-10-12):
 
-A view measured before the claimant has walked the object in a pass — a
-holder at a new identity, its `.id` changed, or one appearing ahead of the
-claimant in a stack, which measures every child before it draws any — reads
-the object as the claimant last left it. A property set on the object since
-was never walked, so an `@Environment(Model.self)` in it trapped when that
-measure read it, and an `@Environment(\.key)` read the key's default (review
-5, 2026-10-12). Such a measure now hands each `@Environment` in the object
-that has none the environment of the claimant's last walk, which the claim
-keeps. It binds nothing, runs no `update()`, and moves no claim and no state,
-so no body reads an `@Environment` never resolved. A view drawn never needs
-this: the first drawn in a pass takes the claim and walks the object before
-its body reads it.
+- **The object's state is its own.** A `@State` inside an object made before
+  the pass that walks it is bound to a box of the object's own, which no
+  view's key holds. No measure, memo hit, prune, `if`/`else` flip, identity
+  change or change of the view holding the object moves, drops or shares it:
+  two views showing one object read and write one state; a detail view moving
+  between objects never binds one object's state to another's; a holder that
+  leaves takes nothing with it. The `@State` in an enum's case inside the
+  object is the case's payload's: a case set anew starts at its defaults, and
+  a payload the app kept and puts back brings its state back, as the object
+  stored it. A value holding a `@State` copied from one live object into
+  another is given its own, at its default.
+- **Every view drawn holding it is redrawn by a write.** Each is registered
+  on the object (an `ObjectHub` per object and storage, the sink of the
+  object's boxes; a `HolderToken` among the view's own state, at the reserved
+  index -140), and stays registered exactly while its own `@State` would be
+  kept: drawn, served from the memo, or retained by a container that windows
+  its rows. A write redraws each, a row served from the memo included — as
+  SwiftUI redraws every view that read an `@Observable` it is written to, one
+  behind an `.equatable()` that compares equal included (measured:
+  `Tools/SwiftUIProbes/Class properties held by several views/memo.out`).
+- **An object made with a view value keeps its view's state.** `let pager =
+  Pager()`, made anew with each value of the view holding it, is told from an
+  object made before by when its `@State` was made (B-DYNVFIX-6): made in the
+  pass that walks it, its state is its place's — the box kept under the first
+  holder's key, as a view value's `@State` is — so the next value's object
+  takes it. Whether the last value's object is still alive says nothing: a
+  `Button`'s action holds it through the next frame's walk. An object takes
+  the state its place keeps only if the object the view showed there last was
+  itself made so; a long-lived object shown at the place ends that chain, so
+  an object made later at the place starts at its default. One that outlives
+  the pass it was made in moves to a box of its own, with its value, at its
+  next walk.
+- **Every holder walks it before its body**, measures included: its `@State`
+  as above, its ids, its nested properties' `update()` in place, then its own
+  `update()`. A measure creates, moves and drops nothing a view's key holds
+  for an object: no registration, no place box, no case record. An object
+  whose class holds nothing a walk installs — only an `update()` — is not
+  registered at all.
+- **Ids.** Its `@FocusState` and `@Namespace` ids are made from the object's
+  own path, so they are the same whichever view draws it, and two objects
+  never share theirs (B-DYNVFIX-5). An object made with a view value takes the
+  ids of the chain of such objects at its place.
+- **Environment.** Its `@Environment` is resolved by its primary holder — the
+  first view drawn holding it, for as long as that view holds it; a holder
+  drawn after the primary's token went becomes the next. Every other holder
+  hands an `@Environment` there only an environment it has none of, so no
+  body reads one never resolved: one set on the object since the primary
+  last walked it, read first by another holder's measure, no longer traps
+  (review5 of DYNVFIX, S1). So two holders under different environments both
+  read the primary's, in their bodies and their closures alike.
 
-A claim with no holder drawn lasts while the claimant's state does: it is
-dropped at the end of a pass in which the claimant was neither drawn nor kept
-(by a memo hit, or a container that windows its rows), and the next holder to
-reach the object claims it then. The object's state is not dropped with the
-claim. Each `@State` box the object holds is the object's: the storage keeps
-it under its claimant's key, and keeps it again, with its value, under the
-key of whichever view next claims the object, however the storage came to
-drop it — a holder served from the memo in the pass its claimant left (it
-walks nothing, and cannot take the claim), an `if`/`else` that swapped the
-holder and dropped the old branch's state, or another object's box given the
-claimant's key (a detail view moving from one row's object to the next). Only
-a `@State` inside an enum's case inside the object starts again at its
-default then, as a case's state does when its case comes back: a dropped box
-there cannot be told from one whose case left. The record holds each object
-weakly, so an object at a freed one's address is never taken for it.
+**Price.** Unmeasured over a frame; the A/Bs are owed (lane DYNVCLAIM §11.4).
 
-Two holders under different environments both read the claimant's. That is
-the rule's price, and the reason it is not "per reading view": a closure made
-in a view's body reads the object when it runs, after every holder has drawn,
-and nothing then says which view it came from. And a write to the object's
-`@State` redraws the claimant, as a `@State` write redraws the view it is
-keyed to; another holder served from the memo draws the new value when it is
-next drawn for another reason.
+- Every app: each `@State` notes its pass (B-DYNVFIX-6).
+- An app holding class properties, per object a holder's render walk reaches:
+  a lookup of its hub (a hash, a weak load, a compare) and of the view's
+  token; per `@State` in it, a load and a pointer compare. A write takes a
+  lock and invalidates each holder, usually one to three. An object made with
+  each view value brings a hub (about 64 bytes, estimated) a pass, swept once
+  the table has doubled. Nested properties' `update()` inside an object runs
+  once per holder walk, as the object's own does; the claim ran them for one
+  holder.
+- Gone: the claim's scan of the state table whenever a box changed keys —
+  quadratic in the row count for rows whose identities change every frame —
+  and the weak reference, a side table, every body for an object holding only
+  an `update()`.
 
-**Open at this head** (the lane's fifth review, 2026-10-12, session notes
-`DYNVFIX/review5-reverted.json`). A redesign of the claim is in progress, as
-lane DYNVCLAIM. Until it lands:
+**Left:**
 
-- A holder served from the value memo is not redrawn by a write to the
-  object's `@State` once the claim has moved to another holder, because the
-  write redraws only the claimant. The holder shows the old value until
-  something else redraws it, so in an idle app the write looks lost. The
-  claim moves to the next holder drawn whenever the claimant is itself
-  served from the memo, so a row showing an object stays stale after a
-  detail view has drawn the same object.
-- A class property never bound before takes the `@State` box stored at its
-  holder's key, which can be another live object's (a detail view's previous
-  object), so two objects share one state and a write to either changes
-  both. The box then moves between the two holders' keys on every walk, each
-  move a scan of the state table, and a write redraws whichever holder
-  walked last.
-- `@State` inside an enum's case inside the object is lost, or shared, when
-  its holder moves between objects, because the record of the case is kept
-  under the holder's key and not by the object. Moving to an object in
-  another case drops the first object's state in its case, which is back at
-  its default when the holder returns; moving to one in the same case, never
-  bound before, binds the second object's state to the first's box.
-- An object's `@Environment` is the claimant's for every holder, so an
-  environment-scoped action read through it acts for the claimant. A sheet
-  that shares its page's object and calls the object's `dismiss` calls the
-  page's, as the page is drawn first and claims the object, and the sheet
-  stays open.
-- A measure can take a provisional claim: a view measured while the object
-  has none binds the object's `@State` under its own key, creating its box,
-  and resolves its `@Environment`, and a claimant's own measure resolves them
-  again. The rule that a measure changes nothing does not hold for class
-  properties.
-- The costs. A box that changes keys is found by a scan of the whole state
-  table, which an object made anew per view value, whose holder's identity
-  changes every frame, pays for each `@State` on every frame: quadratic in the
-  row count for a list of such rows. And an object made anew per view value
-  with nothing in it still takes a claim, so its holder forms a weak
-  reference, a side table, every body.
+- A closure made in a holder other than the primary reads the primary's
+  environment: a sheet sharing its page's object and calling the object's
+  `dismiss` calls the page's, and stays open. Read such an action in the view,
+  or hold it in a struct property.
+- One object drawn by two contexts: a box has one sink, so a write redraws
+  the context that walked the object last. Nothing is lost.
+- A view reading an object no walked field reaches — through an `@Observable`
+  store, or only from a closure: its `@Environment` is unresolved, and a write
+  redraws nothing, as before.
+- A holder that stops reaching an object without leaving the tree — an
+  optional set to `nil`, a case of its own enum left — stays registered until
+  it leaves: a write redraws it needlessly.
+- An object made with a view value is a new object every pass, and a holder
+  served from the memo stays registered on the one it last walked, so a write
+  to the new one does not redraw it. Only a holder whose `==` ignores the
+  object it holds can be served with a new one.
+- An object holding no `@State` cannot say whether it was made with a view
+  value, so its ids follow the chain at its place: two long-lived objects
+  holding none, shown one after the other by one view, share their ids, as
+  every object's did under the claim.
+- A measure made before any render walk reached a long-lived object binds no
+  ids: its body reads an unbound `@Namespace` there, and the render binds it.
 
 **Not chosen:**
 
-- *Keyed by the object's identity*: a freed object's address comes straight
-  back (memory note memo-key-hashes-an-address), and an object made per view
-  value would start afresh every frame, losing §4.11.
-- *The last view's, as before*: bug 4 — a closure in the first view reads the
-  second view's environment.
-- *The first walk in each render pass*, as this lane first shipped it: a
-  measure is a walk, so a candidate measured and never drawn took the claim
-  every pass, its key pruned at each pass's end and the drawn candidate's
-  writes with it; and a holder served from the memo walks nothing, so on such
-  a frame the next holder took the claim and the object's `@State` flipped to
-  that holder's key, at its default (review, 2026-10-12). Measures now never
-  take a claim from another view, and the state goes with a claim.
-- *The first view drawn, for as long as its state lives*, as this lane next
-  shipped it: a claimant drawn in an earlier pass kept the claim in a pass
-  that only measured it, or did not reach it, so the view drawn instead read
-  the old claimant's state for that pass and claimed a pass late, at its
-  default, and a write it made in between went into the old claimant's box,
-  dropped with it (review of 5af4853ba, 2026-10-12).
+- *The claim* — the first walk, then the first view drawn in each pass,
+  holding the object's state under its key, in four variants (reviews 1 to 5
+  of DYNVFIX, 2026-10-12): a measure-only candidate took it and its key was
+  pruned; a memo-served first holder lost it; a claimant drawn in an earlier
+  pass kept it a pass too long; the boxes it moved between keys were dropped,
+  or taken by another object never bound, and a write redrew only the
+  claimant. Each fix opened the next hole.
+- *Registering holders through Observation*: 0.40 to 0.53 µs per holder body
+  drawn (measured: session notes `DYNVCLAIM/object-owned/obs.out` and
+  `marginal.out`), and closures
+  reading the last holder drawn, which changes with draw order and memo hits:
+  bug 4 again.
+- *Taking a place's state only from a predecessor that has died*: a closure
+  holding the last value's object — a `Button`'s action, kept by the focus
+  ring — keeps it alive, so the object made with each value would restart
+  every frame.
+- *Keying the object's state by its identity alone*: a freed object's address
+  comes straight back (memory note memo-key-hashes-an-address).
 - *SwiftUI's, installing nothing*: loses §4.11 and the environment model.
 
-**The fuller version:** none found that gives each holder its own environment
-in closures. Within `body`, each holder could read its own by resolving the
-object for the body and restoring it after; closures and anything evaluated
-later (a `ForEach` row, a `GeometryReader`) would then read the restored one,
-which is less coherent than one environment per object.
+**The fuller version** for closures: a dispatching identity set around every
+key, mouse, gesture and task dispatch, and a table of environments by holder
+in each object's box, so a closure reads its own holder's. Its price: a branch
+on every `@Environment` read in every app, and dispatch plumbing; and it is
+still wrong for closures run from timers or detached tasks. A cheaper
+candidate, unbuilt and unmeasured: at the end of each pass, make primary the
+holder whose subtree holds the focused element.
 
 ### B-DYNVFIX-4. A stored modifier's properties are updated only where the modifier is applied
 
@@ -364,6 +366,14 @@ unplaced at that pass's end, and resolved where it lies from then on.
 `@FocusedValue` and `@FocusedBinding` keep a store that every copy shares, and
 are bound or resolved through it. One value drawn at two places still ends
 with the second place's id or focus manager.
+
+**Inside a class property** (lane DYNVCLAIM): the ids of an object's
+`@FocusState` and `@Namespace` are made from a path of the object's own, not a
+view's, so they are the same whichever view draws it, and two objects shown
+one after the other by one view no longer share theirs, as they did while the
+view that claimed each bound its ids (B-DYNVFIX-3). An object made with each
+value of the view holding it takes the ids of the chain of such objects at its
+place, so its ids stay the same from frame to frame.
 
 **The fuller version** gives each the same treatment: a binding at the
 property's address, and a store of its own for a copy at a second place. Its

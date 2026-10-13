@@ -1,0 +1,76 @@
+#### two
+== two: first draw
+     update shared #1
+   parent body tick=0
+     update shared #2
+   body a: n=0 inner.m=0 accent=default updates=2
+     update shared #3
+   body b: n=0 inner.m=0 accent=default updates=3
+== two: closures after first draw
+   closure a reads accent=default n=0
+   closure b reads accent=default n=0
+== two: after a.$n := 5, a.inner.$m := 6
+== two: direct
+   direct read n=0 inner.m=0
+== two: after parent tick (holders' inputs unchanged)
+     update shared #4
+   parent body tick=1
+DONE
+exit 0
+#### swap
+== swap: first draw
+     update swap #1
+     update swap #2
+   body first: n=0 inner.m=0 accent=default updates=2
+== swap: after first.$n := 4
+== swap: after flip
+     update swap #3
+     update swap #4
+   body second: n=0 inner.m=0 accent=default updates=4
+DONE
+exit 0
+#### vtf
+== vtf: narrow window first draw
+     update vtf #1
+     update vtf #2
+   body wide: n=0 inner.m=0 accent=default updates=2
+     update vtf #3
+   body narrow: n=0 inner.m=0 accent=default updates=3
+DONE
+exit 0
+#### rows
+== rows: first draw
+     update rows #1
+     update rows #2
+   body row1: n=0 inner.m=0 accent=default updates=2
+     update rows #3
+   body row2: n=0 inner.m=0 accent=default updates=3
+     update rows #4
+   body row3: n=0 inner.m=0 accent=default updates=4
+== rows: after removing row1
+     update rows #5
+DONE
+exit 0
+#### held
+== held: first draw
+   held parent body tick=0: n=0 inner.m=0 accent=default updates=0
+     update held #1
+   body child: n=0 inner.m=0 accent=default updates=1
+== held: after child.$n := 3
+== held: after parent tick
+   held parent body tick=1: n=0 inner.m=0 accent=default updates=1
+DONE
+exit 0
+#### perValue
+== perValue: first draw
+     Pager init
+   perValue body page=0
+== perValue: after page := 5
+== perValue: after parent tick
+     Pager init
+   perValue body page=0
+DONE
+exit 0
+#### envModel
+SwiftUICore/Environment+Objects.swift:34: Fatal error: No Observable object of type Model found. A View.environmentObject(_:) for Model may be missing as an ancestor of this view.
+exit 133

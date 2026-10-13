@@ -64,9 +64,9 @@ package func preparedBody<V: View>(
 /// `value` is not constrained to `View`: the render loop prepares an `App`
 /// with it too, at the root identity, before evaluating `App.body`. Without
 /// `storage` (a guide asked for outside a render), no `@State` is bound.
-/// `isMeasuring` says whether the body is evaluated for a measure, whose
-/// claim on a class property's contents is only provisional
-/// (``StateStorage/claimObjectContents(_:for:environment:isMeasuring:)``).
+/// `isMeasuring` says whether the body is evaluated for a measure, which
+/// makes, moves and drops nothing a view's key holds for a class property's
+/// object (``State/bindObjectState(at:to:key:in:isMeasuring:)``).
 @MainActor
 package func prepareProperties<V>(
     of value: inout V, plan: SlotPlan, identity: ViewIdentity, storage: StateStorage?,
@@ -106,25 +106,28 @@ enum UpdateMode {
 /// that is dropped.
 ///
 /// **An object.** A class instance in a property field can be shared by many
-/// views, and one object has one set of stored properties. So what it holds —
-/// its `@State`, `@Environment`, ids, nested properties and their `update()`
-/// — belongs to one view, its claimant: in each render pass, the first view
-/// drawn whose walk reaches it
-/// (``StateStorage/claimObjectContents(_:for:environment:isMeasuring:)``).
-/// Its `@State` boxes are the object's, kept under the claimant's key
-/// whichever view that is (``StatePlace/object(revivesDropped:)``), its
-/// `@Environment` is the claimant's, and every other holder leaves it as the
-/// claimant left it — but for a measure made before the claimant has walked
-/// it in the pass, which hands an `@Environment` there that has none the
-/// claimant's last environment, so that no body reads one never resolved.
-/// Two views showing one object therefore read and write one state, as one
-/// object implies, and the state goes with the object when another view
-/// shows it; an object made anew with each view value, held by that view
-/// alone, keeps its state from frame to frame. The object's own `update()`
-/// still runs before the body of every view that holds it (SwiftUI runs it,
-/// and installs nothing inside it: measured, DYNP `op.out` vii-f). Each
-/// object is reached at most once per walk, so objects that reach each other
-/// end the walk.
+/// views, and one object has one set of stored properties. What it holds is
+/// the object's, and every view holding it walks it before its body, measures
+/// included: its `@State` is bound to the object's own boxes, which no view's
+/// key holds (``State/bindObjectState(at:to:key:in:isMeasuring:)``), its ids
+/// are the object's (``ObjectHub/idPath``), its nested properties are updated
+/// in place, and then its own `update()` runs, as SwiftUI runs it before each
+/// holder's body (measured: `Tools/SwiftUIProbes/Class properties held by
+/// several views/cls.out`). Two views showing one object read and write one
+/// state, which no change of the views holding it moves or drops. Every view
+/// drawn holding it is registered on the object's hub (``ObjectHub``,
+/// ``HolderToken``), so a write redraws each of them, one served from the
+/// memo included. An object made with each value of the view holding it, in
+/// the pass that walks it (session notes `DYNV2/notes.md` §4.11), takes its
+/// `@State` from its place instead, as a view value's does, so the object
+/// the next value makes finds it: the walk tells the two apart by when the
+/// `@State` was made (``StateBacking/createdIn``). Its `@Environment` is that
+/// of the first holder drawn, its primary (``ObjectHub/primary``): another
+/// holder hands one only to an `@Environment` that has none. A measure makes,
+/// moves and drops nothing a view's key holds for it. SwiftUI installs
+/// nothing inside a class (measured: DYNP `op.out` vii-f). Each object is
+/// reached at most once per walk, so objects that reach each other end the
+/// walk.
 @MainActor
 struct PropertyWalk {
     /// The identity every key shares.
@@ -133,10 +136,6 @@ struct PropertyWalk {
     let environment: EnvironmentValues
     /// Whether the body is evaluated for a measure.
     let isMeasuring: Bool
-    /// Whether the walk only hands `environment` to each `@Environment` that
-    /// has none, in an object another view claims
-    /// (``ObjectContentsClaim/fillEnvironment(_:)``).
-    let fillsEnvironmentOnly: Bool
 
     /// The next of the view's own declaration-order indices.
     private var ownIndex = 0
@@ -160,25 +159,21 @@ struct PropertyWalk {
     /// can be reached, while it walks it, by anything holding the object.
     var objectDepth = 0
 
-    /// Inside the contents of an object this walk's view claims, the
-    /// ``caseDepth`` at which they were entered: a `@State` there is the
-    /// object's (``StatePlace/object(revivesDropped:)``), and one deeper, in
-    /// an enum's case inside the object, starts again at its default when the
-    /// case comes back. `nil` outside one.
-    var objectCaseDepth: Int?
+    /// The object whose contents the walk is in, the innermost: `nil`
+    /// outside every object.
+    var objectWalk: ObjectWalk?
 
     /// How many times the walk has changed a value where it lies — given a
     /// `@State` a backing, or an `@Environment` a box, of its own, or run an
     /// app property's `update()` in place — so a copy it walked is assigned
     /// back only when it differs.
-    private var changes = 0
+    var changes = 0
 
     init(identity: ViewIdentity, storage: StateStorage?, environment: EnvironmentValues, isMeasuring: Bool) {
         self.identity = identity
         self.storage = storage
         self.environment = environment
         self.isMeasuring = isMeasuring
-        self.fillsEnvironmentOnly = false
     }
 
     /// Walks the value at `root`, whose type's root plan is `plan`.
@@ -196,7 +191,9 @@ struct PropertyWalk {
             // A view that is a class: its fields are its own.
             let object = base.assumingMemoryBound(to: AnyObject.self).pointee
             objectsReached.append(ObjectIdentifier(object))
-            applyContents(of: object, scope: NestedScope.view, isOwn: true, updates: .inPlace)
+            applyContents(
+                of: object, PropertyPlans.contents(ofClass: type(of: object)), scope: NestedScope.view, isOwn: true,
+                updates: .inPlace)
         default:
             break
         }
@@ -272,8 +269,8 @@ struct PropertyWalk {
     private mutating func applyLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, isOwn: Bool
     ) {
-        if fillsEnvironmentOnly {
-            leaf.placeEnvironment?.fillEnvironment(at: address, environment)
+        if let object = objectWalk {
+            applyObjectLeaf(leaf, at: address, position: position, scope: scope, in: object)
             return
         }
         var index = position
@@ -288,15 +285,13 @@ struct PropertyWalk {
                 isOwn
                 ? StateStorage.StateKey(identity: identity, propertyIndex: index)
                 : StateStorage.StateKey(identity: identity, propertyIndex: index, scope: scope)
-            let place = objectCaseDepth.map { StatePlace.object(revivesDropped: caseDepth == $0) } ?? .value
             if caseDepth > 0 {
                 // Binding finds the box under `key` or creates it, and the
-                // count of what is stored grows only when it creates one, or
-                // keeps an object's box there that was not.
+                // count of what is stored grows only when it creates one.
                 let stored = storage.count
-                if state.bindState(at: address, to: storage, key: key, place: place) { changes += 1 }
+                if state.bindState(at: address, to: storage, key: key) { changes += 1 }
                 if storage.count != stored { created.append(key) }
-            } else if state.bindState(at: address, to: storage, key: key, place: place) {
+            } else if state.bindState(at: address, to: storage, key: key) {
                 changes += 1
             }
         }

@@ -613,14 +613,15 @@ public struct State<Value> {
 /// value kept across frames reads its place's state again, and pays for no
 /// backing of its own on every body.
 ///
-/// It notes the render pass it was made in (``createdIn``): what tells an
-/// object made with a view value in the pass that walks it from one made
-/// before.
+/// A `@State` inside a class property's object is the object's
+/// (``State/bindObjectState(at:to:key:in:isMeasuring:)``): its own box, which
+/// no view's key holds — unless the object was made with a value of the view
+/// holding it, in the pass that walks it, which ``createdIn`` tells.
 final class StateBacking<Value> {
     let defaultValue: Value
     private(set) var box: StateBox<Value>
-    /// What ``box`` is: the one made with the backing, or one
-    /// `StateStorage` keeps.
+    /// What ``box`` is: the one made with the backing, one `StateStorage`
+    /// keeps for a place, or an object's own.
     ///
     /// Before ``createdIn``, and both after the stored fields of any type, so
     /// the two share the word the binding byte alone would pad out:
@@ -648,10 +649,44 @@ final class StateBacking<Value> {
         self.createdIn = pass
     }
 
-    /// Binds the backing to `box`, one `StateStorage` keeps.
+    /// A backing of an object's own from the start, at `defaultValue`, its box
+    /// redrawing what `sink` redraws: made by a walk in render pass `pass`.
+    init(ownDefault defaultValue: Value, sink: (any RenderInvalidationSink)?, createdIn pass: UInt32) {
+        self.defaultValue = defaultValue
+        self.box = StateBox(defaultValue)
+        self.box.invalidationSink = sink
+        self.bound = .own
+        self.createdIn = pass
+    }
+
+    /// Binds the backing to `box`, one `StateStorage` keeps for a place.
     func bind(to box: StateBox<Value>) {
         self.box = box
         bound = .place
+    }
+
+    /// Binds the backing, for a measure, to `box`, one `StateStorage` keeps
+    /// for a place already: a render confirms or replaces it.
+    func bindProvisionally(to box: StateBox<Value>) {
+        self.box = box
+        bound = .provisional
+    }
+
+    /// Makes the box the backing has its object's own, redrawing what `sink`
+    /// redraws when one is given.
+    func own(sink: (any RenderInvalidationSink)?) {
+        if let sink { box.invalidationSink = sink }
+        bound = .own
+    }
+
+    /// Moves the backing from the box a place keeps to one of its object's
+    /// own, holding the value the place's holds: the object outlived the pass
+    /// it was made in.
+    func convert(sink: (any RenderInvalidationSink)?) {
+        let own = StateBox(box.value)
+        own.invalidationSink = sink
+        box = own
+        bound = .own
     }
 }
 
@@ -660,42 +695,59 @@ enum BackingBinding: UInt8 {
     /// The box made with the backing, which holds what is written before any
     /// walk binds it.
     case unbound
-    /// A box `StateStorage` keeps under a view's key: the place's.
+    /// A box `StateStorage` keeps under a view's key: the place's — a view
+    /// value's `@State`, or that of an object made with the value of the view
+    /// holding it.
     case place
+    /// A box `StateStorage` keeps under a view's key, which a measure bound an
+    /// object made in the pass to: the next render walk keeps it or replaces
+    /// it.
+    case provisional
+    /// An object's own box, which no view's key holds: its long-lived state.
+    case own
 }
 
 // MARK: - Render-time binding
 
-/// Where a `@State` the property walk binds lies, which decides whose its
-/// box is.
-enum StatePlace {
-    /// In the value of the view being drawn, or a value it holds: its box is
-    /// the place's, the one kept under the view's key.
-    case value
-    /// In the storage of an object the view claims
-    /// (``StateStorage/claimObjectContents(_:for:environment:isMeasuring:)``): its box is
-    /// the object's, which every view holding the object shares. A backing
-    /// already bound keeps its box, kept under the claimant's key from then
-    /// on (``StateStorage/keep(_:for:)``) — and so does one whose box the
-    /// storage dropped, its claimant's place pruned, when `revivesDropped`:
-    /// the object held the box, and its value, all along. Not inside an
-    /// enum's case in the object, whose state starts again at its defaults
-    /// when the case comes back, as a view's does.
-    case object(revivesDropped: Bool)
-}
-
 /// A `@State` property that can be bound to storage at render time (mirrors
 /// ``EnvironmentResolvable``).
 protocol StateBindable {
-    /// Binds the property at `address`, a value of this type, lying at
-    /// `place`, to the storage `storage` keeps under `key`, created with the
-    /// property's default if there is none.
+    /// Binds the property at `address`, a value of this type, to the storage
+    /// `storage` keeps under `key`, created with the property's default if
+    /// there is none.
     ///
     /// - Returns: Whether the property at `address` was changed — given a
     ///   backing of its own — rather than its shared backing bound.
-    static func bindState(
-        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, place: StatePlace
-    ) -> Bool
+    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) -> Bool
+
+    /// Binds the property at `address`, a value of this type inside the
+    /// storage of `object`'s object (``State/bindObjectState(at:to:key:in:isMeasuring:)``).
+    static func bindObjectState(
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey,
+        in object: ObjectStateContext, isMeasuring: Bool
+    ) -> ObjectStateBinding
+}
+
+/// What the walk knows of the object whose `@State` it binds.
+struct ObjectStateContext {
+    /// The object.
+    let object: AnyObject
+    /// Its hub, the sink of its state's boxes; `nil` for a measure that
+    /// reached it before any render walk made one.
+    let hub: ObjectHub?
+    /// Whether the object the view showed in this field the last time it was
+    /// drawn was made with that frame's value of the view: only then does an
+    /// object made with this frame's value take the state its place keeps.
+    let adoptsPlace: Bool
+}
+
+/// What binding a `@State` inside an object did, and found the object to be.
+struct ObjectStateBinding {
+    /// Whether the property was changed where it lies — given a backing of
+    /// its own — so a copy the walk is on must be assigned back.
+    var changed = false
+    /// Whether the object was made in the pass that walked it.
+    var kind: ObjectKind
 }
 
 extension State: StateBindable {
@@ -704,18 +756,10 @@ extension State: StateBindable {
     /// backing is bound if it is not yet, or if the box it is bound to has
     /// been dropped; if it is bound to another box still kept, the value is
     /// being drawn at a second place, and this copy is given a backing of its
-    /// own, so the two places never share their state. In an object
-    /// (``StatePlace/object(revivesDropped:)``), a backing bound keeps its
-    /// box: one object has one state, whichever view claims it.
-    static func bindState(
-        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, place: StatePlace
-    ) -> Bool {
+    /// own, so the two places never share their state.
+    static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) -> Bool {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
-        if case .object(let revivesDropped) = place, backing.bound != .unbound, revivesDropped || !backing.box.wasDropped {
-            storage.keep(backing.box, for: key)
-            return false
-        }
         let box = storage.storage(for: key, default: backing.defaultValue)
         if backing.box === box { return false }
         // Rebound where its box is gone, not given a backing in this copy:
@@ -729,6 +773,96 @@ extension State: StateBindable {
         state.pointee.backing = StateBacking(
             defaultValue: backing.defaultValue, boundTo: box, createdIn: storage.currentPass)
         return true
+    }
+
+    /// Binds the `@State` at `address`, inside the storage of `object`'s
+    /// object, which a view holds in a property field: the object's state,
+    /// whichever view draws it.
+    ///
+    /// - An object made before the pass that walks it keeps its state in its
+    ///   own box, which no view's key holds (``BackingBinding/own``), so no
+    ///   measure, memo hit, prune, branch flip or change of the view holding
+    ///   it moves, drops or shares it. Its sink is the object's hub, so a
+    ///   write redraws every view drawn holding it.
+    /// - One made in the pass that walks it, with a value of the view holding
+    ///   it (session notes `DYNV2/notes.md` §4.11), takes its state from its
+    ///   place, as a view value's `@State` does — the box kept under `key`,
+    ///   at the first holder drawn — so the object the next value makes finds
+    ///   it. It takes a box the place already keeps only if the object the
+    ///   view showed there last was itself made so (`object.adoptsPlace`):
+    ///   otherwise the place is given the backing's own box, and what was
+    ///   written to it before the walk is kept.
+    /// - One made in an earlier pass whose state is still a place's outlived
+    ///   its pass: a render walk moves it to a box of its own, with its value.
+    /// - A value holding a `@State` copied from another live object into this
+    ///   one shares that object's backing: it is given one of its own, at its
+    ///   default.
+    ///
+    /// A measure creates, moves and drops nothing a view's key holds: it
+    /// makes an object's backing its own (what any walk would), gives a
+    /// copied value its own, and binds an object made in the pass, until a
+    /// render does, to a box its place already keeps.
+    static func bindObjectState(
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey,
+        in object: ObjectStateContext, isMeasuring: Bool
+    ) -> ObjectStateBinding {
+        let state = address.assumingMemoryBound(to: Self.self)
+        let backing = state.pointee.backing
+        let pass = storage.currentPass
+        let madeThisPass = backing.createdIn != 0 && backing.createdIn == pass
+        switch backing.bound {
+        case .own:
+            let sink = backing.box.invalidationSink
+            // The usual case: a load and a compare.
+            if let hub = object.hub, sink === hub { return ObjectStateBinding(kind: .longLived) }
+            if let other = sink as? ObjectHub, let holder = other.object, holder !== object.object {
+                state.pointee.backing = StateBacking(ownDefault: backing.defaultValue, sink: object.hub, createdIn: pass)
+                return ObjectStateBinding(changed: true, kind: .longLived)
+            }
+            // Never drawn, drawn in another context, or held by a dead
+            // object's hub: this hub's from now on.
+            if !isMeasuring, let hub = object.hub { backing.box.invalidationSink = hub }
+            return ObjectStateBinding(kind: .longLived)
+        case .unbound:
+            guard madeThisPass else {
+                backing.own(sink: isMeasuring ? nil : object.hub)
+                return ObjectStateBinding(kind: .longLived)
+            }
+            bindToPlace(backing, storage: storage, key: key, object: object, isMeasuring: isMeasuring)
+            return ObjectStateBinding(kind: .perValue)
+        case .place, .provisional:
+            guard madeThisPass else {
+                // A measure reads through until a render moves it.
+                if !isMeasuring { backing.convert(sink: object.hub) }
+                return ObjectStateBinding(kind: .longLived)
+            }
+            // The first holder drawn decides; a measure's binding is the
+            // render's to confirm.
+            if backing.bound == .provisional, !isMeasuring {
+                bindToPlace(backing, storage: storage, key: key, object: object, isMeasuring: false)
+            }
+            return ObjectStateBinding(kind: .perValue)
+        }
+    }
+
+    /// Binds `backing`, of an object made in the pass, to its place's box
+    /// (``bindObjectState(at:to:key:in:isMeasuring:)``).
+    private static func bindToPlace(
+        _ backing: StateBacking<Value>, storage: StateStorage, key: StateStorage.StateKey,
+        object: ObjectStateContext, isMeasuring: Bool
+    ) {
+        if isMeasuring {
+            if object.adoptsPlace, let kept: StateBox<Value> = storage.existingStorage(for: key) {
+                backing.bindProvisionally(to: kept)
+            }
+            return
+        }
+        let box = storage.placeBox(backing.box, at: key, adopting: object.adoptsPlace)
+        backing.bind(to: box)
+        // After the storage has stamped the box: its sink is the object's
+        // hub, so a write redraws every view drawn holding the object, not
+        // only the place's.
+        box.invalidationSink = object.hub
     }
 }
 

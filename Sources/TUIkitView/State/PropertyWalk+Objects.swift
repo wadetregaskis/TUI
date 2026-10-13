@@ -11,22 +11,51 @@
 import TUIkitCore
 
 extension PropertyWalk {
-    /// A walk that hands `environment`, the claimant's, to each
-    /// `@Environment` that has none in an object another view claims
-    /// (``ObjectContentsClaim/fillEnvironment(_:)``), and does nothing else.
-    /// Without storage, it binds no `@State`, consults no claim and keeps no
-    /// enum's case, so an object it reaches inside is filled the same way;
-    /// it runs no `update()`, as it is handed ``UpdateMode/none``. It starts
-    /// with the objects `walk` has reached, and what it reaches after is its
-    /// own: an object it fills is still walked by `walk` if `walk` reaches it
-    /// elsewhere.
-    init(filling environment: EnvironmentValues, for walk: Self) {
-        self.identity = walk.identity
-        self.storage = nil
-        self.environment = environment
-        self.isMeasuring = walk.isMeasuring
-        self.fillsEnvironmentOnly = true
-        self.objectsReached = walk.objectsReached
+    /// The object whose contents the walk is in (``PropertyWalk/objectWalk``),
+    /// and what the walk knows of it.
+    struct ObjectWalk {
+        /// The object.
+        let object: AnyObject
+        /// Its hub; `nil` for a measure that reached it before any render
+        /// walk made one, or a walk without storage.
+        let hub: ObjectHub?
+        /// The view's record of holding it in this field, made or moved by
+        /// this walk; `nil` for a measure, or a walk without storage.
+        let token: HolderToken?
+        /// What its ids are made from (``ObjectHub/idPath``): `nil` binds
+        /// none.
+        let idPath: String?
+        /// The scope of the field it lies in, in the key space of the view
+        /// the walk is for (``PropertyWalk/keyScope(_:)``).
+        let placeScope: UInt64
+        /// Whether a `@State` in it made in the pass may take a box its place
+        /// keeps already (``ObjectStateContext/adoptsPlace``).
+        let adoptsPlace: Bool
+        /// Whether the walk's view is the object's primary holder, or no
+        /// render walk has made the object a hub yet: its walks resolve the
+        /// object's `@Environment`.
+        let resolvesEnvironment: Bool
+        /// What its `@State` has said of it so far in this walk.
+        var found = ObjectKind.unknown
+    }
+
+    /// `scope`, a scope inside the object the walk is in, in the key space of
+    /// the view the walk is for: joined to the scope of the field the object
+    /// lies in. Outside every object, `scope` itself.
+    ///
+    /// An object's contents are walked in scopes of their own, rooted at the
+    /// object (``NestedScope/view``), so its ids are the same whichever view
+    /// and field hold it (``ObjectHub/idPath``). The `@State` of an object
+    /// made with a view value, and the records of the enums in it, are keyed
+    /// at the view instead: the scope inside the object, XORed with the
+    /// field's, which is never `0`. XOR, as ``StateStorage/StateKey`` folds a
+    /// scope into the index's word: two codes from different fields meet only
+    /// by a 64-bit coincidence, and the object's own fields, at its root
+    /// `0`, are keyed at the field's scope, where they were before objects'
+    /// contents had a root of their own.
+    func keyScope(_ scope: UInt64) -> UInt64 {
+        guard let objectWalk else { return scope }
+        return scope ^ objectWalk.placeScope
     }
 
     /// The object in a field declared as a plain class, which `plan` plans:
@@ -89,10 +118,16 @@ extension PropertyWalk {
     }
 
     /// A class instance in a field whose declared type `plan` names: what it
-    /// holds, walked in place if this walk's view is the object's claimant —
-    /// or, for a measure that reaches it before its claimant has walked it in
-    /// the pass, each `@Environment` there that has none handed the
-    /// claimant's last environment — and then its own `update()`.
+    /// holds, walked in place — its `@State`, ids and `@Environment`
+    /// (``applyObjectLeaf(_:at:position:scope:in:)``) and its nested
+    /// properties' `update()` — and then its own `update()`, before the body
+    /// of every view holding it, as SwiftUI runs it (measured:
+    /// `Tools/SwiftUIProbes/Class properties held by several views/cls.out`).
+    ///
+    /// A render walk registers the view as holding it (``StateStorage/registerHolder(_:of:at:)``),
+    /// so a write to its state redraws the view; a measure makes, moves and
+    /// drops nothing a view's key holds. An object whose class holds nothing
+    /// a walk installs has no hub: only the `update()`s in it run.
     mutating func applyObject(
         _ plan: ObjectPlan, _ object: AnyObject, position: Int, scope: UInt64, updates: UpdateMode
     ) {
@@ -101,37 +136,102 @@ extension PropertyWalk {
         // field — it was walked and updated there.
         guard !objectsReached.contains(id) else { return }
         objectsReached.append(id)
-        let claim =
-            storage?.claimObjectContents(object, for: identity, environment: environment, isMeasuring: isMeasuring)
-            ?? .walk
-        switch claim {
-        case .walk:
-            let inner = NestedScope.container(at: position, ofType: type(of: object), in: scope)
-            let outer = objectCaseDepth
-            objectCaseDepth = caseDepth
-            applyContents(of: object, scope: inner, isOwn: false, updates: updates)
-            objectCaseDepth = outer
-        case .fillEnvironment(let claimantEnvironment):
-            var fill = Self(filling: claimantEnvironment, for: self)
-            fill.applyContents(of: object, scope: scope, isOwn: false, updates: .none)
-        case .skip:
-            break
+        let contents = PropertyPlans.contents(ofClass: type(of: object))
+        if !contents.steps.isEmpty {
+            let placeScope = NestedScope.container(at: position, ofType: type(of: object), in: keyScope(scope))
+            let outer = objectWalk
+            objectWalk = entering(object, mayInstall: contents.mayInstall, placeScope: placeScope)
+            applyContents(of: object, contents, scope: NestedScope.view, isOwn: false, updates: updates)
+            if let walked = objectWalk, let token = walked.token, walked.found != .unknown {
+                token.lastObject = walked.found
+            }
+            objectWalk = outer
         }
         if updates == .inPlace, let updater = plan.updater {
             updater.updateObject(object)
         }
     }
 
-    /// What `object` holds, walked in place: its storage is shared by every
-    /// holder, so it is written where it lies.
-    mutating func applyContents(of object: AnyObject, scope: UInt64, isOwn: Bool, updates: UpdateMode) {
-        let contents = PropertyPlans.contents(ofClass: type(of: object))
-        guard !contents.steps.isEmpty else { return }
+    /// What the walk knows of `object`, about to walk what it holds, lying
+    /// in the field whose scope is `placeScope`: a render walk registers the
+    /// view as holding it, if its class may hold anything a walk installs.
+    private func entering(_ object: AnyObject, mayInstall: Bool, placeScope: UInt64) -> ObjectWalk {
+        guard mayInstall, let storage else {
+            return ObjectWalk(
+                object: object, hub: nil, token: nil, idPath: nil, placeScope: placeScope, adoptsPlace: false,
+                resolvesEnvironment: true)
+        }
+        if !isMeasuring {
+            let (hub, token, previous) = storage.registerHolder(identity, of: object, at: placeScope)
+            return ObjectWalk(
+                object: object, hub: hub, token: token, idPath: hub.idPath, placeScope: placeScope,
+                adoptsPlace: previous == .perValue, resolvesEnvironment: hub.primary == identity)
+        }
+        // A measure registers nothing. Before any render walk has made the
+        // object a hub, it binds the ids the render will — those of the chain
+        // the object joins, if the view's last object here was one of one —
+        // and resolves its environment, so that no body reads one unresolved.
+        let previous = storage.holderToken(identity, at: placeScope)
+        if let hub = storage.objectHub(of: object) {
+            return ObjectWalk(
+                object: object, hub: hub, token: nil, idPath: hub.idPath, placeScope: placeScope,
+                adoptsPlace: previous?.lastObject == .perValue, resolvesEnvironment: hub.primary == identity)
+        }
+        let chained = previous.flatMap { $0.lastObject != .longLived ? $0.hub.idPath : nil }
+        return ObjectWalk(
+            object: object, hub: nil, token: nil, idPath: chained, placeScope: placeScope,
+            adoptsPlace: previous?.lastObject == .perValue, resolvesEnvironment: true)
+    }
+
+    /// What `object` holds, walked in place, in `scope`: its storage is
+    /// shared by every holder, so it is written where it lies.
+    mutating func applyContents(
+        of object: AnyObject, _ contents: FieldsPlan, scope: UInt64, isOwn: Bool, updates: UpdateMode
+    ) {
         objectDepth += 1
         defer { objectDepth -= 1 }
         withExtendedLifetime(object) {
             let base = Unmanaged.passUnretained(object).toOpaque()
             applySteps(of: contents, at: base, scope: scope, isOwn: isOwn, updates: updates)
+        }
+    }
+
+    /// One of TUIkit's own properties at `address`, inside `object`'s object:
+    /// its `@State` bound as the object's (``State/bindObjectState(at:to:key:in:isMeasuring:)``),
+    /// its ids made from the object's (``ObjectHub/idPath``), and its
+    /// `@Environment` resolved by the object's primary holder — or by a walk
+    /// before any render walk made the object a hub — and otherwise handed
+    /// one only if it has none, so that no body reads one unresolved.
+    mutating func applyObjectLeaf(
+        _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, in object: ObjectWalk
+    ) {
+        if let state = leaf.state, let storage {
+            let key = StateStorage.StateKey(identity: identity, propertyIndex: position, scope: keyScope(scope))
+            let stored = caseDepth > 0 ? storage.count : 0
+            let binding = state.bindObjectState(
+                at: address, to: storage, key: key,
+                in: ObjectStateContext(object: object.object, hub: object.hub, adoptsPlace: object.adoptsPlace),
+                isMeasuring: isMeasuring)
+            if binding.changed { changes += 1 }
+            // A long-lived object's state anywhere in it says so: it ends the
+            // chain of objects made with the view's values at this field.
+            if objectWalk?.found != .longLived { objectWalk?.found = binding.kind }
+            // An object made with a view value keeps the state of its enums'
+            // cases at the view's key, recorded as a view value's is.
+            if caseDepth > 0, storage.count != stored { created.append(key) }
+        }
+        if let bound = leaf.identity, let idPath = object.idPath {
+            bound.bindRenderIdentity(
+                at: address, path: NestedScope.identityPath(ofPath: idPath, in: scope), propertyIndex: position)
+        }
+        if let placed = leaf.placeEnvironment {
+            if !object.resolvesEnvironment {
+                placed.fillEnvironment(at: address, environment)
+            } else if placed.resolveEnvironment(at: address, environment, place: identity, storage: storage) {
+                changes += 1
+            }
+        } else if let resolvable = leaf.environment, object.resolvesEnvironment {
+            resolvable.resolveEnvironment(at: address, environment)
         }
     }
 }

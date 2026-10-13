@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 import TUIkit
@@ -43,17 +44,21 @@ private struct StateMakingView: View {
 @Suite("DynamicProperty objects made with a view value")
 struct DynamicPropertyObjectPerValueTests {
 
-    /// One frame as the render loop draws it: the pass begun, the view made
-    /// and drawn in it (`StateStorage.inRenderPass(_:)`), the pass ended.
-    private func frame<V: View>(_ view: @autoclosure () -> V, _ tui: TUIContext) {
-        let context = RenderContext(availableWidth: 20, availableHeight: 1, tuiContext: tui)
+    /// One frame as the render loop draws it: invalidations drained, the pass
+    /// begun, the view made and drawn in it (`StateStorage.inRenderPass(_:)`),
+    /// what was not drawn pruned.
+    @discardableResult
+    private func frame<V: View>(_ view: @autoclosure () -> V, _ tui: TUIContext, height: Int = 1) -> [String] {
+        let context = RenderContext(availableWidth: 20, availableHeight: height, tuiContext: tui)
         tui.renderCache.beginRenderPass()
         tui.stateStorage.beginRenderPass()
         defer {
             tui.stateStorage.endRenderPass()
             tui.renderCache.removeInactive()
         }
-        _ = tui.stateStorage.inRenderPass { renderToBuffer(view(), context: context) }
+        return tui.stateStorage.inRenderPass { renderToBuffer(view(), context: context) }.lines.map {
+            $0.stripped.trimmingCharacters(in: .whitespaces)
+        }
     }
 
     /// What an object made with a view value is told by (lane DYNVCLAIM): a
@@ -108,5 +113,210 @@ struct DynamicPropertyObjectPerValueTests {
         }
         #expect(seen.count == 6)
         #expect(!seen.contains(0))
+    }
+
+    // MARK: - Objects made with a view value
+
+    /// The action closure of the last frame — a `Button`'s, which the focus
+    /// ring keeps through the next frame's walk — holds the object the last
+    /// view value made, so that object is alive when the next value's is
+    /// first walked. The new object still takes the place's state: whether
+    /// the old one is alive says nothing (lane DYNVCLAIM's design, F1).
+    @Test("An object made with each view value keeps its @State while a closure holds the last value's object")
+    func perValueObjectKeepsStateWhileAClosureHoldsTheOldOne() {
+        let tui = TUIContext()
+        let taps = PagerTaps()
+        #expect(frame(ClosurePagerView(taps: taps), tui) == ["page 0"])
+        taps.actions.last?()
+        #expect(frame(ClosurePagerView(taps: taps), tui) == ["page 1"])
+        taps.actions.last?()
+        #expect(frame(ClosurePagerView(taps: taps), tui) == ["page 2"])
+        // The first frame's object, still alive in its closure, writes the
+        // place's state too.
+        taps.actions.first?()
+        #expect(frame(ClosurePagerView(taps: taps), tui) == ["page 3"])
+    }
+
+    /// The same through a real `Button`, pressed with Return: its action is
+    /// the one the focus ring kept from the last frame.
+    @Test("An object made with each view value keeps its @State when a Button's action, kept by the focus ring, writes it")
+    func perValueObjectKeepsStateThroughAButtonsAction() {
+        let harness = InputChainHarness(width: 20, height: 3)
+        let shown = { harness.frame(ButtonPagerView()).lines.map(\.stripped).joined(separator: "|") }
+        #expect(shown().contains("page 0"))
+        #expect(shown().contains("page 0"))
+        harness.press(KeyEvent(key: .enter))
+        #expect(shown().contains("page 1"), "\(shown())")
+        harness.press(KeyEvent(key: .enter))
+        #expect(shown().contains("page 2"), "\(shown())")
+    }
+
+    /// An object made with each view value reads an observable model from
+    /// the environment: every holder walks it before its body.
+    @Test("An object made with each view value reads an @Environment model and keeps its @State")
+    func perValueObjectReadsAnEnvironmentModel() {
+        let tui = TUIContext()
+        let taps = PagerTaps()
+        let model = PagerModel()
+        #expect(frame(ModelPagerView(taps: taps).environment(model), tui) == ["model 0"])
+        taps.page?.wrappedValue = 4
+        #expect(frame(ModelPagerView(taps: taps).environment(model), tui) == ["model 4"])
+    }
+
+    /// An object made on demand in a body and kept is made in one pass and
+    /// shown in later ones: once shown long-lived at its place, the next
+    /// object made there is not taken for its successor, and starts at its
+    /// default. Under the claim, it bound the box its holder's key kept —
+    /// the first object's.
+    @Test("Objects made on demand at one place, one after another, never take each other's @State")
+    func lazilyMadeObjectsAtOnePlaceDoNotInheritEachOthersState() {
+        let tui = TUIContext()
+        let taps = PagerTaps()
+        let store = LazyPagers()
+        #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 0"])
+        taps.page?.wrappedValue = 5
+        #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 5"])
+        #expect(frame(LazyPagerParent(store: store, key: 1, taps: taps), tui) == ["page 0"])
+        #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 5"])
+    }
+
+    /// The box an object made with a view value binds is its place's, kept
+    /// under the first holder's key; its sink must be the object's hub, set
+    /// after the storage stamps it, so a write redraws the second holder too
+    /// — here one the memo serves, whose comparison ignores the object.
+    @Test("A write to an object made with a view value redraws every view drawn holding it")
+    func perValueObjectsWriteRedrawsItsSecondHolder() {
+        let tui = TUIContext()
+        let taps = PagerTaps()
+        #expect(frame(SharedPagerParent(taps: taps), tui, height: 2) == ["a 0", "b 0"])
+        taps.page?.wrappedValue = 4
+        #expect(frame(SharedPagerParent(taps: taps), tui, height: 2) == ["a 4", "b 4"])
+    }
+}
+
+// MARK: - Fixtures: objects made with a view value
+
+/// What the views made with pagers hand out.
+@MainActor
+private final class PagerTaps {
+    var actions: [() -> Void] = []
+    var page: Binding<Int>?
+}
+
+/// A class app property made anew with every value of the view holding it.
+private final class Pager: DynamicProperty {
+    @State var page = 0
+
+    func next() { page += 1 }
+}
+
+/// A view made with a pager of its own, whose body hands out a closure
+/// holding the pager, as a `Button`'s action holds what it captures.
+private struct ClosurePagerView: View {
+    let taps: PagerTaps
+    let pager = Pager()
+
+    var body: some View {
+        let pager = pager
+        taps.actions.append { pager.next() }
+        return Text(verbatim: "page \(pager.page)")
+    }
+}
+
+/// A view made with a pager of its own, and a `Button` that turns it.
+private struct ButtonPagerView: View {
+    let pager = Pager()
+
+    var body: some View {
+        let pager = pager
+        return VStack {
+            Text(verbatim: "page \(pager.page)")
+            Button("Next") { pager.next() }
+        }
+    }
+}
+
+/// An observable model a pager reads from the environment.
+@Observable
+private final class PagerModel {
+    var name = "model"
+}
+
+/// A pager reading a model from the environment.
+private final class ModelPager: DynamicProperty {
+    @State var page = 0
+    @Environment(PagerModel.self) var model
+}
+
+private struct ModelPagerView: View {
+    let taps: PagerTaps
+    let pager = ModelPager()
+
+    var body: some View {
+        taps.page = pager.$page
+        return Text(verbatim: "\(pager.model.name) \(pager.page)")
+    }
+}
+
+/// Pagers made on demand inside a body, and kept.
+@MainActor
+private final class LazyPagers {
+    private var made: [Int: Pager] = [:]
+
+    func pager(_ key: Int) -> Pager {
+        if let pager = made[key] { return pager }
+        let pager = Pager()
+        made[key] = pager
+        return pager
+    }
+}
+
+/// The pager at `key`, made the first time it is shown, shown by one view.
+private struct LazyPagerParent: View {
+    let store: LazyPagers
+    let key: Int
+    let taps: PagerTaps
+
+    var body: some View {
+        PagerLine(name: nil, pager: store.pager(key), taps: taps)
+    }
+}
+
+/// A view showing a pager, handing out a binding to its page.
+private struct PagerLine: View {
+    let name: String?
+    let pager: Pager
+    let taps: PagerTaps
+
+    var body: some View {
+        taps.page = pager.$page
+        return Text(verbatim: name.map { "\($0) \(pager.page)" } ?? "page \(pager.page)")
+    }
+}
+
+/// A view showing a pager, served from the memo while its name is
+/// unchanged, whatever pager it is handed.
+private struct MemoPagerLine: View, Equatable {
+    let name: String
+    let pager: Pager
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool { lhs.name == rhs.name }
+
+    var body: some View {
+        Text(verbatim: "\(name) \(pager.page)")
+    }
+}
+
+/// A pager made in the body, with each value of the view, and handed to two
+/// views, the second memoised.
+private struct SharedPagerParent: View {
+    let taps: PagerTaps
+
+    var body: some View {
+        let pager = Pager()
+        return VStack {
+            PagerLine(name: "a", pager: pager, taps: taps)
+            MemoPagerLine(name: "b", pager: pager).equatable()
+        }
     }
 }

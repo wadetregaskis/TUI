@@ -173,11 +173,11 @@ protocol PlaceResolvedEnvironment {
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
         storage: StateStorage?) -> Bool
 
-    /// Hands the wrapper at `address`, in an object another view claims,
-    /// `environment` if it has never been handed one, and leaves it resolved
-    /// for no place, so that the next walk to resolve it resolves it as its
-    /// own. One already handed an environment is left as it is
-    /// (``ObjectContentsClaim/fillEnvironment(_:)``).
+    /// Hands the wrapper at `address`, in a class property's object whose
+    /// primary holder is another view, `environment` if it has never been
+    /// handed one, and leaves it resolved for no place, so that the next walk
+    /// to resolve it resolves it as its own. One already handed an environment
+    /// is left as it is (``PropertyWalk/applyObjectLeaf(_:at:position:scope:in:)``).
     static func fillEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues)
 }
 

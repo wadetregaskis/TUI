@@ -1,0 +1,4 @@
+observable first draw: ["a 0", "b 0"]
+observable after write (equatable a, plain b): ["a 9", "b 9"]
+class property first draw: ["a 0", "b 0"] updates: 3
+class property after a's binding := 5: [] updates: 0 read now: 0
