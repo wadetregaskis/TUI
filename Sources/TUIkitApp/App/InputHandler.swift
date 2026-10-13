@@ -225,6 +225,9 @@ extension InputHandler {
         if focusPathHearsKeys, let focused = focusManager.focusedIdentity,
             keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .keyPress)
         {
+            // Taken on its way to the focused control: input all the same, so
+            // a focus the manager chose by itself now counts as held (B35).
+            focusManager.noteInputToFocusedControl()
             return true
         }
 

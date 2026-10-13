@@ -38,6 +38,11 @@ extension FocusManager {
     struct RecoveryTarget {
         let element: Focusable
         let sectionID: String
+        /// Whether the focus it takes over was the manager's own untouched
+        /// choice (``FocusScopeRegistry/autoFocusedID``), so the neighbour it
+        /// recovers to is the manager's choice too (B35). A handoff never is:
+        /// the app named it.
+        var isAutomatic = false
     }
 
     /// Where focus goes when the element `droppedID` can no longer hold it.
@@ -50,7 +55,8 @@ extension FocusManager {
     func recoveryTarget(after droppedID: String) -> RecoveryTarget? {
         if let handoff = handoffTarget(from: droppedID) { return handoff }
         guard let section = activeSection, let neighbour = neighbourTarget(after: droppedID) else { return nil }
-        return RecoveryTarget(element: neighbour, sectionID: section.id)
+        return RecoveryTarget(
+            element: neighbour, sectionID: section.id, isAutomatic: focusScopes.autoFocusedID == droppedID)
     }
 
     /// The neighbour of `droppedID` in the active section's ring: the next

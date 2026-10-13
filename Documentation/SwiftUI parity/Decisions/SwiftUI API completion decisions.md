@@ -52,7 +52,7 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B35.
+at the faint tiers).
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1662,6 +1662,17 @@ real focus event (a user's move, a click, an app's write or `.defaultFocus`),
 and end it on any input delivered to the automatically focused control, so
 focus never moves from under someone typing; a new test for a scope that
 appears while the focus is still the automatic pick.
+
+**Shipped 2026-10-13 (BITEMS1):** the mark lasts across frames. It ends when
+the focus moves off the chosen control by any path, when anything focuses
+that control explicitly (a click on it), and when a key is offered to it —
+taken or not, or taken by an `onKeyPress` on its way there. The first-control
+fallback at the end of a pass is the manager's choice too, as is the
+neighbour an untouched choice falls back to when it leaves; a
+`.focusHandoff` target (the app named it) and a page's focus restored when a
+sheet closes are not. Tests: `takesTheUntouchedAutomaticFocus` (a scope
+three frames on takes it), `doesNotSteal` (Return pressed it first) and
+`declinedKeyEndsTheAutomaticChoice` (a key the button ignores).
 
 ### B38. Search scopes show while the search is under way, by a terminal's reading of "presented" and "cancelled"
 

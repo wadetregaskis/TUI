@@ -55,13 +55,15 @@ extension View {
     /// that scope.
     ///
     /// - **Initially:** on the frame the preference first appears, if nothing
-    ///   holds the focus by then — at launch, or when a sheet holding it is
-    ///   presented — the preferred control takes it, rather than the first
-    ///   control on the screen or in the sheet. (The focus manager's own
-    ///   first-control choice does not count as holding it.) A focus the user
-    ///   or a `.defaultFocus(_:_:priority:)` already put somewhere is left
-    ///   alone. Once applied, the preference is spent until its scope leaves
-    ///   the screen and comes back.
+    ///   holds the focus by then — at launch, when a sheet holding it is
+    ///   presented, or later — the preferred control takes it, rather than the
+    ///   first control on the screen or in the sheet. The focus manager's own
+    ///   first-control choice does not count as holding it until something
+    ///   happens to it: the user moves the focus, clicks, or presses a key
+    ///   while it holds the focus, or the app or a
+    ///   `.defaultFocus(_:_:priority:)` puts the focus somewhere. A focus put
+    ///   somewhere that way is left alone. Once applied, the preference is
+    ///   spent until its scope leaves the screen and comes back.
     /// - **On request:** ``ResetFocusAction`` moves the focus back to it.
     ///
     /// If several controls in one scope prefer it, the first in the tree wins.
@@ -162,15 +164,19 @@ final class FocusScopeRegistry {
     /// applies again when it comes back.
     private var applied: Set<Namespace.ID> = []
 
-    /// The control the focus manager focused automatically this pass, as the
-    /// first of a section — not a focus anyone asked for, so a preference may
-    /// take its place.
+    /// The control the focus manager focused by itself — the first of a
+    /// section, or the first left when the focus was dropped — while nothing
+    /// has happened to that focus since: not a focus anyone asked for, so a
+    /// preference that comes due later may take its place (B35).
+    ///
+    /// Kept across frames, and ended by the first real focus event: any move
+    /// of the focus (`FocusManager.focusedID`'s `didSet`, which a Tab, a click
+    /// on another control, an app's write and `.defaultFocus` all go through),
+    /// an explicit focus of this very control (`FocusManager.focus(_:)`, a
+    /// click on it), or any key offered to it
+    /// (`FocusManager.noteInputToFocusedControl()`), so the focus never moves
+    /// from under someone typing.
     var autoFocusedID: String?
-
-    /// Starts a pass.
-    func beginPass() {
-        autoFocusedID = nil
-    }
 
     /// Starts a walk: this walk's declarations replace the last walk's.
     func beginWalk() {
@@ -221,8 +227,10 @@ final class FocusScopeRegistry {
 extension FocusManager {
     /// Gives the initial focus to a preferred control whose scope appeared
     /// this pass, if nothing holds the focus but what the manager chose for
-    /// itself. Called by ``endRenderPass()`` after `.defaultFocus` has had its
-    /// say and before the first-focusable fallback.
+    /// itself — on this pass or an earlier one, untouched since (see
+    /// ``FocusScopeRegistry/autoFocusedID``). Called by ``endRenderPass()``
+    /// after `.defaultFocus` has had its say and before the first-focusable
+    /// fallback.
     func resolveScopeDefaults() {
         let due = focusScopes.endPass()
         guard pendingFocusID == nil else { return }
@@ -231,6 +239,14 @@ extension FocusManager {
             guard canReceiveDefault(focusID) else { continue }
             focus(id: focusID)
         }
+    }
+
+    /// Input reached the focused control: a key offered to it, or taken by an
+    /// `onKeyPress` on its way there. From now on its focus counts as held,
+    /// even where the manager chose it, so a preference that comes due later
+    /// leaves it alone (B35).
+    package func noteInputToFocusedControl() {
+        focusScopes.autoFocusedID = nil
     }
 
     /// Reevaluates default focus in `namespace`'s scope — see

@@ -618,16 +618,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   focus" (Apple's documentation; its examples are tvOS's, and macOS was not
   measurable offscreen).
 - **TUIkit:** a screen or a newly presented sheet focuses its first control by
-  itself. A preferred default takes over from that automatic choice only on
-  the frame the choice is made: at launch, or as a sheet appears. From the
-  next frame the automatic choice counts as held, so a focus scope that
-  appears later does not take the focus (pinned by `doesNotSteal`). A focus
-  the user, an `@FocusState` write or `.defaultFocus` placed is never taken.
+  itself. That automatic choice does not count as a view having the focus
+  until something happens to it: the user moves the focus, clicks, or presses
+  a key while it holds the focus, or the app or `.defaultFocus` moves it. Until
+  then a preferred default takes over from it, on whichever frame its scope
+  appears (pinned by `takesTheUntouchedAutomaticFocus`, `doesNotSteal` and
+  `declinedKeyEndsTheAutomaticChoice`). A focus the user, an `@FocusState`
+  write or `.defaultFocus` placed is never taken.
 - **Why:** a keyboard interface needs somewhere to start.
 - **Decided:** [B35](<Decisions/SwiftUI API completion decisions.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>), [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>) (the `@FocusState` row
-  states the frame rule). **Owner** (2026-10-12: an explicit focus
-  overrides the default, which holds today; the automatic choice must not
-  count as held, which is [slated](#slated-to-change)).
+  states the rule). **Owner** (2026-10-12: an explicit focus overrides the
+  default, and the automatic choice must not count as held; shipped
+  2026-10-13).
 
 ### I6. Undo steps are per input event, and the keys are Control chords
 
@@ -1472,7 +1474,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | Difference | Where | State |
 |---|---|---|
 | `\.legibilityWeight` is read-only `nil`; SwiftUI's `.bold` draws text a weight heavier (measured) | [B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-read-only-always-nil>) | Owner 2026-10-12: make it writable; lane owed, with an A/B |
-| The automatic first-control focus counts as held after its first frame (I5) | [B35](<Decisions/SwiftUI API completion decisions.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>) | Owner 2026-10-12: it must not count; lane owed, one commit |
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable, and only `.viewAligned` reads them (the size classes). On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tuikit-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults |
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |

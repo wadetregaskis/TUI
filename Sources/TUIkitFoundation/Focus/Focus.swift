@@ -92,11 +92,18 @@ public final class FocusManager: @unchecked Sendable {
     /// that assign focus straight from section memory — a modal dismissal, a
     /// Tab across a section boundary — by construction rather than by each of
     /// them remembering to.
+    ///
+    /// The same `didSet` ends the automatic first-control focus's standing as
+    /// nobody's (``FocusScopeRegistry/autoFocusedID``) whenever the focus moves
+    /// off it — by any path, those that assign this property directly
+    /// included — so a later preference can never take a focus the user, the
+    /// app or a `.defaultFocus` placed.
     private var focusedID: String? {
         didSet {
             guard oldValue != focusedID else { return }
             invalidateCachedRender(of: oldValue)
             invalidateCachedRender(of: focusedID)
+            if focusedID != focusScopes.autoFocusedID { focusScopes.autoFocusedID = nil }
         }
     }
 
@@ -497,9 +504,8 @@ extension FocusManager {
             && !optionalFocusSectionIDs.contains(targetID)
             && !suppressesAutoFocus
         {
-            focusPreservingPendingIntent(element)
             // Chosen by the manager, not asked for: a preference may replace it.
-            focusScopes.autoFocusedID = focusedID
+            focusPreservingPendingIntent(element, automatically: true)
         }
 
         // A pending focus intent resolves the moment its target registers —
@@ -677,13 +683,22 @@ extension FocusManager {
     /// - Parameter element: The element to focus.
     public func focus(_ element: Focusable) {
         pendingFocusID = nil
+        // Asked for, so held — even where it lands on the control the manager
+        // had chosen by itself (a click on it), which the early return in
+        // `focusPreservingPendingIntent` leaves `focusedID`'s `didSet` no
+        // chance to see.
+        focusScopes.autoFocusedID = nil
         focusPreservingPendingIntent(element)
     }
 
     /// ``focus(_:)`` for the framework's *automatic* focus moves (auto-focus
     /// of a section's first element, the pending-intent resolver itself) —
     /// moves that must not supersede a live pending intent.
-    func focusPreservingPendingIntent(_ element: Focusable) {
+    ///
+    /// `automatically`: the manager chose the element by itself, so its focus
+    /// does not count as held until something happens to it — see
+    /// ``FocusScopeRegistry/autoFocusedID``.
+    func focusPreservingPendingIntent(_ element: Focusable, automatically: Bool = false) {
         guard element.canBeFocused else { return }
 
         // Focusing the already-focused element is a no-op: a click inside a
@@ -695,6 +710,7 @@ extension FocusManager {
         notifyFocusLost()
 
         focusedID = element.focusID
+        if automatically { focusScopes.autoFocusedID = focusedID }
         element.onFocusReceived()
         // The deferred arrival, if this IS it: announced here, so it must not be
         // announced again by ``endRenderPass()`` — and, more to the point, the
@@ -766,8 +782,7 @@ extension FocusManager {
     /// resolves against last frame's mapping. Stamped with the current render
     /// generation for ``pruneFocusRegistry()``.
     func registerFocusBinding(store: String, value: AnyHashable, focusID: String) {
-        focusBindings[store, default: [:]][value] =
-            FocusBinding(focusID: focusID, generation: focusRenderGeneration)
+        focusBindings[store, default: [:]][value] = FocusBinding(focusID: focusID, generation: focusRenderGeneration)
     }
 
     /// The value whose bound control currently holds focus, for a store — the
@@ -989,6 +1004,9 @@ extension FocusManager {
                   sections: \(debugSectionsSummary())
                   currentFocused.focusID: \(focused.focusID)
                 """)
+            // Offered, whether or not it takes it: input reached the focused
+            // control, so its focus counts as held from here (B35).
+            noteInputToFocusedControl()
             if focused.handleKeyEvent(event) {
                 // Bump the interaction generation so any
                 // surrounding ScrollView re-renders this frame
@@ -1360,7 +1378,6 @@ extension FocusManager {
         previousPresentationDismissals = presentationDismissals
         panes.beginFrame()
         beginSceneRender()
-        focusScopes.beginPass()
         // A new generation so this pass's @FocusState registrations can be told
         // apart from prior ones (see `pruneFocusRegistry`). The registry itself
         // is NOT cleared here — a body-top read must resolve against last frame's
@@ -1425,9 +1442,7 @@ extension FocusManager {
         // overlay that activated its own section was dismissed), remember its
         // focus, fall back to the first section, and restore THAT section's
         // remembered focus — so the page returns to where it was, not its top.
-        if let activeID = activeSectionID,
-            !sections.contains(where: { $0.id == activeID })
-        {
+        if let activeID = activeSectionID, !sections.contains(where: { $0.id == activeID }) {
             closeUndrawnPresentation(id: activeID)
             rememberFocusForActiveSection()
             notifyFocusLost()
@@ -1501,7 +1516,9 @@ extension FocusManager {
             let target = recovery?.element ?? section.focusables.first(where: { $0.canBeFocused })
         {
             if let sectionID = recovery?.sectionID { activeSectionID = sectionID }
-            focusPreservingPendingIntent(target)
+            // The first focusable, or the untouched choice's neighbour, is the
+            // manager's choice as much as `register`'s first-control focus is.
+            focusPreservingPendingIntent(target, automatically: recovery?.isAutomatic ?? true)
         }
 
         // A restore that was assigned directly from section memory (a modal

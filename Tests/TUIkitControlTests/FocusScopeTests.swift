@@ -93,7 +93,24 @@ struct FocusScopeTests {
         #expect(log.focusChanges.isEmpty, "the first field never held the focus, not even for a frame")
     }
 
-    @Test("A scope appearing while the focus is elsewhere does not take it")
+    @Test("A scope appearing on a later frame takes the focus the manager chose, while nothing has happened to it")
+    func takesTheUntouchedAutomaticFocus() {
+        let harness = InputChainHarness()
+        let log = Log()
+        log.show = false
+        let page = { Page(log: log) }
+        harness.frame(page())
+        harness.frame(page())
+        harness.frame(page())
+        log.show = true
+        harness.frame(page())
+        harness.frame(page())
+        #expect(
+            focused(harness, log, page) == "preferred",
+            "three frames on, the first control's focus was still the manager's own choice")
+    }
+
+    @Test("A scope appearing after the focused control has been used does not take the focus")
     func doesNotSteal() {
         let harness = InputChainHarness()
         let log = Log()
@@ -105,7 +122,25 @@ struct FocusScopeTests {
         log.show = true
         harness.frame(page())
         harness.frame(page())
-        #expect(focused(harness, log, page) == "outside")
+        #expect(focused(harness, log, page) == "outside", "Return pressed it, so its focus was held")
+    }
+
+    @Test("A key the focused control lets go of still ends the automatic choice")
+    func declinedKeyEndsTheAutomaticChoice() {
+        let harness = InputChainHarness()
+        let log = Log()
+        log.show = false
+        let page = { Page(log: log) }
+        harness.frame(page())
+        harness.frame(page())
+        harness.press(KeyEvent(key: .character("x")))
+        harness.frame(page())
+        log.show = true
+        harness.frame(page())
+        harness.frame(page())
+        #expect(
+            focused(harness, log, page) == "outside",
+            "the key was offered to the control holding the focus, so someone was at it")
     }
 
     @Test("resetFocus moves the focus back to the preferred control from inside the scope")
