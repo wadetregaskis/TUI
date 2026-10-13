@@ -1504,13 +1504,31 @@ extension ItemListHandler {
     /// Backed by ``itemIDs`` (O(total) hash-free scan) for the eager paths. The
     /// windowed path scans `0..<itemCount` through ``idAt`` — O(total) too, but
     /// only ever invoked on focus-lost under an active selection, never per
-    /// frame, so it stays off the hot path.
+    /// frame, so it stays off the hot path — and by a hold, past where
+    /// ``index(of:near:)`` looked first.
     func index(of id: SelectionValue) -> Int? {
         if let idAt {
             for index in 0..<itemCount where idAt(index) == id { return index }
             return nil
         }
         return itemIDs.firstIndex(of: id)
+    }
+
+    /// The index of the row whose id equals `id`, looked for outward from
+    /// `origin` first — a change usually moves a row a few places — and then
+    /// everywhere (``index(of:)``). What a hold asks on the frames whose rows
+    /// moved under it (``holdTopRow()``, the `.row` anchor's): from the first
+    /// row, a list scrolled deep and fed rows at its top read every id above
+    /// the held row on every frame that brought some — and an id can cost a
+    /// build of its row (``id(at:)``).
+    func index(of id: SelectionValue, near origin: Int) -> Int? {
+        for distance in 0...64 {
+            for candidate in distance == 0 ? [origin] : [origin - distance, origin + distance]
+            where self.id(at: candidate) == id {
+                return candidate
+            }
+        }
+        return index(of: id)
     }
 
     /// ``itemIDs`` and ``selectableIndices``, together.

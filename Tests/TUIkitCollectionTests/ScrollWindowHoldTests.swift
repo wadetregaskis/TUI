@@ -676,4 +676,34 @@ struct ScrollWindowHoldTests {
         #expect(handler.scrollOffset == 10)
         #expect(handler.id(at: handler.focusedIndex) == 17)
     }
+
+    /// Rows prepended to a long list scrolled deep: the top row is found where
+    /// it went by a search outward from where it was, not by a scan from row
+    /// 0 — an id can cost a build of its row (`ItemListHandler.id(at:)`), and
+    /// this runs on every frame that inserts above.
+    @Test("A List finds its top row near where it was, not by a scan from the first row")
+    func listFindsItsTopRowNearby() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 5_000, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        var ids = Array(0..<5_000)
+        var reads = 0
+        handler.idAt = { index in
+            reads += 1
+            return ids[index]
+        }
+        func settle() {
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        settle()
+        handler.scrollOffset = 3_000
+        handler.focusedIndex = 3_000
+        settle()
+        ids.insert(contentsOf: 10_000..<10_003, at: 0)
+        handler.itemCount = 5_003
+        reads = 0
+        settle()
+        #expect(handler.scrollOffset == 3_003, "held")
+        #expect(reads < 100, "\(reads) ids read")
+    }
 }

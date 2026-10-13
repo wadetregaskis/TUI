@@ -237,7 +237,7 @@ extension ItemListHandler {
         guard lastWindowHold == .topRow, hasOpened, !offsetAdjustmentSuspended, !followsTail,
             !movedRowsSinceLastFrame, scrollOffset > 0 || scrollTopClipLines > 0
         else { return }
-        let found = index(of: heldID)
+        let found = index(of: heldID, near: heldTopOrdinal)
         if let found, !keepsANeighbour(at: found) { return }
         let now: Int
         if let found {
@@ -247,7 +247,7 @@ extension ItemListHandler {
             // right after the place the top row had, which is then still
             // there, the row in it replaced where it stood (its id changed),
             // and nothing above it moved.
-            guard let next = heldTopNextID, let nextNow = index(of: next) else { return }
+            guard let next = heldTopNextID, let nextNow = index(of: next, near: heldTopOrdinal + 1) else { return }
             let placeKept =
                 nextNow - 1 == heldTopOrdinal
                 || (heldTopPreviousID != nil && id(at: nextNow - 2) == heldTopPreviousID)
@@ -422,15 +422,15 @@ extension ItemListHandler {
     }
 
     /// The held anchor row's current ordinal, via an O(1) memo (the key usually
-    /// stays put frame to frame) falling back to the O(total) ``index(of:)``
-    /// scan only when the data around it actually shifted.
+    /// stays put frame to frame) falling back to a search outward from it
+    /// (``index(of:near:)``) only when the data around it actually shifted.
     private func resolveAnchorOrdinal(key: AnyHashable, value: SelectionValue) -> Int? {
         if key == anchorHeldKey, let memo = anchorHeldOrdinal,
             memo < itemCount, id(at: memo) == value
         {
             return memo
         }
-        let ordinal = index(of: value)
+        let ordinal = anchorHeldOrdinal.map { index(of: value, near: $0) } ?? index(of: value)
         anchorHeldOrdinal = ordinal
         return ordinal
     }
