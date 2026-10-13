@@ -1,0 +1,6 @@
+1 the top row's id changed in place (10 -> 1010)               origin 200 -> 200 | top row 1010
+2 five inserted above, the top row's id changed in place       origin 200 -> 200 | top row 5
+3 five inserted above, one inserted just after the top row     origin 200 -> 300 | top row 10
+4 five inserted above, the row after the top row removed       origin 200 -> 300 | top row 10
+5 five inserted above, the row before the top row removed      origin 200 -> 280 | top row 10
+6 the row after the top row removed (control)                  origin 200 -> 200 | top row 10

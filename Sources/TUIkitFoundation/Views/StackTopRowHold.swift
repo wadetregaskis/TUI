@@ -87,7 +87,16 @@ extension StackWindowState {
     /// rearranged — a sort — and is not followed: SwiftUI holds no row through
     /// a reorder (measured, `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`),
     /// and following one would scroll a sorted list to wherever its top row
-    /// went. One gone is replaced by the row after it, put where it was.
+    /// went.
+    ///
+    /// One gone is replaced by the row after it, put where it was — unless
+    /// that row is still as far after the place the remembered one had: then
+    /// the place is still there and only the row in it changed, its id
+    /// changed where it stands (`ForEach(names, id: \.self)` with the name at
+    /// the top edited), and nothing above moved it: nothing moves, as in
+    /// SwiftUI (measured, `Tools/SwiftUIProbes/Scroll anchoring/beside.out`
+    /// case 1). Taken for the row gone, the row after it was put where it was,
+    /// and the view moved down a row.
     func heldTopRowPlace(in keys: RowKeys) -> (ordinal: Int, inPlace: Bool)? {
         guard let held = heldTopRow else { return nil }
         if keys[held.ordinal] == held.key { return (held.ordinal, true) }
@@ -95,8 +104,11 @@ extension StackWindowState {
             guard held.nextKey == nil || keys[ordinal + held.nextOffset] == held.nextKey else { return nil }
             return (ordinal, false)
         }
-        if let next = held.nextKey, let ordinal = keys.ordinal(of: next, runIndex: 0, near: held.ordinal) {
-            return (ordinal, false)
+        if let next = held.nextKey,
+            let ordinal = keys.ordinal(of: next, runIndex: 0, near: held.ordinal + held.nextOffset)
+        {
+            let place = ordinal - held.nextOffset
+            return (place == held.ordinal ? place : ordinal, false)
         }
         return nil
     }

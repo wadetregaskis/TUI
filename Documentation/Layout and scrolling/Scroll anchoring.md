@@ -741,7 +741,12 @@ frame moves the offset by however far that row moved (`StackTopRowHold.swift`)
 above from a reorder. It is a shift, not a placement: a scroll made since the last frame is kept, and a
 frame whose content above did not change moves nothing. Found at its ordinal the
 row costs one key read; found elsewhere, a search outward from where it was,
-then over every key. Gone, the row after it is put where it was. The correction
+then over every key. Gone, the row after it is put where it was — unless the row
+after it is still as far after the place the top row had: then only the row in
+that place changed (its id did, `ForEach(names, id: \.self)` with the top name
+edited), nothing above it moved, and nothing moves, as in SwiftUI
+(`Tools/SwiftUIProbes/Scroll anchoring/beside.out` case 1); taken for the row
+gone, the view moved down a row (until 2026-10-13). The correction
 reaches the scroll view as a designation's does, as `seekResolvedOffset`, and is
 adopted as one is (`jumpProgrammatically`): a frame that holds drops an
 overscroll excursion (§1.5), as a seek does. Only a push past the bottom can be

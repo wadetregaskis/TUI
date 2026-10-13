@@ -236,11 +236,14 @@ messages cite that path), and what cites it.
   off screen, so that case says only that the origin did not move), for a `List` read from its `NSTableView`.
   Top-level code, built alone. `reorder.swift`, the same harness, asks what a reorder does to the row at the top:
   every row reversed, the top row moved to the end, swapped with the next, a row from below the screen moved to
-  the start, rows from above moved to the end.
-- **Ran:** macOS 15.8, a 300×200 window, 2026-10-12 (`reorder.swift` 2026-10-13).
-- **Was:** `SCROLLANCHOR/probe/hold/` (`reorder.swift` as `hold3.swift`).
+  the start, rows from above moved to the end. `beside.swift`, the same harness again, asks what a change to the
+  top row itself or to the rows beside it does: its id changed in place, alone and with five rows inserted above
+  it, and with five inserted above, a row inserted just after it, or the row after it or before it removed.
+- **Ran:** macOS 15.8, a 300×200 window, 2026-10-12 (`reorder.swift` 2026-10-13, `beside.swift` 2026-10-13).
+- **Was:** `SCROLLANCHOR/probe/hold/` (`reorder.swift` as `hold3.swift`); `beside.swift` in
+  `SCROLLANCHOR/probe/beside/`.
 - **Cited by:** `Sources/TUIkitFoundation/Views/ScrollWindowHold.swift`,
-  `Sources/TUIkitFoundation/Views/StackTopRowHold.swift`,
+  `Sources/TUIkitFoundation/Views/StackTopRowHold.swift`, `Sources/TUIkitLists/Focus/ItemListHandler+Anchor.swift`,
   `Tests/TUIkitCollectionTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
   `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.

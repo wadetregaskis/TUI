@@ -193,6 +193,28 @@ struct ScrollWindowHoldTests {
         #expect(!rows(after).contains(top), "row \(top) was followed: before \(before)\nafter \(after)")
     }
 
+    /// A row whose id changes where it is — `ForEach(names, id: \.self)` with
+    /// the name at the top edited — is a row gone and another in its place:
+    /// nothing above it changed, so nothing on screen moves. Taken for the top
+    /// row removed, the row after it was put where the top row was, and the
+    /// view jumped down a row.
+    @Test("A top row whose id changes in place leaves the rows on screen where they are", arguments: StackPath.allCases)
+    func renamedTopRowKeepsItsPlace(path: StackPath) {
+        let scroller = Scroller(path)
+        var before = scroller.scrolled(to: 30)
+        if before.first?.isEmpty != false { before = scroller.scrolled(to: 31) }
+        guard let top = rows(before).first, before.first == "row \(top)",
+            let index = scroller.items.firstIndex(where: { $0.id == top })
+        else {
+            Issue.record("precondition: a whole row at the top \(before)")
+            return
+        }
+        // Three thousand on, so a row of three heights keeps its own.
+        scroller.items[index] = Row(id: top + 3_000)
+        let after = scroller.frame()
+        #expect(after.map { $0 == "row \(top + 3_000)" ? "row \(top)" : $0 } == before, "before: \(before)\nafter:  \(after)")
+    }
+
     /// The exact walk draws up to 256 rows of different heights and the
     /// anchored walk more; a change that takes the count across holds the
     /// row at the top as any other does — rows inserted above it ("load
@@ -393,6 +415,20 @@ struct ScrollWindowHoldTests {
         lister.items.reverse()
         let after = lister.frame()
         #expect(listedRows(after).first != listedRows(before).first, "followed: before \(before)\nafter \(after)")
+    }
+
+    @Test("A List's or Table's top row whose id changes in place leaves the rows on screen where they are", arguments: ListKind.allCases)
+    func listRenamedTopRowKeepsItsPlace(kind: ListKind) {
+        let lister = Lister(kind)
+        let before = lister.scrolledDown()
+        guard let top = listedRows(before).first, let index = lister.items.firstIndex(where: { $0.id == top }) else {
+            Issue.record("precondition: rows on screen \(before)")
+            return
+        }
+        lister.items[index] = Row(id: top + 3_000)
+        let after = lister.frame()
+        let renamed = listedRows(after).map { $0 == top + 3_000 ? top : $0 }
+        #expect(renamed == listedRows(before), "before: \(before)\nafter:  \(after)")
     }
 
     @Test("At its top, a List or Table shows rows inserted above", arguments: ListKind.allCases)
