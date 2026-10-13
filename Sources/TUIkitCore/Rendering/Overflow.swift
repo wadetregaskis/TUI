@@ -236,6 +236,24 @@ extension FrameBuffer {
         overlays = covered
     }
 
+    /// Cuts the overflow this buffer carries under a border drawn by hand
+    /// around its content (``coverOverflow(underRects:)``): its top and
+    /// bottom rows, the columns either side of an `innerWidth`-wide inside,
+    /// and a divider across at `dividerRow` when it has one. Past them it is
+    /// still drawn.
+    ///
+    /// Nothing unless the buffer carries overflow, which is almost never.
+    package mutating func coverOverflowUnderBorder(innerWidth: Int, dividerRow: Int? = nil) {
+        guard !overlaysHoldNoOverflow else { return }
+        let rows = height
+        var rules = [
+            (x: 0, y: 0, width: width, height: 1), (x: 0, y: rows - 1, width: width, height: 1),
+            (x: 0, y: 0, width: 1, height: rows), (x: innerWidth + 1, y: 0, width: 1, height: rows),
+        ]
+        if let dividerRow { rules.append((x: 0, y: dividerRow, width: width, height: 1)) }
+        coverOverflow(underRects: rules)
+    }
+
     /// `layers` with the overflow among them cut away where `later`,
     /// placed at `position`, paints.
     private static func covering(

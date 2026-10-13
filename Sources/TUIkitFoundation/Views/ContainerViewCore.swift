@@ -727,7 +727,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // The rules are drawn over what the body and the footer draw past
         // their regions, as SwiftUI's border is (decisions-GUIDE3 B-GUIDE3-5).
         let dividerRow = hasFooter && style.showFooterSeparator ? 1 + bodyBuffer.lines.count : nil
-        Self.coverOverflowUnderRules(of: &result, innerWidth: innerWidth, dividerRow: dividerRow)
+        result.coverOverflowUnderBorder(innerWidth: innerWidth, dividerRow: dividerRow)
         result.hitTestRegions = carriedRegions
         result.animatedCells = animatedCells(
             bodyBuffer: bodyBuffer, footerBuffer: footerBuffer, innerWidth: innerWidth,
