@@ -98,7 +98,9 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// frame-final: the render pass transiently sets the scene BASE mid-frame
     /// (before per-frame feature requests are collected), and comparing
     /// against that would fire the unwind every frame a dialog elevates
-    /// clicks above the base.
+    /// clicks above the base. And the mode a reshape asks whether the resting
+    /// pointer's last position was reported under (`reconciled`), which runs
+    /// mid-frame too.
     private var frameFinalSupport: MouseSupport = .disabled
 
     /// Set by the handler currently taking a `.pressed` event to say it wants
@@ -582,14 +584,18 @@ extension MouseEventDispatcher {
     /// moved — its `.onHover` unlit, its help never starting its delay
     /// (decisions-HELP A-HELP-1, "Left open"). Not while motion is not
     /// reported, when the cursor may have gone anywhere since it last said
-    /// where it was. Entered once: the lane holds the control from then on,
+    /// where it was: asked of ``frameFinalSupport``, the mode the terminal
+    /// reports under since the last frame, not of ``activeSupport``, which
+    /// the walk reset to the scene's base mid-frame — without motion unless
+    /// the scene declares it, though an `.onHover` asks for it every frame.
+    /// Entered once: the lane holds the control from then on,
     /// and the next reshape finds the same one. Not the control a reshape
     /// took the lane off, until the cursor moves (``HoverSlot/leftByReshape``).
     private func reconciled(
         _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int)
     ) -> HoverSlot {
         guard slot.region != nil || slot.pendingExit != nil else {
-            guard let current, activeSupport.motion, current.handlerID != slot.leftByReshape else { return slot }
+            guard let current, frameFinalSupport.motion, current.handlerID != slot.leftByReshape else { return slot }
             return entered(current, at: position)
         }
         let previous = slot.pendingExit?.region ?? slot.region

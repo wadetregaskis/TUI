@@ -346,19 +346,27 @@ struct HoverReshapeTests {
     /// under a cursor resting on blank space heard nothing until the cursor
     /// moved (decisions-HELP A-HELP-1, "Left open"): a control and a hover
     /// observer (`.onHover`, `help(_:)`) alike.
+    ///
+    /// Each frame sets the support as the app does: the scene's base mid-frame,
+    /// before the regions are published (`.standard`, no motion, which is what
+    /// a scene that declares nothing gets), and what the frame asked for once
+    /// it is drawn (`.full`: an `.onHover` asks for motion). The first fix read
+    /// the mid-frame base, so in an app that declared no motion of its own the
+    /// reshape entered nothing (found by the BUGS13 lane's review).
     @Test("A reshape that puts a control or a hover observer under a cursor resting on nothing enters it, once",
           arguments: [false, true])
     func reshapeEntersFromNothing(observer: Bool) {
         let dispatcher = MouseEventDispatcher()
-        dispatcher.setActiveSupport(.full)
         var events: [MousePhase] = []
 
         func frame(withRegionUnderTheCursor present: Bool) {
             dispatcher.beginRenderPass()
+            dispatcher.setActiveSupport(.standard)
             let id = dispatcher.register { events.append($0.phase); return true }
             if observer { dispatcher.noteHoverObserver(id) }
             dispatcher.setRegions(
                 present ? [HitTestRegion(offsetX: 0, offsetY: 2, width: 6, height: 1, handlerID: id)] : [])
+            dispatcher.setActiveSupport(.full, isFrameFinal: true)
         }
 
         frame(withRegionUnderTheCursor: false)

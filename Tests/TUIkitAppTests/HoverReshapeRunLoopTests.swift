@@ -2,8 +2,10 @@
 //  HoverReshapeRunLoopTests.swift
 //
 //  A frame's reshape moving views under a resting pointer, through the run
-//  loop: an `.onHover` whose change moves its own view out from under the
-//  pointer settles rather than flickering at frame rate.
+//  loop: a view slid under a pointer resting on nothing hears `.entered` in an
+//  app that declares no mouse support of its own, and an `.onHover` whose
+//  change moves its own view out from under the pointer settles rather than
+//  flickering at frame rate.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -71,6 +73,37 @@ private struct SelfDisplacingPage: View {
     }
 }
 
+/// A focused button that puts a row above an `.onHover`, so it slides under a
+/// pointer resting on the blank row below it, in an app that declares no
+/// mouse support: the motion is the `.onHover`'s request alone.
+private struct SlidingHoverApp: App {
+    let log: HoverLog
+
+    init() { log = HoverLog() }
+
+    init(log: HoverLog) { self.log = log }
+
+    var body: some Scene {
+        WindowGroup {
+            SlidingHoverPage(log: log)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+}
+
+private struct SlidingHoverPage: View {
+    let log: HoverLog
+    @State private var inserted = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button("insert") { inserted = true }
+            if inserted { Text("new row") }
+            Text("slides").onHover { log.heard.append($0) }
+        }
+    }
+}
+
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class Driver<A: App> {
@@ -123,5 +156,27 @@ struct HoverReshapeRunLoopTests {
             for _ in 0..<12 { driver.step() }
             #expect(log.heard == settled, "\(height) rows: it went on after it settled: \(log.heard)")
         }
+    }
+
+    /// Found by the BUGS13 lane's review: the reshape asked whether motion is
+    /// reported of the support the walk had reset to the scene's base, which
+    /// is `.standard`, with no motion, unless the scene declares it; an
+    /// `.onHover` asks for motion for the frame only. So in such an app the
+    /// view slid under a pointer resting on nothing heard nothing.
+    @Test("A view slid under a pointer resting on nothing hears .entered in an app that declares no motion")
+    func slidUnderWithoutDeclaredMotion() throws {
+        let log = HoverLog()
+        let driver = Driver(SlidingHoverApp(log: log))
+        let slides = try #require(driver.position(of: "slides"), "precondition: drawn")
+        // The blank row below it.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: slides.x + 1, y: slides.y + 1))
+        driver.step()
+        #expect(log.heard.isEmpty, "precondition: the pointer rests on nothing: \(log.heard)")
+        #expect(driver.app.send(KeyEvent(key: .enter)), "the button took the press")
+        driver.step()
+        #expect(driver.position(of: "slides")?.y == slides.y + 1, "precondition: it slid under the pointer")
+        driver.step()
+        driver.step()
+        #expect(log.heard == [true], "entered once: \(log.heard)")
     }
 }

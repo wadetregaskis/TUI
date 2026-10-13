@@ -117,7 +117,12 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   next moved. Now a lane resting on nothing enters the control or hover
   observer a reshape puts under the pointer, once, while motion is reported
   (`HoverReshapeTests.reshapeEntersFromNothing`,
-  `HelpRunLoopTests.reshapeSlidesAViewUnderAPointerOnNothing`). Not the
+  `HelpRunLoopTests.reshapeSlidesAViewUnderAPointerOnNothing`). Reported as
+  of the last frame, which an `.onHover` or a help asked for motion in: the
+  review found the first fix asked the scene's base instead, which the walk
+  sets mid-frame and which has no motion unless the scene declares it, so it
+  did nothing in such an app
+  (`HoverReshapeRunLoopTests.slidUnderWithoutDeclaredMotion`). Not the
   control a reshape took the lane off, until the pointer moves: the lane's
   review found that an `.onHover` whose change moves its own view out from
   under the pointer then flickered at frame rate, entered, exited and
