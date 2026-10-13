@@ -79,6 +79,9 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // (B16). The body is evaluated as a render evaluates it — `@State` bound
     // here, `@Environment` resolved, observed — and read one step in.
     if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil {
+        // As a stack's members are (`compositeMembers(of:context:)`): what the
+        // walk hands a class property's `@Environment`s is put back after the
+        // content of the composite around the form, not after these rows.
         let body = evaluateCompositeBody(of: view, context: walk)
         return formElements(from: body, in: walk.withChildIdentity(type: V.Body.self))
     }

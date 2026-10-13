@@ -64,6 +64,11 @@ package func compositeMembers<V: View>(of view: V, context: RenderContext) -> [C
         !(V.self is any ChildViewProvider.Type), !(V.self is any Renderable.Type),
         StackGuard.hasHeadroomUncounted()
     else { return nil }
+    // What the body's walk hands the `@Environment`s in a class property the
+    // view holds, as other than the object's primary holder, is put back only
+    // after the content of the composite around the container, not after
+    // these members: the container draws them among its other children
+    // (decisions-DYNVFIX B-DYNVFIX-3, "Left").
     let body = evaluateCompositeBody(of: view, context: context)
     let bodyContext = context.withChildIdentity(type: V.Body.self)
     return resolveChildViews(from: body, context: bodyContext).map {

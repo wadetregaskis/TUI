@@ -294,6 +294,15 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 - A holder that stops reaching an object without leaving the tree — an
   optional set to `nil`, a case of its own enum left — stays registered until
   it leaves: a write redraws it needlessly.
+- A holder whose body a container takes apart rather than draws — a stack or
+  a section taking it into its members, a `List` asking it for its rows, a
+  `Form` reading its rows through it — or a guide asks for: what its walk
+  hands the object's `@Environment`s is put back only after the content of
+  the composite around the container, or at the end of the pass. Until then
+  its members, and the views drawn after them there, read that holder's
+  environment, or a later such holder's: the container draws the members
+  among its other children, with no point after one holder's members to put
+  it back at.
 - An object made on demand in a body and kept — a detail view's model from
   `store.model(for: selection)` — first shown in the pass it was made in,
   looks made with the view's value: if the object the view showed there

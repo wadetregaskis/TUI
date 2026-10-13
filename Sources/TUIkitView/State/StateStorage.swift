@@ -635,8 +635,11 @@ extension StateStorage {
     /// rows' state alive.
     public func endRenderPass() {
         // What a body evaluated outside the two places that put an object's
-        // environment back (a `List` asking a view for its rows, a guide
-        // asked for) left in place.
+        // environment back left in place: a `List` asking a view for its rows
+        // (`listRowsBody`), a stack or a section taking a view's body apart
+        // into its members (`compositeMembers`), a `Form` reading its rows
+        // through a view's body, a guide asked for. Each is put back at the
+        // end of the content of the composite around it, or here.
         restoreEnvironments(to: 0)
         // Indexed once for the pass: the prune asks of every unmarked box,
         // and a climb per root per box was most of a frame's end on a page
