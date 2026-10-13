@@ -51,7 +51,7 @@ when nothing animates.
 
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
-A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
+A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B22 (a look
 at the faint tiers).
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
@@ -1237,6 +1237,25 @@ B19's caveat). The shape that keeps the common path as it is (estimate): a
 static witness, "states a spacing preference", true only for `Layout`-backed
 views and their forwarding wrappers; a per-stack flag set while children are
 built; and per-gap distances only where two neighbours both state one.
+
+**Shipped 2026-10-13 (BITEMS1):** `HStack`, `LazyHStack` and `HStackLayout`
+resolve `spacing: nil` per pair of neighbours, so `HStack { MyLayoutA();
+MyLayoutB() }`, both asking for no space on the facing edges, draws them
+touching. Probing it found SwiftUI's `ViewSpacing` arithmetic is not the one
+this entry describes: a stated edge outweighs a default one, so ONE
+neighbour asking for none is enough (`Tools/SwiftUIProbes/Stack spacing per
+pair/spacing.out`). That shipped first, as
+[B-BITEMS1-2](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-2-a-stated-spacing-edge-outweighs-a-default-one-as-in-swiftui>),
+and a gap is the pair's wherever either neighbour states a preference. The
+shape is the estimate's: a static witness, `View._statesSpacingPreference`
+— true for a `Layout`'s view and a `Subview`, forwarded by `ForEach`,
+`Group`, `if`, `Optional` and the single-content wrappers, and by padding on
+the edges it leaves alone — read once per row, so a row whose content holds
+no layout asks no child anything; and `StackGaps`, which carries no
+preferences on that common path. A column needed nothing: every vertical
+distance is 0 either way. What it does not reach (the environment modifiers,
+`.frame`, an app's own view, a nested row) and the cost are in
+[B-BITEMS1-3](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>).
 
 ### B22. The content levels, and the two- and three-style `foregroundStyle`
 

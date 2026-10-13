@@ -1,14 +1,42 @@
 # Default focus, drop badges and stack spacing: decisions from lane BITEMS1
 
 *Lane BITEMS1, 2026-10-13, shipping decisions B35 (the automatic first-control
-focus is nobody's until something happens to it) and B10 (the drop-operation
-badge). The calls below are the ones the owner's rulings left open. The format
-is that of the main decisions file:*
+focus is nobody's until something happens to it), B10 (the drop-operation
+badge) and B20 (a row's `spacing: nil` per pair of neighbours). The calls below
+are the ones the owner's rulings left open. The format is that of the main
+decisions file:*
 
 - **A-BITEMS1-n — needs your decision.**
 - **B-BITEMS1-n — shipped the safe option.** Says what the fuller version
   would be, and its price.
 - **C-BITEMS1-n — declined.** With the reason.
+
+## A. Needs your decision
+
+### A-BITEMS1-1. Should a `Spacer` prefer no spacing, as SwiftUI's does?
+
+*`Spacer`, `ViewSpacing`*
+
+Measured on SwiftUI (`distances.out`, `spacer|box`): a `Spacer`'s preference
+is zero on every edge, so `HStack { Text("a"); Spacer(); Text("b") }` puts no
+gap either side of the spacer — the spacer takes it all. TUIkit's `Spacer`
+prefers the default like any view, so the row keeps one column either side.
+Wherever the row has room the difference cannot be seen (the spacer absorbs
+it); it shows where the row has none — at its ideal width, or squeezed — as
+two columns more than SwiftUI's reading would give it (TUIkit's side not run
+for this note).
+
+- **(a) Keep TUIkit's.** A spacer's gaps stay as they are; documented as a
+  deviation.
+- **(b) SwiftUI's.** A spacer states `.zero`. Every `HStack` with a spacer
+  then resolves its gaps per pair (B20's path): a static witness makes that
+  cost nothing for rows without one, but rows with a spacer — common — would
+  take the per-pair path every walk. Measured cost unknown (an A/B on
+  `kitchensink`, `deep` and `table`), and every fixed-size row with a spacer
+  narrows by two columns.
+
+**Recommended: (a)** until the A/B prices (b); the visible difference needs a
+spacer squeezed to its minimum.
 
 ## B. Shipped the safe option
 
@@ -79,29 +107,48 @@ say that before).
 of B20 keep a column between a plain view and a tight layout where SwiftUI
 keeps none. It has no use but the old answer.
 
-## A. Needs your decision
+### B-BITEMS1-3. A row's `spacing: nil` per pair reaches layouts, and the wrappers that move no edge
 
-### A-BITEMS1-1. Should a `Spacer` prefer no spacing, as SwiftUI's does?
+*`HStack.init(alignment:spacing:content:)`, `LazyHStack`, `HStackLayout`,
+`ViewSpacing`, `Layout.spacing(subviews:cache:)`*
 
-*`Spacer`, `ViewSpacing`*
+**Shipped:** B20's fuller version, with B-BITEMS1-2's arithmetic: a gap is
+the distance the pair's facing edges ask for wherever either neighbour states
+a preference. A view states one when it is a `Layout`'s view, a `Subview`, or
+inside a wrapper that moves none of its edges (the single-content wrappers:
+`.id`, `.tag`, `.onAppear`, the focus and gesture modifiers…), and through
+`.padding` on the edges it does not pad. Measured on SwiftUI
+(`Tools/SwiftUIProbes/Stack spacing per pair/spacing.out`), where TUIkit
+differs:
 
-Measured on SwiftUI (`distances.out`, `spacer|box`): a `Spacer`'s preference
-is zero on every edge, so `HStack { Text("a"); Spacer(); Text("b") }` puts no
-gap either side of the spacer — the spacer takes it all. TUIkit's `Spacer`
-prefers the default like any view, so the row keeps one column either side.
-Wherever the row has room the difference cannot be seen (the spacer absorbs
-it); it shows where the row has none — at its ideal width, or squeezed — as
-two columns more than SwiftUI's reading would give it (TUIkit's side not run
-for this note).
+- **Forwarded by SwiftUI, not here:** `.frame`, `.border`, `.background`,
+  `.foregroundStyle` (the environment modifiers generally), a view of the
+  app's own whose body is a layout, and a nested `HStack`, which states its
+  children's preferences merged. A layout under any of these states the
+  default here, so `HStack { Tight().foregroundStyle(.red); Text("b") }`
+  keeps its column. `.frame`, `.background` and the environment modifiers
+  move no edge and could forward as the single-content wrappers do; an app's
+  view needs its body asked, which is B19's open question; a `.border` here
+  takes a cell each side, as `.padding(1)` does, so the default there is
+  arguably right.
+- **`.padding`** puts the default back on the edges it pads and keeps the
+  others: measured for `.padding(4)` (the default) and `.padding(0)` (the
+  layout's own); one-edge padding is unmeasured and follows the same rule
+  edge by edge.
+- **A lazy row's pinned sections** lay out their header, rows and footer at
+  the row's default distance, as before.
+- **A column** needed nothing: every vertical distance is 0 rows either way.
 
-- **(a) Keep TUIkit's.** A spacer's gaps stay as they are; documented as a
-  deviation.
-- **(b) SwiftUI's.** A spacer states `.zero`. Every `HStack` with a spacer
-  then resolves its gaps per pair (B20's path): a static witness makes that
-  cost nothing for rows without one, but rows with a spacer — common — would
-  take the per-pair path every walk. Measured cost unknown (an A/B on
-  `kitchensink`, `deep` and `table`), and every fixed-size row with a spacer
-  narrows by two columns.
+**Cost.** A row given a stated `spacing`, or whose content's type holds no
+layout (`View._statesSpacingPreference`, a compile-time chain), asks no child
+anything: it pays a gap value of three words per walk and an optional check
+per gap (the refactor before this commit). A row whose content may hold one
+asks every child each walk — a few conformance casts through its wrappers,
+and for a layout its `spacing(subviews:cache:)` over its resolved subviews —
+and a lazy row asks every child, not only those its window reaches.
 
-**Recommended: (a)** until the A/B prices (b); the visible difference needs a
-spacer squeezed to its minimum.
+**The fuller version:** forwarding through `.frame`, `.background` and the
+environment modifiers (a witness per modifier type, about half a day);
+nested rows stating their children's merged preference (half a day, and it
+puts a row holding a nested row of layouts on the per-pair path); app views'
+bodies, with B19; and a lazy row asking only the children its walk reaches.

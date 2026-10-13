@@ -199,7 +199,8 @@ public struct HStackLayout: Layout, Sendable, Equatable {
     ///     divergence from SwiftUI's `.center`; see the type's own doc
     ///     comment).
     ///   - spacing: Blank columns between subviews, or `nil` (the default)
-    ///     for what views prefer between them: one column.
+    ///     for what each pair of neighbours prefers: one column between two
+    ///     views, none beside a custom ``Layout`` that asks for none.
     public init(alignment: VerticalAlignment = .top, spacing: Int? = nil) {
         self.alignment = alignment
         self.spacing = spacing
@@ -264,10 +265,12 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         }
     }
 
-    /// The gaps between `subviews`: every one ``spacing``, or the distance
-    /// views prefer when it is `nil`.
+    /// The gaps between `subviews`: every one ``spacing``, or — when it is
+    /// `nil` — the distance each pair of neighbours' ``LayoutSubview/spacing``
+    /// asks for, as ``HStack``'s (decisions B20).
     private func gaps(between subviews: Subviews) -> StackGaps {
-        StackGaps(uniform: resolvedSpacing)
+        guard spacing == nil else { return StackGaps(uniform: resolvedSpacing) }
+        return StackGaps(uniform: resolvedSpacing, stating: subviews.children, along: .horizontal, context: subviews.context)
     }
 
     /// See ``VStackLayout/alignedOffset(for:in:)`` — same reasoning, other axis.

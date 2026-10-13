@@ -2328,6 +2328,23 @@ private struct ScrollFlashPhaseBounceShapes: View {
     }
 }
 
+// MARK: - View spacing by pair (lane BITEMS1)
+
+/// A spacing preference composed as SwiftUI source composes one — the
+/// default, with no space asked for on the leading edge — and read off a
+/// layout's subviews, as a layout spacing by preference does; and a row of
+/// views left to `spacing: nil`.
+@MainActor
+private func viewSpacingShapes(_ subviews: LayoutSubviews) -> ViewSpacing {
+    var spacing = ViewSpacing()
+    spacing.formUnion(.zero, edges: .leading)
+    if let first = subviews.first, let last = subviews.last {
+        _ = first.spacing.distance(to: last.spacing, along: .horizontal)
+    }
+    _ = HStack(spacing: nil) { Text("a"); Text("b") }
+    return spacing.union(ViewSpacing(), edges: [.top, .bottom])
+}
+
 // MARK: - Scroll content background (lane D2S)
 
 /// SwiftUI's own example, its commonest idiom, and `.visible`.

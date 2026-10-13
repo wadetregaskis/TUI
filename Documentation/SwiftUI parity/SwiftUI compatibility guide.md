@@ -191,8 +191,10 @@ where SwiftUI uses an adaptive system metric. `spacing:` is `Int?` and defaults
 to `nil`, as SwiftUI's does, and `nil` is what views prefer between them —
 `ViewSpacing` — which in cells is `0` rows in a `VStack` and `1` column in an
 `HStack` (terminals are dense; one blank column reads as a word gap, zero blank
-rows reads as contiguous lines). Pass an explicit `spacing:` for SwiftUI-like
-air.
+rows reads as contiguous lines). A row resolves it per pair of neighbours, as
+SwiftUI's does: no column beside a custom `Layout` whose
+`spacing(subviews:cache:)` asks for none on that edge (decisions B20). Pass an
+explicit `spacing:` for SwiftUI-like air.
 
 ### 2.2 Geometry is integer, never `CGPoint`/`CGSize`/`CGRect`/`UnitPoint`
 

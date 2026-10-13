@@ -56,6 +56,15 @@ extension TupleView {
         repeat provides = provides || holdsGuide((each V).self)
         return provides
     }
+
+    /// Whether any element may state a spacing preference: a row whose
+    /// content this is lays the elements out as its children, side by side.
+    public static var _statesSpacingPreference: Bool {
+        func states<T: View>(_: T.Type) -> Bool { T._statesSpacingPreference }
+        var any = false
+        repeat any = any || states((each V).self)
+        return any
+    }
 }
 
 // MARK: - Equatable Conformance

@@ -151,6 +151,10 @@ extension ForEach: View where Content: View {
     /// children, so a guide in any of them can be one that container reports.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 
+    /// The rows' answer: they are laid out as a row's own children, side by
+    /// side, so any of them may state a spacing the row resolves.
+    public static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
+
     /// A loop is its rows (``View/_handsOverChildren``).
     public static var _handsOverChildren: Bool { true }
 }

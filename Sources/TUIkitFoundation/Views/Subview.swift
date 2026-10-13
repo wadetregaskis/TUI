@@ -116,10 +116,7 @@ extension Subview: LayoutValueProviding {
 /// The member's preferred spacing, when it is a `Layout`.
 extension Subview: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
-        guard let provider = child.wrappedView as? SpacingPreferenceProviding else {
-            return ViewSpacing()
-        }
-        return provider.preferredSpacing(context: child.renderContext(under: context))
+        statedSpacing(of: child, context: context) ?? ViewSpacing()
     }
 }
 

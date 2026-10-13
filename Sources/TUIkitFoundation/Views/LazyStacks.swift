@@ -215,7 +215,8 @@ public struct LazyHStack<Content: View>: View {
     /// The vertical alignment of the children.
     public let alignment: VerticalAlignment
 
-    /// The horizontal spacing between children.
+    /// The blank columns between children — between two that state no
+    /// spacing preference of their own, when the stack was given `nil`.
     public let spacing: Int
 
     /// The content of the stack.
@@ -224,13 +225,18 @@ public struct LazyHStack<Content: View>: View {
     /// The kinds of child views pinned to the enclosing scroll view's edges.
     let pinnedViews: PinnedScrollableViews
 
+    /// Whether the stack was given `spacing: nil` — see ``HStack``'s.
+    let resolvesSpacingPerPair: Bool
+
     /// Creates a lazy horizontal stack with the given spacing, vertical
     /// alignment, pinning behaviour and content.
     ///
     /// - Parameters:
     ///   - alignment: The vertical alignment of children (default: .center).
     ///   - spacing: The blank columns between children, or `nil` (the default)
-    ///     for what views prefer between them: one column.
+    ///     for what each pair of neighbours prefers: one column between two
+    ///     views, none beside a custom ``Layout`` that asks for none on that
+    ///     edge.
     ///   - pinnedViews: The kinds of child views that will be pinned to the
     ///     enclosing horizontal scroll view's leading and trailing edges: the
     ///     headers and footers of the stack's `Section`s (default: none). See
@@ -246,12 +252,13 @@ public struct LazyHStack<Content: View>: View {
         self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
         self.pinnedViews = pinnedViews
+        self.resolvesSpacingPerPair = spacing == nil
     }
 
     public var body: some View {
         _HStackCore(
-            alignment: alignment, spacing: spacing, overflow: .window, pinnedViews: pinnedViews,
-            content: content)
+            alignment: alignment, spacing: spacing, resolvesSpacingPerPair: resolvesSpacingPerPair,
+            overflow: .window, pinnedViews: pinnedViews, content: content)
     }
 }
 
@@ -267,6 +274,6 @@ extension LazyVStack: @preconcurrency Equatable where Content: Equatable {
 extension LazyHStack: @preconcurrency Equatable where Content: Equatable {
     public static func == (lhs: LazyHStack<Content>, rhs: LazyHStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
-            && lhs.pinnedViews == rhs.pinnedViews
+            && lhs.pinnedViews == rhs.pinnedViews && lhs.resolvesSpacingPerPair == rhs.resolvesSpacingPerPair
     }
 }

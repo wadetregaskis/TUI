@@ -102,14 +102,11 @@ public struct LayoutSubview: @MainActor Equatable {
     /// A ``ViewSpacing``: for every view, one column beside it and no row above
     /// or below, which is what TUIkit's stacks put between views; for a
     /// subview that is itself a ``Layout``, what its
-    /// ``Layout/spacing(subviews:cache:)`` says. Read off the subview itself,
-    /// as an alignment guide is: a layout wrapped in a modifier states the
-    /// default.
+    /// ``Layout/spacing(subviews:cache:)`` says — through the wrappers that
+    /// move none of its edges, and through padding on the edges it does not
+    /// pad, as SwiftUI's is.
     public var spacing: ViewSpacing {
-        guard let provider = child.wrappedView as? SpacingPreferenceProviding else {
-            return ViewSpacing()
-        }
-        return provider.preferredSpacing(context: child.renderContext(under: context))
+        statedSpacing(of: child, context: context) ?? ViewSpacing()
     }
 
     /// The container values associated with this subview.

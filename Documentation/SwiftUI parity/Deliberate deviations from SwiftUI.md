@@ -130,8 +130,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   row as a paragraph break; adjacent lines are already apart.
 - **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>) (its note on stacks),
   [§1](<SwiftUI compatibility guide.md#1-match>) (the Grid and Lazy grids rows), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>).
-  **Recorded.** (A stack resolves `nil` once rather than per pair of views;
-  that is [slated to change](#slated-to-change).)
+  **Recorded.** A row resolves `nil` per pair of views: none beside a custom
+  `Layout` that asks for none on that edge ([B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>)).
 
 ### U4. Gesture distances are cells along either axis
 
@@ -1477,7 +1477,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | `\.legibilityWeight` is read-only `nil`; SwiftUI's `.bold` draws text a weight heavier (measured) | [B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-read-only-always-nil>) | Owner 2026-10-12: make it writable; lane owed, with an A/B |
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable, and only `.viewAligned` reads them (the size classes). On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tuikit-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults |
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
-| A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |

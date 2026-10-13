@@ -52,6 +52,11 @@ public enum ConditionalView<TrueContent: View, FalseContent: View>: View {
     public static var _providesAlignmentGuide: Bool {
         TrueContent._providesAlignmentGuide || FalseContent._providesAlignmentGuide
     }
+
+    /// Either branch's answer, as for a guide.
+    public static var _statesSpacingPreference: Bool {
+        TrueContent._statesSpacingPreference || FalseContent._statesSpacingPreference
+    }
 }
 
 // MARK: - ViewArray

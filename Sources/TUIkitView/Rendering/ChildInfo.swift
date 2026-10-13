@@ -245,7 +245,8 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 /// folds to `false` and costs nothing — which is what makes forwarding them
 /// affordable where a runtime probe of every child would not be.
 ///
-/// ``View/_providesZIndex`` and ``View/_providesContainerValues`` are forwarded.
+/// ``View/_providesZIndex``, ``View/_providesContainerValues`` and
+/// ``View/_statesSpacingPreference`` are forwarded.
 /// A container value is a VALUE, the same whatever size the view ends up, which
 /// is what makes a z-index safe to forward too; and SwiftUI documents and does
 /// exactly this for it: a value "is unaffected by views that aren't
@@ -297,6 +298,15 @@ extension View where Self: SingleContentWrapper {
     /// whose modifier ``BufferModifier/_changesLayout`` (padding), a frame
     /// and a position.
     public static var _providesLayoutValues: Bool { WrappedContent._providesLayoutValues }
+
+    /// The content's answer: a spacing preference is about the view's EDGES,
+    /// and a single-content wrapper — a tag, an `.id`, a focus or gesture
+    /// modifier — moves none of them, so the content's preference is the
+    /// wrapper's. SwiftUI keeps it through `.id` and `.padding(0)` too
+    /// (`Tools/SwiftUIProbes/Stack spacing per pair/spacing.out`). Padding,
+    /// which does move its content's edges, says so itself: it states the
+    /// default on the edges it pads.
+    public static var _statesSpacingPreference: Bool { WrappedContent._statesSpacingPreference }
 }
 
 /// A ``SingleContentWrapper`` that can also put a copy of itself around some

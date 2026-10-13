@@ -77,6 +77,8 @@ struct RenderMemoComparatorTests {
                 ("alignment", HStack(alignment: .top) { Text("a") }),
                 ("spacing", HStack(spacing: 3) { Text("a") }),
                 ("content", HStack { Text("b") }),
+                // One column either way, but only `nil` resolves each pair.
+                ("resolvesSpacingPerPair", HStack(spacing: 1) { Text("a") }),
             ])
         expectDistinguishes(
             "ZStack", ZStack { Text("a") }, identical: ZStack { Text("a") },
@@ -103,6 +105,7 @@ struct RenderMemoComparatorTests {
                 // As LazyVStack's: a pinned header copied to the scroll view's
                 // leading edge.
                 ("pinnedViews", LazyHStack(pinnedViews: .sectionHeaders) { Text("a") }),
+                ("resolvesSpacingPerPair", LazyHStack(spacing: 1) { Text("a") }),
             ])
         expectDistinguishes(
             "Group", Group { Text("a") }, identical: Group { Text("a") },

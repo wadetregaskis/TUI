@@ -85,6 +85,17 @@ public struct ViewSpacing: Equatable, Sendable {
         if edges.contains(.trailing) { trailing = max(trailing, other.trailing) }
     }
 
+    /// These preferences with `edges` back to the default — what padding
+    /// leaves of its content's preference on the edges it pads.
+    func defaulting(_ edges: Edge.Set) -> Self {
+        var defaulted = self
+        if edges.contains(.top) { defaulted.top = Self.unstated }
+        if edges.contains(.leading) { defaulted.leading = Self.unstated }
+        if edges.contains(.bottom) { defaulted.bottom = Self.unstated }
+        if edges.contains(.trailing) { defaulted.trailing = Self.unstated }
+        return defaulted
+    }
+
     /// These preferences merged with another view's, edge by edge — see
     /// ``formUnion(_:edges:)``.
     ///

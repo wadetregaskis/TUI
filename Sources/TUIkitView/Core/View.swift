@@ -134,6 +134,19 @@ public protocol View {
     /// with a constant rather than a walk of casts.
     static var _providesLayoutValues: Bool { get }
 
+    /// Static witness: whether this view type may state a spacing preference
+    /// of its own (a `ViewSpacing` other than the default) — because it is a
+    /// `Layout` (whose `spacing(subviews:cache:)` says), or holds one where a
+    /// row's `spacing: nil` would ask it: in a tuple, a loop, a `Group`, an
+    /// `if`, or inside a wrapper that changes none of its edges. `false` for
+    /// every other view.
+    ///
+    /// Same shape and same reason as ``_providesZIndex``: a row resolves its
+    /// gaps per pair of neighbours only when its content's type says a child
+    /// may state one (decisions B20), so a row of anything else — almost every
+    /// row — asks no child anything.
+    static var _statesSpacingPreference: Bool { get }
+
     /// Static witness: whether a container resolving this view may find other
     /// than ONE child in it — because it is a provider of children (a tuple, a
     /// `Group`, a loop, an `if`…), or a view of the app's own whose `body` is
@@ -233,6 +246,10 @@ public extension View {
     /// Default: a view sets no layout value. `.layoutPriority(_:)` and
     /// `.layoutValue(key:value:)` override this.
     static var _providesLayoutValues: Bool { false }
+
+    /// Default: a view states no spacing preference. A `Layout`'s view
+    /// overrides this, and the views that hand one over forward it.
+    static var _statesSpacingPreference: Bool { false }
 
     /// Default: what this view's `body` answers — to a container a view of the
     /// app's own is what its body is. A tuple, an `if`, a loop, a `Group` of

@@ -318,6 +318,9 @@ messages cite that path), and what cites it.
   with `spacing:` stated. Built alone, each with `-parse-as-library`.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** `BITEMS1/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`;
-  `Tests/TUIkitTests/ViewSpacingTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
-  Layout row); `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.
+- **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`,
+  `Sources/TUIkitFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIkitView/Rendering/ChildInfo.swift`;
+  `Tests/TUIkitTests/ViewSpacingTests.swift`, `Tests/TUIkitTests/StackSpacingPerPairTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Layout row); B20 in
+  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`;
+  `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.

@@ -69,6 +69,9 @@ extension Group: View where Content: View {
     /// container reports.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 
+    /// Its content's answer, as for a guide: the members are the row's.
+    public static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
+
     /// Its content's answer: a `Group` of several views is those views.
     public static var _handsOverChildren: Bool { Content._handsOverChildren }
 }

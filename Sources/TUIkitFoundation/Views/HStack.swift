@@ -31,19 +31,27 @@ public struct HStack<Content: View>: View {
     /// The vertical alignment of the children.
     public let alignment: VerticalAlignment
 
-    /// The horizontal spacing between children.
+    /// The blank columns between children — between two that state no
+    /// spacing preference of their own, when the stack was given `nil`.
     public let spacing: Int
 
     /// The content of the stack.
     public let content: Content
+
+    /// Whether the stack was given `spacing: nil`, so a gap beside a child
+    /// that states a preference is what the pair asks for (decisions B20).
+    /// After the content, so no byte is left undefined ahead of it.
+    let resolvesSpacingPerPair: Bool
 
     /// Creates a horizontal stack with the specified options.
     ///
     /// - Parameters:
     ///   - alignment: The vertical alignment of children (default: .center).
     ///   - spacing: The blank columns between children, or `nil` (the default)
-    ///     for what views prefer between them: one column, the horizontal half
-    ///     of ``ViewSpacing``.
+    ///     for what each pair of neighbours prefers: one column between two
+    ///     views, none beside a custom ``Layout`` whose
+    ///     ``Layout/spacing(subviews:cache:)`` asks for none on that edge — the
+    ///     horizontal half of ``ViewSpacing``.
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: VerticalAlignment = .center,
@@ -53,10 +61,13 @@ public struct HStack<Content: View>: View {
         self.alignment = alignment
         self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
+        self.resolvesSpacingPerPair = spacing == nil
     }
 
     public var body: some View {
-        _HStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: content)
+        _HStackCore(
+            alignment: alignment, spacing: spacing, resolvesSpacingPerPair: resolvesSpacingPerPair,
+            overflow: .clip, content: content)
     }
 }
 
@@ -83,10 +94,16 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// Two flags rather than the option set, as `_VStackCore` keeps them.
     let pinsSectionHeaders: Bool
     let pinsSectionFooters: Bool
+    /// Whether `spacing` came from `nil`, so a gap beside a child that states
+    /// a spacing preference is the pair's (``StackGaps``).
+    let resolvesSpacingPerPair: Bool
 
+    /// - Parameter resolvesSpacingPerPair: Whether `spacing` is the default a
+    ///   stack was given `nil` for, so a gap beside a child that states a
+    ///   spacing preference is what the pair asks for (decisions B20).
     package init(
-        alignment: VerticalAlignment, spacing: Int, overflow: StackOverflow,
-        pinnedViews: PinnedScrollableViews = [], content: Content
+        alignment: VerticalAlignment, spacing: Int, resolvesSpacingPerPair: Bool = false,
+        overflow: StackOverflow, pinnedViews: PinnedScrollableViews = [], content: Content
     ) {
         self.alignment = alignment
         self.spacing = spacing
@@ -94,6 +111,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         self.overflow = overflow
         self.pinsSectionHeaders = pinnedViews.contains(.sectionHeaders)
         self.pinsSectionFooters = pinnedViews.contains(.sectionFooters)
+        self.resolvesSpacingPerPair = resolvesSpacingPerPair
     }
 
     package var body: Never {
@@ -135,9 +153,16 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     }
 
     /// The gaps between `children`, this row's resolved for this walk: every
-    /// one the row's `spacing`.
+    /// one the row's `spacing`, unless the row was given `nil` and a child
+    /// states a spacing preference — then each gap beside such a child is the
+    /// distance the pair asks for (decisions B20).
+    ///
+    /// Asked of no child at all where the content's type holds nothing that
+    /// can state one (``View/_statesSpacingPreference``, a compile-time
+    /// chain), which is almost every row.
     private func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
-        StackGaps(uniform: spacing)
+        guard resolvesSpacingPerPair, Content._statesSpacingPreference else { return StackGaps(uniform: spacing) }
+        return StackGaps(uniform: spacing, stating: children, along: .horizontal, context: context)
     }
 
     /// The single sizing routine shared by `sizeThatFits` and `renderToBuffer`,
@@ -850,5 +875,6 @@ extension _HStackCore: AlignmentGuideQuerying {
 extension HStack: @preconcurrency Equatable where Content: Equatable {
     public static func == (lhs: HStack<Content>, rhs: HStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
+            && lhs.resolvesSpacingPerPair == rhs.resolvesSpacingPerPair
     }
 }
