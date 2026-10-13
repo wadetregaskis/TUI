@@ -46,7 +46,7 @@ How the field holds the object decides how its class is read. The field
 metadata says of a field only whether it is strong, so the ownership is read
 from the field's mangled type name in its field descriptor, once per type
 (`Xw` for `weak`, `Xo` for `unowned`, `Xu` for `unowned(unsafe)`;
-[FieldDescriptors.swift](../Sources/TUIkitView/Rendering/FieldDescriptors.swift)):
+[FieldDescriptors.swift](../../../Sources/TUIkitView/Rendering/FieldDescriptors.swift)):
 
 - **Strong:** the class is read where the reference lies.
 - **`weak`**, a plain class or a class-bound existential (`weak var delegate:

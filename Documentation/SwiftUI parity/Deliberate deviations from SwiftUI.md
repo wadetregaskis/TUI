@@ -373,7 +373,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   reason, and this one looks incidental. It lets a property be present
   conditionally without moving it into a child view. The cost is portability
   the other way: code relying on it silently loses `update()` on SwiftUI.
-- **Decided:** [A-DYNP-1](<Decisions/DynamicProperty update write-back (DYNP).md#a-dynp-1-a-property-in-an-optional-field-tuikit-treats-it-as-present-swiftui-ignores-it>). **Owner** (2026-10-11 and
+- **Decided:** [A-DYNP-1](<Decisions/DynamicProperty update write-back (DYNP).md#a-dynp-1-a-property-in-an-optional-field-tuikit-treats-it-as-present-swiftui-ignores-it--decided-keep-it>). **Owner** (2026-10-11 and
   2026-10-12: keep unless a concrete correctness reason appears).
 
 ### S2. Dynamic properties are planned from declared types, and reach further than SwiftUI's
@@ -386,24 +386,24 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   is never updated, and a dead `unowned` field that is not a property is never
   read).
 - **TUIkit:** plans each type once from its fields' declared types
-  ([PropertyPlan.swift](../Sources/TUIkitView/State/PropertyPlan.swift)), so
+  ([PropertyPlan.swift](../../Sources/TUIkitView/State/PropertyPlan.swift)), so
   a custom `Mirror` changes nothing, and a field that cannot hold a property
   is never read. It reaches further: into properties held in optionals (S1)
   and existentials (S3; a class-bound one held `weak` or `unowned` too),
   checked by value each body; into a property subclass
   in a field declared as a plain class, held strongly, `weak` or `unowned`, by
   its object's class each body
-  ([B-DYNVFIX-1](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-1-a-property-subclass-behind-a-plain-class-field-is-reached-through-its-objects-class-each-body-held-strongly-weak-or-unowned));
+  ([B-DYNVFIX-1](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-1-a-property-subclass-behind-a-plain-class-field-is-reached-through-its-objects-class-each-body-held-strongly-weak-or-unowned>));
   into the contents of class properties (held strongly, `unowned` or `weak`;
   S6); and into modifiers
   stored in fields, whose `@State` is bound and `@Environment` resolved but
   whose properties' `update()` runs only where the modifier is applied, once,
   as SwiftUI's does (measured, DYNP `op.out` vii-c2;
-  [B-DYNVFIX-4](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-4-a-stored-modifiers-properties-are-updated-only-where-the-modifier-is-applied)).
+  [B-DYNVFIX-4](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-4-a-stored-modifiers-properties-are-updated-only-where-the-modifier-is-applied>)).
 - **Why:** the owner's ruling (2026-10-12): keep what TUIkit supports even
   where SwiftUI does not, and fix the bugs inside each reach rather than
   dropping it (session notes `DYNV/notes.md`, `DYNV2/notes.md`).
-- **Decided:** [decisions-DYNVFIX](SwiftUI-API-completion-decisions-DYNVFIX.md).
+- **Decided:** [decisions-DYNVFIX](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md>).
   **Owner** (2026-10-12).
 
 ### S3. A property in an existential field is bound, per concrete type
@@ -418,7 +418,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the state it left.
 - **Why:** a property whose type changes at one view identity keeps the view's
   own state, which no workaround on SwiftUI keeps whole.
-- **Decided:** [B-SKEY-1](SwiftUI-API-completion-decisions-SKEY.md#b-skey-1-an-existential-propertys-new-type-starts-afresh-and-an-earlier-type-that-comes-back-finds-what-it-left). **Owner** (2026-10-12: keep
+- **Decided:** [B-SKEY-1](<Decisions/State keys inside a DynamicProperty (SKEY).md#b-skey-1-an-existential-propertys-new-type-starts-afresh-and-an-earlier-type-that-comes-back-finds-what-it-left>). **Owner** (2026-10-12: keep
   existential fields).
 
 ### S4. A binding to a collection's element outlives the element
@@ -453,7 +453,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `weak` — for one view at a time, its claimant: in each render pass, the
   first view drawn whose walk reaches it, the object's state going with it
   when that is another view
-  ([PropertyWalk.swift](../Sources/TUIkitView/State/PropertyWalk.swift)): its
+  ([PropertyWalk.swift](../../Sources/TUIkitView/State/PropertyWalk.swift)): its
   `@State` is bound to the claimant's key, its `@Environment` is the
   claimant's, and its nested properties are updated in place. One object has
   one state, so two views showing it read and write the same one, and an
@@ -464,7 +464,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
   state and read another's environment in its closures (DYNV bugs 3 and 4).
-- **Decided:** [B-DYNVFIX-3](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it). **Lane.**
+- **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it>). **Lane.**
 
 ---
 
@@ -1435,10 +1435,10 @@ on. Each waits on the work, or on the ruling, its State names.
 | A windowed `LazyVStack`'s held row ignores `scrollContentOffsetAdjustmentBehavior = .disabled` | [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>) | Known gap; lane owed, one commit |
 | With no scroll anchor declared, rows inserted above the top row move it; SwiftUI holds it by default (measured, lazy stack) | [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [Scroll anchoring.md](<../Layout and scrolling/Scroll anchoring.md>) | Owner 2026-10-12: hold the row as SwiftUI does, configurable either way; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
-| The system's Reduce Motion setting is not read (E2) | [refusal review O1](SwiftUI-API-completion-refusal-review.md#o1-accessibility-preference-reads-from-p5--m) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
-| A guide pushes a view at most 4,096 cells, which a scroll view's canvas shows (measured) | [B-GUIDE-2](SwiftUI-API-completion-decisions-GUIDE.md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported) | Owner 2026-10-12: too low, and a cap must not hide logic errors. Decided: 2^20, a push past it reported through `SoftTrap`; lane owed |
-| Markdown in control title keys is not parsed | [B87](SwiftUI-API-completion-decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet) | Recommended: do it |
-| The fifteen named colours do not adapt to a dark appearance | [§1](SwiftUI-compatibility.md#1-match) (Color values), [§2.5](SwiftUI-compatibility.md#25-colorscheme-is-a-read-the-write-is-palette--appearance) | "Not yet" |
-| A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](SwiftUI-compatibility.md#3-open-divergence) | Open divergence |
-| A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](SwiftUI-compatibility.md#a-child-with-no-extent-takes-no-stack-spacing) | Open divergence; the Example's Animation page relies on it |
-| An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy) | Known; fuller version priced |
+| The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
+| A guide pushes a view at most 4,096 cells, which a scroll view's canvas shows (measured) | [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>) | Owner 2026-10-12: too low, and a cap must not hide logic errors. Decided: 2^20, a push past it reported through `SoftTrap`; lane owed |
+| Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
+| The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |
+| A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
+| A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
+| An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
