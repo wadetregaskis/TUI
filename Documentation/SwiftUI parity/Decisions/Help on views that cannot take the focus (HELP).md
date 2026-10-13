@@ -23,9 +23,11 @@ There is no C entry.
 
 ## A. Needs your decision
 
-### A-HELP-1. A hover tooltip in the status bar flickers over a page laid out in the middle — decided: option 1, fixed
+### A-HELP-1. A hover tooltip in the status bar flickers over a page laid out in the middle — decided: option 1, fixed for a page the bar moves
 
-**Decided 2026-10-12 by the coordinator: option 1, and fixed.**
+**Decided 2026-10-12 by the coordinator: option 1. Fixed for a page the bar
+moves; not yet for the last row of a page that fills the window ("Left
+open", below).**
 
 **Found while pinning hover on a non-focusable view through the run loop**
 (`HelpRunLoopTests.hoverOverACentredPage`; not caused by this lane, and older
@@ -41,7 +43,8 @@ every 0.6 s. Once a walk's change to the bar asked for its frame (the review
 fix e73abfced), it was on screen for one frame and did not come back while
 the pointer rested: the re-entry came after the walk, and nothing woke for its
 delay. A page laid out from the top (most pages: a title, then a scroll view)
-does not move and was not affected, nor was the popover, which moves nothing.
+does not move, but its last row is covered: see "Left open" below. The
+popover moves nothing and was not affected.
 
 Options, as offered:
 
@@ -49,8 +52,8 @@ Options, as offered:
    In a frame whose bar rows changed because of a tooltip, the hover
    transitions the reshape synthesises are not hover changes: the candidate
    stays, marked displaced, until the pointer next moves and does not land on
-   its view again. No visual change, and it fixes the class (anything the
-   bar's growth moves).
+   its view again. No visual change. It covers anything the bar's growth
+   moves, but not a row the bar's growth covers ("Left open", below).
 2. **Reserve the row always**, §4's own fallback: one row of every app's page,
    permanently, and a help text that wraps to two rows still moves the page.
 3. **Draw a hover tooltip's bar over the foot of the page** instead of
@@ -81,6 +84,33 @@ pointer gets the wake at the end of its delay (`RenderLoop.requestTooltipFrames`
 Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
 `hoverRestsOverACentredPage` (only the frames something asks for),
 `heldHelpStaysOnItsView`, `heldHelpGoesWithItsView`.
+
+**Left open** (found by the lane's last review; queued):
+
+- **The last row of a page that fills the window.** There the bar's new row
+  does not move the page; it covers the page's last visible row. The hold
+  finds the hovered view unreachable (`TooltipState.endReshape`) and drops
+  it in the same frame. The next frame empties the bar and the row comes
+  back under the pointer, but no `.entered` arrives (next item), so the help
+  is on screen for one frame and does not return while the pointer rests.
+  A bordered chrome style's bar can take up to three rows, so up to three
+  rows are affected. No test covers it yet. The review's input:
+  `WindowGroup { ScrollView { VStack(alignment: .leading, spacing: 0) {
+  ForEach(0..<40, id: \.self) { Text("row \($0)").help("HELP-\($0)") } } } }
+  .mouseSupport(.full)` at 50 × 14, the pointer resting on the last visible
+  row.
+- **No `.entered` for a view a reshape slides under a pointer resting on
+  nothing.** The dispatcher re-resolves the hover after a reshape only for
+  a lane that was already hovering something (the guard in
+  `MouseEventDispatcher.reconciled`). Older than this lane; it affects
+  `.onHover` too, whose view hears `.entered` only when the pointer next
+  moves.
+- Smaller: under the popover style, when a reshape slides a second view
+  with help under a pointer resting on a shown panel, the old panel stays
+  up for at most the delay; held help outlives reshapes the bar did not
+  cause while its view stays reachable; and
+  `MouseEventDispatcher.reachesHoverObserver` probes only the top-left cell
+  of the held view's region.
 
 ## B. Shipped the safe option
 
