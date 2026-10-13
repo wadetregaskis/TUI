@@ -278,18 +278,21 @@ extension FlexibleFrameView: Renderable {
             finalHeight = max(finalHeight, context.availableHeight)
         }
 
-        // If size matches buffer, return as-is — unless the content can carry
-        // an explicit guide, which places it at the frame's guide less its own
-        // even in a frame its own size: SwiftUI's 4-wide view whose leading
-        // guide is 3 sits 3 cells left of a 4-wide frame (decisions B-GUIDE-3).
-        // A static question, so content with no guide pays nothing.
-        if finalWidth == buffer.width && finalHeight == buffer.height && !Content._providesAlignmentGuide {
+        // If size matches buffer, return as-is — unless the content's own
+        // guide places it, which it does even in a frame its own size:
+        // SwiftUI's 4-wide view whose leading guide is 3 sits 3 cells left of
+        // a 4-wide frame (decisions B-GUIDE-3). A static question first, so
+        // content whose type carries no guide pays nothing; content that may
+        // (a `Subview`, a guide wrapper) is asked for the guide, and comes
+        // back as it is unless one applies (``alignBuffer``).
+        let fitsAsIs = finalWidth == buffer.width && finalHeight == buffer.height
+        if fitsAsIs && !Content._providesAlignmentGuide {
             return buffer
         }
 
         // Otherwise, align content within the frame
         return alignBuffer(
-            buffer, toWidth: finalWidth, height: finalHeight, contentContext: contentContext)
+            buffer, toWidth: finalWidth, height: finalHeight, fitsAsIs: fitsAsIs, contentContext: contentContext)
     }
 
     /// `contentContext` with the content placed where ``alignBuffer`` will put
@@ -317,8 +320,13 @@ extension FlexibleFrameView: Renderable {
     }
 
     /// Aligns buffer content within the target frame size.
+    ///
+    /// - Parameter fitsAsIs: Whether the content is the frame's size already,
+    ///   so that it comes back untouched unless its own guide places it: the
+    ///   per-line alignment below would centre each short line of a ragged
+    ///   `Text` on its own in a frame its own width.
     private func alignBuffer(
-        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int,
+        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, fitsAsIs: Bool,
         contentContext: RenderContext
     ) -> FrameBuffer {
         // The content's own explicit `.alignmentGuide`, when it set one. The
@@ -336,6 +344,7 @@ extension FlexibleFrameView: Renderable {
         let verticalOffset =
             verticalGuide ?? alignment.vertical.childOffset(childHeight: buffer.height, in: targetHeight)
         guard horizontalGuide != nil || verticalGuide != nil else {
+            if fitsAsIs { return buffer }
             return placeBuffer(
                 buffer, toWidth: targetWidth, height: targetHeight, guideOffset: nil,
                 verticalOffset: verticalOffset)

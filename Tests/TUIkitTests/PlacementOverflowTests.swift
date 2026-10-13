@@ -103,6 +103,34 @@ struct PlacementOverflowTests {
         #expect(Array(lines.prefix(2)) == ["      3", " Inbox"], "\(lines)")
     }
 
+    @Test("A frame its content's size keeps the content as it is unless the content's guide places it")
+    func sameSizeFrameKeepsItsContent() {
+        // `.frame(maxWidth: .fixed(40))` around two ragged lines is their size. A
+        // guide on `.leading` does not apply to the frame's `.center`, and a
+        // `Subview` may carry a guide but here carries none, so neither is
+        // placed: re-placed, each short line was centred on its own (" bb").
+        func render(_ view: some View) -> [String] {
+            renderToBuffer(view, context: makeBareRenderContext(width: 20, height: 4)).lines.map {
+                var text = $0.stripped
+                while text.last == " " { text.removeLast() }
+                return text
+            }
+        }
+        let text = Text("aaaa\nbb")
+        #expect(render(text.alignmentGuide(.leading) { _ in 0 }.frame(maxWidth: .fixed(40))) == ["aaaa", "bb"])
+        #expect(render(ForEach(subviews: text) { $0.frame(maxWidth: .fixed(40)) }) == ["aaaa", "bb"])
+        #expect(render(text.alignmentGuide(.leading) { _ in 0 }.frame(maxHeight: .fixed(9))) == ["aaaa", "bb"])
+        // A guide that applies still places it, in a frame its own size too:
+        // SwiftUI's 4-wide view whose leading guide is 3 sits 3 cells left.
+        let screen = Screen()
+        let lines = screen.render(
+            HStack(spacing: 0) {
+                Text("bbbb")
+                Text("rrrr").alignmentGuide(.leading) { _ in 3 }.frame(maxWidth: .fixed(40), alignment: .leading)
+            })
+        #expect(lines.first == "brrrr", "\(lines)")
+    }
+
     @Test("A view drawn past its frame is over the view before it")
     func overTheViewBefore() {
         // `HStack { blue; red in a frame it overflows to the left }`: SwiftUI
