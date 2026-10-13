@@ -75,7 +75,8 @@ private struct SelfDisplacingPage: View {
 
 /// A focused button that puts a row above an `.onHover`, so it slides under a
 /// pointer resting on the blank row below it, in an app that declares no
-/// mouse support: the motion is the `.onHover`'s request alone.
+/// mouse support: the motion is what its views ask for, the `.onHover` and
+/// the button alike.
 private struct SlidingHoverApp: App {
     let log: HoverLog
 
@@ -104,6 +105,46 @@ private struct SlidingHoverPage: View {
     }
 }
 
+/// The BUGS13 lane's second review's input: three pages a key steps through,
+/// in an app that declares no mouse support. The first asks for motion (its
+/// button's hover face), the second asks for none, so the terminal stops
+/// reporting it and the pointer goes wherever it likes unheard, and the third
+/// asks for it again, with a view with help two rows below its button: under
+/// the cell a pointer that rested two rows below the first page's button
+/// last reported.
+private struct ReportingGapApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ReportingGapPage()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+}
+
+private struct ReportingGapPage: View {
+    @State private var page = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            switch page {
+            case 0:
+                Button("first page") {}
+            case 1:
+                Text("quiet page")
+            default:
+                Button("third page") {}
+                Text("filler")
+                Text("under the old cell").help("HELP-STALE")
+            }
+        }
+        .tooltipDelay(0.1)
+        .onKeyEvent(keys: [.character("n")]) { _ in
+            page += 1
+            return true
+        }
+    }
+}
+
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class Driver<A: App> {
@@ -118,6 +159,11 @@ private final class Driver<A: App> {
     func step() {
         now += 16_666_667
         app.frame(atNanos: now)
+    }
+
+    /// Whether `text` is anywhere on the screen.
+    func shows(_ text: String) -> Bool {
+        position(of: text) != nil
     }
 
     /// Where `text` first appears on the screen: its column and row.
@@ -178,5 +224,37 @@ struct HoverReshapeRunLoopTests {
         driver.step()
         driver.step()
         #expect(log.heard == [true], "entered once: \(log.heard)")
+    }
+
+    /// Found by the BUGS13 lane's second review: a reshape entered what it
+    /// slid under the cell the pointer last reported motion on, as long as
+    /// the last frame asked for motion, though the frame before it had asked
+    /// for none and the pointer had gone wherever it liked unheard. In an
+    /// app that declares no motion, which is nearly every app, the third
+    /// page's view with help, drawn under that cell, was entered a frame
+    /// after it was drawn and showed its help for a pointer that was not on
+    /// it. Until the pointer reports again nothing is entered; a move then
+    /// shows the help as any move would.
+    @Test("A reshape enters nothing under a pointer that went unreported since it rested")
+    func noEntryAfterAGapInReporting() throws {
+        let driver = Driver(ReportingGapApp())
+        let button = try #require(driver.position(of: "first page"), "precondition: drawn")
+        let cell = (x: button.x + 1, y: button.y + 2)
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: cell.x, y: cell.y))
+        driver.step()
+        #expect(driver.app.send(KeyEvent(character: "n")), "the key went to the page")
+        driver.step()
+        #expect(driver.shows("quiet page"), "precondition: the page that asks for no motion")
+        // The pointer moves now, and the terminal reports none of it.
+        #expect(driver.app.send(KeyEvent(character: "n")))
+        driver.step()
+        let view = try #require(driver.position(of: "under the old cell"), "precondition: drawn")
+        #expect(view.y == cell.y && view.x <= cell.x, "precondition: drawn under the old cell")
+        for _ in 0..<30 { driver.step() }
+        #expect(!driver.shows("HELP-STALE"), "help for a view the pointer is not known to be on")
+        // A report puts the pointer back on the cell, and its help shows.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: cell.x, y: cell.y))
+        for _ in 0..<30 { driver.step() }
+        #expect(driver.shows("HELP-STALE"), "precondition: the view shows its help to a pointer on it")
     }
 }

@@ -428,6 +428,46 @@ struct HoverReshapeTests {
         #expect(Array(events.suffix(2)) == ["hovering exited", "other entered"], "the newcomer: \(events)")
     }
 
+    /// Found by the BUGS13 lane's second review: a reshape entered what it
+    /// slid under the cell of the last `.moved`, which a drag (its moves
+    /// arrive as `.dragged`) and a suspend (the terminal reports nothing
+    /// until the resume) leave behind, so a view heard `.entered` for a
+    /// pointer that was not on it. A drag's report is where the pointer
+    /// rests; after a suspend nothing is known until the next report.
+    @Test("A reshape enters what it slides under where the pointer last reported, not where it last moved",
+          arguments: [false, true])
+    func reshapeEntersOnlyWhereThePointerIsKnown(suspends: Bool) {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full, isFrameFinal: true)
+        var events: [String] = []
+
+        func frame(viewAt y: Int?) {
+            dispatcher.beginRenderPass()
+            let id = dispatcher.register { events.append("\($0.phase) at \($0.y)"); return true }
+            dispatcher.noteHoverObserver(id)
+            dispatcher.setRegions(
+                y.map { [HitTestRegion(offsetX: 0, offsetY: $0, width: 6, height: 1, handlerID: id)] } ?? [])
+        }
+
+        frame(viewAt: nil)
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 2, y: 2))
+        if suspends {
+            dispatcher.forgetRestingPointer()
+        } else {
+            // A drag on nothing from the cell it moved to, to two rows below.
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: 2, y: 2))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: 2, y: 3))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: 2, y: 4))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 2, y: 4))
+        }
+        #expect(events.isEmpty, "precondition: the pointer rests on nothing: \(events)")
+        // A view slid under the cell of the last move.
+        frame(viewAt: 2)
+        #expect(events.isEmpty, "entered where the pointer no longer is: \(events)")
+        frame(viewAt: 4)
+        #expect(events == (suspends ? [] : ["entered at 0"]), "where the drag left it: \(events)")
+    }
+
     /// A held help asks whether a pointer could still rest on its view
     /// (`TooltipState.held`), and the question probed the view's top-left
     /// cell alone: an observer in front of that one cell made the whole view

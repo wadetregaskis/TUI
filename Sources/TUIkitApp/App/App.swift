@@ -765,6 +765,8 @@ extension AppRunner {
     /// diff-cache invalidation — restores whatever mode the scene wants.
     fileprivate func suspendUntilContinued(renderer: RenderLoop<A>) {
         terminal.applyMouseSupport(.disabled)
+        // The pointer goes where it likes, unreported, until the mode is back.
+        tuiContext.mouseEventDispatcher.forgetRestingPointer()
         // The styling reset first: a frame may have ended with styling in
         // force, and leaving the alternate screen does not restore SGR.
         terminal.handBack(restoringStyling: renderer.restoreTerminalStyling)

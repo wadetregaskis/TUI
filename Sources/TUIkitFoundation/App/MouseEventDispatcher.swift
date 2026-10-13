@@ -98,9 +98,9 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// frame-final: the render pass transiently sets the scene BASE mid-frame
     /// (before per-frame feature requests are collected), and comparing
     /// against that would fire the unwind every frame a dialog elevates
-    /// clicks above the base. And the mode a reshape asks whether the resting
-    /// pointer's last position was reported under (`reconciled`), which runs
-    /// mid-frame too.
+    /// clicks above the base. And the mode a reshape asks whether motion is
+    /// reported (`reconciled`), which runs mid-frame too: a lane it enters
+    /// from nothing is left again only by a reported move.
     private var frameFinalSupport: MouseSupport = .disabled
 
     /// Set by the handler currently taking a `.pressed` event to say it wants
@@ -204,12 +204,32 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     private var wheelHandlerIDs: Set<HitTestRegion.HandlerID> = []
 
     /// Where the cursor last reported motion, so a reshaped tree can be
-    /// re-resolved against a RESTING cursor.
+    /// re-resolved against a RESTING cursor, and a report from the cell it
+    /// was already on told from a move.
     private var lastMotionPosition: (x: Int, y: Int)?
 
-    /// Where the pointer rests: the cell it last reported motion on, in the
-    /// screen's coordinates, or `nil` before it has reported any.
-    package var restingPointer: (x: Int, y: Int)? { lastMotionPosition }
+    /// Where the pointer rests while that is known: the cell of the last
+    /// report that carried one — a move, a press, a drag, a release, a wheel
+    /// tick — or `nil` from when the terminal may have stopped reporting
+    /// where it goes until it next does.
+    ///
+    /// Forgotten when the terminal's reporting stops covering motion (a
+    /// frame-final support without it, ``setActiveSupport(_:isFrameFinal:)``)
+    /// and when it stops reporting the pointer at all (a suspend,
+    /// ``forgetRestingPointer()``): the pointer can go anywhere unheard after
+    /// either, and ``lastMotionPosition`` goes on naming the cell it left.
+    /// A reshape enters only what it slides under a position known here
+    /// (``reconciled(_:to:at:entering:)``). Found by the BUGS13 lane's review:
+    /// once a lane resting on nothing entered what a reshape put under the
+    /// pointer in an app that declares no motion of its own, a page that asks
+    /// none, a Ctrl-Z, or a drag reported as `.dragged` left the last `.moved`
+    /// behind, and a later reshape entered the view it slid under that cell
+    /// — a help shown for a view the pointer was not on.
+    private var restingPosition: (x: Int, y: Int)?
+
+    /// Where the pointer rests, in the screen's coordinates, while that is
+    /// known: see ``restingPosition``. `nil` before it has reported any.
+    package var restingPointer: (x: Int, y: Int)? { restingPosition }
 
     /// A control that was hovered and whose `.exited` still has to reach it.
     ///
@@ -513,9 +533,21 @@ extension MouseEventDispatcher {
                 pressedHandlers.removeAll()
                 handedOffPresses.removeAll()
             }
+            // Unreported from here, the pointer's moves leave its last report
+            // behind (`restingPosition`).
+            if !support.motion { restingPosition = nil }
             frameFinalSupport = support
         }
         activeSupport = support
+    }
+
+    /// Forgets where the pointer rests (``restingPosition``): the terminal has
+    /// stopped reporting it. Called by the run loop as it hands the terminal
+    /// back for a Ctrl-Z suspend, with the mouse reporting turned off, so the
+    /// first frames after the resume enter nothing at the cell the pointer
+    /// was on before it.
+    package func forgetRestingPointer() {
+        restingPosition = nil
     }
 
     /// Returns whether an event of the given phase should be
@@ -563,15 +595,22 @@ extension MouseEventDispatcher {
     /// cursor, `.exited` goes to the RETAINED closure of the one that was
     /// left and `.entered` to the newcomer. Each lane is re-resolved against
     /// its own region — see ``resolveHover(at:y:)``.
+    ///
+    /// Re-resolved where the pointer is known to rest (``restingPosition``),
+    /// and only there does anything hear `.entered`. Where that is not known
+    /// — motion went unreported since — the lanes are re-resolved against the
+    /// last move, as they always were, for the exits they owe, and enter
+    /// nothing: the pointer may be anywhere.
     private func reconcileHoverAfterReshape() {
-        guard let position = lastMotionPosition else {
+        guard let position = restingPosition ?? lastMotionPosition else {
             hover.pendingExit = nil
             observedHover.pendingExit = nil
             return
         }
+        let entering = restingPosition != nil
         let resolved = resolveHover(at: position.x, y: position.y)
-        hover = reconciled(hover, to: resolved.target, at: position)
-        observedHover = reconciled(observedHover, to: resolved.observer, at: position)
+        hover = reconciled(hover, to: resolved.target, at: position, entering: entering)
+        observedHover = reconciled(observedHover, to: resolved.observer, at: position, entering: entering)
     }
 
     /// One lane of ``reconcileHoverAfterReshape()``: `slot` re-resolved against
@@ -582,20 +621,25 @@ extension MouseEventDispatcher {
     /// lane that hovered something used to be, so a view a reshape slid under
     /// a cursor resting on blank space heard nothing until the cursor next
     /// moved — its `.onHover` unlit, its help never starting its delay
-    /// (decisions-HELP A-HELP-1, "Left open"). Not while motion is not
-    /// reported, when the cursor may have gone anywhere since it last said
-    /// where it was: asked of ``frameFinalSupport``, the mode the terminal
+    /// (decisions-HELP A-HELP-1, "Left open"). Only at a position known to
+    /// be where the pointer rests (`entering`), and not while motion is not
+    /// reported, when the control it enters would be left only by a move
+    /// nobody hears: asked of ``frameFinalSupport``, the mode the terminal
     /// reports under since the last frame, not of ``activeSupport``, which
     /// the walk reset to the scene's base mid-frame — without motion unless
     /// the scene declares it, though an `.onHover` asks for it every frame.
     /// Entered once: the lane holds the control from then on,
     /// and the next reshape finds the same one. Not the control a reshape
     /// took the lane off, until the cursor moves (``HoverSlot/leftByReshape``).
+    ///
+    /// A lane that hovered something enters the newcomer under the pointer
+    /// only at a known position too (`entering`); it is exited as before.
     private func reconciled(
-        _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int)
+        _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int), entering: Bool
     ) -> HoverSlot {
         guard slot.region != nil || slot.pendingExit != nil else {
-            guard let current, frameFinalSupport.motion, current.handlerID != slot.leftByReshape else { return slot }
+            guard let current, entering, frameFinalSupport.motion, current.handlerID != slot.leftByReshape
+            else { return slot }
             return entered(current, at: position)
         }
         let previous = slot.pendingExit?.region ?? slot.region
@@ -620,7 +664,7 @@ extension MouseEventDispatcher {
                 y: position.y - oldRegion.localOriginY)
             _ = oldHandler(exit)
         }
-        guard let current else { return HoverSlot(leftByReshape: previous?.handlerID) }
+        guard let current, entering else { return HoverSlot(leftByReshape: previous?.handlerID) }
         return entered(current, at: position)
     }
 
@@ -934,6 +978,11 @@ extension MouseEventDispatcher {
                 \(regionLines.joined(separator: "\n"))
                 """)
         }
+
+        // Every report says where the pointer is, a dropped one too: a drag's
+        // moves arrive as `.dragged`, never as `.moved` (`restingPosition`).
+        // The synthetic phases are the dispatcher's own and report nothing.
+        if event.phase != .entered, event.phase != .exited { restingPosition = (event.x, event.y) }
 
         // Honour the active MouseSupport configuration: drop events
         // whose category isn't enabled. The terminal may still send

@@ -128,7 +128,16 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   review found the first fix asked the scene's base instead, which the walk
   sets mid-frame and which has no motion unless the scene declares it, so it
   did nothing in such an app
-  (`HoverReshapeRunLoopTests.slidUnderWithoutDeclaredMotion`). Not the
+  (`HoverReshapeRunLoopTests.slidUnderWithoutDeclaredMotion`). Only where
+  the pointer is known to rest: the lane's second review found the reshape
+  entering what it slid under the cell of the last move after a page that
+  asked for no motion, a Ctrl-Z or a drag had left that cell behind, so a
+  help showed for a view the pointer was not on. The dispatcher keeps where
+  the pointer rests from every report that carries a position, and forgets
+  it when the reporting stops covering motion and at a suspend
+  (`MouseEventDispatcher.restingPosition`,
+  `HoverReshapeRunLoopTests.noEntryAfterAGapInReporting`,
+  `HoverReshapeTests.reshapeEntersOnlyWhereThePointerIsKnown`). Not the
   control a reshape took the lane off, until the pointer moves: the lane's
   review found that an `.onHover` whose change moves its own view out from
   under the pointer then flickered at frame rate, entered, exited and
