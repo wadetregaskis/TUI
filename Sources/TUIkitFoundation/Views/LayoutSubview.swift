@@ -244,9 +244,23 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     /// Merged from the default rather than from `.zero`: a stated edge
     /// outweighs a default one (``ViewSpacing``), so starting from `.zero` would
     /// answer `.zero` for every layout.
+    ///
+    /// An `EmptyView` member is left out (`isEmptyMember`): SwiftUI does not
+    /// count one as a subview, so it states nothing there, and a layout whose
+    /// only members are empty — its empty content resolves to one `EmptyView`
+    /// here — answers `.zero`, as SwiftUI's with no subviews does
+    /// (`Tools/SwiftUIProbes/Stack spacing per pair/distances.out`, the
+    /// `merging()` row). Taken in, its default edges were harmless in a merge,
+    /// but stating `.zero` for it let one `else { EmptyView() }` decide the
+    /// whole merge.
     package var mergedSpacing: ViewSpacing {
-        guard !isEmpty else { return .zero }
-        return reduce(into: ViewSpacing()) { $0.formUnion($1.spacing) }
+        var merged = ViewSpacing()
+        var mergedAny = false
+        for subview in self where !isEmptyMember(subview.child) {
+            merged.formUnion(subview.spacing)
+            mergedAny = true
+        }
+        return mergedAny ? merged : .zero
     }
 
     /// The layout direction inherited by the container view — always

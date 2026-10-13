@@ -96,7 +96,10 @@ always wins); `distance` answers the default — one column, no row — only
 where both facing edges are unstated. `Layout`'s default
 `spacing(subviews:cache:)`, and `GridLayout`'s, merge from the default rather
 than from `.zero` (from `.zero` every layout would now answer `.zero`), and
-answer `.zero` for a layout with no subviews, as SwiftUI's did. What moves
+answer `.zero` for a layout with no subviews, as SwiftUI's did. An `EmptyView`
+member counts as none, as SwiftUI counts none: stating `.zero` for it, as this
+shipped at first, let one `else { EmptyView() }` make a layout's whole merge
+`.zero`. What moves
 for an app: a custom layout that spaces its subviews by `LayoutSubview.spacing`
 now puts no column between a plain view and a neighbour that states `.zero`;
 `ViewSpacing().union(.zero, edges: .leading)` now asks for no space on its

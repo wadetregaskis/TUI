@@ -66,6 +66,40 @@ private struct Wrapped: View {
     var body: some View { Row { Text(text) } }
 }
 
+/// Lays its subviews out as a `Row` does, and keeps `Layout`'s own
+/// `spacing(subviews:cache:)`: its subviews' preferences, merged.
+private struct Merging: Layout {
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        Row().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+        Row().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+    }
+}
+
+/// What a `GapsReader` or a `SpacingReader` read while it was measured.
+@MainActor
+private final class Read {
+    var uniform: [Bool] = []
+    var distances: [Int] = []
+}
+
+/// A `Row` that notes, when it is measured, how far each subview's
+/// `LayoutSubview.spacing` asks to be from a plain view after it.
+private struct SpacingReader: Layout {
+    let read: Read
+
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        read.distances = subviews.map { $0.spacing.distance(to: ViewSpacing(), along: .horizontal) }
+        return Row().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+        Row().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+    }
+}
+
 // MARK: - Suite
 
 @MainActor
@@ -150,6 +184,16 @@ struct StackSpacingPerPairTests {
         #expect(asked.times == 0, "a stated spacing is every gap")
         _ = lines(HStack { Row(asked: asked) { Text("a") }; Row(asked: asked) { Text("b") } })
         #expect(asked.times > 0, "and nil asks the layouts")
+    }
+
+    @Test("An EmptyView member states nothing: a layout's merged preference is its other subviews' (SwiftUI counts no EmptyView)")
+    func emptyMemberStatesNothing() {
+        #expect(lines(HStack { Text("Name:"); Merging { Text("x"); EmptyView() } }) == ["Name: x"])
+        let shows = false
+        #expect(lines(HStack { Text("a"); Merging { Text("b"); if shows { Text("c") } else { EmptyView() } } }) == ["a b"])
+        let read = Read()
+        _ = lines(SpacingReader(read: read) { Text("a"); EmptyView(); Row { Text("b") } })
+        #expect(read.distances == [1, 1, 0], "an EmptyView member's own preference is the default")
     }
 
     @Test("Not yet: a view of the app's own whose body is a tight layout states the default (SwiftUI: wrapped +0)")
