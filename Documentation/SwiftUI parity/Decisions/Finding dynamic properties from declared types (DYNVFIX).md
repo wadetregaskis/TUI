@@ -215,6 +215,46 @@ and nothing then says which view it came from. And a write to the object's
 keyed to; another holder served from the memo draws the new value when it is
 next drawn for another reason.
 
+**Open at this head** (the lane's fifth review, 2026-10-12, session notes
+`DYNVFIX/review5-reverted.json`). A redesign of the claim is in progress, as
+lane DYNVCLAIM. Until it lands:
+
+- A holder served from the value memo is not redrawn by a write to the
+  object's `@State` once the claim has moved to another holder, because the
+  write redraws only the claimant. The holder shows the old value until
+  something else redraws it, so in an idle app the write looks lost. The
+  claim moves to the next holder drawn whenever the claimant is itself
+  served from the memo, so a row showing an object stays stale after a
+  detail view has drawn the same object.
+- A class property never bound before takes the `@State` box stored at its
+  holder's key, which can be another live object's (a detail view's previous
+  object), so two objects share one state and a write to either changes
+  both. The box then moves between the two holders' keys on every walk, each
+  move a scan of the state table, and a write redraws whichever holder
+  walked last.
+- `@State` inside an enum's case inside the object is lost, or shared, when
+  its holder moves between objects, because the record of the case is kept
+  under the holder's key and not by the object. Moving to an object in
+  another case drops the first object's state in its case, which is back at
+  its default when the holder returns; moving to one in the same case, never
+  bound before, binds the second object's state to the first's box.
+- An object's `@Environment` is the claimant's for every holder, so an
+  environment-scoped action read through it acts for the claimant. A sheet
+  that shares its page's object and calls the object's `dismiss` calls the
+  page's, as the page is drawn first and claims the object, and the sheet
+  stays open.
+- A measure can take a provisional claim: a view measured while the object
+  has none binds the object's `@State` under its own key, creating its box,
+  and resolves its `@Environment`, and a claimant's own measure resolves them
+  again. The rule that a measure changes nothing does not hold for class
+  properties.
+- The costs. A box that changes keys is found by a scan of the whole state
+  table, which an object made anew per view value, whose holder's identity
+  changes every frame, pays for each `@State` on every frame: quadratic in the
+  row count for a list of such rows. And an object made anew per view value
+  with nothing in it still takes a claim, so its holder forms a weak
+  reference, a side table, every body.
+
 **Not chosen:**
 
 - *Keyed by the object's identity*: a freed object's address comes straight

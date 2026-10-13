@@ -464,6 +464,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
   state and read another's environment in its closures (DYNV bugs 3 and 4).
+- **Open:** a redesign of the claim is in progress (lane DYNVCLAIM). Until it
+  lands, a holder served from the value memo is not redrawn by a write to the
+  object's `@State` once the claim has moved to another holder, so it shows
+  the old value until something else redraws it. A class property never bound
+  before can take another live object's `@State` box at its holder's key, so
+  two objects share one state; the box then moves between their keys on every
+  walk, a scan of the state table each time, and a write redraws whichever
+  holder walked last. `@State` inside an enum's case inside the object is
+  lost, or shared, when its holder moves between objects. An
+  environment-scoped action read through the object, such as `dismiss`, acts
+  for the claimant, so a sheet sharing its page's object and calling it calls
+  the page's, and stays open. A measure can take a provisional claim, binding
+  the object's `@State` and resolving its `@Environment`, so for a class
+  property a measure does change state. And the walk pays a scan of the state
+  table whenever a box changes keys, and a weak reference, a side table, every
+  body for an object made anew per view value that holds nothing.
 - **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it>). **Lane.**
 
 ---
@@ -1442,3 +1458,4 @@ on. Each waits on the work, or on the ruling, its State names.
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
+| A class property's claim (S6): a memo-served holder misses a write once the claim moves, two live objects can share one `@State`, `@State` in an enum case in the object is lost or shared, an environment-scoped action read through the object acts for the claimant, and a measure can claim | [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it>) | Known; redesign in progress (DYNVCLAIM) |
