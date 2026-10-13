@@ -378,6 +378,26 @@ extension RenderLoop {
 
         beginRenderPass()
 
+        // The pass, to its end, as the one every `@State` made in it notes —
+        // the app's body and every view value the walk makes included: what
+        // tells an object made with a view value from one made before
+        // (`StateStorage.inRenderPass(_:)`).
+        return tuiContext.stateStorage.inRenderPass {
+            renderBegunPass(
+                pulsePhase: pulsePhase, cursorTimer: cursorTimer, animationScheduler: animationScheduler,
+                frameNowNanos: frameNowNanos, frameDate: frameDate)
+        }
+    }
+
+    /// The part of ``render(pulsePhase:cursorTimer:animationScheduler:frameNowNanos:frameDate:)``
+    /// after its pass has begun, to the pass's end.
+    private func renderBegunPass(
+        pulsePhase: Double,
+        cursorTimer: CursorTimer?,
+        animationScheduler: AnimationScheduler?,
+        frameNowNanos: Int64,
+        frameDate: Date
+    ) -> RenderActivity {
         // If an @Published property changed, clear the entire render cache
         // so EquatableView-cached subtrees re-render with new model data.
         if AppState.shared.consumeNeedsCacheClear() {

@@ -290,11 +290,17 @@ enum Headless {
         // The global space's origin, carried down when there are readers, as
         // `RenderLoop` carries it.
         let context = context.carryingGeometryRootOrigin()
-        let buffer = channels.settleRootGeometry(
-            renderToBuffer(view, context: context), width: cols, height: rows, stateStorage: storage
-        ) { renderToBuffer(view, context: context) }
-        channels.endFrame(buffer, stateStorage: storage)
-        return buffer
+        func walk() -> FrameBuffer {
+            let buffer = channels.settleRootGeometry(
+                renderToBuffer(view, context: context), width: cols, height: rows, stateStorage: storage
+            ) { renderToBuffer(view, context: context) }
+            channels.endFrame(buffer, stateStorage: storage)
+            return buffer
+        }
+        // In the pass, as `RenderLoop` draws a frame: a `@State` made in it
+        // notes it (`StateStorage.inRenderPass(_:)`).
+        guard let storage else { return walk() }
+        return storage.inRenderPass(walk)
     }
 
     /// Prints how often the geometry owners drew their subtrees again, per

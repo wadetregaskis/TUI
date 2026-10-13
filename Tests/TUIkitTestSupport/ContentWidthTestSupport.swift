@@ -63,11 +63,9 @@ func twoAxisFrames<Row: View>(
         tuiContext.preferences.beginRenderPass()
         tuiContext.stateStorage.beginRenderPass()
         tuiContext.renderCache.beginRenderPass()
-        let buffer = renderToBuffer(
-            view,
-            context: RenderContext(
-                availableWidth: width, availableHeight: 12,
-                environment: environment, tuiContext: tuiContext))
+        let context = RenderContext(
+            availableWidth: width, availableHeight: 12, environment: environment, tuiContext: tuiContext)
+        let buffer = tuiContext.stateStorage.inRenderPass { renderToBuffer(view, context: context) }
         tuiContext.stateStorage.endRenderPass()
         tuiContext.renderCache.removeInactive()
         return buffer.lines.last ?? ""

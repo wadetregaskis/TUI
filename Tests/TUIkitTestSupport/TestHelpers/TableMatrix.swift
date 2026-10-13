@@ -484,7 +484,9 @@ final class TableMatrixHarness {
         tui.renderCache.beginRenderPass()
         tui.stateStorage.beginRenderPass()
         focusManager.beginRenderPass()
-        let buffer = renderToBuffer(view(), context: context)
+        // In the pass, the view made there too, as an app's body makes it
+        // (`StateStorage.inRenderPass(_:)`).
+        let buffer = tui.stateStorage.inRenderPass { renderToBuffer(view(), context: context) }
         focusManager.endRenderPass()
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()

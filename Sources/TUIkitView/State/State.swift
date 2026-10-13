@@ -329,6 +329,24 @@ public enum StateRegistration {
     ) -> R {
         $activeEnvironment.withValue(environment, operation: block)
     }
+
+    /// The render pass under way where this is read, a serial of
+    /// ``StateStorage/currentPass``'s, or `0` outside every pass: what each
+    /// `@State` notes when it is made (``StateBacking/createdIn``).
+    ///
+    /// Bound from a pass's beginning to its end by whatever draws it
+    /// (``StateStorage/inRenderPass(_:)``): the run loop, a snapshot render,
+    /// the test harnesses' frames. Not around input dispatch, a task or a
+    /// timer, so a `@State` made there notes `0`. A render no pass is bound
+    /// around makes every `@State` note `0` too, and an object made there
+    /// with a view value is then taken for one made before the pass.
+    ///
+    /// A task local, not a global the storage writes: a `@State` can be made
+    /// on any thread, and a pass's binding must not reach another task's —
+    /// the tests draw in parallel. Reading it costs a `@State`'s construction
+    /// 4.5 to 7.7 ns over a 92 ns `init` (measured in isolation, arm64 `-O`:
+    /// `Tools/SwiftUIProbes/Swift runtime layouts/stamp.out`).
+    @TaskLocal package static var renderPass: UInt32 = 0
 }
 
 // MARK: - Binding
@@ -594,30 +612,56 @@ public struct State<Value> {
 /// the storage reset, its enum case left — the backing is bound afresh, so a
 /// value kept across frames reads its place's state again, and pays for no
 /// backing of its own on every body.
+///
+/// It notes the render pass it was made in (``createdIn``): what tells an
+/// object made with a view value in the pass that walks it from one made
+/// before.
 final class StateBacking<Value> {
     let defaultValue: Value
     private(set) var box: StateBox<Value>
-    /// Whether ``box`` is one `StateStorage` keeps, rather than the one made
-    /// with the backing, which holds what is written before it is bound.
-    private(set) var isBound = false
+    /// What ``box`` is: the one made with the backing, or one
+    /// `StateStorage` keeps.
+    ///
+    /// Before ``createdIn``, and both after the stored fields of any type, so
+    /// the two share the word the binding byte alone would pad out:
+    /// `StateBacking<Int>`, `<String>` and `<Bool>` keep their instance sizes
+    /// (40, 48 and 40 bytes) and their 48-byte allocations.
+    private(set) var bound = BackingBinding.unbound
+    /// The render pass the backing was made in — ``StateRegistration/renderPass``
+    /// when it was made, a serial of ``StateStorage/currentPass``'s — or `0`
+    /// outside every pass: in an event handler, a task, or a render no
+    /// pass was bound around.
+    let createdIn: UInt32
 
     init(_ value: Value) {
         self.defaultValue = value
         self.box = StateBox(value)
+        self.createdIn = StateRegistration.renderPass
     }
 
-    /// A backing bound to `box` from the start.
-    init(defaultValue: Value, boundTo box: StateBox<Value>) {
+    /// A backing bound to `box` from the start, made by a walk in render pass
+    /// `pass`: the walk knows the pass, so the task local is not read.
+    init(defaultValue: Value, boundTo box: StateBox<Value>, createdIn pass: UInt32) {
         self.defaultValue = defaultValue
         self.box = box
-        self.isBound = true
+        self.bound = .place
+        self.createdIn = pass
     }
 
-    /// Binds the backing to `box`.
+    /// Binds the backing to `box`, one `StateStorage` keeps.
     func bind(to box: StateBox<Value>) {
         self.box = box
-        isBound = true
+        bound = .place
     }
+}
+
+/// What a ``StateBacking``'s box is.
+enum BackingBinding: UInt8 {
+    /// The box made with the backing, which holds what is written before any
+    /// walk binds it.
+    case unbound
+    /// A box `StateStorage` keeps under a view's key: the place's.
+    case place
 }
 
 // MARK: - Render-time binding
@@ -668,7 +712,7 @@ extension State: StateBindable {
     ) -> Bool {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
-        if case .object(let revivesDropped) = place, backing.isBound, revivesDropped || !backing.box.wasDropped {
+        if case .object(let revivesDropped) = place, backing.bound != .unbound, revivesDropped || !backing.box.wasDropped {
             storage.keep(backing.box, for: key)
             return false
         }
@@ -678,11 +722,12 @@ extension State: StateBindable {
         // the copy may be one the runtime made (an `indirect` case's
         // payload), which `body` never reads, and a value kept across frames
         // would otherwise allocate a backing on every body from then on.
-        guard backing.isBound, !backing.box.wasDropped else {
+        guard backing.bound != .unbound, !backing.box.wasDropped else {
             backing.bind(to: box)
             return false
         }
-        state.pointee.backing = StateBacking(defaultValue: backing.defaultValue, boundTo: box)
+        state.pointee.backing = StateBacking(
+            defaultValue: backing.defaultValue, boundTo: box, createdIn: storage.currentPass)
         return true
     }
 }

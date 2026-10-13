@@ -252,8 +252,9 @@ struct DynamicPropertyObjectHolderTests {
 
     /// One frame as the render loop draws it, its render cache the one its
     /// state's writes invalidate: invalidations drained, the pass begun, the
-    /// view drawn, what was not drawn pruned.
-    private func frame<V: View>(_ view: V, _ tui: TUIContext, height: Int = 3) -> [String] {
+    /// view made and drawn in it (`StateStorage.inRenderPass(_:)`), what was
+    /// not drawn pruned.
+    private func frame<V: View>(_ view: @autoclosure () -> V, _ tui: TUIContext, height: Int = 3) -> [String] {
         let context = RenderContext(availableWidth: 20, availableHeight: height, tuiContext: tui)
         tui.renderCache.beginRenderPass()
         tui.stateStorage.beginRenderPass()
@@ -261,7 +262,7 @@ struct DynamicPropertyObjectHolderTests {
             tui.stateStorage.endRenderPass()
             tui.renderCache.removeInactive()
         }
-        return renderToBuffer(view, context: context).lines.map {
+        return tui.stateStorage.inRenderPass { renderToBuffer(view(), context: context) }.lines.map {
             $0.stripped.trimmingCharacters(in: .whitespaces)
         }
     }

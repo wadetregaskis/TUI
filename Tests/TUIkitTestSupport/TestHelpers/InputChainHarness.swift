@@ -96,8 +96,12 @@ final class InputChainHarness {
     ///   as the run loop's app-header height correction makes, with the
     ///   per-walk registries cleared between walks as
     ///   `RenderLoop.beginSceneRender()` clears them.
+    ///
+    /// `view` is made inside the pass, as an app's body makes its views, so
+    /// an object a view makes with each of its values is one made in the
+    /// pass (`StateStorage.inRenderPass(_:)`).
     @discardableResult
-    func frame(_ view: some View, walks: Int = 1) -> FrameBuffer {
+    func frame<V: View>(_ view: @autoclosure () -> V, walks: Int = 1) -> FrameBuffer {
         // As the run loop does: the gestures' clocks run to the frame's
         // instant before anything is cleared or rendered.
         tui.mouseEventDispatcher.advanceGestures(nowNanos: now)
@@ -127,21 +131,25 @@ final class InputChainHarness {
         // The global space's origin, carried down when there are readers, as
         // `RenderLoop.renderContent` carries it.
         frameContext = frameContext.carryingGeometryRootOrigin()
-        var buffer = renderToBuffer(view, context: frameContext)
-        for _ in 1..<max(1, walks) {
-            beginSceneRender()
-            buffer = renderToBuffer(view, context: frameContext)
-        }
-        // The scene root's geometry: `.global` and every name nothing nearer
-        // declared, answered from the frame, and drawn once more when a reader
-        // drew from a wrong answer — as `RenderLoop.renderContent` does.
         let geometry = tui.mouseEventDispatcher.geometry
-        let size = CellSize(width: context.availableWidth, height: context.availableHeight)
-        if geometry.resolveRemaining(in: buffer, size: size) {
-            geometry.noteCorrection(.root)
-            beginSceneRender()
-            buffer = renderToBuffer(view, context: frameContext)
-            if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }
+        var buffer = tui.stateStorage.inRenderPass {
+            let view = view()
+            var buffer = renderToBuffer(view, context: frameContext)
+            for _ in 1..<max(1, walks) {
+                beginSceneRender()
+                buffer = renderToBuffer(view, context: frameContext)
+            }
+            // The scene root's geometry: `.global` and every name nothing nearer
+            // declared, answered from the frame, and drawn once more when a reader
+            // drew from a wrong answer — as `RenderLoop.renderContent` does.
+            let size = CellSize(width: context.availableWidth, height: context.availableHeight)
+            if geometry.resolveRemaining(in: buffer, size: size) {
+                geometry.noteCorrection(.root)
+                beginSceneRender()
+                buffer = renderToBuffer(view, context: frameContext)
+                if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }
+            }
+            return buffer
         }
         tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
         // As the run loop hands it each composited frame: what a selection reads

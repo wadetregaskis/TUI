@@ -49,7 +49,7 @@ final class ScrollTargetFrames {
         tui.stateStorage.beginRenderPass()
         tui.renderCache.beginRenderPass()
         focusManager.beginRenderPass()
-        last = renderToBuffer(view, context: context)
+        last = tui.stateStorage.inRenderPass { renderToBuffer(view, context: context) }
         focusManager.endRenderPass()
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()

@@ -310,16 +310,20 @@ private struct ModeOwnerView: View {
 @Suite("DynamicProperty objects")
 struct DynamicPropertyObjectTests {
 
-    private func lines<V: View>(_ view: V, context: RenderContext) -> [String] {
-        renderToBuffer(view, context: context).lines.map {
+    /// `view` drawn, made in the pass `context`'s storage last began
+    /// (`StateStorage.inRenderPass(_:)`), as an app's body makes it.
+    private func lines<V: View>(_ view: @autoclosure () -> V, context: RenderContext) -> [String] {
+        context.stateStorage!.inRenderPass { renderToBuffer(view(), context: context) }.lines.map {
             $0.stripped.trimmingCharacters(in: .whitespaces)
         }
     }
 
     /// One frame as the render loop draws it, its render cache the one its
     /// state's writes invalidate: invalidations drained, the pass begun, the
-    /// view drawn, what was not drawn pruned.
-    private func frame<V: View>(_ view: V, _ tui: TUIContext, width: Int = 20, height: Int = 2) -> [String] {
+    /// view made and drawn in it, what was not drawn pruned.
+    private func frame<V: View>(
+        _ view: @autoclosure () -> V, _ tui: TUIContext, width: Int = 20, height: Int = 2
+    ) -> [String] {
         let context = RenderContext(availableWidth: width, availableHeight: height, tuiContext: tui)
         tui.renderCache.beginRenderPass()
         tui.stateStorage.beginRenderPass()
@@ -327,7 +331,7 @@ struct DynamicPropertyObjectTests {
             tui.stateStorage.endRenderPass()
             tui.renderCache.removeInactive()
         }
-        return lines(view, context: context)
+        return lines(view(), context: context)
     }
 
     /// The walks bound the `@State` inside a class instance to each holding

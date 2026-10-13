@@ -181,12 +181,14 @@ messages cite that path), and what cites it.
   `nil` optional of one looks (`exflags.swift`); what an `unowned` reference holds for a native object, an
   Objective-C one and a tagged pointer, alive and gone (`unex.swift`); loading `weak` and `unowned` references in
   place, held as `AnyObject` (`typedref.swift`); and whether the runtime's box entry points are names the
-  compiler reserves (`pb.swift`). No views; none kept its output, and the results are in the citing comments
-  and the DYNVFIX decisions.
+  compiler reserves (`pb.swift`). No views; none of those kept its output, and the results are in the citing
+  comments and the DYNVFIX decisions. And one cost, timed: what each way of noting when a `@State` was made adds
+  to making one — a task local read, a clock, a global — over a backing and its box made in a loop, best of five
+  runs of two million (`stamp.swift`, built `-O`; `stamp.out`, two runs).
 - **Ran:** macOS 15.8, arm64 only (x86_64 is unmeasured), Xcode's Swift 6.2.4, 2026-10-12.
-- **Was:** `DYNVFIX/probe/`.
+- **Was:** `DYNVFIX/probe/`; `stamp.swift` `DYNVCLAIM/swiftui-first/`.
 - **Cited by:** `Sources/TUIkitView/Rendering/FieldDescriptors.swift`, `Sources/TUIkitView/State/EnumPayloads.swift`,
-  `Sources/TUIkitView/State/DynamicTypes.swift`;
+  `Sources/TUIkitView/State/DynamicTypes.swift`, `Sources/TUIkitView/State/State.swift` (`stamp.out`);
   `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`.
 
 ### Animation curves, springs and keyframes

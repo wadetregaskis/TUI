@@ -255,6 +255,14 @@ public final class StateStorage: @unchecked Sendable {
     /// an object's claimant was last drawn in (``ObjectClaim/drawnPass``).
     var renderPass = 0
 
+    /// The render pass under way, or the last one: a serial from one count
+    /// for the process (``renderPassSerials``), taken by
+    /// ``beginRenderPass()``, so a pass of this storage is never another's,
+    /// and never `0`, what a `@State` made outside every pass notes
+    /// (``StateBacking/createdIn``). `0` before the first pass. Main actor
+    /// only, as the pass is.
+    package private(set) var currentPass: UInt32 = 0
+
     /// Creates an empty state storage.
     public init() {
         animations.completionTracker = animationCompletions
@@ -530,11 +538,29 @@ extension StateStorage {
     /// Begins a new render pass by clearing the active identity set.
     public func beginRenderPass() {
         renderPass &+= 1
+        currentPass = renderPassSerials.withLock { serial in
+            // Wrapping, and skipping `0`: at sixty passes a second the count
+            // goes round after two years and three months.
+            serial &+= 1
+            if serial == 0 { serial = 1 }
+            return serial
+        }
         animations.beginRenderPass()
         departures.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
         retainedSubtreeRoots.removeAll(keepingCapacity: true)
         beginSceneRender()
+    }
+
+    /// Runs `body` as the render pass ``beginRenderPass()`` began, so each
+    /// `@State` made in it notes the pass (``StateRegistration/renderPass``):
+    /// what everything that draws a frame wraps the frame in, the view values
+    /// its bodies make included — the run loop from the pass's beginning to
+    /// its end, a snapshot render and the test harnesses around their walks.
+    /// An object made with a view value in a frame not wrapped so is taken
+    /// for one made before the pass.
+    package func inRenderPass<R>(_ body: () throws -> R) rethrows -> R {
+        try StateRegistration.$renderPass.withValue(currentPass, operation: body)
     }
 
     /// Begins one WALK of the view tree, of which a render pass may contain
@@ -659,6 +685,13 @@ extension StateStorage {
         departures.removeAll()
     }
 }
+
+/// The serials every ``StateStorage`` numbers its render passes with
+/// (``StateStorage/currentPass``): one count for the process, so that a
+/// `@State` made in one storage's pass is never taken for one made in
+/// another's — the tests draw many contexts at once. A counter, behind a lock
+/// taken once a pass, not an object anything else reaches.
+private let renderPassSerials = Lock(initialState: UInt32(0))
 
 // MARK: - State Box
 

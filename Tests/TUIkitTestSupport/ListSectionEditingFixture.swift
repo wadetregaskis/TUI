@@ -66,7 +66,7 @@ final class ListSectionEditingFixture {
         env.focusManager?.beginRenderPass()
         let context = RenderContext(
             availableWidth: 30, availableHeight: 16, environment: env, tuiContext: tui)
-        let buffer = renderToBuffer(view, context: context)
+        let buffer = tui.stateStorage.inRenderPass { renderToBuffer(view, context: context) }
         env.focusManager?.endRenderPass()
         tui.stateStorage.endRenderPass()
         return buffer

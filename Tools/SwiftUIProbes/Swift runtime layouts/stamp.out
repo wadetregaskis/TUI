@@ -1,0 +1,14 @@
+baseline (backing + box): 92.26 ns per init
++ clock_gettime_nsec_np(UPTIME_RAW): 104.46 ns per init
++ mach_absolute_time: 101.51 ns per init
++ SuspendingClock.now (as MonotonicClock): 127.53 ns per init
++ pthread_main_np + global load: 94.39 ns per init
++ TaskLocal read (unbound): 96.79 ns per init
++ TaskLocal read (bound once): 99.66 ns per init
+baseline (backing + box): 92.04 ns per init
++ clock_gettime_nsec_np(UPTIME_RAW): 103.22 ns per init
++ mach_absolute_time: 101.78 ns per init
++ SuspendingClock.now (as MonotonicClock): 130.80 ns per init
++ pthread_main_np + global load: 95.48 ns per init
++ TaskLocal read (unbound): 99.71 ns per init
++ TaskLocal read (bound once): 99.23 ns per init

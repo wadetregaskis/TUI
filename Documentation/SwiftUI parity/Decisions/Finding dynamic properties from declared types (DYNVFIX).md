@@ -375,3 +375,51 @@ in one pass from a value kept and moved between frames, as `@State` does with
 its dropped boxes and `@Environment` with its displaced ones, needs the same
 bookkeeping again for each store (fix round 2, 2026-10-12, asked to fix it if
 cheap): not a small change, so left for the owner.
+
+### B-DYNVFIX-6. Each `@State` notes the render pass it was made in
+
+*`@State`, `DynamicProperty`*
+
+An object made with each value of the view that holds it (session notes
+`DYNV2/notes.md` §4.11: `let pager = Pager()`) and another object made
+earlier, never yet drawn where it is now (a detail view's next item), look
+alike when the walk first reaches them: never walked, nothing bound, at the
+same place. Whether the old object is still alive does not tell them apart —
+a `Button`'s action holding it keeps it alive, as the focus ring keeps the
+last frame's actions through the next frame's walk — and neither does the
+history of the walks. When the object was made does (lane DYNVCLAIM, session
+notes `DYNVCLAIM/design.md` F4).
+
+**Shipped:** each `@State`'s backing notes the render pass it was made in
+(`StateBacking.createdIn`), read in its `init` from a task local,
+`StateRegistration.renderPass`, which whatever draws a frame binds around the
+frame, the views its bodies make included (`StateStorage.inRenderPass(_:)`):
+the run loop (and so `HeadlessApp`), a snapshot render, Stress's harness, and
+the test harnesses' frames. A pass is a serial from one count for the process
+(`StateStorage.currentPass`), so one context's pass is never another's, and
+never `0`, which a `@State` made outside every pass notes: in an event handler,
+a task, a timer, or a render no pass is bound around. Nothing reads the stamp
+yet; B-DYNVFIX-3 does.
+
+**Price:** every app pays it, holding a class property or not: one task-local
+read per `@State` made, +4.5 to +7.7 ns over a 92 ns `init` (measured in
+isolation, arm64 `-O`: `Tools/SwiftUIProbes/Swift runtime layouts/stamp.out`),
+plus a task-local binding per frame and a lock per pass for the serial. No
+memory: the `UInt32` shares the word the binding byte pads out, so
+`StateBacking<Int>`, `<String>` and `<Bool>` keep their instance sizes (40, 48
+and 40 bytes) and their `malloc_size` (48, 48 and 48), measured before and
+after. Unmeasured over a frame: an A/B on apps holding no class property
+(`megalist`, `controls` or `kitchensink`, `menus`, `stateful`'s variants
+without objects) is owed. If it shows the stamp above noise, the choice is the
+owner's, among the options the design priced (§10): keep the stamp; read a
+plain process-wide counter instead (about 2 to 3 ns cheaper in the same probe,
+and a data race when a `@State` is made off the main actor during a pass);
+adopt a place's state only from a dead predecessor (an object made per view
+value then restarts every frame while a closure holds the last one); or drop
+§4.11, as SwiftUI has nothing of it.
+
+**Left:** a render no pass is bound around takes every object for one made
+before it, so an object made with a view value there restarts every frame.
+
+**Not chosen:** a clock read in `init` and compared with the pass's start,
++9 to +39 ns in the same probe.

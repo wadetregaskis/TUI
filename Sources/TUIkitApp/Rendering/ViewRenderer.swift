@@ -153,7 +153,9 @@ extension ViewRenderer {
             availableHeight: size.height,
             environment: environment
         )
-        let buffer = renderToBuffer(view, context: renderContext)
+        // In the pass, as the run loop draws a frame: a `@State` made in it
+        // notes it (`StateStorage.inRenderPass(_:)`).
+        let buffer = context.stateStorage.inRenderPass { renderToBuffer(view, context: renderContext) }
         // Any image the view drew has to reach the terminal before the cells
         // that name it — the same ordering the run loop keeps at `beginFrame`,
         // and for the same reason: a placeholder pointing at an image the
