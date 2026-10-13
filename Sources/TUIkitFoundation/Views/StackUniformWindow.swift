@@ -846,15 +846,24 @@ extension _VStackCore {
     /// are pure rects, so they sit happily outside the band's line range —
     /// negative or far beyond — where the ScrollView's reveal math reads
     /// them and its viewport clip then drops the invisible ones.
+    ///
+    /// `result` holds the whole band by then. A row above it comes before
+    /// every row in it, so what the row draws past its region
+    /// (`OverlayLayer.isOverflow`, a badge hung down by an alignment guide)
+    /// is cut where the band paints, as the stack's own combining operation
+    /// would cut it: grafted uncut, it drew over the rows the window shows. A
+    /// row below the band comes after it, and its overflow is drawn over the
+    /// band, as it is.
     func graftOffBandRow(
         _ child: ChildView, into result: inout FrameBuffer, bandLocalY: Int,
         width: Int, viewportHeight: Int, context: RenderContext
     ) {
         let rendered = child.render(width: width, height: viewportHeight, context: context)
-        let aligned = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
+        var aligned = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
         result.hitTestRegions.append(
             contentsOf: aligned.shiftedHitTestRegions(byX: 0, y: bandLocalY))
-        result.overlays.append(contentsOf: aligned.shiftedOverlays(byX: 0, y: bandLocalY))
+        if bandLocalY < 0 { aligned.coverOverflow(under: result, at: (x: 0, y: -bandLocalY)) }
+        result.appendOverlays(of: aligned, shiftedByX: 0, y: bandLocalY)
     }
 }
 

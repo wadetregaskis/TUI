@@ -179,6 +179,13 @@ button drew over the next button. Each button now cuts the overflow of the
 buttons before it where it paints, as `Section`'s parts do (lane BUGS13;
 "An alert's later buttons…").
 
+A windowed stack (a `LazyVStack`, or a `VStack` in a scroll view) renders
+its focused row when the row is outside the window, and grafts the row's
+layers in at its place, after the rows it draws. A row above the window
+comes before them, so its overflow is now cut where they paint; a badge it
+hung down onto them was drawn over them (lane BUGS13; "A windowed stack's
+focused row above the window…").
+
 **The fuller version** is SwiftUI's picture of the case that found it: the
 stack grows past its proposal and the border moves out to enclose the
 overhang. That is the change to every container's contract that B-GUIDE-1

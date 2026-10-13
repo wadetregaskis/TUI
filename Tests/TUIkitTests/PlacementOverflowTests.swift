@@ -713,6 +713,48 @@ struct PlacementOverflowTests {
         #expect(!lines.contains { $0.contains("Y") }, "the column: \(lines)")
     }
 
+    /// What a scroll reader hands out, kept for the test to scroll with.
+    private final class ProxyBox {
+        var proxy: ScrollViewProxy?
+    }
+
+    @Test("A windowed stack's focused row above the window is drawn under the rows after it")
+    func offWindowRowUnderTheRowsAfterIt() {
+        // A windowed stack renders the focused row when it is outside the
+        // window, for its registrations, and grafts its layers in at its place
+        // above the window (`graftOffBandRow`): a badge it hangs far enough
+        // down lands on the rows the window draws, which come after it.
+        let box = ProxyBox()
+        let page = ScrollViewReader { proxy in
+            // swiftlint:disable:next redundant_discardable_let
+            let _ = box.proxy = proxy
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<200, id: \.self) { index in
+                        if index == 1 {
+                            // Three rows of badge, from 20 rows below the button.
+                            Button("row 1") {}.overlay(alignment: .bottomLeading) {
+                                Text("YYYY\nYYYY\nYYYY").alignmentGuide(.bottom) { _ in -20 }
+                            }
+                        } else {
+                            // Wider than the badge, which is cut to one line.
+                            Text("row \(index) xxxxxxxxxx")
+                        }
+                    }
+                }
+            }
+        }
+        let screen = Screen(width: 20, height: 6)
+        screen.render(page)
+        screen.render(page)
+        #expect(screen.focusManager.currentFocusedID != nil, "precondition: the button holds the focus")
+        box.proxy?.scrollTo(20, anchor: .top)
+        screen.render(page)
+        let lines = screen.render(page)
+        #expect(lines.first?.hasPrefix("row 2") == true, "precondition: scrolled past the button: \(lines)")
+        #expect(!lines.contains { $0.contains("Y") }, "the rows after the button are drawn over its badge: \(lines)")
+    }
+
     // MARK: - Measuring
 
     @Test("A measure pass draws nothing past the region and sizes as before")
