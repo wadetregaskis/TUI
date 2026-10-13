@@ -334,8 +334,9 @@ public final class FocusManager: @unchecked Sendable {
     ///
     /// Settable so a dimmed backdrop's throwaway manager can read the live one's
     /// (`RenderContext.isolatedForBackground()`): a reader on the page beneath
-    /// a sheet still sees the values the live tree publishes, while the
-    /// backdrop's own publishers are refused (`FocusedValueRegistrar`).
+    /// a sheet still sees the values the live tree publishes, for the live
+    /// focus (`FocusedValueRegistry.owner`), while the backdrop's own
+    /// publishers are refused (`FocusedValueRegistrar`).
     package var focusedValues: FocusedValueRegistry { get { _focusedValues } set { _focusedValues = newValue } }
 
     /// ``focusedValues``'s storage: private, under the `package` accessor
@@ -350,7 +351,9 @@ public final class FocusManager: @unchecked Sendable {
     @usableFromInline let focusScopes = FocusScopeRegistry()
 
     /// Creates a new focus manager instance.
-    public init() {}
+    public init() {
+        _focusedValues.owner = self
+    }
 
     /// The currently active focus section.
     var activeSection: FocusSection? {

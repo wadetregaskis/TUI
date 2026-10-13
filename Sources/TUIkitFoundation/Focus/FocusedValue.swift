@@ -24,9 +24,14 @@ final class FocusedValueReader {
 
     /// The values published for wherever the focus is now, or an empty table
     /// outside any render's environment.
+    ///
+    /// For the focus of the manager that owns the values, not of
+    /// `focusManager`: a view drawn as a backdrop renders under a throwaway
+    /// manager with no focus of its own, and reads what a live reader reads
+    /// (`FocusedValueRegistry.owner`).
     var table: FocusedValues {
         guard let manager = focusManager else { return FocusedValues() }
-        return manager.focusedValues.table(focusedAt: manager.focusedIdentity)
+        return manager.focusedValues.tableAtTheFocus()
     }
 
     /// Takes the environment the view renders in, and tells any memo above
@@ -75,6 +80,10 @@ final class FocusedValueReader {
 /// cannot be compared (a closure, a `Binding`) is not checked that way; a
 /// `Binding` reads through to its source wherever it is read, and a closure is
 /// called when its moment comes, so neither shows a stale state.
+///
+/// A reader drawn as a backdrop — on the page beneath a sheet, or inside
+/// `dimmed()` — reads what a reader on the live page reads: the values for
+/// wherever the focus is, which while a sheet is up is in the sheet.
 @propertyWrapper
 public struct FocusedValue<Value>: DynamicProperty {
     private let reader = FocusedValueReader()

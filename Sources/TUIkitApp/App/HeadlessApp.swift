@@ -106,7 +106,18 @@ package final class HeadlessApp<A: App> {
         // that starts a tooltip's delay, the press that may make a double click.
         let eventClock = self.eventClock
         tuiContext.mouseEventDispatcher.nowNanos = { eventClock.nanos }
+        // Counted where `AppRunner.wireFocusRepaints` asks the loop for them.
+        focusManager.onFocusChange = { [weak self] in self?.framesAsked += 1 }
+        focusManager.focusedValues.requestFrame = { [weak self] in self?.framesAsked += 1 }
     }
+
+    /// How many frames the focus system has asked for, where the app's run
+    /// loop is asked (`AppRunner.wireFocusRepaints`): a move of the focus to
+    /// show, a `@FocusedValue` reader to catch up. A harness renders whenever
+    /// it is told to, so a frame asked for shows only here — and a count that
+    /// goes on rising over frames that change nothing is an app that never
+    /// idles.
+    package private(set) var framesAsked = 0
 
     /// Renders one frame at `nanos` on the monotonic clock's scale, and at
     /// `date` on the wall clock — the date a `TimelineView` resolves its

@@ -71,6 +71,22 @@ package final class FocusedValueRegistry {
     /// The tables handed to readers this walk, each kept once in a row.
     private var reads: [FocusedValues] = []
 
+    /// The manager that made this registry, whose focus every reading follows
+    /// (``tableAtTheFocus()``). Weak: the manager holds the registry.
+    ///
+    /// Not the manager a reader renders under. A view drawn as a backdrop —
+    /// the page beneath a sheet, a `.dimmed()` view — renders under a
+    /// throwaway manager that reads this registry too
+    /// (`RenderContext.isolatedForBackground()`) and focuses nothing. Read at
+    /// ITS focus, such a reader was handed the scene values alone, while the
+    /// end of the pass repeated every reading at this manager's focus: with a
+    /// focused value published on the focus's path, every pass found the
+    /// backdrop's reading stale and asked for another frame, and the app never
+    /// idled while the sheet was up. A backdrop reads what a live reader
+    /// reads, as a class property's reader does, which never takes a
+    /// backdrop's manager (`PropertyWalk.SharedStores`).
+    weak var owner: FocusManager?
+
     /// Asks the app for another frame. Wired by the run loop; a test drives
     /// its own frames.
     package var requestFrame: (() -> Void)? { get { _requestFrame } set { _requestFrame = newValue } }
@@ -109,9 +125,11 @@ package final class FocusedValueRegistry {
         }
     }
 
-    /// The values a reader sees with the focus at `focused`.
-    func table(focusedAt focused: ViewIdentity?) -> FocusedValues {
-        let table = resolve(focusedAt: focused)
+    /// The values a reader sees, for wherever the focus is now: the focus of
+    /// the manager this registry belongs to (``owner``), the focus
+    /// ``endPass(focusedAt:)`` repeats the reading at.
+    func tableAtTheFocus() -> FocusedValues {
+        let table = resolve(focusedAt: owner?.focusedIdentity)
         if isRendering, reads.last != table { reads.append(table) }
         return table
     }
