@@ -76,7 +76,7 @@ public struct ScrollPhaseChangeContext: Sendable {
     public let geometry: ScrollGeometry
 
     /// How fast the view was scrolling when its phase changed, in cells per
-    /// second, or `nil` when that is not known.
+    /// second. Optional, as SwiftUI's is.
     ///
     /// Always `(0, 0)` here, and never `nil`: at the first report and at both
     /// of the changes a terminal produces. That is what SwiftUI reports where
