@@ -50,8 +50,8 @@ from the field's mangled type name in its field descriptor, once per type
 
 - **Strong:** the class is read where the reference lies.
 - **`weak`**, a plain class or a class-bound existential (`weak var delegate:
-  (any RowDelegating)?`): the object is loaded each body, through the
-  runtime's own reflection entry point — `nil` once it has gone — and its
+  (any RowDelegating)?`): the object is loaded each body, where the field
+  lies, as Swift loads a weak reference — `nil` once it has gone — and its
   class read. It is not updated, as a property held `weak` is not.
 - **`unowned`:** the class is read where the reference lies, whose memory the
   unowned count keeps, dead or alive. An object of a class that is not a
@@ -82,13 +82,19 @@ error"), so it would mean reading the object's reference count bits, whose
 layout is the runtime's private one.
 
 **The price**, per body, per such field: a load of the reference and of its
-class and a compare, held strongly or `unowned`; a call into the runtime's
-reflection, held `weak`. In every view holding an object — an `@Observable`
-model passed as `let model: Model` among them. A view holding nothing else
-the walk acts on, held strongly or `unowned`, is probed where it lies before
-any copy of it is made (`SlotPlan.probes`), and evaluated as it is when its
-objects are of their declared classes; one holding an object `weak` is copied
-and walked on every body. Unmeasured: the A/B is owed.
+class and a compare, held strongly or `unowned`; a weak load — the runtime's,
+which retains the object and releases it after — its class and a compare,
+held `weak`. In every view holding an object — an `@Observable` model passed
+as `let model: Model` among them. A view holding nothing else the walk acts
+on, however it holds its objects, is probed where it lies before any copy of
+it is made (`SlotPlan.probes`), and evaluated as it is when its objects are
+of their declared classes, or of classes found holding nothing. A field held
+`weak` or `unowned` is loaded where it lies, as Swift loads it, read as a
+reference to `AnyObject` held the same way: each way of holding a reference
+has one layout whatever its class (measured on macOS arm64, session notes
+`DYNVFIX/probe/typedref`), so no copy of the view is made to load it, as a
+load through the runtime's reflection made two (review of 6c8fe3d2b,
+2026-10-12). Unmeasured: the A/B is owed.
 
 ### B-DYNVFIX-2. An `indirect` enum case's payload, and every payload on WebAssembly and Windows, is updated on a copy
 

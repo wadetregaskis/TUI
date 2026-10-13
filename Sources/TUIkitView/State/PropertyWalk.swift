@@ -181,7 +181,7 @@ struct PropertyWalk {
         }
         switch plan.action {
         case .fields(let fields):
-            applySteps(of: fields, at: base, in: nil, scope: NestedScope.view, isOwn: true, updates: .inPlace)
+            applySteps(of: fields, at: base, scope: NestedScope.view, isOwn: true, updates: .inPlace)
         case .enumeration(let enumeration):
             applyCase(of: enumeration, at: base, scope: NestedScope.view, updates: .inPlace)
         case .object:
@@ -194,11 +194,10 @@ struct PropertyWalk {
         }
     }
 
-    /// Walks each field `fields` plans, in the value at `base` — or, when
-    /// `object` is given, in that object, whose storage `base` is.
+    /// Walks each field `fields` plans, in the value at `base` — a struct, or
+    /// an object's storage.
     mutating func applySteps(
-        of fields: FieldsPlan, at base: UnsafeMutableRawPointer, in object: AnyObject?, scope: UInt64,
-        isOwn: Bool, updates: UpdateMode
+        of fields: FieldsPlan, at base: UnsafeMutableRawPointer, scope: UInt64, isOwn: Bool, updates: UpdateMode
     ) {
         for step in fields.steps {
             // A modifier stored here, not applied, has nothing in it updated:
@@ -211,12 +210,12 @@ struct PropertyWalk {
                 guard let objectPlan = reference.object else {
                     if case .dynamicClass(let plan) = step.slot.action {
                         applyHeldPlainObject(
-                            plan, reference, at: base, offset: step.offset, in: object, position: step.position,
-                            scope: scope, updates: referenceUpdates)
+                            plan, reference, at: base + step.offset, position: step.position, scope: scope,
+                            updates: referenceUpdates)
                     }
                     continue
                 }
-                guard let loaded = load(reference, at: base, in: object) else { continue }
+                guard let loaded = reference.load(at: base + step.offset) else { continue }
                 applyObject(objectPlan, loaded, position: step.position, scope: scope, updates: referenceUpdates)
             } else {
                 apply(
@@ -239,7 +238,7 @@ struct PropertyWalk {
             applyLeaf(leaf, at: address, position: position, scope: scope, isOwn: isOwn)
         case .fields(let fields):
             let inner = NestedScope.container(at: position, ofType: fields.type, in: scope)
-            applySteps(of: fields, at: address, in: nil, scope: inner, isOwn: false, updates: updates)
+            applySteps(of: fields, at: address, scope: inner, isOwn: false, updates: updates)
             runUpdate(fields.updater, at: address, updates: updates)
         case .enumeration(let enumeration):
             let inner = NestedScope.container(at: position, ofType: enumeration.type, in: scope)
@@ -400,28 +399,27 @@ struct PropertyWalk {
         applyObject(found.plan, object, position: position, scope: scope, updates: found.isModifier ? .none : updates)
     }
 
-    /// The object in a field declared as a plain class and held `weak` or
-    /// `unowned`, which `plan` plans and `reference` says how to load (in
-    /// the struct at `base`, or in `object`, whose storage `base` is): walked
-    /// as a class property if its class is one, and nothing otherwise. An
-    /// `unowned` one's class is read where the reference lies first, so an
-    /// object of a class that is not a property is never loaded, which traps
-    /// if it has gone (DYNV bug 9); a `weak` one is loaded, `nil` once it has
-    /// gone.
+    /// The object in the field at `address`, declared as a plain class and
+    /// held `weak` or `unowned`, which `plan` plans and `reference` says how
+    /// to load: walked as a class property if its class is one, and nothing
+    /// otherwise. An `unowned` one's class is read where the reference lies
+    /// first, so an object of a class that is not a property is never loaded,
+    /// which traps if it has gone (DYNV bug 9); a `weak` one is loaded, `nil`
+    /// once it has gone.
     private mutating func applyHeldPlainObject(
-        _ plan: DynamicClassPlan, _ reference: ReferenceField, at base: UnsafeMutableRawPointer, offset: Int,
-        in object: AnyObject?, position: Int, scope: UInt64, updates: UpdateMode
+        _ plan: DynamicClassPlan, _ reference: ReferenceField, at address: UnsafeMutableRawPointer, position: Int,
+        scope: UInt64, updates: UpdateMode
     ) {
         let loaded: AnyObject
         let found: (plan: ObjectPlan, isModifier: Bool)
         if reference.readsClassInPlace {
-            guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(base + offset)),
+            guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)),
                 let classPlan = propertyClassPlan(objectType, in: plan),
-                let held = load(reference, at: base, in: object)
+                let held = reference.load(at: address)
             else { return }
             (loaded, found) = (held, classPlan)
         } else {
-            guard let held = load(reference, at: base, in: object),
+            guard let held = reference.load(at: address),
                 let classPlan = propertyClassPlan(type(of: held), in: plan)
             else { return }
             (loaded, found) = (held, classPlan)
@@ -442,15 +440,6 @@ struct PropertyWalk {
             return nil
         }
         return (objectPlan, exact.isModifier)
-    }
-
-    /// The object in the field `reference` names: in `object`'s storage,
-    /// when given, or in the struct at `base`.
-    private func load(_ reference: ReferenceField, at base: UnsafeMutableRawPointer, in object: AnyObject?)
-        -> AnyObject?
-    {
-        if let object { return PropertyPlans.loadReference(reference, in: object) }
-        return PropertyPlans.loadReference(reference, at: base)
     }
 
     /// A class instance in a field whose declared type `plan` names: what it
@@ -486,7 +475,7 @@ struct PropertyWalk {
         defer { objectDepth -= 1 }
         withExtendedLifetime(object) {
             let base = Unmanaged.passUnretained(object).toOpaque()
-            applySteps(of: contents, at: base, in: object, scope: scope, isOwn: isOwn, updates: updates)
+            applySteps(of: contents, at: base, scope: scope, isOwn: isOwn, updates: updates)
         }
     }
 }

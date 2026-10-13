@@ -105,6 +105,63 @@ enum DynamicTypes {
     }
 }
 
+/// Loading the object a field held `weak` or `unowned` holds, where the
+/// field lies, as Swift loads one: as a reference to `AnyObject` held the same
+/// way, whatever the field's declared class or class-bound existential. Each
+/// way of holding one reference has one layout, the runtime telling a native
+/// object from an Objective-C one by the reference itself — measured on macOS
+/// arm64 for a native class, a class with an Objective-C ancestor and a
+/// class-bound existential, each held `weak` and `unowned`, alive and gone
+/// (session notes `DYNVFIX/probe/typedref`). Where Objective-C does not
+/// interoperate, every reference is a native one.
+///
+/// No copy of the struct or object holding the field is made, as a load
+/// through the runtime's reflection makes one.
+enum HeldReferences {
+    private struct Weak {
+        weak var object: AnyObject?
+    }
+
+    private struct Unowned {
+        unowned let object: AnyObject
+    }
+
+    private struct OptionalUnowned {
+        unowned var object: AnyObject?
+    }
+
+    private struct UnownedUnsafe {
+        unowned(unsafe) let object: AnyObject
+    }
+
+    private struct OptionalUnownedUnsafe {
+        unowned(unsafe) var object: AnyObject?
+    }
+
+    /// The object the field at `address`, held as `ownership` says and an
+    /// optional if `isOptional`, holds: `nil` for a `weak` one whose object
+    /// has gone, or an optional one that holds none. One held `unowned`
+    /// whose object has gone traps, as reading it in Swift does.
+    static func load(at address: UnsafeRawPointer, _ ownership: FieldDescriptors.Ownership, isOptional: Bool)
+        -> AnyObject?
+    {
+        switch (ownership, isOptional) {
+        case (.strong, _):
+            address.assumingMemoryBound(to: AnyObject?.self).pointee
+        case (.weak, _):
+            address.assumingMemoryBound(to: Weak.self).pointee.object
+        case (.unowned, false):
+            address.assumingMemoryBound(to: Unowned.self).pointee.object
+        case (.unowned, true):
+            address.assumingMemoryBound(to: OptionalUnowned.self).pointee.object
+        case (.unownedUnsafe, false):
+            address.assumingMemoryBound(to: UnownedUnsafe.self).pointee.object
+        case (.unownedUnsafe, true):
+            address.assumingMemoryBound(to: OptionalUnownedUnsafe.self).pointee.object
+        }
+    }
+}
+
 /// Dynamic types a field was found holding that hold nothing the walk acts
 /// on, kept so the next body that finds one there reads no further: the last
 /// two found in this field, compared first, and every one found in any field,
@@ -166,9 +223,13 @@ struct RootProbe {
     enum Kind {
         /// An existential (or an optional of one) laid out so.
         case existential(ExistentialLayout)
-        /// A plain class held strongly (or an optional of one), the bits of
-        /// its declared class's identifier.
+        /// A plain class held strongly or `unowned` (or an optional of one),
+        /// the bits of its declared class's identifier: its class read where
+        /// the reference lies.
         case object(declared: UInt)
+        /// A plain class held `weak`, the bits of its declared class's
+        /// identifier: its object loaded, as the walk loads it.
+        case weak(declared: UInt)
     }
 
     /// The field's byte offset in the view.
@@ -187,6 +248,11 @@ struct RootProbe {
         case .object(let declared):
             read = DynamicTypes.object(at: address)
             if case .type(let type) = read, UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
+        case .weak(let declared):
+            guard let object = HeldReferences.load(at: address, .weak, isOptional: true) else { return false }
+            let type: Any.Type = type(of: object)
+            if UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
+            read = .type(type)
         }
         switch read {
         case .empty: return false

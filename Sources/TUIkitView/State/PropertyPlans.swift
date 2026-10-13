@@ -82,19 +82,20 @@ enum PropertyPlans {
     /// What is read of each of a view's fields before the view is copied, if
     /// every field the walk acts on is one whose value says whether it does
     /// (``SlotPlan/probes``): an existential, or an optional of one, laid out
-    /// so that its dynamic type can be read where it lies.
+    /// so that its dynamic type can be read where it lies, or a plain class.
     private static func rootProbes(_ fields: FieldsPlan) -> [RootProbe]? {
         var probes: [RootProbe] = []
         for step in fields.steps {
             guard !step.appliesModifier else { return nil }
             if let reference = step.reference {
                 // A plain class held `unowned`: its class is read where it
-                // lies, as a strong one's is. Any other is loaded.
-                guard reference.readsClassInPlace, case .dynamicClass(let plan) = step.slot.action else { return nil }
-                probes.append(
-                    RootProbe(
-                        offset: step.offset, kind: .object(declared: UInt(bitPattern: ObjectIdentifier(plan.type))),
-                        empty: plan.empty))
+                // lies, as a strong one's is; held `weak`: its object is
+                // loaded, as the walk loads it. A property class is walked.
+                guard case .dynamicClass(let plan) = step.slot.action else { return nil }
+                let declared = UInt(bitPattern: ObjectIdentifier(plan.type))
+                let kind: RootProbe.Kind =
+                    reference.readsClassInPlace ? .object(declared: declared) : .weak(declared: declared)
+                probes.append(RootProbe(offset: step.offset, kind: kind, empty: plan.empty))
                 continue
             }
             var slot = step.slot
@@ -220,7 +221,10 @@ enum PropertyPlans {
     /// nothing with it. A field held `weak` or `unowned` is loaded only if its
     /// declared type is a property class, or a plain class whose object is of
     /// a subclass that is one; any other is never read, which matters for one
-    /// whose object has gone.
+    /// whose object has gone. Its ownership is read from its mangled type
+    /// name (``FieldDescriptors``), which the field metadata gives only as
+    /// "not strong"; a field whose ownership cannot be read — where pointers
+    /// are signed (arm64e, which TUIkit does not build) — is not reached.
     private static func step(
         for field: RuntimeFields.Field, position: Int, owner: Any.Type, ownIndex: Int
     ) -> FieldsPlan.Step? {
@@ -239,13 +243,14 @@ enum PropertyPlans {
                 for: field, declared: declared, isOptional: isOptional, position: position, owner: owner,
                 ownIndex: ownIndex)
         }
+        guard let ownership = FieldDescriptors.ownership(ofField: ownIndex, named: field.name, in: owner),
+            ownership != .strong
+        else { return nil }
         let object = ObjectPlan(type: declared, updater: isOptional ? nil : appPropertyType(declared))
         return FieldsPlan.Step(
             offset: field.offset, position: position,
             slot: SlotPlan(.object(object), isModifier: declared is any ViewModifier.Type),
-            reference: ReferenceField(
-                owner: owner, index: ownIndex, declared: declared, isOptional: isOptional, object: object,
-                readsClassInPlace: false))
+            reference: ReferenceField(ownership: ownership, isOptional: isOptional, object: object))
     }
 
     /// The step for a field held `weak` or `unowned` whose declared type,
@@ -281,20 +286,20 @@ enum PropertyPlans {
         // subclass that is a property is declared as.
         let isClass = RuntimeFields.Kind(of: declared) == .class
         guard isClass || ExistentialLayout(declared) == .object else { return nil }
-        let readsClassInPlace: Bool
-        switch FieldDescriptors.ownership(ofField: ownIndex, named: field.name, in: owner) {
+        guard let ownership = FieldDescriptors.ownership(ofField: ownIndex, named: field.name, in: owner) else {
+            return nil
+        }
+        switch ownership {
         case .weak:
-            readsClassInPlace = false
+            break
         case .unowned where isClass && isNativeClass(declared):
-            readsClassInPlace = true
+            break
         default:
             return nil
         }
         return FieldsPlan.Step(
             offset: field.offset, position: position, slot: SlotPlan(.dynamicClass(DynamicClassPlan(type: declared))),
-            reference: ReferenceField(
-                owner: owner, index: ownIndex, declared: declared, isOptional: isOptional, object: nil,
-                readsClassInPlace: readsClassInPlace))
+            reference: ReferenceField(ownership: ownership, isOptional: isOptional, object: nil))
     }
 
     /// Whether every object of class `type`, a subclass's included, is a
@@ -344,35 +349,6 @@ enum PropertyPlans {
         let plan = fieldsPlan(of: type, updater: nil)
         payloads.pointee[key] = plan
         return plan
-    }
-
-    /// The object held in the field `reference` names, in the struct at
-    /// `base`: loaded by the runtime, which reads each ownership as it is
-    /// stored, or `nil` for a `weak` one whose object has gone.
-    static func loadReference(_ reference: ReferenceField, at base: UnsafeMutableRawPointer) -> AnyObject? {
-        loadReference(reference, at: base, in: reference.owner)
-    }
-
-    private static func loadReference<Owner>(
-        _ reference: ReferenceField, at base: UnsafeMutableRawPointer, in _: Owner.Type
-    ) -> AnyObject? {
-        let value = RuntimeChildren.value(
-            of: base.assumingMemoryBound(to: Owner.self).pointee, as: Owner.self, at: reference.index)
-        return object(value, as: reference.declared)
-    }
-
-    /// The object held in the field `reference` names, in `object`.
-    static func loadReference(_ reference: ReferenceField, in object: AnyObject) -> AnyObject? {
-        let value = RuntimeChildren.value(of: object, as: reference.owner, at: reference.index)
-        return self.object(value, as: reference.declared)
-    }
-
-    /// `value`, a field's contents the runtime copied out, as an instance of
-    /// `type`, its declared class — looking through the optional a `weak`
-    /// field is read as — or `nil`.
-    private static func object<Declared>(_ value: Any, as _: Declared.Type) -> AnyObject? {
-        guard let object = value as? Declared else { return nil }
-        return object as AnyObject
     }
 
     /// `type` and its superclasses, root first, as the runtime lists their

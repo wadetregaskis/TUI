@@ -62,7 +62,7 @@ package final class SlotPlan {
     let isModifier: Bool
 
     /// For a view whose every field the walk acts on only if its value says
-    /// so — an existential, a plain class held strongly or `unowned`, or an
+    /// so — an existential, a plain class however it is held, or an
     /// optional of either — what is read of each field before the view is
     /// copied: if none finds anything, `body` is evaluated on the view as it
     /// is (``preparedBody(of:plan:context:isMeasuring:)``).
@@ -128,7 +128,7 @@ final class FieldsPlan {
         /// What is done with it.
         let slot: SlotPlan
         /// For a field held `weak` or `unowned`, how it is loaded: never as
-        /// its declared type, whose layout is not the field's.
+        /// a strong reference, whose layout is not the field's.
         let reference: ReferenceField?
         /// Whether the field is the modifier a ``ModifiedContent`` that is
         /// being drawn applies: the one place a modifier's properties are
@@ -158,16 +158,12 @@ final class FieldsPlan {
     }
 }
 
-/// A field held `weak` or `unowned` whose declared type is a class: loaded
-/// through the runtime's own reflection entry point, which knows how each
-/// ownership is stored (``PropertyPlans/loadReference(_:at:)``).
+/// A field held `weak` or `unowned` whose declared type is a class, or a
+/// class-bound existential: loaded where it lies, as Swift loads a reference
+/// held that way (``HeldReferences``).
 struct ReferenceField {
-    /// The struct, or class, that declares the field, and its index among
-    /// that type's own fields.
-    let owner: Any.Type
-    let index: Int
-    /// The field's declared class: an optional's wrapped one.
-    let declared: Any.Type
+    /// How the field holds its object: never `.strong`.
+    let ownership: FieldDescriptors.Ownership
     /// Whether it is held `weak` (or `unowned` as an optional): never
     /// updated, as SwiftUI updates none (measured, DYNP case 4).
     let isOptional: Bool
@@ -175,13 +171,21 @@ struct ReferenceField {
     /// property or a modifier; `nil` for a plain class, whose object is
     /// planned by its own class (the step's ``SlotPlan/Action/dynamicClass(_:)``).
     let object: ObjectPlan?
+
     /// Whether the field holds the object's own address, so its class can be
     /// read there before it is loaded: an `unowned` reference to a native
     /// Swift object, whose memory its unowned count keeps while the field
     /// holds it, alive or not. Only for a plain class: an object of a class
     /// that is not a property is then never loaded, which traps if it has
     /// gone (DYNV bug 9).
-    let readsClassInPlace: Bool
+    var readsClassInPlace: Bool { object == nil && ownership == .unowned }
+
+    /// The object the field at `address` holds, or `nil` for a `weak` one
+    /// whose object has gone, or an optional one that holds none. One held
+    /// `unowned` whose object has gone traps, as reading it in Swift does.
+    func load(at address: UnsafeRawPointer) -> AnyObject? {
+        HeldReferences.load(at: address, ownership, isOptional: isOptional)
+    }
 }
 
 /// An optional of something the walk acts on.

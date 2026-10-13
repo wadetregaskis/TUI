@@ -213,6 +213,18 @@ private struct UnownedDelegateHolder: View {
     }
 }
 
+/// The plain class held `weak`, beside the token.
+private struct WeakDelegateHolder: View {
+    let token: Token
+    weak var delegate: RowDelegate?
+    let counts: Counts
+
+    var body: some View {
+        counts.retains["weak"] = _getRetainCount(token)
+        return Text(verbatim: "weak")
+    }
+}
+
 /// A class property holding the plain class `weak`: its contents are walked
 /// as the view's are.
 private final class DelegateOwner: DynamicProperty {
@@ -440,6 +452,24 @@ struct DynamicPropertyProbeTests {
         _ = renderToBuffer(PlainHolder(token: token, counts: counts), context: context)
         _ = renderToBuffer(UnownedDelegateHolder(token: token, delegate: delegate, counts: counts), context: context)
         #expect(counts.retains["unowned"] == counts.retains["plain"])
+        withExtendedLifetime(delegate) {}
+    }
+
+    /// A view holding a plain object `weak` was copied, and the field loaded
+    /// through the runtime's reflection, which copied the view again, on
+    /// every body (review of 6c8fe3d2b, 2026-10-12). The field is loaded
+    /// where it lies, as Swift loads a weak reference, before any copy is
+    /// made: a view holding an object of the declared class is evaluated as
+    /// it is.
+    @Test("A view holding a plain object weak is evaluated as it is, with no copy of the view")
+    func plainObjectHeldWeakIsNotCopied() {
+        let context = makeRenderContext(width: 20, height: 1)
+        let token = Token()
+        let counts = Counts()
+        let delegate = RowDelegate()
+        _ = renderToBuffer(PlainHolder(token: token, counts: counts), context: context)
+        _ = renderToBuffer(WeakDelegateHolder(token: token, delegate: delegate, counts: counts), context: context)
+        #expect(counts.retains["weak"] == counts.retains["plain"])
         withExtendedLifetime(delegate) {}
     }
 

@@ -134,7 +134,7 @@ extension PropertyWalk {
         _ plan: PayloadPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
     ) {
         if let elements = plan.elements {
-            applySteps(of: elements, at: address, in: nil, scope: scope, isOwn: false, updates: updates)
+            applySteps(of: elements, at: address, scope: scope, isOwn: false, updates: updates)
         } else if let single = plan.single {
             apply(single, at: address, position: 0, scope: scope, isOwn: false, updates: updates)
         }
@@ -165,6 +165,6 @@ extension PropertyWalk {
     mutating func applyTypedSteps<Value>(
         of fields: FieldsPlan, at pointer: UnsafeMutablePointer<Value>, scope: UInt64, updates: UpdateMode
     ) {
-        applySteps(of: fields, at: UnsafeMutableRawPointer(pointer), in: nil, scope: scope, isOwn: false, updates: updates)
+        applySteps(of: fields, at: UnsafeMutableRawPointer(pointer), scope: scope, isOwn: false, updates: updates)
     }
 }
