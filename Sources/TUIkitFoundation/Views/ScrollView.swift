@@ -204,7 +204,10 @@ extension ScrollView {
     /// - ``TUIkit/View/scrollPosition(_:anchor:)`` — the app's position is its
     ///   own scroll view's, not a menu's;
     /// - `onScrollGeometryChange` and `onScrollPhaseChange` — it claims
-    ///   neither, and leaves them for the app's scroll views.
+    ///   neither, and leaves them for the app's scroll views;
+    /// - ``TUIkit/View/scrollIndicatorsFlash(onAppear:)`` and
+    ///   ``TUIkit/View/scrollIndicatorsFlash(trigger:)`` — its indicators do
+    ///   not flash: SwiftUI's menus and sheets are not scroll views.
     ///
     /// The content inside it still reads them, for its own scrollables.
     func asChrome() -> ScrollView<Content> {
@@ -989,7 +992,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // indicators below are drawn, and only when one is.
         let flash =
             chrome.textIndicators || chrome.verticalBar || chrome.horizontalBar
-            ? handler.indicatorFlash.strength(context: context) : nil
+            ? pageIndicatorFlash(handler, context: context) : nil
         if chrome.textIndicators {
             visibleBuffer = applyScrollIndicators(
                 to: visibleBuffer,

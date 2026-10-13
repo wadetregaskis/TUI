@@ -144,6 +144,32 @@ struct ScrollIndicatorsFlashTests {
         }
     }
 
+    /// A framework scroller — a tall menu's column, a dialog body's, a framed
+    /// container's — takes none of the page's settings for its scroll views
+    /// (`ScrollView.asChrome()`); a page's flash lit its bar each time one
+    /// appeared, and on every change of a page's trigger (lane SCROLLB's
+    /// review).
+    @Test("A framework scroller's indicators do not flash for the page's request, either form")
+    func chromeScrollerDoesNotFlash() {
+        let chrome = ScrollView {
+            VStack(spacing: 0) { ForEach(0..<30, id: \.self) { Text("row \($0)") } }
+        }
+        .asChrome()
+        for style in [ScrollIndicatorStyle.scrollbar, .text] {
+            let appearing = (Frames(style: style), Frames(style: style))
+            #expect(
+                !differs(
+                    chrome.scrollIndicatorsFlash(onAppear: true), chrome, at: Self.start, appearing,
+                    "\(style), appearing"))
+            let triggered = (Frames(style: style), Frames(style: style))
+            _ = differs(chrome.scrollIndicatorsFlash(trigger: 0), chrome, at: Self.start, triggered, "first value")
+            #expect(
+                !differs(
+                    chrome.scrollIndicatorsFlash(trigger: 1), chrome, at: Self.start + 2_000 * Self.millisecond,
+                    triggered, "\(style), changed"))
+        }
+    }
+
     @Test("A flash on appearing is false by default, and `false` flashes nothing")
     func onAppearFalseFlashesNothing() {
         let frames = (Frames(style: .scrollbar), Frames(style: .scrollbar))

@@ -168,7 +168,9 @@ extension View {
     /// arrows, or the "N more" lines, brighten to a step past a focused bar's
     /// breath and fade back. As in SwiftUI, only the indicators that are drawn
     /// flash — none under `.scrollIndicators(.hidden)`, and none while the
-    /// content fits. Reaches `ScrollView`, `List`, `Table` and `TextEditor`.
+    /// content fits. Reaches `ScrollView`, `List`, `Table` and `TextEditor`,
+    /// but not the scrollers the framework puts around a tall menu, a sheet's
+    /// or a framed container's content (the scrollables in that content do).
     ///
     /// - Parameter onAppear: Whether the indicators flash when each scrollable
     ///   in the hierarchy first draws.
