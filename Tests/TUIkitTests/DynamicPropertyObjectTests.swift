@@ -435,10 +435,12 @@ struct DynamicPropertyObjectTests {
     /// The first view to reach the object was a memoised one; on a frame
     /// that served it from the memo, its walk did not run, and the next
     /// holder took a claim that lasted only the pass: the object's `@State`
-    /// was bound to that holder's key, and it drew its own default. A claim
-    /// now lasts while its claimant's state does, which a memo hit keeps.
-    @Test("A class property's first holder served from the memo keeps its claim, and the next holder reads its state")
-    func memoServedClaimantKeepsTheClaim() {
+    /// was bound to that holder's key, and it drew its own default. The next
+    /// holder drawn still takes the claim, as the claimant is not drawn in
+    /// that pass, but the object's `@State` now goes with the claim, so the
+    /// new claimant draws what the first holder wrote.
+    @Test("A class property's first holder served from the memo hands the claim, and the object's @State, to the next holder")
+    func memoServedClaimantHandsTheStateToTheNextHolder() {
         let tui = TUIContext()
         let taps = Taps()
         let counter = SharedCounter()
