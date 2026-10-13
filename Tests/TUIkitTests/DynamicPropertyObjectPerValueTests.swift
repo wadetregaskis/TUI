@@ -211,20 +211,38 @@ struct DynamicPropertyObjectPerValueTests {
     /// that made the view value anew while the last one lived — a `Button`'s
     /// action, kept by the focus ring, keeps it so — leaked a hub and a box
     /// per `@State`, with their values (review2 of lane DYNVCLAIM, d29a46eaf).
+    ///
+    /// The hub table is keyed by the object's address, and the hub of a pager
+    /// made at a freed pager's address takes that one's entry, which frees
+    /// its hub. Left to the allocator, which hands a few addresses round, the
+    /// table held a dozen entries at most over the 81 frames, never the 65
+    /// the first sweep waits for, and whether the first hub went said only
+    /// whether a later pager landed at the first one's address: it stayed in
+    /// 12 runs of 20. Here every pager's memory is kept (``PagerMemory``), so
+    /// each has an address of its own, and the first hub can go only by the
+    /// sweep.
     @Test("The hub of an object made with a view value goes once the object has, after the next one took its place's state")
     func perValueObjectsHubGoesAfterTheNextOneTookItsPlace() {
         let tui = TUIContext()
         let taps = PagerTaps()
-        frame(ClosurePagerView(taps: taps), tui)
+        var memories: [PagerMemory] = []
+        func pagerView() -> ClosurePagerView {
+            let view = ClosurePagerView(taps: taps)
+            memories.append(PagerMemory(pager: view.pager))
+            return view
+        }
+        frame(pagerView(), tui)
         weak let firstHub = tui.stateStorage.objectHubs.values.first
         #expect(firstHub != nil)
         // Each frame's object lives through the next frame's walk, as the
-        // focus ring keeps a `Button`'s action, and is then let go: enough
-        // frames for the storage to sweep the hubs of objects that have gone.
+        // focus ring keeps a `Button`'s action, and is then let go: the
+        // storage sweeps the hubs of objects that have gone at the end of the
+        // pass that makes the 65th hub.
         for _ in 0..<80 {
             taps.actions = Array(taps.actions.suffix(1))
-            frame(ClosurePagerView(taps: taps), tui)
+            frame(pagerView(), tui)
         }
+        #expect(tui.stateStorage.objectHubsAfterSweep != 0, "the hub table was swept")
         #expect(firstHub == nil)
         // The storage is alive at the check, so the hub went by its sweep:
         // `tui` would otherwise end at its last use, taking every hub with it.
@@ -259,6 +277,15 @@ private final class Pager: DynamicProperty {
     @State var page = 0
 
     func next() { page += 1 }
+}
+
+/// A pager's memory, not the pager: an `unowned` reference keeps the
+/// allocation from being freed, and so its address from being given to a
+/// pager made later, but not the pager alive. It is deinitialised when the
+/// last strong reference goes, as it would be without this, and a `weak`
+/// reference to it — its hub's — reads `nil` from then on.
+private struct PagerMemory {
+    unowned let pager: Pager
 }
 
 /// A view made with a pager of its own, whose body hands out a closure
