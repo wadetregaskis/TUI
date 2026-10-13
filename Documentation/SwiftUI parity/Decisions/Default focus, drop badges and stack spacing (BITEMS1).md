@@ -134,14 +134,13 @@ or a height on, and `.position` all round. Measured on SwiftUI
 `.frame(width: 40)`, `.frame(maxWidth: 40, alignment: .leading)` and
 `.position`. A `.border` here takes a cell each side where SwiftUI's strokes
 inside the view; the neighbour touches the ring either way, as SwiftUI's
-touches the stroke. Where TUIkit differs:
+touches the stroke. A frame that exactly fits its content agrees too: SwiftUI's
+states the default on both sides (`all.frame|box` +8, `box|all.frame` +8,
+measured 2026-10-13 after the review of ff7a14acc), as a frame that sets a
+width does here. An earlier reading that it kept its content's preference
+rested on `all.frame|all` +0, whose right neighbour is itself a layout that
+asks for none: that +0 was the neighbour's. Where TUIkit differs:
 
-- **A frame that exactly fits its content.** SwiftUI's frame keeps its
-  content's preference on an edge the content reaches (`.frame(width: 20)`
-  around 20 points: +0); here a frame that sets a width states the default on
-  both sides, because a row resolves its gaps before anything in it is
-  measured. A frame wider than its content, the usual reason to write one,
-  agrees with SwiftUI.
 - **`AnyView`.** SwiftUI's forwards what it erases (+0, measured with the
   erased layout on either side); here an `AnyView` states the default. Its
   static witness cannot say what it erases, and answering "may" for every
@@ -181,10 +180,7 @@ asks every child each walk — a few conformance casts through its wrappers,
 and for a layout its `spacing(subviews:cache:)` over its resolved subviews —
 and a lazy row asks every child, not only those its window reaches.
 
-**The fuller version:** a frame that keeps its content's preference on an
-edge its content reaches (the frame's and its content's widths at the
-proposal the row will make — a measure of each framed child per walk where a
-row has one; about half a day); an `AnyView` that forwards (a static "may"
+**The fuller version:** an `AnyView` that forwards (a static "may"
 for every `AnyView`, so every row holding one takes the per-pair path: an
 A/B on `anyview` and `kitchensink` first); nested rows stating their
 children's merged preference (half a day, and it puts a row holding a nested

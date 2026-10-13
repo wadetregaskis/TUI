@@ -57,12 +57,9 @@ extension ModifiedView: SpacingPreferenceProviding where Modifier == PaddingModi
 /// `.frame(maxWidth: 40, alignment: .leading)`, is the default distance from a
 /// box beside it, and framed `.frame(height: 30)` none.
 ///
-/// SwiftUI's frame keeps the content's preference on an edge the content
-/// reaches — `.frame(width: 20)` around 20 points did — which a frame here
-/// cannot know: a row resolves its gaps before anything in it is measured. A
-/// frame wider than its content, the usual reason to write one, gets SwiftUI's
-/// answer; one that exactly fits it gets the default where SwiftUI's has none
-/// (decisions B-BITEMS1-3).
+/// Whatever its width against its content's: a frame that exactly fits it is
+/// the default distance from a box too (`all.frame|box` +8, measured; decisions
+/// B-BITEMS1-3).
 extension FlexibleFrameView: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         var framed: Edge.Set = []

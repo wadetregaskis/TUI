@@ -1255,8 +1255,8 @@ measured), and by padding and a frame on the edges they leave alone — read
 once per row, so a row whose content holds no layout asks no child anything;
 and `StackGaps`, which carries no preferences on that common path. A column
 needed nothing: every vertical distance is 0 either way. Where it differs from
-SwiftUI (an `AnyView`, a frame that exactly fits its content, an app's own
-view, a nested row) and the cost are in
+SwiftUI (an `AnyView`, an app's own view whose body is one layout, a nested
+row) and the cost are in
 [B-BITEMS1-3](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>).
 
 ### B22. The content levels, and the two- and three-style `foregroundStyle`

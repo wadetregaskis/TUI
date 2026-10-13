@@ -17,6 +17,8 @@
 == hstack all.id|all: a@0 +0 b@20
 == hstack all.foregroundStyle|all: a@0 +0 b@20
 == hstack all.frame|all: a@0 +0 b@20
+== hstack all.frame|box: a@0 +8 b@28
+== hstack box|all.frame: a@0 +8 b@28
 == hstack all.frame(40)|box: f@0 +-30 a@10 +18 b@48
 == hstack all.frame(height: 30)|box: a@0 +0 b@20
 == hstack all.frame(maxWidth: 40, leading)|box: a@0 +-20 f@0 +8 b@48

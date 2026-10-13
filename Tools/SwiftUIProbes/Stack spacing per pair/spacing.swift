@@ -138,6 +138,11 @@ struct Wrapped: View {
             measure("hstack all.id|all", HStack { Row(tight: .all) { Box("a") }.id(1); Row(tight: .all) { Box("b") } })
             measure("hstack all.foregroundStyle|all", HStack { Row(tight: .all) { Box("a") }.foregroundStyle(.red); Row(tight: .all) { Box("b") } })
             measure("hstack all.frame|all", HStack { Row(tight: .all) { Box("a") }.frame(width: 20); Row(tight: .all) { Box("b") } })
+            // The two that tell whether an exactly fitting frame keeps its content's
+            // preference: the neighbour is a plain box, which states none, so +0 can only
+            // be the framed layout's own.
+            measure("hstack all.frame|box", HStack { Row(tight: .all) { Box("a") }.frame(width: 20); Box("b") })
+            measure("hstack box|all.frame", HStack { Box("a"); Row(tight: .all) { Box("b") }.frame(width: 20) })
             measure("hstack all.frame(40)|box", HStack { Row(tight: .all) { Box("a") }.frame(width: 40).probe("f"); Box("b") })
             measure("hstack all.frame(height: 30)|box", HStack { Row(tight: .all) { Box("a") }.frame(height: 30); Box("b") })
             measure("hstack all.frame(maxWidth: 40, leading)|box", HStack { Row(tight: .all) { Box("a") }.frame(maxWidth: 40, alignment: .leading).probe("f"); Box("b") })
