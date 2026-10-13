@@ -167,6 +167,39 @@ private struct HoldingLevel<Content: View>: View {
     }
 }
 
+/// A class app property holding a `@FocusState`, whose manager — what the
+/// walk resolves from the environment — it tells.
+private final class FocusHolder: DynamicProperty {
+    @FocusState var focused: Bool
+
+    var manager: FocusManager? { _focused.store.environmentManager }
+}
+
+/// A view holding a `FocusHolder`.
+private struct FocusHolderView: View {
+    let name: String
+    let holder: FocusHolder
+
+    var body: some View {
+        Text(verbatim: name)
+    }
+}
+
+/// One `FocusHolder` shown by two views under two focus managers: the
+/// second's, a backdrop's, drawn after the first's.
+private struct TwoFocusManagers: View {
+    let holder: Passed<FocusHolder>
+    let live: FocusManager
+    let backdrop: FocusManager
+
+    var body: some View {
+        VStack {
+            FocusHolderView(name: "live", holder: holder.object).environment(\.focusManager, live)
+            FocusHolderView(name: "backdrop", holder: holder.object).environment(\.focusManager, backdrop)
+        }
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty objects' environment")
 struct DynamicPropertyObjectEnvironmentTests {
@@ -328,5 +361,25 @@ struct DynamicPropertyObjectEnvironmentTests {
             #expect(frame(TwoAccents(first: "red", second: "blue", object: object, taps: taps), tui) == ["a red", "b blue"])
         }
         #expect(storage == nil)
+    }
+
+    /// The managers of the `@FocusState`s inside an object — what a property
+    /// that is not an `@Environment` takes from the environment — were taken
+    /// by every walk, and none put back: the last holder drawn, a backdrop
+    /// holding the page's object, won, and a focus set from a closure went to
+    /// the backdrop's manager, which focuses nothing (review1 of lane
+    /// DYNVCLAIM, a36532985 (2)). The object's primary holder's walk takes
+    /// them, or any walk before it has one.
+    @Test("A class property's @FocusState takes its first holder's focus manager, not a later holder's")
+    func objectFocusStateTakesItsPrimarysManager() {
+        let tui = TUIContext()
+        let live = FocusManager()
+        let backdrop = FocusManager()
+        let holder = Passed(object: FocusHolder())
+        let view = { TwoFocusManagers(holder: holder, live: live, backdrop: backdrop) }
+        #expect(frame(view(), tui) == ["live", "backdrop"])
+        #expect(holder.object.manager === live)
+        #expect(frame(view(), tui) == ["live", "backdrop"])
+        #expect(holder.object.manager === live)
     }
 }

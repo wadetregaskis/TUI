@@ -207,7 +207,11 @@ primary walk inside another holder's content pushes the enclosing holder's
 environment and sets the box's outermost entry to put the primary's back; only
 that entry restores the object's at rest. The hub keeps neither an environment at
 rest nor a count of the primary's walks: the environment at rest held the storage,
-which keeps the hub, so no storage that drew an object ever went.*
+which keeps the hub, so no storage that drew an object ever went. And the object's
+properties that take from the environment but keep it in a store every copy shares
+(a `@FocusState`'s focus manager, `@FocusedValue`, `@FocusedBinding`), which no
+pop puts back, are resolved by the primary's walks alone, or by any walk before
+the object has a primary, as before the lane's C3.*
 
 Whose environment a shared object's `@Environment` reads: during a holder's walk,
 its body, and the drawing or measuring of what that body built — that holder's,

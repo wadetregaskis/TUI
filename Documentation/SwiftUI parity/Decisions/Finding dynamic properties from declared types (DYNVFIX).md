@@ -234,6 +234,14 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
     first walk that does, a measure included: its `@Environment(Model.self)`
     never traps for want of one (review5 of DYNVFIX, S1).
 
+  Its other properties that take from the environment — a `@FocusState`'s
+  focus manager, `@FocusedValue`, `@FocusedBinding` — keep what they take in
+  one store every copy shares, which nothing puts back, so only the primary's
+  walks, or any walk before the object has a primary, hand it them: the object
+  reads its primary's, never a later holder's — a modal's backdrop holding the
+  page's object would otherwise hand its `@FocusState` the backdrop's focus
+  manager, which focuses nothing.
+
   Why it is sound: a walk, its body and its content run synchronously on the
   main actor, and the only walks that can run in between are those of holders
   nested in that content, put back last first; a primary served from the memo

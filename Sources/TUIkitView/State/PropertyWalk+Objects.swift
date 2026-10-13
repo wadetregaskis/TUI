@@ -37,6 +37,13 @@ extension PropertyWalk {
         /// What the walk notes of what it hands the object's `@Environment`s
         /// (``StateStorage/restoreEnvironments(to:)``).
         let environmentNotes: EnvironmentNotes
+        /// Whether the walk hands the environment to the object's properties
+        /// that keep what they take from it in one store every copy shares —
+        /// a `@FocusState`'s focus manager, `@FocusedValue`, `@FocusedBinding`
+        /// — which nothing puts back: only a walk by the object's primary
+        /// holder, or any walk before the object has one, so the object reads
+        /// its primary's, never a later holder's, a backdrop's among them.
+        let resolvesSharedStores: Bool
         /// What its `@State` has said of it so far in this walk.
         var found = ObjectKind.unknown
     }
@@ -183,7 +190,7 @@ extension PropertyWalk {
         guard contents.mayInstall, let storage else {
             return ObjectWalk(
                 object: object, hub: nil, token: nil, idPath: nil, placeScope: placeScope, adoptsPlace: false,
-                environmentNotes: .none)
+                environmentNotes: .none, resolvesSharedStores: true)
         }
         // Whether the object was made in this pass, with a value of the view
         // holding it, as its first `@State` says before any of its ids is
@@ -200,7 +207,7 @@ extension PropertyWalk {
             return ObjectWalk(
                 object: object, hub: hub, token: token, idPath: hub.idPath, placeScope: placeScope,
                 adoptsPlace: previous == .perValue, predecessor: predecessor,
-                environmentNotes: isPrimary ? .atRest : .putBack)
+                environmentNotes: isPrimary ? .atRest : .putBack, resolvesSharedStores: isPrimary)
         }
         // A measure registers nothing, and puts back what it hands. Before
         // any render walk has made the object a hub, it binds the ids the
@@ -212,12 +219,13 @@ extension PropertyWalk {
             if hub.takesChainIDs, kind() == .longLived { storage.giveOwnIDs(to: hub) }
             return ObjectWalk(
                 object: object, hub: hub, token: nil, idPath: hub.idPath, placeScope: placeScope,
-                adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack)
+                adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack,
+                resolvesSharedStores: hub.primary.map { $0 == identity } ?? true)
         }
         let chained = previous.flatMap { $0.lastObject != .longLived && kind() != .longLived ? $0.hub.idPath : nil }
         return ObjectWalk(
             object: object, hub: nil, token: nil, idPath: chained, placeScope: placeScope,
-            adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack)
+            adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack, resolvesSharedStores: true)
     }
 
     /// What `object` holds, walked in place, in `scope`: its storage is
@@ -244,7 +252,10 @@ extension PropertyWalk {
     /// holder's environment, the innermost holder's where holders nest, and
     /// the outer one's again after the inner one's content; and anywhere else
     /// — an event's closure, a task, between passes — its primary's, as of
-    /// the primary's last render walk.
+    /// the primary's last render walk. Its other properties that take from
+    /// the environment keep it in a store every copy shares, which nothing
+    /// puts back: only the primary's walks hand it them
+    /// (``ObjectWalk/resolvesSharedStores``).
     mutating func applyObjectLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, in object: ObjectWalk
     ) {
@@ -279,7 +290,7 @@ extension PropertyWalk {
                 }
             }
             box.environment = environment
-        } else if let resolvable = leaf.environment {
+        } else if let resolvable = leaf.environment, object.resolvesSharedStores {
             resolvable.resolveEnvironment(at: address, environment)
         }
     }
