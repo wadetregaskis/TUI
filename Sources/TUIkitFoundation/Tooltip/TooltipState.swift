@@ -110,8 +110,16 @@ public final class TooltipState: @unchecked Sendable {
     /// changes to the tooltip: the candidate the exit would have dropped is
     /// held here until the pointer moves and does not land on its view again
     /// (``notePointerMoved()``), or until no pointer could rest on its view
-    /// any more (``endReshape(reaching:)``). ``hovered`` goes on recording
-    /// what the pointer is over, and is the candidate again once this goes.
+    /// any more (``endReshape(pointerOnTooltipRows:reaching:)``). ``hovered``
+    /// goes on recording what the pointer is over, and is the candidate again
+    /// once this goes.
+    ///
+    /// On a page that fills the window the bar's new rows do not move the
+    /// page: they cover its last visible rows, and the view under the pointer
+    /// with them. A pointer resting on the rows the bar took for its tooltip
+    /// still rests on the tooltip's own view, so the candidate is held there
+    /// too, though no pointer could reach the view: let go, it gave the rows
+    /// back, the view came back under the pointer, and its delay began again.
     private var held: Candidate?
 
     /// Whether the reshape under way is the status bar's own reflow; see
@@ -237,14 +245,20 @@ public final class TooltipState: @unchecked Sendable {
     /// Closes the frame's reshape, and lets go of a ``held`` candidate whose
     /// view no pointer could rest on now: gone from the screen, or behind
     /// something that takes the hover, such as a sheet's backdrop. The hover
-    /// machine reports neither for a view the pointer is not over.
+    /// machine reports neither for a view the pointer is not over. Kept while
+    /// the pointer rests on the rows the bar took for its tooltip, which
+    /// covered the view the pointer was on (``held``).
     ///
-    /// - Parameter reaching: Whether a pointer on the region a handler
-    ///   registered this frame would be heard by that handler
-    ///   (`MouseEventDispatcher.reachesHoverObserver`).
-    package func endReshape(reaching: (HitTestRegion.HandlerID) -> Bool) {
+    /// - Parameters:
+    ///   - pointerOnTooltipRows: Whether the pointer rests on the rows the
+    ///     bar took from the page for the tooltip it shows
+    ///     (`WindowChromeState.tooltipRows`).
+    ///   - reaching: Whether a pointer on the region a handler registered
+    ///     this frame would be heard by that handler
+    ///     (`MouseEventDispatcher.reachesHoverObserver`).
+    package func endReshape(pointerOnTooltipRows: Bool, reaching: (HitTestRegion.HandlerID) -> Bool) {
         reshapeIsTooltipReflow = false
-        guard let held else { return }
+        guard let held, !pointerOnTooltipRows else { return }
         if let id = held.handlerID, reaching(id) { return }
         self.held = nil
     }

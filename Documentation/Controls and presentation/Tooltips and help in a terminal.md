@@ -198,7 +198,11 @@ bar's rows for a tooltip cause is therefore not a hover change to the
 tooltip: the candidate is held, and shown, until the pointer moves and does
 not land on its view again, or the view goes or is covered
 (`TooltipState.held`). The controls and `.onHover` hear the pointer's
-transitions as before.
+transitions as before. A page that fills the window does not move: the bar's
+rows cover its last visible rows, and the view under the pointer with them.
+A pointer resting on the rows the bar took for its tooltip still counts as on
+the tooltip's own view, so the help stays there too
+(`WindowChromeState.tooltipRows`).
 
 Growing has one consequence below the layout. The bar grows *upwards*, so its
 top edge moves a row with every tooltip that comes or goes — and the frame

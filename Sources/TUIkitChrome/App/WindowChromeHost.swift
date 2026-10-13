@@ -109,6 +109,13 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
             }
             return page
         }
+        // The rows the tooltip took from the page, which a pointer resting on
+        // one of them still rests on for the tooltip's own view
+        // (`WindowChromeState.tooltipRows`).
+        if let chrome, !tooltip.isEmpty {
+            let barAlone = min(height, Self.toolbarHeight(contentRows: chrome.rows(.bottom), style: chrome.style))
+            chrome.tooltipRows = (height - rows.bottom)..<max(height - rows.bottom, height - barAlone)
+        }
         // The dock's rows, blank under the sheet composited onto them.
         if dock > 0 { page = page.placedVertically(inHeight: contentHeight, topPadding: 0) }
 

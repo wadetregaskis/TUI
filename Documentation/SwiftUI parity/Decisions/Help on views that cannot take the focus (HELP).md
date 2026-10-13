@@ -87,18 +87,28 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
 
 **Left open** (found by the lane's last review; queued):
 
-- **The last row of a page that fills the window.** There the bar's new row
-  does not move the page; it covers the page's last visible row. The hold
-  finds the hovered view unreachable (`TooltipState.endReshape`) and drops
-  it in the same frame. The next frame empties the bar and the row comes
-  back under the pointer, but no `.entered` arrives (next item), so the help
-  is on screen for one frame and does not return while the pointer rests.
-  A bordered chrome style's bar can take up to three rows, so up to three
-  rows are affected. No test covers it yet. The review's input:
-  `WindowGroup { ScrollView { VStack(alignment: .leading, spacing: 0) {
-  ForEach(0..<40, id: \.self) { Text("row \($0)").help("HELP-\($0)") } } } }
-  .mouseSupport(.full)` at 50 × 14, the pointer resting on the last visible
-  row.
+- **The last row of a page that fills the window — fixed (lane BUGS13).**
+  There the bar's new row does not move the page; it covers the page's last
+  visible row. The hold found the hovered view unreachable
+  (`TooltipState.endReshape`) and dropped it in the same frame. The next
+  frame emptied the bar and the row came back under the pointer, but no
+  `.entered` arrived (next item), so the help was on screen for one frame
+  and did not return while the pointer rested; once the next item was fixed,
+  the row's re-entry restarted the delay, and the help showed in every
+  other frame drawn and the app never idled. A bordered chrome style's bar
+  can take up to three rows, so up to three rows are affected. The review's
+  input: `WindowGroup { ScrollView { VStack(alignment: .leading, spacing: 0)
+  { ForEach(0..<40, id: \.self) { Text("row \($0)").help("HELP-\($0)") } }
+  } }.mouseSupport(.full)` at 50 × 14, the pointer resting on the last
+  visible row. Now a row covered by the tooltip's own bar still counts as
+  its view's: the chrome host records the rows the bar took from the page
+  for its tooltip (`WindowChromeState.tooltipRows`), and a held help stays
+  while the pointer rests on one of them. Pinned for every chrome style and
+  a help of one line and of two (`HelpRunLoopTests.hoverOnARowTheBarCovers`).
+  Left: a pointer that moves along a covered row lets the help go, the row
+  comes back under it, and the help returns after its delay; and a view
+  removed from the page while the pointer rests on its covered row keeps
+  its help up until the pointer moves.
 - **No `.entered` for a view a reshape slides under a pointer resting on
   nothing — fixed (lane BUGS13).** The dispatcher re-resolved the hover
   after a reshape only for a lane that was already hovering something (the

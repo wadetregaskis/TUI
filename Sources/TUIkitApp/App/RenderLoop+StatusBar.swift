@@ -51,7 +51,10 @@ extension RenderLoop {
     /// that as the pointer leaving; to the tooltip it is not
     /// (`TooltipState.held`, decisions-HELP A-HELP-1). Other hover observers
     /// and the controls hear the transitions as before: the pointer IS over
-    /// something else now.
+    /// something else now. On a page that fills the window the bar's rows
+    /// cover the page's last rows instead of moving it, and a pointer resting
+    /// on them rests on the tooltip's own bar, over the view it was on
+    /// (`WindowChromeState.tooltipRows`).
     ///
     /// - Parameter tooltipMovedThePage: What
     ///   ``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``
@@ -61,7 +64,9 @@ extension RenderLoop {
         let dispatcher = tuiContext.mouseEventDispatcher
         tooltips.beginReshape(movedByTooltip: tooltipMovedThePage)
         dispatcher.setRegions(regions)
-        tooltips.endReshape { dispatcher.reachesHoverObserver($0) }
+        let tooltipRows = windowChrome.tooltipRows
+        let onTooltipRows = dispatcher.restingPointer.map { tooltipRows.contains($0.y) } ?? false
+        tooltips.endReshape(pointerOnTooltipRows: onTooltipRows) { dispatcher.reachesHoverObserver($0) }
     }
 
     /// Fills the status bar's rows above its items for this frame: the body

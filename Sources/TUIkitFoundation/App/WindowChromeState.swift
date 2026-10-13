@@ -201,6 +201,22 @@ package final class WindowChromeState: @unchecked Sendable {
         for region in buffer.hitTestRegions { _appLineHandlerIDs.insert(region.handlerID) }
     }
 
+    /// The rows of the frame the bottom bar took from the page for the
+    /// tooltip it shows, as the walk drawn laid them out: from the bar's top
+    /// edge down, as many as the tooltip added to the bar — its lines, and the
+    /// bar's own framing when the tooltip is all the bar holds. Empty while
+    /// the bar shows no tooltip.
+    ///
+    /// The bar grows upwards, so on a page that fills the window these were
+    /// the page's last rows before the tooltip came: a pointer resting on one
+    /// rests over the tooltip's own bar now, where its view was
+    /// (`TooltipState.held`, decisions-HELP A-HELP-1).
+    package var tooltipRows: Range<Int> { get { _tooltipRows } set { _tooltipRows = newValue } }
+
+    /// ``tooltipRows``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _tooltipRows: Range<Int> = 0..<0
+
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
     /// content declared this walk (see ``offer(_:as:at:)``) — kept until the
     /// next walk begins.
@@ -376,6 +392,7 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
+        _tooltipRows = 0..<0
         titleOffers.removeAll(keepingCapacity: true)
         subtitleOffers.removeAll(keepingCapacity: true)
         chosenTitles = nil

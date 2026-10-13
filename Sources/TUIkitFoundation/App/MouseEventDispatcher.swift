@@ -189,6 +189,10 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// re-resolved against a RESTING cursor.
     private var lastMotionPosition: (x: Int, y: Int)?
 
+    /// Where the pointer rests: the cell it last reported motion on, in the
+    /// screen's coordinates, or `nil` before it has reported any.
+    package var restingPointer: (x: Int, y: Int)? { lastMotionPosition }
+
     /// A control that was hovered and whose `.exited` still has to reach it.
     ///
     /// A named struct rather than the labelled tuple it used to be, and the

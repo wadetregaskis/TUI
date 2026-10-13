@@ -249,6 +249,43 @@ private struct CentredHelpUnderAButtonPage: View {
     }
 }
 
+/// The HELP lane review's page (decisions-HELP A-HELP-1, "Left open"): a
+/// `ScrollView` of rows with help that fills the window, so the status bar
+/// growing for a hover tooltip moves nothing and covers the page's last
+/// visible rows instead — as many as the tooltip takes, `helpLines` of text
+/// in the bar's chrome style.
+private struct FullWindowRowsApp: App {
+    var chrome: ChromeStyle = .bordered
+    var helpLines = 1
+
+    init() {}
+
+    init(chrome: ChromeStyle, helpLines: Int) {
+        self.chrome = chrome
+        self.helpLines = helpLines
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<40, id: \.self) { index in
+                        Text("row \(index)").help(help(index))
+                    }
+                }
+            }
+        }
+        .windowToolbarStyle(WindowToolbarStyleCase.drawing(chrome).style)
+        .mouseSupport(.full)
+    }
+
+    /// One line at the bar's width, or two: a 50-column bar's content is 46
+    /// to 50 wide.
+    private func help(_ index: Int) -> String {
+        helpLines == 1 ? "HELP-\(index)" : "HELP-\(index) " + String(repeating: "wraps ", count: 9)
+    }
+}
+
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class HelpDriver<A: App> {
@@ -576,6 +613,57 @@ struct HelpRunLoopTests {
         driver.stepIfAsked()
         #expect(driver.shows("SHEET-BODY") == presentsSheet, "precondition: the sheet: \(driver.lines)")
         #expect(!driver.shows("HELP-A"), "the help outlived its view: \(driver.lines)")
+    }
+
+    /// decisions-HELP A-HELP-1, "Left open": on a page that fills the window
+    /// the bar's new rows do not move the page, they cover its last visible
+    /// rows. The hold found the hovered view unreachable and dropped it in the
+    /// same frame; the next frame emptied the bar, the row came back under the
+    /// pointer, and the help was on screen for one frame in every delay. A
+    /// row covered by the tooltip's own bar still counts as its view's. Every
+    /// chrome style, and a help of two lines with the pointer on the upper of
+    /// the two rows it covers (a bordered bar takes up to three).
+    @Test("Hovered help on a full-window page's last rows stays while the pointer rests, though its bar covers them",
+          arguments: ChromeStyle.allCases, [1, 2])
+    func hoverOnARowTheBarCovers(chrome: ChromeStyle, helpLines: Int) throws {
+        let driver = HelpDriver(FullWindowRowsApp(chrome: chrome, helpLines: helpLines))
+        // The last visible row, and the one `helpLines - 1` above it.
+        let visible = driver.lines.enumerated().compactMap { row, line -> (index: Int, x: Int, y: Int)? in
+            guard let range = line.range(of: #"row \d+"#, options: .regularExpression),
+                let index = Int(line[range].dropFirst(4))
+            else { return nil }
+            return (index, line.distance(from: line.startIndex, to: range.lowerBound), row)
+        }
+        let target = try #require(visible.dropLast(helpLines - 1).last, "no rows: \(driver.lines)")
+        let help = "HELP-\(target.index)"
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: target.x + 1, y: target.y))
+        driver.step()
+        #expect(!driver.shows(help), "\(chrome): shown before the pointer had rested")
+        #expect(driver.stepIfAsked(), "\(chrome): nothing asked for the frame at the end of the delay")
+        #expect(driver.shows(help), "\(chrome): the delay's frame showed nothing: \(driver.lines)")
+        #expect(
+            driver.position(of: "row \(target.index)") == nil,
+            "precondition: \(chrome): the bar covers the row: \(driver.lines)")
+        // Only the frames something asks for, as the live loop draws them…
+        let askedFrames = (0..<30).reduce(0) { count, _ in
+            driver.stepIfAsked()
+            return count + (driver.shows(help) ? 1 : 0)
+        }
+        #expect(askedFrames == 30, "\(chrome): shown in \(askedFrames) of 30 frames while the pointer rested")
+        // …and every frame, as one drawn for any other reason would be.
+        let everyFrame = (0..<30).reduce(0) { count, _ in
+            driver.step()
+            return count + (driver.shows(help) ? 1 : 0)
+        }
+        #expect(everyFrame == 30, "\(chrome): shown in \(everyFrame) of 30 frames drawn while the pointer rested")
+        #expect(driver.app.nextWake(after: driver.now) == nil, "\(chrome): the app does not idle")
+        // A move off the row takes it away.
+        #expect(
+            driver.app.send(MouseEvent(button: .none, phase: .moved, x: 45, y: 0)),
+            "\(chrome): nothing asked for the frame that takes the help away")
+        driver.step()
+        driver.stepIfAsked()
+        #expect(!driver.shows(help), "\(chrome): the help stayed after the pointer moved off: \(driver.lines)")
     }
 
     /// The app-wide feature, `.tooltips(.always)`, with a focusable and a
