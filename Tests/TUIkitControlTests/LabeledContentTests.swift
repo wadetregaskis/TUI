@@ -55,6 +55,38 @@ struct LabeledContentTests {
         #expect(shortEnd == longEnd, "each line ends at the trailing edge: \(lines)")
     }
 
+    /// Found by the BUGS13 lane's second review: the value's trailing lines
+    /// were a `.multilineTextAlignment(.trailing)` written inside the
+    /// `LabeledContent`, which overrode one the app wrote on it. The value
+    /// trails its lines only where nothing states an alignment.
+    @Test("An alignment stated on a LabeledContent wins over its value's trailing lines",
+          arguments: [TextAlignment.leading, .center])
+    func statedAlignmentWins(alignment: TextAlignment) throws {
+        let lines = renderToBuffer(
+            LabeledContent { Text("short\na much longer line") } label: { Text("Notes") }
+                .multilineTextAlignment(alignment),
+            context: makeRenderContext(width: 40, height: 3)
+        ).lines.map(\.stripped)
+        func range(of text: String, in line: String) -> (start: Int, end: Int)? {
+            line.range(of: text).map {
+                (line.distance(from: line.startIndex, to: $0.lowerBound),
+                 line.distance(from: line.startIndex, to: $0.upperBound))
+            }
+        }
+        let first = try #require(lines.firstIndex { $0.contains("short") }, "drawn: \(lines)")
+        let short = try #require(range(of: "short", in: lines[first]))
+        let long = try #require(
+            lines.dropFirst(first + 1).first.flatMap { range(of: "a much longer line", in: $0) }, "drawn: \(lines)")
+        #expect(long.end == 40, "the block still sits at the trailing edge: \(lines)")
+        if alignment == .leading {
+            #expect(short.start == long.start, "the lines lead, as stated: \(lines)")
+        } else {
+            // Thirteen cells to share: six before "short", seven after it.
+            let (before, after) = (short.start - long.start, long.end - short.end)
+            #expect(before > 0 && abs(before - after) <= 1, "the lines are centred, as stated: \(lines)")
+        }
+    }
+
     @Test("A flexible control gets the whole remainder, not half of it")
     func flexibleContentTakesTheRest() {
         // The bug: the body put a `Spacer` between the label and the content,

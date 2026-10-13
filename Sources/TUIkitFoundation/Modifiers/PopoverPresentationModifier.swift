@@ -257,6 +257,7 @@ extension PopoverPresentationModifier: Renderable {
         // (`LiveSheet.dock`).
         popoverContext.environment.isInModalPresentation = true
         popoverContext.leaveScrollCanvas()
+        popoverContext.environment.leaveUnstatedTextAlignment()
         // `@Environment(\.dismiss)` inside the popover closes the POPOVER — the
         // same act as its Escape handler above. Left unset it would mean the
         // top-level dismissal, which is to quit the application.

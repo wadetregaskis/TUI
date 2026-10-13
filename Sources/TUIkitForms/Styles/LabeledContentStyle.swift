@@ -83,14 +83,22 @@ extension LabeledContentStyle {
 /// the whole row.
 ///
 /// A content of several lines trails line by line: each line of its text ends
-/// at the trailing edge (`.multilineTextAlignment(.trailing)`), as the trailing
-/// value of SwiftUI's grouped `Form` does, its wrapped lines too (measured,
-/// `Tools/SwiftUIProbes/Trailing values and labels`). The frame alone places
-/// the content as one block, its lines leading inside it, which is SwiftUI's
-/// frame and draws "short" over "a much longer line" with "short" left of the
-/// trailing edge. (SwiftUI's `LabeledContent` outside a form leads its content
-/// after the label instead, measured in the same probe; this style trails it, as
-/// a form's value does.) A content that sets its own alignment keeps it.
+/// at the trailing edge (`EnvironmentValues.unstatedMultilineTextAlignment`),
+/// as the trailing value of SwiftUI's grouped `Form` does, its wrapped lines
+/// too (measured, `Tools/SwiftUIProbes/Trailing values and labels`). The frame
+/// alone places the content as one block, its lines leading inside it, which is
+/// SwiftUI's frame and draws "short" over "a much longer line" with "short"
+/// left of the trailing edge. (SwiftUI's `LabeledContent` outside a form leads
+/// its content after the label instead, measured in the same probe; this style
+/// trails it. A row of a TUIkit `Form` is not drawn through this style: it
+/// leads its content after the label column, `_FormFieldRow`.)
+///
+/// Only where the app states no alignment: one stated on the `LabeledContent`
+/// or above it, or inside the content, wins. And only in the content's own
+/// drawing: a surface the content presents — a popover, a sheet, an alert —
+/// is drawn somewhere else, and leads its lines as it would anywhere (found by
+/// the BUGS13 lane's second review, when this style still wrote
+/// `.multilineTextAlignment(.trailing)` on the content).
 public struct AutomaticLabeledContentStyle: LabeledContentStyle, Equatable {
     /// Creates the automatic labeled content style.
     public init() {}
@@ -99,7 +107,7 @@ public struct AutomaticLabeledContentStyle: LabeledContentStyle, Equatable {
         HStack(spacing: 0) {
             _CollapsingLabel(label: configuration.label, controlDisabled: false)
             configuration.content
-                .multilineTextAlignment(.trailing)
+                .environment(\.unstatedMultilineTextAlignment, .trailing)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }

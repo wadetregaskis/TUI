@@ -5,7 +5,9 @@
 //  over the screen. It used to inherit the canvas a scroll view published for
 //  that content — the viewport, the whole-width mark, the visible window, the
 //  content's origin — so a sheet presented from a horizontal strip laid itself
-//  out as if it were the strip. These pin that it starts clean.
+//  out as if it were the strip. These pin that it starts clean — and that it
+//  leaves behind the trailing lines a `LabeledContent`'s value asks of its
+//  own text, which a popover in the value inherited too.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -84,6 +86,35 @@ private struct StripApp: App {
     }
 }
 
+/// The BUGS13 lane's second review's input: a `LabeledContent` whose value
+/// presents two lines of text, in a popover or a sheet.
+private struct LabeledValueApp: App {
+    let log: CanvasLog
+    let popover: Bool
+
+    init() { self.init(log: CanvasLog(), popover: false) }
+    init(log: CanvasLog, popover: Bool) {
+        self.log = log
+        self.popover = popover
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            LabeledContent("Server") { value }
+        }
+    }
+
+    @ViewBuilder private var value: some View {
+        let isUp = Binding(get: { log.isUp }, set: { log.isUp = $0 })
+        let details = Text("first line\na much longer second line")
+        if popover {
+            Text("Details").popover(isPresented: isUp) { details }
+        } else {
+            Text("Details").sheet(isPresented: isUp) { details }
+        }
+    }
+}
+
 @MainActor
 @Suite("Presentations start outside the scroll canvas")
 struct PresentationScrollCanvasTests {
@@ -103,5 +134,29 @@ struct PresentationScrollCanvasTests {
         #expect(
             !log.markedOrigin.contains(true),
             "the presented content was marked as inside the strip's content")
+    }
+
+    /// Found by the BUGS13 lane's second review: the automatic
+    /// `LabeledContent` style trailed its value's lines with
+    /// `.multilineTextAlignment(.trailing)` on the whole content, and a
+    /// presentation inherits its presenter's environment, so a popover or a
+    /// sheet presented from the value ended each of its lines at its trailing
+    /// edge. The value's trailing lines are its own drawing's.
+    @Test("A popover or sheet presented from a LabeledContent's value leads its lines", arguments: [false, true])
+    func presentedFromAValueLeads(popover: Bool) throws {
+        let log = CanvasLog()
+        let app = HeadlessApp(LabeledValueApp(log: log, popover: popover), width: 50, height: 16)
+        app.frame(atNanos: 0)
+        log.isUp = true
+        app.frame(atNanos: 16_666_667)
+        app.frame(atNanos: 33_333_334)
+        let lines = app.screen.map(\.stripped)
+        func start(of text: String) -> Int? {
+            lines.lazy.compactMap { line in
+                line.range(of: text).map { line.distance(from: line.startIndex, to: $0.lowerBound) }
+            }.first
+        }
+        let first = try #require(start(of: "first line"), "precondition: presented: \(lines)")
+        #expect(first == start(of: "a much longer second line"), "its lines trail: \(lines)")
     }
 }

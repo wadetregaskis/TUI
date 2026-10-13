@@ -254,6 +254,7 @@ package func presentMenuPopover<Items: View>(
         .withAvailableHeight(context.environment.overlayContentHeight)
     menuContext.environment.activeFocusSectionID = sectionID
     menuContext.leaveScrollCanvas()
+    menuContext.environment.leaveUnstatedTextAlignment()
     menuContext.environment.dismissMenu = DismissMenuAction(action: dismiss)
     // Explicitly NOT the top-border ●: that mark reads as "this titled
     // container has the focus", and a menu has no title, so a lone dot floating
