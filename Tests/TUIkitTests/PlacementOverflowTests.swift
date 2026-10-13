@@ -317,17 +317,37 @@ struct PlacementOverflowTests {
 
     @Test("A table keeps a cell's overflow inside its box")
     func tableKeepsItInside() {
-        let screen = Screen(width: 24, height: 6)
-        let lines = screen.render(
-            HStack(spacing: 0) {
-                Table([Item(id: 0)]) {
-                    TableColumn("A") { _ in
-                        Text("rrrr").alignmentGuide(.leading) { _ in -12 }.frame(width: 4, alignment: .leading)
+        // Each row's view is four cells in a 4-wide frame, hung `push` cells
+        // right of it by its guide. Two cells is past the frame and inside
+        // the cell, where it is drawn; twelve is past the cell and the table,
+        // where it is cut. Held inside its frame, as before B-GUIDE-3, every
+        // row drew "rrrr" at the frame's edge.
+        func table(_ pushes: [Double]) -> [String] {
+            let screen = Screen(width: 24, height: 6)
+            return screen.render(
+                HStack(spacing: 0) {
+                    Table(pushes.indices.map { Item(id: $0) }) {
+                        TableColumn("A") { item in
+                            Text("rrrr").alignmentGuide(.leading) { _ in -pushes[item.id] }
+                                .frame(width: 4, alignment: .leading)
+                        }
                     }
-                }
-                .frame(width: 12)
-                Text("|")
-            })
+                    .frame(width: 12)
+                    Text("|")
+                })
+        }
+        let reference = table([0])
+        guard let row = reference.firstIndex(where: { $0.contains("rrrr") }),
+            let frameEdge = reference[row].range(of: "rrrr")?.lowerBound
+        else {
+            Issue.record("the unpushed row draws its view: \(reference)")
+            return
+        }
+        let column = reference[row].distance(from: reference[row].startIndex, to: frameEdge)
+        let lines = table([2, 12])
+        let pushed = lines[row].range(of: "rrrr").map { lines[row].distance(from: lines[row].startIndex, to: $0.lowerBound) }
+        #expect(pushed == column + 2, "two cells right of the frame, inside the cell: \(lines)")
+        #expect(lines.filter { $0.contains("r") } == [lines[row]], "the second row's view is past the cell, cut: \(lines)")
         #expect(!lines.contains { $0.dropFirst(12).contains("r") }, "nothing past the table: \(lines)")
     }
 
@@ -479,8 +499,18 @@ struct PlacementOverflowTests {
     @Test("A measure pass draws nothing past the region and sizes as before")
     func measureUnchanged() {
         let view = Text("rrrr").alignmentGuide(.leading) { _ in -3 }.frame(width: 4, alignment: .leading)
+        // Drawn, it hangs three cells right of its frame, into the padding.
+        let screen = Screen()
+        #expect(screen.render(view.padding(.trailing, 10)).first == "   rrrr", "\(screen.lines)")
+        // Measured, it is its frame's size, and a measuring render keeps it
+        // inside the frame, at the nearest place, with nothing past it.
         let size = measureChild(view, proposal: .unspecified, context: makeBareRenderContext(width: 20, height: 4))
         #expect(size.width == 4)
         #expect(size.height == 1)
+        var context = makeBareRenderContext(width: 20, height: 4)
+        context.isMeasuring = true
+        let measured = renderToBuffer(view, context: context)
+        #expect(measured.lines.map(\.stripped) == ["rrrr"])
+        #expect(measured.overlays.isEmpty)
     }
 }
