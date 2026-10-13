@@ -154,11 +154,9 @@ private struct PlayButton: View {
 }
 
 /// A focused button that puts a row above two `Text`s with help, so the
-/// first slides under a pointer resting on the second: a hover that the
-/// frame's reshape starts once the walk is over, rather than a mouse event
-/// between frames. (The pointer has to rest on a view that hears it: the
-/// dispatcher re-resolves the hover after a reshape only for a pointer that
-/// was over one.)
+/// first slides under a pointer resting on the second, and the second under
+/// one resting on the blank row below it: a hover that the frame's reshape
+/// starts once the walk is over, rather than a mouse event between frames.
 private struct SlidingHelpApp: App {
     var style: TooltipStyle = .statusBar
 
@@ -456,6 +454,28 @@ struct HelpRunLoopTests {
         let pressed = driver.now
         while driver.now < pressed + 700_000_000, driver.stepIfAsked() {}
         #expect(driver.shows("HELP-SLIDES"), "\(style): nothing woke for the delay: \(driver.lines)")
+    }
+
+    /// Found by the HELP lane's review (A-HELP-1, "Left open"): the dispatcher
+    /// re-resolved the hover after a reshape only for a pointer that was over
+    /// something, so a view slid under a pointer resting on blank space got no
+    /// `.entered`, and its help never started its delay until the pointer moved.
+    @Test("A view a reshape slides under a pointer resting on nothing shows its help after the delay",
+          arguments: TooltipStyle.allCases)
+    func reshapeSlidesAViewUnderAPointerOnNothing(style: TooltipStyle) throws {
+        let driver = HelpDriver(SlidingHelpApp(style: style))
+        let restedOn = try #require(driver.position(of: "rested on"))
+        // The blank row below the last `Text`.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: restedOn.x + 1, y: restedOn.y + 1))
+        driver.step()
+        driver.run(until: 0.7)
+        #expect(!driver.shows("HELP-"), "precondition: \(style): the pointer rests on nothing: \(driver.lines)")
+        #expect(driver.app.send(KeyEvent(key: .enter)), "the button took the press")
+        driver.step()
+        #expect(driver.position(of: "rested on")?.y == restedOn.y + 1, "precondition: it slid under the pointer")
+        let pressed = driver.now
+        while driver.now < pressed + 700_000_000, driver.stepIfAsked() {}
+        #expect(driver.shows("HELP-RESTED-ON"), "\(style): no help for the view slid under the pointer: \(driver.lines)")
     }
 
     /// Decided 2026-10-12 (decisions-HELP A-HELP-1, option 1). The status bar

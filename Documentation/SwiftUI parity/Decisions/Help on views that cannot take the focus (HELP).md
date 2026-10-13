@@ -100,11 +100,14 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   .mouseSupport(.full)` at 50 × 14, the pointer resting on the last visible
   row.
 - **No `.entered` for a view a reshape slides under a pointer resting on
-  nothing.** The dispatcher re-resolves the hover after a reshape only for
-  a lane that was already hovering something (the guard in
-  `MouseEventDispatcher.reconciled`). Older than this lane; it affects
-  `.onHover` too, whose view hears `.entered` only when the pointer next
-  moves.
+  nothing — fixed (lane BUGS13).** The dispatcher re-resolved the hover
+  after a reshape only for a lane that was already hovering something (the
+  guard in `MouseEventDispatcher.reconciled`). Older than this lane; it
+  affected `.onHover` too, whose view heard `.entered` only when the pointer
+  next moved. Now a lane resting on nothing enters the control or hover
+  observer a reshape puts under the pointer, once, while motion is reported
+  (`HoverReshapeTests.reshapeEntersFromNothing`,
+  `HelpRunLoopTests.reshapeSlidesAViewUnderAPointerOnNothing`).
 - Smaller: under the popover style, when a reshape slides a second view
   with help under a pointer resting on a shown panel, the old panel stays
   up for at most the delay; held help outlives reshapes the bar did not

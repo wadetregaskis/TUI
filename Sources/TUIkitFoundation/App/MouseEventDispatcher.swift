@@ -554,10 +554,23 @@ extension MouseEventDispatcher {
 
     /// One lane of ``reconcileHoverAfterReshape()``: `slot` re-resolved against
     /// `current`, the region its lane finds under the resting cursor now.
+    ///
+    /// A lane resting on nothing is re-resolved too: a control the reshape put
+    /// under the cursor is entered, as a move onto it would enter it. Only a
+    /// lane that hovered something used to be, so a view a reshape slid under
+    /// a cursor resting on blank space heard nothing until the cursor next
+    /// moved — its `.onHover` unlit, its help never starting its delay
+    /// (decisions-HELP A-HELP-1, "Left open"). Not while motion is not
+    /// reported, when the cursor may have gone anywhere since it last said
+    /// where it was. Entered once: the lane holds the control from then on,
+    /// and the next reshape finds the same one.
     private func reconciled(
         _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int)
     ) -> HoverSlot {
-        guard slot.region != nil || slot.pendingExit != nil else { return slot }
+        guard slot.region != nil || slot.pendingExit != nil else {
+            guard let current, activeSupport.motion else { return slot }
+            return entered(current, at: position)
+        }
         let previous = slot.pendingExit?.region ?? slot.region
         if let current, isSameControl(previous, current) {
             return HoverSlot(handlerID: current.handlerID, region: current, pendingExit: nil)
@@ -580,14 +593,21 @@ extension MouseEventDispatcher {
                 y: position.y - oldRegion.localOriginY)
             _ = oldHandler(exit)
         }
-        if let current, let handler = handlers[current.handlerID] {
+        guard let current else { return HoverSlot() }
+        return entered(current, at: position)
+    }
+
+    /// A lane on `region`, its handler told the resting cursor at `position`
+    /// has entered it.
+    private func entered(_ region: HitTestRegion, at position: (x: Int, y: Int)) -> HoverSlot {
+        if let handler = handlers[region.handlerID] {
             let enter = MouseEvent(
                 button: .none, phase: .entered,
-                x: position.x - current.localOriginX,
-                y: position.y - current.localOriginY)
+                x: position.x - region.localOriginX,
+                y: position.y - region.localOriginY)
             _ = handler(enter)
         }
-        return HoverSlot(handlerID: current?.handlerID, region: current, pendingExit: nil)
+        return HoverSlot(handlerID: region.handlerID, region: region, pendingExit: nil)
     }
 
     /// The closure a lane's hovered region still has in this frame's table,

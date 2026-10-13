@@ -341,4 +341,34 @@ struct HoverReshapeTests {
         #expect(aEvents == [.exited], "the control that left must be exited: \(aEvents)")
         #expect(bEvents == [.entered], "the newcomer under the cursor lights up: \(bEvents)")
     }
+
+    /// Only a lane that hovered something was re-resolved, so a view slid
+    /// under a cursor resting on blank space heard nothing until the cursor
+    /// moved (decisions-HELP A-HELP-1, "Left open"): a control and a hover
+    /// observer (`.onHover`, `help(_:)`) alike.
+    @Test("A reshape that puts a control or a hover observer under a cursor resting on nothing enters it, once",
+          arguments: [false, true])
+    func reshapeEntersFromNothing(observer: Bool) {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full)
+        var events: [MousePhase] = []
+
+        func frame(withRegionUnderTheCursor present: Bool) {
+            dispatcher.beginRenderPass()
+            let id = dispatcher.register { events.append($0.phase); return true }
+            if observer { dispatcher.noteHoverObserver(id) }
+            dispatcher.setRegions(
+                present ? [HitTestRegion(offsetX: 0, offsetY: 2, width: 6, height: 1, handlerID: id)] : [])
+        }
+
+        frame(withRegionUnderTheCursor: false)
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 2, y: 2))
+        #expect(events.isEmpty, "precondition: the cursor rests on nothing")
+        frame(withRegionUnderTheCursor: true)
+        #expect(events == [.entered], "the view the reshape put under the cursor: \(events)")
+        frame(withRegionUnderTheCursor: true)
+        #expect(events == [.entered], "entered once, not again by the next frame: \(events)")
+        frame(withRegionUnderTheCursor: false)
+        #expect(events == [.entered, .exited], "and exited when a reshape takes it away: \(events)")
+    }
 }
