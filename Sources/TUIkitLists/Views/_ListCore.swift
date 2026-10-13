@@ -2843,7 +2843,20 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     buffer.overlays.append(layer)
                     continue
                 }
-                if let clipped = layer.clipped(toWidth: bounds.width, height: bounds.height) {
+                // What a placement drew past its region (`OverlayLayer.isOverflow`:
+                // a view a guide put outside its frame, a transition's overshoot)
+                // stays inside the list's border, which it would otherwise
+                // overwrite: the list keeps its content inside its box, as a
+                // scroll view does, and draws a row's overflow over the rows
+                // beside it within that box, as it always has.
+                if layer.isOverflow {
+                    let border = style.showsBorder ? 1 : 0
+                    if let kept = layer.cropped(
+                        x: border, y: border, width: bounds.width - 2 * border, height: bounds.height - 2 * border)
+                    {
+                        buffer.overlays.append(kept)
+                    }
+                } else if let clipped = layer.clipped(toWidth: bounds.width, height: bounds.height) {
                     buffer.overlays.append(clipped)
                 }
             }

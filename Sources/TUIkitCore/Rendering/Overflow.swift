@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  Overflow.swift
 //
-//  Content drawn past its region — a scroll view's under `scrollClipDisabled` —
-//  and the one rule that places it in the stacking order: it draws over what
-//  came before its view and under what comes after it, at the view's own z
+//  Content drawn past its region — a scroll view's under `scrollClipDisabled`,
+//  a view a guide places outside its frame, a transition's overshoot — and the
+//  one rule that places it in the stacking order: it draws over what came
+//  before its view and under what comes after it, at the view's own z
 //  position, as SwiftUI's does.
 //
 //  Created by Wade Tregaskis
@@ -131,8 +132,9 @@ extension OverlayLayer {
     /// in the rect's own coordinates, with every payload trimmed to the cells
     /// that survive: that clip keeps the regions past a trailing edge, which
     /// is right for a container's clamp and wrong here, where the cells past
-    /// it belong to another part.
-    private func cropped(x: Int, y: Int, width: Int, height: Int) -> OverlayLayer? {
+    /// it belong to another part — or, for a container that keeps overflow
+    /// inside a box of its own (a list's row, a table's cell), to nothing.
+    package func cropped(x: Int, y: Int, width: Int, height: Int) -> OverlayLayer? {
         guard var part = shifted(byX: -x, y: -y).clipped(toWidth: width, height: height) else {
             return nil
         }
@@ -260,5 +262,90 @@ extension FrameBuffer {
             }
         }
         return blocks
+    }
+}
+
+// MARK: - Placing a view past its region
+
+/// A view's drawing placed in a region it does not fit: what the region holds,
+/// and what is drawn past it — ``FrameBuffer/splitPlacing(at:inWidth:height:)``.
+package struct OverflowingPlacement {
+    /// The part of the view inside the region, cut to it, to be drawn in flow
+    /// at ``insideOrigin``. Every payload is cut with its cells, except the
+    /// geometry markers, which every clip keeps whole; the view's own floating
+    /// layers ride on it, moved so that they land where they would have.
+    package var inside: FrameBuffer
+
+    /// Where ``inside`` goes in the region: the view's position, held to the
+    /// region's top-leading corner.
+    package var insideOrigin: (x: Int, y: Int)
+
+    /// The cells past the region, in the region's coordinates, as the cells
+    /// they paint (``OverlayLayer/drawnParts()``) and marked
+    /// ``OverlayLayer/isOverflow``: drawn over what came before the view and
+    /// under what comes after it, with their hit regions, runs and opacity
+    /// regions travelling with them.
+    package var overflow: [OverlayLayer]
+}
+
+extension FrameBuffer {
+    /// Whether this buffer, placed at `position`, lies wholly inside a
+    /// `width` × `height` region — the question a placement asks before it
+    /// pays for ``splitPlacing(at:inWidth:height:)``.
+    package func fits(at position: (x: Int, y: Int), inWidth width: Int, height: Int) -> Bool {
+        position.x >= 0 && position.y >= 0 && position.x + self.width <= width
+            && position.y + self.height <= height
+    }
+
+    /// This buffer placed at `position` in a `width` × `height` region it does
+    /// not fit, as SwiftUI places a view: wherever the placement puts it, with
+    /// no clip (Apple's documentation of `clipped(antialiased:)`: "By default,
+    /// a view's bounding frame is used only for layout, so any content that
+    /// extends beyond the edges of the frame is still visible").
+    ///
+    /// The part the region holds is drawn in flow; the rest becomes layers
+    /// that draw past the region at the view's own place in the stacking order
+    /// (``OverlayLayer/isOverflow``), as a scroll view's unclipped content
+    /// does. Only the cells the view paints are drawn there, so a view's
+    /// leading or trailing blanks erase nothing beside the region and take no
+    /// clicks; its interior blanks are drawn, since a cell has no transparency.
+    ///
+    /// The caller asks ``fits(at:inWidth:height:)`` first: a view that fits
+    /// takes the placement it always had, and pays nothing for this.
+    package func splitPlacing(at position: (x: Int, y: Int), inWidth width: Int, height: Int)
+        -> OverflowingPlacement
+    {
+        // The view's own floating layers travel whole, not cut with its cells:
+        // they float free of the flow already.
+        var bare = self
+        bare.overlays = []
+        var whole = OverlayLayer(
+            offsetX: position.x, offsetY: position.y, content: bare, level: .popover,
+            zIndex: OverlayLayer.displacedDrawingZIndex, clampsToScreen: false, isOpaque: false)
+        whole.isOverflow = true
+        let regionWidth = max(0, width)
+        let regionHeight = max(0, height)
+        let overflow = whole.excluding(x: 0, y: 0, width: regionWidth, height: regionHeight)
+            .flatMap { $0.drawnParts() }
+
+        var inside: FrameBuffer
+        let origin: (x: Int, y: Int)
+        if let part = whole.cropped(x: 0, y: 0, width: regionWidth, height: regionHeight) {
+            inside = part.content
+            origin = (x: part.offsetX, y: part.offsetY)
+        } else {
+            // Nothing of it is inside: the markers, which say where the view
+            // begins, still ride in flow (the overflow's are never read).
+            inside = FrameBuffer()
+            inside.hitTestRegions = hitTestRegions.filter(\.isGeometryMarker)
+            origin = (x: min(max(0, position.x), regionWidth), y: min(max(0, position.y), regionHeight))
+            inside.hitTestRegions = inside.hitTestRegions.map {
+                $0.shifted(byX: position.x - origin.x, y: position.y - origin.y)
+            }
+        }
+        if !overlays.isEmpty {
+            inside.overlays = shiftedOverlays(byX: position.x - origin.x, y: position.y - origin.y)
+        }
+        return OverflowingPlacement(inside: inside, insideOrigin: origin, overflow: overflow)
     }
 }

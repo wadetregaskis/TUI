@@ -278,8 +278,12 @@ extension FlexibleFrameView: Renderable {
             finalHeight = max(finalHeight, context.availableHeight)
         }
 
-        // If size matches buffer, return as-is
-        if finalWidth == buffer.width && finalHeight == buffer.height {
+        // If size matches buffer, return as-is — unless the content can carry
+        // an explicit guide, which places it at the frame's guide less its own
+        // even in a frame its own size: SwiftUI's 4-wide view whose leading
+        // guide is 3 sits 3 cells left of a 4-wide frame (decisions B-GUIDE-3).
+        // A static question, so content with no guide pays nothing.
+        if finalWidth == buffer.width && finalHeight == buffer.height && !Content._providesAlignmentGuide {
             return buffer
         }
 
@@ -317,8 +321,6 @@ extension FlexibleFrameView: Renderable {
         _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int,
         contentContext: RenderContext
     ) -> FrameBuffer {
-        var result: [String] = []
-
         // The content's own explicit `.alignmentGuide`, when it set one. The
         // frame is a fixed region holding one child, so there is no run to
         // merge — the child's guide meets the frame's. A guided child shifts as
@@ -328,13 +330,74 @@ extension FlexibleFrameView: Renderable {
         let horizontalGuide = horizontalGuidePlacement(
             of: content, size: contentSize, alignment: alignment.horizontal, in: targetWidth,
             context: contentContext)
-
-        // Calculate vertical offset for alignment
+        let verticalGuide = verticalGuidePlacement(
+            of: content, size: contentSize, alignment: alignment.vertical, in: targetHeight,
+            context: contentContext)
         let verticalOffset =
-            verticalGuidePlacement(
-                of: content, size: contentSize, alignment: alignment.vertical, in: targetHeight,
-                context: contentContext)
-            ?? alignment.vertical.childOffset(childHeight: buffer.height, in: targetHeight)
+            verticalGuide ?? alignment.vertical.childOffset(childHeight: buffer.height, in: targetHeight)
+        guard horizontalGuide != nil || verticalGuide != nil else {
+            return placeBuffer(
+                buffer, toWidth: targetWidth, height: targetHeight, guideOffset: nil,
+                verticalOffset: verticalOffset)
+        }
+
+        // A guide can put the content partly or wholly outside the frame,
+        // where SwiftUI draws it (measured, `Tools/SwiftUIProbes/Alignment
+        // guides/guide2.out`): the part the frame holds is drawn in it, the
+        // rest past it, at this view's place in the stacking order. A measure
+        // pass draws nothing, so it keeps the content inside, at the nearest
+        // place, which sizes the same.
+        //
+        // Only along a guided axis. Content larger than the frame on an axis
+        // its alignment places is handled as it always was — its rows past
+        // the frame dropped here, its columns left for a clamp to cut — so the
+        // region on that axis is taken to hold all of it (decisions-GUIDE3
+        // B-GUIDE3-1).
+        var position = (
+            x: horizontalGuide ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: targetWidth),
+            y: verticalOffset)
+        let region = (
+            width: horizontalGuide == nil ? max(targetWidth, position.x + buffer.width) : targetWidth,
+            height: verticalGuide == nil ? max(targetHeight, position.y + buffer.height) : targetHeight)
+        if buffer.fits(at: position, inWidth: region.width, height: region.height) {
+            return placeBuffer(
+                buffer, toWidth: targetWidth, height: targetHeight, guideOffset: horizontalGuide,
+                verticalOffset: verticalOffset)
+        }
+        guard !contentContext.isMeasuring else {
+            position.x = min(max(0, position.x), max(0, targetWidth - buffer.width))
+            position.y = min(max(0, position.y), max(0, targetHeight - buffer.height))
+            return placeBuffer(
+                buffer, toWidth: targetWidth, height: targetHeight,
+                guideOffset: horizontalGuide.map { _ in position.x }, verticalOffset: position.y)
+        }
+        // Past the top or bottom edge only: across, each line is placed by the
+        // alignment on its own width, as it always is, before the rows are
+        // split — so the rows drawn past the frame line up with those in it.
+        var source = buffer
+        if horizontalGuide == nil {
+            source = placeBuffer(
+                buffer, toWidth: targetWidth, height: buffer.height, guideOffset: nil, verticalOffset: 0)
+            position.x = 0
+        }
+        let placement = source.splitPlacing(
+            at: position, inWidth: horizontalGuide == nil ? max(targetWidth, source.width) : targetWidth,
+            height: region.height)
+        var framed = placeBuffer(
+            placement.inside, toWidth: targetWidth, height: targetHeight,
+            guideOffset: placement.insideOrigin.x, verticalOffset: placement.insideOrigin.y)
+        framed.overlays.append(contentsOf: placement.overflow)
+        return framed
+    }
+
+    /// `buffer` placed in a `targetWidth` × `targetHeight` frame `verticalOffset`
+    /// rows down: as a block `guideOffset` columns in when that is given, and
+    /// otherwise each line by the frame's alignment, on its own width.
+    private func placeBuffer(
+        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, guideOffset horizontalGuide: Int?,
+        verticalOffset: Int
+    ) -> FrameBuffer {
+        var result: [String] = []
 
         // Track the aligned result's width as we build it — `alignHorizontally`
         // measures each line for its padding decision anyway, so threading that

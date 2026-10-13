@@ -1,0 +1,293 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  PlacementOverflowTests.swift
+//
+//  A view a placement puts past its region draws there, as SwiftUI's does
+//  (decisions B-GUIDE-3): over the views before it and under the views after
+//  it, clicked where it is drawn, and cut by the views that clip.
+//
+//  SwiftUI measured with SwiftUI 6.5.4 on macOS 15.8.1, `ImageRenderer` and an
+//  offscreen `NSHostingView`, 2026-10-11/12 (`Tools/SwiftUIProbes/Alignment
+//  guides/`; the stacking-order rows in decisions B-GUIDE-3). One point stands
+//  for one cell.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+
+import TUIkit
+@testable import TUIkitApp
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+@testable import TUIkitTestSupport
+@testable import TUIkitView
+
+@MainActor
+@Suite("Drawing past a placement's region")
+struct PlacementOverflowTests {
+
+    /// A value a tap closure can set.
+    private final class Flag {
+        var value = false
+    }
+
+    /// A screen: each frame rendered, then composited as the screen root
+    /// composites it, with a dispatcher that clicks what it drew.
+    @MainActor
+    private final class Screen {
+        let tui = TUIContext()
+        let focusManager = FocusManager()
+        let width: Int
+        let height: Int
+        var last = FrameBuffer()
+
+        init(width: Int = 20, height: Int = 6) {
+            self.width = width
+            self.height = height
+        }
+
+        @discardableResult
+        func render<V: View>(_ view: V) -> [String] {
+            var environment = EnvironmentValues()
+            environment.focusManager = focusManager
+            environment.verticalScrollIndicatorVisibility = .hidden
+            environment.horizontalScrollIndicatorVisibility = .hidden
+            environment.applyRuntimeServices(from: tui)
+            let context = RenderContext(
+                availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            focusManager.beginRenderPass()
+            let buffer = renderToBuffer(view, context: context)
+            focusManager.endRenderPass()
+            tui.stateStorage.endRenderPass()
+            tui.renderCache.removeInactive()
+            last = buffer.compositingOverlays(maxWidth: width, maxHeight: height, palette: environment.palette)
+            return lines
+        }
+
+        /// Each line as drawn, its trailing blanks dropped.
+        var lines: [String] {
+            last.lines.map { line in
+                var text = line.stripped
+                while text.last == " " { text.removeLast() }
+                return text
+            }
+        }
+
+        func click(x: Int, y: Int) {
+            let dispatcher = tui.mouseEventDispatcher
+            dispatcher.setActiveSupport(.standard)
+            dispatcher.setRegions(last.hitTestRegions)
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: x, y: y))
+        }
+    }
+
+    // MARK: - Where it draws
+
+    @Test("A badge hung off a corner by its guides sits beside its label, not on it")
+    func badgeOnACorner() {
+        // SwiftUI puts the badge's top guide (1) on the overlay's top (0) and
+        // its trailing guide (0) on the overlay's trailing edge (5): one row
+        // above the label and one column right of it (guide2.out, guide5.out).
+        // Held inside the label, it drew "Inbo3".
+        let screen = Screen()
+        let lines = screen.render(
+            Text("Inbox")
+                .overlay(alignment: .topTrailing) {
+                    Text("3").alignmentGuide(.top) { _ in 1 }.alignmentGuide(.trailing) { _ in 0 }
+                }
+                .padding(1))
+        #expect(Array(lines.prefix(2)) == ["      3", " Inbox"], "\(lines)")
+    }
+
+    @Test("A view drawn past its frame is over the view before it")
+    func overTheViewBefore() {
+        // `HStack { blue; red in a frame it overflows to the left }`: SwiftUI
+        // draws the red over the blue (g2c: (57, 20) is red).
+        let screen = Screen()
+        let lines = screen.render(
+            HStack(spacing: 0) {
+                Text("bbbb")
+                Text("rrrr").alignmentGuide(.leading) { _ in 3 }.frame(width: 4, alignment: .leading)
+            })
+        #expect(lines.first == "brrrr", "\(lines)")
+    }
+
+    @Test("A view drawn past its frame is under the view after it")
+    func underTheViewAfter() {
+        // `HStack { red in a frame it overflows to the right; blue }`: SwiftUI
+        // draws the blue over the red (g2c: (52, 20) is blue).
+        let screen = Screen()
+        let lines = screen.render(
+            HStack(spacing: 0) {
+                Text("rrrr").alignmentGuide(.leading) { _ in -3 }.frame(width: 4, alignment: .leading)
+                Text("bbbb")
+            })
+        #expect(lines.first == "   rbbbb", "\(lines)")
+    }
+
+    @Test("Down a column: over the row above, under the row below")
+    func downAColumn() {
+        // `VStack { above; scaled red; below }` in g2c: the red covers the row
+        // above it and the row below covers the red.
+        func column(guide: Double) -> [String] {
+            let screen = Screen()
+            let lines = screen.render(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("aaaa")
+                    Text("x").alignmentGuide(.top) { _ in guide }.frame(width: 4, height: 1, alignment: .topLeading)
+                    Text("bbbb")
+                })
+            return Array(lines.prefix(3))
+        }
+        // A top guide of 1 puts the view a row above its frame, over "aaaa";
+        // one of -1 a row below it, under "bbbb".
+        #expect(column(guide: 1) == ["xaaa", "", "bbbb"])
+        #expect(column(guide: -1) == ["aaaa", "", "bbbb"])
+        #expect(column(guide: 0) == ["aaaa", "x", "bbbb"])
+    }
+
+    @Test("Only the cells it paints are drawn past the region; its blanks erase nothing")
+    func blanksEraseNothing() {
+        let screen = Screen()
+        let lines = screen.render(
+            HStack(spacing: 0) {
+                Text("bbbbbbbb")
+                Text("  r ").alignmentGuide(.leading) { _ in 6 }.frame(width: 4, alignment: .leading)
+            })
+        // "  r " at 8 - 6 = 2: its two leading blanks fall on "bb" at 2...3,
+        // and leave them; the "r" lands on 4.
+        #expect(lines.first == "bbbbrbbb", "\(lines)")
+    }
+
+    // MARK: - Where it is clicked
+
+    @Test("A view drawn past its frame is clicked where it is drawn")
+    func clickedWhereDrawn() {
+        let screen = Screen()
+        let tapped = Flag()
+        screen.render(
+            VStack(alignment: .leading, spacing: 0) {
+                Text("tap")
+                    .onTapGesture { tapped.value = true }
+                    .alignmentGuide(.leading) { _ in -6 }
+                    .frame(width: 4, alignment: .leading)
+            })
+        #expect(screen.lines.first == "      tap", "\(screen.lines)")
+        screen.click(x: 7, y: 0)
+        #expect(tapped.value, "a click on the drawn cells reached it: \(screen.last.hitTestRegions)")
+    }
+
+    @Test("A later view keeps the clicks on the cells it draws over the overflow")
+    func laterViewKeepsItsClicks() {
+        let screen = Screen()
+        let under = Flag()
+        let over = Flag()
+        screen.render(
+            HStack(spacing: 0) {
+                Text("rrrr")
+                    .onTapGesture { under.value = true }
+                    .alignmentGuide(.leading) { _ in -3 }
+                    .frame(width: 4, alignment: .leading)
+                Text("bbbb").onTapGesture { over.value = true }
+            })
+        screen.click(x: 5, y: 0)
+        #expect(over.value && !under.value, "the cell is drawn by the later view, and clicked there")
+    }
+
+    // MARK: - What still clips
+
+    @Test("A scroll view, and .clipped(), still cut what a placement puts past them")
+    func clippingViewsStillClip() {
+        let guided = Text("rrrr").alignmentGuide(.leading) { _ in -3 }.frame(width: 4, alignment: .leading)
+        let screen = Screen()
+        let scrolled = screen.render(
+            HStack(spacing: 0) {
+                ScrollView(.horizontal) { guided }.frame(width: 5, height: 1)
+                Text("|")
+            })
+        #expect(scrolled.first == "   rr|", "cut at the viewport's edge: \(scrolled)")
+
+        let clipped = screen.render(HStack(spacing: 0) { guided.clipped(); Text("|") })
+        #expect(clipped.first == "   r|", "cut at the frame: \(clipped)")
+    }
+
+    private struct Item: Identifiable {
+        let id: Int
+    }
+
+    /// Every drawn line of a bordered box keeps its content between its side
+    /// borders: nothing drawn over or past them.
+    private func staysInsideItsBorders(_ lines: [String]) -> Bool {
+        lines.allSatisfy { line in
+            guard let first = line.first, "│┃|".contains(first) else { return true }
+            return line.last.map { "│┃|".contains($0) } ?? false
+        }
+    }
+
+    @Test("A list keeps a row's overflow inside its border")
+    func listKeepsItInside() {
+        // The row's view hangs six columns right of its frame: over the list's
+        // right border and past it, were it drawn there.
+        let screen = Screen(width: 24, height: 6)
+        let lines = screen.render(
+            HStack(spacing: 0) {
+                List {
+                    ForEach([Item(id: 0)]) { _ in
+                        Text("rrrr").alignmentGuide(.leading) { _ in -6 }.frame(width: 4, alignment: .leading)
+                    }
+                }
+                .listStyle(.bordered)
+                .frame(width: 12)
+                Spacer()
+            })
+        #expect(lines.contains { $0.contains("r") }, "the part inside the list is drawn: \(lines)")
+        #expect(staysInsideItsBorders(lines), "\(lines)")
+        #expect(!lines.contains { $0.dropFirst(12).contains("r") }, "nothing past the list: \(lines)")
+    }
+
+    @Test("A table keeps a cell's overflow inside its box")
+    func tableKeepsItInside() {
+        let screen = Screen(width: 24, height: 6)
+        let lines = screen.render(
+            HStack(spacing: 0) {
+                Table([Item(id: 0)]) {
+                    TableColumn("A") { _ in
+                        Text("rrrr").alignmentGuide(.leading) { _ in -12 }.frame(width: 4, alignment: .leading)
+                    }
+                }
+                .frame(width: 12)
+                Text("|")
+            })
+        #expect(!lines.contains { $0.dropFirst(12).contains("r") }, "nothing past the table: \(lines)")
+    }
+
+    @Test("A surface keeps its content's overflow inside its box")
+    func surfaceKeepsItInside() {
+        // A popover-like surface 6 wide at column 2 whose content carries a
+        // view drawn past its region: four cells, from column 5 of the surface.
+        var content = FrameBuffer(lines: ["······"])
+        var past = OverlayLayer(
+            offsetX: 5, offsetY: 0, content: FrameBuffer(lines: ["XXXX"]), zIndex: OverlayLayer.displacedDrawingZIndex,
+            clampsToScreen: false, isOpaque: false)
+        past.isOverflow = true
+        content.overlays = [past]
+        var page = FrameBuffer(lines: [String(repeating: "-", count: 16)])
+        page.overlays = [OverlayLayer(offsetX: 2, offsetY: 0, content: content, clampsToScreen: false)]
+        let drawn = page.compositingOverlays(maxWidth: 16, maxHeight: 1, palette: EnvironmentValues().palette)
+        #expect(drawn.lines.first?.stripped == "--·····X--------", "\(drawn.lines.map(\.stripped))")
+    }
+
+    // MARK: - Measuring
+
+    @Test("A measure pass draws nothing past the region and sizes as before")
+    func measureUnchanged() {
+        let view = Text("rrrr").alignmentGuide(.leading) { _ in -3 }.frame(width: 4, alignment: .leading)
+        let size = measureChild(view, proposal: .unspecified, context: makeBareRenderContext(width: 20, height: 4))
+        #expect(size.width == 4)
+        #expect(size.height == 1)
+    }
+}

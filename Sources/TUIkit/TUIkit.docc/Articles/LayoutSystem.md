@@ -152,7 +152,12 @@ Three things worth knowing before you reach for it:
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and
-`.background(alignment:)`. In a **lazy** stack the run is the realized rows, so
+`.background(alignment:)`, which put their view where its guide meets theirs
+even outside the region, and draw it there as SwiftUI does: over the views
+before it, under the views after it, and clicked where it is drawn. A scroll
+view, a `List`, a `Table`, a menu, a sheet and `.clipped()` keep it inside
+them; a cell has no transparency, so whatever it draws past the region hides
+what is beneath it. In a **lazy** stack the run is the realized rows, so
 prefer guides on content whose realized set is stable; a lazy stack reports none
 of its rows' guides to its own parent. SwiftUI's lazy stacks ignore explicit
 guides altogether (measured; whether TUIkit's should too is an open decision).

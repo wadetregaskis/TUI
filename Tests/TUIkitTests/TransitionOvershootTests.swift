@@ -249,6 +249,76 @@ struct TransitionOvershootTests {
         #expect(peak[0] == "." + "XXXX" + String(repeating: ".", count: 25), "\(peak)")
     }
 
+    /// `view`, drawn as the screen root draws it, at `millis` into a bouncy
+    /// transaction — the composited buffer, regions and all.
+    private func drawn<V: View>(_ view: V, atMillis millis: Int, in context: inout RenderContext) -> FrameBuffer {
+        context.environment.frameNowNanos = Int64(millis) * 1_000_000
+        let storage = context.environment.stateStorage!
+        storage.beginRenderPass()
+        defer { storage.endRenderPass() }
+        return renderToBuffer(view, context: context)
+            .compositingOverlays(maxWidth: 30, maxHeight: 4, palette: SystemPalette.green)
+    }
+
+    @Test("The overshoot draws under the views after it, at its place in the stacking order")
+    func underLaterSiblings() {
+        // SwiftUI draws a view past its frame over the views before it and
+        // under the views after it (decisions B-GUIDE-3, measured for a frame,
+        // an overlay and a scale effect). Floated over everything, the bounce
+        // drew ".XXXX…" over the later row.
+        struct Overlapping: View {
+            let showing: Bool
+            var body: some View {
+                ZStack(alignment: .topLeading) {
+                    if showing {
+                        Text("XXXXXXXXXXXXXXXXXXXX").transition(.slide)
+                    }
+                    Text("....................")
+                }
+            }
+        }
+        var context = makeRenderContext(width: 30, height: 4)
+        context.environment.canAnimate = true
+        context.environment.transaction = Transaction(animation: .bouncy)
+        _ = drawn(Overlapping(showing: false), atMillis: 0, in: &context)
+        _ = drawn(Overlapping(showing: true), atMillis: 0, in: &context)
+        let peak = drawn(Overlapping(showing: true), atMillis: Self.peakMillis, in: &context).lines.map(\.stripped)
+        #expect(peak[0].hasPrefix("....................X"), "\(peak)")
+    }
+
+    @Test("The overshoot is clicked where it is drawn")
+    func regionsTravel() {
+        // The picture's hit regions travel with its cells: past its slot, a
+        // click on the cell it is drawn on is its. They used to stay in the
+        // slot, when the picture floated over every sibling and a region on it
+        // would have taken a later sibling's clicks; a later sibling now cuts
+        // the picture, and its regions, away beneath the cells it paints.
+        struct Bouncing: View {
+            let showing: Bool
+            var body: some View {
+                ZStack(alignment: .topLeading) {
+                    Text("..............................")
+                    if showing {
+                        Text("XXXXXXXXXXXXXXXXXXXX").onTapGesture {}.transition(.slide)
+                    }
+                }
+            }
+        }
+        var context = makeRenderContext(width: 30, height: 4) { environment, tui in
+            environment.applyRuntimeServices(from: tui)
+        }
+        context.environment.canAnimate = true
+        context.environment.transaction = Transaction(animation: .bouncy)
+        _ = drawn(Bouncing(showing: false), atMillis: 0, in: &context)
+        _ = drawn(Bouncing(showing: true), atMillis: 0, in: &context)
+        let peak = drawn(Bouncing(showing: true), atMillis: Self.peakMillis, in: &context)
+        #expect(peak.lines[0].stripped.hasPrefix(".XXXXXXXXXXXXXXXXXXXX."), "\(peak.lines.map(\.stripped))")
+        let targets = peak.hitTestRegions.filter { !$0.isGeometryMarker && $0.offsetY == 0 }
+        // Column 20 is past the 20-wide slot and drawn by the bounce.
+        #expect(targets.contains { $0.offsetX <= 20 && 20 < $0.offsetX + $0.width }, "\(targets)")
+        #expect(!targets.contains { $0.offsetX == 0 }, "nothing left to click in the vacated cell: \(targets)")
+    }
+
     @Test("An overshoot on the page stays under a dialog, and one inside it above")
     func relativeOrdering() {
         // The ordering is relative because the NESTING is: a layer emitted
@@ -272,8 +342,11 @@ struct TransitionOvershootTests {
                     Spacer()
                 }
                 .sheet(isPresented: .constant(true)) {
+                    // Two cells wider than the bouncing row, so its bounce
+                    // stays on the dialog: a surface keeps what its content
+                    // draws past its region inside its box (decisions-GUIDE3).
                     VStack(spacing: 0) {
-                        Text("AAAAAAAAAAAAAAAAAAAA")
+                        Text("AAAAAAAAAAAAAAAAAAAAAA")
                         if showing {
                             Text("BBBBBBBBBBBBBBBBBBBB").transition(.slide)
                         }
@@ -317,7 +390,7 @@ struct TransitionOvershootTests {
         _ = draw(true, atMillis: 0)
         let peak = draw(true, atMillis: Self.peakMillis)
         let settled = draw(true, atMillis: 3000)
-        let dialogRow = peak.firstIndex { $0.contains("AAAAAAAAAAAAAAAAAAAA") }
+        let dialogRow = peak.firstIndex { $0.contains("AAAAAAAAAAAAAAAAAAAAAA") }
         #expect(dialogRow != nil, "no dialog on screen: \(peak)")
         guard let dialogRow else { return }
         // The page is padded so its bouncing row SHARES a row with the dialog —
@@ -332,7 +405,7 @@ struct TransitionOvershootTests {
         #expect(sharedRow == dialogRow + 1, "the two do not share a row: \(peak)")
         #expect(peak[sharedRow].contains("BBBBBBBBBBBBBBBBBBBB"),
             "the page's overshoot drew over the dialog: \(peak)")
-        #expect(peak[sharedRow].hasPrefix(" XXXX"),
+        #expect(peak[sharedRow].hasPrefix(" XXX"),
             "the page's overshoot lost the columns beside the dialog: \(peak)")
         // The dialog's own bouncing row draws one cell right of where it
         // settles, over cells the dialog itself painted — which only a layer

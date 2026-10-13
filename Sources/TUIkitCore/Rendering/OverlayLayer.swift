@@ -235,7 +235,10 @@ public struct OverlayLayer: Sendable, Equatable {
     package var peerPlacement: PeerPlacement?
 
     /// Whether this layer is content drawn past its view's region: a scroll
-    /// view's content past its bounds, under `scrollClipDisabled(_:)`.
+    /// view's content past its bounds, under `scrollClipDisabled(_:)`; a view
+    /// a `.frame`, `.overlay` or `.background` placed outside itself by its
+    /// guide; a `.move` or `.offset` transition's overshoot
+    /// (``FrameBuffer/splitPlacing(at:inWidth:height:)``).
     ///
     /// Such a layer draws at its view's own z position, as SwiftUI's does:
     /// over what came before the view, and under what comes after it. Every
@@ -245,6 +248,9 @@ public struct OverlayLayer: Sendable, Equatable {
     /// it paints (``FrameBuffer/coverOverflow(under:at:)``). No other layer
     /// is cut: a presentation is a window over the page, and a view's own
     /// displaced drawing (`.offset`) keeps the stacking it has always had.
+    /// A container that keeps its content inside it cuts this layer at its
+    /// box: a scroll view at its viewport, a `List` inside its border, a
+    /// `Table` at the cell, a surface (a menu, a sheet) at its edge.
     package var isOverflow = false
 
     /// Creates an overlay layer.

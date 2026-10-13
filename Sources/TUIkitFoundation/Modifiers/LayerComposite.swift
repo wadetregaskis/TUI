@@ -37,8 +37,11 @@ private enum LayerPlacement {
     case alone(FrameBuffer)
     /// The layer has nothing at all in it: the base is unchanged.
     case baseOnly
-    /// The layer, rendered, and its offset in the base's frame.
-    case placed(FrameBuffer, at: (x: Int, y: Int))
+    /// The layer, rendered, and its offset in the base's frame — and what of
+    /// it a guide put past the base's frame, drawn there
+    /// (`FrameBuffer.splitPlacing(at:inWidth:height:)`), in the base's
+    /// coordinates.
+    case placed(FrameBuffer, at: (x: Int, y: Int), overflow: [OverlayLayer])
 }
 
 /// `layer` rendered in `baseBuffer`'s frame and placed in it by `alignment` —
@@ -103,20 +106,44 @@ private func placeLayer<Layer: View>(
     // `.alignmentGuide` when it set one, so a badge can hang off the corner
     // it is aligned to rather than sit squarely on it.
     let overlaySize = (width: overlayBuffer.width, height: overlayBuffer.height)
+    let horizontalGuide = horizontalGuidePlacement(
+        of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width,
+        context: framedContext)
     let horizontalOffset =
-        horizontalGuidePlacement(
-            of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width,
-            context: framedContext)
-        ?? alignment.horizontal.childOffset(childWidth: overlaySize.width, in: baseBuffer.width)
+        horizontalGuide ?? alignment.horizontal.childOffset(childWidth: overlaySize.width, in: baseBuffer.width)
 
     // Calculate vertical position
+    let verticalGuide = verticalGuidePlacement(
+        of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height,
+        context: framedContext)
     let verticalOffset =
-        verticalGuidePlacement(
-            of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height,
-            context: framedContext)
-        ?? alignment.vertical.childOffset(childHeight: overlaySize.height, in: baseBuffer.height)
+        verticalGuide ?? alignment.vertical.childOffset(childHeight: overlaySize.height, in: baseBuffer.height)
 
-    return .placed(overlayBuffer, at: (x: horizontalOffset, y: verticalOffset))
+    // A guide can put the layer partly or wholly outside the base's frame,
+    // where SwiftUI draws it — a badge hung off a corner sits beside its label,
+    // not on it (measured, `Tools/SwiftUIProbes/Alignment guides/guide2.out`,
+    // `guide5.out`). The part the frame holds is composited into it; the rest is
+    // drawn past it, at the layer's place in the stacking order. Only where the
+    // base has a frame on both axes (see above for one with none), never on a
+    // measure pass, which draws nothing and cuts the layer to the base, and
+    // only along a guided axis: a layer larger than its base on an axis its
+    // alignment places is cut to the base as it always was
+    // (decisions-GUIDE3 B-GUIDE3-1), so the region there holds all of it and
+    // the clamp below cuts it.
+    let position = (x: horizontalOffset, y: verticalOffset)
+    if horizontalGuide != nil || verticalGuide != nil, baseBuffer.width > 0, baseBuffer.height > 0,
+        !framedContext.isMeasuring
+    {
+        let region = (
+            width: horizontalGuide == nil ? max(baseBuffer.width, position.x + overlaySize.width) : baseBuffer.width,
+            height: verticalGuide == nil
+                ? max(baseBuffer.height, position.y + overlaySize.height) : baseBuffer.height)
+        if !overlayBuffer.fits(at: position, inWidth: region.width, height: region.height) {
+            let placement = overlayBuffer.splitPlacing(at: position, inWidth: region.width, height: region.height)
+            return .placed(placement.inside, at: placement.insideOrigin, overflow: placement.overflow)
+        }
+    }
+    return .placed(overlayBuffer, at: position, overflow: [])
 }
 
 /// `composite` cut back to `baseBuffer`'s box.
@@ -167,11 +194,11 @@ func compositeLayer<Layer: View>(
     _ layer: Layer, over baseBuffer: FrameBuffer, alignment: Alignment,
     context: RenderContext, modifierType: Any.Type
 ) -> FrameBuffer {
-    let (overlayBuffer, offset): (FrameBuffer, (x: Int, y: Int))
+    let (overlayBuffer, offset, overflow): (FrameBuffer, (x: Int, y: Int), [OverlayLayer])
     switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
     case .alone(let buffer): return buffer
     case .baseOnly: return baseBuffer
-    case .placed(let buffer, let at): (overlayBuffer, offset) = (buffer, at)
+    case .placed(let buffer, let at, let past): (overlayBuffer, offset, overflow) = (buffer, at, past)
     }
 
     // Composite the overlay onto the base, asking for a render at each step of a
@@ -183,10 +210,13 @@ func compositeLayer<Layer: View>(
             token: layerWakeToken("overlay-base-run", context: context, modifierType: modifierType),
             forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
     }
-    return clampedToBase(
+    var composite = clampedToBase(
         baseBuffer.compositedCarryingClaimsOverNothing(
             with: overlayBuffer, at: offset, palette: context.environment.palette),
         baseBuffer)
+    // Drawn after the base, so over whatever the base floats past its frame.
+    if !overflow.isEmpty { composite.overlays.append(contentsOf: overflow) }
+    return composite
 }
 
 /// `layer` laid out in `baseBuffer`'s frame, by `alignment`, with the base
@@ -211,11 +241,11 @@ func compositeLayer<Layer: View>(
     _ layer: Layer, under baseBuffer: FrameBuffer, alignment: Alignment,
     context: RenderContext, modifierType: Any.Type
 ) -> FrameBuffer {
-    let (layerBuffer, offset): (FrameBuffer, (x: Int, y: Int))
+    let (layerBuffer, offset, overflow): (FrameBuffer, (x: Int, y: Int), [OverlayLayer])
     switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
     case .alone(let buffer): return buffer
     case .baseOnly: return baseBuffer
-    case .placed(let buffer, let at): (layerBuffer, offset) = (buffer, at)
+    case .placed(let buffer, let at, let past): (layerBuffer, offset, overflow) = (buffer, at, past)
     }
 
     // `_ZStackCore`'s sequence for two children: a blank canvas the base's
@@ -225,6 +255,8 @@ func compositeLayer<Layer: View>(
     let palette = context.environment.palette
     var result = FrameBuffer(emptyWithWidth: baseBuffer.width, height: baseBuffer.height)
     result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, palette: palette)
+    // Before the base, so under whatever the base floats past its frame.
+    if !overflow.isEmpty { result.overlays.append(contentsOf: overflow) }
     let showingThrough = result.runsShowingThrough(baseBuffer, at: (x: 0, y: 0))
     if !showingThrough.isEmpty {
         context.requestWake(

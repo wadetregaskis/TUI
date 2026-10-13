@@ -69,6 +69,8 @@ extension FrameBuffer {
                 return lhs.order < rhs.order
             }
             let layer = queue.removeFirst().layer
+            // A surface's box, for the overflow its content carries (below).
+            var surface: (x: Int, y: Int, width: Int, height: Int)?
             do {
                 // A modal/alert layer dims everything beneath it first.
                 if layer.dimsBackground {
@@ -89,6 +91,9 @@ extension FrameBuffer {
                         foreground: palette.foregroundTertiary, background: palette.overlayBackground)
                 }
                 let placed = layer.placed(maxWidth: maxWidth, maxHeight: maxHeight)
+                if layer.isOpaque {
+                    surface = (x: placed.x, y: placed.y, width: placed.content.width, height: placed.content.height)
+                }
                 // A surface hides what is behind it, so its blanks are painted
                 // onto the surface colour BEFORE anything else happens to them —
                 // see ``OverlayLayer/isOpaque``. Cells that already state a
@@ -138,9 +143,20 @@ extension FrameBuffer {
             }
             // What this layer's content carried, lifted by the composite: into
             // the queue, not the next pass.
+            //
+            // A surface keeps what its content drew past a placement's region
+            // (`OverlayLayer.isOverflow`) inside its box: a menu's, a
+            // popover's or a dialog's content belongs on the surface, and drawn
+            // past its border it reads as corruption of the page.
             let liftedLayers = OverlayLayer.arrangingPeers(result.overlays, maxWidth: maxWidth, maxHeight: maxHeight)
             for lifted in liftedLayers where lifted.scrollPin == nil {
-                queue.append((order: nextOrder, layer: lifted))
+                var kept = lifted
+                if let box = surface, lifted.isOverflow {
+                    guard let cut = lifted.cropped(x: box.x, y: box.y, width: box.width, height: box.height)
+                    else { continue }
+                    kept = cut
+                }
+                queue.append((order: nextOrder, layer: kept))
                 nextOrder += 1
             }
             result.overlays = []

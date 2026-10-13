@@ -220,18 +220,21 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** a container reports at most what it was offered and draws into a
   buffer of that size. An oversized overlay is cut to its base's box. An image
   larger than its space is cut from its top-leading corner, where SwiftUI's
-  overflows centred. A single child whose guide would place it outside its
-  `.frame`, `.overlay` or `.background` is moved to the nearest place that
-  keeps it whole; a run of guided views larger than its region keeps its
-  leading edge.
+  overflows centred. A run of guided views larger than its region keeps its
+  leading edge. What a placement puts outside its region is the exception
+  (since 2026-10-12): a single child whose guide places it outside its
+  `.frame`, `.overlay` or `.background` is drawn there, as SwiftUI's is, at its
+  place in the stacking order and clicked where it is drawn
+  (`PlacementOverflowTests`).
 - **Why:** a terminal buffer has no outside. A view that reported one size and
   drew another would leave every container above it guessing, and measuring
   would stop agreeing with drawing.
 - **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Modifiers row, on `overlay`),
   [B-D3M-2](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
-  [B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**, and **Under review** for the
-  guide placements (2026-10-12: the owner asked for SwiftUI's unclipped
-  placement to be explored). The exception is displaced drawing, L6.
+  [B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**; the guide placements were
+  closed by the owner's 2026-10-12 ruling ("try to support it"), and content
+  larger than its region was not
+  ([B-GUIDE3-1](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>)). The other exception is displaced drawing, L6.
 
 ### L6. Displaced drawing floats over its neighbours
 
@@ -240,12 +243,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   was (not measured).
 - **TUIkit:** displaced drawing is a floating layer composited at the screen
   root, over the views before and after it, with nothing painted at its
-  natural place. During a spring transition's overshoot the view's hit
-  regions stay at its slot and its trailing blank cells are trimmed. While a
+  natural place. A spring transition's overshoot is the exception (since
+  2026-10-12): it is drawn at the view's place in the stacking order, over the
+  views before it and under the views after it, clicked where it is drawn,
+  with the blank cells at either end of each line left out
+  ([B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>)). While a
   view is arriving in a transition, its slot clips it.
 - **Why:** a cell holds one glyph and has no transparency, so being over a
-  neighbour means erasing it. Clicks stay where the view will land rather
-  than where it is passing.
+  neighbour means erasing it. `.offset` and `.position` have not moved to the
+  stacking order yet ([B-GUIDE3-4](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-4-offset-and-position-still-float-over-the-views-after-them>)).
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>),
   [OffsetModifier.swift](../../Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift#L77-L83).
   **Medium.**

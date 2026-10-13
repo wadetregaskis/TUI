@@ -334,3 +334,25 @@ has no transparency, so overflow hides what is under it completely: lists,
 tables, menus, sheets and scroll views keep clipping. The bouncing scale-in
 is a different limit: `.scale` uncovers a view a cell at a time, and past 100%
 there is nothing more to show. About three to four days.
+
+**Shipped (2026-10-12, lane GUIDE3).** `scrollClipDisabled`'s overflow layers
+are now the one mechanism for content drawn past its region
+(`FrameBuffer.splitPlacing(at:inWidth:height:)`, `OverlayLayer.isOverflow`).
+A single child that its guide places outside its `.frame`, `.overlay` or
+`.background` sits where SwiftUI puts it (`AlignmentGuideRun.place`, bounded
+as a run's push is): the part the region holds is drawn in it, the rest past
+it, over the views before it and under the views after it, clicked where it
+is drawn. The badge measured above draws `3` a row above `Inbox` and a column
+right of it; a 4-wide view in a 4-wide frame whose leading guide is 3 sits 3
+cells left of the frame, over the view before it (`PlacementOverflowTests`,
+and `AlignmentGuideContainerParityTests` now expects SwiftUI's positions, past
+the region, for every row). A `.move` or `.offset` transition's overshoot is
+drawn the same way, so it no longer bounces over the views after it, and its
+hit regions travel with it (`TransitionOvershootTests`). A view that fits its
+region pays one static check and four comparisons; a measure pass draws
+nothing past the region and sizes as before. A scroll view, `.clipped()`, a
+`List`, a `Table`'s cell and a surface (a menu, a sheet) cut these layers at
+their box (decisions-GUIDE3 B-GUIDE3-3). Not shipped: content larger than its
+frame or base (B-GUIDE3-1: `.fixedSize()` does not make a `Text` rigid
+here), and `.offset`/`.position`, which still float over every sibling
+(B-GUIDE3-4).

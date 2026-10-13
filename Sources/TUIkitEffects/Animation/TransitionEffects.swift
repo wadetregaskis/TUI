@@ -130,59 +130,42 @@ extension AnyTransition.Effect {
 
 extension TransitionPicture {
     /// The buffer to hand back to the layout: the picture itself while it sits
-    /// in its slot, or an empty footprint with the picture floating over it
-    /// once it does not.
+    /// in its slot, or an empty footprint with the picture drawn past it once
+    /// it does not.
     ///
-    /// The same shape `View.offset(x:y:)` has, and for the same
-    /// reason — a terminal has no transparency, so a view drawn somewhere else
-    /// must paint nothing where it came from — with three differences that
-    /// belong to a transition rather than to a permanent displacement:
+    /// Past the slot, the picture is drawn as content past its region is
+    /// (`FrameBuffer.splitPlacing(at:inWidth:height:)`): at the view's own
+    /// place in the stacking order, over the views before it and under the
+    /// views after it, as SwiftUI draws a view past its frame (measured for a
+    /// frame, an overlay and a scale effect, decisions B-GUIDE-3). A terminal
+    /// has no transparency, so the view paints nothing where it came from, as
+    /// `View.offset(x:y:)` does.
     ///
-    /// - **The hit-test regions stay in the slot.** They already describe the
-    ///   slot rather than the picture (an arriving view is clickable at home
-    ///   for the whole slide), and moving them would be worse than leaving
-    ///   them: the dispatcher hit-tests `regions.reversed()`, so a region on
-    ///   the floated layer WINS over whatever genuinely occupies those cells,
-    ///   and a peer button would go dead for the 100-odd ms a neighbour spends
-    ///   bouncing over it. A click during the bounce reaching the view's home
-    ///   cells is the lesser wrong, and the settled frame is a cell away.
-    /// - **The cells are trimmed of trailing blanks.** Compositing replaces the
-    ///   base cell under every overlay cell, spaces included, and `isOpaque`
-    ///   governs only whether blanks are pre-painted — so a slot-width row of
-    ///   padding would erase a column of its neighbour for every cell it passes
-    ///   over. What is left of a row that was ALL padding is a zero-length
-    ///   line, which the compositor skips entirely.
+    /// - **Only the cells it paints are drawn**, with the unstyled blanks at
+    ///   either end of each line left out (`OverlayLayer.drawnParts()`), so a
+    ///   slot-width row of padding erases none of a neighbour's cells as it
+    ///   passes over them. Interior blanks still paint: a `Spacer` between two
+    ///   labels covers what is under the gap for as long as the bounce lasts,
+    ///   since a cell holds one glyph.
+    /// - **Its hit regions travel with it**, cut with its cells: a click lands
+    ///   on what is drawn where it lands. A later sibling cuts the picture
+    ///   away beneath the cells it paints, its regions with it, so a peer
+    ///   drawn over the bounce keeps its clicks — the reason these regions used
+    ///   to stay in the slot, when the picture floated over every sibling.
+    ///   The geometry markers stay in the slot, where the view is laid out.
     /// - **It does not slide back on screen.** `clampsToScreen` is the pop-over
     ///   policy: keep the whole layer visible by moving it. A view bouncing at
     ///   the right edge that jumped left instead is not the animation anyone
     ///   asked for, so this takes the pointer-anchored policy — stay put, lose
     ///   what falls off the edge.
-    ///
-    /// A residual, stated because it is real: only TRAILING blanks are trimmed.
-    /// Leading blanks inside a line that has content still paint, and so do
-    /// INTERIOR ones — a `Spacer` between two labels erases what is under the
-    /// gap for as long as the bounce lasts (measured: a 6-cell spacer inside a
-    /// slid row wiped six cells of the sibling beneath it). A layer has ONE
-    /// origin, not one per line, and its content is a rectangle of cells rather
-    /// than a set of inked ones, so cutting either would have to move the whole
-    /// picture or split the layer per run. It is the same thing `.offset` has
-    /// always done.
     @MainActor
     func slotBuffer() -> FrameBuffer {
         guard dx != 0 || dy != 0 else { return buffer }
-        var floating = buffer.trimmingTrailingBlankCells()
-        floating.hitTestRegions = []
+        let placement = buffer.splitPlacing(at: (x: dx, y: dy), inWidth: 0, height: 0)
         var footprint = FrameBuffer(footprintWidth: buffer.width, height: buffer.height)
-        footprint.hitTestRegions = buffer.hitTestRegions
-        footprint.overlays.append(
-            OverlayLayer(
-                offsetX: dx, offsetY: dy, content: floating, level: .popover,
-                zIndex: OverlayLayer.displacedDrawingZIndex,
-                clampsToScreen: false,
-                // Displaced drawing, not a surface: these are the view's own
-                // cells standing beside the slot, and the page behind them is
-                // meant to keep showing. See ``OverlayLayer/isOpaque``.
-                isOpaque: false))
+        footprint.hitTestRegions = buffer.hitTestRegions.filter(\.isGeometryMarker)
+        // The picture first, then what it carries floating, which draws over it.
+        footprint.overlays = placement.overflow + placement.inside.overlays
         return footprint
     }
 }

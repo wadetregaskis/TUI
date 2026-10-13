@@ -95,7 +95,19 @@ struct _TableRowPayload {
         }
         for var overlay in cell.overlays {
             overlay.content.removeGeometryMarkers()
-            overlays.append(overlay.shifted(byX: lineStart(overlay.offsetY), y: 0))
+            let placed = overlay.shifted(byX: lineStart(overlay.offsetY), y: 0)
+            // What a placement drew past its region (`OverlayLayer.isOverflow`:
+            // a view a guide put outside its frame, a transition's overshoot)
+            // stays in the cell, as a table's content always has: drawn past
+            // it, it would cover the next column, the separators and the
+            // border, which the stacking order cannot put back over it here.
+            guard placed.isOverflow else {
+                overlays.append(placed)
+                continue
+            }
+            if let kept = placed.cropped(x: x, y: 0, width: max(0, width), height: max(0, lines)) {
+                overlays.append(kept)
+            }
         }
     }
 

@@ -217,18 +217,28 @@ struct AlignmentGuideTests {
         #expect(reports.count == (resolved.allSatisfy(\.isFinite) ? 1 : 0), "reports \(reports)")
     }
 
-    @Test("The single-child placement path resolves one too")
+    @Test("The single-child placement path places one too")
     func nonCoordinateGuidePlacement() {
         // `.frame(alignment:)` / `.overlay(alignment:)`: one guide in a region
-        // whose extent is already decided. `merged` IS the guide there, so
-        // `merged - guide` is `∞ - ∞` for every non-finite value.
-        for guide in [Double.infinity, -.infinity, .nan, 1e300] {
-            let run = AlignmentGuideRun.resolve(
-                resolved: [guide], sizes: [4], fixedExtent: 10, minimumExtent: 10, report: nil
-            ) { Double($0) / 2 }
-            #expect(run.extent == 10, "guide \(guide) must not move a fixed extent")
-            #expect((0...6).contains(run.offsets[0]), "guide \(guide) -> \(run.offsets[0])")
+        // whose extent is already decided, the view at the region's guide
+        // less its own. A guide that is not a number, or one a runaway
+        // distance off, is the view's own origin: the view sits on the
+        // region's guide, and the runaway is reported.
+        for guide in [Double.infinity, -.infinity, .nan, 1e300, -1e300] {
+            var reports: [String] = []
+            let offset = AlignmentGuideRun.place(
+                guide: guide, regionGuide: 5, extent: 10, report: { reports.append($0) })
+            #expect(offset == 5, "guide \(guide) -> \(offset)")
+            #expect(reports.count == (guide.isFinite ? 1 : 0), "guide \(guide) -> \(reports)")
         }
+        // Inside or out, a finite guide is used as given (SwiftUI's rule).
+        #expect(AlignmentGuideRun.place(guide: 25, regionGuide: 0, extent: 20, report: nil) == -25)
+        #expect(AlignmentGuideRun.place(guide: 0, regionGuide: 20, extent: 20, report: nil) == 20)
+        #expect(AlignmentGuideRun.place(guide: 2.5, regionGuide: 10, extent: 20, report: nil) == 7)
+        // A runaway region guide (a custom `AlignmentID`) is held to the bound.
+        #expect(
+            AlignmentGuideRun.place(guide: 0, regionGuide: 1e300, extent: 20, report: nil)
+                == AlignmentGuideRun.maximumPush)
     }
 
     @Test("The push bound is 2^20 cells, and TUIKIT_MAX_ALIGNMENT_PUSH overrides it")

@@ -37,10 +37,6 @@ struct GuidePlacementRow: Sendable, CustomTestStringConvertible {
         self.swiftUI = swiftUI
     }
 
-    /// Where TUIkit draws it: the nearest place to SwiftUI's that keeps the
-    /// whole view inside the region, as it places a view wider than its region.
-    var tuikit: Int { min(max(0, swiftUI), 20 - 6) }
-
     var testDescription: String { ".\(alignment), guide \(Int(guide))" }
 }
 
@@ -69,7 +65,8 @@ struct AlignmentGuideContainerParityTests {
     ]
 
     /// `.frame(width: 20, alignment:)` around one 6-wide view: SwiftUI puts the
-    /// view's guide on the frame's, even where that is outside the frame.
+    /// view's guide on the frame's, even where that is outside the frame, and
+    /// draws it there (decisions B-GUIDE-3).
     nonisolated static let frameRows: [Placement] = [
         Placement(.leading, guide: 0, swiftUI: 0),
         Placement(.leading, guide: 5, swiftUI: -5),
@@ -179,38 +176,50 @@ struct AlignmentGuideContainerParityTests {
 
     // MARK: - One child in a region
 
-    @Test("A frame places its child as near SwiftUI's place as the frame allows", arguments: frameRows)
+    /// `view` drawn with 30 blank columns either side (rows above and below
+    /// for a vertical placement), its layers composited as the screen root
+    /// composites them — so what a placement draws past its region shows.
+    private func drawn<V: View>(_ view: V, vertical: Bool = false) -> FrameBuffer {
+        let context = makeBareRenderContext(width: vertical ? 10 : 80, height: vertical ? 40 : 4)
+        let padded = view.padding(vertical ? .vertical : .horizontal, vertical ? 10 : 30)
+        return renderToBuffer(padded, context: context)
+            .compositingOverlays(
+                maxWidth: context.availableWidth, maxHeight: context.availableHeight,
+                palette: context.environment.palette)
+    }
+
+    @Test("A frame draws its child where SwiftUI does, past the frame if need be", arguments: frameRows)
     func frame(row: Placement) {
-        let buffer = renderToBuffer(
-            guided(row).frame(width: 20, alignment: Alignment(horizontal: horizontal(row.alignment), vertical: .center)),
-            context: makeBareRenderContext(width: 80, height: 4))
-        #expect(column(of: "c", in: buffer) == row.tuikit)
-        #expect(buffer.width == 20)
+        let buffer = drawn(
+            guided(row).frame(width: 20, alignment: Alignment(horizontal: horizontal(row.alignment), vertical: .center)))
+        #expect(column(of: "c", in: buffer) == 30 + row.swiftUI)
+        #expect(buffer.lines.map { $0.stripped.filter { $0 == "c" }.count }.max() == 6, "drawn whole")
+        #expect(buffer.width == 80)
     }
 
-    @Test("A frame places a vertical guide the same way", arguments: [(5.0, -5), (-5, 5)])
+    @Test("A frame places a vertical guide the same way", arguments: [(5.0, -5), (-5, 5), (8, -8), (-18, 18)])
     func verticalFrame(guide: Double, swiftUI: Int) {
-        let buffer = renderToBuffer(
+        // The frame is rows 10..<30 of the screen: -8 hangs two rows above it,
+        // 18 four rows below.
+        let buffer = drawn(
             Column(character: "c", height: 6).alignmentGuide(.top) { _ in guide }.frame(height: 20, alignment: .top),
-            context: makeBareRenderContext(width: 10, height: 40))
-        #expect(row(of: "c", in: buffer) == min(max(0, swiftUI), 14))
+            vertical: true)
+        #expect(row(of: "c", in: buffer) == 10 + swiftUI)
+        #expect(buffer.lines.count { $0.stripped.contains("c") } == 6, "drawn whole")
     }
 
-    @Test("An overlay places its content as near SwiftUI's place as its base allows", arguments: layerRows)
+    @Test("An overlay draws its content where SwiftUI does, past its base if need be", arguments: layerRows)
     func overlay(row: Placement) {
         let alignment = Alignment(horizontal: horizontal(row.alignment), vertical: .center)
-        let buffer = renderToBuffer(
-            Text(String(repeating: "b", count: 20)).overlay(alignment: alignment) { guided(row) },
-            context: makeBareRenderContext(width: 80, height: 4))
-        #expect(column(of: "c", in: buffer) == row.tuikit)
+        let buffer = drawn(Text(String(repeating: "b", count: 20)).overlay(alignment: alignment) { guided(row) })
+        #expect(column(of: "c", in: buffer) == 30 + row.swiftUI)
     }
 
-    @Test("A background places its content as near SwiftUI's place as its base allows", arguments: layerRows)
+    @Test("A background draws its content where SwiftUI does, past its base if need be", arguments: layerRows)
     func background(row: Placement) {
         let alignment = Alignment(horizontal: horizontal(row.alignment), vertical: .center)
-        let buffer = renderToBuffer(
-            Color.clear.frame(width: 20, height: 1).background(alignment: alignment) { guided(row) },
-            context: makeBareRenderContext(width: 80, height: 4))
-        #expect(column(of: "c", in: buffer) == row.tuikit)
+        let buffer = drawn(
+            Color.clear.frame(width: 20, height: 1).background(alignment: alignment) { guided(row) })
+        #expect(column(of: "c", in: buffer) == 30 + row.swiftUI)
     }
 }

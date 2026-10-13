@@ -143,6 +143,16 @@ extension View {
     /// larger can raise the bound with the `TUIKIT_MAX_ALIGNMENT_PUSH`
     /// environment variable, a number of cells up to 2^30.
     ///
+    /// `.frame(alignment:)`, `.overlay(alignment:)` and
+    /// `.background(alignment:)` place their one view where its guide meets
+    /// theirs, outside the region if that is where it falls, and draw it
+    /// there, as SwiftUI does: over the views before it, under the views
+    /// after it, clicked where it is drawn. So a badge hung off a label's
+    /// corner by its guides sits beside the label, not on it. A scroll view,
+    /// a `List`, a `Table`, a menu, a sheet and `.clipped()` still keep it
+    /// inside them, and since a cell has no transparency, what it draws past
+    /// the region hides what is beneath it.
+    ///
     /// ## How far a guide travels
     ///
     /// As in SwiftUI, a guide travels up through the views that place their
@@ -527,6 +537,27 @@ struct AlignmentGuideRun {
         return Self(offsets: offsets, extent: extent)
     }
 
+    /// Where one view goes in a region `extent` cells long whose own guide is
+    /// `regionGuide`, when the view's is `guide`: SwiftUI's single-child rule,
+    /// the region's guide less the view's, floored — outside the region where
+    /// that falls outside it.
+    ///
+    /// Bounded as a run's push is (``maximumPush``, or the region's extent if
+    /// that is further): a guide that would put the view further from the
+    /// region's guide is reported and taken as the view's own origin, and the
+    /// result is held to the bound whatever the region's guide says, so a
+    /// runaway custom guide cannot place a view `Int.max` cells away.
+    static func place(guide: Double, regionGuide: Double, extent: Int, report: ((String) -> Void)?) -> Int {
+        let region = coordinate(regionGuide)
+        let reach = Double(max(Self.maximumPush, extent))
+        var offset = region - coordinate(guide)
+        if !(abs(offset) <= reach) {
+            report?(Self.pushPastTheBoundMessage(bound: Int(reach)))
+            offset = min(max(region, -reach), reach)
+        }
+        return Int(offset.rounded(.down))
+    }
+
     /// `value` as a cell coordinate: the view's own origin when it is not
     /// finite, and otherwise `value`, as given.
     ///
@@ -691,8 +722,15 @@ func horizontalGuideRun(
 /// The single-child counterpart of the run helpers, for the modifiers that
 /// place exactly one child in a region whose size is already decided:
 /// `.frame(alignment:)`, `.overlay(alignment:)`, `.background(alignment:)`.
-/// There is no run to merge, so the child's guide simply meets the region's.
-/// `context` is the one `view` was rendered in.
+/// There is no run to merge, so the child's guide simply meets the region's,
+/// wherever that puts it: SwiftUI places a single child at the region's guide
+/// less its own, outside the region if need be (measured,
+/// `Tools/SwiftUIProbes/Alignment guides/guide2.out`, `guide5.out`: in
+/// `.frame(width: 20, alignment: .leading)` a 6-wide view whose leading guide
+/// is 5 is at -5, and with `.trailing` and guide 0 at 20). The caller draws
+/// what falls outside past the region
+/// (`FrameBuffer.splitPlacing(at:inWidth:height:)`). `context` is the one
+/// `view` was rendered in.
 @MainActor
 func horizontalGuidePlacement<V: View>(
     of view: V, size: (width: Int, height: Int), alignment: HorizontalAlignment, in extent: Int,
@@ -701,10 +739,10 @@ func horizontalGuidePlacement<V: View>(
     guard V._providesAlignmentGuide else { return nil }
     let dimensions = ViewDimensions(width: size.width, height: size.height)
     guard let guide = explicitGuide(of: view, .horizontal(alignment), in: dimensions, context: context) else { return nil }
-    return AlignmentGuideRun.resolve(
-        resolved: [checkedGuide(guide, dimensions: dimensions, context: context)], sizes: [size.width],
-        fixedExtent: extent, minimumExtent: extent, report: guideErrorReporter(in: context)
-    ) { alignment[dimensions: ViewDimensions(width: $0, height: 0)] }.offsets[0]
+    return AlignmentGuideRun.place(
+        guide: checkedGuide(guide, dimensions: dimensions, context: context),
+        regionGuide: alignment[dimensions: ViewDimensions(width: extent, height: 0)], extent: extent,
+        report: guideErrorReporter(in: context))
 }
 
 /// The vertical twin of ``horizontalGuidePlacement(of:size:alignment:in:context:)``.
@@ -716,10 +754,10 @@ func verticalGuidePlacement<V: View>(
     guard V._providesAlignmentGuide else { return nil }
     let dimensions = ViewDimensions(width: size.width, height: size.height)
     guard let guide = explicitGuide(of: view, .vertical(alignment), in: dimensions, context: context) else { return nil }
-    return AlignmentGuideRun.resolve(
-        resolved: [checkedGuide(guide, dimensions: dimensions, context: context)], sizes: [size.height],
-        fixedExtent: extent, minimumExtent: extent, report: guideErrorReporter(in: context)
-    ) { alignment[dimensions: ViewDimensions(width: 0, height: $0)] }.offsets[0]
+    return AlignmentGuideRun.place(
+        guide: checkedGuide(guide, dimensions: dimensions, context: context),
+        regionGuide: alignment[dimensions: ViewDimensions(width: 0, height: extent)], extent: extent,
+        report: guideErrorReporter(in: context))
 }
 
 /// The vertical placement of `children`, or `nil` when none of them gives an
