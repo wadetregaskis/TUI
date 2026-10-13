@@ -119,9 +119,16 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   (`HoverReshapeTests.reshapeEntersFromNothing`,
   `HelpRunLoopTests.reshapeSlidesAViewUnderAPointerOnNothing`).
 - Smaller: under the popover style, when a reshape slides a second view
-  with help under a pointer resting on a shown panel, the old panel stays
-  up for at most the delay; held help outlives reshapes the bar did not
-  cause while its view stays reachable; and
+  with help under a pointer resting on a shown panel, the old panel stayed
+  up for at most the delay — fixed (lane BUGS13): the frame after the
+  reshape is asked for (`RenderLoop.publishHitTestRegions`,
+  `HelpRunLoopTests.popoverGoesWhenAReshapeReplacesItsView`); held help
+  outlives reshapes the bar did not cause while its view stays reachable —
+  still open: letting it go when its view moves would let it go whenever a
+  centred page re-centres (a change of width anywhere on it), and the bar
+  giving back its rows would then slide the view back under the pointer and
+  restart its delay, so the fix has to tell the bar's moves from the page's
+  own first; and
   `MouseEventDispatcher.reachesHoverObserver` probed only the top-left cell
   of the held view's region — fixed (lane BUGS13): it probes every cell of
   the view's regions until one is heard by the view

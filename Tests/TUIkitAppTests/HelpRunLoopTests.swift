@@ -493,6 +493,28 @@ struct HelpRunLoopTests {
         #expect(driver.shows("HELP-SLIDES"), "\(style): nothing woke for the delay: \(driver.lines)")
     }
 
+    /// decisions-HELP A-HELP-1, "Left open": under the popover style the walk
+    /// attaches the panel of the candidate it finds, and a reshape that slides
+    /// another view with help under the resting pointer makes that one the
+    /// candidate after the walk. Nothing asked for a frame until the new
+    /// candidate's delay ran out, so the old panel stayed up that long.
+    @Test("Under the popover style a panel goes the frame after a reshape slides another view under the pointer")
+    func popoverGoesWhenAReshapeReplacesItsView() throws {
+        let driver = HelpDriver(SlidingHelpApp(style: .popover))
+        let restedOn = try #require(driver.position(of: "rested on"))
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: restedOn.x + 1, y: restedOn.y))
+        driver.step()
+        driver.run(until: 0.7)
+        #expect(driver.shows("HELP-RESTED-ON"), "precondition: shown: \(driver.lines)")
+        #expect(driver.app.send(KeyEvent(key: .enter)), "the button took the press")
+        driver.step()
+        #expect(driver.shows("HELP-RESTED-ON"), "precondition: the frame of the press drew the old panel")
+        let pressed = driver.now
+        #expect(driver.stepIfAsked(), "nothing asked for a frame")
+        #expect(driver.now - pressed < 100_000_000, "the next frame came \(driver.now - pressed) ns later")
+        #expect(!driver.shows("HELP-RESTED-ON"), "the old panel stayed up: \(driver.lines)")
+    }
+
     /// Found by the HELP lane's review (A-HELP-1, "Left open"): the dispatcher
     /// re-resolved the hover after a reshape only for a pointer that was over
     /// something, so a view slid under a pointer resting on blank space got no

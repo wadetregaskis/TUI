@@ -465,7 +465,9 @@ extension RenderLoop {
         // drawn into the frame with the page, so nothing is translated. A
         // hover tooltip is held through a reshape the bar's rows for it
         // caused (`RenderLoop+StatusBar.swift`).
-        publishHitTestRegions(buffer.hitTestRegions, tooltipMovedThePage: tooltipMovedThePage)
+        publishHitTestRegions(
+            buffer.hitTestRegions, tooltipMovedThePage: tooltipMovedThePage, nowNanos: frameNowNanos,
+            scheduler: animationScheduler)
         // What the frame's geometry observers are owed, now it is drawn (`GeometryCoordinator`).
         tuiContext.mouseEventDispatcher.geometry.endFrame(frame: buffer, retainedBy: tuiContext.stateStorage)
 

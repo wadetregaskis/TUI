@@ -56,17 +56,40 @@ extension RenderLoop {
     /// on them rests on the tooltip's own bar, over the view it was on
     /// (`WindowChromeState.tooltipRows`).
     ///
-    /// - Parameter tooltipMovedThePage: What
-    ///   ``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``
-    ///   returned this frame.
-    func publishHitTestRegions(_ regions: [HitTestRegion], tooltipMovedThePage: Bool) {
+    /// **A popover the reshape replaced.** The walk attached the popover of
+    /// the candidate it found (`HelpModifier`); a reshape that slides another
+    /// view with help under the resting pointer makes that one the candidate
+    /// after the walk, with its delay still to serve. The frame drawn showed
+    /// the old panel, and nothing asked for a frame before the new candidate's
+    /// delay ran out, so the old panel stayed up for as long as the delay
+    /// (decisions-HELP A-HELP-1, "Left open"). The next frame is asked for,
+    /// as `requestTooltipFrames` asks for the bar's.
+    ///
+    /// - Parameters:
+    ///   - tooltipMovedThePage: What
+    ///     ``resolveStatusBarTooltip(terminalWidth:nowNanos:scheduler:)``
+    ///     returned this frame.
+    ///   - nowNanos: The frame's instant.
+    ///   - scheduler: Where the next frame is asked for.
+    func publishHitTestRegions(
+        _ regions: [HitTestRegion], tooltipMovedThePage: Bool, nowNanos: Int64, scheduler: AnimationScheduler?
+    ) {
         let tooltips = tuiContext.tooltipState
         let dispatcher = tuiContext.mouseEventDispatcher
+        let popoverDrawn = Self.popoverText(tooltips.resolved(nowNanos: nowNanos))
         tooltips.beginReshape(movedByTooltip: tooltipMovedThePage)
         dispatcher.setRegions(regions)
         let tooltipRows = windowChrome.tooltipRows
         let onTooltipRows = dispatcher.restingPointer.map { tooltipRows.contains($0.y) } ?? false
         tooltips.endReshape(pointerOnTooltipRows: onTooltipRows) { dispatcher.reachesHoverObserver($0) }
+        guard Self.popoverText(tooltips.resolved(nowNanos: nowNanos)) != popoverDrawn else { return }
+        // A wake an instant after this frame: the next frame the cap allows.
+        scheduler?.requestWake("tooltip-popover", at: nowNanos &+ 1)
+    }
+
+    /// The text of `showing` when it is drawn as a popover, `nil` otherwise.
+    private static func popoverText(_ showing: TooltipState.Resolved?) -> String? {
+        showing?.style == .popover ? showing?.text : nil
     }
 
     /// Fills the status bar's rows above its items for this frame: the body
