@@ -132,6 +132,14 @@ package final class HeadlessApp<A: App> {
         animationScheduler.beginFrame()
         renderer.render(animationScheduler: animationScheduler, frameNowNanos: nanos, frameDate: date)
         animationScheduler.endFrame()
+        // As `AppRunner.renderFrame` ends a frame: the events until the next one
+        // are filtered against the support the frame asked for, the scene's
+        // base with what its views requested (an `.onHover` asks for motion),
+        // and the reshape after the next walk reads it as the mode the pointer
+        // last reported under. Not set, the dispatcher kept the base the walk
+        // sets mid-frame, so a pointer's move in an app that declares no
+        // `.mouseSupport` was dropped here, though the app hears it.
+        tuiContext.mouseEventDispatcher.setActiveSupport(renderer.effectiveMouseSupport(), isFrameFinal: true)
     }
 
     /// Delivers a key through the five-layer chain, as a keypress is — noted

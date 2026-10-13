@@ -67,9 +67,24 @@ private struct PointerApp: App {
 
     var body: some Scene {
         WindowGroup { PointerPage() }
-            // Motion reporting, for the hover; a headless app applies only what
-            // the scene says.
-            .mouseSupport(.full)
+    }
+}
+
+/// A line that says whether the pointer is over it, in an app that declares no
+/// mouse support: the motion is the `.onHover`'s request.
+private struct HoverApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup { HoverPage() }
+    }
+}
+
+private struct HoverPage: View {
+    @State private var isHovered = false
+
+    var body: some View {
+        Text(isHovered ? "hovered" : "not hovered").onHover { isHovered = $0 }
     }
 }
 
@@ -204,6 +219,22 @@ struct HeadlessAppTests {
         // `tooltipDelay`'s default, 0.6 s, after the frame the pointer arrived behind.
         let wake = app.nextWake(after: 33_333_334)
         #expect(wake == 616_666_667, "the tooltip's wake is at \(String(describing: wake))")
+    }
+
+    /// Found by the BUGS13 lane's review: the app sets the dispatcher's support
+    /// to what the frame asked for once it is drawn (`AppRunner.renderFrame`);
+    /// a headless app kept the scene's base, which is `.standard` with no
+    /// `.mouseSupport`, so a pointer's move was dropped and a hover was heard
+    /// only in an app that declared motion itself.
+    @Test("A pointer's move reaches .onHover in an app that declares no mouse support, as it does in the app")
+    func hoverWithoutDeclaredMotion() throws {
+        let app = HeadlessApp(HoverApp(), width: 40, height: 10)
+        app.frame(atNanos: 16_666_667)
+        let (x, y) = try #require(position(of: "not hovered", on: app.screen), "precondition: the line is drawn")
+        app.send(MouseEvent(button: .none, phase: .moved, x: x + 1, y: y))
+        app.frame(atNanos: 33_333_334)
+        #expect(position(of: "not hovered", on: app.screen) == nil, "the move was dropped: \(app.screen)")
+        #expect(shows("hovered", on: app.screen), "\(app.screen)")
     }
 
     /// The other thing counted from an arrival: two presses make a double click
