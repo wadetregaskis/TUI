@@ -362,13 +362,16 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         }
         // An explicit `.alignmentGuide` can push a row off the alignment line,
         // and the run that resolves it is allowed to come out WIDER than the
-        // widest row — `assembleWindow` places every buffer into `run.extent`.
-        // Measuring `maxWidth` alone therefore reported narrower than the
-        // render drew, and the parent clipped the difference. Resolved here
-        // with the same `fixedExtent: nil` the render uses, and the measure's
-        // own widest row as the floor (the render's floor is the widest
-        // buffer). Costs nothing when no row sets a guide, which is almost
-        // always: `anyAlignmentGuide` is asked first.
+        // widest row — `assembleWindow` places every buffer into the smaller
+        // of `run.extent` and the width the column was given, and draws what
+        // hangs past that width beyond it (decisions B-GUIDE-1). Measuring
+        // `maxWidth` alone therefore reported narrower than the render drew,
+        // and the parent clipped the difference. Resolved here with the same
+        // `fixedExtent: nil` the render uses, and the measure's own widest row
+        // as the floor (the render's floor is the widest buffer), then held to
+        // `widthLimit` as the render holds it to its width. Costs nothing when
+        // no row sets a guide, which is almost always: `anyAlignmentGuide` is
+        // asked first.
         // The guide run counts rows as `counted` does. Given a filler's raw
         // width — the rung it was offered — it came out at the limit, the rule
         // above called that capped and inflexible, and the ladder climbed
