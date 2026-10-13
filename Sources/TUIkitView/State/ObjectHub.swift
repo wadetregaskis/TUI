@@ -149,7 +149,8 @@ private struct Holders {
     /// Each view holding it, counted by the fields it holds it in.
     var counts: [ViewIdentity: Int] = [:]
     /// The last view to stop holding it, if none does now: what a write
-    /// redraws above.
+    /// redraws above. Of several that stop in one pass, whichever the prune
+    /// drops last, in no set order.
     var departed: ViewIdentity?
 }
 

@@ -294,9 +294,10 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   the context that walked the object last. Nothing is lost.
 - A view reading an object no walked field reaches — through an `@Observable`
   store, or only from a closure: its `@Environment` is unresolved, and a write
-  redraws it only if it lies above the last view drawn holding the object, or
-  below one still holding it; one no view has ever been drawn holding redraws
-  nothing, as before.
+  redraws it only if it lies above the last view drawn holding the object (of
+  several that stopped in one pass, whichever the prune dropped last, in no
+  set order), or below one still holding it; one no view has ever been drawn
+  holding redraws nothing, as before.
 - A holder that stops reaching an object without leaving the tree — an
   optional set to `nil`, a case of its own enum left — stays registered until
   it leaves: a write redraws it needlessly.
