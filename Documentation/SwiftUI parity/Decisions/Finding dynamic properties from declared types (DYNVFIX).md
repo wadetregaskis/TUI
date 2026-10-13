@@ -459,6 +459,8 @@ value then restarts every frame while a closure holds the last one); or drop
 
 **Left:** a render no pass is bound around takes every object for one made
 before it, so an object made with a view value there restarts every frame.
+`StateStorage.inRenderPass(_:)` is public, beside `beginRenderPass()` and
+`endRenderPass()`, so a package drawing frames through those can bind it.
 
 **Not chosen:** a clock read in `init` and compared with the pass's start,
 +9 to +39 ns in the same probe.

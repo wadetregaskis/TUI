@@ -564,6 +564,11 @@ extension StateStorage {
     // MARK: - Render Pass Lifecycle
 
     /// Begins a new render pass by clearing the active identity set.
+    ///
+    /// Draw the pass inside ``inRenderPass(_:)``, the view values its bodies
+    /// make included: a `@State` made outside it notes no pass, and an object
+    /// made with a view value is then taken for one made before the pass, and
+    /// restarts at its defaults every frame.
     public func beginRenderPass() {
         currentPass = renderPassSerials.withLock { serial in
             // Wrapping, and skipping `0`: at sixty passes a second the count
@@ -580,13 +585,16 @@ extension StateStorage {
     }
 
     /// Runs `body` as the render pass ``beginRenderPass()`` began, so each
-    /// `@State` made in it notes the pass (``StateRegistration/renderPass``):
+    /// `@State` made in it notes the pass (`StateRegistration.renderPass`):
     /// what everything that draws a frame wraps the frame in, the view values
     /// its bodies make included — the run loop from the pass's beginning to
     /// its end, a snapshot render and the test harnesses around their walks.
     /// An object made with a view value in a frame not wrapped so is taken
     /// for one made before the pass.
-    package func inRenderPass<R>(_ body: () throws -> R) rethrows -> R {
+    ///
+    /// Public, beside ``beginRenderPass()`` and ``endRenderPass()``, so a
+    /// package drawing frames through them can wrap its frames too.
+    public func inRenderPass<R>(_ body: () throws -> R) rethrows -> R {
         try StateRegistration.$renderPass.withValue(currentPass, operation: body)
     }
 
