@@ -322,19 +322,17 @@ extension FlexibleFrameView: Renderable {
     /// Aligns buffer content within the target frame size.
     ///
     /// - Parameter fitsAsIs: Whether the content is the frame's size already,
-    ///   so that it stays where it is on every axis its own guide does not
-    ///   place it on, and comes back untouched when its guide places it on
-    ///   neither: the per-line alignment below would centre each short line
-    ///   of a ragged `Text` on its own in a frame its own width.
+    ///   so that it comes back untouched when its own guide places it on
+    ///   neither axis.
     private func alignBuffer(
         _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, fitsAsIs: Bool,
         contentContext: RenderContext
     ) -> FrameBuffer {
         // The content's own explicit `.alignmentGuide`, when it set one. The
         // frame is a fixed region holding one child, so there is no run to
-        // merge — the child's guide meets the frame's. A guided child shifts as
-        // a BLOCK (one offset for every line) rather than per-line, which is
-        // what the ragged-line arithmetic below does by default.
+        // merge — the child's guide meets the frame's. The content is placed
+        // as a BLOCK (one offset for every line) whatever places it
+        // (`placeBuffer`).
         let contentSize = (width: buffer.width, height: buffer.height)
         let horizontalGuide = horizontalGuidePlacement(
             of: content, size: contentSize, alignment: alignment.horizontal, in: targetWidth,
@@ -350,13 +348,6 @@ extension FlexibleFrameView: Renderable {
                 buffer, toWidth: targetWidth, height: targetHeight, guideOffset: nil,
                 verticalOffset: verticalOffset)
         }
-        // Across, a frame its content's size leaves the content where it is
-        // when its guide places it only down: as one block at 0, as the frame
-        // no guide applies to does (the early return above). Each line placed
-        // on its own width, a ragged `Text`'s short lines were centred under
-        // its long one (" bb" under "aaaa"). Down, the content is a block
-        // whatever places it.
-        let across = horizontalGuide ?? (fitsAsIs ? 0 : nil)
 
         // A guide can put the content partly or wholly outside the frame,
         // where SwiftUI draws it (measured, `Tools/SwiftUIProbes/Alignment
@@ -378,7 +369,7 @@ extension FlexibleFrameView: Renderable {
             height: verticalGuide == nil ? max(targetHeight, position.y + buffer.height) : targetHeight)
         if buffer.fits(at: position, inWidth: region.width, height: region.height) {
             return placeBuffer(
-                buffer, toWidth: targetWidth, height: targetHeight, guideOffset: across,
+                buffer, toWidth: targetWidth, height: targetHeight, guideOffset: horizontalGuide,
                 verticalOffset: verticalOffset)
         }
         guard !contentContext.isMeasuring else {
@@ -386,16 +377,15 @@ extension FlexibleFrameView: Renderable {
             position.y = min(max(0, position.y), max(0, targetHeight - buffer.height))
             return placeBuffer(
                 buffer, toWidth: targetWidth, height: targetHeight,
-                guideOffset: across.map { _ in position.x }, verticalOffset: position.y)
+                guideOffset: position.x, verticalOffset: position.y)
         }
-        // Past the top or bottom edge only: across, each line is placed as it
-        // is inside the frame — by the alignment on its own width, or left
-        // where it is in a frame its width — before the rows are split, so
-        // the rows drawn past the frame line up with those in it.
+        // Past the top or bottom edge only: across, the content is placed as
+        // it is inside the frame before the rows are split, so the rows drawn
+        // past the frame line up with those in it.
         var source = buffer
         if horizontalGuide == nil {
             source = placeBuffer(
-                buffer, toWidth: targetWidth, height: buffer.height, guideOffset: across, verticalOffset: 0)
+                buffer, toWidth: targetWidth, height: buffer.height, guideOffset: nil, verticalOffset: 0)
             position.x = 0
         }
         let placement = source.splitPlacing(
@@ -407,12 +397,25 @@ extension FlexibleFrameView: Renderable {
     }
 
     /// `buffer` placed in a `targetWidth` × `targetHeight` frame `verticalOffset`
-    /// rows down: as a block `guideOffset` columns in when that is given, and
-    /// otherwise each line by the frame's alignment, on its own width.
+    /// rows down, and across as a block: `guideOffset` columns in when that is
+    /// given, and otherwise where the frame's alignment puts a child of the
+    /// buffer's width.
+    ///
+    /// A block, not each line by the alignment on its own width: SwiftUI
+    /// places the content of a frame larger than it as one view, and a
+    /// multi-line `Text` aligns its lines inside its own width by its
+    /// `multilineTextAlignment` (measured, `Tools/SwiftUIProbes/Ragged text in
+    /// a larger frame/ragged.out`: "aaaa" over "bb" in a 10-wide centred frame
+    /// starts both lines 3 cells in). Placed line by line, every short line of
+    /// a ragged buffer was centred on its own (" bb " under "aaaa"), and the
+    /// buffer's layers, which move with the block, no longer lined up with it.
     private func placeBuffer(
         _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, guideOffset horizontalGuide: Int?,
         verticalOffset: Int
     ) -> FrameBuffer {
+        let horizontalOffset =
+            horizontalGuide
+            ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: targetWidth)
         var result: [String] = []
 
         // Track the aligned result's width as we build it — `alignHorizontally`
@@ -430,30 +433,27 @@ extension FlexibleFrameView: Renderable {
 
             // Align horizontally within the frame
             let (aligned, alignedWidth) = alignHorizontally(
-                line, toWidth: targetWidth, guideOffset: horizontalGuide)
+                line, toWidth: targetWidth, offset: horizontalOffset)
             result.append(aligned)
             resultWidth = max(resultWidth, alignedWidth)
         }
 
         // The content shifted within the frame; carry overlay layers by the
-        // same amount. The horizontal shift matches the widest line — exact
-        // for the common uniform-width buffer.
-        let horizontalOffset =
-            horizontalGuide
-            ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: targetWidth)
-        // Pass the now-known width so `replacingLines` doesn't re-measure every
-        // padded line. When nothing overflowed the frame, every line is exactly
-        // `targetWidth` — flag that so the buffer can skip per-line work too.
+        // same amount, the block's offset. Pass the now-known width so
+        // `replacingLines` doesn't re-measure every padded line. When nothing
+        // overflowed the frame, every line is exactly `targetWidth` — flag
+        // that so the buffer can skip per-line work too.
         return buffer.replacingLines(
             result, width: resultWidth, uniformWidth: resultWidth == targetWidth,
             overlayShiftX: horizontalOffset, overlayShiftY: verticalOffset)
     }
 
-    /// Aligns a single line within the given width, returning the aligned line
-    /// and its visible width — `max(targetWidth, the line's own width)` — so the
-    /// caller can total the result width without a second `strippedLength` pass.
+    /// Places a single line of the block `offset` columns into the given
+    /// width, returning the aligned line and its visible width —
+    /// `max(targetWidth, the line's own width)` — so the caller can total the
+    /// result width without a second `strippedLength` pass.
     private func alignHorizontally(
-        _ line: String, toWidth targetWidth: Int, guideOffset: Int?
+        _ line: String, toWidth targetWidth: Int, offset: Int
     ) -> (line: String, width: Int) {
         let visibleWidth = line.strippedLength
 
@@ -470,14 +470,9 @@ extension FlexibleFrameView: Renderable {
         // without the per-line spaces temporaries or `+`-chain intermediates. This
         // runs once per line of every `.frame(...)` (e.g. the `modifiers`
         // scenario, two framed-and-padded chains per row).
-        // The same guide arithmetic as every other placement: a `padding`-wide
-        // gap is a child of width `lineWidth` inside `targetWidth`.
-        // A guide shifts the whole block by one offset; without one, each line
-        // is padded on its own width (the long-standing ragged behaviour).
-        let leftPad =
-            guideOffset.map { min($0, padding) }
-            ?? alignment.horizontal.childOffset(
-                childWidth: targetWidth - padding, in: targetWidth)
+        // Every line at the block's one offset (`placeBuffer`), a short line's
+        // shortfall trailing it.
+        let leftPad = min(offset, padding)
         let rightPad = padding - leftPad
         var aligned = ""
         aligned.reserveCapacity(line.utf8.count + padding)

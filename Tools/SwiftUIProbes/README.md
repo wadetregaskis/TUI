@@ -247,3 +247,16 @@ messages cite that path), and what cites it.
   `Tests/TUIkitCollectionTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
   `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.
+
+### Ragged text in a larger frame
+
+- **Asks:** where SwiftUI draws the lines of a multi-line `Text` whose lines differ in width ("aaaa" over "bb")
+  in a frame larger than the `Text`, wider or taller, under each frame alignment and each `multilineTextAlignment`:
+  each line placed by the frame on its own width, or the `Text` placed as one block, its lines aligned inside it
+  (`ragged.swift`, `ragged.out`). A program of top-level code; monospaced, so one character's advance stands in
+  for a cell, and each line's ink is found in the pixels drawn. The block, in every case: in a 10-wide centred
+  frame both lines start 3 characters in.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
+- **Was:** written for lane BUGS13 (`BUGS13/probe/`).
+- **Cited by:** `Sources/TUIkitFoundation/Modifiers/FrameModifier.swift`; `Tests/TUIkitTests/PlacementOverflowTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.

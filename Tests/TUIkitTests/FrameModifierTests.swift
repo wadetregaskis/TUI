@@ -268,4 +268,30 @@ struct FrameModifierTests {
         // Should expand to fill available height
         #expect(buffer.height == 10)
     }
+
+    @Test("A frame larger than a ragged Text places it as one block, its lines by the Text's own alignment")
+    func largerFramePlacesRaggedTextAsABlock() {
+        // Measured, `Tools/SwiftUIProbes/Ragged text in a larger frame/ragged.out`:
+        // SwiftUI places the Text as one view and aligns its lines inside its
+        // own width by `multilineTextAlignment`. Each line placed on its own
+        // width, "bb" was centred under "aaaa" in every frame wider or taller
+        // than the Text with a centred or trailing alignment.
+        let text = Text("aaaa\nbb")
+        func render(_ view: some View) -> [String] {
+            renderToBuffer(view, context: testContext(width: 20, height: 6)).lines.prefix(5).map { line in
+                var text = line.stripped
+                while text.last == " " { text.removeLast() }
+                return text
+            }
+        }
+        #expect(render(text.frame(minHeight: 5)) == ["", "aaaa", "bb", "", ""])
+        #expect(render(text.frame(width: 10, alignment: .center)) == ["   aaaa", "   bb"])
+        #expect(render(text.frame(width: 10, alignment: .trailing)) == ["      aaaa", "      bb"])
+        #expect(render(text.frame(width: 10, height: 5, alignment: .center)) == ["", "   aaaa", "   bb", "", ""])
+        #expect(render(text.frame(minWidth: 10)) == ["   aaaa", "   bb"])
+        #expect(render(text.frame(maxWidth: .infinity)) == ["        aaaa", "        bb"])
+        // The Text's own alignment, inside the block.
+        #expect(render(text.multilineTextAlignment(.center).frame(width: 10, alignment: .center)) == ["   aaaa", "    bb"])
+        #expect(render(text.multilineTextAlignment(.trailing).frame(width: 10, alignment: .leading)) == ["aaaa", "  bb"])
+    }
 }

@@ -1,0 +1,13 @@
+advance=12.36328125 points; ink in characters from the frame's leading edge
+Text("aaaa\nbb") alone || frame w=4 | line1 ink 0..3.80 | line2 ink 0..2
+.frame(height: 5 lines) || frame w=4 | line1 ink 0..3.80 | line2 ink 0..2
+.frame(width: 10) || frame w=10 | line1 ink 3..6.79 | line2 ink 3..5
+.frame(width: 10, alignment: .leading) || frame w=10 | line1 ink 0..3.80 | line2 ink 0..2
+.frame(width: 10, alignment: .trailing) || frame w=10 | line1 ink 6..9.79 | line2 ink 6..8
+.frame(width: 10, height: 5 lines) || frame w=10 | line1 ink 3..6.79 | line2 ink 3..5
+.frame(minWidth: 10) || frame w=10 | line1 ink 3..6.79 | line2 ink 3..5
+.frame(minHeight: 5 lines) || frame w=4 | line1 ink 0..3.80 | line2 ink 0..2
+.frame(maxWidth: .infinity) || frame w=32.35 | line1 ink 14.32..18 | line2 ink 14.36..16
+.multilineTextAlignment(.center).frame(width: 10) || frame w=10 | line1 ink 3..6.79 | line2 ink 4..6
+.multilineTextAlignment(.trailing).frame(width: 10, alignment: .leading) || frame w=10 | line1 ink 0..3.80 | line2 ink 2..4
+VStack(alignment: .leading) { aaaa; bb }.frame(width: 10) || frame w=10 | line1 ink 3..6.79 | line2 ink 3..5
