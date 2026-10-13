@@ -132,7 +132,13 @@ Three things worth knowing before you reach for it:
   measure reports the grown extent, or the parent would reserve too little.
 - **A guide is used as given.** It need not lie inside the view: a guide of 5
   on a one-cell view indents its siblings by five cells, as in SwiftUI. Each
-  view sits at the largest guide less its own, for every alignment.
+  view sits at the largest guide less its own, for every alignment. One guide
+  may push a view at most 1,048,576 cells (2^20) along; a guide that would push
+  one further, or one that is not a number on a view with a width and a height,
+  is a logic error — an assertion in a debug build, reported once in a release
+  build — and the view sits as if its guide were at its own origin. The
+  `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable raises the bound for a
+  canvas that really is larger.
 - **A guide travels up through the views that know where they put it.** A
   `VStack`, `HStack` or `ZStack` reports the guides its children set, each
   moved by where the child sits (several merge by the alignment's

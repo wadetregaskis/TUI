@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import TUIkitCore
 import TUIkitView
 
@@ -126,9 +127,21 @@ extension View {
     ///
     /// The value is used as given, as SwiftUI's is, even when it lies outside
     /// the view: `.alignmentGuide(.leading) { _ in 5 }` on a one-cell view
-    /// indents its siblings by five cells. One guide pushes a child at most
-    /// 4,096 cells along, past the edge of any terminal, or as far as the
-    /// region's extent or the widest child if that is further.
+    /// indents its siblings by five cells, and a `ZStack` in a `ScrollView`
+    /// can place its views by guide down a canvas a million cells long.
+    ///
+    /// One guide may push a view at most 1,048,576 cells (2^20) along its
+    /// container, or as far as the container's extent or its widest view if
+    /// that is further. A guide that would push one further is a logic error
+    /// — a division by a value near zero, a unit mix-up — and so is a guide
+    /// that is not a number (`.nan`, `.infinity`) on a view with a width and
+    /// a height: a debug build stops with an assertion, and a release build
+    /// reports it once (to `TUIKIT_DIAGNOSTICS_FILE`, or to stderr when the
+    /// app gives the terminal back) and places the view as if its guide were
+    /// at its own origin. SwiftUI places a finite one without a word, and
+    /// stops on `+.infinity` or `.nan` (measured). A canvas that really is
+    /// larger can raise the bound with the `TUIKIT_MAX_ALIGNMENT_PUSH`
+    /// environment variable, a number of cells up to 2^30.
     ///
     /// ## How far a guide travels
     ///
@@ -364,37 +377,66 @@ struct AlignmentGuideRun {
     /// The extent the run occupies along the axis.
     let extent: Int
 
-    /// The furthest, in cells, one guide falling short of another pushes a
-    /// child along the run: 4,096.
+    /// The furthest, in cells, one guide falling short of another may push a
+    /// child along the run: 2^20 (1,048,576), unless the
+    /// `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable says otherwise
+    /// (``maximumPush(environment:)``).
     ///
     /// SwiftUI uses a guide exactly as given, inside its own view or not
     /// (measured 2026-10-11: a 1-wide view whose leading guide is 25 indents
-    /// its sibling by 25), so nothing here holds a guide to its view's size.
-    /// What is bounded is the push: a guide is caller arithmetic, a runaway
-    /// expression is a finite astronomical number, and a content-sized run
-    /// pads a buffer to its extent, so a guide of `1e300` would otherwise ask
-    /// for a buffer `Int.max` cells wide.
+    /// its sibling by 25), so nothing here holds a guide to its view's size,
+    /// and a canvas that places its views by guide — a `ZStack` in a vertical
+    /// `ScrollView` putting each item at `.alignmentGuide(.top) { _ in -row }`
+    /// — can be a million rows tall, as SwiftUI's can (measured 2026-10-12 to
+    /// 100,000 rows; decisions B-GUIDE-2).
     ///
-    /// The bound is visible in a `ScrollView` on either axis, which can scroll
-    /// that far: a child pushed past it stops at it, where SwiftUI's keeps
-    /// going (measured 2026-10-12: a `ZStack` placing rows by guide in a
-    /// vertical `ScrollView` piles every row past 4,096 on row 4,096). The
-    /// owner has decided to raise it to 2^20 and report a push past it as a
-    /// logic error (decisions B-GUIDE-2). It is the natural-extent
-    /// ladder's first rung (``naturalExtentStartingBudget(forVisible:)``), and
-    /// TUIkit already takes half of that as more than any real bound offers
-    /// (``isNaturalExtentBudget(_:)``), so a child pushed this far is past the
-    /// edge of any terminal's screen. It is a constant rather than the
-    /// container's available extent so that the run reads no budget: a row
+    /// What is bounded is the push, because a push past this is a logic error,
+    /// not a layout: a guide is caller arithmetic, and a runaway expression (a
+    /// division by a value near zero, a unit mix-up, `.greatestFiniteMagnitude`
+    /// meaning "far away") is a finite astronomical number. Unbounded, a guide
+    /// of `1e300` asks for a buffer `Int.max` cells wide and traps on
+    /// arithmetic overflow sizing a line (measured), and a push of `1e7` to
+    /// `1e12` pads a line of that many spaces for each pushed row on every
+    /// frame; neither names the guide. So a push past the bound is reported
+    /// through `SoftTrap` (an assertion in a debug build, reported once in a
+    /// release build) and the guide that caused it is taken as its view's own
+    /// origin, as a guide that is not a number is — not as a view placed at
+    /// the bound, which would build a million-cell buffer every frame on a
+    /// bug path.
+    ///
+    /// A row count is the size of real data, and TUIkit lets an eager `VStack`
+    /// of a million rows build its buffer; a push is one number that runs away
+    /// when the arithmetic behind it is wrong, hence a bound here and none
+    /// there. A run is never bounded below its region's own extent or its
+    /// widest child, which are drawn already. The bound reads no budget: a row
     /// reports its height without reading the vertical one
-    /// (`_HStackCore.clipSizeThatFits`). A run is never bounded below its
-    /// region's own extent or its widest child, which are drawn already.
+    /// (`_HStackCore.clipSizeThatFits`), so the measure and the render bound
+    /// the run alike.
+    static let maximumPush = maximumPush(environment: ProcessInfo.processInfo.environment)
+
+    /// ``maximumPush`` when the environment does not set one: 2^20 cells.
+    static let defaultMaximumPush = 1 << 20
+
+    /// The most `TUIKIT_MAX_ALIGNMENT_PUSH` can raise the bound to: 2^30 cells.
     ///
-    /// Past the bound, a child is placed at it: a content-sized run is at most
-    /// this plus its widest child, which stops a stack asked its ideal width at
-    /// the ladder's second rung, and a guide such a child reports up through
-    /// its stack is reported from where it was placed.
-    static let maximumPush = 4096
+    /// A pushed run is drawn as lines that long, and its extent plus a view's
+    /// size must still fit an `Int` where `Int` is 32 bits (WebAssembly's
+    /// wasm32), so the variable is a safety net for a canvas past 2^20, not a
+    /// way to turn the bound off.
+    static let largestMaximumPush = 1 << 30
+
+    /// The rule behind ``maximumPush``, posed on its input so it can be asked
+    /// without changing what a whole process reads.
+    ///
+    /// `TUIKIT_MAX_ALIGNMENT_PUSH` set to a whole number of cells from 1 up
+    /// replaces ``defaultMaximumPush``, held to ``largestMaximumPush``; unset,
+    /// or anything else, leaves the default.
+    static func maximumPush(environment: [String: String]) -> Int {
+        guard let text = environment["TUIKIT_MAX_ALIGNMENT_PUSH"],
+            let cells = Int(text.trimmingCharacters(in: .whitespaces)), cells > 0
+        else { return defaultMaximumPush }
+        return min(cells, largestMaximumPush)
+    }
 
     /// Resolves placement from already-merged guide positions.
     ///
@@ -413,31 +455,47 @@ struct AlignmentGuideRun {
     ///   - fixedExtent: The region's extent when the container does not size to
     ///     content; `nil` to grow to fit the run.
     ///   - minimumExtent: A floor on a content-sized region's extent.
+    ///   - report: Where a guide that would push a view past ``maximumPush``
+    ///     is reported — ``guideErrorReporter(in:)``: ``reportGuideError(_:)``
+    ///     on a render pass, `nil` on a measure pass, which works out the
+    ///     same placement and says nothing.
     ///   - regionGuide: The region's own guide, given its final extent.
     static func resolve(
         resolved: [Double],
         sizes: [Int],
         fixedExtent: Int?,
         minimumExtent: Int,
+        report: ((String) -> Void)?,
         regionGuide: (Int) -> Double
     ) -> Self {
         // Sanitised BEFORE `merged`, not at the conversions below: one
         // child's non-coordinate poisons every sibling's base through the
         // maximum, and the child that set it gets `∞ - ∞`, i.e. NaN, for its
         // own.
-        let positions = resolved.map { coordinate($0) }
-        let merged = positions.max() ?? 0
+        var positions = resolved.map { coordinate($0) }
         let reach = Double(max(Self.maximumPush, minimumExtent, fixedExtent ?? 0))
+        // A push is how far one guide falls short of the largest, so the
+        // furthest push is the spread of the guides. Past `reach`, the guide
+        // furthest from its own view's origin is the runaway — `1e300` beside
+        // a `0`, `-1e300` beside a `-row` — and it becomes that origin, as a
+        // guide that is not a number does. One at a time, since the next one
+        // out may be legitimate once the runaway is gone; each pass zeroes a
+        // guide that was not zero (the spread is positive), so it ends.
+        while let lowest = positions.min(), let highest = positions.max(), highest - lowest > reach,
+            let runaway = positions.indices.max(by: { abs(positions[$0]) < abs(positions[$1]) })
+        {
+            report?(Self.pushPastTheBoundMessage(bound: Int(reach)))
+            positions[runaway] = 0
+        }
+        let merged = positions.max() ?? 0
 
         // A child's distance from the run's leading edge is how far its guide
         // falls short of the merged one — so the child with the largest guide
-        // sits flush and every other is pushed along, at most `reach`
-        // (``maximumPush``).
+        // sits flush and every other is pushed along, at most `reach`.
         var contentExtent = 0
         for (index, guide) in positions.enumerated() {
-            let base = min(merged - guide, reach)
             contentExtent = max(
-                contentExtent, Int(clamping: (base + Double(sizes[index])).rounded(.up)))
+                contentExtent, Int(clamping: (merged - guide + Double(sizes[index])).rounded(.up)))
         }
 
         let extent = fixedExtent ?? max(contentExtent, minimumExtent)
@@ -463,9 +521,7 @@ struct AlignmentGuideRun {
         var offsets: [Int] = []
         offsets.reserveCapacity(positions.count)
         for (index, guide) in positions.enumerated() {
-            // A child pushed past `reach` sits at it, moved with the run.
-            let along = merged - guide > reach ? reach + (anchor - merged) : anchor - guide
-            let raw = Int(clamping: along.rounded(.down))
+            let raw = Int(clamping: (anchor - guide).rounded(.down))
             offsets.append(min(max(0, raw), max(0, extent - sizes[index])))
         }
         return Self(offsets: offsets, extent: extent)
@@ -478,7 +534,9 @@ struct AlignmentGuideRun {
     /// child that is legitimately zero-height during a measure pass is `+∞`,
     /// and `0 / 0` is NaN. Either used to reach `Int(_: Double)`, which traps
     /// on both. A non-finite guide becomes the position a view with no guide
-    /// has; NaN has no order and so no nearer edge to fall back to.
+    /// has; NaN has no order and so no nearer edge to fall back to. Where its
+    /// view has a width and a height it is a logic error, and is reported
+    /// (`checkedGuide(_:dimensions:context:)`).
     ///
     /// A finite guide is NOT held to its own view. It used to be held to
     /// `[-w, 2w]` of the view's extent `w`, on the premise that a guide is a
@@ -490,6 +548,77 @@ struct AlignmentGuideRun {
     private static func coordinate(_ value: Double) -> Double {
         value.isFinite ? value : 0
     }
+}
+
+// MARK: - Reporting a Guide That Is a Logic Error
+
+extension AlignmentGuideRun {
+    /// Where ``reportGuideError(_:)`` sends a report instead of `SoftTrap`,
+    /// while a task binds it: the render path's injectable reporter.
+    ///
+    /// ``resolve(resolved:sizes:fixedExtent:minimumExtent:report:regionGuide:)``
+    /// takes its reporter as a parameter, as `SoftTrap`'s other callers do,
+    /// but a stack reaches it from `renderToBuffer`, which a test cannot hand
+    /// a closure through, and a debug build would stop at the assertion.
+    /// Task-local, as the other render-path test seams are
+    /// (`TerminalWidthTraits`), so suites running in parallel do not see each
+    /// other's reports.
+    @TaskLocal static var guideErrorReporter: (@Sendable (String) -> Void)?
+
+    /// Reports a guide that is a logic error: to ``guideErrorReporter`` when a
+    /// task binds one, and otherwise through `SoftTrap`.
+    static func reportGuideError(_ message: String) {
+        if let reporter = guideErrorReporter {
+            reporter(message)
+        } else {
+            SoftTrap.report(message)
+        }
+    }
+
+    /// The report for a guide that would push a view more than `bound` cells.
+    ///
+    /// Without the guide's value: a runaway guide often varies from frame to
+    /// frame, and a release build keeps every distinct message it reports.
+    static func pushPastTheBoundMessage(bound: Int) -> String {
+        "An alignment guide (alignmentGuide(_:computeValue:)) would push a view more than \(bound) cells "
+            + "along its container: a logic error, such as a division by a value near zero or a unit mix-up. "
+            + "The view is placed as if its guide were at its own origin. "
+            + "TUIKIT_MAX_ALIGNMENT_PUSH raises the bound for a canvas that really is that large."
+    }
+
+    /// The report for a guide that is `value`, not a number, on a view with a
+    /// width and a height.
+    static func nonFiniteGuideMessage(_ value: Double) -> String {
+        "An alignment guide (alignmentGuide(_:computeValue:)) returned \(value) for a view with a width "
+            + "and a height, which is not a position. The view is placed as if its guide were at its own origin."
+    }
+}
+
+/// `value`, the guide a view of `dimensions` gives, reported first when it is
+/// a logic error: not a number, on a view with a width and a height, on a
+/// render pass.
+///
+/// Not on a view with no width or no height: TUIkit measures at sizes SwiftUI
+/// never offers (the zero-height measure the run's fallback was written for),
+/// and a small terminal can squeeze a row to nothing, so a
+/// `d.width / d.height` guide is legitimately `+∞` there. Not on a measure
+/// pass, which proposes such sizes. Either way the run takes the value as the
+/// view's own origin.
+@MainActor
+func checkedGuide(_ value: Double, dimensions: ViewDimensions, context: RenderContext) -> Double {
+    if !value.isFinite, dimensions.width > 0, dimensions.height > 0, !context.isMeasuring {
+        AlignmentGuideRun.reportGuideError(AlignmentGuideRun.nonFiniteGuideMessage(value))
+    }
+    return value
+}
+
+/// The reporter a run resolved in `context` gives a runaway push to:
+/// `AlignmentGuideRun.reportGuideError(_:)` on a render pass, and none on a
+/// measure pass, which works out the same placement.
+@MainActor
+func guideErrorReporter(in context: RenderContext) -> ((String) -> Void)? {
+    guard !context.isMeasuring else { return nil }
+    return { AlignmentGuideRun.reportGuideError($0) }
 }
 
 /// Whether any of `children` sets an explicit alignment guide.
@@ -536,17 +665,19 @@ func horizontalGuideRun(
     var anyExplicit = false
     for (child, size) in zip(children, sizes) {
         let dimensions = ViewDimensions(width: size.width, height: size.height)
+        let guide: Double
         if let explicit = child.explicitGuide(.horizontal(alignment), at: dimensions, context: context) {
             anyExplicit = true
-            resolved.append(explicit)
+            guide = explicit
         } else {
-            resolved.append(alignment[dimensions: dimensions])
+            guide = alignment[dimensions: dimensions]
         }
+        resolved.append(checkedGuide(guide, dimensions: dimensions, context: context))
     }
     guard anyExplicit else { return nil }
     return .resolve(
         resolved: resolved, sizes: sizes.map(\.width),
-        fixedExtent: fixedExtent, minimumExtent: minimumExtent
+        fixedExtent: fixedExtent, minimumExtent: minimumExtent, report: guideErrorReporter(in: context)
     ) { extent in
         alignment[dimensions: ViewDimensions(width: extent, height: 0)]
     }
@@ -567,13 +698,12 @@ func horizontalGuidePlacement<V: View>(
     of view: V, size: (width: Int, height: Int), alignment: HorizontalAlignment, in extent: Int,
     context: RenderContext
 ) -> Int? {
-    guard V._providesAlignmentGuide,
-        let guide = explicitGuide(
-            of: view, .horizontal(alignment),
-            in: ViewDimensions(width: size.width, height: size.height), context: context)
-    else { return nil }
+    guard V._providesAlignmentGuide else { return nil }
+    let dimensions = ViewDimensions(width: size.width, height: size.height)
+    guard let guide = explicitGuide(of: view, .horizontal(alignment), in: dimensions, context: context) else { return nil }
     return AlignmentGuideRun.resolve(
-        resolved: [guide], sizes: [size.width], fixedExtent: extent, minimumExtent: extent
+        resolved: [checkedGuide(guide, dimensions: dimensions, context: context)], sizes: [size.width],
+        fixedExtent: extent, minimumExtent: extent, report: guideErrorReporter(in: context)
     ) { alignment[dimensions: ViewDimensions(width: $0, height: 0)] }.offsets[0]
 }
 
@@ -583,13 +713,12 @@ func verticalGuidePlacement<V: View>(
     of view: V, size: (width: Int, height: Int), alignment: VerticalAlignment, in extent: Int,
     context: RenderContext
 ) -> Int? {
-    guard V._providesAlignmentGuide,
-        let guide = explicitGuide(
-            of: view, .vertical(alignment),
-            in: ViewDimensions(width: size.width, height: size.height), context: context)
-    else { return nil }
+    guard V._providesAlignmentGuide else { return nil }
+    let dimensions = ViewDimensions(width: size.width, height: size.height)
+    guard let guide = explicitGuide(of: view, .vertical(alignment), in: dimensions, context: context) else { return nil }
     return AlignmentGuideRun.resolve(
-        resolved: [guide], sizes: [size.height], fixedExtent: extent, minimumExtent: extent
+        resolved: [checkedGuide(guide, dimensions: dimensions, context: context)], sizes: [size.height],
+        fixedExtent: extent, minimumExtent: extent, report: guideErrorReporter(in: context)
     ) { alignment[dimensions: ViewDimensions(width: 0, height: $0)] }.offsets[0]
 }
 
@@ -612,17 +741,19 @@ func verticalGuideRun(
     var anyExplicit = false
     for (child, size) in zip(children, sizes) {
         let dimensions = ViewDimensions(width: size.width, height: size.height)
+        let guide: Double
         if let explicit = child.explicitGuide(.vertical(alignment), at: dimensions, context: context) {
             anyExplicit = true
-            resolved.append(explicit)
+            guide = explicit
         } else {
-            resolved.append(alignment[dimensions: dimensions])
+            guide = alignment[dimensions: dimensions]
         }
+        resolved.append(checkedGuide(guide, dimensions: dimensions, context: context))
     }
     guard anyExplicit else { return nil }
     return .resolve(
         resolved: resolved, sizes: sizes.map(\.height),
-        fixedExtent: fixedExtent, minimumExtent: minimumExtent
+        fixedExtent: fixedExtent, minimumExtent: minimumExtent, report: guideErrorReporter(in: context)
     ) { extent in
         alignment[dimensions: ViewDimensions(width: 0, height: extent)]
     }

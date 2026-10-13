@@ -36,6 +36,29 @@ extension HorizontalAlignment {
     fileprivate static let zeroDivide = Self(ZeroDivideID.self)
 }
 
+/// What a guide that is a logic error reported (`AlignmentGuideRun.guideErrorReporter`):
+/// each distinct message once, in order, as `SoftTrap`'s log keeps them.
+///
+/// `@unchecked Sendable` because the reporter closure must be `@Sendable`, but
+/// only the main-actor test that binds it ever touches it.
+private final class GuideErrorReports: @unchecked Sendable {
+    private(set) var messages: [String] = []
+
+    func append(_ message: String) {
+        if !messages.contains(message) { messages.append(message) }
+    }
+}
+
+/// `body`'s result, and what a guide that is a logic error reported while it
+/// ran — through the task-local seam, so a debug build does not stop at the
+/// assertion.
+@MainActor
+func collectingGuideErrors<T>(_ body: () -> T) -> (T, [String]) {
+    let reports = GuideErrorReports()
+    let result = AlignmentGuideRun.$guideErrorReporter.withValue({ reports.append($0) }, operation: body)
+    return (result, reports.messages)
+}
+
 extension VerticalAlignment {
     fileprivate static let zeroDivide = Self(ZeroDivideID.self)
 }
@@ -176,26 +199,22 @@ struct AlignmentGuideTests {
             [1e300, 0], [-1e300, 0],
         ])
     func nonCoordinateGuideResolves(resolved: [Double]) {
+        var reports: [String] = []
         let run = AlignmentGuideRun.resolve(
-            resolved: resolved, sizes: [3, 3], fixedExtent: nil, minimumExtent: 0
-        ) { Double($0) / 2 }
+            resolved: resolved, sizes: [3, 3], fixedExtent: nil, minimumExtent: 0,
+            report: { reports.append($0) }, regionGuide: { Double($0) / 2 })
         #expect(run.offsets.count == 2)
-        // Bounded, not merely finite: a finite guide is used as given, as
-        // SwiftUI's is, so what bounds the run is how far one guide falling
-        // short of another pushes a child — `maximumPush` cells — and the
-        // extent a content-sized run grows to is that plus its widest child.
-        // An `Int.max` from a saturating conversion would instead pad a buffer
-        // that wide. A non-finite guide is the view's own origin, so it
-        // pushes nothing.
-        #expect((0...AlignmentGuideRun.maximumPush + 3).contains(run.extent), "extent \(run.extent)")
-        if resolved.allSatisfy(\.isFinite) {
-            #expect(run.offsets.max() == AlignmentGuideRun.maximumPush, "offsets \(run.offsets)")
-        } else {
-            #expect(run.extent == 3, "extent \(run.extent)")
-        }
-        #expect(
-            run.offsets.allSatisfy { (0...run.extent).contains($0) },
-            "offsets \(run.offsets) within 0...\(run.extent)")
+        // A finite guide is used as given, as SwiftUI's is, so what bounds the
+        // run is how far one guide falling short of another pushes a child —
+        // `maximumPush` cells. Past it, the runaway guide is taken as its
+        // view's own origin, as a non-finite one is, so nothing is pushed at
+        // all: the run is its views' width, not a buffer `Int.max` (or a
+        // million) cells wide.
+        #expect(run.extent == 3, "extent \(run.extent)")
+        #expect(run.offsets == [0, 0], "offsets \(run.offsets)")
+        // `resolve` reports only the push; a non-finite guide is reported
+        // where its view's size is known (`checkedGuide`).
+        #expect(reports.count == (resolved.allSatisfy(\.isFinite) ? 1 : 0), "reports \(reports)")
     }
 
     @Test("The single-child placement path resolves one too")
@@ -205,47 +224,135 @@ struct AlignmentGuideTests {
         // `merged - guide` is `∞ - ∞` for every non-finite value.
         for guide in [Double.infinity, -.infinity, .nan, 1e300] {
             let run = AlignmentGuideRun.resolve(
-                resolved: [guide], sizes: [4], fixedExtent: 10, minimumExtent: 10
+                resolved: [guide], sizes: [4], fixedExtent: 10, minimumExtent: 10, report: nil
             ) { Double($0) / 2 }
             #expect(run.extent == 10, "guide \(guide) must not move a fixed extent")
             #expect((0...6).contains(run.offsets[0]), "guide \(guide) -> \(run.offsets[0])")
         }
     }
 
-    @Test("The furthest a guide pushes a child is the natural-extent ladder's first rung")
-    @MainActor
-    func maximumPushIsTheLadderFloor() {
-        // A child pushed this far is past any terminal's edge only because no
-        // real bound offers this much — the premise `isNaturalExtentBudget`
-        // states for the same number. The two must not drift apart.
-        #expect(AlignmentGuideRun.maximumPush == naturalExtentStartingBudget(forVisible: 0))
-        #expect(isNaturalExtentBudget(AlignmentGuideRun.maximumPush))
+    @Test("The push bound is 2^20 cells, and TUIKIT_MAX_ALIGNMENT_PUSH overrides it")
+    func maximumPushAndItsOverride() {
+        #expect(AlignmentGuideRun.defaultMaximumPush == 1_048_576)
+        #expect(AlignmentGuideRun.maximumPush(environment: [:]) == 1_048_576)
+        #expect(AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": "5000000"]) == 5_000_000)
+        #expect(AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": " 12 "]) == 12)
+        // Held to 2^30, so a pushed run's extent still fits a 32-bit `Int`.
+        #expect(
+            AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": "\(Int.max)"]) == 1 << 30)
+        for unusable in ["0", "-5", "lots", "", "1e9"] {
+            #expect(
+                AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": unusable]) == 1_048_576,
+                "\(unusable)")
+        }
     }
 
-    @Test("A guide past the push bound draws in the terminal and sizes the ideal width to the bound")
+    @Test("A push under the bound is honoured however far past the screen it goes")
+    @MainActor
+    func pushUnderTheBound() {
+        // The canvas the old 4,096-cell bound hid (decisions B-GUIDE-2): items
+        // placed down a `ZStack` by guide, for a vertical `ScrollView`.
+        // SwiftUI puts the item at row 10,000 and the canvas is 10,001 rows
+        // (measured, `Tools/SwiftUIProbes/Alignment guides`, GUIDE2 `g2b`).
+        let canvas = ZStack(alignment: .topLeading) {
+            Text("a")
+            Text("b").alignmentGuide(.top) { _ in -10_000 }
+        }
+        let context = makeBareRenderContext(width: 10, height: 4)
+        let tall = measureNaturalExtent(
+            canvas, along: .vertical, proposal: ProposedSize(width: 10, height: nil),
+            context: context, startingBudget: naturalExtentStartingBudget(forVisible: 4))
+        #expect(tall.height == 10_001)
+
+        var roomy = context
+        roomy.availableHeight = 10_001
+        let buffer = renderToBuffer(canvas, context: roomy)
+        #expect(buffer.height == 10_001)
+        #expect(buffer.lines.first?.stripped.hasPrefix("a") == true)
+        #expect(buffer.lines.last?.stripped.hasPrefix("b") == true)
+
+        // And sideways: a leading guide of a million (under 2^20) indents the
+        // sibling a million cells, which the ideal width reports.
+        let column = VStack(alignment: .leading, spacing: 0) {
+            Text("g").alignmentGuide(.leading) { _ in 1e6 }
+            Text("ssssss")
+        }
+        let ideal = measureNaturalExtent(
+            column, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+            context: makeBareRenderContext(width: 30, height: 4),
+            startingBudget: naturalExtentStartingBudget(forVisible: 30))
+        #expect(ideal.width == 1_000_006)
+    }
+
+    @Test("A push past the bound is reported, and its guide taken as its view's origin")
     @MainActor
     func guidePastThePushBound() {
-        // Finite, so used as given — but the sibling it pushes stops at
-        // `maximumPush`, past any terminal's edge: the column draws its 30
-        // cells with the sibling out of sight, and asked its ideal width it
-        // answers the bound plus the sibling, where the ladder stops, rather
-        // than climbing toward `Int.max`.
-        for guide in [1e6, 1e300] {
+        // `1e300` is a runaway expression, not a position. It is reported, and
+        // its view placed as if it had no guide: the column draws both views
+        // at its leading edge, and asked its ideal width it answers the views'
+        // own, rather than a million cells (or `Int.max`, which trapped).
+        for guide in [1e300, -1e300, Double(AlignmentGuideRun.maximumPush) + 1] {
             let column = VStack(alignment: .leading, spacing: 0) {
                 Text("g").alignmentGuide(.leading) { _ in guide }
                 Text("ssssss")
             }
             let context = makeBareRenderContext(width: 30, height: 4)
-            let buffer = renderToBuffer(column, context: context)
-            #expect(buffer.width == 30, "guide \(guide) -> width \(buffer.width)")
-            #expect(buffer.lines.map { $0.stripped.filter { $0 != " " } } == ["g", ""])
-            #expect(buffer.lines.first?.stripped.first == "g")
+            let (buffer, reports) = collectingGuideErrors { renderToBuffer(column, context: context) }
+            #expect(reports == [AlignmentGuideRun.pushPastTheBoundMessage(bound: AlignmentGuideRun.maximumPush)])
+            #expect(buffer.lines.map(\.stripped) == ["g     ", "ssssss"], "guide \(guide)")
 
-            let ideal = measureNaturalExtent(
-                column, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
-                context: context, startingBudget: naturalExtentStartingBudget(forVisible: 30))
-            #expect(ideal.width == AlignmentGuideRun.maximumPush + 6, "guide \(guide) -> ideal \(ideal.width)")
+            let (ideal, measureReports) = collectingGuideErrors {
+                measureNaturalExtent(
+                    column, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+                    context: context, startingBudget: naturalExtentStartingBudget(forVisible: 30))
+            }
+            #expect(ideal.width == 6, "guide \(guide) -> ideal \(ideal.width)")
+            #expect(measureReports.isEmpty, "a measure pass reports nothing: \(measureReports)")
         }
+
+        // The runaway is the guide furthest from its own origin, not whichever
+        // falls short: a legitimate canvas row keeps its place beside it.
+        let canvas = ZStack(alignment: .topLeading) {
+            Text("a")
+            Text("b").alignmentGuide(.top) { _ in -3 }
+            Text("c").alignmentGuide(.top) { _ in -1e300 }
+        }
+        let (rows, reports) = collectingGuideErrors {
+            renderToBuffer(canvas, context: makeBareRenderContext(width: 10, height: 10))
+        }
+        #expect(reports.count == 1)
+        #expect(rows.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) } == ["c", "", "", "b"])
+    }
+
+    @Test("A guide that is not a number is reported on a view with a width and a height, and only there")
+    @MainActor
+    func nonFiniteGuideReports() {
+        for guide in [Double.nan, .infinity, -.infinity] {
+            let column = VStack(alignment: .leading, spacing: 0) {
+                Text("g").alignmentGuide(.leading) { _ in guide }
+                Text("ssssss")
+            }
+            let context = makeBareRenderContext(width: 30, height: 4)
+            let (buffer, reports) = collectingGuideErrors { renderToBuffer(column, context: context) }
+            #expect(reports == [AlignmentGuideRun.nonFiniteGuideMessage(guide)], "guide \(guide)")
+            #expect(buffer.lines.map(\.stripped) == ["g     ", "ssssss"], "guide \(guide)")
+
+            let (_, measureReports) = collectingGuideErrors {
+                measureChild(column, proposal: ProposedSize(width: 30, height: 4), context: context)
+            }
+            #expect(measureReports.isEmpty, "a measure pass reports nothing: \(measureReports)")
+        }
+
+        // `d.width / d.height` on a view a small terminal squeezed to no
+        // height is legitimately infinite: placed at its origin, silently.
+        let squeezed = HStack(alignment: .top, spacing: 0) {
+            Color.clear.frame(width: 2, height: 0).alignmentGuide(.top) { d in Double(d.width) / Double(d.height) }
+            Text("b")
+        }
+        let (_, reports) = collectingGuideErrors {
+            renderToBuffer(squeezed, context: makeBareRenderContext(width: 10, height: 2))
+        }
+        #expect(reports.isEmpty, "\(reports)")
     }
 
     @Test("A custom AlignmentID that answers with NaN or infinity still places")

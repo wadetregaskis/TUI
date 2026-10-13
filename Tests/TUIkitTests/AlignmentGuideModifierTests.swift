@@ -131,26 +131,36 @@ struct AlignmentGuideModifierTests {
         // blunt form of the same thing. Both used to trap inside the MEASURE
         // pass — `_VStackCore.sizeThatFits` — so there was never a buffer to
         // assert on, in this suite or in the app.
+        //
+        // Each is a logic error on a view with a width and a height, so each
+        // is reported (`AlignmentGuideTests` pins the reports); collected
+        // here, or a debug build would stop at the assertion.
         for guide in [Double.infinity, -.infinity, .nan, 1e300] {
-            let buffer = renderToBuffer(
-                VStack(alignment: .leading) {
-                    Text("•").alignmentGuide(.leading) { _ in guide }
-                    Text("item")
-                },
-                context: makeRenderContext(width: 30, height: 4))
+            let (buffer, reports) = collectingGuideErrors {
+                renderToBuffer(
+                    VStack(alignment: .leading) {
+                        Text("•").alignmentGuide(.leading) { _ in guide }
+                        Text("item")
+                    },
+                    context: makeRenderContext(width: 30, height: 4))
+            }
 
+            #expect(reports.count == 1, "guide \(guide) -> \(reports)")
             #expect(buffer.lines.count == 2, "guide \(guide) -> \(buffer.lines)")
             #expect(buffer.width <= 30, "guide \(guide) -> width \(buffer.width)")
             #expect(indents(buffer).allSatisfy { $0 >= 0 })
         }
 
         // The vertical twin, through an HStack.
-        let horizontal = renderToBuffer(
-            HStack(alignment: .top) {
-                Text("a").alignmentGuide(.top) { _ in .infinity }
-                Text("b")
-            },
-            context: makeRenderContext(width: 30, height: 4))
+        let (horizontal, reports) = collectingGuideErrors {
+            renderToBuffer(
+                HStack(alignment: .top) {
+                    Text("a").alignmentGuide(.top) { _ in .infinity }
+                    Text("b")
+                },
+                context: makeRenderContext(width: 30, height: 4))
+        }
+        #expect(reports.count == 1, "\(reports)")
         #expect(!horizontal.lines.isEmpty)
     }
 

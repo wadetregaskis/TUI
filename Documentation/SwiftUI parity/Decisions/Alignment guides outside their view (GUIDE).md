@@ -266,6 +266,25 @@ its guide up through its stack reports it from where it was placed, not from
 where SwiftUI would place it — visible only through two explicit guides more
 than 4,096 cells apart.
 
+**Shipped (2026-10-12, lane GUIDE3), as decided.** `AlignmentGuideRun.maximumPush`
+is 2^20 (1,048,576) cells, read once from `TUIKIT_MAX_ALIGNMENT_PUSH` when that
+holds a whole number of cells, held to 2^30 so a pushed run's extent still fits
+a 32-bit `Int` (WebAssembly). A push is how far one guide falls short of the
+largest, so the furthest push is the spread of the run's guides; past the
+bound, the guide furthest from its own view's origin is taken as the runaway
+(`1e300` beside a `0`, `-1e300` beside a canvas row's `-3`), reported, and
+taken as that origin, one guide at a time until the spread fits — so a
+legitimate row beside a runaway keeps its place. A guide that is not a number
+is reported where its view's width and height are both non-zero, on a render
+pass only (`checkedGuide`): a measure pass proposes sizes SwiftUI never does,
+and works out the same placement silently. Both reports go through `SoftTrap`
+by way of `AlignmentGuideRun.reportGuideError`, whose task-local
+`guideErrorReporter` is the injectable reporter a render-path test binds. The
+canvas measured above now measures 10,001 rows and draws its item on row
+10,000 (`AlignmentGuideTests` "A push under the bound is honoured…"). Without
+the old per-child cap, a runaway guide's view is no longer placed at the bound,
+so the reported guide question in the fuller version above does not arise.
+
 ### B-GUIDE-3. One child whose guide would put it outside its region is held inside it
 
 **Owner, 2026-10-12 (second message):** "Try to support it. If you run into significant issues, let me know and we'll discuss."

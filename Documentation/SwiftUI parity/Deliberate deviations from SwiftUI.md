@@ -352,6 +352,30 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   **Recorded**, with no ruling; awaiting the owner. [§1](<SwiftUI compatibility guide.md#1-match>) (the
   Custom layout row) still lists it as a match.
 
+### L13. A guide pushes a view at most 2^20 cells, and a runaway guide is reported
+
+- **SwiftUI:** uses a finite guide as given at any magnitude: a guide of `1e300`
+  places its view that far along, without a word, and its width is lost to
+  rounding. A guide of `+∞` or NaN stops the app ("view origin is invalid") in
+  every placement tried (measured 2026-10-12, decisions B-GUIDE-2).
+- **TUIkit:** one guide pushes a view at most 1,048,576 cells along its
+  container (`AlignmentGuideRun.maximumPush`), or as far as the container's
+  extent or its widest view if that is further; the `TUIKIT_MAX_ALIGNMENT_PUSH`
+  environment variable raises it, up to 2^30. A push past it, and a guide that
+  is not a number on a view with a width and a height, is a logic error,
+  reported through `SoftTrap` (an assertion in a debug build, once in a release
+  build), and the view is placed as if its guide were at its own origin. On a
+  view with no width or no height a guide that is not a number takes that
+  place silently (`AlignmentGuideTests`).
+- **Why:** no layout is a million cells along; such a guide is a runaway
+  expression. Unbounded, a guide of `1e300` traps sizing a line, and a push of
+  `1e7` or more builds a line that many cells long for each pushed row on every
+  frame, and neither names the guide. A small terminal squeezes rows to
+  nothing, where `d.width / d.height` is legitimately infinite.
+- **Decided:** [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>).
+  **Owner** (2026-10-12: 2^20, a push past it reported, an environment
+  variable to override it).
+
 ---
 
 ## State and data flow
@@ -1452,7 +1476,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | With no scroll anchor declared, rows inserted above the top row move it; SwiftUI holds it by default (measured, lazy stack) | [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [Scroll anchoring.md](<../Layout and scrolling/Scroll anchoring.md>) | Owner 2026-10-12: hold the row as SwiftUI does, configurable either way; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
-| A guide pushes a view at most 4,096 cells, which a scroll view's canvas shows (measured) | [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>) | Owner 2026-10-12: too low, and a cap must not hide logic errors. Decided: 2^20, a push past it reported through `SoftTrap`; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
 | The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
