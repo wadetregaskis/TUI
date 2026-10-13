@@ -629,10 +629,15 @@ protocol StateBindable {
     /// `storage` keeps under `key`, created with the property's default if
     /// there is none.
     ///
+    /// `adopting` says that the property lies in an object whose claimant
+    /// has just changed (``ObjectContentsClaim/takeOver``): a backing bound to
+    /// a box still kept keeps it, and the box is kept under `key` from now
+    /// on.
+    ///
     /// - Returns: Whether the property at `address` was changed — given a
     ///   backing of its own — rather than its shared backing bound.
     static func bindState(
-        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, adopting: Bool
     ) -> Bool
 }
 
@@ -644,10 +649,14 @@ extension State: StateBindable {
     /// being drawn at a second place, and this copy is given a backing of its
     /// own, so the two places never share their state.
     static func bindState(
-        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, adopting: Bool
     ) -> Bool {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
+        if adopting, backing.isBound, !backing.box.wasDropped {
+            storage.adopt(backing.box, for: key)
+            return false
+        }
         let box = storage.storage(for: key, default: backing.defaultValue)
         if backing.box === box { return false }
         // Rebound where its box is gone, not given a backing in this copy:

@@ -123,7 +123,7 @@ an error"; session notes `DYNVFIX/probe/pb.swift`). For WebAssembly, a call
 through the `swiftcc` convention: a `@convention(thin)` function type, which
 Swift does not offer.
 
-### B-DYNVFIX-3. What a class property holds belongs to one view, the first drawn that reaches it, while that view's state lives
+### B-DYNVFIX-3. What a class property holds belongs to one view, the first drawn in each pass that reaches it, and its state goes with it
 
 *`DynamicProperty`, `@State`, `@Environment`*
 
@@ -139,10 +139,16 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 `@Environment(Model.self)` inside one, which reading uninstalled traps.
 
 **Shipped:** what the object holds belongs to one view at a time, its
-claimant: the first view drawn whose walk reaches the object while it has
-none. A view only measured — a `ViewThatFits` candidate, the first frame's
-walk for the window chrome — claims it only until a view drawn reaches it.
-The claimant walks what the object holds on each of its own walks — its
+claimant: in each render pass, the first view drawn whose walk reaches the
+object. A view only measured — a `ViewThatFits` candidate, the first frame's
+walk for the window chrome — never takes it from another view, and claims it
+only until a view drawn reaches it. When a view drawn takes it from another
+— a claimant that has left (a `ViewThatFits` switch on a resize, a row
+removed, a tab switched), or is only measured or served from the memo in
+this pass — the object's `@State` goes with it: each box it holds is kept
+under the new claimant's key from then on, so the new claimant draws the
+object's state, and what it writes is kept. The claimant walks what the
+object holds on each of its own walks — its
 `@State` bound to the claimant's key (its identity, and the object's position
 and type there, as before), its `@Environment` resolved to the claimant's
 environment, its nested properties updated in place — and the last walk of a
@@ -152,12 +158,14 @@ state — and an object made anew per view value, held by that view alone,
 keeps its state from frame to frame. The object's own `update()` still runs
 before each holder's body, as SwiftUI runs it.
 
-A claim lasts while the claimant's state does: it is dropped with it, at the
-end of a pass in which the claimant was neither drawn nor kept (by a memo hit,
-or a container that windows its rows), and the next holder to reach the
-object claims it then, its `@State` starting again at that holder's key. The
-record holds each object weakly, so an object at a freed one's address is
-never taken for it.
+A claim with no holder drawn lasts while the claimant's state does: it is
+dropped with it, at the end of a pass in which the claimant was neither drawn
+nor kept (by a memo hit, or a container that windows its rows), and the next
+holder to reach the object claims it then, its `@State` starting again at
+that holder's key. So a holder served from the memo in the pass its claimant
+leaves — it walks nothing, and cannot take the claim — finds the object's
+state started again when it is next drawn. The record holds each object
+weakly, so an object at a freed one's address is never taken for it.
 
 Two holders under different environments both read the claimant's. That is
 the rule's price, and the reason it is not "per reading view": a closure made
@@ -174,12 +182,19 @@ next drawn for another reason.
   value would start afresh every frame, losing §4.11.
 - *The last view's, as before*: bug 4 — a closure in the first view reads the
   second view's environment.
-- *The first view in each render pass*, as this lane first shipped it: a
+- *The first walk in each render pass*, as this lane first shipped it: a
   measure is a walk, so a candidate measured and never drawn took the claim
   every pass, its key pruned at each pass's end and the drawn candidate's
   writes with it; and a holder served from the memo walks nothing, so on such
   a frame the next holder took the claim and the object's `@State` flipped to
-  that holder's key (review, 2026-10-12).
+  that holder's key, at its default (review, 2026-10-12). Measures now never
+  take a claim from another view, and the state goes with a claim.
+- *The first view drawn, for as long as its state lives*, as this lane next
+  shipped it: a claimant drawn in an earlier pass kept the claim in a pass
+  that only measured it, or did not reach it, so the view drawn instead read
+  the old claimant's state for that pass and claimed a pass late, at its
+  default, and a write it made in between went into the old claimant's box,
+  dropped with it (review of 5af4853ba, 2026-10-12).
 - *SwiftUI's, installing nothing*: loses §4.11 and the environment model.
 
 **The fuller version:** none found that gives each holder its own environment

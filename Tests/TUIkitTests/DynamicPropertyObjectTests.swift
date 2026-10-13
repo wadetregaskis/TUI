@@ -3,9 +3,10 @@
 //
 //  What the property walk does with what a class property holds: its
 //  `@State`, `@Environment` and nested properties belong to one view, the
-//  first drawn that reaches the object, for as long as that view's state
-//  lives, so views sharing one object share one state, and an object made
-//  anew with each view value keeps its state (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
+//  first drawn in each render pass that reaches the object, its state going
+//  with it from view to view, so views sharing one object share one state,
+//  and an object made anew with each view value keeps its state
+//  (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
 //  class (measured on macOS 15.8.1, SwiftUI 6.5.4: session notes
 //  DYNP/optional/op.out, case vii-f); the walk did, per view, so one view's
 //  writes landed in another's state (DYNV bugs 3 and 4, session notes
@@ -192,6 +193,40 @@ private struct DraftCandidates: View {
         ViewThatFits {
             DraftView(name: "wide", wide: true, draft: draft.object, taps: taps)
             DraftView(name: "narrow", wide: false, draft: draft.object, taps: taps)
+        }
+    }
+}
+
+/// A row's name, and the frame it is drawn in, so that no frame serves the
+/// row from the memo.
+private struct TickedRow: Identifiable, Equatable {
+    let id: String
+    let tick: Int
+}
+
+/// `CounterView` with the frame it is drawn in.
+private struct TickedCounterView: View {
+    let row: TickedRow
+    let counter: SharedCounter
+    let taps: Taps
+
+    var body: some View {
+        taps.bindings[row.id] = counter.$count
+        return Text(verbatim: "\(row.id) \(counter.count)")
+    }
+}
+
+/// The counter shown by a row per name.
+private struct CounterRows: View {
+    let rows: [TickedRow]
+    let counter: Handed<SharedCounter>
+    let taps: Taps
+
+    var body: some View {
+        VStack {
+            ForEach(rows) { row in
+                TickedCounterView(row: row, counter: counter.object, taps: taps)
+            }
         }
     }
 }
@@ -411,6 +446,49 @@ struct DynamicPropertyObjectTests {
         taps.bindings["a"]?.wrappedValue = 5
         #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 5", "b 5"])
         #expect(frame(MemoFirstCounterViews(counter: Handed(object: counter), taps: taps), tui) == ["a 5", "b 5"])
+    }
+
+    /// The claim stayed with a claimant drawn in an earlier pass while it was
+    /// only measured: on the frame the terminal narrowed, the narrow
+    /// candidate drawn read the wide one's state, and what it wrote before
+    /// the next frame went into the wide one's box, dropped with it at that
+    /// frame's end; the next frame showed the default (review of 5af4853ba,
+    /// 2026-10-12). The view drawn takes the claim in the pass it is drawn
+    /// in, and the object's state with it.
+    @Test("A class property whose drawn holder changes on a resize keeps its @State and what the new holder writes")
+    func holderChangeOnResizeKeepsTheState() {
+        let tui = TUIContext()
+        let taps = Taps()
+        let draft = Draft()
+        let view = { DraftCandidates(draft: Handed(object: draft), taps: taps) }
+        #expect(frame(view(), tui, width: 80).first?.hasPrefix("wide -") == true)
+        taps.texts["wide"]?.wrappedValue = "abc"
+        #expect(frame(view(), tui, width: 80).first?.hasPrefix("wide abc-") == true)
+        #expect(frame(view(), tui) == ["narrow abc"])
+        taps.texts["narrow"]?.wrappedValue = "abcd"
+        #expect(frame(view(), tui) == ["narrow abcd"])
+        #expect(frame(view(), tui) == ["narrow abcd"])
+    }
+
+    /// The same when the claimant's row is removed: the row left drew the
+    /// removed row's state for a frame, and lost what it wrote then.
+    @Test("A class property whose claimant's row is removed keeps its @State in the row left")
+    func claimantRowRemovedKeepsTheState() {
+        let tui = TUIContext()
+        let taps = Taps()
+        let counter = SharedCounter()
+        var tick = 0
+        let rows = { (names: [String]) -> CounterRows in
+            tick += 1
+            let rows = names.map { TickedRow(id: $0, tick: tick) }
+            return CounterRows(rows: rows, counter: Handed(object: counter), taps: taps)
+        }
+        #expect(frame(rows(["a", "b"]), tui) == ["a 0", "b 0"])
+        taps.bindings["a"]?.wrappedValue = 5
+        #expect(frame(rows(["a", "b"]), tui) == ["a 5", "b 5"])
+        #expect(frame(rows(["b"]), tui, height: 1) == ["b 5"])
+        taps.bindings["b"]?.wrappedValue = 7
+        #expect(frame(rows(["b"]), tui, height: 1) == ["b 7"])
     }
 
     /// An enum's payload was projected out of the enum where it lay, inside

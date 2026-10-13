@@ -250,6 +250,10 @@ public final class StateStorage: @unchecked Sendable {
     /// for another place (``noteDisplacedEnvironment(_:from:)``), by box.
     private var displacedEnvironments: [ObjectIdentifier: DisplacedEnvironment] = [:]
 
+    /// The render pass under way, counted by ``beginRenderPass()``: the pass
+    /// an object's claimant was last drawn in (``ObjectClaim/drawnPass``).
+    private var renderPass = 0
+
     /// Creates an empty state storage.
     public init() {
         animations.completionTracker = animationCompletions
@@ -303,28 +307,67 @@ extension StateStorage {
     /// `@State` bound to the view's key, its `@Environment` resolved to the
     /// view's environment (``PropertyWalk``).
     ///
-    /// An object's contents belong to one view at a time, its claimant: the
-    /// first whose walk reaches it while it has none. The claimant walks
-    /// them on every walk of its own — the last of a pass that walks the
-    /// tree twice decides — and every other holder leaves them as the
-    /// claimant left them. A claim made by a measure is only provisional: the
-    /// first view drawn that reaches the object takes it from a measured one,
-    /// which may never be drawn (a `ViewThatFits` candidate). A claim lasts
-    /// while its claimant's state does: it is dropped at the end of a pass
-    /// in which its claimant was neither drawn nor retained (by a memo hit or
-    /// a windowing container), and the next holder to reach the object then
-    /// claims it, its state starting at that holder's key.
-    func claimObjectContents(_ object: AnyObject, for claimant: ViewIdentity, isMeasuring: Bool) -> Bool {
+    /// An object's contents belong to one view at a time, its claimant: in
+    /// each render pass, the first view drawn whose walk reaches it. The
+    /// claimant walks them on every walk of its own — the last of a pass that
+    /// walks the tree twice decides — and every other holder leaves them as
+    /// the claimant left them. A measure never takes them from another view,
+    /// and its own claim, made while the object has none, is only
+    /// provisional: a view only measured may never be drawn (a
+    /// `ViewThatFits` candidate). A view drawn takes them from a claimant
+    /// not yet drawn in the pass — one that has left (a `ViewThatFits`
+    /// switch, a row removed), or is only measured or served from the memo
+    /// this pass — and takes the object's `@State` with them, its boxes kept
+    /// under the new claimant's keys from then on
+    /// (``ObjectContentsClaim/takeOver``): one object, one state, whichever
+    /// view draws it. A claim lasts while its claimant's state does: it is
+    /// dropped at the end of a pass in which its claimant was neither drawn
+    /// nor retained (by a memo hit or a windowing container), with that
+    /// state, and the next holder to reach the object then claims it, its
+    /// state starting at that holder's key.
+    func claimObjectContents(
+        _ object: AnyObject, for claimant: ViewIdentity, isMeasuring: Bool
+    ) -> ObjectContentsClaim {
         let id = ObjectIdentifier(object)
         if let claim = objectClaims[id], claim.object === object {
             if claim.claimant == claimant {
-                if !isMeasuring, !claim.isDrawn { objectClaims[id]?.isDrawn = true }
-                return true
+                if !isMeasuring, claim.drawnPass != renderPass {
+                    // Stamped with this pass's identity too, so the next
+                    // compare stops at the first node the two share rather
+                    // than walk the chain of the frame the claim was made in.
+                    // Changed in place: a new record would form a new weak
+                    // reference to the object.
+                    objectClaims[id]?.stamp(claimant, drawnIn: renderPass)
+                }
+                return .walk
             }
-            if claim.isDrawn || isMeasuring { return false }
+            if isMeasuring || claim.drawnPass == renderPass { return .skip }
+            objectClaims[id]?.stamp(claimant, drawnIn: renderPass)
+            return .takeOver
         }
-        objectClaims[id] = ObjectClaim(object: object, claimant: claimant, isDrawn: !isMeasuring)
-        return true
+        objectClaims[id] = ObjectClaim(object: object, claimant: claimant, drawnPass: isMeasuring ? nil : renderPass)
+        return .walk
+    }
+
+    /// Keeps `box`, a `@State` box inside an object whose claimant `key`'s
+    /// view has just become (``ObjectContentsClaim/takeOver``), under `key`,
+    /// and no longer under the key it was kept under: the object's state
+    /// goes with it. A box kept under `key` until now is dropped.
+    func adopt<Value>(_ box: StateBox<Value>, for key: StateKey) {
+        box.identity = key.identity
+        box.invalidationSink = renderCacheLink
+        if values[key] === box { return }
+        // A claim changing hands is rare, so the box's old key is found by a
+        // scan rather than kept in every box. A loop, not `first(where:)`: a
+        // closure handed to the standard library from here is checked, in a
+        // release build, to run on the main actor.
+        var previous: StateKey?
+        for (kept, value) in values where value === box {
+            previous = kept
+            break
+        }
+        if let previous { values.removeValue(forKey: previous) }
+        (values.updateValue(box, forKey: key) as? any DroppableBox)?.markDropped()
     }
 
     /// Notes that a view value drawn in this pass held `box`, an
@@ -553,6 +596,7 @@ extension StateStorage {
 
     /// Begins a new render pass by clearing the active identity set.
     public func beginRenderPass() {
+        renderPass &+= 1
         animations.beginRenderPass()
         departures.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
@@ -621,7 +665,7 @@ extension StateStorage {
         // made goes with the pass.
         if !objectClaims.isEmpty {
             objectClaims = objectClaims.filter { _, claim in
-                claim.object != nil && claim.isDrawn
+                claim.object != nil && claim.drawnPass != nil
                     && (activeIdentities.contains(claim.claimant) || retained.retains(claim.claimant))
             }
         }
@@ -761,7 +805,33 @@ private struct ObjectClaim {
     /// The object, held weakly.
     weak var object: AnyObject?
     /// The view whose walk walks what the object holds.
-    let claimant: ViewIdentity
-    /// Whether the claimant has been drawn holding it, not only measured.
-    var isDrawn: Bool
+    private(set) var claimant: ViewIdentity
+    /// The render pass the claimant was last drawn in holding it, or `nil`
+    /// while it has only been measured.
+    private(set) var drawnPass: Int?
+
+    init(object: AnyObject, claimant: ViewIdentity, drawnPass: Int?) {
+        self.object = object
+        self.claimant = claimant
+        self.drawnPass = drawnPass
+    }
+
+    /// Notes that `claimant` drew the object in render pass `pass`.
+    mutating func stamp(_ claimant: ViewIdentity, drawnIn pass: Int) {
+        self.claimant = claimant
+        drawnPass = pass
+    }
+}
+
+/// What a walk does with what an object holds
+/// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``).
+enum ObjectContentsClaim {
+    /// Leaves it as its claimant left it: the walk's view is not the claimant.
+    case skip
+    /// Walks it: the walk's view is its claimant.
+    case walk
+    /// Walks it, the walk's view having just taken it from another claimant:
+    /// each `@State` in it keeps the box it holds, under this view's key
+    /// (``StateStorage/adopt(_:for:)``).
+    case takeOver
 }

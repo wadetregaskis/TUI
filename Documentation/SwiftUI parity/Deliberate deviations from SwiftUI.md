@@ -449,8 +449,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `@Environment` reads its default, each with a run-time warning (measured
   2026-10-10: session notes `DYNP/optional/op.out`, case vii-f).
 - **TUIkit:** installs what the object holds — held strongly, `unowned` or
-  `weak` — for one view at a time, its claimant: the first view drawn whose
-  walk reaches it, for as long as that view's state lives
+  `weak` — for one view at a time, its claimant: in each render pass, the
+  first view drawn whose walk reaches it, the object's state going with it
+  when that is another view
   ([PropertyWalk.swift](../Sources/TUIkitView/State/PropertyWalk.swift)): its
   `@State` is bound to the claimant's key, its `@Environment` is the
   claimant's, and its nested properties are updated in place. One object has
@@ -462,7 +463,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
   state and read another's environment in its closures (DYNV bugs 3 and 4).
-- **Decided:** [B-DYNVFIX-3](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-that-reaches-it-while-that-views-state-lives). **Lane.**
+- **Decided:** [B-DYNVFIX-3](SwiftUI-API-completion-decisions-DYNVFIX.md#b-dynvfix-3-what-a-class-property-holds-belongs-to-one-view-the-first-drawn-in-each-pass-that-reaches-it-and-its-state-goes-with-it). **Lane.**
 
 ---
 

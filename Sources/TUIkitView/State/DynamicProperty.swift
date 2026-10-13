@@ -53,8 +53,9 @@
 /// where the walk cannot reach a payload where it lies. A property held `unowned` is updated where it is (it is a
 /// class), and one held `weak` is not updated, as in SwiftUI (both measured
 /// on macOS 15). What a class property holds is bound, resolved and updated
-/// by one view, the first drawn that reaches the object, while that view's
-/// state lives: one object has one state, whichever views show it.
+/// by one view, the first drawn in each render pass that reaches the object,
+/// its state going with it from view to view: one object has one state,
+/// whichever views show it.
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.
     ///
