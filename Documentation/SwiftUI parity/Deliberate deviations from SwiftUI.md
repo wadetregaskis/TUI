@@ -1067,7 +1067,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   an item past the view's bounds, is not copied.
 - **Why:** an offset is whole rows, so there is no centre to hold between two
   of them, and the anchor modes are defined over rows.
-- **Decided:** [UnitPoint.swift](../../Sources/TUIkitFoundation/Views/UnitPoint.swift#L224-L233),
+- **Decided:** [UnitPoint.swift](../../Sources/TUIkitFoundation/Views/UnitPoint.swift#L224-L235),
   [B-D2S-1](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-1-the-alignment-role-places-content-on-the-vertical-axis-only>). **Recorded.**
 
 ### R3. `ScrollPosition.viewID` answers sooner
