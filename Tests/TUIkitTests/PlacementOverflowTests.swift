@@ -143,6 +143,25 @@ struct PlacementOverflowTests {
         #expect(lines.first == "brrrr", "\(lines)")
     }
 
+    @Test("A guide that places the content on one axis leaves it as it is on the other, in a frame its own size")
+    func sameSizeFrameKeepsTheUnguidedAxis() {
+        // The top guide applies to the frame's `.top`, so the content is placed
+        // down the frame; across, nothing applies to the frame's `.center`, and
+        // the frame is its width. Re-placed across, each short line was centred
+        // on its own (" bb").
+        let text = Text("aaaa\nbb")
+        let screen = Screen()
+        var lines = screen.render(
+            text.alignmentGuide(.top) { _ in 0 }.frame(maxWidth: .fixed(40), alignment: .top))
+        #expect(Array(lines.prefix(2)) == ["aaaa", "bb"], "\(lines)")
+        // The same when the guide puts the content past the frame's bottom:
+        // the content's top on the frame's centre, one row down, so "bb" is
+        // drawn below the frame, where its line is.
+        lines = screen.render(
+            text.alignmentGuide(VerticalAlignment.center) { $0[.top] }.frame(maxWidth: .fixed(40)))
+        #expect(Array(lines.prefix(3)) == ["", "aaaa", "bb"], "\(lines)")
+    }
+
     @Test("A view drawn past its frame is over the view before it")
     func overTheViewBefore() {
         // `HStack { blue; red in a frame it overflows to the left }`: SwiftUI
