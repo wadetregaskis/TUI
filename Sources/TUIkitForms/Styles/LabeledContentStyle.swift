@@ -81,6 +81,16 @@ extension LabeledContentStyle {
 /// at its trailing edge. The label goes through `_CollapsingLabel`, the unit
 /// every labelled control uses, so `.labelsHidden()` leaves the content holding
 /// the whole row.
+///
+/// A content of several lines trails line by line: each line of its text ends
+/// at the trailing edge (`.multilineTextAlignment(.trailing)`), as the trailing
+/// value of SwiftUI's grouped `Form` does, its wrapped lines too (measured,
+/// `Tools/SwiftUIProbes/Trailing values and labels`). The frame alone places
+/// the content as one block, its lines leading inside it, which is SwiftUI's
+/// frame and draws "short" over "a much longer line" with "short" left of the
+/// trailing edge. (SwiftUI's `LabeledContent` outside a form leads its content
+/// after the label instead, measured in the same probe; this style trails it, as
+/// a form's value does.) A content that sets its own alignment keeps it.
 public struct AutomaticLabeledContentStyle: LabeledContentStyle, Equatable {
     /// Creates the automatic labeled content style.
     public init() {}
@@ -88,7 +98,9 @@ public struct AutomaticLabeledContentStyle: LabeledContentStyle, Equatable {
     public func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 0) {
             _CollapsingLabel(label: configuration.label, controlDisabled: false)
-            configuration.content.frame(maxWidth: .infinity, alignment: .trailing)
+            configuration.content
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 }

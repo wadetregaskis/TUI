@@ -31,6 +31,30 @@ struct LabeledContentTests {
             "value trails: \(out.debugDescription)")
     }
 
+    /// The value trails, and so does each line of a value of several: as the
+    /// trailing value of SwiftUI's grouped `Form` does, where "short" over "a
+    /// much longer line" ends both lines at the trailing edge (measured,
+    /// `Tools/SwiftUIProbes/Trailing values and labels`). Found by the BUGS13
+    /// lane's review: once a frame placed its content as one block
+    /// (e9c065a9e), the trailing frame drew the lines leading inside a block
+    /// at the trailing edge, "short" left of the longer line's start.
+    @Test("Each line of a multi-line value ends at the trailing edge")
+    func multilineValueTrailsLineByLine() throws {
+        let lines = renderToBuffer(
+            LabeledContent { Text("short\na much longer line") } label: { Text("Notes") },
+            context: makeRenderContext(width: 40, height: 3)
+        ).lines.map(\.stripped)
+        func end(of text: String, in line: String) -> Int? {
+            line.range(of: text).map { line.distance(from: line.startIndex, to: $0.upperBound) }
+        }
+        let first = try #require(lines.firstIndex { $0.contains("short") }, "drawn: \(lines)")
+        #expect(lines[first].hasPrefix("Notes"), "the label leads: \(lines)")
+        let shortEnd = end(of: "short", in: lines[first])
+        let longEnd = lines.dropFirst(first + 1).first.flatMap { end(of: "a much longer line", in: $0) }
+        #expect(longEnd == 40, "the longer line trails: \(lines)")
+        #expect(shortEnd == longEnd, "each line ends at the trailing edge: \(lines)")
+    }
+
     @Test("A flexible control gets the whole remainder, not half of it")
     func flexibleContentTakesTheRest() {
         // The bug: the body put a `Spacer` between the label and the content,

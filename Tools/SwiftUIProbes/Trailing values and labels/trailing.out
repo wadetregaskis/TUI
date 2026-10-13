@@ -1,0 +1,26 @@
+advance=12.36328125 points; ink in characters from the hosting view's leading edge
+canvas 42 characters wide
+LabeledContent, no Form
+    value lines: 5.82..10.47 | 5.78..23.50
+    label lines: 0..4.81
+LabeledContent, no Form, .frame(width: 30)
+    value lines: 9..13.63 | 9..26.65
+    label lines: 3.28..8
+Form(.grouped) { LabeledContent }
+    value lines: 34.78..39.47 | 21.72..39.51
+    label lines: 2.55..7.24
+Form(.columns) { LabeledContent }
+    value lines: 5.82..10.47 | 5.78..23.50
+    label lines: 0..4.81
+Form(.columns) { LabeledContent, two-line label }
+    value lines: 12.78..13.55
+    label lines: 0..0.81 | 0..12
+Form(.columns) { two LabeledContents, the first label two lines }
+    value lines: 19.78..20.54 | 19.70..20.63
+    label lines: 7..7.81 | 7..19 | 0..19
+Form(.grouped) { LabeledContent, wrapping value }
+    value lines: 3.68..27.42 | 3.72..27.46 | 22.73..27.42
+    label lines: 2.55..7.24
+Form(.columns) { LabeledContent, wrapping value }
+    value lines: 5.78..29.48 | 5.82..29.48 | 5.82..10.47
+    label lines: 0..4.81

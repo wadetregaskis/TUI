@@ -260,3 +260,19 @@ messages cite that path), and what cites it.
 - **Was:** written for lane BUGS13 (`BUGS13/probe/`).
 - **Cited by:** `Sources/TUIkitFoundation/Modifiers/FrameModifier.swift`; `Tests/TUIkitTests/PlacementOverflowTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
+### Trailing values and labels
+
+- **Asks:** where SwiftUI draws the lines of a value or a label of several lines that `LabeledContent` and `Form`
+  put at a trailing edge: each line flush with that edge, or the lines leading inside a block placed there (as a
+  frame's alignment alone places them, "Ragged text in a larger frame" above). `LabeledContent` alone, in a grouped
+  `Form` and in a columns `Form`, with a value of two lines ("short" over "a much longer line") and one that wraps,
+  and a columns `Form` whose label is two lines ("a" over "longer label") beside a longer one (`trailing.swift`,
+  `trailing.out`). A program of top-level code, after the ragged probe; the value is drawn black and the label red,
+  so that the two can share a row. The grouped form's value ends every line at the trailing edge, its wrapped lines
+  too; the columns form's label column places the two-line label as a block at its trailing edge, "a" at the start
+  of "longer label"; alone, and in a columns form, the value leads.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
+- **Was:** written for lane BUGS13's review fixes (`BUGS13/probe/`).
+- **Cited by:** `Sources/TUIkitForms/Styles/LabeledContentStyle.swift`; `Tests/TUIkitControlTests/LabeledContentTests.swift`,
+  `Tests/TUIkitControlTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.

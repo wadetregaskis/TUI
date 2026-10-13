@@ -78,6 +78,32 @@ struct FormTests {
         #expect(aliceCol != nil && aliceCol == valueCol, "value column aligns: \(out)")
     }
 
+    /// A label of several lines is placed as one block at the pillar's
+    /// trailing edge, its lines leading inside it: SwiftUI's columns `Form`
+    /// draws "a" over "longer label" beside "a much longer label" with the
+    /// "a" at the start of "longer label", not at its end (measured,
+    /// `Tools/SwiftUIProbes/Trailing values and labels`). Until a frame placed
+    /// its content as one block (e9c065a9e), each line was right-aligned on
+    /// its own.
+    @Test("Columns form places a label of several lines as a block at the pillar, its lines leading")
+    func columnsMultilineLabel() throws {
+        let out = lines(
+            Form {
+                LabeledContent { Text("v") } label: { Text("a\nlonger label") }
+                LabeledContent { Text("w") } label: { Text("a much longer label") }
+            })
+        func start(of text: String, in line: String) -> Int? {
+            line.range(of: text).map { line.distance(from: line.startIndex, to: $0.lowerBound) }
+        }
+        let longer = try #require(out.firstIndex { $0.contains("longer label") && !$0.contains("much") }, "\(out)")
+        let much = try #require(out.first { $0.contains("a much longer label") }, "\(out)")
+        let blockStart = try #require(start(of: "longer label", in: out[longer]))
+        #expect(longer > 0 && start(of: "a", in: out[longer - 1]) == blockStart, "the lines lead: \(out)")
+        #expect(
+            blockStart + "longer label".count == (start(of: "a much longer label", in: much) ?? 0) + 19,
+            "the block ends at the pillar's trailing edge: \(out)")
+    }
+
     @Test("Form defaults to the columns style (no border)")
     func defaultStyleIsColumns() {
         let out = lines(
