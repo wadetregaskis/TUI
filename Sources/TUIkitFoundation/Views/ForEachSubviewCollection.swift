@@ -62,8 +62,9 @@ extension ForEach where Content: View {
     ///
     /// The members are resolved where the loop is drawn, so this works wherever
     /// a `ForEach` is laid out as views — a stack, a `Layout`, a `Group`, on its
-    /// own. `List`, `Picker`, `TabView`, `Form` and text-input suggestions read
-    /// their rows without drawing them, and see this loop as empty.
+    /// own, and a `Picker`, which reads its options in the context it is drawn
+    /// in. `List`, `TabView`, `Form` and text-input suggestions read their rows
+    /// without drawing them, and see this loop as empty.
     ///
     /// - Parameters:
     ///   - view: The view to extract the subviews of.

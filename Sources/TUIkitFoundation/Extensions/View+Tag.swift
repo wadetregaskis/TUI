@@ -10,7 +10,7 @@
 ///
 /// `_TaggedView` is produced by the ``View/tag(_:includeOptional:)`` modifier.
 /// It renders transparently as its wrapped content; the tag is metadata
-/// consumed by container views — ``Picker``, through ``PickerOptionProvider``,
+/// consumed by container views — ``Picker``, through its content's members' container values,
 /// and a ``List``'s rows, through `staticListRowID(of:ordinal:as:)` for a
 /// statically-built one and `ForEach`'s own `rowID(at:)` for a looped one (by
 /// way of `FlattenedRowIDs` when the loop shares its container with other
@@ -147,9 +147,9 @@ extension View {
 ///
 /// The `BadgeCarrying` shape from `BadgeModifier`: a private protocol the
 /// generic wrapper conforms to, so a container holding its row as `any View`
-/// can ask it. `Picker` has no need of it — it walks its content tree through
-/// ``PickerOptionProvider`` and meets `_TaggedView` at its own static type —
-/// but a `List` row arrives already resolved to one child, and the question
+/// can ask it. `Picker` has no need of it — it reads each member's
+/// ``ContainerValues/tag(for:)``, which sees through every modifier — but a
+/// `List` row arrives already resolved to one child, and the question
 /// there is only ever about the child's own wrapper.
 ///
 /// Which is the limit worth stating: this reads the view's OWN tag, not its

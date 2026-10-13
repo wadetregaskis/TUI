@@ -4,8 +4,8 @@
 //  SwiftUI: "ForEach automatically assigns a tag to the selection views using
 //  each option's id." Without that, Apple's own first worked example of
 //  iterating a picker compiled, drew its label, and offered nothing at all to
-//  select — a plain Text is not a PickerOptionProvider, so every element
-//  contributed zero options.
+//  select — a plain Text carried no tag, so every element contributed zero
+//  options.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

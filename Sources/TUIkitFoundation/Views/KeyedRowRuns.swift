@@ -79,7 +79,7 @@ package protocol KeyedLoop {
 /// through — `ForEach`, `OutlineGroup`, and the providers between them and the
 /// container.
 ///
-/// The same shape as `PickerOptionProvider`, asked a different question. The
+/// The same shape as `TextSuggestionProvider`, asked a different question. The
 /// wrappers that pass a provider's members through by ``ContentRewrapping`` or
 /// as a `ModifiedView` need no conformance: ``appendKeyedRowRuns(of:to:)``
 /// looks through every ``SingleContentWrapper`` that is also a

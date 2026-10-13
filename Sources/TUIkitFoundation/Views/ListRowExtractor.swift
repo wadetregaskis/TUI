@@ -522,10 +522,10 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     /// example end to end for a `Picker` — a row of `ForEach(Flavor.allCases)`
     /// carrying `.tag(flavor.suggestedTopping)` binds the TOPPING — and that
     /// is the same precedence ``staticListRowID(of:ordinal:as:)`` already
-    /// applies against a static row's ordinal, and the same one
-    /// `ForEach.pickerOptions()` already applies on the `Picker` side by
-    /// asking the row for its own options before synthesising an id-tag. One
-    /// rule for both containers, in both of their row shapes.
+    /// applies against a static row's ordinal, and the same one a `Picker`
+    /// applies, reading a member's ``ContainerValues/tag(for:)``, where an
+    /// explicit tag outranks the element's id. One rule for both containers,
+    /// in both of their row shapes.
     ///
     /// This is the SELECTION value only. The row's identity is still the
     /// element's `id` — the `@State`, focus and render-cache key in

@@ -6,122 +6,6 @@
 
 import TUIkitFoundation
 
-// MARK: - Picker Option Extraction
-
-/// A picker option recovered from a tagged view, before its tag has been
-/// matched to a concrete selection-value type — or a ``Divider`` separating
-/// option groups.
-enum _RawPickerOption {
-    /// A tagged option: the tag (still type-erased), whether it may be
-    /// promoted to the selection's Optional type, and its label view.
-    case option(tagValue: AnyHashable, includeOptional: Bool, label: AnyView)
-
-    /// A rule between option groups (a ``Divider`` in the picker content).
-    case divider
-}
-
-/// A protocol for views that can contribute options to a ``Picker``.
-///
-/// This mirrors the `ButtonProvider` pattern used by ``Alert``: rather than
-/// reflecting over the view tree, each view type that may appear inside a
-/// picker's content closure declares how to surface its tagged options.
-@MainActor
-protocol PickerOptionProvider {
-    /// Extracts the tagged options contained in this view.
-    func pickerOptions() -> [_RawPickerOption]
-}
-
-extension _TaggedView: PickerOptionProvider {
-    func pickerOptions() -> [_RawPickerOption] {
-        [.option(tagValue: tagValue, includeOptional: includeOptional, label: AnyView(content))]
-    }
-}
-
-extension Divider: PickerOptionProvider {
-    func pickerOptions() -> [_RawPickerOption] {
-        [.divider]
-    }
-}
-
-extension EmptyView: PickerOptionProvider {
-    func pickerOptions() -> [_RawPickerOption] {
-        []
-    }
-}
-
-extension TupleView: PickerOptionProvider {
-    func pickerOptions() -> [_RawPickerOption] {
-        var result: [_RawPickerOption] = []
-        func collect<Child: View>(_ view: Child) {
-            if let provider = view as? PickerOptionProvider {
-                result.append(contentsOf: provider.pickerOptions())
-            }
-        }
-        repeat collect(each children)
-        return result
-    }
-}
-
-extension ForEach: PickerOptionProvider where Content: View {
-    /// One option per element, tagged by the element's own id when the row
-    /// does not tag itself.
-    ///
-    /// SwiftUI: "``ForEach`` automatically assigns a tag to the selection
-    /// views using each option's `id`. This is possible because `Flavor`
-    /// conforms to the `Identifiable` protocol." Without that, Apple's own
-    /// first worked example of iterating a picker —
-    ///
-    /// ```swift
-    /// Picker("Flavor", selection: $selected) {
-    ///     ForEach(Flavor.allCases) { Text($0.rawValue.capitalized) }
-    /// }
-    /// ```
-    ///
-    /// — drew its label and offered NOTHING to select, because a plain `Text`
-    /// is not a ``PickerOptionProvider`` and the element's id was never
-    /// consulted. An explicit `.tag(_:)` still wins, which is why a row that
-    /// provides options of its own is asked first and taken at its word —
-    /// including when it provides none, as `EmptyView` does.
-    ///
-    /// The synthesised tag is `includeOptional: true`, matching what
-    /// `.tag(_:)` does by default: `resolvedEntries` casts it INTO the
-    /// selection's type, so an id of the wrong type still declines to match
-    /// and the picker shows blank — SwiftUI's behaviour for an unmatched
-    /// selection — rather than binding the wrong row.
-    func pickerOptions() -> [_RawPickerOption] {
-        data.flatMap { element -> [_RawPickerOption] in
-            let row = content(element)
-            if let provider = row as? PickerOptionProvider {
-                let options = provider.pickerOptions()
-                if !options.isEmpty { return options }
-            }
-            return [
-                .option(
-                    tagValue: AnyHashable(elementID(of: element)),
-                    includeOptional: true,
-                    label: AnyView(row))
-            ]
-        }
-    }
-}
-
-extension ConditionalView: PickerOptionProvider {
-    func pickerOptions() -> [_RawPickerOption] {
-        switch self {
-        case .trueContent(let content):
-            (content as? PickerOptionProvider)?.pickerOptions() ?? []
-        case .falseContent(let content):
-            (content as? PickerOptionProvider)?.pickerOptions() ?? []
-        }
-    }
-}
-
-extension Optional: PickerOptionProvider where Wrapped: View {
-    func pickerOptions() -> [_RawPickerOption] {
-        self.flatMap { ($0 as? PickerOptionProvider)?.pickerOptions() } ?? []
-    }
-}
-
 // MARK: - Picker Entry
 
 /// A picker option whose tag has been resolved to the picker's concrete
@@ -153,7 +37,13 @@ enum _PickerEntry<SelectionValue: Hashable> {
 ///
 /// Each option is a view tagged with the value it represents, using the
 /// ``View/tag(_:includeOptional:)`` modifier. The tag type must match the picker's
-/// `selection` binding.
+/// `selection` binding. A `ForEach` row with no tag of its own is tagged with
+/// its element's `id`.
+///
+/// Options are found wherever SwiftUI finds them: inside a view of your own, a
+/// `Group`, an `AnyView` or an `if`, and with modifiers written after the tag.
+/// Each `Section` is a group of options, set apart from the rest by a rule in
+/// a drop-down, as a ``Divider`` among them is.
 ///
 /// ```swift
 /// @State private var theme: Theme = .light
@@ -242,9 +132,18 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     }
 
     public var body: some View {
+        // The options are read where the picker is drawn, from its content's
+        // members (`_PickerOptionsReader`): a body has no context to resolve
+        // them in. The environment's style and layout are read here, in the
+        // body, and handed to the build.
+        let style = pickerStyle
+        let horizontal = horizontalLayout
         // Tag the picker subtree so its label/option Text resolves
         // `.control(.picker)` style entries (`.pickerTextStyle { … }`).
-        pickerBody.environment(\.controlKind, .picker)
+        _PickerOptionsReader<SelectionValue, Content, _>(content: content) { entries in
+            pickerBody(entries: entries, style: style, horizontal: horizontal)
+        }
+        .environment(\.controlKind, .picker)
     }
 
     /// The label sits to the LEFT of the control, on the same line, and an
@@ -267,21 +166,22 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// `_CollapsingLabel` is the same inline label Stepper and Slider use; it
     /// supplies the separating space and collapses when blank, which is why
     /// this is an `HStack(spacing: 0)`.
-    @ViewBuilder private var pickerBody: some View {
-        let entries = resolvedEntries()
+    @ViewBuilder private func pickerBody(
+        entries: [_PickerEntry<SelectionValue>], style: any PickerStyle, horizontal: Bool
+    ) -> some View {
         if hasNoSources {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: true)
                 Text(verbatim: "—").foregroundStyle(.palette.foregroundTertiary)
             }
-        } else if pickerStyle.resolvesToSegments {
+        } else if style.resolvesToSegments {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: isDisabled)
                 _PickerSegmentsCore(
-                    entries: entries, selection: selection, isPalette: pickerStyle is PalettePickerStyle,
+                    entries: entries, selection: selection, isPalette: style is PalettePickerStyle,
                     focusID: focusID, isDisabled: isDisabled, isMixed: isMixed)
             }
-        } else if pickerStyle.resolvesToMenu {
+        } else if style.resolvesToMenu {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: isDisabled)
                 _PickerMenuCore(
@@ -296,38 +196,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         } else {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: isDisabled)
-                radioGroup(entries: entries)
+                radioGroup(entries: entries, horizontal: horizontal)
             }
-        }
-    }
-
-    /// Walks the content tree and resolves every tagged option whose tag
-    /// matches the picker's selection-value type. ``Divider``s in the content
-    /// pass through as separator entries (menu style only), with edge and
-    /// adjacent dividers collapsed so conditional groups never leave a stray
-    /// rule.
-    private func resolvedEntries() -> [_PickerEntry<SelectionValue>] {
-        guard let provider = content as? PickerOptionProvider else { return [] }
-        let entries = provider.pickerOptions().compactMap { raw -> _PickerEntry<SelectionValue>? in
-            switch raw {
-            case .option(let tagValue, let includeOptional, let label):
-                // The cast rule — into the selection's type, never an
-                // `AnyHashable` comparison — lives on `resolveTag`, beside
-                // `.tag(_:)` itself, because a `List`'s rows match tags by the
-                // same rule and the reasoning is the whole of why the obvious
-                // alternative is wrong.
-                guard
-                    let value = resolveTag(
-                        tagValue, includeOptional: includeOptional, as: SelectionValue.self)
-                else { return nil }
-                return .option(tag: value, label: label)
-            case .divider:
-                return .divider
-            }
-        }
-        return DropdownMenu.normalizedEntries(entries) { entry in
-            if case .divider = entry { return true }
-            return false
         }
     }
 
@@ -336,14 +206,14 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// focus and keyboard machinery. Dividers only make sense in a drop-down
     /// list, so they are skipped here.
     private func radioGroup(
-        entries: [_PickerEntry<SelectionValue>]
+        entries: [_PickerEntry<SelectionValue>], horizontal: Bool
     ) -> RadioButtonGroup<SelectionValue> {
         let items = entries.compactMap { entry -> RadioButtonItem<SelectionValue>? in
             guard case .option(let tag, let label) = entry else { return nil }
             return RadioButtonItem(tag) { label }
         }
         let group = RadioButtonGroup(
-            selection: selection, orientation: horizontalLayout ? .horizontal : .vertical, items: items)
+            selection: selection, orientation: horizontal ? .horizontal : .vertical, items: items)
         var identified = focusID.map { group.focusID($0) } ?? group
         identified.isMixed = isMixed
         return identified.disabled(isDisabled)
