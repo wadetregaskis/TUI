@@ -205,6 +205,29 @@ struct DynamicPropertyObjectPerValueTests {
         #expect(frame(LazyPagerParent(store: store, key: 1, taps: taps), tui) == ["page 8"])
     }
 
+    /// What an object made with a view value leaves its live predecessor
+    /// (B-DYNVCLAIM-3) is kept on the predecessor's hub until a walk takes it
+    /// back. Kept sunk to that hub, it held the hub that held it: every pass
+    /// that made the view value anew while the last one lived — a `Button`'s
+    /// action, kept by the focus ring, keeps it so — leaked a hub and a box
+    /// per `@State`, with their values (review2 of lane DYNVCLAIM, d29a46eaf).
+    @Test("The hub of an object made with a view value goes once the object has, after the next one took its place's state")
+    func perValueObjectsHubGoesAfterTheNextOneTookItsPlace() {
+        let tui = TUIContext()
+        let taps = PagerTaps()
+        frame(ClosurePagerView(taps: taps), tui)
+        weak let firstHub = tui.stateStorage.objectHubs.values.first
+        #expect(firstHub != nil)
+        // Each frame's object lives through the next frame's walk, as the
+        // focus ring keeps a `Button`'s action, and is then let go: enough
+        // frames for the storage to sweep the hubs of objects that have gone.
+        for _ in 0..<80 {
+            taps.actions = Array(taps.actions.suffix(1))
+            frame(ClosurePagerView(taps: taps), tui)
+        }
+        #expect(firstHub == nil)
+    }
+
     /// The box an object made with a view value binds is its place's, kept
     /// under the first holder's key; its sink must be the object's hub, set
     /// after the storage stamps it, so a write redraws the second holder too

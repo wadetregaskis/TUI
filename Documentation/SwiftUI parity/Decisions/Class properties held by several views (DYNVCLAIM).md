@@ -123,8 +123,13 @@ is the new one's.
 
 **Price:** on the per-value path alone, per `@State` of an object taking its
 place's box while the last one is alive (a `Button`'s action keeps it so), a
-box made and a dictionary entry on the old object's hub, which goes when that
-object does; nothing for an app holding no object made in a pass.
+box made and a dictionary entry on the old object's hub, which go with that
+hub once the object has gone and the hub table is swept; nothing for an app
+holding no object made in a pass. The box is kept with no sink until a walk
+takes it back: sunk to the hub that keeps it, the two kept each other, and
+every such pass leaked a hub and its boxes (review2 of lane DYNVCLAIM,
+d29a46eaf). One left to an object walked earlier in the same pass, which has
+a box of its own by then, is never taken, and stays until the object goes.
 
 **The fuller version:** none without losing §4.11's common form. Taking a
 place's state only from a predecessor that has died tells the two apart only

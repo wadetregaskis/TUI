@@ -103,16 +103,17 @@ extension StateStorage {
     /// body and kept rather than with a view value — the two look alike in
     /// the pass that first walks them — and a walk that finds it again takes
     /// that back (``ObjectHub/takeState(handedOverWith:)``), rather than the
-    /// state the new object goes on to write into the box they share.
+    /// state the new object goes on to write into the box they share. The
+    /// box left is given no sink: it would be `predecessor`, which keeps the
+    /// box, and the two would keep each other — and the walk that takes it
+    /// back gives it one.
     func placeBox<Value>(
         _ own: StateBox<Value>, at key: StateKey, adopting: Bool, from predecessor: ObjectHub?
     ) -> StateBox<Value> {
         if adopting, let kept = values[key] as? StateBox<Value> {
             kept.identity = key.identity
             if let predecessor, predecessor.object != nil {
-                let left = StateBox(kept.value)
-                left.invalidationSink = predecessor
-                predecessor.keep(left, handedOverWith: kept)
+                predecessor.keep(StateBox(kept.value), handedOverWith: kept)
             }
             return kept
         }

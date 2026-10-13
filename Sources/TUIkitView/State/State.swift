@@ -679,10 +679,13 @@ final class StateBacking<Value> {
         bound = .own
     }
 
-    /// Moves the backing to `box`, one of its object's own: what the object's
-    /// state held when the object made next at its place took over the box
-    /// the backing was bound to (``ObjectHub/takeState(handedOverWith:)``).
-    func take(_ box: StateBox<Value>) {
+    /// Moves the backing to `box`, one of its object's own, redrawing what
+    /// `sink`, the object's hub, redraws: what the object's state held when
+    /// the object made next at its place took over the box the backing was
+    /// bound to (``ObjectHub/takeState(handedOverWith:)``), kept by that hub
+    /// with no sink until now.
+    func take(_ box: StateBox<Value>, sink: ObjectHub) {
+        box.invalidationSink = sink
         self.box = box
         bound = .own
     }
@@ -863,7 +866,7 @@ extension State: StateBindable {
                 // The object made next at its place took its box over: what
                 // it held then is its own again, whichever walk finds it.
                 if let hub = object.hub, let left = hub.takeState(handedOverWith: backing.box) as? StateBox<Value> {
-                    backing.take(left)
+                    backing.take(left, sink: hub)
                     return ObjectStateBinding(kind: .longLived)
                 }
                 // A measure reads through until a render moves it.

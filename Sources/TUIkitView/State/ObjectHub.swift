@@ -63,7 +63,9 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// box: what a `@State` of the object still bound there takes back when a
     /// walk finds the object again, so it outlived its pass — made on demand
     /// in a body and kept, not with a view value
-    /// (``StateStorage/placeBox(_:at:adopting:from:)``). Main actor only.
+    /// (``StateStorage/placeBox(_:at:adopting:from:)``). Each is kept with no
+    /// sink until taken: one would be this hub, and the hub and the box would
+    /// keep each other after the object had gone. Main actor only.
     private var handedOver: [ObjectIdentifier: AnyObject] = [:]
 
     init(object: AnyObject, link: RenderCache.Link?, idPath: String, takesChainIDs: Bool) {
@@ -80,7 +82,8 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     }
 
     /// Keeps `state`, a box holding what the object's `@State` bound to `box`
-    /// held when the object made next at `box`'s place took `box` over.
+    /// held when the object made next at `box`'s place took `box` over, and
+    /// with no sink (``handedOver``).
     func keep(_ state: AnyObject, handedOverWith box: AnyObject) {
         handedOver[ObjectIdentifier(box)] = state
     }
