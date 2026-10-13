@@ -52,8 +52,7 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B27, B28, B30 (the default and the one missing
-reader), B31, B35.
+at the faint tiers), B27, B28, B30 (the default), B31, B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1401,12 +1400,10 @@ frame that renders it, so a scroll view can read all three where it decides.
   anchor's adjustments for the change: a `ScrollView`, `List` or `Table`
   following its tail does not follow, which leaves it short of the new tail
   and so releases the follow, exactly as a user scroll does (engagement is
-  positional); a `List`/`Table` holding a row lets it go and holds it again
-  from where the change left it. The opening placement is not an adjustment
-  and is kept; an app's own write to a bound `.anchorPosition` still jumps.
-  *Not covered:* a windowed `LazyVStack`'s `.anchorPosition(.row)` hold
-  inside a `ScrollView` — TUIkit-only API, and the hold is in the stack files
-  another lane is changing. A follow-up of an hour once that lane lands.
+  positional); a `List`, a `Table` or a windowed lazy stack holding a row
+  (`.anchorPosition(.row)`) lets it go and holds it again from the line the
+  change left it on. The opening placement is not an adjustment and is kept;
+  an app's own write to a bound `.anchorPosition` still jumps.
 - **`scrollPositionUpdatePreservesVelocity`** is recorded and met by the
   medium: no scroll here has momentum, so nothing is moving for a
   programmatic change to stop or spare.
@@ -1442,9 +1439,12 @@ and `DECB/probe/disabled`):
   your 2026-07-17 anchoring spec, leaves the offset in line coordinates, so the
   rows shift and a "load earlier messages" list jumps.
 
-**Lane owed:** the reader missing inside TUIkit, above: a windowed
-`LazyVStack`'s `.anchorPosition(.row)` hold ignores "no adjustment" (the
-follow-up never happened). One commit, with a test.
+**Shipped 2026-10-12 (SCROLLANCHOR):** the reader that was missing inside
+TUIkit — a windowed `LazyVStack`'s `.anchorPosition(.row)` hold ignored "no
+adjustment". All three of the stack's paths now let the row go, and adopt it
+on the change's own frame where the change left it. `List` and `Table` adopt
+it there too: they adopted it a frame later, where the NEXT change left it,
+so a second change, made without the transaction, went unheld as well.
 
 **Asked 2026-10-12:** keep TUIkit's Window default and record it as a
 deviation, or hold the top row by default as SwiftUI does? The second reverses

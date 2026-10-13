@@ -16,11 +16,13 @@ import TUIkitView
 /// Matches SwiftUI's type of the same name.
 ///
 /// The adjustments are a declared anchor's: a view following its tail
-/// (`.defaultScrollAnchor(.bottom)`) moves down as rows arrive, and a `List`
-/// holding a row keeps it on its line. ``disabled``, set on a
-/// ``Transaction``, suspends them for the change that transaction carries — the
-/// rows a `withTransaction` appends do not move the view, and the next change
-/// without it resumes the follow from where the view then is.
+/// (`.defaultScrollAnchor(.bottom)`) moves down as rows arrive, and a `List`,
+/// a `Table` or a lazy stack holding a row (`.anchorPosition(.row(id))`)
+/// keeps it on its line. ``disabled``, set on a ``Transaction``, suspends them
+/// for the change that transaction carries — the rows a `withTransaction`
+/// appends do not move the view, and a held row moves with the rows around
+/// it — and the next change without it resumes from where the view then is:
+/// the follow from there, the row held on the line the change left it on.
 public struct ScrollContentOffsetAdjustmentBehavior: Hashable, Sendable {
     let disablesAdjustment: Bool
 

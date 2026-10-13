@@ -19,6 +19,11 @@ import TUIkit
 @testable import TUIkitTestSupport
 @testable import TUIkitView
 
+private struct TransactionRow: Identifiable, Sendable {
+    let id: Int
+    var name: String { "row \(id)" }
+}
+
 @MainActor
 @Suite("Scroll transactions")
 struct ScrollTransactionTests {
@@ -154,6 +159,123 @@ struct ScrollTransactionTests {
         control.render(view())
         count = 13
         #expect(control.render(view()).last == "row 12")
+    }
+
+    /// The three windowed paths a `LazyVStack` holds a designated row on, each
+    /// with its own hold: arithmetic over equal rows, and over rows of three
+    /// heights the exact walk (up to 256 rows) and the anchored walk (more).
+    enum StackPath: String, CaseIterable, Sendable {
+        case uniform, exactWalk, anchoredWalk
+
+        var count: Int { self == .anchoredWalk ? 300 : 60 }
+        func height(_ row: Int) -> Int { self == .uniform ? 1 : row % 3 + 1 }
+    }
+
+    @Test(
+        "A disabled adjustment lets a lazy stack's held row go, and the next change holds it where it was left",
+        arguments: StackPath.allCases)
+    func disabledAdjustmentLetsStackRowGo(path: StackPath) {
+        func run(disabling: Bool) -> (before: Int?, released: Int?, after: Int?, frames: [[String]]) {
+            let frames = Frames()
+            var items = Array(0..<path.count)
+            // Row 26 is designated from off screen, so the view scrolls to it;
+            // then the first row the frame shows below its top line is held,
+            // a line or more down, with room under it for the rows to move.
+            var designated = 26
+            func view() -> some View {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(items, id: \.self) { Text("row \($0)").frame(height: path.height($0)) }
+                    }
+                }
+                .anchorPosition(.constant(ScrollAnchor<Int>.row(designated)))
+            }
+            func line(_ lines: [String]) -> Int? { lines.firstIndex { $0 == "row \(designated)" } }
+            let revealed = frames.render(view(), height: 8)
+            guard let held = revealed.dropFirst().first(where: { !$0.isEmpty }), let row = Int(held.dropFirst(4))
+            else { return (nil, nil, nil, [revealed]) }
+            designated = row
+            frames.render(view(), height: 8)
+            let settled = frames.render(view(), height: 8)
+            var disabled = Transaction()
+            disabled.scrollContentOffsetAdjustmentBehavior = disabling ? .disabled : .automatic
+            // One-line rows keep the equal-height arithmetic; the others add
+            // three lines between them.
+            items.insert(contentsOf: path == .uniform ? [1000, 1003] : [1000, 1002], at: 0)
+            let released = frames.render(view(), transaction: disabled, height: 8)
+            items.insert(path == .uniform ? 1006 : 1003, at: 0)
+            let after = frames.render(view(), height: 8)
+            return (line(settled), line(released), line(after), [settled, released, after])
+        }
+
+        let suspended = run(disabling: true)
+        guard let before = suspended.before, let released = suspended.released else {
+            Issue.record("precondition: the held row is on screen \(suspended.frames)")
+            return
+        }
+        #expect(released > before, "not held: the rows moved with the change \(suspended.frames)")
+        #expect(suspended.after == released, "held again where the change left it \(suspended.frames)")
+
+        // Control: without the transaction the row keeps its line throughout.
+        let held = run(disabling: false)
+        #expect(held.before == before && held.released == before && held.after == before, "\(held.frames)")
+    }
+
+    enum ListKind: String, CaseIterable, Sendable { case list, table }
+
+    @Test(
+        "A disabled adjustment lets a List's or Table's held row go, and the next change holds it where it was left",
+        arguments: ListKind.allCases)
+    func disabledAdjustmentLetsListRowGo(kind: ListKind) {
+        func run(disabling: Bool) -> (before: Int?, released: Int?, after: Int?, frames: [[String]]) {
+            let frames = Frames()
+            var items = Array(0..<40)
+            // Row 12 is designated from off screen, so the view scrolls to it;
+            // then a row nearer the top is held, with room under it to move.
+            var designated = 12
+            func view() -> AnyView {
+                let anchor = Binding.constant(ScrollAnchor<Int>?.some(.row(designated)))
+                switch kind {
+                case .list:
+                    return AnyView(List(items, id: \.self) { Text("row \($0)") }.anchorPosition(anchor))
+                case .table:
+                    return AnyView(
+                        Table(items.map(TransactionRow.init), selection: .constant(Int?.none)) {
+                            TableColumn("Name", value: \TransactionRow.name)
+                        }
+                        .anchorPosition(anchor))
+                }
+            }
+            func row(_ line: String) -> Int? {
+                line.firstMatch(of: /row (\d+)\b/).flatMap { Int($0.1) }
+            }
+            func line(_ lines: [String]) -> Int? { lines.firstIndex { row($0) == designated } }
+            let revealed = frames.render(view(), height: 8)
+            guard let held = revealed.dropFirst(2).lazy.compactMap(row).first else {
+                return (nil, nil, nil, [revealed])
+            }
+            designated = held
+            frames.render(view(), height: 8)
+            let settled = frames.render(view(), height: 8)
+            var disabled = Transaction()
+            disabled.scrollContentOffsetAdjustmentBehavior = disabling ? .disabled : .automatic
+            items.insert(contentsOf: [100, 101], at: 0)
+            let released = frames.render(view(), transaction: disabled, height: 8)
+            items.insert(102, at: 0)
+            let after = frames.render(view(), height: 8)
+            return (line(settled), line(released), line(after), [settled, released, after])
+        }
+
+        let suspended = run(disabling: true)
+        guard let before = suspended.before, let released = suspended.released else {
+            Issue.record("precondition: the held row is on screen \(suspended.frames)")
+            return
+        }
+        #expect(released > before, "not held: the rows moved with the change \(suspended.frames)")
+        #expect(suspended.after == released, "held again where the change left it \(suspended.frames)")
+
+        let held = run(disabling: false)
+        #expect(held.before == before && held.released == before && held.after == before, "\(held.frames)")
     }
 
     @Test("A disabled adjustment leaves a following List where it is, and releases the follow")

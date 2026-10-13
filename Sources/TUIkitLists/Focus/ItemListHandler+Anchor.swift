@@ -43,23 +43,29 @@ extension ItemListHandler {
     func applyAnchorHold() {
         let bound = anchorPositionBinding?.wrappedValue
         adoptWrittenAnchor(bound)
-        // A change made under `.scrollContentOffsetAdjustmentBehavior =
-        // .disabled` moves nothing: the follow stays where it is, which
-        // releases it (engagement is positional), and a held row is let go, to
-        // be held again from wherever the change put it. The app's own write to
-        // the binding, above, is not an adjustment and still jumps.
-        if offsetAdjustmentSuspended, hasOpened {
-            forgetRowAnchor()
-            bottomFollowBound = maxOffset
-            return
-        }
         // The OPENING frame consults the `.initialOffset` anchor and every
         // frame after it the `.sizeChanges` one — the same value for any list
         // that used the unlabelled modifier. See `ScrollAnchorMode.governing`.
         let declared = ScrollAnchorMode.governing(
             opening: declaredOpeningAnchorMode, standing: declaredAnchorMode,
             hasOpened: hasOpened)
-        switch ScrollAnchorMode.effective(boundAnchor: bound, declared: declared) {
+        let mode = ScrollAnchorMode.effective(boundAnchor: bound, declared: declared)
+        // A change made under `.scrollContentOffsetAdjustmentBehavior =
+        // .disabled` moves nothing: the follow stays where it is, which
+        // releases it (engagement is positional), and a held row is let go —
+        // adopted afresh where the change left it, so the offset does not move
+        // to keep it on its old line, and held there from the next change on.
+        // Adopted on this frame, not the next: adopted there, it was adopted
+        // where the NEXT change left it, and that change, made without the
+        // transaction, went unheld too. The app's own write to the binding,
+        // above, is not an adjustment and still jumps.
+        if offsetAdjustmentSuspended, hasOpened {
+            forgetRowAnchor()
+            if mode == .row { applyRowAnchorHold() }
+            bottomFollowBound = maxOffset
+            return
+        }
+        switch mode {
         case .row:
             applyRowAnchorHold()
         case .bottom:

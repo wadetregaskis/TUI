@@ -104,6 +104,25 @@ extension StackWindowState {
     func forgetDesignatedAnchor(unlessHolding key: String) {
         if designatedAnchorKey != key { clearDesignatedAnchor() }
     }
+
+    /// Lets the row this stack holds go for a change made under
+    /// `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled`: the
+    /// line it was held on is forgotten, so this frame adopts the row afresh
+    /// where the change left it — the offset does not move to keep it on its
+    /// old line — and holds it there from the next change on. A change that
+    /// took it off screen leaves it on the nearest line in view, as a row
+    /// designated off screen is adopted. `List` and `Table` hold their row
+    /// the same way (`ItemListHandler.applyAnchorHold`).
+    ///
+    /// Only a row ALREADY held is let go: a designation this frame adopts —
+    /// the app wrote a new row into the binding — is no adjustment, and is
+    /// adopted as ever, as a written `.anchorPosition` edge still jumps.
+    func letGoOfHeldRow(_ key: String, context: RenderContext) {
+        guard designatedAnchorKey == key,
+            context.environment.transaction.disablesScrollContentOffsetAdjustment
+        else { return }
+        clearDesignatedAnchor()
+    }
 }
 
 /// The designated row key in scope, if the effective anchor mode names one.
@@ -140,6 +159,7 @@ extension _VStackCore {
             state.forgetDesignatedAnchor(unlessHolding: key)
             return (window, nil)
         }
+        state.letGoOfHeldRow(key, context: context)
         var window = window
         let offset = state.offsetHoldingDesignatedRow(
             key: key, rowY: rowY(ordinal), rowHeight: rowHeight,
@@ -163,6 +183,7 @@ extension _VStackCore {
             state.forgetDesignatedAnchor(unlessHolding: key)
             return
         }
+        state.letGoOfHeldRow(key, context: context)
         let offset = state.offsetHoldingDesignatedRow(
             key: key, rowY: slots[index].y, rowHeight: slots[index].height,
             window: window, totalHeight: slots.last.map { $0.y + $0.height } ?? 0)

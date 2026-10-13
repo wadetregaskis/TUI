@@ -333,6 +333,11 @@ extension _VStackCore {
             state.designatedAnchorKey = nil
             return nil
         }
+        // A change made under "no adjustment" lets the held row go: it is
+        // adopted afresh below, walked to from the anchor as last drawn —
+        // still on the row's old ordinal, not yet re-bound — so it is held on
+        // the line the change moved it to.
+        state.letGoOfHeldRow(key, context: context)
         if state.designatedAnchorKey != key {
             guard
                 let designated = resolveOrdinal(
