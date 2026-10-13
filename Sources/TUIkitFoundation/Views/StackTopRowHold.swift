@@ -107,8 +107,10 @@ extension StackWindowState {
     ///
     /// One gone is replaced by the row after it, put where it was — unless
     /// the row before it is still right before the place the row after it
-    /// marks (for a first row, which has none, unless the row after it is
-    /// still as far after the place it had): then the place is still there and
+    /// marks, or the row after it still as far after the place it had (the
+    /// row before it renamed too, or a first row, which has none), and the
+    /// row before it is not right before the row after it, the top row gone
+    /// from between them: then the place is still there and
     /// only the row in it changed, its id
     /// changed where it stands (`ForEach(names, id: \.self)` with the name at
     /// the top edited), and nothing above moved it: nothing moves, as in
@@ -125,12 +127,17 @@ extension StackWindowState {
         if let next = held.nextKey,
             let ordinal = keys.ordinal(of: next, runIndex: 0, near: held.ordinal + held.nextOffset)
         {
-            // Kept by the row before it, where it has one: "still where the
-            // place was" took the top row removed with exactly one row
-            // inserted above for a rename, and put the row from above the
-            // screen on top, where two inserted put the row after it there.
+            // Not kept when the row before it is now right before the row
+            // after it: the top row went from between them. Asked of the row
+            // before it alone, the top row renamed with the row above it took
+            // the place for gone; asked of "still where the place was" alone,
+            // the top row removed with exactly one row inserted above took it
+            // for kept, and put the row from above the screen on top.
             let place = ordinal - held.nextOffset
-            let placeKept = held.previousKey.map { keys[place - held.previousOffset] == $0 } ?? (place == held.ordinal)
+            let closedUp = held.previousKey.map { keys[ordinal - 1] == $0 } ?? false
+            let placeKept =
+                !closedUp
+                && (place == held.ordinal || held.previousKey.map { keys[place - held.previousOffset] == $0 } == true)
             return (placeKept ? place : ordinal, false)
         }
         return nil

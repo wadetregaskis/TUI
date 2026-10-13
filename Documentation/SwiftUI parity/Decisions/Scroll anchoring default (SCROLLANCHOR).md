@@ -196,6 +196,18 @@ the row after it there, as this entry says. A change that both inserts beside
 the top row and removes a row elsewhere, in one update that leaves the count
 alone, still leaves the row after it stale.
 
+**And again (the lane's own review, round 1):** asked of the row before it
+alone, the top row renamed with the row above it in one update — a bulk edit
+of two selected rows — judged the place gone: the row after it was put on top,
+the view moved a row, and a `List`'s cursor a row on. The place is now kept
+when one row still stands between the rows either side of it — the row before
+it right before the place, or the row after it as far after it as it was —
+and not when the row before it is right before the row after it, the top row
+gone from between them, which is what a removal with a row inserted above
+looks like. One id read more, on a frame whose top row is gone. The two renamed
+together in the same update as rows arrive above are still held a row too
+far, as before either fix: neither neighbour is left to tell the place by.
+
 ## C. Declined
 
 ### C-SCROLLANCHOR-2. The anchored walk's top-row hold has no ladder

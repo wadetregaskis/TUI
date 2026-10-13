@@ -188,7 +188,8 @@ extension ItemListHandler {
     /// its line, as SwiftUI's lazy stacks keep theirs. When that row itself
     /// went, the row that followed it takes its place — unless it is still
     /// right after that place, or the row before it right before, where only
-    /// the row's id changed; when neither the row before it nor the row after
+    /// the row's id changed (and not where the row before it now sits right
+    /// before the row after it, the top row gone from between them); when neither the row before it nor the row after
     /// it is still beside it, the rows were rearranged — a sort — and nothing
     /// is held, as SwiftUI holds nothing through a reorder (measured), rather
     /// than scrolling to wherever the top row went. Asked of the row after it
@@ -250,16 +251,24 @@ extension ItemListHandler {
         if let found {
             now = found
         } else {
-            // Gone: the row after it is put where it was — unless the row
-            // before it is still right before that place (for a first row,
-            // which has none, unless the row after it is still right after the
-            // place the top row had), which is then still there, the row in
-            // it replaced where it stood (its id changed). "Still right after"
-            // alone took the top row removed with one row inserted above for
-            // a rename, and put the row from above the screen on top.
+            // Gone: the row after it is put where it was — unless one row
+            // still stands between it and the row before it, the row in the
+            // place replaced where it stood (its id changed). That is so when
+            // the row before it is still right before that place, or the row
+            // after it still right after the place the top row had (the row
+            // before renamed too, or a first row, which has none) — but not
+            // when the row before it is now right before the row after it:
+            // the top row went from between them. Asked of the row before it
+            // alone, the top row renamed with the row above it took the place
+            // for gone; asked of "still right after" alone, the top row
+            // removed with one row inserted above took it for kept, and put
+            // the row from above the screen on top.
             guard let next = heldTopNextID, let nextNow = index(of: next, near: heldTopOrdinal + 1) else { return }
-            let placeKept = heldTopPreviousID.map { id(at: nextNow - 2) == $0 } ?? (nextNow - 1 == heldTopOrdinal)
-            now = placeKept ? nextNow - 1 : nextNow
+            let place = nextNow - 1
+            let closedUp = heldTopPreviousID.map { id(at: place) == $0 } ?? false
+            let placeKept =
+                !closedUp && (place == heldTopOrdinal || heldTopPreviousID.map { id(at: place - 1) == $0 } == true)
+            now = placeKept ? place : nextNow
         }
         let shift = now - heldTopOrdinal
         scrollOffset = max(0, scrollOffset + shift)

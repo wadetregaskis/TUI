@@ -773,8 +773,10 @@ row costs one key read; found elsewhere, a search outward from where it was,
 then over every key: about 2k reads for a row moved k places, k up to 64, and
 for one moved further, or one that is nowhere (removed, or its id changed),
 about 130 reads and a scan from the first row — O(its position). Gone, the row after it is put where it was — unless the row
-before it is still right before that place (for a first row, which has none,
-the row after it still as far after the place the top row had): then only the
+before it is still right before that place, or the row after it still as far
+after the place the top row had (the row before renamed too, or a first row,
+which has none), and the row before it is not now right before the row after
+it, the top row gone from between them: then only the
 row in that place changed (its id did, `ForEach(names, id: \.self)` with the
 top name edited), nothing above it moved, and nothing moves, as in SwiftUI
 (`Tools/SwiftUIProbes/Scroll anchoring/beside.out` case 1); taken for the row

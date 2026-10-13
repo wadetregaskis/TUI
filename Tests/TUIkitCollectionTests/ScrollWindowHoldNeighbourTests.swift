@@ -69,6 +69,70 @@ extension ScrollWindowHoldTests {
         #expect(after.first == "row \(next)", "before: \(before)\nafter:  \(after)")
     }
 
+    /// The top row and the row above it renamed in one update — a bulk edit
+    /// of two selected rows. Asked of the row before it alone, the place was
+    /// judged gone, and the row after it was put on top: the view moved a row
+    /// (the review of d46184a69). The rows either side of the place still
+    /// stand one apart, so it is the place, renamed.
+    @Test("A top row renamed with the row above it in one update keeps its place", arguments: StackPath.allCases)
+    func renamedWithTheRowAboveIt(path: StackPath) {
+        let scroller = Scroller(path)
+        var before = scroller.scrolled(to: 30)
+        if before.first?.isEmpty != false { before = scroller.scrolled(to: 31) }
+        guard let top = rows(before).first, before.first == "row \(top)",
+            let index = scroller.items.firstIndex(where: { $0.id == top }), index > 0
+        else {
+            Issue.record("precondition: a whole row at the top, with one above it \(before)")
+            return
+        }
+        scroller.items[index - 1] = Row(id: scroller.items[index - 1].id + 3_000)
+        scroller.items[index] = Row(id: top + 3_000)
+        let after = scroller.frame()
+        #expect(after.first == "row \(top + 3_000)", "before: \(before)\nafter:  \(after)")
+    }
+
+    @Test(
+        "A List's or Table's top row renamed with the row above it in one update keeps its place",
+        arguments: ListKind.allCases)
+    func listRenamedWithTheRowAboveIt(kind: ListKind) {
+        let lister = Lister(kind)
+        let before = lister.scrolledDown()
+        guard let top = listedRows(before).first, let index = lister.items.firstIndex(where: { $0.id == top }),
+            index > 0
+        else {
+            Issue.record("precondition: rows on screen, with one above \(before)")
+            return
+        }
+        lister.items[index - 1] = Row(id: lister.items[index - 1].id + 3_000)
+        lister.items[index] = Row(id: top + 3_000)
+        let after = lister.frame()
+        #expect(listedRows(after).first == top + 3_000, "before: \(before)\nafter:  \(after)")
+    }
+
+    /// The review's input: the cursor below the top row moved a row with the
+    /// view, onto another row, where the next chord acted.
+    @Test("A List's cursor stays on its row when the top row is renamed with the row above it")
+    func listCursorThroughARenameWithTheRowAbove() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 40, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        var ids = Array(0..<40)
+        handler.itemIDs = ids
+        func settle() {
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        settle()
+        handler.scrollOffset = 10
+        handler.focusedIndex = 13
+        settle()
+        ids[9] = 3_009
+        ids[10] = 3_010
+        handler.itemIDs = ids
+        settle()
+        #expect(handler.scrollOffset == 10)
+        #expect(handler.focusedIndex == 13)
+    }
+
     @Test(
         "A List's or Table's top row renamed a frame after a row arrived just after it keeps its place",
         arguments: ListKind.allCases, [0, 5])
