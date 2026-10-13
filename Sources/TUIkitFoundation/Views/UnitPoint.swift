@@ -225,8 +225,8 @@ extension View {
     /// rows rather than points:
     /// - For where the view opens and what it holds, the anchor **quantises to
     ///   three edges**: `y ≥ 0.75` is the bottom, `y ≤ 0.25` the top, and
-    ///   anything mid-content anchors *nothing* (the position simply stays
-    ///   where it is in line coordinates). SwiftUI's `.center` keeps the
+    ///   anything mid-content anchors *nothing* (what is on screen stays put
+    ///   as with no anchor at all: ``ScrollWindowHold``). SwiftUI's `.center` keeps the
     ///   centre fixed; here it means "no anchor". The alignment role is not
     ///   quantised: it places short content at its `y` to the line.
     /// - `x` is ignored, for every role. Horizontal scrolling exists, but the
