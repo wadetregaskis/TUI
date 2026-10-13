@@ -143,7 +143,7 @@ WebAssembly, a call
 through the `swiftcc` convention: a `@convention(thin)` function type, which
 Swift does not offer.
 
-### B-DYNVFIX-3. What a class property holds is the object's: every view drawn holding it is redrawn by its writes, and an object made with a view value keeps its view's state
+### B-DYNVFIX-3. What a class property holds is the object's: every view drawn holding it is redrawn by its writes, each reads its own environment while it draws, and an object made with a view value keeps its view's state
 
 *`DynamicProperty`, `@State`, `@Environment`, `@FocusState`, `@Namespace`*
 
@@ -161,7 +161,8 @@ owner asked to keep what TUIkit supported: a class wrapper made anew with
 each view value (session notes `DYNV2/notes.md` §4.11), and an
 `@Environment(Model.self)` inside one, which reading uninstalled traps.
 
-**Shipped** (lane DYNVCLAIM, 2026-10-12):
+**Shipped** (lane DYNVCLAIM, 2026-10-12; its design, condensed, is
+`Documentation/Historical/Class properties held by several views, design (2026-10-12).md`):
 
 - **The object's state is its own.** A `@State` inside an object made before
   the pass that walks it is bound to a box of the object's own, which no
@@ -205,22 +206,48 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   own path, so they are the same whichever view draws it, and two objects
   never share theirs (B-DYNVFIX-5). An object made with a view value takes the
   ids of the chain of such objects at its place.
-- **Environment.** Its `@Environment` is resolved by its primary holder — the
-  first view drawn holding it, for as long as that view holds it; a holder
-  drawn after the primary's token went becomes the next. Every other holder
-  hands an `@Environment` there only an environment it has none of, so no
-  body reads one never resolved: one set on the object since the primary
-  last walked it, read first by another holder's measure, no longer traps
-  (review5 of DYNVFIX, S1). So two holders under different environments both
-  read the primary's, in their bodies and their closures alike.
+- **Environment: each holder's while it draws, the first holder's at rest.**
+  Every holder's walk, measures included, resolves each `@Environment` in the
+  object, in place, to that holder's environment. A walk other than a render
+  walk by the object's primary holder — the first view drawn holding it, for
+  as long as it holds it — notes what each box held, and the two places a
+  body's content is evaluated (a composite view's render and its measure) put
+  it back, last first, after the content; the end of the pass puts back what
+  is left. A box is never put back to `nil`, and one whose primary walked in
+  the meantime gets the primary's environment. So:
+  - during a holder's walk, its body, and the drawing or measuring of what
+    that body built, the object reads that holder's environment — the
+    innermost holder's where holders nest, the outer one's again after the
+    inner one's content;
+  - anywhere else — an event's or a gesture's closure, a task, a timer,
+    between passes — it reads its primary's, as of the primary's last render
+    walk;
+  - before any render walk, the last environment any walk handed it. A
+    property set on the object since any walk reached it is resolved by the
+    first walk that does, a measure included: its `@Environment(Model.self)`
+    never traps for want of one (review5 of DYNVFIX, S1).
+
+  Why it is sound: a walk, its body and its content run synchronously on the
+  main actor, and the only walks that can run in between are those of holders
+  nested in that content, put back last first; a primary served from the memo
+  cannot have changed environment, which is the memo's condition for serving
+  it, so draw order and memo hits never change what closures read; and a
+  restore writes only the box, which nothing observes, so it redraws
+  nothing. Inside an object there is one box per `@Environment`: the
+  per-place boxes a view value's `@Environment` gets (B-DYNVFIX-5) are not
+  made there.
 
 **Price.** Unmeasured over a frame; the A/Bs are owed (lane DYNVCLAIM §11.4).
 
-- Every app: each `@State` notes its pass (B-DYNVFIX-6).
+- Every app: each `@State` notes its pass (B-DYNVFIX-6); and before and after
+  every composite body's content, drawn or measured, a load of the restore
+  count and a compare.
 - An app holding class properties, per object a holder's render walk reaches:
   a lookup of its hub (a hash, a weak load, a compare) and of the view's
   token; per `@State` in it, a load and a pointer compare. A write takes a
-  lock and invalidates each holder, usually one to three. An object made with
+  lock and invalidates each holder, usually one to three. Per `@Environment`
+  in an object, a store per walk, and for a walk other than the primary's
+  render walk a note and its restore. An object made with
   each view value brings a hub (about 64 bytes, estimated) a pass, swept once
   the table has doubled. Nested properties' `update()` inside an object runs
   once per holder walk, as the object's own does; the claim ran them for one
@@ -235,7 +262,9 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 - A closure made in a holder other than the primary reads the primary's
   environment: a sheet sharing its page's object and calling the object's
   `dismiss` calls the page's, and stays open. Read such an action in the view,
-  or hold it in a struct property.
+  or hold it in a struct property. When the primary leaves, closures read its
+  last environment until the next holder drawn becomes primary, a pass later;
+  bodies never lag.
 - One object drawn by two contexts: a box has one sink, so a write redraws
   the context that walked the object last. Nothing is lost.
 - A view reading an object no walked field reaches — through an `@Observable`

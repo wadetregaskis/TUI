@@ -57,7 +57,9 @@
 /// has one state whichever views show it, and a write to it redraws every
 /// view drawn holding it. An object made anew with each value of the view
 /// holding it keeps that view's state from frame to frame, as a view value's
-/// `@State` does. Its `@Environment` is the first view's drawn holding it.
+/// `@State` does. Its `@Environment` is each holding view's while that view's
+/// body and content run, and at rest — in an action's closure — the first
+/// view's drawn holding it.
 /// SwiftUI installs nothing inside a class (measured on macOS 15).
 public protocol DynamicProperty {
     /// Updates the underlying value of the stored value.

@@ -31,10 +31,11 @@ extension PropertyWalk {
         /// Whether a `@State` in it made in the pass may take a box its place
         /// keeps already (``ObjectStateContext/adoptsPlace``).
         let adoptsPlace: Bool
-        /// Whether the walk's view is the object's primary holder, or no
-        /// render walk has made the object a hub yet: its walks resolve the
-        /// object's `@Environment`.
-        let resolvesEnvironment: Bool
+        /// Whether what the walk hands the object's `@Environment`s is put
+        /// back after its view's content: for every walk but a render walk by
+        /// the object's primary holder, whose environment is the object's at
+        /// rest.
+        let restoresEnvironment: Bool
         /// What its `@State` has said of it so far in this walk.
         var found = ObjectKind.unknown
     }
@@ -159,28 +160,35 @@ extension PropertyWalk {
         guard mayInstall, let storage else {
             return ObjectWalk(
                 object: object, hub: nil, token: nil, idPath: nil, placeScope: placeScope, adoptsPlace: false,
-                resolvesEnvironment: true)
+                restoresEnvironment: false)
         }
         if !isMeasuring {
             let (hub, token, previous) = storage.registerHolder(identity, of: object, at: placeScope)
+            let isPrimary = hub.primary == identity
+            if isPrimary {
+                // The object's environment at rest, for closures and whatever
+                // else reads it outside every holder's content.
+                hub.rest = environment
+                hub.primaryWalks &+= 1
+            }
             return ObjectWalk(
                 object: object, hub: hub, token: token, idPath: hub.idPath, placeScope: placeScope,
-                adoptsPlace: previous == .perValue, resolvesEnvironment: hub.primary == identity)
+                adoptsPlace: previous == .perValue, restoresEnvironment: !isPrimary)
         }
-        // A measure registers nothing. Before any render walk has made the
-        // object a hub, it binds the ids the render will — those of the chain
-        // the object joins, if the view's last object here was one of one —
-        // and resolves its environment, so that no body reads one unresolved.
+        // A measure registers nothing, and puts back what it hands. Before
+        // any render walk has made the object a hub, it binds the ids the
+        // render will: those of the chain the object joins, if the view's last
+        // object here was one of one.
         let previous = storage.holderToken(identity, at: placeScope)
         if let hub = storage.objectHub(of: object) {
             return ObjectWalk(
                 object: object, hub: hub, token: nil, idPath: hub.idPath, placeScope: placeScope,
-                adoptsPlace: previous?.lastObject == .perValue, resolvesEnvironment: hub.primary == identity)
+                adoptsPlace: previous?.lastObject == .perValue, restoresEnvironment: true)
         }
         let chained = previous.flatMap { $0.lastObject != .longLived ? $0.hub.idPath : nil }
         return ObjectWalk(
             object: object, hub: nil, token: nil, idPath: chained, placeScope: placeScope,
-            adoptsPlace: previous?.lastObject == .perValue, resolvesEnvironment: true)
+            adoptsPlace: previous?.lastObject == .perValue, restoresEnvironment: true)
     }
 
     /// What `object` holds, walked in place, in `scope`: its storage is
@@ -199,9 +207,13 @@ extension PropertyWalk {
     /// One of TUIkit's own properties at `address`, inside `object`'s object:
     /// its `@State` bound as the object's (``State/bindObjectState(at:to:key:in:isMeasuring:)``),
     /// its ids made from the object's (``ObjectHub/idPath``), and its
-    /// `@Environment` resolved by the object's primary holder — or by a walk
-    /// before any render walk made the object a hub — and otherwise handed
-    /// one only if it has none, so that no body reads one unresolved.
+    /// `@Environment` resolved, in place, to the walking view's environment —
+    /// put back after the view's content unless the walk is a render walk by
+    /// the object's primary holder (``StateStorage/restoreEnvironments(to:)``).
+    /// So while a holder's body and what it built run, the object reads that
+    /// holder's environment, the innermost holder's where holders nest; and
+    /// anywhere else — an event's closure, a task, between passes — its
+    /// primary's, as of the primary's last render walk.
     mutating func applyObjectLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, in object: ObjectWalk
     ) {
@@ -225,12 +237,12 @@ extension PropertyWalk {
                 at: address, path: NestedScope.identityPath(ofPath: idPath, in: scope), propertyIndex: position)
         }
         if let placed = leaf.placeEnvironment {
-            if !object.resolvesEnvironment {
-                placed.fillEnvironment(at: address, environment)
-            } else if placed.resolveEnvironment(at: address, environment, place: identity, storage: storage) {
-                changes += 1
+            let box = placed.environmentBox(at: address)
+            if object.restoresEnvironment, let storage {
+                storage.pushEnvironmentRestore(box, previous: box.environment, hub: object.hub)
             }
-        } else if let resolvable = leaf.environment, object.resolvesEnvironment {
+            box.environment = environment
+        } else if let resolvable = leaf.environment {
             resolvable.resolveEnvironment(at: address, environment)
         }
     }

@@ -228,8 +228,15 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
     // identity step further in (the body's type).
     if V.Body.self != Never.self {
         let childContext = context.withChildIdentity(type: V.Body.self)
+        // What the body's walk hands the `@Environment`s inside a class
+        // property it holds, as other than the object's first holder, lasts
+        // while the body's content is drawn, and is put back after: a load
+        // and a compare when it handed none (`StateStorage.restoreEnvironments(to:)`).
+        let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
         let body = evaluateCompositeBody(of: view, context: context)
-        return TUIkitView.renderToBuffer(body, context: childContext)
+        let buffer = TUIkitView.renderToBuffer(body, context: childContext)
+        context.stateStorage?.restoreEnvironments(to: restoreDepth)
+        return buffer
     }
 
     // Priority 3: No rendering path — return empty buffer silently.

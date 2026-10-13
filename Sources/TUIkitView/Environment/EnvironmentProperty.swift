@@ -145,6 +145,12 @@ public struct Environment<Value> {
 /// resolved against. Reference semantics are the whole point: a `@Environment`
 /// wrapper copied into a closure shares this box, so the closure reads the value
 /// captured at render even though it runs later.
+///
+/// Inside a class property's object there is one box per `@Environment`, for
+/// the object: every view holding it resolves the box to its own environment
+/// before its body, and one other than the object's primary holder puts it
+/// back after its content, so the box reads the primary's at rest
+/// (``StateStorage/restoreEnvironments(to:)``). ``place`` is not used there.
 final class EnvironmentBox {
     var environment: EnvironmentValues?
     /// The identity of the view the box was resolved for, by the property
@@ -173,12 +179,11 @@ protocol PlaceResolvedEnvironment {
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
         storage: StateStorage?) -> Bool
 
-    /// Hands the wrapper at `address`, in a class property's object whose
-    /// primary holder is another view, `environment` if it has never been
-    /// handed one, and leaves it resolved for no place, so that the next walk
-    /// to resolve it resolves it as its own. One already handed an environment
-    /// is left as it is (``PropertyWalk/applyObjectLeaf(_:at:position:scope:in:)``).
-    static func fillEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues)
+    /// The box of the wrapper at `address`, inside a class property's object:
+    /// one per `@Environment` for the object, which every walk resolves in
+    /// place and walks other than its primary holder's put back after their
+    /// view's content (``PropertyWalk/applyObjectLeaf(_:at:position:scope:in:)``).
+    static func environmentBox(at address: UnsafeMutableRawPointer) -> EnvironmentBox
 }
 
 extension Environment: PlaceResolvedEnvironment {
@@ -207,9 +212,8 @@ extension Environment: PlaceResolvedEnvironment {
         return false
     }
 
-    static func fillEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues) {
-        let box = address.assumingMemoryBound(to: Self.self).pointee.box
-        if box.environment == nil { box.environment = environment }
+    static func environmentBox(at address: UnsafeMutableRawPointer) -> EnvironmentBox {
+        address.assumingMemoryBound(to: Self.self).pointee.box
     }
 }
 

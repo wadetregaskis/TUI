@@ -493,9 +493,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   it moves or drops it, and a write redraws every view drawn holding it, one
   served from the memo included. An object made anew with each value of the
   one view holding it keeps that view's state from frame to frame, as a view
-  value's `@State` does. Its ids are its own. Its `@Environment` is resolved by
-  the first view drawn holding it. Every holder walks it before its body, and
-  its own `update()` runs there, as SwiftUI's does.
+  value's `@State` does. Its ids are its own. Its `@Environment` is each
+  holding view's while that view's body and what it built run, and at rest —
+  in an action's closure — the first view's drawn holding it. Every holder
+  walks it before its body, and its own `update()` runs there, as SwiftUI's
+  does.
 - **Why:** the owner's ruling (2026-10-12) keeps what TUIkit supported: a
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
@@ -506,7 +508,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   open; read it in the view instead. And the `@State` in an enum's case inside
   a long-lived object is the case's payload's: setting the case anew starts it
   at its defaults, and a payload kept and put back brings its state back.
-- **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-and-an-object-made-with-a-view-value-keeps-its-views-state>). **Lane.**
+- **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>). **Lane.**
 
 ---
 
@@ -1483,4 +1485,4 @@ on. Each waits on the work, or on the ruling, its State names.
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
-| A class property (S6): a closure made in a view other than the first drawn holding the object reads the first one's environment (a sheet's Done calling its page's `dismiss`); the `@State` in an enum case in a long-lived object follows the case's payload | [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-and-an-object-made-with-a-view-value-keeps-its-views-state>) | Known; the fuller version priced |
+| A class property (S6): a closure made in a view other than the first drawn holding the object reads the first one's environment (a sheet's Done calling its page's `dismiss`); the `@State` in an enum case in a long-lived object follows the case's payload | [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>) | Known; the fuller version priced |

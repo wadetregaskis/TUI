@@ -245,6 +245,18 @@ public final class StateStorage: @unchecked Sendable {
     /// (``ObjectHub/idPath``): a count per storage, not a global.
     var objectIDs = 0
 
+    /// The `@Environment` boxes inside class properties' objects that walks
+    /// other than the objects' primary holders' resolved, each with what it
+    /// held before (``pushEnvironmentRestore(_:previous:hub:)``): put back,
+    /// last first, after the holder's content (``restoreEnvironments(to:)``).
+    var environmentRestores: [EnvironmentRestore] = []
+
+    /// ``environmentRestores``' count, behind a pointer the storage owns: read
+    /// before and after every composite body's content, where a load through
+    /// a constant pointer is a plain load and a stored property's read is
+    /// checked for exclusivity at run time.
+    let restoreDepth = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+
     /// What each animating value in the tree is doing.
     ///
     /// Held here rather than standing alone because its lifetime is exactly
@@ -276,8 +288,13 @@ public final class StateStorage: @unchecked Sendable {
 
     /// Creates an empty state storage.
     public init() {
+        restoreDepth.initialize(to: 0)
         animations.completionTracker = animationCompletions
         departures.completionTracker = animationCompletions
+    }
+
+    deinit {
+        restoreDepth.deallocate()
     }
 
     /// The number of stored state entries (for testing/debugging).
@@ -607,6 +624,10 @@ extension StateStorage {
     /// (e.g., by navigation or conditional branches) while keeping windowed-out
     /// rows' state alive.
     public func endRenderPass() {
+        // What a body evaluated outside the two places that put an object's
+        // environment back (a `List` asking a view for its rows, a guide
+        // asked for) left in place.
+        restoreEnvironments(to: 0)
         // Indexed once for the pass: the prune asks of every unmarked box,
         // and a climb per root per box was most of a frame's end on a page
         // of memoised cards (see `RetainedSubtreeIndex`).
@@ -682,6 +703,8 @@ extension StateStorage {
         values.removeAll()
         objectHubs.removeAll()
         objectHubsAfterSweep = 0
+        environmentRestores.removeAll()
+        restoreDepth.pointee = 0
         displacedEnvironments.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()

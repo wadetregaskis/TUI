@@ -121,9 +121,11 @@ enum UpdateMode {
 /// the pass that walks it (session notes `DYNV2/notes.md` §4.11), takes its
 /// `@State` from its place instead, as a view value's does, so the object
 /// the next value makes finds it: the walk tells the two apart by when the
-/// `@State` was made (``StateBacking/createdIn``). Its `@Environment` is that
-/// of the first holder drawn, its primary (``ObjectHub/primary``): another
-/// holder hands one only to an `@Environment` that has none. A measure makes,
+/// `@State` was made (``StateBacking/createdIn``). Its `@Environment` is
+/// resolved by every holder's walk to that holder's environment, and put back
+/// after the holder's content, so a body and what it built read their own
+/// view's; at rest — in a closure, between passes — the object reads its
+/// primary's, the first holder drawn (``ObjectHub/primary``). A measure makes,
 /// moves and drops nothing a view's key holds for it. SwiftUI installs
 /// nothing inside a class (measured: DYNP `op.out` vii-f). Each object is
 /// reached at most once per walk, so objects that reach each other end the

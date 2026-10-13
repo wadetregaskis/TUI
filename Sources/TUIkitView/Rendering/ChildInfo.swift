@@ -808,6 +808,11 @@ private func measureCompositeBody<V: View>(
     // view branching on `\.terminalWidth` would measure the subtree it would
     // have rendered at 80 columns, whatever the terminal actually was.
     let plan = propertyPlan(for: V.self)
+    // What the body's walk hands the `@Environment`s inside a class property
+    // lasts while the body's content is measured, and is put back after, as
+    // the render path puts it back (`StateStorage.restoreEnvironments(to:)`).
+    let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
+    defer { context.stateStorage?.restoreEnvironments(to: restoreDepth) }
     // As the render path evaluates it, `update()` inside the scope where there
     // is one: see `evaluateCompositeBody`.
     guard let cache = context.renderCache, cache.readingTypes.contains(V.self) else {

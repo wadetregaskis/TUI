@@ -372,8 +372,12 @@ struct DynamicPropertyObjectTests {
     /// the instance's one box for each view in turn, so a closure made in
     /// view a's body read view b's environment. SwiftUI does not resolve it
     /// at all (op.out, case vii-f), so the closure reads the default. TUIkit
-    /// resolves it to the environment of its primary holder, the first view
-    /// drawn that reaches it.
+    /// resolves it, in each holder's walk, to that holder's environment while
+    /// its body and content run, and at rest to its primary holder's, the
+    /// first view drawn that reaches it: a closure runs at rest, so view a's
+    /// and view b's read the same — the stated rule — whatever the order views
+    /// are drawn or served from the memo in. Here the first holder is the
+    /// parent, which holds the object in a field too, under no accent.
     @Test("A class property's @Environment read in a view's closure is never another view's environment")
     func sharedObjectEnvironmentInClosure() {
         let context = makeRenderContext(width: 20, height: 2)
@@ -381,6 +385,8 @@ struct DynamicPropertyObjectTests {
         let object = SharedObject()
         _ = lines(TwoObjectViews(object: object, taps: taps), context: context)
         #expect(taps.readers["a"]?() != "blue", "view a sits under red")
+        #expect(taps.readers["a"]?() == "plain", "a closure reads the first holder's, the parent's")
+        #expect(taps.readers["b"]?() == "plain", "a closure reads the first holder's, the parent's")
     }
 
     /// A class property made anew with each value of the one view that holds

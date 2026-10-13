@@ -85,4 +85,59 @@ extension StateStorage {
         }
         return own
     }
+
+    // MARK: Environments put back
+
+    /// How many `@Environment`s inside objects are waiting to be put back:
+    /// what a composite view notes before its body is evaluated, and puts
+    /// back to after the body's content (``restoreEnvironments(to:)``).
+    var environmentRestoreDepth: Int {
+        @inline(__always) get { restoreDepth.pointee }
+    }
+
+    /// Notes that a walk other than `hub`'s object's primary holder's is
+    /// about to hand `box`, an `@Environment`'s inside the object, its view's
+    /// environment, `box` holding `previous` until then.
+    func pushEnvironmentRestore(_ box: EnvironmentBox, previous: EnvironmentValues?, hub: ObjectHub?) {
+        environmentRestores.append(
+            EnvironmentRestore(box: box, previous: previous, hub: hub, primaryWalks: hub?.primaryWalks ?? 0))
+        restoreDepth.pointee = environmentRestores.count
+    }
+
+    /// Puts back, last first, what the walks noted since the count was
+    /// `depth` handed the `@Environment`s inside objects: each box gets what
+    /// it held before — or, if its object's primary holder walked since, the
+    /// primary's environment — and none is set back to `nil`. Called after a
+    /// composite body's content is drawn or measured, at the pass's end, and
+    /// nowhere else: a load and a compare when nothing is waiting.
+    @inline(__always)
+    func restoreEnvironments(to depth: Int) {
+        if restoreDepth.pointee > depth { popEnvironmentRestores(to: depth) }
+    }
+
+    @inline(never)
+    private func popEnvironmentRestores(to depth: Int) {
+        while environmentRestores.count > depth {
+            let restore = environmentRestores.removeLast()
+            if let hub = restore.hub, hub.primaryWalks != restore.primaryWalks, let rest = hub.rest {
+                restore.box.environment = rest
+            } else if let previous = restore.previous {
+                restore.box.environment = previous
+            }
+        }
+        restoreDepth.pointee = environmentRestores.count
+    }
+}
+
+/// An `@Environment`'s box inside a class property's object that a walk other
+/// than the object's primary holder's resolved, and what to put back
+/// (``StateStorage/restoreEnvironments(to:)``).
+struct EnvironmentRestore {
+    let box: EnvironmentBox
+    /// What the box held before the walk.
+    let previous: EnvironmentValues?
+    /// The object's hub, if a render walk made one.
+    let hub: ObjectHub?
+    /// The hub's ``ObjectHub/primaryWalks`` when the walk resolved the box.
+    let primaryWalks: Int
 }

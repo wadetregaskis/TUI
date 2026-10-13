@@ -49,6 +49,16 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// Main actor only.
     var primary: ViewIdentity?
 
+    /// The environment the object's `@Environment`s read at rest: the
+    /// primary's, as of its last render walk. Main actor only.
+    var rest: EnvironmentValues?
+
+    /// How many render walks the primary has made: what tells a restore that
+    /// the primary walked while another holder's environment was in place, so
+    /// the object is put back to ``rest`` rather than to what that holder
+    /// found (``StateStorage/restoreEnvironments(to:)``). Main actor only.
+    var primaryWalks = 0
+
     init(object: AnyObject, link: RenderCache.Link?, idPath: String) {
         self.object = object
         self.link = link
