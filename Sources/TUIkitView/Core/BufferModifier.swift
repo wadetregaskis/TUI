@@ -81,6 +81,16 @@ public protocol BufferModifier {
     /// the context-carrying guide query itself.
     static var _translatesAlignmentGuides: Bool { get }
 
+    /// Static witness: whether this modifier lays its content out anew —
+    /// changes the size it is offered or reports — so that a priority written
+    /// inside it (``View/layoutPriority(_:)``) is not the modified view's.
+    /// `false` by default, and the modifier's `ModifiedView` passes its
+    /// content's priority on; `true` for padding. SwiftUI's own split,
+    /// measured: a priority survives `.foregroundStyle`, `.font`, `.opacity`,
+    /// `.background`, `.id` and `.tag`, and is lost under `.padding` and
+    /// `.frame` (`Tools/SwiftUIProbes/Layout priority/priority.out`).
+    static var _changesLayout: Bool { get }
+
     /// Static witness: this modifier at the value the animation store says to
     /// draw it at, or `nil` when nothing is moving. See
     /// ``View/_animated(_:context:isMeasuring:)`` for why it is a witness
@@ -163,6 +173,11 @@ extension BufferModifier {
     /// modifier translates it.
     @inlinable
     public static var _translatesAlignmentGuides: Bool { false }
+
+    /// A modifier draws its content where it lays out, at the size it was
+    /// given, unless it says otherwise.
+    @inlinable
+    public static var _changesLayout: Bool { false }
 
     /// A modifier with nothing continuous about it never needs substituting.
     @inlinable
@@ -301,6 +316,14 @@ extension ModifiedView {
     /// — padding — and the content holds one.
     public static var _providesAlignmentGuide: Bool {
         Modifier._translatesAlignmentGuides && Content._providesAlignmentGuide
+    }
+
+    /// A priority inside the content is the modified view's unless the
+    /// modifier lays the content out anew (``BufferModifier/_changesLayout``):
+    /// `.layoutPriority(1).background(…)` keeps it, `.layoutPriority(1)
+    /// .padding()` does not, as in SwiftUI.
+    public static var _providesLayoutValues: Bool {
+        !Modifier._changesLayout && Content._providesLayoutValues
     }
 }
 

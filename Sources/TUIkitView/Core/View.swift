@@ -123,6 +123,17 @@ public protocol View {
     /// subview with none costs a constant rather than a walk of casts.
     static var _providesContainerValues: Bool { get }
 
+    /// Static witness: whether this view type sets a layout value — a
+    /// `.layoutPriority(_:)` or a `.layoutValue(key:value:)` — or wraps a view
+    /// that does. `false` for every view but that wrapper, which answers
+    /// `true`, a member's proxy, which MAY, and the single-content wrappers
+    /// around them, which forward their content's answer.
+    ///
+    /// Same shape and same reason as ``_providesZIndex``: a stack asks every
+    /// child for its priority, and one whose type says there is none answers
+    /// with a constant rather than a walk of casts.
+    static var _providesLayoutValues: Bool { get }
+
     /// Static witness: whether a container resolving this view may find other
     /// than ONE child in it — because it is a provider of children (a tuple, a
     /// `Group`, a loop, an `if`…), or a view of the app's own whose `body` is
@@ -218,6 +229,10 @@ public extension View {
     /// Default: a view writes no container value. `.tag(_:)` and
     /// `.containerValue(_:_:)` override this.
     static var _providesContainerValues: Bool { false }
+
+    /// Default: a view sets no layout value. `.layoutPriority(_:)` and
+    /// `.layoutValue(key:value:)` override this.
+    static var _providesLayoutValues: Bool { false }
 
     /// Default: what this view's `body` answers — to a container a view of the
     /// app's own is what its body is. A tuple, an `if`, a loop, a `Group` of

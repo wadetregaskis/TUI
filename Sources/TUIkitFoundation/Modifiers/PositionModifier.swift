@@ -137,4 +137,9 @@ extension PositionView {
 /// the members of multi-view content.
 extension PositionView: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// A positioned view fills what it is offered and places its content in
+    /// it, so a priority written inside it is not its own: a layout
+    /// modifier, as a frame and padding are.
+    public static var _providesLayoutValues: Bool { false }
 }

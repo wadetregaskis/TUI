@@ -546,6 +546,12 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
                 // After the title, in what the title and the trail leave: the
                 // lowest priority in the row and one line, so it truncates
                 // first and the bar keeps its height.
+                //
+                // No `Spacer` after it: one would be of a HIGHER priority than
+                // the subtitle, and a stack offers its higher priorities space
+                // first, so the spacer would take the whole slack and leave
+                // the subtitle its `…` — as SwiftUI's would. The bar is padded
+                // to the full width below instead.
                 if !subtitle.isEmpty {
                     // The gap on its own, so truncating the subtitle cannot
                     // eat it.
@@ -555,7 +561,6 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
                         .lineLimit(1)
                         .layoutPriority(-1)
                 }
-                Spacer()
             }
             Divider()
         }

@@ -800,6 +800,12 @@ extension FlexibleFrameView: ContentRewrapping {
             minHeight: minHeight, idealHeight: idealHeight, maxHeight: maxHeight,
             alignment: alignment)
     }
+
+    /// A frame lays its content out anew, at the size it chooses, so a
+    /// priority written inside it is not the frame's, as SwiftUI loses one
+    /// under `.frame(minWidth: 0)` (`Tools/SwiftUIProbes/Layout priority/priority.out`,
+    /// after-frame): a layout modifier, as padding and a position are.
+    public static var _providesLayoutValues: Bool { false }
 }
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation

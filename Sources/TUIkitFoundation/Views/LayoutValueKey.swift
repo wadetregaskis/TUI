@@ -61,6 +61,9 @@ public struct _LayoutValueView<Content: View>: View {
     public var body: some View {
         content
     }
+
+    /// See ``View/_providesLayoutValues``.
+    public static var _providesLayoutValues: Bool { true }
 }
 
 /// A view that can answer for the layout values set on it.
@@ -111,14 +114,22 @@ private struct LayoutPriorityKey: LayoutValueKey {
 }
 
 extension View {
-    /// Sets the priority with which a ``Layout`` should give this view space.
+    /// Sets the priority by which a parent layout should apportion space to
+    /// this child.
     ///
-    /// A layout is free to interpret this however it likes; the convention it
-    /// inherits from SwiftUI is that higher-priority subviews are offered their
-    /// ideal size first and lower-priority ones absorb what is left. TUIkit's
-    /// own stacks do **not** consult it — they distribute by the flexibility
-    /// each child reports (see ``ViewSize``), which answers the same question
-    /// more directly. It is here for custom layouts.
+    /// The built-in stacks (``HStack``, ``VStack``, ``HStackLayout``,
+    /// ``VStackLayout``) offer space to their highest-priority children first:
+    /// each priority is offered what is left once every child of a lower one
+    /// has its minimum size — its size when offered nothing, `…` for a
+    /// truncating ``Text`` — and divides it as a stack of one priority does.
+    /// So `HStack { Text(long); Text(other).layoutPriority(1) }` keeps `other`
+    /// whole and truncates `long`. A custom ``Layout`` reads it from
+    /// ``LayoutSubview/priority`` and is free to use it as it likes.
+    ///
+    /// A priority is kept through modifiers that do not lay the view out anew
+    /// (`.foregroundStyle`, `.font`, `.background`, `.tag`, …) and lost under
+    /// one that does (`.padding`, `.frame`), as SwiftUI keeps it (measured,
+    /// `Tools/SwiftUIProbes/Layout priority/priority.out`).
     ///
     /// - Parameter value: The priority. Higher wins; the default is `0`.
     /// - Returns: A view carrying the priority.
@@ -132,6 +143,64 @@ extension LayoutSubview {
     public var priority: Double {
         self[LayoutPriorityKey.self]
     }
+}
+
+/// The priority `child` was given with ``View/layoutPriority(_:)``, or `0`:
+/// read through every single-content wrapper written after it, as SwiftUI
+/// keeps it, and through a member's proxy to the member.
+///
+/// The static witness (``View/_providesLayoutValues``) gates the walk, so a
+/// child whose type sets no layout value costs one witness call.
+@MainActor
+func layoutPriority(of child: ChildView) -> Double {
+    layoutPriority(ofView: child.wrappedView)
+}
+
+@MainActor
+private func layoutPriority(ofView view: any View) -> Double {
+    guard type(of: view)._providesLayoutValues else { return 0 }
+    let key = ObjectIdentifier(LayoutPriorityKey.self)
+    var current = view
+    while true {
+        if let provider = current as? LayoutValueProviding, let value = provider.layoutValue(for: key) as? Double {
+            return value
+        }
+        if let proxy = current as? LayoutTraitsForwarding { return layoutPriority(of: proxy.forwardedChild) }
+        guard let wrapper = current as? any SingleContentWrapper else { return 0 }
+        current = wrapper.wrappedContent
+    }
+}
+
+/// Each of `children`'s length along a stack's axis when offered none of it —
+/// what a child of a lower priority keeps when a higher one takes the rest
+/// (`…` for a truncating `Text`, a spacer's minimum length). `across` is what
+/// each is offered on the other axis. Measured only for a stack whose
+/// children have priorities (``layoutPriorities(of:)``).
+@MainActor
+func minimumLengths(
+    of children: [ChildView], horizontally: Bool, across: Int?, context: RenderContext
+) -> [Int] {
+    children.map { child in
+        if child.isSpacer { return child.spacerMinLength ?? 0 }
+        let proposal =
+            horizontally ? ProposedSize(width: 0, height: across) : ProposedSize(width: across, height: 0)
+        let size = child.measure(proposal: proposal, context: context)
+        return horizontally ? size.width : size.height
+    }
+}
+
+/// Each of `children`'s layout priorities, or `nil` when every one is `0` —
+/// the common answer, for which a stack keeps the distribution it always had.
+@MainActor
+func layoutPriorities(of children: [ChildView]) -> [Double]? {
+    var priorities: [Double]?
+    for (index, child) in children.enumerated() {
+        let priority = layoutPriority(of: child)
+        guard priority != 0 else { continue }
+        if priorities == nil { priorities = [Double](repeating: 0, count: children.count) }
+        priorities?[index] = priority
+    }
+    return priorities
 }
 
 // MARK: - Seeing Through the Wrapper (the READ direction)

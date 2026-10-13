@@ -288,6 +288,15 @@ extension View where Self: SingleContentWrapper {
     /// The content's answer, for the reason a z-index's is forwarded: a
     /// container value written inside this wrapper is still the view's.
     public static var _providesContainerValues: Bool { WrappedContent._providesContainerValues }
+
+    /// The content's answer, for the same reason: a layout priority is a
+    /// number, the same whatever size the view ends up, so
+    /// `Text(…).layoutPriority(1).foregroundStyle(.red)` keeps its priority,
+    /// as SwiftUI's does. A wrapper that lays its content out anew answers
+    /// `false` instead, as SwiftUI loses the priority there: `ModifiedView`
+    /// whose modifier ``BufferModifier/_changesLayout`` (padding), a frame
+    /// and a position.
+    public static var _providesLayoutValues: Bool { WrappedContent._providesLayoutValues }
 }
 
 /// A ``SingleContentWrapper`` that can also put a copy of itself around some

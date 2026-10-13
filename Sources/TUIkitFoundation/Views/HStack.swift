@@ -223,8 +223,15 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
                 availableWidth,
                 idealTotal + totalLinearSpacing(occupiedChildren: occupying, spacing: max(0, spacing)))
         }
+        // A priority decides who is offered space first (`layoutPriority(_:)`);
+        // with none, nothing below is measured.
+        let priorities = layoutPriorities(of: children)
         let widths = distributeLinearSpace(
-            naturalSizes: ideal, isFlexible: fills, available: distributable, spacing: spacing)
+            naturalSizes: ideal, isFlexible: fills, available: distributable, spacing: spacing,
+            priorities: priorities,
+            minimumSizes: priorities.map { _ in
+                minimumLengths(of: children, horizontally: true, across: nil, context: context)
+            })
 
         // Heights at the widths children will actually be given. A child given
         // at least its ideal width wraps no further than it did at `.unspecified`

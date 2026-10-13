@@ -132,11 +132,16 @@ public struct VStackLayout: Layout, Sendable, Equatable {
         // short), then fixed children clip from the trailing end.
         let natural = ProposedSize(width: bounds.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
+        let priorities = subviewPriorities(subviews)
         let heights = distributeLinearSpace(
             naturalSizes: sizes.map(\.height),
             isFlexible: sizes.map(\.isHeightFlexible),
             available: bounds.height,
-            spacing: resolvedSpacing)
+            spacing: resolvedSpacing,
+            priorities: priorities,
+            minimumSizes: priorities.map { _ in
+                subviews.map { $0.sizeThatFits(ProposedSize(width: bounds.width, height: 0)).height }
+            })
         var y = bounds.y
         for (index, subview) in subviews.enumerated() {
             let height = heights[index]
@@ -237,11 +242,16 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         // See `VStackLayout.placeSubviews` — same distribution, other axis.
         let natural = ProposedSize(width: nil, height: bounds.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
+        let priorities = subviewPriorities(subviews)
         let widths = distributeLinearSpace(
             naturalSizes: sizes.map(\.width),
             isFlexible: sizes.map(\.isWidthFlexible),
             available: bounds.width,
-            spacing: resolvedSpacing)
+            spacing: resolvedSpacing,
+            priorities: priorities,
+            minimumSizes: priorities.map { _ in
+                subviews.map { $0.sizeThatFits(ProposedSize(width: 0, height: bounds.height)).width }
+            })
         var x = bounds.x
         for (index, subview) in subviews.enumerated() {
             let width = widths[index]
@@ -400,4 +410,13 @@ public struct ZStackLayout: Layout, Sendable, Equatable {
                 proposal: proposal)
         }
     }
+}
+
+/// Each subview's ``LayoutSubview/priority``, or `nil` when every one is `0`,
+/// for the stack layouts' distribution, as ``layoutPriorities(of:)`` is for the
+/// stacks'.
+@MainActor
+func subviewPriorities(_ subviews: LayoutSubviews) -> [Double]? {
+    let priorities = subviews.map(\.priority)
+    return priorities.contains { $0 != 0 } ? priorities : nil
 }

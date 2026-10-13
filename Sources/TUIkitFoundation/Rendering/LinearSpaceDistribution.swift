@@ -65,11 +65,22 @@ package enum StackOverflow {
 ///   - available: The total space to distribute, *including* the inter-child
 ///     spacing (which this function accounts for; callers pass the full extent).
 ///   - spacing: The gap rendered between adjacent non-empty children.
+///   - priorities: Each child's ``View/layoutPriority(_:)``, or `nil` when every
+///     one is `0` — the common case, distributed as above. See
+///     ``distributeLinearSpace(byPriority:minimumSizes:naturalSizes:isFlexible:available:spacing:)``.
+///   - minimumSizes: Each child's size when offered nothing on this axis;
+///     read only with `priorities`.
 /// - Returns: One allocated size per child; placed sizes + their gaps sum to
 ///   `<= max(0, available)`.
 func distributeLinearSpace(
-    naturalSizes: [Int], isFlexible: [Bool], available: Int, spacing: Int = 0
+    naturalSizes: [Int], isFlexible: [Bool], available: Int, spacing: Int = 0,
+    priorities: [Double]? = nil, minimumSizes: [Int]? = nil
 ) -> [Int] {
+    if let priorities, let minimumSizes {
+        return distributeLinearSpace(
+            byPriority: priorities, minimumSizes: minimumSizes, naturalSizes: naturalSizes,
+            isFlexible: isFlexible, available: available, spacing: spacing)
+    }
     let total = max(0, available)
     var result = naturalSizes.map { max(0, $0) }
     let flexIndices = result.indices.filter { isFlexible[$0] }
@@ -221,4 +232,40 @@ private func addLinearSpace(_ amount: Int, to indices: [Int], of result: inout [
             result[index] += per + (offset < remainder ? 1 : 0)
         }
     }
+}
+
+/// ``distributeLinearSpace(naturalSizes:isFlexible:available:spacing:priorities:minimumSizes:)``
+/// for children of more than one ``View/layoutPriority(_:)``: SwiftUI's stack
+/// rule, measured (`Tools/SwiftUIProbes/Layout priority/priority.out`).
+///
+/// The priorities are taken highest first. Each group is offered the space
+/// left once every child of a LOWER priority has its minimum size reserved —
+/// its size when offered nothing, `…` for a truncating `Text` — and divides
+/// it among its own children as a stack of one priority does; what it does
+/// not take passes down. So `HStack { Text(long); Text(other).layoutPriority(1) }`
+/// keeps `other` whole and truncates `long`, and a flexible child given a
+/// priority leaves its lower siblings no more than their minimums. Within a
+/// group nothing changes.
+///
+/// The gaps between the children that occupy the axis are charged first, as
+/// the fitting branches charge them.
+private func distributeLinearSpace(
+    byPriority priorities: [Double], minimumSizes: [Int], naturalSizes: [Int], isFlexible: [Bool],
+    available: Int, spacing: Int
+) -> [Int] {
+    var occupying = 0
+    for index in naturalSizes.indices where isFlexible[index] || naturalSizes[index] > 0 { occupying += 1 }
+    var remaining = max(0, max(0, available) - totalLinearSpacing(occupiedChildren: occupying, spacing: max(0, spacing)))
+    var result = [Int](repeating: 0, count: naturalSizes.count)
+    for level in Set(priorities).sorted(by: >) {
+        let members = naturalSizes.indices.filter { priorities[$0] == level }
+        var reserved = 0
+        for index in naturalSizes.indices where priorities[index] < level { reserved += max(0, minimumSizes[index]) }
+        let sizes = distributeLinearSpace(
+            naturalSizes: members.map { naturalSizes[$0] }, isFlexible: members.map { isFlexible[$0] },
+            available: max(0, remaining - reserved))
+        for (offset, index) in members.enumerated() { result[index] = sizes[offset] }
+        remaining = max(0, remaining - sizes.reduce(0, +))
+    }
+    return result
 }

@@ -220,6 +220,23 @@ messages cite that path), and what cites it.
   `Tests/TUIkitTests/SwiftUIKeySpellingTests.swift`; `Sources/TUIkit/TUIkit.docc/Articles/Localization.md`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
+### Layout priority
+
+- **Asks:** how SwiftUI's `HStack` and `VStack` give space by `layoutPriority(_:)`: two ten-character `Text`s in
+  a row too narrow for both, with no priority, with one on either, with three levels, with a negative one, and
+  two of one priority beside a third; a flexible frame with a priority beside a `Spacer` and beside a `Text`; a
+  fixed frame wider than the row; which modifiers written after the priority keep it (`.foregroundStyle`,
+  `.font`, `.opacity`, `.background`, `.id`, `.tag`, a `Group`) and which lose it (`.padding(0)`, `.frame`); and
+  a column of two multi-line `Text`s (`priority.swift`, `priority.out`). Each child's width is read with a
+  `GeometryReader` in its background, in characters of a monospaced font.
+- **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
+- **Was:** `L12/probe/`.
+- **Cited by:** `Sources/TUIkitFoundation/Views/LayoutValueKey.swift`, `Sources/TUIkitView/Core/BufferModifier.swift`,
+  `Sources/TUIkitFoundation/Views/StackGuidePropagation.swift`,
+  `Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift`; `Tests/TUIkitTests/LayoutPriorityTests.swift`;
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (L14),
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
 ### Animation curves, springs and keyframes
 
 - **Asks:** what SwiftUI's animation types compute, with no view: whether each transition has motion

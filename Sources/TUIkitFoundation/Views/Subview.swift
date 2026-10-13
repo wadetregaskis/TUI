@@ -82,6 +82,9 @@ public struct Subview: View, @MainActor Identifiable {
 
     /// MAY carry an alignment guide: the member's, read as ``_isSpacer`` is.
     public static var _providesAlignmentGuide: Bool { true }
+    /// MAY carry a layout value: the member's, read through the proxy as a
+    /// z-index is.
+    public static var _providesLayoutValues: Bool { true }
 }
 
 // MARK: - The Member's Layout Traits

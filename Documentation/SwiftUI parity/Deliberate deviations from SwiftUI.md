@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12 and V7 are to change, T8 keeps its filter and gains a bell, and T10 and E3 are closed (an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region). |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: V7 is to change, T8 keeps its filter and gains a bell, and L12, T10 and E3 are closed (the stacks give space by `layoutPriority`; an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region). L14, found the same day, awaits a ruling. |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -345,22 +345,6 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   behaviour, no special exceptions) bears on it; B19's exploration, in
   [Slated to change](#slated-to-change), covers only views of the app's own.
 
-### L12. `layoutPriority` is read only by a custom `Layout`
-
-- **SwiftUI:** a stack offers space to higher-priority children first, so
-  `HStack { Text(long).layoutPriority(1); Text(other) }` truncates `other`
-  first (Apple's documentation; semantic audit items 26 and 35).
-- **TUIkit:** the built-in stacks ignore it and distribute by the flexibility
-  each child reports; a custom `Layout` reads it from its subviews.
-- **Why:** the declaration's: flexibility "answers the same question more
-  directly". The semantic audit disputes that (flexibility says who grows,
-  priority who shrinks first).
-- **Decided:** [LayoutValueKey.swift](../../Sources/TUIkitFoundation/Views/LayoutValueKey.swift#L114-L121).
-  **Owner** (2026-10-13): "we should support layout priority properly": the
-  built-in stacks are to offer space by priority, as SwiftUI's do;
-  [slated](#slated-to-change). [§1](<SwiftUI compatibility guide.md#1-match>) (the
-  Custom layout row) still lists it as a match.
-
 ### L13. A guide pushes a view at most 2^20 cells, and a runaway guide is reported
 
 - **SwiftUI:** uses a finite guide as given at any magnitude: a guide of `1e300`
@@ -389,6 +373,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>).
   **Owner** (2026-10-12: 2^20, a push past it reported, an environment
   variable to override it).
+
+
+### L14. A row too narrow for its children keeps the first whole
+
+- **SwiftUI:** shares the row among children of one priority: two ten-character
+  `Text`s in twelve characters are given 6 and 5, each truncated (measured,
+  macOS 15.8, `Tools/SwiftUIProbes/Layout priority/priority.out`, case
+  `equal`; and `group-share`, two of one priority above a third: 8 and 7).
+- **TUIkit:** places children that cannot shrink one after another until the
+  space runs out, so the first is whole and the next is cut: 10 and 2.
+  Children of different priorities are offered space by priority first, as
+  SwiftUI's are; this is the rule among those of one priority.
+- **Why:** the distribution's (`LinearSpaceDistribution.swift`): the leading
+  content stays readable, and a stack never goes blank.
+- **Decided:** **Recorded**, with no ruling; awaiting the owner (found by the
+  layout-priority probe, 2026-10-13).
 
 ---
 
@@ -1499,7 +1499,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
-| The built-in stacks ignore `layoutPriority` (L12) | [L12](#l12-layoutpriority-is-read-only-by-a-custom-layout) | Owner 2026-10-13: support it properly; lane owed |
 | A text field's suggestions find nothing inside a view of the app's own, a `Section`, a `Group`, an `AnyView`, or behind a modifier (V7) | [V7](#v7-a-text-fields-suggestions-are-not-found-inside-a-view-of-the-apps-own) | Owner 2026-10-13: fix, through the member resolution, as the `Picker` now does; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |

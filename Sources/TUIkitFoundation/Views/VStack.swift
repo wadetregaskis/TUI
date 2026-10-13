@@ -440,11 +440,18 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // over-tall stack clips its trailing rows instead of starving every row
         // to zero (which rendered the whole stack blank when the gaps alone
         // exceeded the height).
+        // A priority decides who is offered space first (`layoutPriority(_:)`);
+        // with none, nothing below is measured.
+        let priorities = layoutPriorities(of: children)
         let finalHeights = distributeLinearSpace(
             naturalSizes: naturalHeight,
             isFlexible: isFlexible,
             available: context.availableHeight,
-            spacing: spacing
+            spacing: spacing,
+            priorities: priorities,
+            minimumSizes: priorities.map { _ in
+                minimumLengths(of: children, horizontally: false, across: nil, context: context)
+            }
         )
         reportEagerTargetLayout(heights: finalHeights, children: children, window: window, context: context)
 

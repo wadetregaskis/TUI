@@ -58,9 +58,14 @@ extension _VStackCore: AlignmentGuideQuerying {
                 if size.isWidthFlexible { fillsWidth = true }
             }
         }
+        // As the render distributes them, priorities included.
+        let priorities = layoutPriorities(of: children)
         let heights = distributeLinearSpace(
             naturalSizes: naturalHeights, isFlexible: isFlexible,
-            available: dimensions.height, spacing: spacing)
+            available: dimensions.height, spacing: spacing, priorities: priorities,
+            minimumSizes: priorities.map { _ in
+                minimumLengths(of: children, horizontally: false, across: nil, context: context)
+            })
         let sizes = children.indices.map { index -> (width: Int, height: Int) in
             guard !children[index].isSpacer else { return (width: 0, height: 0) }
             let size = children[index].measure(
@@ -98,6 +103,11 @@ extension PaddingModifier {
     /// the padded view's, moved by that inset — measured in SwiftUI with
     /// `.padding(0)` between a guide and the stack that aligns on it.
     public static var _translatesAlignmentGuides: Bool { true }
+
+    /// Padding lays its content out anew, at the size it is offered less the
+    /// insets, so a priority written inside it is lost, as SwiftUI loses it
+    /// under `.padding(0)` (`Tools/SwiftUIProbes/Layout priority/priority.out`).
+    public static var _changesLayout: Bool { true }
 }
 
 extension ModifiedView: AlignmentGuideQuerying where Modifier == PaddingModifier {
