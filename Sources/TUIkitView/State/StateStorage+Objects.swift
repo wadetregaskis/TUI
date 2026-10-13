@@ -53,7 +53,11 @@ extension StateStorage {
             if let token, token.lastObject != .longLived {
                 idPath = token.hub.idPath
             } else {
-                objectIDs += 1
+                // Wrapping: a view whose identity changes every frame, holding
+                // an object made with each of its values, starts a chain a
+                // frame, and `Int` is 32 bits on WebAssembly — 500 such rows
+                // at sixty frames a second would trap within a day.
+                objectIDs &+= 1
                 idPath = "obj\(objectIDs)"
             }
             hub = ObjectHub(object: object, link: renderCacheLink, idPath: idPath)
