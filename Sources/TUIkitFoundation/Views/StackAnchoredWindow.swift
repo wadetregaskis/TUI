@@ -366,7 +366,7 @@ extension _VStackCore {
         // adopted afresh below, walked to from the anchor as last drawn —
         // still on the row's old ordinal, not yet re-bound — so it is held on
         // the line the change moved it to.
-        state.letGoOfHeldRow(key, context: context)
+        let letGo = state.letGoOfHeldRow(key, context: context)
         if state.designatedAnchorKey != key {
             guard
                 let designated = resolveOrdinal(
@@ -376,7 +376,8 @@ extension _VStackCore {
                 return nil
             }
             state.designatedAnchorKey = key
-            adoptDesignatedRow(frame: frame, state: state, window: window, designated: designated)
+            adoptDesignatedRow(
+                frame: frame, state: state, window: window, designated: designated, letGo: letGo)
         }
         state.anchorKey = key
         return key
@@ -387,12 +388,15 @@ extension _VStackCore {
     /// negative meaning the anchor sits that many lines BELOW the viewport top,
     /// which `fill` renders by walking upward from it. (The implicit top anchor
     /// keeps a non-negative `within`: cells hidden ABOVE the top.)
+    ///
+    /// `letGo` is whether the row was already held and a change made under "no
+    /// adjustment" let it go (`StackWindowState/letGoOfHeldRow`).
     private func adoptDesignatedRow(
         frame: AnchoredWindowFrame, state: StackWindowState,
-        window: ScrollContentWindow, designated: Int
+        window: ScrollContentWindow, designated: Int, letGo: Bool
     ) {
         let line = adoptedHeldLine(
-            frame: frame, state: state, window: window, designated: designated)
+            frame: frame, state: state, window: window, designated: designated, letGo: letGo)
         state.anchorOrdinal = designated
         state.anchorOffsetWithin = -line
     }
@@ -405,6 +409,14 @@ extension _VStackCore {
     /// result is clamped into the viewport, reserving the indicator lines, so an
     /// off-by-a-little visible row still lands on a real line.
     ///
+    /// A row a change under "no adjustment" let go (`letGo`) and carried that far
+    /// is left on the line in view nearest where the change put it — the bottom
+    /// one when the rows it put above the row moved it down — as the other two
+    /// paths leave it (`offsetHoldingDesignatedRow`) and as the walk's clamp
+    /// leaves a row it carried a little way off. Put on the top line, as it
+    /// was, a row that rows inserted above had carried below the screen landed
+    /// at the bottom on the other paths and at the top on this one.
+    ///
     /// The anchor is walked from as `rebindAnchor` will clamp it, into the rows
     /// there now: adoption runs before that clamp, and the anchor is still last
     /// frame's. Walked from as it was, a change that took rows away left it
@@ -414,11 +426,16 @@ extension _VStackCore {
     /// change.
     private func adoptedHeldLine(
         frame: AnchoredWindowFrame, state: StackWindowState,
-        window: ScrollContentWindow, designated: Int
+        window: ScrollContentWindow, designated: Int, letGo: Bool
     ) -> Int {
         let anchor = min(max(0, state.anchorOrdinal), frame.children.count - 1)
+        func lastLine() -> Int {
+            let rowHeight =
+                frame.pitch(of: designated) - (designated < frame.children.count - 1 ? spacing : 0)
+            return max(window.edgeInset, window.viewportHeight - rowHeight - window.edgeInset)
+        }
         guard abs(designated - anchor) <= window.viewportHeight + 2 else {
-            return window.edgeInset
+            return letGo && designated > anchor ? lastLine() : window.edgeInset
         }
         var line = -state.anchorOffsetWithin
         if designated >= anchor {
@@ -426,10 +443,7 @@ extension _VStackCore {
         } else {
             for ordinal in designated..<anchor { line -= frame.pitch(of: ordinal) }
         }
-        let rowHeight =
-            frame.pitch(of: designated) - (designated < frame.children.count - 1 ? spacing : 0)
-        let lastLine = max(window.edgeInset, window.viewportHeight - rowHeight - window.edgeInset)
-        return min(max(line, window.edgeInset), lastLine)
+        return min(max(line, window.edgeInset), lastLine())
     }
 
     /// Sticky top for a below-top hold: a held row cannot sit lower on screen

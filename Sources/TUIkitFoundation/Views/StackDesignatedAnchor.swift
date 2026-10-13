@@ -110,18 +110,22 @@ extension StackWindowState {
     /// line it was held on is forgotten, so this frame adopts the row afresh
     /// where the change left it — the offset does not move to keep it on its
     /// old line — and holds it there from the next change on. A change that
-    /// took it off screen leaves it on the nearest line in view, as a row
-    /// designated off screen is adopted. `List` and `Table` hold their row
+    /// took it off screen leaves it on the nearest line in view, on every path
+    /// (the anchored walk: `adoptedHeldLine`). `List` and `Table` hold their row
     /// the same way (`ItemListHandler.applyAnchorHold`).
     ///
     /// Only a row ALREADY held is let go: a designation this frame adopts —
     /// the app wrote a new row into the binding — is no adjustment, and is
     /// adopted as ever, as a written `.anchorPosition` edge still jumps.
-    func letGoOfHeldRow(_ key: String, context: RenderContext) {
+    ///
+    /// Returns whether it let the row go.
+    @discardableResult
+    func letGoOfHeldRow(_ key: String, context: RenderContext) -> Bool {
         guard designatedAnchorKey == key,
             context.environment.transaction.disablesScrollContentOffsetAdjustment
-        else { return }
+        else { return false }
         clearDesignatedAnchor()
+        return true
     }
 }
 

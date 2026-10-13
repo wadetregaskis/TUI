@@ -175,7 +175,9 @@ struct ScrollTransactionTests {
         "A disabled adjustment lets a lazy stack's held row go, and the next change holds it where it was left",
         arguments: StackPath.allCases)
     func disabledAdjustmentLetsStackRowGo(path: StackPath) {
-        func run(disabling: Bool) -> (before: Int?, released: Int?, after: Int?, frames: [[String]]) {
+        func run(disabling: Bool) -> (
+            designated: Int, before: Int?, released: Int?, after: Int?, frames: [[String]]
+        ) {
             let frames = Frames()
             var items = Array(0..<path.count)
             // Row 26 is designated from off screen, so the view scrolls to it;
@@ -193,7 +195,7 @@ struct ScrollTransactionTests {
             func line(_ lines: [String]) -> Int? { lines.firstIndex { $0 == "row \(designated)" } }
             let revealed = frames.render(view(), height: 8)
             guard let held = revealed.dropFirst().first(where: { !$0.isEmpty }), let row = Int(held.dropFirst(4))
-            else { return (nil, nil, nil, [revealed]) }
+            else { return (designated, nil, nil, nil, [revealed]) }
             designated = row
             frames.render(view(), height: 8)
             let settled = frames.render(view(), height: 8)
@@ -205,7 +207,7 @@ struct ScrollTransactionTests {
             let released = frames.render(view(), transaction: disabled, height: 8)
             items.insert(path == .uniform ? 1006 : 1003, at: 0)
             let after = frames.render(view(), height: 8)
-            return (line(settled), line(released), line(after), [settled, released, after])
+            return (designated, line(settled), line(released), line(after), [settled, released, after])
         }
 
         let suspended = run(disabling: true)
@@ -213,12 +215,74 @@ struct ScrollTransactionTests {
             Issue.record("precondition: the held row is on screen \(suspended.frames)")
             return
         }
-        #expect(released > before, "not held: the rows moved with the change \(suspended.frames)")
+        // Not held: the row moves down by the lines the change put above it —
+        // to the bottom line at most, the nearest in view. On the anchored walk
+        // those are the lines of the two rows now at the ordinals it was drawn
+        // from, the rows that were above it: the walk keeps its anchor's
+        // ordinal (Scroll anchoring.md §5), and never measures the rows
+        // inserted at the top.
+        let lines: Int
+        switch path {
+        case .uniform: lines = 2
+        case .exactWalk: lines = path.height(1000) + path.height(1002)
+        case .anchoredWalk:
+            lines = path.height(suspended.designated - 2) + path.height(suspended.designated - 1)
+        }
+        #expect(
+            released == min(before + lines, 8 - path.height(suspended.designated)),
+            "not held: the rows moved with the change \(suspended.frames)")
         #expect(suspended.after == released, "held again where the change left it \(suspended.frames)")
 
         // Control: without the transaction the row keeps its line throughout.
         let held = run(disabling: false)
         #expect(held.before == before && held.released == before && held.after == before, "\(held.frames)")
+    }
+
+    /// A change that pushes the row let go off screen leaves it on the line in
+    /// view nearest where the change put it — the bottom line when rows were
+    /// inserted above it, the top when they were removed — as a row designated
+    /// off screen is brought into view, and on every path alike. The anchored
+    /// walk put it on the top line either way once it was more than a screen
+    /// of rows from where it was drawn.
+    @Test(
+        "A change under no adjustment that pushes a held row off screen leaves it on the nearest line in view",
+        arguments: StackPath.allCases, [true, false])
+    func disabledChangePushingTheHeldRowOffScreen(path: StackPath, inserting: Bool) {
+        let frames = Frames()
+        var items = Array(0..<path.count)
+        var designated = 40
+        func view() -> some View {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(items, id: \.self) { Text("row \($0)").frame(height: path.height($0)) }
+                }
+            }
+            .anchorPosition(.constant(ScrollAnchor<Int>.row(designated)))
+        }
+        func rows(_ lines: [String]) -> [Int] {
+            lines.compactMap { $0.hasPrefix("row ") ? Int($0.dropFirst(4)) : nil }
+        }
+        // Row 40 is designated from off screen, so the view scrolls to it; then
+        // a row three lines or so down is held.
+        let revealed = frames.render(view(), height: 8)
+        guard let held = revealed.dropFirst(3).first(where: { !$0.isEmpty }), let row = Int(held.dropFirst(4))
+        else {
+            Issue.record("precondition: rows on screen \(revealed)")
+            return
+        }
+        designated = row
+        frames.render(view(), height: 8)
+        let settled = frames.render(view(), height: 8)
+        var disabled = Transaction()
+        disabled.scrollContentOffsetAdjustmentBehavior = .disabled
+        if inserting {
+            items.insert(contentsOf: 1_000..<1_020, at: 0)
+        } else {
+            items.removeSubrange(0..<20)
+        }
+        let released = frames.render(view(), transaction: disabled, height: 8)
+        let edge = inserting ? rows(released).last : rows(released).first
+        #expect(edge == designated, "settled \(settled)\nreleased \(released)")
     }
 
     /// The row let go is adopted by a walk from the anchor as last drawn, which

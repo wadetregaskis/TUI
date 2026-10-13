@@ -440,7 +440,8 @@ anchor sits that many lines *below* the viewport top, which is exactly the
 "anchor below the top" the invariant `anchorY = offset - anchorOffsetWithin`
 could not previously express. Adoption walks real pitches from the old anchor to
 find the row's current line (bounded — a visible row is at most a viewport of
-rows away; farther is off-screen and revealed at the top edge), and `fill` walks
+rows away; farther is off-screen and revealed at the top edge — or, let go by a
+change made under "no adjustment", at the edge nearest it), and `fill` walks
 upward from the anchor to draw the now-visible rows above it (collapsing to the
 old single-margin-row behaviour when the anchor is at/above the top). A
 sticky-top clamp (`clampDesignatedHold`) rides the row up if the rows above it
