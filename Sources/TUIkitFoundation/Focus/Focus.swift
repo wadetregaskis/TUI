@@ -616,7 +616,7 @@ extension FocusManager {
             if let successor {
                 // A handoff may name a control in another section.
                 activeSectionID = successor.sectionID
-                focus(successor.element)
+                focusRecovered(successor)
             } else {
                 // Nothing left to focus. A focus that just went nil is as
                 // invisible as one that moved — the frame on screen still draws

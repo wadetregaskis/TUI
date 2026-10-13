@@ -59,6 +59,25 @@ extension FocusManager {
             element: neighbour, sectionID: section.id, isAutomatic: focusScopes.autoFocusedID == droppedID)
     }
 
+    /// Focuses `target`, which recovery chose for a focus that was dropped: as
+    /// the manager's own choice where the focus it takes over was one
+    /// (``RecoveryTarget/isAutomatic``), so it stays nobody's until something
+    /// happens to it (B35), and as an explicit focus otherwise.
+    ///
+    /// ``unregister(_:)``'s recovery. The end of a pass makes the same choice
+    /// inline; unregister used to focus explicitly whatever it recovered to, so
+    /// an app unregistering the untouched first control left its neighbour
+    /// counting as held where a pass's end left it the manager's. The automatic
+    /// move also leaves a pending focus intent standing, as every automatic
+    /// move does (``focusPreservingPendingIntent(_:automatically:)``).
+    func focusRecovered(_ target: RecoveryTarget) {
+        if target.isAutomatic {
+            focusPreservingPendingIntent(target.element, automatically: true)
+        } else {
+            focus(target.element)
+        }
+    }
+
     /// The neighbour of `droppedID` in the active section's ring: the next
     /// focusable, else the previous — never round the end, which would send a
     /// control at the bottom of a dialog to its top.

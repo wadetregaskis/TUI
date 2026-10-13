@@ -1703,7 +1703,8 @@ the focus moves off the chosen control by any path, when anything focuses
 that control explicitly (a click on it), and when a key is offered to it —
 taken or not, or taken by an `onKeyPress` on its way there. The first-control
 fallback at the end of a pass is the manager's choice too, as is the
-neighbour an untouched choice falls back to when it leaves; a
+neighbour an untouched choice falls back to when it leaves, at a pass's end
+or unregistered by the app (`unregisterKeepsTheChoiceAutomatic`); a
 `.focusHandoff` target (the app named it) and a page's focus restored when a
 sheet closes are not. Tests: `takesTheUntouchedAutomaticFocus` (a scope
 three frames on takes it), `doesNotSteal` (Return pressed it first) and

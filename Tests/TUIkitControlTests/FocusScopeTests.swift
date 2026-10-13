@@ -31,12 +31,16 @@ private struct Page: View {
     let log: Log
     var prefers = true
     var scoped = true
+    var second = false
 
     var body: some View {
         let scope = scope
         log.reset = { [resetFocus] in resetFocus(in: scope) }
         return VStack {
             Button("outside") { log.pressed.append("outside") }
+            if second {
+                Button("second") { log.pressed.append("second") }
+            }
             if log.show {
                 fields
             }
@@ -61,7 +65,7 @@ struct FocusScopeTests {
     private let tab = KeyEvent(key: .tab)
 
     /// Which button Return presses now.
-    private func focused(_ harness: InputChainHarness, _ log: Log, _ page: () -> Page) -> String? {
+    private func focused(_ harness: InputChainHarness, _ log: Log, _ page: () -> some View) -> String? {
         let before = log.pressed.count
         harness.press(enter)
         harness.frame(page())
@@ -141,6 +145,28 @@ struct FocusScopeTests {
         #expect(
             focused(harness, log, page) == "outside",
             "the key was offered to the control holding the focus, so someone was at it")
+    }
+
+    @Test("An app unregistering the untouched automatic focus hands it on as the manager's choice, as a pass's end does")
+    func unregisterKeepsTheChoiceAutomatic() {
+        let harness = InputChainHarness()
+        let log = Log()
+        log.show = false
+        let page = { Page(log: log, second: true) }
+        harness.frame(page())
+        harness.frame(page())
+        guard let chosen = harness.focusManager.currentFocused else {
+            Issue.record("nothing took the launch focus")
+            return
+        }
+        harness.focusManager.unregister(chosen)
+        harness.frame(page())
+        log.show = true
+        harness.frame(page())
+        harness.frame(page())
+        #expect(
+            focused(harness, log, page) == "preferred",
+            "the neighbour the focus went to was the manager's choice too: nobody had touched it")
     }
 
     @Test("resetFocus moves the focus back to the preferred control from inside the scope")

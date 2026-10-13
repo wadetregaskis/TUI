@@ -165,7 +165,9 @@ final class FocusScopeRegistry {
     private var applied: Set<Namespace.ID> = []
 
     /// The control the focus manager focused by itself — the first of a
-    /// section, or the first left when the focus was dropped — while nothing
+    /// section, the first left when the focus was dropped, or the neighbour an
+    /// untouched choice recovers to when it leaves, at a pass's end or
+    /// unregistered by the app (`FocusManager.focusRecovered(_:)`) — while nothing
     /// has happened to that focus since: not a focus anyone asked for, so a
     /// preference that comes due later may take its place (B35).
     ///
