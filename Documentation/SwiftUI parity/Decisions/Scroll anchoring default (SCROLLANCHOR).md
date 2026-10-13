@@ -222,6 +222,12 @@ gone from between them, which is what a removal with a row inserted above
 looks like. One id read more, on a frame whose top row is gone. The two renamed
 together in the same update as rows arrive above are still held a row too
 far, as before either fix: neither neighbour is left to tell the place by.
+And one case remembered rows cannot tell from those two renamed in place: the
+top row removed with the row above it removed or renamed, in an update whose
+insertions above leave the count where it was (ids 9 and 10 removed and two
+rows inserted at the start, the view at 10). The place is kept, and the row
+that was above the screen (8) is drawn on top, where the rule before the
+first fix put the row after (11) there.
 
 ## C. Declined
 
