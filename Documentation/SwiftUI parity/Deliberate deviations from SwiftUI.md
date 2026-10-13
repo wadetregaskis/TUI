@@ -131,7 +131,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>) (its note on stacks),
   [§1](<SwiftUI compatibility guide.md#1-match>) (the Grid and Lazy grids rows), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>).
   **Recorded.** A row resolves `nil` per pair of views: none beside a custom
-  `Layout` that asks for none on that edge ([B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>)).
+  `Layout` that asks for none on that edge ([B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>)),
+  except one inside an `AnyView` or a frame that exactly fits it, which keep
+  the column here ([B-BITEMS1-3](<Decisions/Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>)).
 
 ### U4. Gesture distances are cells along either axis
 

@@ -1249,12 +1249,14 @@ pair/spacing.out`). That shipped first, as
 and a gap is the pair's wherever either neighbour states a preference. The
 shape is the estimate's: a static witness, `View._statesSpacingPreference`
 — true for a `Layout`'s view and a `Subview`, forwarded by `ForEach`,
-`Group`, `if`, `Optional` and the single-content wrappers, and by padding on
-the edges it leaves alone — read once per row, so a row whose content holds
-no layout asks no child anything; and `StackGaps`, which carries no
-preferences on that common path. A column needed nothing: every vertical
-distance is 0 either way. What it does not reach (the environment modifiers,
-`.frame`, an app's own view, a nested row) and the cost are in
+`Group`, `if`, `Optional` and the single-content wrappers (the environment
+modifiers, `.background`, `.border` and `.offset` among them, as SwiftUI's
+measured), and by padding and a frame on the edges they leave alone — read
+once per row, so a row whose content holds no layout asks no child anything;
+and `StackGaps`, which carries no preferences on that common path. A column
+needed nothing: every vertical distance is 0 either way. Where it differs from
+SwiftUI (an `AnyView`, a frame that exactly fits its content, an app's own
+view, a nested row) and the cost are in
 [B-BITEMS1-3](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>).
 
 ### B22. The content levels, and the two- and three-style `foregroundStyle`

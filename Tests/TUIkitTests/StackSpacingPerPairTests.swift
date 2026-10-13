@@ -241,6 +241,39 @@ struct StackSpacingPerPairTests {
         #expect(asked.uniform.contains(false), "a layout in the content is asked")
     }
 
+    @Test("Through the modifiers that keep the content's edges (SwiftUI: foregroundStyle, background, offset, frame(height:) +0)")
+    func throughEdgeKeepingModifiers() {
+        #expect(lines(HStack { Row { Text("a") }.foregroundStyle(.red); Text("b") }) == ["ab"])
+        #expect(lines(HStack { Row { Text("a") }.background(Color.red); Text("b") }) == ["ab"])
+        #expect(lines(HStack { Row { Text("a") }.frame(height: 1); Text("b") }) == ["ab"])
+        // An offset view's drawing is displaced into a layer of its own, so its
+        // preference is read rather than drawn.
+        let read = Read()
+        _ = lines(SpacingReader(read: read) { Row { Text("a") }.offset(x: 1) })
+        #expect(read.distances == [0])
+    }
+
+    @Test("Not through a frame that sets a width, nor .position (SwiftUI: frame(width: 40) +8, frame(maxWidth:) +8, position +8)")
+    func notThroughMovedEdges() {
+        // A fixed frame's content sits at its leading edge here (compatibility
+        // guide §2.7), so the frame's own two blank columns, then the gap.
+        #expect(lines(HStack { Row { Text("a") }.frame(width: 3); Text("b") }) == ["a   b"])
+        let read = Read()
+        _ = lines(
+            SpacingReader(read: read) {
+                Row { Text("a") }.frame(width: 3)
+                Row { Text("a") }.frame(maxWidth: .fixed(5), alignment: .leading)
+                Row { Text("a") }.position(x: 0, y: 0)
+                Row { Text("a") }.frame(height: 1)
+            })
+        #expect(read.distances == [1, 1, 1, 0], "a frame that sets no width keeps the side edges")
+    }
+
+    @Test("Not yet: an AnyView states the default, where SwiftUI's states what it erases (SwiftUI: anyview(all)|box +0)")
+    func anyViewDoesNotForward() {
+        #expect(lines(HStack { AnyView(Row { Text("a") }); Text("b") }) == ["a b"])
+    }
+
     @Test("Not yet: a view of the app's own whose body is a tight layout states the default (SwiftUI: wrapped +0)")
     func appViewsDoNotForward() {
         #expect(lines(HStack { Wrapped(text: "a"); Text("b") }) == ["a b"])

@@ -138,10 +138,18 @@ struct Wrapped: View {
             measure("hstack all.id|all", HStack { Row(tight: .all) { Box("a") }.id(1); Row(tight: .all) { Box("b") } })
             measure("hstack all.foregroundStyle|all", HStack { Row(tight: .all) { Box("a") }.foregroundStyle(.red); Row(tight: .all) { Box("b") } })
             measure("hstack all.frame|all", HStack { Row(tight: .all) { Box("a") }.frame(width: 20); Row(tight: .all) { Box("b") } })
+            measure("hstack all.frame(40)|box", HStack { Row(tight: .all) { Box("a") }.frame(width: 40).probe("f"); Box("b") })
+            measure("hstack all.frame(height: 30)|box", HStack { Row(tight: .all) { Box("a") }.frame(height: 30); Box("b") })
+            measure("hstack all.frame(maxWidth: 40, leading)|box", HStack { Row(tight: .all) { Box("a") }.frame(maxWidth: 40, alignment: .leading).probe("f"); Box("b") })
             measure("hstack all.padding(4)|box", HStack { Row(tight: .all) { Box("a") }.padding(4); Box("b") })
             measure("hstack all.border|box", HStack { Row(tight: .all) { Box("a") }.border(.blue); Box("b") })
             measure("hstack all.background|box", HStack { Row(tight: .all) { Box("a") }.background(Color.blue); Box("b") })
             measure("hstack all.offset|box", HStack { Row(tight: .all) { Box("a") }.offset(x: 3); Box("b") })
+            measure(
+                "hstack all.position|box", size: CGSize(width: 100, height: 50),
+                HStack { Row(tight: .all) { Color.red.frame(width: 20, height: 10) }.position(x: 10, y: 5).probe("p"); Box("b") })
+            measure("hstack anyview(all)|box", HStack { AnyView(Row(tight: .all) { Box("a") }); Box("b") })
+            measure("hstack box|anyview(all)", HStack { Box("a"); AnyView(Row(tight: .all) { Box("b") }) })
             measure("hstack merging(box)|box", HStack { Merging { Box("a") }; Box("b") })
             measure("hstack merging(box,all)|box", HStack { Merging { Box("a"); Row(tight: .all) { Box("x") } }; Box("b") })
             measure("hstack box|all|box", HStack { Box("a"); Row(tight: .all) { Box("b") }; Box("c") })

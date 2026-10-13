@@ -313,10 +313,12 @@ messages cite that path), and what cites it.
   keep `Layout`'s default (`distances.swift`); and what a stack's `spacing: nil` puts between two views that state
   their own preferences (`spacing.swift`): layouts that ask for no space on all, the leading or the trailing edge,
   beside each other and beside plain boxes; through `EmptyView`, a `Spacer`, `.padding(0)`, `.padding(4)`, `.id`,
-  `.foregroundStyle`, `.frame`, `.border`, `.background`, `.offset`, a view of the app's own, `AnyLayout`,
+  `.foregroundStyle`, `.frame` (fitting, wider, height-only, and a leading `maxWidth`), `.border`, `.background`,
+  `.offset`, `.position`, `AnyView`, a view of the app's own, `AnyLayout`,
   `ForEach`, `Group`, an `if` and a nested `HStack`; in `HStack`, `HStackLayout`, `LazyHStack` and `VStack`; and
   with `spacing:` stated. Built alone, each with `-parse-as-library`.
-- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-13.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-13 (the wider frames, `.position` and `AnyView` rows in the
+  review of B20, the same day).
 - **Was:** `BITEMS1/probe/`.
 - **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`,
   `Sources/TUIkitFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIkitView/Rendering/ChildInfo.swift`;

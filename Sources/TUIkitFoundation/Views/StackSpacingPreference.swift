@@ -24,6 +24,13 @@ extension Subview {
     public static var _statesSpacingPreference: Bool { true }
 }
 
+// The wrappers below move their content off some of their own edges, so on
+// those edges the content's preference is not theirs: each says so itself,
+// ahead of the single-content forwarding (`throughWrappers` stops at the first
+// view that states one). Every other single-content wrapper keeps its content's
+// edges and its preference with them — measured on SwiftUI for `.id`,
+// `.foregroundStyle`, `.background`, `.border` and `.offset` (`spacing.out`).
+
 /// Padding moves its content's edges, so on an edge it pads the content's
 /// preference is gone and the default is back; on the others it stands.
 /// Measured on SwiftUI: a layout that asks for no space is the default
@@ -32,17 +39,53 @@ extension Subview {
 /// One-edge padding was not measured; it follows the same rule edge by edge.
 extension ModifiedView: SpacingPreferenceProviding where Modifier == PaddingModifier {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
-        let stated =
-            throughWrappers(content, as: (any SpacingPreferenceProviding).self)?
-            .preferredSpacing(context: context) ?? ViewSpacing()
         let insets = modifier.insets
         var padded: Edge.Set = []
         if insets.top != 0 { padded.insert(.top) }
         if insets.leading != 0 { padded.insert(.leading) }
         if insets.bottom != 0 { padded.insert(.bottom) }
         if insets.trailing != 0 { padded.insert(.trailing) }
-        return stated.defaulting(padded)
+        return contentSpacing(of: content, context: context).defaulting(padded)
     }
+}
+
+/// A frame that sets a width spans a width of its own, which its content need
+/// not reach, so its leading and trailing edges are the frame's: the default;
+/// one that sets a height, likewise its top and bottom. The axis it leaves
+/// alone keeps the content's preference. Measured on SwiftUI (`spacing.out`):
+/// a layout that asks for no space, framed `.frame(width: 40)` or
+/// `.frame(maxWidth: 40, alignment: .leading)`, is the default distance from a
+/// box beside it, and framed `.frame(height: 30)` none.
+///
+/// SwiftUI's frame keeps the content's preference on an edge the content
+/// reaches — `.frame(width: 20)` around 20 points did — which a frame here
+/// cannot know: a row resolves its gaps before anything in it is measured. A
+/// frame wider than its content, the usual reason to write one, gets SwiftUI's
+/// answer; one that exactly fits it gets the default where SwiftUI's has none
+/// (decisions B-BITEMS1-3).
+extension FlexibleFrameView: SpacingPreferenceProviding {
+    func preferredSpacing(context: RenderContext) -> ViewSpacing {
+        var framed: Edge.Set = []
+        if minWidth != nil || idealWidth != nil || maxWidth != nil { framed.formUnion([.leading, .trailing]) }
+        if minHeight != nil || idealHeight != nil || maxHeight != nil { framed.formUnion([.top, .bottom]) }
+        return contentSpacing(of: content, context: context).defaulting(framed)
+    }
+}
+
+/// `.position` takes the space it is offered and puts its content's centre at
+/// a point in it, so none of its edges is its content's: the default all
+/// round. Measured on SwiftUI (`spacing.out`): a layout that asks for no space,
+/// under `.position`, is the default distance from a box beside it.
+extension PositionView: SpacingPreferenceProviding {
+    func preferredSpacing(context: RenderContext) -> ViewSpacing { ViewSpacing() }
+}
+
+/// What `content` states, looking through its wrappers, or the default where it
+/// states nothing — what a wrapper above says on the edges it leaves alone.
+@MainActor
+private func contentSpacing(of content: some View, context: RenderContext) -> ViewSpacing {
+    throughWrappers(content, as: (any SpacingPreferenceProviding).self)?.preferredSpacing(context: context)
+        ?? ViewSpacing()
 }
 
 // MARK: - Where it is found

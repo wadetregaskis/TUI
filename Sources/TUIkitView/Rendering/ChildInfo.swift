@@ -304,8 +304,9 @@ extension View where Self: SingleContentWrapper {
     /// modifier — moves none of them, so the content's preference is the
     /// wrapper's. SwiftUI keeps it through `.id` and `.padding(0)` too
     /// (`Tools/SwiftUIProbes/Stack spacing per pair/spacing.out`). Padding,
-    /// which does move its content's edges, says so itself: it states the
-    /// default on the edges it pads.
+    /// a frame that sets a width or a height, and `.position`, which do move
+    /// their content's edges, say so themselves: each states the default on
+    /// the edges it moves (`StackSpacingPreference.swift`).
     public static var _statesSpacingPreference: Bool { WrappedContent._statesSpacingPreference }
 }
 

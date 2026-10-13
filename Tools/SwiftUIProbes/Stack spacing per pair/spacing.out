@@ -17,10 +17,16 @@
 == hstack all.id|all: a@0 +0 b@20
 == hstack all.foregroundStyle|all: a@0 +0 b@20
 == hstack all.frame|all: a@0 +0 b@20
+== hstack all.frame(40)|box: f@0 +-30 a@10 +18 b@48
+== hstack all.frame(height: 30)|box: a@0 +0 b@20
+== hstack all.frame(maxWidth: 40, leading)|box: a@0 +-20 f@0 +8 b@48
 == hstack all.padding(4)|box: a@4 +12 b@36
 == hstack all.border|box: a@0 +0 b@20
 == hstack all.background|box: a@0 +0 b@20
 == hstack all.offset|box: a@3 +-3 b@20
+== hstack all.position|box: p@0 +8 b@80
+== hstack anyview(all)|box: a@0 +0 b@20
+== hstack box|anyview(all): a@0 +0 b@20
 == hstack merging(box)|box: a@0 +8 b@28
 == hstack merging(box,all)|box: a@0 +0 x@20 +0 b@40
 == hstack box|all|box: a@0 +0 b@20 +0 c@40

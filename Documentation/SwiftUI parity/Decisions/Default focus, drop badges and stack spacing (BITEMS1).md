@@ -118,22 +118,42 @@ keeps none. It has no use but the old answer.
 **Shipped:** B20's fuller version, with B-BITEMS1-2's arithmetic: a gap is
 the distance the pair's facing edges ask for wherever either neighbour states
 a preference. A view states one when it is a `Layout`'s view, a `Subview`, or
-inside a wrapper that moves none of its edges (the single-content wrappers:
-`.id`, `.tag`, `.onAppear`, the focus and gesture modifiers…), and through
-`.padding` on the edges it does not pad. Measured on SwiftUI
-(`Tools/SwiftUIProbes/Stack spacing per pair/spacing.out`), where TUIkit
-differs:
+inside a single-content wrapper — every modifier that wraps one view:
+`.id`, `.tag`, `.onAppear`, the focus and gesture modifiers, `.foregroundStyle`
+and the other environment modifiers, `.background`, `.border`, `.offset` —
+except on the edges a wrapper moves its content off, where it states the
+default: `.padding` on the edges it pads, a frame on the axis it sets a width
+or a height on, and `.position` all round. Measured on SwiftUI
+(`Tools/SwiftUIProbes/Stack spacing per pair/spacing.out`): +0 through `.id`,
+`.padding(0)`, `.foregroundStyle`, `.background`, `.border`, `.offset` and
+`.frame(height: 30)`; the default (+8) through `.padding(4)`,
+`.frame(width: 40)`, `.frame(maxWidth: 40, alignment: .leading)` and
+`.position`. A `.border` here takes a cell each side where SwiftUI's strokes
+inside the view; the neighbour touches the ring either way, as SwiftUI's
+touches the stroke. Where TUIkit differs:
 
-- **Forwarded by SwiftUI, not here:** `.frame`, `.border`, `.background`,
-  `.foregroundStyle` (the environment modifiers generally), a view of the
-  app's own whose body is a layout, and a nested `HStack`, which states its
-  children's preferences merged. A layout under any of these states the
-  default here, so `HStack { Tight().foregroundStyle(.red); Text("b") }`
-  keeps its column. `.frame`, `.background` and the environment modifiers
-  move no edge and could forward as the single-content wrappers do; an app's
-  view needs its body asked, which is B19's open question; a `.border` here
-  takes a cell each side, as `.padding(1)` does, so the default there is
-  arguably right.
+- **A frame that exactly fits its content.** SwiftUI's frame keeps its
+  content's preference on an edge the content reaches (`.frame(width: 20)`
+  around 20 points: +0); here a frame that sets a width states the default on
+  both sides, because a row resolves its gaps before anything in it is
+  measured. A frame wider than its content, the usual reason to write one,
+  agrees with SwiftUI.
+- **`AnyView`.** SwiftUI's forwards what it erases (+0, measured with the
+  erased layout on either side); here an `AnyView` states the default. Its
+  static witness cannot say what it erases, and answering "may" for every
+  `AnyView` would put every row of erased views on the per-pair path — the
+  reason `fd5b3eb27` gave for not looking into an `AnyView` under a modifier
+  for its container values. Pinned by `anyViewDoesNotForward`.
+- **A view of the app's own whose body is a layout** (SwiftUI: +0) states
+  the default: its body would have to be asked, which is B19's open
+  question. **A nested `HStack`** states the default too, where SwiftUI's
+  states its children's preferences merged.
+- **An app's own `BufferModifier`** (a TUIkit API with no SwiftUI
+  counterpart) keeps its content's preference, as `.border` does; one that
+  draws cells beside its content, as the Custom Views article's
+  `QuoteModifier` does, puts a
+  neighbour that asks for no space against those cells, as `.border`'s ring
+  is. It has no way to say otherwise.
 - **`.padding`** puts the default back on the edges it pads and keeps the
   others: measured for `.padding(4)` (the default) and `.padding(0)` (the
   layout's own); one-edge padding is unmeasured and follows the same rule
@@ -153,8 +173,13 @@ asks every child each walk — a few conformance casts through its wrappers,
 and for a layout its `spacing(subviews:cache:)` over its resolved subviews —
 and a lazy row asks every child, not only those its window reaches.
 
-**The fuller version:** forwarding through `.frame`, `.background` and the
-environment modifiers (a witness per modifier type, about half a day);
-nested rows stating their children's merged preference (half a day, and it
-puts a row holding a nested row of layouts on the per-pair path); app views'
-bodies, with B19; and a lazy row asking only the children its walk reaches.
+**The fuller version:** a frame that keeps its content's preference on an
+edge its content reaches (the frame's and its content's widths at the
+proposal the row will make — a measure of each framed child per walk where a
+row has one; about half a day); an `AnyView` that forwards (a static "may"
+for every `AnyView`, so every row holding one takes the per-pair path: an
+A/B on `anyview` and `kitchensink` first); nested rows stating their
+children's merged preference (half a day, and it puts a row holding a nested
+row of layouts on the per-pair path); app views' bodies, with B19; a
+`BufferModifier` requirement naming the edges it draws beside; and a lazy row
+asking only the children its walk reaches.
