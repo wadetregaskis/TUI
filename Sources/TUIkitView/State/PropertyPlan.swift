@@ -172,12 +172,13 @@ struct ReferenceField {
     /// planned by its own class (the step's ``SlotPlan/Action/dynamicClass(_:)``).
     let object: ObjectPlan?
 
-    /// Whether the field holds the object's own address, so its class can be
-    /// read there before it is loaded: an `unowned` reference to a native
-    /// Swift object, whose memory its unowned count keeps while the field
-    /// holds it, alive or not. Only for a plain class: an object of a class
-    /// that is not a property is then never loaded, which traps if it has
-    /// gone (DYNV bug 9).
+    /// Whether the object's class is read where the field lies before it is
+    /// loaded: an `unowned` reference to a native Swift object is its
+    /// address, whose memory its unowned count keeps while the field holds
+    /// it, alive or not (``DynamicTypes/unownedObject(at:)``). Only for a
+    /// plain class or a class-bound existential: an object of a class that
+    /// is not a property is then never loaded, which traps if it has gone
+    /// (DYNV bug 9).
     var readsClassInPlace: Bool { object == nil && ownership == .unowned }
 
     /// The object the field at `address` holds, or `nil` for a `weak` one

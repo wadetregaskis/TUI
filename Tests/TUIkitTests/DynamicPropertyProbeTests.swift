@@ -164,6 +164,15 @@ private struct WeakTitledRow: View {
     }
 }
 
+/// The protocol held `unowned`.
+private struct UnownedTitledRow: View {
+    unowned let titled: any Titled
+
+    var body: some View {
+        Text(verbatim: titled.title())
+    }
+}
+
 /// The plain class held `unowned`.
 private struct UnownedDelegateRow: View {
     unowned let delegate: RowDelegate
@@ -195,6 +204,15 @@ private struct UnsafeDelegateRow: View {
 /// target might be held.
 private struct UnreadDelegateRow: View {
     unowned let delegate: RowDelegate
+
+    var body: some View {
+        Text(verbatim: "unread")
+    }
+}
+
+/// The protocol held `unowned` and never read.
+private struct UnreadTitledRow: View {
+    unowned let titled: any Titled
 
     var body: some View {
         Text(verbatim: "unread")
@@ -271,6 +289,8 @@ private struct DelegateOwnerRow: View {
             Text(verbatim: delegate.title())
         }
     }
+
+    extension ObjCDelegate: Titled {}
 #endif
 
 @MainActor
@@ -399,6 +419,53 @@ struct DynamicPropertyProbeTests {
         withExtendedLifetime(delegate) {}
     }
 
+    /// A class-bound existential held `unowned` was never reached, on any
+    /// platform, though the walk before the plans reached it: where
+    /// Objective-C interoperates, it is kept as an Objective-C weak
+    /// reference whenever its object could be an Objective-C one (review of
+    /// 6c8fe3d2b, 2026-10-12). A reference to a native object is the
+    /// object's address, which says so: its class is read there, as a plain
+    /// class's held `unowned` is.
+    @Test("A property held unowned in a class-bound existential field reads its view's environment")
+    func propertyHeldUnownedInExistentialIsResolved() {
+        let delegate = AccentDelegate()
+        let row = UnownedTitledRow(titled: delegate).environment(\.probeAccent, "red")
+        #expect(line(row, context: makeRenderContext(width: 20, height: 1)) == "red")
+        withExtendedLifetime(delegate) {}
+    }
+
+    /// The review's case: an `@Environment(Model.self)` in it traps when
+    /// read unresolved. An exit test.
+    @Test("A property held unowned in a class-bound existential field reading an observable model draws")
+    func propertyHeldUnownedInExistentialReadsModel() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let context = makeRenderContext(width: 20, height: 1)
+                let delegate = ModelDelegate()
+                let row = UnownedTitledRow(titled: delegate).environment(ProbeModel())
+                #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+                withExtendedLifetime(delegate) {}
+            }
+        }
+    }
+
+    /// A dead object held `unowned` in a class-bound existential, of a class
+    /// that is not a property, is never loaded: its class is read where the
+    /// reference lies. An exit test.
+    @Test("A view holding a dead plain object unowned in a class-bound existential, which body never reads, still draws")
+    func deadPlainObjectHeldUnownedInExistentialIsNeverLoaded() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                let context = makeRenderContext(width: 20, height: 1)
+                var delegate: RowDelegate? = RowDelegate()
+                let view = UnreadTitledRow(titled: delegate!)
+                delegate = nil
+                _ = renderToBuffer(view, context: context)
+                _ = renderToBuffer(view, context: context)
+            }
+        }
+    }
+
     /// A class property's own `weak` field is reached the same way.
     @Test("A property subclass held weak by a class property reads the holding view's environment")
     func subclassHeldWeakInsideAnObjectIsResolved() {
@@ -485,6 +552,10 @@ struct DynamicPropertyProbeTests {
             #expect(line(weak, context: makeRenderContext(width: 20, height: 1)) == "red")
             let unowned = UnownedObjCRow(delegate: delegate).environment(\.probeAccent, "blue")
             #expect(line(unowned, context: makeRenderContext(width: 20, height: 1)) == "red")
+            // In a class-bound existential, the reference says its object is
+            // an Objective-C one, and its class is not read.
+            let existential = UnownedTitledRow(titled: delegate).environment(\.probeAccent, "green")
+            #expect(line(existential, context: makeRenderContext(width: 20, height: 1)) == "red")
             withExtendedLifetime(delegate) {}
         }
     #endif

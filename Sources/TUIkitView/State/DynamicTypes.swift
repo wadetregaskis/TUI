@@ -94,6 +94,25 @@ enum DynamicTypes {
         }
     }
 
+    /// The class of the object an `unowned` reference at `address` holds,
+    /// read where the reference lies — or `.empty` for a `nil` optional of
+    /// one, and for one only the runtime reads. A reference to a native
+    /// Swift object is the object's address, whose memory the unowned count
+    /// keeps while the field holds it, alive or not. Where Objective-C
+    /// interoperates, a class-bound existential can hold an object whose
+    /// class has an Objective-C ancestor; held `unowned`, that reference is
+    /// the address of a cell the runtime allocates for an Objective-C weak
+    /// reference, marked by its lowest bit, which a native object's aligned
+    /// address leaves clear (measured on macOS 15 arm64, alive and gone, and
+    /// for a tagged pointer: session notes `DYNVFIX/probe/unex`). Elsewhere
+    /// every object is a native one.
+    static func unownedObject(at address: UnsafeRawPointer) -> DynamicTypeRead {
+        #if _runtime(_ObjC)
+            if address.load(as: UInt.self) & 1 != 0 { return .empty }
+        #endif
+        return object(at: address)
+    }
+
     /// The class of the object whose reference lies at `address`, held
     /// strongly — or `.empty` for a `nil` optional of one.
     static func object(at address: UnsafeRawPointer) -> DynamicTypeRead {
@@ -223,12 +242,18 @@ struct RootProbe {
     enum Kind {
         /// An existential (or an optional of one) laid out so.
         case existential(ExistentialLayout)
-        /// A plain class held strongly or `unowned` (or an optional of one),
-        /// the bits of its declared class's identifier: its class read where
-        /// the reference lies.
+        /// A plain class held strongly (or an optional of one), the bits of
+        /// its declared class's identifier: its class read where the
+        /// reference lies.
         case object(declared: UInt)
-        /// A plain class held `weak`, the bits of its declared class's
-        /// identifier: its object loaded, as the walk loads it.
+        /// A plain class, or a class-bound existential, held `unowned` (or
+        /// an optional of one), the bits of its declared type's identifier:
+        /// its class read where the reference lies
+        /// (``DynamicTypes/unownedObject(at:)``).
+        case unowned(declared: UInt)
+        /// A plain class, or a class-bound existential, held `weak`, the bits
+        /// of its declared type's identifier: its object loaded, as the walk
+        /// loads it.
         case weak(declared: UInt)
     }
 
@@ -247,6 +272,9 @@ struct RootProbe {
             read = DynamicTypes.existential(at: address, layout)
         case .object(let declared):
             read = DynamicTypes.object(at: address)
+            if case .type(let type) = read, UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
+        case .unowned(let declared):
+            read = DynamicTypes.unownedObject(at: address)
             if case .type(let type) = read, UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
         case .weak(let declared):
             guard let object = HeldReferences.load(at: address, .weak, isOptional: true) else { return false }

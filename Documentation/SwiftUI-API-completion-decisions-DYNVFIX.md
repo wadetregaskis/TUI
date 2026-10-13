@@ -53,12 +53,13 @@ from the field's mangled type name in its field descriptor, once per type
   (any RowDelegating)?`): the object is loaded each body, where the field
   lies, as Swift loads a weak reference — `nil` once it has gone — and its
   class read. It is not updated, as a property held `weak` is not.
-- **`unowned`:** the class is read where the reference lies, whose memory the
-  unowned count keeps, dead or alive. An object of a class that is not a
-  property is never loaded, so a dead one never traps (DYNV bug 9); one of a
-  property subclass is loaded as Swift loads it, and traps if it has gone, as
-  a dead `unowned` property does (decided for a field declared as a property
-  class). It is updated, unless the field is optional.
+- **`unowned`**, a plain class or a class-bound existential: the class is
+  read where the reference lies, whose memory the unowned count keeps, dead
+  or alive. An object of a class that is not a property is never loaded, so
+  a dead one never traps (DYNV bug 9); one of a property subclass is loaded
+  as Swift loads it, and traps if it has gone, as a dead `unowned` property
+  does (decided for a field declared as a property class). It is updated,
+  unless the field is optional.
 
 **Not reached:**
 
@@ -68,9 +69,17 @@ from the field's mangled type name in its field descriptor, once per type
   the runtime keeps such a reference as an Objective-C weak reference, which
   only the runtime reads, and it traps on one whose object has gone. A class
   with none, and every class on Linux, is read in place.
-- `unowned` of an existential: on Apple platforms it is kept the same way
-  whenever its object could be an Objective-C one, and elsewhere it is left
-  out with it, its storage unmeasured.
+- An object of such a class held `unowned` in a class-bound existential, on
+  Apple platforms: kept the same way. The reference says so — it is the
+  address of a cell the runtime allocates, marked by its lowest bit, where a
+  native object's reference is the object's aligned address (measured on
+  macOS 15 arm64, alive, gone and for a tagged pointer: session notes
+  `DYNVFIX/probe/unex`; x86_64 unmeasured) — so a native object in such a
+  field is read in place, and this one is left. On Linux every object is a
+  native one, its reference its address (unmeasured: it follows from Swift
+  keeping one kind of reference there). Before fix round 3 no `unowned`
+  existential was reached anywhere (review of 6c8fe3d2b, 2026-10-12), where
+  the walk before the plans reached one.
 - A field whose descriptor cannot be read: where pointers are signed
   (arm64e, which TUIkit does not build), and in a module built without
   reflection metadata, whose fields are not listed at all.

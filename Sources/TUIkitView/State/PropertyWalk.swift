@@ -399,13 +399,13 @@ struct PropertyWalk {
         applyObject(found.plan, object, position: position, scope: scope, updates: found.isModifier ? .none : updates)
     }
 
-    /// The object in the field at `address`, declared as a plain class and
-    /// held `weak` or `unowned`, which `plan` plans and `reference` says how
-    /// to load: walked as a class property if its class is one, and nothing
-    /// otherwise. An `unowned` one's class is read where the reference lies
-    /// first, so an object of a class that is not a property is never loaded,
-    /// which traps if it has gone (DYNV bug 9); a `weak` one is loaded, `nil`
-    /// once it has gone.
+    /// The object in the field at `address`, declared as a plain class or a
+    /// class-bound existential and held `weak` or `unowned`, which `plan`
+    /// plans and `reference` says how to load: walked as a class property if
+    /// its class is one, and nothing otherwise. An `unowned` one's class is
+    /// read where the reference lies first, so an object of a class that is
+    /// not a property is never loaded, which traps if it has gone (DYNV bug
+    /// 9); a `weak` one is loaded, `nil` once it has gone.
     private mutating func applyHeldPlainObject(
         _ plan: DynamicClassPlan, _ reference: ReferenceField, at address: UnsafeMutableRawPointer, position: Int,
         scope: UInt64, updates: UpdateMode
@@ -413,7 +413,7 @@ struct PropertyWalk {
         let loaded: AnyObject
         let found: (plan: ObjectPlan, isModifier: Bool)
         if reference.readsClassInPlace {
-            guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)),
+            guard case .type(let objectType) = DynamicTypes.unownedObject(at: UnsafeRawPointer(address)),
                 let classPlan = propertyClassPlan(objectType, in: plan),
                 let held = reference.load(at: address)
             else { return }

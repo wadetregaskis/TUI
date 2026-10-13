@@ -94,7 +94,7 @@ enum PropertyPlans {
                 guard case .dynamicClass(let plan) = step.slot.action else { return nil }
                 let declared = UInt(bitPattern: ObjectIdentifier(plan.type))
                 let kind: RootProbe.Kind =
-                    reference.readsClassInPlace ? .object(declared: declared) : .weak(declared: declared)
+                    reference.readsClassInPlace ? .unowned(declared: declared) : .weak(declared: declared)
                 probes.append(RootProbe(offset: step.offset, kind: kind, empty: plan.empty))
                 continue
             }
@@ -254,8 +254,8 @@ enum PropertyPlans {
     }
 
     /// The step for a field held `weak` or `unowned` whose declared type,
-    /// `declared`, is a plain class, or held `weak` as a class-bound
-    /// existential: its object may be of a class that is a property, which
+    /// `declared`, is a plain class or a class-bound existential: its object
+    /// may be of a class that is a property, which
     /// SwiftUI never looks for and TUIkit's walks found (decisions-DYNVFIX
     /// B-DYNVFIX-1). The field's ownership is read from its mangled type name
     /// (``FieldDescriptors``), which the field metadata gives only as "not
@@ -272,9 +272,11 @@ enum PropertyPlans {
     ///   Objective-C interoperates, such a reference is kept as one of its weak
     ///   references, which only the runtime reads, and the runtime traps on
     ///   one whose object has gone.
-    /// - `unowned` of an existential: never loaded, as on Apple platforms
-    ///   it is kept the same way whenever its object could be an
-    ///   Objective-C one.
+    /// - `unowned`, of a class-bound existential: as of a native class, its
+    ///   object's class read where the reference lies — unless, where
+    ///   Objective-C interoperates, the reference says its object is an
+    ///   Objective-C one, kept as above, whose class is then not read
+    ///   (``DynamicTypes/unownedObject(at:)``).
     /// - `unowned(unsafe)`, or an ownership that cannot be read: never
     ///   loaded. Nothing keeps the object's memory, so nothing of it can be
     ///   read safely.
@@ -292,7 +294,7 @@ enum PropertyPlans {
         switch ownership {
         case .weak:
             break
-        case .unowned where isClass && isNativeClass(declared):
+        case .unowned where !isClass || isNativeClass(declared):
             break
         default:
             return nil
