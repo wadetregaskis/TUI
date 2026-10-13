@@ -236,4 +236,44 @@ extension ScrollWindowHoldTests {
         #expect(handler.scrollOffset == 10)
         #expect(handler.id(at: handler.focusedIndex) == 17)
     }
+
+    /// Only frames that find the top row in place spend the wait for a move
+    /// of the list's own, and a move below the top row leaves it there: a
+    /// list that drew nothing more stood waiting for good, and a change made
+    /// above the top row seconds later was taken for the move and not held —
+    /// the rows jumped and the cursor named another row (lane SCROLLB's
+    /// review). The wait now ends after a few frames' time as well.
+    @Test("Rows inserted above the top row long after a move below it are held")
+    func listChangeLongAfterAMoveBelowIsHeld() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 40, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        var ids = Array(0..<40)
+        handler.itemIDs = ids
+        handler.onMove = { source, destination in
+            ids.move(fromOffsets: source, toOffset: destination)
+            handler.itemIDs = ids
+        }
+        func frame(atMilliseconds milliseconds: Int64) {
+            var environment = EnvironmentValues()
+            environment.frameNowNanos = 1_000_000_000 + milliseconds * 1_000_000
+            handler.syncFrameInputs(
+                environment: environment, reorderFeedback: .live, keyboardMoveIsLive: false, rowHeight: nil)
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        frame(atMilliseconds: 0)
+        handler.scrollOffset = 10
+        handler.focusedIndex = 15
+        frame(atMilliseconds: 0)
+        #expect(handler.nudgeFocusedRow(by: 1))
+        #expect(handler.focusedIndex == 16, "precondition: moved a row down, below the top row")
+        frame(atMilliseconds: 20)
+        #expect(handler.scrollOffset == 10, "precondition: a move below the top row moves nothing")
+        ids.insert(contentsOf: 1_000..<1_005, at: 0)
+        handler.itemIDs = ids
+        handler.itemCount = ids.count
+        frame(atMilliseconds: 5_000)
+        #expect(handler.scrollOffset == 15)
+        #expect(handler.id(at: handler.focusedIndex) == 15)
+    }
 }

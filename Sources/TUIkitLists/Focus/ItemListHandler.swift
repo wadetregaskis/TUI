@@ -1318,10 +1318,38 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// later (`Task { await store.move(…) }`) draws the key's frame with the
     /// rows unmoved, and the moved rows a frame after, which were held — the
     /// cursor landed on the old top row (the SCROLLANCHOR review, S4).
+    ///
+    /// And no longer than ``movedRowsWaitNanos`` of the frame clock
+    /// (``awaitMovedRows(atNanos:)``): only frames that find the top row in
+    /// place spend the wait, so a move below the top row, which leaves it in
+    /// place, left a list that drew nothing more waiting for good — and a
+    /// change above the top row seconds later, by anything else, was taken
+    /// for the move and not held (lane SCROLLB's review).
     var movedRowsPendingFrames = 0
+
+    /// When the wait for a move of the list's own ends, on the frame clock:
+    /// stamped by the first frame after the move. `nil` until then.
+    var movedRowsWaitEndsAtNanos: Int64?
 
     /// The frames ``movedRowsPendingFrames`` starts at.
     static var movedRowsWaitFrames: Int { 3 }
+
+    /// The longest the wait lasts on the frame clock: as many frames of three
+    /// 1/60 s ticks, 150 ms.
+    static var movedRowsWaitNanos: Int64 {
+        AnimationClock.nanoseconds(atTick: Int64(movedRowsWaitFrames * AnimationClock.standardFrameTicks))
+    }
+
+    /// Ends the wait for a move of the list's own (``movedRowsPendingFrames``)
+    /// once ``movedRowsWaitNanos`` have passed on the frame clock since the
+    /// first frame after the move, at `now`. Asked only while one is awaited.
+    func awaitMovedRows(atNanos now: Int64) {
+        guard let ends = movedRowsWaitEndsAtNanos else {
+            movedRowsWaitEndsAtNanos = now &+ Self.movedRowsWaitNanos
+            return
+        }
+        if now >= ends { movedRowsPendingFrames = 0 }
+    }
 
     /// Last glued frame's ``itemCount``, so the Bottom follow can tell a frame
     /// where the tail actually ADVANCED (rows arrived — carry the focus cursor

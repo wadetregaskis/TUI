@@ -209,7 +209,7 @@ extension ItemListHandler {
     /// and the next key's reveal would scroll back to it, undoing the hold.
     ///
     /// A move the list made itself (``movedRowsPendingFrames``, on the first
-    /// frame that finds the rows moved, within a few) is not held
+    /// frame that finds the rows moved, within a few frames and 150 ms) is not held
     /// either: it put the cursor on the row it moved and revealed it, and the
     /// rows it moved are no change made above the reader. Held, a row moved onto the top row's
     /// place — moved up a page from the last row on screen, or dropped on the

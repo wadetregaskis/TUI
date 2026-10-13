@@ -727,7 +727,10 @@ It holds nothing:
   the hold scrolled the moved row out of view and put the cursor on the old top
   row. The move is waited for through up to three frames that find the top row
   where it was, so an `onMove` that applies it a frame or two late is not held
-  either (2026-10-13).
+  either (2026-10-13) — and for no longer than three frames' time, 150 ms of
+  the frame clock: a move below the top row leaves it where it was, and a list
+  that drew nothing more stood waiting, so a change above it seconds later was
+  taken for the move and not held.
 
 A designated row (`.anchorPosition(.row(id))`) is held as ever and wins; a
 designation naming no row in the data is none, and the top row is held.

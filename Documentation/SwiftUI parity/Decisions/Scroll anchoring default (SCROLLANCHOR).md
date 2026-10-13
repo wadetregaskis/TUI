@@ -131,6 +131,16 @@ it was, and is spent by the first that finds it moved. The price: a change
 made above the top row in those frames, by anything else, is not held either.
 An `onMove` that takes longer than three frames to apply is still held.
 
+**And bounded in time (the lane's own review, round 1):** only frames that
+find the top row in place spent the wait, and a move below the top row — the
+common move chord — leaves it there. A list that drew nothing more after the
+move stood waiting for good, and an insertion or removal above the top row
+seconds later was taken for the move and not held: the rows jumped, and the
+cursor named another row. The wait now also ends 150 ms of frame clock (three
+frames' time) after the first frame that follows the move; the clock is read
+only while a move is awaited. An `onMove` that takes longer than that to apply
+is held, as one slower than three frames was.
+
 ### B-SCROLLANCHOR-5. A reorder is told from rows inserted or removed above by the row after the top row
 
 *`ScrollWindowHold.topRow`*

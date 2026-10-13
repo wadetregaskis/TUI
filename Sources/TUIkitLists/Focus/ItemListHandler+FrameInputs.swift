@@ -107,6 +107,9 @@ extension ItemListHandler {
         (declaredAnchorMode, declaredOpeningAnchorMode) = environment.declaredAnchorModes
         offsetAdjustmentSuspended = environment.transaction.disablesScrollContentOffsetAdjustment
         windowHold = environment.scrollWindowHold
+        // A move of the list's own is awaited a few frames, and no longer
+        // than a few frames' time: the frame clock is read only then.
+        if movedRowsPendingFrames > 0 { awaitMovedRows(atNanos: environment.frameNowNanos) }
         // The first pass is the frame the view appeared on, where a flash of
         // its indicators on appearing starts (`scrollIndicatorsFlash`).
         if indicatorFlash.appearedAtNanos == nil {
