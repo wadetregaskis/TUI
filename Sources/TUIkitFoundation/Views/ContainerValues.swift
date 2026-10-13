@@ -250,6 +250,16 @@ private func containerValueWriters(
     of view: any View, lookingThroughMemo: Bool
 ) -> [any ContainerValueWriting] {
     var current = view
+    // A member that is an `AnyView` is what it erases, to the container
+    // reading its values, as SwiftUI takes an `AnyView` apart (the
+    // compatibility guide's Subviews row, measured): `AnyView(Text("a").tag(1))`
+    // is an option tagged 1. A metatype compare, so every other member pays
+    // one pointer comparison. An `AnyView` under a modifier is not looked
+    // into: its witness cannot say what it erases, and answering "may" for
+    // every `AnyView` would walk every erased row in every container.
+    while type(of: current) == AnyView.self, let erased = current as? AnyView {
+        current = erased.erasedView
+    }
     if !type(of: current)._providesContainerValues {
         guard lookingThroughMemo, let memo = current as? any _ValueMemoWrapping,
             memo.memoizedContentType._providesContainerValues

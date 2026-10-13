@@ -95,6 +95,19 @@ struct ForEachSubviewsTests {
         #expect(lines == ["tag 3", "tag 4"])
     }
 
+    /// SwiftUI takes an `AnyView` apart (the compatibility guide's Subviews
+    /// row, measured), so the tag of the view it erases is the member's.
+    @Test("A member that is an AnyView has the tag of the view it erases")
+    func anyViewMemberCarriesItsTag() {
+        let lines = render(
+            VStack {
+                ForEach(subviews: Group { AnyView(Text("a").tag(7)); Text("b").tag(8) }) { subview in
+                    Text("tag \(subview.containerValues.tag(for: Int.self) ?? -1)")
+                }
+            })
+        #expect(lines == ["tag 7", "tag 8"])
+    }
+
     @Test("A row's identity follows its member across a reorder")
     func identityFollowsMember() {
         let log = IdentityLog()
