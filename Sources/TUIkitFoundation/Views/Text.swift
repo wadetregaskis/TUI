@@ -164,7 +164,8 @@ public struct Text: View, Equatable {
     public init(
         _ key: LocalizedStringKey, tableName: String? = nil, bundle: Bundle? = nil, comment: StaticString? = nil
     ) {
-        let template = LocalizationService.shared.string(for: key.key, tableName: tableName, bundle: bundle)
+        let template = LocalizationService.shared.string(
+            for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
         // A byte scan first: most keys hold nothing Markdown could act on, and
         // those take the plain path exactly as before.
         if InlineMarkdown.mightContainMarkup(template) {

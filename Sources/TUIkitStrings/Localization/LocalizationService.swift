@@ -288,25 +288,30 @@ public final class LocalizationService: @unchecked Sendable {
     /// this goes on to the app's other strings and TUIkit's. The default
     /// table written out — `tableName: "Localizable"`, `bundle: .main` — is
     /// not "named": it reads exactly as leaving them off does, as in SwiftUI.
-    package func string(for key: String, tableName: String?, bundle: Bundle?) -> String {
+    ///
+    /// `swiftUIKey` is the same key as SwiftUI spells it, where that differs
+    /// (`LocalizedStringKey.swiftUIKey`: `Moved %lld rows to %@` for
+    /// `Moved %@ rows to %@`): in each language it is looked for first, in
+    /// every place, then `key`, so a String Catalog extracted from SwiftUI code
+    /// is found, and so is a table keyed as TUIkit's own are.
+    package func string(
+        for key: String, swiftUIKey: String? = nil, tableName: String?, bundle: Bundle?
+    ) -> String {
         lock.lock()
         defer { lock.unlock() }
 
         let namesTable = !bundleTables.isDefaultTable(tableName, in: bundle)
         for code in lookupCodes {
-            if namesTable,
-                let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: code)
+            if let swiftUIKey,
+                let value = _appValue(
+                    swiftUIKey, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle,
+                    readsTUIkit: false)
             {
                 return value
             }
-            if let value = appTranslations[code]?[key] {
-                return value
-            }
-            // The app's table costs a stored Bool for an app that ships none.
-            if let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: code) {
-                return value
-            }
-            if let value = _tuikitValue(key, in: code) {
+            if let value = _appValue(
+                key, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle, readsTUIkit: true)
+            {
                 return value
             }
         }
@@ -314,7 +319,7 @@ public final class LocalizationService: @unchecked Sendable {
         if namesTable, let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
             return value
         }
-        return bundleTables.fallbackString(for: key, tableName: nil, bundle: nil) ?? key
+        return bundleTables.fallbackString(for: key, tableName: nil, bundle: nil)
     }
 
     /// TUIkit's own word for one of its own keys — the lookup TUIkit's
@@ -335,6 +340,39 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// Last, the two tables as Foundation picks them for the bundle, and then
     /// the key itself.
+        if let swiftUIKey,
+            let value = _appFallback(swiftUIKey, namesTable: namesTable, tableName: tableName, bundle: bundle)
+        {
+            return value
+        }
+        return _appFallback(key, namesTable: namesTable, tableName: tableName, bundle: bundle) ?? key
+    }
+
+    /// `key` in `code` as ``string(for:swiftUIKey:tableName:bundle:)`` reads
+    /// it: the named table, the strings the app registered, the app's
+    /// `Localizable` table, and TUIkit's own where `readsTUIkit` (not for a
+    /// key spelt as SwiftUI spells it, which none of TUIkit's is). Called
+    /// under the lock.
+    private func _appValue(
+        _ key: String, in code: String, namesTable: Bool, tableName: String?, bundle: Bundle?, readsTUIkit: Bool
+    ) -> String? {
+        if namesTable, let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: code) {
+            return value
+        }
+        if let value = appTranslations[code]?[key] {
+            return value
+        }
+        // The app's table costs a stored Bool for an app that ships none.
+        if let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: code) {
+            return value
+        }
+        return readsTUIkit ? _tuikitValue(key, in: code) : nil
+    }
+
+    /// `key` in the tables as Foundation picks them for the bundle, the named
+    /// one first: the last places ``string(for:swiftUIKey:tableName:bundle:)``
+    /// looks. Called under the lock.
+    private func _appFallback(_ key: String, namesTable: Bool, tableName: String?, bundle: Bundle?) -> String? {
     ///
     /// - Parameter key: One of TUIkit's keys (`LocalizationKey`'s raw values).
     /// - Returns: The localized string, or the key if not found.

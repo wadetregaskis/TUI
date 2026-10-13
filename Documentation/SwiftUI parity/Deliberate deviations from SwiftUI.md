@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12, E3, T10 and V7 are to change, and T8 keeps its filter and gains a bell. |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12, E3 and V7 are to change, T8 keeps its filter and gains a bell, and T10 is closed (an interpolated key is looked up as SwiftUI spells it too). |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -879,24 +879,6 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [DatePicker.swift](../../Sources/TUIkitPickers/Views/DatePicker.swift#L43-L55),
   [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Recorded.**
 
-### T10. An interpolated key holds `%@` for every value
-
-- **SwiftUI:** the key of `Text("Moved \(n) rows to \(s)")` is
-  `Moved %lld rows to %@`: an integer is `%lld`, a `Double` `%lf`, and
-  `specifier: "%.2f"` keeps `%.2f` (measured 2026-10-12, macOS 15.8, session
-  notes `CRIT/DEVS/probe`). A String Catalog extracted from SwiftUI code is
-  keyed that way.
-- **TUIkit:** every interpolated value is `%@` in the key, the specifier form
-  included, so that key is `Moved %@ rows to %@`. A translation's own `%lld`
-  is substituted, but a catalog keyed by SwiftUI's specifiers is not found.
-- **Why:** one key per sentence whatever the values' types, formatted at once
-  in the current locale.
-- **Decided:** [LocalizedStringKey.swift](../../Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift#L500-L511),
-  [Localization](../../Sources/TUIkit/TUIkit.docc/Articles/Localization.md#L137-L141),
-  [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Owner** (2026-10-13): normalise the
-  specifiers at lookup, so a catalog keyed as SwiftUI keys it is found;
-  [slated](#slated-to-change).
-
 ---
 
 ## Colour and drawing
@@ -1534,7 +1516,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | The built-in stacks ignore `layoutPriority` (L12) | [L12](#l12-layoutpriority-is-read-only-by-a-custom-layout) | Owner 2026-10-13: support it properly; lane owed |
 | `textContentType`'s filter drops characters silently, and `.emailAddress` drops some valid ones (T8) | [T8](#t8-textcontenttype-filters-what-can-be-typed) | Owner 2026-10-13: keep the filter, ring the bell for a dropped character, admit every valid character; lane owed |
-| An interpolated key holds `%@` for every value (T10) | [T10](#t10-an-interpolated-key-holds--for-every-value) | Owner 2026-10-13: normalise the specifiers at lookup; lane owed |
 | `\.locale` has no region (E3) | [E3](#e3-locale-is-the-apps-language-without-a-region) | Owner 2026-10-13: the app's language with the user's region; lane owed |
 | A `Picker` or a text field's suggestions find nothing inside a view of the app's own, a `Section`, a `Group`, an `AnyView`, or behind a modifier after `.tag` (V7) | [V7](#v7-a-picker-does-not-find-options-inside-a-view-of-the-apps-own) | Owner 2026-10-13: fix, through the member resolution; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |

@@ -230,7 +230,12 @@ struct LocalizedStringKeyTests {
         let one: LocalizedStringKey = "Rows: \(1)"
         let two: LocalizedStringKey = "Rows: \(2)"
         #expect(one != two)
-        #expect(one == LocalizedStringKey(key: "Rows: %@", arguments: ["1"]))
+        #expect(one == LocalizedStringKey(key: "Rows: %@", swiftUIKey: "Rows: %lld", arguments: ["1"]))
+        // The same template and argument from a String is another lookup: only
+        // the Int's finds a catalog keyed `Rows: %lld`, as SwiftUI keys it.
+        let fromString: LocalizedStringKey = "Rows: \("1")"
+        #expect(fromString.key == one.key && fromString.arguments == one.arguments)
+        #expect(one != fromString)
     }
 
     @Test("A width counts cells, not graphemes")

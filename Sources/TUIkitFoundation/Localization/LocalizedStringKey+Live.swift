@@ -62,7 +62,7 @@ extension LocalizedStringKey.StringInterpolation {
     /// now as the argument everything but a `Text` uses, and the source beside
     /// it for the `Text`.
     mutating func appendLive(_ source: some LiveTextSource) {
-        key += "%@"
+        appendPlaceholder("%@")
         liveArguments[arguments.count] = LiveTextBox(source)
         arguments.append(source.text(at: Date(), in: .current))
     }
@@ -84,13 +84,15 @@ struct LocalizedKeySource: LiveTextSource, Equatable {
         for (index, live) in key.liveArguments where arguments.indices.contains(index) {
             arguments[index] = live.source.text(at: date, in: environment)
         }
-        let template = LocalizationService.shared.string(for: key.key, tableName: tableName, bundle: bundle)
+        let template = LocalizationService.shared.string(
+            for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
         return arguments.isEmpty ? template : LocalizedStringKey.substituting(arguments, into: template)
     }
 
     /// Each live argument's ladder, substituted rung by rung.
     func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
-        let template = LocalizationService.shared.string(for: key.key, tableName: tableName, bundle: bundle)
+        let template = LocalizationService.shared.string(
+            for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
         let ladders = key.arguments.indices.map { index -> [String] in
             guard let live = key.liveArguments[index] else { return [key.arguments[index]] }
             return live.source.sizeVariants(at: date, in: environment)

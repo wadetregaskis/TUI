@@ -141,7 +141,11 @@ Text("Moved \(count) rows to \(destination)")
 // key: "Moved %@ rows to %@"
 ```
 
-Register that key once and every value reuses it. A translation may reorder
+Register that key once and every value reuses it. The key is also looked up
+as SwiftUI spells it, first: an integer as `%lld` (`%d` for an `Int32` and
+smaller, `%llu`/`%u` unsigned), a `Double` as `%lf`, a `Float` as `%f`, and a
+`specifier:` as written, so `"Moved %lld rows to %@"` — the key a String
+Catalog extracted from SwiftUI code holds — is found too. A translation may reorder
 the values with `%2$@`, since word order differs between languages, and values
 are converted eagerly — `\(value, format: .percent)` works. A key with **no**
 interpolations is never scanned for placeholders, so `Text("100% done")` says

@@ -62,6 +62,15 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// The lookup key: the literal, with `%@` where each interpolation was.
     package let key: String
 
+    /// The key as SwiftUI spells it, where that differs from ``key``: each
+    /// interpolated number as the printf conversion SwiftUI writes for its type
+    /// (`%lld` for an `Int`, `%lf` for a `Double`, `%d` for an `Int32`, …) and a
+    /// `specifier:` as it was written, where ``key`` has `%@` for every value
+    /// (`Tools/SwiftUIProbes/Localization keys/keys.out`). A String Catalog
+    /// extracted from SwiftUI code is keyed this way, so it is looked up first;
+    /// `nil` when every value is `%@` in SwiftUI's key too.
+    package let swiftUIKey: String?
+
     /// The interpolated values, already converted to text.
     package let arguments: [String]
 
@@ -76,12 +85,14 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// - Parameter value: The key to look up.
     public init(_ value: String) {
         self.key = value
+        self.swiftUIKey = nil
         self.arguments = []
         self.liveArguments = [:]
     }
 
-    init(key: String, arguments: [String], liveArguments: [Int: LiveTextBox] = [:]) {
+    init(key: String, swiftUIKey: String? = nil, arguments: [String], liveArguments: [Int: LiveTextBox] = [:]) {
         self.key = key
+        self.swiftUIKey = swiftUIKey
         self.arguments = arguments
         self.liveArguments = liveArguments
     }
@@ -92,7 +103,7 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// - Parameter service: Where to look the key up.
     /// - Returns: The text to display.
     package func resolved(with service: LocalizationService) -> String {
-        let template = service.string(for: key)
+        let template = service.string(for: key, swiftUIKey: swiftUIKey, tableName: nil, bundle: nil)
         guard !arguments.isEmpty else { return template }
         return Self.substituting(arguments, into: template)
     }
@@ -381,7 +392,8 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
 
     public init(stringInterpolation: StringInterpolation) {
         self.init(
-            key: stringInterpolation.key, arguments: stringInterpolation.arguments,
+            key: stringInterpolation.key, swiftUIKey: stringInterpolation.swiftUIKey,
+            arguments: stringInterpolation.arguments,
             liveArguments: stringInterpolation.liveArguments)
     }
 
@@ -391,6 +403,10 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         public typealias StringLiteralType = String
 
         var key = ""
+        /// ``LocalizedStringKey/swiftUIKey`` as it is built: `nil` until a
+        /// value whose conversion in SwiftUI's key is not `%@` arrives, then
+        /// ``key`` so far with that conversion, and kept in step from there.
+        var swiftUIKey: String?
         var arguments: [String] = []
         var liveArguments: [Int: LiveTextBox] = [:]
 
@@ -419,15 +435,41 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             // byte scan only skips searches that would answer no; whenever
             // the byte is there, Foundation still decides, as before.
             if literal.utf8.contains(UInt8(ascii: "%")), literal.contains("%") {
-                key += literal.replacingOccurrences(of: "%", with: "%%")
+                let escaped = literal.replacingOccurrences(of: "%", with: "%%")
+                key += escaped
+                swiftUIKey? += escaped
             } else {
                 key += literal
+                swiftUIKey? += literal
             }
+        }
+
+        /// Appends the placeholder of one interpolated value: `%@` to ``key``,
+        /// and `conversion` — what SwiftUI's key holds for it — to
+        /// ``swiftUIKey``, which starts as a copy of ``key`` the first time the
+        /// two differ.
+        mutating func appendPlaceholder(_ conversion: String) {
+            if swiftUIKey == nil, conversion != "%@" { swiftUIKey = key }
+            key += "%@"
+            swiftUIKey? += conversion
+        }
+
+        /// The conversion SwiftUI's key holds for a value of `type` interpolated
+        /// on its own: an integer's or a floating-point number's printf
+        /// conversion, `%@` for anything else (measured on macOS 15.8,
+        /// `Tools/SwiftUIProbes/Localization keys/keys.out`).
+        static func swiftUIConversion(for type: Any.Type) -> String {
+            if type == Int.self || type == Int64.self { return "%lld" }
+            if type == Double.self || type == CGFloat.self { return "%lf" }
+            if type == Int32.self || type == Int16.self || type == Int8.self { return "%d" }
+            if type == UInt.self || type == UInt64.self { return "%llu" }
+            if type == UInt32.self || type == UInt16.self || type == UInt8.self { return "%u" }
+            if type == Float.self { return "%f" }
+            return "%@"
         }
 
         /// Interpolates any value, as `String(describing:)` would render it.
         public mutating func appendInterpolation(_ value: some Any) {
-            key += "%@"
             // The two commonest arguments, answered as `String(describing:)`
             // answers them — a String is itself, an Int its decimal digits —
             // without its conformance probes: a dynamic cast each for
@@ -441,10 +483,13 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             // unwraps that Optional. Behind the test it is the same-type cast,
             // which cannot fail.
             if type(of: value) == String.self, let string = value as? String {
+                appendPlaceholder("%@")
                 arguments.append(string)
             } else if type(of: value) == Int.self, let number = value as? Int {
+                appendPlaceholder("%lld")
                 arguments.append(String(number))
             } else {
+                appendPlaceholder(Self.swiftUIConversion(for: type(of: value)))
                 arguments.append(String(describing: value))
             }
         }
@@ -476,7 +521,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
                 appendLive(TextRunsSource(runs: runs))
                 return
             }
-            key += "%@"
+            appendPlaceholder("%@")
             arguments.append(text.content)
         }
 
@@ -499,14 +544,14 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         ///
         /// Formatted at once, in the current locale, as `Text(_:format:)`
         /// formats. The key carries `%@` where the value goes, like every other
-        /// interpolation here, where SwiftUI's carries the specifier itself;
-        /// the two differ only in what a translation table must be keyed by.
+        /// interpolation here, and ``LocalizedStringKey/swiftUIKey`` the
+        /// specifier itself, as SwiftUI's key does; both are looked up.
         ///
         /// - Parameters:
         ///   - value: The value to format.
         ///   - specifier: The format specifier, such as `%.2f` or `%x`.
         public mutating func appendInterpolation<T: CVarArg>(_ value: T, specifier: String) {
-            key += "%@"
+            appendPlaceholder(specifier)
             arguments.append(String(format: specifier, locale: .current, value))
         }
 
@@ -515,7 +560,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         public mutating func appendInterpolation<F: FormatStyle>(
             _ value: F.FormatInput, format: F
         ) where F.FormatInput: Equatable, F.FormatOutput == String {
-            key += "%@"
+            appendPlaceholder("%@")
             arguments.append(format.format(value))
         }
 
@@ -525,7 +570,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         public mutating func appendInterpolation<F: FormatStyle>(
             _ input: F.FormatInput, format: F
         ) where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
-            key += "%@"
+            appendPlaceholder("%@")
             arguments.append(String(format.format(input).characters))
         }
 
@@ -537,7 +582,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         public mutating func appendInterpolation<F: DiscreteFormatStyle>(
             _ input: F.FormatInput, format: F
         ) where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
-            key += "%@"
+            appendPlaceholder("%@")
             arguments.append(String(format.format(input).characters))
         }
     }

@@ -1,0 +1,30 @@
+Int	v %lld
+Int8	v %d
+Int16	v %d
+Int32	v %d
+Int64	v %lld
+UInt	v %llu
+UInt8	v %u
+UInt16	v %u
+UInt32	v %u
+UInt64	v %llu
+Float	v %f
+Double	v %lf
+CGFloat	v %lf
+String	v %@
+Substring	v %@
+Text	v %@
+Image	v %@
+AttributedString	v %@
+Date style	v %@
+Date format	v %@
+Double format	v %@
+Int specifier %d	v %d
+Double specifier %.2f	v %.2f
+Int specifier %x	v %x
+NSNumber	v %@
+NSNumber formatter	v %@
+URL (ReferenceConvertible)	v %@
+Date range	v %@
+percent literal	100%% %lld
+two	%lld of %lf and %@

@@ -208,6 +208,18 @@ messages cite that path), and what cites it.
   `Sources/TUIkitView/State/DynamicTypes.swift`, `Sources/TUIkitView/State/State.swift` (`stamp.out`);
   `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`.
 
+### Localization keys
+
+- **Asks:** what key SwiftUI's `LocalizedStringKey` records for each kind of interpolated value — every integer
+  and floating-point width, `CGFloat`, `String`, `Text`, `Image`, `AttributedString`, a date style, format styles,
+  `specifier:`, `NSNumber` with and without a formatter, a `ReferenceConvertible`, a date range, and a literal `%`
+  beside a number — read from the key's stored `key` field (`keys.swift`, `keys.out`). No view is drawn.
+- **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
+- **Was:** `T10/probe/`.
+- **Cited by:** `Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift`;
+  `Tests/TUIkitTests/SwiftUIKeySpellingTests.swift`; `Sources/TUIkit/TUIkit.docc/Articles/Localization.md`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
 ### Animation curves, springs and keyframes
 
 - **Asks:** what SwiftUI's animation types compute, with no view: whether each transition has motion
