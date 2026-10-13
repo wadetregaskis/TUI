@@ -1256,7 +1256,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** the owner's ruling is to keep the reader's place when rows arrive
   above, and a list is where that matters most; one rule for every scrollable.
 - **Decided:** [A-SCROLLANCHOR-1](<Decisions/Scroll anchoring default (SCROLLANCHOR).md#a-scrollanchor-1-list-and-table-hold-their-top-row-where-macoss-list-does-not>).
-  **Under review.**
+  **Owner** (2026-10-13: one rule for every scrollable, and the place, not the
+  offset, is the better default).
 
 ### R14. Removing rows above the top row does not move the rows on screen
 

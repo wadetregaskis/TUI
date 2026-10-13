@@ -1483,9 +1483,11 @@ for a seek, or for a change made under "no adjustment".
 `.scrollWindowHold(.offset)` (TUI-specific: no SwiftUI spelling expresses it,
 measured) keeps the offset in lines, the old default. Design in `Scroll
 anchoring.md` §5; the lane's own entries in [Scroll anchoring default
-(SCROLLANCHOR).md](<Scroll anchoring default (SCROLLANCHOR).md>), one of them
-yours: A-SCROLLANCHOR-1, whether `List` and `Table` should hold as they now do
-or keep their offset as macOS's `List` does (measured). Cost: an A/B is owed.
+(SCROLLANCHOR).md](<Scroll anchoring default (SCROLLANCHOR).md>), among them
+A-SCROLLANCHOR-1: `List` and `Table` hold as the stacks do, though macOS's
+`List` keeps its offset (measured); you kept that on 2026-10-13, for one rule
+across scrollables. Cost: neutral in the A/B (no scenario past +0.8%,
+2026-10-13).
 
 ### B31. Bounce behaviour gates the overscroll allowance
 

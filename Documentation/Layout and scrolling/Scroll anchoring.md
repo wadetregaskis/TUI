@@ -748,9 +748,9 @@ scroll position in line coordinates instead — slice 1's Window exactly.
 
 Two things go further than SwiftUI and are recorded as deliberate deviations:
 `List` and `Table` hold, where macOS's `List` does not (R13; decisions
-A-SCROLLANCHOR-1 asks whether to keep that), and a removal above, or a row above
-growing, is held as an insertion is (R14) — "the reader's place" does not
-depend on which way the rows above changed.
+A-SCROLLANCHOR-1, kept by the owner on 2026-10-13), and a removal above, or a
+row above growing, is held as an insertion is (R14) — "the reader's place" does
+not depend on which way the rows above changed.
 
 ### What it reverses of slice 1, and why
 

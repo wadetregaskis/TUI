@@ -41,6 +41,11 @@ About an hour with the tests. **Recommendation:** keep what shipped; a
 terminal list that jumps when a log above it grows is the case the ruling was
 about, and the switch is one modifier either way.
 
+**Owner, 2026-10-13: keep what shipped.** "I feel like they should be
+consistent, unless there's some apparent reason why not? And keeping the place
+(not the offset) seems like a better default." `List` and `Table` hold their
+top row as the lazy stacks do.
+
 ## B. Shipped the safe option
 
 ### B-SCROLLANCHOR-1. A removal above, and a row above growing, are held as an insertion is
