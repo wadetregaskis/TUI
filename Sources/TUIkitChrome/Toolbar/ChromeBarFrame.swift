@@ -128,6 +128,14 @@ extension _ChromeBarFrame: Renderable {
         {
             framed.opacityRegions.append(claim)
         }
+        // The rule, or the box's rules, are drawn over what the content draws
+        // past its region, as a box's border is; past them it is still drawn
+        // (decisions-GUIDE3 B-GUIDE3-5).
+        if style == .bordered {
+            framed.coverOverflowUnderBorder(innerWidth: max(0, width - BorderRenderer.borderWidthOverhead))
+        } else if let ruleRow {
+            framed.coverOverflow(underRects: [(x: 0, y: ruleRow, width: width, height: 1)])
+        }
         return framed
     }
 }

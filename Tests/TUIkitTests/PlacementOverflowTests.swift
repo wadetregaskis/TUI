@@ -18,6 +18,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitApp
+@testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
@@ -447,6 +448,33 @@ struct PlacementOverflowTests {
             .tabViewStyle(.bordered))
         #expect(lines.contains { $0.hasPrefix("│") && $0.contains("aaaa") }, "\(lines)")
         #expect(staysInsideItsBorders(lines), "\(lines)")
+    }
+
+    @Test("A window bar's rules are drawn over what its content draws past its region")
+    func barRulesOverItsContentsOverflow() {
+        // A bar frames content laid out before it: a badge hung below its
+        // label lands on a ruled bar's rule, and a hanging marker pushes its
+        // line onto a bordered bar's right wall. Both drew over the rule.
+        let tui = TUIContext()
+        func bar(_ content: some View, style: ChromeStyle, height: Int) -> [String] {
+            let inner = RenderContext(availableWidth: 10, availableHeight: 2, tuiContext: tui)
+            let frame = _ChromeBarFrame(contentBuffer: renderToBuffer(content, context: inner), style: style)
+            let drawn = renderToBuffer(frame, context: RenderContext(availableWidth: 12, availableHeight: height, tuiContext: tui))
+            return drawn.compositingOverlays(maxWidth: 12, maxHeight: height, palette: EnvironmentValues().palette)
+                .lines.map(\.stripped)
+        }
+        let ruled = bar(
+            Text("hhhh").overlay(alignment: .bottomLeading) { Text("YY").alignmentGuide(.bottom) { _ in 0 } },
+            style: .rule, height: 2)
+        #expect(!ruled.contains { $0.contains("Y") }, "\(ruled)")
+        let boxed = bar(
+            VStack(alignment: .leading, spacing: 0) {
+                Text("100").alignmentGuide(.leading) { $0[.trailing] }
+                Text(String(repeating: "a", count: 10))
+            },
+            style: .bordered, height: 4)
+        #expect(boxed.contains { $0.hasPrefix("│") && $0.contains("aaaa") }, "\(boxed)")
+        #expect(staysInsideItsBorders(boxed), "\(boxed)")
     }
 
     @Test("A surface keeps its content's overflow inside its box")
