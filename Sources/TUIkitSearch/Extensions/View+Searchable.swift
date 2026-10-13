@@ -132,11 +132,12 @@ extension View {
     ///     }
     /// ```
     ///
-    /// A suggestion is a `Text` (its string is what the field is filled with),
-    /// any view carrying a ``View/searchCompletion(_:)-(String)``, or a ``Divider``
-    /// between groups — the same vocabulary
-    /// ``View/textInputSuggestions(_:)`` accepts, because it is the same menu
-    /// underneath. The builder is re-evaluated every render, so filtering the
+    /// Each view the builder makes is a suggestion, wherever it is written —
+    /// in a view of your own, a `Group`, an `if`, a `ForEach` — and fills the
+    /// field with its text, or with what ``View/searchCompletion(_:)-(String)``
+    /// gives it; a ``Divider`` is a rule between groups, and so is the edge of
+    /// a `Section` — the same reading ``View/textInputSuggestions(_:)`` gives
+    /// its builder, because it is the same menu underneath. The builder is re-evaluated every render, so filtering the
     /// suggestions against the current query is a matter of filtering the data
     /// you build them from.
     ///
@@ -151,7 +152,7 @@ extension View {
     public func searchSuggestions<S: View>(
         @ViewBuilder _ suggestions: () -> S
     ) -> some View {
-        environment(\.searchSuggestions, .offering(extractTextSuggestions(suggestions())))
+        _TextSuggestionsReader(content: self, suggestions: suggestions(), keyPath: \.searchSuggestions)
     }
 
     /// Associates a completed query with this view when it is used as a search
@@ -199,7 +200,7 @@ extension View {
     /// - Parameter token: The token added when this suggestion is chosen.
     /// - Returns: A view carrying the token for the suggestions menu.
     public func searchCompletion<T: Identifiable>(_ token: T) -> some View {
-        _SearchTokenCompletionView(token: token, content: self)
+        containerValue(\.searchTokenCompletion, SearchTokenCompletion(token: token))
     }
 }
 

@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: V7 is to change, T8 keeps its filter and gains a bell, and L12, T10 and E3 are closed (the stacks give space by `layoutPriority`; an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region). L14, found the same day, awaits a ruling. |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: T8 keeps its filter and gains a bell, and L12, T10, E3 and V7 are closed (the stacks give space by `layoutPriority`; an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region; a picker's options and a text field's suggestions are read through the member resolution). L14, found the same day, awaits a ruling. |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -1351,27 +1351,6 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<Decisions/SwiftUI API completion decisions.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
 | A live text with an attributed format | (a custom style's colours: not measured) | draws the characters only | [B88](<Decisions/SwiftUI API completion decisions.md#b88-a-live-text-with-an-attributed-format-draws-the-characters-only>), **Lane** |
 
-### V7. A text field's suggestions are not found inside a view of the app's own
-
-- **SwiftUI:** a `Picker`'s options, and a text field's suggestions, may be
-  factored into a view of the app's own (not measured).
-- **TUIkit:** a `Picker` reads its options through its content's members
-  since 2026-10-13, as `Group(subviews:)` resolves them, and finds them in a
-  view of the app's own, a `Section`, a `Group` or an `AnyView`, and behind a
-  modifier after `.tag`. A text field's suggestions are still read by a walk
-  of their own that does not evaluate a view of the app's own, so
-  suggestions in one are not offered. A `Form` reads through a view of the
-  app's own only when its body is several views, a loop, an `if` or a
-  section.
-- **Why:** not recorded, and not a choice: the suggestions' walk, like the
-  picker's before it (a closed list of seven view types), predates the member
-  resolution that `List` and `Group(subviews:)` use. A `Section`, a `Group`, an `AnyView` and a
-  modifier after `.tag` drop options too (read from the code, 2026-10-13).
-- **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Subviews row, under "Differs").
-  **Owner** (2026-10-13): fix it: options and suggestions are to be read
-  through the member resolution, the tag kept as a trait through later
-  modifiers, and a `Section` an option group; [slated](#slated-to-change).
-
 ---
 
 ## Presentation and window chrome
@@ -1499,7 +1478,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | A stack resolves `spacing: nil` once, not per pair of views | [B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>) | Owner 2026-10-12: attempt the fuller version |
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
-| A text field's suggestions find nothing inside a view of the app's own, a `Section`, a `Group`, an `AnyView`, or behind a modifier (V7) | [V7](#v7-a-text-fields-suggestions-are-not-found-inside-a-view-of-the-apps-own) | Owner 2026-10-13: fix, through the member resolution, as the `Picker` now does; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |

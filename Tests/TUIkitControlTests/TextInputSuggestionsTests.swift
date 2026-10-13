@@ -24,6 +24,12 @@ import TUIkit
 @Suite("Text-input suggestion extraction")
 struct TextSuggestionExtractionTests {
 
+    /// The entries of `suggestions`, resolved as a field's modifier resolves
+    /// them.
+    private func entries(_ suggestions: some View) -> [_TextSuggestionEntry] {
+        textSuggestionEntries(of: suggestions, in: makeRenderContext(width: 40, height: 12))
+    }
+
     private func kinds(_ entries: [_TextSuggestionEntry]) -> [String] {
         entries.map { entry in
             switch entry {
@@ -41,14 +47,14 @@ struct TextSuggestionExtractionTests {
             Divider()
             Text("labelled").textInputCompletion("expanded value")
         }
-        let entries = extractTextSuggestions(content())
-        #expect(kinds(entries) == ["option", "divider", "option"])
-        guard case .option(let completion, _) = entries[2] else {
+        let found = entries(content())
+        #expect(kinds(found) == ["option", "divider", "option"])
+        guard case .option(let completion, _) = found[2] else {
             Issue.record("expected an option entry")
             return
         }
         #expect(completion == "expanded value")
-        guard case .option(let derived, _) = entries[0] else {
+        guard case .option(let derived, _) = found[0] else {
             Issue.record("expected an option entry")
             return
         }
@@ -65,8 +71,7 @@ struct TextSuggestionExtractionTests {
             Text("b")
             Divider()
         }
-        let entries = extractTextSuggestions(content())
-        #expect(kinds(entries) == ["option", "divider", "option"])
+        #expect(kinds(entries(content())) == ["option", "divider", "option"])
     }
 
     @Test("ForEach and conditional groups contribute entries")
@@ -79,9 +84,9 @@ struct TextSuggestionExtractionTests {
                 Text("recent")
             }
         }
-        #expect(kinds(extractTextSuggestions(suggestions(withRecents: true)))
+        #expect(kinds(entries(suggestions(withRecents: true)))
             == ["option", "option", "divider", "option"])
-        #expect(kinds(extractTextSuggestions(suggestions(withRecents: false)))
+        #expect(kinds(entries(suggestions(withRecents: false)))
             == ["option", "option"])
     }
 }

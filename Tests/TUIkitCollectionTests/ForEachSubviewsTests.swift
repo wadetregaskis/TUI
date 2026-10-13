@@ -166,16 +166,16 @@ struct ForEachSubviewsTests {
 
     // MARK: - The walks that read rows without drawing them
 
-    /// `List`, `Form` and suggestions ask a `ForEach` for its rows without a
-    /// context; a loop over subviews has none to give them, and must give none
-    /// rather than rows it cannot account for. (A `Picker` reads its content's
-    /// members in the context it is drawn in, so it sees the loop's; a
-    /// `TabView` takes tabs, which a loop over subviews is not, so it does not
-    /// compile there.)
-    @Test("A walk without a context sees no rows")
+    /// `List` and `Form` ask a `ForEach` for its rows without a context; a
+    /// loop over subviews has none to give them, and must give none rather
+    /// than rows it cannot account for. (A `Picker` and a text field's
+    /// suggestions read their content's members in the context they are drawn
+    /// in, so they see the loop's; a `TabView` takes tabs, which a loop over
+    /// subviews is not, so it does not compile there.)
+    @Test("A walk without a context sees no rows, and suggestions, read in one, see the loop's")
     func contextlessWalksSeeNothing() {
         let loop = ForEach(subviews: Group { Text("a"); Text("b") }) { $0 }
-        #expect(loop.textSuggestions().isEmpty)
+        #expect(textSuggestionEntries(of: loop, in: makeRenderContext(width: 10, height: 4)).count == 2)
         #expect(loop.extractFormElements(in: makeRenderContext(width: 10, height: 4)).isEmpty)
         #expect(loop.listRowCount == 0)
         #expect(loop.keyedElementCount == 0)

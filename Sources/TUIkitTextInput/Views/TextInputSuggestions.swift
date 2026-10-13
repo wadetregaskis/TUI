@@ -30,137 +30,48 @@ package enum _TextSuggestionEntry {
     case divider
 }
 
-// MARK: - Suggestion Extraction
+// MARK: - What a Suggestion Carries
 
-/// A protocol for views that can contribute entries to
-/// ``View/textInputSuggestions(_:)``.
-///
-/// This mirrors the `PickerOptionProvider` pattern: rather than reflecting
-/// over the view tree, each view type that may appear inside a suggestions
-/// builder declares how to surface its entries. Views that don't conform
-/// (arbitrary containers, images, …) contribute nothing — a suggestion is a
-/// `Text`, any view wrapped in ``View/textInputCompletion(_:)``, or a
-/// ``Divider``.
-@MainActor
-protocol TextSuggestionProvider {
-    /// Extracts the suggestion entries contained in this view.
-    func textSuggestions() -> [_TextSuggestionEntry]
+/// The completion ``View/textInputCompletion(_:)`` gives a suggestion. A
+/// container value, so it is found through every modifier written after it,
+/// as a picker option's tag is.
+private struct TextInputCompletionKey: ContainerValueKey {
+    static var defaultValue: String? { nil }
 }
 
-extension Text: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        // The completion is derived from the rendered label (its plain
-        // string content) when the field builds the menu.
-        [.option(completion: nil, label: AnyView(self))]
-    }
+/// The search token `searchCompletion(_:)` gives a suggestion, a container
+/// value as the completion is.
+private struct SearchTokenCompletionKey: ContainerValueKey {
+    static var defaultValue: SearchTokenCompletion? { nil }
 }
 
-extension Divider: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        [.divider]
-    }
-}
-
-extension EmptyView: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        []
-    }
-}
-
-extension TupleView: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        var result: [_TextSuggestionEntry] = []
-        func collect<Child: View>(_ view: Child) {
-            if let provider = view as? TextSuggestionProvider {
-                result.append(contentsOf: provider.textSuggestions())
-            }
-        }
-        repeat collect(each children)
-        return result
-    }
-}
-
-extension ForEach: TextSuggestionProvider where Content: View {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        data.flatMap { element -> [_TextSuggestionEntry] in
-            if let provider = content(element) as? TextSuggestionProvider {
-                return provider.textSuggestions()
-            }
-            return []
-        }
-    }
-}
-
-extension ConditionalView: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        switch self {
-        case .trueContent(let content):
-            (content as? TextSuggestionProvider)?.textSuggestions() ?? []
-        case .falseContent(let content):
-            (content as? TextSuggestionProvider)?.textSuggestions() ?? []
-        }
-    }
-}
-
-extension Optional: TextSuggestionProvider where Wrapped: View {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        self.flatMap { ($0 as? TextSuggestionProvider)?.textSuggestions() } ?? []
-    }
-}
-
-// MARK: - Explicit Completions
-
-/// A view that associates an explicit completion string with its content,
-/// for use inside ``View/textInputSuggestions(_:)``.
-///
-/// - Important: Framework infrastructure. Created by
-///   ``View/textInputCompletion(_:)``; do not instantiate directly.
-public struct _TextCompletionView<Content: View>: View {
-    /// The text inserted into the field when this suggestion is picked.
-    let completion: String
-
-    /// The suggestion's label view.
-    let content: Content
-
-    public var body: some View {
-        content
-    }
-}
-
-extension _TextCompletionView: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        [.option(completion: completion, label: AnyView(content))]
-    }
-}
-
-/// A view that associates a search token with its content, for use inside
-/// ``View/searchSuggestions(_:)``.
-///
-/// - Important: Framework infrastructure. Created by `searchCompletion(_:)`
-///   given a token; do not instantiate directly.
-public struct _SearchTokenCompletionView<Content: View, Token: Identifiable>: View {
-    /// The token added to the search field when this suggestion is chosen.
-    let token: Token
-
-    /// The suggestion's label view.
-    let content: Content
+/// A search token, erased: boxed, so that reading it back is one cast to this
+/// type rather than a cast to an optional of `Any`.
+package struct SearchTokenCompletion {
+    /// The token itself.
+    package let token: Any
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitSearch makes these (`searchCompletion(_:)` given a
     /// token).
-    package init(token: Token, content: Content) {
+    package init(token: Any) {
         self.token = token
-        self.content = content
-    }
-
-    public var body: some View {
-        content
     }
 }
 
-extension _SearchTokenCompletionView: TextSuggestionProvider {
-    func textSuggestions() -> [_TextSuggestionEntry] {
-        [.token(token, label: AnyView(content))]
+extension ContainerValues {
+    /// The text a suggestion fills its field with, where
+    /// ``View/textInputCompletion(_:)`` gave one.
+    package var textInputCompletion: String? {
+        get { self[TextInputCompletionKey.self] }
+        set { self[TextInputCompletionKey.self] = newValue }
+    }
+
+    /// The search token a suggestion adds, where `searchCompletion(_:)` gave
+    /// one.
+    package var searchTokenCompletion: SearchTokenCompletion? {
+        get { self[SearchTokenCompletionKey.self] }
+        set { self[SearchTokenCompletionKey.self] = newValue }
     }
 }
 
@@ -183,7 +94,7 @@ extension View {
     ///   suggestion is picked.
     /// - Returns: A view carrying the completion for the suggestions menu.
     public func textInputCompletion(_ completion: String) -> some View {
-        _TextCompletionView(completion: completion, content: self)
+        containerValue(\.textInputCompletion, completion)
     }
 }
 
@@ -352,9 +263,11 @@ extension View {
     /// combo-box pattern: a field that accepts free text *and* offers a menu
     /// of pre-defined or recent values.
     ///
-    /// Suggestions are `Text` views (their string is the completion), any
-    /// view wrapped in ``View/textInputCompletion(_:)`` (an explicit
-    /// completion), and ``Divider``s separating groups:
+    /// Each view the builder makes is a suggestion, wherever it is written —
+    /// in a view of your own, a `Group`, an `if`, a `ForEach` — and fills the
+    /// field with its text, or with the completion
+    /// ``View/textInputCompletion(_:)`` gives it. A ``Divider`` is a rule
+    /// between groups, and so is the edge of a `Section`:
     ///
     /// ```swift
     /// TextField("City", text: $city)
@@ -389,8 +302,7 @@ extension View {
     public func textInputSuggestions<S: View>(
         @ViewBuilder _ suggestions: () -> S
     ) -> some View {
-        environment(
-            \.textInputSuggestions, .offering(extractTextSuggestions(suggestions())))
+        _TextSuggestionsReader(content: self, suggestions: suggestions(), keyPath: \.textInputSuggestions)
     }
 
     /// Presents input suggestions built from a collection of identifiable
@@ -404,9 +316,8 @@ extension View {
         _ suggestions: Data,
         @ViewBuilder content: @escaping (Data.Element) -> Content
     ) -> some View where Data.Element: Identifiable {
-        environment(
-            \.textInputSuggestions,
-            .offering(extractTextSuggestions(ForEach(suggestions, content: content))))
+        _TextSuggestionsReader(
+            content: self, suggestions: ForEach(suggestions, content: content), keyPath: \.textInputSuggestions)
     }
 
     /// Presents input suggestions built from a collection of data, identified
@@ -424,23 +335,130 @@ extension View {
         id: KeyPath<Data.Element, ID>,
         @ViewBuilder content: @escaping (Data.Element) -> Content
     ) -> some View {
-        environment(
-            \.textInputSuggestions,
-            .offering(extractTextSuggestions(ForEach(suggestions, id: id, content: content))))
+        _TextSuggestionsReader(
+            content: self, suggestions: ForEach(suggestions, id: id, content: content),
+            keyPath: \.textInputSuggestions)
     }
 }
 
-/// Extracts and normalizes the suggestion entries from a builder's view tree:
-/// adjacent and edge dividers are collapsed so conditional groups never leave
-/// a stray rule in the menu.
+// MARK: - Reading the Suggestions
+
+/// The entries of `suggestions`, in menu order, resolved in `scope` as
+/// ``Group/init(subviews:transform:)`` resolves members
+/// (`subviewGroups(of:in:)`): so a suggestion is found inside a view of the
+/// app's own, a `Group`, an `AnyView`, a `Section` or an `if`, and its
+/// completion or token behind any modifier written after it — where the walk
+/// of seven view types this replaced found none of those (deviation V7, fixed
+/// by the owner's ruling of 2026-10-13).
+///
+/// A ``Divider`` is a rule, and so is the edge of each top-level `Section`
+/// with a header, as in a ``Picker``'s menu; edge and doubled rules are
+/// collapsed, so a group a condition empties leaves none behind. Every other
+/// member is a suggestion: one that adds the token `searchCompletion(_:)`
+/// gave it, or one that fills the field with the completion
+/// ``View/textInputCompletion(_:)`` gave it — or, with neither, its label's
+/// text, read when the field draws the menu.
 @MainActor
-package func extractTextSuggestions<S: View>(_ view: S) -> [_TextSuggestionEntry] {
-    guard let provider = view as? TextSuggestionProvider else { return [] }
-    return DropdownMenu.normalizedEntries(provider.textSuggestions()) { entry in
+package func textSuggestionEntries(of suggestions: some View, in scope: RenderContext) -> [_TextSuggestionEntry] {
+    var entries: [_TextSuggestionEntry] = []
+    for group in subviewGroups(of: suggestions, in: scope) {
+        if !group.header.isEmpty { entries.append(.divider) }
+        for member in group.members {
+            if member.isDivider {
+                entries.append(.divider)
+                continue
+            }
+            let values = member.containerValues
+            if let token = values.searchTokenCompletion {
+                entries.append(.token(token.token, label: AnyView(member)))
+            } else {
+                entries.append(.option(completion: values.textInputCompletion, label: AnyView(member)))
+            }
+        }
+        if !group.header.isEmpty { entries.append(.divider) }
+    }
+    return DropdownMenu.normalizedEntries(entries) { entry in
         if case .divider = entry { return true }
         return false
     }
 }
+
+/// Resolves a suggestions builder's entries in the context it is drawn in, and
+/// publishes them at `keyPath` to the text fields below: what
+/// ``View/textInputSuggestions(_:)`` and `searchSuggestions(_:)` put round
+/// their content.
+///
+/// Resolved where the modifier is, as SwiftUI evaluates the builder there, one
+/// identity step in (this type, 0), so a view of the app's own among the
+/// suggestions keeps its `@State` apart from the content's. The content draws
+/// at the reader's own identity, under the ``EnvironmentModifier`` the reader
+/// makes for each pass — so to the content, and to a container looking
+/// through it, the reader is the `.environment` modifier it was before the
+/// suggestions needed a context to be read in.
+package struct _TextSuggestionsReader<Content: View, Suggestions: View>: View, Renderable, Layoutable {
+    let content: Content
+    let suggestions: Suggestions
+    let keyPath: WritableKeyPath<EnvironmentValues, TextSuggestions>
+
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitSearch makes these (`searchSuggestions(_:)`).
+    package init(
+        content: Content, suggestions: Suggestions, keyPath: WritableKeyPath<EnvironmentValues, TextSuggestions>
+    ) {
+        self.content = content
+        self.suggestions = suggestions
+        self.keyPath = keyPath
+    }
+
+    /// Not used to draw — the ``Renderable`` conformance takes priority — but
+    /// the content, as ``EnvironmentModifier``'s is, so a container asking
+    /// what this view hands over is asked of the content.
+    package var body: some View {
+        content
+    }
+
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        publishing(in: context).sizeThatFits(proposal: proposal, context: context)
+    }
+
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        publishing(in: context).renderToBuffer(context: context)
+    }
+
+    /// The content under the suggestions resolved in `context`.
+    private func publishing(in context: RenderContext) -> EnvironmentModifier<Content, TextSuggestions> {
+        let entries = textSuggestionEntries(of: suggestions, in: context.withChildIdentity(type: Self.self, index: 0))
+        return EnvironmentModifier(content: content, keyPath: keyPath, value: .offering(entries))
+    }
+}
+
+/// An environment value reaches a subtree whether it was set one level up or
+/// two, so publishing the suggestions round each member of multi-view content
+/// is the same as publishing them once round the lot — as for
+/// ``EnvironmentModifier``. Each copy resolves them at its member's identity.
+extension _TextSuggestionsReader: ContentRewrapping {
+    package var wrappedContent: Content { content }
+
+    package func rewrapping<V: View>(_ view: V) -> any View {
+        _TextSuggestionsReader<V, Suggestions>(content: view, suggestions: suggestions, keyPath: keyPath)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``SingleContentWrapper``.
+extension _TextSuggestionsReader: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Body deliberately empty, as above: a section with suggestions on it is
+/// still a section.
+extension _TextSuggestionsReader: SectionPartsProviding where Content: SectionPartsProviding {}
+
+/// Body deliberately empty, as above: a grid row with suggestions on it is
+/// still a row.
+extension _TextSuggestionsReader: GridRowProviding where Content: GridRowProviding {}
+
+/// It draws its content unchanged, at its own identity, so a removal
+/// transition written inside it plays — see `DrawsContentUnchanged`.
+extension _TextSuggestionsReader: DrawsContentUnchanged {}
 
 // MARK: - The Field's Menu
 
