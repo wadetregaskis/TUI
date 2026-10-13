@@ -1212,17 +1212,30 @@ extension MouseEventDispatcher {
     }
 
     /// Whether the hover observer registered this frame as `id` is one a
-    /// pointer can reach: whether a pointer on the first cell of its region
-    /// would be heard by it, rather than by nothing (no such region: the view
-    /// is gone, or clipped away) or by something in front of it that takes
-    /// the hover (a sheet's backdrop, an open menu).
+    /// pointer can reach: whether a pointer on some cell of its regions would
+    /// be heard by it, rather than by nothing (no such region: the view is
+    /// gone, or clipped away) or by something in front of it that takes the
+    /// hover (a sheet's backdrop, an open menu, a hover observer inside it).
     ///
     /// For a tooltip held while the status bar's own rows moved the page
     /// under a resting pointer (`TooltipState.held`): the pointer is not on
     /// its view, so the hover machine reports nothing that happens to it.
+    ///
+    /// Every cell until one is heard, not the first alone: a view whose
+    /// top-left cell something covered was taken for unreachable, and its
+    /// help let go, though the pointer could rest on the rest of it
+    /// (decisions-HELP A-HELP-1, "Left open"). Asked once a frame, and only
+    /// while a help is held.
     package func reachesHoverObserver(_ id: HitTestRegion.HandlerID) -> Bool {
-        guard let region = regions.last(where: { $0.handlerID == id }) else { return false }
-        return resolveHover(at: region.offsetX, y: region.offsetY).observer?.handlerID == id
+        for region in regions where region.handlerID == id {
+            for y in region.offsetY..<(region.offsetY + region.height) {
+                for x in region.offsetX..<(region.offsetX + region.width)
+                where resolveHover(at: x, y: y).observer?.handlerID == id {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     /// The handler ids of every region containing the given (absolute)

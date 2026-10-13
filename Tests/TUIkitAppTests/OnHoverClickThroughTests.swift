@@ -371,4 +371,31 @@ struct HoverReshapeTests {
         frame(withRegionUnderTheCursor: false)
         #expect(events == [.entered, .exited], "and exited when a reshape takes it away: \(events)")
     }
+
+    /// A held help asks whether a pointer could still rest on its view
+    /// (`TooltipState.held`), and the question probed the view's top-left
+    /// cell alone: an observer in front of that one cell made the whole view
+    /// unreachable (decisions-HELP A-HELP-1, "Left open").
+    @Test("A hover observer whose first cell another covers is still reachable on the rest")
+    func hoverObserverReachablePastACoveredCell() {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full)
+        dispatcher.beginRenderPass()
+        let view = dispatcher.register { _ in true }
+        dispatcher.noteHoverObserver(view)
+        let corner = dispatcher.register { _ in true }
+        dispatcher.noteHoverObserver(corner)
+        // Outermost first: the corner's observer is in front of the view's.
+        dispatcher.setRegions([
+            HitTestRegion(offsetX: 0, offsetY: 0, width: 6, height: 2, handlerID: view),
+            HitTestRegion(offsetX: 0, offsetY: 0, width: 1, height: 1, handlerID: corner),
+        ])
+        #expect(dispatcher.reachesHoverObserver(view), "the view's other cells are heard by it")
+        // Covered whole, it is not.
+        dispatcher.setRegions([
+            HitTestRegion(offsetX: 0, offsetY: 0, width: 6, height: 2, handlerID: view),
+            HitTestRegion(offsetX: 0, offsetY: 0, width: 6, height: 2, handlerID: corner),
+        ])
+        #expect(!dispatcher.reachesHoverObserver(view), "nothing of the view is reachable")
+    }
 }

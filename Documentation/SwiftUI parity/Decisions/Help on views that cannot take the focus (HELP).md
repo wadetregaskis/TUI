@@ -122,8 +122,10 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   with help under a pointer resting on a shown panel, the old panel stays
   up for at most the delay; held help outlives reshapes the bar did not
   cause while its view stays reachable; and
-  `MouseEventDispatcher.reachesHoverObserver` probes only the top-left cell
-  of the held view's region.
+  `MouseEventDispatcher.reachesHoverObserver` probed only the top-left cell
+  of the held view's region — fixed (lane BUGS13): it probes every cell of
+  the view's regions until one is heard by the view
+  (`HoverReshapeTests.hoverObserverReachablePastACoveredCell`).
 
 ## B. Shipped the safe option
 
