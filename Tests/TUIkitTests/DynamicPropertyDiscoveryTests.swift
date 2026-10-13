@@ -10,8 +10,8 @@
 //  (session notes DYNV/notes.md).
 //
 //  SwiftUI's behaviour was measured on macOS 15.8.1 (SwiftUI 6.5.4) with an
-//  offscreen NSHostingView: session notes DYNP/optional/op.swift (op.out)
-//  and DYNV/probe/dv.swift (dv.out).
+//  offscreen NSHostingView: `Tools/SwiftUIProbes/Dynamic property discovery/op.swift` (op.out)
+//  and `Tools/SwiftUIProbes/Dynamic property discovery/dv.swift` (dv.out).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -286,7 +286,7 @@ struct DynamicPropertyDiscoveryTests {
 
     /// The write-back updated an enum's payload on a copy (decisions-DYNP
     /// B-DYNP-1, which named an enum VIEW; this is an enum PROPERTY in a
-    /// struct view, session notes DYNP/optional/notes.md §5.4), so body read
+    /// struct view, `Tools/SwiftUIProbes/Dynamic property discovery/notes.md` §5.4), so body read
     /// 0. The payload is now projected out through the enum's value
     /// witnesses, updated where it lies, and the case put back. SwiftUI
     /// writes it back too (op.out, case iii-b: count=1).
@@ -341,7 +341,7 @@ struct DynamicPropertyDiscoveryTests {
     /// and the property it held next was never updated, where a type first
     /// drawn holding the property was. Each body now reads the object's
     /// class, so the subclass is updated whatever came first. SwiftUI never
-    /// updates it (session notes DYNV/probe/dv2-main.out, `subclass`:
+    /// updates it (`Tools/SwiftUIProbes/Dynamic property discovery/dv2-main.out`, `subclass`:
     /// count=0); TUIkit keeps the reach it had (decisions-DYNVFIX
     /// B-DYNVFIX-1).
     @Test("What a plain class field's value gets does not depend on what the field held first")

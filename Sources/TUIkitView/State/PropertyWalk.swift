@@ -100,7 +100,7 @@ enum UpdateMode {
 /// property or modifier — holds what its current case's payload holds. When
 /// the case changes, the new case's `@State` starts at its defaults, and so
 /// does the old case's when it comes back, as SwiftUI's does (measured on
-/// macOS 15, session notes `SKEY/probe/skey.out`). The walk keeps, beside the
+/// macOS 15, `Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`). The walk keeps, beside the
 /// state, which case it last saw and the keys of the state it created while
 /// that case held (``EnumCaseRecord``); when another case replaces it, all of
 /// that is dropped.

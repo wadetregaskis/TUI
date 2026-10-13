@@ -12,8 +12,8 @@
 //    class's metadata: its kind (the `isa` where Objective-C interoperates),
 //    its superclass, where Objective-C interoperates two words of cache and
 //    one of data, then 24 bytes of flags and sizes, then its descriptor
-//    (`TargetClassMetadata`). Measured on macOS arm64 (session notes
-//    `DYNVFIX/probe/own/own.swift`); the layout without Objective-C is the
+//    (`TargetClassMetadata`). Measured on macOS arm64
+//    (`Tools/SwiftUIProbes/Swift runtime layouts/own.swift`); the layout without Objective-C is the
 //    same less those three words, reasoned, not measured.
 //  - The type descriptor: flags (the low five bits its kind: 16 a class, 17
 //    a struct), parent, name and access function, 32 bits each, then a

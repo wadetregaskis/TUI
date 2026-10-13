@@ -7,7 +7,7 @@
 //  while the storage keeps the box (decisions-DYNVFIX B-DYNVFIX-5); a backing
 //  whose box was dropped is bound afresh, so the kept value reads its place's
 //  state again — the new box, at its default, as SwiftUI resets a case it
-//  leaves (session notes SKEY/probe/skey.out, E1) — and allocates no backing
+//  leaves (`Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`, E1) — and allocates no backing
 //  of its own on every body from then on. An `@Environment` box resolved for
 //  a place no longer drawn is resolved where it lies again, the same way.
 //

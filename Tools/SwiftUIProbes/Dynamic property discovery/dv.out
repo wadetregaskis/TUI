@@ -1,0 +1,39 @@
+#### let
+== first draw
+   let: count=1
+#### mirror
+== first draw
+   mirror: count=0
+-- mirror count := 3
+== after
+   mirror: count=3
+#### twice
+== first draw
+   twice: limit=1 count=0
+   twice: limit=2 count=0
+-- first-handed binding := 5
+== after
+   twice: limit=1 count=5
+#### value
+== first draw
+   value: a count=0
+   value: b count=0
+-- child a's kept := 5
+== after
+   value: a count=5
+#### unowned
+== first draw
+   unowned: x=0
+-- ownerStrong := nil
+   (OwnerObject deinit)
+-- child's x := 1
+== after (owner dead)
+   unowned: x=1
+#### cycle
+== first draw
+   cycle: x=0
+-- x := 1
+== after
+   cycle: x=1
+DONE
+exit 0

@@ -448,7 +448,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** runs a class property's `update()`, but installs nothing inside
   it: an `@State` there is a constant binding of its initial value, and an
   `@Environment` reads its default, each with a run-time warning (measured
-  2026-10-10: session notes `DYNP/optional/op.out`, case vii-f).
+  2026-10-10: `Tools/SwiftUIProbes/Dynamic property discovery/op.out`, case vii-f).
 - **TUIkit:** installs what the object holds — held strongly, `unowned` or
   `weak` — for one view at a time, its claimant: in each render pass, the
   first view drawn whose walk reaches it, the object's state going with it

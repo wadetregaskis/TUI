@@ -8,8 +8,9 @@ support, even if SwiftUI doesn't support it." The property walk is now
 planned once per type from the runtime's field metadata (`PropertyPlans`),
 not reflected from each value with `Mirror`. SwiftUI's behaviour was measured
 with SwiftUI 6.5.4 on macOS 15.8.1 with offscreen `NSHostingView`s (probes in
-the session notes, `DYNV/probe/`, `DYNP/optional/`). The format is that of
-the main decisions file:*
+`Tools/SwiftUIProbes/Dynamic property discovery/`; the Swift runtime's layouts
+the walk reads, in `Tools/SwiftUIProbes/Swift runtime layouts/`). The format
+is that of the main decisions file:*
 
 - **A-DYNVFIX-n — needs your decision.**
 - **B-DYNVFIX-n — shipped the safe option.** Says what the fuller version
@@ -28,7 +29,8 @@ DynamicProperty`. TUIkit's walks found it from the value, but kept a view type
 as holding nothing when its first value held a plain instance there, so
 whether the property was ever updated depended on the first value drawn
 (DYNV bug 10). SwiftUI never looks: it decides by the declared type
-(measured, `DYNV/probe/dv2-main.out`, `subclass`: never updated; declared as
+(measured, `Tools/SwiftUIProbes/Dynamic property discovery/dv2-main.out`,
+`subclass`: never updated; declared as
 the subclass, updated).
 
 **Shipped:** TUIkit keeps the reach (the owner's ruling: keep what TUIkit
@@ -73,8 +75,9 @@ from the field's mangled type name in its field descriptor, once per type
   Apple platforms: kept the same way. The reference says so — it is the
   address of a cell the runtime allocates, marked by its lowest bit, where a
   native object's reference is the object's aligned address (measured on
-  macOS 15 arm64, alive, gone and for a tagged pointer: session notes
-  `DYNVFIX/probe/unex`; x86_64 unmeasured) — so a native object in such a
+  macOS 15 arm64, alive, gone and for a tagged pointer:
+  `Tools/SwiftUIProbes/Swift runtime layouts/unex.swift`; x86_64 unmeasured)
+  — so a native object in such a
   field is read in place, and this one is left. On Linux every object is a
   native one, its reference its address (unmeasured: it follows from Swift
   keeping one kind of reference there). Before fix round 3 no `unowned`
@@ -100,8 +103,9 @@ it is made (`SlotPlan.probes`), and evaluated as it is when its objects are
 of their declared classes, or of classes found holding nothing. A field held
 `weak` or `unowned` is loaded where it lies, as Swift loads it, read as a
 reference to `AnyObject` held the same way: each way of holding a reference
-has one layout whatever its class (measured on macOS arm64, session notes
-`DYNVFIX/probe/typedref`), so no copy of the view is made to load it, as a
+has one layout whatever its class (measured on macOS arm64,
+`Tools/SwiftUIProbes/Swift runtime layouts/typedref.swift`), so no copy of the
+view is made to load it, as a
 load through the runtime's reflection made two (review of 6c8fe3d2b,
 2026-10-12). Unmeasured: the A/B is owed.
 
@@ -134,7 +138,8 @@ not written back.
 updated payload and store it in the view's copy of the enum. That needs the
 box's layout, or the runtime's `swift_allocBox` and `swift_projectBox`, whose
 names the compiler reserves to itself (binding one warns that it "will become
-an error"; session notes `DYNVFIX/probe/pb.swift`). For WebAssembly, a call
+an error"; `Tools/SwiftUIProbes/Swift runtime layouts/pb.swift`). For
+WebAssembly, a call
 through the `swiftcc` convention: a `@convention(thin)` function type, which
 Swift does not offer.
 

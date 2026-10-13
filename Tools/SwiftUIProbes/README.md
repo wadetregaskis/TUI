@@ -13,6 +13,9 @@ read the AppKit views SwiftUI made instead (an `NSTableView`'s rows, an `NSMenu`
 with no view at all. What a probe printed is in a `.out` file of the same name; a probe with no `.out` file
 reported its result in the document that cites it.
 
+One folder, Swift runtime layouts, records the Swift runtime's own layouts that TUIkit's property walk reads,
+with no SwiftUI involved.
+
 They are evidence, not part of the package: SwiftPM, CI and SwiftLint do not see them, and no binary or other
 build product is kept here. `Tools/TerminalProbes/` is the same idea for terminals.
 
@@ -74,12 +77,19 @@ messages cite that path), and what cites it.
   whether it runs a `ViewModifier`'s body when the body returns `content` unchanged. `notes.md` is the write-up:
   the answer, how discovery works, the measured matrix against TUIkit, and the divergences it found.
 - **Files:** `op.swift` (built plain and with `-D OPTCONF`; `op.out`, `op-optconf.out`), `weak.swift`
-  (`weak.out`), `passmod.swift` (`passmod.out`), `notes.md`.
-- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-10.
-- **Was:** `DYNP/optional/`.
+  (`weak.out`), `passmod.swift` (`passmod.out`), `notes.md`. A second round, for the suspects of lane DYNV's bug
+  hunt that `op.swift` did not measure (a property in a `let` field, one view value at two places, a class
+  property's subclass, a modifier wrapped by `.transaction(_:)` or joined by `.concat(_:)`, a dead `unowned`
+  field read first): `dv.swift` (`dv.out`) and `dv2.swift` (run as `./dv2 main` and `./dv2 deadfirst`, which may
+  trap; `dv2-main.out`, `dv2-deadfirst.out`).
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-10; the second round 2026-10-11.
+- **Was:** `DYNP/optional/`; the second round `DYNV/probe/`.
 - **Cited by:** `Sources/TUIkitView/State/DynamicProperty.swift`,
-  `Sources/TUIkitView/State/NestedPropertyBinding.swift`; `Tests/TUIkitTests/DynamicPropertyStateKeyTests.swift`;
+  `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/PropertyPlans.swift`,
+  `Sources/TUIkitView/State/State.swift`; `Tests/TUIkitTests/DynamicPropertyStateKeyTests.swift` and the other
+  `DynamicProperty*Tests.swift` files, `Tests/TUIkitTests/StateSharedValueTests.swift`;
   `Documentation/SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md`,
+  `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
 ### State keys in dynamic properties
@@ -162,6 +172,22 @@ messages cite that path), and what cites it.
 - **Cited by:** `Tests/TUIkitCollectionTests/PinnedRowSectionTests.swift`,
   `Tests/TUIkitCollectionTests/LazyGridSectionTests.swift`; wave 10b's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
+### Swift runtime layouts
+
+- **Asks:** not SwiftUI but the Swift runtime: the layouts the planned property walk reads, each checked before
+  the walk relied on it. A field record's ownership, from the suffix of its mangled type name, and where a class's
+  metadata keeps its descriptor (`own.swift`); calling an enum's value witnesses from its metadata, for a user
+  enum, a generic one instantiated at run time and `Optional` (`vwt.swift`); an existential type's flags and how a
+  `nil` optional of one looks (`exflags.swift`); what an `unowned` reference holds for a native object, an
+  Objective-C one and a tagged pointer, alive and gone (`unex.swift`); loading `weak` and `unowned` references in
+  place, held as `AnyObject` (`typedref.swift`); and whether the runtime's box entry points are names the
+  compiler reserves (`pb.swift`). No views; none kept its output, and the results are in the citing comments
+  and the DYNVFIX decisions.
+- **Ran:** macOS 15.8, arm64 only (x86_64 is unmeasured), Xcode's Swift 6.2.4, 2026-10-12.
+- **Was:** `DYNVFIX/probe/`.
+- **Cited by:** `Sources/TUIkitView/Rendering/FieldDescriptors.swift`, `Sources/TUIkitView/State/EnumPayloads.swift`,
+  `Sources/TUIkitView/State/DynamicTypes.swift`;
+  `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`.
 
 ### Animation curves, springs and keyframes
 

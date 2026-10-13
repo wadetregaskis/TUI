@@ -11,7 +11,7 @@
 //
 //  SwiftUI installs each view's state into that view's own copy, so the two
 //  stay apart (measured on macOS 15.8.1, SwiftUI 6.5.4, offscreen
-//  NSHostingView: session notes DYNV/probe/dv.swift, cases `twice` and
+//  NSHostingView: `Tools/SwiftUIProbes/Dynamic property discovery/dv.swift`, cases `twice` and
 //  `value`, output dv.out). TUIkit now does the same: a place whose copy
 //  holds a backing bound to another place is given a backing of its own. An
 //  `@Environment`'s box, shared the same way, is given one for each place

@@ -9,8 +9,8 @@
 //  but nothing in it is updated: its copy was updated, and then the copy
 //  applied from it was updated again (DYNV bug 5, session notes
 //  DYNV/notes.md). SwiftUI updates the applied copy once (measured on macOS
-//  15.8.1, SwiftUI 6.5.4: session notes DYNP/optional/op.out, case vii-c2,
-//  and DYNV/probe/dv2-main.out, `txn` and `concat`).
+//  15.8.1, SwiftUI 6.5.4: `Tools/SwiftUIProbes/Dynamic property discovery/op.out`, case vii-c2,
+//  and `Tools/SwiftUIProbes/Dynamic property discovery/dv2-main.out`, `txn` and `concat`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -169,8 +169,8 @@ struct DynamicPropertyModifierTests {
     /// one it wraps and applies it in its body, and `.concat(_:)` returns a
     /// `ModifiedContent` whose body applies its two halves. The walks updated
     /// the stored copy, then the applied one: the modifier's body read 2 in
-    /// both. SwiftUI's body reads count=1 for both (session notes
-    /// DYNV/probe/dv2-main.out, `txn` and `concat`).
+    /// both. SwiftUI's body reads count=1 for both
+    /// (`Tools/SwiftUIProbes/Dynamic property discovery/dv2-main.out`, `txn` and `concat`).
     @Test("A modifier wrapped by .transaction(_:) or joined by .concat(_:) runs its property's update() once per body")
     func wrappedOrJoinedModifierUpdatesOnce() {
         let context = makeRenderContext(width: 20, height: 1)

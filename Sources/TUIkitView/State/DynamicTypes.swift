@@ -17,7 +17,7 @@
 //    three words, then the metadata of the type it holds, then its witness
 //    tables. Measured on macOS arm64 for `Any`, `any P`, `AnyObject`, a
 //    class-constrained protocol, a composition with a superclass and
-//    `any Error` (session notes `DYNVFIX/probe/exflags/exflags.swift`).
+//    `any Error` (`Tools/SwiftUIProbes/Swift runtime layouts/exflags.swift`).
 //  - A value of a class held in that buffer is its reference, in the buffer's
 //    first word, and the metadata names the type it was erased from, which
 //    may be a superclass of its class: the class is the object's.
@@ -104,7 +104,7 @@ enum DynamicTypes {
     /// the address of a cell the runtime allocates for an Objective-C weak
     /// reference, marked by its lowest bit, which a native object's aligned
     /// address leaves clear (measured on macOS 15 arm64, alive and gone, and
-    /// for a tagged pointer: session notes `DYNVFIX/probe/unex`). Elsewhere
+    /// for a tagged pointer: `Tools/SwiftUIProbes/Swift runtime layouts/unex.swift`). Elsewhere
     /// every object is a native one.
     static func unownedObject(at address: UnsafeRawPointer) -> DynamicTypeRead {
         #if _runtime(_ObjC)
@@ -131,7 +131,7 @@ enum DynamicTypes {
 /// object from an Objective-C one by the reference itself — measured on macOS
 /// arm64 for a native class, a class with an Objective-C ancestor and a
 /// class-bound existential, each held `weak` and `unowned`, alive and gone
-/// (session notes `DYNVFIX/probe/typedref`). Where Objective-C does not
+/// (`Tools/SwiftUIProbes/Swift runtime layouts/typedref.swift`). Where Objective-C does not
 /// interoperate, every reference is a native one.
 ///
 /// No copy of the struct or object holding the field is made, as a load

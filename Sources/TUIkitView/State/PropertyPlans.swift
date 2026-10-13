@@ -188,8 +188,8 @@ enum PropertyPlans {
         case let kind where kind.isClass:
             guard isContainerType(type) else {
                 // A plain class held strongly: a subclass of it may be a
-                // property, which SwiftUI never looks for (measured, session
-                // notes DYNV/probe/dv2-main.out, `subclass`) and TUIkit did,
+                // property, which SwiftUI never looks for (measured,
+                // `Tools/SwiftUIProbes/Dynamic property discovery/dv2-main.out`, `subclass`) and TUIkit did,
                 // the owner kept (decisions-DYNVFIX B-DYNVFIX-1). Not a
                 // Core Foundation class, which nothing subclasses. One held
                 // `weak` or `unowned` is planned by `plainReferenceStep`.

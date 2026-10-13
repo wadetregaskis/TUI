@@ -19,8 +19,8 @@
 //    payload's mangled type (absent for an empty case), and its name.
 //
 //  The value witnesses are `swiftcc` functions, called here through a C
-//  function type. Measured on macOS arm64 only (session notes
-//  `DYNVFIX/probe/vwt.swift`, for a native enum, a generic one instantiated
+//  function type. Measured on macOS arm64 only
+//  (`Tools/SwiftUIProbes/Swift runtime layouts/vwt.swift`, for a native enum, a generic one instantiated
 //  at run time and the standard library's `Optional`). On Linux, arm64 and
 //  x86_64, it is reasoned, not measured: for two pointers and a 32-bit
 //  integer `swiftcc` passes the arguments in the C argument registers and

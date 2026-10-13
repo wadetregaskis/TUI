@@ -1,0 +1,32 @@
+#### direct
+== first draw
+   direct: count=1
+   updates: []
+#### txn
+== first draw
+   txn: count=1
+   updates: []
+#### concat
+== first draw
+   concat: count=1
+   updates: []
+#### subclass (field declared PlainBase)
+== first draw
+   subclass-as-base: count=0
+   updates: []
+#### subclass (field declared CountingSubclass)
+== first draw
+   subclass-as-sub: count=1
+   updates: [(key: "subclass", value: 1)]
+#### unownedprop
+== first draw
+   unownedprop: x=0
+   updates: [(key: "unownedprop", value: 1)]
+-- propStrong := nil
+   (ClassProp deinit)
+-- x := 1
+== after (object dead)
+   unownedprop: x=1
+   updates: [(key: "unownedprop", value: 1)]
+DONE
+exit 0

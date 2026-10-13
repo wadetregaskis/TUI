@@ -21,7 +21,7 @@ import TUIkitCore
 /// view's other fields. One shared counter, which a property found inside a
 /// `nil` optional, an existential of another type or another enum case did
 /// not advance, moved every key after it, and two `@State`s of one type then
-/// swapped values (session notes `DYNP/optional/notes.md` §5.5,
+/// swapped values (`Tools/SwiftUIProbes/Dynamic property discovery/notes.md` §5.5,
 /// `DynamicPropertyStateKeyTests`).
 ///
 /// A container's type is part of its step because an existential field can

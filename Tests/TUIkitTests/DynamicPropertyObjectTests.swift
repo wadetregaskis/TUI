@@ -7,8 +7,8 @@
 //  with it from view to view, so views sharing one object share one state,
 //  and an object made anew with each view value keeps its state
 //  (decisions-DYNVFIX B-DYNVFIX-3). SwiftUI installs nothing inside a
-//  class (measured on macOS 15.8.1, SwiftUI 6.5.4: session notes
-//  DYNP/optional/op.out, case vii-f); the walk did, per view, so one view's
+//  class (measured on macOS 15.8.1, SwiftUI 6.5.4:
+//  `Tools/SwiftUIProbes/Dynamic property discovery/op.out`, case vii-f); the walk did, per view, so one view's
 //  writes landed in another's state (DYNV bugs 3 and 4, session notes
 //  DYNV/notes.md).
 //

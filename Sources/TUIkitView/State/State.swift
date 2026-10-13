@@ -589,7 +589,7 @@ public struct State<Value> {
 /// bound to its box while the storage keeps that box, and a place whose copy
 /// holds one bound to another kept box is given a backing of its own, in that
 /// copy (``State/bindState(at:to:key:)``), as SwiftUI installs each place's
-/// state in that place's copy (measured, session notes `DYNV/probe/dv.out`,
+/// state in that place's copy (measured, `Tools/SwiftUIProbes/Dynamic property discovery/dv.out`,
 /// `twice` and `value`). Once the storage drops the box — its place pruned,
 /// the storage reset, its enum case left — the backing is bound afresh, so a
 /// value kept across frames reads its place's state again, and pays for no
