@@ -203,10 +203,22 @@ extension ItemListHandler {
     /// it: it is a row index, so left alone it would point at another row —
     /// and the next key's reveal would scroll back to it, undoing the hold.
     ///
+    /// A move the list made itself (``movedRowsSinceLastFrame``) is not held
+    /// either: it put the cursor on the row it moved and revealed it, and the
+    /// rows it moved are no change made above the reader. Held, a row moved onto the top row's
+    /// place — moved up a page from the last row on screen, or dropped on the
+    /// first — pushed the top row down one, which the hold took for a row
+    /// inserted above it: it scrolled the moved row out of view and moved the
+    /// cursor, already on that row, by one more, onto the old top row, where
+    /// the next chord acted.
+    ///
     /// Render pass only, before the clamps; ``settleScrollPosition(measuring:overflowing:drawsTextIndicators:firstRowHeight:)``
     /// calls it.
     func holdTopRow() {
-        defer { lastWindowHold = windowHold }
+        defer {
+            lastWindowHold = windowHold
+            movedRowsSinceLastFrame = false
+        }
         heldTopVerified = false
         guard windowHold == .topRow, let heldID = heldTopID else { return }
         if id(at: heldTopOrdinal) == heldID {
@@ -219,7 +231,7 @@ extension ItemListHandler {
             boundAnchor: anchorPositionBinding?.wrappedValue, declared: declared)
         let followsTail = mode == .bottom && scrollOffset >= bottomFollowBound
         guard lastWindowHold == .topRow, hasOpened, !offsetAdjustmentSuspended, !followsTail,
-            scrollOffset > 0 || scrollTopClipLines > 0
+            !movedRowsSinceLastFrame, scrollOffset > 0 || scrollTopClipLines > 0
         else { return }
         let found = index(of: heldID)
         if let found, let next = heldTopNextID, id(at: found + 1) != next { return }

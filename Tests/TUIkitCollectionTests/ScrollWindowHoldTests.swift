@@ -24,6 +24,7 @@ import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitFoundation
+@testable import TUIkitLists
 @testable import TUIkitTestSupport
 @testable import TUIkitView
 
@@ -416,5 +417,37 @@ struct ScrollWindowHoldTests {
         settle()
         #expect(handler.scrollOffset == 15)
         #expect(handler.id(at: handler.focusedIndex) == 12)
+    }
+
+    /// The list's own move — a row moved by a page with the keyboard, or
+    /// dropped — places the cursor on the row it moved and reveals it. Moved
+    /// onto the top row's place, the row pushed the top row down by one, and
+    /// the hold took that for a row inserted above it: it scrolled the moved
+    /// row out of view and moved the cursor onto the old top row, where the
+    /// next chord acted.
+    @Test("A row the list moves onto its top row's place stays on screen, with the cursor on it")
+    func listOwnMoveIsNotHeld() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 40, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        var ids = Array(0..<40)
+        handler.itemIDs = ids
+        handler.onMove = { source, destination in
+            ids.move(fromOffsets: source, toOffset: destination)
+            handler.itemIDs = ids
+        }
+        func settle() {
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        settle()
+        handler.scrollOffset = 10
+        handler.focusedIndex = 17
+        settle()
+        #expect(handler.scrollOffset == 10, "precondition")
+        #expect(handler.nudgeFocusedRow(by: -handler.pageStep))
+        #expect(handler.focusedIndex == 10, "precondition: moved onto the top row's place")
+        settle()
+        #expect(handler.scrollOffset == 10)
+        #expect(handler.id(at: handler.focusedIndex) == 17)
     }
 }

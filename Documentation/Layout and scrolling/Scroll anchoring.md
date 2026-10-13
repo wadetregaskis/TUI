@@ -693,7 +693,12 @@ It holds nothing:
 - **for a reorder that takes the top row away from the row after it** — a
   sort — which keeps the offset, as SwiftUI's does; following the top row would
   scroll a sorted list to wherever it went. A change that moves the two alike —
-  rows inserted, removed or moved above them — is held (R14).
+  rows inserted, removed or moved above them — is held (R14);
+- **for a move a `List` or `Table` makes itself** — a move chord, a drop, a
+  live drag's step — which puts the cursor on the row it moved and reveals it.
+  Held, a row moved onto the top row's place pushed the top row down one, and
+  the hold scrolled the moved row out of view and put the cursor on the old top
+  row.
 
 A designated row (`.anchorPosition(.row(id))`) is held as ever and wins; a
 designation naming no row in the data is none, and the top row is held.

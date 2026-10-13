@@ -119,6 +119,8 @@ many. A cursor above the top row is left alone: the change may have been on
 either side of it. **The fuller version** tracks the cursor's row by id every
 frame — one more id read a frame, which can be a build of the row (`id(at:)`)
 — and is exact for a change between the top row and the cursor too. Two hours.
+A move the list makes itself (a move chord, a drop) is not held at all: it puts
+the cursor on the row it moved, and shifting it as well put it a row off.
 
 ### B-SCROLLANCHOR-5. A reorder is told from rows inserted or removed above by the row after the top row
 

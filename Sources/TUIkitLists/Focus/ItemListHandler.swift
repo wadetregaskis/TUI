@@ -1296,6 +1296,12 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     var heldTopOffset = 0
     var heldTopVerified = false
 
+    /// Whether this list moved rows itself through ``onMove`` since the last
+    /// frame — a move chord, a drop, a live drag's step — which placed the
+    /// cursor on the row it moved and revealed it: ``holdTopRow()`` holds
+    /// nothing on the frame that draws it.
+    var movedRowsSinceLastFrame = false
+
     /// Last glued frame's ``itemCount``, so the Bottom follow can tell a frame
     /// where the tail actually ADVANCED (rows arrived — carry the focus cursor
     /// along) from a steady glued frame (nothing changed — leave the cursor
