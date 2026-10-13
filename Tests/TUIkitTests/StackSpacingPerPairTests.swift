@@ -85,6 +85,21 @@ private final class Read {
     var distances: [Int] = []
 }
 
+/// An `HStackLayout` that notes, each time it is measured, whether the gaps it
+/// resolved for its subviews are all one value.
+private struct GapsReader: Layout {
+    let read: Read
+
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        read.uniform.append(HStackLayout().gaps(between: subviews).isUniform)
+        return HStackLayout().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+        HStackLayout().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+    }
+}
+
 /// A `Row` that notes, when it is measured, how far each subview's
 /// `LayoutSubview.spacing` asks to be from a plain view after it.
 private struct SpacingReader: Layout {
@@ -213,6 +228,17 @@ struct StackSpacingPerPairTests {
         let column = VStackLayout(spacing: 1)
         let stacked = column { Text("a"); EmptyView(); Text("b") }
         #expect(TUIkitView.measureChild(stacked, proposal: .unspecified, context: context).height == 3)
+    }
+
+    @Test("HStackLayout asks no subview its preference where its content's type holds no layout")
+    func layoutAsksNothingOnTheCommonPath() {
+        let read = Read()
+        // Padding is a provider at run time, so only the static gate keeps it unasked.
+        _ = lines(GapsReader(read: read) { Text("a").padding(0); Text("b") })
+        #expect(!read.uniform.isEmpty && read.uniform.allSatisfy { $0 }, "gaps by pair for a row of texts")
+        let asked = Read()
+        _ = lines(GapsReader(read: asked) { Row { Text("a") }; Text("b") })
+        #expect(asked.uniform.contains(false), "a layout in the content is asked")
     }
 
     @Test("Not yet: a view of the app's own whose body is a tight layout states the default (SwiftUI: wrapped +0)")

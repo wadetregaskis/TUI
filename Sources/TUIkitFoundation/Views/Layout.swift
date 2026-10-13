@@ -309,13 +309,15 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
             return (
                 LayoutSubviews(
                     children: expanded.children, context: context, placements: placements,
-                    rowIDs: rowIDs, sourceIndices: expanded.sourceIndices),
+                    rowIDs: rowIDs, sourceIndices: expanded.sourceIndices,
+                    mayStateSpacing: Content._statesSpacingPreference),
                 placements
             )
         }
         return (
             LayoutSubviews(
-                children: children, context: context, placements: placements, rowIDs: rowIDs),
+                children: children, context: context, placements: placements, rowIDs: rowIDs,
+                mayStateSpacing: Content._statesSpacingPreference),
             placements
         )
     }

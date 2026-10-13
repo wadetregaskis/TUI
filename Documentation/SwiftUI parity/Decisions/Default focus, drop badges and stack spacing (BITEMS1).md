@@ -145,7 +145,10 @@ differs:
 **Cost.** A row given a stated `spacing`, or whose content's type holds no
 layout (`View._statesSpacingPreference`, a compile-time chain), asks no child
 anything: it pays a gap value of three words per walk and an optional check
-per gap (the refactor before this commit). A row whose content may hold one
+per gap (the refactor before this commit). That holds for `HStackLayout` and
+`AnyLayout(HStackLayout())` too since the review of B20, which found them
+asking every subview whatever their content: a layout's subviews carry their
+content's witness (`LayoutSubviews.mayStateSpacing`). A row whose content may hold one
 asks every child each walk — a few conformance casts through its wrappers,
 and for a layout its `spacing(subviews:cache:)` over its resolved subviews —
 and a lazy row asks every child, not only those its window reaches.

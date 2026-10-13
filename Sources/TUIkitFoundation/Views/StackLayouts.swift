@@ -285,8 +285,12 @@ public struct HStackLayout: Layout, Sendable, Equatable {
     /// The gaps between `subviews`: every one ``spacing``, or — when it is
     /// `nil` — the distance each pair of neighbours' ``LayoutSubview/spacing``
     /// asks for, as ``HStack``'s (decisions B20).
-    private func gaps(between subviews: Subviews) -> StackGaps {
-        guard spacing == nil else { return StackGaps(uniform: resolvedSpacing) }
+    ///
+    /// Asked of no subview where the content's type holds nothing that can
+    /// state a preference (``LayoutSubviews/mayStateSpacing``), as an
+    /// `HStack`'s row is — which is almost every row.
+    func gaps(between subviews: Subviews) -> StackGaps {
+        guard spacing == nil, subviews.mayStateSpacing else { return StackGaps(uniform: resolvedSpacing) }
         return StackGaps(uniform: resolvedSpacing, stating: subviews.children, along: .horizontal, context: subviews.context)
     }
 

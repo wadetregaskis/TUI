@@ -198,15 +198,23 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
     /// lists are one.
     let sourceIndices: [Int]?
 
+    /// Whether a subview may state a spacing preference of its own: the
+    /// layout content's ``View/_statesSpacingPreference``, a compile-time
+    /// chain. Where it is `false`, no subview states one, so ``HStackLayout``
+    /// given `spacing: nil` asks none of them (decisions B20) — the row of
+    /// texts every app writes pays nothing, as an `HStack`'s does.
+    let mayStateSpacing: Bool
+
     init(
         children: [ChildView], context: RenderContext, placements: LayoutPlacements,
-        rowIDs: FlattenedRowIDs<AnyHashable>, sourceIndices: [Int]? = nil
+        rowIDs: FlattenedRowIDs<AnyHashable>, sourceIndices: [Int]? = nil, mayStateSpacing: Bool = true
     ) {
         self.children = children
         self.context = context
         self.placements = placements
         self.rowIDs = rowIDs
         self.sourceIndices = sourceIndices
+        self.mayStateSpacing = mayStateSpacing
     }
 
     public var startIndex: Int { children.startIndex }
