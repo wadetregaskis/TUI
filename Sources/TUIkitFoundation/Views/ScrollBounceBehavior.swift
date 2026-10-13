@@ -132,7 +132,9 @@ extension View {
     ///     .scrollBounceBehavior(.basedOnSize)   // still while it fits
     /// ```
     ///
-    /// Reaches `ScrollView`, `List` and `Table`.
+    /// Reaches `ScrollView`, `List` and `Table`, but not the scrollers the
+    /// framework puts around a tall menu, a sheet's or a framed container's
+    /// content (the scrollables in that content do).
     ///
     /// - Parameters:
     ///   - behavior: When the push is allowed.

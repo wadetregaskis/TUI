@@ -157,11 +157,14 @@ extension ScrollableOffsetState {
     /// - Parameters:
     ///   - viewportHeight: The content area the allowance is resolved in, in
     ///     the lines the excursion is drawn in.
-    ///   - overflowing: Whether the content overflows it, for
-    ///     ``ScrollBounceBehavior/basedOnSize``.
+    ///   - allowances: The allowances this scrollable takes, and whether an
+    ///     end given none springs: `EnvironmentValues.overscrollAllowances(overflowing:)`,
+    ///     or none at all for a framework scroller (`_ScrollViewCore.pageOverscrollAllowances`).
     @MainActor
-    package func settleOverscroll(viewportHeight: Int, overflowing: Bool, context: RenderContext) {
-        let allowances = context.environment.overscrollAllowances(overflowing: overflowing)
+    package func settleOverscroll(
+        viewportHeight: Int, allowances: (top: ScrollOverscroll, bottom: ScrollOverscroll, springs: Bool),
+        context: RenderContext
+    ) {
         overscrollState.resolve(
             top: allowances.top, bottom: allowances.bottom, viewportHeight: viewportHeight,
             springs: allowances.springs)

@@ -15,9 +15,9 @@
 //  than the viewport is drawn in it — see `alignmentShift`.
 //
 //  And what a framework scroller leaves to the page: the anchors, a bound
-//  `.scrollPosition`, the scroll observers and an indicator flash are the
-//  app's, for its own scroll views — see `pageAnchorPosition(_:)` and its
-//  siblings.
+//  `.scrollPosition`, the scroll observers, an indicator flash and the
+//  overscroll settings are the app's, for its own scroll views — see
+//  `pageAnchorPosition(_:)` and its siblings.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -79,6 +79,19 @@ extension _ScrollViewCore {
     /// SCROLLB's review).
     func pageIndicatorFlash(_ handler: ScrollViewHandler, context: RenderContext) -> Double? {
         isChrome ? nil : handler.indicatorFlash.strength(context: context)
+    }
+
+    /// See ``pageAnchorPosition(_:)``: the overscroll allowances
+    /// (`.scrollOverscroll`) and the bounce (`.scrollBounceBehavior(.always)`)
+    /// this view takes — none for a framework scroller. A page's `.always`
+    /// pushed a tall menu's column, a dialog body or a framed container two
+    /// lines past its end, and a page's allowance as far as it said, where
+    /// the wheel had passed on to the scroller around it (lane SCROLLB's
+    /// review).
+    func pageOverscrollAllowances(
+        _ environment: EnvironmentValues, overflowing: Bool
+    ) -> (top: ScrollOverscroll, bottom: ScrollOverscroll, springs: Bool) {
+        isChrome ? (.none, .none, false) : environment.overscrollAllowances(overflowing: overflowing)
     }
 }
 

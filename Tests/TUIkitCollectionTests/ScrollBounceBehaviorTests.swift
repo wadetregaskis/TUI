@@ -215,6 +215,29 @@ extension ScrollBounceBehaviorTests {
         #expect(pushed?.1.overscrollState.excursion == 0)
     }
 
+    /// A framework scroller — a tall menu's column, a dialog body's, a framed
+    /// container's — takes none of the page's settings for its scroll views
+    /// (`ScrollView.asChrome()`). A page's `.always` pushed it two lines past
+    /// its end, and a page's allowance as far as that said (lane SCROLLB's
+    /// review).
+    @Test(
+        "A framework scroller is pushed past its end by neither a page's .always nor a page's allowance",
+        arguments: [(ScrollBounceBehavior.always, ScrollOverscroll.none), (.automatic, .rows(3))])
+    func chromeScrollerIsNotPushed(behavior: ScrollBounceBehavior, bottom: ScrollOverscroll) {
+        let chrome = ScrollView {
+            VStack(spacing: 0) { ForEach(0..<30, id: \.self) { Text("row \($0)") } }
+        }
+        .asChrome()
+        let view = AnyView(chrome.scrollOverscroll(bottom: bottom).scrollBounceBehavior(behavior))
+        guard let scrollable = pushedAtTheEnd(.scrollView, view, pushes: 3)?.1 else {
+            Issue.record("precondition: a scroll view")
+            return
+        }
+        #expect(scrollable.maxOffset > 0, "precondition: it scrolls")
+        #expect(scrollable.scrollOffset == scrollable.maxOffset, "precondition: at its end")
+        #expect(scrollable.overscrollState.excursion == 0)
+    }
+
     @Test(
         "An allowance the app asked for stays where it was pushed, under .always and .automatic alike",
         arguments: Bouncer.allCases, [ScrollBounceBehavior.always, .automatic])

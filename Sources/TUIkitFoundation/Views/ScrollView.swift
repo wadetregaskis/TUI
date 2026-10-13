@@ -207,7 +207,10 @@ extension ScrollView {
     ///   neither, and leaves them for the app's scroll views;
     /// - ``TUIkit/View/scrollIndicatorsFlash(onAppear:)`` and
     ///   ``TUIkit/View/scrollIndicatorsFlash(trigger:)`` — its indicators do
-    ///   not flash: SwiftUI's menus and sheets are not scroll views.
+    ///   not flash: SwiftUI's menus and sheets are not scroll views;
+    /// - ``TUIkit/View/scrollOverscroll(top:bottom:)`` and
+    ///   ``TUIkit/View/scrollBounceBehavior(_:axes:)`` — it is pushed past
+    ///   neither end, and the wheel passes on at its edges.
     ///
     /// The content inside it still reads them, for its own scrollables.
     func asChrome() -> ScrollView<Content> {
@@ -554,9 +557,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // and an existing excursion is pulled back inside a shrunken one.
         // Gated by `.scrollBounceBehavior`, on whether the content overflowed
         // when this view last measured it; a `.always` bounce springs back here.
+        // A framework scroller takes none (`pageOverscrollAllowances`).
+        let overflowing = handler.contentHeight > contentViewportHeight
         handler.settleOverscroll(
-            viewportHeight: contentViewportHeight, overflowing: handler.contentHeight > contentViewportHeight,
-            context: context)
+            viewportHeight: contentViewportHeight,
+            allowances: pageOverscrollAllowances(context.environment, overflowing: overflowing), context: context)
 
         // A freshly WRITTEN edge anchor jumps to that edge (see the helper);
         // must precede the glue check, whose `seekingTail` read is one-shot.

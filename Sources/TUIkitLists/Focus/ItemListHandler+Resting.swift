@@ -233,7 +233,7 @@ extension ItemListHandler {
     /// `List` twin meant "viewport lines minus n".
     ///
     /// A render pass also springs a `.always` bounce back once the user's
-    /// steps have stopped (``ScrollableOffsetState/settleOverscroll(viewportHeight:overflowing:context:)``).
+    /// steps have stopped (``ScrollableOffsetState/settleOverscroll(viewportHeight:allowances:context:)``).
     ///
     /// - Parameters:
     ///   - context: This frame's context, for the two allowances and the
@@ -247,7 +247,8 @@ extension ItemListHandler {
         // out at every offset. One number, on the handler that knows all three.
         // Gated by `.scrollBounceBehavior`, on whether the rows overflow.
         settleOverscroll(
-            viewportHeight: max(1, contentHeight - reservedIndicatorLines), overflowing: maxOffset > 0,
+            viewportHeight: max(1, contentHeight - reservedIndicatorLines),
+            allowances: context.environment.overscrollAllowances(overflowing: maxOffset > 0),
             context: context)
     }
 }
