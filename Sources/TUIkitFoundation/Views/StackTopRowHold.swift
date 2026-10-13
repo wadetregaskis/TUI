@@ -62,6 +62,12 @@ struct HeldTopRow {
     /// change above from a sort (``StackWindowState/heldTopRowPlace(in:)``).
     var previousKey: String?
     var previousOffset: Int
+
+    /// How many rows the stack had when the neighbours were read. A frame
+    /// that finds the row where it was reads nothing — unless the count has
+    /// changed since, when a row may have been inserted or removed beside it,
+    /// and the neighbours are read again (``StackWindowState/rememberTopRow(atOrdinal:y:top:in:verified:)``).
+    var count: Int
 }
 
 /// How a stack's path reads its rows for the hold: how many, each one's key
@@ -100,8 +106,9 @@ extension StackWindowState {
     /// rows move.
     ///
     /// One gone is replaced by the row after it, put where it was — unless
-    /// that row is still as far after the place the remembered one had, or
-    /// the row before it as far before: then the place is still there and
+    /// the row before it is still right before the place the row after it
+    /// marks (for a first row, which has none, unless the row after it is
+    /// still as far after the place it had): then the place is still there and
     /// only the row in it changed, its id
     /// changed where it stands (`ForEach(names, id: \.self)` with the name at
     /// the top edited), and nothing above moved it: nothing moves, as in
@@ -118,10 +125,12 @@ extension StackWindowState {
         if let next = held.nextKey,
             let ordinal = keys.ordinal(of: next, runIndex: 0, near: held.ordinal + held.nextOffset)
         {
+            // Kept by the row before it, where it has one: "still where the
+            // place was" took the top row removed with exactly one row
+            // inserted above for a rename, and put the row from above the
+            // screen on top, where two inserted put the row after it there.
             let place = ordinal - held.nextOffset
-            let placeKept =
-                place == held.ordinal
-                || (held.previousKey != nil && keys[place - held.previousOffset] == held.previousKey)
+            let placeKept = held.previousKey.map { keys[place - held.previousOffset] == $0 } ?? (place == held.ordinal)
             return (placeKept ? place : ordinal, false)
         }
         return nil
@@ -169,15 +178,21 @@ extension StackWindowState {
     /// line `top` of the stack — the frame being drawn — for the next frame's
     /// hold. Nothing is read when it is the
     /// row already remembered, at the same place, and this frame found it there
-    /// (`verified`); and nothing is kept at the top (an `ordinal` of `-1`, or
+    /// (`verified`), with as many rows as when its neighbours were read; and
+    /// nothing is kept at the top (an `ordinal` of `-1`, or
     /// none), where nothing is held, so a stack at rest there pays nothing at
     /// all.
+    ///
+    /// The count is what keeps the neighbours fresh. A row inserted just after
+    /// the top row, or the row after it removed, leaves the top row where it
+    /// was; unread, the row after it was a frame stale, and the top row renamed
+    /// later put the row two after it on top (the SCROLLANCHOR review, S3).
     func rememberTopRow(atOrdinal ordinal: Int, y: Int, top: Int, in keys: RowKeys, verified: Bool) {
         guard ordinal >= 0, ordinal < keys.count else {
             heldTopRow = nil
             return
         }
-        if verified, let held = heldTopRow, held.ordinal == ordinal, held.y == y {
+        if verified, let held = heldTopRow, held.ordinal == ordinal, held.y == y, held.count == keys.count {
             heldTopRow?.top = top
             return
         }
@@ -200,7 +215,7 @@ extension StackWindowState {
         heldTopRow = HeldTopRow(
             key: rowKey, runIndex: ordinal - first, ordinal: ordinal, y: y, top: top,
             nextKey: nextKey, nextOffset: next - ordinal,
-            previousKey: previousKey, previousOffset: ordinal - first + 1)
+            previousKey: previousKey, previousOffset: ordinal - first + 1, count: keys.count)
     }
 }
 

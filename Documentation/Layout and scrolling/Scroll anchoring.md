@@ -766,14 +766,18 @@ rows inserted or removed above from a reorder. It is a shift, not a placement: a
 frame whose content above did not change moves nothing. Found at its ordinal the
 row costs one key read; found elsewhere, a search outward from where it was,
 then over every key. Gone, the row after it is put where it was — unless the row
-after it is still as far after the place the top row had: then only the row in
-that place changed (its id did, `ForEach(names, id: \.self)` with the top name
-edited), nothing above it moved, and nothing moves, as in SwiftUI
+before it is still right before that place (for a first row, which has none,
+the row after it still as far after the place the top row had): then only the
+row in that place changed (its id did, `ForEach(names, id: \.self)` with the
+top name edited), nothing above it moved, and nothing moves, as in SwiftUI
 (`Tools/SwiftUIProbes/Scroll anchoring/beside.out` case 1); taken for the row
-gone, the view moved down a row (until 2026-10-13). So when the row before it
-is still as far before the place, with rows inserted above both: the place is
-held, where SwiftUI, its row gone, holds nothing (case 2; decisions
-B-SCROLLANCHOR-6). The correction
+gone, the view moved down a row (until 2026-10-13). With rows inserted above as
+well, the place is held, where SwiftUI, its row gone, holds nothing (case 2;
+decisions B-SCROLLANCHOR-6). The neighbours are those of the last frame that
+read them: a frame that finds the top row in place reads nothing — unless the
+row count has changed since, as a row inserted or removed beside the top row
+leaves it in place, and a row after it a frame stale put the row two after it
+on top when the top row was renamed later (fixed 2026-10-13). The correction
 reaches the scroll view as a designation's does, as `seekResolvedOffset`, and is
 adopted as one is (`jumpProgrammatically`) — except that a focus move made in
 the same frame is still revealed (`resolvedOffsetIsHold`): the hold moved with

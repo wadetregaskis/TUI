@@ -243,14 +243,15 @@ extension ItemListHandler {
         if let found {
             now = found
         } else {
-            // Gone: the row after it is put where it was — unless it is still
-            // right after the place the top row had, which is then still
-            // there, the row in it replaced where it stood (its id changed),
-            // and nothing above it moved.
+            // Gone: the row after it is put where it was — unless the row
+            // before it is still right before that place (for a first row,
+            // which has none, unless the row after it is still right after the
+            // place the top row had), which is then still there, the row in
+            // it replaced where it stood (its id changed). "Still right after"
+            // alone took the top row removed with one row inserted above for
+            // a rename, and put the row from above the screen on top.
             guard let next = heldTopNextID, let nextNow = index(of: next, near: heldTopOrdinal + 1) else { return }
-            let placeKept =
-                nextNow - 1 == heldTopOrdinal
-                || (heldTopPreviousID != nil && id(at: nextNow - 2) == heldTopPreviousID)
+            let placeKept = heldTopPreviousID.map { id(at: nextNow - 2) == $0 } ?? (nextNow - 1 == heldTopOrdinal)
             now = placeKept ? nextNow - 1 : nextNow
         }
         let shift = now - heldTopOrdinal
@@ -264,7 +265,10 @@ extension ItemListHandler {
     /// ``holdTopRow()``: the first row at or below ``scrollOffset`` that has an
     /// id (a section's header has none), within a viewport of rows, and the ids
     /// of the rows before and after it. Reads nothing when the offset is where it was
-    /// remembered and this frame found the row there — nor at the top, where
+    /// remembered and this frame found the row there, with as many rows as when
+    /// the ids beside it were read — a row inserted or removed beside it leaves
+    /// it in place, and unread, the row after it went stale: the top row
+    /// renamed later put the row two after it on top — nor at the top, where
     /// nothing is held: a list at rest at its top, which most are most of the
     /// time, pays nothing at all (an id can cost a build of its row, see
     /// ``id(at:)``). A scroll away from the top in the same frame as a change
@@ -274,8 +278,9 @@ extension ItemListHandler {
             heldTopID = nil
             return
         }
-        if heldTopVerified, heldTopOffset == scrollOffset { return }
+        if heldTopVerified, heldTopOffset == scrollOffset, heldTopItemCount == itemCount { return }
         heldTopOffset = scrollOffset
+        heldTopItemCount = itemCount
         heldTopID = nil
         heldTopNextID = nil
         heldTopPreviousID = nil

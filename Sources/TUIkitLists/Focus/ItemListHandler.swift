@@ -1302,6 +1302,12 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     var heldTopOffset = 0
     var heldTopVerified = false
 
+    /// ``itemCount`` when the held row's neighbours were read: a frame that
+    /// finds the row in place with a different count reads them again, as a
+    /// row inserted or removed beside it leaves it in place
+    /// (``rememberTopRow()``).
+    var heldTopItemCount = 0
+
     /// Whether this list moved rows itself through ``onMove`` since the last
     /// frame — a move chord, a drop, a live drag's step — which placed the
     /// cursor on the row it moved and revealed it: ``holdTopRow()`` holds

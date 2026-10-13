@@ -54,7 +54,7 @@ struct ScrollWindowHoldTests {
     /// One scroll view over a lazy stack, rendered frame by frame as its rows
     /// change.
     @MainActor
-    private final class Scroller {
+    final class Scroller {
         let path: StackPath
         var items: [Row]
         var hold: ScrollWindowHold?
@@ -116,7 +116,7 @@ struct ScrollWindowHoldTests {
     }
 
     /// The rows a frame shows, top to bottom.
-    private func rows(_ lines: [String]) -> [Int] {
+    func rows(_ lines: [String]) -> [Int] {
         lines.compactMap { $0.hasPrefix("row ") ? Int($0.dropFirst(4)) : nil }
     }
 
@@ -434,7 +434,7 @@ struct ScrollWindowHoldTests {
 
     /// One `List` or `Table`, rendered frame by frame as its rows change.
     @MainActor
-    private final class Lister {
+    final class Lister {
         let kind: ListKind
         var items = (0..<40).map { Row(id: $0) }
         var anchor: ScrollAnchor<Int>?
@@ -503,7 +503,7 @@ struct ScrollWindowHoldTests {
 
     /// The first row each line shows, top to bottom (a line of a `Table` row
     /// that wraps names it more than once).
-    private func listedRows(_ lines: [String]) -> [Int] {
+    func listedRows(_ lines: [String]) -> [Int] {
         lines.compactMap { line in line.firstMatch(of: /row (\d+)/).flatMap { Int($0.1) } }
     }
 

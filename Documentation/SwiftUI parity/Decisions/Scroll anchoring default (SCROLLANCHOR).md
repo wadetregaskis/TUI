@@ -171,6 +171,22 @@ kept whichever way the rows above changed, as for a removal above (R14).
 gone with the rows above changed. Minutes — drop the row before from the
 gone-row rule — and the cost is the jump.
 
+**Fixed 2026-10-13 (lane SCROLLB, the SCROLLANCHOR review's S3):** the rule
+read neighbours remembered on the last frame that found the top row
+somewhere new. A frame that found it in place re-read nothing, so a row
+inserted just after it there left the row after it stale, and a rename in a
+later frame put the row two after it on top — and a `List`'s cursor two rows
+on; with rows inserted above as well, the view moved k + 2. The neighbours
+are now read again on a frame that finds the top row in place when the row
+count has changed since they were read (one comparison on every other frame,
+and two reads on a frame that inserted or removed rows anyway). And the place
+is judged kept by the row before it alone where there is one: "still where the
+place was" took a top row removed with exactly one row inserted above for a
+rename and put the row from above the screen on top, where two inserted put
+the row after it there, as this entry says. A change that both inserts beside
+the top row and removes a row elsewhere, in one update that leaves the count
+alone, still leaves the row after it stale.
+
 ## C. Declined
 
 ### C-SCROLLANCHOR-1. An eager `VStack` does not hold
