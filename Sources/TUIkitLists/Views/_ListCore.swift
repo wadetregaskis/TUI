@@ -2209,9 +2209,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let bar = ScrollbarRenderer.verticalScrollbar(
             height: contentHeight, extent: extentLines, viewport: contentHeight, offset: offsetLines,
             arrows: arrows, proportional: proportional,
-            colors: ScrollbarColors(
-                thumb: palette.foregroundSecondary, track: ScrollbarColors.track(in: palette),
-                arrow: palette.foregroundTertiary))
+            colors: .resting(in: palette))
         handler.verticalScrollbarMemo = ScrollbarMemo(key: key, bar: bar, runs: [])
         return bar
     }

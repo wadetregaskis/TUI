@@ -205,9 +205,7 @@ package enum DropdownMenu {
                 proportional: context.environment.scrollbarProportionalThumb,
                 // `track(in:)`, like every other bar — the raw quaternary
                 // fails the groove floors on six palettes (5f63de4c).
-                colors: ScrollbarColors(
-                    thumb: palette.foregroundSecondary, track: ScrollbarColors.track(in: palette),
-                    arrow: palette.foregroundTertiary))
+                colors: .resting(in: palette))
             : nil
         // One cell per row drawn — an unpainted space past the bar's end, as it
         // always was — so no claim is left over a row the popup does not have.

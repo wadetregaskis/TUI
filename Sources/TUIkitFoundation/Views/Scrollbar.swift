@@ -465,6 +465,17 @@ package struct ScrollbarColors {
         hover.map { $0.cell == index ? $0.color : arrow } ?? arrow
     }
 
+    /// The colours of a bar that is NOT its container's focus indicator — a
+    /// `List`'s, a `Table`'s, a drop-down menu's: the resting tones a
+    /// focus-indicating bar draws unfocused, with no hover and no breath. One
+    /// spelling for every such bar, so they cannot drift apart.
+    @MainActor
+    package static func resting(in palette: any Palette) -> Self {
+        Self(
+            thumb: palette.foregroundSecondary, track: Self.track(in: palette),
+            arrow: palette.foregroundTertiary)
+    }
+
     /// The standard palette for a bar that doubles as its container's focus
     /// indicator: quiet secondary/tertiary tones unfocused, and a PULSING
     /// accent thumb + arrows when focused — the same SelectionIndicator

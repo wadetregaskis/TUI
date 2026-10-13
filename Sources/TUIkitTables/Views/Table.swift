@@ -1460,9 +1460,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             height: contentHeight, extent: data.count, viewport: contentHeight, offset: visibleRange.lowerBound,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: ScrollbarColors(
-                thumb: palette.foregroundSecondary, track: ScrollbarColors.track(in: palette),
-                arrow: palette.foregroundTertiary))
+            colors: .resting(in: palette))
 
         // Content-only row lines; the bar cell is merged in at the END, keyed by
         // absolute line index, so an overscroll slide moves the rows and leaves
@@ -1869,9 +1867,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             offset: metrics.offset,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: ScrollbarColors(
-                thumb: palette.foregroundSecondary, track: ScrollbarColors.track(in: palette),
-                arrow: palette.foregroundTertiary))
+            colors: .resting(in: palette))
     }
 
     /// The wrapped lines of each cell of a row plus the row's height (its tallest
