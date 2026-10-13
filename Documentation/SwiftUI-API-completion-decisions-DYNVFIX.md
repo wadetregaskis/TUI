@@ -250,6 +250,15 @@ never applied. SwiftUI gives such a field nothing. Updating it there, and not
 again where it is applied, would need to know, before `body` runs, whether the
 copy `body` applies came from that field, which nothing says.
 
+**Unmeasured against SwiftUI:** a class that is both a `DynamicProperty` and
+a `ViewModifier`, held in a field declared as that class — strongly since
+DYNV bug 5's fix, and held `weak` or `unowned` since fix round 2 — is a
+stored modifier here, and its `update()` does not run. SwiftUI finds dynamic
+properties by a field's declared type, and runs `update()` on a property
+class held `unowned` (measured, DYNP case 4), so it very likely runs this
+one's; no type that is both was measured (review of 7d935f641, 2026-10-12).
+Left as it is, a deviation within the stored-modifier rule, until measured.
+
 **The fuller version, and why there is none at a small price** (fix round 2,
 2026-10-12, asked to keep it if cheap): updating the stored copy before
 `body` and skipping the applied copy when it is "the same" needs an identity
@@ -259,7 +268,12 @@ builds afresh with equal contents, which must be updated, and an `update()`
 that changes nothing leaves the two equal either way. Running `update()` after
 `body`, on the stored copy only when no applied copy matched, comes too late
 for `body` to read it. Each is a change to when properties are updated, for
-every modifier, to serve one SwiftUI does not serve: left for the owner.
+every modifier, to serve one SwiftUI does not serve: left for the owner. A
+modifier class is the exception to the first argument: its stored and
+applied copies are one object, so a set of the objects updated in a pass
+would update it once, whichever copy the walk reached first — a lookup per
+modifier class per body, the price the review of 2866cb305 named; not built,
+as it is the owner's call above.
 
 ### B-DYNVFIX-5. One value drawn at two places keeps a `@State` and an `@Environment` for each place; TUIkit's other wrappers still share one
 
