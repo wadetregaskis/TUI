@@ -334,6 +334,26 @@ struct AlignmentGuideTests {
         #expect(rows.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) } == ["c", "", "", "b"])
     }
 
+    @Test("A run with many runaways takes each as its origin in one pass, and reports the run once")
+    func manyRunawaysInOnePass() {
+        // A canvas whose rows are a thousand cells apart (a unit mix-up):
+        // rows up to 1,048 fit the bound beside row 0, and every row past
+        // them is a runaway. Taken one at a time with a rescan each, the
+        // 951 of them were reported 951 times and cost a pass over the run
+        // each; a canvas of 20,000 such rows cost about 10^9 comparisons a
+        // resolve.
+        let rows = 2_000
+        var reports = 0
+        let run = AlignmentGuideRun.resolve(
+            resolved: (0..<rows).map { -Double($0) * 1_000 }, sizes: Array(repeating: 1, count: rows),
+            fixedExtent: nil, minimumExtent: 1, report: { _ in reports += 1 }, regionGuide: { _ in 0 })
+        let kept = AlignmentGuideRun.maximumPush / 1_000
+        #expect(reports == 1)
+        #expect(Array(run.offsets.prefix(kept + 1)) == (0...kept).map { $0 * 1_000 })
+        #expect(run.offsets.dropFirst(kept + 1).allSatisfy { $0 == 0 })
+        #expect(run.extent == kept * 1_000 + 1)
+    }
+
     @Test("A guide that is not a number is reported on a view with a width and a height, and only there")
     @MainActor
     func nonFiniteGuideReports() {

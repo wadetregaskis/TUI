@@ -69,10 +69,13 @@ offered and means it, and it is cut from its top-leading corner (B-D3M-2).
 A push is the gap between two guides, so a push past 2^20 does not say which
 of the two is wrong. The owner's ruling places "such a view at its own
 origin". The lane takes the guide furthest from its own view's origin as the
-runaway, reports it, and takes it as that origin, one guide at a time until
-the run's spread fits: `1e300` beside a `0`, and `-1e300` beside a canvas row
-at `-3`, which keeps its place (`AlignmentGuideTests` "A push past the bound
-is reported…"). A single child in a frame, overlay or background is bounded
+runaway and takes it as that origin, one guide at a time until the run's
+spread fits: `1e300` beside a `0`, and `-1e300` beside a canvas row at `-3`,
+which keeps its place (`AlignmentGuideTests` "A push past the bound is
+reported…"). The run is reported once, and its guides are sorted once rather
+than rescanned for each runaway, which cost a canvas of 20,000 rows with a
+unit mix-up about 10^9 comparisons a resolve ("A run with many runaways…").
+A single child in a frame, overlay or background is bounded
 the same way against the region's guide; a region guide that is itself a
 runaway (a custom `AlignmentID`) is held to the bound.
 

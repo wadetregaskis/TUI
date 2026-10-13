@@ -492,17 +492,15 @@ struct AlignmentGuideRun {
         var positions = resolved.map { coordinate($0) }
         let reach = Double(max(Self.maximumPush, minimumExtent, fixedExtent ?? 0))
         // A push is how far one guide falls short of the largest, so the
-        // furthest push is the spread of the guides. Past `reach`, the guide
-        // furthest from its own view's origin is the runaway — `1e300` beside
-        // a `0`, `-1e300` beside a `-row` — and it becomes that origin, as a
-        // guide that is not a number does. One at a time, since the next one
-        // out may be legitimate once the runaway is gone; each pass zeroes a
-        // guide that was not zero (the spread is positive), so it ends.
-        while let lowest = positions.min(), let highest = positions.max(), highest - lowest > reach,
-            let runaway = positions.indices.max(by: { abs(positions[$0]) < abs(positions[$1]) })
-        {
+        // furthest push is the spread of the guides. Past `reach`, the guides
+        // furthest from their own views' origins are the runaways — `1e300`
+        // beside a `0`, `-1e300` beside a `-row` — and become those origins,
+        // as a guide that is not a number does (``zeroRunaways(_:reach:)``).
+        // Reported once for the run: one report is the logic error, and a
+        // release build keeps only the first.
+        if let lowest = positions.min(), let highest = positions.max(), highest - lowest > reach {
             report?(Self.pushPastTheBoundMessage(bound: Int(reach)))
-            positions[runaway] = 0
+            Self.zeroRunaways(&positions, reach: reach)
         }
         let merged = positions.max() ?? 0
 
@@ -544,6 +542,44 @@ struct AlignmentGuideRun {
             offsets.append(holdsChildrenInside ? min(raw, max(0, extent - sizes[index])) : raw)
         }
         return Self(offsets: offsets, extent: extent)
+    }
+
+    /// Takes the runaway guides in `positions` as their views' origins (`0`)
+    /// until the spread of what is left, those zeros included, is at most
+    /// `reach`.
+    ///
+    /// The rule is one guide at a time, furthest from its origin first (the
+    /// first of equals), since the next one out may be legitimate once the
+    /// runaway is gone: `-1e300` goes and a canvas row's `-3` stays. Done
+    /// literally, each step rescans the run, so a canvas of 20,000 rows with
+    /// a unit mix-up cost about 10^9 comparisons a resolve, and a resolve runs
+    /// on every measure and render. Here the order is sorted once, and the
+    /// spread left after each step is read off the minimum and maximum of
+    /// the rest of that order, kept from its far end: O(n log n), on a path
+    /// that is a logic error already.
+    private static func zeroRunaways(_ positions: inout [Double], reach: Double) {
+        let order = positions.indices.sorted { lhs, rhs in
+            let (left, right) = (abs(positions[lhs]), abs(positions[rhs]))
+            return left != right ? left > right : lhs < rhs
+        }
+        // `lowest[k]`, `highest[k]`: the extremes of the guides still standing
+        // once the first `k` in `order` are zeroed.
+        var lowest = [Double](repeating: .infinity, count: order.count + 1)
+        var highest = [Double](repeating: -.infinity, count: order.count + 1)
+        for step in order.indices.reversed() {
+            lowest[step] = min(lowest[step + 1], positions[order[step]])
+            highest[step] = max(highest[step + 1], positions[order[step]])
+        }
+        // Zeroing one or more puts a 0 among them; zeroing all of them leaves
+        // a spread of 0, so the search always ends.
+        // Typed throughout: with bare `0` literals the generic `max` and `min`
+        // took the solver past CI's type-check bound (`typecheck_guard`).
+        let zeroed: Int =
+            (1...order.count).first { (step: Int) -> Bool in
+                let spread: Double = Swift.max(0.0, highest[step]) - Swift.min(0.0, lowest[step])
+                return spread <= reach
+            } ?? order.count
+        for step in 0..<zeroed { positions[order[step]] = 0 }
     }
 
     /// Where one view goes in a region `extent` cells long whose own guide is
