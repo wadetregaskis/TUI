@@ -364,12 +364,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** uses a finite guide as given at any magnitude: a guide of `1e300`
   places its view that far along, without a word, and its width is lost to
   rounding. A guide of `+∞` or NaN stops the app ("view origin is invalid") in
-  every placement tried (measured 2026-10-12, decisions B-GUIDE-2).
+  every placement tried; one of `-∞` does not stop it, but places the view
+  nowhere a layout can use: at the root, its x is infinite and its width NaN
+  (measured 2026-10-12 at the root only, decisions B-GUIDE-2).
 - **TUIkit:** one guide pushes a view at most 1,048,576 cells along its
   container (`AlignmentGuideRun.maximumPush`), or as far as the container's
   extent or its widest view if that is further; the `TUIKIT_MAX_ALIGNMENT_PUSH`
   environment variable raises it, up to 2^30. A push past it, and a guide that
-  is not a number on a view with a width and a height, is a logic error,
+  is not a finite number (NaN, `+∞` or `-∞`) on a view with a width and a
+  height, is a logic error,
   reported through `SoftTrap` (an assertion in a debug build, once in a release
   build), and the view is placed as if its guide were at its own origin. On a
   view with no width or no height a guide that is not a number takes that
@@ -377,8 +380,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** no layout is a million cells along; such a guide is a runaway
   expression. Unbounded, a guide of `1e300` traps sizing a line, and a push of
   `1e7` or more builds a line that many cells long for each pushed row on every
-  frame, and neither names the guide. A small terminal squeezes rows to
-  nothing, where `d.width / d.height` is legitimately infinite.
+  frame, and neither names the guide. `-∞` is reported with the other two:
+  SwiftUI does not stop on it, but what it places is no position either. A
+  small terminal squeezes rows to nothing, where `d.width / d.height` is
+  legitimately infinite.
 - **Decided:** [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>).
   **Owner** (2026-10-12: 2^20, a push past it reported, an environment
   variable to override it).

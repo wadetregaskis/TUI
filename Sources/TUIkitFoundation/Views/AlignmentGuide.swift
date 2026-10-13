@@ -134,14 +134,16 @@ extension View {
     /// container, or as far as the container's extent or its widest view if
     /// that is further. A guide that would push one further is a logic error
     /// — a division by a value near zero, a unit mix-up — and so is a guide
-    /// that is not a number (`.nan`, `.infinity`) on a view with a width and
-    /// a height: a debug build stops with an assertion, and a release build
-    /// reports it once (to `TUIKIT_DIAGNOSTICS_FILE`, or to stderr when the
-    /// app gives the terminal back) and places the view as if its guide were
-    /// at its own origin. SwiftUI places a finite one without a word, and
-    /// stops on `+.infinity` or `.nan` (measured). A canvas that really is
-    /// larger can raise the bound with the `TUIKIT_MAX_ALIGNMENT_PUSH`
-    /// environment variable, a number of cells up to 2^30.
+    /// that is not a finite number (`.nan`, `.infinity`, `-.infinity`) on a
+    /// view with a width and a height: a debug build stops with an assertion,
+    /// and a release build reports it once (to `TUIKIT_DIAGNOSTICS_FILE`, or
+    /// to stderr when the app gives the terminal back) and places the view as
+    /// if its guide were at its own origin. SwiftUI places a finite one
+    /// without a word, stops on `.infinity` or `.nan`, and places a view whose
+    /// guide is `-.infinity` at an infinite x without stopping (measured). A
+    /// canvas that really is larger can raise the bound with the
+    /// `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable, a number of cells up
+    /// to 2^30.
     ///
     /// `.frame(alignment:)`, `.overlay(alignment:)` and
     /// `.background(alignment:)` place their one view where its guide meets
