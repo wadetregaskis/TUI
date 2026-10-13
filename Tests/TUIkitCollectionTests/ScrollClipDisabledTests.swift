@@ -264,13 +264,13 @@ struct ScrollClipDisabledTests {
         ]
         content.opacityRegions = [OpacityRegion(offsetX: 0, offsetY: 0, width: 8, height: 4, opacity: 0.5)]
         var layer = OverlayLayer(offsetX: 10, offsetY: 20, content: content, isOpaque: false)
-        layer.isScrollOverflow = true
+        layer.isOverflow = true
         let parts = layer.drawnParts()
         // Rows 0 and 1 start at different columns, row 2 paints nothing, and
         // row 4 paints nothing either.
         #expect(parts.map { [$0.offsetX, $0.offsetY] } == [[10, 20], [12, 21], [10, 23]])
         #expect(parts.map { $0.content.lines.map(\.stripped) } == [["ab"], ["cd"], ["efghij"]])
-        let marked = parts.allSatisfy(\.isScrollOverflow)
+        let marked = parts.allSatisfy(\.isOverflow)
         #expect(marked)
         let regions = parts.flatMap { part in
             part.content.hitTestRegions.map { [part.offsetX + $0.offsetX, part.offsetY + $0.offsetY, $0.width, $0.height] }
@@ -295,7 +295,7 @@ struct ScrollClipDisabledTests {
             AnimatedCellRun(offsetX: 3, offsetY: 2, width: 1, frames: ["\(reverse) \(reset)", " "], clock: .content)
         ]
         var layer = OverlayLayer(offsetX: 0, offsetY: 0, content: content, isOpaque: false)
-        layer.isScrollOverflow = true
+        layer.isOverflow = true
         let parts = layer.drawnParts()
         #expect(parts.map { [$0.offsetX, $0.offsetY, $0.content.height] } == [[0, 0, 1], [2, 1, 1], [3, 2, 1]], "\(parts)")
         #expect(parts.map { $0.content.lines.first?.strippedLength ?? -1 } == [3, 2, 1])
@@ -311,7 +311,7 @@ struct ScrollClipDisabledTests {
         var content = FrameBuffer(lines: ["     ", "     "])
         content.hitTestRegions = [HitTestRegion(offsetX: 0, offsetY: 0, width: 5, height: 2, handlerID: .init(1))]
         var layer = OverlayLayer(offsetX: 0, offsetY: 0, content: content, isOpaque: false)
-        layer.isScrollOverflow = true
+        layer.isOverflow = true
         #expect(layer.drawnParts().isEmpty)
         var trimmed = layer
         trimmed.content = FrameBuffer(lines: [])
@@ -399,7 +399,7 @@ struct ScrollClipDisabledTests {
     private func floating(_ text: String, overflow: Bool = false) -> FrameBuffer {
         var buffer = FrameBuffer(lines: [text])
         var layer = OverlayLayer(offsetX: 3, offsetY: 0, content: FrameBuffer(lines: ["*"]), isOpaque: false)
-        layer.isScrollOverflow = overflow
+        layer.isOverflow = overflow
         buffer.overlays = [layer]
         return buffer
     }
@@ -410,14 +410,14 @@ struct ScrollClipDisabledTests {
         for index in 0..<200 {
             column.appendVertically(floating("row \(index)"))
             // Known without looking: the next append's cover test is one field.
-            #expect(column.overlaysAreFreeOfScrollOverflow, "unknown after child \(index)")
+            #expect(column.overlaysAreFreeOfOverflow, "unknown after child \(index)")
         }
         var row = FrameBuffer()
         row.appendHorizontally(floating("a"))
         row.appendHorizontally(floating("b"))
-        #expect(row.overlaysAreFreeOfScrollOverflow)
+        #expect(row.overlaysAreFreeOfOverflow)
         let composited = column.composited(with: floating("over"), at: (x: 0, y: 0))
-        #expect(composited.overlaysAreFreeOfScrollOverflow)
+        #expect(composited.overlaysAreFreeOfOverflow)
         #expect(column.overlays.count == 200)
     }
 
@@ -425,17 +425,17 @@ struct ScrollClipDisabledTests {
     func hintNeverHidesOverflow() {
         var column = FrameBuffer()
         column.appendVertically(floating("x"))
-        #expect(column.overlaysAreFreeOfScrollOverflow)
+        #expect(column.overlaysAreFreeOfOverflow)
         // Put there directly, not through a combining operation.
         var layer = OverlayLayer(offsetX: 0, offsetY: 1, content: FrameBuffer(lines: ["overflow"]), isOpaque: false)
-        layer.isScrollOverflow = true
+        layer.isOverflow = true
         column.overlays.append(layer)
-        #expect(!column.overlaysAreFreeOfScrollOverflow, "any change to the layers is unknown")
+        #expect(!column.overlaysAreFreeOfOverflow, "any change to the layers is unknown")
         column.appendVertically(FrameBuffer(lines: ["cover"]))
         // "cover" paints the overflow's first five cells: "low" is left of it.
-        let drawn = column.overlays.filter(\.isScrollOverflow).map { "\($0.offsetX): \($0.content.lines.map(\.stripped))" }
+        let drawn = column.overlays.filter(\.isOverflow).map { "\($0.offsetX): \($0.content.lines.map(\.stripped))" }
         #expect(drawn == ["5: [\"low\"]"], "\(drawn)")
-        #expect(!column.overlaysAreFreeOfScrollOverflow)
+        #expect(!column.overlaysAreFreeOfOverflow)
     }
 
     @MainActor

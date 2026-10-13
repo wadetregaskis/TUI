@@ -788,7 +788,7 @@ extension String {
     /// unstyled blank space either side of them is a line's silhouette, not its
     /// drawing: what a layer drawn over other content must leave alone, and
     /// what content drawn after it must not count as covering it
-    /// (`OverlayLayer.drawnParts()`, `FrameBuffer.coverScrollOverflow`).
+    /// (`OverlayLayer.drawnParts()`, `FrameBuffer.coverOverflow`).
     /// Its upper bound is ``visibleWidthBeforeTrailingBlanks()``.
     func paintedColumns() -> Range<Int>? {
         var width = 0

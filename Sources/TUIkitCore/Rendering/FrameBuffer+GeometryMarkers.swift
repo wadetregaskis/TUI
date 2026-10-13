@@ -26,9 +26,9 @@ extension FrameBuffer {
     /// - a pinned section header's COPY (`OverlayLayer.scrollPin`): what it
     ///   holds is already in the flow, at its own place; read here, a marker
     ///   in the header would answer for the pinned copy instead.
-    /// - a scroll view's overflow (`OverlayLayer.isScrollOverflow`): it is the
-    ///   content past the viewport, whose markers the window already carries
-    ///   (a clip keeps a marker whole), so it would only answer twice.
+    /// - overflow (`OverlayLayer.isOverflow`): it is content past its region,
+    ///   a scroll view's past the viewport, whose markers the window already
+    ///   carries (a clip keeps a marker whole), so it would only answer twice.
     ///
     /// - Parameters:
     ///   - offsetX: Added to every column reported.
@@ -71,6 +71,6 @@ extension OverlayLayer {
     /// geometry marker inside it is where its view is drawn. See
     /// ``FrameBuffer/forEachGeometryMarker(offsetX:offsetY:_:)``.
     var carriesDisplacedDrawing: Bool {
-        !isOpaque && scrollPin == nil && !isScrollOverflow
+        !isOpaque && scrollPin == nil && !isOverflow
     }
 }

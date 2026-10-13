@@ -866,8 +866,8 @@ over that sibling. Every layer is composited at the screen root, over the
 in-flow content, which gives the first half; the second is a rule in the
 combining operations (`appendVertically`, `appendHorizontally`, `composite`):
 content placed after a scroll view cuts that scroll view's overflow away beneath
-the cells it paints (`OverlayLayer.isScrollOverflow`,
-`FrameBuffer.coverScrollOverflow`) — on each line, from its first painted cell
+the cells it paints (`OverlayLayer.isOverflow`,
+`FrameBuffer.coverOverflow`) — on each line, from its first painted cell
 to its last — at the cost of one test of a hint per operation (a buffer knows,
 after each combining step, that its layers hold no overflow). The
 blank space either side is not the later view drawing: a short `Text` padded to

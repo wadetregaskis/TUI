@@ -77,8 +77,8 @@ public struct FrameBuffer: Sendable, Equatable {
     /// the lines genuinely are uniform.
     public private(set) var linesAreUniformWidth: Bool
 
-    /// Whether ``overlays`` is known to hold no scroll view's overflow
-    /// (`OverlayLayer.isScrollOverflow`): a hint with ``linesAreUniformWidth``'s
+    /// Whether ``overlays`` is known to hold no overflow
+    /// (`OverlayLayer.isOverflow`): a hint with ``linesAreUniformWidth``'s
     /// conservative meaning — `true` is "definitely none", `false` "unknown,
     /// look". Any change to ``overlays`` makes it unknown, and the combining
     /// operations say what they know after each append
@@ -86,7 +86,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// with a layer each asks about each child's layers once, not about every
     /// layer so far at every child. Declared beside the other `Bool`, in its
     /// padding, and excluded from `==` like the other hints.
-    package var overlaysAreFreeOfScrollOverflow = true
+    package var overlaysAreFreeOfOverflow = true
 
     /// Per-line visible widths, or `nil` when unknown ("measure on demand").
     ///
@@ -151,7 +151,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// is shifted by every combining operation, so it becomes absolute by the
     /// time the buffer reaches the root. See ``OverlayLayer``.
     public var overlays: [OverlayLayer] = [] {
-        didSet { overlaysAreFreeOfScrollOverflow = false }
+        didSet { overlaysAreFreeOfOverflow = false }
     }
 
     /// Mouse hit-test rectangles that ride alongside this buffer's
@@ -409,10 +409,10 @@ extension FrameBuffer {
         }
 
         // `other`'s content lands below the current lines (plus spacing), over
-        // an earlier scroll view's overflow there.
+        // an earlier view's overflow there.
         let spacingApplied = priorHeight > 0 ? spacing : 0
         let verticalShift = priorHeight + spacingApplied
-        coverScrollOverflow(under: other, at: (x: 0, y: verticalShift))
+        coverOverflow(under: other, at: (x: 0, y: verticalShift))
 
         // Pre-compute the new width (avoids redundant computation in didSet)
         let newWidth = max(width, other.width)
@@ -623,7 +623,7 @@ extension FrameBuffer {
         // `.offset`/`.position` child leaves behind, and that one declares
         // columns (`other.width > 0`), so it is untouched here.
         let spacingApplied = priorWidth > 0 && other.width > 0 ? spacing : 0
-        coverScrollOverflow(under: other, at: (x: myWidth + spacingApplied, y: 0))
+        coverOverflow(under: other, at: (x: myWidth + spacingApplied, y: 0))
 
         // Pre-compute the new width
         let newWidth = myWidth + spacingApplied + other.width
@@ -845,11 +845,11 @@ extension FrameBuffer {
         }
 
         var composited = Self(lines: result)
-        // Keep this buffer's own layers + hit-test regions (a scroll view's
+        // Keep this buffer's own layers + hit-test regions (their
         // overflow cut where the overlay lands); lift the overlay's nested
         // ones, shifted to where the overlay was placed.
-        composited.overlays = scrollOverflowCovered(under: overlay, at: position)
-        composited.overlaysAreFreeOfScrollOverflow = overlaysAreFreeOfScrollOverflow
+        composited.overlays = overflowCovered(under: overlay, at: position)
+        composited.overlaysAreFreeOfOverflow = overlaysAreFreeOfOverflow
         composited.appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
         composited.hitTestRegions =
             hitTestRegions
@@ -970,7 +970,7 @@ extension FrameBuffer {
         width = resultWidth
         linesAreUniformWidth = true
         lineWidths = nil
-        coverScrollOverflow(under: overlay, at: position)
+        coverOverflow(under: overlay, at: position)
         appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
         hitTestRegions.append(
             contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))

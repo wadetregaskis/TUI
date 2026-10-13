@@ -96,7 +96,7 @@ extension _ScrollViewCore {
     /// so a short or indented line neither erases nor steals the clicks of what
     /// is beside it.
     ///
-    /// The layers are marked ``OverlayLayer/isScrollOverflow``, which places
+    /// The layers are marked ``OverlayLayer/isOverflow``, which places
     /// them at the scroll view's z position: content composed after the scroll
     /// view cuts them away beneath it.
     func overflowLayers(
@@ -115,7 +115,7 @@ extension _ScrollViewCore {
             content: content,
             zIndex: OverlayLayer.displacedDrawingZIndex,
             clampsToScreen: false, isOpaque: false)
-        layer.isScrollOverflow = true
+        layer.isOverflow = true
         // The whole view, in the content window's coordinates: the reserved
         // lines sit above and below the window, the bars beside and below it.
         // Cut first, so only the overflow's lines are read for what they paint.

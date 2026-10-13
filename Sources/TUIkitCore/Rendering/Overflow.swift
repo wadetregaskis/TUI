@@ -1,10 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  ScrollOverflow.swift
+//  Overflow.swift
 //
-//  A scroll view's content drawn past its bounds (`scrollClipDisabled`), and
-//  the one rule that places it in the stacking order: it draws over what came
-//  before the scroll view and under what comes after it, at the scroll view's
-//  own z position, as SwiftUI's does.
+//  Content drawn past its region — a scroll view's under `scrollClipDisabled` —
+//  and the one rule that places it in the stacking order: it draws over what
+//  came before its view and under what comes after it, at the view's own z
+//  position, as SwiftUI's does.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -51,9 +51,9 @@ extension OverlayLayer {
     /// left out whole.
     ///
     /// For a layer drawn OVER other content, where compositing is opaque per
-    /// cell: a scroll view's content past its bounds
-    /// (``isScrollOverflow``), whose short or indented lines must not erase,
-    /// or take the clicks of, what is beside them.
+    /// cell: content past its region (``isOverflow``), whose short or
+    /// indented lines must not erase, or take the clicks of, what is beside
+    /// them.
     package func drawnParts() -> [OverlayLayer] {
         let painted = content.paintedColumnsByLine()
         var parts: [OverlayLayer] = []
@@ -153,7 +153,7 @@ extension OverlayLayer {
 }
 
 extension FrameBuffer {
-    /// Cuts the scroll overflow this buffer carries (``OverlayLayer/isScrollOverflow``)
+    /// Cuts the overflow this buffer carries (``OverlayLayer/isOverflow``)
     /// away beneath content composed AFTER it — `later`, placed at `position`
     /// — where that content paints.
     ///
@@ -174,47 +174,47 @@ extension FrameBuffer {
     /// the overflow through it. Cut by its whole rect, a short `Text` padded to
     /// its stack's width hid every overflowing line it sat on.
     ///
-    /// Costs a test of the hint ``overlaysAreFreeOfScrollOverflow`` on every
+    /// Costs a test of the hint ``overlaysAreFreeOfOverflow`` on every
     /// combining operation, a look at the layers when it does not know — after
-    /// which it does — and nothing more unless a scroll view has disabled its
-    /// clip.
-    package mutating func coverScrollOverflow(under later: FrameBuffer, at position: (x: Int, y: Int)) {
-        guard !overlays.isEmpty, !overlaysAreFreeOfScrollOverflow else { return }
-        guard overlays.contains(where: \.isScrollOverflow) else {
-            overlaysAreFreeOfScrollOverflow = true
+    /// which it does — and nothing more unless something in the buffer draws
+    /// past its region.
+    package mutating func coverOverflow(under later: FrameBuffer, at position: (x: Int, y: Int)) {
+        guard !overlays.isEmpty, !overlaysAreFreeOfOverflow else { return }
+        guard overlays.contains(where: \.isOverflow) else {
+            overlaysAreFreeOfOverflow = true
             return
         }
         overlays = Self.covering(overlays, under: later, at: position)
     }
 
-    /// ``overlays`` with the scroll overflow among them cut away where `later`,
-    /// placed at `position`, paints — ``coverScrollOverflow(under:at:)`` for a
+    /// ``overlays`` with the overflow among them cut away where `later`,
+    /// placed at `position`, paints — ``coverOverflow(under:at:)`` for a
     /// buffer that is not changed in place. ``overlays`` itself when there is
     /// none, which is almost always.
-    package func scrollOverflowCovered(under later: FrameBuffer, at position: (x: Int, y: Int)) -> [OverlayLayer] {
-        guard !overlays.isEmpty, !overlaysAreFreeOfScrollOverflow, overlays.contains(where: \.isScrollOverflow)
+    package func overflowCovered(under later: FrameBuffer, at position: (x: Int, y: Int)) -> [OverlayLayer] {
+        guard !overlays.isEmpty, !overlaysAreFreeOfOverflow, overlays.contains(where: \.isOverflow)
         else { return overlays }
         return Self.covering(overlays, under: later, at: position)
     }
 
-    /// Whether ``overlays`` holds no scroll overflow: the hint when it knows,
+    /// Whether ``overlays`` holds no overflow: the hint when it knows,
     /// a look otherwise.
-    package var overlaysHoldNoScrollOverflow: Bool {
-        overlaysAreFreeOfScrollOverflow || !overlays.contains(where: \.isScrollOverflow)
+    package var overlaysHoldNoOverflow: Bool {
+        overlaysAreFreeOfOverflow || !overlays.contains(where: \.isOverflow)
     }
 
     /// Appends `other`'s layers, shifted by (`dx`, `dy`), saying what is known
-    /// about scroll overflow after: none, when there was none before and
+    /// about overflow after: none, when there was none before and
     /// `other` has none. The combining operations' one way to lift layers, so
     /// the hint survives the append that would otherwise make it unknown.
     package mutating func appendOverlays(of other: FrameBuffer, shiftedByX dx: Int, y dy: Int) {
         guard !other.overlays.isEmpty else { return }
-        let free = (overlays.isEmpty || overlaysAreFreeOfScrollOverflow) && other.overlaysHoldNoScrollOverflow
+        let free = (overlays.isEmpty || overlaysAreFreeOfOverflow) && other.overlaysHoldNoOverflow
         overlays.append(contentsOf: other.shiftedOverlays(byX: dx, y: dy))
-        overlaysAreFreeOfScrollOverflow = free
+        overlaysAreFreeOfOverflow = free
     }
 
-    /// `layers` with the scroll overflow among them cut away where `later`,
+    /// `layers` with the overflow among them cut away where `later`,
     /// placed at `position`, paints.
     private static func covering(
         _ layers: [OverlayLayer], under later: FrameBuffer, at position: (x: Int, y: Int)
@@ -222,7 +222,7 @@ extension FrameBuffer {
         var covered = layers
         for block in later.paintedBlocks() {
             covered = covered.flatMap { layer -> [OverlayLayer] in
-                guard layer.isScrollOverflow else { return [layer] }
+                guard layer.isOverflow else { return [layer] }
                 return layer.excluding(
                     x: position.x + block.columns.lowerBound, y: position.y + block.rows.lowerBound,
                     width: block.columns.count, height: block.rows.count)
