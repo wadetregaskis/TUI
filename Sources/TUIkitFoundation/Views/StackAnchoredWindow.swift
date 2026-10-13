@@ -404,11 +404,19 @@ extension _VStackCore {
     /// top edge (minimal-movement reveal, as `scrollTo(_:anchor: nil)` does). The
     /// result is clamped into the viewport, reserving the indicator lines, so an
     /// off-by-a-little visible row still lands on a real line.
+    ///
+    /// The anchor is walked from as `rebindAnchor` will clamp it, into the rows
+    /// there now: adoption runs before that clamp, and the anchor is still last
+    /// frame's. Walked from as it was, a change that took rows away left it
+    /// past the end of the data, and the walk asked for a row that is not
+    /// there — a trap: the last of 300 rows held, two rows above it removed and
+    /// the row let go (`letGoOfHeldRow`), or another row designated in the same
+    /// change.
     private func adoptedHeldLine(
         frame: AnchoredWindowFrame, state: StackWindowState,
         window: ScrollContentWindow, designated: Int
     ) -> Int {
-        let anchor = state.anchorOrdinal
+        let anchor = min(max(0, state.anchorOrdinal), frame.children.count - 1)
         guard abs(designated - anchor) <= window.viewportHeight + 2 else {
             return window.edgeInset
         }

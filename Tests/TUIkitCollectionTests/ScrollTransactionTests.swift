@@ -221,6 +221,32 @@ struct ScrollTransactionTests {
         #expect(held.before == before && held.released == before && held.after == before, "\(held.frames)")
     }
 
+    /// The row let go is adopted by a walk from the anchor as last drawn, which
+    /// the change can leave past the end of the data: the last of 300 rows,
+    /// held, with two rows above it removed. The walk asked for a row that is
+    /// not there, and the app trapped.
+    @Test("A lazy stack's held last row, let go as rows above it are removed, is adopted, not walked past the data")
+    func disabledRemovalAboveTheHeldLastRow() {
+        let frames = Frames()
+        var items = Array(0..<300)
+        func view() -> some View {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(items, id: \.self) { Text("row \($0)").frame(height: $0 % 3 + 1) }
+                }
+            }
+            .anchorPosition(.constant(ScrollAnchor<Int>.row(299)))
+        }
+        frames.render(view(), height: 8)
+        let settled = frames.render(view(), height: 8)
+        #expect(settled.contains("row 299"), "precondition: the last row held on screen \(settled)")
+        var disabled = Transaction()
+        disabled.scrollContentOffsetAdjustmentBehavior = .disabled
+        items.removeFirst(2)
+        let released = frames.render(view(), transaction: disabled, height: 8)
+        #expect(released.contains("row 299"), "\(released)")
+    }
+
     enum ListKind: String, CaseIterable, Sendable { case list, table }
 
     @Test(

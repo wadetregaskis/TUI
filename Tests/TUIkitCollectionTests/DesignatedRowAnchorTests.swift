@@ -472,4 +472,26 @@ struct DesignatedRowAnchorTests {
         #expect(screenLine(of: 398, in: held) == Self.viewport - 4, "the rows above it fill the lines above it: \(held)")
         #expect(screenLine(of: 396, in: held) == 1, "\(held)")
     }
+
+    /// Designating a row walks to it from the anchor as last drawn, which a
+    /// change that takes rows away can leave past the end of the data: here
+    /// the last row, held, with two rows above it removed in the change that
+    /// designates another. The walk asked for a row that is not there, and the
+    /// app trapped.
+    @Test("Anchored walk: a row designated as rows above the held last row go is adopted, not walked past the data")
+    func anchoredWalkAdoptionAfterRowsGo() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var held: [String] = []
+        for _ in 0..<2 {
+            held = renderFrame(
+                items: Array(0..<300), anchored: 299, uniform: false,
+                tuiContext: tuiContext, focusManager: focusManager)
+        }
+        #expect(screenLine(of: 299, in: held) != nil, "precondition: row 299 held on screen \(held)")
+        let adopted = renderFrame(
+            items: Array(2..<300), anchored: 297, uniform: false,
+            tuiContext: tuiContext, focusManager: focusManager)
+        #expect(screenLine(of: 297, in: adopted) != nil, "\(adopted)")
+    }
 }
