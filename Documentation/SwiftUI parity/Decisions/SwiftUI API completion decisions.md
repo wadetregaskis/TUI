@@ -41,14 +41,8 @@ B1–B37), my answers to its questions of 2026-10-05 (which you answered
 landed is removed, and no entry is renumbered. **Lane owed** marks an entry
 that is decided and waits only on its implementation.
 
-**Still yours to answer.**
-
-- **B27** — report the scrolling's last speed when it goes idle, rather than
-  SwiftUI's literal (0, 0)?
-- **B30** — keep TUIkit's Window anchoring default, or hold the top row when
-  rows are inserted above it, as SwiftUI does by default?
-- A27 (pixel effects), A34 (the blur transition) and A48 (swipe actions):
-  each entry ends in a recommendation.
+**Still yours to answer.** A27 (pixel effects), A34 (the blur transition)
+and A48 (swipe actions): each entry ends in a recommendation.
 
 **Decided, waiting on a measurement.** A16's colour provider and A40's
 default dissolve each wait on an A/B on the quiet machine, whose numbers
@@ -58,8 +52,8 @@ when nothing animates.
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B20, B22 (a look
-at the faint tiers), B27 (once its question is answered), B28, B30 (the one
-missing reader), B31, B35.
+at the faint tiers), B27, B28, B30 (the default and the one missing
+reader), B31, B35.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1348,9 +1342,16 @@ anything. **Recommended:** report the speed the scrolling had when its steps
 stopped. TUIkit's one change to idle stands for SwiftUI's two (interacting to
 decelerating, then to idle), and the speed belongs to the first; B91's
 precedent, measured on macOS, is that a still pointer keeps its last motion's
-velocity. That is a deliberate deviation, recorded when it ships. **Lane
-owed** once answered: 1–2 commits (the estimator shared as a pure refactor
-first).
+velocity. That is a deliberate deviation, recorded when it ships.
+
+**Owner, 2026-10-12 (later):** (0, 0) at both changes, as SwiftUI reports
+it, not the last speed. So no estimator is built: the change to
+`.interacting` and the change to `.idle` both report (0, 0), and the
+velocity is never `nil`. The owner also asked whether any terminal extension
+reports more about a wheel or a trackpad. None reports a delta, a phase or a
+velocity: [Terminal compatibility survey.md](<../../Terminals/Terminal compatibility survey.md#wheel-reports-per-notch--a-hosts-choice-not-normalised>)
+records what a notch sends, and [Future options.md](<../../Future options.md>)
+parks SGR-Pixels (mode 1016). **Lane owed:** one commit.
 
 ### B28. `scrollIndicatorsFlash` returns the view: the indicators are already showing
 
@@ -1449,6 +1450,12 @@ follow-up never happened). One commit, with a test.
 deviation, or hold the top row by default as SwiftUI does? The second reverses
 part of `Scroll anchoring.md`'s first slice for views that declare no anchor,
 at a cost not measured.
+
+**Owner, 2026-10-12 (later):** follow SwiftUI. With no anchor declared, rows
+inserted above the top row keep the reader's place. Make it configurable
+either way, and redesign TUIkit's existing anchoring API where that makes it
+cleaner (pre-1.0, no compatibility spellings). **Lane owed** (SCROLLANCHOR),
+together with the missing reader above; the cost is measured in that lane.
 
 ### B31. Bounce behaviour gates the overscroll allowance
 
