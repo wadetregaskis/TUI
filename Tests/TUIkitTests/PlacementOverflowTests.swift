@@ -522,7 +522,7 @@ struct PlacementOverflowTests {
     }
 
     @Test("A lazy column outside a scroll view pads its rows to its space, not its run, and draws the overhang past it")
-    func lazyColumnPadsToItsSpace() {
+    func lazyColumnPadsToItsSpace() throws {
         // As the eager column in `columnOverhang`: GGG's guide puts it at 20,
         // past the 20-wide column, where it is drawn. Padded to the run, each
         // row was a line as long as the push, cut by the frame around it.
@@ -537,16 +537,19 @@ struct PlacementOverflowTests {
             .padding(.trailing, 10))
         #expect(lines.first == String(repeating: " ", count: 20) + "GGG", "\(lines)")
 
+        // The column's own buffer, before the clamp every view's render
+        // passes through (`renderToBuffer`), which would hide the padding.
         let pushed = LazyVStack(alignment: .leading, spacing: 0) {
             Text("g").alignmentGuide(.leading) { _ in -100_000 }
             Text("ssssss")
         }
-        let buffer = renderToBuffer(pushed, context: makeBareRenderContext(width: 20, height: 4))
+        let core = try #require(pushed.body as? any Renderable)
+        let buffer = core.renderToBuffer(context: makeBareRenderContext(width: 20, height: 4))
         #expect(buffer.width <= 20, "\(buffer.width)")
     }
 
     @Test("A lazy row pads its columns to its space, not its run, and draws the overhang below it")
-    func lazyRowPadsToItsSpace() {
+    func lazyRowPadsToItsSpace() throws {
         let screen = Screen(width: 10, height: 6)
         let lines = screen.render(
             LazyHStack(alignment: .top, spacing: 0) {
@@ -561,19 +564,23 @@ struct PlacementOverflowTests {
             Text("g").alignmentGuide(.top) { _ in -100_000 }
             Text("s")
         }
-        let buffer = renderToBuffer(pushed, context: makeBareRenderContext(width: 10, height: 4))
+        let core = try #require(pushed.body as? any Renderable)
+        let buffer = core.renderToBuffer(context: makeBareRenderContext(width: 10, height: 4))
         #expect(buffer.height <= 4, "\(buffer.height)")
     }
 
     @Test("A ZStack measured in less space than its run builds a canvas that space, not the run")
-    func zStackMeasureCanvas() {
+    func zStackMeasureCanvas() throws {
         let canvas = ZStack(alignment: .topLeading) {
             Text("a")
             Text("b").alignmentGuide(.leading) { _ in -100_000 }
         }
         var context = makeBareRenderContext(width: 20, height: 2)
         context.isMeasuring = true
-        let buffer = renderToBuffer(canvas, context: context)
+        // The stack's own buffer, before the clamp every view's render passes
+        // through (`renderToBuffer`), which would hide the canvas's width.
+        let core = try #require(canvas.body as? any Renderable)
+        let buffer = core.renderToBuffer(context: context)
         #expect(buffer.width == 20, "\(buffer.width)")
         #expect(buffer.overlays.isEmpty, "a measure pass draws nothing past the space")
     }
