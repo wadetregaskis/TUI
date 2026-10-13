@@ -118,6 +118,38 @@ private struct BranchAndMemoRow: View {
     }
 }
 
+/// The counter in a detail view, or a summary of it the view reads without
+/// holding it — `Passed` is not looked into — served from the memo while
+/// `showsDetail` is unchanged.
+private struct DetailOrSummary: View, Equatable {
+    let showsDetail: Bool
+    let counter: Passed<Counter>
+    let taps: StateTaps
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool { lhs.showsDetail == rhs.showsDetail }
+
+    var body: some View {
+        if showsDetail {
+            CounterRow(name: "detail", counter: counter.object, taps: taps)
+        } else {
+            Text(verbatim: "summary \(counter.object.count)")
+        }
+    }
+}
+
+/// `DetailOrSummary`, memoised, in a stack.
+private struct MemoDetailOrSummary: View {
+    let showsDetail: Bool
+    let counter: Passed<Counter>
+    let taps: StateTaps
+
+    var body: some View {
+        VStack {
+            DetailOrSummary(showsDetail: showsDetail, counter: counter, taps: taps).equatable()
+        }
+    }
+}
+
 /// A detail view of the counter at `selection`, above rows for the counters
 /// from `firstRow`: an array is not looked into, so the rows and the detail
 /// view are the first to reach the counters.
@@ -393,5 +425,24 @@ struct DynamicPropertyObjectStateTests {
         #expect(frame(view(), tui, height: 2) == ["first 5", "second 0"])
         taps.counts["second"]?.wrappedValue = 2
         #expect(frame(view(), tui, height: 2) == ["first 5", "second 2"])
+    }
+
+    /// Once every view holding the object has left, a write to its state
+    /// redrew nothing, so a view reading it without holding it — its last
+    /// holder's parent, served from the memo — went on showing the old value.
+    /// Under the claim, the box was the last claimant's, and a write redrew
+    /// what was above it (review1 of lane DYNVCLAIM, a7d1f8e75 (d)). It
+    /// redraws what was above the last view to leave.
+    @Test("A write to a class property no drawn view holds redraws what was above the last view that held it")
+    func writeToAnObjectNoViewHoldsRedrawsAboveItsLastHolder() {
+        let tui = TUIContext()
+        let taps = StateTaps()
+        let counter = Passed(object: Counter())
+        let view = { (showsDetail: Bool) in MemoDetailOrSummary(showsDetail: showsDetail, counter: counter, taps: taps) }
+        #expect(frame(view(true), tui, height: 1) == ["detail 0"])
+        #expect(frame(view(false), tui, height: 1) == ["summary 0"])
+        #expect(frame(view(false), tui, height: 1) == ["summary 0"])
+        counter.object.count = 4
+        #expect(frame(view(false), tui, height: 1) == ["summary 4"])
     }
 }

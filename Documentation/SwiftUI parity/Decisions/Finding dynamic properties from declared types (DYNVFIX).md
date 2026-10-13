@@ -184,6 +184,8 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   SwiftUI redraws every view that read an `@Observable` it is written to, one
   behind an `.equatable()` that compares equal included (measured:
   `Tools/SwiftUIProbes/Class properties held by several views/memo.out`).
+  Once no view drawn holds it, a write redraws what was above the last to
+  leave, as the claim's box, kept for the last claimant, did.
 - **An object made with a view value keeps its view's state.** `let pager =
   Pager()`, made anew with each value of the view holding it, is told from an
   object made before by when its `@State` was made (B-DYNVFIX-6): made in the
@@ -286,7 +288,9 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   the context that walked the object last. Nothing is lost.
 - A view reading an object no walked field reaches — through an `@Observable`
   store, or only from a closure: its `@Environment` is unresolved, and a write
-  redraws nothing, as before.
+  redraws it only if it lies above the last view drawn holding the object, or
+  below one still holding it; one no view has ever been drawn holding redraws
+  nothing, as before.
 - A holder that stops reaching an object without leaving the tree — an
   optional set to `nil`, a case of its own enum left — stays registered until
   it leaves: a write redraws it needlessly.

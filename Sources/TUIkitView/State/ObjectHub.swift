@@ -33,9 +33,9 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     private let link: RenderCache.Link?
 
     /// The views drawn holding the object, each counted by the fields it holds
-    /// it in. Behind a lock: a write reads it from whatever thread it is made
-    /// on.
-    private let holders = Lock(initialState: [ViewIdentity: Int]())
+    /// it in, and the last to stop holding it. Behind a lock: a write reads it
+    /// from whatever thread it is made on.
+    private let holders = Lock(initialState: Holders())
 
     /// What the ids of the `@FocusState` and `@Namespace` inside the object
     /// are made from: `obj` and a count of the storage's, so an object keeps
@@ -92,19 +92,20 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
 
     /// Notes that `holder` holds the object in one more field.
     func addHolder(_ holder: ViewIdentity) {
-        holders.withLock { $0[holder, default: 0] += 1 }
+        holders.withLock { $0.counts[holder, default: 0] += 1 }
     }
 
     /// Notes that `holder` holds the object in one field fewer: none left, it
     /// is no longer the object's holder, nor its primary.
     func removeHolder(_ holder: ViewIdentity) {
         let gone = holders.withLock { holders -> Bool in
-            guard let count = holders[holder] else { return false }
+            guard let count = holders.counts[holder] else { return false }
             if count > 1 {
-                holders[holder] = count - 1
+                holders.counts[holder] = count - 1
                 return false
             }
-            holders.removeValue(forKey: holder)
+            holders.counts.removeValue(forKey: holder)
+            holders.departed = holder
             return true
         }
         if gone, primary == holder { primary = nil }
@@ -112,18 +113,33 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
 
     /// Whether `holder` holds the object.
     func isHeld(by holder: ViewIdentity) -> Bool {
-        holders.withLock { $0[holder] != nil }
+        holders.withLock { $0.counts[holder] != nil }
     }
 
     /// Redraws every view drawn holding the object: what a write to a
     /// `@State` box the object holds does. `identity`, the box's, is not
-    /// asked: the object's state is every holder's.
+    /// asked: the object's state is every holder's. Once no view holds the
+    /// object, it redraws what was above the last to leave, which may show
+    /// the object without holding it — through a store, or a closure — as the
+    /// view a box was kept for is redrawn by the box's writes after it left.
     func invalidateRender(for _: ViewIdentity?) {
-        let holders = self.holders.withLock { Array($0.keys) }
+        let holders = self.holders.withLock { holders -> [ViewIdentity] in
+            guard holders.counts.isEmpty else { return Array(holders.counts.keys) }
+            return holders.departed.map { [$0] } ?? []
+        }
         for holder in holders {
             link?.invalidateRender(for: holder)
         }
     }
+}
+
+/// The views drawn holding an object (``ObjectHub``).
+private struct Holders {
+    /// Each view holding it, counted by the fields it holds it in.
+    var counts: [ViewIdentity: Int] = [:]
+    /// The last view to stop holding it, if none does now: what a write
+    /// redraws above.
+    var departed: ViewIdentity?
 }
 
 /// That a view drawn holds an object (``ObjectHub``) in one field: kept among

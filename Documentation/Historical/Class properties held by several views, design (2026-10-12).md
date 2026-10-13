@@ -246,6 +246,8 @@ B-DYNVCLAIM-1).*
 
 A memo hit does nothing new: it retains its subtree's state, the holder's token
 among it. A write calls the box's sink, the hub, which invalidates every holder.
+*Built (review1 of the lane): once no holder is left, the last to leave, as the
+claim's box redrew its last claimant's place.*
 Each pass takes a serial; the end of the pass prunes tokens of holders neither
 drawn nor retained, clears a primary pruned with its token, pops leftover
 restores, and sweeps the hubs of dead objects once the table has doubled. A holder
