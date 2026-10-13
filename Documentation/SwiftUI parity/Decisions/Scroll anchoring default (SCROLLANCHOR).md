@@ -198,6 +198,23 @@ alone, still leaves the row after it stale.
 
 ## C. Declined
 
+### C-SCROLLANCHOR-2. The anchored walk's top-row hold has no ladder
+
+*`LazyVStack` over more than 256 rows, `ScrollWindowHold.topRow`*
+
+The anchored walk used to hold its anchor itself, and its ladder handed a
+deleted anchor to the nearest surviving row. Since the hold became one memory
+shared by the three paths (2026-10-12), the anchored walk finds the top row as
+the other two do — the row, or the row after it where it was — and a change
+that removes the top row and the row after it together with a change above
+holds nothing (the review of 2026-10-13, S4). Restoring the ladder there
+would make the anchored walk hold where the uniform and exact paths, and
+`List` and `Table`, do not, so a stack would behave differently either side of
+256 rows, which the shared memory exists to stop. A designated row keeps its
+ladder: it names a row. Declined; the fuller version would give all five a
+ladder of the rows after the top one, at a read a rung on the frames that
+need it.
+
 ### C-SCROLLANCHOR-1. An eager `VStack` does not hold
 
 An eager `VStack` in a `ScrollView` is measured and drawn whole, and the scroll
