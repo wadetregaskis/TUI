@@ -27,9 +27,11 @@ import TUIkitView
 ///   given no allowance may be pushed two lines (one in a view under eight
 ///   lines tall), held while the scrolling goes on and sprung back a line a
 ///   frame once it has been quiet for a quarter of a second — within a frame
-///   of when the scroll goes idle (``ScrollPhase``). Any step past the end
-///   pushes it, an arrow or page key's as a wheel's, as it pushes any
-///   allowance. An end given an allowance keeps its push.
+///   of when the scroll goes idle (``ScrollPhase``). Any scroll step past the
+///   end pushes it, as it pushes any allowance: the wheel's, a scroll view's
+///   arrow and page keys', the scrollbar's arrows'. A focused `List`'s or
+///   `Table`'s arrow and page keys move its cursor instead, and push nothing.
+///   An end given an allowance keeps its push.
 /// - ``automatic`` leaves it to the view: here, the allowance whatever the
 ///   content's size, and no bounce.
 ///

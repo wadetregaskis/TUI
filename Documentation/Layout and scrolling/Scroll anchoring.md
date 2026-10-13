@@ -320,8 +320,10 @@ a content area under eight lines, B-SCROLLB-2), the push held while the
 user's steps keep coming, and once they have been quiet for 250 ms — B27's
 quiet, timed from the frame that drew the last step, so within a frame of when
 an observed phase goes idle — the excursion steps back a line a 50 ms
-frame. A step is any user step past the end, an arrow or page key's as a
-wheel's, as for any allowance (§1.3's push); SwiftUI's keyboard scrolling does
+frame. A step is any user scroll step past the end, as for any allowance
+(§1.3's push): the wheel's, a scroll view's arrow and page keys', the
+scrollbar's arrows' (a focused `List`'s or `Table`'s arrow and page keys move
+its cursor instead, and push nothing); SwiftUI's keyboard scrolling does
 not rubber-band (unmeasured; B-SCROLLB-3). It rides the same excursion, so everything above holds: the offset never
 leaves its range, the indicators ignore it, and a step past the edge still
 engages it. A step marks the push at event time (`notePush`, no clock there);

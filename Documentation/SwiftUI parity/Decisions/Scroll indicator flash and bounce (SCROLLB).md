@@ -61,8 +61,10 @@ for one; an hour if a port wants it.
 
 *`ScrollBounceBehavior.always`*
 
-Every user step past an end takes one path (`userScrollFine`): the wheel, the
-arrow and page keys, the scrollbar's arrows. It is what makes a step that only
+Every user step past an end takes one path (`userScrollFine`): the wheel, a
+scroll view's arrow and page keys (and the focus section's scroll fallback),
+the scrollbar's arrows. A focused `List`'s or `Table`'s arrow and page keys
+move its cursor and never reach it, so they push nothing there. It is what makes a step that only
 reaches the edge a graze and the next one a push (§1.3 of `Scroll
 anchoring.md`), and an allowance the app asks for has always been pushed by a
 key as by the wheel. SwiftUI's keyboard scrolling does not rubber-band on macOS
