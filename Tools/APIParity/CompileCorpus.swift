@@ -3365,3 +3365,46 @@ private struct CorpusFormView: View {
     }
 }
 
+
+// MARK: - Class properties held by several views (lane DYNVCLAIM)
+
+/// A class property holding a `@State` and an `@Environment`, shown by a row
+/// and by a detail view that changes it: SwiftUI installs neither inside a
+/// class, TUIkit installs both as the object's.
+private final class CorpusDocument: DynamicProperty {
+    @State var expanded = false
+    @Environment(\.isEnabled) var enabled
+}
+
+@MainActor
+private struct CorpusDocumentRow: View {
+    let document: CorpusDocument
+
+    var body: some View {
+        Text(document.expanded ? "Document, expanded" : "Document")
+    }
+}
+
+@MainActor
+private struct CorpusDocumentDetail: View {
+    let document: CorpusDocument
+
+    var body: some View {
+        Toggle("Expanded", isOn: document.$expanded).disabled(!document.enabled)
+    }
+}
+
+/// An object made with each value of the view holding it, turned by a
+/// button whose action holds it.
+private final class CorpusPager: DynamicProperty {
+    @State var page = 0
+}
+
+@MainActor
+private struct CorpusPagerView: View {
+    let pager = CorpusPager()
+
+    var body: some View {
+        Button("Page \(pager.page)") { pager.page += 1 }
+    }
+}
