@@ -195,7 +195,8 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   itself made so; a long-lived object shown at the place ends that chain, so
   an object made later at the place starts at its default. One that outlives
   the pass it was made in moves to a box of its own, with its value, at its
-  next walk.
+  next walk — or, if the object made next at its place took that box over,
+  with what it held then (decisions-DYNVCLAIM B-DYNVCLAIM-3).
 - **Every holder walks it before its body**, measures included: its `@State`
   as above, its ids, its nested properties' `update()` in place, then its own
   `update()`. A measure creates, moves and drops nothing a view's key holds
@@ -273,6 +274,14 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 - A holder that stops reaching an object without leaving the tree — an
   optional set to `nil`, a case of its own enum left — stays registered until
   it leaves: a write redraws it needlessly.
+- An object made on demand in a body and kept — a detail view's model from
+  `store.model(for: selection)` — first shown in the pass it was made in,
+  looks made with the view's value: if the object the view showed there
+  before looked so too, the new one starts from the state the place keeps,
+  that object's, not from its defaults. That object, shown again, takes back
+  what it held when the new one took the place's state; what was written to
+  either in between, through the box they shared, is the new one's
+  (decisions-DYNVCLAIM B-DYNVCLAIM-3).
 - An object made with a view value is a new object every pass, and a holder
   served from the memo stays registered on the one it last walked, so a write
   to the new one does not redraw it. Only a holder whose `==` ignores the

@@ -679,6 +679,14 @@ final class StateBacking<Value> {
         bound = .own
     }
 
+    /// Moves the backing to `box`, one of its object's own: what the object's
+    /// state held when the object made next at its place took over the box
+    /// the backing was bound to (``ObjectHub/takeState(handedOverWith:)``).
+    func take(_ box: StateBox<Value>) {
+        self.box = box
+        bound = .own
+    }
+
     /// Moves the backing from the box a place keeps to one of its object's
     /// own, holding the value the place's holds: the object outlived the pass
     /// it was made in.
@@ -739,6 +747,10 @@ struct ObjectStateContext {
     /// drawn was made with that frame's value of the view: only then does an
     /// object made with this frame's value take the state its place keeps.
     let adoptsPlace: Bool
+    /// The hub of that object, which such a box is taken from: what it held
+    /// is left to it (``StateStorage/placeBox(_:at:adopting:from:)``). `nil`
+    /// for a measure, which takes no box.
+    let predecessor: ObjectHub?
 }
 
 /// What binding a `@State` inside an object did, and found the object to be.
@@ -793,7 +805,10 @@ extension State: StateBindable {
     ///   otherwise the place is given the backing's own box, and what was
     ///   written to it before the walk is kept.
     /// - One made in an earlier pass whose state is still a place's outlived
-    ///   its pass: a render walk moves it to a box of its own, with its value.
+    ///   its pass: a render walk moves it to a box of its own, with its value
+    ///   — or, if the object made next at its place took that box over, with
+    ///   what it held then, which any walk takes back. Made on demand in a
+    ///   body and kept, it looked made with a view value in its first pass.
     /// - A value holding a `@State` copied from another live object into this
     ///   one shares that object's backing: it is given one of its own, at its
     ///   default.
@@ -832,6 +847,12 @@ extension State: StateBindable {
             return ObjectStateBinding(kind: .perValue)
         case .place, .provisional:
             guard madeThisPass else {
+                // The object made next at its place took its box over: what
+                // it held then is its own again, whichever walk finds it.
+                if let hub = object.hub, let left = hub.takeState(handedOverWith: backing.box) as? StateBox<Value> {
+                    backing.take(left)
+                    return ObjectStateBinding(kind: .longLived)
+                }
                 // A measure reads through until a render moves it.
                 if !isMeasuring { backing.convert(sink: object.hub) }
                 return ObjectStateBinding(kind: .longLived)
@@ -857,7 +878,7 @@ extension State: StateBindable {
             }
             return
         }
-        let box = storage.placeBox(backing.box, at: key, adopting: object.adoptsPlace)
+        let box = storage.placeBox(backing.box, at: key, adopting: object.adoptsPlace, from: object.predecessor)
         backing.bind(to: box)
         // After the storage has stamped the box: its sink is the object's
         // hub, so a write redraws every view drawn holding the object, not

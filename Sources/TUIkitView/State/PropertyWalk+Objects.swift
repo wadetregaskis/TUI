@@ -31,6 +31,9 @@ extension PropertyWalk {
         /// Whether a `@State` in it made in the pass may take a box its place
         /// keeps already (``ObjectStateContext/adoptsPlace``).
         let adoptsPlace: Bool
+        /// The hub of the object such a box is taken from
+        /// (``ObjectStateContext/predecessor``).
+        var predecessor: ObjectHub?
         /// Whether what the walk hands the object's `@Environment`s is put
         /// back after its view's content: for every walk but a render walk by
         /// the object's primary holder, whose environment is the object's at
@@ -163,7 +166,7 @@ extension PropertyWalk {
                 restoresEnvironment: false)
         }
         if !isMeasuring {
-            let (hub, token, previous) = storage.registerHolder(identity, of: object, at: placeScope)
+            let (hub, token, previous, predecessor) = storage.registerHolder(identity, of: object, at: placeScope)
             let isPrimary = hub.primary == identity
             if isPrimary {
                 // The object's environment at rest, for closures and whatever
@@ -173,7 +176,7 @@ extension PropertyWalk {
             }
             return ObjectWalk(
                 object: object, hub: hub, token: token, idPath: hub.idPath, placeScope: placeScope,
-                adoptsPlace: previous == .perValue, restoresEnvironment: !isPrimary)
+                adoptsPlace: previous == .perValue, predecessor: predecessor, restoresEnvironment: !isPrimary)
         }
         // A measure registers nothing, and puts back what it hands. Before
         // any render walk has made the object a hub, it binds the ids the
@@ -222,7 +225,9 @@ extension PropertyWalk {
             let stored = caseDepth > 0 ? storage.count : 0
             let binding = state.bindObjectState(
                 at: address, to: storage, key: key,
-                in: ObjectStateContext(object: object.object, hub: object.hub, adoptsPlace: object.adoptsPlace),
+                in: ObjectStateContext(
+                    object: object.object, hub: object.hub, adoptsPlace: object.adoptsPlace,
+                    predecessor: object.predecessor),
                 isMeasuring: isMeasuring)
             if binding.changed { changes += 1 }
             // A long-lived object's state anywhere in it says so: it ends the

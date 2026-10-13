@@ -170,7 +170,13 @@ There is no claim, successor, hand-off, keep or revival.
 
 A per-value object adopts its place's state only while that place's chain of
 per-value objects is unbroken: a long-lived object shown at the field ends it, so
-an object made lazily later there starts at its default (E4).
+an object made lazily later there starts at its default (E4). *Built (review1 of
+the lane): a long-lived object made lazily in the pass it is first shown in looks
+per value then, so it keeps the chain going, and the next such object adopted its
+box, which the two then shared until one was walked again. Now an adopting
+object leaves its live predecessor what the box held, and a walk that finds the
+predecessor again gives it that back; the new object's inheriting at its first
+show remains (§8.5's residual; decisions-DYNVCLAIM B-DYNVCLAIM-3).*
 
 ### 4.4 A holder's walk
 

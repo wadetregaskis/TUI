@@ -59,10 +59,29 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// found (``StateStorage/restoreEnvironments(to:)``). Main actor only.
     var primaryWalks = 0
 
+    /// What the object's `@State` held in each place's box that the object
+    /// made next at that place took over while this one was alive, by the
+    /// box: what a `@State` of the object still bound there takes back when a
+    /// walk finds the object again, so it outlived its pass — made on demand
+    /// in a body and kept, not with a view value
+    /// (``StateStorage/placeBox(_:at:adopting:from:)``). Main actor only.
+    private var handedOver: [ObjectIdentifier: AnyObject] = [:]
+
     init(object: AnyObject, link: RenderCache.Link?, idPath: String) {
         self.object = object
         self.link = link
         self.idPath = idPath
+    }
+
+    /// Keeps `state`, a box holding what the object's `@State` bound to `box`
+    /// held when the object made next at `box`'s place took `box` over.
+    func keep(_ state: AnyObject, handedOverWith box: AnyObject) {
+        handedOver[ObjectIdentifier(box)] = state
+    }
+
+    /// The box ``keep(_:handedOverWith:)`` kept for `box`, which it gives up.
+    func takeState(handedOverWith box: AnyObject) -> AnyObject? {
+        handedOver.isEmpty ? nil : handedOver.removeValue(forKey: ObjectIdentifier(box))
     }
 
     /// Notes that `holder` holds the object in one more field.

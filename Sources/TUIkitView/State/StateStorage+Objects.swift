@@ -38,11 +38,14 @@ extension StateStorage {
     /// value's `@FocusState` keeps its id from frame to frame.
     ///
     /// - Returns: The hub; the view's token for the field, in which the walk
-    ///   notes what it finds the object to be; and what the token said of the
-    ///   object the view held there last, before this walk.
+    ///   notes what it finds the object to be; what the token said of the
+    ///   object the view held there last, before this walk; and, when that
+    ///   was another object made with a view value, its hub: the object an
+    ///   object made with this frame's value takes the place's state from
+    ///   (``placeBox(_:at:adopting:from:)``).
     func registerHolder(
         _ holder: ViewIdentity, of object: AnyObject, at scope: UInt64
-    ) -> (hub: ObjectHub, token: HolderToken, previous: ObjectKind) {
+    ) -> (hub: ObjectHub, token: HolderToken, previous: ObjectKind, predecessor: ObjectHub?) {
         let key = StateKey(identity: holder, propertyIndex: StateKey.objectHolderIndex, scope: scope)
         let token = values[key] as? HolderToken
         let hub: ObjectHub
@@ -65,12 +68,14 @@ extension StateStorage {
         }
         if hub.primary == nil { hub.primary = holder }
         if let token {
-            if token.hub !== hub { token.move(to: hub) }
-            return (hub, token, token.lastObject)
+            guard token.hub !== hub else { return (hub, token, token.lastObject, nil) }
+            let predecessor = token.lastObject == .perValue ? token.hub : nil
+            token.move(to: hub)
+            return (hub, token, token.lastObject, predecessor)
         }
         let made = HolderToken(holder: holder, hub: hub)
         values[key] = made
-        return (hub, made, .unknown)
+        return (hub, made, .unknown, nil)
     }
 
     /// The box kept under `key` for an object made with a view value in the
@@ -78,9 +83,23 @@ extension StateStorage {
     /// the state an object made with the view's last value left — and
     /// otherwise `own`, the object's backing's box, which holds what was
     /// written to it before the walk, kept in place of whatever was there.
-    func placeBox<Value>(_ own: StateBox<Value>, at key: StateKey, adopting: Bool) -> StateBox<Value> {
+    ///
+    /// The object the place's state is taken from, `predecessor`'s, is left
+    /// what it held, if it is alive: it may have been made on demand in a
+    /// body and kept rather than with a view value — the two look alike in
+    /// the pass that first walks them — and a walk that finds it again takes
+    /// that back (``ObjectHub/takeState(handedOverWith:)``), rather than the
+    /// state the new object goes on to write into the box they share.
+    func placeBox<Value>(
+        _ own: StateBox<Value>, at key: StateKey, adopting: Bool, from predecessor: ObjectHub?
+    ) -> StateBox<Value> {
         if adopting, let kept = values[key] as? StateBox<Value> {
             kept.identity = key.identity
+            if let predecessor, predecessor.object != nil {
+                let left = StateBox(kept.value)
+                left.invalidationSink = predecessor
+                predecessor.keep(left, handedOverWith: kept)
+            }
             return kept
         }
         own.identity = key.identity

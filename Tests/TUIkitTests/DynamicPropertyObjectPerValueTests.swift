@@ -180,6 +180,31 @@ struct DynamicPropertyObjectPerValueTests {
         #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 5"])
     }
 
+    /// An object made on demand in a body, first shown in the pass it was
+    /// made in, looks made with the view's value: the next object made at its
+    /// place takes the place's state, which is the first one's box (design
+    /// §8.5, decisions-DYNVCLAIM B-DYNVCLAIM-3). The two shared it, so what
+    /// the second wrote was the first's when it was shown again (review1 of
+    /// lane DYNVCLAIM, a7d1f8e75). The first keeps what it held when the
+    /// second took the place's state.
+    @Test("An object made on demand keeps its own @State after the next one made at its place took that place's")
+    func lazilyMadeObjectKeepsItsStateFromTheNextOneAtItsPlace() {
+        let tui = TUIContext()
+        let taps = PagerTaps()
+        let store = LazyPagers()
+        #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 0"])
+        taps.page?.wrappedValue = 5
+        // Taken for the next object made with the view's value: it starts
+        // where the place's state is.
+        #expect(frame(LazyPagerParent(store: store, key: 1, taps: taps), tui) == ["page 5"])
+        taps.page?.wrappedValue = 7
+        #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 5"])
+        #expect(frame(LazyPagerParent(store: store, key: 1, taps: taps), tui) == ["page 7"])
+        taps.page?.wrappedValue = 8
+        #expect(frame(LazyPagerParent(store: store, key: 0, taps: taps), tui) == ["page 5"])
+        #expect(frame(LazyPagerParent(store: store, key: 1, taps: taps), tui) == ["page 8"])
+    }
+
     /// The box an object made with a view value binds is its place's, kept
     /// under the first holder's key; its sink must be the object's hub, set
     /// after the storage stamps it, so a write redraws the second holder too

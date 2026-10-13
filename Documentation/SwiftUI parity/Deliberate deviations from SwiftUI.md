@@ -505,9 +505,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Left:** an environment-scoped action read through the object, such as
   `dismiss`, acts for the first view drawn holding it, so a sheet sharing its
   page's object and calling the object's `dismiss` calls the page's, and stays
-  open; read it in the view instead. And the `@State` in an enum's case inside
+  open; read it in the view instead. The `@State` in an enum's case inside
   a long-lived object is the case's payload's: setting the case anew starts it
-  at its defaults, and a payload kept and put back brings its state back.
+  at its defaults, and a payload kept and put back brings its state back. And
+  an object made on demand in a body and kept, first shown in the pass it was
+  made in, is taken for one made with the view's value: after another such
+  object at its place, it starts from that one's state, which that one takes
+  back when it is shown again.
 - **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>). **Lane.**
 
 ---

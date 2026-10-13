@@ -75,3 +75,38 @@ under its lock, per such object per pass, on the per-value path alone; and a
 holder that has left stays in the new hub's table until that hub's object goes,
 a pass later, so a write in between redraws an identity no longer drawn, which
 costs a lookup and does nothing.
+
+### B-DYNVCLAIM-3. An object made on demand and taken for one made with a view value gives back what it took over
+
+*Class `DynamicProperty` made on demand in a body*
+
+An object made with each value of the view holding it (session notes
+`DYNV2/notes.md` §4.11) is told from one made before by when its `@State` was
+made: in the pass that walks it (B-DYNVFIX-6). An object made on demand in a
+body and kept — a detail view's model from `store.model(for: selection)` —
+and first shown in the pass it was made in looks the same there. If the object the view showed at that place before
+looked so as well, the new one took the place's box, which was that object's,
+and the two shared it: what the new one wrote was the old one's, and the old
+one, shown again, moved to a box of its own holding the new one's value
+(review1 of lane DYNVCLAIM, a7d1f8e75).
+
+**Shipped:** the new object still takes the place's box: nothing in that pass
+tells it from one made with the view's value, and a `Button`'s action keeps the
+last value's object alive through the next frame's walk, so neither does
+whether the old object is alive. But the old object, if alive, is left what
+the box held then (`ObjectHub.keep(_:handedOverWith:)`): a walk that finds it
+again — so it outlived its pass, and was never made with a view value — takes
+that back rather than the box. The design's §8.5 residual stays: the new
+object starts from the old one's state, not its defaults, and what is written
+to either before the old one is walked again goes into the box they share and
+is the new one's.
+
+**Price:** on the per-value path alone, per `@State` of an object taking its
+place's box while the last one is alive (a `Button`'s action keeps it so), a
+box made and a dictionary entry on the old object's hub, which goes when that
+object does; nothing for an app holding no object made in a pass.
+
+**The fuller version:** none without losing §4.11's common form. Taking a
+place's state only from a predecessor that has died tells the two apart only
+where nothing keeps the old object alive, and a `Button`'s action holding it
+does (the design's option (c), §10): such objects would restart every frame.
