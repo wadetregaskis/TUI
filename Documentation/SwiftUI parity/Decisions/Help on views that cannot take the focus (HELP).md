@@ -26,8 +26,8 @@ There is no C entry.
 ### A-HELP-1. A hover tooltip in the status bar flickers over a page laid out in the middle — decided: option 1, fixed for a page the bar moves
 
 **Decided 2026-10-12 by the coordinator: option 1. Fixed for a page the bar
-moves; not yet for the last row of a page that fills the window ("Left
-open", below).**
+moves; for the last rows of a page that fills the window since lane BUGS13
+("Left open", below, says what is fixed and what is still open).**
 
 **Found while pinning hover on a non-focusable view through the run loop**
 (`HelpRunLoopTests.hoverOverACentredPage`; not caused by this lane, and older
