@@ -158,6 +158,22 @@ package final class MouseEventDispatcher: @unchecked Sendable {
         /// cursor, `.exited` must still reach the one that was left — by then
         /// its numeric id belongs to someone else, or to no one.
         var pendingExit: PendingHoverExit?
+
+        /// The control a reshape took this lane off, leaving it on nothing:
+        /// a later reshape that puts that control back under the resting
+        /// cursor does not enter it again, until the cursor next reports
+        /// motion (which re-resolves the lane, `dispatchMotion`). Any other
+        /// control a reshape slides under the cursor is entered. `nil` while
+        /// the lane hovers something, or rests on nothing because the cursor
+        /// moved there.
+        ///
+        /// Without it, a hover whose change moves its own view out from under
+        /// the cursor — `.onHover` showing a line of details above its row —
+        /// flickered for ever: entered, moved away and exited, moved back and
+        /// entered again, a frame each, and the app never idled. By the
+        /// control's id, which is its own across frames (interned per view):
+        /// the view comes back where it was, or near it.
+        var leftByReshape: HitTestRegion.HandlerID?
     }
 
     /// The control under the pointer: the innermost region that is NOT a hover
@@ -567,12 +583,13 @@ extension MouseEventDispatcher {
     /// (decisions-HELP A-HELP-1, "Left open"). Not while motion is not
     /// reported, when the cursor may have gone anywhere since it last said
     /// where it was. Entered once: the lane holds the control from then on,
-    /// and the next reshape finds the same one.
+    /// and the next reshape finds the same one. Not the control a reshape
+    /// took the lane off, until the cursor moves (``HoverSlot/leftByReshape``).
     private func reconciled(
         _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int)
     ) -> HoverSlot {
         guard slot.region != nil || slot.pendingExit != nil else {
-            guard let current, activeSupport.motion else { return slot }
+            guard let current, activeSupport.motion, current.handlerID != slot.leftByReshape else { return slot }
             return entered(current, at: position)
         }
         let previous = slot.pendingExit?.region ?? slot.region
@@ -597,7 +614,7 @@ extension MouseEventDispatcher {
                 y: position.y - oldRegion.localOriginY)
             _ = oldHandler(exit)
         }
-        guard let current else { return HoverSlot() }
+        guard let current else { return HoverSlot(leftByReshape: previous?.handlerID) }
         return entered(current, at: position)
     }
 

@@ -117,7 +117,15 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   next moved. Now a lane resting on nothing enters the control or hover
   observer a reshape puts under the pointer, once, while motion is reported
   (`HoverReshapeTests.reshapeEntersFromNothing`,
-  `HelpRunLoopTests.reshapeSlidesAViewUnderAPointerOnNothing`).
+  `HelpRunLoopTests.reshapeSlidesAViewUnderAPointerOnNothing`). Not the
+  control a reshape took the lane off, until the pointer moves: the lane's
+  review found that an `.onHover` whose change moves its own view out from
+  under the pointer then flickered at frame rate, entered, exited and
+  entered again, and the app never idled
+  (`MouseEventDispatcher.HoverSlot.leftByReshape`,
+  `HoverReshapeTests.reshapeDoesNotReenterWhatItLeft`,
+  `HoverReshapeRunLoopTests.selfDisplacingHoverSettles`; decisions-BUGS13
+  B-BUGS13-2).
 - Smaller: under the popover style, when a reshape slides a second view
   with help under a pointer resting on a shown panel, the old panel stayed
   up for at most the delay — fixed (lane BUGS13): the frame after the

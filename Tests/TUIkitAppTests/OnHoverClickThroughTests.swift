@@ -372,6 +372,54 @@ struct HoverReshapeTests {
         #expect(events == [.entered, .exited], "and exited when a reshape takes it away: \(events)")
     }
 
+    /// Found by the BUGS13 lane's review: once a lane resting on nothing
+    /// entered what a reshape put under the cursor, a hover whose change moved
+    /// its own view out from under the cursor flickered for ever — entered,
+    /// moved away and exited, moved back and entered again — where it used to
+    /// settle after the exit. A reshape that took the lane off a control does
+    /// not put it back on that control until the cursor moves; it enters any
+    /// other control it slides under the cursor.
+    @Test("A reshape does not put a lane back on the control a reshape took it off until the cursor moves",
+          arguments: [false, true])
+    func reshapeDoesNotReenterWhatItLeft(observer: Bool) {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full, isFrameFinal: true)
+        // Interned ids, as a render walk's are: a control keeps its id.
+        let hovering = dispatcher.handlerIDs.freshID()
+        let other = dispatcher.handlerIDs.freshID()
+        var events: [String] = []
+
+        func frame(_ placed: [(id: HitTestRegion.HandlerID, y: Int)]) {
+            dispatcher.beginRenderPass()
+            var regions: [HitTestRegion] = []
+            for (id, y) in placed {
+                let name = id == hovering ? "hovering" : "other"
+                _ = dispatcher.register(id: id) { events.append("\(name) \($0.phase)"); return true }
+                if observer { dispatcher.noteHoverObserver(id) }
+                regions.append(HitTestRegion(offsetX: 0, offsetY: y, width: 6, height: 1, handlerID: id))
+            }
+            dispatcher.setRegions(regions)
+        }
+
+        frame([(hovering, 2)])
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 2, y: 2))
+        #expect(events == ["hovering entered"], "precondition: \(events)")
+        // Its hover moves it down a row, off the cursor; its exit moves it back.
+        frame([(hovering, 3)])
+        frame([(hovering, 2)])
+        frame([(hovering, 3)])
+        frame([(hovering, 2)])
+        #expect(events == ["hovering entered", "hovering exited"], "it flickers: \(events)")
+        // A move to another of its cells enters it again.
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 3, y: 2))
+        #expect(events.last == "hovering entered", "a move enters it again: \(events)")
+        // Taken off it by a reshape again, the lane enters another control the
+        // next reshape slides under the cursor.
+        frame([(hovering, 3)])
+        frame([(other, 2), (hovering, 3)])
+        #expect(Array(events.suffix(2)) == ["hovering exited", "other entered"], "the newcomer: \(events)")
+    }
+
     /// A held help asks whether a pointer could still rest on its view
     /// (`TooltipState.held`), and the question probed the view's top-left
     /// cell alone: an observer in front of that one cell made the whole view
