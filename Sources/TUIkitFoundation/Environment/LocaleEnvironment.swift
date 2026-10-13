@@ -38,7 +38,9 @@ extension EnvironmentValues {
     ///
     /// Matches SwiftUI's `\.locale`. It is populated each frame from the app's
     /// localization service (`applyRuntimeServices(from:)`), so by default it
-    /// tracks the app language — but because it's a stored, settable key, a
+    /// is the app's language with the user's region (`LocalizationService`'s
+    /// `currentLocale`: `de` under `LANG=en_GB.UTF-8` writes dates as Britain
+    /// orders them) — but because it's a stored, settable key, a
     /// subtree can override it with `.environment(\.locale, _)` to format its
     /// numbers and dates in a different locale than the surrounding UI.
     ///

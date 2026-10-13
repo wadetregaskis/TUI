@@ -58,6 +58,24 @@ public final class LocalizationService: @unchecked Sendable {
     /// message re-entered `string(for:)`, and the lock is not recursive.
     public private(set) var currentLanguage: Language
 
+    /// The locale the app formats in: ``currentLanguage`` with the user's
+    /// region (``Language/locale(in:)``), so `de` under `LANG=en_GB.UTF-8` is
+    /// German written for Britain. Moved with ``currentLanguage``, under
+    /// `lock`; what `\.locale` is, each frame, unless a subtree sets its own.
+    ///
+    /// Read under the lock, unlike ``currentLanguage``: a `Locale` holds a
+    /// reference, which a read racing ``setLanguage(_:)`` must not tear.
+    public var currentLocale: Locale {
+        lock.withLock { _currentLocale }
+    }
+
+    /// ``currentLocale``'s storage, under `lock`.
+    private var _currentLocale: Locale
+
+    /// The region the user's locale names, read once when the service is
+    /// made: see `systemRegion(environment:current:)`.
+    private let region: Locale.Region?
+
     /// The language codes a key is looked up in, most preferred first, ending
     /// in English: ``currentLanguage``'s code, after any the environment asked
     /// for ahead of it that TUIkit has no translations of, and then `"en"`.
@@ -105,6 +123,8 @@ public final class LocalizationService: @unchecked Sendable {
             stored: Self.loadLanguagePreference(), asked: Self.systemPreferredLanguageCodes())
         self.currentLanguage = initial.language
         self.lookupCodes = initial.codes
+        self.region = Self.systemRegion()
+        self._currentLocale = initial.language.locale(in: region)
 
         // Preload current language translations
         lock.lock()
@@ -133,6 +153,8 @@ public final class LocalizationService: @unchecked Sendable {
             asked: Self.systemPreferredLanguageCodes(environment: environment, preferredLanguages: []))
         self.currentLanguage = initial.language
         self.lookupCodes = initial.codes
+        self.region = Self.systemRegion(environment: environment, current: nil)
+        self._currentLocale = initial.language.locale(in: region)
 
         lock.lock()
         _ = _translations(for: currentLanguage.rawValue)
@@ -153,6 +175,7 @@ public final class LocalizationService: @unchecked Sendable {
     package func setLanguageWithoutRendering(_ language: Language) {
         lock.lock()
         currentLanguage = language
+        _currentLocale = language.locale(in: region)
         lookupCodes = Self.lookupCodes(asked: [], language: language)
         lock.unlock()
         // After the lock, deliberately — see `currentLanguage`.
@@ -213,6 +236,7 @@ public final class LocalizationService: @unchecked Sendable {
     func pinLanguageForTesting(_ language: Language) {
         lock.lock()
         currentLanguage = language
+        _currentLocale = language.locale(in: region)
         lookupCodes = Self.lookupCodes(asked: [], language: language)
         lock.unlock()
     }
@@ -316,30 +340,6 @@ public final class LocalizationService: @unchecked Sendable {
             }
         }
 
-        if namesTable, let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
-            return value
-        }
-        return bundleTables.fallbackString(for: key, tableName: nil, bundle: nil)
-    }
-
-    /// TUIkit's own word for one of its own keys — the lookup TUIkit's
-    /// controls make, and the typed keys (``LocalizationKey``).
-    ///
-    /// An app changes these only on purpose, never by spelling the same key
-    /// in its own `Localizable` table by accident. Language by language —
-    /// the languages the user asked for, then English — and in each:
-    ///
-    /// 1. the strings the app registered (``register(translations:)``);
-    /// 2. the app's `TUIkit` table — `TUIkit.strings` in that language's
-    ///    `.lproj` of the main bundle;
-    /// 3. TUIkit's own translation;
-    /// 4. only where TUIkit has no translation of the key in that language —
-    ///    a language it does not ship, or a key it lacks — the app's
-    ///    `Localizable` table, so that some of an app's words are better than
-    ///    none.
-    ///
-    /// Last, the two tables as Foundation picks them for the bundle, and then
-    /// the key itself.
         if let swiftUIKey,
             let value = _appFallback(swiftUIKey, namesTable: namesTable, tableName: tableName, bundle: bundle)
         {
@@ -373,6 +373,30 @@ public final class LocalizationService: @unchecked Sendable {
     /// one first: the last places ``string(for:swiftUIKey:tableName:bundle:)``
     /// looks. Called under the lock.
     private func _appFallback(_ key: String, namesTable: Bool, tableName: String?, bundle: Bundle?) -> String? {
+        if namesTable, let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
+            return value
+        }
+        return bundleTables.fallbackString(for: key, tableName: nil, bundle: nil)
+    }
+
+    /// TUIkit's own word for one of its own keys — the lookup TUIkit's
+    /// controls make, and the typed keys (``LocalizationKey``).
+    ///
+    /// An app changes these only on purpose, never by spelling the same key
+    /// in its own `Localizable` table by accident. Language by language —
+    /// the languages the user asked for, then English — and in each:
+    ///
+    /// 1. the strings the app registered (``register(translations:)``);
+    /// 2. the app's `TUIkit` table — `TUIkit.strings` in that language's
+    ///    `.lproj` of the main bundle;
+    /// 3. TUIkit's own translation;
+    /// 4. only where TUIkit has no translation of the key in that language —
+    ///    a language it does not ship, or a key it lacks — the app's
+    ///    `Localizable` table, so that some of an app's words are better than
+    ///    none.
+    ///
+    /// Last, the two tables as Foundation picks them for the bundle, and then
+    /// the key itself.
     ///
     /// - Parameter key: One of TUIkit's keys (`LocalizationKey`'s raw values).
     /// - Returns: The localized string, or the key if not found.

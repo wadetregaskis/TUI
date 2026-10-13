@@ -81,6 +81,42 @@ extension LocalizationService {
         }
     }
 
+    /// The region the user's locale names, for formatting: the territory of
+    /// the first POSIX variable that names one, in the precedence that decides
+    /// how dates and numbers are written (`LC_ALL`, then `LC_TIME`,
+    /// `LC_NUMERIC`, then `LANG`), else `current`'s region — on Darwin the
+    /// user's region preference. The world region (`001`), which swift-foundation
+    /// answers with off Darwin when it has nothing to read, is no region.
+    ///
+    /// Both inputs are parameters so either platform's answer can be posed on
+    /// either; the defaults are what the running process has.
+    static func systemRegion(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        current: Locale? = .current
+    ) -> Locale.Region? {
+        for name in ["LC_ALL", "LC_TIME", "LC_NUMERIC", "LANG"] {
+            if let region = (environment[name]).flatMap(territory(of:)) { return Locale.Region(region) }
+        }
+        guard let region = current?.region, region.identifier != "001" else { return nil }
+        return region
+    }
+
+    /// The territory a POSIX locale name or BCP-47 tag names, or `nil`: the
+    /// two letters (or three digits) after the language and any script,
+    /// before an encoding or modifier — `GB` in `en_GB.UTF-8`, `TW` in
+    /// `zh-Hant-TW`, nothing in `de`, `C` or `POSIX`.
+    private static func territory(of name: String) -> String? {
+        let tag = name.prefix { !".@".contains($0) }
+        let parts = tag.split(whereSeparator: { "-_".contains($0) })
+        guard parts.count >= 2, languageCode(of: parts[0]) != nil else { return nil }
+        for part in parts.dropFirst() {
+            if part.count == 2, part.allSatisfy(\.isLetter) { return part.uppercased() }
+            if part.count == 3, part.allSatisfy(\.isNumber) { return String(part) }
+            guard part.count == 4, part.allSatisfy(\.isLetter) else { return nil }  // a script: look further
+        }
+        return nil
+    }
+
     /// The language code a locale name begins with, or `nil` where it names
     /// none.
     ///

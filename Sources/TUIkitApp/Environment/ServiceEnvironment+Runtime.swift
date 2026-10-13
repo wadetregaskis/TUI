@@ -37,10 +37,11 @@ extension EnvironmentValues {
         renderCache = context.renderCache
         preferenceStorage = context.preferences
         localizationService = LocalizationService.shared
-        // Publish the app language as the environment locale each frame (the
-        // single source of truth), so `\.locale` tracks it by default while a
-        // subtree may still override it. See LocaleEnvironment.swift.
-        locale = LocalizationService.shared.currentLanguage.locale
+        // Publish the app's locale — its language, with the user's region —
+        // as the environment locale each frame (the single source of truth),
+        // so `\.locale` tracks it by default while a subtree may still
+        // override it. See LocaleEnvironment.swift.
+        locale = LocalizationService.shared.currentLocale
         // …and the scene phase from the run loop, for the same reason: one
         // source of truth, republished every frame. `appearsActive` is derived
         // from it rather than held beside it, so the two cannot disagree; it

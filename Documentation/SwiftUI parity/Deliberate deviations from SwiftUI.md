@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12, E3 and V7 are to change, T8 keeps its filter and gains a bell, and T10 is closed (an interpolated key is looked up as SwiftUI spells it too). |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12 and V7 are to change, T8 keeps its filter and gains a bell, and T10 and E3 are closed (an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region). |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -553,23 +553,6 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   framework's own movement should honour the setting.
 - **Decided:** [A-D3M-1](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
   **Owner** (2026-10-05).
-
-### E3. `\.locale` is the app's language, without a region
-
-- **SwiftUI:** `\.locale` is the user's locale, region included (Apple's
-  documentation: "the current locale that views should use"; not measured).
-- **TUIkit:** each frame the app's language is published as a bare-code
-  locale, `en`, `de` or one of the other five TUIkit ships, so a British user's
-  dates format as `en` does. A language TUIkit does not ship falls back to
-  `en`. A subtree's own `.environment(\.locale, …)` still wins, and
-  `\.calendar` and `\.timeZone` keep the system's.
-- **Why:** the app's chosen language should drive its formatting, so a German
-  app groups `12.000` while its words are German.
-- **Decided:** [LocalizationService+Language.swift](../../Sources/TUIkitStrings/Localization/LocalizationService+Language.swift#L35-L43),
-  [ServiceEnvironment+Runtime.swift](../../Sources/TUIkitApp/Environment/ServiceEnvironment+Runtime.swift#L40-L43).
-  **Owner** (2026-10-13): to change: the app's language with the region of
-  the user's locale (`en-GB`, `de-GB`), so dates and numbers follow the user's
-  region; [slated](#slated-to-change).
 
 ---
 
@@ -1516,7 +1499,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | The built-in stacks ignore `layoutPriority` (L12) | [L12](#l12-layoutpriority-is-read-only-by-a-custom-layout) | Owner 2026-10-13: support it properly; lane owed |
 | `textContentType`'s filter drops characters silently, and `.emailAddress` drops some valid ones (T8) | [T8](#t8-textcontenttype-filters-what-can-be-typed) | Owner 2026-10-13: keep the filter, ring the bell for a dropped character, admit every valid character; lane owed |
-| `\.locale` has no region (E3) | [E3](#e3-locale-is-the-apps-language-without-a-region) | Owner 2026-10-13: the app's language with the user's region; lane owed |
 | A `Picker` or a text field's suggestions find nothing inside a view of the app's own, a `Section`, a `Group`, an `AnyView`, or behind a modifier after `.tag` (V7) | [V7](#v7-a-picker-does-not-find-options-inside-a-view-of-the-apps-own) | Owner 2026-10-13: fix, through the member resolution; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
