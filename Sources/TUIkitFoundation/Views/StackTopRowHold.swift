@@ -242,9 +242,10 @@ struct RowKeys {
     ///
     /// What that comes to: a row moved by k places, k up to 64, is found in
     /// about 2k key reads. One moved further — a "load earlier" of a hundred
-    /// rows — or a key that is nowhere — the top row removed, or its id
-    /// changed — costs 130 reads and then the scan, which reads from the first
-    /// key: O(the row's position), not O(k).
+    /// rows — costs 130 reads and then the scan, which reads from the first
+    /// key and stops at it: O(the row's position), not O(k). A key that is
+    /// nowhere — the top row removed, or its id changed — costs 130 reads and
+    /// a scan of every key: O(n), every row of a stack scrolled anywhere.
     func ordinal(of rowKey: String, runIndex: Int, near origin: Int) -> Int? {
         var found: Int?
         search: for distance in 0...64 {
