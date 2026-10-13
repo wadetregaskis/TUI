@@ -91,6 +91,15 @@ public final class LocalizationService: @unchecked Sendable {
     /// own keys and override framework defaults.
     private var appTranslations: [String: [String: String]] = [:]
 
+    /// Whether any key in ``appTranslations`` holds a printf conversion other
+    /// than `%@` — `%lld`, `%lf`, … — and so may be a key as SwiftUI spells an
+    /// interpolated number (`LocalizedStringKey.swiftUIKey`). Until one is
+    /// registered, a key in that spelling is not looked for among the
+    /// registered strings: none could hold it, and an interpolated `Text` that
+    /// is no key at all would otherwise hash its key a second time on every
+    /// lookup, in every language. Under `lock`.
+    private var registeredKeysSpellSwiftUI = false
+
     /// The app's own string tables — see ``BundleStringTables``. Used under
     /// `lock`.
     private let bundleTables: BundleStringTables
@@ -277,7 +286,26 @@ public final class LocalizationService: @unchecked Sendable {
         defer { lock.unlock() }
         for (code, table) in translations {
             appTranslations[code, default: [:]].merge(table) { _, new in new }
+            if !registeredKeysSpellSwiftUI, table.keys.contains(where: Self.holdsPrintfConversion) {
+                registeredKeysSpellSwiftUI = true
+            }
         }
+    }
+
+    /// Whether `key` holds a printf conversion other than `%@` (and other than
+    /// `%%`, a literal percent sign): the mark of a key spelt as SwiftUI spells
+    /// an interpolated number, which TUIkit's own spelling never holds.
+    static func holdsPrintfConversion(_ key: String) -> Bool {
+        var bytes = key.utf8.makeIterator()
+        while let byte = bytes.next() {
+            guard byte == UInt8(ascii: "%") else { continue }
+            switch bytes.next() {
+            case UInt8(ascii: "@"), UInt8(ascii: "%"): continue
+            case nil: return false
+            default: return true
+            }
+        }
+        return false
     }
 
     /// Resolves a localized string using a dot-notation key, as the app's
@@ -329,12 +357,12 @@ public final class LocalizationService: @unchecked Sendable {
             if let swiftUIKey,
                 let value = _appValue(
                     swiftUIKey, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle,
-                    readsTUIkit: false)
+                    spelledAsSwiftUI: true)
             {
                 return value
             }
             if let value = _appValue(
-                key, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle, readsTUIkit: true)
+                key, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle, spelledAsSwiftUI: false)
             {
                 return value
             }
@@ -350,23 +378,25 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// `key` in `code` as ``string(for:swiftUIKey:tableName:bundle:)`` reads
     /// it: the named table, the strings the app registered, the app's
-    /// `Localizable` table, and TUIkit's own where `readsTUIkit` (not for a
-    /// key spelt as SwiftUI spells it, which none of TUIkit's is). Called
-    /// under the lock.
+    /// `Localizable` table, and TUIkit's own. A key `spelledAsSwiftUI` is not
+    /// looked for in TUIkit's own, none of which is spelt so, nor among the
+    /// registered strings until one is (``registeredKeysSpellSwiftUI``).
+    /// Called under the lock.
     private func _appValue(
-        _ key: String, in code: String, namesTable: Bool, tableName: String?, bundle: Bundle?, readsTUIkit: Bool
+        _ key: String, in code: String, namesTable: Bool, tableName: String?, bundle: Bundle?,
+        spelledAsSwiftUI: Bool
     ) -> String? {
         if namesTable, let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: code) {
             return value
         }
-        if let value = appTranslations[code]?[key] {
+        if !spelledAsSwiftUI || registeredKeysSpellSwiftUI, let value = appTranslations[code]?[key] {
             return value
         }
         // The app's table costs a stored Bool for an app that ships none.
         if let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: code) {
             return value
         }
-        return readsTUIkit ? _tuikitValue(key, in: code) : nil
+        return spelledAsSwiftUI ? nil : _tuikitValue(key, in: code)
     }
 
     /// `key` in the tables as Foundation picks them for the bundle, the named

@@ -126,6 +126,17 @@ struct SwiftUIKeySpellingTests {
         #expect(key.resolved(with: service) == "Deutsch: 3 nach Backlog")
     }
 
+    @Test(
+        "A registered key is taken for SwiftUI's spelling only if it holds a conversion other than %@ and %%",
+        arguments: [
+            ("Moved %lld rows to %@", true), ("Price %.2f", true), ("%d", true), ("Moved %1$@", true),
+            ("Moved %@ rows to %@", false), ("100%% done", false), ("trailing %", false), ("", false),
+            ("stress.scenario.heading", false),
+        ])
+    func printfConversion(_ key: String, _ holds: Bool) {
+        #expect(LocalizationService.holdsPrintfConversion(key) == holds)
+    }
+
     @Test("A key with no entry either way reads as it was written")
     func untranslated() {
         let key: LocalizedStringKey = "Moved \(3) rows to \("Backlog") at \(2.5, specifier: "%.1f")"
