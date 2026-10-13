@@ -45,7 +45,9 @@
 /// with no window to hold — and a held row's line is kept through removals and
 /// height changes above it too, where SwiftUI's lazy stack moves on a removal.
 /// A change made under `Transaction.scrollContentOffsetAdjustmentBehavior =
-/// .disabled` is not held, under either value.
+/// .disabled` is not held, under either value; nor is a reorder that takes the
+/// top row away from the row after it — a sort — which keeps the offset, as
+/// SwiftUI's does (`Tools/SwiftUIProbes/Scroll anchoring/reorder.out`).
 ///
 /// TUI-specific: SwiftUI has no setting for this, and
 /// `defaultScrollAnchor(_:for: .sizeChanges)` does not change it there

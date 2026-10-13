@@ -1,0 +1,6 @@
+1 reverse every row                                  origin 200 -> 200 | top row 29
+2 move the top row (10) to the end                   origin 200 -> 200 | top row 11
+3 move row 30 (below the screen) to the start        origin 200 -> 200 | top row 9
+4 move row 0 (above) to the end                      origin 200 -> 200 | top row 11
+5 swap rows 10 and 11                                origin 200 -> 200 | top row 11
+6 move rows 0-4 (above) to the end                   origin 200 -> 200 | top row 15

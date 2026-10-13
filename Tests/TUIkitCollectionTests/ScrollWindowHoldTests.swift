@@ -175,6 +175,23 @@ struct ScrollWindowHoldTests {
 
     // MARK: - Where it holds nothing
 
+    /// A sort moves the row at the top away from the rows around it. Followed,
+    /// the view would scroll to wherever it went; SwiftUI holds no row through
+    /// a reorder (`Tools/SwiftUIProbes/Scroll anchoring/reorder.out`), and the
+    /// offset stays.
+    @Test("Rows reordered around the top row are not followed: a sorted stack keeps its offset", arguments: StackPath.allCases)
+    func reorderIsNotFollowed(path: StackPath) {
+        let scroller = Scroller(path)
+        let before = scroller.scrolled(to: 12)
+        guard let top = rows(before).first else {
+            Issue.record("precondition: rows on screen \(before)")
+            return
+        }
+        scroller.items.reverse()
+        let after = scroller.frame()
+        #expect(!rows(after).contains(top), "row \(top) was followed: before \(before)\nafter \(after)")
+    }
+
     @Test("At its top, a view shows rows inserted above, as SwiftUI's does", arguments: StackPath.allCases)
     func atTheTopTheNewRowsShow(path: StackPath) {
         let scroller = Scroller(path)
@@ -330,6 +347,15 @@ struct ScrollWindowHoldTests {
         lister.items.removeSubrange(0..<5)
         let after = lister.frame()
         #expect(after == before, "before: \(before)\nafter:  \(after)")
+    }
+
+    @Test("A List's or Table's rows reordered around the top row are not followed", arguments: ListKind.allCases)
+    func listReorderIsNotFollowed(kind: ListKind) {
+        let lister = Lister(kind)
+        let before = lister.scrolledDown()
+        lister.items.reverse()
+        let after = lister.frame()
+        #expect(listedRows(after).first != listedRows(before).first, "followed: before \(before)\nafter \(after)")
     }
 
     @Test("At its top, a List or Table shows rows inserted above", arguments: ListKind.allCases)

@@ -41,8 +41,10 @@ struct HeldTopRow {
 
     /// The key of the row after it, which takes its place if it leaves the
     /// data, as the anchored walk's ladder hands the anchor to the row below a
-    /// deleted one. `nil` for the last row.
+    /// deleted one, and how many ordinals after it it was. `nil` for the last
+    /// row.
     var nextKey: String?
+    var nextOffset: Int
 }
 
 /// How a stack's path reads its rows for the hold: how many, each one's key
@@ -64,15 +66,22 @@ extension StackWindowState {
     /// data any more (the rows were replaced).
     ///
     /// A remembered row found at its ordinal was moved by a height change above
-    /// it alone, which only the exact walk's slots can see; one found elsewhere
-    /// was moved by rows inserted or removed above it. One gone is replaced by
-    /// the row after it, put where it was.
+    /// it alone, which only the exact walk's slots can see; one found elsewhere,
+    /// still followed by the row that followed it, was moved by rows inserted or
+    /// removed above it. One found elsewhere WITHOUT that row after it was moved
+    /// by the rows being rearranged — a sort — and is not followed: SwiftUI
+    /// holds no row through a reorder (measured,
+    /// `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`), and following one
+    /// would scroll a sorted list to wherever its top row went. One gone is
+    /// replaced by the row after it, put where it was.
     func heldTopRowShift(in rows: TopRowGeometry) -> (shift: Int, inPlace: Bool)? {
         guard let held = heldTopRow else { return nil }
         if held.ordinal < rows.count, rows.key(held.ordinal) == held.key {
             return (rows.y(held.ordinal) - held.y, true)
         }
         if let ordinal = Self.ordinal(of: held.key, runIndex: held.runIndex, near: held.ordinal, in: rows) {
+            let next = ordinal + held.nextOffset
+            guard held.nextKey == nil || (next < rows.count && rows.key(next) == held.nextKey) else { return nil }
             return (rows.y(ordinal) - held.y, false)
         }
         if let next = held.nextKey, let ordinal = Self.ordinal(of: next, runIndex: 0, near: held.ordinal, in: rows) {
@@ -116,7 +125,7 @@ extension StackWindowState {
         while next < rows.count, rows.key(next) == key { next += 1 }
         heldTopRow = HeldTopRow(
             key: key, runIndex: ordinal - first, ordinal: ordinal, y: y,
-            nextKey: next < rows.count ? rows.key(next) : nil)
+            nextKey: next < rows.count ? rows.key(next) : nil, nextOffset: next - ordinal)
     }
 
     /// The ordinal holding the `runIndex`-th view of `key`'s row: found by a

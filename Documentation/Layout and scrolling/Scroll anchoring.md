@@ -657,6 +657,10 @@ Measured on macOS 15.8, a 300×200 window with rows 20 points tall
   origin stays 0.
 - A removal above is not held: the origin stays 200 and row 15 comes to the
   top. Nor is the top row itself: removed, the row after it takes its place.
+- **Nor is a reorder:** reversing the rows, moving the top row to the end,
+  swapping it with the row after it, even moving a row from below the screen
+  to the start — the origin stays 200 every time
+  (`Tools/SwiftUIProbes/Scroll anchoring/reorder.swift`).
 - `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled` stops the
   hold in every case.
 - `defaultScrollAnchor` changes nothing here, unlabelled or for `.sizeChanges`,
@@ -684,7 +688,11 @@ It holds nothing:
 - **for a seek or a `.scrollPosition` request** made that frame, which aims at a
   line of the content as it now is;
 - **for a change made under "no adjustment"**, which moves the rows with it; the
-  row is held from where that change left it on the next one.
+  row is held from where that change left it on the next one;
+- **for a reorder that takes the top row away from the row after it** — a
+  sort — which keeps the offset, as SwiftUI's does; following the top row would
+  scroll a sorted list to wherever it went. A change that moves the two alike —
+  rows inserted, removed or moved above them — is held (R14).
 
 A designated row (`.anchorPosition(.row(id))`) is held as ever and wins; a
 designation naming no row in the data is none, and the top row is held.
@@ -721,8 +729,9 @@ the edges' positional rules, and switched off by one modifier.
 The uniform and exact paths place rows at absolute content y, so holding the row
 moves the offset. When a frame is drawn the stack remembers the row at the top —
 its key, its ordinal, its y, and the key of the row after it — and on the next
-frame moves the offset by however far that row moved (`StackTopRowHold.swift`).
-It is a shift, not a placement: a scroll made since the last frame is kept, and a
+frame moves the offset by however far that row moved (`StackTopRowHold.swift`)
+— if the row after it moved as far, which is what tells rows inserted or removed
+above from a reorder. It is a shift, not a placement: a scroll made since the last frame is kept, and a
 frame whose content above did not change moves nothing. Found at its ordinal the
 row costs one key read; found elsewhere, a search outward from where it was,
 then over every key. Gone, the row after it is put where it was. The correction
@@ -734,12 +743,15 @@ app asked for.
 
 The anchored walk holds structurally: its anchor IS the row at the top, and when
 the scroll view asks for the hold it re-binds the anchor to its key
-(`rebindAnchor(holdsRow:)`), its ladder handing the anchor to the nearest
-surviving row when that one is gone.
+(`rebindAnchor(holdsRow:followsReorder:)`) — unless the row last drawn after
+it is no longer as far after it — its ladder handing the anchor to the nearest
+surviving row when that one is gone. A designated row is followed through a
+reorder, as ever.
 
 `List` and `Table` scroll in rows, so the hold is a row count
 (`ItemListHandler.holdTopRow`), applied before the clamps so that every rule
-after it has the last word. Their focus cursor is a row index, so it moves too
+after it has the last word; a row found without the row after it beside it is
+a reorder there too. Their focus cursor is a row index, so it moves too
 when it is on the top row or below it: left where it was it would point at
 another row, and the next key's reveal would scroll back to it, undoing the
 hold.

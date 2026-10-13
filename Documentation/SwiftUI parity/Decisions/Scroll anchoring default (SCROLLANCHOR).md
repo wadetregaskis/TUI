@@ -120,6 +120,28 @@ either side of it. **The fuller version** tracks the cursor's row by id every
 frame — one more id read a frame, which can be a build of the row (`id(at:)`)
 — and is exact for a change between the top row and the cursor too. Two hours.
 
+### B-SCROLLANCHOR-5. A reorder is told from rows inserted or removed above by the row after the top row
+
+*`ScrollWindowHold.topRow`*
+
+The hold finds where the top row went, so a sort, which moves it far away,
+would scroll the view after it. SwiftUI holds nothing through a reorder:
+reversing the rows, moving the top row to the end, swapping it with the next,
+moving a row from below to the start — the origin stays every time (measured,
+`Tools/SwiftUIProbes/Scroll anchoring/reorder.out`).
+
+**Shipped:** the top row is followed only when the row that followed it is
+still the same distance after it — rows inserted, removed or moved above move
+both alike; a sort parts them, and the offset stays, as SwiftUI's does. One
+key (or id) read more, on a frame whose top row moved; none otherwise. A
+designated row is followed through a reorder as before: it names a row. The
+cost of the rule: a change that both inserts above and rearranges the rows
+just below the top row is not held either.
+
+**The fuller version** would hold only insertions of new rows, as SwiftUI
+does — which needs the previous frame's set of ids to tell a new row from a
+moved one: O(rows) a change. Not recommended (B-SCROLLANCHOR-1).
+
 ## C. Declined
 
 ### C-SCROLLANCHOR-1. An eager `VStack` does not hold

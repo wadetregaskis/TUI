@@ -186,7 +186,10 @@ extension ItemListHandler {
     /// many rows were inserted or removed above the row remembered at the top
     /// (``rememberTopRow()``), so it — and the rows on screen with it — keeps
     /// its line, as SwiftUI's lazy stacks keep theirs. When that row itself
-    /// went, the row that followed it takes its place.
+    /// went, the row that followed it takes its place; when it is no longer
+    /// followed by that row, the rows were rearranged — a sort — and nothing is
+    /// held, as SwiftUI holds nothing through a reorder (measured), rather than
+    /// scrolling to wherever the top row went.
     ///
     /// A SHIFT, not a placement, so a scroll made since the last frame is kept,
     /// and one whose rows above the top did not change moves nothing — one id
@@ -216,9 +219,11 @@ extension ItemListHandler {
             boundAnchor: anchorPositionBinding?.wrappedValue, declared: declared)
         let followsTail = mode == .bottom && scrollOffset >= bottomFollowBound
         guard lastWindowHold == .topRow, hasOpened, !offsetAdjustmentSuspended, !followsTail,
-            scrollOffset > 0 || scrollTopClipLines > 0,
-            let now = index(of: heldID) ?? heldTopNextID.flatMap(index(of:))
+            scrollOffset > 0 || scrollTopClipLines > 0
         else { return }
+        let found = index(of: heldID)
+        if let found, let next = heldTopNextID, id(at: found + 1) != next { return }
+        guard let now = found ?? heldTopNextID.flatMap(index(of:)) else { return }
         let shift = now - heldTopOrdinal
         scrollOffset = max(0, scrollOffset + shift)
         if focusedIndex >= heldTopOrdinal, itemCount > 0 {

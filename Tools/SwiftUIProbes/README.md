@@ -234,10 +234,13 @@ messages cite that path), and what cites it.
   after, and the row at the viewport's top: for a stack computed from the origin, its rows being 20 points tall
   (so after a row above grows it names the row the grown layout would put there — a lazy stack lays out no row
   off screen, so that case says only that the origin did not move), for a `List` read from its `NSTableView`.
-  Top-level code, built alone.
-- **Ran:** macOS 15.8, a 300×200 window, 2026-10-12.
-- **Was:** `SCROLLANCHOR/probe/hold/`.
+  Top-level code, built alone. `reorder.swift`, the same harness, asks what a reorder does to the row at the top:
+  every row reversed, the top row moved to the end, swapped with the next, a row from below the screen moved to
+  the start, rows from above moved to the end.
+- **Ran:** macOS 15.8, a 300×200 window, 2026-10-12 (`reorder.swift` 2026-10-13).
+- **Was:** `SCROLLANCHOR/probe/hold/` (`reorder.swift` as `hold3.swift`).
 - **Cited by:** `Sources/TUIkitFoundation/Views/ScrollWindowHold.swift`,
+  `Sources/TUIkitFoundation/Views/StackTopRowHold.swift`,
   `Tests/TUIkitCollectionTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
   `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.

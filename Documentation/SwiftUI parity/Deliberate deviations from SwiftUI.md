@@ -1257,12 +1257,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 ### R14. Removing rows above the top row does not move the rows on screen
 
 - **SwiftUI (measured, macOS 15.8, 2026-10-12,
-  `Tools/SwiftUIProbes/Scroll anchoring/hold.swift` case 2):** a lazy stack
-  holds its top row through an insertion above it, not a removal: five rows
-  removed above leave the origin where it was, and the rows on screen move up.
+  `Tools/SwiftUIProbes/Scroll anchoring/hold.swift` case 2,
+  `reorder.swift`):** a lazy stack holds its top row through an insertion
+  above it, not a removal: five rows removed above leave the origin where it
+  was, and the rows on screen move up; nor a row moved from below the screen to
+  above it, nor one moved from above to the end.
 - **TUIkit:** the top row keeps its line whichever way the content above it
-  changed — inserted, removed, or a measured row above resized
-  (`ScrollWindowHoldTests`).
+  changed — inserted, removed, moved past it, or a measured row above resized
+  — as long as the row after it moved alike; a reorder that parts the two (a
+  sort) keeps the offset, as SwiftUI's does (`ScrollWindowHoldTests`).
 - **Why:** the reader's place does not depend on which way the rows above
   changed, and one rule is simpler to rely on.
 - **Decided:** [B-SCROLLANCHOR-1](<Decisions/Scroll anchoring default (SCROLLANCHOR).md#b-scrollanchor-1-a-removal-above-and-a-row-above-growing-are-held-as-an-insertion-is>).

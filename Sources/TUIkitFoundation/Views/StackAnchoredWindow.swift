@@ -102,7 +102,11 @@ private final class AnchoredWindowFrame {
     /// correct at the ends (§5f).
     ///
     /// Only when `holdsRow`: the anchor is a designated row, or the row at the
-    /// top that ``ScrollWindowHold/topRow`` holds this frame. Otherwise the
+    /// top that ``ScrollWindowHold/topRow`` holds this frame — which is not
+    /// followed through a reorder (`followsReorder` false): found away from the
+    /// row last drawn after it, the rows were rearranged, a sort, and the
+    /// ordinal is kept, as SwiftUI holds no row through a reorder (measured).
+    /// A designated row is followed wherever it goes. Otherwise the
     /// position stays where it is in line coordinates — the ordinal is kept,
     /// and an insert above shifts the content down — which is what the view
     /// does at its top, following its tail, under ``ScrollWindowHold/offset``,
@@ -112,7 +116,7 @@ private final class AnchoredWindowFrame {
     /// Returns how many ordinals the re-bind moved the anchor — the rows the
     /// change put above it, less those it took away — or `0`.
     @discardableResult
-    func rebindAnchor(holdsRow: Bool) -> Int {
+    func rebindAnchor(holdsRow: Bool, followsReorder: Bool = true) -> Int {
         let count = children.count
         guard count > 0 else { return 0 }
         let before = state.anchorOrdinal
@@ -122,6 +126,7 @@ private final class AnchoredWindowFrame {
         guard children.key(at: state.anchorOrdinal) != anchorKey else { return 0 }
 
         if let found = locate(key: anchorKey) {
+            guard followsReorder || keepsItsNeighbour(anchorKey, from: before, at: found) else { return 0 }
             state.anchorOrdinal = found
             return found - before
         }
@@ -142,6 +147,21 @@ private final class AnchoredWindowFrame {
             }
         }
         return 0
+    }
+
+    /// Whether the row last drawn after the anchor, at `before`, is still the
+    /// same distance after it now that it is at `found`: rows inserted or
+    /// removed above move both alike, a reorder takes them apart. Asked of
+    /// last frame's drawn rows (``StackWindowState/rowOrdinalMemo``), so only
+    /// on a frame whose anchor moved. With no row drawn after it, yes.
+    private func keepsItsNeighbour(_ anchorKey: String, from before: Int, at found: Int) -> Bool {
+        guard
+            let next = state.rowOrdinalMemo
+                .filter({ $0.value > before && $0.key != anchorKey })
+                .min(by: { $0.value < $1.value })
+        else { return true }
+        let ordinal = found + next.value - before
+        return ordinal < children.count && children.key(at: ordinal) == next.key
     }
 
     /// The ordinal holding `key`: nearby ring search first, then the full
@@ -593,7 +613,8 @@ extension _VStackCore {
     ) -> Int? {
         let holdsTopRow =
             designatedKey == nil && window.topRowHold == .holding && window.seek == nil && window.offset >= 0
-        let moved = frame.rebindAnchor(holdsRow: designatedKey != nil || holdsTopRow)
+        let moved = frame.rebindAnchor(
+            holdsRow: designatedKey != nil || holdsTopRow, followsReorder: designatedKey != nil)
         guard holdsTopRow, moved != 0 else { return nil }
         let followed =
             state.anchorOrdinal == 0
