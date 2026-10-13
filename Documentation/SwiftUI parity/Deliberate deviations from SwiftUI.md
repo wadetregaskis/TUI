@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12, E3 and T10 are to change, T8 keeps its filter and gains a bell, and V7 is under review. |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: L12, E3, T10 and V7 are to change, and T8 keeps its filter and gains a bell. |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -1401,8 +1401,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `List` and `Group(subviews:)` use. A `Section`, a `Group`, an `AnyView` and a
   modifier after `.tag` drop options too (read from the code, 2026-10-13).
 - **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Subviews row, under "Differs").
-  **Under review** (2026-10-13: the owner asked what the problem is; the
-  answer recommends reading options through the member resolution).
+  **Owner** (2026-10-13): fix it: options and suggestions are to be read
+  through the member resolution, the tag kept as a trait through later
+  modifiers, and a `Section` an option group; [slated](#slated-to-change).
 
 ---
 
@@ -1535,6 +1536,7 @@ on. Each waits on the work, or on the ruling, its State names.
 | `textContentType`'s filter drops characters silently, and `.emailAddress` drops some valid ones (T8) | [T8](#t8-textcontenttype-filters-what-can-be-typed) | Owner 2026-10-13: keep the filter, ring the bell for a dropped character, admit every valid character; lane owed |
 | An interpolated key holds `%@` for every value (T10) | [T10](#t10-an-interpolated-key-holds--for-every-value) | Owner 2026-10-13: normalise the specifiers at lookup; lane owed |
 | `\.locale` has no region (E3) | [E3](#e3-locale-is-the-apps-language-without-a-region) | Owner 2026-10-13: the app's language with the user's region; lane owed |
+| A `Picker` or a text field's suggestions find nothing inside a view of the app's own, a `Section`, a `Group`, an `AnyView`, or behind a modifier after `.tag` (V7) | [V7](#v7-a-picker-does-not-find-options-inside-a-view-of-the-apps-own) | Owner 2026-10-13: fix, through the member resolution; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
