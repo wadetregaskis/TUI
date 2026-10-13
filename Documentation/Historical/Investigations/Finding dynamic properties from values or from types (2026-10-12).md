@@ -1,8 +1,9 @@
 # Finding dynamic properties from values or from types
 
-> **Status:** open until its implementation lands. The owner approved building the hybrid on 2026-10-12, keeping
-> TUIkit's additional reaches (lane DYNVFIX, running when this was written); optional fields stay supported (his
-> ruling of 2026-10-12). Investigated 2026-10-10 to 2026-10-12. **Working notes** (not in git):
+> **Status:** decided and landed. The owner approved building the hybrid on 2026-10-12, keeping TUIkit's additional
+> reaches; optional fields stay supported (the owner's ruling of 2026-10-12). Lane DYNVFIX landed it on 2026-10-12
+> (`57dfdb4d2`), and lane DYNVCLAIM replaced its per-object claim for class properties held by several views
+> (`1b7fa6ed3`, 2026-10-13; see "How the additions are kept" below). Investigated 2026-10-10 to 2026-10-12. **Working notes** (not in git):
 > `DYNP/optional/notes.md` (why SwiftUI ignores an optional field), `DYNV/notes.md` (the ten bugs and the two
 > approaches; the failing tests are in its worktree's commits), `DYNV2/notes.md` (the owner's follow-ups),
 > `DYNVFIX/design.md` (the design being built), and the critics' reviews in `CRIT/DYNV/` and `CRIT/DYNV2/`.
@@ -68,16 +69,23 @@ fca696a35; the ten bugs are failing tests on 0064b34bb.
   lets the answer be cached per type, which also removes the per-frame `Mirror` walks (two per `body`, each child
   boxed; timing owed).
 - **How the additions are kept:** the owner chose to keep TUIkit's reaches rather than drop them to SwiftUI's.
-  Per the lane's design, a shared object's contents belong to the first view in a render pass that reaches it, so
-  every holder reads one state (bugs 3 and 4 fixed without dropping the reach); a `weak` field's contents are bound
+  Per the lane's design, a shared object's contents belonged to the first view in a render pass that reaches it, so
+  every holder read one state (bugs 3 and 4 fixed without dropping the reach); that claim did not converge in review,
+  and lane DYNVCLAIM replaced it: the object owns its state, every view drawn holding it is redrawn by a write, and
+  each reads its own environment while it draws (decisions DYNVCLAIM, below); a `weak` field's contents are bound
   but not updated; a modifier stored in a view has its contents installed but is updated only where it is applied
   (bug 5); the subclass reach behind a plain class field (bug 10) follows the declared type, as SwiftUI does.
 
 ## Links
 
-- Deviations [S1, S2 and S3](<../SwiftUI parity/Deliberate deviations from SwiftUI.md#state-and-data-flow>):
+- Deviations [S1, S2 and S3](<../../SwiftUI parity/Deliberate deviations from SwiftUI.md#state-and-data-flow>):
   optional and existential fields, and the value walk.
-- Decisions [DYNP](<../SwiftUI parity/Decisions/DynamicProperty update write-back (DYNP).md>) (A-DYNP-1, the
+- Decisions [DYNP](<../../SwiftUI parity/Decisions/DynamicProperty update write-back (DYNP).md>) (A-DYNP-1, the
   optional field; B-DYNP-1, enum write-back; B-DYNP-2, the per-type caches) and
-  [SKEY](<../SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md>) (state keys inside a
+  [SKEY](<../../SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md>) (state keys inside a
   property).
+- Decisions [DYNVFIX](<../../SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md>)
+  (the walk planned from declared types) and
+  [DYNVCLAIM](<../../SwiftUI parity/Decisions/Class properties held by several views (DYNVCLAIM).md>) (class
+  properties held by several views), with the condensed design,
+  [Class properties held by several views](<../Class properties held by several views, design (2026-10-12).md>).

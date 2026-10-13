@@ -38,13 +38,13 @@ topic's folder, or starts one when a second summary shares its topic.
 | summary | decision | working notes |
 |---|---|---|
 | Binary size: [Full LTO, conditional runtime records and the reflection descriptor request](<Full LTO, conditional runtime records and the reflection descriptor request.md>) (2026-10-10, 2026-10-11) | deferred; a feature request is drafted for the owner to file | `SIZE3/q/lto`, `CONDREQ` |
-| Dynamic properties: [Finding dynamic properties from values or from types](<Finding dynamic properties from values or from types.md>) (2026-10-10 to 2026-10-12) | the hybrid approved, keeping TUIkit's reaches; being built | `DYNP/optional`, `DYNV`, `DYNV2`, `DYNVFIX` |
 | Terminal graphics: [Thin lines between rows with Kitty graphics](<Thin lines between rows with Kitty graphics.md>) (2026-10-08) | feasible on Ghostty and iTerm2; the prototype waits to be scheduled | `KGP` |
 
 ### Decided (`Historical/Investigations/`)
 
 | summary | decision | working notes |
 |---|---|---|
+| Dynamic properties: [Finding dynamic properties from values or from types](<../Historical/Investigations/Finding dynamic properties from values or from types (2026-10-12).md>) | the hybrid, keeping TUIkit's reaches: lanes DYNVFIX and DYNVCLAIM landed | `DYNP/optional`, `DYNV`, `DYNV2`, `DYNVFIX`, `DYNVCLAIM` |
 | Binary size: [Where the bytes of a TUIkit app go](<../Historical/Investigations/Binary size/Where the bytes of a TUIkit app go (2026-10-10).md>) | products, internalize, unexport and package changes landed; flags stay the app's | `SIZE2`, `SIZE3` |
 | Binary size: [A program copied out of its build stopped at launch, libswiftCompatibilitySpan](<../Historical/Investigations/Binary size/A program copied out of its build stopped at launch, libswiftCompatibilitySpan (2026-10-11).md>) | swift-collections dropped; CI check; upstream drafts unfiled | `SIZE3/q/span`, `SIZE3/q/spanq`, `NODQ` |
 | Binary size: [Dead-stripping TUIkit's unused API from the package](<../Historical/Investigations/Binary size/Dead-stripping TUIkit's unused API from the package (2026-10-11).md>) | the default trait `DeadStripUnusedAPI` | `SIZE3/q/internalize-pkg`, `SHIP` |
