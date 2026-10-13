@@ -207,7 +207,8 @@ extension ItemListHandler {
     /// it: it is a row index, so left alone it would point at another row —
     /// and the next key's reveal would scroll back to it, undoing the hold.
     ///
-    /// A move the list made itself (``movedRowsSinceLastFrame``) is not held
+    /// A move the list made itself (``movedRowsPendingFrames``, on the first
+    /// frame that finds the rows moved, within a few) is not held
     /// either: it put the cursor on the row it moved and revealed it, and the
     /// rows it moved are no change made above the reader. Held, a row moved onto the top row's
     /// place — moved up a page from the last row on screen, or dropped on the
@@ -219,23 +220,29 @@ extension ItemListHandler {
     /// Render pass only, before the clamps; ``settleScrollPosition(measuring:overflowing:drawsTextIndicators:firstRowHeight:)``
     /// calls it.
     func holdTopRow() {
-        defer {
-            lastWindowHold = windowHold
-            movedRowsSinceLastFrame = false
-        }
+        defer { lastWindowHold = windowHold }
         heldTopVerified = false
-        guard windowHold == .topRow, let heldID = heldTopID else { return }
-        if id(at: heldTopOrdinal) == heldID {
-            heldTopVerified = true
+        guard windowHold == .topRow, let heldID = heldTopID else {
+            movedRowsPendingFrames = 0
             return
         }
+        if id(at: heldTopOrdinal) == heldID {
+            heldTopVerified = true
+            // A move of the list's own not in the data yet: wait a frame less.
+            movedRowsPendingFrames = max(0, movedRowsPendingFrames - 1)
+            return
+        }
+        // The rows moved under the top row: a move of the list's own, if one
+        // is awaited, is this, and is not held.
+        let ownMove = movedRowsPendingFrames > 0
+        movedRowsPendingFrames = 0
         let declared = ScrollAnchorMode.governing(
             opening: declaredOpeningAnchorMode, standing: declaredAnchorMode, hasOpened: hasOpened)
         let mode = ScrollAnchorMode.effective(
             boundAnchor: anchorPositionBinding?.wrappedValue, declared: declared)
         let followsTail = mode == .bottom && scrollOffset >= bottomFollowBound
         guard lastWindowHold == .topRow, hasOpened, !offsetAdjustmentSuspended, !followsTail,
-            !movedRowsSinceLastFrame, scrollOffset > 0 || scrollTopClipLines > 0
+            !ownMove, scrollOffset > 0 || scrollTopClipLines > 0
         else { return }
         let found = index(of: heldID, near: heldTopOrdinal)
         if let found, !keepsANeighbour(at: found) { return }

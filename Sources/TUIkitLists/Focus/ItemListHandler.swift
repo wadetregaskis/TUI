@@ -1308,11 +1308,20 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (``rememberTopRow()``).
     var heldTopItemCount = 0
 
-    /// Whether this list moved rows itself through ``onMove`` since the last
-    /// frame — a move chord, a drop, a live drag's step — which placed the
-    /// cursor on the row it moved and revealed it: ``holdTopRow()`` holds
-    /// nothing on the frame that draws it.
-    var movedRowsSinceLastFrame = false
+    /// How many more frames ``holdTopRow()`` waits for rows this list moved
+    /// itself through ``onMove`` — a move chord, a drop, a live drag's step,
+    /// which placed the cursor on the row it moved and revealed it — to reach
+    /// the data; `0` when it is not waiting. The frame that finds the rows
+    /// moved under the top row holds nothing, and spends the wait.
+    ///
+    /// A wait of frames, not one frame: an `onMove` that applies the move
+    /// later (`Task { await store.move(…) }`) draws the key's frame with the
+    /// rows unmoved, and the moved rows a frame after, which were held — the
+    /// cursor landed on the old top row (the SCROLLANCHOR review, S4).
+    var movedRowsPendingFrames = 0
+
+    /// The frames ``movedRowsPendingFrames`` starts at.
+    static var movedRowsWaitFrames: Int { 3 }
 
     /// Last glued frame's ``itemCount``, so the Bottom follow can tell a frame
     /// where the tail actually ADVANCED (rows arrived — carry the focus cursor

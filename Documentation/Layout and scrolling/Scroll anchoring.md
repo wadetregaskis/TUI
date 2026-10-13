@@ -722,7 +722,9 @@ It holds nothing:
   live drag's step — which puts the cursor on the row it moved and reveals it.
   Held, a row moved onto the top row's place pushed the top row down one, and
   the hold scrolled the moved row out of view and put the cursor on the old top
-  row.
+  row. The move is waited for through up to three frames that find the top row
+  where it was, so an `onMove` that applies it a frame or two late is not held
+  either (2026-10-13).
 
 A designated row (`.anchorPosition(.row(id))`) is held as ever and wins; a
 designation naming no row in the data is none, and the top row is held.

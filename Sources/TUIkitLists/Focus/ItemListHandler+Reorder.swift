@@ -1488,7 +1488,7 @@ extension ItemListHandler {
         guard let onMove, !held.isEmpty else { return target }
         let destination = reorderInsertionOffset(forSlot: target, removed: held)
         onMove(held, destination)
-        movedRowsSinceLastFrame = true
+        movedRowsPendingFrames = Self.movedRowsWaitFrames
         // Where the block actually starts now — which is `target` except when
         // the slot was past the end and the insertion clamped, and a `.live`
         // drag that believed the clamped number would move the block again from

@@ -122,6 +122,15 @@ frame — one more id read a frame, which can be a build of the row (`id(at:)`)
 A move the list makes itself (a move chord, a drop) is not held at all: it puts
 the cursor on the row it moved, and shifting it as well put it a row off.
 
+**2026-10-13 (lane SCROLLB, the review's S4):** an `onMove` that applies the
+move later — `onMove { s, d in Task { await store.move(s, d) } }` — drew the
+key's frame with the rows unchanged, which spent the "not held" mark, and the
+moved rows a frame later were held: the cursor landed on the old top row
+again. The mark now waits through up to three frames whose top row is where
+it was, and is spent by the first that finds it moved. The price: a change
+made above the top row in those frames, by anything else, is not held either.
+An `onMove` that takes longer than three frames to apply is still held.
+
 ### B-SCROLLANCHOR-5. A reorder is told from rows inserted or removed above by the row after the top row
 
 *`ScrollWindowHold.topRow`*

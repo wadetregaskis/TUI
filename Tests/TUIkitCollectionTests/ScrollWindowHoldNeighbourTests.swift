@@ -4,12 +4,13 @@
 //  The top-row hold's neighbours: read again when a row arrives or leaves
 //  beside the top row, and the row before it judging whether the top row's
 //  place is kept — the SCROLLANCHOR review's S3 and S4, fixed by lane
-//  SCROLLB. Beside `ScrollWindowHoldTests`, whose harness they use, for that
-//  file's length.
+//  SCROLLB — and a move an `onMove` applies a frame late. Beside
+//  `ScrollWindowHoldTests`, whose harness they use, for that file's length.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUIkit
@@ -129,5 +130,40 @@ extension ScrollWindowHoldTests {
         settle()
         #expect(handler.scrollOffset == 10)
         #expect(handler.id(at: handler.focusedIndex) == 12)
+    }
+
+    /// An `onMove` that applies the move later — `Task { await store.move(…) }`
+    /// — draws the key's frame with the rows unmoved. The list waited one frame
+    /// for its own move, so the moved rows a frame later were held: the row
+    /// moved onto the top row's place went out of view, and the cursor landed
+    /// on the old top row (the SCROLLANCHOR review, S4).
+    @Test("A row an onMove moves a frame late onto the top row's place stays on screen, with the cursor on it")
+    func listLateOwnMoveIsNotHeld() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 40, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        var ids = Array(0..<40)
+        handler.itemIDs = ids
+        var pending: (source: IndexSet, destination: Int)?
+        handler.onMove = { pending = ($0, $1) }
+        func settle() {
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        settle()
+        handler.scrollOffset = 10
+        handler.focusedIndex = 17
+        settle()
+        #expect(handler.nudgeFocusedRow(by: -handler.pageStep))
+        #expect(handler.focusedIndex == 10, "precondition: moved onto the top row's place")
+        settle()
+        guard let move = pending else {
+            Issue.record("precondition: a move asked for")
+            return
+        }
+        ids.move(fromOffsets: move.source, toOffset: move.destination)
+        handler.itemIDs = ids
+        settle()
+        #expect(handler.scrollOffset == 10)
+        #expect(handler.id(at: handler.focusedIndex) == 17)
     }
 }
