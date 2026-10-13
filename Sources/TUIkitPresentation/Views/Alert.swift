@@ -349,8 +349,10 @@ struct AlertButtonRow: View, Renderable {
         var resultLines: [String] = Array(repeating: "", count: maxHeight)
         var resultRegions: [HitTestRegion] = []
         var resultRuns: [AnimatedCellRun] = []
-        var resultOverlays: [OverlayLayer] = []
         var resultFaded: [OpacityRegion] = []
+        // The buttons' layers, gathered as `Section` gathers its parts' (see
+        // `AlertButtonColumn`).
+        var layers = FrameBuffer()
         let spacer = String(repeating: " ", count: spacing)
         var xCursor = leftPadding
 
@@ -380,7 +382,8 @@ struct AlertButtonRow: View, Renderable {
             // `AnimatedRunPropagationTests`: a dropped run freezes an animation
             // rather than removing it, so it reads as a win in a diff.
             resultRuns.append(contentsOf: buffer.shiftedAnimatedCells(byX: xCursor, y: 0))
-            resultOverlays.append(contentsOf: buffer.shiftedOverlays(byX: xCursor, y: 0))
+            layers.coverOverflow(under: buffer, at: (x: xCursor, y: 0))
+            layers.appendOverlays(of: buffer, shiftedByX: xCursor, y: 0)
             resultFaded.append(contentsOf: buffer.shiftedOpacityRegions(byX: xCursor, y: 0))
             xCursor += buffer.width
         }
@@ -389,13 +392,7 @@ struct AlertButtonRow: View, Renderable {
         result.hitTestRegions = resultRegions
         result.animatedCells = resultRuns
         result.opacityRegions = resultFaded
-        // Overlays too, for the same reason the other two are carried. No
-        // button can currently float one — these builders take `Button` values,
-        // and `.sheet` / `.contextMenu` return `some View` — so this is the
-        // omission rather than a reachable bug. Carried anyway: two of the
-        // three payloads being handled is precisely the state `Section` and
-        // `_ControlLabel` were found in.
-        result.overlays = resultOverlays
+        result.overlays = layers.overlays
         return result
     }
 }
@@ -431,8 +428,17 @@ struct AlertButtonColumn: View, Renderable {
         var lines: [String] = []
         var regions: [HitTestRegion] = []
         var runs: [AnimatedCellRun] = []
-        var overlays: [OverlayLayer] = []
         var faded: [OpacityRegion] = []
+        // The buttons' layers, gathered as a stack gathers its children's, and
+        // `Section` its parts': what a button's label draws past its region
+        // (an alignment guide's placement, `OverlayLayer.isOverflow`) is cut
+        // where a later button paints, so it is drawn over the buttons before
+        // it and under the buttons after it. Lifted uncut, a label pushed past
+        // its button drew over the next one. A buffer of no lines: it only
+        // carries the layers, so that the stack's own two steps
+        // (`coverOverflow(under:at:)`, `appendOverlays(of:shiftedByX:y:)`) do
+        // the work and keep the hint that none is overflow.
+        var layers = FrameBuffer()
 
         // Each button renders under its OWN child identity. A `Button`'s
         // default focus ID is derived from `context.identity.path`, so rendering
@@ -462,7 +468,8 @@ struct AlertButtonColumn: View, Renderable {
             regions.append(
                 contentsOf: buffer.shiftedHitTestRegions(byX: leftPadding, y: startY))
             runs.append(contentsOf: buffer.shiftedAnimatedCells(byX: leftPadding, y: startY))
-            overlays.append(contentsOf: buffer.shiftedOverlays(byX: leftPadding, y: startY))
+            layers.coverOverflow(under: buffer, at: (x: leftPadding, y: startY))
+            layers.appendOverlays(of: buffer, shiftedByX: leftPadding, y: startY)
             faded.append(contentsOf: buffer.shiftedOpacityRegions(byX: leftPadding, y: startY))
         }
 
@@ -470,13 +477,7 @@ struct AlertButtonColumn: View, Renderable {
         result.hitTestRegions = regions
         result.animatedCells = runs
         result.opacityRegions = faded
-        // Overlays too, for the same reason the other two are carried. No
-        // button can currently float one — these builders take `Button` values,
-        // and `.sheet` / `.contextMenu` return `some View` — so this is the
-        // omission rather than a reachable bug. Carried anyway: two of the
-        // three payloads being handled is precisely the state `Section` and
-        // `_ControlLabel` were found in.
-        result.overlays = overlays
+        result.overlays = layers.overlays
         return result
     }
 }

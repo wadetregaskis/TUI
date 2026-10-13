@@ -682,6 +682,37 @@ struct PlacementOverflowTests {
         #expect(buffer.overlays.isEmpty, "a measure pass draws nothing past the space")
     }
 
+    @Test("An alert's later buttons are drawn over what an earlier button's label draws past its region")
+    func alertButtonsOverEarlierOverflow() {
+        // The alert builds its row and its column of buttons by hand, and
+        // lifted each button's layers uncut: a label pushed past its button
+        // drew over the next button, where a stack cuts it under what follows.
+        let pushed = Button {} label: {
+            Text("rrrr").alignmentGuide(.leading) { _ in -9 }.frame(width: 4, alignment: .leading)
+        }
+        var screen = Screen(width: 40, height: 8)
+        var lines = screen.render(
+            Alert(title: "T", message: "m") {
+                pushed
+                Button("bbbbbbbb") {}
+            })
+        #expect(lines.contains { $0.contains("bbbbbbbb") }, "the row: \(lines)")
+        #expect(!lines.contains { $0.contains("r") }, "the row: \(lines)")
+        // Down the column: a badge hung a row below the first button's label,
+        // onto the second button's row.
+        let badged = Button {} label: {
+            Text("aa").overlay(alignment: .bottomLeading) { Text("YY").alignmentGuide(.bottom) { _ in 0 } }
+        }
+        screen = Screen(width: 40, height: 10)
+        lines = screen.render(
+            Alert(title: "T", message: "m", verticalButtons: true) {
+                badged
+                Button("bbbbbbbbbbbb") {}
+            })
+        #expect(lines.contains { $0.contains("bbbbbbbbbbbb") }, "the column: \(lines)")
+        #expect(!lines.contains { $0.contains("Y") }, "the column: \(lines)")
+    }
+
     // MARK: - Measuring
 
     @Test("A measure pass draws nothing past the region and sizes as before")

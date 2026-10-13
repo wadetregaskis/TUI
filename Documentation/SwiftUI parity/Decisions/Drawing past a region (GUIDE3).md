@@ -173,6 +173,12 @@ hand: what a part draws past its region is now cut where a later part paints,
 as a stack's next child cuts it, where every part's layers were lifted uncut
 ("A section's parts…").
 
+An alert's row of buttons, and a confirmation dialog's column, are built by
+hand as well, and lifted each button's layers uncut: a label pushed past its
+button drew over the next button. Each button now cuts the overflow of the
+buttons before it where it paints, as `Section`'s parts do (lane BUGS13;
+"An alert's later buttons…").
+
 **The fuller version** is SwiftUI's picture of the case that found it: the
 stack grows past its proposal and the border moves out to enclose the
 overhang. That is the change to every container's contract that B-GUIDE-1
