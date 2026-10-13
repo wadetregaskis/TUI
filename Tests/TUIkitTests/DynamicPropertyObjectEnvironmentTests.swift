@@ -15,6 +15,7 @@
 import Testing
 
 import TUIkit
+@testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
 @testable import TUIkitView
@@ -213,6 +214,104 @@ private struct FocusHolderSheet: View {
                 FocusHolderView(name: "sheet", holder: holder.object)
             }
             .environment(\.focusManager, live)
+    }
+}
+
+private struct InspectedNoteKey: FocusedValueKey {
+    typealias Value = String
+}
+
+private struct InspectedCountKey: FocusedValueKey {
+    typealias Value = Binding<Int>
+}
+
+extension FocusedValues {
+    fileprivate var inspectedNote: String? {
+        get { self[InspectedNoteKey.self] }
+        set { self[InspectedNoteKey.self] = newValue }
+    }
+
+    fileprivate var inspectedCount: Binding<Int>? {
+        get { self[InspectedCountKey.self] }
+        set { self[InspectedCountKey.self] = newValue }
+    }
+}
+
+/// A class app property holding a `@FocusedValue`: an inspector of what the
+/// focused control publishes.
+private final class NoteInspector: DynamicProperty {
+    @FocusedValue(\.inspectedNote) var note
+}
+
+/// A class app property holding a `@FocusedBinding`.
+private final class CountInspector: DynamicProperty {
+    @FocusedBinding(\.inspectedCount) var count
+}
+
+/// A line showing what a `NoteInspector` reads. Any two compare equal, so a
+/// memo above one serves it unless told that its body reads what the memo
+/// does not see.
+private struct NoteLine: View, @preconcurrency Equatable {
+    let name: String
+    let inspector: NoteInspector
+
+    static func == (lhs: Self, rhs: Self) -> Bool { true }
+
+    var body: some View {
+        Text(verbatim: "\(name) \(inspector.note ?? "none")")
+    }
+}
+
+/// A line showing what a `CountInspector` reads.
+private struct CountLine: View {
+    let name: String
+    let inspector: CountInspector
+
+    var body: some View {
+        Text(verbatim: "\(name) \(inspector.count.map(String.init) ?? "none")")
+    }
+}
+
+/// A page showing an object on its first line, the object's primary holder,
+/// and again in a row with no focus stop that a `ForEach` memoises by its
+/// element, above two buttons publishing what the object reads.
+private struct RowBesidePrimary<Line: View, Published>: View {
+    let line: (String) -> Line
+    let key: WritableKeyPath<FocusedValues, Published?>
+    let published: (a: Published, b: Published)
+
+    var body: some View {
+        VStack {
+            line("page")
+            ForEach([1], id: \.self) { _ in line("row") }
+            Button("A") {}.focusedValue(key, published.a)
+            Button("B") {}.focusedValue(key, published.b)
+        }
+    }
+}
+
+/// A page showing a `NoteInspector` behind a memo, presenting a sheet that
+/// shows it too above two buttons publishing what it reads: the page is drawn
+/// first, as the sheet's backdrop, so it is the object's primary holder.
+private struct NoteInspectorUnderSheetApp: App {
+    let inspector: Passed<NoteInspector>
+
+    init() { inspector = Passed(object: NoteInspector()) }
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                NoteLine(name: "page", inspector: inspector.object).equatable()
+                Spacer()
+            }
+            .sheet(isPresented: .constant(true)) {
+                VStack {
+                    NoteLine(name: "sheet", inspector: inspector.object)
+                    Button("A") {}.focusedValue(\.inspectedNote, "a")
+                    Button("B") {}.focusedValue(\.inspectedNote, "b")
+                }
+            }
+        }
     }
 }
 
@@ -416,5 +515,63 @@ struct DynamicPropertyObjectEnvironmentTests {
         #expect(holder.object.manager === live)
         _ = frame(FocusHolderSheet(holder: holder, live: live), tui, height: 10)
         #expect(holder.object.manager === live)
+    }
+
+    /// The first two lines of `buffer`, as they read.
+    private func firstTwo(_ buffer: FrameBuffer) -> [String] {
+        buffer.lines.prefix(2).map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+    }
+
+    /// Resolving an object's `@FocusedValue` tells the memos above the holder
+    /// that what its body reads follows the focus. A walk that does not hand
+    /// it the environment — another holder's than the primary's — told them
+    /// nothing, so a row memoised by its element stored what it drew and
+    /// served it after the focus moved (review of 75c2c226c, S3).
+    @Test("A memoised row showing an object's @FocusedValue, not the object's primary holder, follows the focus")
+    func rowShowingAnObjectsFocusedValueFollowsTheFocus() {
+        let harness = InputChainHarness()
+        let inspector = NoteInspector()
+        let page = {
+            RowBesidePrimary(
+                line: { NoteLine(name: $0, inspector: inspector) }, key: \.inspectedNote, published: ("a", "b"))
+        }
+        harness.frame(page())
+        #expect(firstTwo(harness.frame(page())) == ["page a", "row a"])
+        harness.press(KeyEvent(key: .tab))
+        #expect(firstTwo(harness.frame(page())) == ["page b", "row b"])
+    }
+
+    /// The same for a `@FocusedBinding`, which reads through the same link.
+    @Test("A memoised row showing an object's @FocusedBinding, not the object's primary holder, follows the focus")
+    func rowShowingAnObjectsFocusedBindingFollowsTheFocus() {
+        let harness = InputChainHarness()
+        let inspector = CountInspector()
+        let page = {
+            RowBesidePrimary(
+                line: { CountLine(name: $0, inspector: inspector) }, key: \.inspectedCount,
+                published: (.constant(1), .constant(2)))
+        }
+        harness.frame(page())
+        #expect(firstTwo(harness.frame(page())) == ["page 1", "row 1"])
+        harness.press(KeyEvent(key: .tab))
+        #expect(firstTwo(harness.frame(page())) == ["page 2", "row 2"])
+    }
+
+    /// No walk drawn as a backdrop hands an object's `@FocusedValue` the
+    /// environment, so the page behind a sheet told the memo above its holder
+    /// nothing: the dimmed page kept the value it first drew while the focus
+    /// moved in the sheet (review of 75c2c226c, S3).
+    @Test("A page behind a sheet showing an object's @FocusedValue follows the focus in the sheet")
+    func pageBehindASheetShowingAnObjectsFocusedValueFollowsTheFocus() {
+        let app = HeadlessApp(NoteInspectorUnderSheetApp(), width: 40, height: 16)
+        func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 16_666_667)
+        #expect(shows("page a"), "\(app.screen.map(\.stripped))")
+        #expect(shows("sheet a"))
+        app.send(KeyEvent(key: .tab))
+        app.frame(atNanos: 33_333_334)
+        #expect(shows("page b"), "\(app.screen.map(\.stripped))")
+        #expect(shows("sheet b"))
     }
 }

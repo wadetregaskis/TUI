@@ -235,6 +235,22 @@ public protocol EnvironmentResolvable {
     func resolveEnvironment(_ environment: EnvironmentValues)
 }
 
+/// A property handed its view's environment whose value follows what no memo
+/// keys on — `@FocusedValue` and `@FocusedBinding`, which read where the focus
+/// is — and which, handed the environment, tells the memos above its view so.
+///
+/// Inside an object, a walk may hand it nothing: one drawn as a backdrop, or
+/// a holder's other than the one the object reads the environment of
+/// (``PropertyWalk/resolvesSharedStores(of:)``). Its holder's body reads it
+/// all the same, through what another walk handed it, so such a walk still
+/// tells the memos through this; without it, a memo above that holder kept
+/// what it drew after the focus moved.
+package protocol UnkeyedEnvironmentReader: EnvironmentResolvable {
+    /// Tells the memos above the view drawn in `environment` that its body
+    /// reads such a property, where the walk hands the property nothing.
+    static func noteUnkeyedRead(in environment: EnvironmentValues)
+}
+
 extension Environment: EnvironmentResolvable {
     public func resolveEnvironment(_ environment: EnvironmentValues) {
         box.environment = environment

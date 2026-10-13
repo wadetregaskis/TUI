@@ -248,7 +248,12 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   object behind a sheet that holds it too, the page drawn first, at its own
   identity — another holder's walks hand them in (review2 of lane DYNVCLAIM,
   748e897b2); one drawn before the primary in a pass goes by the primary's
-  last walk.
+  last walk. A walk that hands them nothing still tells the memos above its
+  holder that the holder's body reads the object's `@FocusedValue` or
+  `@FocusedBinding`, as handing it in does: what it reads follows the focus,
+  which no memo keys on. Without that, a page behind a sheet, or a row a memo
+  keeps that is not the primary, kept what it drew after the focus moved
+  (review of 75c2c226c, S3).
 
   Why it is sound: a walk, its body and its content run synchronously on the
   main actor, and the only walks that can run in between are those of holders
@@ -330,6 +335,22 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   (decisions-DYNVCLAIM B-DYNVCLAIM-1).
 - A measure made before any render walk reached a long-lived object binds no
   ids: its body reads an unbound `@Namespace` there, and the render binds it.
+- A holder whose walk hands the object's `@FocusState` manager,
+  `@FocusedValue` and `@FocusedBinding` nothing reads them as the last walk
+  that did left them. Its walk still tells the memos above it that it reads a
+  `@FocusedValue` or `@FocusedBinding`, so it is drawn again when the focus
+  moves. Behind a sheet, the object reads the live focus once any walk has
+  handed it the live manager, where a page's own `@FocusedValue` reads the
+  backdrop's manager, which focuses nothing.
+- The windowed stack's focus-reach probe renders the rows past the focused
+  one against a scratch focus manager of its own, not drawn as a backdrop,
+  that goes with the probe (`StackFocusReach.swift`). A row it renders that
+  hands the object those properties — the object's primary, or, while the
+  primary is drawn as a backdrop, any holder — hands them that manager. The
+  next walk in the pass to hand them in replaces it, so it bites only when
+  the probe's row is the last: until the next pass, the object's
+  `@FocusState` reaches no focus that a `.focused` did not wire, and its
+  `@FocusedValue` and `@FocusedBinding` read nothing.
 
 **Not chosen:**
 

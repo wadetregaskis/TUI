@@ -293,7 +293,9 @@ extension PropertyWalk {
     /// the environment keep it in a store every copy shares, which nothing
     /// puts back: the primary's walks hand it them, or another holder's while
     /// the primary is drawn as a backdrop, and none drawn as one does
-    /// (``ObjectWalk/sharedStores``).
+    /// (``ObjectWalk/sharedStores``). A walk that hands one of them nothing
+    /// still tells the memos above its view that the view reads it, if what
+    /// it reads follows what no memo keys on (``UnkeyedEnvironmentReader``).
     mutating func applyObjectLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, in object: ObjectWalk
     ) {
@@ -328,8 +330,14 @@ extension PropertyWalk {
                 }
             }
             box.environment = environment
-        } else if let resolvable = leaf.environment, resolvesSharedStores(of: object) {
-            resolvable.resolveEnvironment(at: address, environment)
+        } else if let resolvable = leaf.environment {
+            if resolvesSharedStores(of: object) {
+                resolvable.resolveEnvironment(at: address, environment)
+            } else if let reader = resolvable as? any UnkeyedEnvironmentReader.Type {
+                // Handed nothing, it is read all the same: the memos above
+                // this holder must not keep what its body draws from it.
+                reader.noteUnkeyedRead(in: environment)
+            }
         }
     }
 }

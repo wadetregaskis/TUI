@@ -33,6 +33,14 @@ final class FocusedValueReader {
     /// the view that what its body reads is keyed by nothing the memo sees.
     func resolve(_ environment: EnvironmentValues) {
         focusManager = environment.focusManager
+        Self.noteRead(in: environment)
+    }
+
+    /// Tells any memo above the view drawn in `environment` that what its body
+    /// reads is keyed by nothing the memo sees: what resolving does, and what
+    /// a walk that hands an object's reader nothing does alone
+    /// (`UnkeyedEnvironmentReader`).
+    static func noteRead(in environment: EnvironmentValues) {
         // The value follows the focus and other views' publishing — neither
         // of which is part of this view's value or its environment — so a
         // buffer cached around the reader would show a stale value.
@@ -160,6 +168,20 @@ public struct FocusedBinding<Value>: DynamicProperty {
 extension FocusedBinding: EnvironmentResolvable {
     public func resolveEnvironment(_ environment: EnvironmentValues) {
         reader.resolve(environment)
+    }
+}
+
+// Inside an object, a walk that hands either nothing still tells the memos
+// above its view that the view reads it. See `UnkeyedEnvironmentReader`.
+extension FocusedValue: UnkeyedEnvironmentReader {
+    package static func noteUnkeyedRead(in environment: EnvironmentValues) {
+        FocusedValueReader.noteRead(in: environment)
+    }
+}
+
+extension FocusedBinding: UnkeyedEnvironmentReader {
+    package static func noteUnkeyedRead(in environment: EnvironmentValues) {
+        FocusedValueReader.noteRead(in: environment)
     }
 }
 

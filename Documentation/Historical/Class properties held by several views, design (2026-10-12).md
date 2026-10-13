@@ -214,7 +214,10 @@ pop puts back, are resolved by the primary's walks alone, or by any walk before
 the object has a primary, as before the lane's C3 — and (review2) by no walk
 drawn as a backdrop, whose focus manager focuses nothing, and by another
 holder's while the primary is drawn as one: a modal draws the page beneath it
-first, at the page's identity, so the page is the primary.*
+first, at the page's identity, so the page is the primary. A walk that resolves
+none of them still tells the memos above its holder that the holder reads a
+`@FocusedValue` or `@FocusedBinding`, which follows the focus (review of
+75c2c226c).*
 
 Whose environment a shared object's `@Environment` reads: during a holder's walk,
 its body, and the drawing or measuring of what that body built — that holder's,
