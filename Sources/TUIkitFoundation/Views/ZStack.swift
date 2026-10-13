@@ -149,20 +149,39 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // so backgrounds are preserved; to centre a label over a fill, size the
         // label to its content and let `alignment` place it rather than padding
         // the string by hand.
+        //
+        // A guided run larger than the space the stack was given keeps every
+        // guide on one line, and what hangs past that space is drawn past it,
+        // in the layer's place in the stacking order (decisions B-GUIDE-1),
+        // rather than being cut by the clamp every view passes through.
+        let guided = horizontalRun != nil || verticalRun != nil
+        let drawsOverhang =
+            guided && !context.isMeasuring
+            && (frameWidth > context.availableWidth || frameHeight > context.availableHeight)
+        let drawnWidth = drawsOverhang ? min(frameWidth, max(0, context.availableWidth)) : frameWidth
+        let drawnHeight = drawsOverhang ? min(frameHeight, max(0, context.availableHeight)) : frameHeight
         var result = FrameBuffer(
             lines: Array(
-                repeating: String(repeating: " ", count: frameWidth),
-                count: frameHeight))
+                repeating: String(repeating: " ", count: drawnWidth),
+                count: drawnHeight))
         // The runs of a lower layer a later one shows the field of, whose frames turn
         // it: punched under the later layer, they ask for a render at their steps.
         var showingThrough: [AnimatedCellRun] = []
-        for (index, buffer) in buffers.enumerated() {
-            let dx =
+        for (index, layer) in buffers.enumerated() {
+            var buffer = layer
+            var dx =
                 horizontalRun?.offsets[index]
                 ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: frameWidth)
-            let dy =
+            var dy =
                 verticalRun?.offsets[index]
                 ?? alignment.vertical.childOffset(childHeight: buffer.height, in: frameHeight)
+            if drawsOverhang, !buffer.fits(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight) {
+                let placement = buffer.splitPlacing(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight)
+                // Before this layer's cells land, so the layers after it cut
+                // what it draws past the stack, as they cut each other.
+                result.overlays.append(contentsOf: placement.overflow)
+                (buffer, dx, dy) = (placement.inside, placement.insideOrigin.x, placement.insideOrigin.y)
+            }
             showingThrough += result.runsShowingThrough(buffer, at: (x: dx, y: dy))
             result = result.compositedCarryingClaimsOverNothing(
                 with: buffer, at: (x: dx, y: dy), palette: context.environment.palette)

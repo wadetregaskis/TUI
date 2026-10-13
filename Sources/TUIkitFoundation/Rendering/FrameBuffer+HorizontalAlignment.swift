@@ -78,4 +78,37 @@ extension FrameBuffer {
             alignedLines, width: width, uniformWidth: true,
             overlayShiftX: bufferOffset, overlayShiftY: 0)
     }
+
+    /// This buffer placed `offset` columns along a column `width` wide, as
+    /// ``placedHorizontally(inWidth:offset:)`` places it — except that what
+    /// lies past the column's trailing edge is not left on the line for a
+    /// clamp to cut, but drawn past the edge, at this view's place in the
+    /// stacking order (``splitPlacing(at:inWidth:height:)``).
+    ///
+    /// For a run of explicit guides wider than the column that holds it: every
+    /// guide stays on one line and the overhang is drawn past the edge, off
+    /// the screen where the edge is the screen's, as SwiftUI's is past its
+    /// window (decisions B-GUIDE-1). A buffer that fits, or a measure pass,
+    /// takes ``placedHorizontally(inWidth:offset:)`` unchanged.
+    func placedHorizontallyDrawingOverhang(inWidth width: Int, offset: Int, isMeasuring: Bool) -> FrameBuffer {
+        guard offset + self.width > width, !isMeasuring else {
+            return placedHorizontally(inWidth: width, offset: offset)
+        }
+        let placement = splitPlacing(at: (x: offset, y: 0), inWidth: width, height: height)
+        var inside = placement.inside
+        if offset >= width {
+            // Wholly past the edge: its rows still stand in the column, blank.
+            var blank = FrameBuffer(emptyWithWidth: 0, height: height)
+            blank.hitTestRegions = inside.hitTestRegions
+            blank.overlays = inside.overlays
+            inside = blank
+        }
+        var placed = inside.placedHorizontally(inWidth: width, offset: placement.insideOrigin.x)
+        // A column stacks its rows by their heights; a cut that lost a row
+        // would pull the rows after it up. Such a row keeps the cut it always
+        // had.
+        guard placed.height == height else { return placedHorizontally(inWidth: width, offset: offset) }
+        placed.overlays.append(contentsOf: placement.overflow)
+        return placed
+    }
 }

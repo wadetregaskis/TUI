@@ -566,10 +566,13 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             // A child shorter than the row is positioned within it by
             // `alignment` (top/center/bottom). Without this every child is
             // top-pinned, because `appendHorizontally` only top-aligns.
+            // A guided run taller than the row keeps every guide on one line,
+            // and what hangs below the row is drawn past it (decisions
+            // B-GUIDE-1).
             let aligned =
                 guideRun.map {
-                    buffer.placedVertically(
-                        inHeight: rowHeight, topPadding: $0.offsets[placedIndex])
+                    buffer.placedVerticallyDrawingOverhang(
+                        inHeight: rowHeight, topPadding: $0.offsets[placedIndex], isMeasuring: context.isMeasuring)
                 } ?? buffer.verticallyAligned(toHeight: rowHeight, alignment: alignment)
             result.appendHorizontally(aligned, spacing: spacingToApply)
         }

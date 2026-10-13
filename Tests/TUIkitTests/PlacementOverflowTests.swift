@@ -281,6 +281,76 @@ struct PlacementOverflowTests {
         #expect(drawn.lines.first?.stripped == "--·····X--------", "\(drawn.lines.map(\.stripped))")
     }
 
+    // MARK: - A run of guides wider than its region (B-GUIDE-1)
+
+    @Test("A column that cannot grow keeps every guide on one line and draws the overhang past its edge")
+    func columnOverhang() {
+        // SwiftUI (GUIDE probe, 400-wide host): the 3-wide view whose trailing
+        // guide is 0 sits at 400, past the window's edge, the 6-wide one at
+        // 394, every guide on one line. Here the column is 20 wide (its frame)
+        // with ten blank columns after it, where the overhang shows; held
+        // inside, it sat 3 cells left of its guide, at 17.
+        let screen = Screen(width: 30, height: 4)
+        let lines = screen.render(
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("GGG").alignmentGuide(.trailing) { _ in 0 }
+                Text("SSSSSS")
+                Text("f").frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(width: 20)
+            .padding(.trailing, 10))
+        #expect(
+            Array(lines.prefix(3)) == [String(repeating: " ", count: 20) + "GGG", String(repeating: " ", count: 14) + "SSSSSS", "f"],
+            "\(lines)")
+    }
+
+    @Test("A row whose guides need more height than it has draws the overhang below it")
+    func rowOverhang() {
+        let screen = Screen(width: 10, height: 6)
+        let lines = screen.render(
+            HStack(alignment: .top, spacing: 0) {
+                Text("g").alignmentGuide(.top) { _ in -3 }
+                Text("s")
+            }
+            .frame(height: 2)
+            .padding(.bottom, 4))
+        // The run is four rows (g three below s); the row is two, so g is
+        // drawn a row below it, in the padding, rather than cut away.
+        #expect(Array(lines.prefix(4)) == [" s", "", "", "g"], "\(lines)")
+    }
+
+    @Test("A ZStack whose guides need more room than it was given draws the overhang past it")
+    func zStackOverhang() {
+        let screen = Screen(width: 40, height: 2)
+        let lines = screen.render(
+            ZStack(alignment: .topLeading) {
+                Text("a")
+                Text("b").alignmentGuide(.leading) { _ in -25 }
+            }
+            .frame(width: 20)
+            .padding(.trailing, 20))
+        #expect(lines.first == "a" + String(repeating: " ", count: 24) + "b", "\(lines)")
+    }
+
+    @Test("A lazy column's window keeps every guide on one line; the scroll view cuts the overhang")
+    func lazyColumnOverhang() {
+        // The run is 23 wide in a 20-wide window (the filler fixes it): GGG's
+        // guide puts it at 20, past the window, where the scroll view cuts it.
+        // Held inside, it sat at 17, three cells left of its guide.
+        let screen = Screen(width: 30, height: 4)
+        let lines = screen.render(
+            ScrollView {
+                LazyVStack(alignment: .trailing, spacing: 0) {
+                    Text("GGG").alignmentGuide(.trailing) { _ in 0 }
+                    Text("SSSSSS")
+                    Text("f").frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .frame(width: 20, height: 3))
+        #expect(!lines.contains { $0.contains("G") }, "\(lines)")
+        #expect(lines.contains(String(repeating: " ", count: 14) + "SSSSSS"), "\(lines)")
+    }
+
     // MARK: - Measuring
 
     @Test("A measure pass draws nothing past the region and sizes as before")

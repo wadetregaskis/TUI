@@ -37,4 +37,31 @@ extension FrameBuffer {
         lines += Array(repeating: emptyLine, count: bottomPadding)
         return replacingLines(lines, overlayShiftY: topPadding)
     }
+
+    /// The vertical twin of
+    /// ``placedHorizontallyDrawingOverhang(inWidth:offset:isMeasuring:)``: this
+    /// buffer `topPadding` rows down a row `height` tall, what lies below the
+    /// row's bottom edge drawn past it rather than left for a clamp to cut.
+    func placedVerticallyDrawingOverhang(inHeight height: Int, topPadding: Int, isMeasuring: Bool) -> FrameBuffer {
+        guard topPadding + self.height > height, !isMeasuring else {
+            return placedVertically(inHeight: height, topPadding: topPadding)
+        }
+        let placement = splitPlacing(at: (x: 0, y: topPadding), inWidth: width, height: height)
+        var inside = placement.inside
+        if topPadding >= height {
+            // Wholly past the edge: its column still stands in the row, blank.
+            var blank = FrameBuffer(emptyWithWidth: width, height: 0)
+            blank.hitTestRegions = inside.hitTestRegions
+            blank.overlays = inside.overlays
+            inside = blank
+        }
+        var placed = inside.placedVertically(inHeight: height, topPadding: placement.insideOrigin.y)
+        // A row lays its columns out by their widths, and a cut keeps only the
+        // width its lines draw: a column that declares more than it draws (a
+        // footprint) would narrow and pull the columns after it left. Such a
+        // column keeps the cut it always had.
+        guard placed.width == width else { return placedVertically(inHeight: height, topPadding: topPadding) }
+        placed.overlays.append(contentsOf: placement.overflow)
+        return placed
+    }
 }

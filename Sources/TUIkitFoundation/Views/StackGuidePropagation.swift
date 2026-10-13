@@ -69,10 +69,12 @@ extension _VStackCore: AlignmentGuideQuerying {
             return (width: min(size.width, dimensions.width), height: heights[index])
         }
         let widest = sizes.map(\.width).max() ?? 0
+        // Placed as the column draws them: a guide past its trailing edge stays
+        // on the line (`holdsChildrenInside: false`), and is reported from there.
         let run = horizontalGuideRun(
             children, sizes: sizes, alignment: alignment,
             fixedExtent: fillsWidth ? dimensions.width : nil, minimumExtent: widest,
-            context: context)
+            holdsChildrenInside: false, context: context)
         let alignmentWidth = fillsWidth ? dimensions.width : widest
         var frames: [(x: Int, y: Int, width: Int, height: Int)] = []
         frames.reserveCapacity(children.count)

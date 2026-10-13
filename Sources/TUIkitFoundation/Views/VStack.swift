@@ -506,6 +506,10 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // widest child (a child hanging left of the alignment line pushes every
         // other one right). Spacers have no visual box, so they place at the
         // leading edge and take no part in the run.
+        //
+        // A run wider than the column — a child that fills it, or the space the
+        // column was given — keeps every guide on one line, and what hangs past
+        // the column's trailing edge is drawn past it (decisions B-GUIDE-1).
         var guideRun: AlignmentGuideRun?
         if anyAlignmentGuide(in: children) {
             guideRun = horizontalGuideRun(
@@ -513,7 +517,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
                 sizes: buffers.map { (width: $0?.width ?? 0, height: $0?.height ?? 0) },
                 alignment: alignment,
                 fixedExtent: fillsWidth ? context.availableWidth : nil,
-                minimumExtent: maxChildWidth, context: context)
+                minimumExtent: maxChildWidth, holdsChildrenInside: false, context: context)
         }
 
         // === PASS 3: Assemble vertically ===
@@ -537,7 +541,9 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             } else if let buffer = buffers[index] {
                 let alignedBuffer =
                     guideRun.map {
-                        buffer.placedHorizontally(inWidth: $0.extent, offset: $0.offsets[index])
+                        buffer.placedHorizontallyDrawingOverhang(
+                            inWidth: min($0.extent, max(0, context.availableWidth)), offset: $0.offsets[index],
+                            isMeasuring: context.isMeasuring)
                     } ?? buffer.horizontallyAligned(toWidth: alignmentWidth, alignment: alignment)
                 result.appendVertically(alignedBuffer, spacing: spacingToApply)
             }
@@ -835,12 +841,15 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// common answer, which is why the question is asked before the two arrays
     /// that would carry it are built. See ``anyAlignmentGuide(in:)``.
     ///
-    /// - Parameter idealWidthLimit: The limit of an ideal-width ask, whose rows
-    ///   are counted by ``wholeContentWidth(of:limit:)``; `nil` for any other,
-    ///   whose rows count as drawn.
+    /// - Parameters:
+    ///   - idealWidthLimit: The limit of an ideal-width ask, whose rows are
+    ///     counted by ``wholeContentWidth(of:limit:)``; `nil` for any other,
+    ///     whose rows count as drawn.
+    ///   - holdsChildrenInside: See
+    ///     ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``.
     private func slotGuideRun(
         _ slots: [RowSlot], fixedExtent: Int?, minimumExtent: Int = 0,
-        idealWidthLimit: Int? = nil, context: RenderContext
+        idealWidthLimit: Int? = nil, holdsChildrenInside: Bool = true, context: RenderContext
     ) -> AlignmentGuideRun? {
         guard anyAlignmentGuide(in: slots.map(\.child)) else { return nil }
         return horizontalGuideRun(
@@ -855,6 +864,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             alignment: alignment,
             fixedExtent: fixedExtent,
             minimumExtent: minimumExtent,
+            holdsChildrenInside: holdsChildrenInside,
             context: context)
     }
 
@@ -972,8 +982,11 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // Explicit guides, resolved from the slot walk's measured sizes so an
         // off-window row still contributes its guide — the alignment column
         // must not shift as rows scroll in and out. Costs nothing (one stored
-        // `Bool` per row) unless a row actually set a guide.
-        let guideRun = slotGuideRun(slots, fixedExtent: width, context: context)
+        // `Bool` per row) unless a row actually set a guide. A run wider than
+        // the window keeps every guide on one line, and what hangs past its
+        // trailing edge is drawn past it (decisions B-GUIDE-1), where the
+        // scroll view around it cuts it, as an eager column's is.
+        let guideRun = slotGuideRun(slots, fixedExtent: width, holdsChildrenInside: false, context: context)
 
         // A ramp spanning this stack runs across the whole CONTENT, not the
         // viewport: a row keeps its colour as it scrolls, rather than the
@@ -1015,7 +1028,8 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             }
             let placed =
                 guideRun.map {
-                    rendered.placedHorizontally(inWidth: width, offset: $0.offsets[index])
+                    rendered.placedHorizontallyDrawingOverhang(
+                        inWidth: width, offset: $0.offsets[index], isMeasuring: context.isMeasuring)
                 } ?? rendered.horizontallyAligned(toWidth: width, alignment: alignment)
             slot.appendVertically(placed, spacing: 0)
             // Keep the slot exactly `slotHeight` tall so later rows stay at their

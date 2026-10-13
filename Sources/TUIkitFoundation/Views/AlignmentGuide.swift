@@ -454,8 +454,8 @@ struct AlignmentGuideRun {
     /// `max(resolved)`, or toward the region's own guide when the region is
     /// larger and its guide sits further along, as far as the whole run still
     /// fits. Offsets are then floored — the fraction only ever exists
-    /// *between* two guides — and clamped so no child is placed outside a
-    /// region too small for the run.
+    /// *between* two guides — and, unless the caller draws past the region,
+    /// clamped so no child is placed outside a region too small for the run.
     ///
     /// - Parameters:
     ///   - resolved: Each child's guide position within itself, used as given.
@@ -469,6 +469,12 @@ struct AlignmentGuideRun {
     ///     is reported — ``guideErrorReporter(in:)``: ``reportGuideError(_:)``
     ///     on a render pass, `nil` on a measure pass, which works out the
     ///     same placement and says nothing.
+    ///   - holdsChildrenInside: Whether a child the run would put past the
+    ///     far edge of a region too small for it is pulled back inside — `true`
+    ///     for a caller that cannot draw past the region. `false` keeps every
+    ///     guide on the line, and the caller draws the overhang past the edge
+    ///     (`FrameBuffer.placedHorizontallyDrawingOverhang(inWidth:offset:isMeasuring:)`;
+    ///     decisions B-GUIDE-1).
     ///   - regionGuide: The region's own guide, given its final extent.
     static func resolve(
         resolved: [Double],
@@ -476,6 +482,7 @@ struct AlignmentGuideRun {
         fixedExtent: Int?,
         minimumExtent: Int,
         report: ((String) -> Void)?,
+        holdsChildrenInside: Bool = true,
         regionGuide: (Int) -> Double
     ) -> Self {
         // Sanitised BEFORE `merged`, not at the conversions below: one
@@ -523,16 +530,18 @@ struct AlignmentGuideRun {
         // 2026-10-11: in `VStack(alignment: .trailing)`, a 3-wide view with
         // trailing guide 0 above a 6-wide one leaves the 6-wide one at 0, not
         // 3. A region smaller than the run has no room either, so the run
-        // keeps its leading edge on the region's, and the per-child clamp is
-        // the last resort.
+        // keeps its leading edge on the region's; past its far edge, either
+        // the caller draws the overhang there, every guide still on the line
+        // (SwiftUI's picture, decisions B-GUIDE-1), or the per-child clamp
+        // pulls back each child that would fall outside.
         let room = Double(max(0, extent - contentExtent))
         let anchor = min(max(merged, coordinate(regionGuide(extent))), merged + room)
 
         var offsets: [Int] = []
         offsets.reserveCapacity(positions.count)
         for (index, guide) in positions.enumerated() {
-            let raw = Int(clamping: (anchor - guide).rounded(.down))
-            offsets.append(min(max(0, raw), max(0, extent - sizes[index])))
+            let raw = max(0, Int(clamping: (anchor - guide).rounded(.down)))
+            offsets.append(holdsChildrenInside ? min(raw, max(0, extent - sizes[index])) : raw)
         }
         return Self(offsets: offsets, extent: extent)
     }
@@ -587,7 +596,7 @@ extension AlignmentGuideRun {
     /// Where ``reportGuideError(_:)`` sends a report instead of `SoftTrap`,
     /// while a task binds it: the render path's injectable reporter.
     ///
-    /// ``resolve(resolved:sizes:fixedExtent:minimumExtent:report:regionGuide:)``
+    /// ``resolve(resolved:sizes:fixedExtent:minimumExtent:report:holdsChildrenInside:regionGuide:)``
     /// takes its reporter as a parameter, as `SoftTrap`'s other callers do,
     /// but a stack reaches it from `renderToBuffer`, which a test cannot hand
     /// a closure through, and a debug build would stop at the assertion.
@@ -679,6 +688,10 @@ func anyAlignmentGuide(in children: [ChildView]) -> Bool {
 ///   - alignment: The container's alignment.
 ///   - fixedExtent: The container's width when it does not size to content.
 ///   - minimumExtent: A floor on a content-sized container's width.
+///   - holdsChildrenInside: Whether a child past the far edge of a region too
+///     small for the run is pulled back inside, or left on the line for the
+///     caller to draw past the edge — see
+///     ``AlignmentGuideRun/resolve(resolved:sizes:fixedExtent:minimumExtent:report:holdsChildrenInside:regionGuide:)``.
 ///   - context: The container's context, which a child that is itself a
 ///     container needs to work out a guide it holds further in.
 @MainActor
@@ -688,6 +701,7 @@ func horizontalGuideRun(
     alignment: HorizontalAlignment,
     fixedExtent: Int? = nil,
     minimumExtent: Int = 0,
+    holdsChildrenInside: Bool = true,
     context: RenderContext
 ) -> AlignmentGuideRun? {
     guard children.contains(where: \.providesAlignmentGuide) else { return nil }
@@ -708,7 +722,8 @@ func horizontalGuideRun(
     guard anyExplicit else { return nil }
     return .resolve(
         resolved: resolved, sizes: sizes.map(\.width),
-        fixedExtent: fixedExtent, minimumExtent: minimumExtent, report: guideErrorReporter(in: context)
+        fixedExtent: fixedExtent, minimumExtent: minimumExtent, report: guideErrorReporter(in: context),
+        holdsChildrenInside: holdsChildrenInside
     ) { extent in
         alignment[dimensions: ViewDimensions(width: extent, height: 0)]
     }
@@ -763,7 +778,7 @@ func verticalGuidePlacement<V: View>(
 /// The vertical placement of `children`, or `nil` when none of them gives an
 /// explicit value for `alignment`.
 ///
-/// The vertical twin of ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:context:)``.
+/// The vertical twin of ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``.
 @MainActor
 func verticalGuideRun(
     _ children: [ChildView],
@@ -771,6 +786,7 @@ func verticalGuideRun(
     alignment: VerticalAlignment,
     fixedExtent: Int? = nil,
     minimumExtent: Int = 0,
+    holdsChildrenInside: Bool = true,
     context: RenderContext
 ) -> AlignmentGuideRun? {
     guard children.contains(where: \.providesAlignmentGuide) else { return nil }
@@ -791,7 +807,8 @@ func verticalGuideRun(
     guard anyExplicit else { return nil }
     return .resolve(
         resolved: resolved, sizes: sizes.map(\.height),
-        fixedExtent: fixedExtent, minimumExtent: minimumExtent, report: guideErrorReporter(in: context)
+        fixedExtent: fixedExtent, minimumExtent: minimumExtent, report: guideErrorReporter(in: context),
+        holdsChildrenInside: holdsChildrenInside
     ) { extent in
         alignment[dimensions: ViewDimensions(width: 0, height: extent)]
     }

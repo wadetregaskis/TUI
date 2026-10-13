@@ -5,12 +5,13 @@
 (a guide may push a view 2^20 cells; a push past that, or a guide that is not
 a number, is a logic error) and
 [B-GUIDE-3](<Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>)
-("try to support" SwiftUI's unclipped placement). Where the work met a
-judgement call the rulings did not settle, the safe option shipped and is
-written up here, in the three parts the other lanes use: A needs a decision, B shipped the safe option (with the
-fuller version and its price), C declined with a parity-map reason. SwiftUI's
-behaviour is the one measured by lanes GUIDE and GUIDE2 (SwiftUI 6.5.4 on
-macOS 15.8.1; probes in
+("try to support" SwiftUI's unclipped placement), and B-GUIDE-1's fuller
+version on top of that. Where the work met a judgement call the rulings did
+not settle, the safe option shipped and is written up here, in the three
+parts the other lanes use: A needs a decision, B shipped the safe option
+(with the fuller version and its price), C declined with a parity-map reason.
+SwiftUI's behaviour is the one measured by lanes GUIDE and GUIDE2 (SwiftUI
+6.5.4 on macOS 15.8.1; probes in
 [`Tools/SwiftUIProbes/Alignment guides/`](<../../../Tools/SwiftUIProbes/Alignment guides/>)
 and the session notes of GUIDE2).*
 

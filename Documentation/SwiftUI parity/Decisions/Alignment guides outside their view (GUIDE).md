@@ -203,6 +203,22 @@ containers report would take 1.5 to 2.5 weeks (estimate) and risk every
 layout; drawn as an overflow layer, B-GUIDE-3's mechanism, it is about a day
 more than that mechanism.
 
+**Shipped (2026-10-12, lane GUIDE3): the overflow-layer version.** A run of
+explicit guides larger than a region that cannot grow — a column a flexible
+child fills, a lazy column's window, the space a `VStack`, `HStack` or
+`ZStack` was given — keeps every guide on one line (`AlignmentGuideRun.resolve`
+with `holdsChildrenInside: false`), and what hangs past the region's edge is
+drawn past it through B-GUIDE-3's mechanism
+(`FrameBuffer.placedHorizontallyDrawingOverhang`, its vertical twin, and the
+`ZStack`'s split): under the views after the stack, cut by a scroll view
+around it, off the screen where the edge is the screen's. Measured above,
+`GGG` now sits at 20 with its guide on the line, drawn past a 20-wide column
+(`PlacementOverflowTests`). What the stack reports is unchanged — the
+proposal, not SwiftUI's 403 — so a sibling after it is placed where it always
+was and draws over the overhang. A measure pass places nothing past the
+region, and a stack reporting a guide out of itself reports it from where it
+is drawn.
+
 ### B-GUIDE-2. One guide pushes a view at most 4,096 cells, whatever the container's extent — decided: 2^20, and a push past it reported
 
 *`AlignmentGuideRun.maximumPush`, `.alignmentGuide(_:computeValue:)`*

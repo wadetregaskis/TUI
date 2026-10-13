@@ -220,12 +220,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** a container reports at most what it was offered and draws into a
   buffer of that size. An oversized overlay is cut to its base's box. An image
   larger than its space is cut from its top-leading corner, where SwiftUI's
-  overflows centred. A run of guided views larger than its region keeps its
-  leading edge. What a placement puts outside its region is the exception
-  (since 2026-10-12): a single child whose guide places it outside its
-  `.frame`, `.overlay` or `.background` is drawn there, as SwiftUI's is, at its
-  place in the stacking order and clicked where it is drawn
-  (`PlacementOverflowTests`).
+  overflows centred. What a placement puts outside its region is the
+  exception (since 2026-10-12): a single child whose guide places it outside
+  its `.frame`, `.overlay` or `.background` is drawn there, as SwiftUI's is, at
+  its place in the stacking order and clicked where it is drawn, and a run of
+  guided views larger than a region that cannot grow keeps every guide on one
+  line and draws the overhang past the region's edge, where SwiftUI's stack
+  reports the larger size instead (`PlacementOverflowTests`).
 - **Why:** a terminal buffer has no outside. A view that reported one size and
   drew another would leave every container above it guessing, and measuring
   would stop agreeing with drawing.
