@@ -226,6 +226,9 @@ struct DynamicPropertyObjectPerValueTests {
             frame(ClosurePagerView(taps: taps), tui)
         }
         #expect(firstHub == nil)
+        // The storage is alive at the check, so the hub went by its sweep:
+        // `tui` would otherwise end at its last use, taking every hub with it.
+        withExtendedLifetime(tui) {}
     }
 
     /// The box an object made with a view value binds is its place's, kept
