@@ -228,6 +228,17 @@ never applied. SwiftUI gives such a field nothing. Updating it there, and not
 again where it is applied, would need to know, before `body` runs, whether the
 copy `body` applies came from that field, which nothing says.
 
+**The fuller version, and why there is none at a small price** (fix round 2,
+2026-10-12, asked to keep it if cheap): updating the stored copy before
+`body` and skipping the applied copy when it is "the same" needs an identity
+for a struct value, which Swift does not give. Comparing the applied copy's
+bytes with the stored one's after `update()` would skip a modifier `body`
+builds afresh with equal contents, which must be updated, and an `update()`
+that changes nothing leaves the two equal either way. Running `update()` after
+`body`, on the stored copy only when no applied copy matched, comes too late
+for `body` to read it. Each is a change to when properties are updated, for
+every modifier, to serve one SwiftUI does not serve: left for the owner.
+
 ### B-DYNVFIX-5. One value drawn at two places keeps a `@State` and an `@Environment` for each place; TUIkit's other wrappers still share one
 
 *`@State`, `@Environment`, `@FocusState`, `@Namespace`, `@FocusedValue`,
@@ -265,4 +276,8 @@ property's address, and a store of its own for a copy at a second place. Its
 price: each wrapper's binding moves from an instance method its public
 protocol (`RenderIdentityBindable`, `EnvironmentResolvable`) declares to one
 at an address, in TUIkitFoundation, where they live, and the case is rare:
-the same focus field or namespace drawn twice at once.
+the same focus field or namespace drawn twice at once. Telling a second place
+in one pass from a value kept and moved between frames, as `@State` does with
+its dropped boxes and `@Environment` with its displaced ones, needs the same
+bookkeeping again for each store (fix round 2, 2026-10-12, asked to fix it if
+cheap): not a small change, so left for the owner.
