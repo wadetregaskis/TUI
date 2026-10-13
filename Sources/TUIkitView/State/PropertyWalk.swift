@@ -109,17 +109,19 @@ enum UpdateMode {
 /// views, and one object has one set of stored properties. So what it holds —
 /// its `@State`, `@Environment`, ids, nested properties and their `update()`
 /// — belongs to one view, its claimant: in each render pass, the first view
-/// drawn whose walk reaches it, which takes the object's `@State` boxes with
-/// it from the view before
+/// drawn whose walk reaches it
 /// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``). Its `@State`
-/// is bound to the claimant's key, its `@Environment` is the claimant's, and
-/// every other holder leaves it as the claimant left it. Two views showing one
-/// object therefore read and write one state, as one object implies; an
-/// object made anew with each view value, held by that view alone, keeps its
-/// state from frame to frame. The object's own `update()` still runs before
-/// the body of every view that holds it (SwiftUI runs it, and installs nothing
-/// inside it: measured, DYNP `op.out` vii-f). Each object is reached at most
-/// once per walk, so objects that reach each other end the walk.
+/// boxes are the object's, kept under the claimant's key whichever view
+/// that is (``StatePlace/object(revivesDropped:)``), its `@Environment` is
+/// the claimant's, and every other holder leaves it as the claimant left it.
+/// Two views showing one object therefore read and write one state, as one
+/// object implies, and the state goes with the object when another view
+/// shows it; an object made anew with each view value, held by that view
+/// alone, keeps its state from frame to frame. The object's own `update()`
+/// still runs before the body of every view that holds it (SwiftUI runs it,
+/// and installs nothing inside it: measured, DYNP `op.out` vii-f). Each
+/// object is reached at most once per walk, so objects that reach each other
+/// end the walk.
 @MainActor
 struct PropertyWalk {
     /// The identity every key shares.
@@ -151,10 +153,12 @@ struct PropertyWalk {
     /// can be reached, while it walks it, by anything holding the object.
     var objectDepth = 0
 
-    /// Whether the walk is inside an object its view has just taken from
-    /// another claimant (``ObjectContentsClaim/takeOver``): each `@State`
-    /// there keeps its box, under this view's key.
-    private var adoptsObjectState = false
+    /// Inside the contents of an object this walk's view claims, the
+    /// ``caseDepth`` at which they were entered: a `@State` there is the
+    /// object's (``StatePlace/object(revivesDropped:)``), and one deeper, in
+    /// an enum's case inside the object, starts again at its default when the
+    /// case comes back. `nil` outside one.
+    private var objectCaseDepth: Int?
 
     /// How many times the walk has changed a value where it lies — given a
     /// `@State` a backing, or an `@Environment` a box, of its own, or run an
@@ -273,14 +277,15 @@ struct PropertyWalk {
                 isOwn
                 ? StateStorage.StateKey(identity: identity, propertyIndex: index)
                 : StateStorage.StateKey(identity: identity, propertyIndex: index, scope: scope)
+            let place = objectCaseDepth.map { StatePlace.object(revivesDropped: caseDepth == $0) } ?? .value
             if caseDepth > 0 {
                 // Binding finds the box under `key` or creates it, and the
-                // count of what is stored grows only when it creates one; a
-                // box adopted is new under `key` too.
+                // count of what is stored grows only when it creates one, or
+                // keeps an object's box there that was not.
                 let stored = storage.count
-                if state.bindState(at: address, to: storage, key: key, adopting: adoptsObjectState) { changes += 1 }
-                if storage.count != stored || adoptsObjectState { created.append(key) }
-            } else if state.bindState(at: address, to: storage, key: key, adopting: adoptsObjectState) {
+                if state.bindState(at: address, to: storage, key: key, place: place) { changes += 1 }
+                if storage.count != stored { created.append(key) }
+            } else if state.bindState(at: address, to: storage, key: key, place: place) {
                 changes += 1
             }
         }
@@ -462,10 +467,10 @@ struct PropertyWalk {
         let claim = storage?.claimObjectContents(object, for: identity, isMeasuring: isMeasuring) ?? .walk
         if claim != .skip {
             let inner = NestedScope.container(at: position, ofType: type(of: object), in: scope)
-            let adopting = adoptsObjectState
-            adoptsObjectState = claim == .takeOver
+            let outer = objectCaseDepth
+            objectCaseDepth = caseDepth
             applyContents(of: object, scope: inner, isOwn: false, updates: updates)
-            adoptsObjectState = adopting
+            objectCaseDepth = outer
         }
         if updates == .inPlace, let updater = plan.updater {
             updater.updateObject(object)

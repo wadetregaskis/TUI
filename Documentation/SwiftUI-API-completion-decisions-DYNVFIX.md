@@ -159,12 +159,19 @@ keeps its state from frame to frame. The object's own `update()` still runs
 before each holder's body, as SwiftUI runs it.
 
 A claim with no holder drawn lasts while the claimant's state does: it is
-dropped with it, at the end of a pass in which the claimant was neither drawn
-nor kept (by a memo hit, or a container that windows its rows), and the next
-holder to reach the object claims it then, its `@State` starting again at
-that holder's key. So a holder served from the memo in the pass its claimant
-leaves — it walks nothing, and cannot take the claim — finds the object's
-state started again when it is next drawn. The record holds each object
+dropped at the end of a pass in which the claimant was neither drawn nor kept
+(by a memo hit, or a container that windows its rows), and the next holder to
+reach the object claims it then. The object's state is not dropped with the
+claim. Each `@State` box the object holds is the object's: the storage keeps
+it under its claimant's key, and keeps it again, with its value, under the
+key of whichever view next claims the object, however the storage came to
+drop it — a holder served from the memo in the pass its claimant left (it
+walks nothing, and cannot take the claim), an `if`/`else` that swapped the
+holder and dropped the old branch's state, or another object's box given the
+claimant's key (a detail view moving from one row's object to the next). Only
+a `@State` inside an enum's case inside the object starts again at its
+default then, as a case's state does when its case comes back: a dropped box
+there cannot be told from one whose case left. The record holds each object
 weakly, so an object at a freed one's address is never taken for it.
 
 Two holders under different environments both read the claimant's. That is

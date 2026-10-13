@@ -317,14 +317,13 @@ extension StateStorage {
     /// `ViewThatFits` candidate). A view drawn takes them from a claimant
     /// not yet drawn in the pass — one that has left (a `ViewThatFits`
     /// switch, a row removed), or is only measured or served from the memo
-    /// this pass — and takes the object's `@State` with them, its boxes kept
-    /// under the new claimant's keys from then on
-    /// (``ObjectContentsClaim/takeOver``): one object, one state, whichever
-    /// view draws it. A claim lasts while its claimant's state does: it is
-    /// dropped at the end of a pass in which its claimant was neither drawn
-    /// nor retained (by a memo hit or a windowing container), with that
-    /// state, and the next holder to reach the object then claims it, its
-    /// state starting at that holder's key.
+    /// this pass. The object's `@State` is the object's: its claimant's walk
+    /// keeps each box the object holds under the claimant's key
+    /// (``keep(_:for:)``), so one object has one state whichever view draws
+    /// it. A claim lasts while its claimant's state does: it is dropped at
+    /// the end of a pass in which its claimant was neither drawn nor retained
+    /// (by a memo hit or a windowing container), and the next holder to
+    /// reach the object then claims it, the object's state with it.
     func claimObjectContents(
         _ object: AnyObject, for claimant: ViewIdentity, isMeasuring: Bool
     ) -> ObjectContentsClaim {
@@ -343,30 +342,39 @@ extension StateStorage {
             }
             if isMeasuring || claim.drawnPass == renderPass { return .skip }
             objectClaims[id]?.stamp(claimant, drawnIn: renderPass)
-            return .takeOver
+            return .walk
         }
         objectClaims[id] = ObjectClaim(object: object, claimant: claimant, drawnPass: isMeasuring ? nil : renderPass)
         return .walk
     }
 
-    /// Keeps `box`, a `@State` box inside an object whose claimant `key`'s
-    /// view has just become (``ObjectContentsClaim/takeOver``), under `key`,
-    /// and no longer under the key it was kept under: the object's state
-    /// goes with it. A box kept under `key` until now is dropped.
-    func adopt<Value>(_ box: StateBox<Value>, for key: StateKey) {
+    /// Keeps `box`, a `@State` box an object holds, under `key`, its
+    /// claimant's (``claimObjectContents(_:for:isMeasuring:)``): the object's
+    /// state is its own, and goes with it from view to view. A box the
+    /// storage dropped — its claimant's place pruned, its key given to
+    /// another object's box — is kept again, with its value: the object held
+    /// it all along. One kept under another key, the claimant's before, is
+    /// moved. Whatever was kept under `key` until now is dropped; another
+    /// object holding it keeps it again when its claimant next walks it.
+    func keep<Value>(_ box: StateBox<Value>, for key: StateKey) {
         box.identity = key.identity
         box.invalidationSink = renderCacheLink
         if values[key] === box { return }
-        // A claim changing hands is rare, so the box's old key is found by a
-        // scan rather than kept in every box. A loop, not `first(where:)`: a
-        // closure handed to the standard library from here is checked, in a
-        // release build, to run on the main actor.
-        var previous: StateKey?
-        for (kept, value) in values where value === box {
-            previous = kept
-            break
+        if box.wasDropped {
+            box.markKept()
+        } else {
+            // Kept under the key of the claimant before: a claim changes hands
+            // rarely, so the key is found by a scan rather than kept in every
+            // box. A loop, not `first(where:)`: a closure handed to the
+            // standard library from here is checked, in a release build, to
+            // run on the main actor.
+            var previous: StateKey?
+            for (kept, value) in values where value === box {
+                previous = kept
+                break
+            }
+            if let previous { values.removeValue(forKey: previous) }
         }
-        if let previous { values.removeValue(forKey: previous) }
         (values.updateValue(box, forKey: key) as? any DroppableBox)?.markDropped()
     }
 
@@ -790,6 +798,12 @@ extension StateBox: DroppableBox {
     func markDropped() {
         wasDropped = true
     }
+
+    /// Notes that the storage keeps the box again
+    /// (``StateStorage/keep(_:for:)``).
+    func markKept() {
+        wasDropped = false
+    }
 }
 
 /// An `@Environment`'s box found resolved for another place
@@ -828,10 +842,7 @@ private struct ObjectClaim {
 enum ObjectContentsClaim {
     /// Leaves it as its claimant left it: the walk's view is not the claimant.
     case skip
-    /// Walks it: the walk's view is its claimant.
+    /// Walks it: the walk's view is its claimant, under whose key each
+    /// `@State` box it holds is kept (``StateStorage/keep(_:for:)``).
     case walk
-    /// Walks it, the walk's view having just taken it from another claimant:
-    /// each `@State` in it keeps the box it holds, under this view's key
-    /// (``StateStorage/adopt(_:for:)``).
-    case takeOver
 }

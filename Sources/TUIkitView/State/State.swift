@@ -622,22 +622,35 @@ final class StateBacking<Value> {
 
 // MARK: - Render-time binding
 
+/// Where a `@State` the property walk binds lies, which decides whose its
+/// box is.
+enum StatePlace {
+    /// In the value of the view being drawn, or a value it holds: its box is
+    /// the place's, the one kept under the view's key.
+    case value
+    /// In the storage of an object the view claims
+    /// (``StateStorage/claimObjectContents(_:for:isMeasuring:)``): its box is
+    /// the object's, which every view holding the object shares. A backing
+    /// already bound keeps its box, kept under the claimant's key from then
+    /// on (``StateStorage/keep(_:for:)``) — and so does one whose box the
+    /// storage dropped, its claimant's place pruned, when `revivesDropped`:
+    /// the object held the box, and its value, all along. Not inside an
+    /// enum's case in the object, whose state starts again at its defaults
+    /// when the case comes back, as a view's does.
+    case object(revivesDropped: Bool)
+}
+
 /// A `@State` property that can be bound to storage at render time (mirrors
 /// ``EnvironmentResolvable``).
 protocol StateBindable {
-    /// Binds the property at `address`, a value of this type, to the storage
-    /// `storage` keeps under `key`, created with the property's default if
-    /// there is none.
-    ///
-    /// `adopting` says that the property lies in an object whose claimant
-    /// has just changed (``ObjectContentsClaim/takeOver``): a backing bound to
-    /// a box still kept keeps it, and the box is kept under `key` from now
-    /// on.
+    /// Binds the property at `address`, a value of this type, lying at
+    /// `place`, to the storage `storage` keeps under `key`, created with the
+    /// property's default if there is none.
     ///
     /// - Returns: Whether the property at `address` was changed — given a
     ///   backing of its own — rather than its shared backing bound.
     static func bindState(
-        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, adopting: Bool
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, place: StatePlace
     ) -> Bool
 }
 
@@ -647,14 +660,16 @@ extension State: StateBindable {
     /// backing is bound if it is not yet, or if the box it is bound to has
     /// been dropped; if it is bound to another box still kept, the value is
     /// being drawn at a second place, and this copy is given a backing of its
-    /// own, so the two places never share their state.
+    /// own, so the two places never share their state. In an object
+    /// (``StatePlace/object(revivesDropped:)``), a backing bound keeps its
+    /// box: one object has one state, whichever view claims it.
     static func bindState(
-        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, adopting: Bool
+        at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey, place: StatePlace
     ) -> Bool {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
-        if adopting, backing.isBound, !backing.box.wasDropped {
-            storage.adopt(backing.box, for: key)
+        if case .object(let revivesDropped) = place, backing.isBound, revivesDropped || !backing.box.wasDropped {
+            storage.keep(backing.box, for: key)
             return false
         }
         let box = storage.storage(for: key, default: backing.defaultValue)
