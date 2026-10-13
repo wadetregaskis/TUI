@@ -86,7 +86,9 @@ extension _ContainerViewCore {
             carriedOpacity += footerBuf.shiftedOpacityRegions(byX: 0, y: footerRow)
         }
         result.overlays = carriedOverlays
-        if footerSeparatorRows > 0, !bodyBuffer.overlaysHoldNoOverflow {
+        // The divider is drawn over what the body above it and the footer
+        // below it draw past their regions, as the bordered box's is.
+        if footerSeparatorRows > 0 {
             result.coverOverflow(underRects: [(x: 0, y: titleRows + bodyBuffer.lines.count, width: innerWidth, height: 1)])
         }
         result.hitTestRegions = carriedRegions

@@ -154,7 +154,9 @@ stack's next child does; a borderless box's divider and footer do the same,
 and its title, which comes before the body, does not. Past the rules the
 overflow is still drawn, under whatever comes after the box
 (`PlacementOverflowTests` "A border is drawn over…", "A footer, and its
-divider…").
+divider…"). The borderless box's divider cuts the footer's overflow as well
+as the body's, as the bordered box's does; it cut it only when the body
+carried overflow too ("A borderless box's divider…").
 
 The same holds wherever a border is drawn around content by hand
 (`FrameBuffer.coverOverflowUnderBorder`). A `.bordered` or `.grouped`

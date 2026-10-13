@@ -490,6 +490,22 @@ struct PlacementOverflowTests {
         #expect(staysInsideItsBorders(boxed), "\(boxed)")
     }
 
+    @Test("A borderless box's divider is drawn over what its footer draws past its region")
+    func borderlessDividerOverTheFootersOverflow() {
+        // A badge hung one row above the footer, onto the divider. The
+        // bordered box cut it there; the borderless one only when its body
+        // drew past its region too.
+        let screen = Screen()
+        let lines = screen.render(
+            ContainerView(title: "T", style: ContainerStyle(hasBorder: false)) {
+                Text("xxxx")
+            } footer: {
+                Text("FFFF").overlay(alignment: .topLeading) { Text("YY").alignmentGuide(.top) { _ in 1 } }
+            })
+        #expect(!lines.contains { $0.contains("Y") }, "\(lines)")
+        #expect(lines.contains { $0.contains("──") }, "\(lines)")
+    }
+
     @Test("A surface keeps its content's overflow inside its box")
     func surfaceKeepsItInside() {
         // A popover-like surface 6 wide at column 2 whose content carries a
