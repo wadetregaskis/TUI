@@ -23,6 +23,18 @@ import TUIkit
 @testable import TUIkitTestSupport
 @testable import TUIkitView
 
+/// A view that draws exactly `lines`, whatever it is offered: content that
+/// keeps its size, as an image with a natural size does.
+private struct Rigid: View, Renderable {
+    let lines: [String]
+
+    var body: Never { fatalError("Rigid renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        FrameBuffer(lines: lines)
+    }
+}
+
 @MainActor
 @Suite("Drawing past a placement's region")
 struct PlacementOverflowTests {
@@ -449,6 +461,32 @@ struct PlacementOverflowTests {
         // The run is four rows (g three below s); the row is two, so g is
         // drawn a row below it, in the padding, rather than cut away.
         #expect(Array(lines.prefix(4)) == [" s", "", "", "g"], "\(lines)")
+    }
+
+    @Test("A ragged column pushed below its row keeps its width, so the overhang is drawn and the columns after it stay")
+    func raggedRowOverhang() {
+        // The column's kept row ("ab") is narrower than the row past the edge
+        // ("abcdef"): cut to its kept rows, it narrowed, and the overhang fell
+        // back to the old cut.
+        let screen = Screen(width: 10, height: 6)
+        let lines = screen.render(
+            HStack(alignment: .top, spacing: 0) {
+                Text("g")
+                Rigid(lines: ["ab", "abcdef"]).alignmentGuide(.top) { _ in -1 }
+                Text("t")
+            }
+            .frame(height: 2)
+            .padding(.bottom, 4))
+        #expect(Array(lines.prefix(3)) == ["g      t", " ab", " abcdef"], "\(lines)")
+        // A measure pass cuts the overhang instead, and the column wholly past
+        // the row still stands as wide as it is: `s` stays in column 1.
+        let row = HStack(alignment: .top, spacing: 0) {
+            Text("g").alignmentGuide(.top) { _ in -3 }
+            Text("s")
+        }
+        var context = makeBareRenderContext(width: 10, height: 2)
+        context.isMeasuring = true
+        #expect(renderToBuffer(row, context: context).lines.first?.stripped == " s")
     }
 
     @Test("A ZStack whose guides need more room than it was given draws the overhang past it")

@@ -44,30 +44,33 @@ extension FrameBuffer {
     /// row's bottom edge drawn past it rather than left for a clamp to cut —
     /// and on a measure pass cut there, without first padding the column with
     /// as many blank rows as the push.
+    ///
+    /// The column keeps the width it declares either way. A row lays its
+    /// columns out by their widths, and a cut keeps only the width its kept
+    /// lines draw: a ragged column whose kept rows are its narrow ones, or a
+    /// column wholly past the edge, would narrow and pull the columns after
+    /// it left.
     func placedVerticallyDrawingOverhang(inHeight height: Int, topPadding: Int, isMeasuring: Bool) -> FrameBuffer {
         guard topPadding + self.height > height else {
             return placedVertically(inHeight: height, topPadding: topPadding)
         }
-        guard !isMeasuring else {
+        let placed: FrameBuffer
+        if isMeasuring {
             let height = max(0, height)
-            return clamped(toWidth: width, height: max(0, height - topPadding))
+            placed = clamped(toWidth: width, height: max(0, height - topPadding))
                 .placedVertically(inHeight: height, topPadding: min(topPadding, height))
+        } else {
+            let placement = splitPlacing(at: (x: 0, y: topPadding), inWidth: width, height: height)
+            var inside = placement.insideCarryingOverflow
+            if topPadding >= height {
+                // Wholly past the edge: its column still stands in the row, blank.
+                var blank = FrameBuffer(emptyWithWidth: width, height: 0)
+                blank.hitTestRegions = inside.hitTestRegions
+                blank.overlays = inside.overlays
+                inside = blank
+            }
+            placed = inside.placedVertically(inHeight: height, topPadding: placement.insideOrigin.y)
         }
-        let placement = splitPlacing(at: (x: 0, y: topPadding), inWidth: width, height: height)
-        var inside = placement.insideCarryingOverflow
-        if topPadding >= height {
-            // Wholly past the edge: its column still stands in the row, blank.
-            var blank = FrameBuffer(emptyWithWidth: width, height: 0)
-            blank.hitTestRegions = inside.hitTestRegions
-            blank.overlays = inside.overlays
-            inside = blank
-        }
-        let placed = inside.placedVertically(inHeight: height, topPadding: placement.insideOrigin.y)
-        // A row lays its columns out by their widths, and a cut keeps only the
-        // width its lines draw: a column that declares more than it draws (a
-        // footprint) would narrow and pull the columns after it left. Such a
-        // column keeps the cut it always had.
-        guard placed.width == width else { return placedVertically(inHeight: height, topPadding: topPadding) }
-        return placed
+        return placed.width == width ? placed : placed.replacingLines(placed.lines, width: width)
     }
 }
