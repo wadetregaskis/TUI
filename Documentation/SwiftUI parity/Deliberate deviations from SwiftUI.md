@@ -1264,8 +1264,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   above it, nor one moved from above to the end.
 - **TUIkit:** the top row keeps its line whichever way the content above it
   changed — inserted, removed, moved past it, or a measured row above resized
-  — as long as the row after it moved alike; a reorder that parts the two (a
-  sort) keeps the offset, as SwiftUI's does (`ScrollWindowHoldTests`).
+  — as long as the row before it or the row after it moved alike; a reorder
+  that parts it from both (a sort) keeps the offset, as SwiftUI's does
+  (`ScrollWindowHoldTests`). A top row whose id changed in the change that
+  inserted rows above it keeps its place, where SwiftUI holds nothing
+  (`beside.out` case 2, B-SCROLLANCHOR-6).
 - **Why:** the reader's place does not depend on which way the rows above
   changed, and one rule is simpler to rely on.
 - **Decided:** [B-SCROLLANCHOR-1](<Decisions/Scroll anchoring default (SCROLLANCHOR).md#b-scrollanchor-1-a-removal-above-and-a-row-above-growing-are-held-as-an-insertion-is>).

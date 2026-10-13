@@ -1283,11 +1283,13 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
 
     /// The row at the top of the viewport when the last frame was drawn — the
     /// first row at or below ``scrollOffset`` with an id, a section's header
-    /// having none — with its ordinal then and the id of the row after it,
-    /// which takes its place if it leaves the data. What
+    /// having none — with its ordinal then, the id of the row after it, which
+    /// takes its place if it leaves the data, and the id of the row before it,
+    /// which with it tells a change above from a sort. What
     /// ``ScrollWindowHold/topRow`` holds: see ``holdTopRow()``.
     var heldTopID: SelectionValue?
     var heldTopNextID: SelectionValue?
+    var heldTopPreviousID: SelectionValue?
     var heldTopOrdinal = 0
 
     /// The ``scrollOffset`` the held row was remembered at, and whether this

@@ -187,10 +187,13 @@ extension ItemListHandler {
     /// (``rememberTopRow()``), so it — and the rows on screen with it — keeps
     /// its line, as SwiftUI's lazy stacks keep theirs. When that row itself
     /// went, the row that followed it takes its place — unless it is still
-    /// right after that place, where only the row's id changed; when it is no longer
-    /// followed by that row, the rows were rearranged — a sort — and nothing is
-    /// held, as SwiftUI holds nothing through a reorder (measured), rather than
-    /// scrolling to wherever the top row went.
+    /// right after that place, or the row before it right before, where only
+    /// the row's id changed; when neither the row before it nor the row after
+    /// it is still beside it, the rows were rearranged — a sort — and nothing
+    /// is held, as SwiftUI holds nothing through a reorder (measured), rather
+    /// than scrolling to wherever the top row went. Asked of the row after it
+    /// alone, rows inserted above it with one just after it, or with the row
+    /// after it removed, were taken for a sort.
     ///
     /// A SHIFT, not a placement, so a scroll made since the last frame is kept,
     /// and one whose rows above the top did not change moves nothing — one id
@@ -235,7 +238,7 @@ extension ItemListHandler {
             !movedRowsSinceLastFrame, scrollOffset > 0 || scrollTopClipLines > 0
         else { return }
         let found = index(of: heldID)
-        if let found, let next = heldTopNextID, id(at: found + 1) != next { return }
+        if let found, !keepsANeighbour(at: found) { return }
         let now: Int
         if let found {
             now = found
@@ -245,7 +248,10 @@ extension ItemListHandler {
             // there, the row in it replaced where it stood (its id changed),
             // and nothing above it moved.
             guard let next = heldTopNextID, let nextNow = index(of: next) else { return }
-            now = nextNow - 1 == heldTopOrdinal ? heldTopOrdinal : nextNow
+            let placeKept =
+                nextNow - 1 == heldTopOrdinal
+                || (heldTopPreviousID != nil && id(at: nextNow - 2) == heldTopPreviousID)
+            now = placeKept ? nextNow - 1 : nextNow
         }
         let shift = now - heldTopOrdinal
         scrollOffset = max(0, scrollOffset + shift)
@@ -256,8 +262,8 @@ extension ItemListHandler {
 
     /// Remembers the row at the top of the viewport for the next frame's
     /// ``holdTopRow()``: the first row at or below ``scrollOffset`` that has an
-    /// id (a section's header has none), within a viewport of rows, and the id
-    /// of the row after it. Reads nothing when the offset is where it was
+    /// id (a section's header has none), within a viewport of rows, and the ids
+    /// of the rows before and after it. Reads nothing when the offset is where it was
     /// remembered and this frame found the row there — nor at the top, where
     /// nothing is held: a list at rest at its top, which most are most of the
     /// time, pays nothing at all (an id can cost a build of its row, see
@@ -272,16 +278,26 @@ extension ItemListHandler {
         heldTopOffset = scrollOffset
         heldTopID = nil
         heldTopNextID = nil
+        heldTopPreviousID = nil
         var ordinal = scrollOffset
         while ordinal < min(itemCount, scrollOffset + max(1, viewportHeight)) {
             if let id = id(at: ordinal) {
                 heldTopID = id
                 heldTopOrdinal = ordinal
                 heldTopNextID = self.id(at: ordinal + 1)
+                heldTopPreviousID = self.id(at: ordinal - 1)
                 return
             }
             ordinal += 1
         }
+    }
+
+    /// Whether the row before the held top row or the row after it is still
+    /// beside it, now that it is at `index` — or it had neither.
+    private func keepsANeighbour(at index: Int) -> Bool {
+        let previous = heldTopPreviousID.map { id(at: index - 1) == $0 }
+        let next = heldTopNextID.map { id(at: index + 1) == $0 }
+        return previous == true || next == true || (previous == nil && next == nil)
     }
 
     /// The last row a cursor can sit on. `selectableIndices` is empty for an

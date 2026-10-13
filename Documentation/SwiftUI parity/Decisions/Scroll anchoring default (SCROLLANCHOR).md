@@ -133,16 +133,43 @@ moving a row from below to the start — the origin stays every time (measured,
 `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`).
 
 **Shipped:** the top row is followed only when the row that followed it is
-still the same distance after it — rows inserted, removed or moved above move
-both alike; a sort parts them, and the offset stays, as SwiftUI's does. One
-key (or id) read more, on a frame whose top row moved; none otherwise. A
-designated row is followed through a reorder as before: it names a row. The
-cost of the rule: a change that both inserts above and rearranges the rows
-just below the top row is not held either.
+still the same distance after it, or the row before it the same distance before
+it (the row before since 2026-10-13) — rows inserted, removed or moved above
+move all three alike, and a row inserted or removed beside the top row in the
+same change moves one of its neighbours only; a sort parts it from both, and
+the offset stays, as SwiftUI's does. SwiftUI holds the row through the change
+beside it (measured, `Tools/SwiftUIProbes/Scroll anchoring/beside.out` cases
+3–5), which the row after it alone took for a sort. Up to two key (or id)
+reads more, on a frame whose top row moved; none otherwise. A designated row
+is followed through a reorder as before: it names a row. The cost of the
+rule: a change that inserts above and changes the rows on both sides of the
+top row is not held.
 
 **The fuller version** would hold only insertions of new rows, as SwiftUI
 does — which needs the previous frame's set of ids to tell a new row from a
 moved one: O(rows) a change. Not recommended (B-SCROLLANCHOR-1).
+
+### B-SCROLLANCHOR-6. A top row whose id changes as rows arrive above keeps its place
+
+*`ScrollWindowHold.topRow`*
+
+A top row whose id changes where it stands — `ForEach(names, id: \.self)`
+with the top name edited — keeps the offset in SwiftUI, and in TUIkit: the
+rows either side of it are still where they were, so nothing above moved
+(measured, `Tools/SwiftUIProbes/Scroll anchoring/beside.out` case 1). In the
+same change as five rows inserted above it, SwiftUI holds nothing — the row
+it would hold is gone — and the five new rows push the rows on screen down
+(case 2).
+
+**Shipped:** TUIkit holds the place: the rows before and after it are still
+either side of one place, so the row in it changed and the rows above it
+arrived, and the arrivals are held as any are — the renamed row stays at the
+top. It is the two changes held as each is held alone, the reader's place
+kept whichever way the rows above changed, as for a removal above (R14).
+
+**The fuller version** is SwiftUI's: hold nothing once the top row's id is
+gone with the rows above changed. Minutes — drop the row before from the
+gone-row rule — and the cost is the jump.
 
 ## C. Declined
 

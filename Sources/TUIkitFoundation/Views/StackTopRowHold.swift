@@ -56,6 +56,12 @@ struct HeldTopRow {
     /// row.
     var nextKey: String?
     var nextOffset: Int
+
+    /// The key of the row before it, and how many ordinals before it its last
+    /// view was. `nil` for the first row. With the row after it, what tells a
+    /// change above from a sort (``StackWindowState/heldTopRowPlace(in:)``).
+    var previousKey: String?
+    var previousOffset: Int
 }
 
 /// How a stack's path reads its rows for the hold: how many, each one's key
@@ -81,17 +87,22 @@ extension StackWindowState {
     /// neither it nor the row after it is in the data any more (the rows were
     /// replaced).
     ///
-    /// A remembered row found elsewhere, still followed by the row that
-    /// followed it, was moved by rows inserted or removed above it. One found
-    /// elsewhere WITHOUT that row after it was moved by the rows being
-    /// rearranged — a sort — and is not followed: SwiftUI holds no row through
-    /// a reorder (measured, `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`),
-    /// and following one would scroll a sorted list to wherever its top row
-    /// went.
+    /// A remembered row found elsewhere with the row before it or the row
+    /// after it still beside it was moved by rows inserted or removed above
+    /// it — and maybe a row inserted or removed beside it in the same change,
+    /// which moves one of the two only. One found elsewhere WITHOUT either was
+    /// moved by the rows being rearranged — a sort — and is not followed:
+    /// SwiftUI holds no row through a reorder (measured,
+    /// `Tools/SwiftUIProbes/Scroll anchoring/reorder.out`), and following one
+    /// would scroll a sorted list to wherever its top row went. Asked of the
+    /// row after it alone, a change that inserted rows above it and one just
+    /// after it, or removed the row after it, was taken for a sort and let the
+    /// rows move.
     ///
     /// One gone is replaced by the row after it, put where it was — unless
-    /// that row is still as far after the place the remembered one had: then
-    /// the place is still there and only the row in it changed, its id
+    /// that row is still as far after the place the remembered one had, or
+    /// the row before it as far before: then the place is still there and
+    /// only the row in it changed, its id
     /// changed where it stands (`ForEach(names, id: \.self)` with the name at
     /// the top edited), and nothing above moved it: nothing moves, as in
     /// SwiftUI (measured, `Tools/SwiftUIProbes/Scroll anchoring/beside.out`
@@ -101,16 +112,27 @@ extension StackWindowState {
         guard let held = heldTopRow else { return nil }
         if keys[held.ordinal] == held.key { return (held.ordinal, true) }
         if let ordinal = keys.ordinal(of: held.key, runIndex: held.runIndex, near: held.ordinal) {
-            guard held.nextKey == nil || keys[ordinal + held.nextOffset] == held.nextKey else { return nil }
+            guard keepsANeighbour(held, at: ordinal, in: keys) else { return nil }
             return (ordinal, false)
         }
         if let next = held.nextKey,
             let ordinal = keys.ordinal(of: next, runIndex: 0, near: held.ordinal + held.nextOffset)
         {
             let place = ordinal - held.nextOffset
-            return (place == held.ordinal ? place : ordinal, false)
+            let placeKept =
+                place == held.ordinal
+                || (held.previousKey != nil && keys[place - held.previousOffset] == held.previousKey)
+            return (placeKept ? place : ordinal, false)
         }
         return nil
+    }
+
+    /// Whether the row before `held` or the row after it is still beside it,
+    /// now that it is at `ordinal` — or it had neither (the only row).
+    private func keepsANeighbour(_ held: HeldTopRow, at ordinal: Int, in keys: RowKeys) -> Bool {
+        let previous = held.previousKey.map { keys[ordinal - held.previousOffset] == $0 }
+        let next = held.nextKey.map { keys[ordinal + held.nextOffset] == $0 }
+        return previous == true || next == true || (previous == nil && next == nil)
     }
 
     /// How far the content above moved the row remembered at the top since the
@@ -164,12 +186,21 @@ extension StackWindowState {
             return
         }
         var first = ordinal
-        while keys[first - 1] == rowKey { first -= 1 }
+        var previousKey = keys[first - 1]
+        while previousKey == rowKey {
+            first -= 1
+            previousKey = keys[first - 1]
+        }
         var next = ordinal + 1
-        while keys[next] == rowKey { next += 1 }
+        var nextKey = keys[next]
+        while nextKey == rowKey {
+            next += 1
+            nextKey = keys[next]
+        }
         heldTopRow = HeldTopRow(
             key: rowKey, runIndex: ordinal - first, ordinal: ordinal, y: y, top: top,
-            nextKey: keys[next], nextOffset: next - ordinal)
+            nextKey: nextKey, nextOffset: next - ordinal,
+            previousKey: previousKey, previousOffset: ordinal - first + 1)
     }
 }
 
