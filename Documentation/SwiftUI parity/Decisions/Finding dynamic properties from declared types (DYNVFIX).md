@@ -238,11 +238,17 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 
   Its other properties that take from the environment — a `@FocusState`'s
   focus manager, `@FocusedValue`, `@FocusedBinding` — keep what they take in
-  one store every copy shares, which nothing puts back, so only the primary's
-  walks, or any walk before the object has a primary, hand it them: the object
-  reads its primary's, never a later holder's — a modal's backdrop holding the
-  page's object would otherwise hand its `@FocusState` the backdrop's focus
-  manager, which focuses nothing.
+  one store every copy shares, which nothing puts back. No walk drawn as a
+  backdrop hands them in — the page beneath a modal, a covered navigation
+  root, a `.dimmed()` view — whose focus manager focuses nothing and goes
+  with the frame, so a focus set from a closure through it would go nowhere.
+  Of the rest, the primary's walks, or any walk before the object has a
+  primary, hand them in: the object reads its primary's, never a later
+  holder's. While the primary is drawn as a backdrop — a page holding the
+  object behind a sheet that holds it too, the page drawn first, at its own
+  identity — another holder's walks hand them in (review2 of lane DYNVCLAIM,
+  748e897b2); one drawn before the primary in a pass goes by the primary's
+  last walk.
 
   Why it is sound: a walk, its body and its content run synchronously on the
   main actor, and the only walks that can run in between are those of holders

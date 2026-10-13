@@ -37,15 +37,50 @@ extension PropertyWalk {
         /// What the walk notes of what it hands the object's `@Environment`s
         /// (``StateStorage/restoreEnvironments(to:)``).
         let environmentNotes: EnvironmentNotes
-        /// Whether the walk hands the environment to the object's properties
-        /// that keep what they take from it in one store every copy shares —
-        /// a `@FocusState`'s focus manager, `@FocusedValue`, `@FocusedBinding`
-        /// — which nothing puts back: only a walk by the object's primary
-        /// holder, or any walk before the object has one, so the object reads
-        /// its primary's, never a later holder's, a backdrop's among them.
-        let resolvesSharedStores: Bool
+        /// Which walks hand the environment to the object's properties that
+        /// keep what they take from it in one store every copy shares — a
+        /// `@FocusState`'s focus manager, `@FocusedValue`, `@FocusedBinding` —
+        /// which nothing puts back (``PropertyWalk/resolvesSharedStores(of:)``).
+        let sharedStores: SharedStores
         /// What its `@State` has said of it so far in this walk.
         var found = ObjectKind.unknown
+    }
+
+    /// Which walks of an object hand the environment to its properties that
+    /// keep what they take in one store every copy shares
+    /// (``ObjectWalk/sharedStores``). None drawn as a backdrop does — the page
+    /// beneath a modal, a covered navigation root, a `.dimmed()` view — whose
+    /// focus manager focuses nothing and goes with the frame: a focus set from
+    /// a closure through it goes nowhere. Of the rest, the object's primary
+    /// holder's, so the object reads its primary's, not a later holder's; and
+    /// while the primary is drawn as a backdrop, any other holder's.
+    enum SharedStores: UInt8 {
+        /// Any walk not drawn as a backdrop: before the object has a primary,
+        /// a measure by the primary, a walk without storage.
+        case unlessBackdrop
+        /// A render walk by the primary, which also notes on the hub whether it
+        /// is drawn as a backdrop (``ObjectHub/primaryDrawsBackdrop``).
+        case primary
+        /// Another holder's walk: only while the primary's last render walk
+        /// was drawn as a backdrop, and this one is not.
+        case whilePrimaryDrawsBackdrop
+    }
+
+    /// Whether this walk hands `object`'s properties that keep what they take
+    /// from the environment in a store every copy shares the environment
+    /// (``SharedStores``). Asked only at such a property: an object holding
+    /// none reads nothing more.
+    func resolvesSharedStores(of object: ObjectWalk) -> Bool {
+        let drawsBackdrop = environment.drawsBackdrop
+        switch object.sharedStores {
+        case .unlessBackdrop:
+            return !drawsBackdrop
+        case .primary:
+            object.hub?.primaryDrawsBackdrop = drawsBackdrop
+            return !drawsBackdrop
+        case .whilePrimaryDrawsBackdrop:
+            return !drawsBackdrop && object.hub?.primaryDrawsBackdrop == true
+        }
     }
 
     /// What a walk of an object notes of what it hands the object's
@@ -190,7 +225,7 @@ extension PropertyWalk {
         guard contents.mayInstall, let storage else {
             return ObjectWalk(
                 object: object, hub: nil, token: nil, idPath: nil, placeScope: placeScope, adoptsPlace: false,
-                environmentNotes: .none, resolvesSharedStores: true)
+                environmentNotes: .none, sharedStores: .unlessBackdrop)
         }
         // Whether the object was made in this pass, with a value of the view
         // holding it, as its first `@State` says before any of its ids is
@@ -207,7 +242,8 @@ extension PropertyWalk {
             return ObjectWalk(
                 object: object, hub: hub, token: token, idPath: hub.idPath, placeScope: placeScope,
                 adoptsPlace: previous == .perValue, predecessor: predecessor,
-                environmentNotes: isPrimary ? .atRest : .putBack, resolvesSharedStores: isPrimary)
+                environmentNotes: isPrimary ? .atRest : .putBack,
+                sharedStores: isPrimary ? .primary : .whilePrimaryDrawsBackdrop)
         }
         // A measure registers nothing, and puts back what it hands. Before
         // any render walk has made the object a hub, it binds the ids the
@@ -217,15 +253,16 @@ extension PropertyWalk {
         if let hub = storage.objectHub(of: object) {
             // What a render walk would do: the outcome is the same either way.
             if hub.takesChainIDs, kind() == .longLived { storage.giveOwnIDs(to: hub) }
+            let primaryOrNone = hub.primary.map { $0 == identity } ?? true
             return ObjectWalk(
                 object: object, hub: hub, token: nil, idPath: hub.idPath, placeScope: placeScope,
                 adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack,
-                resolvesSharedStores: hub.primary.map { $0 == identity } ?? true)
+                sharedStores: primaryOrNone ? .unlessBackdrop : .whilePrimaryDrawsBackdrop)
         }
         let chained = previous.flatMap { $0.lastObject != .longLived && kind() != .longLived ? $0.hub.idPath : nil }
         return ObjectWalk(
             object: object, hub: nil, token: nil, idPath: chained, placeScope: placeScope,
-            adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack, resolvesSharedStores: true)
+            adoptsPlace: previous?.lastObject == .perValue, environmentNotes: .putBack, sharedStores: .unlessBackdrop)
     }
 
     /// What `object` holds, walked in place, in `scope`: its storage is
@@ -254,8 +291,9 @@ extension PropertyWalk {
     /// — an event's closure, a task, between passes — its primary's, as of
     /// the primary's last render walk. Its other properties that take from
     /// the environment keep it in a store every copy shares, which nothing
-    /// puts back: only the primary's walks hand it them
-    /// (``ObjectWalk/resolvesSharedStores``).
+    /// puts back: the primary's walks hand it them, or another holder's while
+    /// the primary is drawn as a backdrop, and none drawn as one does
+    /// (``ObjectWalk/sharedStores``).
     mutating func applyObjectLeaf(
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, in object: ObjectWalk
     ) {
@@ -290,7 +328,7 @@ extension PropertyWalk {
                 }
             }
             box.environment = environment
-        } else if let resolvable = leaf.environment, object.resolvesSharedStores {
+        } else if let resolvable = leaf.environment, resolvesSharedStores(of: object) {
             resolvable.resolveEnvironment(at: address, environment)
         }
     }

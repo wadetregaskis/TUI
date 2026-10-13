@@ -51,6 +51,14 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// (``StateStorage/giveOwnIDs(to:)``). Main actor only.
     private(set) var takesChainIDs: Bool
 
+    /// Whether ``primary``'s last render walk to reach a property of the
+    /// object that keeps what it takes from the environment in a store every
+    /// copy shares — a `@FocusState`'s focus manager, `@FocusedValue` — drew
+    /// it as a backdrop, the page beneath a modal: another holder's live walk
+    /// hands them its environment then (``PropertyWalk/ObjectWalk/sharedStores``).
+    /// Main actor only.
+    var primaryDrawsBackdrop = false
+
     /// The view the object reads its environment as at rest: the first
     /// holder drawn on a hub with none, for as long as it holds the object.
     /// Its render walk leaves the object its environment, where every other

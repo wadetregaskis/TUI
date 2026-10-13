@@ -64,7 +64,10 @@ extension StateStorage {
             }
             objectHubs[ObjectIdentifier(object)] = hub
         }
-        if hub.primary == nil { hub.primary = holder }
+        if hub.primary == nil {
+            hub.primary = holder
+            hub.primaryDrawsBackdrop = false
+        }
         if let token {
             guard token.hub !== hub else { return (hub, token, token.lastObject, nil) }
             let predecessor = token.lastObject == .perValue ? token.hub : nil

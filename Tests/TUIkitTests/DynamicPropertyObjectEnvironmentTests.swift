@@ -200,6 +200,22 @@ private struct TwoFocusManagers: View {
     }
 }
 
+/// A page holding a `FocusHolder` under the live focus manager, presenting a
+/// sheet that holds it too: the page is drawn first, as the sheet's backdrop,
+/// under that backdrop's focus manager, which focuses nothing.
+private struct FocusHolderSheet: View {
+    let holder: Passed<FocusHolder>
+    let live: FocusManager
+
+    var body: some View {
+        FocusHolderView(name: "page", holder: holder.object)
+            .sheet(isPresented: .constant(true)) {
+                FocusHolderView(name: "sheet", holder: holder.object)
+            }
+            .environment(\.focusManager, live)
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty objects' environment")
 struct DynamicPropertyObjectEnvironmentTests {
@@ -380,6 +396,25 @@ struct DynamicPropertyObjectEnvironmentTests {
         #expect(frame(view(), tui) == ["live", "backdrop"])
         #expect(holder.object.manager === live)
         #expect(frame(view(), tui) == ["live", "backdrop"])
+        #expect(holder.object.manager === live)
+    }
+
+    /// A modal draws the page beneath it first, as a backdrop under a focus
+    /// manager of its own that focuses nothing and dies with the frame, at
+    /// the page's identity: the page is the object's primary holder. Taken
+    /// from the primary alone, the object's `@FocusState` took the backdrop's
+    /// manager while the sheet was up, and a focus set from the sheet's
+    /// action went nowhere (review2 of lane DYNVCLAIM, 748e897b2). No walk
+    /// under a backdrop hands them in, and a live holder does while the
+    /// primary draws as one.
+    @Test("A class property's @FocusState takes a live holder's focus manager while its first holder is a sheet's backdrop")
+    func objectFocusStateTakesALiveManagerWhileItsPrimaryIsABackdrop() {
+        let tui = TUIContext()
+        let live = FocusManager()
+        let holder = Passed(object: FocusHolder())
+        _ = frame(FocusHolderSheet(holder: holder, live: live), tui, height: 10)
+        #expect(holder.object.manager === live)
+        _ = frame(FocusHolderSheet(holder: holder, live: live), tui, height: 10)
         #expect(holder.object.manager === live)
     }
 }
