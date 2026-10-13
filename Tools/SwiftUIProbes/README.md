@@ -305,3 +305,19 @@ messages cite that path), and what cites it.
 - **Was:** written for lane BUGS13's review fixes (`BUGS13/probe/`).
 - **Cited by:** `Sources/TUIkitForms/Styles/LabeledContentStyle.swift`; `Tests/TUIkitControlTests/LabeledContentTests.swift`,
   `Tests/TUIkitControlTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+### Stack spacing per pair
+
+- **Asks:** what `ViewSpacing`'s own values answer `distance(to:along:)` with — `ViewSpacing()` and `.zero` against
+  each other, and `.zero` merged with `ViewSpacing()` — and what `LayoutSubview.spacing` holds for boxes, texts,
+  colours, buttons, a spacer, a padded box, a nested `HStack`, and layouts that state `.zero`, `ViewSpacing()` or
+  keep `Layout`'s default (`distances.swift`); and what a stack's `spacing: nil` puts between two views that state
+  their own preferences (`spacing.swift`): layouts that ask for no space on all, the leading or the trailing edge,
+  beside each other and beside plain boxes; through `EmptyView`, a `Spacer`, `.padding(0)`, `.padding(4)`, `.id`,
+  `.foregroundStyle`, `.frame`, `.border`, `.background`, `.offset`, a view of the app's own, `AnyLayout`,
+  `ForEach`, `Group`, an `if` and a nested `HStack`; in `HStack`, `HStackLayout`, `LazyHStack` and `VStack`; and
+  with `spacing:` stated. Built alone, each with `-parse-as-library`.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-13.
+- **Was:** `BITEMS1/probe/`.
+- **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`;
+  `Tests/TUIkitTests/ViewSpacingTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
+  Layout row); `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.

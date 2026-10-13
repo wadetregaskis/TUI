@@ -1,0 +1,17 @@
+== values: init|init h8 v8 init|zero h0 zero|init h0 zero|zero h0
+== values: zero.union(init)|init h0 init|zero.union(init) h0
+== box|box: h8 v8
+== text|text: h8 v0
+== box|text: h8 v5
+== color|color: h8 v8
+== button|button: h8 v8
+== zero|box: h0 v0
+== init|box: h8 v8
+== init|init: h8 v8
+== merging(box)|box: h8 v8
+== merging(text)|text: h8 v0
+== merging()|box: h0 v0
+== hstack(box)|box: h8 v8
+== padding(box)|box: h8 v8
+== spacer|box: h0 v0
+== done

@@ -240,6 +240,18 @@ public struct LayoutSubviews: @MainActor RandomAccessCollection {
         return TUIkitFoundation.mergedExplicitGuide(query, of: placedChildren, frames: frames, context: context)
     }
 
+    /// Every subview's spacing preference merged on every edge, or
+    /// ``ViewSpacing/zero`` when there are none — the default
+    /// ``Layout/spacing(subviews:cache:)``, the grid's included.
+    ///
+    /// Merged from the default rather than from `.zero`: a stated edge
+    /// outweighs a default one (``ViewSpacing``), so starting from `.zero` would
+    /// answer `.zero` for every layout.
+    package var mergedSpacing: ViewSpacing {
+        guard !isEmpty else { return .zero }
+        return reduce(into: ViewSpacing()) { $0.formUnion($1.spacing) }
+    }
+
     /// The layout direction inherited by the container view — always
     /// left-to-right, until TUIkit supports right-to-left (see
     /// ``EnvironmentValues/layoutDirection``).

@@ -1,0 +1,43 @@
+== hstack box|box: a@0 +8 b@28
+== hstack text|text: a@0 +8 b@16
+== hstack none|none: a@0 +8 b@28
+== hstack all|all: a@0 +0 b@20
+== hstack all|box: a@0 +0 b@20
+== hstack box|all: a@0 +0 b@20
+== hstack trailing|leading: a@0 +0 b@20
+== hstack leading|trailing: a@0 +8 b@28
+== hstack trailing|trailing: a@0 +0 b@20
+== hstack all|all|all: a@0 +0 b@20 +0 c@40
+== hstack all|box|all: a@0 +0 b@20 +0 c@40
+== hstack all|empty|all: a@0 +0 b@20
+== hstack all|spacer|all: a@0 +60 b@80
+== hstack(spacing: 5) all|all: a@0 +5 b@25
+== hstack(spacing: 0) box|box: a@0 +0 b@20
+== hstack all.padding(0)|all: a@0 +0 b@20
+== hstack all.id|all: a@0 +0 b@20
+== hstack all.foregroundStyle|all: a@0 +0 b@20
+== hstack all.frame|all: a@0 +0 b@20
+== hstack all.padding(4)|box: a@4 +12 b@36
+== hstack all.border|box: a@0 +0 b@20
+== hstack all.background|box: a@0 +0 b@20
+== hstack all.offset|box: a@3 +-3 b@20
+== hstack merging(box)|box: a@0 +8 b@28
+== hstack merging(box,all)|box: a@0 +0 x@20 +0 b@40
+== hstack box|all|box: a@0 +0 b@20 +0 c@40
+== hstack box|leading|box: a@0 +0 b@20 +8 c@48
+== hstack box|trailing|box: a@0 +8 b@28 +0 c@48
+== hstacklayout box|all|box: a@0 +0 b@20 +0 c@40
+== lazyhstack box|all|box: a@0 +0 b@20 +0 c@40
+== hstack(spacing: 5) box|all|box: a@0 +5 b@25 +5 c@50
+== hstack wrapped|wrapped: a@0 +0 b@20
+== hstack anylayout all|all: a@0 +0 b@20
+== hstack foreach all x3: r0@0 +0 r1@20 +0 r2@40
+== hstack group all|all: a@0 +0 b@20
+== hstack if all|all: a@0 +0 b@20
+== hstacklayout all|all: a@0 +0 b@20
+== lazyhstack all|all: a@0 +0 b@20
+== hstack hstack(all|all)|box: a@0 +0 b@20 +0 c@40
+== hstack hstack(all)|all: a@0 +0 b@20
+== vstack box|box: a@0 +8 b@18
+== vstack all|all: a@0 +0 b@10
+== vstack all|box: a@0 +0 b@10

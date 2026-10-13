@@ -91,21 +91,50 @@ struct ViewSpacingTests {
         #expect(ViewSpacing().distance(to: ViewSpacing(), along: .horizontal) == 1)
         #expect(ViewSpacing().distance(to: ViewSpacing(), along: .vertical) == 0)
         #expect(ViewSpacing.zero.distance(to: .zero, along: .horizontal) == 0)
-        // The larger of the two facing edges wins.
-        #expect(ViewSpacing.zero.distance(to: ViewSpacing(), along: .horizontal) == 1)
-        #expect(ViewSpacing().distance(to: .zero, along: .horizontal) == 1)
     }
 
-    @Test("A union takes each edge's larger preference, on the edges named")
+    /// SwiftUI's arithmetic, measured on macOS 15
+    /// (`Tools/SwiftUIProbes/Stack spacing per pair/distances.out`, the
+    /// `values` rows): `.zero` against `ViewSpacing()` is 0 apart either way
+    /// round, where `ViewSpacing()` against itself is 8 points.
+    @Test("A stated edge outweighs a default one it faces")
+    func statedOutweighsDefault() {
+        #expect(ViewSpacing.zero.distance(to: ViewSpacing(), along: .horizontal) == 0)
+        #expect(ViewSpacing().distance(to: .zero, along: .horizontal) == 0)
+        #expect(ViewSpacing().distance(to: .zero, along: .vertical) == 0)
+    }
+
+    /// Measured likewise: `.zero` merged with `ViewSpacing()` is still 0 from
+    /// `ViewSpacing()`, either way round.
+    @Test("A union keeps a stated edge over a default one, on the edges named")
     func unions() {
-        #expect(ViewSpacing.zero.union(ViewSpacing()) == ViewSpacing())
-        let leadingOnly = ViewSpacing.zero.union(ViewSpacing(), edges: .leading)
-        #expect(leadingOnly.distance(to: .zero, along: .horizontal) == 0)
-        #expect(ViewSpacing.zero.distance(to: leadingOnly, along: .horizontal) == 1)
-        var formed = ViewSpacing.zero
-        formed.formUnion(ViewSpacing(), edges: .trailing)
-        #expect(formed != leadingOnly)
-        #expect(formed.distance(to: .zero, along: .horizontal) == 1)
+        #expect(ViewSpacing.zero.union(ViewSpacing()) == .zero)
+        #expect(ViewSpacing().union(.zero) == .zero)
+        #expect(ViewSpacing().union(ViewSpacing()) == ViewSpacing())
+        let leadingTight = ViewSpacing().union(.zero, edges: .leading)
+        #expect(ViewSpacing().distance(to: leadingTight, along: .horizontal) == 0, "its leading edge faces")
+        #expect(leadingTight.distance(to: ViewSpacing(), along: .horizontal) == 1, "its trailing edge is the default")
+        var trailingTight = ViewSpacing()
+        trailingTight.formUnion(.zero, edges: .trailing)
+        #expect(trailingTight != leadingTight)
+        #expect(trailingTight.distance(to: ViewSpacing(), along: .horizontal) == 0)
+        #expect(trailingTight.distance(to: leadingTight, along: .horizontal) == 0)
+        #expect(leadingTight.distance(to: trailingTight, along: .horizontal) == 1)
+    }
+
+    @Test("A layout's default preference is its subviews', merged, and none for a layout with none")
+    func defaultLayoutPreference() {
+        let seen = Seen()
+        let reader = ReadsSpacing(seen: seen)
+        _ = renderToBuffer(
+            reader {
+                SpacedRow { Text("a"); Text("b") }
+                SpacedRow { Text("c"); Tight { Text("d") } }
+                SpacedRow {}
+                GridLayout { Text("e"); Tight { Text("f") } }
+            },
+            context: makeRenderContext(width: 20, height: 4))
+        #expect(seen.spacings == [ViewSpacing(), .zero, .zero, .zero])
     }
 
     @Test("A subview states the default, and a layout among them its own preference")
@@ -126,18 +155,21 @@ struct ViewSpacingTests {
         #expect(seen.spacings == [ViewSpacing(), .zero, ViewSpacing(), .zero])
     }
 
-    @Test("A layout spacing by preference keeps a column beside a view and none between two that want none")
+    /// SwiftUI's: two boxes are 8 points apart, a box and a layout that
+    /// states `.zero` are not apart at all (`distances.out`, `zero|box`).
+    @Test("A layout spacing by preference keeps a column between two views and none beside one that wants none")
     func spacingByPreference() {
         let lines = renderToBuffer(
             SpacedRow {
                 Text("a")
                 Text("b")
                 Tight { Text("c") }
-                Tight { Text("d") }
+                Text("d")
+                Text("e")
             },
             context: makeRenderContext(width: 20, height: 2)
         ).lines.map(\.stripped)
-        #expect(lines == ["a b cd"])
+        #expect(lines == ["a bcd e"])
     }
 
     @Test("A stack's spacing defaults to nil, which is what views prefer")

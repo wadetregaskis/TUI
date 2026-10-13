@@ -131,11 +131,7 @@ public struct GridLayout: Layout, Sendable, Equatable {
 
     /// Every subview's preference, merged on every edge — the default.
     public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
-        var spacing = ViewSpacing.zero
-        for subview in subviews {
-            spacing.formUnion(subview.spacing)
-        }
-        return spacing
+        subviews.mergedSpacing
     }
 
     /// The subviews' explicit values for a custom guide, merged — the

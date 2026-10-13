@@ -27,16 +27,36 @@
 /// and **no row** above or below it, since a line is already separated from the
 /// next by being a different line. ``init()`` is that; ``zero`` is no spacing at
 /// all.
+///
+/// ## A stated edge outweighs a default one
+///
+/// As in SwiftUI, an edge of ``init()`` is the DEFAULT, not a number: it gives
+/// way to any edge that states a value, which in TUIkit is ``zero``'s. So a
+/// view that asks for no space beside it gets none from its neighbour either —
+/// two views are apart by the default distance only when both facing edges are
+/// the default — and a union with ``zero`` is ``zero`` on the edges merged.
+/// Measured on SwiftUI (macOS 15): `ViewSpacing.zero` against `ViewSpacing()`
+/// is 0 apart either way round, and `.zero` merged with `ViewSpacing()` is
+/// still 0 from it (`Tools/SwiftUIProbes/Stack spacing per pair/distances.out`).
 public struct ViewSpacing: Equatable, Sendable {
+    // Each edge is a stated distance or ``unstated``, the default. The
+    // sentinel is the smallest Int so that a merge is `max` and a stated edge
+    // always outweighs a default one; `Int` rather than `Int?` keeps the
+    // struct four words with no padding, should a view ever hold one in a
+    // value a memo hashes.
     private var top: Int
     private var leading: Int
     private var bottom: Int
     private var trailing: Int
 
-    /// A view's default spacing: one column on the leading and trailing edges,
-    /// no rows on the top and bottom.
+    /// An edge that states nothing: the default.
+    private static let unstated = Int.min
+
+    /// A view's default spacing: what the stacks put between two such views —
+    /// one column beside it, no row above or below. Every edge gives way to
+    /// one that states a value, such as ``zero``'s.
     public init() {
-        self.init(top: 0, leading: 1, bottom: 0, trailing: 1)
+        self.init(top: Self.unstated, leading: Self.unstated, bottom: Self.unstated, trailing: Self.unstated)
     }
 
     private init(top: Int, leading: Int, bottom: Int, trailing: Int) {
@@ -46,11 +66,14 @@ public struct ViewSpacing: Equatable, Sendable {
         self.trailing = trailing
     }
 
-    /// No spacing on any edge — what an empty view prefers.
+    /// No spacing on any edge — what an empty view prefers. Stated, so it
+    /// outweighs the default edge it faces or is merged with.
     public static let zero = Self(top: 0, leading: 0, bottom: 0, trailing: 0)
 
-    /// Merges another view's preferences into these, edge by edge: each of
-    /// `edges` ends up with the larger of the two.
+    /// Merges another view's preferences into these, edge by edge: on each of
+    /// `edges`, the larger stated value, or the default where neither states
+    /// one. A stated edge outweighs a default one, so `.zero` merged in makes
+    /// those edges zero.
     ///
     /// - Parameters:
     ///   - other: The preferences to merge in.
@@ -76,18 +99,32 @@ public struct ViewSpacing: Equatable, Sendable {
     }
 
     /// The distance, in cells, a view with these preferences prefers to the
-    /// next view along `axis`, which has `next`'s: the larger of the two
-    /// preferences for the edges that face each other — this view's trailing
-    /// and the next one's leading, or this one's bottom and the next one's top.
+    /// next view along `axis`, which has `next`'s, from the edges that face each
+    /// other — this view's trailing and the next one's leading, or this one's
+    /// bottom and the next one's top: the larger of the two where either states
+    /// a value, and the default distance (one column, no row) where both are
+    /// the default.
     ///
     /// - Parameters:
     ///   - next: The preferences of the view after this one.
     ///   - axis: The axis the two views follow each other along.
-    /// - Returns: The smallest distance that satisfies both views.
+    /// - Returns: The distance both views' facing edges ask for.
     public func distance(to next: Self, along axis: Axis) -> Int {
+        let facing =
+            switch axis {
+            case .horizontal: max(trailing, next.leading)
+            case .vertical: max(bottom, next.top)
+            }
+        guard facing == Self.unstated else { return facing }
+        return Self.defaultDistance(along: axis)
+    }
+
+    /// The distance between two views that both prefer the default: one
+    /// column beside, no row between.
+    private static func defaultDistance(along axis: Axis) -> Int {
         switch axis {
-        case .horizontal: max(trailing, next.leading)
-        case .vertical: max(bottom, next.top)
+        case .horizontal: 1
+        case .vertical: 0
         }
     }
 }

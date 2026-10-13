@@ -233,13 +233,13 @@ extension Layout {
     /// ``Layout/_definesExplicitAlignment``.
     public static var _definesExplicitAlignment: Bool { true }
 
-    /// Default: every subview's preference, merged on every edge.
+    /// Default: every subview's preference, merged on every edge
+    /// (``ViewSpacing/union(_:edges:)``), and ``ViewSpacing/zero`` for a layout
+    /// with no subviews — as SwiftUI's default answers
+    /// (`Tools/SwiftUIProbes/Stack spacing per pair/distances.out`, the
+    /// `merging` rows).
     public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
-        var spacing = ViewSpacing.zero
-        for subview in subviews {
-            spacing.formUnion(subview.spacing)
-        }
-        return spacing
+        subviews.mergedSpacing
     }
 }
 
@@ -521,4 +521,13 @@ extension _LayoutCore: SpacingPreferenceProviding {
         var cache = freshCache(subviews)
         return layout.spacing(subviews: subviews, cache: &cache)
     }
+}
+
+/// Nothing, so no spacing: ``ViewSpacing/zero``. In SwiftUI an `EmptyView` is
+/// no subview at all, so a layout given none merges no preference and answers
+/// `.zero` (`Tools/SwiftUIProbes/Stack spacing per pair/distances.out`, the
+/// `merging()` row); here a layout's empty content resolves to one
+/// `EmptyView`, which answers the same by stating it.
+extension EmptyView: SpacingPreferenceProviding {
+    func preferredSpacing(context: RenderContext) -> ViewSpacing { .zero }
 }
