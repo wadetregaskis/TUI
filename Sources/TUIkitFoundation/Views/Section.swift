@@ -100,6 +100,12 @@ extension Section: View where Parent: View, Content: View, Footer: View {
     /// A section is its parts to most containers (``View/_handsOverChildren``),
     /// so a view whose body is one is taken apart as the section would be.
     public static var _handsOverChildren: Bool { true }
+
+    /// Its parts' answer: a section is taken apart into its header, content
+    /// and footer, so a layout in any of them is a member a row asks.
+    public static var _statesSpacingPreference: Bool {
+        Parent._statesSpacingPreference || Content._statesSpacingPreference || Footer._statesSpacingPreference
+    }
 }
 
 // MARK: - Full Initializer (header + content + footer)

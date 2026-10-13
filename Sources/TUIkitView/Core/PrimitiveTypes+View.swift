@@ -21,6 +21,10 @@ extension Never: View {
     /// A primitive's body: one child, the primitive. Stated, as the default
     /// would ask `Never`'s own body — itself — for ever.
     public static var _handsOverChildren: Bool { false }
+
+    /// A primitive's body states no spacing preference — stated for the
+    /// reason ``_handsOverChildren`` is.
+    public static var _statesSpacingPreference: Bool { false }
 }
 
 // MARK: - Optional View Conformance

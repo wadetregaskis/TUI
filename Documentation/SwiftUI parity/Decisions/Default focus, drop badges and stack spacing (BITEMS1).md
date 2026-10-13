@@ -150,7 +150,11 @@ touches the stroke. Where TUIkit differs:
   for its container values. Pinned by `anyViewDoesNotForward`.
 - **A view of the app's own whose body is a layout** (SwiftUI: +0) states
   the default: its body would have to be asked, which is B19's open
-  question. **A nested `HStack`** states the default too, where SwiftUI's
+  question. One whose body is several views, a layout among them, is taken
+  apart into them and asked, as are a `Section`, a `GridRow` and a subview
+  collection: each forwards the static witness (a view of the app's own
+  answers its body's), since the review of be3ee7385 found a row of them
+  never asking. **A nested `HStack`** states the default too, where SwiftUI's
   states its children's preferences merged.
 - **An app's own `BufferModifier`** (a TUIkit API with no SwiftUI
   counterpart) keeps its content's preference, as `.border` does; one that

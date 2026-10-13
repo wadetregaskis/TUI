@@ -172,6 +172,10 @@ public struct SubviewsCollection: View {
     public var body: some View {
         _SubviewMembersCore(members: members, range: 0..<members.count)
     }
+
+    /// Its members may be anything, a layout among them, and a row takes the
+    /// collection apart into them — so, like a ``Subview``, it MAY state one.
+    public static var _statesSpacingPreference: Bool { true }
 }
 
 extension SubviewsCollection: @MainActor RandomAccessCollection {
@@ -220,6 +224,9 @@ public struct SubviewsCollectionSlice: View {
     public var body: some View {
         _SubviewMembersCore(members: members, range: bounds)
     }
+
+    /// As for ``SubviewsCollection``: its members may state one.
+    public static var _statesSpacingPreference: Bool { true }
 }
 
 extension SubviewsCollectionSlice: @MainActor RandomAccessCollection {

@@ -247,9 +247,20 @@ public extension View {
     /// `.layoutValue(key:value:)` override this.
     static var _providesLayoutValues: Bool { false }
 
-    /// Default: a view states no spacing preference. A `Layout`'s view
-    /// overrides this, and the views that hand one over forward it.
-    static var _statesSpacingPreference: Bool { false }
+    /// Default: whether this view hands its container several views
+    /// (``_handsOverChildren``) — a view of the app's own whose body is several
+    /// views is taken apart into them, a layout possibly among them, so a row
+    /// of it MAY have to ask them. A primitive's answer is `false`; a `Layout`'s
+    /// view overrides this with `true`, and the providers that hand their
+    /// content over forward it.
+    ///
+    /// Not the body's own answer, though that would be exact: the providers
+    /// forward theirs to their content, so a recursive view — `Tree` whose body
+    /// is `if depth > 0 { Tree(…) }` — would ask itself through its `Optional`
+    /// for ever, a stack overflow on the first row that held one.
+    /// ``_handsOverChildren`` ends at the first provider, which answers it with
+    /// a constant, so the question cannot come back round.
+    static var _statesSpacingPreference: Bool { _handsOverChildren }
 
     /// Default: what this view's `body` answers — to a container a view of the
     /// app's own is what its body is. A tuple, an `if`, a loop, a `Group` of

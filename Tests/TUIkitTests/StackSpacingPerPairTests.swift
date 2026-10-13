@@ -66,6 +66,24 @@ private struct Wrapped: View {
     var body: some View { Row { Text(text) } }
 }
 
+/// A view of the app's own that holds itself: the static witness must not
+/// follow it round (a stack overflow, review of the fix for be3ee7385).
+private struct Tree: View {
+    let depth: Int
+    var body: some View {
+        if depth > 0 { Self(depth: depth - 1) }
+    }
+}
+
+/// A view of the app's own whose body is two views, a tight row and a text —
+/// `composite.swift`'s `Pair`, which a container takes apart into the two.
+private struct Pair: View {
+    var body: some View {
+        Row { Text("a") }
+        Text("b")
+    }
+}
+
 /// Lays its subviews out as a `Row` does, and keeps `Layout`'s own
 /// `spacing(subviews:cache:)`: its subviews' preferences, merged.
 private struct Merging: Layout {
@@ -267,6 +285,26 @@ struct StackSpacingPerPairTests {
                 Row { Text("a") }.frame(height: 1)
             })
         #expect(read.distances == [1, 1, 1, 0], "a frame that sets no width keeps the side edges")
+    }
+
+    /// Each of these is taken apart into its members, a tight `Row` among them,
+    /// so the row has to ask; a static gate that stopped at the outer type drew
+    /// `a b` for every one (review of be3ee7385).
+    @Test("A view of the app's own of several views, a Section, a GridRow and a subview collection are asked (SwiftUI: composite +0)")
+    func takenApartContentIsAsked() {
+        #expect(lines(HStackLayout { Pair() }) == ["ab"])
+        #expect(lines(HStack { Pair() }) == ["ab"])
+        #expect(lines(HStackLayout { Section { Row { Text("a") }; Text("b") } }) == ["ab"])
+        #expect(lines(HStackLayout { GridRow { Row { Text("a") }; Text("b") } }) == ["ab"])
+        #expect(lines(Group(subviews: Group { Row { Text("a") }; Text("b") }) { subviews in HStackLayout { subviews } }) == ["ab"])
+    }
+
+    @Test("A recursive view of the app's own in a row is asked about once, not for ever")
+    func recursiveViewTerminates() {
+        func statesSpacing<V: View>(_: V) -> Bool { V._statesSpacingPreference }
+        #expect(statesSpacing(Group { Tree(depth: 1); Text("b") }), "a view of several views MAY state one")
+        #expect(lines(HStack { Tree(depth: 3); Text("b") }) == ["b"])
+        #expect(lines(HStackLayout { Tree(depth: 2); Row { Text("a") }; Text("b") }) == ["ab"])
     }
 
     @Test("Not yet: an AnyView states the default, where SwiftUI's states what it erases (SwiftUI: anyview(all)|box +0)")
