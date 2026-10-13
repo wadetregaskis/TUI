@@ -206,7 +206,10 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 - **Ids.** Its `@FocusState` and `@Namespace` ids are made from the object's
   own path, so they are the same whichever view draws it, and two objects
   never share theirs (B-DYNVFIX-5). An object made with a view value takes the
-  ids of the chain of such objects at its place.
+  ids of the chain of such objects at its place; one found made before the
+  pass, by the first `@State` in it, never does, and one that took them gives
+  them up for its own once a walk finds it so (decisions-DYNVCLAIM
+  B-DYNVCLAIM-1).
 - **Environment: each holder's while it draws, the first holder's at rest.**
   Every holder's walk, measures included, resolves each `@Environment` in the
   object, in place, to that holder's environment. A walk other than a render
@@ -289,7 +292,9 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
 - An object holding no `@State` cannot say whether it was made with a view
   value, so its ids follow the chain at its place: two long-lived objects
   holding none, shown one after the other by one view, share their ids, as
-  every object's did under the claim.
+  every object's did under the claim. One made on demand in a body and first
+  shown in the pass it was made in shares the chain's for that pass
+  (decisions-DYNVCLAIM B-DYNVCLAIM-1).
 - A measure made before any render walk reached a long-lived object binds no
   ids: its body reads an unbound `@Namespace` there, and the render binds it.
 
@@ -411,7 +416,9 @@ view's, so they are the same whichever view draws it, and two objects shown
 one after the other by one view no longer share theirs, as they did while the
 view that claimed each bound its ids (B-DYNVFIX-3). An object made with each
 value of the view holding it takes the ids of the chain of such objects at its
-place, so its ids stay the same from frame to frame.
+place, so its ids stay the same from frame to frame; an object made before the
+pass that first walks it never does, and one found so later takes its own
+(decisions-DYNVCLAIM B-DYNVCLAIM-1).
 
 **The fuller version** gives each the same treatment: a binding at the
 property's address, and a store of its own for a copy at a second place. Its

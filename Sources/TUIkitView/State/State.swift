@@ -728,6 +728,11 @@ protocol StateBindable {
     ///   backing of its own — rather than its shared backing bound.
     static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) -> Bool
 
+    /// What the object holding the property at `address`, a value of this
+    /// type, is to the render pass `pass`, as the property says without being
+    /// bound (``FieldsPlan/objectKind(at:in:)``).
+    static func objectKind(at address: UnsafeRawPointer, in pass: UInt32) -> ObjectKind
+
     /// Binds the property at `address`, a value of this type inside the
     /// storage of `object`'s object (``State/bindObjectState(at:to:key:in:isMeasuring:)``).
     static func bindObjectState(
@@ -785,6 +790,14 @@ extension State: StateBindable {
         state.pointee.backing = StateBacking(
             defaultValue: backing.defaultValue, boundTo: box, createdIn: storage.currentPass)
         return true
+    }
+
+    /// Made in `pass` and not yet an object's own, it is one an object made
+    /// with a view value holds, as ``bindObjectState(at:to:key:in:isMeasuring:)``
+    /// finds it.
+    static func objectKind(at address: UnsafeRawPointer, in pass: UInt32) -> ObjectKind {
+        let backing = address.assumingMemoryBound(to: Self.self).pointee.backing
+        return backing.createdIn != 0 && backing.createdIn == pass && backing.bound != .own ? .perValue : .longLived
     }
 
     /// Binds the `@State` at `address`, inside the storage of `object`'s

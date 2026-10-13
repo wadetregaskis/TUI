@@ -224,7 +224,11 @@ ids are stable for the object and distinct between objects. Per-value objects bi
 from the place. *Built: per-value-ness is known only from a `@State`, and ids may
 be met first, so every object binds from its hub's path; a new hub at a field
 whose last object was per value, or held no `@State` to say, takes that object's
-path, so a chain of per-value objects keeps one set of ids.*
+path, so a chain of per-value objects keeps one set of ids. After review1 of the
+lane, only if the new object's first `@State` at a fixed offset, read before its
+ids are bound, does not say it was made before the pass; and a hub on a chain's
+path takes its own once a walk finds its object long-lived (decisions-DYNVCLAIM
+B-DYNVCLAIM-1).*
 
 ### 4.7 – 4.9 A memo hit, a write, a pass
 

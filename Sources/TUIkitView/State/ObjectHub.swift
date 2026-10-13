@@ -41,8 +41,15 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// are made from: `obj` and a count of the storage's, so an object keeps
     /// its ids whichever view draws it, and two objects never share theirs —
     /// unless the object is one of a chain made with the values of one view
-    /// at one field, which share their first's (``StateStorage/registerHolder(_:of:at:)``).
-    let idPath: String
+    /// at one field, which share their first's (``StateStorage/registerHolder(_:of:at:kind:)``).
+    /// Main actor only.
+    private(set) var idPath: String
+
+    /// Whether ``idPath`` is a chain's, taken from the object the holder
+    /// showed before: given up for one of the object's own once a walk finds
+    /// the object was made before the pass that walks it
+    /// (``StateStorage/giveOwnIDs(to:)``). Main actor only.
+    private(set) var takesChainIDs: Bool
 
     /// The view the object reads its environment as at rest: the first
     /// holder drawn on a hub with none, for as long as it holds the object.
@@ -67,10 +74,17 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// (``StateStorage/placeBox(_:at:adopting:from:)``). Main actor only.
     private var handedOver: [ObjectIdentifier: AnyObject] = [:]
 
-    init(object: AnyObject, link: RenderCache.Link?, idPath: String) {
+    init(object: AnyObject, link: RenderCache.Link?, idPath: String, takesChainIDs: Bool) {
         self.object = object
         self.link = link
         self.idPath = idPath
+        self.takesChainIDs = takesChainIDs
+    }
+
+    /// Makes the object's ids from `idPath`, its own.
+    func takeOwnIDs(_ idPath: String) {
+        self.idPath = idPath
+        takesChainIDs = false
     }
 
     /// Keeps `state`, a box holding what the object's `@State` bound to `box`

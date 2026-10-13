@@ -128,7 +128,7 @@ extension PropertyWalk {
     /// of every view holding it, as SwiftUI runs it (measured:
     /// `Tools/SwiftUIProbes/Class properties held by several views/cls.out`).
     ///
-    /// A render walk registers the view as holding it (``StateStorage/registerHolder(_:of:at:)``),
+    /// A render walk registers the view as holding it (``StateStorage/registerHolder(_:of:at:kind:)``),
     /// so a write to its state redraws the view; a measure makes, moves and
     /// drops nothing a view's key holds. An object whose class holds nothing
     /// a walk installs has no hub: only the `update()`s in it run.
@@ -144,10 +144,16 @@ extension PropertyWalk {
         if !contents.steps.isEmpty {
             let placeScope = NestedScope.container(at: position, ofType: type(of: object), in: keyScope(scope))
             let outer = objectWalk
-            objectWalk = entering(object, mayInstall: contents.mayInstall, placeScope: placeScope)
+            objectWalk = entering(object, contents, placeScope: placeScope)
             applyContents(of: object, contents, scope: NestedScope.view, isOwn: false, updates: updates)
-            if let walked = objectWalk, let token = walked.token, walked.found != .unknown {
-                token.lastObject = walked.found
+            if let walked = objectWalk {
+                if let token = walked.token, walked.found != .unknown { token.lastObject = walked.found }
+                // Ids from a chain whose `@State` the walk found made before
+                // the pass, where none at a fixed offset could say so first:
+                // its own from the next walk on.
+                if walked.found == .longLived, let hub = walked.hub, hub.takesChainIDs, let storage {
+                    storage.giveOwnIDs(to: hub)
+                }
             }
             objectWalk = outer
         }
@@ -156,17 +162,25 @@ extension PropertyWalk {
         }
     }
 
-    /// What the walk knows of `object`, about to walk what it holds, lying
-    /// in the field whose scope is `placeScope`: a render walk registers the
-    /// view as holding it, if its class may hold anything a walk installs.
-    private func entering(_ object: AnyObject, mayInstall: Bool, placeScope: UInt64) -> ObjectWalk {
-        guard mayInstall, let storage else {
+    /// What the walk knows of `object`, about to walk what it holds —
+    /// `contents` — lying in the field whose scope is `placeScope`: a render
+    /// walk registers the view as holding it, if its class may hold anything
+    /// a walk installs.
+    private func entering(_ object: AnyObject, _ contents: FieldsPlan, placeScope: UInt64) -> ObjectWalk {
+        guard contents.mayInstall, let storage else {
             return ObjectWalk(
                 object: object, hub: nil, token: nil, idPath: nil, placeScope: placeScope, adoptsPlace: false,
                 restoresEnvironment: false)
         }
+        // Whether the object was made in this pass, with a value of the view
+        // holding it, as its first `@State` says before any of its ids is
+        // bound: asked only where the object's ids may come from a chain.
+        let base = UnsafeRawPointer(Unmanaged.passUnretained(object).toOpaque())
+        let pass = storage.currentPass
+        func kind() -> ObjectKind { contents.objectKind(at: base, in: pass) }
         if !isMeasuring {
-            let (hub, token, previous, predecessor) = storage.registerHolder(identity, of: object, at: placeScope)
+            let (hub, token, previous, predecessor) = storage.registerHolder(
+                identity, of: object, at: placeScope, kind: kind)
             let isPrimary = hub.primary == identity
             if isPrimary {
                 // The object's environment at rest, for closures and whatever
@@ -184,11 +198,13 @@ extension PropertyWalk {
         // object here was one of one.
         let previous = storage.holderToken(identity, at: placeScope)
         if let hub = storage.objectHub(of: object) {
+            // What a render walk would do: the outcome is the same either way.
+            if hub.takesChainIDs, kind() == .longLived { storage.giveOwnIDs(to: hub) }
             return ObjectWalk(
                 object: object, hub: hub, token: nil, idPath: hub.idPath, placeScope: placeScope,
                 adoptsPlace: previous?.lastObject == .perValue, restoresEnvironment: true)
         }
-        let chained = previous.flatMap { $0.lastObject != .longLived ? $0.hub.idPath : nil }
+        let chained = previous.flatMap { $0.lastObject != .longLived && kind() != .longLived ? $0.hub.idPath : nil }
         return ObjectWalk(
             object: object, hub: nil, token: nil, idPath: chained, placeScope: placeScope,
             adoptsPlace: previous?.lastObject == .perValue, restoresEnvironment: true)

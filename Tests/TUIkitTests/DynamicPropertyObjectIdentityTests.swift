@@ -143,6 +143,39 @@ private struct ScopedPair: View {
     }
 }
 
+/// Objects made on demand, the first time each is asked for, and kept.
+@MainActor
+private final class ScopedStore {
+    private var made: [Int: Scoped] = [:]
+    private var pair: [Scoped]?
+
+    func scoped(_ key: Int) -> Scoped {
+        if let scoped = made[key] { return scoped }
+        let scoped = Scoped()
+        made[key] = scoped
+        return scoped
+    }
+
+    /// Two objects made together, the first time they are asked for.
+    func both() -> [Scoped] {
+        if let pair { return pair }
+        let made = [Scoped(), Scoped()]
+        pair = made
+        return made
+    }
+}
+
+/// The object at `key`, made the first time it is shown, shown by one view.
+private struct LazyScopedParent: View {
+    let store: ScopedStore
+    let key: Int
+    let log: NamespaceLog
+
+    var body: some View {
+        ScopedView(name: "detail", scoped: store.scoped(key), log: log)
+    }
+}
+
 @MainActor
 @Suite("DynamicProperty objects' holders and ids")
 struct DynamicPropertyObjectIdentityTests {
@@ -223,6 +256,49 @@ struct DynamicPropertyObjectIdentityTests {
         #expect(ids.count == 3)
         #expect(ids.first != ids.dropFirst().first, "\(ids)")
         #expect(ids.first == ids.last, "\(ids)")
+    }
+
+    /// Two objects made in the first frame, where the first is shown: it
+    /// looks made with the view's value, so the second, shown next by the
+    /// same view, took its ids for good, though it was made before the pass
+    /// that first walks it (review1 of lane DYNVCLAIM, a7d1f8e75 (a)). An
+    /// object made before the pass that walks it has ids of its own.
+    @Test("An object made in an earlier frame, shown after one made with it, gets a namespace of its own")
+    func objectMadeEarlierGetsItsOwnNamespaceAfterAChain() {
+        let tui = TUIContext()
+        let log = NamespaceLog()
+        let store = ScopedStore()
+        _ = frame(ScopedSelection(objects: store.both(), selection: 0, log: log), tui, height: 1)
+        _ = frame(ScopedSelection(objects: store.both(), selection: 1, log: log), tui, height: 1)
+        _ = frame(ScopedSelection(objects: store.both(), selection: 1, log: log), tui, height: 1)
+        _ = frame(ScopedSelection(objects: store.both(), selection: 0, log: log), tui, height: 1)
+        let ids = log.ids["detail"] ?? []
+        #expect(ids.count == 4)
+        #expect(ids[1] != ids[0], "\(ids)")
+        #expect(ids[2] == ids[1], "\(ids)")
+        #expect(ids[3] == ids[0], "\(ids)")
+    }
+
+    /// An object made on demand and first shown in the pass it was made in
+    /// looks made with the view's value, so it takes the ids of the chain at
+    /// its place — the object shown there before (decisions-DYNVCLAIM
+    /// B-DYNVCLAIM-1). They were its for good, though the next walk found it
+    /// outlived its pass (review1 of lane DYNVCLAIM, ac4bf0644). Then it gets
+    /// ids of its own.
+    @Test("An object made on demand takes ids of its own once it outlives the pass it was made in")
+    func lazilyMadeObjectTakesItsOwnNamespaceOnceItOutlivesItsPass() {
+        let tui = TUIContext()
+        let log = NamespaceLog()
+        let store = ScopedStore()
+        for key in [0, 1, 1, 0, 1] {
+            _ = frame(LazyScopedParent(store: store, key: key, log: log), tui, height: 1)
+        }
+        let ids = log.ids["detail"] ?? []
+        #expect(ids.count == 5)
+        #expect(ids[1] == ids[0], "taken for the chain's next object: \(ids)")
+        #expect(ids[2] != ids[0], "its own once it outlived its pass: \(ids)")
+        #expect(ids[3] == ids[0], "\(ids)")
+        #expect(ids[4] == ids[2], "\(ids)")
     }
 
     /// The ids followed the claimant: when the first view holding the object

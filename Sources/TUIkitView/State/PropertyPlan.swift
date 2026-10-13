@@ -168,6 +168,12 @@ final class FieldsPlan {
     /// contents may not holds nothing a view's walk installs, and the walk of
     /// an object of it only runs the `update()`s in it.
     let mayInstall: Bool
+    /// The first `@State` among the fields, or in a struct among them, at an
+    /// offset fixed for the type — not behind an optional, an existential, an
+    /// enum's case or another object: what tells, for a class's contents,
+    /// whether an object was made in the pass that walks it before any of its
+    /// ids is bound (``objectKind(at:in:)``).
+    let firstState: (offset: Int, state: any StateBindable.Type)?
 
     init(type: Any.Type, steps: [Step], updater: (any DynamicProperty.Type)?) {
         self.type = type
@@ -182,6 +188,25 @@ final class FieldsPlan {
             break
         }
         self.mayInstall = mayInstall
+        var firstState: (offset: Int, state: any StateBindable.Type)?
+        for step in steps where step.reference == nil {
+            if case .leaf(let leaf) = step.slot.action, let state = leaf.state {
+                firstState = (step.offset, state)
+            } else if case .fields(let fields) = step.slot.action, let nested = fields.firstState {
+                firstState = (step.offset + nested.offset, nested.state)
+            }
+            if firstState != nil { break }
+        }
+        self.firstState = firstState
+    }
+
+    /// What the object at `base`, of the class these are the contents of, is
+    /// to the render pass `pass`, as ``firstState`` says: made in it, with a
+    /// value of the view holding it; made before it; or `.unknown`, without a
+    /// `@State` at a fixed offset to say.
+    func objectKind(at base: UnsafeRawPointer, in pass: UInt32) -> ObjectKind {
+        guard let firstState else { return .unknown }
+        return firstState.state.objectKind(at: base + firstState.offset, in: pass)
     }
 }
 

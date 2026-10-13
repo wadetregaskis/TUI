@@ -30,22 +30,42 @@ reaches one (`StateBacking.createdIn`), and a `@FocusState` can be declared
 before it, or with none at all.
 
 **Shipped:** every object's ids are made from its hub's path (`ObjectHub.idPath`,
-`obj` and a count per storage). A hub made at a field whose last object was
-per-value, or held no `@State` to say, takes that object's path: a chain of
-per-value objects at one place keeps one set of ids from frame to frame, as
-the design wants. A long-lived object ends the chain, so the next object made
-there gets ids of its own.
+`obj` and a count per storage). A hub made at a field whose last object looked
+per-value, or held no `@State` to say, takes that object's path — joins its
+chain — unless the new object says it was made before the pass: its first
+`@State` at an offset fixed for its class (not behind an optional, an
+existential, an enum's case or another object), read before any of its ids is
+bound, was not made in the pass, or is already the object's own
+(`FieldsPlan.objectKind(at:in:)`). So a chain of per-value objects at one
+place keeps one set of ids from frame to frame, as the design wants; a
+long-lived object ends the chain, and gets ids of its own, though the object
+before it looked per-value only because it was made in the pass it was first
+shown in (a `@State` initial value in the first frame; review1 of lane
+DYNVCLAIM, a7d1f8e75 (a)). A hub on a chain's path takes one of its own once a
+walk finds its object made before the pass: at the walk's start where its
+first `@State` says so, at its end otherwise. Before, it kept the chain's for
+good (review1, ac4bf0644).
 
-**Left:** an object holding no `@State` cannot say whether it was made with a
-view value, so it always joins the chain at its field: two long-lived objects
-holding a `@FocusState` or `@Namespace` but no `@State`, shown one after the
-other by one view, share their ids — as every object's did under the claim.
-And a measure that reaches a long-lived object before any render walk did binds
-no ids, so a body reads an unbound `@Namespace` in that measure, and the
-render binds it.
+**Left:**
+
+- An object made on demand in a body and kept, first shown in the pass it was
+  made in after an object that looked per-value at the same place, looks
+  per-value too: it shares that object's ids for that pass, as it takes its
+  place's state (B-DYNVCLAIM-3), and has its own from its next walk on.
+- An object whose `@State` lies only behind an optional, an existential, an
+  enum's case or a nested object says what it is only when the walk reaches
+  that: it may share a chain's ids for the one walk that finds it long-lived.
+- An object holding no `@State` cannot say whether it was made with a view
+  value, so it always joins the chain at its field: two long-lived objects
+  holding a `@FocusState` or `@Namespace` but no `@State`, shown one after the
+  other by one view, share their ids — as every object's did under the claim.
+- A measure that reaches a long-lived object before any render walk did binds
+  no ids, so a body reads an unbound `@Namespace` in that measure, and the
+  render binds it.
 
 **The fuller version:** `@FocusState` and `@Namespace` note the render pass
-they were made in, as `@State` does, so every object can tell. Its price: a
+they were made in, as `@State` does, so every object can tell, and the first
+of them at a fixed offset says so before any id is bound. Its price: a
 task-local read in each one's `init`, in every app — every view holding a
 `@FocusState` makes one per value — 4.5 to 7.7 ns each (measured for
 `@State`: `Tools/SwiftUIProbes/Swift runtime layouts/stamp.out`), a `UInt32`
