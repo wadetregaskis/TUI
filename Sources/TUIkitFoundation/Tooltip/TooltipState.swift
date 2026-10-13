@@ -106,7 +106,7 @@ public final class TooltipState: @unchecked Sendable {
     /// and restarted its delay: help on screen for one frame in every delay,
     /// or, once a walk's change to the bar asked for its frame, for one frame
     /// and not again (decisions-HELP A-HELP-1). So the hover transitions such
-    /// a reshape makes (``beginReshape(movedByTooltip:modalSection:)``) are not hover
+    /// a reshape makes (``beginReshape(movedByTooltip:presentations:)``) are not hover
     /// changes to the tooltip: the candidate the exit would have dropped is
     /// held here until the pointer moves and does not land on its view again
     /// (``notePointerMoved()``), or until no pointer could rest on its view
@@ -120,29 +120,36 @@ public final class TooltipState: @unchecked Sendable {
     /// still rests on the tooltip's own view, so the candidate is held there
     /// too, though no pointer could reach the view: let go, it gave the rows
     /// back, the view came back under the pointer, and its delay began again.
-    /// Held there while what is presented in front is what was in front when
-    /// the hold began (``heldModalSection``): a sheet, an alert, a popover or
-    /// a menu that comes up over the page takes the hover from every view on
-    /// it, the covered one too.
+    /// Held there while what is presented over the page is what was when the
+    /// hold began (``heldPresentations``): a sheet, an alert, a popover or a
+    /// menu that comes up over the page takes the hover from every view on
+    /// it, the covered one too, and a sheet docked under the page takes the
+    /// rows the bar covers.
     private var held: Candidate?
 
     /// Whether the reshape under way is the status bar's own reflow; see
     /// ``held``.
     private var reshapeIsTooltipReflow = false
 
-    /// The focus section of what is presented in front for the reshape under
-    /// way, `nil` when nothing is; see ``beginReshape(movedByTooltip:modalSection:)``.
-    private var reshapeModalSection: String?
+    /// How many surfaces are presented over the page for the reshape under
+    /// way; see ``beginReshape(movedByTooltip:presentations:)``.
+    private var reshapePresentations = 0
 
-    /// What was presented in front when ``held`` began, as
-    /// ``reshapeModalSection`` said it: while the pointer rests on the rows
-    /// the bar covers, the held view counts as reachable only while that is
-    /// still what is in front. A covered row has no region to probe, so the
-    /// probe that lets a held view go when a sheet's backdrop comes over it
+    /// How many surfaces were presented over the page when ``held`` began, as
+    /// ``reshapePresentations`` said it: while the pointer rests on the rows
+    /// the bar covers, the held view counts as reachable only while as many
+    /// are. A covered row has no region to probe, so the probe that lets a
+    /// held view go when a sheet's backdrop comes over it
     /// (``endReshape(pointerOnTooltipRows:reaching:)``) cannot see it; found
     /// by the BUGS13 lane's review, which left a covered row's help in the bar
     /// over a sheet a key presented.
-    private var heldModalSection: String?
+    ///
+    /// A count of the surfaces, not the focus section in front, which the
+    /// first fix compared: a sheet docked live beside the page is never a
+    /// modal section, so the help stayed in the bar over it (the lane's second
+    /// review), and a pane inside a modal taking the focus let a help held in
+    /// that modal go though nothing new was presented.
+    private var heldPresentations = 0
 
     /// The pointer's candidate as a frame shows it: the one ``held`` through
     /// the bar's reflow, or else the one the pointer is over.
@@ -245,7 +252,7 @@ public final class TooltipState: @unchecked Sendable {
         guard hovered?.text == text else { return }
         if reshapeIsTooltipReflow, held == nil {
             held = hovered
-            heldModalSection = reshapeModalSection
+            heldPresentations = reshapePresentations
         }
         hovered = nil
     }
@@ -260,13 +267,13 @@ public final class TooltipState: @unchecked Sendable {
     ///   - movedByTooltip: Whether this frame's status-bar tooltip changed the
     ///     rows the bar takes from the page, so that the page may have moved
     ///     under the pointer because of the tooltip (``held``).
-    ///   - modalSection: The focus section of the surface presented in front
-    ///     of the page this frame — a sheet, an alert, a popover, an open menu
-    ///     (`FocusManager.activeSectionIsModal`) — or `nil` when the page is
-    ///     in front (``heldModalSection``).
-    package func beginReshape(movedByTooltip: Bool, modalSection: String?) {
+    ///   - presentations: How many surfaces the frame presents over the page
+    ///     — sheets, docked or not, covers, alerts, popovers, menus
+    ///     (`WindowChromeState.presentationsOverPage`) — `0` when the page is
+    ///     in front (``heldPresentations``).
+    package func beginReshape(movedByTooltip: Bool, presentations: Int) {
         reshapeIsTooltipReflow = movedByTooltip
-        reshapeModalSection = modalSection
+        reshapePresentations = presentations
     }
 
     /// Closes the frame's reshape, and lets go of a ``held`` candidate whose
@@ -275,8 +282,8 @@ public final class TooltipState: @unchecked Sendable {
     /// machine reports neither for a view the pointer is not over. Kept while
     /// the pointer rests on the rows the bar took for its tooltip, which
     /// covered the view the pointer was on (``held``), as long as nothing
-    /// else has been presented in front since the hold began, nor has what was
-    /// in front gone (``heldModalSection``).
+    /// else has been presented over the page since the hold began, nor has
+    /// what was presented gone (``heldPresentations``).
     ///
     /// - Parameters:
     ///   - pointerOnTooltipRows: Whether the pointer rests on the rows the
@@ -289,7 +296,7 @@ public final class TooltipState: @unchecked Sendable {
         reshapeIsTooltipReflow = false
         guard let held else { return }
         if pointerOnTooltipRows {
-            if heldModalSection == reshapeModalSection { return }
+            if heldPresentations == reshapePresentations { return }
         } else if let id = held.handlerID, reaching(id) {
             return
         }

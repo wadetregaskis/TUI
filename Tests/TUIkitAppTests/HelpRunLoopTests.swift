@@ -256,23 +256,27 @@ private struct CentredHelpUnderAButtonPage: View {
 /// in the bar's chrome style.
 ///
 /// `presentsSheet`: a focused button above the rows presents a sheet over the
-/// page when pressed.
+/// page when pressed. `docksSheet`: the sheet docks live under the page
+/// (a detent, and `.presentationBackgroundInteraction(.enabled)`), which
+/// leaves the page live and never holds the input.
 private struct FullWindowRowsApp: App {
     var chrome: ChromeStyle = .bordered
     var helpLines = 1
     var presentsSheet = false
+    var docksSheet = false
 
     init() {}
 
-    init(chrome: ChromeStyle, helpLines: Int, presentsSheet: Bool = false) {
+    init(chrome: ChromeStyle, helpLines: Int, presentsSheet: Bool = false, docksSheet: Bool = false) {
         self.chrome = chrome
         self.helpLines = helpLines
         self.presentsSheet = presentsSheet
+        self.docksSheet = docksSheet
     }
 
     var body: some Scene {
         WindowGroup {
-            FullWindowRowsPage(helpLines: helpLines, presentsSheet: presentsSheet)
+            FullWindowRowsPage(helpLines: helpLines, presentsSheet: presentsSheet, docksSheet: docksSheet)
         }
         .windowToolbarStyle(WindowToolbarStyleCase.drawing(chrome).style)
         .mouseSupport(.full)
@@ -282,9 +286,24 @@ private struct FullWindowRowsApp: App {
 private struct FullWindowRowsPage: View {
     let helpLines: Int
     let presentsSheet: Bool
+    let docksSheet: Bool
     @State private var sheetShown = false
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if docksSheet {
+            rows.sheet(isPresented: $sheetShown) {
+                Text("SHEET-BODY")
+                    .presentationDetents([.height(5)])
+                    .presentationBackgroundInteraction(.enabled)
+            }
+        } else {
+            rows.sheet(isPresented: $sheetShown) {
+                Text("SHEET-BODY")
+            }
+        }
+    }
+
+    private var rows: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if presentsSheet { Button("present") { sheetShown = true } }
@@ -292,9 +311,6 @@ private struct FullWindowRowsPage: View {
                     Text("row \(index)").help(help(index))
                 }
             }
-        }
-        .sheet(isPresented: $sheetShown) {
-            Text("SHEET-BODY")
         }
     }
 
@@ -717,11 +733,15 @@ struct HelpRunLoopTests {
     /// on the rows its bar covers was kept without asking whether its view
     /// is still in front, so a sheet a key (or a timer) presented over the
     /// page left the covered row's help in the bar, over the sheet, until the
-    /// pointer moved.
-    @Test("Help held on a row its bar covers goes when a sheet comes up over the page",
-          arguments: ChromeStyle.allCases)
-    func heldHelpOnACoveredRowGoesUnderASheet(chrome: ChromeStyle) throws {
-        let driver = HelpDriver(FullWindowRowsApp(chrome: chrome, helpLines: 1, presentsSheet: true))
+    /// pointer moved. And by its second review: the fix asked whether the
+    /// focus was in a modal section, and a sheet docked live under the page
+    /// never is one, so the help stayed over the docked sheet, which had
+    /// taken the page's bottom rows and the covered row with them.
+    @Test("Help held on a row its bar covers goes when a sheet comes up over the page, or docks under it",
+          arguments: ChromeStyle.allCases, [false, true])
+    func heldHelpOnACoveredRowGoesUnderASheet(chrome: ChromeStyle, docked: Bool) throws {
+        let driver = HelpDriver(
+            FullWindowRowsApp(chrome: chrome, helpLines: 1, presentsSheet: true, docksSheet: docked))
         let target = try #require(driver.visibleRow(helpLines: 1), "no rows: \(driver.lines)")
         let help = "HELP-\(target.index)"
         driver.app.send(MouseEvent(button: .none, phase: .moved, x: target.x + 1, y: target.y))
@@ -734,8 +754,9 @@ struct HelpRunLoopTests {
         #expect(driver.app.send(KeyEvent(key: .enter)), "\(chrome): the button took the press")
         driver.step()
         driver.stepIfAsked()
-        #expect(driver.shows("SHEET-BODY"), "precondition: \(chrome): the sheet: \(driver.lines)")
-        #expect(!driver.shows(help), "\(chrome): the page's help stayed over the sheet: \(driver.lines)")
+        let style = "\(chrome)\(docked ? ", docked" : "")"
+        #expect(driver.shows("SHEET-BODY"), "precondition: \(style): the sheet: \(driver.lines)")
+        #expect(!driver.shows(help), "\(style): the page's help stayed over the sheet: \(driver.lines)")
     }
 
     /// The app-wide feature, `.tooltips(.always)`, with a focusable and a

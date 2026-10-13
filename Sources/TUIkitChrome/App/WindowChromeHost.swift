@@ -155,6 +155,9 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // popovers, …) emitted during rendering onto the content area only:
         // that is what keeps the chrome out from under a modal's dimming.
         if !page.overlays.isEmpty {
+            // What is presented over the page, counted before the layers are
+            // spent (`WindowChromeState.presentationsOverPage`).
+            chrome?.presentationsOverPage = Self.presentations(in: page.overlays)
             page = page.compositingOverlays(maxWidth: width, maxHeight: contentHeight, palette: palette)
         }
         guard let chrome else { return page }
@@ -180,6 +183,19 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
             settle(chrome.settle(edge, wanting: wanted, nowNanos: now), context: context)
         }
         return frame
+    }
+
+    /// How many of `layers` are surfaces presented over the page, those
+    /// riding in another's content counted too (an alert presented from a
+    /// sheet): a panel placed over the content area — a sheet, docked or
+    /// not, a cover, an alert (``OverlayLayer/isScreenLevel``) — or a layer
+    /// holding the input — a popover, a menu, a drop-down
+    /// (``OverlayLayer/holdsInput``). Not a tooltip's panel, a toast, a
+    /// dragged row's picture or a view's own displaced drawing.
+    private static func presentations(in layers: [OverlayLayer]) -> Int {
+        layers.reduce(0) { count, layer in
+            count + (layer.isScreenLevel || layer.holdsInput ? 1 : 0) + presentations(in: layer.content.overlays)
+        }
     }
 
     /// The rows each bar takes this frame, framing included.

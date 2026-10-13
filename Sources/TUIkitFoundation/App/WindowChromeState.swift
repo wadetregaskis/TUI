@@ -217,6 +217,28 @@ package final class WindowChromeState: @unchecked Sendable {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _tooltipRows: Range<Int> = 0..<0
 
+    /// How many surfaces the walk drawn presented over the page — a sheet,
+    /// docked or not, a cover, an alert, a popover, a menu, a drop-down —
+    /// counting those presented from inside another; `0` while the page is
+    /// in front.
+    ///
+    /// What a help held on the rows the bar took for it asks: it stays while
+    /// what is presented is what was when the hold began
+    /// (`TooltipState.held`, decisions-HELP A-HELP-1). Counted from the
+    /// layers the chrome host composites onto the content area, which every
+    /// presentation is drawn as, rather than from what holds the focus: a
+    /// sheet docked live beside the page never takes the input, and it still
+    /// takes the rows the bar covers (found by the BUGS13 lane's second
+    /// review).
+    package var presentationsOverPage: Int {
+        get { _presentationsOverPage }
+        set { _presentationsOverPage = newValue }
+    }
+
+    /// ``presentationsOverPage``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _presentationsOverPage = 0
+
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
     /// content declared this walk (see ``offer(_:as:at:)``) — kept until the
     /// next walk begins.
@@ -393,6 +415,7 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredVisibility.removeAll(keepingCapacity: true)
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
         _tooltipRows = 0..<0
+        _presentationsOverPage = 0
         titleOffers.removeAll(keepingCapacity: true)
         subtitleOffers.removeAll(keepingCapacity: true)
         chosenTitles = nil

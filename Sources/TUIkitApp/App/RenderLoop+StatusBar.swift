@@ -77,10 +77,10 @@ extension RenderLoop {
         let tooltips = tuiContext.tooltipState
         let dispatcher = tuiContext.mouseEventDispatcher
         let popoverDrawn = Self.popoverText(tooltips.resolved(nowNanos: nowNanos))
-        // What is presented in front of the page, which a hold on the rows the
-        // bar covers stays with (`TooltipState.heldModalSection`).
-        let modalSection = focusManager.activeSectionIsModal ? focusManager.activeSectionIdentifier : nil
-        tooltips.beginReshape(movedByTooltip: tooltipMovedThePage, modalSection: modalSection)
+        // What is presented over the page, which a hold on the rows the bar
+        // covers stays with (`TooltipState.heldPresentations`).
+        tooltips.beginReshape(
+            movedByTooltip: tooltipMovedThePage, presentations: windowChrome.presentationsOverPage)
         dispatcher.setRegions(regions)
         let tooltipRows = windowChrome.tooltipRows
         let onTooltipRows = dispatcher.restingPointer.map { tooltipRows.contains($0.y) } ?? false

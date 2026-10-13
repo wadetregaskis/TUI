@@ -105,16 +105,21 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   for its tooltip (`WindowChromeState.tooltipRows`), and a held help stays
   while the pointer rests on one of them. Pinned for every chrome style and
   a help of one line and of two (`HelpRunLoopTests.hoverOnARowTheBarCovers`).
-  A sheet, an alert, a popover or a menu presented over the page while the
-  pointer rests there takes the help away: the hold on the covered rows
-  lasts while what is presented in front is what was when it began
-  (`TooltipState.heldModalSection`; the lane's review found the help left
-  in the bar over a sheet a key presented,
+  A sheet, docked under the page or not, an alert, a popover or a menu
+  presented over the page while the pointer rests there takes the help
+  away: the hold on the covered rows lasts while as many surfaces are
+  presented over the page as when it began, counted from the layers the
+  window composites, which every presentation is drawn as
+  (`TooltipState.heldPresentations`,
+  `WindowChromeState.presentationsOverPage`; the lane's review found the
+  help left in the bar over a sheet a key presented, and its second review
+  over a sheet docked live, which never holds the input,
   `HelpRunLoopTests.heldHelpOnACoveredRowGoesUnderASheet`).
   Left: a pointer that moves along a covered row lets the help go, the row
   comes back under it, and the help returns after its delay; and a view
   removed from the page while the pointer rests on its covered row keeps
-  its help up until the pointer moves.
+  its help up until the pointer moves, as does a frame that takes one
+  surface down as it puts another up.
 - **No `.entered` for a view a reshape slides under a pointer resting on
   nothing — fixed (lane BUGS13).** The dispatcher re-resolved the hover
   after a reshape only for a lane that was already hovering something (the
