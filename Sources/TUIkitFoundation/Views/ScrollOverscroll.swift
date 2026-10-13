@@ -303,6 +303,11 @@ extension View {
     /// The "N more above/below" indicators count content, so they ignore the
     /// excursion entirely: pushing past the bottom does not invent rows below.
     ///
+    /// Reaches `ScrollView`, `List` and `Table`, but not the scrollers the
+    /// framework puts around a tall menu, a sheet's or a framed container's
+    /// content (the scrollables in that content do), so it gives no slack to
+    /// a dialog's body or an overflowing `GroupBox`.
+    ///
     /// - Parameters:
     ///   - top: The allowance above the content. Defaults to ``ScrollOverscroll/none``.
     ///   - bottom: The allowance below it. Defaults to ``ScrollOverscroll/none``.
