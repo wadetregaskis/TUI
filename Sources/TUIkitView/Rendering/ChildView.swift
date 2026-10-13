@@ -116,6 +116,18 @@ public struct ChildView {
     /// itself, through ``wrappedView``.
     public let providesAlignmentGuide: Bool
 
+    /// Whether this child's type MAY carry a layout value — a
+    /// `.layoutPriority(_:)` — read once from the static witness
+    /// ``View/_providesLayoutValues``: a stack asks every child for its
+    /// priority on every pass, and this answers `false` for almost all of
+    /// them with a load rather than a witness call through the existential.
+    /// Only when it is `true` is the view walked for the value, and the walk
+    /// asks the witness of each view it passes, so a wrapper put round the
+    /// member since (``rewrapped(by:)``, ``modified(by:)``) that lays it out
+    /// anew still hides the priority. Stored after the alignment-guide flag,
+    /// in what was the struct's tail padding: its stride stays 128 bytes.
+    package let providesLayoutValues: Bool
+
     /// Resolves a child's spacer flag and minimum length without a speculative
     /// runtime conformance cast on the common (non-spacer) path.
     ///
@@ -184,6 +196,7 @@ public struct ChildView {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
         self.providesAlignmentGuide = Self.guideInfo(of: view)
+        self.providesLayoutValues = V._providesLayoutValues
         self.view = view
         self.identityType = nil
         self.childIndex = 0
@@ -205,6 +218,7 @@ public struct ChildView {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
         self.providesAlignmentGuide = Self.guideInfo(of: view)
+        self.providesLayoutValues = V._providesLayoutValues
         self.view = view
         self.identityType = V.self
         self.childIndex = childIndex
@@ -224,6 +238,7 @@ public struct ChildView {
         spacerMinLength: Int?,
         zIndex: Double,
         providesAlignmentGuide: Bool,
+        providesLayoutValues: Bool,
         resolvedIdentity: ViewIdentity? = nil
     ) {
         self.view = view
@@ -235,6 +250,7 @@ public struct ChildView {
         self.spacerMinLength = spacerMinLength
         self.zIndex = zIndex
         self.providesAlignmentGuide = providesAlignmentGuide
+        self.providesLayoutValues = providesLayoutValues
         self.resolvedIdentity = resolvedIdentity
     }
 
@@ -266,7 +282,7 @@ public struct ChildView {
             view: view, identityType: identityType, childIndex: childIndex,
             identityKey: identityKey, providerSlot: providerSlot, isSpacer: isSpacer,
             spacerMinLength: spacerMinLength, zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolved)
     }
 
@@ -298,7 +314,7 @@ public struct ChildView {
                 view: view, identityType: nil, childIndex: childIndex,
                 identityKey: identityKey, providerSlot: providerSlot, isSpacer: isSpacer,
                 spacerMinLength: spacerMinLength, zIndex: zIndex,
-                providesAlignmentGuide: providesAlignmentGuide,
+                providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
                 resolvedIdentity: branch)
         }
         guard let identityKey, providerSlot == ProviderSlot.unnamespaced else {
@@ -308,7 +324,7 @@ public struct ChildView {
             view: view, identityType: identityType, childIndex: childIndex,
             identityKey: identityKey, providerSlot: ProviderSlot.resolvedInBranch,
             isSpacer: isSpacer, spacerMinLength: spacerMinLength, zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolvedIdentity ?? branch.child(erasedType: identityType, key: identityKey))
     }
 
@@ -357,7 +373,8 @@ public struct ChildView {
             view: view, identityType: identityType ?? type(of: view), childIndex: childIndex,
             identityKey: key, providerSlot: ProviderSlot.resolvedInBranch, isSpacer: isSpacer,
             spacerMinLength: spacerMinLength, zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide, resolvedIdentity: resolvedIdentity)
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
+            resolvedIdentity: resolvedIdentity)
     }
 
     /// This child with `modifier` wrapped around it — what a provider hands
@@ -396,7 +413,7 @@ public struct ChildView {
             isSpacer: isSpacer,
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolvedIdentity)
     }
 
@@ -418,7 +435,7 @@ public struct ChildView {
             isSpacer: isSpacer,
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolvedIdentity)
     }
 
@@ -480,7 +497,7 @@ public struct ChildView {
                 isSpacer: isSpacer,
                 spacerMinLength: spacerMinLength,
                 zIndex: zIndex,
-                providesAlignmentGuide: providesAlignmentGuide,
+                providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
                 resolvedIdentity: resolved)
         }
         let resolvedType = identityType ?? type(of: view)
@@ -493,7 +510,7 @@ public struct ChildView {
             isSpacer: isSpacer,
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: parent.map { $0.child(erasedType: resolvedType, index: index) })
     }
 
@@ -558,7 +575,7 @@ public struct ChildView {
             isSpacer: isSpacer,
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolved)
     }
 
@@ -582,6 +599,7 @@ public struct ChildView {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
         self.providesAlignmentGuide = Self.guideInfo(of: view)
+        self.providesLayoutValues = V._providesLayoutValues
         self.view = view
         self.identityType = identityType
         self.childIndex = childIndex
@@ -599,6 +617,7 @@ public struct ChildView {
         (self.isSpacer, self.spacerMinLength) = Self.spacerInfo(of: view)
         self.zIndex = Self.zIndexInfo(of: view)
         self.providesAlignmentGuide = Self.guideInfo(of: view)
+        self.providesLayoutValues = V._providesLayoutValues
         self.view = view
         self.identityType = identityType
         self.childIndex = 0

@@ -149,11 +149,17 @@ extension LayoutSubview {
 /// read through every single-content wrapper written after it, as SwiftUI
 /// keeps it, and through a member's proxy to the member.
 ///
-/// The static witness (``View/_providesLayoutValues``) gates the walk, so a
-/// child whose type sets no layout value costs one witness call.
+/// The child's stored flag (``ChildView/providesLayoutValues``, the static
+/// witness ``View/_providesLayoutValues`` read when the child was made) gates
+/// the walk, so a child whose type sets no layout value — almost every child
+/// of almost every stack — costs one load, where asking the witness here,
+/// through the existential, was a witness call per child per pass in every
+/// stack: the one per-frame cost the stacks' priorities added everywhere, and
+/// the A/B that landed them was +0.3% to +2.0% across the sweep.
 @MainActor
 func layoutPriority(of child: ChildView) -> Double {
-    layoutPriority(ofView: child.wrappedView)
+    guard child.providesLayoutValues else { return 0 }
+    return layoutPriority(ofView: child.wrappedView)
 }
 
 @MainActor
