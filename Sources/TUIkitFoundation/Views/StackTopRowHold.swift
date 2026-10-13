@@ -241,19 +241,20 @@ extension _VStackCore {
     /// (`holdingDesignatedRow`), or else the row at the top. Returns the
     /// offset to report — the designation's, which wins over the seek's (the
     /// seek chose a row and the designation then held it, so the corrected
-    /// offset is the one drawn), the seek's, or the hold's — and whether the
+    /// offset is the one drawn), the seek's, or the hold's — whether it is the
+    /// hold's (``ScrollContentReply/resolvedOffsetIsHold``), and whether the
     /// row at the top was found where it was.
     func holdingRow(
         after seeking: (window: ScrollContentWindow, resolved: Int?), children: ChildViewCollection,
         state: StackWindowState, rows: TopRowGeometry, rowHeight: Int, totalHeight: Int,
         context: RenderContext
-    ) -> (window: ScrollContentWindow, resolved: Int?, verified: Bool) {
+    ) -> (window: ScrollContentWindow, resolved: Int?, isHold: Bool, verified: Bool) {
         var (window, designated) = holdingDesignatedRow(
             in: seeking.window, children: children, state: state, rowY: rows.y, rowHeight: rowHeight,
             totalHeight: totalHeight, context: context)
-        if let resolved = designated ?? seeking.resolved { return (window, resolved, false) }
+        if let resolved = designated ?? seeking.resolved { return (window, resolved, false, false) }
         let topRow = holdingTopRow(in: &window, rows: rows, state: state)
-        return (window, topRow.resolved, topRow.verified)
+        return (window, topRow.resolved, true, topRow.verified)
     }
 
     /// The exact walk's placement: a pending seek re-aims the window — exact
@@ -284,7 +285,7 @@ extension _VStackCore {
             return (window, false)
         }
         let topRow = holdingTopRow(in: &window, rows: rows, state: uniformWindowState(context: context))
-        if let resolved = topRow.resolved { window.reply?.seekResolvedOffset = resolved }
+        window.reply?.reportResolvedOffset(topRow.resolved, isHold: true)
         return (window, topRow.verified)
     }
 

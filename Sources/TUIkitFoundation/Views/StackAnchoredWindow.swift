@@ -849,8 +849,9 @@ extension _VStackCore {
         // Answer the seek only on success: a nil (spacer bail) falls to the
         // exact path, which re-resolves against its own geometry. A hold that
         // moved the offset after the seek has the last word.
-        if buffer != nil, let offset = heldOffset ?? resolvedSeek ?? topRowOffset {
-            window.reply?.seekResolvedOffset = offset
+        if buffer != nil {
+            window.reply?.reportResolvedOffset(
+                heldOffset ?? resolvedSeek ?? topRowOffset, isHold: heldOffset == nil && resolvedSeek == nil)
         }
         if buffer != nil {
             recordDrawnRows(

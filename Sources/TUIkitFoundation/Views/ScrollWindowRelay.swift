@@ -105,6 +105,7 @@ struct ScrollWindowRelay {
         if let id = contentReply.anchorID { reply.anchorID = id }
         if let offset = contentReply.seekResolvedOffset {
             reply.seekResolvedOffset = offset + linesAbove
+            reply.resolvedOffsetIsHold = contentReply.resolvedOffsetIsHold
         }
         if contentReply.measureWentStale { reply.measureWentStale = true }
         if let rows = contentReply.targetLayoutRows {

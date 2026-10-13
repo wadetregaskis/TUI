@@ -755,7 +755,11 @@ is still as far before the place, with rows inserted above both: the place is
 held, where SwiftUI, its row gone, holds nothing (case 2; decisions
 B-SCROLLANCHOR-6). The correction
 reaches the scroll view as a designation's does, as `seekResolvedOffset`, and is
-adopted as one is (`jumpProgrammatically`): a frame that holds drops an
+adopted as one is (`jumpProgrammatically`) — except that a focus move made in
+the same frame is still revealed (`resolvedOffsetIsHold`): the hold moved with
+the content at no one's request, where a seek or a designated row overrules the
+reveal. Treated as a seek's, it turned the reveal off, and Tab onto the row below
+the screen as rows arrived above left the focus off screen. A frame that holds drops an
 overscroll excursion (§1.5), as a seek does. Only a push past the bottom can be
 standing then — at the top nothing is held — and only under an allowance the
 app asked for.

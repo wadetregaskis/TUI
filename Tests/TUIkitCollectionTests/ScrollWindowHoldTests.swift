@@ -359,6 +359,75 @@ struct ScrollWindowHoldTests {
         #expect(scroller.frame() == before, "before: \(before)")
     }
 
+    /// The hold moves the offset at no one's request, so a focus move in the
+    /// same frame is revealed as on any other: Tab onto the row below the
+    /// screen as rows arrive above. Reported as a seek's offset is, the hold
+    /// turned the reveal off for its frame, and the focused row stayed off
+    /// screen.
+    @Test("Focus moved off screen in the frame that holds the top row is revealed")
+    func focusIsRevealedOnAHoldingFrame() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var items = Array(0..<60)
+        var position = ScrollPosition()
+        func frame() -> [String] {
+            let view = ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(items, id: \.self) { Button("row \($0)") {} }
+                }
+            }
+            .scrollPosition(Binding(get: { position }, set: { position = $0 }))
+            var environment = EnvironmentValues()
+            environment.focusManager = focusManager
+            environment.verticalScrollIndicatorVisibility = .hidden
+            environment.applyRuntimeServices(from: tuiContext)
+            let context = RenderContext(
+                availableWidth: 20, availableHeight: 8, environment: environment, tuiContext: tuiContext)
+            tuiContext.preferences.beginRenderPass()
+            tuiContext.stateStorage.beginRenderPass()
+            tuiContext.renderCache.beginRenderPass()
+            focusManager.beginRenderPass()
+            let buffer = renderToBuffer(view, context: context)
+            focusManager.endRenderPass()
+            tuiContext.stateStorage.endRenderPass()
+            tuiContext.renderCache.removeInactive()
+            return buffer.lines.map { $0.stripped }
+        }
+        func shown(_ lines: [String]) -> [Int] {
+            lines.compactMap { line in line.firstMatch(of: /row (\d+)/).flatMap { Int($0.1) } }
+        }
+        func focusedRow() -> Int? {
+            focusManager.currentFocusedID.flatMap { $0.matches(of: /\[(\d+)\]/).last }.flatMap { Int($0.1) }
+        }
+        _ = frame()
+        position.scrollTo(y: 30)
+        _ = frame()
+        _ = frame()
+        // The last row on screen focused, and revealed if it was not.
+        let onScreen = shown(frame())
+        guard let last = onScreen.last,
+            let id = focusManager.registeredFocusIDsInActiveSection().first(where: { $0.contains("[\(last)]") })
+        else {
+            Issue.record("precondition: rows on screen \(onScreen)")
+            return
+        }
+        focusManager.focus(id: id)
+        let before = frame()
+        #expect(focusedRow() == last && shown(before).contains(last), "precondition: \(before)")
+        // Then, in one frame, rows inserted above and focus moved to the row
+        // below the screen.
+        items.insert(contentsOf: 1_000..<1_005, at: 0)
+        focusManager.focusNext()
+        let after = frame()
+        guard let focused = focusedRow() else {
+            Issue.record("precondition: a row focused")
+            return
+        }
+        #expect(focused == last + 1, "precondition: focus moved on")
+        #expect(shown(after).contains(focused), "before: \(before)\nafter:  \(after)")
+        #expect(shown(after).contains(last), "the rows on screen held: \(after)")
+    }
+
     // MARK: - List and Table
 
     enum ListKind: String, CaseIterable, Sendable { case list, table, multiLineTable }

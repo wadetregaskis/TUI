@@ -302,7 +302,10 @@ extension _ScrollViewCore {
     ) -> (
         buffer: FrameBuffer,
         slice: (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?,
-        seekOffset: Int?,
+        /// The offset the content rendered at in answer to a seek, a
+        /// designated row or the top-row hold, and whether it is only the
+        /// hold's (``ScrollContentReply/resolvedOffsetIsHold``).
+        seek: (offset: Int, isHold: Bool)?,
         /// The extents the content was rendered against. Returned rather than
         /// left inside because the horizontal axis is metered from the WIDTH of
         /// them: the buffer is a band now, and a caller that had to fall back to
@@ -404,7 +407,7 @@ extension _ScrollViewCore {
                 // The first drawing held what there was to hold; this one,
                 // at the offset that drawing settled on, only keeps track.
                 topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
-            redrawn.seekOffset = contentReply.seekResolvedOffset
+            redrawn.seek = contentReply.seekResolvedOffset.map { ($0, contentReply.resolvedOffsetIsHold) }
             return redrawn
         }
         if let id = reply?.anchorID, let handler, !context.isMeasuring {
@@ -420,10 +423,12 @@ extension _ScrollViewCore {
         if let handler { settleUserPositioning(handler: handler, context: context) }
         if let reply, let origin = reply.sliceOriginY, let total = reply.sliceTotalHeight {
             return (
-                buffer, (origin, total, reply.sliceTotalIsEstimate), reply.seekResolvedOffset,
-                extents, nil, placement)
+                buffer, (origin, total, reply.sliceTotalIsEstimate),
+                reply.seekResolvedOffset.map { ($0, reply.resolvedOffsetIsHold) }, extents, nil, placement)
         }
-        return (buffer, nil, reply?.seekResolvedOffset, extents, reply?.drawnLines, placement)
+        return (
+            buffer, nil, reply?.seekResolvedOffset.map { ($0, reply?.resolvedOffsetIsHold ?? false) }, extents,
+            reply?.drawnLines, placement)
     }
 
     // MARK: Windowing

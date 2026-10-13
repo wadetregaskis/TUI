@@ -277,6 +277,22 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
     /// found (an unknown id is a no-op, as in SwiftUI).
     var seekResolvedOffset: Int?
 
+    /// Whether ``seekResolvedOffset`` is the top-row hold's
+    /// (``ScrollContentWindow/topRowHold``): the content above the rows on
+    /// screen changed and the offset moved with it, at no one's request. The
+    /// scroll view adopts it as it adopts a seek's, but still reveals a focus
+    /// move made in the same frame, which a seek's offset or a designated
+    /// row's overrules.
+    var resolvedOffsetIsHold = false
+
+    /// Reports `offset`, when there is one, as the offset the stack rendered
+    /// at (``seekResolvedOffset``), and whether it is the top-row hold's.
+    func reportResolvedOffset(_ offset: Int?, isHold: Bool) {
+        guard let offset else { return }
+        seekResolvedOffset = offset
+        resolvedOffsetIsHold = isHold
+    }
+
     /// The content lines a FULL-HEIGHT reply drew for real, when it drew only
     /// some: the full walk under 256 rows (`renderViewportWindow`) returns the
     /// whole canvas, but only the rows around the offset it was given are

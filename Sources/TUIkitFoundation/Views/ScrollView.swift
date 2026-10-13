@@ -612,7 +612,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             seek: pendingSeek, edgeInset: chrome.edgeInset, handler: handler, checkpoint: checkpoint,
             context: context, settledExtents: settledExtents,
             topRowHold: topRowHold(handler: handler, glued: wasGluedToBottom, placed: requested || pendingSeek != nil, context: context))
-        let (seekOffset, contentExtent) = (firstDrawing.seekOffset, firstDrawing.extents)
+        let (seekOffset, contentExtent) = (firstDrawing.seek?.offset, firstDrawing.extents)
         var drawing = ScrollContentDrawing(
             buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines,
             placement: firstDrawing.placement)
@@ -670,7 +670,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             // outside the viewport this reveal reasons about, and treating the
             // last content line as covered scrolled a control already on screen.
             indicatorsActive: chrome.overwritesEdgeLines,
-            suppressed: seekOffset != nil,
+            // A seek's offset, or a designated row's, wins over the reveal; the
+            // top-row hold's moved with the content, and a focus move made in
+            // the same frame is revealed: suppressed, it stayed off screen.
+            suppressed: seekOffset != nil && firstDrawing.seek?.isHold != true,
             context: context)
         coverSnappedViewport(
             handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,

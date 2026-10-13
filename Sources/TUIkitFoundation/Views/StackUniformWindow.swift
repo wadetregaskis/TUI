@@ -460,7 +460,7 @@ extension _VStackCore {
         // it nor a seek, the row at the top keeps its line as the content
         // above it changes (`StackTopRowHold.swift`).
         let topRows = TopRowGeometry(count: count, key: { children.key(at: $0) }, y: { $0 * pitch })
-        var (window, resolved, verified) = holdingRow(
+        var (window, resolved, resolvedIsHold, verified) = holdingRow(
             after: seeking, children: children, state: state, rows: topRows, rowHeight: extent,
             totalHeight: totalHeight, context: context)
         // The offset can lie past the content THIS hypothesis describes: the
@@ -557,7 +557,7 @@ extension _VStackCore {
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo
-        if let resolved { window.reply?.seekResolvedOffset = resolved }
+        window.reply?.reportResolvedOffset(resolved, isHold: resolvedIsHold)
         state.rememberTopRow(
             atLine: window.offset, of: totalHeight, hold: window.topRowHold, ordinal: { $0 / pitch }, in: topRows, verified: verified)
         return result
