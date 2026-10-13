@@ -13,8 +13,11 @@ import Foundation
 /// In SwiftUI, `UITextContentType` provides autofill hints to the system.
 /// In a TUI there is no autofill, so `TextContentType` instead defines an
 /// **allowed character set** for input filtering. Both typed characters and
-/// pasted text are filtered against the allowed set; invalid characters are
-/// silently dropped.
+/// pasted text are filtered against the allowed set: a character that could
+/// not be part of a valid value is dropped, and the terminal's bell rings —
+/// once for a paste, however many it drops — so input is never refused in
+/// silence. Each set admits every character a valid value may hold, not just
+/// the common ones.
 ///
 /// ## Usage
 ///
@@ -40,21 +43,26 @@ import Foundation
 /// | Type              | Allowed Characters                            |
 /// |-------------------|-----------------------------------------------|
 /// | `url`             | Alphanumeric, `:/.?#[]@!$&'()*+,;=-_~%`       |
-/// | `emailAddress`    | Alphanumeric, `@._+-`                         |
-/// | `telephoneNumber` | `0-9`, `+()-. #*`, space                      |
+/// | `emailAddress`    | Alphanumeric, `@.` and ``!#$%&'*+-/=?^_`{|}~`` |
+/// | `telephoneNumber` | `0-9`, `+()-./ #*`, space                     |
 /// | `username`        | Alphanumeric, `._-@`                          |
 /// | `password`        | All characters (no filtering)                 |
 /// | `oneTimeCode`     | `0-9`                                         |
-/// | `integer`         | `0-9`, `-`                                    |
-/// | `decimal`         | `0-9`, `-.`                                   |
+/// | `integer`         | `0-9`, `+-`                                   |
+/// | `decimal`         | `0-9`, `+-`, `.,`                             |
+///
+/// "Alphanumeric" is Unicode's letters and digits, so an internationalised
+/// address or URL (RFC 6531, RFC 3987) is admitted.
 public enum TextContentType: Sendable, Equatable {
     /// URL input. Allows alphanumeric characters and URL-safe punctuation.
     case url
 
-    /// Email address input. Allows alphanumeric characters, `@`, `.`, `_`, `+`, `-`.
+    /// Email address input. Allows alphanumeric characters, `@`, `.`, and the
+    /// rest of what RFC 5322 lets an unquoted local part hold:
+    /// ``!#$%&'*+-/=?^_`{|}~``.
     case emailAddress
 
-    /// Telephone number input. Allows digits, `+`, `(`, `)`, `-`, `.`, `#`, `*`, space.
+    /// Telephone number input. Allows digits, `+`, `(`, `)`, `-`, `.`, `/`, `#`, `*`, space.
     case telephoneNumber
 
     /// Username input. Allows alphanumeric characters, `.`, `_`, `-`, `@`.
@@ -66,10 +74,11 @@ public enum TextContentType: Sendable, Equatable {
     /// One-time code input. Allows digits only.
     case oneTimeCode
 
-    /// Integer input. Allows digits and `-` for negative numbers.
+    /// Integer input. Allows digits and a sign, `+` or `-`.
     case integer
 
-    /// Decimal number input. Allows digits, `-`, and `.` for fractional numbers.
+    /// Decimal number input. Allows digits, a sign, and `.` or `,` for the
+    /// fractional part, whichever the user's locale writes.
     case decimal
 }
 
@@ -130,17 +139,24 @@ extension TextContentType {
         return set
     }()
 
-    /// Email address characters.
+    /// Email address characters: RFC 5322's `atext` (what an unquoted local
+    /// part may hold), the `.` between its atoms, and the `@`. A domain's
+    /// letters, digits, `-` and `.` are among them. A quoted local part
+    /// (`"a b"@example.com`) or a domain literal (`user@[192.0.2.1]`) is not
+    /// admitted: valid, but not what anyone types into an address field.
     fileprivate static let emailCharacters: CharacterSet = {
         var set = CharacterSet.alphanumerics
-        set.insert(charactersIn: "@._+-")
+        set.insert(charactersIn: "!#$%&'*+-/=?^_`{|}~.@")
         return set
     }()
 
-    /// Telephone number characters.
+    /// Telephone number characters: digits, the international prefix, the
+    /// keypad's `#` and `*`, and the separators numbers are written with —
+    /// RFC 3966's visual separators `-.()`, a space, and the `/` of national
+    /// formats (`030/123456`).
     fileprivate static let phoneCharacters: CharacterSet = {
         var set = CharacterSet(charactersIn: "0123456789")
-        set.insert(charactersIn: "+()-. #*")
+        set.insert(charactersIn: "+()-./ #*")
         set.insert(charactersIn: " ")
         return set
     }()
@@ -155,9 +171,10 @@ extension TextContentType {
     /// Digits only.
     fileprivate static let digitCharacters = CharacterSet(charactersIn: "0123456789")
 
-    /// Integer characters (digits and minus sign).
-    fileprivate static let integerCharacters = CharacterSet(charactersIn: "0123456789-")
+    /// Integer characters: digits and a sign.
+    fileprivate static let integerCharacters = CharacterSet(charactersIn: "0123456789+-")
 
-    /// Decimal characters (digits, minus sign, and decimal point).
-    fileprivate static let decimalCharacters = CharacterSet(charactersIn: "0123456789-.")
+    /// Decimal characters: digits, a sign, and either decimal separator — `.`,
+    /// or the `,` that German, French and most of Europe write.
+    fileprivate static let decimalCharacters = CharacterSet(charactersIn: "0123456789+-.,")
 }

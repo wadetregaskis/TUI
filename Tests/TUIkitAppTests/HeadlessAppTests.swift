@@ -39,6 +39,26 @@ private struct TypingPage: View {
 }
 
 /// A marker that a button moves ten cells across inside `withAnimation`.
+/// An integer field, focused at launch, for the bell a refused key rings.
+private struct IntegerFieldApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup { IntegerFieldPage() }
+    }
+}
+
+private struct IntegerFieldPage: View {
+    @State private var text = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TextField("Count", text: $text).textContentType(.integer)
+            Text("echo: \(text)")
+        }
+    }
+}
+
 private struct SlidingApp: App {
     init() {}
 
@@ -162,6 +182,21 @@ struct HeadlessAppTests {
         app.frame(atNanos: 16_666_667)
         #expect(shows("echo: hello", on: app.screen))
         #expect(app.bytesWritten > 0)
+    }
+
+    /// The field turns a letter away and rings the bell; the run loop writes it
+    /// with the next frame, once, ahead of the frame's cells.
+    @Test("A key a field's content type turns away rings the terminal's bell at the next frame")
+    func refusedKeyRingsTheBell() {
+        let app = HeadlessApp(IntegerFieldApp(), width: 40, height: 10)
+        app.frame(atNanos: 0)
+        app.send(KeyEvent(key: .character("7")))
+        app.frame(atNanos: 16_666_667)
+        #expect(app.bellsWritten == 0, "a key the field took rang the bell")
+        for character in "ab" { app.send(KeyEvent(key: .character(character))) }
+        app.frame(atNanos: 33_333_334)
+        #expect(shows("echo: 7", on: app.screen))
+        #expect(app.bellsWritten == 1, "two refused keys before one frame ring one bell")
     }
 
     /// The harness exists to watch what an app draws, and what an app draws

@@ -358,7 +358,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
                 focusID: persistedFocusID,
                 text: text,
                 canBeFocused: !isDisabled,
-                clipboard: context.environment.clipboardAccess
+                clipboard: context.environment.clipboardAccess,
+                bell: context.environment.terminalBell
             )
         )
         let handler = handlerBox.value

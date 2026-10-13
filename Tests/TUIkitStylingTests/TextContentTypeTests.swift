@@ -22,7 +22,8 @@ struct TextContentTypeTests {
         "Each type keeps exactly the characters it documents",
         arguments: [
             (TextContentType.url, "http://a.com/x y<>", "http://a.com/xy"),
-            (.emailAddress, "a b@c!.d+e-f_g", "ab@c.d+e-f_g"),
+            // `!` is RFC 5322 `atext`; a space and a comma are not.
+            (.emailAddress, "a b@c!.d+e-f_g,", "ab@c!.d+e-f_g"),
             (.telephoneNumber, "+1 (555) 123-4567 ext#9*", "+1 (555) 123-4567 #9*"),
             (.username, "us er!na.me-1@x", "userna.me-1@x"),
             (.oneTimeCode, "12ab34", "1234"),

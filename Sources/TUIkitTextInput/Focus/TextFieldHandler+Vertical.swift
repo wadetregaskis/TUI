@@ -166,7 +166,10 @@ extension TextFieldHandler {
     /// Ctrl-O: inserts a newline and leaves the caret in front of it, opening
     /// the rest of the line onto a new one below.
     func openLine() {
-        guard textContentType?.isAllowed("\n") ?? true else { return }
+        guard textContentType?.isAllowed("\n") ?? true else {
+            bell?.ring()
+            return
+        }
         // Where the newline goes: the caret, or the start of the selection it
         // replaces.
         let start = selectionRange?.lowerBound ?? cursorPosition

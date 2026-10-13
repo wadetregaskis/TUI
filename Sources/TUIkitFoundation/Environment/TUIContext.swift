@@ -325,6 +325,10 @@ package final class TUIContext: @unchecked Sendable {
     /// control uses makes. See ``ScreenSelection``.
     package let screenSelection = ScreenSelection()
 
+    /// The terminal's bell, rung when a control turns input away, and the
+    /// `BEL` owed to the terminal at the next frame. See ``TerminalBell``.
+    package let terminalBell = TerminalBell()
+
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
     package var clipboardAccess: ClipboardAccess { _clipboardAccess }

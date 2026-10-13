@@ -956,6 +956,9 @@ extension RenderLoop {
         // go with the other out-of-band writes, ahead of every cell.
         let copies = tuiContext.clipboardWriter.takePendingSequences()
         if !copies.isEmpty { terminal.write(copies) }
+        // The bell a control rang for input it turned away, likewise.
+        let bell = tuiContext.terminalBell.takePending()
+        if !bell.isEmpty { terminal.write(bell) }
 
         // The terminal holds its display from here to the frame's end, if the
         // frame writes more than one row. After the transmissions, which draw

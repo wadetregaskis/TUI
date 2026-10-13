@@ -145,6 +145,12 @@ final class TextFieldHandler: PersistedFocusable {
     /// is not a convenience.
     var clipboard: ClipboardAccess
 
+    /// The bell this field rings for a character its ``textContentType``
+    /// turns away, typed or pasted: its environment's when it was created
+    /// (the running app's), so a refusal is never silent; `nil` for a handler
+    /// made with none.
+    var bell: TerminalBell?
+
     /// The cursor position (character index where next input will be inserted).
     var cursorPosition: Int
 
@@ -277,17 +283,21 @@ final class TextFieldHandler: PersistedFocusable {
     ///   - clipboard: What copies and pastes go through. A field passes its
     ///     environment's; the default, for a handler made by hand, is
     ///     ``ClipboardAccess/unavailable``: no clipboard at all.
+    ///   - bell: What rings for input the content type turns away. A field
+    ///     passes its environment's; `nil` rings nothing.
     init(
         focusID: String,
         text: Binding<String>,
         canBeFocused: Bool = true,
         cursorPosition: Int? = nil,
-        clipboard: ClipboardAccess = .unavailable
+        clipboard: ClipboardAccess = .unavailable,
+        bell: TerminalBell? = nil
     ) {
         self.focusID = focusID
         self.text = text
         self.canBeFocused = canBeFocused
         self.clipboard = clipboard
+        self.bell = bell
         self.cursorPosition = cursorPosition ?? text.wrappedValue.count
         self.selectionAnchor = nil
     }
@@ -774,7 +784,10 @@ extension TextFieldHandler {
     ///
     /// - Parameter char: The character to insert.
     func insertCharacter(_ char: Character) {
-        guard textContentType?.isAllowed(char) ?? true else { return }
+        guard textContentType?.isAllowed(char) ?? true else {
+            bell?.ring()
+            return
+        }
 
         resetSuggestionNavigation()
         pushUndoState()

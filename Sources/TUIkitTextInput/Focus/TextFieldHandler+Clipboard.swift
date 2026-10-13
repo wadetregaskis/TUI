@@ -81,9 +81,12 @@ extension TextFieldHandler {
             : string.replacingOccurrences(of: "\n", with: "")
                 .replacingOccurrences(of: "\r", with: "")
 
-        // Filter by content type if set.
+        // Filter by content type if set, and ring the bell once for whatever
+        // it turned away, so a paste is never cut short in silence.
         if let contentType = textContentType {
-            sanitized = contentType.filterString(sanitized)
+            let filtered = contentType.filterString(sanitized)
+            if filtered.count != sanitized.count { bell?.ring() }
+            sanitized = filtered
         }
         guard !sanitized.isEmpty else { return }
 

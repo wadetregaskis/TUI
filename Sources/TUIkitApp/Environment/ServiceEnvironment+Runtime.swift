@@ -30,6 +30,7 @@ extension EnvironmentValues {
         dragAndDropSession = context.dragAndDropSession
         typedClipboard = context.typedClipboard
         clipboardAccess = context.clipboardAccess
+        terminalBell = context.terminalBell
         urlOpener = context.urlOpener
         screenSelection = context.screenSelection
         tooltipState = context.tooltipState

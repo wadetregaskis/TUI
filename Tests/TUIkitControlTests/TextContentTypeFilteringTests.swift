@@ -116,4 +116,99 @@ struct TextContentTypeFilteringTests {
         #expect(type("a7b", secure: false, contentType: nil) == "a7b")
         #expect(type("a7b", secure: true, contentType: nil) == "a7b")
     }
+
+    // MARK: - Never in silence (deviation T8, the owner's ruling of 2026-10-13)
+
+    @Test("A typed character the content type turns away rings the bell; one it takes does not")
+    func typingRingsForWhatItRefuses() {
+        let (handler, box) = makeHandler(.integer)
+        let bell = TerminalBell(requestFrame: {})
+        handler.bell = bell
+        handler.insertCharacter("7")
+        #expect(bell.ringCount == 0)
+        handler.insertCharacter("a")
+        #expect(bell.ringCount == 1)
+        #expect(box.text == "7")
+    }
+
+    @Test("A paste rings the bell once for whatever it drops, and a clean paste not at all")
+    func pasteRingsOnce() {
+        let (handler, box) = makeHandler(.integer)
+        let bell = TerminalBell(requestFrame: {})
+        handler.bell = bell
+        handler.insertText("12")
+        #expect(bell.ringCount == 0)
+        handler.insertText("3a4b5c")
+        #expect(bell.ringCount == 1)
+        #expect(box.text == "12345")
+    }
+
+    @Test("A bell rung many times between frames is one BEL at the next")
+    func oneBellAFrame() {
+        let frames = TextBox("")
+        let bell = TerminalBell(requestFrame: { frames.text += "f" })
+        bell.ring()
+        bell.ring()
+        bell.ring()
+        #expect(frames.text == "fff", "a ring did not ask for the frame that sounds it")
+        #expect(bell.takePending() == "\u{07}")
+        #expect(bell.takePending().isEmpty)
+    }
+
+    /// The field takes its environment's bell when it is made, so a typed
+    /// refusal from a real `TextField` or `SecureField` rings the app's.
+    @MainActor
+    @Test("A field's refusal rings its environment's bell")
+    func fieldsRingTheirEnvironmentsBell() {
+        func rings(secure: Bool) -> Int {
+            let box = StateBox("")
+            let binding = Binding(get: { box.value }, set: { box.value = $0 })
+            let focusManager = FocusManager()
+            let bell = TerminalBell(requestFrame: {})
+            let context = makeRenderContext { environment, _ in
+                environment.focusManager = focusManager
+                environment.terminalBell = bell
+            }
+            let field =
+                secure
+                ? AnyView(SecureField("secret", text: binding)) : AnyView(TextField("label", text: binding))
+            focusManager.beginRenderPass()
+            _ = renderToBuffer(field.textContentType(.oneTimeCode), context: context)
+            focusManager.endRenderPass()
+            for character in "1x2" { _ = focusManager.dispatchKeyEvent(KeyEvent(key: .character(character))) }
+            #expect(box.value == "12")
+            return bell.ringCount
+        }
+        #expect(rings(secure: false) == 1)
+        #expect(rings(secure: true) == 1)
+    }
+
+    // MARK: - Every valid character
+
+    @Test(
+        "Each type admits every character a valid value holds",
+        arguments: [
+            (TextContentType.emailAddress, "o'brien+tag!#$%&*/=?^_`{|}~.x@mail-host.example"),
+            (.emailAddress, "jörg@bücher.example"),
+            (.integer, "+42"),
+            (.integer, "-42"),
+            (.decimal, "+3,25"),
+            (.decimal, "-3.25"),
+            (.telephoneNumber, "+49 (030) 123-45.67/89 #*"),
+        ])
+    func admitsValidValues(contentType: TextContentType, value: String) {
+        #expect(contentType.filterString(value) == value)
+    }
+
+    @Test(
+        "Each type still turns away what no valid value holds",
+        arguments: [
+            (TextContentType.emailAddress, "a b,c;d<e>f@g", "abcdef@g"),
+            (.integer, "4.2", "42"),
+            (.decimal, "1e5", "15"),
+            (.telephoneNumber, "030-CALL-NOW", "030--"),
+        ])
+    func refusesInvalidCharacters(contentType: TextContentType, value: String, kept: String) {
+        #expect(contentType.filterString(value) == kept)
+    }
 }

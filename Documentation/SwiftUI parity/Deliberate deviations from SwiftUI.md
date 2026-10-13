@@ -838,17 +838,16 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** `textContentType(_:)` is a hint for autofill (Apple's
   documentation).
 - **TUIkit:** a terminal has no autofill, so the content type is an allowed
-  character set: typed and pasted characters outside it are dropped silently
-  (`.oneTimeCode` takes digits only, `.emailAddress` letters, digits and
-  `@._+-`).
+  character set: typed and pasted characters that no valid value holds are
+  dropped, and the terminal's bell rings — once for a paste, however many it
+  drops (`.oneTimeCode` takes digits only, `.emailAddress` letters, digits,
+  `@`, `.` and the rest of RFC 5322's ``!#$%&'*+-/=?^_`{|}~``).
 - **Why:** a terminal has no autofill, so the type was given a meaning a
   terminal can carry.
 - **Decided:** [TextContentType.swift](../../Sources/TUIkitStyling/Styles/TextContentType.swift#L11-L17).
   **Owner** (2026-10-13): kept: "We should not accept invalid characters in
   an email address field", but not silently: a dropped character rings the
-  terminal's bell. The sets are to admit every valid character (an address's
-  local part may hold ``!#$%&'*/=?^`{|}~``, which `.emailAddress` drops today);
-  [slated](#slated-to-change).
+  terminal's bell, and each set admits every character a valid value holds.
 
 ### T9. A date field's order is fixed
 
@@ -1498,7 +1497,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | No badge names a drop's operation | [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>) | Owner 2026-10-05 approved the badge proposal and on 2026-10-12 confirmed the single-width glyphs; lane owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | The built-in stacks ignore `layoutPriority` (L12) | [L12](#l12-layoutpriority-is-read-only-by-a-custom-layout) | Owner 2026-10-13: support it properly; lane owed |
-| `textContentType`'s filter drops characters silently, and `.emailAddress` drops some valid ones (T8) | [T8](#t8-textcontenttype-filters-what-can-be-typed) | Owner 2026-10-13: keep the filter, ring the bell for a dropped character, admit every valid character; lane owed |
 | A `Picker` or a text field's suggestions find nothing inside a view of the app's own, a `Section`, a `Group`, an `AnyView`, or behind a modifier after `.tag` (V7) | [V7](#v7-a-picker-does-not-find-options-inside-a-view-of-the-apps-own) | Owner 2026-10-13: fix, through the member resolution; lane owed |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |

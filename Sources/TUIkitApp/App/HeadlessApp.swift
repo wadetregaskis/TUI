@@ -177,6 +177,9 @@ package final class HeadlessApp<A: App> {
     /// How many bytes every frame so far has written to the terminal.
     package var bytesWritten: Int { terminal.bytesWritten }
 
+    /// How many times a frame rang the terminal's bell (``TerminalBell``).
+    package var bellsWritten: Int { terminal.bellsWritten }
+
     /// The app's render cache, for what its counters say about the frames: how
     /// many rows were served and how many drawn, what the memos hit.
     package var renderCache: RenderCache { tuiContext.renderCache }
@@ -216,13 +219,19 @@ private final class EventClock {
 final class InMemoryTerminal: TerminalProtocol {
     var size: (width: Int, height: Int)
     private(set) var bytesWritten = 0
+    /// How many lone `BEL`s were written: the terminal's bell, which a frame
+    /// writes as a write of its own (``TerminalBell/takePending()``).
+    private(set) var bellsWritten = 0
 
     init(width: Int, height: Int) {
         size = (width, height)
     }
 
     func getSize() -> (width: Int, height: Int) { size }
-    func write(_ string: String) { bytesWritten &+= string.utf8.count }
+    func write(_ string: String) {
+        bytesWritten &+= string.utf8.count
+        if string == "\u{07}" { bellsWritten += 1 }
+    }
     func readKeyEvent() -> KeyEvent? { nil }
     func enableRawMode() {}
     func disableRawMode() {}
