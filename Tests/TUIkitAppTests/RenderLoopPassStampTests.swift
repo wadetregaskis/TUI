@@ -36,15 +36,19 @@ private struct StateMakingView: View {
     }
 }
 
-/// An app whose body notes the pass it is evaluated in.
+/// An app whose body notes the pass it is evaluated in, in a log of its own:
+/// not a static one, which a second run of the test in the process would find
+/// holding the first run's passes.
 private struct PassNotingApp: App {
-    @MainActor static let log = PassLog()
+    let log: PassLog
 
-    init() {}
+    init() { log = PassLog() }
+
+    init(log: PassLog) { self.log = log }
 
     var body: some Scene {
-        Self.log.appBody.append(StateRegistration.renderPass)
-        return WindowGroup { StateMakingView(log: Self.log) }
+        log.appBody.append(StateRegistration.renderPass)
+        return WindowGroup { StateMakingView(log: log) }
     }
 }
 
@@ -52,13 +56,17 @@ private struct PassNotingApp: App {
 @Suite("Render loop pass stamps")
 struct RenderLoopPassStampTests {
     /// Each frame is one pass to its end: the app's body and a view's body
-    /// both read it, and the next frame is another.
-    @Test("A frame the run loop draws is one render pass, which a @State made in a view's body notes")
-    func frameBindsItsRenderPass() {
-        let app = HeadlessApp(PassNotingApp(), width: 20, height: 4)
+    /// both read it, and the next frame is another. Run twice, as a repeated
+    /// run of the suite in one process runs it: each run reads its own app's
+    /// passes.
+    @Test(
+        "A frame the run loop draws is one render pass, which a @State made in a view's body notes",
+        arguments: 1...2)
+    func frameBindsItsRenderPass(run _: Int) {
+        let log = PassLog()
+        let app = HeadlessApp(PassNotingApp(log: log), width: 20, height: 4)
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
-        let log = PassNotingApp.log
         #expect(!log.appBody.isEmpty && !log.appBody.contains(0), "app body: \(log.appBody)")
         #expect(!log.made.isEmpty && !log.made.contains(0), "made: \(log.made)")
         #expect(Set(log.appBody) == Set(log.made), "one pass per frame: \(log.appBody) \(log.made)")
