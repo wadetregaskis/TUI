@@ -605,31 +605,42 @@ package enum TerminalHost {
     }
 
     /// Runs one tmux command with a bounded wait, returning its stdout, or `nil`
-    /// on any failure (tmux missing, non-zero exit, or the deadline passing).
-    ///
-    /// The wait is BOUNDED: tmux answers in a few milliseconds, but a wedged
-    /// server — `SIGSTOP`, a stuck socket — could otherwise block forever on the
-    /// unbounded `readDataToEndOfFile`/`waitUntilExit` this replaces. Exit is
-    /// polled against the deadline; reading is deferred until the child has
-    /// exited, which cannot itself block because every command sent through here
-    /// answers with at most a few lines, far under the pipe buffer.
+    /// on any failure (tmux missing, non-zero exit, or the deadline passing):
+    /// ``runBounded(_:)`` with tmux's arguments.
     private static func runTmux(_ arguments: [String]) -> String? {
+        runBounded(["tmux"] + arguments)
+    }
+
+    /// Runs one command, found on `PATH`, with a bounded wait, returning its
+    /// stdout, or `nil` on any failure (the program missing, a non-zero exit, or
+    /// the deadline passing).
+    ///
+    /// The wait is BOUNDED: the commands sent through here answer in a few
+    /// milliseconds, but a wedged one — a tmux server under `SIGSTOP`, a stuck
+    /// socket — could otherwise block forever on the unbounded
+    /// `readDataToEndOfFile`/`waitUntilExit` this replaces. Exit is polled
+    /// against the deadline; reading is deferred until the child has exited,
+    /// which cannot itself block only because every command sent through here
+    /// answers with at most a few lines, far under the pipe buffer. A command
+    /// that may say more must not use this.
+    package static func runBounded(_ command: [String]) -> String? {
         #if canImport(WASILibc)
-            // No subprocesses on wasip1, and nothing to ask: a wasm program in a
-            // browser is not inside tmux. `nil` is the same answer a machine
-            // without tmux on its PATH gives, and every caller already handles it.
+            // No subprocesses on wasip1, and nothing to ask: a wasm program in
+            // a browser is not inside tmux, nor on a desktop. `nil` is the
+            // answer a machine without the program on its PATH gives, and every
+            // caller already handles it.
             return nil
         #else
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["tmux"] + arguments
+        process.arguments = command
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
         do {
             try process.run()
         } catch {
-            return nil  // no tmux on PATH, or exec refused
+            return nil  // not on PATH, or exec refused
         }
         let deadline = MonotonicClock.nowNanoseconds &+ UInt64(commandTimeoutMilliseconds) &* 1_000_000
         while process.isRunning {
@@ -645,8 +656,8 @@ package enum TerminalHost {
         #endif
     }
 
-    /// How long ``runTmux(_:)`` waits for tmux before giving up and failing
-    /// closed. Two orders of magnitude above tmux's normal few-ms reply, so a
+    /// How long ``runBounded(_:)`` waits before giving up and failing closed.
+    /// Two orders of magnitude above tmux's normal few-ms reply, so a
     /// loaded machine is not mistaken for a wedged one, yet short enough to be
     /// invisible on the rare occasions a command runs.
     private static let commandTimeoutMilliseconds = 250
