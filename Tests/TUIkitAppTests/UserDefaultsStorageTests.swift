@@ -190,4 +190,87 @@ struct UserDefaultsStorageTests {
             }
         }
     }
+
+    #if canImport(Darwin)
+    // MARK: - Property-list values (A18b)
+
+    private enum Fruit: String, Codable {
+        case apple, pear
+    }
+
+    /// The suite's own `UserDefaults`, as an app reading it directly sees it.
+    private static func defaults(_ suite: String) -> UserDefaults {
+        UserDefaults(suiteName: suite) ?? .standard
+    }
+
+    @Test("A property-list value is stored as itself, as SwiftUI's AppStorage stores it")
+    func propertyListValuesAreStoredAsThemselves() {
+        Self.withSuite { suite, key in
+            let storage = UserDefaultsStorage(suiteName: suite)
+            let defaults = Self.defaults(suite)
+            storage.setValue(true, forKey: key)
+            #expect(defaults.object(forKey: key) as? Bool == true && defaults.bool(forKey: key))
+            storage.setValue(42, forKey: key)
+            #expect(defaults.integer(forKey: key) == 42)
+            storage.setValue(1.5, forKey: key)
+            #expect(defaults.double(forKey: key) == 1.5)
+            storage.setValue("hello", forKey: key)
+            #expect(defaults.string(forKey: key) == "hello")
+            let date = Date(timeIntervalSince1970: 1_000_000)
+            storage.setValue(date, forKey: key)
+            #expect(defaults.object(forKey: key) as? Date == date)
+            storage.setValue(Data([1, 2, 3]), forKey: key)
+            #expect(defaults.data(forKey: key) == Data([1, 2, 3]))
+            let url = URL(string: "https://example.com/notes")
+            storage.setValue(url, forKey: key)
+            #expect(defaults.url(forKey: key) == url)
+            storage.setValue(Fruit.pear, forKey: key)
+            #expect(defaults.string(forKey: key) == "pear", "a raw-representable is kept as its raw value")
+        }
+    }
+
+    @Test("What UserDefaults' own setters stored is read, as SwiftUI's AppStorage reads it")
+    func ownSettersAreRead() {
+        Self.withSuite { suite, key in
+            let storage = UserDefaultsStorage(suiteName: suite)
+            let defaults = Self.defaults(suite)
+            defaults.set(7, forKey: key)
+            #expect(storage.value(forKey: key) == Optional(7))
+            defaults.set(true, forKey: key)
+            #expect(storage.value(forKey: key) == Optional(true))
+            defaults.set("apple", forKey: key)
+            #expect(storage.value(forKey: key) == Optional(Fruit.apple))
+            #expect(storage.value(forKey: key) == Optional("apple"))
+            defaults.set("banana", forKey: key)
+            #expect(storage.value(forKey: key) == Fruit?.none, "a raw value of no case is absent")
+        }
+    }
+
+    @Test("An optional's nil removes the key, which then reads as absent")
+    func optionalNilRemoves() {
+        Self.withSuite { suite, key in
+            let storage = UserDefaultsStorage(suiteName: suite)
+            let defaults = Self.defaults(suite)
+            storage.setValue(String?("kept"), forKey: key)
+            #expect(defaults.string(forKey: key) == "kept")
+            let kept: String?? = storage.value(forKey: key)
+            #expect(kept == .some(.some("kept")))
+            storage.setValue(String?.none, forKey: key)
+            #expect(defaults.object(forKey: key) == nil)
+            let absent: String?? = storage.value(forKey: key)
+            #expect(absent == .none, "absent, so the wrapper's default stands")
+        }
+    }
+
+    @Test("Any other Codable value is kept as its JSON encoding, a TUIkit extension")
+    func otherCodableIsJSON() {
+        Self.withSuite { suite, key in
+            let storage = UserDefaultsStorage(suiteName: suite)
+            let value = Settings(name: "hello", count: 3, enabled: true)
+            storage.setValue(value, forKey: key)
+            let stored = Self.defaults(suite).data(forKey: key).flatMap { try? JSONDecoder().decode(Settings.self, from: $0) }
+            #expect(stored == value)
+        }
+    }
+    #endif
 }

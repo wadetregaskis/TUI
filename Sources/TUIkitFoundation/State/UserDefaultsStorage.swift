@@ -18,6 +18,12 @@ import TUIkitCore
     /// store, a `store: .standard`, a `UserDefaults(suiteName:)` made afresh
     /// each time a view is — and a write through any one of them redraws the
     /// views that read the key through any other (see `sharedKeys`).
+    ///
+    /// A property-list value — a `Bool`, an `Int`, a `String` and the rest
+    /// (`PropertyListValue`) — is kept as itself, as SwiftUI's `AppStorage`
+    /// keeps it, so `UserDefaults`' own getters read what an `@AppStorage`
+    /// wrote and an `@AppStorage` reads what they set. Any other `Codable`
+    /// value is kept as its JSON encoding.
     public final class UserDefaultsStorage: StorageBackend, @unchecked Sendable {
         /// The underlying UserDefaults.
         private let defaults: UserDefaults
@@ -85,6 +91,13 @@ import TUIkitCore
         /// Write failures, which are genuinely lossy, DO report (see
         /// ``store(_:forKey:)``).
         public func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
+            // A property-list value is read as itself, every time: there are no
+            // bytes to keep a decoding of.
+            if let stored = PropertyListValue.read(T.self, from: defaults, forKey: key) {
+                lock.lock()
+                defer { lock.unlock() }
+                return (stored, entryLocked(key).key)
+            }
             let data = defaults.data(forKey: key)
             lock.lock()
             defer { lock.unlock() }
@@ -93,12 +106,20 @@ import TUIkitCore
             return (entry.value(as: T.self), entry.key)
         }
 
-        /// Stores `value` for `key`, JSON-encoded.
+        /// Stores `value` for `key`: as itself where `UserDefaults` keeps such
+        /// a value (`PropertyListValue`), JSON-encoded otherwise.
         ///
         /// An encode failure is reported through ``StorageDiagnostics``,
         /// unlike the read path: a value that cannot be written is data the
         /// user expected to keep, so it is worth surfacing.
         public func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
+            if PropertyListValue.write(value, to: defaults, forKey: key) {
+                lock.lock()
+                defer { lock.unlock() }
+                let entry = entryLocked(key)
+                entry.clear()
+                return entry.key
+            }
             let data: Data
             do {
                 data = try JSONEncoder().encode(value)
@@ -153,6 +174,104 @@ import TUIkitCore
         /// lifecycle calls it at shutdown.
         public func synchronize() {
             defaults.synchronize()
+        }
+    }
+
+    // MARK: - Property-list values
+
+    /// An `Optional`, seen through its type: what a stored optional's `nil`
+    /// removes, and what its wrapped type keeps.
+    private protocol PropertyListOptional {
+        /// The wrapped value, or `nil`.
+        var wrappedPropertyListValue: Any? { get }
+        /// The wrapped type.
+        static var wrappedPropertyListType: Any.Type { get }
+    }
+
+    extension Optional: PropertyListOptional {
+        var wrappedPropertyListValue: Any? { map { $0 as Any } }
+        static var wrappedPropertyListType: Any.Type { Wrapped.self }
+    }
+
+    /// The values `UserDefaults` keeps as themselves, as SwiftUI's
+    /// `AppStorage` keeps them: a `Bool`, an `Int`, a `Double`, a `String`, a
+    /// `Date`, `Data`, a `URL` (through `UserDefaults`' own URL methods), a
+    /// type whose raw value is an `Int` or a `String` (as its raw value), and
+    /// the optionals of these, whose `nil` removes the key. So
+    /// `UserDefaults.standard.bool(forKey:)` reads what an `@AppStorage` of a
+    /// `Bool` wrote, as it does under SwiftUI. Any other `Codable` value — a
+    /// TUIkit extension — is kept as its JSON encoding.
+    enum PropertyListValue {
+        /// Whether `type` is kept as itself.
+        static func isPropertyList(_ type: Any.Type) -> Bool {
+            if let optional = type as? any PropertyListOptional.Type {
+                return isPropertyList(optional.wrappedPropertyListType)
+            }
+            if let raw = type as? any RawRepresentable.Type { return rawIsPropertyList(raw) }
+            return type == Bool.self || type == Int.self || type == Double.self || type == String.self
+                || type == Date.self || type == Data.self || type == URL.self
+        }
+
+        private static func rawIsPropertyList<R: RawRepresentable>(_: R.Type) -> Bool {
+            R.RawValue.self == Int.self || R.RawValue.self == String.self
+        }
+
+        /// Writes `value` as itself — removing the key for an optional's
+        /// `nil` — or returns `false` where `T` is not kept as itself.
+        static func write<T>(_ value: T, to defaults: UserDefaults, forKey key: String) -> Bool {
+            guard isPropertyList(T.self) else { return false }
+            switch object(value) {
+            case nil: defaults.removeObject(forKey: key)
+            case let url as URL: defaults.set(url, forKey: key)
+            case let object?: defaults.set(object, forKey: key)
+            }
+            return true
+        }
+
+        /// The object `UserDefaults` keeps for `value`: its raw value for a
+        /// raw-representable, the wrapped value's for an optional, `nil` for
+        /// an optional's `nil`.
+        private static func object(_ value: Any) -> Any? {
+            if let optional = value as? any PropertyListOptional {
+                return optional.wrappedPropertyListValue.flatMap(object)
+            }
+            if let raw = value as? any RawRepresentable { return raw.rawValue }
+            return value
+        }
+
+        /// The value stored for `key` as `T` — `.some(nil)` where it is
+        /// absent or of another type — or `nil` where `T` is not kept as
+        /// itself.
+        static func read<T>(_: T.Type, from defaults: UserDefaults, forKey key: String) -> T?? {
+            guard isPropertyList(T.self) else { return nil }
+            // Absent is `nil`, for an optional `T` too: cast, a missing
+            // value would become an optional's `nil` and stand in for the
+            // caller's default.
+            guard let found = value(T.self, from: defaults, forKey: key) else { return .some(nil) }
+            return .some(found as? T)
+        }
+
+        /// The value stored for `key` as `type`, or `nil`.
+        private static func value(_ type: Any.Type, from defaults: UserDefaults, forKey key: String) -> Any? {
+            if let optional = type as? any PropertyListOptional.Type {
+                return value(optional.wrappedPropertyListType, from: defaults, forKey: key)
+            }
+            if type == URL.self { return defaults.url(forKey: key) }
+            guard let object = defaults.object(forKey: key) else { return nil }
+            if let raw = type as? any RawRepresentable.Type { return fromRawValue(raw, object) }
+            switch type {
+            case is Bool.Type: return object as? Bool
+            case is Int.Type: return object as? Int
+            case is Double.Type: return object as? Double
+            case is String.Type: return object as? String
+            case is Date.Type: return object as? Date
+            case is Data.Type: return object as? Data
+            default: return nil
+            }
+        }
+
+        private static func fromRawValue<R: RawRepresentable>(_: R.Type, _ object: Any) -> Any? {
+            (object as? R.RawValue).flatMap(R.init(rawValue:))
         }
     }
 
