@@ -75,12 +75,13 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show and edit, one row per element.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the selected element's id (`nil` = none).
+    ///   - selection: A binding to the selected element's id (`nil` = none),
+    ///     or `nil` for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
         editActions: EditActions<Data>,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
@@ -97,12 +98,13 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show and edit, one row per element.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the set of selected element ids.
+    ///   - selection: A binding to the set of selected element ids, or `nil`
+    ///     for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
         editActions: EditActions<Data>,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
@@ -124,13 +126,14 @@ extension List where Footer == EmptyView {
     ///   - data: The collection to show and edit, one row per element.
     ///   - id: The key path to each element's stable identity.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the selected id (`nil` = none).
+    ///   - selection: A binding to the selected id (`nil` = none), or `nil`
+    ///     for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
         id: KeyPath<Data.Element, SelectionValue>,
         editActions: EditActions<Data>,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
@@ -151,13 +154,14 @@ extension List where Footer == EmptyView {
     ///   - data: The collection to show and edit, one row per element.
     ///   - id: The key path to each element's stable identity.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the set of selected ids.
+    ///   - selection: A binding to the set of selected ids, or `nil` for a
+    ///     list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
         id: KeyPath<Data.Element, SelectionValue>,
         editActions: EditActions<Data>,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where

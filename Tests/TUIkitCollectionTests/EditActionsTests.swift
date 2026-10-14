@@ -271,4 +271,36 @@ struct EditActionsTests {
         ) { $row in Text(row.name) }
         _ = List(fixture.binding, id: \.name, editActions: .all) { $row in Text(row.name) }
     }
+
+    /// SwiftUI's edit-action forms take an optional binding, as every other
+    /// `List` selection form does: `selection: isEditing ? $selection : nil`.
+    @Test("An edit-action list's selection binding may itself be nil", arguments: [false, true])
+    func optionalSelectionBinding(selecting: Bool) {
+        let fixture = Fixture([Row(id: 1, name: "a"), Row(id: 2, name: "b")])
+        var single: Int?
+        let singleBinding = Binding(get: { single }, set: { single = $0 })
+        let view = List(fixture.binding, editActions: .all, selection: selecting ? singleBinding : nil) { $row in
+            Text(row.name)
+        }
+        fixture.render(view.frame(height: 8))
+        fixture.render(view.frame(height: 8))
+        fixture.handler?.focusedIndex = 1
+        fixture.handler?.toggleSelectionAtFocusedIndex()
+        #expect(single == (selecting ? 2 : nil))
+        var several: Set<Int> = []
+        var name: String?
+        var names: Set<String> = []
+        let severalBinding = Binding(get: { several }, set: { several = $0 })
+        let nameBinding = Binding(get: { name }, set: { name = $0 })
+        let namesBinding = Binding(get: { names }, set: { names = $0 })
+        _ = List(fixture.binding, editActions: .all, selection: selecting ? severalBinding : nil) { $row in
+            Text(row.name)
+        }
+        _ = List(fixture.binding, id: \.name, editActions: .all, selection: selecting ? nameBinding : nil) { $row in
+            Text(row.name)
+        }
+        _ = List(fixture.binding, id: \.name, editActions: .all, selection: selecting ? namesBinding : nil) { $row in
+            Text(row.name)
+        }
+    }
 }
