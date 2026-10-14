@@ -78,7 +78,7 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // the section's parts since a section outside a `List` became its parts
     // (B16). The body is evaluated as a render evaluates it — `@State` bound
     // here, `@Environment` resolved, observed — and read one step in.
-    if isCompositeHandingOverChildren(V.self), walk.stateStorage != nil {
+    if readsThroughBody(V.self), walk.stateStorage != nil {
         // As a stack's members are (`compositeMembers(of:context:)`): what the
         // walk hands a class property's `@Environment`s is put back after the
         // content of the composite around the form, not after these rows.
@@ -86,6 +86,22 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
         return formElements(from: body, in: walk.withChildIdentity(type: V.Body.self))
     }
     return [.row(_FormRow(.plain(AnyView(view))))]
+}
+
+/// Whether the form reads through the body of a view of type `V`: a view of
+/// the app's own whose body is several views, a loop, an `if` or a section —
+/// what a stack takes apart — or whose body is one view the form itself takes
+/// apart, a `LabeledContent` above all: `struct NameRow: View { var body: some
+/// View { LabeledContent("Name") { TextField(…) } } }` is a labelled row of the
+/// form, its field in the control column, as SwiftUI's form lays out the same
+/// row written bare. A body of any other one view is the view's own business,
+/// drawn as a row whole.
+@MainActor
+private func readsThroughBody<V: View>(_ type: V.Type) -> Bool {
+    if isCompositeHandingOverChildren(V.self) { return true }
+    guard V.Body.self != Never.self, !(type is any ChildViewProvider.Type), !(type is any Renderable.Type)
+    else { return false }
+    return V.Body.self is any FormContentExtractor.Type
 }
 
 /// Stamps an explicit alignment onto an element's row(s), without clobbering an

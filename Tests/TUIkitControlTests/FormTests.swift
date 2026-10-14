@@ -78,6 +78,31 @@ struct FormTests {
         #expect(aliceCol != nil && aliceCol == valueCol, "value column aligns: \(out)")
     }
 
+    /// A labelled row of the app's own: its body is one `LabeledContent`.
+    private struct NameRow: View {
+        var body: some View {
+            LabeledContent("Name", value: "Alice")
+        }
+    }
+
+    @Test("A view of the app's own whose body is one LabeledContent is a labelled row, on the pillar")
+    func ownLabeledRow() {
+        // The deviations sweep's likely bug 7 (semantic audit 8): such a view
+        // was a plain full-width row, out of the label column; SwiftUI's form
+        // lays it out as the row written bare.
+        let out = lines(
+            Form {
+                NameRow()
+                LabeledContent("Email", value: "a@b.c")
+            })
+        let nameRow = out.first { $0.contains("Alice") } ?? ""
+        let emailRow = out.first { $0.contains("a@b.c") } ?? ""
+        #expect(nameRow.hasPrefix(" Name "), "\(out)")
+        let aliceCol = nameRow.firstRange(of: "Alice").map { nameRow.distance(from: nameRow.startIndex, to: $0.lowerBound) }
+        let valueCol = emailRow.firstRange(of: "a@b.c").map { emailRow.distance(from: emailRow.startIndex, to: $0.lowerBound) }
+        #expect(aliceCol != nil && aliceCol == valueCol, "value column aligns: \(out)")
+    }
+
     /// A label of several lines is placed as one block at the pillar's
     /// trailing edge, its lines leading inside it: SwiftUI's columns `Form`
     /// draws "a" over "longer label" beside "a much longer label" with the
