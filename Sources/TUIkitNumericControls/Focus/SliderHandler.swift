@@ -49,6 +49,11 @@ final class SliderHandler<V: BinaryFloatingPoint>: PersistedFocusable where V.St
     /// as ``bounds``.
     var step: V.Stride
 
+    /// Where the grid of steps starts: the whole range's lower bound, which a
+    /// click on the track snaps from too (``stepped(_:by:step:origin:)``).
+    /// Mutable for the same reason as ``bounds``.
+    var gridOrigin: V
+
     /// How many steps a Shift-accelerated arrow press takes. Set from
     /// `environment.shiftStepMultiplier` during render (default 5); a plain arrow
     /// (and the `+`/`-` keys) take one. See ``View/shiftStepMultiplier(_:)``.
@@ -88,6 +93,7 @@ final class SliderHandler<V: BinaryFloatingPoint>: PersistedFocusable where V.St
         self.value = value
         self.bounds = bounds
         self.step = step
+        self.gridOrigin = bounds.lowerBound
         self.canBeFocused = canBeFocused
     }
 }
@@ -134,16 +140,34 @@ extension SliderHandler {
 // MARK: - Value Manipulation
 
 extension SliderHandler {
-    /// Increments the value by `multiplier` step sizes (default one).
+    /// Increments the value by `multiplier` step sizes (default one), along
+    /// the grid a click snaps to.
     func increment(multiplier: Int = 1) {
-        let newValue = value.wrappedValue + V(step) * V(multiplier)
+        let newValue = Self.stepped(value.wrappedValue, by: multiplier, step: step, origin: gridOrigin)
         value.wrappedValue = min(bounds.upperBound, newValue)
     }
 
-    /// Decrements the value by `multiplier` step sizes (default one).
+    /// Decrements the value by `multiplier` step sizes (default one), along
+    /// the grid a click snaps to.
     func decrement(multiplier: Int = 1) {
-        let newValue = value.wrappedValue - V(step) * V(multiplier)
+        let newValue = Self.stepped(value.wrappedValue, by: -multiplier, step: step, origin: gridOrigin)
         value.wrappedValue = max(bounds.lowerBound, newValue)
+    }
+
+    /// The value `steps` steps from `value` along the grid of `step`s from
+    /// `origin` — the grid a click on the track snaps to — so the keys, the
+    /// wheel and the pointer land on the same values. A value off the grid,
+    /// one the app wrote, moves to the grid's next value that way rather than
+    /// a whole step past it. Unclamped.
+    static func stepped(_ value: V, by steps: Int, step: V.Stride, origin: V) -> V {
+        let stride = V(step)
+        let position = (value - origin) / stride
+        // On the grid — within a millionth of a step of a grid value, the
+        // grid's own values carrying the float error of `origin + k * step` —
+        // a value moves by whole steps from where it is, as it always has.
+        guard stride > 0, abs(position - position.rounded()) > 1e-6 else { return value + stride * V(steps) }
+        let from = steps > 0 ? position.rounded(.down) : position.rounded(.up)
+        return origin + (from + V(steps)) * stride
     }
 
     /// Jumps to the minimum value.

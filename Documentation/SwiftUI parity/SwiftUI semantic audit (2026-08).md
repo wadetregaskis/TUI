@@ -841,6 +841,7 @@ verifier corrected the analyst, both are shown.
 - *Verifier's correction:* Real, but as an internal inconsistency rather than an established SwiftUI divergence: TUIkit's mouse path snaps to the step lattice and its keyboard/arrow-button/wheel paths do not, in direct contradiction of applyTrackValue's own comment (Slider.swift:744-747). Only reachable once the value is off-lattice — an app-supplied or restored value, or floating-point drift, since repeated `v + 0.1` accumulates error (0.30000000000000004) where `lowerBound + n*step` does not. Fix by snapping in SliderHandler.increment/decrement; severity is a self-inconsistency/FP-drift bug, not a documented SwiftUI parity break.
 - *Recommendation:* Snap in SliderHandler.increment/decrement the way applyTrackValue does — lowerBound + round((v - lowerBound)/step + n) * step. Prefer that to quantising in clampValue(), which would compound with the write-back finding above.
 
+- *Status:* **FIXED** (2026-10-14): the keys, the arrow buttons and the wheel step along the grid a click snaps to (`SliderHandler.stepped(_:by:step:origin:)`, from the whole range's lower bound); a value already on it moves by whole steps from where it is, as before — `SliderStepGridTests`.
 **70. `Slider.init(value:in:step:onEditingChanged:)`**
 
 - *SwiftUI:* swiftui-docs/Slider.md, repeated on every onEditingChanged-bearing initializer: "The slider calls `onEditingChanged` when editing begins and ends. For example, on iOS, editing begins when the user starts to drag the thumb along the slider's track."

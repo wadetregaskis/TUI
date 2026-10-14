@@ -171,6 +171,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         handler.value = value
         handler.bounds = selectableBounds
         handler.step = step
+        handler.gridOrigin = bounds.lowerBound
         handler.canBeFocused = !isDisabled
         // Captured at render so Shift+arrow can accelerate at event time.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
@@ -375,15 +376,20 @@ struct _SliderCore: View, Renderable, Layoutable {
         let selectable = self.selectableBounds
         let step = self.step
 
+        // Along the grid a click snaps to, as the keys step.
         let decrementOnce: @MainActor () -> Void = {
             value.wrappedValue = min(
                 selectable.upperBound,
-                max(selectable.lowerBound, value.wrappedValue - step))
+                max(
+                    selectable.lowerBound,
+                    SliderHandler.stepped(value.wrappedValue, by: -1, step: step, origin: bounds.lowerBound)))
         }
         let incrementOnce: @MainActor () -> Void = {
             value.wrappedValue = min(
                 selectable.upperBound,
-                max(selectable.lowerBound, value.wrappedValue + step))
+                max(
+                    selectable.lowerBound,
+                    SliderHandler.stepped(value.wrappedValue, by: 1, step: step, origin: bounds.lowerBound)))
         }
         let stopArrowTimers: @MainActor () -> Void = {
             leftArrowTimer.stop()
