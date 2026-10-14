@@ -97,6 +97,17 @@ public struct ScrollViewReader<Content: View>: View {
 
 // MARK: - Registry
 
+/// A scrolling view a ``ScrollViewProxy`` reaches: a `ScrollView`'s handler,
+/// or a `List`'s or a `Table`'s, each resolving the request its next render
+/// finds parked against its own rows.
+package protocol ScrollToTarget: AnyObject {
+    /// The request the next render resolves, one-shot: cleared whether or not
+    /// the key was found, as an unknown id is a no-op in SwiftUI.
+    var pendingScrollTo: ScrollToRequest? { get set }
+}
+
+extension ScrollViewHandler: ScrollToTarget {}
+
 /// The rendezvous between a proxy (used at event time or from async
 /// contexts) and the scroll views in a reader's content (which register
 /// during render): `scrollTo` parks the request on every live handler and
@@ -105,9 +116,9 @@ public struct ScrollViewReader<Content: View>: View {
 /// Not `@MainActor` — like the handlers themselves, it is only ever touched
 /// from the render loop and event dispatch (both main-actor); staying
 /// nonisolated lets `@State` hold it and view inits create it.
-final class ScrollToRegistry: @unchecked Sendable {
+package final class ScrollToRegistry: @unchecked Sendable {
     private struct Entry {
-        weak var handler: ScrollViewHandler?
+        weak var handler: (any ScrollToTarget)?
         let identity: ViewIdentity
         /// The link of the cache the scroll view rendered with: the queue a
         /// `@State` write reports to. Not the cache, and not weakly — see
@@ -121,8 +132,8 @@ final class ScrollToRegistry: @unchecked Sendable {
     /// next `scrollTo`.
     private var entries: [String: Entry] = [:]
 
-    /// Registers (or refreshes) a scroll view for this frame.
-    func register(handler: ScrollViewHandler, identity: ViewIdentity, renderCache: RenderCache?) {
+    /// Registers (or refreshes) a scrolling view for this frame.
+    package func register(handler: any ScrollToTarget, identity: ViewIdentity, renderCache: RenderCache?) {
         entries[identity.path] = Entry(
             handler: handler, identity: identity, renderCacheLink: renderCache?.link)
     }
@@ -168,7 +179,7 @@ final class ScrollToRegistry: @unchecked Sendable {
 /// the frame that made it, held weakly, so a scroll view served from a memo
 /// keeps the entry it made when it was last drawn.
 extension ScrollToRegistry: Equatable {
-    static func == (lhs: ScrollToRegistry, rhs: ScrollToRegistry) -> Bool { lhs === rhs }
+    package static func == (lhs: ScrollToRegistry, rhs: ScrollToRegistry) -> Bool { lhs === rhs }
 }
 
 // MARK: - Environment
@@ -181,7 +192,7 @@ extension EnvironmentValues {
     /// The enclosing ``ScrollViewReader``'s registry, which the scroll
     /// views in its content register with each render pass. `nil` outside
     /// any reader.
-    var scrollToRegistry: ScrollToRegistry? {
+    package var scrollToRegistry: ScrollToRegistry? {
         get { self[ScrollToRegistryKey.self] }
         set { self[ScrollToRegistryKey.self] = newValue }
     }

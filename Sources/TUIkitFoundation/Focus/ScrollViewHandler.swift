@@ -260,7 +260,14 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// handshake and adopts the offset the content answers with. Cleared
     /// whether or not the key was found: an unknown id is a no-op, as in
     /// SwiftUI, not a standing intent.
-    var pendingScrollTo: ScrollToRequest?
+    package var pendingScrollTo: ScrollToRequest? {
+        get { _pendingScrollTo }
+        set { _pendingScrollTo = newValue }
+    }
+
+    /// ``pendingScrollTo``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _pendingScrollTo: ScrollToRequest?
 
     /// The total natural height of the scroll view's content,
     /// computed during the layout pass.

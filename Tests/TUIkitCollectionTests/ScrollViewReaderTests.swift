@@ -95,6 +95,76 @@ struct ScrollViewReaderTests {
         #expect(jumped.contains { $0.contains("row 50003") }, "…viewport fills below: \(jumped)")
     }
 
+    @Test("scrollTo reaches a row of a List, as it does a ScrollView's")
+    func listScrollTo() {
+        // The deviations sweep's likely bug 17 (semantic audit 44): only
+        // `ScrollView` and the navigation coordinator answered the registry,
+        // so `proxy.scrollTo` in a `List` did nothing.
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        let box = ProxyBox()
+        let view = ScrollViewReader { proxy in
+            let _ = box.proxy = proxy
+            List {
+                ForEach(0..<200, id: \.self) { i in Text("row \(i)") }
+            }
+            .frame(height: Self.viewport)
+        }
+        let first = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(first.contains { $0.contains("row 0") }, "starts at the top: \(first)")
+        box.proxy?.scrollTo(120, anchor: .top)
+        let jumped = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(jumped.contains { $0.contains("row 120") }, "the list did not scroll to the row: \(jumped)")
+        #expect(!jumped.contains { $0.contains("row 0") }, "\(jumped)")
+        // `.top` puts the row on the first row line, `.bottom` on the last.
+        func labels(_ lines: [String]) -> [String] {
+            lines.compactMap { line in line.range(of: #"row \d+"#, options: .regularExpression).map { String(line[$0]) } }
+        }
+        let rowLines = labels(jumped)
+        #expect(rowLines.first == "row 120", "\(jumped)")
+        box.proxy?.scrollTo(150, anchor: .bottom)
+        let bottom = labels(renderFrame(view, tuiContext: tuiContext, focusManager: focusManager))
+        #expect(bottom.last == "row 150", "\(bottom)")
+        // With no anchor, a row already shown does not move the list, and one
+        // below it comes in at the bottom.
+        box.proxy?.scrollTo(149)
+        let still = labels(renderFrame(view, tuiContext: tuiContext, focusManager: focusManager))
+        #expect(still == bottom, "\(still) vs \(bottom)")
+        box.proxy?.scrollTo(170)
+        let minimal = labels(renderFrame(view, tuiContext: tuiContext, focusManager: focusManager))
+        #expect(minimal.last == "row 170", "\(minimal)")
+        // An id the list does not hold moves nothing.
+        box.proxy?.scrollTo(9_999, anchor: .top)
+        let unknown = labels(renderFrame(view, tuiContext: tuiContext, focusManager: focusManager))
+        #expect(unknown == minimal, "\(unknown)")
+    }
+
+    /// A row of the table below.
+    private struct Numbered: Identifiable, Sendable {
+        let id: Int
+    }
+
+    @Test("scrollTo reaches a row of a Table too")
+    func tableScrollTo() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        let box = ProxyBox()
+        let rows = (0..<200).map(Numbered.init)
+        let view = ScrollViewReader { proxy in
+            let _ = box.proxy = proxy
+            Table(rows) {
+                TableColumn("N") { (row: Numbered) in Text("item \(row.id)") }
+            }
+            .frame(height: Self.viewport + 2)
+        }
+        let first = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(first.contains { $0.contains("item 0") }, "\(first)")
+        box.proxy?.scrollTo(120, anchor: .top)
+        let jumped = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(jumped.contains { $0.contains("item 120") }, "the table did not scroll to the row: \(jumped)")
+        #expect(!jumped.contains { $0.contains("item 0") }, "\(jumped)")
+    }
+
     /// The two-axis case, which was refused by accident.
     ///
     /// One boolean used to gate both the visible-row window and the seek that

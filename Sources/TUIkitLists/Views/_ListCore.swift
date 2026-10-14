@@ -220,6 +220,17 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     /// kept once found.
     func type(at index: Int) -> ListRowType<SelectionValue> { typeAt(index) }
 
+    /// The first row a ``ScrollViewProxy/scrollTo(_:anchor:)`` key names: a
+    /// `ForEach` row by its element's id, which is its row id, stringified as
+    /// identity keys are. Asks every row's type until it finds one — once, for
+    /// a request, never on an ordinary frame.
+    func index(ofScrollKey key: String) -> Int? {
+        (0..<count).first { index in
+            guard case .content(let id) = typeAt(index) else { return false }
+            return identityKey(id) == key
+        }
+    }
+
     /// Where the row at `index` stands among its section's content rows — the
     /// index `ListStyle.alternatingRowColors` stripes by — counted exactly as the
     /// composers count: `.content` rows only, restarting after a `.header`.
@@ -1643,6 +1654,19 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         case nil:
             handler.answerRowsWhenAsked(idAt: idAt) {
                 source.allContent ? ([], []) : Self.rowAnswers(of: source)
+            }
+        }
+        // `ScrollViewProxy.scrollTo` reaches a list as it does a scroll view:
+        // registered each render with the reader around it, and the request it
+        // parks placed against this frame's rows before the offset settles.
+        if !context.isMeasuring {
+            context.environment.scrollToRegistry?.register(
+                handler: handler, identity: context.identity, renderCache: context.renderCache)
+            if let request = handler.pendingScrollTo {
+                handler.pendingScrollTo = nil
+                if let index = source.index(ofScrollKey: request.key) {
+                    handler.scroll(toRow: index, anchor: request.anchor)
+                }
             }
         }
         // Clamp, snap off the resting duplicate, apply the anchor — one sequence,

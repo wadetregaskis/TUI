@@ -489,6 +489,18 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _primaryAction: ((SelectionValue) -> Void)?
 
+    /// A parked ``ScrollViewProxy/scrollTo(_:anchor:)`` request, which the
+    /// list's or table's next render resolves against its rows
+    /// (``scroll(toRow:anchor:)``) — see ``ScrollToTarget``.
+    package var pendingScrollTo: ScrollToRequest? {
+        get { _pendingScrollTo }
+        set { _pendingScrollTo = newValue }
+    }
+
+    /// ``pendingScrollTo``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _pendingScrollTo: ScrollToRequest?
+
     /// The collapsed `NavigationSplitView`'s way to its next column, where
     /// this list is in the column on top of one
     /// (``EnvironmentValues/compactColumnAdvance``): choosing a row selects it

@@ -876,37 +876,39 @@ extension ItemListHandler {
             linesAbove = (area - 1) / 2 - max(0, min(focusedHeight - 1, index))
         }
 
-        if linesAbove <= 0 {
-            // The focused row's own above-anchor lines already overfill the space
-            // above the centre — clip into the focused row itself.
-            scrollOffset = focusedIndex
-            scrollTopClipLines = -linesAbove
-        } else {
-            // Walk up through whole rows until the required lines are covered.
-            // If the rows above run out, the row simply rests against the top.
-            let wanted = linesAbove
-            var top = focusedIndex
-            var covered = 0
-            while top > 0, covered < wanted {
-                covered += max(1, rowHeight(top - 1))
-                top -= 1
-            }
-            // Whatever the walk overshot by is clipped off the top row, so the
-            // anchor lands on the exact line it asked for. No granularity test:
-            // the row a centred anchor puts under the cursor is the same row
-            // either way, and rounding it to a row boundary — which is what the
-            // clip-zeroing forced — is what made `.row` drift by a line or
-            // three from row to row while `.line` sat still.
-            let clip = max(0, covered - wanted)
-            scrollOffset = top
-            scrollTopClipLines = clip
-        }
+        place(row: focusedIndex, linesAbove: linesAbove, rowHeight: rowHeight)
         // A centre too near the top for the header pinned there — a short
         // viewport, a tall header — would leave the cursor under it.
         revealBelowPinnedHeader(from: focusedIndex)
 
         clampScrollOffset()
         clampTopClip()
+    }
+
+    /// Scrolls so `linesAbove` content lines sit above the first line of the
+    /// row at `index`: with none or fewer, the row's own first lines are
+    /// clipped off the top; otherwise the walk goes up through whole rows until
+    /// the lines are covered, and clips its overshoot off the top row, so the
+    /// row lands on the exact line asked for. With too few rows above it, the
+    /// row rests against the top. Unclamped.
+    func place(row index: Int, linesAbove: Int, rowHeight: (Int) -> Int) {
+        if linesAbove <= 0 {
+            scrollOffset = index
+            scrollTopClipLines = -linesAbove
+            return
+        }
+        var top = index
+        var covered = 0
+        while top > 0, covered < linesAbove {
+            covered += max(1, rowHeight(top - 1))
+            top -= 1
+        }
+        // No granularity test: the row a centred anchor puts under the cursor
+        // is the same row either way, and rounding it to a row boundary — which
+        // is what the clip-zeroing forced — is what made `.row` drift by a line
+        // or three from row to row while `.line` sat still.
+        scrollOffset = top
+        scrollTopClipLines = max(0, covered - linesAbove)
     }
 
     /// The number of rows of context the follow margin keeps visible beyond

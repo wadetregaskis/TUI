@@ -1720,6 +1720,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // stale, the first blocked tick resolved against a fresh handler's
         // default of 1.
         handler.resolveOverscroll(context: context, contentHeight: contentHeight)
+        resolveScrollTo(handler, rows: data, context: context)
         // Clamp, snap off the resting duplicate, apply the anchor — the sequence
         // `_ListCore` and the single-line path below run too, and the render-pass
         // guard that has to wrap it. See `settleScrollPosition`.
@@ -1727,9 +1728,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             measuring: context.isMeasuring, overflowing: furthest > 0,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: heightOf(0))
-        handler.singleSelection = singleSelection
-        handler.multiSelection = multiSelection
-        handler.compactColumnAdvance = context.environment.compactColumnAdvance
+        bindSelection(handler, context: context)
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. `engageFocus`
         // still runs with the true answer: it publishes the Escape claim and
@@ -2789,16 +2788,39 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // windowed List path (_ListCore.resolvePopulatedHandler).
         handler.idAt = { data[$0].id }
         handler.itemIDs = []
+        resolveScrollTo(handler, rows: data, context: context)
         // As the multi-line path — see `settleScrollPosition`. Rows here are one
         // line each, so the snap's line-granularity exception can never apply.
         handler.settleScrollPosition(
             measuring: context.isMeasuring, overflowing: overflowing,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: 1)
+        bindSelection(handler, context: context)
+        return (handler, overflowing)
+    }
+
+    /// Hands the handler the selection it writes, and a collapsed split's way
+    /// to its next column where the table is in the column on top of one — the
+    /// same on both of the table's paths.
+    private func bindSelection(_ handler: ItemListHandler<Value.ID>, context: RenderContext) {
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
         handler.compactColumnAdvance = context.environment.compactColumnAdvance
-        return (handler, overflowing)
+    }
+
+    /// `ScrollViewProxy.scrollTo` reaching the table, as it reaches a `List`:
+    /// the handler registered each render with the reader around it, and the
+    /// request it parks placed against this frame's rows, found by their ids,
+    /// before the offset settles.
+    private func resolveScrollTo(_ handler: ItemListHandler<Value.ID>, rows: [Value], context: RenderContext) {
+        guard !context.isMeasuring else { return }
+        context.environment.scrollToRegistry?.register(
+            handler: handler, identity: context.identity, renderCache: context.renderCache)
+        guard let request = handler.pendingScrollTo else { return }
+        handler.pendingScrollTo = nil
+        if let index = rows.firstIndex(where: { identityKey($0.id) == request.key }) {
+            handler.scroll(toRow: index, anchor: request.anchor)
+        }
     }
 
     /// The table's content width: the selection gutter plus the columns and their

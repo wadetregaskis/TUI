@@ -345,15 +345,15 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
 /// the SwiftUI-parity anchor. Created by ``ScrollViewProxy/scrollTo(_:anchor:)``,
 /// parked on the ``ScrollViewHandler`` until the next render pass, then
 /// carried down inside ``ScrollContentWindow``.
-struct ScrollToRequest: Sendable, Hashable {
+package struct ScrollToRequest: Sendable, Hashable {
     /// The target row's stable identity key.
-    var key: String
+    package var key: String
 
     /// Where the target lands in the viewport: `nil` is SwiftUI's "minimal
     /// movement to make it visible — none if it already is"; otherwise the
     /// anchor's `y` aligns the row's unit point with the viewport's
     /// (0 = top, 0.5 = centre, 1 = bottom).
-    var anchor: UnitPoint?
+    package var anchor: UnitPoint?
 
     /// One row of headroom per edge when the ScrollView's "N more
     /// above/below" indicators can replace the viewport's first/last line
