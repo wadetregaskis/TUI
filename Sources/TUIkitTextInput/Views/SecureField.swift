@@ -233,11 +233,14 @@ extension SecureField {
 extension SecureField {
     /// Creates a disabled version of this secure field.
     ///
+    /// Disabled once, it stays disabled: as with `View.disabled(_:)`, a later
+    /// `.disabled(false)` does not enable it again.
+    ///
     /// - Parameter disabled: Whether the secure field is disabled.
     /// - Returns: A new secure field with the disabled state.
     public func disabled(_ disabled: Bool = true) -> SecureField {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 
@@ -255,11 +258,14 @@ extension SecureField {
     ///     }
     /// ```
     ///
+    /// Applied more than once, every action runs, the first applied first, as
+    /// SwiftUI runs every `.onSubmit` a submission reaches, the nearest first.
+    ///
     /// - Parameter action: The action to perform on submit.
     /// - Returns: A secure field that performs the action on submit.
     public func onSubmit(_ action: @escaping () -> Void) -> SecureField {
         var copy = self
-        copy.onSubmitAction = action
+        copy.onSubmitAction = onSubmitAction.map { first in { first(); action() } } ?? action
         return copy
     }
 

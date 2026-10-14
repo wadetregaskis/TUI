@@ -245,10 +245,11 @@ extension TextEditor {
 // MARK: - Modifiers
 
 extension TextEditor {
-    /// Disables editing.
+    /// Disables editing. Disabled once, it stays disabled: as with
+    /// `View.disabled(_:)`, a later `.disabled(false)` does not enable it again.
     public func disabled(_ disabled: Bool = true) -> TextEditor {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 

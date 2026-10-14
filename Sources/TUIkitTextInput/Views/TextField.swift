@@ -524,11 +524,14 @@ extension TextField {
 extension TextField {
     /// Creates a disabled version of this text field.
     ///
+    /// Disabled once, it stays disabled: as with `View.disabled(_:)`, a later
+    /// `.disabled(false)` does not enable it again.
+    ///
     /// - Parameter disabled: Whether the text field is disabled.
     /// - Returns: A new text field with the disabled state.
     public func disabled(_ disabled: Bool = true) -> TextField {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 
@@ -546,11 +549,14 @@ extension TextField {
     ///     }
     /// ```
     ///
+    /// Applied more than once, every action runs, the first applied first, as
+    /// SwiftUI runs every `.onSubmit` a submission reaches, the nearest first.
+    ///
     /// - Parameter action: The action to perform on submit.
     /// - Returns: A text field that performs the action on submit.
     public func onSubmit(_ action: @escaping () -> Void) -> TextField {
         var copy = self
-        copy.onSubmitAction = action
+        copy.onSubmitAction = onSubmitAction.map { first in { first(); action() } } ?? action
         return copy
     }
 
