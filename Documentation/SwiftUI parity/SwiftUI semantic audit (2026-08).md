@@ -515,6 +515,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `MyView().focusable(interactions: .edit)` — SwiftUI: clicking it focuses it (that is what .edit means). TUIkit: clicking does nothing, only Tab reaches it. Conversely `.focusable(interactions: .activate)` — the exact example in Apple's own doc — is the RESTRICTED case in SwiftUI (focusable only under all-controls keyboard navigation) and the most capable case in TUIkit. No test references `interactions:` at all.
 - *Recommendation:* Gate click-to-focus on `interactions.contains(.edit) || interactions.contains(.activate)` — the default `.automatic` is both, so nothing in-tree changes — and record the terminal reading of `.activate` (no all-controls setting exists, so it is always focusable) in the doc comment. Note this is also a soft rule-2 case: `.edit` is a parameter value that is stored and never consumed.
 
+- *Status:* **FIXED** (2026-10-14): a click focuses an `.edit` view, and an `.activate`-only view is a Tab stop a click does not focus; `.automatic`, both, is unchanged — `FocusableInteractionsTests`.
 **31. `View.onHover(perform:)`**
 
 - *SwiftUI:* swiftui-docs/View.md, `## View.onHover(perform:)`: "Calling this method defines a region for detecting pointer movement with the size and position of this view." and "- Parameter action: The action to perform whenever the pointer enters or exits this view's frame." A per-view region keyed to this view's frame — nested regions both contain the point and both fire.

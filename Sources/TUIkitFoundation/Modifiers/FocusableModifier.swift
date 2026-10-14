@@ -13,11 +13,17 @@ public struct FocusInteractions: OptionSet, Sendable {
         self.rawValue = rawValue
     }
 
-    /// The view can be activated — in a terminal, clicked to focus it.
+    /// The view has a primary action that focus can activate. SwiftUI makes
+    /// such a view focusable only under macOS's all-controls keyboard
+    /// navigation; a terminal is always navigated by keyboard, so here it is
+    /// always a Tab stop. A click does not focus it, as a click on a macOS
+    /// button does not.
     public static let activate = Self(rawValue: 1 << 0)
 
-    /// The view supports editing interactions. (No terminal-distinct behaviour
-    /// beyond being a focus stop; carried for SwiftUI parity.)
+    /// The view captures keyboard input, and is focused when it is clicked as
+    /// well as when Tab reaches it — SwiftUI's "become focused when the user
+    /// taps or clicks on them, or when the user issues a focus movement
+    /// command".
     public static let edit = Self(rawValue: 1 << 1)
 
     /// The default set of interactions.
@@ -126,14 +132,14 @@ extension FocusableModifier: Renderable {
 
         var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
 
-        // `.activate` → click anywhere in the content to focus it. Not while an
+        // `.edit` → click anywhere in the content to focus it. Not while an
         // ancestor suppresses focus: `registerFocusStop` still hands back an id
         // there (it must — the id's `StateStorage` slot has to stay marked
         // active, and the ring's own guard lives one call further in), but
         // nothing filed it, so the click would land on `FocusManager.focus(id:)`
         // with an id no section holds — a pending intent, re-rendering for a
         // couple of passes to look for a control that is not coming.
-        if let focusID, interactions.contains(.activate),
+        if let focusID, interactions.contains(.edit),
             !context.environment.isFocusSuppressed,
             let mouseDispatcher = context.environment.mouseEventDispatcher
         {
