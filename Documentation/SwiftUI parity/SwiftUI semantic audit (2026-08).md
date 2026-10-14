@@ -951,6 +951,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Verified compile errors for all three: `List(selection: Binding<UUID?>?.none) { … }` and `List(selection: Binding<Set<UUID>>?.none) { … }` both give "value of optional type … must be unwrapped", and `List(selection: Binding<UUID>.constant(x)) { … }` gives "no exact matches in call to initializer". The optional form is the one real code hits: `List(selection: isEditing ? $sel : nil) { … }`.
 - *Recommendation:* Fix the optional forms (add `?` and branch internally — the stored properties are already Optional). The non-optional "always one selected" form is a behaviour, not just a signature: either add it or record in Documentation/SwiftUI parity/SwiftUI compatibility guide.md that a terminal list always permits an empty selection.
 - *Status (2026-10-14 sweep):* **OPEN** — `List`'s selection forms take only `Binding<V?>` and `Binding<Set<V>>`; many initialisers to add.
+- *Status:* **PARTLY FIXED** (2026-10-14): every selection parameter takes an optional binding, `nil` selecting nothing (List.swift); ListRangeTests. The non-optional `Binding<SelectionValue>` form is absent and the guide says so: given `$selection` for an optional, it could outrank the optional form with `SelectionValue` the optional type, and how SwiftUI resolves that was not measured.
 
 ### Gestures, hit testing and keyboard input
 

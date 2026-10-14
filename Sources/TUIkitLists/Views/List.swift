@@ -181,7 +181,7 @@ extension List {
     ///   - footer: A ViewBuilder that defines the footer content.
     public init(
         _ titleKey: LocalizedStringKey,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -204,7 +204,7 @@ extension List {
     @_disfavoredOverload
     public init<S: StringProtocol>(
         _ title: S,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -226,7 +226,7 @@ extension List {
     ///   - content: A ViewBuilder that defines the list content.
     ///   - footer: A ViewBuilder that defines the footer content.
     public init(
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -253,7 +253,7 @@ extension List where Footer == EmptyView {
     ///   - content: A ViewBuilder that defines the list content.
     public init(
         _ titleKey: LocalizedStringKey,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder content: () -> Content
     ) {
         self.init(titleKey.localized, selection: selection, content: content)
@@ -271,7 +271,7 @@ extension List where Footer == EmptyView {
     @_disfavoredOverload
     public init<S: StringProtocol>(
         _ title: S,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder content: () -> Content
     ) {
         self.title = String(title)
@@ -291,7 +291,7 @@ extension List where Footer == EmptyView {
     ///   - selection: A binding to the selected item's ID (nil = no selection).
     ///   - content: A ViewBuilder that defines the list content.
     public init(
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder content: () -> Content
     ) {
         self.title = nil
@@ -318,7 +318,7 @@ extension List {
     ///   - footer: A ViewBuilder that defines the footer content.
     public init(
         _ titleKey: LocalizedStringKey,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -339,7 +339,7 @@ extension List {
     @_disfavoredOverload
     public init<S: StringProtocol>(
         _ title: S,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -361,7 +361,7 @@ extension List {
     ///   - content: A ViewBuilder that defines the list content.
     ///   - footer: A ViewBuilder that defines the footer content.
     public init(
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -388,7 +388,7 @@ extension List where Footer == EmptyView {
     ///   - content: A ViewBuilder that defines the list content.
     public init(
         _ titleKey: LocalizedStringKey,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder content: () -> Content
     ) {
         self.init(titleKey.localized, selection: selection, content: content)
@@ -406,7 +406,7 @@ extension List where Footer == EmptyView {
     @_disfavoredOverload
     public init<S: StringProtocol>(
         _ title: S,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder content: () -> Content
     ) {
         self.title = String(title)
@@ -426,7 +426,7 @@ extension List where Footer == EmptyView {
     ///   - selection: A binding to the set of selected item IDs.
     ///   - content: A ViewBuilder that defines the list content.
     public init(
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder content: () -> Content
     ) {
         self.title = nil
@@ -675,7 +675,7 @@ extension List where Footer == EmptyView, SelectionValue == Int {
     ///   - selection: A binding to the selected integer (`nil` = none).
     ///   - rowContent: Builds the row view for each integer.
     public init<RowContent: View>(
-        _ data: Range<Int>, selection: Binding<Int?>, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+        _ data: Range<Int>, selection: Binding<Int?>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent
     ) where Content == ForEach<Range<Int>, Int, RowContent> {
         self.init(selection: selection) { ForEach(data, content: rowContent) }
     }
@@ -688,7 +688,7 @@ extension List where Footer == EmptyView, SelectionValue == Int {
     ///   - selection: A binding to the set of selected integers.
     ///   - rowContent: Builds the row view for each integer.
     public init<RowContent: View>(
-        _ data: Range<Int>, selection: Binding<Set<Int>>, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+        _ data: Range<Int>, selection: Binding<Set<Int>>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent
     ) where Content == ForEach<Range<Int>, Int, RowContent> {
         self.init(selection: selection) { ForEach(data, content: rowContent) }
     }
@@ -703,7 +703,7 @@ extension List where Footer == EmptyView {
     ///   - rowContent: Builds the row view for each element.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable, SelectionValue == Data.Element.ID {
@@ -718,7 +718,7 @@ extension List where Footer == EmptyView {
     ///   - rowContent: Builds the row view for each element.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable, SelectionValue == Data.Element.ID {
@@ -738,7 +738,7 @@ extension List where Footer == EmptyView {
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         id: KeyPath<Data.Element, SelectionValue>,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, SelectionValue, RowContent> {
         self.init(selection: selection) { ForEach(data, id: id, content: rowContent) }
@@ -754,7 +754,7 @@ extension List where Footer == EmptyView {
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         id: KeyPath<Data.Element, SelectionValue>,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, SelectionValue, RowContent> {
         self.init(selection: selection) { ForEach(data, id: id, content: rowContent) }
@@ -820,7 +820,7 @@ extension List where Footer == EmptyView {
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         children: KeyPath<Data.Element, Data?>,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable, SelectionValue == Data.Element.ID {
@@ -839,7 +839,7 @@ extension List where Footer == EmptyView {
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         children: KeyPath<Data.Element, Data?>,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable, SelectionValue == Data.Element.ID {
@@ -860,7 +860,7 @@ extension List where Footer == EmptyView {
         _ data: Data,
         id: KeyPath<Data.Element, SelectionValue>,
         children: KeyPath<Data.Element, Data?>,
-        selection: Binding<SelectionValue?>,
+        selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
         self.init(selection: selection) {
@@ -880,7 +880,7 @@ extension List where Footer == EmptyView {
         _ data: Data,
         id: KeyPath<Data.Element, SelectionValue>,
         children: KeyPath<Data.Element, Data?>,
-        selection: Binding<Set<SelectionValue>>,
+        selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
         self.init(selection: selection) {
