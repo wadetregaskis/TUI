@@ -1357,6 +1357,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Typechecked: `Text("p").alert(Text("Title"), isPresented: .constant(true)) { Button("OK") {} }` fails with `error: cannot convert value of type 'Text' to expected argument type 'LocalizedStringKey'`. This is the correct failure mode under rule 2, but the gap is not a terminal limit — navigationTitle(_ title: Text) already exists and simply reads title.content (Sources/TUIkitFoundation/Extensions/View+Preferences.swift:95-97), with the styling loss documented there.
 - *Recommendation:* Fix — add the same one-line Text overload to alert and confirmationDialog, carrying navigationTitle's existing "the Text's styling is not carried" note.
 - *Status (2026-10-14 sweep):* **OPEN** — no `alert` or `confirmationDialog` taking a `Text` title.
+- *Status:* **FIXED** (2026-10-14): the eight `Text`-titled `alert` and `confirmationDialog` forms (View+TextTitledDialogs.swift); TextTitledDialogTests.
 
 ### Scrolling
 
