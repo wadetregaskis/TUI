@@ -146,6 +146,55 @@ extension NavigationCoordinator {
     }
 }
 
+// MARK: - Focus sections
+
+extension NavigationCoordinator {
+    /// Activates the focus section for `depth`, deactivating any deeper ones
+    /// this navigation had entered — deepest first, so each level hands its
+    /// focus back up the way it was given.
+    ///
+    /// `sectionID` names each depth's section, or gives `nil` for a depth with
+    /// none of its own: a stack's root is ordinary page content and belongs in
+    /// whatever section the page is already using, which is also where the
+    /// deepest `deactivateSection` reverts to.
+    ///
+    /// - Returns: the section the screen at `depth` should register in, or
+    ///   `nil` where `sectionID` gives none.
+    func enterSection(depth: Int, context: RenderContext, sectionID: (Int) -> String?) -> String? {
+        let focusManager = context.environment.focusManager
+        // Not while rendering as a modal's dimmed backdrop: that pass carries a
+        // THROWAWAY focus manager, so the deactivation would land on an object
+        // nobody reads — and consuming `renderedDepth` here would spend the
+        // trigger, so the real manager would never hear about the pop at all.
+        // The page under a presentation is not navigating; it is a picture.
+        guard let focusManager, !focusManager.isBackdrop else { return nil }
+        if renderedDepth > depth {
+            for deeper in stride(from: renderedDepth, to: depth, by: -1) {
+                if let id = sectionID(deeper) { focusManager.deactivateSection(id: id) }
+            }
+        }
+        let pushed = renderedDepth < depth
+        renderedDepth = depth
+        guard let id = sectionID(depth) else { return nil }
+        // Registration is per-frame presence: sections are rebuilt every pass,
+        // so the section has to be declared again each time or its controls
+        // have nowhere to register. For the same reason it is declared to any
+        // value-memoizing ancestor, as `.focusSection` declares its own: a
+        // navigation served from the cache registers no section at all.
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        focusManager.registerSection(id: id)
+        // Activation is NOT. It is a transition — it remembers the section it
+        // leaves, drops the focus, and restores this one's memory — so calling
+        // it every frame while something else is active (an alert or sheet
+        // presented FROM a pushed screen) took the focus back from it on every
+        // pass: the dialog's control was focused for under a frame, a field in
+        // it was torn down and restarted continuously, and the render loop
+        // spun at the frame cap for as long as the dialog was up.
+        if pushed { focusManager.activateSection(id: id) }
+        return id
+    }
+}
+
 // MARK: - Destinations
 
 extension NavigationCoordinator {
