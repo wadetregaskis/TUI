@@ -228,7 +228,6 @@
   "EdgeInsets.init(_:)",
   "Tab.init(_:image:role:content:)",
   "Tab.init(_:image:value:content:)",
-  "View.background(ignoresSafeAreaEdges:)",
-  "WindowGroup.init(makeContent:)"
+  "View.background(ignoresSafeAreaEdges:)"
  ]
 }

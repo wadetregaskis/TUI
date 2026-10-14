@@ -68,7 +68,9 @@ medium keeps for free is honoured; a request it silently discards is not.
 > `NavigationSplitView`), `onChange(of:perform:)`, the old
 > `ScrollView(_:showsIndicators:content:)` initializer. Deprecated spellings
 > TUIkit once had are gone too (owner's ruling of 2026-10-12: no deprecated
-> SwiftUI API): `UnitCurve.easeInEaseOut` (→ `easeInOut`).
+> SwiftUI API): `UnitCurve.easeInEaseOut` (→ `easeInOut`),
+> `WindowGroup.init(content:)` (→ `init(makeContent:)`; `WindowGroup { … }`
+> binds either).
 
 **This file is about vocabulary; behaviour is audited separately.**
 [SwiftUI semantic audit (2026-08).md](<SwiftUI semantic audit (2026-08).md>) compares

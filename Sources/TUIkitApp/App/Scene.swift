@@ -155,11 +155,15 @@ public struct WindowGroup<Content: View>: Scene {
     /// The content of the window.
     public let content: Content
 
-    /// Creates a WindowGroup with the specified content.
+    /// Creates a WindowGroup with the specified content — SwiftUI's
+    /// `init(makeContent:)`, which replaces its deprecated `init(content:)`.
     ///
-    /// - Parameter content: A ViewBuilder that defines the content.
-    public init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+    /// SwiftUI calls the builder for each window it opens; a terminal app has
+    /// one, so the builder is called once, here.
+    ///
+    /// - Parameter makeContent: A ViewBuilder that defines the content.
+    public init(@ViewBuilder makeContent: @escaping () -> Content) {
+        self.content = makeContent()
     }
 
     /// `WindowGroup` is a primitive scene: it renders through
