@@ -167,7 +167,7 @@ where
 {
     /// A content unavailable view for empty search results.
     ///
-    /// Inside a ``View/searchable(text:placement:prompt:)``, it names the query
+    /// Inside a `searchable` modifier, it names the query
     /// — "No Results for "zzz"" — as SwiftUI's does: "A `ContentUnavailableView`
     /// initialized with this static member is expected to be contained within a
     /// searchable view hierarchy. Such a configuration enables the search query

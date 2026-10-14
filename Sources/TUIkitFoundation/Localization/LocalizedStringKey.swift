@@ -550,7 +550,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         ///
         /// Formatted at once, in the current locale, as `Text(_:format:)`
         /// formats. The key carries `%@` where the value goes, like every other
-        /// interpolation here, and ``LocalizedStringKey/swiftUIKey`` the
+        /// interpolation here, and its `swiftUIKey` the
         /// specifier itself, as SwiftUI's key does; both are looked up.
         ///
         /// - Parameters:

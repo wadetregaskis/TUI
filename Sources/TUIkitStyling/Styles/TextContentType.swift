@@ -59,7 +59,7 @@ public enum TextContentType: Sendable, Equatable {
 
     /// Email address input. Allows alphanumeric characters, `@`, `.`, and the
     /// rest of what RFC 5322 lets an unquoted local part hold:
-    /// ``!#$%&'*+-/=?^_`{|}~``.
+    /// `!#$%&'*+-/=?^_{|}~` and the backtick.
     case emailAddress
 
     /// Telephone number input. Allows digits, `+`, `(`, `)`, `-`, `.`, `/`, `#`, `*`, space.
