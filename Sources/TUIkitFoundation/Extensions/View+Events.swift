@@ -152,6 +152,17 @@ extension View {
         gesture(TapGesture(count: count).onEnded { action() })
     }
 
+    /// The tap with its space given as a ``CoordinateSpace`` value — the form
+    /// SwiftUI deprecated for the protocol one, internal here: what the
+    /// public form attaches by (owner's ruling of 2026-10-12, no deprecated
+    /// SwiftUI API).
+    func onTapGesture(
+        count: Int = 1, coordinateSpace: CoordinateSpace = .local,
+        perform action: @escaping (CellPoint) -> Void
+    ) -> some View {
+        gesture(SpatialTapGesture(count: count, coordinateSpace: coordinateSpace).onEnded { action($0.location) })
+    }
+
     /// Adds an action to perform when this view recognizes a tap gesture, and
     /// provides the action with the location of the interaction.
     ///
@@ -172,23 +183,6 @@ extension View {
     ///     (`.global`).
     ///   - action: The action to perform, given the location.
     /// - Returns: The view, with the tap gesture attached.
-    public func onTapGesture(
-        count: Int = 1, coordinateSpace: CoordinateSpace = .local,
-        perform action: @escaping (CellPoint) -> Void
-    ) -> some View {
-        gesture(SpatialTapGesture(count: count, coordinateSpace: coordinateSpace).onEnded { action($0.location) })
-    }
-
-    /// Adds an action to perform when this view recognizes a tap gesture, and
-    /// provides the action with the location of the interaction, in a space
-    /// named through ``CoordinateSpaceProtocol`` — the spelling SwiftUI moved
-    /// this modifier to, answering as the ``CoordinateSpace`` form does.
-    ///
-    /// - Parameters:
-    ///   - count: The number of taps that triggers the action.
-    ///   - coordinateSpace: `.local`, the default, or `.global`.
-    ///   - action: The action, given the location.
-    /// - Returns: A view that fires `action` on the matching multi-click.
     public func onTapGesture(
         count: Int = 1, coordinateSpace: some CoordinateSpaceProtocol = .local,
         perform action: @escaping (CellPoint) -> Void

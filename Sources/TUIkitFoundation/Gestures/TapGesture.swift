@@ -160,14 +160,14 @@ public struct SpatialTapGesture: Gesture {
     /// Creates a tap gesture with the number of required taps and the
     /// coordinate space of the gesture's location, given as a
     /// ``CoordinateSpace`` value — the form SwiftUI deprecated for the
-    /// protocol one, kept as `onTapGesture(count:coordinateSpace:perform:)`
-    /// keeps it.
+    /// protocol one, internal here: what the public form builds by (owner's
+    /// ruling of 2026-10-12, no deprecated SwiftUI API).
     ///
     /// - Parameters:
     ///   - count: The required number of taps to complete the tap gesture.
     ///   - coordinateSpace: `.local` or `.global`.
     @_disfavoredOverload
-    public init(count: Int = 1, coordinateSpace: CoordinateSpace = .local) {
+    init(count: Int = 1, coordinateSpace: CoordinateSpace = .local) {
         self.count = count
         self.coordinateSpace = coordinateSpace
     }

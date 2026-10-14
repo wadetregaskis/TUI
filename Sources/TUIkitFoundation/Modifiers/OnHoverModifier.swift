@@ -154,7 +154,7 @@ enum HoverTransition {
 // MARK: - Hover Phase
 
 /// Where the pointer is over a view — SwiftUI's `HoverPhase`, as
-/// ``View/onContinuousHover(coordinateSpace:perform:)-(CoordinateSpace,_)`` hands it to its action.
+/// ``View/onContinuousHover(coordinateSpace:perform:)`` hands it to its action.
 ///
 /// The location is a ``CellPoint`` where SwiftUI's is a `CGPoint`: a terminal
 /// reports the pointer's cell and nothing finer (§2.2 of
@@ -217,6 +217,21 @@ extension View {
         }
     }
 
+    /// The hover action with its space given as a ``CoordinateSpace`` value —
+    /// the form SwiftUI deprecated for the protocol one, internal here: what
+    /// the public form attaches by (owner's ruling of 2026-10-12, no
+    /// deprecated SwiftUI API).
+    func onContinuousHover(
+        coordinateSpace: CoordinateSpace = .local, perform action: @escaping @MainActor (HoverPhase) -> Void
+    ) -> some View {
+        OnHoverModifier(content: self, coordinateSpace: coordinateSpace) { transition in
+            switch transition {
+            case .entered(let cell), .moved(let cell): action(.active(cell))
+            case .exited: action(.ended)
+            }
+        }
+    }
+
     /// Adds an action to perform when the pointer enters the view, moves
     /// within it, and leaves it — SwiftUI's `onContinuousHover`.
     ///
@@ -244,26 +259,6 @@ extension View {
     ///   - coordinateSpace: Where the location is measured from: the view's
     ///     own top-left cell (`.local`, the default) or the terminal's
     ///     (`.global`).
-    ///   - action: The action, given the phase.
-    /// - Returns: A view that reports the pointer over it to `action`.
-    public func onContinuousHover(
-        coordinateSpace: CoordinateSpace = .local, perform action: @escaping @MainActor (HoverPhase) -> Void
-    ) -> some View {
-        OnHoverModifier(content: self, coordinateSpace: coordinateSpace) { transition in
-            switch transition {
-            case .entered(let cell), .moved(let cell): action(.active(cell))
-            case .exited: action(.ended)
-            }
-        }
-    }
-
-    /// Adds an action to perform when the pointer moves onto, within, or off
-    /// this view, with the space named through ``CoordinateSpaceProtocol`` —
-    /// the spelling SwiftUI moved this modifier to, answering as the
-    /// ``CoordinateSpace`` form does.
-    ///
-    /// - Parameters:
-    ///   - coordinateSpace: `.local`, the default, or `.global`.
     ///   - action: The action, given the phase.
     /// - Returns: A view that reports the pointer over it to `action`.
     public func onContinuousHover(

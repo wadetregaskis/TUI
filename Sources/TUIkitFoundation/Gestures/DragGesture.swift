@@ -116,15 +116,15 @@ public struct DragGesture: Gesture {
 
     /// Creates a dragging gesture with the coordinate space given as a
     /// ``CoordinateSpace`` value — the form SwiftUI deprecated for the
-    /// protocol one, kept as `onTapGesture(count:coordinateSpace:perform:)`
-    /// keeps it.
+    /// protocol one, internal here: what the public form builds by (owner's
+    /// ruling of 2026-10-12, no deprecated SwiftUI API).
     ///
     /// - Parameters:
     ///   - minimumDistance: The minimum dragging distance for the gesture to
     ///     succeed, in cells along either axis.
     ///   - coordinateSpace: `.local` or `.global`.
     @_disfavoredOverload
-    public init(minimumDistance: Int = 1, coordinateSpace: CoordinateSpace = .local) {
+    init(minimumDistance: Int = 1, coordinateSpace: CoordinateSpace = .local) {
         self.minimumDistance = minimumDistance
         self.coordinateSpace = coordinateSpace
     }

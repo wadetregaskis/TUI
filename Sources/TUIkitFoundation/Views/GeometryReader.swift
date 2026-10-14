@@ -13,7 +13,7 @@ import TUIkitView
 ///
 /// Handed to a ``GeometryReader``'s content closure so the content can size
 /// itself against the space it was actually given, and place itself against
-/// the spaces around it: ``frame(in:)-(CoordinateSpace)`` in its own space, the
+/// the spaces around it: ``frame(in:)`` in its own space, the
 /// global one, one a parent named with ``View/coordinateSpace(_:)``, or the
 /// nearest scroll view's; ``bounds(of:)`` for the reverse.
 ///
@@ -75,13 +75,11 @@ public struct GeometryProxy {
     /// it asked — what a reader notes so a move clears what is cached below it.
     var toldAnswers: [GeometryObservation?] { ask?.toldAnswers ?? [] }
 
-    /// The container's frame in the given coordinate space.
-    ///
-    /// `.local` is always `(0, 0)` and the size. Every other space answers with
-    /// where its owner found the container (see the type's discussion), and a
-    /// name no view around the container declared — like `.scrollView` outside
-    /// any scroll view — answers in the global space, as SwiftUI's does.
-    public func frame(in coordinateSpace: CoordinateSpace) -> CellRect {
+    /// The container's frame in the given ``CoordinateSpace`` value — the form
+    /// SwiftUI deprecated for the protocol one, internal here: what the public
+    /// form answers by (owner's ruling of 2026-10-12, no deprecated SwiftUI
+    /// API).
+    func frame(in coordinateSpace: CoordinateSpace) -> CellRect {
         let origin: CellPoint
         switch coordinateSpace {
         case .local:
@@ -92,8 +90,12 @@ public struct GeometryProxy {
         return CellRect(x: origin.x, y: origin.y, width: size.width, height: size.height)
     }
 
-    /// The container's frame in the given coordinate space — the protocol form
-    /// SwiftUI moved ``frame(in:)-(CoordinateSpace)`` to, answered the same way.
+    /// The container's frame in the given coordinate space.
+    ///
+    /// `.local` is always `(0, 0)` and the size. Every other space answers with
+    /// where its owner found the container (see the type's discussion), and a
+    /// name no view around the container declared — like `.scrollView` outside
+    /// any scroll view — answers in the global space, as SwiftUI's does.
     ///
     /// - Parameter coordinateSpace: `.local`, `.global`, `.named(_:)`,
     ///   `.scrollView` or `.scrollView(axis:)`.
