@@ -16,7 +16,11 @@ import TUIkitFoundation
 /// ## Rendering
 ///
 /// The text field renders as `[ text content ]` with a visible cursor when focused.
-/// When empty and unfocused, it displays the prompt text in dim styling.
+/// When empty, it displays the prompt text in dim styling — or, with no prompt,
+/// its title, as SwiftUI's field "uses either the prompt or label as
+/// placeholder text, depending on whether the initializer provided a prompt".
+/// A form row written `LabeledContent("Name") { TextField("", text: $name) }`
+/// has neither, and stays blank.
 ///
 /// ```
 /// Unfocused, empty:     [ Enter username... ]    (prompt in dim)
@@ -218,7 +222,7 @@ public struct TextField<Label: View>: View {
         if let formatting {
             _FormattedFieldBody(
                 formatting: formatting,
-                prompt: prompt,
+                prompt: fieldPrompt(prompt, title: label),
                 label: label,
                 focusID: focusID,
                 isDisabled: isDisabled,
@@ -230,7 +234,7 @@ public struct TextField<Label: View>: View {
                 content: _TextFieldCore(
                     label: label,
                     text: text,
-                    prompt: prompt,
+                    prompt: fieldPrompt(prompt, title: label),
                     focusID: focusID,
                     isDisabled: isDisabled,
                     onSubmitAction: onSubmitAction,
@@ -240,6 +244,19 @@ public struct TextField<Label: View>: View {
                 ))
         }
     }
+}
+
+/// What a field shows while it is empty: its prompt, or with none its title,
+/// as SwiftUI's field does — "the text field uses either the prompt or label
+/// as placeholder text, depending on whether the initializer provided a
+/// prompt". A title of the app's own views, or an empty one — the
+/// `LabeledContent("Name") { TextField("", …) }` a form row is written with —
+/// gives none.
+@MainActor
+func fieldPrompt<Title: View>(_ prompt: Text?, title: Title) -> Text? {
+    if let prompt { return prompt }
+    guard let title = title as? Text, !title.content.isEmpty else { return nil }
+    return title
 }
 
 // MARK: - TextField Initializers (Label == Text)

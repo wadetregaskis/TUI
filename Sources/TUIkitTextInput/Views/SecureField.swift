@@ -115,7 +115,7 @@ public struct SecureField<Label: View>: View {
         _StyledFieldFrame(
             content: _SecureFieldCore(
                 text: text,
-                prompt: prompt,
+                prompt: fieldPrompt(prompt, title: label),
                 focusID: focusID,
                 isDisabled: isDisabled,
                 onSubmitAction: onSubmitAction

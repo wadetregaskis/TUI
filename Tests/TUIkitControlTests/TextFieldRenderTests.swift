@@ -105,12 +105,13 @@ struct TextFieldRenderTests {
         #expect(hasCaretCell(raw[0]))
     }
 
-    @Test("Focused empty field shows only the cursor")
+    @Test("Focused empty field with no prompt or title shows only the cursor")
     func focusedEmpty() {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
+        // No title: with one, the field shows it where a prompt would go.
         let raw = rawLines(
-            TextField("Name", text: .constant("")).focusID("tf"),
+            TextField("", text: .constant("")).focusID("tf"),
             context: ctx
         )
 
@@ -261,7 +262,7 @@ struct TextFieldRenderTests {
         #expect(content == "you@example.com" + String(repeating: " ", count: 13))
     }
 
-    @Test("Empty unfocused field without a prompt is blank between the caps")
+    @Test("Empty unfocused field without a prompt or title is blank between the caps")
     func unfocusedEmptyNoPrompt() {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 30, focusManager: fm, identityPath: "decoy")
@@ -269,7 +270,7 @@ struct TextFieldRenderTests {
 
         let ctx = fieldContext(width: 30, focusManager: fm, identityPath: "real")
         let lines = strippedLines(
-            TextField("Email", text: .constant("")).focusID("tf"),
+            TextField("", text: .constant("")).focusID("tf"),
             context: ctx
         )
 
@@ -277,6 +278,26 @@ struct TextFieldRenderTests {
         let line = lines[0]
         // Exactly: open cap, 28 spaces, close cap. No stray cursor, no gap.
         #expect(line == openCap + String(repeating: " ", count: 28) + closeCap)
+    }
+
+    @Test("With no prompt, an empty field shows its title where the prompt goes, as SwiftUI's does")
+    func titleIsThePlaceholder() {
+        // The deviations sweep's likely bug 20 (semantic audit 62): SwiftUI's
+        // field "uses either the prompt or label as placeholder text,
+        // depending on whether the initializer provided a prompt".
+        let fm = FocusManager()
+        let decoyCtx = fieldContext(width: 30, focusManager: fm, identityPath: "decoy")
+        _ = renderToBuffer(TextField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
+        let ctx = fieldContext(width: 30, focusManager: fm, identityPath: "real")
+        let titled = strippedLines(TextField("Email", text: .constant("")).focusID("tf"), context: ctx)
+        #expect(titled.first?.hasPrefix(openCap + "Email") == true, "\(titled)")
+        // A prompt still wins over the title.
+        let prompted = strippedLines(
+            TextField("Email", text: .constant(""), prompt: Text("you@example.com")).focusID("tf"), context: ctx)
+        #expect(prompted.first?.hasPrefix(openCap + "you@example.com") == true, "\(prompted)")
+        // And the title goes once the field has text.
+        let filled = strippedLines(TextField("Email", text: .constant("a@b")).focusID("tf"), context: ctx)
+        #expect(filled.first?.contains("Email") == false, "\(filled)")
     }
 
     // MARK: Empty label

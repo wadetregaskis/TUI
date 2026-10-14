@@ -96,12 +96,13 @@ struct SecureFieldRenderTests {
         #expect(hasCaretCell(raw[0]))
     }
 
-    @Test("Focused empty field shows only the cursor")
+    @Test("Focused empty field with no prompt or title shows only the cursor")
     func focusedEmpty() {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
+        // No title: with one, the field shows it where a prompt would go.
         let raw = rawLines(
-            SecureField("Password", text: .constant("")).focusID("sf"),
+            SecureField("", text: .constant("")).focusID("sf"),
             context: ctx
         )
 

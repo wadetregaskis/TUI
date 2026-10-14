@@ -156,10 +156,9 @@ struct LocalizedTitleTests {
 
     @Test("TextField and SecureField")
     func textFields() {
-        // These two are the exception to the render-and-read rule: as in
-        // SwiftUI, a field's title describes it without being drawn on it (the
-        // prompt is what appears inside), so there is nothing in the buffer to
-        // look for. The stored label is the observable.
+        // The stored label is the observable here: an empty field draws its
+        // title only where it has no prompt (`fieldPrompt`), as SwiftUI's
+        // does, so the label is what every field has to say.
         let box = Box("")
         #expect(TextField("test.title.control", text: box.binding).label.content
             == Self.translation)
