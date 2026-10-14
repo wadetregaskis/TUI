@@ -134,6 +134,7 @@ silently wrong rather than visibly absent, which is worse than the limitation.
 witness for size-neutrality that does not exist yet — and that, rather than the
 per-wrapper cost this finding worried about, is what the remainder is blocked
 on.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — a z-index forwards; alignment guides and layout values stop at a border, frame or offset (Deliberate deviations L11).
 
 **2. A modifier makes a view opaque to child resolution.** `resolveChildViews`
 unwraps `ChildViewProvider`s, and `ModifiedView` is not one — so
@@ -183,6 +184,7 @@ test first and equal-length binary paths; `anyview` read +0.5% "slower" at 12
 reps and is indistinguishable at 40 (its null band is +/-0.4%), and `menus` is
 -3.4% [-3.9, -2.8] FASTER with the rendered checksum identical on both binaries
 and the measure memo going 41 hits / 12,517 lookups -> 97 / 12,438.
+- *Status (2026-10-14 sweep):* **FIXED** — `SingleContentWrapper` and `GridRowProviding` conformances; GridTests; the wrappers left are listed in the guide §3.
 
 **3. `\.isEnabled` has no readers in the big containers — FIXED (`291b8754`, `f1d467d2`), kept here for the shape.** `List`, `_ListCore`,
 `Table` and `ScrollView` never consulted it, and each type's concrete
@@ -208,6 +210,7 @@ enabled" — are answered. Verified against the tree just now:
 `ScrollView { Button("Save") {} }.disabled(true)` and asserts none of them
 registers any focus; `swift test --filter ContainerDisabledCascadeTests`
 passes all 5 tests in the suite.
+- *Status (2026-10-14 sweep):* **FIXED** — `ContainerDisabledCascadeTests`.
 
 **4. The Optional third state, for the fourth and fifth time.** `Font??`,
 `UnitPoint??` and `Transaction?` were each needed so "nobody said" and "said
@@ -215,6 +218,7 @@ none" stay distinguishable. `textCase` was the same and is now fixed; the
 remaining instances are in the findings below. Worth a note in the contributing
 guide: **any environment value whose SwiftUI type is itself Optional needs two
 levels here.**
+- *Status (2026-10-14 sweep):* **OPEN** — only the `textCase` case is written up (Styling and theming design §3.1); no general rule in CONTRIBUTING.md.
 
 **5. A protocol conformance is the seam.** `PickerOptionProvider`,
 `ButtonProvider`, `SectionRowExtractor`, `GridRowProviding` and
@@ -224,6 +228,7 @@ conformed — a `Section` in a menu, a `TupleView` of two `Section`s in a `List`
 a modified `GridRow` — and in every case the content silently disappears or is
 mis-classified rather than failing. **Recommendation:** these should share one
 fallback rule, and it should be loud in debug rather than empty.
+- *Status (2026-10-14 sweep):* **OPEN** — the cases are fixed one by one; no shared rule that is loud in debug.
 
 ## How to read the list
 
@@ -286,6 +291,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `Animation.default.totalDuration == 0.35` in TUIkit. SwiftUI's default is a critically damped spring with response 0.55, which at 0.35 s is only ~78% of the way to its target and approaches asymptotically rather than with easeInOut's symmetric deceleration. Every ported `withAnimation { … }` with no explicit animation therefore runs ~36% faster and with a different velocity profile. Test: `#expect(Animation.default == Animation.spring(duration: 0.55, bounce: 0))` fails today.
 - *Verifier's correction:* TUIkit's `Animation.default` is `easeInOut(duration: 0.35)` and finishes at 0.35 s, while SwiftUI's is a critically damped spring that is 93% of the way at 0.35 s and settles at ~1.0 s. The faithful port is `Animation.spring(duration: 0.5, bounce: 0)` — a curve TUIkit already ships as `Animation.spring`/`Animation.smooth` — not `spring(duration: 0.55, bounce: 0)` (Apple's doc says response 0.55, but the shipped framework resolves `.default` to the 0.5 spring). Test it on the curve, e.g. `Animation.default.fraction(at: 0.35) ≈ 0.93` and `totalDuration ≈ 1.0`, never on `==`.
 - *Recommendation:* Fix — it is one line. TUIkit's spring(duration:bounce:) already parameterises the spring exactly as SwiftUI's response/dampingFraction do (omega = 2π/duration, zeta = 1 − bounce), so `Animation.spring(duration: 0.55, bounce: 0)` is the faithful port. If the shorter ease is preferred for a terminal, record it in SwiftUI compatibility guide.md §2 — the neighbouring doc comment on defaultDuration says "Matches SwiftUI's", which invites the reader to assume .default matches too.
+- *Status (2026-10-14 sweep):* **OPEN** — `Animation.default` is still `.easeInOut` (0.35 s); changing it moves every unnamed animation, so it wants a ruling.
 
 **4. `Animation.delay(_:)`**
 
@@ -302,6 +308,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `if showDetail { Detail() }` (no .transition) with `Button("Toggle") { withAnimation { showDetail.toggle() } }`. SwiftUI cross-fades Detail in and out; TUIkit pops it in and out instantly. The ported source compiles and animates nothing, with no diagnostic.
 - *Verifier's correction:* One overstatement to trim: it is not undocumented everywhere — AnyTransition.swift:75-76 states that `.identity` is "the default, and what a view without `.transition(_:)` does". That is a statement of behaviour, not a justification, and SwiftUI compatibility guide.md still says the whole family is unimplemented, so the recommendation (record it in §2) stands.
 - *Recommendation:* Document, don't fix. Defaulting to .opacity would mean wrapping every conditional child in a departure-recording view, costing a buffer copy plus a store write per conditional per frame in a framework that rebuilds the whole frame from the tree — a sound reason to decline. But it appears nowhere in SwiftUI compatibility guide.md, so a porter discovers it by watching their app not animate. Add it to §2 (intentional divergence).
+- *Status (2026-10-14 sweep):* **OPEN** — no `.transition` is still `.identity`, recorded only in `AnyTransition`'s doc comment, not in the guide or the deviations.
 
 ### App and scene structure
 
@@ -320,6 +327,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* On a machine whose locale is en_GB, SwiftUI's \.locale is en_GB (dates read 25/08/2026, week starts Monday); TUIkit's is Locale(identifier: "en"), giving US conventions. On a pt_BR machine — not one of the seven bundled languages — TUIkit falls back to .english so \.locale is "en" and a number formatted through the environment locale reads 1,234.5 where SwiftUI produces 1.234,5. Note the internal inconsistency too: \.calendar and \.timeZone keep autoupdatingCurrent (LocaleEnvironment.swift:24,:29) and are not re-derived, so a French-language app on a US machine gets fr formatting with the US calendar. Tests/TUIkitTests/LocaleEnvironmentTests.swift pins only the KEY default on a bare EnvironmentValues() and that an override reaches a subtree; it never exercises applyRuntimeServices, so the live value is unpinned.
 - *Verifier's correction:* The residual divergence is the UNBUNDLED-LANGUAGE fallback only, not region loss generally. LocalizationService.init() (LocalizationService.swift:84-91) maps any system language outside {en,de,fr,it,es,zh,ja} to .english, so ServiceEnvironment.swift:234 publishes Locale(identifier: "en") on a pt_BR machine and a value formatted through the environment locale reads 1,234.5 where SwiftUI produces 1.234,5. The documented rationale ("the app's chosen language drives its formatting") does not cover this case — nobody chose English, the table simply does not exist. The en_GB region case is a documented, deliberate trade-off and is not a finding.
 - *Recommendation:* Narrow the override: publish Locale.autoupdatingCurrent whenever its language code equals currentLanguage.rawValue (the common case — nobody has switched the app language away from the system's), and fall back to the bare code only when the app language was explicitly set to something else. That keeps the 'app language drives formatting' property the code comment at LocalizationService.swift:41-44 wants, without discarding a region the user did state.
+- *Status (2026-10-14 sweep):* **OPEN** — the region is kept now (decisions E3), but a language TUIkit does not ship falls back to English with the user's region (`pt_BR` → `en_BR`).
 
 **8. `Form / FormStyle.columns`**
 
@@ -343,6 +351,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitSearch/Extensions/View+Searchable.swift:228: `let field = TextField("", text: text, prompt: prompt ?? Text("Search"))`. "Search" is a LocalizedStringKey literal, is looked up, misses, and falls back to itself. The keys that would serve already exist in all seven bundled languages — label.search (fr → "Recherche") and placeholder.search (fr → "Rechercher..."), declared at Sources/TUIkitStrings/Localization/LocalizationKeys.swift:49 and :98 and present in Localization/translations/{de,en,es,fr,it,ja,zh}.json. — `Sources/TUIkitSearch/Extensions/View+Searchable.swift:228`
 - *Divergence:* Call LocalizationService.shared.setLanguage(.french), then render `List(rows) { … }.searchable(text: $q)`: every string on screen is French except the search field's placeholder, which reads "Search". Tests/TUIkitControlTests/SearchableTests.swift:33 asserts joined.contains("Search"), which pins the rendered English word rather than a decision that the prompt should be unlocalized.
 - *Recommendation:* Fix: `prompt ?? Text(LocalizationKey.Placeholder.search.rawValue)` (or .Label.search). Update SearchableTests.swift:33 to resolve the key or pin the language.
+- *Status (2026-10-14 sweep):* **FIXED** — the default prompt is `LocalizationKey.Label.search` (SearchableModifier); no test pins a non-English prompt.
 
 ### Buttons, links, menus and shortcuts
 
@@ -360,6 +369,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* A menu's rows are discovered by self-report and only _ButtonCore reports. MenuColumn.swift:64-68 — `var selectableOrdinals: [Int] { rows.filter { $0.value.isEnabled }.keys.sorted() }` — where `rows` is filled only by `publish(ordinal:action:isEnabled:)`, whose sole caller in the package is Button.swift:317 (grep across Sources/ confirms `claimOrdinal` and `publish` each have exactly one call site, both in _ButtonCore). MenuPopover.swift:190-193 then flattens the rendered column: `rows.append(.rendered(content, isSelectable: ordinalByLine[line].map(selectable.contains) ?? false))` — a row that claimed no ordinal is marked unselectable, and only its rendered LINE is carried across, so its own hitTestRegions are dropped too. MenuPopover.swift:302 additionally grabs the keyboard for the menu's section (`keyEventDispatcher!.grabInput(sectionID:)`), so the row cannot be reached through the … — `Sources/TUIkitFoundation/Rendering/MenuColumn.swift:64`
 - *Divergence:* `Menu("View") { Button("Reload") { reload() }; Toggle("Show hidden", isOn: $showsHidden) }` — open the menu and the toggle draws on its own line, but the down arrow skips it, Return never reaches it, and clicking it does nothing. Same for `.contextMenu { Toggle(...) }`. Testable: open the menu and assert MenuRowSink.selectableOrdinals.count == 2; it is 1. Note the INLINE MenuStyle is unaffected (menuRowSink is deliberately nil there and rows are page focus stops).
 - *Recommendation:* Fix or fail loudly. Either give the menu column a general row-participant channel that _ToggleCore / _PickerMenuCore / Section also publish to, or constrain the menu content builder so a Toggle in a menu does not compile. Also correct Menu.swift:11, which claims the items are "ordinary `Button`s (and `Divider`s), exactly as in SwiftUI" — that is doc drift on top of the behaviour.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — `Toggle` and `Section` are menu rows now (MenuNonButtonRowTests); a `Picker` has no submenu, recorded in Menu.swift and the guide §4a.
 
 **13. `View.keyboardShortcut(_:) / View.keyboardShortcut(_:modifiers:)`**
 
@@ -452,6 +462,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `Color.secondary` is `Self.palette.foregroundSecondary` (Sources/TUIkitStyling/Color/Color.swift:164), i.e. `.semantic(.foregroundSecondary)`, resolved by `SemanticColor.resolve(with:)` (SemanticColor.swift:59) straight to `palette.foregroundSecondary`. Nothing in that path consults the ambient `\.foregroundStyle`; `_AnimatableForegroundStyleView` (ColorEnvironment.swift:102-104) simply overwrites the environment value with the new colour. — `Sources/TUIkitStyling/Color/Color.swift:164`
 - *Divergence:* `VStack { Text("heading"); Text("detail").foregroundStyle(.secondary) }.foregroundStyle(.red)` — SwiftUI renders 'detail' as a de-emphasised RED; TUIkit renders the palette's secondary grey and ignores the ancestor's red entirely. Testable by comparing the second line's SGR with and without the outer `.foregroundStyle(.red)`. Tools/APIParity/parity-map.json records HierarchicalShapeStyle under differentShape ("SwiftUI's .secondary/.tertiary/.quaternary are named palette colours here"), an accurate description of the mechanism that does not note the level therefore stops tracking the base style.
 - *Recommendation:* Leave the behaviour — deriving a second level from an arbitrary base colour is a real design question, since the palette tiers are hand-tuned for contrast and a computed dim of an arbitrary hue would fight `ensuringRenderedContrast` — but document it: one line in §3 or §2 saying the hierarchical levels are palette roles and do not track a surrounding foregroundStyle. Medium confidence because the common case (a plain default foreground) gives the right answer; only the nested case diverges.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — Deliberate deviations C3: a `Text` binds the palette's tier.
 
 ### Alignment, geometry and the Layout protocol
 
@@ -462,6 +473,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `GeometryReader { proxy in Text("\(proxy.frame(in: .global).y)") }.padding(4)` renders 0. Ported SwiftUI code that positions a popover, computes a scroll offset, or compares two views' global frames gets 0 for every view, so two different views compare equal. Testable: render the reader nested at a known offset and assert `frame(in: .global).y != 0`. Tests/TUIkitTests/GeometryReaderTests.swift:108-122 pins the fallback and the honesty flag, so the fallback is deliberate; what is neither pinned nor true is that any real render populates the origin.
 - *Verifier's correction:* Severity doc-drift, not silent-divergence. The `.global` → `.local` fallback is documented and architecturally justified. What is wrong is the partiality both texts imply: GeometryReader.swift:46 says the fallback happens in a buffer composed into its parent afterwards, 'which is most of them', and compat-doc row 110 says it falls back 'where the renderer does not know the on-screen position — hasGlobalPosition says which'. It is all of them; `hasGlobalPosition` is public API that can only ever return false, so a caller who branches on it writes dead code. Either populate globalOrigin from the composite origin, or state that `.global` is currently an alias for `.local`.
 - *Recommendation:* Pick one and make the docs match. Either plumb the composite origin through RenderContext so globalOrigin is populated where the renderer does know it (the field and the flag are already there), or state plainly that hasGlobalPosition is currently always false and .global is currently an alias for .local. The "most of them" / "where it does not" phrasing invites a caller to check the flag and branch, which is dead code today.
+- *Status (2026-10-14 sweep):* **FIXED** — `GeometryAsk` (GeometryReader.swift); GeometryPredictionTests.
 
 **24. `VStackLayout / HStackLayout / ZStackLayout vs View.alignmentGuide(_:computeValue:)`**
 
@@ -486,6 +498,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `HStack { Text("This is a moderately long string."); Text("This is a higher priority string.").layoutPriority(1) }.frame(width: 30)` — SwiftUI truncates the first to make room for the second; TUIkit places the first at its natural width and clips the second to nothing. Testable by rendering at a width below the sum and asserting which string survives. Tests/TUIkitTests/LayoutProtocolTests.swift:295 pins only that a custom Layout can read subview.priority; no test asserts anything about a stack.
 - *Verifier's correction:* Same finding, broader scope. `distributeLinearSpace` has four callers, not two: HStack.swift:127, VStack.swift:282, StackLayouts.swift:92 and StackLayouts.swift:176. VStack is a caller as well, so layoutPriority is inert in TUIkit's vertical stacks too, not only the horizontal one and the two Layout values. The recommendation (teach the allocator a `priorities:` input and shrink lowest-first, or move `.layoutPriority(_:)` out of the ✓ row) is unchanged.
 - *Recommendation:* Decide and record. Either teach distributeLinearSpace a `priorities: [Double]` input and shrink lowest-first (only the shortfall branch changes), or stop advertising parity: move .layoutPriority(_:) out of the ✓ row into a stated §2 divergence saying built-in stacks ignore it and only a custom Layout sees it. Flexibility does not answer the same question — isWidthFlexible says "do you fill surplus", priority says "who shrinks first under a shortfall" — and a cell grid can allocate by priority perfectly well.
+- *Status (2026-10-14 sweep):* **FIXED** — stacks share by priority (decisions L12, L14); LayoutPriorityTests.
 
 ### Gestures, hit testing and keyboard input
 
@@ -496,6 +509,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `VStack { Text("tap me").onTapGesture { x, y in taps += 1 } }.disabled(true)` — SwiftUI leaves `taps` at 0; TUIkit registers the region and fires the action on click. Same for `.onDragGesture`, `.onScrollGesture`, `.onMouseEvent` and `.onKeyPress` inside a disabled subtree. No test covers a disabled subtree for any of these (OnTapGestureModifierTests, OnMouseEventModifierTests, OnScrollGestureModifierTests, MouseDoubleClickTests all render enabled); HoverTests.swift:225/:247 pin only the hover pair.
 - *Verifier's correction:* The SwiftUI-parity bite is `onTapGesture(count:perform:)` (View+Events.swift:170) — the one genuinely portable spelling in the list. `VStack { Text("x").onTapGesture(count: 2) { taps += 1 } }.disabled(true)` leaves taps at 0 in SwiftUI and fires in TUIkit; once finding 1 is fixed the bare `.onTapGesture { }` joins it. The other four modifiers are an internal-consistency gap against OnHoverModifier's own stated rule — worth fixing in the same commit, but not a SwiftUI-parity finding. Severity silent-divergence stands for the tap case.
 - *Recommendation:* Fix: add `context.environment.isEnabled` to the guards in OnMouseEventModifier, DragGestureModifier and KeyPressModifier, matching OnHoverModifier — its outside-attachment scoping (`.disabled(true).onTapGesture` still firing) falls out of the same placement.
+- *Status (2026-10-14 sweep):* **FIXED** — a disabled scope refuses gestures and mouse handlers; TapGestureLocationTests.
 
 **28. `View.focusEffectDisabled(_:)`**
 
@@ -538,6 +552,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Executed: `Text("hello").aspectRatio(2.0, contentMode: .fit)` renders 5x1 — unchanged. `Text("hello").scaledToFit()` renders width 5 — unchanged. `VStack { Text("a"); Text("b") }.aspectRatio(contentMode: .fill)` has no layout effect. There is a second half: because the mechanism is an environment value rather than a wrapper, applying it to a CONTAINER silently reaches every Image in the subtree, where SwiftUI would constrain the container's own frame and leave its children alone. Documentation/Layout and scrolling/Layout constraint system.md:44 already records the gap.
 - *Verifier's correction:* `.aspectRatio(_:contentMode:)`, `.scaledToFit()` and `.scaledToFill()` are declared on `View` (Sources/TUIkitFoundation/Views/Image.swift:499-521) but implemented as an Image-only environment write. They take part in no `sizeThatFits` anywhere, so on a resizable or flexible view they silently do nothing SwiftUI would do; and because the mechanism is an environment value rather than a wrapper, applying one to a CONTAINER reaches every `Image` in the subtree — a divergence SwiftUI's wrapper structurally cannot produce. That second half is the airtight one; the `Text("hello")` case is not, since Apple's doc conditions the effect on the view being resizable. Tools/APIParity reports no gap (same symbol name), which is what makes the audit surface read as parity; SwiftUI compatibility guide.md does not mention the modifier at all. Documentation/Layout and scrolling/Layout constraint system.md:43-44 already records the first half.
 - *Recommendation:* Fix. Add an AspectRatioModifier that is Layoutable and resolves the ratio against the proposal (trivial in whole cells), keeping the Image environment keys as the Image-specific path — this is item 1 on that design doc's own build list (:68, :91). Until then it must appear in SwiftUI compatibility guide.md §2; it currently reads as full parity.
+- *Status (2026-10-14 sweep):* **OPEN** — `aspectRatio` is still an `Image`-only environment write: on a `Text` it does nothing, on a container it reaches every image inside.
 
 **33. `View.fixedSize(horizontal:vertical:) / View.fixedSize()`**
 
@@ -545,6 +560,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The whole body is `environment(\.fixedSizeWidth, horizontal)` — preceded by the comment "the vertical flag is accepted for API parity and reserved for future use". `vertical` is never stored and never read. `\.fixedSizeWidth` has exactly two consumers in Sources/: _ListCore.swift (:172, :283, :2326) and NavigationSplitView.swift:559. No Text, no stack, no other Layoutable ever reads it. — `Sources/TUIkitFoundation/Modifiers/FixedSizeModifier.swift:49-53`
 - *Divergence:* Executed: `Text("A single line of text, too long to fit in a box.").fixedSize().frame(width: 20)` renders 20x3 ["A single line of", "text, too long to", "fit in a box."] — byte-identical to the same view without `.fixedSize()`. This is Apple's own doc example, which in SwiftUI produces one unwrapped line overflowing the frame. Separately, `.fixedSize(horizontal: true, vertical: true)` and `.fixedSize(horizontal: true, vertical: false)` both render 2x1 for Text("Hi") — the vertical flag changes nothing. Tests/TUIkitCollectionTests/ListTests.swift:790-821 pins only the List case.
 - *Recommendation:* Fix. Implement a `_FixedSizeView: Layoutable` that measures its child with a nil proposal on the fixed axes (ProposedSize already models "unspecified", and contentTargetHeight's `fills:` parameter shows the pattern). If that is not wanted, delete the `vertical:` parameter so the unhonourable half fails to compile, per the project's own rule 2.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — the guide's Modifiers row and the deviations' slated table.
 
 **34. `View.frame(idealWidth:) / View.frame(idealHeight:)`**
 
@@ -552,6 +568,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The ideal is applied as an unconditional cap on what the content is offered, regardless of whether the proposal was specified: `} else if let ideal = idealWidth { return min(ideal, availableWidth) }` (and the matching height branch at :115-117). Notably the sibling contentTargetHeight(availableHeight:fills:) DOES make the specified/unspecified distinction for the .infinity case (:107-114, with `let fillsHeight = proposal.height != nil` at :374), so the machinery exists and is simply not used here. — `Sources/TUIkitFoundation/Modifiers/FrameModifier.swift:86-88 (height twin at :115-117)`
 - *Divergence:* Executed at 80 columns: `Text("A noticeably longer line of text here").frame(idealWidth: 10)` renders 10x5, wrapped to ["A", "noticeably", "longer", "line of", "text here"], and measures width 10 against a proposal of 80. SwiftUI would report the text's own width (36) at that proposal and only fall back to 10 when the proposal is unspecified. Measured against an unspecified proposal TUIkit gives 10, which agrees. Tests/TUIkitTests/FlexibleFrameViewMeasureTests.swift:100 exercises .frame(idealWidth: 15) but asserts only measure/render parity, so it passes either way.
 - *Recommendation:* Fix — gate the ideal branch on `proposal.width == nil` / `proposal.height == nil`, mirroring contentTargetHeight's `fills:` treatment. Blast radius is small (nothing in Sources/ passes idealWidth/idealHeight), and today the modifier silently narrows a view, which surfaces to an app author as unexplained text wrapping.
+- *Status (2026-10-14 sweep):* **OPEN** — `frame(idealWidth:)` still caps under a specified proposal (FrameModifier); deferred for its layout risk and an A/B (queue, DEVS #13).
 
 **35. `View.layoutPriority(_:)`** · *adjusted on verification*
 
@@ -560,6 +577,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Executed at 40 columns with Apple's own doc example: `HStack { Text("This is a moderately long string."); Text("This is a higher priority string.").layoutPriority(1) }` renders line-for-line identically to the same HStack with `.layoutPriority(1)` removed — ["…This", "…is a", "This is a moderately long string. higher", "…prior…", "…strin…"]. In SwiftUI the priority makes the FIRST string shrink dramatically. Tests/TUIkitTests/LayoutProtocolTests.swift:295-318 pins only that a custom Layout can read subviews.priority; nothing pins the built-in stacks.
 - *Verifier's correction:* Same finding, broader scope. `distributeLinearSpace` has four callers, not two: HStack.swift:127, VStack.swift:282, StackLayouts.swift:92 and StackLayouts.swift:176. VStack is a caller as well, so layoutPriority is inert in TUIkit's vertical stacks too, not only the horizontal one and the two Layout values. The recommendation (teach the allocator a `priorities:` input and shrink lowest-first, or move `.layoutPriority(_:)` out of the ✓ row) is unchanged.
 - *Recommendation:* Fix. The stated justification does not hold — flexibility answers "will you grow", priority answers "who shrinks first", which is why SwiftUI has both. Documentation/Layout and scrolling/Layout constraint system.md:72 already scopes the work at "~20 lines per stack". If it is deliberately declined, the divergence belongs in SwiftUI compatibility guide.md §2, not only in a doc comment.
+- *Status (2026-10-14 sweep):* **FIXED** — as item 26.
 
 **36. `View.overlay(alignment:content:)`**
 
@@ -611,6 +629,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Executed (scratchpad/navprobe/main2.swift case B): `NavigationStack { Text("RootBody").navigationTitle("RootTitle") }` renders `RootBody` and nothing else — no bar, no title. Likewise `.navigationTitle("Categories")` on a NavigationSplitView's sidebar column produces no output anywhere. A ported app silently loses its home-screen title and every split-view column title.
 - *Verifier's correction:* Downgrade to `doc-drift`, scoped to NavigationSplitView. NavigationStack does not drop the root title — it records it as the depth-0 breadcrumb (NavigationStack.swift:267) and simply draws no bar at depth 0, which its own doc comment discloses (NavigationStack.swift:28-30) and which does not diverge from macOS SwiftUI (where a root title goes to a window titlebar a terminal does not have). What genuinely diverges with no disclosure anywhere is NavigationSplitView: it never reads NavigationTitleKey, so `.navigationTitle` on any column is inert, while SwiftUI compatibility guide.md:113 lists NavigationSplitView and navigationTitle as ✓ in the same row. Fix the doc (and optionally give the columns a title row); drop the stack-root half.
 - *Recommendation:* Draw the two-row bar at depth 0 as well — its height is already a constant, so nothing about the one-pass layout argument changes — or, if reserving two rows at the root is a deliberate space decision, say so in Documentation/SwiftUI parity/SwiftUI compatibility guide.md (line 113 currently lists navigationTitle as ✓ without qualification) and give NavigationSplitView a column-title row. The stack's own doc comment discloses half of this ("from then on it shows the top of the path, under a navigation bar"); the split-view half is disclosed nowhere.
+- *Status (2026-10-14 sweep):* **FIXED** — any drawn title is offered to the window's title slot (WindowChromeState.offer); WindowTitleTests.
 
 **42. `View.sheet(item:onDismiss:content:) (and fullScreenCover(item:…), popover(item:…))`**
 
@@ -672,6 +691,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `Grid(alignment: .leading) { GridRow { Text("aaa"); Text("b") }; GridRow { Text("cc"); Text("dd") }.foregroundStyle(.red) }` renders `aaa b` (columns at x=0 and x=4) then `cc dd ` — the modified row is one full-width cell laid out by GridRow's fallback HStack body, so "dd" lands at x=3 and column alignment, the only reason to use Grid, is silently lost. No test covers a modified GridRow.
 - *Verifier's correction:* `Grid(alignment: .leading) { GridRow { Text("aaa"); Text("b") }; GridRow { Text("cc"); Text("dd") }.foregroundStyle(.red) }` renders w=7 as `aaa b` / `cc dd `. Two failures, not one: the modified row is laid out by GridRow's fallback HStack (so `dd` lands at x=3 instead of the column origin), and — because Grid.swift:241's Pass A still counts that full-width row as a span-1 cell — its measured width is written into columns[0], widening column 0 from 3 to 5 and pushing the UNMODIFIED row's `b` from x=4 to x=6. A modifier on one row therefore re-lays-out every row.
 - *Recommendation:* Fix, ideally via the same ModifiedView change as the Group finding, which would put the modifier on each cell as SwiftUI does. A narrower fix — teaching rows(context:) to look through modifier wrappers for a GridRowProviding — restores the lattice but applies the modifier once to the whole row, which is not SwiftUI's rule.
+- *Status (2026-10-14 sweep):* **FIXED** — GridTests `modifiedRowKeepsTheLattice`.
 
 **49. `GridRow (used outside a Grid)`**
 
@@ -679,6 +699,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `GridRow.body` is an HStack: `HStack(alignment: alignment ?? .center, spacing: 1) { content }` (Grid.swift:88), under a comment claiming this "matches SwiftUI, where the row's layout is supplied by the enclosing grid and it degrades to a horizontal arrangement without one" — which contradicts the sentence quoted above. — `Sources/TUIkitGrid/Views/Grid.swift:85`
 - *Divergence:* `VStack { GridRow { Text("A"); Text("B") } }` renders `A B` (w=3, h=1) in TUIkit; SwiftUI puts A above B, because the orphan row is a Group and the VStack sees two children. Tests/TUIkitCollectionTests/GridTests.swift:274-278 ("A GridRow outside a Grid still lays its cells out in a row") pins the current behaviour, so this one is deliberate — deliberate on a false premise.
 - *Recommendation:* At minimum, delete the "matches SwiftUI" clause from the comment and record the divergence in §2: a comment asserting parity where there is none is worse than the divergence itself. The faithful fix is to make GridRow transparent outside a Grid — one ChildViewProvider conformance — which would also make orphan rows and `Grid { ForEach { GridRow … } }` behave identically.
+- *Status (2026-10-14 sweep):* **FIXED** — a `GridRow`'s body is its content outside a `Grid`; GridTests.
 
 **50. `Group`**
 
@@ -723,6 +744,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* With an accumulating key (`static func reduce(value: inout Int, nextValue: () -> Int) { value += nextValue() }`): `VStack { Text("a").preference(key: TotalKey.self, value: 1); VStack { Text("b").preference(key: TotalKey.self, value: 2) }.onPreferenceChange(TotalKey.self) { _ in } }.onPreferenceChange(TotalKey.self) { total in … }` yields 3 in SwiftUI and 2 in TUIkit — the inner scope's 2 is written over the outer scope's 1. It is also order-dependent: move Text("a") after the nested block and the outer total becomes 3, because setValue after the pop does reduce. Tests/TUIkitCoreTests/PreferenceValuesTests.swift:48 and PreferenceStorageTests.swift:70 pin the overwrite, but only for the default last-wins reduce where overwrite and reduce agree; PreferenceStorageTests.swift:80 asserts only `!= 0`.
 - *Verifier's correction:* The divergence is reachable today WITHOUT a nested onPreferenceChange: any accumulating PreferenceKey whose contributions straddle a NavigationStack root-title scope (Sources/TUIkitNavigation/Views/NavigationStack.swift:264) or a pushed-screen scope (:336) loses whatever the enclosing scope had already accumulated before the push, because pop() merges by overwrite. That raises the priority above "low, only reachable through nested onPreferenceChange" and gives the recommended fix (a per-key reducer thunk stored alongside the value so pop() re-applies through reduce) a live consumer now rather than only when backgroundPreferenceValue / overlayPreferenceValue land. Everything else in the finding stands.
 - *Recommendation:* Fix, low priority — only reachable today through a nested onPreferenceChange on an accumulating key. merge cannot call reduce (it is type-erased over Any), so have pop() re-apply each popped entry through the key's own reduce, which means PreferenceValues storing a per-key reducer thunk alongside the value — the same shape PreferenceStorage.onPreferenceChange already uses for its type-erased callbacks. This becomes load-bearing the moment backgroundPreferenceValue/overlayPreferenceValue land, since those push scopes too.
+- *Status (2026-10-14 sweep):* **FIXED** — a popped scope reduces through the key; PreferenceStorageTests.
 
 **55. `View.disabled(_:)`**
 
@@ -802,6 +824,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* With `@FocusState private var containsFocus: Bool` and `VStack { TextField("Name", text: $name); TextField("Email", text: $email) }.focused($containsFocus)`, Tab to the SECOND field: SwiftUI sets containsFocus == true, TUIkit leaves it false, because only the first field claimed focused-<path>. Writing containsFocus = true focuses the first field in both, so only the read direction diverges. FocusStateTests.swift:116-147 pins the one-claimant rule but for .focused(_:equals:), where it is correct and where the alternative was a live bug; nothing pins the Bool container case, so the Bool form appears to have inherited the fix rather than been considered.
 - *Verifier's correction:* The Bool `.focused(_:)` form binding only the first focusable in its subtree is real, but it is already recorded as a remaining gap at Documentation/SwiftUI parity/SwiftUI compatibility guide.md:493. What survives is doc-drift inside that entry: its parenthetical '(SwiftUI binds a single control)' is true of `.focused(_:equals:)` and false of the Bool form — FocusState.md:129-139 draws precisely the opposite distinction. The line should say the Bool form is granular in TUIkit and name `.focused(_:equals:)` as the spelling to port to. Severity `doc-drift`, not `silent-divergence`.
 - *Recommendation:* Fix or document. Faithful behaviour for the Bool form is "true if the focused id belongs to any focusable that rendered inside this modifier's subtree" — reachable by having the modifier record the identity-path prefix it wrapped and asking the manager whether the focused control's path is under it, rather than handing out one id. If that is judged not worth it, say so in SwiftUI compatibility guide.md: the Bool form is granular here and .focused(_:equals:) is the spelling to port to.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — the guide §4a `@FocusState` row lists it, though its parenthetical is wrong for the `Bool` form.
 
 **64. `View.fontWeight(_ weight: Font.Weight?)`**
 
@@ -827,6 +850,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The same spelling takes TUIkit's own TextContentType, whose cases (.username, .emailAddress, .telephoneNumber, .oneTimeCode, .password) are spelled as NSTextContentType's, so SwiftUI source compiles verbatim. It then filters input: `guard textContentType?.isAllowed(char) ?? true else { return }` in insertCharacter (TextFieldHandler.swift:651), and `sanitized = contentType.filterString(sanitized)` on paste (TextFieldHandler+Clipboard.swift:74). allowedCharacters (TUIkitStyling/Styles/TextContentType.swift:82-101) defines .username as alphanumerics plus ._-@ and .emailAddress as alphanumerics plus @._+-; characters outside the set are dropped with no feedback (the file's own doc: "invalid characters are silently dropped", :17). — `Sources/TUIkitTextInput/Focus/TextFieldHandler.swift:651`
 - *Divergence:* TextField("Enter your username", text: $username).textContentType(.username) — SwiftUI's own example for this modifier — behaves identically until the user types a space, a `!`, or a letter CharacterSet.alphanumerics does not contain: SwiftUI stores it, TUIkit swallows the keystroke. Pasting "O'Brien" into a .username field yields "OBrien"; .emailAddress drops the `!` in the legal local part a!b@c.com. Note the internal contradiction: MediumGuaranteedModifiers.swift:64-77 justifies autocorrectionDisabled being a no-op precisely because "Nothing between the key event and the binding rewrites what was typed… A field holds exactly the characters that arrived." No test references textContentType and SwiftUI compatibility guide.md never mentions it.
 - *Recommendation:* Fix by separation. Keep the filtering — it is useful — under a TUI-only name (.allowedCharacters(_:) or .inputFilter(_:), matching the modifier-first convention), and either drop .textContentType(_:) so the SwiftUI spelling fails to compile per rule 2, or keep it as a genuine no-op hint. Re-using a SwiftUI name for behaviour SwiftUI does not have is the case neither governing rule covers, and it is the worst of the three: the call compiles, does something, and does the wrong thing.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — Deliberate deviations T8 (owner, 2026-10-13).
 
 **67. `View.textInputSuggestions(_:)`**
 
@@ -862,6 +886,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The callback is stored on the handler (Slider.swift:467 `handler.onEditingChanged = onEditingChanged`) but every mouse route bypasses the handler and writes the binding directly. Slider.swift:604-613: `let decrementOnce: @MainActor () -> Void = { value.wrappedValue = min(bounds.upperBound, max(bounds.lowerBound, value.wrappedValue - step)) }`; Slider.swift:734-755 (`applyTrackValue`, the drag path) ends `value.wrappedValue = min(bounds.upperBound, max(bounds.lowerBound, snapped))`. In SliderHandler.swift:155-168 `beginEditingIfNeeded()` / `endEditingIfNeeded()` are `private`, and their only callers are `handleKeyEvent` (begin) and `onFocusLost` (end). — `Sources/TUIkitNumericControls/Views/Slider.swift:604`
 - *Divergence:* Bind `onEditingChanged: { isEditing = $0 }` and drag the track from column 5 to column 15: `isEditing` stays false throughout in TUIkit, where SwiftUI reports true on press and false on release. Wheel ticks and arrow-button clicks likewise emit nothing. Even on the keyboard the callback never balances: a right-arrow emits true once, and the matching false arrives only when the slider loses focus, which may be minutes later or never. Testable by dispatching MouseEvent(button:.left, phase:.pressed/.released) at the slider's hit region and asserting the flag. Grep over Tests/ finds no Slider test referencing onEditingChanged.
 - *Recommendation:* Fix. Expose beginEditing()/endEditing() on SliderHandler and call them from the mouse handler's .pressed/.released (and per wheel tick, or on a short trailing timer). Keeping the keyboard's focus-scoped end edge is defensible but should be documented, because "begins and ends" reads as per-gesture.
+- *Status (2026-10-14 sweep):* **FIXED** — `_SliderCore` reports editing; EditingGestureTests.
 
 **71. `Stepper.init(_:value:in:step:onEditingChanged:)`**
 
@@ -869,6 +894,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Stepper.swift:669-697 (`arrowHandler`) is the press-and-hold implementation and drives only the repeat timer: `case .pressed: focusManager?.focus(id: focusID); timer.start(action: action); return true` / `case .released, .dragged: timer.stop(); return true`. `action` is `{ handler.increment(times: 1) }` (Stepper.swift:586), and StepperHandler.increment (StepperHandler.swift:179) never touches editing state — only handleKeyEvent calls beginEditingIfNeeded(), and only onFocusLost calls endEditingIfNeeded(). The wheel route (Stepper.swift:636-644) emits nothing either. — `Sources/TUIkitNumericControls/Views/Stepper.swift:669`
 - *Divergence:* `Stepper("Qty", value: $q, in: 1...9) { began in log(began) }` — hold the ▶ arrow for a second; the value climbs 1→9 and the closure is never called, in either direction. In SwiftUI the same gesture is the documented trigger for true-then-false. Same shape as the Slider finding; same call sites need the fix.
 - *Recommendation:* Fix alongside the Slider case: add beginEditing()/endEditing() to the StepperDriving protocol and call them from arrowHandler's .pressed/.released.
+- *Status (2026-10-14 sweep):* **FIXED** — EditingGestureTests.
 
 ## Will not compile — SwiftUI source that binds to nothing here
 
@@ -882,6 +908,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Views/ContentUnavailableView.swift reproduces the defaults as three constrained overloads instead — init(label:description:actions:) at :56, init(label:) at :81 (Description == EmptyView, Actions == EmptyView), init(label:description:) at :92 (extension at :86 constrains Actions == EmptyView). There is no init(label:actions:). — `Sources/TUIkitFoundation/Views/ContentUnavailableView.swift:56,:81,:86-92`
 - *Divergence:* `ContentUnavailableView { Label("No Mail", systemImage: "tray.fill") } actions: { Button("Refresh") { reload() } }` compiles in SwiftUI and fails to compile in TUIkit — there is no overload skipping description. (The _:systemImage:description: inits DO ship, in Sources/TUIkitFoundation/SFSymbols/ControlSymbolInitializers.swift:190-224; that was my first suspicion and it was wrong.)
 - *Recommendation:* Fix: add `extension ContentUnavailableView where Description == EmptyView { init(@ViewBuilder label: () -> Label, @ViewBuilder actions: () -> Actions) }`. One overload, no behaviour change.
+- *Status (2026-10-14 sweep):* **OPEN** — no `ContentUnavailableView(label:actions:)` form (`Description == EmptyView`).
 
 ### Buttons, links, menus and shortcuts
 
@@ -891,6 +918,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* ButtonStyle.swift:23 declares `public let label: String`, with the composed ViewBuilder label parked on a separate property at ButtonStyle.swift:31, `public let labelView: AnyView?`. Button fills exactly one of the two: Button.swift:204-205 on the ViewBuilder path sets `self.label = ""` / `self.labelView = AnyView(label())`. String is not a View in TUIkit — `grep -rn "extension String: View" Sources/` returns nothing. — `Sources/TUIkitFoundation/Styles/ButtonStyle.swift:23`
 - *Divergence:* The canonical SwiftUI ButtonStyle port `struct MyStyle: ButtonStyle { func makeBody(configuration: Configuration) -> some View { configuration.label.padding().border() } }` fails to compile — String has no padding(). Worse, the workaround TUIkit's own doc comment recommends (ButtonStyle.swift:122-128, `Text(configuration.label)`) renders an EMPTY button for any `Button(action:) { ... }`, because label is "" on that path — that half is silent.
 - *Recommendation:* Fix: make ButtonStyleConfiguration.Label a real view type — the pattern already exists three files away as MenuStyleConfiguration.Label (an AnyView-wrapping `struct Label: View`) — rendering the string label when there is no composed one. Keep `label: String` / `labelView` alongside for the built-in styles' fast path. The doc comment's justification ("TUIkit's default button label is plain text, so the configuration carries the String directly for the common case") is convenience, not a constraint of a cell grid, so exclusion (b) does not cover it.
+- *Status (2026-10-14 sweep):* **FIXED** — `ButtonStyleConfiguration.label` is a `View` (ButtonStyle.swift).
 
 ### List, ForEach and outline content
 
@@ -900,6 +928,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public func dropDestination<Payload>(for payloadType: Payload.Type = Payload.self, action: @escaping (Int, [Payload]) -> Void) -> ForEach` — index first, payloads second. The doc comment on it says it "mirrors SwiftUI's `DynamicViewContent.dropDestination(for:action:)`". — `Sources/TUIkitFoundation/Views/DynamicViewContent.swift:70`
 - *Divergence:* Verified: Apple's sample body pasted verbatim onto a TUIkit ForEach fails to compile — the call resolves to the View-level dropDestination instead and reports "cannot convert value of type '()' to closure result type 'Bool'", a diagnostic that gives no hint of the real cause.
 - *Recommendation:* Fix: swap the closure parameters to `([Payload], Int)`. Pre-1.0, and the doc comment already claims the mirror. Dropping SwiftUI's `T: Transferable` constraint is a harmless relaxation and is not part of this finding.
+- *Status (2026-10-14 sweep):* **OPEN** — `ForEach`'s `dropDestination(for:action:)` still hands `(Int, [Payload])`; SwiftUI's is `([T], Int)`.
 
 **75. `DynamicViewContent.onMove(perform:)`**
 
@@ -907,6 +936,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public func onMove(perform action: @escaping (IndexSet, Int) -> Void) -> ForEach` — the parameter is non-optional. onDelete(perform:) 26 lines above (DynamicViewContent.swift:103) IS `((IndexSet) -> Void)?`, and its doc says "Passing `nil` makes the rows non-deletable again", so the asymmetry reads as an oversight rather than a decision. — `Sources/TUIkitFoundation/Views/DynamicViewContent.swift:129`
 - *Divergence:* Verified: `ForEach(seas) { Text($0.name) }.onMove(perform: nil)` fails with "error: 'nil' is not compatible with expected argument type '(IndexSet, Int) -> Void'". Any conditional spelling — `.onMove(perform: canReorder ? move : nil)` — breaks the same way.
 - *Recommendation:* Fix: widen to `((IndexSet, Int) -> Void)?`. The stored property `onMoveAction` is already Optional, so it is a one-word change.
+- *Status (2026-10-14 sweep):* **OPEN** — `onMove(perform:)` takes no `nil`.
 
 **76. `List.init(selection:content:) — binding optionality and the non-optional form`**
 
@@ -914,6 +944,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Every TUIkit selection initializer takes a non-optional binding — `selection: Binding<SelectionValue?>` (List.swift:177-296) and `selection: Binding<Set<SelectionValue>>` (List.swift:298-424) — and there is no `Binding<SelectionValue>` form at all. The stored properties behind them are already Optional (`let singleSelection: Binding<SelectionValue?>?` at List.swift:104, `let multiSelection: Binding<Set<SelectionValue>>?` at :107), so the plumbing for the optional form exists. — `Sources/TUIkitLists/Views/List.swift:177`
 - *Divergence:* Verified compile errors for all three: `List(selection: Binding<UUID?>?.none) { … }` and `List(selection: Binding<Set<UUID>>?.none) { … }` both give "value of optional type … must be unwrapped", and `List(selection: Binding<UUID>.constant(x)) { … }` gives "no exact matches in call to initializer". The optional form is the one real code hits: `List(selection: isEditing ? $sel : nil) { … }`.
 - *Recommendation:* Fix the optional forms (add `?` and branch internally — the stored properties are already Optional). The non-optional "always one selected" form is a behaviour, not just a signature: either add it or record in Documentation/SwiftUI parity/SwiftUI compatibility guide.md that a terminal list always permits an empty selection.
+- *Status (2026-10-14 sweep):* **OPEN** — `List`'s selection forms take only `Binding<V?>` and `Binding<Set<V>>`; many initialisers to add.
 
 ### Gestures, hit testing and keyboard input
 
@@ -923,6 +954,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* TUIkit's EventModifiers declares command, control, option, shift, numericPad and `all = [.command, .control, .option, .shift, .numericPad]`. `.capsLock` is absent. The omission is inconsistent with the file's own stated policy: `.numericPad` is kept with "Accepted for source compatibility with SwiftUI; a terminal cannot distinguish the numeric pad, so it never matches", and `.command` is kept though "Never reported by a terminal". Caps lock is the identical shape and was dropped with no reason given. — `Sources/TUIkitFoundation/Views/KeyboardShortcut.swift:98-105`
 - *Divergence:* `Button("X") {}.keyboardShortcut("x", modifiers: [.command, .capsLock])` is legal SwiftUI and does not compile. `EventModifiers.all` also has a different membership from SwiftUI's, so any code comparing or masking against `.all` differs.
 - *Recommendation:* Add `.capsLock` with the same never-matches note as `.numericPad` and include it in `.all` — or, if it is deliberately refused, say why in the type's doc comment where the other two unreportable modifiers are already explained.
+- *Status (2026-10-14 sweep):* **FIXED** — `EventModifiers.capsLock` (KeyboardShortcut.swift).
 
 **78. `View.onHover(perform:) — argument label`**
 
@@ -938,6 +970,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Two overloads, neither reachable from the bare spelling: `public func onTapGesture(_ action: @escaping (_ x: Int, _ y: Int) -> Void)` and `public func onTapGesture(count: Int, perform action: @escaping () -> Void)` — `count` has no default. Verified with `swiftc -typecheck` on a replica of exactly these two signatures: `T().onTapGesture { taps += 1 }` gives "error: contextual type for closure argument list expects 2 arguments, which cannot be implicitly ignored". Documentation/SwiftUI parity/SwiftUI compatibility guide.md:166 files this under §2.2 "Geometry is integer" — a reason that is true of the CGPoint-carrying overload and false of this one, so it is the refusal shape the brief warns about. — `Sources/TUIkitFoundation/Extensions/View+Events.swift:135 and :170`
 - *Divergence:* `Text("x").onTapGesture { taps += 1 }` and `Text("x").onTapGesture(perform: handleTap)` are both legal SwiftUI and neither compiles under TUIkit. Separately, TUIkit's own doc-comment example at View+Events.swift:129, `.onTapGesture { _ in clicked() }`, also fails to compile ("contextual closure type '(Int, Int) -> Void' expects 2 arguments, but 1 was used") — every in-tree call site writes `{ x, y in }` or `{ _, _ in }`, which is why nothing caught it.
 - *Recommendation:* Fix: give `count` a default of 1 — `public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void)`. Both SwiftUI spellings then compile and mean the same thing, and the `(Int, Int)` overload still wins for a closure that declares two parameters. Also correct the doc-comment example and the §2.2 table row, which implies the gap is about coordinates.
+- *Status (2026-10-14 sweep):* **FIXED** — `onTapGesture(count: Int = 1, perform:)`.
 
 ### Layout modifiers
 
@@ -948,6 +981,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Executed at 80 columns: `Text("Short").frame(maxWidth: .fixed(30))` renders width 5 (SwiftUI: 30); `Text("Short").frame(minWidth: 10, maxWidth: .fixed(30))` renders width 10 (SwiftUI: 30, since both constraints specified means adopt the proposal clamped). A width-flexible child does reach the cap: `Text("x").frame(maxWidth: .infinity).frame(maxWidth: .fixed(30))` renders 30. So the divergence bites exactly when the child is rigid — the case the modifier exists for. Tests/TUIkitTests/FrameModifierTests.swift:42-58 pins it, commenting "no maxWidth expansion without infinity".
 - *Verifier's correction:* Severity should be `silent-divergence`, not `compile-break`. The compile break is the SAFE half — rule 2 is satisfied and the porter is told. The defect that costs a debugging session is underneath it: the obvious mechanical port `maxWidth: 600` to `maxWidth: .fixed(600)` compiles and then does not fill toward the cap. Executed at 80 columns, `Text("Short").frame(maxWidth: .fixed(30))` is 5 wide and `.frame(minWidth: 10, maxWidth: .fixed(30))` is 10 wide, where SwiftUI gives 30 in both cases (View.md:13789-13798: 'If both constraints are specified in a dimension, the frame unconditionally adopts the size proposed for it, clamped to the constraints'). The compile break for `600` is a secondary `missing` spelling. Neither half appears in SwiftUI compatibility guide.md; FrameModifierTests.swift:42-58 pins the current behaviour deliberately.
 - *Recommendation:* Decide and record. Either make the finite-max branch fill toward its cap the way .infinity does and add ExpressibleByIntegerLiteral to FrameDimension so `.frame(maxWidth: 600)` compiles; or keep the compile break (rule 2 is satisfied) but add a §2 entry, because the obvious mechanical port `600` → `.fixed(600)` silently changes the layout. SwiftUI compatibility guide.md says nothing about either half today.
+- *Status (2026-10-14 sweep):* **OPEN** — a finite `maxWidth` still does not grow content to it (FrameModifier); the guide §2.1 tells porters to write `.fixed(n)` without the warning.
 
 ### Navigation and presentation
 
@@ -957,6 +991,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitTabs/Views/TabView.swift:36 and :50 declare only `Tab(_ titleKey: LocalizedStringKey, value: Value, @ViewBuilder content:)` / `Tab(_ title: String, value:, content:)` — a spelling SwiftUI does not have. The doc comment at TabView.swift:12-13 justifies it: "Mirrors SwiftUI's `Tab(_:value:content:)`. SwiftUI also takes a `systemImage:` — omitted here, as a terminal has no SF Symbols." Both halves are false: SwiftUI has no `Tab(_:value:content:)`, and TUIkit does have SF Symbols — Label(_:systemImage:) resolves them through SFSymbol at Sources/TUIkitFoundation/Views/Label.swift:97,107,116 (`SFSymbol.canRender(named:)`), with the baked table in Sources/TUIkitStrings/SFSymbols/ and the capability advertised in Documentation/SwiftUI parity/SwiftUI compatibility guide.md:114. — `Sources/TUIkitTabs/Views/TabView.swift:50`
 - *Divergence:* Typechecked: `Tab("A", systemImage: "star", value: 0) { Text("x") }` fails with `error: extra arguments at positions #2, #4 in call` / `error: missing argument for parameter 'content' in call`. No SwiftUI TabView source with named tabs compiles against TUIkit at all.
 - *Recommendation:* Fix. Add Tab(_:systemImage:value:content:) and Tab(_:image:value:content:), rendering the glyph through the existing SFSymbol path and falling back to the title alone when the terminal cannot draw it — exactly what Label already does — plus the label-less Tab(value:content:). Keep Tab(_:value:content:) as the TUI-friendly extra. Correct the doc comment either way; the refusal's stated reason is not true of this codebase.
+- *Status (2026-10-14 sweep):* **FIXED** — Tab.swift's `systemImage:`, `image:` and label-less forms.
 
 **82. `TabView.init(content:) / TabView.init(selection:content:) with ViewBuilder content`**
 
@@ -964,6 +999,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Only `init(selection: Binding<SelectionValue>, @ViewBuilder content:)` exists (Sources/TUIkitTabs/Views/TabView.swift:133). The body erases content through a static cast — TabView.swift:141: `tabs: (content as? TabContentProvider)?.tabs() ?? []` — whose only conformers are Tab, EmptyView, TupleView, ForEach (Sources/TUIkitTabs/Views/TabContent.swift:35-56). With no Tab values the core bails at TabView.swift:449: `guard !tabs.isEmpty else { return FrameBuffer() }`. — `Sources/TUIkitTabs/Views/TabView.swift:141`
 - *Divergence:* Typechecked: `TabView { Text("a") }` fails with `error: generic parameter 'SelectionValue' could not be inferred` / `error: missing argument for parameter 'selection' in call`. Worse, executed (scratchpad/navprobe/main2.swift case A): `TabView(selection: .constant(0)) { Text("PageZero").tag(0); Text("PageOne").tag(1) }` — legal SwiftUI via the deprecated selection init, and legal TUIkit since both .tag and the selection init exist — compiles and renders a completely blank screen. Nothing warns.
 - *Recommendation:* Fix. Add TabView(@ViewBuilder content:); and when the content yields no Tab values, either render the tagged children as pages or refuse at compile time. Rendering nothing silently is the worst of the three options.
+- *Status (2026-10-14 sweep):* **OPEN** — a `TabView`'s content is a `TabContentBuilder`, so the old blank screen no longer compiles; the plain-view form is absent and unrecorded.
 
 ### Scrolling
 
@@ -973,6 +1009,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* TUIkit has four separate initializers with no combined form: `public init() {}`, `public init(edge: Edge)`, `public init<ID: Hashable>(id: ID, anchor: UnitPoint? = nil)`, and `public init<ID: Hashable>(idType: ID.Type) {}`. — `Sources/TUIkitFoundation/Views/ScrollPosition.swift:70`
 - *Divergence:* `@State private var position = ScrollPosition(idType: Item.ID.self, edge: .bottom)` fails to compile. The idType parameter carries no geometry, so unlike the point:/x:/y: siblings there is no cell-vs-point justification for its absence.
 - *Recommendation:* Add `init<ID: Hashable>(idType: ID.Type, edge: Edge)` beside the existing `init(edge:)`. Low cost, removes a gratuitous compile break. Leave the CGPoint/CGFloat forms out — those are the documented type substitution (ScrollPosition.swift:38-41).
+- *Status (2026-10-14 sweep):* **FIXED** — `ScrollPosition(idType:edge:)`; ScrollPositionTests.
 
 **84. `ScrollPosition.isPositionedByUser`**
 
@@ -980,6 +1017,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public private(set) var isPositionedByUser: Bool = false` — the setter is not public. It is written only internally by the three scrollTo mutators (which set it false) and by reportVisible(id:) (which sets it true). — `Sources/TUIkitFoundation/Views/ScrollPosition.swift:67`
 - *Divergence:* `position.isPositionedByUser = true` does not compile. There is no substitute: `target` and `requestToken` are non-public, so an app cannot clear a standing target any other way — calling scrollTo(edge:) again is not equivalent, since that moves the view.
 - *Recommendation:* Fix. A public setter whose `didSet`/setter clears `target` when set to true is a few lines and matches the documented semantics exactly. SwiftUI compatibility guide.md:481 lists isPositionedByUser among what shipped without noting that only the getter did. Tests read it (ScrollPositionTests.swift:160, 308, 321) but never write it.
+- *Status (2026-10-14 sweep):* **FIXED** — `isPositionedByUser` is settable (ScrollPosition.swift).
 
 ### State, bindings and data flow
 
@@ -997,6 +1035,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitView/State/State.swift:379-382 declares only the one-argument setter form: `public init(get: @escaping () -> Value, set: @escaping (Value) -> Void)`. Sources/TUIkitView/State/Binding+Optional.swift:49 declares only the opposite, failable direction: `public init?(_ base: Binding<Value?>)`. — `Sources/TUIkitView/State/State.swift:379`
 - *Divergence:* Both verified. `Binding<Int>(get: { n }, set: { v, t in n = v })` → `error: contextual closure type '(Int) -> Void' expects 1 argument, but 2 were used in closure body`. `let opt: Binding<Int?> = Binding($n)` → `error: cannot convert value of type 'Binding<Int>' to expected argument type 'Binding<Int??>'` — the failable unwrap overload is the only candidate, so the diagnostic actively misleads. The second is how SwiftUI code feeds a non-optional binding to `.sheet(item:)` or an optional-selection control.
 - *Recommendation:* Add both. `init<V>(_ base: Binding<V>) where Value == V?` is three lines. The transaction-taking setter can be stored alongside the existing one and invoked with `Transaction.ambient ?? Transaction()`.
+- *Status (2026-10-14 sweep):* **OPEN** — no `Binding(get:set:)` whose setter takes a `Transaction`, nor `Binding<V?>(_: Binding<V>)`.
 
 **87. `Environment.init(_:)`**
 
@@ -1004,6 +1043,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitView/Environment/EnvironmentProperty.swift:99 declares only `public init(_ type: Value.Type) where Value: Observable`, and the wrappedValue getter traps on a miss — EnvironmentProperty.swift:116-122 `fatalError("@Environment(\(Value.self).self): No object of type \(Value.self) found in the environment. Did you forget to call .environment(model)?")`. — `Sources/TUIkitView/Environment/EnvironmentProperty.swift:99`
 - *Divergence:* `@Environment(Model.self) var model: Model?` fails to compile: `error: cannot convert value of type 'Model.Type' to expected argument type 'KeyPath<EnvironmentValues, Model?>'` (verified). So the only available spelling is the one that crashes at runtime when an ancestor forgot `.environment(model)`; the defensive spelling SwiftUI offers is unreachable.
 - *Recommendation:* Add `init<T: AnyObject & Observable>(_ objectType: T.Type) where Value == T?` whose `.observable` strategy returns the lookup result directly instead of trapping.
+- *Status (2026-10-14 sweep):* **OPEN** — no optional `@Environment(T.self) var x: T?`; the only form traps when nothing was injected.
 
 **88. `View.environment(_:)`**
 
@@ -1011,6 +1051,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Extensions/View+Environment.swift:88 declares only the non-optional form: `public func environment<T: Observable>(_ object: T) -> some View { ObjectEnvironmentModifier(content: self, object: object) }`. There is no second overload. The underlying storage already supports clearing — EnvironmentValues[observable:] is an Optional-valued subscript (Sources/TUIkitCore/Environment/EnvironmentKey.swift:90-93). — `Sources/TUIkitFoundation/Extensions/View+Environment.swift:88`
 - *Divergence:* Apple's documented snippet, verbatim, fails to type-check against the built package: `Text("hi").environment(currentProfile)` where `currentProfile: Profile?` gives `error: value of optional type 'Profile?' must be unwrapped to a value of type 'Profile'`. The optional-model-in-environment pattern is common, and the workaround (`if let` / `??`) changes the view tree.
 - *Recommendation:* Add `public func environment<T: AnyObject & Observable>(_ object: T?) -> some View` that sets `env[observable: T.self] = object`; the subscript already accepts nil, so clearing works for free.
+- *Status (2026-10-14 sweep):* **OPEN** — `View.environment(_:)` takes no optional object (the `Scene` twin does).
 
 ### Text and typography
 
@@ -1029,6 +1070,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* TUIkit's @_disfavoredOverload string inits take a concrete String: `public init(_ title: String, text: Binding<String>)` and `public init(_ title: String, text: Binding<String>, prompt: Text?)` (TextField.swift:161, 181; SecureField.swift:124, 142). TUIkit's own Toggle gets this right — `public init<S: StringProtocol>(…)` at Sources/TUIkitFoundation/Views/Toggle.swift:276 — and so does TextField.init(_:value:format:prompt:) at TextFieldValue.swift:166-174, so it is an oversight rather than a policy. — `Sources/TUIkitTextInput/Views/TextField.swift:161`
 - *Divergence:* TextField(line[..<idx], text: $t) — or any Substring-derived title — fails to compile against TUIkit and compiles under SwiftUI. Minor in impact, but it is also an inconsistency inside TUIkit itself.
 - *Recommendation:* Fix — widen the @_disfavoredOverload inits on TextField and SecureField to <S: StringProtocol> and construct Text(String(title)), exactly as TextField.init(_:value:format:prompt:) already does.
+- *Status (2026-10-14 sweep):* **FIXED** — `StringProtocol`-titled `TextField` and `SecureField` forms.
 
 **91. `TextFieldStyle.roundedBorder / TextFieldStyle.squareBorder`** · *adjusted on verification*
 
@@ -1037,6 +1079,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Every SwiftUI text-input snippet ending .textFieldStyle(.roundedBorder) fails to compile against TUIkit, including the one in Apple's SecureField reference. Applying the brief's test for a refusal — does it name what the API would have to DO and why a cell grid cannot do it? — it fails on the repository's own evidence: .roundedBorder and .squareBorder are .border(.rounded) and .border(.single) around the field, so the premise "a terminal draws one rectangle" is a true fact about terminals that these two APIs never depended on.
 - *Verifier's correction:* `.textFieldStyle(.roundedBorder)` — used in Apple's own SecureField reference example — fails to compile against TUIkit, and the refusal note (Sources/TUIkitFoundation/Styles/TextFieldStyle.swift:30, repeated at Documentation/SwiftUI parity/SwiftUI compatibility guide.md:117) argues from corners that a one-row field does not have. The honest fix is a cap-glyph axis on TextFieldStyle: `.roundedBorder` aliases today's half-block-capped DefaultTextFieldStyle (free and faithful), `.squareBorder` differs by cap glyph. It is NOT `.border(.rounded)` / `.border(.single)` around the field — boxing a height-1 field costs two extra rows and diverges from SwiftUI's layout far more than the missing spelling does.
 - *Recommendation:* Implement RoundedBorderTextFieldStyle and SquareBorderTextFieldStyle as a third TextFieldStyle axis — a bordered field boxed with BorderStyle.rounded / .single instead of the half-block caps — and delete the note. If they are still to be refused, re-argue the refusal on a ground that survives BorderStyle.rounded existing (e.g. a one-row field cannot carry a top and bottom border without becoming three rows), which is the argument the note should have made.
+- *Status (2026-10-14 sweep):* **FIXED** — `.roundedBorder` and `.squareBorder` (TextFieldStyle+Variants.swift).
 
 ## Absent — a spelling a character grid could carry
 
@@ -1050,6 +1093,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Absent. There is no `children:` anywhere in Table.swift or TableColumn.swift; the three initializers at Table.swift:248, :303, :334 take a flat `[Value]`. — `Sources/TUIkitTables/Views/Table.swift:334`
 - *Divergence:* `Table(fileTree, children: \.contents) { TableColumn("Name", value: \.name) }` does not compile. The medium does not bar it and TUIkit has already built every piece: DisclosureGroup, OutlineGroup and List(_:children:) all ship (SwiftUI compatibility guide.md, "Expand/collapse hierarchy": "Shipped: DisclosureGroup, OutlineGroup, and List(_:children:)"), and the ItemListHandler that Table shares with List already carries the outline activation/expansion state (ItemListHandler.swift:294-346, outlineActivation). The disclosure triangle would live in the first column's cell. Undocumented in sections 2, 4a and 4b.
 - *Recommendation:* Document as a known gap now (section 4a) and implement when hierarchical tables are actually wanted. Lower priority than the other findings: the SwiftUI code that hits it is rarer and it fails loudly rather than silently.
+- *Status (2026-10-14 sweep):* **FIXED** — `Table(_:children:)` (Table+Children.swift).
 
 **93. `Table.init(of:columns:rows:) / TableRow`**
 
@@ -1057,6 +1101,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Absent. `grep -rl 'TableRow\|Table(of:\|TableRowContent\|TableRowBuilder' Sources/` returns nothing. TUIkit's only initializers are the three at Table.swift:248, :303 and :334, all of the form `init(_ data: [Value], …, @TableColumnBuilder<Value> columns: () -> [TableColumn<Value>])`. — `Sources/TUIkitTables/Views/Table.swift:248`
 - *Divergence:* The TipTable example straight out of Apple's Table documentation does not compile against TUIkit; there is no source-preserving workaround, the author must restructure to `Table([Purchase(price: 20), …]) { … }`. Nothing in a character grid bars it — the rows are values, and TUIkit's Table is already value-based throughout; a TableRowBuilder producing [Value] plus an init(of:columns:rows:) funnelling into the existing array init is a thin adapter. Documentation/SwiftUI parity/SwiftUI compatibility guide.md does not mention static rows in section 2 (intentional divergence), 4a (should add) or 4b (won't), so the gap is undeclared as well as unimplemented.
 - *Recommendation:* Add TableRow + TableRowBuilder and the init(of:columns:rows:) family; at minimum, list it in section 4a of SwiftUI compatibility guide.md so the gap is declared rather than silent.
+- *Status (2026-10-14 sweep):* **FIXED** — `Table(of:columns:rows:)` and `TableRow`.
 
 ### Animation
 
@@ -1066,6 +1111,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The only spring factory is `public static func spring(duration: TimeInterval = 0.5, bounce: Double = 0) -> Animation`, whose body computes `let zeta = clamped >= 0 ? 1 - clamped : 1 / (1 + clamped)` and `let omega = duration > 0 ? 2 * Double.pi / duration : 0`. `grep -rn 'dampingFraction|interpolatingSpring|interactiveSpring|blendDuration' Sources/` returns nothing. — `Sources/TUIkitCore/Animation/Animation.swift:143`
 - *Divergence:* `withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { … }` — a non-deprecated spelling used throughout SwiftUI code written before iOS 17 — does not compile against TUIkit, with no diagnostic pointing at the replacement. Likewise `.interpolatingSpring(stiffness: 170, damping: 15)`.
 - *Recommendation:* Add them as thin mappings onto the spring curve that already exists: response → omega = 2π/response, dampingFraction → zeta (the exact inverse of the mapping at line 143); interpolatingSpring(mass:stiffness:damping:) → omega = sqrt(stiffness/mass), zeta = damping/(2·sqrt(stiffness·mass)); interactiveSpring is a preset of the first. blendDuration is a defaulted parameter the medium honours for free (a terminal never holds two springs to blend), which is the same shape as the .monospaced(true) exception; only initialVelocity is genuinely unhonourable, and it too is defaulted.
+- *Status (2026-10-14 sweep):* **FIXED** — every spring factory (Animation.swift).
 
 **95. `View.phaseAnimator(_:content:animation:)`**
 
@@ -1073,6 +1119,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Absent. `grep -rn 'phaseAnimator|PhaseAnimator|matchedGeometry|PlaceholderContentView|Namespace' Sources/` finds nothing relevant. The only record of a decision is the §4b row, which refuses it because "Smooth interpolation needs sub-cell/sub-frame precision and a compositor. TUIkit redraws discrete frames on demand; there's no tween space." — `Documentation/SwiftUI parity/SwiftUI compatibility guide.md:543`
 - *Divergence:* `Circle().phaseAnimator([1.0, 0.4]) { view, phase in view.opacity(phase) }` — or its TUIkit-shaped equivalent over Text — does not compile, and the recorded reason names a limitation the API never depended on. PhaseAnimator asks for nothing sub-cell: it is a discrete state machine over an Equatable phase sequence plus one Animation per transition, and AnimationStore already drives an animated transition between two values and reports when it has finished, while RenderContext.requestAnimation already gives a view a per-frame heartbeat. The effects a caller applies per phase (.opacity, .offset, .padding, .frame, colours) are exactly the modifiers TUIkit has already made Animatable.
 - *Recommendation:* Leave the feature unbuilt if it is not wanted, but fix the row: move PhaseAnimator (and View.contentTransition(_:), where a terminal can express .opacity and could express .numericText() as a rolling digit) to §4a as unbuilt-but-expressible, and rewrite the matchedGeometryEffect refusal to name what it would have to do (@Namespace, resolved source/destination cell rects, a per-frame interpolation of both) and which part a cell grid cannot supply. The container form PhaseAnimator(phases) { phase in … } needs no PlaceholderContentView at all, so it is the cheap half if it is ever built.
+- *Status (2026-10-14 sweep):* **FIXED** — shipped 2026-10-14 with refusal review O2 (PhaseAnimator.swift); AnimatorViewTests.
 
 **96. `withAnimation(_:completionCriteria:_:completion:)`**
 
@@ -1080,6 +1127,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public func withAnimation<Result>(_ animation: Animation? = .default, _ body: () throws -> Result) rethrows -> Result` is the only overload. There is no AnimationCompletionCriteria type, and Transaction (Transaction.swift:15-38) carries `animation` and `disablesAnimations` only — no addAnimationCompletion. — `Sources/TUIkitCore/Animation/Transaction.swift:104`
 - *Divergence:* `withAnimation(.easeOut) { step = 1 } completion: { step = 2 }` does not compile, and there is no TUIkit spelling for "do this when the animation finishes", so a ported animation chain must be rewritten around a manual timer. A terminal can do it: AnimationStore.hasLiveAnimations(at:) already answers "is anything still moving" per frame, each record knows its own Animation.isFinished(at:), and AppState.consumePendingTransaction() is exactly where a completion list would hang.
 - *Recommendation:* Add it, mapping both AnimationCompletionCriteria cases onto "the animations started by this transaction have finished" — TUIkit has no long tail, so logicallyComplete and removed coincide, which is a legitimate simplification rather than a dropped argument. Lower priority than the Animation.default and spring findings.
+- *Status (2026-10-14 sweep):* **FIXED** — `withAnimation(_:completionCriteria:_:completion:)` (AnimationCompletion.swift).
 
 ### App and scene structure
 
@@ -1089,6 +1137,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Environment/OpenURLAction.swift:112 declares only `public func callAsFunction(_ url: URL)`. The disposition machinery that would feed a completion is fully present (:47-79 Result, :112-120 the switch), and systemOpen (:141-155) already knows whether an opener binary exists, so the Boolean is computable. — `Sources/TUIkitFoundation/Environment/OpenURLAction.swift:112`
 - *Divergence:* `openURL(url) { accepted in print(accepted ? "Success" : "Failure") }` — the form Apple's doc comment teaches on the type's own overview page — is a compile error under TUIkit. Nothing about a terminal bars it.
 - *Recommendation:* Add the overload: .handled → completion(true), .discarded → completion(false), .system(u) → the result of systemOpen (which already reports whether an opener was found). SwiftUI's newer prefersInApp: overloads are correctly out — there is no in-app browser.
+- *Status (2026-10-14 sweep):* **FIXED** — `openURL(_:completion:)` (OpenURLAction.swift).
 
 **98. `Scene.environment(_:_:) and Scene.environment(_:)`**
 
@@ -1096,6 +1145,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The only `extension Scene` blocks in the tree are Scene+PaletteOverride.swift:56, Scene+ChromeStyle.swift:30, Scene+MouseSupport.swift:9, Scene+AppearanceOverride.swift:35 and Styling/Theme.swift:128 — .palette, .appearance, .chromeStyle, .mouseSupport, .theme. There is no `environment` among them (verified by grep -rn "extension Scene" over Sources/). — `Sources/TUIkitApp/App/Scene.swift:43 (protocol) — no environment extension anywhere in Sources/TUIkit*/App/`
 - *Divergence:* The modern SwiftUI app skeleton does not compile: `@main struct MyApp: App { @State private var model = Model(); var body: some Scene { WindowGroup { ContentView() }.environment(model) } }` — no such member on Scene. The developer must move the injection inside the WindowGroup's content closure. Nothing about a character grid bars it: View.environment(_:_:) and View.environment(_ object:) both ship (compat doc §1, Observation row), and the existing _PaletteScene/_ChromeStyleScene wrappers are exactly the mechanism a _EnvironmentScene would use. Neither compat doc §4a nor §4b nor Tools/APIParity/parity-map.json records the gap.
 - *Recommendation:* Add both spellings as Scene wrappers that forward to the View modifier around the window group's content — the same shape as Scene+PaletteOverride.
+- *Status (2026-10-14 sweep):* **FIXED** — Scene+Environment.swift.
 
 **99. `Scene.onChange(of:initial:_:)`**
 
@@ -1103,6 +1153,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* onChange exists only on View — Sources/TUIkitFoundation/Extensions/View+Events.swift:300 and :328 are the only two declarations in the tree (grep -rn "func onChange"). There is no Scene overload. — `Sources/TUIkitFoundation/Extensions/View+Events.swift:300,:328 — no Scene counterpart`
 - *Divergence:* TUIkit's own compat doc §4a sells the suspend transition as "an `onChange(of: scenePhase)` observer runs while the process is still alive, which is an app's only chance to save on the way down" — but the spelling Apple documents for that, on the scene beside an `@Environment(\.scenePhase)` declared on the App, is a compile error. The @Environment read itself DOES resolve in the App struct (RenderLoop.swift:878 evaluates app.body inside StateRegistration.withHydration(environment:)), so only the modifier fails and the developer must relocate the observer into a view. Tests/TUIkitAppTests/ScenePhaseTests.swift covers the environment value, not the scene modifier.
 - *Recommendation:* Add the two Scene.onChange overloads (the () -> Void and (V, V) -> Void forms) on the same _*Scene wrapper mechanism as Scene.environment. Low cost, and it closes the gap between the compat doc's claim and the compilable surface.
+- *Status (2026-10-14 sweep):* **FIXED** — Scene+OnChange.swift.
 
 **100. `WindowGroup.init(_:makeContent:) (title forms)`**
 
@@ -1110,6 +1161,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitApp/App/Scene.swift:65 declares exactly one initializer: `public init(@ViewBuilder content: () -> Content)`. No title overload. (The content: vs SwiftUI's makeContent: label is harmless — the trailing-closure spelling binds either way.) — `Sources/TUIkitApp/App/Scene.swift:56-67`
 - *Divergence:* `WindowGroup("My App") { ContentView() }` — the spelling most SwiftUI app templates ship with — is a compile error with no substitute. A terminal has somewhere to put this: the OSC 2 window-title sequence, which TUIkit does not currently emit anywhere (verified by grep over Sources/TUIkit and Sources/TUIkitCore), or AppHeaderState. Rule 2's licence for a compile break is that a cell grid cannot carry the meaning, which is not true here; and the gap sits under compat doc §1's Match claim for WindowGroup rather than in §4a/§4b.
 - *Recommendation:* Add the three title overloads, storing the title and emitting OSC 2 once at startup (guarded like the other host-capability probes). If judged not worth it, record the refusal in §4b with a reason — right now it is an unremarked gap under a §1 Match claim.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — still absent; refusal review P15 calls the refusal wrong and the Ghostty adoption study plans OSC 2, so it is owed work.
 
 ### Buttons, links, menus and shortcuts
 
@@ -1120,6 +1172,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Each is a plain compile error on ported source with no explanation in SwiftUI compatibility guide.md: `Button("Save", role: .confirm) { }`, `Button(name[...]) { }` where name[...] is a Substring, `.keyboardShortcut(isDefault ? .defaultAction : nil)`, `.keyboardShortcut("x", modifiers: [.capsLock])`, `.menuOrder(.fixed)`, `.contextMenu(nil)`. menuOrder is the notable one: on macOS `.automatic` always resolves to `.fixed`, which is exactly what TUIkit's column does, so it is a spelling that could be honoured for free in the `.monospaced(true)` sense.
 - *Verifier's correction:* Drop `.contextMenu(nil)` and MenuStyle.borderlessButton/.borderedButton from the ask — all three are deprecated SwiftUI spellings whose documented replacements are either already implemented (contextMenu(menuItems:)) or covered by Finding 5 (.buttonStyle(.bordered/.borderless)). Of the MenuStyle names only `.button` (macOS 13+, current) is a genuine gap, and `.automatic` already exists. The remaining eight sub-items stand as written.
 - *Recommendation:* Add the cheap spellings (.confirm/.close, StringProtocol inits on Button and Menu for consistency with Link and the systemImage inits, the optional keyboardShortcut overload, capsLock, clear, menuOrder honoured-for-free, and .automatic as a ButtonStyle name). Document the genuinely unimplementable rest (contextMenu preview:, KeyboardShortcut.Localization) in SwiftUI compatibility guide.md §4b.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — the spellings ship (`.confirm`/`.close`, `StringProtocol` titles, optional `keyboardShortcut`, `capsLock`, `menuOrder`, `MenuStyle.button`); `KeyEquivalent.clear` is a recorded refusal (decisions C4).
 
 **102. `Menu.init(content:label:primaryAction:) and its four siblings`** · *adjusted on verification*
 
@@ -1128,6 +1181,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `Menu("Export") { Button("PDF") { pdf() }; Button("PNG") { png() } } primaryAction: { exportLast() }` fails to compile. That is the rule-2-correct failure mode, so the finding is about the REASON, not the behaviour: the refusal names a platform rendering rather than the API's contract, and both of its grounds are disproved by shipped features in the same package.
 - *Verifier's correction:* Menu(content:label:primaryAction:) is absent and fails to compile, which is rule-2-correct; the finding is doc-drift on the refusal at Menu.swift:44-47, and only on its second clause. 'A terminal has … [no] reliable way to aim at part of a one-line control' is false in this repo — DatePicker already aims clicks and wheel events at one component of a one-row control — and Apple documents 'click of the menu indicator' as an acceptable presentation gesture, so that clause should be struck. The 'no long press' clause stands: TUIkit's press-and-hold opens on the press and has no hold-duration discrimination anywhere.
 - *Recommendation:* Either implement it — a trailing chevron cell as the open target, press-and-hold as the alternative, Return for the primary action and Space/Down to open; all three mechanisms already exist — or rewrite the refusal so it names a real blocker. As written it will be cited as settled and re-derived wrongly.
+- *Status (2026-10-14 sweep):* **FIXED** — `Menu(…primaryAction:)` (Menu.swift), with tests.
 
 **103. `PrimitiveButtonStyle, View.buttonStyle(_:) (PrimitiveButtonStyle overload), ButtonStyle.automatic / .bordered / .borderedProminent / .borderless`**
 
@@ -1135,6 +1189,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `grep -rn PrimitiveButtonStyle Sources/` returns nothing. ButtonStyle.swift:695 declares the single overload `public func buttonStyle<S: ButtonStyle>(_ style: S) -> some View`. The static accessors at ButtonStyle.swift:233-256 are `default`, `primary`, `destructive`, `success`, `plain` — SwiftUI's name for the first is `automatic`; `default` is TUIkit's own coinage. — `Sources/TUIkitFoundation/Styles/ButtonStyle.swift:695`
 - *Divergence:* `.buttonStyle(.bordered)`, `.buttonStyle(.borderedProminent)`, `.buttonStyle(.borderless)` and `.buttonStyle(.automatic)` — all everyday SwiftUI — fail to compile, as does any custom PrimitiveButtonStyle. `.buttonStyle(.plain)` happens to work only because TUIkit spells PlainButtonStyle as a ButtonStyle. This is rule-2-correct (it fails loudly), but there is no terminal reason for it: DefaultButtonStyle IS the bordered look and PlainButtonStyle IS the borderless one.
 - *Recommendation:* Add `automatic` as the SwiftUI-spelled synonym for `default`, and map `bordered` / `borderless` onto the two appearances TUIkit already draws. PrimitiveButtonStyle with trigger() is a larger ask (it hands activation control to the style) and a defensible omission — but it should then be stated in SwiftUI compatibility guide.md §4b, where it currently is not; the compat table says only "custom `ButtonStyle`/`ToggleStyle` via `makeBody`".
+- *Status (2026-10-14 sweep):* **FIXED** — PrimitiveButtonStyle.swift; `.bordered` and `.automatic` (ButtonStyle.swift).
 
 ### List, ForEach and outline content
 
@@ -1144,6 +1199,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* ForEach has the range initializer (`extension ForEach where Data == Range<Int>, ID == Int`, Views/ForEach.swift) but List does not: its data-driven initializers all require `Data.Element: Identifiable` or an explicit `id:` key path. — `Sources/TUIkitLists/Views/List.swift:607`
 - *Divergence:* Verified: `List(0..<5) { Text("\($0)") }` gives "error: initializer 'init(_:rowContent:)' requires that 'Int' conform to 'Identifiable'". `List(0..<5, id: \.self) { … }` does work, so the workaround is available but undiscoverable from the error.
 - *Recommendation:* Fix — three lines forwarding to the ForEach range initializer that already exists, in the same style as the neighbouring `List(_:rowContent:)` overloads.
+- *Status (2026-10-14 sweep):* **OPEN** — no `List(_: Range<Int>, rowContent:)`.
 
 **105. `ListStyle.automatic / .sidebar / .inset / .bordered`** · *adjusted on verification*
 
@@ -1152,6 +1208,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Verified compile errors: `.listStyle(.automatic)`, `.listStyle(.sidebar)`, `.listStyle(.inset)` and `.listStyle(.grouped)` all give "type 'ListStyle' has no member …". `.automatic` is the one that matters — it is the identity, it is what SwiftUI code writes to undo an inherited style, and nothing about a cell grid bars it. Documentation/SwiftUI parity/SwiftUI compatibility guide.md:118 lists `listStyle` as a bare "✓" under Modifiers, which overstates coverage.
 - *Verifier's correction:* Absent, and worth adding: ListStyle.automatic (DefaultListStyle), .sidebar, .inset and .bordered — all four declared in ListStyle.md and all four failing to compile against TUIkit, .automatic being the one that matters most since it is the identity style. Drop `.grouped` from the claim: it is not part of the macOS SwiftUI surface, so no SwiftUI source targeting this shape writes it.
 - *Recommendation:* Add DefaultListStyle / `.automatic` at least — it can alias whichever of the two existing styles is the default. `.sidebar` / `.inset` / `.bordered` can alias the nearest terminal equivalent, or stay out with a line in the compatibility doc saying so.
+- *Status (2026-10-14 sweep):* **FIXED** — ListStyle+Variants.swift.
 
 **106. `Section.init(_:isExpanded:content:)`**
 
@@ -1159,6 +1216,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Views/Section.swift:64-167 declares four initializers — (content:header:footer:), (content:header:), (content:footer:), (content:) — plus the two title conveniences. None takes isExpanded, and Section stores no expansion state. — `Sources/TUIkitFoundation/Views/Section.swift:64`
 - *Divergence:* Verified: `Section("A", isExpanded: $flag) { Text("x") }` fails with "incorrect argument labels in call (have '_:isExpanded:_:', expected 'header:content:_:')". A SwiftUI settings screen built from collapsible sections does not port.
 - *Recommendation:* Add it, or record the refusal. It is squarely honourable: DisclosureGroup (Views/DisclosureGroup.swift:105) already implements this exact binding this exact way, and OutlineGroup already draws the triangle a section header would need. Today it is neither implemented nor documented as absent.
+- *Status (2026-10-14 sweep):* **FIXED** — `Section(_:isExpanded:)` (Section.swift).
 
 **107. `View.listSectionSeparator(_:edges:)`**
 
@@ -1166,6 +1224,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* It does not exist — `grep -rn "listSectionSeparator" Sources/` matches nothing. Only the row form ships, as an inert stub at Extensions/View+ListRowSeparator.swift:32. Documentation/SwiftUI parity/SwiftUI compatibility guide.md:495 nevertheless states: "`.listRowSeparator` / `.listSectionSeparator` remain inert stubs: the terminal `List` draws no per-row rules to show or hide." Also absent from the same neighbourhood: listRowSeparatorTint(_:edges:), listSectionSeparatorTint(_:edges:), listItemTint(_:), and the listRowInsets(_ edges:_ length:) overload. — `Sources/TUIkitLists/Extensions/View+ListRowSeparator.swift:32`
 - *Divergence:* Verified: `Text("x").listSectionSeparator(.hidden)` gives "error: value of type 'Text' has no member 'listSectionSeparator'", while `Text("x").listRowSeparator(.hidden)` compiles and is a no-op. A SwiftUI file that hides both separators compiles halfway.
 - *Recommendation:* At minimum correct Documentation/SwiftUI parity/SwiftUI compatibility guide.md:495, which describes a symbol that was never written. Better: add listSectionSeparator as the same inert wrapper, so the set of accepted spellings is coherent — accepting the row form and rejecting the section form is the worst of both project rules.
+- *Status (2026-10-14 sweep):* **FIXED** — ListSeparators.swift; ListSeparatorTests.
 
 ### Colour and styling
 
@@ -1184,6 +1243,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `Color` declares `public let value: ColorValue` and no initializer (Color.swift:25-36), so the memberwise `init(value:)` is internal — the type has NO public initializer at all. Construction is via `Color.rgb(_:_:_:)` taking three UInt8 (Color.swift:302), `.hex`, `.hsl`, `.hsb`, `.cmyk` — different names and different scales (hsl/hsb take 0–360 / 0–100, not 0–1). — `Sources/TUIkitStyling/Color/Color.swift:302`
 - *Divergence:* Verified: `Color(red: 0.4, green: 0.8, blue: 1.0)` gives `error: 'Color' initializer is inaccessible due to 'internal' protection level`; `Color(hue: 0.5, saturation: 1, brightness: 1)` the same. Nothing about a character grid bars a 24-bit sRGB triple — `Color.rgb` already is one; only the spelling and the scale differ. Tools/APIParity/baseline.json records all three as accepted gaps with no reason recorded anywhere, and Documentation/SwiftUI parity/SwiftUI compatibility guide.md:121 points at §3 for 'constructing a Color differs', where nothing about construction appears.
 - *Recommendation:* Add the three Double-component initializers as thin wrappers over `.rgb`/`.hsb` (dropping or defaulting `colorSpace:`/`opacity:`). This is the highest-frequency Colour idiom in ported SwiftUI source. If they are to stay out, the reason belongs in parity-map.json, not silently in baseline.json.
+- *Status (2026-10-14 sweep):* **FIXED** — Color+Resolved.swift's component initialisers.
 
 **110. `EnvironmentValues.colorScheme / ColorScheme`**
 
@@ -1191,6 +1251,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Absent entirely: grep for `colorScheme` across Sources/ returns nothing. Documentation/SwiftUI parity/SwiftUI compatibility guide.md:328-345 (§2.5) refuses it — "a terminal's 'look' is a small set of ANSI palette tokens and box-drawing styles, not a light/dark bitmap theme. There is no `\.colorScheme`" — then concedes three lines later "Light/dark *can* be expressed as palettes if desired." `Appearance` (Sources/TUIkitStyling/Theme/Appearance.swift:47-56) carries only `borderStyle`, not a light/dark axis. But the derivation already exists: `AppleTerminalPalette.isDark(_:)` at Sources/TUIkitStyling/Theme/Palettes/AppleTerminalPalette.swift:265-269 computes `let luma = 0.299*r + 0.587*g + 0.114*b; return luma < 128`, and `Color.relativeLuminance` / `.perceivedLightness` are public. — `Sources/TUIkitStyling/Theme/Palettes/AppleTerminalPalette.swift:265`
 - *Divergence:* Verified: `struct V: View { @Environment(\.colorScheme) var scheme; var body: some View { Text(scheme == .dark ? "d" : "l") } }` does not compile. §4b sets the bar a refusal must clear — "A row here earns its place by naming what the API would have to do and why a cell grid cannot do it. If the reason is instead a true fact about terminals that the API never depended on, the row is wrong." §2.5's reason is a true fact about terminals that `\.colorScheme` never depended on: it asks whether the appearance is light or dark, which is one derived property off `palette.background`. §2.5 also offers the reader `.palette(_:)`, a setter, when what they wanted was a read.
 - *Recommendation:* Add `ColorScheme` and a read-only `\.colorScheme` derived from `palette.background`'s luminance (reuse the existing isDark arithmetic), and rewrite §2.5 to say the read is supported and only the setter is spelled `.palette(_:)`. The write half — `preferredColorScheme(_:)` — genuinely is `.palette(_:)` under another name, so this finding is about the read side. Medium confidence only because a derived value can disagree with a palette author's intent for an ambiguous mid-luminance background; that is a tuning question, not a barrier.
+- *Status (2026-10-14 sweep):* **FIXED** — ColorSchemeEnvironment.swift; the guide §2.5.
 
 **111. `ShapeStyle.tertiary / ShapeStyle.quaternary`**
 
@@ -1198,6 +1259,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `Color.primary` and `Color.secondary` exist as deliberate SwiftUI-shaped spellings of the palette roles (Sources/TUIkitStyling/Color/Color.swift:160, 164 — the comment reads "These are the SwiftUI-shaped spellings of the palette roles below"). The third and fourth levels exist as roles — `SemanticColor.foregroundTertiary`/`.foregroundQuaternary` (SemanticColor.swift:29-30) with defaults at Theme.swift:144-154 — but there is no `Color.tertiary` or `Color.quaternary` anywhere in Sources/ (grep confirms). — `Sources/TUIkitStyling/Color/Color.swift:164`
 - *Divergence:* Verified: `Text("x").foregroundStyle(.secondary)` compiles; `Text("x").foregroundStyle(.tertiary)` gives `error: type 'Color' has no member 'tertiary'`. Two spellings from one SwiftUI family, one accepted and one rejected, with the underlying palette colour present for both. Documentation/SwiftUI parity/SwiftUI compatibility guide.md:462-464 (§3) claims of foregroundStyle that "The only thing lost is non-colour ShapeStyles — gradients, materials — which are bitmap concepts"; `.tertiary` is neither. Tools/APIParity/baseline.json lists ShapeStyle.tertiary/.quaternary/.quinary as accepted gaps, but it also lists ShapeStyle.primary and .secondary, which DO work — so the accepted-gap list cannot distinguish 'spelled differently' from 'unavailable' and hides this asymmetry.
 - *Recommendation:* Fix: two lines beside `Color.primary`/`.secondary`, pointing at the existing `foregroundTertiary`/`foregroundQuaternary` roles. `.quinary` needs a fifth palette tier and can legitimately stay out — say so in §3, and correct §3's 'only thing lost' claim.
+- *Status (2026-10-14 sweep):* **FIXED** — SemanticShapeStyles.swift.
 
 **112. `View.background(alignment:content:)`**
 
@@ -1216,6 +1278,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitCore/Rendering/LayoutTypes.swift:16-35 declares exactly `width`, `height`, `static let unspecified`, `init(width:height:)` and `static func fixed(_:_:)`. There is no `zero`, no `infinity`, no `replacingUnspecifiedDimensions(by:)`. — `Sources/TUIkitCore/Rendering/LayoutTypes.swift:24`
 - *Divergence:* `subview.sizeThatFits(.zero)`, copied verbatim from a SwiftUI custom layout, fails to compile, even though `ProposedSize(width: 0, height: 0)` means exactly the same thing on a cell grid.
 - *Recommendation:* Fix the .zero half — `public static let zero = Self(width: 0, height: 0)` is one line and semantically identical to SwiftUI's. The .infinity omission is genuinely justified (Int? cannot carry it, and SwiftUI compatibility guide.md:112 argues correctly that ViewSize.isWidthFlexible already carries what the infinity probe infers); say so on the type, not only in the compatibility doc. replacingUnspecifiedDimensions(by:) is near-pointless here because _LayoutCore.grounded means a layout never receives an unspecified proposal, but it is cheap and keeps more ported source compiling.
+- *Status (2026-10-14 sweep):* **OPEN** — `ProposedSize` has no `.zero`.
 
 ### Gestures, hit testing and keyboard input
 
@@ -1225,6 +1288,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* None of them exist. `grep -rn "protocol Gesture\|struct DragGesture\|struct TapGesture\|struct LongPressGesture\|onLongPressGesture\|highPriorityGesture\|simultaneousGesture\|GestureMask\|GestureState" Sources/` matches only `DragGestureModifier` and `DragGestureEvent` — TUIkit's own `onDragGesture(_:)` plumbing, not SwiftUI's types. Neither §4 nor §4b of Documentation/SwiftUI parity/SwiftUI compatibility guide.md lists the gesture-composition API as a refusal. — `Sources/TUIkitFoundation/Extensions/View+Events.swift:229 (onDragGesture, the nearest TUI-specific analogue)`
 - *Divergence:* Two things. (1) Doc drift: SwiftUI compatibility guide.md:168 shows `DragGesture().onChanged { $0.location } // CGPoint` mapped to `.onDragGesture { e in (e.x, e.y) } // Int` under §2.2 "Geometry is integer", which reads as though DragGesture exists in TUIkit with integer coordinates. It does not exist at all, so the largest gap in this family is invisible in the document written to enumerate gaps. (2) `onLongPressGesture` is absent and is the member with real terminal legs — press/release timing already drives MouseEvent.clickCount, timed wake-ups already exist (AutoRepeatTimer, CursorTimer), and maximumDistance becomes a cell count like every other measurement.
 - *Recommendation:* Documentation, primarily: add a §4b row naming what `.gesture(_:)` would have to do (compose recognisers with precedence and exclusivity across a view tree, feeding continuous values through @GestureState) and why a discrete, single-region terminal event stream does not support it — and correct line 168 so it does not imply DragGesture exists. `onLongPressGesture` is worth considering on its own merits; I have not built it, so the feasibility claim is a reading of the existing machinery rather than a demonstration.
+- *Status (2026-10-14 sweep):* **FIXED** — the gesture family: Gesture.swift, LongPressGesture.swift, GestureState.swift, GestureModifier.swift.
 
 **115. `View.dropDestination(for:isEnabled:action:)`** · *adjusted on verification*
 
@@ -1233,6 +1297,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `Color.pink.dropDestination(for: String.self, isEnabled: isDropEnabled) { titles, session in … }` — Apple's own doc example — does not compile. A caller wanting a conditionally-inert drop zone has to branch the whole view instead.
 - *Verifier's correction:* The finding is that a caller has no way to express a conditionally-inert drop zone on the View-level dropDestination and must branch the whole view; `isEnabled:` is absent with no stated reason and is trivially honourable in a terminal. Drop the claim about Apple's example compiling once it is added (the DropInfo/Bool deviations are separately documented and sound), and drop the ForEach/Table half entirely — SwiftUI's collection-level dropDestination has no isEnabled parameter to be missing.
 - *Recommendation:* Low priority. Either add `isEnabled: Bool = true` and honour it by skipping `session.registerTarget`, or record in §2 of SwiftUI compatibility guide.md that TUIkit deliberately tracks the pre-DropSession spelling. The same gap exists in the ForEach and Table overloads (Sources/TUIkitFoundation/Views/DynamicViewContent.swift:70, Sources/TUIkitTables/Views/Table.swift:219).
+- *Status (2026-10-14 sweep):* **FIXED** — `dropDestination(…isEnabled:)` (DragAndDrop.swift).
 
 **116. `View.onKeyPress(_:action:) / (_:phases:action:) / (keys:phases:action:) / (characters:phases:action:) / (phases:action:), KeyPress, KeyPress.Result, KeyPress.Phases`** · *adjusted on verification*
 
@@ -1241,6 +1306,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Every SwiftUI spelling fails to compile: `.onKeyPress(.escape) { dismiss(); return .handled }` (non-void return in a Void closure), `.onKeyPress(.escape) { .handled }` (no contextual base for `.handled`), `.onKeyPress(phases: .down) { … }` and `.onKeyPress(characters:) { … }` (no such overloads). `.onKeyPress(keys: [.escape]) { press in … }` binds via the trailing closure but cannot type-check its body (KeyEvent, not KeyPress; Bool, not KeyPress.Result). So this is an honest break, not a silent one — but the behavioural half is also different: TUIkit's handler fires while the view is on screen, not while it holds focus.
 - *Verifier's correction:* The doc problem is not a missing §4b row but a false claim: SwiftUI compatibility guide.md §4c ("TUIkit-only — no SwiftUI equivalent") lists `.onKeyPress` at line 558, when SwiftUI has shipped five overloads of that exact name since macOS 14. Fixing §4c is the minimum, and the not-focus-gated point is stronger than stated: with no input grab active, dispatch runs every handler in every section, so an .onKeyPress in a background section fires too.
 - *Recommendation:* Low priority. KeyPress.Result is a pure spelling change (TUIkit's Bool already IS .handled/.ignored) and the focus gate is expressible (FocusRegistration and \.isFocused exist); KeyPress.Phases is genuinely constrained — a terminal cannot separate .down from .repeat and .up needs the kitty protocol. At minimum: add a §4b row to SwiftUI compatibility guide.md saying the SwiftUI onKeyPress spelling is unavailable (§1 currently lists .onKeyPress only under "TUI-specific" at line 558), and state in the modifier's own doc that it is NOT focus-gated.
+- *Status (2026-10-14 sweep):* **FIXED** — `onKeyPress` and `KeyPress`, gated on focus; OnKeyPressTests.
 
 ### Layout modifiers
 
@@ -1250,6 +1316,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Only `background(_ color: Color)` exists, backed by BackgroundModifier, which recolours the buffer's existing cells and correctly does not change size (executed: `Text("Hi").background(.red)` is width 2). There is no view-content form. Tools/APIParity/baseline.json accepts `View.background(alignment:content:)` (plus the ShapeStyle and Shape overloads) as a gap, and Tools/APIParity/parity-map.json records no `why` for any of them. — `Sources/TUIkitFoundation/Extensions/View+Layout.swift:202-204`
 - *Divergence:* `.background { Text("░░░░") }` and `.background(alignment: .leading) { … }` — everyday SwiftUI — fail to compile. Rule 2 is satisfied (it fails loudly), but a cell grid can plainly do this: OverlayModifier is the same operation with the layers swapped, and FrameBuffer.composited(with:at:) already composites bottom-up.
 - *Recommendation:* Implement as the mirror of overlay(alignment:content:), with the same .center default — ideally in the same change as the overlay sizing fix, since both want "measure the base, propose the base's size to the other layer, keep the base's size". If it is deliberately declined, parity-map.json needs a `notImplemented` entry saying what a cell grid cannot do here.
+- *Status (2026-10-14 sweep):* **FIXED** — BackgroundLayerModifier.swift.
 
 **118. `View.clipped(antialiased:)`**
 
@@ -1257,6 +1324,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Absent (accepted in Tools/APIParity/baseline.json, with no reason in parity-map.json). Yet the guarantee is one the medium already keeps: renderResolved clamps EVERY Renderable result — "The result is clamped to the available space — the universal layout safety net. A view that mis-sizes itself can never overwrite a sibling or overflow the terminal; at worst its own content is truncated." Executed: `Text("A very long line of text indeed").frame(width: 10)` renders 10x4, wrapped, never wider. — `Sources/TUIkitView/Rendering/Renderable.swift:185-192`
 - *Divergence:* `.clipped()` in ported SwiftUI source fails to compile, even though in-flow content already cannot escape its frame — this is the exact shape Sources/TUIkitFoundation/Modifiers/MediumGuaranteedModifiers.swift exists for, and a stronger case than `.monospaced()` because `antialiased:` is meaningless on a grid in both directions. One caveat that keeps this at medium: floated layers DO escape. Executed, `Text("XXXX").offset(x: 20).frame(width: 6, height: 1)` yields a 6x1 buffer carrying an OverlayLayer at x: 20 — outside the frame — which SwiftUI's .clipped() would clip.
 - *Recommendation:* Either add it to MediumGuaranteedModifiers, clipping the buffer's anchored (non-screen-level) overlays so the promise is whole rather than partial — roughly 15 lines — or give parity-map.json a real notImplemented entry. The current silence reads as an oversight rather than a decision.
+- *Status (2026-10-14 sweep):* **FIXED** — ClippedModifier.swift.
 
 **119. `View.containerRelativeFrame(_:alignment:) (and the _:alignment:_: and _:count:span:spacing:alignment: forms)`**
 
@@ -1264,6 +1332,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Absent. All three are listed in Tools/APIParity/baseline.json as accepted gaps, and Tools/APIParity/parity-map.json records no reason. Documentation/Layout and scrolling/Layout constraint system.md:47 names the capability — "'Take 30% of the available width.' There is no way to express this without computing it explicitly outside the layout. SwiftUI has `.containerRelativeFrame(...)`." — and proposes a TUI-flavoured `.frame(width: .fraction(0.3))` instead (:70, :83). — `Tools/APIParity/baseline.json (accepted gap); design discussion at Documentation/Layout and scrolling/Layout constraint system.md:47, 70, 83`
 - *Divergence:* `.containerRelativeFrame(.horizontal)` or `.containerRelativeFrame(.horizontal, count: 3, span: 1, spacing: 1)` fails to compile. A cell grid can obviously divide its width — RenderContext already carries availableWidth/availableHeight, and ScrollView already publishes a viewport size (\.scrollViewportSize). This is unimplemented, not impossible.
 - *Recommendation:* Low priority relative to the rest of this family, but record the decision: if the `.fraction` spelling is preferred, that belongs in parity-map.json under differentShape so the parity tool stops reporting a bare gap; if SwiftUI's spelling is wanted, the design doc already scopes it.
+- *Status (2026-10-14 sweep):* **FIXED** — ContainerRelativeFrame.swift.
 
 ### Navigation and presentation
 
@@ -1274,6 +1343,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Typechecked: `var p = NavigationPath(); _ = p.codable` fails with `error: value of type 'NavigationPath' has no member 'codable'`. Applying the brief's test to the refusal: it names a Swift-runtime/portability fact, not something a cell grid cannot do, and the API never depended on the terminal at all. It is also weaker than it looks here — NavigationCoordinator already keeps a per-type destination registry (Sources/TUIkitNavigation/Views/NavigationCoordinator.swift:47, 153) that is exactly the type table a decoder would consult, so a registry-based CodableRepresentation is reachable without _typeByName.
 - *Verifier's correction:* Keep it as a low-severity `missing` + `doc-drift`: the three symbols are absent and the stated reason is not a terminal one, so the refusal should be restated in terms of what actually blocks it — nothing in the path records a persistable type name, and AnyHashable elements carry no Codable guarantee. Do NOT claim the existing destination registry makes a CodableRepresentation reachable; it is keyed by ObjectIdentifier and is not consultable by a decoder.
 - *Recommendation:* Either implement it off the destination registry, or restate the refusal in terms of what actually blocks it (an element whose destination has never rendered cannot be typed) rather than "a runtime type-name lookup TUIkit does not have everywhere". Marked low confidence because I have not established that a registry-based decode covers everything SwiftUI's does — SwiftUI constrains elements to Codable & Hashable and can reconstruct types the app never registered a destination for.
+- *Status (2026-10-14 sweep):* **FIXED** — NavigationPath.swift; NavigationPathCodableTests.
 
 **121. `View.alert(_ title: Text, isPresented:actions:) and the Text-titled confirmationDialog forms`**
 
@@ -1281,6 +1351,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Only LocalizedStringKey and String overloads exist: Sources/TUIkitPresentation/Extensions/View+Presentation.swift:45, 73, 105, 130 (alert) and :170, 184, 205, 218 (confirmationDialog), with the presenting:/error: families in View+AlertPresenting.swift following the same two-overload pattern. `grep -rn "_ title: Text" Sources/` finds only navigationTitle and Label. — `Sources/TUIkitPresentation/Extensions/View+Presentation.swift:73`
 - *Divergence:* Typechecked: `Text("p").alert(Text("Title"), isPresented: .constant(true)) { Button("OK") {} }` fails with `error: cannot convert value of type 'Text' to expected argument type 'LocalizedStringKey'`. This is the correct failure mode under rule 2, but the gap is not a terminal limit — navigationTitle(_ title: Text) already exists and simply reads title.content (Sources/TUIkitFoundation/Extensions/View+Preferences.swift:95-97), with the styling loss documented there.
 - *Recommendation:* Fix — add the same one-line Text overload to alert and confirmationDialog, carrying navigationTitle's existing "the Text's styling is not carried" note.
+- *Status (2026-10-14 sweep):* **OPEN** — no `alert` or `confirmationDialog` taking a `Text` title.
 
 ### Scrolling
 
@@ -1290,6 +1361,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Only the generic accessor ships: `public func viewID<T: Hashable>(type: T.Type) -> T? { guard case .id(let value, _) = target else { return nil }; return value.base as? T }`. There is no non-generic property. — `Sources/TUIkitFoundation/Views/ScrollPosition.swift:100`
 - *Divergence:* `if let id = position.viewID { … }` does not compile — the caller is forced to already know the id type even when it only wants to log or compare it.
 - *Recommendation:* Add it: `public var viewID: AnyHashable? { if case .id(let v, _) = target { v } else { nil } }`. The value is already stored in `target`; AnyHashable is the natural terminal stand-in for `any Hashable & Sendable` and is covered by the type-substitution exclusion.
+- *Status (2026-10-14 sweep):* **FIXED** — `ScrollPosition.viewID`; Deliberate deviations R3.
 
 **123. `View.scrollTargetBehavior(_:)`** · *adjusted on verification*
 
@@ -1316,6 +1388,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The modifier does not exist. SwiftUI compatibility guide.md:111 and the Grid doc comment (Grid.swift:134-137) record the omission as "it exists in SwiftUI so a Divider does not force its ideal length onto a column, and the full-width spanning above already covers that case" — a reason that names one use case as covered rather than naming something a cell grid cannot do. `_GridCore.lattice` measures every cell with `proposal: .unspecified` and reads only `size.width` (Grid.swift:241), so a caller has no way to say "size this column to the other cells". — `Sources/TUIkitGrid/Views/Grid.swift:241`
 - *Divergence:* The dismissed case is reachable and mis-renders. `Grid(alignment: .leading) { GridRow { Text("aa"); Text("x").frame(maxWidth: .infinity); Text("bb") }; GridRow { Text("cc"); Text("y"); Text("dd") } }` renders 30 cells wide with the middle column swallowing everything: `aa x ` / `cc y `. That is exactly what gridCellUnsizedAxes(.horizontal) is for. (The Divider cases the doc cites really are covered — measured.) Porting SwiftUI source that writes the modifier is a compile error with no equivalent short of restructuring the grid or hard-coding .frame(width:).
 - *Recommendation:* Ship it: a LayoutValueKey carrying Axis.Set beside the three keys Grid.swift already defines, read in `lattice` (a cell unsized on .horizontal contributes nothing to its column's width) and in the render's boxWidth. Grid is the only consumer. Failing that, rewrite the §4b entry to state what a cell grid cannot do — as measured, the case it dismisses is live.
+- *Status (2026-10-14 sweep):* **FIXED** — Grid.swift, GridLattice.swift; GridTests.
 
 ### State, bindings and data flow
 
@@ -1325,6 +1398,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* No macro target exists in the package — `grep -rn "@attached" Sources/` returns nothing, and `Entry` appears nowhere in the TUIkit symbol dump except unrelated nested types (StyleCascade.Entry, SubmitActionEntry). The longhand is what Sources/TUIkitCore/Environment/EnvironmentKey.swift:15-28 documents. — `Sources/TUIkitCore/Environment/EnvironmentKey.swift:29`
 - *Divergence:* `extension EnvironmentValues { @Entry var myCustomValue: String = "Default value" }` → `error: unknown attribute 'Entry'` (verified). Nothing about a cell grid bars this — it is pure source generation, and EnvironmentValues' storage already supports exactly what the macro expands to. SwiftUI compatibility guide.md does not mention @Entry in §1, §2 or §4b, so the gap is invisible to a reader of that document.
 - *Recommendation:* Either add a small macro target (an AccessorMacro plus a PeerMacro, ~40 lines) or record the refusal in §4b — the honest reason would be the swift-syntax build cost a macro target imposes on every downstream consumer, which is a legitimate trade worth stating rather than leaving silent.
+- *Status (2026-10-14 sweep):* **DOCUMENTED** — the guide §1 Container values row: no `@Entry` yet in `TUIkitMacros`.
 
 **127. `View.transformPreference(_:_:) / View.backgroundPreferenceValue(_:_:) / View.overlayPreferenceValue(_:_:)`**
 
@@ -1332,6 +1406,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Extensions/View+Preferences.swift ships only `preference(key:value:)` (:26) and `onPreferenceChange(_:perform:)` (:47). Verified: `Text("hi").transformPreference(MyKey.self) { $0 += 1 }` → `error: value of type 'Text' has no member 'transformPreference'`. — `Sources/TUIkitFoundation/Extensions/View+Preferences.swift:26`
 - *Divergence:* Any SwiftUI source that sizes or positions a decoration from a descendant's published preference — the standard "measure a child, draw a badge over it" idiom — fails to compile. Both halves of the machinery already exist here: `overlay(alignment:)` ships, and OnPreferenceChangeModifier (Preferences.swift:70-115) already demonstrates the push / render content / pop sequence overlayPreferenceValue needs. SwiftUI compatibility guide.md:104 rates the whole "Env / prefs" row ✓ without mentioning any of the three.
 - *Recommendation:* Add at least transformPreference — it is a five-line variant of PreferenceModifier that calls the transform on the collected value instead of setting a literal. The two …PreferenceValue modifiers are more work (the overlay must render after the content's preferences are collected) but nothing about a cell grid prevents them. Whichever way, record the decision in §4b rather than leaving the row a bare ✓.
+- *Status (2026-10-14 sweep):* **FIXED** — View+Preferences.swift; PreferenceTransformTests.
 
 ### Text and typography
 
@@ -1341,6 +1416,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Label has three initializers — `init(@ViewBuilder title:@ViewBuilder icon:)` (Label.swift:51), an internal `init(title:icon:iconIsVisible:)` (:59) and `init(_:systemImage:)` (:97 / :107) — and none takes a configuration. LabelStyleConfiguration (Sources/TUIkitFoundation/Styles/LabelStyle.swift:18) exposes `AnyView` title/icon rather than nested Title/Icon types. — `Sources/TUIkitFoundation/Views/Label.swift:51`
 - *Divergence:* Verified with swiftc -typecheck: the SwiftUI documentation snippet above fails with "missing argument for parameter 'systemImage' in call", and `let _: LabelStyleConfiguration.Title? = nil` fails with "'Title' is not a member type of struct 'TUIkit.LabelStyleConfiguration'". A ported custom LabelStyle that decorates rather than replaces the current style will not compile.
 - *Recommendation:* Worth adding, but not naively: Label reads `@Environment(\.labelStyle)` in its own body (Label.swift:38), so a Label(configuration) that re-entered that path would recurse forever when called from inside the style being decorated. It needs a configuration-hosted Label that renders configuration.icon/title through DefaultLabelStyle directly, plus LabelStyleConfiguration.Title/.Icon aliases for AnyView. Note this is a family-wide gap — TUIkit has no Button(_ configuration: ButtonStyleConfiguration) either.
+- *Status (2026-10-14 sweep):* **FIXED** — Label.swift's `init(_:)` from a configuration.
 
 **129. `TextField.init(_:text:axis:) / TextField.init(_:text:prompt:axis:)`** · *adjusted on verification*
 
@@ -1349,6 +1425,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* TextField("Notes", text: $notes, axis: .vertical) fails to compile. Rule 2 is technically satisfied (nothing is silently dropped), which is why this is missing rather than silent — but a terminal plainly can do it: TextEditor already wraps a multi-line editor over a String binding.
 - *Verifier's correction:* TextField(_:text:axis:) and its five siblings are absent (severity `missing`; rule 2 satisfied since the call fails to compile), and the absence is unrecorded in Tools/APIParity/parity-map.json — but it is not unreasoned: the growing-text-control position is already stated under the .lineLimit range overloads at Documentation/SwiftUI parity/SwiftUI compatibility guide.md:496. The residual action is bookkeeping — a parity-map.json entry pointing at that existing reasoning — not a decision to re-argue. Low priority.
 - *Recommendation:* Either implement (.vertical grows the field with its content up to lineLimit, delegating to the TextEditor machinery; .horizontal is today's behaviour) or add a parity-map.json entry saying why not. The doc's own "this axis may not be respected" makes an accept-and-ignore overload unusually defensible here — but that call should be recorded rather than left implicit.
+- *Status (2026-10-14 sweep):* **FIXED** — TextField's `axis:` forms; VerticalTextFieldTests.
 
 **130. `View.lineLimit(_ limit: ClosedRange<Int>) / (PartialRangeFrom<Int>) / (PartialRangeThrough<Int>)`** · *adjusted on verification*
 
@@ -1357,6 +1434,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Verified with swiftc -typecheck: `Text("x").lineLimit(...3)`, `VStack { Text("x") }.lineLimit(1...3)` and `.lineLimit(3...)` all fail with "cannot convert value of type 'ClosedRange<Int>' to expected argument type 'Int'". `.lineLimit(1...3)` is semantically identical to the already-shipped `.lineLimit(3)`, so the refusal withholds a spelling the medium does not bar.
 - *Verifier's correction:* Three range overloads are missing and the §4a refusal fails the brief's test (SwiftUI's docs name Text FIRST and give it truncate-at-the-cap semantics; TUIkit has no growing text control for the stated reason to bite on). Only PartialRangeThrough — and ClosedRange whose lower bound is 1 — map onto the existing machinery as `lineLimit(limit.upperBound)`. ClosedRange with lowerBound > 1 and PartialRangeFrom both require a new model in which the floor is independent of the cap, because LineLimit.lines(_:reservesSpace:) currently reserves the cap.
 - *Recommendation:* Ship ClosedRange and PartialRangeThrough — `lineLimit(limit.upperBound, reservesSpace: limit.lowerBound > 1)` and `lineLimit(limit.upperBound)` cover them with the existing machinery. PartialRangeFrom genuinely needs new model (LineLimit.lines(_:reservesSpace:) ties the floor to the cap, LineLimitEnvironment.swift:38-56, so a floor-without-cap state is required); either add it or keep refusing that one form with a reason specific to it.
+- *Status (2026-10-14 sweep):* **FIXED** — LineLimitEnvironment.swift's range forms.
 
 ### Value controls
 
@@ -1366,6 +1444,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitColorPicker/Views/ColorPicker.swift:36 `public struct ColorPicker: View { private let title: String` — non-generic, with only the two String/LocalizedStringKey initializers (ColorPicker.swift:63, :74), and the label hand-rendered as `Text(title).frame(width: labelWidth, alignment: .leading)` (ColorPicker.swift:89) rather than through the shared _CollapsingLabel. — `Sources/TUIkitColorPicker/Views/ColorPicker.swift:36`
 - *Divergence:* Typechecked: `ColorPicker(selection: c) { Text("Tint") }` gives "error: trailing closure passed to parameter of type 'LocalizedStringKey' that does not accept a closure". Any picker whose label is a Label(_:systemImage:), an HStack, or styled Text does not port. Every sibling control in this family (Toggle, Slider, Stepper, Picker, DatePicker, Gauge, LabeledContent) is generic over Label and routes it through _CollapsingLabel; ColorPicker is the sole exception. Note the omission of supportsOpacity: was recorded here as "separately correct" and was not — see the closing note; it shipped 2026-09-10.
 - *Recommendation:* Make it ColorPicker<Label: View> with the ViewBuilder initializer, and render the label through _CollapsingLabel like the others, keeping colorPickerLabelWidth as the pillar override.
+- *Status (2026-10-14 sweep):* **FIXED** — ColorPicker's `ViewBuilder` label form (the type stays non-generic).
 
 **132. `GaugeStyle`**
 
@@ -1381,6 +1460,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* tuikit-docs/PickerStyle.md ships .automatic, .menu, .inline and .radioGroup only, with the note that inline and radioGroup render identically. No SegmentedPickerStyle exists. — `Sources/TUIkitPickers/Views/Picker.swift:145`
 - *Divergence:* Typechecked: `Picker("x", selection: s) { Text("a").tag(0) }.pickerStyle(.segmented)` gives "error: type 'PickerStyle' has no member 'segmented'". Apple's own example does not compile and there is no near-equivalent to redirect to. A segmented control is one of the easiest things a cell grid can draw ([ One │ Two │ Three ] with the selected segment on the accent face) and TUIkit already has both halves: TabViewStrip draws exactly this shape and RadioButtonGroup supplies the selection/keyboard machinery.
 - *Recommendation:* Add SegmentedPickerStyle and route it through the existing strip renderer. Either way, mention it in SwiftUI compatibility guide.md — §1 currently lists Picker as a clean match. (.palette, .wheel and .navigationLink are weaker cases and I am not reporting them.)
+- *Status (2026-10-14 sweep):* **FIXED** — PickerSegments.swift.
 
 **134. `Slider.init(value:in:step:label:minimumValueLabel:maximumValueLabel:onEditingChanged:)`**
 
@@ -1388,6 +1468,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Slider is declared `public struct Slider<Label: View, ValueLabel: View>` (Slider.swift:79) and stores `let valueLabel: ValueLabel?` (Slider.swift:94), but all three public initializers set `self.valueLabel = nil` (Slider.swift:164, :224, :258) and nothing ever reads it: _SliderCore receives it (Slider.swift:130) and never mentions it again — the valueLabelText / valueLabelColor identifiers inside buildContent are the percentage read-out, unrelated. The public generic parameter is unreachable: no caller can construct a Slider whose ValueLabel is anything but EmptyView. — `Sources/TUIkitNumericControls/Views/Slider.swift:94`
 - *Divergence:* Typechecked: `Slider(value: v, in: 0...100, step: 5) { Text("Speed") } minimumValueLabel: { Text("0") } maximumValueLabel: { Text("100") }` gives "error: extra trailing closure passed in call". The rendering is already solved next door — Gauge.swift:286-287 draws inlineText(minimumValueLabel…) / inlineText(maximumValueLabel…) either side of its bar.
 - *Recommendation:* Add the two minimumValueLabel:/maximumValueLabel: initializers, give _SliderCore the same flanking treatment _GaugeCore uses, and populate the existing ValueLabel slot with them. If they will not be added, delete the ValueLabel generic parameter and the valueLabel stored property — a public generic parameter no initializer can populate is a trap for anyone writing Slider<Text, Text> in a type annotation.
+- *Status (2026-10-14 sweep):* **FIXED** — Slider+ValueLabels.swift.
 
 **135. `Stepper.init(_:value:in:step:format:onEditingChanged:)`**
 
@@ -1396,6 +1477,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Typechecked: `Stepper("n", value: v, in: 1...50, step: 5, format: .number)` gives "error: extra argument 'format' in call". And the fallback is worse than nothing: `Stepper("Temp", value: $t, step: 0.1)` walking a Double renders 0.30000000000000004 in the control; a Decimal, Measurement or Duration prints its raw description. So ported source using format: .number / .percent / .currency(code:) fails to compile, and the workaround renders floating-point noise on exactly the control that would have used it. The FormatStyle plumbing already ships (Text(_:format:), LabeledContent.swift:140-163).
 - *Recommendation:* Add the four format: initializers, storing `{ format.format(value.wrappedValue) }` as `display`, constrained to F.FormatOutput == String as SwiftUI does.
 - *Blocks a second item, which is why this one is worth doing first (2026-09-02):* a `Stepper` draws `◀ value ▶`, so its right arrow MOVES when the value gains a digit — `◀ 9 ▶` → `◀ 10 ▶` walks the arrow one column right, under a pointer that may be mid-click on it. The fix is to reserve the width of the widest value, and **that is only well-defined when the RENDERING is bounded, which is what a format style bounds.** For `Int` the range's ends are the widest and the reservation needs nothing new; for anything else `"\(value)"` is unbounded even when the value is not — the `0.30000000000000004` above is nineteen cells out of a `0...1` range whose ends render as three. So the sizing work is parked until these initializers exist, rather than shipped in a form that is right for one value type and a guess for the rest. When it is picked up: SwiftUI has no equivalent to copy — its own `Stepper` never draws the value, and its ± control sits at the trailing edge where a widening label cannot move it — so the shape will be TUIkit's own, a `.stepperValueWidth(_:)` modifier in the manner of `.colorPickerLabelWidth(_:)` (the `Init signatures: keep them minimal` rule in CLAUDE.md), with the default still to be chosen. The same question applies to any value read-out a control draws ITSELF; a read-out an app draws beside a `Slider` is the app's own `.frame(width:)`, as `Example`'s image controls do it.
+- *Status (2026-10-14 sweep):* **FIXED** — `Stepper(…format:)` (Stepper.swift).
 
 **136. `Toggle.init(_ configuration: ToggleStyleConfiguration)`**
 
@@ -1403,6 +1485,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* ToggleStyleConfiguration exists and is public (Toggle.swift:72) and custom ToggleStyles are fully supported (_ToggleCore.swift:503-510 builds a configuration and calls makeBuffer), but no Toggle initializer takes a configuration — extension Toggle at Toggle.swift:254, :290 and :309 provides only the title/isOn/label forms and the modifiers. — `Sources/TUIkitFoundation/Views/Toggle.swift:290`
 - *Divergence:* Typechecked: `struct RedToggle: ToggleStyle { func makeBody(configuration: Configuration) -> some View { Toggle(configuration) } }` gives "error: initializer 'init(_:isOn:)' requires that 'ToggleStyleConfiguration' conform to 'StringProtocol'". The "decorate, don't reimplement" style — the cheapest and commonest custom style in SwiftUI — has no spelling, so every custom ToggleStyle must redraw the indicator from scratch and re-derive the focus pulse and ToggleCharacterSet glyphs by hand.
 - *Recommendation:* Add `extension Toggle where Label == AnyView { init(_ configuration: ToggleStyleConfiguration) }` (TUIkit's configuration already types label as AnyView), rendering through the built-in checkbox/switch path so a wrapper composes over the default. The same shape applies to LabeledContent(_ configuration:) / LabeledContentStyle, which are also absent.
+- *Status (2026-10-14 sweep):* **FIXED** — Toggle.swift's `init(_:)` from a configuration.
 
 **137. `Toggle.init(sources:isOn:label:) / Toggle.init(_:sources:isOn:)`**
 
@@ -1410,6 +1493,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* No `sources:` initializer exists anywhere in TUIkit — grep for "sources:" across Sources/TUIkit/ returns nothing. Toggle's public initializers are only the three at Toggle.swift:254 (LocalizedStringKey / StringProtocol title) and Toggle.swift:290 (ViewBuilder label), plus the systemImage pair in SFSymbols/ControlSymbolInitializers.swift:114. — `Sources/TUIkitFoundation/Views/Toggle.swift:254`
 - *Divergence:* Typechecked against the shipped module: `Toggle(sources: $alarms, isOn: \.isOn) { Text("Enable all alarms") }` gives "error: cannot convert value of type 'KeyPath<Root, Value>' to expected argument type 'Binding<Bool>'" and "error: extra trailing closure passed in call". A "select all" row over a list of toggles — one of the commonest settings-screen shapes — does not port and there is no TUIkit spelling for it. A terminal can plainly render the third state: ToggleCharacterSet already carries per-set glyph families, so a mixed marker (▪, [-], a half-block) is one more entry per set.
 - *Recommendation:* Add Toggle(sources:isOn:label:) and Toggle(_:sources:isOn:), with a mixed glyph per ToggleCharacterSet; toggling from mixed sets every source on, as SwiftUI does.
+- *Status (2026-10-14 sweep):* **FIXED** — Toggle+Sources.swift.
 
 **138. `View.progressViewStyle(_:) / ProgressViewStyle / ProgressView.init(_ configuration:)`**
 
@@ -1417,6 +1501,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitNumericControls/Views/ProgressView.swift:252: `public func progressViewStyle(_ style: TrackStyle) -> ProgressView` — a method on the concrete ProgressView taking TUIkit's TrackStyle enum (.block, .blockFine, .shade, .bar, .dot, .knob). Grep confirms no ProgressViewStyle type exists in Sources/ at all; the name is reused for a different concept. — `Sources/TUIkitNumericControls/Views/ProgressView.swift:252`
 - *Divergence:* Typechecked: `VStack { ProgressView() }.progressViewStyle(.circular)` gives "error: value of type 'VStack<ProgressView<…>>' has no member 'progressViewStyle'" and "error: cannot infer contextual base in reference to member 'circular'". Three breaks in ported source: the modifier cannot be hoisted onto a container the way every SwiftUI style modifier is; .circular and .linear do not exist; and a custom ProgressViewStyle cannot be written. All fail to compile so nothing is silently dropped, but a terminal can do all three — TUIkit already ships Spinner (Sources/TUIkitFoundation/Views/Spinner.swift), which is exactly what .circular names, and custom styles via makeBody are already supported for ButtonStyle and ToggleStyle. Documentation/SwiftUI parity/SwiftUI compatibility guide.md:117 lists ProgressView under §1 "Match" and never mentions ProgressViewStyle, so the gap is undocumented too.
 - *Recommendation:* Add a ProgressViewStyle protocol mirroring ToggleStyle's shape (default makeBody for built-ins, makeBuffer for customs), a View modifier through the environment, .linear (the current bar) and .circular (route to Spinner), and ProgressView(_ configuration:). Keep TrackStyle as a TUI-only extra under a different modifier name so the two do not collide.
+- *Status (2026-10-14 sweep):* **FIXED** — ProgressViewStyle.swift.
 
 ## Documentation that describes behaviour the code does not have
 
@@ -1430,6 +1515,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Table.swift:310-314 — `self.init(data, selection: .constant(Value.ID?.none), sortOrder: sortOrder, focusID: focusID, columnSpacing: columnSpacing, emptyPlaceholder: emptyPlaceholder, columns: columns)`. So the no-selection table IS a single-selection table with a constant binding: selectionMode is .single (Table.swift:102-104, multiSelection == nil), the handler is built identically (Table.swift:1053), and nothing downstream can distinguish a constant binding. Consequently focusedIndex exists and defaults to 0 (ItemListHandler.swift:480); Up/Down/Home/End/PageUp/PageDown all move it with no selectionMode guard (ItemListHandler+Keys.swift:36-77), each followed by ensureFocusedItemVisible(); and the cursor row is painted — Table.swift:961 and :1481 pass `isFocused: handler.isCursorRow(rowIndex) && tableHasFocus`, isCursorRow reduces to `focusedIndex == index` … — `Sources/TUIkitTables/Views/Table.swift:281`
 - *Divergence:* Focus a `Table(people) { … }` with Tab: a row lights up with palette.focusBackground and walks with the arrow keys — precisely "a table that carries a cursor" the doc says this initializer avoids. The repo's own tests say so: TableNoSelectionTests.drawsTheRows (Tests/TUIkitCollectionTests/TableNoSelectionTests.swift:74-80) asserts Table(rows) and Table(rows, selection: .constant(String?.none)) render identically, and staysFocusable (:83-95) asserts canBeFocused == true. The only real property of this initializer over `selection: .constant(nil)` is not having to write the constant.
 - *Recommendation:* Document, do not change the behaviour. Rewrite the initializer's doc comment to describe what it is — a table whose selection binding is inert, keeping its keyboard cursor so it can still be scrolled from the keyboard. Removing the cursor would be worse: it is the only keyboard scroll affordance, as staysFocusable records. (Note in passing that SwiftUI never highlights a row in an unselectable Table, but a keyboard-focus affordance is a legitimate terminal necessity, so the behaviour is right and only the doc is wrong.)
+- *Status (2026-10-14 sweep):* **FIXED** — Table.swift's doc comment describes the cursor.
 
 ### Animation
 
@@ -1439,6 +1525,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* §4b "SwiftUI has it · TUIkit won't" still carries the row: "| **Animation & transitions** (`Animation`, `withAnimation`, `.transition`, `AnyTransition`, `matchedGeometryEffect`, `PhaseAnimator`) | Smooth interpolation needs sub-cell/sub-frame precision and a compositor. TUIkit redraws discrete frames on demand; there's no tween space. |", and §5 (line 594) says "the absence of fonts/animation/shapes/sub-cell-geometry are the honest consequences of rendering to a grid of character cells". Four of the six named symbols ship, with a public Animation type, withAnimation/withTransaction, View.transaction(_:), View.transaction(value:_:), View.animation(_:value:), View.transition(_:), a full AnyTransition, Animatable/AnimatablePair/VectorArithmetic, and a docc article (AnimatingChanges.md). §1 has no Animation row at all, so the only thing the compatibility document says about animation is … — `Documentation/SwiftUI parity/SwiftUI compatibility guide.md:543`
 - *Divergence:* A SwiftUI developer reading the project's own compatibility document concludes withAnimation and .transition cannot be ported, and rewrites working code around a manual timer. The row also fails the test §4b sets for itself ("A row here earns its place by naming what the API would have to do and why a cell grid cannot do it") — "no tween space" is a true fact about terminals that Animation never depended on, and AnimationStore/AnimationCycle are the standing proof. This is the fifth instance of the shape the document already warns about (fonts, Image(systemName:), lineLimit(reservesSpace:), .offset).
 - *Recommendation:* Fix the document. Move Animation/withAnimation/.transition/AnyTransition into §1 with the two real deviations recorded (transitions transform the rendered buffer rather than the layout — already argued in AnyTransition's own doc comment; and the .identity default per the transition finding). Rewrite or relocate the matchedGeometryEffect/PhaseAnimator half. Fix the §5 summary sentence too — it also names fonts, which §4b has itself already struck.
+- *Status (2026-10-14 sweep):* **FIXED** — the guide §4b Animation row is struck.
 
 **141. `Animation.description` — FIXED, kept here for the shape.** `description` now names the four control-point sets (`linear`/`easeIn`/`easeOut`/`easeInOut`) and inverts the spring's mapping back to `spring(duration:bounce:)`, so the doc comment's own example is what the code produces. `Tests/TUIkitCoreTests/AnimationPresetTests.swift` asserts it as an exact string. The entry below is the state before that.
 
@@ -1446,6 +1533,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The doc comment (lines 324-333) promises "A source-shaped description of this animation, e.g. \"easeInOut(duration: 0.3).repeatCount(3, autoreverses: true)\"… The curve names follow the factories that produce them (Animation/easeInOut(duration:), Animation/spring(duration:bounce:), Animation/timingCurve(_:_:_:_:duration:))". The code has only two cases: `text = "timingCurve(\(p1x), \(p1y), \(p2x), \(p2y), duration: \(passDuration))"` for every Bézier, and `text = "spring(omega: \(omega), zeta: \(zeta), settles: \(passDuration))"` for springs. No case ever emits easeInOut/easeIn/easeOut/linear, and spring(omega:zeta:settles:) is not a factory that exists. — `Sources/TUIkitCore/Animation/Animation.swift:334`
 - *Divergence:* The doc comment's own example is unreachable: `Animation.easeInOut(duration: 0.3).repeatCount(3).description` is "timingCurve(0.42, 0.0, 0.58, 1.0, duration: 0.3).repeatCount(3, autoreverses: true)", not "easeInOut(duration: 0.3).repeatCount(3, autoreverses: true)". Directly testable with a single #expect.
 - *Recommendation:* Either recognise the four named control-point sets and invert the spring's (duration, bounce) mapping so the factory names are emitted — which is the stated point of the property and about a dozen lines — or correct the doc comment. Low severity, but it is a public API whose documentation is false and whose stated purpose ("so the string round-trips by eye") is not delivered.
+- *Status (2026-10-14 sweep):* **FIXED** — `Animation.description`.
 
 ### Colour and styling
 
@@ -1456,6 +1544,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* A reader following HStack.swift:294 writes `Color.clear.frame(width: 1)` and gets `error: type 'Color' has no member 'clear'` (verified). `Spacer` — the alternative each comment offers — does work, which is presumably why this went unnoticed. These four comments are the only place the 'how to reserve a slot when a conditional does not fire' rule is written down.
 - *Verifier's correction:* Two of the four are user-facing doc comments (FrameBuffer.swift:316 and :450, on public appendVertically/appendHorizontally); the HStack.swift:294 and VStack.swift:337 instances are internal implementation comments. Anchor the finding at FrameBuffer.swift:316. The remedy (add Color.clear + Color: View, or name only Spacer) is unchanged; the claim that these four are 'the only place the rule is written down' for users overstates the user-facing half by 2x.
 - *Recommendation:* Either add `Color.clear` + `Color: View`, which makes all four comments true, or edit the four comments to name only `Spacer`. Do not leave as-is.
+- *Status (2026-10-14 sweep):* **FIXED** — Color.swift's doc comments; `Color: View` (ColorAsView.swift).
 
 **143. `Color.opacity(_:) and Color construction (compatibility-doc §1 row)`**
 
@@ -1463,6 +1552,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Documentation/SwiftUI parity/SwiftUI compatibility guide.md:121 reads: `| Color values | Color.red/.green/.primary/.secondary/… and .opacity(_:) | ✓ | *constructing* a Color differs → §3 |`. Two errors: (a) the ✓ covers `.opacity(_:)`, which mixes toward black, silently no-ops on semantic colours, and traps outside 0...1 (Color.swift:378-388); (b) the §3 pointer is dangling — §3 (SwiftUI compatibility guide.md:458-468) is titled "`foregroundStyle` takes `Color?`, not `some ShapeStyle`" and says nothing about construction. Colour construction is discussed nowhere in the document: not §2.1-2.8, not §3, not §4. — `Documentation/SwiftUI parity/SwiftUI compatibility guide.md:121`
 - *Divergence:* A porter reads §1's 'Match' table, concludes `.red.opacity(0.5)` behaves as in SwiftUI, and follows the arrow for the one divergence the row does flag into a section about a different subject. Verifiable by reading line 121 against §3 at line 458.
 - *Recommendation:* Split `.opacity(_:)` out of the ✓ and state the actual behaviour (mix-toward-black; no-op on semantic colours; unclamped). Either write the Colour-construction subsection §3 promises, or repoint the arrow at wherever that gets documented.
+- *Status (2026-10-14 sweep):* **FIXED** — the guide's Color row; `opacity` multiplies alpha.
 
 **144. `View.brightness/.contrast/.saturation/.grayscale/.hueRotation/.colorInvert/.colorMultiply (compatibility-doc §4b row)`**
 
@@ -1470,6 +1560,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Documentation/SwiftUI parity/SwiftUI compatibility guide.md:546 lists them under §4b (verdict: "don't add"): "| **Pixel filters** (`.blur`, `.shadow`, `.brightness`/`.contrast`/`.saturation`/`.hueRotation`, `.colorInvert`, `.clipShape`/`.mask`) | These are per-pixel compositing ops. A cell is one glyph + fg/bg color; there's nothing to blur or feather." But Sources/TUIkitEffects/Modifiers/ColorEffectModifiers.swift ships all of the colour half with real implementations that rewrite the SGR colours of the rendered buffer: brightness:21, contrast:34, saturation:44, grayscale:57, hueRotation:68, colorInvert:75, colorMultiply:86, with `_ColorEffectView.renderToBuffer` at 140-160 and the arithmetic at 172-227. The file even rebuts the row at line 63: hueRotation is "The one geometric-sounding effect that a character grid can perform exactly: a hue IS an angle". — `Sources/TUIkitEffects/Modifiers/ColorEffectModifiers.swift:21`
 - *Divergence:* A porter consulting §4b concludes `.grayscale(1)` or `.hueRotation(.degrees(90))` is unavailable and writes a workaround, when both ship and work. I checked the semantics against Apple's doc comments and they are faithful — brightness adds amount×255 per channel, contrast is (c−127.5)·amount+127.5 (identity at 1, inverting for negatives), saturation/grayscale blend toward Rec. 709 luma from opposite ends — so this is purely a doc defect.
 - *Recommendation:* Strike the colour half of the row using the file's own convention (`~~…~~ — WRONG; overturned in-tree`), leaving `.blur`, `.shadow`, `.clipShape`, `.mask`. Worth sweeping §4b as a whole: the neighbouring 'Animation & transitions' row is stale the same way (it says "there's no tween space" while `withAnimation`, `.animation(_:value:)` and `.transition(_:)` all ship).
+- *Status (2026-10-14 sweep):* **FIXED** — colour effects left the §4b pixel-filters row.
 
 ### Layout modifiers
 
@@ -1479,6 +1570,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The parameter documentation says: "- vertical: Fix the height at the ideal height. Default `true`. (Currently honoured by views that are height-greedy; `List` keeps its scrollable height regardless.)" No view is height-greedy-and-honouring. `vertical` is discarded on the next line (`environment(\.fixedSizeWidth, horizontal)`, :52), and \.fixedSizeWidth — the only key written — is read by _ListCore and NavigationSplitView only. — `Sources/TUIkitFoundation/Modifiers/FixedSizeModifier.swift:46-48 (contradicted at :51-52)`
 - *Divergence:* A developer reading the DocC surface (the sentence appears verbatim in the extracted tuikit-docs/View.md) is told the vertical axis is honoured by some views. Executed: `Text("Hi").fixedSize(horizontal: true, vertical: true)` and `.fixedSize(horizontal: true, vertical: false)` both render 2x1. No view in the package reads a vertical fixed-size request, because none is ever written.
 - *Recommendation:* Correct the sentence now, independently of whether finding 1 is implemented. It is the cheapest fix in this family and the one most likely to send someone hunting for a bug that is actually a missing feature.
+- *Status (2026-10-14 sweep):* **OPEN** — FixedSizeModifier's doc still says `vertical` is honoured by height-greedy views.
 
 ### Scrolling
 
@@ -1488,6 +1580,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* None exists in Sources/, and `grep -n "scrollTargetLayout\|scrollTargetBehavior\|scrollContentBackground\|scrollBounceBehavior\|scrollClipDisabled" Documentation/*.md` returns nothing — so none appears in §4a ('should add it') or §4b ('won't') either. §4b's own preamble insists a row "earns its place by naming what the API would have to do and why a cell grid cannot do it"; silence earns nothing, and a reader cannot tell a considered refusal from an oversight. — `Documentation/SwiftUI parity/SwiftUI compatibility guide.md:525`
 - *Divergence:* `List { … }.scrollContentBackground(.hidden)` — a very common line in ported SwiftUI — fails to compile with no explanation available anywhere in the project's documentation. Same for the other two.
 - *Recommendation:* Add rows for all five absent scroll modifiers (these three plus scrollTargetLayout and scrollTargetBehavior) to §4a or §4b with reasons. My reading, offered as input: scrollClipDisabled is a plausible §4b row (buffers are rectangular and a parent places a child's buffer inside its own, so 'draw outside your bounds' has no representation); scrollBounceBehavior is a plausible §4b row but must be argued carefully, since TUIkit never bounces so .basedOnSize and .never are honoured for free while .always could not be — the mirror image of the .monospaced(_:) exception, hence correctly refused rather than accepted-and-ignored; scrollContentBackground is the closest to a real §4a candidate, because TUIkit's List/Form paint no container background (so .hidden is free), Visibility already exists with SwiftUI's case names, and only .visible would need new behaviour.
+- *Status (2026-10-14 sweep):* **FIXED** — ScrollContentBackground.swift, ScrollBounceBehavior.swift, ScrollClipDisabled.swift.
 
 ### State, bindings and data flow
 
@@ -1497,6 +1590,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Documentation/SwiftUI parity/SwiftUI compatibility guide.md:119 places @AppStorage in that section and annotates it "`@AppStorage` is *enhanced* (pluggable backend)". Line 102 lists @Binding's surface as "`init(get:set:)`, `.constant`, `init(projectedValue:)`, dynamic-member lookup, `.animation(_:)`, `.transaction` + `.transaction(_:)`…". — `Documentation/SwiftUI parity/SwiftUI compatibility guide.md:119`
 - *Divergence:* Four concrete counterexamples to the @AppStorage ✓: `@AppStorage("mode") var mode: Mode = .a` for `enum Mode: String` does not compile; `@AppStorage("name") var name: String?` does not compile; `store: UserDefaults.standard` does not compile; and an @AppStorage write does not invalidate the render cache (findings 3 and 6). For @Binding, the transaction-taking `init(get:set:)` and `init<V>(_ base: Binding<V>) where Value == V?` do not compile (finding 8) — the listing is accurate about what is present, but §1's "port with no source change" framing carries a claim the two absences break.
 - *Recommendation:* Document: move the unsupported @AppStorage spellings into §2 with the UserDefaults-is-Apple-only reasoning (which is sound and mirrors §2.3's onReceive argument) or fix them per finding 6, and note the two Binding initializers wherever they land. This row is worth being strict about precisely because §1 is the section a porting developer trusts without checking.
+- *Status (2026-10-14 sweep):* **OPEN** — the `@AppStorage` examples compile now; the two missing `Binding` initialisers (item 86) are still unmentioned.
 
 ### Value controls
 
@@ -1507,6 +1601,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* A developer porting `Slider(value: $v) { Text("Volume") }` reads the shipped docs, believes the label is dropped, and adds a separate `Text("Volume")` above the slider — producing a duplicate caption, because the label is in fact drawn to the left of the track. The doc even tells them to do exactly that, in its "With a Description" example.
 - *Verifier's correction:* Same defect, corrected line list: five stale spots at Slider.swift:49-68 (the "With a Description" example plus the "Known deviation" block), :90 (stored property: "As in SwiftUI this is a description only — it is not drawn on the track"), :176 ("The title describes the slider but, as in SwiftUI, is not drawn on the track. Pair the slider with a `Text` for a visible caption." — this is the sentence that actively causes the duplicate-caption mistake), :184 and :204. Not :184/:204/:238.
 - *Recommendation:* Delete the "Known deviation" block, rewrite "With a Description" to describe the current inline-left layout, and drop "(not rendered)" from the three initializer parameter docs. _CollapsingLabel's own doc (ControlLabel.swift:34-53) is already correct and can be referenced.
+- *Status (2026-10-14 sweep):* **FIXED** — the stale "Known deviation" text is gone.
 
 **149. `ToggleStyle.switch (documentation)`**
 
@@ -1514,6 +1609,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* _ToggleCore.swift:497 passes `isSwitch: toggleStyle is SwitchToggleStyle` into builtInStyleBuffer, which at _ToggleCore.swift:322-329 branches to `styledSwitchIndicator(…)` — a two-position track with a sliding knob. Tests/TUIkitControlTests/ToggleRenderTests.swift:69, :86 and :113 pin the switch glyphs for the .unicode, .emoji and .ascii character sets, so the behaviour is deliberate and covered. But five doc sentences in Sources/TUIkitFoundation/Views/Toggle.swift say otherwise, and all are reproduced in the shipped DocC (tuikit-docs/ToggleStyle.md:20, :22, :94; tuikit-docs/Toggle.md:41): Toggle.swift:20 "| `.switch` | Switch style (renders same as checkbox in TUI) |"; :22 "> Note: The built-in `ToggleStyle`s render identically — a checkbox — due to terminal constraints"; :138 "> Note: In TUIkit, this renders identically to checkbox style."; :172 "> Note: In TUIkit, all `ToggleStyle`s currently render … — `Sources/TUIkitFoundation/Views/Toggle.swift:22`
 - *Divergence:* A developer reads tuikit-docs/ToggleStyle.md, concludes .toggleStyle(.switch) is a no-op on a terminal, and either drops it from ported source or builds a custom ToggleStyle to get a switch that already exists. The correct description sits three lines away at Toggle.swift:113-119 (SwitchToggleStyle: "renders a coloured track with a two-cell knob on the side the switch points to").
 - *Recommendation:* Delete the five stale sentences and point them at the SwitchToggleStyle doc that is already right. Zero code change.
+- *Status (2026-10-14 sweep):* **FIXED** — Toggle.swift's `switch` doc.
 
 ## Found by the verifiers, not the analysts
 
