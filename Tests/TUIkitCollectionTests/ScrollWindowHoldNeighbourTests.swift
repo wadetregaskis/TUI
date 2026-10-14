@@ -237,6 +237,50 @@ extension ScrollWindowHoldTests {
         #expect(handler.id(at: handler.focusedIndex) == 17)
     }
 
+    /// The wait for a move of the list's own lasts three frames that find the
+    /// top row in place, and no longer than 150 ms on the frame clock
+    /// (`ItemListHandler.movedRowsPendingFrames`): a move that lands two
+    /// frames after the key, 50 ms on, is still the list's own, and not held.
+    /// The test above settles with no clock, so a wait that expired on its
+    /// second clocked frame, or was measured from a stale stamp, passed it
+    /// (lane SCROLLB's review, round 2).
+    @Test("A row an onMove moves frames after the key, within the wait, is still not held")
+    func listOwnMoveWithinTheWaitIsNotHeld() {
+        let handler = ItemListHandler<Int>(
+            focusID: "list", itemCount: 40, viewportHeight: 8, selectionMode: .single, canBeFocused: true)
+        var ids = Array(0..<40)
+        handler.itemIDs = ids
+        var pending: (source: IndexSet, destination: Int)?
+        handler.onMove = { pending = ($0, $1) }
+        func frame(atMilliseconds milliseconds: Int64) {
+            var environment = EnvironmentValues()
+            environment.frameNowNanos = 1_000_000_000 + milliseconds * 1_000_000
+            handler.syncFrameInputs(
+                environment: environment, reorderFeedback: .live, keyboardMoveIsLive: false, rowHeight: nil)
+            handler.settleScrollPosition(
+                measuring: false, overflowing: true, drawsTextIndicators: false, firstRowHeight: 1)
+        }
+        frame(atMilliseconds: 0)
+        handler.scrollOffset = 10
+        handler.focusedIndex = 17
+        frame(atMilliseconds: 0)
+        #expect(handler.nudgeFocusedRow(by: -handler.pageStep))
+        #expect(handler.focusedIndex == 10, "precondition: moved onto the top row's place")
+        // Two frames that find nothing moved yet: the first stamps the wait's
+        // end, the second must not end it.
+        frame(atMilliseconds: 17)
+        frame(atMilliseconds: 33)
+        guard let move = pending else {
+            Issue.record("precondition: a move asked for")
+            return
+        }
+        ids.move(fromOffsets: move.source, toOffset: move.destination)
+        handler.itemIDs = ids
+        frame(atMilliseconds: 50)
+        #expect(handler.scrollOffset == 10, "the list's own move, not held")
+        #expect(handler.id(at: handler.focusedIndex) == 17, "the cursor on the moved row")
+    }
+
     /// Only frames that find the top row in place spend the wait for a move
     /// of the list's own, and a move below the top row leaves it there: a
     /// list that drew nothing more stood waiting for good, and a change made
