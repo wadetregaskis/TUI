@@ -38,6 +38,24 @@ for this note).
 **Recommended: (a)** until the A/B prices (b); the visible difference needs a
 spacer squeezed to its minimum.
 
+**Decided 2026-10-13, owner: (b), follow SwiftUI** — "it seems to me that
+it's trying to behave as if the spacer simply disappears if there's not
+enough room for any of it … between two buttons it'll let the buttons spread
+out, but it'll never *force* them to spread out." Measured the same day
+(`Tools/SwiftUIProbes/Stack spacing per pair/spacer.out`): SwiftUI's
+`Spacer()` is never shorter than the system spacing, 8 points, so
+`HStack { box; Spacer(); box }` at its ideal width is 28, exactly
+`HStack { box; box }`; with `spacing: 5` it is 38, the stated spacing kept
+beside the spacer; squeezed, the spacer keeps its 8 points and the texts
+beside it truncate. The note above was wrong about the cost: faithful, the
+row with no room narrows by one column (from `a  b` to `a b`), not two, and
+one with a stated `spacing` widens by one (a spacer of no `minLength` is a
+gap long). Shipped: a spacer states `.zero`, so where a row's `spacing` is
+`nil` the gap beside it is none; its default length is one default gap along
+the axis — a column in a row, none in a column; and a row learns that its
+spacers are its only children that state a spacing from their flags and
+the views' static witnesses, so it casts nothing and allocates nothing.
+
 ## B. Shipped the safe option
 
 ### B-BITEMS1-1. A delete wears no badge, and only the item-provider drops propose one

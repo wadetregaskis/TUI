@@ -581,11 +581,29 @@ struct StackGaps {
     /// The axis the children follow each other along.
     private let axis: Axis
 
+    /// Per child, a bit set for a spacer, when the spacers are the only
+    /// children that state a spacing (``init(uniform:besideSpacers:)``); `0`
+    /// otherwise.
+    private let spacers: UInt64
+
     /// Gaps of `uniform` between every pair.
     init(uniform: Int) {
         self.uniform = uniform
         self.preferences = nil
         self.axis = .horizontal
+        self.spacers = 0
+    }
+
+    /// Gaps of `uniform` between every pair but a pair one of which is a
+    /// spacer (a bit of `spacers` set), which is none: a spacer states no
+    /// space on any edge, and a stated edge outweighs a default one
+    /// (``ViewSpacing``). For a row whose spacers are the only children that
+    /// state a spacing, the first 64 children.
+    init(uniform: Int, besideSpacers spacers: UInt64) {
+        self.uniform = uniform
+        self.preferences = nil
+        self.axis = .horizontal
+        self.spacers = spacers
     }
 
     /// Gaps by pair: between two children neither of which states a spacing,
@@ -601,14 +619,26 @@ struct StackGaps {
         self.uniform = uniform
         self.preferences = preferences
         self.axis = axis
+        self.spacers = 0
     }
 
     /// Whether every gap is ``uniform``.
-    var isUniform: Bool { preferences == nil }
+    var isUniform: Bool { preferences == nil && spacers == 0 }
 
     /// The gap between the children at `previous` and `next`, two that occupy
     /// the axis with none that does between them.
     func between(_ previous: Int, _ next: Int) -> Int {
+        if spacers != 0 {
+            // A spacer asks for no space on either side, so between two
+            // children with a spacer beside or between them there is none —
+            // a spacer squeezed to nothing between them included, which
+            // occupies no part of the axis but still stands between them
+            // (`HStack { a; Spacer(minLength: 0); b }` draws `ab`, as SwiftUI's).
+            guard previous < UInt64.bitWidth else { return uniform }
+            let span = min(next, UInt64.bitWidth - 1) - previous + 1
+            let range: UInt64 = span >= UInt64.bitWidth ? .max : ((1 << UInt64(span)) - 1) << UInt64(previous)
+            return spacers & range != 0 ? 0 : uniform
+        }
         guard let preferences, preferences[previous] != nil || preferences[next] != nil else { return uniform }
         return (preferences[previous] ?? ViewSpacing()).distance(to: preferences[next] ?? ViewSpacing(), along: axis)
     }

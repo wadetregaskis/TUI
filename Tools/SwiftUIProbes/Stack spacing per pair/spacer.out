@@ -1,0 +1,18 @@
+== spacer: zero 8x8 ideal 8x8 big 1000x1000
+== spacer(min 0): zero 0x0 ideal 0x0 big 1000x1000
+== spacer(min 3): zero 3x3 ideal 3x3 big 1000x1000
+== hstack box|spacer|box: zero 28x10 ideal 28x10 big 1000x10
+== hstack box|spacer(min 0)|box: zero 20x10 ideal 20x10 big 1000x10
+== hstack box|spacer(min 3)|box: zero 23x10 ideal 23x10 big 1000x10
+== hstack box|box: zero 28x10 ideal 28x10 big 28x10
+== hstack(spacing 0) box|spacer|box: zero 28x10 ideal 28x10 big 1000x10
+== hstack(spacing 5) box|spacer|box: zero 38x10 ideal 38x10 big 1000x10
+== hstack text|spacer|text: zero 8x0 ideal 24x16 big 1000x16
+== hstack text|text: zero 8x0 ideal 24x16 big 24x16
+== hstack spacer|box: zero 18x10 ideal 18x10 big 1000x10
+== hstack box|spacer|spacer|box: zero 36x10 ideal 36x10 big 1000x10
+== vstack box|spacer|box: zero 10x28 ideal 10x28 big 10x1000
+== vstack box|box: zero 10x28 ideal 10x28 big 10x28
+== vstack text|spacer|text: zero 0x8 ideal 8x40 big 8x1000
+== vstack text|text: zero 0x0 ideal 8x32 big 8x32
+== done

@@ -38,4 +38,11 @@ t10|t20|t5	[20]	a=7 b=7 c=5
 t10|color|t10	[16]	a=5 f=6 b=5
 t10|maxinf(t2)|t10	[16]	a=5 f=6 b=5
 t10|t20|t5	[16]	a=5 b=5 c=5
+t10|spacer|t10	[24]	a=10 s=4 b=10
+t10|spacer|t10	[21]	a=10 s=1 b=10
+t10|spacer|t10	[20]	a=9 s=1 b=10
+t10|spacer|t10	[18]	a=8 s=1 b=9
+t10|spacer0|t10	[18]	a=9 s=1 b=8
+fixed10|spacer|fixed10	[18]	a=10 s=0.65 b=10
+t10|spacer|t3	[12]	a=8 s=1 b=3
 done

@@ -49,7 +49,7 @@ extension _VStackCore: AlignmentGuideQuerying {
         var fillsWidth = false
         for child in children {
             if child.isSpacer {
-                naturalHeights.append(child.spacerMinLength ?? 0)
+                naturalHeights.append(child.spacerLength(along: .vertical))
                 isFlexible.append(true)
             } else {
                 let size = child.measure(proposal: .unspecified, context: context)

@@ -24,6 +24,13 @@ extension Subview {
     public static var _statesSpacingPreference: Bool { true }
 }
 
+/// A spacer asks for no space beside it, on any edge, as SwiftUI's does
+/// (decisions A-BITEMS1-1): the stack's gap beside it, where its `spacing` is
+/// `nil`, is none, and its own minimum length is the default gap instead.
+extension Spacer: SpacingPreferenceProviding {
+    func preferredSpacing(context: RenderContext) -> ViewSpacing { .zero }
+}
+
 // The wrappers below move their content off some of their own edges, so on
 // those edges the content's preference is not theirs: each says so itself,
 // ahead of the single-content forwarding (`throughWrappers` stops at the first
@@ -118,6 +125,23 @@ extension StackGaps {
     ///   - context: The stack's context.
     @MainActor
     init(uniform: Int, stating children: [ChildView], along axis: Axis, context: RenderContext) {
+        // The common row that states anything: one whose only children that
+        // can are spacers. Each asks for no space, so a gap beside one is
+        // none and every other is `uniform` — said by a mask, with no
+        // conformance cast of any child and nothing allocated.
+        var spacers: UInt64 = 0
+        var othersMayState = false
+        for (index, child) in children.enumerated() {
+            if child.isSpacer, index < UInt64.bitWidth {
+                spacers |= 1 << UInt64(index)
+            } else if child.isSpacer || type(of: child.wrappedView)._statesSpacingPreference {
+                othersMayState = true
+            }
+        }
+        guard othersMayState else {
+            self = StackGaps(uniform: uniform, besideSpacers: spacers)
+            return
+        }
         var anyStated = false
         let preferences = children.map { child -> ViewSpacing? in
             let stated = statedSpacing(of: child, context: context)

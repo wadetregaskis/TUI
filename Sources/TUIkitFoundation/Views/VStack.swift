@@ -431,7 +431,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         var fillsWidth = false
         for (index, child) in children.enumerated() {
             if child.isSpacer {
-                naturalHeight[index] = child.spacerMinLength ?? 0
+                naturalHeight[index] = child.spacerLength(along: .vertical)
                 isFlexible[index] = true
             } else {
                 naturalHeight[index] = childSizes[index].height
@@ -693,7 +693,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         for (index, child) in children.enumerated() {
             if child.isSpacer {
                 let extraHeight = spacerIndex < spacerRemainder ? 1 : 0
-                let height = max(child.spacerMinLength ?? 0, spacerHeight + extraHeight)
+                let height = max(child.spacerLength(along: .vertical), spacerHeight + extraHeight)
                 let spacingToApply = linearSpacing(before: height, placedExtent: currentHeight, spacing: spacing)
                 if currentHeight + spacingToApply + height > availableHeight {
                     break

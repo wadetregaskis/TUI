@@ -185,7 +185,7 @@ private func layoutPriority(ofView view: any View) -> Double {
 /// (``distributeLinearSpace(naturalSizes:isFlexible:available:gaps:shares:isSpacer:priorities:minimumSize:statedMinimum:sizeAt:)``).
 @MainActor
 func minimumLength(of child: ChildView, horizontally: Bool, across: Int?, context: RenderContext) -> Int {
-    if child.isSpacer { return child.spacerMinLength ?? 0 }
+    if child.isSpacer { return child.spacerLength(along: horizontally ? .horizontal : .vertical) }
     let proposal = horizontally ? ProposedSize(width: 0, height: across) : ProposedSize(width: across, height: 0)
     let size = child.measure(proposal: proposal, context: context)
     return max(horizontally ? size.width : size.height, statedMinimumLength(of: child, horizontally: horizontally))

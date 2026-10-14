@@ -212,5 +212,24 @@ MainActor.assumeIsolated {
             Text(t(5, "c")).lineLimit(1).measured("c")
         }
     }
+    // 14. A spacer between them (decisions A-BITEMS1-1): it keeps its minimum,
+    // 8 points (0.65 of a character here), and the texts share what is left;
+    // `Spacer(minLength: 0)` gives its share up.
+    for width: CGFloat in [24, 21, 20, 18] {
+        run("t10|spacer|t10", widthCells: width, names: ["a", "s", "b"]) {
+            Text(t(10, "a")).lineLimit(1).measured("a"); Spacer().measured("s")
+            Text(t(10, "b")).lineLimit(1).measured("b")
+        }
+    }
+    run("t10|spacer0|t10", widthCells: 18, names: ["a", "s", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Spacer(minLength: 0).measured("s")
+        Text(t(10, "b")).lineLimit(1).measured("b")
+    }
+    run("fixed10|spacer|fixed10", widthCells: 18, names: ["a", "s", "b"]) {
+        Text(t(10, "a")).fixedSize().measured("a"); Spacer().measured("s"); Text(t(10, "b")).fixedSize().measured("b")
+    }
+    run("t10|spacer|t3", widthCells: 12, names: ["a", "s", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Spacer().measured("s"); Text(t(3, "b")).lineLimit(1).measured("b")
+    }
     print("done")
 }

@@ -106,7 +106,7 @@ extension _VStackCore {
             let height: Int
             if child.isSpacer {
                 height = max(
-                    child.spacerMinLength ?? 0,
+                    child.spacerLength(along: .vertical),
                     spacerHeight + (spacerIndex < spacerRemainder ? 1 : 0))
                 spacerIndex += 1
             } else {
@@ -188,7 +188,7 @@ extension _HStackCore {
             let width: Int
             if child.isSpacer {
                 width = max(
-                    child.spacerMinLength ?? 0,
+                    child.spacerLength(along: .horizontal),
                     spacerWidth + (spacerIndex < spacerRemainder ? 1 : 0))
                 spacerIndex += 1
             } else {

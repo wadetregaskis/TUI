@@ -102,8 +102,12 @@ private struct SpacedRow: View {
     let index: Int
     let spaced: Bool
 
+    // The default spacing: a spacer asks for none beside it and is one gap
+    // long, so the row is as wide with it as without (decisions
+    // A-BITEMS1-1). A stated spacing stays beside a spacer, as SwiftUI's does,
+    // and would make the spaced row two columns wider.
     var body: some View {
-        HStack(spacing: 1) {
+        HStack {
             Text(String(repeating: "\(index % 10)", count: index == 50 ? 120 : 8))
             if spaced { Spacer() }
             Text("v")
@@ -257,10 +261,15 @@ struct IdealWidthFillerTests {
     /// own content — and still flexible.
     @Test("A row asked its ideal width distributes nothing")
     func aRowDistributesNothing() {
-        let spaced = idealSize(of: HStack(spacing: 1) { Text(String(repeating: "0", count: 30)); Spacer(); Text("v") })
-        let plain = idealSize(of: HStack(spacing: 1) { Text(String(repeating: "0", count: 30)); Text("v") })
-        #expect(spaced.width == plain.width, "the spacer took the rung's leftover: \(spaced.width)")
+        // At the default spacing a spacer is as wide as the gap it replaces
+        // (decisions A-BITEMS1-1); a stated spacing stays beside it.
+        let spaced = idealSize(of: HStack { Text(String(repeating: "0", count: 30)); Spacer(); Text("v") })
+        let unspaced = idealSize(of: HStack { Text(String(repeating: "0", count: 30)); Text("v") })
+        #expect(spaced.width == unspaced.width, "the spacer took the rung's leftover: \(spaced.width)")
         #expect(spaced.isWidthFlexible)
+        let plain = idealSize(of: HStack(spacing: 1) { Text(String(repeating: "0", count: 30)); Text("v") })
+        let stated = idealSize(of: HStack(spacing: 1) { Text(String(repeating: "0", count: 30)); Spacer(); Text("v") })
+        #expect(stated.width == plain.width + 2, "the spacer took the rung's leftover: \(stated.width)")
 
         let framed = idealSize(
             of: HStack(spacing: 1) { Text(String(repeating: "0", count: 30)); Text("v").frame(maxWidth: .infinity) })

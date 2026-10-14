@@ -206,7 +206,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         var tallestConsumedChild = 0
         for (index, child) in children.enumerated() {
             if child.isSpacer {
-                ideal[index] = child.spacerMinLength ?? 0
+                ideal[index] = child.spacerLength(along: .horizontal)
                 fills[index] = true
             } else {
                 // Behaviour-preserving: feed the same ideal width + reported
@@ -728,7 +728,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         for (index, child) in children.enumerated() {
             if child.isSpacer {
                 let extraWidth = spacerIndex < spacerRemainder ? 1 : 0
-                let width = max(child.spacerMinLength ?? 0, spacerWidth + extraWidth)
+                let width = max(child.spacerLength(along: .horizontal), spacerWidth + extraWidth)
                 let spacingToApply = walk.gap(before: index, extent: width)
                 if currentWidth + spacingToApply + width > availableWidth { break }
                 // Spacer height is set to maxHeight in pass 2
