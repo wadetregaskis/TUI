@@ -2713,6 +2713,12 @@ Where it differs:
   `.sectionActions` button — in any list. Registering the list's own stop
   before its eager rows are drawn fixes both; about two hours, with the
   focus-order tests that pin the rest. The sidebar folds once that is in.
+  **The focus order is fixed (2026-10-14):** a list reserves its own place in
+  the focus ring before it extracts its rows (`_ListCore.registerOwnFocusStop`,
+  `FocusManager.reservePlace`), so it comes ahead of its headers' folds and
+  actions — and of the controls in its hand-written rows, as it already came
+  ahead of a loop's — and takes the first focus (`SectionIsExpandedTests`).
+  The sidebar's folds are still to do.
 
 ### B77. Type select moves the cursor, and a prefix's first character gives way to bare-key bindings
 

@@ -20,6 +20,10 @@ package final class FocusSection {
     /// The focusable elements registered within this section.
     private(set) var focusables: [Focusable] = []
 
+    /// The focus ids of places reserved in ``focusables`` whose owners have
+    /// not registered yet this walk (``reserve(_:)``).
+    private(set) var reservedIDs: Set<String> = []
+
     /// Creates a new focus section with the given identifier.
     ///
     /// - Parameter id: A unique identifier for this section.
@@ -37,9 +41,25 @@ extension FocusSection {
     ///
     /// - Parameter element: The element to register.
     func register(_ element: Focusable) {
+        // Registering fills a place reserved for it, where the reservation put it.
+        reservedIDs.remove(element.focusID)
         guard !focusables.contains(where: { $0.focusID == element.focusID }) else { return }
         focusables.append(element)
     }
+
+    /// Files `element` in its place now, ahead of what registers before its
+    /// owner does, and holds the section's first focus for it until it
+    /// registers (``holdsReservation``).
+    func reserve(_ element: Focusable) {
+        guard !focusables.contains(where: { $0.focusID == element.focusID }) else { return }
+        focusables.append(element)
+        reservedIDs.insert(element.focusID)
+    }
+
+    /// Whether a place is reserved here for an element that has not registered
+    /// yet: a section's first focus waits for it, as it would had the element
+    /// registered in its place.
+    var holdsReservation: Bool { !reservedIDs.isEmpty }
 
     /// Unregisters a focusable element from this section.
     ///

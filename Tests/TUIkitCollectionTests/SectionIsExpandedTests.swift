@@ -95,6 +95,24 @@ struct SectionIsExpandedTests {
         #expect(open.contains { $0.contains("Apple") }, "\(open)")
     }
 
+    /// A list's own stop comes first, ahead of the controls in its section
+    /// headers, so the list — not a fold — takes the initial focus, and Tab
+    /// from it reaches the folds (decisions B76's open half; DEVS known
+    /// defect 28). It used to draw its headers before registering itself.
+    @Test("The list is a focus stop ahead of its section headers' folds, and takes the first focus")
+    func listStopPrecedesHeaderFolds() {
+        let context = makeRenderContext(width: 30, height: 10)
+        _ = lines(list(Box(true)), context: context)
+        guard let manager = context.environment.focusManager else {
+            Issue.record("no focus manager")
+            return
+        }
+        let ring = manager.registeredFocusIDsInActiveSection()
+        #expect(ring.first?.hasPrefix("list") == true, "\(ring)")
+        #expect(ring.contains { !$0.hasPrefix("list") }, "the fold is a stop too: \(ring)")
+        #expect(manager.currentFocusedID?.hasPrefix("list") == true, "first focus: \(String(describing: manager.currentFocusedID))")
+    }
+
     @Test("A section built without a binding has no triangle")
     func plainSectionHasNoTriangle() {
         let drawn = lines(List { Section("Veg") { Text("Leek") } })

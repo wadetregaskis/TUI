@@ -499,6 +499,7 @@ extension FocusManager {
         // A `.prefersDefaultFocus` that has not had its say yet holds it off
         // likewise (`FocusScopeRegistry.holdsAutoFocus`).
         if targetID == activeSectionID && focusedID == nil && element.canBeFocused
+            && !section.holdsReservation
             && !hasUnresolvedDefaultFocus
             && !focusScopes.holdsAutoFocus
             && !optionalFocusSectionIDs.contains(targetID)

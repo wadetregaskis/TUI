@@ -102,6 +102,32 @@ package enum FocusRegistration {
         return box.value
     }
 
+    /// Files `handler` under `focusID` in its focus section ahead of anything
+    /// the control's content registers as it is drawn, and nothing else: the
+    /// control's own ``register(context:handler:focusID:)`` later in the frame
+    /// keeps this place — a section keeps a stop where its id first filed —
+    /// and does the rest. For a container whose content registers controls of
+    /// its own before the container has its handler in hand.
+    ///
+    /// A memo that records the walk records the reservation too, so a frame it
+    /// serves files the control in the same place.
+    @MainActor
+    package static func reservePlace(context: RenderContext, handler: Focusable, focusID: String) {
+        guard !context.isMeasuring, !context.environment.isFocusSuppressed,
+            let manager = context.environment.focusManager
+        else { return }
+        let sectionID = context.environment.activeFocusSectionID
+        manager.reservePlace(handler, inSection: sectionID)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        journal.append(
+            EffectJournal.Entry(
+                kind: FocusRegistrar.kind, channelToken: context.environment.keyChannelToken
+            ) { [handler] replay in
+                replay.environment.focusManager?.reservePlace(handler, inSection: sectionID)
+            })
+    }
+
     /// Registers a handler with the focus manager and marks the identity as active.
     ///
     /// Skipped during measurement passes to avoid side effects.

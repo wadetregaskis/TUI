@@ -898,9 +898,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // the handler once the visible rows have been materialised.
         let editRestrictions = RowEditRestrictions()
         rowContext.environment.listRowEditRestrictions = editRestrictions
-        let source = extractRows(from: content, context: rowContext)
-        (source.minimumRowHeight, source.minimumHeaderHeight) = (context.environment.defaultMinListRowHeight, context.environment.defaultMinListHeaderHeight)
-        source.separators = (context.environment.listSeparatorDefaults, editRestrictions)
+        let source = extractRowsAfterOwnPlace(
+            rowContext: rowContext, editRestrictions: editRestrictions, stateStorage: stateStorage, context: context)
         settleRowRamp(source, context: rowContext)
 
         // Vertical chrome around the scrollable content, as the container that
@@ -1498,6 +1497,52 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// one true home on the handler (`drawsScrollIndicators`, the conjunction
     /// with the indicator style), which left the flag returned and read by
     /// nobody — a warning on every build.
+    /// The list's rows, extracted as `rowContext` draws them, with the row and
+    /// header minimums and the separators they are drawn with — after the
+    /// list has reserved its own place in the focus ring
+    /// (``registerOwnFocusStop(stateStorage:context:)``).
+    private func extractRowsAfterOwnPlace(
+        rowContext: RenderContext, editRestrictions: RowEditRestrictions, stateStorage: StateStorage,
+        context: RenderContext
+    ) -> RowSource<SelectionValue> {
+        registerOwnFocusStop(stateStorage: stateStorage, context: context)
+        let source = extractRows(from: content, context: rowContext)
+        (source.minimumRowHeight, source.minimumHeaderHeight) =
+            (context.environment.defaultMinListRowHeight, context.environment.defaultMinListHeaderHeight)
+        source.separators = (context.environment.listSeparatorDefaults, editRestrictions)
+        return source
+    }
+
+    /// Reserves the list's own place in the focus ring before its rows are extracted, so it
+    /// comes ahead of every control its section headers and eager rows draw as
+    /// they are — a `Section(isExpanded:)` fold, a `.sectionActions` button —
+    /// and the list, not a fold, takes the initial focus (decisions B76).
+    ///
+    /// The handler is the one ``resolvePopulatedHandler(source:persistedFocusID:stateStorage:context:contentHeight:)``
+    /// goes on to configure, made here when it is new. A reservation
+    /// (`FocusRegistration.reservePlace`) files it and nothing more — the
+    /// registration `ItemListHandler.engageFocus` makes later in the frame fills
+    /// the place, and does the rest — and holds the section's first focus for
+    /// it, so a header's control drawn in between does not take it.
+    private func registerOwnFocusStop(stateStorage: StateStorage, context: RenderContext) {
+        guard !context.isMeasuring else { return }
+        let persistedFocusID = FocusRegistration.persistFocusID(
+            context: context,
+            explicitFocusID: focusID,
+            defaultPrefix: "list",
+            propertyIndex: StateIndex.focusID
+        )
+        let canBeFocused = !isDisabled(in: context)
+        let handler = stateStorage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler),
+            default: ItemListHandler<SelectionValue>(
+                focusID: persistedFocusID, itemCount: 0, viewportHeight: 1, selectionMode: selectionMode,
+                canBeFocused: canBeFocused)
+        ).value
+        handler.canBeFocused = canBeFocused
+        FocusRegistration.reservePlace(context: context, handler: handler, focusID: persistedFocusID)
+    }
+
     private func resolvePopulatedHandler(
         source: RowSource<SelectionValue>,
         persistedFocusID: String,

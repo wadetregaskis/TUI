@@ -572,15 +572,19 @@ struct FadedPaletteRenderTests {
     @Test("A caret inside a List row keeps its per-frame field")
     func caretInsideAListRowKeepsItsAlpha() throws {
         let palette = FadedAll()
-        let drawn = renderToBuffer(
-            List(selection: .constant(Int?.none)) {
-                TextField("label", text: .constant("abc")).textCursor(.block, animation: .blink)
-            },
-            context: context(palette: palette, width: 24, height: 5) {
-                // Its own focus manager, or nothing is focused and the caret never
-                // blinks — there is no run to carry anything.
-                $0.focusManager = FocusManager()
-            })
+        // Its own focus manager, or nothing is focused and the caret never
+        // blinks — there is no run to carry anything.
+        let manager = FocusManager()
+        let listContext = context(palette: palette, width: 24, height: 5) { $0.focusManager = manager }
+        let list = List(selection: .constant(Int?.none)) {
+            TextField("label", text: .constant("abc")).textCursor(.block, animation: .blink)
+        }
+        // The list is the first stop, ahead of the field in its row: focus the
+        // field, and draw again.
+        _ = renderToBuffer(list, context: listContext)
+        let field = try #require(manager.registeredFocusIDsInActiveSection().first { !$0.hasPrefix("list") })
+        manager.focus(id: field)
+        let drawn = renderToBuffer(list, context: listContext)
 
         let carried = try #require(
             drawn.animatedCells.first { $0.alpha != nil },
