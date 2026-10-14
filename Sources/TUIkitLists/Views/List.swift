@@ -654,6 +654,46 @@ extension List where Footer == EmptyView, SelectionValue == Int {
     }
 }
 
+extension List where Footer == EmptyView, SelectionValue == Int {
+    /// Creates a list of the rows a range of integers makes, without
+    /// selection — mirrors SwiftUI's `init(_:rowContent:)` over a
+    /// `Range<Int>`.
+    ///
+    /// - Parameters:
+    ///   - data: The range, one row per integer.
+    ///   - rowContent: Builds the row view for each integer.
+    public init<RowContent: View>(_ data: Range<Int>, @ViewBuilder rowContent: @escaping (Int) -> RowContent)
+    where Content == ForEach<Range<Int>, Int, RowContent> {
+        self.init { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list of the rows a range of integers makes, with single
+    /// selection by the integer.
+    ///
+    /// - Parameters:
+    ///   - data: The range, one row per integer.
+    ///   - selection: A binding to the selected integer (`nil` = none).
+    ///   - rowContent: Builds the row view for each integer.
+    public init<RowContent: View>(
+        _ data: Range<Int>, selection: Binding<Int?>, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+    ) where Content == ForEach<Range<Int>, Int, RowContent> {
+        self.init(selection: selection) { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list of the rows a range of integers makes, with
+    /// multi-selection by the integer.
+    ///
+    /// - Parameters:
+    ///   - data: The range, one row per integer.
+    ///   - selection: A binding to the set of selected integers.
+    ///   - rowContent: Builds the row view for each integer.
+    public init<RowContent: View>(
+        _ data: Range<Int>, selection: Binding<Set<Int>>, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+    ) where Content == ForEach<Range<Int>, Int, RowContent> {
+        self.init(selection: selection) { ForEach(data, content: rowContent) }
+    }
+}
+
 extension List where Footer == EmptyView {
     /// Creates a list from an `Identifiable` collection with single selection.
     ///

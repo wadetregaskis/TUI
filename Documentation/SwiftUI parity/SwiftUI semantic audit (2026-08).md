@@ -1205,6 +1205,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Verified: `List(0..<5) { Text("\($0)") }` gives "error: initializer 'init(_:rowContent:)' requires that 'Int' conform to 'Identifiable'". `List(0..<5, id: \.self) { … }` does work, so the workaround is available but undiscoverable from the error.
 - *Recommendation:* Fix — three lines forwarding to the ForEach range initializer that already exists, in the same style as the neighbouring `List(_:rowContent:)` overloads.
 - *Status (2026-10-14 sweep):* **OPEN** — no `List(_: Range<Int>, rowContent:)`.
+- *Status:* **FIXED** (2026-10-14): `List(0..<n)` and its single- and multi-selection forms (List.swift); ListRangeTests.
 
 **105. `ListStyle.automatic / .sidebar / .inset / .bordered`** · *adjusted on verification*
 
