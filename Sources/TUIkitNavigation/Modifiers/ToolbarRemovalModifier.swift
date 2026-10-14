@@ -72,7 +72,7 @@ extension EnvironmentValues {
 
 /// Publishes a sidebar-toggle removal into the enclosing preference scope, for a
 /// split view whose column holds it, and renders `content` unchanged.
-struct SidebarToggleRemovalView<Content: View>: View {
+struct ToolbarRemovalView<Content: View>: View {
     let content: Content
 
     /// Whether this modifier removes the toggle; `false` for `nil`, which
@@ -80,7 +80,7 @@ struct SidebarToggleRemovalView<Content: View>: View {
     let publishes: Bool
 
     var body: Never {
-        fatalError("SidebarToggleRemovalView renders via Renderable")
+        fatalError("ToolbarRemovalView renders via Renderable")
     }
 
     /// Declared as a per-pass side effect for the reason
@@ -94,14 +94,14 @@ struct SidebarToggleRemovalView<Content: View>: View {
     }
 }
 
-extension SidebarToggleRemovalView: Renderable {
+extension ToolbarRemovalView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         publish(context: context)
         return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 
-extension SidebarToggleRemovalView: Layoutable {
+extension ToolbarRemovalView: Layoutable {
     /// Publishes during a measure too: the split view measures a column to learn
     /// what it asked for before it lays the handles out. The key's `reduce` is an
     /// OR, so publishing twice in a pass is idempotent.
@@ -148,7 +148,7 @@ extension View {
         // Reduced to a Bool before it reaches the environment or the preference
         // store, neither of which should hold a non-Sendable value.
         let removes = defaultItemKind?.kind == .sidebarToggle
-        return SidebarToggleRemovalView(
+        return ToolbarRemovalView(
             content: transformEnvironment(\.sidebarToggleRemoved) { removed in
                 if removes { removed = true }
             },
@@ -162,7 +162,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension SidebarToggleRemovalView: SingleContentWrapper {
+extension ToolbarRemovalView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
 
@@ -170,4 +170,4 @@ extension SidebarToggleRemovalView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension SidebarToggleRemovalView: DrawsContentUnchanged {}
+extension ToolbarRemovalView: DrawsContentUnchanged {}
