@@ -40,6 +40,32 @@ struct OnChangeTests {
         )
     }
 
+    // MARK: - Optional Values
+
+    /// What `trackedValue` returned for a key with nothing tracked was an
+    /// Optional `V`'s own `nil`, so an optional that started set was taken
+    /// to have changed from `nil` on its first render.
+    @Test("An optional that starts set fires nothing on its first render, and its changes fire, nil included")
+    func optionalStartingSet() {
+        let storage = StateStorage()
+        var changes: [String] = []
+        func pass(_ value: Int?) {
+            let view = Text("A").onChange(of: value) { old, new in
+                changes.append("\(old.map(String.init) ?? "nil")→\(new.map(String.init) ?? "nil")")
+            }
+            storage.beginRenderPass()
+            _ = renderToBuffer(view, context: makeContext(storage: storage))
+            storage.endRenderPass()
+        }
+        pass(5)
+        #expect(changes.isEmpty, "the first render is not a change: \(changes)")
+        pass(6)
+        pass(nil)
+        pass(nil)
+        pass(7)
+        #expect(changes == ["5→6", "6→nil", "nil→7"], "\(changes)")
+    }
+
     // MARK: - Basic Change Detection
 
     @Test("onChange fires when value changes between render passes")

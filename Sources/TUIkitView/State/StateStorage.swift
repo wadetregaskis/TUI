@@ -555,7 +555,13 @@ extension StateStorage {
     /// - Parameter key: The state key (identity + property index).
     /// - Returns: The tracked value, or `nil` if no value was stored yet.
     public func trackedValue<V>(for key: StateKey) -> V? {
-        trackedValues[key] as? V
+        // Absent is `nil`, for an Optional `V` too. Cast straight from the
+        // lookup, a missing entry — itself an Optional's `nil` — cast to an
+        // Optional `V` as `V`'s own `nil`, as though `nil` had been tracked:
+        // `onChange(of:)` an optional that started set fired on its first
+        // render, from a `nil` it never had.
+        guard let tracked = trackedValues[key] else { return nil }
+        return tracked as? V
     }
 
     /// Stores a tracked value for change detection across render passes.
