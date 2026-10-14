@@ -25,8 +25,9 @@ import TUIkitFoundation
 /// }
 /// ```
 ///
-/// Used on its own (outside a form), it lays the label out on the leading edge
-/// and the content on the trailing edge of the available width.
+/// On its own it hugs, the content right after the label, as SwiftUI's does;
+/// in a ``List``'s row the label leads and a fixed value sits at the trailing
+/// edge. See ``AutomaticLabeledContentStyle``.
 public struct LabeledContent<Label: View, Content: View>: View {
     let label: Label
     let content: Content

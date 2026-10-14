@@ -70,28 +70,36 @@ extension LabeledContentStyle {
 
 // MARK: - The built-in style
 
-/// The default labeled content style: the label leading, the content trailing,
-/// the content taking whatever width the row has left.
+/// The default labeled content style, laid out as SwiftUI's is for where the
+/// row stands (measured on macOS 15.8):
 ///
-/// The leftover goes to the CONTENT, not to a spacer beside it. A `Spacer` is
-/// width-flexible and so is a `TextField`, and the stack distributes to flexible
-/// children evenly — so a labelled field came out with half the line spent on
-/// the gap in front of it. A flexible frame gives the content the whole
-/// remainder and aligns a fixed-width content (the `value:` overloads' `Text`)
-/// at its trailing edge. The label goes through `_CollapsingLabel`, the unit
-/// every labelled control uses, so `.labelsHidden()` leaves the content holding
-/// the whole row.
+/// - **On its own**, the row hugs: the content right after the label, a field
+///   or a slider filling the rest of the line, the lines of a multi-line value
+///   leading.
+/// - **In a list's row**, the label leads and a fixed value sits at the
+///   trailing edge, each line of a multi-line value ending there; a field or a
+///   slider fills the rest after the label.
 ///
-/// A content of several lines trails line by line: each line of its text ends
-/// at the trailing edge (`EnvironmentValues.unstatedMultilineTextAlignment`),
-/// as the trailing value of SwiftUI's grouped `Form` does, its wrapped lines
-/// too (measured, `Tools/SwiftUIProbes/Trailing values and labels`). The frame
-/// alone places the content as one block, its lines leading inside it, which is
-/// SwiftUI's frame and draws "short" over "a much longer line" with "short"
-/// left of the trailing edge. (SwiftUI's `LabeledContent` outside a form leads
-/// its content after the label instead, measured in the same probe; this style
-/// trails it. A row of a TUIkit `Form` is not drawn through this style: it
-/// leads its content after the label column, `_FormFieldRow`.)
+/// A row of a TUIkit `Form` is not drawn through this style: the form lays its
+/// labelled rows out itself (`_FormFieldRow`).
+///
+/// In a list's row the leftover goes to the CONTENT, not to a spacer beside it.
+/// A `Spacer` is width-flexible and so is a `TextField`, and the stack
+/// distributes to flexible children evenly — so a labelled field came out with
+/// half the line spent on the gap in front of it. A flexible frame gives the
+/// content the whole remainder and aligns a fixed-width content (the `value:`
+/// overloads' `Text`) at its trailing edge. The label goes through
+/// `_CollapsingLabel`, the unit every labelled control uses, so `.labelsHidden()`
+/// leaves the content holding the whole row, and its separating space is the
+/// gap after the label.
+///
+/// A trailing content of several lines trails line by line: each line of its
+/// text ends at the trailing edge (`EnvironmentValues.unstatedMultilineTextAlignment`),
+/// as SwiftUI's does, its wrapped lines too (measured,
+/// `Tools/SwiftUIProbes/Trailing values and labels`). The frame alone places
+/// the content as one block, its lines leading inside it, which is SwiftUI's
+/// frame and draws "short" over "a much longer line" with "short" left of the
+/// trailing edge.
 ///
 /// Only where the app states no alignment: one stated on the `LabeledContent`
 /// or above it, or inside the content, wins. And only in the content's own
@@ -100,16 +108,39 @@ extension LabeledContentStyle {
 /// the BUGS13 lane's second review, when this style still wrote
 /// `.multilineTextAlignment(.trailing)` on the content).
 public struct AutomaticLabeledContentStyle: LabeledContentStyle, Equatable {
-    /// Creates the automatic labeled content style.
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 0) {
-            _CollapsingLabel(label: configuration.label, controlDisabled: false)
-            configuration.content
-                .environment(\.unstatedMultilineTextAlignment, .trailing)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+        _AutomaticLabeledContent(configuration: configuration)
+    }
+}
+
+/// The automatic style's row, which reads where it stands.
+struct _AutomaticLabeledContent: View {
+    let configuration: LabeledContentStyleConfiguration
+    @Environment(\.labeledContentPlacement) private var placement
+
+    @ViewBuilder var body: some View {
+        switch placement {
+        case .standalone:
+            HStack(spacing: 0) {
+                _CollapsingLabel(label: configuration.label, controlDisabled: false)
+                configuration.content
+            }
+        case .listRow:
+            HStack(spacing: 0) {
+                _CollapsingLabel(label: configuration.label, controlDisabled: false)
+                configuration.content
+                    .environment(\.unstatedMultilineTextAlignment, .trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
+    }
+}
+
+extension _AutomaticLabeledContent: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _placement.resolveEnvironment(environment)
     }
 }
 

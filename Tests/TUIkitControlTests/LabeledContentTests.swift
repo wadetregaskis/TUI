@@ -22,13 +22,36 @@ struct LabeledContentTests {
             .lines.first?.stripped ?? ""
     }
 
-    @Test("A fixed value sits at the trailing edge")
-    func valueIsTrailing() {
+    @Test("On its own, a fixed value follows its label and the row hugs, as SwiftUI's does")
+    func standaloneValueFollowsLabel() {
         let out = line(LabeledContent("Version", value: "1.0.3"))
-        #expect(out.hasPrefix("Version"), "label leads: \(out.debugDescription)")
-        #expect(
-            out.trimmingCharacters(in: .whitespaces).hasSuffix("1.0.3"),
-            "value trails: \(out.debugDescription)")
+        #expect(out.trimmingCharacters(in: .whitespaces) == "Version 1.0.3", "\(out.debugDescription)")
+    }
+
+    @Test("On its own, the lines of a multi-line value lead after the label")
+    func standaloneMultilineValueLeads() {
+        let lines = renderToBuffer(
+            LabeledContent { Text("short\na much longer line") } label: { Text("Notes") },
+            context: makeRenderContext(width: 40, height: 3)
+        ).lines.map(\.stripped)
+        let starts = lines.compactMap { line in
+            ["short", "a much longer line"].lazy.compactMap { line.range(of: $0) }.first
+                .map { line.distance(from: line.startIndex, to: $0.lowerBound) }
+        }
+        #expect(starts == [6, 6], "both lines start after \"Notes \": \(lines)")
+    }
+
+    @Test("In a list's row, a fixed value sits at the trailing edge")
+    func listRowValueIsTrailing() throws {
+        let lines = renderToBuffer(
+            List { LabeledContent("Version", value: "1.0.3") },
+            context: makeRenderContext(width: 40, height: 4)
+        ).lines.map(\.stripped)
+        let row = try #require(lines.first { $0.contains("Version") }, "drawn: \(lines)")
+        let label = try #require(row.range(of: "Version"))
+        let value = try #require(row.range(of: "1.0.3"))
+        let gap = row.distance(from: label.upperBound, to: value.lowerBound)
+        #expect(gap > 20, "the value is across the row from its label: \(row.debugDescription)")
     }
 
     /// The value trails, and so does each line of a value of several: as the
@@ -38,10 +61,11 @@ struct LabeledContentTests {
     /// lane's review: once a frame placed its content as one block
     /// (e9c065a9e), the trailing frame drew the lines leading inside a block
     /// at the trailing edge, "short" left of the longer line's start.
-    @Test("Each line of a multi-line value ends at the trailing edge")
+    @Test("In a list's row, each line of a multi-line value ends at the trailing edge")
     func multilineValueTrailsLineByLine() throws {
         let lines = renderToBuffer(
-            LabeledContent { Text("short\na much longer line") } label: { Text("Notes") },
+            LabeledContent { Text("short\na much longer line") } label: { Text("Notes") }
+                .environment(\.labeledContentPlacement, .listRow),
             context: makeRenderContext(width: 40, height: 3)
         ).lines.map(\.stripped)
         func end(of text: String, in line: String) -> Int? {
@@ -64,7 +88,8 @@ struct LabeledContentTests {
     func statedAlignmentWins(alignment: TextAlignment) throws {
         let lines = renderToBuffer(
             LabeledContent { Text("short\na much longer line") } label: { Text("Notes") }
-                .multilineTextAlignment(alignment),
+                .multilineTextAlignment(alignment)
+                .environment(\.labeledContentPlacement, .listRow),
             context: makeRenderContext(width: 40, height: 3)
         ).lines.map(\.stripped)
         func range(of text: String, in line: String) -> (start: Int, end: Int)? {

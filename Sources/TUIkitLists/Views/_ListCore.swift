@@ -880,13 +880,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowContext.availableWidth = max(
                 1, context.availableWidth - style.horizontalChrome - listRowGutter)
         }
-        // A sidebar list draws its rows' label icons in the list item tint
-        // (`SidebarListStyle`). Written only where it changes, so a list nested
-        // in a sidebar's row does not pass the sidebar on to its own rows.
-        let isSidebar = style is SidebarListStyle
-        if rowContext.environment.isSidebarListRow != isSidebar {
-            rowContext.environment.isSidebarListRow = isSidebar
-        }
+        describeRows(in: &rowContext.environment, isSidebar: style is SidebarListStyle)
         yieldRowSecondaryClicks(in: &rowContext.environment)
         // The rows' `containerRelativeFrame` container: the width a row gets,
         // and the height inside the border.
@@ -3124,6 +3118,22 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ///
     /// Persistent, not a bare wrapper: a row of several styled runs carries a
     /// reset per run, and each one would otherwise end the dim early.
+    /// What the rows are told about being a list's: each written only where it
+    /// changes.
+    private func describeRows(in environment: inout EnvironmentValues, isSidebar: Bool) {
+        // A sidebar list draws its rows' label icons in the list item tint
+        // (`SidebarListStyle`). So a list nested in a sidebar's row does not
+        // pass the sidebar on to its own rows.
+        if environment.isSidebarListRow != isSidebar {
+            environment.isSidebarListRow = isSidebar
+        }
+        // A `LabeledContent` in a row spreads across it, as SwiftUI's does in a
+        // list of any style: the label leading, a fixed value trailing.
+        if environment.labeledContentPlacement != .listRow {
+            environment.labeledContentPlacement = .listRow
+        }
+    }
+
     private func dimmed(_ buffer: FrameBuffer) -> FrameBuffer {
         var faint = FrameBuffer(lines: buffer.lines.map { ANSIRenderer.applyPersistentDim($0) })
         // The claims come too, and nothing else does. The dim moves no cell, so a
