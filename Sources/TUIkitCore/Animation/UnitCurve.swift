@@ -145,14 +145,6 @@ public struct UnitCurve: Hashable, Sendable {
     /// (x: 0.58, y: 1).
     public static let easeInOut = Self.bezier(p1x: 0.42, p1y: 0, p2x: 0.58, p2y: 1)
 
-    /// A bezier curve that starts out slowly, speeds up over the middle, then
-    /// slows down again as it approaches the end — ``easeInOut`` by another
-    /// name.
-    ///
-    /// The start and end control points are located at (x: 0.42, y: 0) and
-    /// (x: 0.58, y: 1).
-    public static let easeInEaseOut = easeInOut
-
     /// A curve that starts out slowly, then speeds up as it finishes.
     ///
     /// The shape of the curve is equal to the fourth (bottom right) quadrant

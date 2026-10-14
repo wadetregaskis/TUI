@@ -32,7 +32,6 @@ struct UnitCurveTests {
         #expect(matches(inputs.map(UnitCurve.easeOut.value(at:)), [0.160572, 0.378139, 0.684643, 0.906535, 0.982973]))
         #expect(matches(inputs.map(UnitCurve.easeInOut.value(at:)), [0.019722, 0.129162, 0.5, 0.870838, 0.980278]))
         #expect(matches(inputs.map(UnitCurve.easeInOut.velocity(at:)), [0.402245, 1.059261, 1.724138, 1.059261, 0.402245]))
-        #expect(UnitCurve.easeInEaseOut == UnitCurve.easeInOut)
     }
 
     @Test("Where a Bézier's tangent vanishes, the velocity is SwiftUI's: 1 at the start, 0 at the end")
