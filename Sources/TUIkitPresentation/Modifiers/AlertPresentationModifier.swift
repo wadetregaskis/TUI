@@ -160,7 +160,7 @@ extension AlertPresentationModifier: Renderable {
             let environment = context.environment
             if Self.preventsTermination(
                 stated: environment.dialogPreventsAppTermination,
-                buttons: alertActionButtons(from: shownActions),
+                buttons: alertActionButtons(from: shownActions, in: context),
                 isCritical: environment.dialogSeverity == .critical
                     || (environment.dialogSeverity == .automatic && presentsError))
             {
@@ -180,7 +180,7 @@ extension AlertPresentationModifier: Renderable {
             // so Escape does not choose it either; nor is one invented when the
             // alert has no cancel role. Both cases just close.
             let isPresented = self.isPresented
-            let cancel = alertActionButtons(from: shownActions).first {
+            let cancel = alertActionButtons(from: shownActions, in: context).first {
                 $0.role == .cancel && !$0.isDisabled
             }
             let dismiss = {
@@ -363,8 +363,8 @@ struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
 
     var body: some View { actions }
 
-    func extractButtons() -> [Button] {
-        let buttons = alertActionButtons(from: actions)
+    func extractButtons(in context: RenderContext) -> [Button] {
+        let buttons = alertActionButtons(from: actions, in: context)
         if isConfirmation {
             guard !buttons.contains(where: { $0.role == .cancel }) else { return buttons }
             return buttons + [

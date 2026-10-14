@@ -43,6 +43,10 @@ public struct Subview: View, @MainActor Identifiable {
         self.index = index
     }
 
+    /// The member's own view, as it was written: what a container that draws
+    /// its members itself — a dialog's buttons — looks through.
+    package var memberView: any View { child.wrappedView }
+
     /// A unique identifier for a subview.
     public struct ID: Hashable, Sendable, CustomStringConvertible {
         /// The identity the subview's view resolved to.

@@ -288,9 +288,9 @@ struct _DismissalActions<A: View>: View, ButtonProvider {
 
     var body: some View { actions }
 
-    func extractButtons() -> [Button] {
+    func extractButtons(in context: RenderContext) -> [Button] {
         let pending = pending
-        var buttons = alertActionButtons(from: actions).map { button in
+        var buttons = alertActionButtons(from: actions, in: context).map { button in
             guard button.role != .cancel else { return button }
             return Button(button, action: {
                 button.action()
