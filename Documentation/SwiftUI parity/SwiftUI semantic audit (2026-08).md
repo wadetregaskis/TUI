@@ -952,6 +952,7 @@ verifier corrected the analyst, both are shown.
 - *Recommendation:* Fix the optional forms (add `?` and branch internally — the stored properties are already Optional). The non-optional "always one selected" form is a behaviour, not just a signature: either add it or record in Documentation/SwiftUI parity/SwiftUI compatibility guide.md that a terminal list always permits an empty selection.
 - *Status (2026-10-14 sweep):* **OPEN** — `List`'s selection forms take only `Binding<V?>` and `Binding<Set<V>>`; many initialisers to add.
 - *Status:* **PARTLY FIXED** (2026-10-14): every selection parameter takes an optional binding, `nil` selecting nothing (List.swift); ListRangeTests. The non-optional `Binding<SelectionValue>` form is absent and the guide says so: given `$selection` for an optional, it could outrank the optional form with `SelectionValue` the optional type, and how SwiftUI resolves that was not measured.
+- *Status:* **FIXED** (2026-10-14): the non-optional forms exist, `@_disfavoredOverload` as SwiftUI declares all ten of its own — probed: SwiftUI binds `SelectionValue` to the wrapped type for an optional binding and to the element for a `Set`, so the optional and multi-selection forms win — and activating the selected row again leaves it selected; ListRequiredSelectionTests. The two forms over a binding to a tree are absent, as their optional twins are.
 
 ### Gestures, hit testing and keyboard input
 
