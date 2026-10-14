@@ -22,26 +22,41 @@ import TUIkitView
 /// their headers, a tab's badge at its row's trailing edge, a disabled tab
 /// stepped over — and the content is the tab view's own core, told by the
 /// style to draw no strip. The sidebar hugs its widest row.
+///
+/// In a horizontally compact size class there is no sidebar: the core draws
+/// the strip's tabs as a strip over the content, as a sidebar-adaptable tab
+/// view shows a tab bar on iPhone (decisions B3). The core keeps its place in
+/// either, so the selected tab's content keeps its state when the class
+/// changes.
 struct _TabSidebarLayout: View {
     /// The tabs the sidebar lists, in order.
     let tabs: [_RawTab]
+
+    /// The tabs a strip shows, in a compact size class: every tab not placed
+    /// only in a sidebar.
+    let stripTabs: [_RawTab]
 
     /// The selected tab's value.
     let selection: Binding<AnyHashable>
 
     @Environment(\.tabViewSidebarAccessories) private var accessories
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     var body: some View {
+        let compact = horizontalSizeClass == .compact
         HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                if let header = accessories.header { header }
-                _TabSidebarList(tabs: tabs, selection: selection)
-                if let footer = accessories.footer { footer }
-                if let bottomBar = accessories.bottomBar { bottomBar }
+            if !compact {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let header = accessories.header { header }
+                    _TabSidebarList(tabs: tabs, selection: selection)
+                    if let footer = accessories.footer { footer }
+                    if let bottomBar = accessories.bottomBar { bottomBar }
+                }
+                .fixedSize(horizontal: true, vertical: false)
+                Divider()
             }
-            .fixedSize(horizontal: true, vertical: false)
-            Divider()
-            _TabViewCore(selection: selection, tabs: tabs)
+            _TabViewCore(selection: selection, tabs: compact ? stripTabs : tabs)
         }
     }
 }
@@ -326,6 +341,7 @@ public enum TabViewBottomAccessoryPlacement: Hashable, Sendable {
 extension _TabSidebarLayout: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _accessories.resolveEnvironment(environment)
+        _horizontalSizeClass.resolveEnvironment(environment)
     }
 }
 

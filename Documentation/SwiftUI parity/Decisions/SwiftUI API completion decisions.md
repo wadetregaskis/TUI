@@ -51,8 +51,8 @@ when nothing animates.
 
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
-A41 (O5); A21 (with B3), A25, A42, B3, B19 (after its A/B), B22 (a look
-at the faint tiers).
+A41 (O5); A25, A42, B19 (after its A/B), B22 (a look at the faint tiers).
+B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -1006,7 +1006,11 @@ days (estimate): the popover adaptation, the split-view collapse, the compact
 (A21), and the compact `Table`: no header line, and its first column alone
 (the first the customization shows) across the table's width, whatever
 width the column was given, since on iPhone the table is a list of that
-column. The compact sidebar tab view remains.
+column. Then the compact sidebar tab view: a `.sidebarAdaptable` tab view
+draws the default strip in a compact class, of the tabs a strip shows (no
+sidebar-only tabs, no section headers), reporting `.topBar` and no
+sections, and its core keeps its place so the selected tab's content keeps
+its state. The lane is done; what it left is listed under A21.
 
 ### B4. `DynamicProperty.update()` writes back (superseded by lane DYNP)
 

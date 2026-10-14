@@ -78,11 +78,17 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View {
     /// What ``View/tabViewCustomization(_:)`` bound the sidebar to, if anything.
     @Environment(\.tabViewCustomization) private var customization
 
+    /// A `.sidebarAdaptable` tab view shows a strip in a compact class.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     public var body: some View {
         if style.stripLook == .sidebar {
-            _TabSidebarLayout(tabs: sidebarTabs, selection: erasedSelection)
-                .environment(\.tabBarPlacementValue, .sidebar)
-                .environment(\.tabBarShowingSections, true)
+            // In a compact class the layout draws a strip where its sidebar was,
+            // and the tabs are then where a strip's are.
+            let compact = horizontalSizeClass == .compact
+            _TabSidebarLayout(tabs: sidebarTabs, stripTabs: stripTabs, selection: erasedSelection)
+                .environment(\.tabBarPlacementValue, compact ? .topBar : .sidebar)
+                .environment(\.tabBarShowingSections, !compact)
         } else {
             _TabViewCore(selection: erasedSelection, tabs: stripTabs)
                 .environment(\.tabBarPlacementValue, .topBar)
@@ -313,7 +319,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             ? 1 : stripRowGroups(style: .compact, available: available).count
         // Each strip row, and under `.bordered` each row's tops plus the box's
         // content border and bottom — the render's own `chrome`.
-        let chrome = context.environment.tabViewStyle.stripLook == .bordered ? 2 * rows + 2 : rows
+        let chrome = context.environment.tabStripLook == .bordered ? 2 * rows + 2 : rows
         return max(0, context.availableHeight - chrome)
     }
 
@@ -481,7 +487,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// cells. Mirrors the render geometry so the `TabStripHandler`'s up/down keys
     /// move to the tab actually above/below the current one.
     private func navigationGeometry(context: RenderContext) -> (rows: [[Int]], centers: [Int: Int]) {
-        let style = context.environment.tabViewStyle.stripLook
+        let style = context.environment.tabStripLook
         let alignment = context.environment.tabViewHeaderAlignment
         let insets = resolvedContentInsets(style: style, context: context)
         let bordered = style == .bordered
@@ -534,7 +540,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             return resolved.sizeThatFits(proposal: proposal, context: context)
         }
         guard !tabs.isEmpty else { return ViewSize.fixed(0, 0) }
-        let style = context.environment.tabViewStyle.stripLook
+        let style = context.environment.tabStripLook
         var ctx = context
         ctx.availableWidth = proposal.width ?? context.availableWidth
         let insets = resolvedContentInsets(style: style, context: ctx)
@@ -580,7 +586,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if let resolved = resolvingCustomLabels(context) { return resolved.renderToBuffer(context: context) }
         guard !tabs.isEmpty else { return FrameBuffer() }
-        let style = context.environment.tabViewStyle.stripLook
+        let style = context.environment.tabStripLook
         let palette = context.environment.palette
         let isDisabled = !context.environment.isEnabled
 
@@ -895,9 +901,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     /// Whether this core draws its strip: always, except beside the sidebar a
     /// `.sidebarAdaptable` tab view draws its tabs in (`_TabSidebarLayout`),
-    /// where it draws the selected tab's content alone.
+    /// where it draws the selected tab's content alone — which is not there in
+    /// a compact size class (``EnvironmentValues/tabStripLook``).
     func showsStrip(_ context: RenderContext) -> Bool {
-        context.environment.tabViewStyle.stripLook != .sidebar
+        context.environment.tabStripLook != .sidebar
     }
 
     /// The interior padding around each tab's content. An explicit
@@ -1131,5 +1138,6 @@ extension TabView: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _style.resolveEnvironment(environment)
         _customization.resolveEnvironment(environment)
+        _horizontalSizeClass.resolveEnvironment(environment)
     }
 }

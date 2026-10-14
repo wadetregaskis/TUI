@@ -27,7 +27,7 @@ import TUIkitFoundation
 /// | ``automatic`` | The default: ``compact``. |
 /// | ``tabBarOnly`` | A tab bar: ``compact``, as macOS draws it like the default. |
 /// | ``grouped`` | A bar grouping the tabs over a box around the content: ``bordered``. |
-/// | ``sidebarAdaptable`` | A sidebar listing the tabs, its sections under their headers, beside the content. |
+/// | ``sidebarAdaptable`` | A sidebar listing the tabs, its sections under their headers, beside the content; in a compact size class, ``compact``'s strip. |
 /// | ``compact`` | **TUI-specific.** One border-free row of chips; the active one is filled. |
 /// | ``bordered`` | **TUI-specific.** Box-drawn folder tabs joined to a box around the content. |
 ///
@@ -109,6 +109,11 @@ public struct GroupedTabViewStyle: TabViewStyle, Equatable {
 /// ``View/tabViewSidebarFooter(content:)`` and
 /// ``View/tabViewSidebarBottomBar(content:)`` add views above and below it.
 ///
+/// In a horizontally compact size class, as on iPhone, it draws the default
+/// strip of its tabs over the content instead: no sidebar-only tabs, no
+/// section headers. A terminal's size class is `.regular` unless the app
+/// writes `.compact` into `\.horizontalSizeClass`.
+///
 /// `Equatable` for the reason given under ``TabViewStyle``.
 public struct SidebarAdaptableTabViewStyle: TabViewStyle, Equatable {
     /// Creates a sidebar-adaptable tab view style.
@@ -166,6 +171,17 @@ extension TabViewStyle {
         case is SidebarAdaptableTabViewStyle: .sidebar
         default: .compact
         }
+    }
+}
+
+extension EnvironmentValues {
+    /// How the tab views here draw their strip: their style's look, but for a
+    /// `.sidebarAdaptable` tab view in a horizontally compact size class,
+    /// which draws the default strip, as it shows a tab bar on iPhone
+    /// (decisions B3).
+    var tabStripLook: _TabStripLook {
+        let look = tabViewStyle.stripLook
+        return look == .sidebar && horizontalSizeClass == .compact ? .compact : look
     }
 }
 
