@@ -1036,6 +1036,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Both verified. `Binding<Int>(get: { n }, set: { v, t in n = v })` → `error: contextual closure type '(Int) -> Void' expects 1 argument, but 2 were used in closure body`. `let opt: Binding<Int?> = Binding($n)` → `error: cannot convert value of type 'Binding<Int>' to expected argument type 'Binding<Int??>'` — the failable unwrap overload is the only candidate, so the diagnostic actively misleads. The second is how SwiftUI code feeds a non-optional binding to `.sheet(item:)` or an optional-selection control.
 - *Recommendation:* Add both. `init<V>(_ base: Binding<V>) where Value == V?` is three lines. The transaction-taking setter can be stored alongside the existing one and invoked with `Transaction.ambient ?? Transaction()`.
 - *Status (2026-10-14 sweep):* **OPEN** — no `Binding(get:set:)` whose setter takes a `Transaction`, nor `Binding<V?>(_: Binding<V>)`.
+- *Status:* **FIXED** (2026-10-14): both forms ship (State.swift, Binding+Optional.swift); BindingTests. The guide names them.
 
 **87. `Environment.init(_:)`**
 
@@ -1591,6 +1592,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Four concrete counterexamples to the @AppStorage ✓: `@AppStorage("mode") var mode: Mode = .a` for `enum Mode: String` does not compile; `@AppStorage("name") var name: String?` does not compile; `store: UserDefaults.standard` does not compile; and an @AppStorage write does not invalidate the render cache (findings 3 and 6). For @Binding, the transaction-taking `init(get:set:)` and `init<V>(_ base: Binding<V>) where Value == V?` do not compile (finding 8) — the listing is accurate about what is present, but §1's "port with no source change" framing carries a claim the two absences break.
 - *Recommendation:* Document: move the unsupported @AppStorage spellings into §2 with the UserDefaults-is-Apple-only reasoning (which is sound and mirrors §2.3's onReceive argument) or fix them per finding 6, and note the two Binding initializers wherever they land. This row is worth being strict about precisely because §1 is the section a porting developer trusts without checking.
 - *Status (2026-10-14 sweep):* **OPEN** — the `@AppStorage` examples compile now; the two missing `Binding` initialisers (item 86) are still unmentioned.
+- *Status:* **FIXED** (2026-10-14): item 86's forms ship and the guide's Binding passage names them.
 
 ### Value controls
 

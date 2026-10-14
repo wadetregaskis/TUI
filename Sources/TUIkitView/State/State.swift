@@ -423,6 +423,24 @@ public struct Binding<Value> {
         self.setValue = set
     }
 
+    /// Creates a binding whose setter is handed the transaction each write is
+    /// made under — mirrors SwiftUI's `init(get:set:)` with a
+    /// `(Value, Transaction)` setter.
+    ///
+    /// The transaction is this binding's own where it was given one
+    /// (``transaction(_:)``, ``animation(_:)``), else the one in force where
+    /// the write was made — a `withAnimation` around it — else an empty one.
+    ///
+    /// - Parameters:
+    ///   - get: The getter closure.
+    ///   - set: The setter closure, handed the value and its transaction.
+    public init(get: @escaping () -> Value, set: @escaping (Value, Transaction) -> Void) {
+        self.getValue = get
+        // A binding's own transaction is in force here too: `wrappedValue`
+        // writes through `withTransaction` when it has one.
+        self.setValue = { set($0, Transaction.ambient ?? Transaction()) }
+    }
+
     /// Creates a constant binding that never changes.
     ///
     /// - Parameter value: The constant value.

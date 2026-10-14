@@ -53,6 +53,24 @@ extension Binding {
             set: { base.wrappedValue = $0 })
     }
 
+    /// Creates a binding by projecting `base` to an optional value — mirrors
+    /// SwiftUI's `Binding(_:)` from a non-optional base.
+    ///
+    /// For a control or a view that takes a `Binding<Value?>`, handed a value
+    /// that is always there. A value written reaches `base`; `nil` written
+    /// leaves `base` as it is, there being nothing to store in it. Writes are
+    /// made under `base`'s transaction, where it has one.
+    ///
+    /// - Parameter base: A binding to a non-optional value.
+    public init<Wrapped>(_ base: Binding<Wrapped>) where Value == Wrapped? {
+        self.init(
+            get: { Optional(base.wrappedValue) },
+            set: { value in
+                guard let value else { return }
+                base.wrappedValue = value
+            })
+    }
+
     /// Substitutes a value for `nil`, producing a binding a control can take.
     ///
     /// A `Binding<Value?>` is what you get for anything that might be absent —

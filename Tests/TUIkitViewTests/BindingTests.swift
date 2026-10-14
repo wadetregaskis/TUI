@@ -6,6 +6,7 @@
 
 import Testing
 
+import TUIkitCore
 @testable import TUIkitView
 
 @MainActor
@@ -213,5 +214,34 @@ struct BindingUnwrapTests {
         // And it is still writable, which is what puts the source back.
         nickname.wrappedValue = "grace"
         #expect(profile.nickname == "grace")
+    }
+
+    // MARK: - SwiftUI's other forms (the semantic audit's item 86)
+
+    @Test("A setter that takes the transaction is handed the binding's own, else the ambient one, else an empty one")
+    func transactionSetter() {
+        nonisolated(unsafe) var value = 0
+        nonisolated(unsafe) var seen: [Bool] = []
+        let binding = Binding(get: { value }, set: { (new: Int, transaction: Transaction) in
+            value = new
+            seen.append(transaction.animation != nil)
+        })
+        binding.wrappedValue = 1
+        withAnimation(.linear(duration: 1)) { binding.wrappedValue = 2 }
+        binding.animation(.easeIn(duration: 1)).wrappedValue = 3
+        #expect(value == 3)
+        #expect(seen == [false, true, true], "\(seen)")
+    }
+
+    @Test("A binding projected to an optional reads the value, writes a value through, and ignores nil")
+    func optionalProjection() {
+        nonisolated(unsafe) var value = 5
+        let base = Binding(get: { value }, set: { value = $0 })
+        let optional: Binding<Int?> = Binding(base)
+        #expect(optional.wrappedValue == 5)
+        optional.wrappedValue = 7
+        #expect(value == 7)
+        optional.wrappedValue = nil
+        #expect(value == 7, "nil has nothing to store")
     }
 }
