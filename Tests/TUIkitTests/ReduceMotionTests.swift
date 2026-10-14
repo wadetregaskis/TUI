@@ -206,3 +206,103 @@ private struct ReduceMotionReader: View {
         return Text(verbatim: "probe")
     }
 }
+
+// MARK: - The host's setting
+
+/// A test's stand-in for the host: what it says, how often it was asked, and
+/// what the refresher passed on. Written by a reading off the main actor and
+/// read by the test once the refresher has settled, never at the same time.
+private final class HostStandIn: @unchecked Sendable {
+    var reduces = false
+    var readings = 0
+    var changes: [Bool] = []
+
+    func read() -> Bool {
+        readings += 1
+        return reduces
+    }
+}
+
+@MainActor
+@Suite("Reduce motion: the host's setting")
+struct HostReduceMotionTests {
+    private func refresher(_ host: HostStandIn, onChange: @escaping @MainActor (Bool) -> Void = { _ in })
+        -> HostReduceMotionRefresher
+    {
+        HostReduceMotionRefresher(
+            read: { host.read() },
+            onChange: { reduces in
+                host.changes.append(reduces)
+                onChange(reduces)
+            })
+    }
+
+    /// Waits for the refresher's reading, which hops through a detached task.
+    private func settle(_ refresher: HostReduceMotionRefresher) async throws {
+        for _ in 0..<200 {
+            try await Task.sleep(nanoseconds: 5_000_000)
+            if refresher.isIdleForTesting { return }
+        }
+        Issue.record("the refresher never settled")
+    }
+
+    @Test("GNOME's animations off is reduced motion, and anything else it prints says nothing")
+    func gnome() {
+        #expect(TerminalClient.gnomeReducesMotion(gsettingsOutput: "false\n") == true)
+        #expect(TerminalClient.gnomeReducesMotion(gsettingsOutput: "true\n") == false)
+        #expect(TerminalClient.gnomeReducesMotion(gsettingsOutput: "No such schema “org.gnome.desktop.interface”") == nil)
+        #expect(TerminalClient.gnomeReducesMotion(gsettingsOutput: nil) == nil)
+    }
+
+    @Test("A reading lands, and only a change is passed on")
+    func passesChangesOn() async throws {
+        let host = HostStandIn()
+        let refresher = refresher(host)
+        host.reduces = true
+        refresher.refresh()
+        try await settle(refresher)
+        #expect(refresher.reducesMotion && host.changes == [true])
+
+        refresher.refresh()
+        try await settle(refresher)
+        #expect(host.changes == [true], "the same answer is not passed on again")
+
+        host.reduces = false
+        refresher.refresh()
+        try await settle(refresher)
+        #expect(!refresher.reducesMotion && host.changes == [true, false])
+        #expect(host.readings == 3)
+    }
+
+    @Test("The host's setting, as the runner hands it on, reaches the root, and goes when it goes")
+    func reachesTheRoot() {
+        let probe = ReduceMotionProbe()
+        let loop = RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe))
+        loop.hostReducesMotion = true
+        loop.render()
+        #expect(probe.seen == true)
+        loop.hostReducesMotion = false
+        loop.render()
+        #expect(probe.seen == false)
+    }
+
+    @Test("The terminal regaining the focus reads the host's setting again")
+    func focusInReadsAgain() async throws {
+        let appState = AppState()
+        let runner = AppRunner(app: ReduceMotionProbeApp(), appState: appState)
+        let loop = RenderLoopHarness().loop(ReduceMotionProbeApp())
+        let host = HostStandIn()
+        host.reduces = true
+        let refresher = refresher(host) { loop.hostReducesMotion = $0 }
+        runner.hostMotion = refresher
+        let timer = CursorTimer(renderNotifier: appState)
+
+        runner.terminalFocusChanged(isFocused: false, cursorTimer: timer, renderer: loop)
+        try await settle(refresher)
+        #expect(host.readings == 0, "the focus going away reads nothing")
+        runner.terminalFocusChanged(isFocused: true, cursorTimer: timer, renderer: loop)
+        try await settle(refresher)
+        #expect(host.readings == 1)
+        #expect(loop.hostReducesMotion, "and the loop was handed what it read")
+    }
+}

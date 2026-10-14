@@ -49,7 +49,7 @@ default dissolve each wait on an A/B on the quiet machine, whose numbers
 decide them as agreed: A40 dissolves by default if that costs under about 1%
 when nothing animates.
 
-**Decided, lane owed.** A0's ruled O items but O7 and O16 (deferred), and with them
+**Decided, lane owed.** A0's ruled O items but O1, O7 and O16 (deferred), and with them
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A42, B19 (after its A/B), B22 (a look at the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
@@ -88,7 +88,7 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O1** Reduce-motion and the other accessibility preferences. **(b), but
   only `TUIKIT_REDUCE_MOTION`** (B53, shipped) unless TUIkit can be confident
   the terminal is on the same machine; then the host's setting too, by the
-  clipboard's locality test. Lane owed.
+  clipboard's locality test. Shipped 2026-10-14.
 - **O2** `PhaseAnimator` and `KeyframeAnimator`. **(b)**; (c) is not easy,
   so it is presented after (b).
 - **O3** `CustomAnimation`. **Detect, else live**: integrated lazily and

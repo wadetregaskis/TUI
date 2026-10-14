@@ -866,6 +866,14 @@ the owner's: whether to extend the host read to reduce transparency,
 differentiate without colour and contrast. `accessibilityVoiceOverEnabled`
 stays refused: every non-local session would answer a wrong `false`.
 
+**Shipped 2026-10-14.** The locality rules have one home, `SessionLocality`
+(the clipboard's test, and the cell-points calibration's environment-only
+one beside it). `HostReduceMotionRefresher` reads macOS's
+`com.apple.universalaccess` `reduceMotion`, or GNOME's `enable-animations`
+through `gsettings`, off the main actor at launch and on every focus-in, and
+counts it only where `SessionLocality.isLocal()` holds. The render loop ORs it
+into the root with `TUIKIT_REDUCE_MOTION`.
+
 ### O2. `PhaseAnimator` / `KeyframeAnimator` views (from P13) — M + M
 
 - **The reason fails:** "pre-rendering a subtree once per phase runs its side

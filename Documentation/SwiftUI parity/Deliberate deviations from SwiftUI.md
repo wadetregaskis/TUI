@@ -528,12 +528,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   transition's offset and a drag preview's flight jump to their end. Fades,
   colours, the focus breath, spinners and progress still animate. An app's own
   `Animatable` values are left to the app, as in SwiftUI. The value comes from
-  the user's `TUIKIT_REDUCE_MOTION` or the app's TUI-only
-  `Scene.reduceMotion(_:)`, not from the system setting: the machine an app
-  runs on need not be the one its user sits at
-  ([ReduceMotion.swift](../../Sources/TUIkitApp/Environment/ReduceMotion.swift#L4-L7)).
-  Reading the system setting where the terminal is surely local is
-  [slated](#slated-to-change).
+  the user's `TUIKIT_REDUCE_MOTION`, the app's TUI-only
+  `Scene.reduceMotion(_:)`, or the system setting only where TUIkit is sure
+  the user is at this machine (refusal review O1, 2026-10-14): the machine an
+  app runs on need not be the one its user sits at
+  ([ReduceMotion.swift](../../Sources/TUIkitApp/Environment/ReduceMotion.swift#L4-L9)).
 - **Why:** the owner's reading: motion means movement in x and y, and the
   framework's own movement should honour the setting.
 - **Decided:** [A-D3M-1](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
@@ -1466,7 +1465,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
 | A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Waits on a fix: shared, a column squeezes a control of several lines in the middle, and a squeezed inline `Menu` draws differently served from the cache than drawn afresh (the focus storm's trial 3) |
 | `.fixedSize()` fixes only a `List`'s width; any other view under it is laid out in what it is offered, so a row under it shares its width rather than taking its ideal | [FixedSizeModifier.swift](../../Sources/TUIkitFoundation/Modifiers/FixedSizeModifier.swift) | To do: a layout wrapper that lays the view out at its ideal size and is cut where it is drawn, keeping the flag a `List` reads |
-| The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
 | The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |
 | A modifier reaches multi-view content through some wrappers only; `EmptyView` with a frame or padding keeps its space | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |

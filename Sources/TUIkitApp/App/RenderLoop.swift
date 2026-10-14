@@ -302,6 +302,12 @@ internal final class RenderLoop<A: App> {
     /// into a fade.
     private let reducesMotion: Bool
 
+    /// The host's own Reduce Motion, where the app runner is sure the user is
+    /// at this machine (``HostReduceMotionRefresher``): OR'd with
+    /// ``reducesMotion`` at the root of every frame. `false` in every loop but
+    /// the app runner's, for the same reason.
+    var hostReducesMotion = false
+
     /// How the user asked for keys to be written with `TUIKIT_KEY_SYMBOLS`, as
     /// the app runner read it from the process: written at the root of every
     /// frame as ``EnvironmentValues/keyNotation``.
@@ -732,10 +738,12 @@ extension RenderLoop {
             environment.appearance = appearance
         }
         environment.notificationService = NotificationService.current
-        // The user's `TUIKIT_REDUCE_MOTION`, at the root, where the app runner
-        // passed it (see `reducesMotion`); a scene's own `.reduceMotion(_:)` is
-        // applied over it with the scene's other writes.
-        environment.accessibilityReduceMotion = reducesMotion
+        // The user's `TUIKIT_REDUCE_MOTION`, and the host's own Reduce Motion
+        // where the user is provably at this machine, at the root, where the
+        // app runner passed them (see `reducesMotion`, `hostReducesMotion`); a
+        // scene's own `.reduceMotion(_:)` is applied over them with the scene's
+        // other writes.
+        environment.accessibilityReduceMotion = reducesMotion || hostReducesMotion
         // The user's `TUIKIT_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
         // can only add to it.
         environment.keyNotation = keyNotation

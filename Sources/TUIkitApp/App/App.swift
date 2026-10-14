@@ -116,6 +116,11 @@ internal final class AppRunner<A: App> {
     /// the host is identified, at startup; until then, as for any host not
     /// measured, all of them.
     private var hostQuitByteAliases: TerminalClient.QuitByteAliases = .all
+
+    /// The host's Reduce Motion, read at launch and whenever the terminal
+    /// regains the focus (refusal review O1). Internal so a test can stand in
+    /// for the host; `nil` until ``run()`` makes it.
+    var hostMotion: HostReduceMotionRefresher?
     private let signals = SignalManager()
 
     /// - Parameters:
@@ -256,6 +261,19 @@ extension AppRunner {
         )
     }
 
+    /// Starts reading the host's own Reduce Motion, where the user is provably
+    /// at this machine: off the main actor now, and again whenever the terminal
+    /// regains the focus (`terminalFocusChanged`). What it reads goes to
+    /// `renderer`'s root, and a change draws a frame.
+    private func startHostMotion(renderer: RenderLoop<A>) {
+        let hostMotion = HostReduceMotionRefresher { [weak self, weak renderer] reduces in
+            renderer?.hostReducesMotion = reduces
+            self?.appState.setNeedsRender()
+        }
+        self.hostMotion = hostMotion
+        hostMotion.refresh()
+    }
+
     /// Has the focus system ask for the frames its changes need.
     private func wireFocusRepaints(cursorTimer: CursorTimer) {
         // Restart the breath and re-render when the focus moves, so the newly
@@ -394,6 +412,7 @@ extension AppRunner {
         negotiateKeyboardProtocol()
 
         let renderer = makeRenderLoop()
+        startHostMotion(renderer: renderer)
 
         // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
         // detaches, or changes session — the only events that can change which
@@ -844,6 +863,8 @@ extension AppRunner {
         if isFocused {
             cursorTimer.restartFocusPhase()
             renderer.terminalFocusRegained()
+            // The user may have changed the host's Reduce Motion while away.
+            hostMotion?.refresh()
         }
         appState.setNeedsRender()
     }
