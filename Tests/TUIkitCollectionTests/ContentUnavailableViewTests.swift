@@ -16,6 +16,18 @@ import TUIkit
 @Suite("ContentUnavailableView Tests", .rendersEnglishUI)
 struct ContentUnavailableViewTests {
 
+    @Test("A label with actions and no description renders both (the semantic audit's item 72)")
+    func labelAndActions() {
+        let view = ContentUnavailableView {
+            Text("No Mail")
+        } actions: {
+            Text("[Refresh]")
+        }
+        let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext()).isolatingRenderCache()
+        let content = renderToBuffer(view, context: context).lines.joined()
+        #expect(content.contains("No Mail") && content.contains("[Refresh]"), "\(content)")
+    }
+
     @Test("Full init renders label, description, and actions")
     func fullInit() {
         let view = ContentUnavailableView {

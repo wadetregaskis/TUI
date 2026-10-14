@@ -83,6 +83,19 @@ extension ContentUnavailableView where Description == EmptyView, Actions == Empt
     }
 }
 
+extension ContentUnavailableView where Description == EmptyView {
+    /// Creates a content unavailable view with a label and actions, and no
+    /// description — SwiftUI's `init(label:description:actions:)` with the
+    /// description left at its default.
+    ///
+    /// - Parameters:
+    ///   - label: The primary label view.
+    ///   - actions: The action views below the label.
+    public init(@ViewBuilder label: () -> Label, @ViewBuilder actions: () -> Actions) {
+        self.init(label: label, description: { EmptyView() }, actions: actions)
+    }
+}
+
 extension ContentUnavailableView where Actions == EmptyView {
     /// Creates a content unavailable view with a label and description.
     ///

@@ -909,6 +909,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `ContentUnavailableView { Label("No Mail", systemImage: "tray.fill") } actions: { Button("Refresh") { reload() } }` compiles in SwiftUI and fails to compile in TUIkit — there is no overload skipping description. (The _:systemImage:description: inits DO ship, in Sources/TUIkitFoundation/SFSymbols/ControlSymbolInitializers.swift:190-224; that was my first suspicion and it was wrong.)
 - *Recommendation:* Fix: add `extension ContentUnavailableView where Description == EmptyView { init(@ViewBuilder label: () -> Label, @ViewBuilder actions: () -> Actions) }`. One overload, no behaviour change.
 - *Status (2026-10-14 sweep):* **OPEN** — no `ContentUnavailableView(label:actions:)` form (`Description == EmptyView`).
+- *Status:* **FIXED** (2026-10-14): `init(label:actions:)` (ContentUnavailableView.swift); ContentUnavailableViewTests.
 
 ### Buttons, links, menus and shortcuts
 
