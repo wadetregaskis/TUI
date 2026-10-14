@@ -132,9 +132,9 @@ public struct VStackLayout: Layout, Sendable, Equatable {
     public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
-        // The same distribution `VStack` itself uses: natural sizes, then
-        // flexible children share the surplus (or shrink first when space is
-        // short), then fixed children clip from the trailing end.
+        // The same distribution `VStack` itself uses: the least flexible
+        // subviews dealt their share first, spacers what is left, and a
+        // trailing clip only where even the minimums do not fit.
         let natural = ProposedSize(width: bounds.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         let priorities = subviewPriorities(subviews)
@@ -143,10 +143,16 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             isFlexible: sizes.map(\.isHeightFlexible),
             available: bounds.height,
             spacing: resolvedSpacing,
+            shares: false,
+            isSpacer: { subviews[$0].child.isSpacer },
             priorities: priorities,
-            minimumSizes: priorities.map { _ in
-                subviews.map { $0.sizeThatFits(ProposedSize(width: bounds.width, height: 0)).height }
-            })
+            minimumSize: {
+                max(
+                    subviews[$0].sizeThatFits(ProposedSize(width: bounds.width, height: 0)).height,
+                    statedMinimumLength(of: subviews[$0].child, horizontally: false))
+            },
+            statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: false) },
+            sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: bounds.width, height: $1)).height })
         var y = bounds.y
         for (index, subview) in subviews.enumerated() {
             let height = heights[index]
@@ -259,10 +265,15 @@ public struct HStackLayout: Layout, Sendable, Equatable {
             isFlexible: sizes.map(\.isWidthFlexible),
             available: bounds.width,
             gaps: gaps,
+            isSpacer: { subviews[$0].child.isSpacer },
             priorities: priorities,
-            minimumSizes: priorities.map { _ in
-                subviews.map { $0.sizeThatFits(ProposedSize(width: 0, height: bounds.height)).width }
-            })
+            minimumSize: {
+                max(
+                    subviews[$0].sizeThatFits(ProposedSize(width: 0, height: bounds.height)).width,
+                    statedMinimumLength(of: subviews[$0].child, horizontally: true))
+            },
+            statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: true) },
+            sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: $1, height: bounds.height)).width })
         // Each gap is the one between the last subview that took any width and
         // the next that takes some — the distribution's own rule, by pair
         // (`StackGapWalk`), as `_HStackCore` walks it. Charged after every

@@ -128,7 +128,9 @@ struct LayoutPriorityTests {
             Text(tenA).lineLimit(1)
             Text(tenB).lineLimit(1).layoutPriority(1).padding(0)
         }
-        #expect(padded.hasPrefix(tenA), "lost under padding: \(padded)")
+        // Lost, the two are of one priority and share the row, as SwiftUI's
+        // do (modifier-after: 6 and 5).
+        #expect(padded == "aaaaa…bbbbb…", "lost under padding: \(padded)")
         // A frame makes the child flexible, which a row draws the same with or
         // without the priority, so the read itself is what shows it lost.
         #expect(layoutPriority(of: ChildView(Text(tenB).layoutPriority(1).frame(minWidth: 0))) == 0)
@@ -166,23 +168,24 @@ struct LayoutPriorityTests {
     /// too (v-priority, v-equal).
     @Test("The distribution offers the higher priority its length first, the lower keeping their minimums")
     func distributionByPriority() {
-        // Two fixed children of 3 in 4: leading first without priorities…
+        // Two fixed children of 3 that cannot shrink, in 4: leading first
+        // without priorities…
         #expect(distributeLinearSpace(naturalSizes: [3, 3], isFlexible: [false, false], available: 4) == [3, 1])
         // …and the second first with one, the first keeping its minimum of 1.
         #expect(
             distributeLinearSpace(
                 naturalSizes: [3, 3], isFlexible: [false, false], available: 4,
-                priorities: [0, 1], minimumSizes: [1, 1]) == [1, 3])
+                priorities: [0, 1], minimumSize: { _ in 1 }) == [1, 3])
         // Three levels, as SwiftUI's three-levels case: 10, 1, 4 in 15.
         #expect(
             distributeLinearSpace(
                 naturalSizes: [10, 10, 10], isFlexible: [false, false, false], available: 15,
-                priorities: [2, 0, 1], minimumSizes: [1, 1, 1]) == [10, 1, 4])
+                priorities: [2, 0, 1], minimumSize: { _ in 1 }) == [10, 1, 4])
         // Gaps are charged between the children that occupy the axis.
         #expect(
             distributeLinearSpace(
                 naturalSizes: [3, 3], isFlexible: [false, false], available: 5, spacing: 1,
-                priorities: [0, 1], minimumSizes: [1, 1]) == [1, 3])
+                priorities: [0, 1], minimumSize: { _ in 1 }) == [1, 3])
     }
 
     @Test("HStackLayout gives space by priority as HStack does")

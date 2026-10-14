@@ -62,9 +62,12 @@ extension _VStackCore: AlignmentGuideQuerying {
         let priorities = layoutPriorities(of: children)
         let heights = distributeLinearSpace(
             naturalSizes: naturalHeights, isFlexible: isFlexible,
-            available: dimensions.height, spacing: spacing, priorities: priorities,
-            minimumSizes: priorities.map { _ in
-                minimumLengths(of: children, horizontally: false, across: nil, context: context)
+            available: dimensions.height, spacing: spacing, shares: false, isSpacer: { children[$0].isSpacer },
+            priorities: priorities,
+            minimumSize: { minimumLength(of: children[$0], horizontally: false, across: nil, context: context) },
+            statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
+            sizeAt: { index, offer in
+                children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
             })
         let sizes = children.indices.map { index -> (width: Int, height: Int) in
             guard !children[index].isSpacer else { return (width: 0, height: 0) }

@@ -58,15 +58,16 @@ private struct LedgerPage: View {
     var body: some View {
         if let overflow = ledger.overflow {
             // Twelve cells of view — a label that will not shrink, then a
-            // button — in an eight-cell column.
+            // button — in an eight-cell column. The frame is what will not
+            // shrink: a row shares its width among children that can, as
+            // SwiftUI's does, and TUIkit's `.fixedSize()` fixes only a `List`.
             Table(entries, selection: Bindable(ledger).selection) {
                 TableColumn("Name", value: \.name)
                 TableColumn("Wide") { entry in
                     HStack(spacing: 0) {
-                        Text(verbatim: "pad\(entry.id)xxxx")
+                        Text(verbatim: "pad\(entry.id)xxxx").frame(width: 8)
                         Button("G\(entry.id)") { ledger.pressed.append("go \(entry.id)") }
                     }
-                    .fixedSize()
                 }
                 .width(8)
                 .truncationMode(overflow)

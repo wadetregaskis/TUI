@@ -22,11 +22,16 @@ import TUIkit
 private struct MarkerProbe: View, Renderable, Layoutable {
     var width = 2
     var height = 1
+    /// Whether it takes less width when offered less, down to none, as a
+    /// truncating text does; otherwise it is `width` wide whatever it is offered.
+    var squeezes = false
 
     var body: Never { fatalError("MarkerProbe renders via Renderable") }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        ViewSize(width: width, height: height, isWidthFlexible: false, isHeightFlexible: false)
+        ViewSize(
+            width: squeezes ? max(0, min(width, proposal.width ?? width)) : width, height: height,
+            isWidthFlexible: false, isHeightFlexible: false)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -248,14 +253,15 @@ struct GeometryMarkerTests {
     func throughClipped() {
         let buffer = Frames().render(
             HStack(spacing: 0) {
-                Text("abc")
-                MarkerProbe()
+                Text("abc").layoutPriority(1)
+                MarkerProbe(squeezes: true)
             }
-            .fixedSize()
             .frame(width: 2, alignment: .leading)
             .clipped())
-        // The stack is laid out in the two cells the frame offers — the text
-        // in both, the probe after it — and the frame cuts the probe away.
+        // The stack is laid out in the two cells the frame offers — the text,
+        // served first, in both, the probe after it with none — and the frame
+        // cuts the probe away. (Of one priority the two would share the cells,
+        // as SwiftUI's stacks share.)
         #expect(buffer.width == 2)
         #expect(drawnProbe(in: buffer) == nil)
         #expect(onlyMarker(in: buffer) == CellPoint(x: 2, y: 0))

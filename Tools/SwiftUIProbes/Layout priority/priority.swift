@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 // L12 (2026-10-13): how SwiftUI's HStack and VStack give space by
-// layoutPriority. Offscreen NSHostingView (after ../Alignment guides/guide2.swift);
+// layoutPriority; L14 (the same day): how they share it within one priority. Offscreen NSHostingView (after ../Alignment guides/guide2.swift);
 // each child's width is read with a GeometryReader in its background. Monospaced
 // text, so one character's advance stands in for a terminal cell; the row is
 // offered a width in characters.
@@ -162,6 +162,55 @@ MainActor.assumeIsolated {
     }
     runV("v-equal", heightLines: 4, names: ["a", "b"]) {
         Text("one\ntwo\nthree").measured("a"); Text("four\nfive\nsix").measured("b")
+    }
+    // 12. L14 (2026-10-13): one priority shares by flexibility, the least
+    // flexible offered an equal share of what is left first — a short child
+    // keeps its length beside a long one, on either side.
+    func t(_ n: Int, _ c: Character) -> String { String(repeating: c, count: n) }
+    run("long-short", widthCells: 12, names: ["a", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(3, "b")).lineLimit(1).measured("b")
+    }
+    run("short-long", widthCells: 12, names: ["a", "b"]) {
+        Text(t(3, "a")).lineLimit(1).measured("a"); Text(t(10, "b")).lineLimit(1).measured("b")
+    }
+    run("long-short-tight", widthCells: 5, names: ["a", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(3, "b")).lineLimit(1).measured("b")
+    }
+    run("long-mid", widthCells: 12, names: ["a", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(7, "b")).lineLimit(1).measured("b")
+    }
+    run("three-10-3-10", widthCells: 14, names: ["a", "b", "c"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(3, "b")).lineLimit(1).measured("b")
+        Text(t(10, "c")).lineLimit(1).measured("c")
+    }
+    run("three-equal", widthCells: 12, names: ["a", "b", "c"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(10, "b")).lineLimit(1).measured("b")
+        Text(t(10, "c")).lineLimit(1).measured("c")
+    }
+    run("rigid-text", widthCells: 12, names: ["a", "b"]) {
+        Text(t(10, "a")).lineLimit(1).fixedSize().measured("a"); Text(t(10, "b")).lineLimit(1).measured("b")
+    }
+    run("text-rigid", widthCells: 12, names: ["a", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(10, "b")).lineLimit(1).fixedSize().measured("b")
+    }
+    run("tiny-equal", widthCells: 3, names: ["a", "b"]) {
+        Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(10, "b")).lineLimit(1).measured("b")
+    }
+    // 13. A child that fills is no special case: it takes its equal share of
+    // what the less flexible leave (a spacer is — see `Stack spacing per pair`).
+    for width: CGFloat in [20, 16] {
+        run("t10|color|t10", widthCells: width, names: ["a", "f", "b"]) {
+            Text(t(10, "a")).lineLimit(1).measured("a"); Color.red.measured("f")
+            Text(t(10, "b")).lineLimit(1).measured("b")
+        }
+        run("t10|maxinf(t2)|t10", widthCells: width, names: ["a", "f", "b"]) {
+            Text(t(10, "a")).lineLimit(1).measured("a"); Text("ff").frame(maxWidth: .infinity).measured("f")
+            Text(t(10, "b")).lineLimit(1).measured("b")
+        }
+        run("t10|t20|t5", widthCells: width, names: ["a", "b", "c"]) {
+            Text(t(10, "a")).lineLimit(1).measured("a"); Text(t(20, "b")).lineLimit(1).measured("b")
+            Text(t(5, "c")).lineLimit(1).measured("c")
+        }
     }
     print("done")
 }

@@ -337,6 +337,11 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         }
         var height = 0
         var maxWidth = 0
+        // Floored by the rows the last render drew, which the walk below may
+        // not reach (see `renderViewportWindow`).
+        for ordinal in uniformWindowState(context: context).drawnOrdinals.clamped(to: slots.indices) {
+            maxWidth = max(maxWidth, counted(slots[ordinal]))
+        }
         for slot in slots {
             let next = height + slot.spacingBefore + slot.height
             if next > heightLimit {
@@ -440,17 +445,22 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // over-tall stack clips its trailing rows instead of starving every row
         // to zero (which rendered the whole stack blank when the gaps alone
         // exceeded the height).
-        // A priority decides who is offered space first (`layoutPriority(_:)`);
-        // with none, nothing below is measured.
+        // A priority decides who is offered space first (`layoutPriority(_:)`).
+        // A child's minimum is measured only where it may be offered less
+        // than its natural height.
         let priorities = layoutPriorities(of: children)
         let finalHeights = distributeLinearSpace(
             naturalSizes: naturalHeight,
             isFlexible: isFlexible,
             available: context.availableHeight,
             spacing: spacing,
+            shares: false,
+            isSpacer: { children[$0].isSpacer },
             priorities: priorities,
-            minimumSizes: priorities.map { _ in
-                minimumLengths(of: children, horizontally: false, across: nil, context: context)
+            minimumSize: { minimumLength(of: children[$0], horizontally: false, across: nil, context: context) },
+            statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
+            sizeAt: { index, offer in
+                children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
             }
         )
         reportEagerTargetLayout(heights: finalHeights, children: children, window: window, context: context)
@@ -946,6 +956,15 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // buffer where the ScrollView's clip hides them — invisible, but
         // registered.
         var rendersRow = Self.windowRows(of: slots, top: top, bottom: bottom)
+        // The viewport's rows, for this stack's measure to count as the other
+        // two paths' measures count their band (``StackWindowState/drawnOrdinals``):
+        // a stack must not report itself narrower than the rows it is putting
+        // on screen, and this path's measure otherwise walked only the rows its
+        // budget reaches from the top — a list opened at its end, whose rows
+        // there fill the width, stayed as narrow as its first rows.
+        if let first = rendersRow.firstIndex(of: true), let last = rendersRow.lastIndex(of: true) {
+            uniformWindowState(context: context).drawnOrdinals = first..<(last + 1)
+        }
         // What the ScrollView may show of this canvas without drawing it again:
         // it moves its offset after this returns (the bottom re-glue, a focus
         // snap), and a move past this band lands on placeholders.

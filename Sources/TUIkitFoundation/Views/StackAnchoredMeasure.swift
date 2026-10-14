@@ -137,6 +137,20 @@ extension _VStackCore {
             maxWidth = max(maxWidth, exact.width)
             widthFlexible = wholeContentFlexibility(
                 widthFlexible || exact.isWidthFlexible, width: maxWidth, limit: widthLimit)
+        } else if !isNested {
+            // The rows past the sample that a render has drawn, as the uniform
+            // measure counts them: one that filled its offer within this
+            // budget's reach makes the stack as wide as the ask, though the
+            // sample holds only short rows. Without it a list whose rows
+            // stopped being of one height — a filling row that wraps when
+            // squeezed — answered with its first sixteen rows for good.
+            let walked = Self.walkedRowCount(
+                budget: heightLimit, pitch: state.estimatedPitch(spacing: spacing), spacing: spacing, count: count)
+            let fillers = widthCountingFillers(
+                min(maxWidth, widthLimit), children: children, walked: walked, state: state, proposal: proposal,
+                widthLimit: widthLimit, context: context)
+            maxWidth = fillers.width
+            widthFlexible = widthFlexible || fillers.isFlexible
         }
 
         return ViewSize(

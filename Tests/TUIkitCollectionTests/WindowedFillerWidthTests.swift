@@ -404,11 +404,12 @@ struct WindowedFillerWidthTests {
     }
 
     /// A filling row squeezed below what it wants does not always reach its
-    /// offer: `note 16`, a `Spacer` and `#16` offered 8 columns drops `#16`,
-    /// which no longer fits whole, and reports 7 — flexible, a column short.
-    /// It has no more of a width of its own than a row that reached its
-    /// offer, and filed as 7 wide it was answered 7 at every ask, where the
-    /// walk fills 60.
+    /// offer — `note 16`, a `Spacer` and `#16` offered 8 columns dropped `#16`
+    /// and reported 7 when a row placed its children in order; sharing them as
+    /// SwiftUI's does, that row fills the 8, so ``ShortFiller`` stands in for
+    /// one that does not. It has no more of a width of its own than a row that
+    /// reached its offer, and filed as 7 wide it was answered 7 at every ask,
+    /// where the walk fills 60.
     @Test("A filler squeezed a column below its offer is counted as a filler")
     func aSqueezedFillerIsAFiller() {
         let tuiContext = TUIContext()
@@ -420,9 +421,7 @@ struct WindowedFillerWidthTests {
         context.isMeasuring = true
         let stack = _VStackCore(
             alignment: .leading, spacing: 0, overflow: .window,
-            content: ForEach(10..<58, id: \.self) { index in
-                FillerListRowView(index: index, row: .fills)
-            })
+            content: ForEach(10..<58, id: \.self) { _ in ShortFiller() })
         let proposal = ProposedSize(width: nil, height: nil)
         let walked = stack.sizeThatFits(proposal: proposal, context: context)
 
@@ -444,6 +443,23 @@ struct WindowedFillerWidthTests {
         #expect(walked.width == 60, "precondition: the walk's own answer")
         #expect(sought?.width == walked.width)
         #expect(sought?.isWidthFlexible == walked.isWidthFlexible)
+    }
+}
+
+/// A row that fills what it is offered from its natural width of 20 up, and
+/// below that stops a column short of its offer, still flexible — what a
+/// filling row squeezed past what it can lay out reports.
+private struct ShortFiller: View, Renderable, Layoutable {
+    var body: Never { fatalError("ShortFiller renders via Renderable") }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        let offer = proposal.width ?? context.availableWidth
+        return ViewSize(width: offer >= 20 ? offer : max(0, offer - 1), height: 1, isWidthFlexible: true, isHeightFlexible: false)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let width = sizeThatFits(proposal: .unspecified, context: context).width
+        return FrameBuffer(text: String(repeating: "x", count: width))
     }
 }
 

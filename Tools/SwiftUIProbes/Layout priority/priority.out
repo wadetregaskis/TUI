@@ -23,4 +23,19 @@ fixed-wide	[12]	a=0 b=14
 group-share	[16]	a=8 b=7 c=1
 v-priority	[4]	a=1.57 b=2.36
 v-equal	[4]	a=1.57 b=2.36
+long-short	[12]	a=8 b=3
+short-long	[12]	a=3 b=8
+long-short-tight	[5]	a=2 b=2
+long-mid	[12]	a=5 b=6
+three-10-3-10	[14]	a=5 b=3 c=5
+three-equal	[12]	a=4 b=3 c=4
+rigid-text	[12]	a=10 b=1
+text-rigid	[12]	a=1 b=10
+tiny-equal	[3]	a=1 b=1
+t10|color|t10	[20]	a=6 f=8 b=6
+t10|maxinf(t2)|t10	[20]	a=6 f=8 b=6
+t10|t20|t5	[20]	a=7 b=7 c=5
+t10|color|t10	[16]	a=5 f=6 b=5
+t10|maxinf(t2)|t10	[16]	a=5 f=6 b=5
+t10|t20|t5	[16]	a=5 b=5 c=5
 done

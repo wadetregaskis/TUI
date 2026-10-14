@@ -41,7 +41,7 @@ Each entry gives a **status**:
 | Status | Meaning |
 |---|---|
 | **Owner** | The owner ruled on it (dated). |
-| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: T8 keeps its filter and gains a bell, and L12, T10, E3 and V7 are closed (the stacks give space by `layoutPriority`; an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region; a picker's options and a text field's suggestions are read through the member resolution). L14, found the same day, awaits a ruling. |
+| **Recorded** | Written down as deliberate in the compatibility guide or on the declaration; no owner ruling is on record. The five that awaited a ruling were answered on 2026-10-13: T8 keeps its filter and gains a bell, and L12, T10, E3 and V7 are closed (the stacks give space by `layoutPriority`; an interpolated key is looked up as SwiftUI spells it too; `\.locale` carries the user's region; a picker's options and a text field's suggestions are read through the member resolution). L14, found the same day, was closed the same evening: a row shares its width among children of one priority as SwiftUI's does (a column is slated to follow). |
 | **Lane** | The safe option a lane shipped, written up as a B entry in a decisions file with its fuller version priced. The owner may still revisit it. |
 | **Medium** | Forced by what a terminal reports or can draw. Keeping SwiftUI's behaviour is not possible, only approximating it. |
 | **Under review** | Kept for now; the owner has an open question on it. |
@@ -374,22 +374,6 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>).
   **Owner** (2026-10-12: 2^20, a push past it reported, an environment
   variable to override it).
-
-
-### L14. A row too narrow for its children keeps the first whole
-
-- **SwiftUI:** shares the row among children of one priority: two ten-character
-  `Text`s in twelve characters are given 6 and 5, each truncated (measured,
-  macOS 15.8, `Tools/SwiftUIProbes/Layout priority/priority.out`, case
-  `equal`; and `group-share`, two of one priority above a third: 8 and 7).
-- **TUIkit:** places children that cannot shrink one after another until the
-  space runs out, so the first is whole and the next is cut: 10 and 2.
-  Children of different priorities are offered space by priority first, as
-  SwiftUI's are; this is the rule among those of one priority.
-- **Why:** the distribution's (`LinearSpaceDistribution.swift`): the leading
-  content stays readable, and a stack never goes blank.
-- **Decided:** **Recorded**, with no ruling; awaiting the owner (found by the
-  layout-priority probe, 2026-10-13).
 
 ---
 
@@ -1480,6 +1464,8 @@ on. Each waits on the work, or on the ruling, its State names.
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A marked eager `VStack` or `HStack` reports nothing to `.scrollPosition(id:)` | R6 | Known gap; no ruling (1–2 commits, estimate) |
+| A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Waits on a fix: shared, a column squeezes a control of several lines in the middle, and a squeezed inline `Menu` draws differently served from the cache than drawn afresh (the focus storm's trial 3) |
+| `.fixedSize()` fixes only a `List`'s width; any other view under it is laid out in what it is offered, so a row under it shares its width rather than taking its ideal | [FixedSizeModifier.swift](../../Sources/TUIkitFoundation/Modifiers/FixedSizeModifier.swift) | To do: a layout wrapper that lays the view out at its ideal size and is cut where it is drawn, keeping the flag a `List` reads |
 | The system's Reduce Motion setting is not read (E2) | [refusal review O1](<Refusals re-examined, wave 17 (2026-10-03).md#o1-accessibility-preference-reads-from-p5--m>) | Owner 2026-10-12: read it only when TUIkit is sure the terminal is on the same machine, by the clipboard's locality test; lane owed |
 | Markdown in control title keys is not parsed | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>) | Recommended: do it |
 | The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |

@@ -252,14 +252,22 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             let gapTotal = max(0, gaps.total(count: ideal.count) { fills[$0] || ideal[$0] > 0 })
             distributable = min(availableWidth, idealTotal + gapTotal)
         }
-        // A priority decides who is offered space first (`layoutPriority(_:)`);
-        // with none, nothing below is measured.
+        // A priority decides who is offered space first (`layoutPriority(_:)`).
+        // A child's minimum is measured only where it may be offered less
+        // than its ideal width.
         let priorities = layoutPriorities(of: children)
+        // What a child offered less than its ideal width answered, kept for
+        // the height below when it is given just that.
+        var squeezed: [Int: ViewSize] = [:]
         let widths = distributeLinearSpace(
             naturalSizes: ideal, isFlexible: fills, available: distributable, gaps: gaps,
-            priorities: priorities,
-            minimumSizes: priorities.map { _ in
-                minimumLengths(of: children, horizontally: true, across: nil, context: context)
+            isSpacer: { children[$0].isSpacer }, priorities: priorities,
+            minimumSize: { minimumLength(of: children[$0], horizontally: true, across: nil, context: context) },
+            statedMinimum: { statedMinimumLength(of: children[$0], horizontally: true) },
+            sizeAt: { index, offer in
+                let size = children[index].measure(proposal: ProposedSize(width: offer, height: nil), context: context)
+                squeezed[index] = size
+                return size.width
             })
 
         // Heights at the widths children will actually be given. A child given
@@ -275,7 +283,9 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             if widths[index] >= ideal[index] {
                 finalHeight[index] = idealHeight[index]
             } else {
-                let size = child.measure(proposal: ProposedSize(width: widths[index], height: nil), context: context)
+                let size =
+                    squeezed[index].flatMap { $0.width == widths[index] ? $0 : nil }
+                    ?? child.measure(proposal: ProposedSize(width: widths[index], height: nil), context: context)
                 if !size.isNaturalSize { childrenAreNatural = false }
                 tallestConsumedChild = max(tallestConsumedChild, size.height)
                 finalHeight[index] = size.height

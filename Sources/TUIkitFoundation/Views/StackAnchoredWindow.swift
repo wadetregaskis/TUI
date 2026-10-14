@@ -74,6 +74,10 @@ private final class AnchoredWindowFrame {
         widthCache[ordinal] = measured.width
         built[ordinal] = child
         state.recordMeasuredPitch(value)
+        // Filed, as the uniform render files the rows it draws, so a row that
+        // fills goes on counting at the measure's ask after it scrolls away
+        // (`anchoredSizeThatFits`): the measure samples only the first rows.
+        if !context.isMeasuring { state.rowWidths.note(ordinal: ordinal, size: measured) }
         return value
     }
 

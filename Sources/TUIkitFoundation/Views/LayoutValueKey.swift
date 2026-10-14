@@ -177,21 +177,44 @@ private func layoutPriority(ofView view: any View) -> Double {
     }
 }
 
-/// Each of `children`'s length along a stack's axis when offered none of it —
-/// what a child of a lower priority keeps when a higher one takes the rest
-/// (`…` for a truncating `Text`, a spacer's minimum length). `across` is what
-/// each is offered on the other axis. Measured only for a stack whose
-/// children have priorities (``layoutPriorities(of:)``).
+/// `child`'s length along a stack's axis when offered none of it — what it
+/// keeps when its siblings take the rest (`…` for a truncating `Text`, a
+/// spacer's minimum length, a frame's `minWidth`). `across` is what it is
+/// offered on the other axis. Measured only when the distribution asks: where
+/// `child` may be offered less than its natural length
+/// (``distributeLinearSpace(naturalSizes:isFlexible:available:gaps:shares:isSpacer:priorities:minimumSize:statedMinimum:sizeAt:)``).
 @MainActor
-func minimumLengths(
-    of children: [ChildView], horizontally: Bool, across: Int?, context: RenderContext
-) -> [Int] {
-    children.map { child in
-        if child.isSpacer { return child.spacerMinLength ?? 0 }
-        let proposal =
-            horizontally ? ProposedSize(width: 0, height: across) : ProposedSize(width: across, height: 0)
-        let size = child.measure(proposal: proposal, context: context)
-        return horizontally ? size.width : size.height
+func minimumLength(of child: ChildView, horizontally: Bool, across: Int?, context: RenderContext) -> Int {
+    if child.isSpacer { return child.spacerMinLength ?? 0 }
+    let proposal = horizontally ? ProposedSize(width: 0, height: across) : ProposedSize(width: across, height: 0)
+    let size = child.measure(proposal: proposal, context: context)
+    return max(horizontally ? size.width : size.height, statedMinimumLength(of: child, horizontally: horizontally))
+}
+
+/// The minimum length `child` states along an axis whatever it is offered —
+/// a frame's `minWidth` or `minHeight`, which `frame(width:)` sets — found
+/// through the wrappers around it, or `0`.
+///
+/// A measure does not say so: TUIkit clamps a frame to what it is offered, so
+/// offered nothing it answers nothing. SwiftUI's frame keeps its width and
+/// overflows, so a stack deals it out first, as a child that cannot shrink;
+/// without this, a label column `frame(width:)` fixes was squeezed like text.
+@MainActor
+func statedMinimumLength(of child: ChildView, horizontally: Bool) -> Int {
+    throughWrappers(child.wrappedView, as: (any StatesMinimumLength).self)?.statedMinimumLength(horizontally: horizontally)
+        ?? 0
+}
+
+/// A view with a minimum length of its own on either axis.
+@MainActor
+protocol StatesMinimumLength {
+    /// The minimum length along the axis, or `0` for none.
+    func statedMinimumLength(horizontally: Bool) -> Int
+}
+
+extension FlexibleFrameView: StatesMinimumLength {
+    func statedMinimumLength(horizontally: Bool) -> Int {
+        max(0, (horizontally ? minWidth : minHeight) ?? 0)
     }
 }
 
