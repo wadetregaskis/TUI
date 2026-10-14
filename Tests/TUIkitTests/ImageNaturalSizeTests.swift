@@ -220,9 +220,9 @@ struct ImageNaturalSizeTests {
 
     @Test("A session is local when the terminal named itself and no ssh session is in the way")
     func localSession() {
-        #expect(TerminalClient.isLocalSession(["TERM_PROGRAM": "ghostty"]))
-        #expect(!TerminalClient.isLocalSession(["TERM_PROGRAM": "ghostty", "SSH_CONNECTION": "a b c d"]))
-        #expect(!TerminalClient.isLocalSession(["TERM": "xterm-ghostty"]), "TERM travels over ssh")
+        #expect(SessionLocality.isLikelyLocal(environment: ["TERM_PROGRAM": "ghostty"]))
+        #expect(!SessionLocality.isLikelyLocal(environment: ["TERM_PROGRAM": "ghostty", "SSH_CONNECTION": "a b c d"]))
+        #expect(!SessionLocality.isLikelyLocal(environment: ["TERM": "xterm-ghostty"]), "TERM travels over ssh")
     }
 
     @Test("The text area's reply is read, and nothing else is")

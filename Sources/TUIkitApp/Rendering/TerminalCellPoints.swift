@@ -164,7 +164,7 @@ extension TerminalClient {
             reportedCell: terminal.cellPixelSize(),
             grid: terminal.getSize(),
             textArea: { TerminalHost.isITerm2 && !TerminalHost.isTmux ? terminal.queryTextAreaSize() : nil },
-            localDisplayScale: { isLocalSession(environment) ? mainDisplayScale() : nil })
+            localDisplayScale: { SessionLocality.isLikelyLocal(environment: environment) ? mainDisplayScale() : nil })
     }
 
     /// Which measured host this is, for ``calibration(host:reportedCell:grid:textArea:localDisplayScale:)``.
@@ -217,14 +217,6 @@ extension TerminalClient {
             return CellPointsCalibration(pixelsPerPointWide: scale, pixelsPerPointHigh: scale)
         }
         return nil
-    }
-
-    /// Whether the app runs on the machine the terminal is on: the terminal
-    /// set `TERM_PROGRAM`, which ssh does not forward, and no ssh session is
-    /// in the environment.
-    static func isLocalSession(_ environment: [String: String]) -> Bool {
-        guard environment["TERM_PROGRAM"] != nil, environment["SSH_CONNECTION"] == nil else { return false }
-        return environment["SSH_TTY"] == nil
     }
 
     /// The main display's scale — device pixels per point — or `nil` where

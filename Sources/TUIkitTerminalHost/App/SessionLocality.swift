@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  ClipboardLocality.swift
+//  SessionLocality.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -15,7 +15,15 @@ import Musl
 #endif
 
 /// Whether the person at the keyboard is on the machine this app runs on —
-/// the one condition under which this machine's clipboard is theirs.
+/// the one condition under which what belongs to this machine is theirs: its
+/// clipboard above all, the case this was written for and the one described
+/// below. Every locality question TUIkit asks is answered here, by one of two
+/// tests:
+///
+/// - ``isLocal()``, positive evidence, for what a wrong "local" would do to
+///   someone: a copy put on a machine they are not at.
+/// - ``isLikelyLocal(environment:)``, the environment's word alone, for what a
+///   wrong answer only mis-sizes: the display scale a picture is drawn at.
 ///
 /// A copy written with `pbcopy`, `wl-copy` or `xclip` lands on the clipboard of
 /// the machine the app runs on. Over ssh that is the server's, which the user
@@ -58,7 +66,7 @@ import Musl
 /// "not local". A wrong "not local" costs a copy the user can redo with the
 /// terminal's own selection; a wrong "local" puts their text on a machine they
 /// are not at.
-package enum ClipboardLocality {
+package enum SessionLocality {
 
     /// The command names (as ``ProcessAncestry/commandName(of:)`` reads them)
     /// of programs that carry a terminal session in from another machine.
@@ -144,6 +152,19 @@ package enum ClipboardLocality {
                 isRemoteSessionDaemon(name) || isSessionKeeper(name, inTmux: index == 0)
             }
         }
+    }
+
+    /// Whether the environment says the app runs on the machine the terminal
+    /// is on: the terminal set `TERM_PROGRAM`, which ssh does not forward, and
+    /// no ssh session is in the environment.
+    ///
+    /// The environment's word, not evidence (``isLocal()`` is): a tmux or
+    /// screen session keeps the variables it started with, wherever it is
+    /// attached from. Cheap, and right for a question whose wrong answer only
+    /// mis-sizes something.
+    package static func isLikelyLocal(environment: [String: String]) -> Bool {
+        guard environment["TERM_PROGRAM"] != nil, environment["SSH_CONNECTION"] == nil else { return false }
+        return environment["SSH_TTY"] == nil
     }
 
     /// The decision for this process, now.

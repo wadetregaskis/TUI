@@ -135,7 +135,7 @@ extension TerminalClient {
             primaryDeviceAttributes: TerminalHost.startupIdentity?.primaryAttributes,
             tmuxSetClipboard: setClipboard,
             ownChain: passesOn && screenNamed ? ProcessAncestry.ownCommandNames() : nil,
-            tmuxClients: passesOn ? ClipboardLocality.tmuxClients() : nil)
+            tmuxClients: passesOn ? SessionLocality.tmuxClients() : nil)
     }
 
     /// The ladder behind ``clipboardWrites``, posed on its inputs so it can be
@@ -161,7 +161,7 @@ extension TerminalClient {
     ///    send, so the terminal's name — inherited from wherever screen was
     ///    started, and stale once it is attached from elsewhere — says
     ///    nothing. Under screen a copy is "Not copied" (at the desk too: a
-    ///    keeper is never local, ``ClipboardLocality``), where the terminal's
+    ///    keeper is never local, ``SessionLocality``), where the terminal's
     ///    rung said "Sent" (iTerm2) or "Copied" (Ghostty) of a write screen
     ///    dropped. (screen 4's sequence handling, as review 2 of the D4X lane
     ///    read it; unmeasured on a host, and screen 5 unmeasured.)
@@ -174,7 +174,7 @@ extension TerminalClient {
     ///    rung that reaches an unknown terminal over ssh.
     static func clipboardWrites(
         environment: [String: String], program: Program, primaryDeviceAttributes: String?,
-        tmuxSetClipboard: String?, ownChain: [String]? = nil, tmuxClients: [ClipboardLocality.AttachedClient]? = nil
+        tmuxSetClipboard: String?, ownChain: [String]? = nil, tmuxClients: [SessionLocality.AttachedClient]? = nil
     ) -> ClipboardWriteSupport {
         switch environment["TUIKIT_OSC52"] {
         case "1": return .honoured
@@ -225,11 +225,11 @@ extension TerminalClient {
     /// terminal, tmux not answering. The write is then sent as the maybe it
     /// is.
     static func screenStandsBeforeTheTerminal(
-        environment: [String: String], ownChain: [String]?, tmuxClients: [ClipboardLocality.AttachedClient]?
+        environment: [String: String], ownChain: [String]?, tmuxClients: [SessionLocality.AttachedClient]?
     ) -> Bool {
         if environment["STY"]?.isEmpty == false, let ownChain,
-            let screen = ownChain.firstIndex(where: ClipboardLocality.isGNUScreen),
-            ownChain.firstIndex(where: ClipboardLocality.isTmux).map({ screen < $0 }) ?? true
+            let screen = ownChain.firstIndex(where: SessionLocality.isGNUScreen),
+            ownChain.firstIndex(where: SessionLocality.isTmux).map({ screen < $0 }) ?? true
         {
             return true
         }
@@ -239,7 +239,7 @@ extension TerminalClient {
         // What holds the client's terminal is what it draws in.
         return recipients.allSatisfy { client in
             guard let holder = client.chain.flatMap(ProcessAncestry.terminalHolder(of:)) else { return false }
-            return ClipboardLocality.isGNUScreen(holder.name)
+            return SessionLocality.isGNUScreen(holder.name)
         }
     }
 
@@ -252,8 +252,8 @@ extension TerminalClient {
     /// A client whose panes tmux did not list, or every client where the
     /// pane is unknown, may be one, and is kept.
     static func writeRecipients(
-        of clients: [ClipboardLocality.AttachedClient], pane: String?
-    ) -> [ClipboardLocality.AttachedClient] {
+        of clients: [SessionLocality.AttachedClient], pane: String?
+    ) -> [SessionLocality.AttachedClient] {
         guard let pane, !pane.isEmpty else { return clients }
         return clients.filter { client in client.sessionPanes?.contains(pane) ?? true }
     }

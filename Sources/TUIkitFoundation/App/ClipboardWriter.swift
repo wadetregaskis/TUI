@@ -56,7 +56,7 @@ enum ClipboardRoute: Equatable, Sendable {
     case terminal(confirmed: Bool)
 
     /// This machine's clipboard helper, because the terminal is on this
-    /// machine (``ClipboardLocality``).
+    /// machine (``SessionLocality``).
     case system
 
     /// Nowhere the user would find it.
@@ -182,7 +182,7 @@ package final class ClipboardWriter: @unchecked Sendable {
     /// `set-clipboard`, set from another pane.
     private let terminalSupport: @MainActor () -> TerminalClient.ClipboardWriteSupport
 
-    /// Whether this machine's clipboard is the user's (``ClipboardLocality``).
+    /// Whether this machine's clipboard is the user's (``SessionLocality``).
     /// A tmux session can be attached from another machine at any moment.
     private let isLocal: @MainActor () -> Bool
 
@@ -223,7 +223,7 @@ package final class ClipboardWriter: @unchecked Sendable {
         terminalSupport: @escaping @MainActor () -> TerminalClient.ClipboardWriteSupport = {
             TerminalClient.clipboardWrites
         },
-        isLocal: @escaping @MainActor () -> Bool = { ClipboardLocality.isLocal() },
+        isLocal: @escaping @MainActor () -> Bool = { SessionLocality.isLocal() },
         system: any ClipboardBackend,
         nowNanos: @escaping @Sendable () -> UInt64 = { MonotonicClock.nowNanoseconds },
         requestFrame: @escaping @Sendable () -> Void = { AppState.shared.setNeedsRender() }

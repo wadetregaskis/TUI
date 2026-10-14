@@ -5593,7 +5593,7 @@ takes ONE route per copy, in this order:
 1. **OSC 52, where the terminal writes it by default** (the table below,
    `TerminalClient.clipboardWrites`). Over ssh too: that is the point.
 2. **This machine's clipboard helper, only on positive evidence that the user
-   is at this machine** (`ClipboardLocality`): no `SSH_CONNECTION`,
+   is at this machine** (`SessionLocality`): no `SSH_CONNECTION`,
    `SSH_CLIENT` or `SSH_TTY`; this process's parents reach the root without
    passing `sshd` (or `sshd-session`), `mosh-server`, `dropbear`, `telnetd`,
    `etserver` (or `etterminal`), `ttyd` or `gotty`; and inside tmux, at
@@ -5965,7 +5965,7 @@ K3).
   `TerminalInput.focusChanged`; `AppRunner.terminalFocusChanged` moves
   `ScenePhase` between `.active` and `.inactive`. See "Focus reporting
   (mode 1004)".
-- `ClipboardWriter` + `TerminalClient.clipboardWrites` + `ClipboardLocality` —
+- `ClipboardWriter` + `TerminalClient.clipboardWrites` + `SessionLocality` —
   where a copy goes: OSC 52 to a host that writes it, this machine's
   clipboard helper only when the user is at this machine (behind
   `ClipboardBackend`; the helper's is `SystemClipboard.Backend`, installed by

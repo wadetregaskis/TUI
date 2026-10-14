@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  ClipboardLocalityTests.swift
+//  SessionLocalityTests.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -13,14 +13,14 @@ import TUIkit
 @testable import TUIkitTerminalHost
 @testable import TUIkitTestSupport
 
-@Suite("Clipboard: whether the user is at this machine")
-struct ClipboardLocalityTests {
+@Suite("Session locality: whether the user is at this machine")
+struct SessionLocalityTests {
     static let deskChain = ["zsh", "login", "Terminal", "launchd"]
 
     @Test("A desk session is local")
     func desk() {
         #expect(
-            ClipboardLocality.isLocal(
+            SessionLocality.isLocal(
                 environment: [:], ownChain: Self.deskChain, tmuxClientChains: nil, inTmux: false))
     }
 
@@ -29,7 +29,7 @@ struct ClipboardLocalityTests {
         arguments: ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"])
     func sshVariables(_ name: String) {
         #expect(
-            !ClipboardLocality.isLocal(
+            !SessionLocality.isLocal(
                 environment: [name: "10.0.0.1 5000 10.0.0.2 22"], ownChain: Self.deskChain,
                 tmuxClientChains: nil, inTmux: false))
     }
@@ -40,7 +40,7 @@ struct ClipboardLocalityTests {
         arguments: ["sshd", "sshd-session", "mosh-server", "dropbear", "etserver", "etterminal"])
     func daemons(_ daemon: String) {
         #expect(
-            !ClipboardLocality.isLocal(
+            !SessionLocality.isLocal(
                 environment: [:], ownChain: ["zsh", daemon, "launchd"], tmuxClientChains: nil, inTmux: false))
     }
 
@@ -56,7 +56,7 @@ struct ClipboardLocalityTests {
         ])
     func sessionKeepers(_ keeper: String) {
         #expect(
-            !ClipboardLocality.isLocal(
+            !SessionLocality.isLocal(
                 environment: [:], ownChain: ["zsh", keeper, "launchd"], tmuxClientChains: nil, inTmux: false))
     }
 
@@ -65,20 +65,20 @@ struct ClipboardLocalityTests {
         arguments: ["STY", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ABDUCO_SESSION", "SHPOOL_SESSION_NAME"])
     func sessionKeeperVariables(_ name: String) {
         #expect(
-            !ClipboardLocality.isLocal(
+            !SessionLocality.isLocal(
                 environment: [name: "0"], ownChain: Self.deskChain, tmuxClientChains: nil, inTmux: false))
     }
 
     @Test("A tmux server in the chain is evidence only through its clients")
     func tmuxServerOutsideAPane() {
         let chain = ["zsh", "tmux: server", "launchd"]
-        #expect(!ClipboardLocality.isLocal(environment: [:], ownChain: chain, tmuxClientChains: nil, inTmux: false))
+        #expect(!SessionLocality.isLocal(environment: [:], ownChain: chain, tmuxClientChains: nil, inTmux: false))
         #expect(
-            ClipboardLocality.isLocal(
+            SessionLocality.isLocal(
                 environment: [:], ownChain: chain, tmuxClientChains: [Self.deskChain], inTmux: true))
         // A client attached from inside a screen session is as far away as it.
         #expect(
-            !ClipboardLocality.isLocal(
+            !SessionLocality.isLocal(
                 environment: [:], ownChain: chain, tmuxClientChains: [["tmux", "zsh", "screen", "launchd"]],
                 inTmux: true))
     }
@@ -92,7 +92,7 @@ struct ClipboardLocalityTests {
     func nestedTmux() {
         let pane = ["zsh", "tmux", "launchd"]
         func local(_ client: [String]) -> Bool {
-            ClipboardLocality.isLocal(environment: [:], ownChain: pane, tmuxClientChains: [client], inTmux: true)
+            SessionLocality.isLocal(environment: [:], ownChain: pane, tmuxClientChains: [client], inTmux: true)
         }
         #expect(!local(["tmux", "zsh", "tmux", "launchd"]))
         // Linux: the outer server renames itself.
@@ -110,25 +110,25 @@ struct ClipboardLocalityTests {
         let pane = ["zsh", "tmux", "launchd"]
         for wrapper in ["tmux-sessionizer", "tmuxp", "tmuxinator"] {
             #expect(
-                ClipboardLocality.isLocal(
+                SessionLocality.isLocal(
                     environment: [:], ownChain: pane,
                     tmuxClientChains: [["tmux", wrapper, "zsh", "login", "Terminal", "launchd"]], inTmux: true),
                 "\(wrapper)")
         }
-        #expect(ClipboardLocality.isLocal(environment: [:], ownChain: ["tmuxp", "zsh"] + Self.deskChain,
+        #expect(SessionLocality.isLocal(environment: [:], ownChain: ["tmuxp", "zsh"] + Self.deskChain,
             tmuxClientChains: nil, inTmux: false))
     }
 
     @Test("A chain that could not be read is not evidence")
     func unreadableChain() {
-        #expect(!ClipboardLocality.isLocal(environment: [:], ownChain: nil, tmuxClientChains: nil, inTmux: false))
+        #expect(!SessionLocality.isLocal(environment: [:], ownChain: nil, tmuxClientChains: nil, inTmux: false))
     }
 
     @Test("Inside tmux every client must be local, and one must be attached")
     func tmuxClients() {
         let paneChain = ["zsh", "tmux", "launchd"]
         func local(_ clients: [[String]?]?) -> Bool {
-            ClipboardLocality.isLocal(environment: [:], ownChain: paneChain, tmuxClientChains: clients, inTmux: true)
+            SessionLocality.isLocal(environment: [:], ownChain: paneChain, tmuxClientChains: clients, inTmux: true)
         }
         #expect(local([Self.deskChain]))
         #expect(!local([Self.deskChain, ["tmux", "zsh", "sshd-session", "sshd", "launchd"]]))

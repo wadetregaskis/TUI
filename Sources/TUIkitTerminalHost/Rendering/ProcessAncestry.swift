@@ -20,7 +20,7 @@ import Musl
 /// application owns a tmux client's window (``TerminalHost``), and whether the
 /// person at the keyboard is on this machine at all — a chain that passes
 /// through `sshd` or `mosh-server` reached the terminal over the network
-/// (``ClipboardLocality``).
+/// (``SessionLocality``).
 ///
 /// Every read is a plain system call or a `/proc` file, never a subprocess, so
 /// a walk costs microseconds. A process that has exited, or that the kernel

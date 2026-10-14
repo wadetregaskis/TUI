@@ -27,8 +27,8 @@ struct ClipboardScreenAndTmuxTests {
     /// A tmux client whose chain is `chain` — each process's name and
     /// controlling terminal, the client's own first — attached to a session
     /// holding `panes` (`nil`: not listed).
-    static func client(_ chain: [(String, Int32?)]?, panes: [String]? = nil) -> ClipboardLocality.AttachedClient {
-        ClipboardLocality.AttachedClient(
+    static func client(_ chain: [(String, Int32?)]?, panes: [String]? = nil) -> SessionLocality.AttachedClient {
+        SessionLocality.AttachedClient(
             sessionPanes: panes, chain: chain?.map { ProcessAncestry.Link(name: $0.0, terminal: $0.1) })
     }
 

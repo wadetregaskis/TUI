@@ -22,7 +22,7 @@ import TUIkitFoundation
 /// **This machine's, which is not always the user's.** Over ssh it is the
 /// server's clipboard. Nothing calls this directly to copy: ``ClipboardWriter``
 /// decides, and writes here only when the terminal is on this machine (see
-/// ``ClipboardLocality``); otherwise it sends the copy to the terminal as
+/// ``SessionLocality``); otherwise it sends the copy to the terminal as
 /// OSC 52, or says it could not copy.
 ///
 /// Every exchange with a helper is **bounded and non-blocking**, because the

@@ -130,7 +130,7 @@ None of these is exotic. The honest summary is that the environment gives a
 is the wrong way round for a feature whose dangerous half is the write.
 
 **Since 2026-10-05, for the general clipboard,** TUIkit asks the second
-mechanism too (`ClipboardLocality`): besides the three variables, this
+mechanism too (`SessionLocality`): besides the three variables, this
 process's parents must reach the root without passing `sshd` or `mosh-server`
 (which catches mosh), and inside tmux every attached client's parents must
 pass the same test (which catches the re-attached session). Anything it

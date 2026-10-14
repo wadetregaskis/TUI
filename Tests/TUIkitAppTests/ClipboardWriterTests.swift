@@ -105,7 +105,7 @@ struct ClipboardTerminalSupportTests {
         /// This process's command names, where the ladder walks them.
         var ownChain: [String]?
         /// tmux's clients, where the ladder asks for them.
-        var tmuxClients: [ClipboardLocality.AttachedClient]?
+        var tmuxClients: [SessionLocality.AttachedClient]?
         var testDescription: String { name }
 
         static let rows: [Self] = [
