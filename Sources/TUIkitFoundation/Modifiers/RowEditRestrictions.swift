@@ -94,6 +94,18 @@ package final class RowEditRestrictions {
     private var _rowIndexBase = 0
     private var _separators: [Int: ListSeparatorPreference] = [:]
     private var _separatorGuides: [Int: (leading: Int?, trailing: Int?)] = [:]
+    private var _rowMenus: [Int: @MainActor () -> Void] = [:]
+
+    /// What opens each list row's own `.contextMenu`, by list row, as the menus
+    /// reported while their rows rendered: what the list's Shift+F10 opens on
+    /// the cursor row. A context menu in a list row is no focus stop of its
+    /// own — the row is reached through the list, as SwiftUI's is.
+    package var rowMenus: [Int: @MainActor () -> Void] { _rowMenus }
+
+    /// Reports that list row `row` carries a context menu, opened by `open`.
+    package func reportRowMenu(row: Int, open: @escaping @MainActor () -> Void) {
+        _rowMenus[row] = open
+    }
 
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUIkitLists makes these, for its lists.

@@ -1209,17 +1209,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // A `.dimmed` / `.cursor` drag rewrites the rows here, AFTER the
         // window walk: the drag shows an extra row that is not in the data, so
         // it must not take part in choosing which data rows are visible.
-        // The rows have rendered by now, so whatever they refused is known.
-        // Only rows that were DRAWN can have reported, which is exactly the set
-        // an edit can name: Delete acts on the focused row and a drag on the
-        // grabbed one, and both are on screen.
-        handler.deleteDisabledRows = editRestrictions.deleteDisabled
-        handler.moveDisabledRows = editRestrictions.moveDisabled
-        // Selection is the one restriction here `moveFocus(by:wrap:)` also
-        // consults (see `ItemListHandler.isLandable(_:)`), so a row that
-        // reports `.selectionDisabled()` is routed around once it has drawn —
-        // not only refused as a commit target.
-        handler.selectionDisabledRows = editRestrictions.selectionDisabled
+        applyRowReports(editRestrictions, to: handler)
         // After the viewport sync, which counts DATA rows: the header pinned over
         // the window's top, ahead of its rows (see `pinningSectionHeader`).
         visibleRows = pinningSectionHeader(
@@ -1497,6 +1487,33 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// one true home on the handler (`drawsScrollIndicators`, the conjunction
     /// with the indicator style), which left the flag returned and read by
     /// nobody — a warning on every build.
+    /// Hands the handler what the rows reported as they rendered.
+    private func applyRowReports(_ editRestrictions: RowEditRestrictions, to handler: ItemListHandler<SelectionValue>) {
+        // The rows have rendered by now, so whatever they refused is known.
+        // Only rows that were DRAWN can have reported, which is exactly the set
+        // an edit can name: Delete acts on the focused row and a drag on the
+        // grabbed one, and both are on screen.
+        handler.deleteDisabledRows = editRestrictions.deleteDisabled
+        handler.moveDisabledRows = editRestrictions.moveDisabled
+        // Selection is the one restriction here `moveFocus(by:wrap:)` also
+        // consults (see `ItemListHandler.isLandable(_:)`), so a row that
+        // reports `.selectionDisabled()` is routed around once it has drawn —
+        // not only refused as a commit target.
+        handler.selectionDisabledRows = editRestrictions.selectionDisabled
+        // Where the list has no selection menu, its Shift+F10 opens the cursor
+        // row's own `.contextMenu` (`RowEditRestrictions.rowMenus`): a context
+        // menu in a list row is no focus stop of its own. Read when the key
+        // comes, so the menus drawn on screen are the ones it finds; the cursor
+        // stays on the row while its menu is up.
+        guard handler.openContextMenu == nil else { return }
+        handler.openContextMenu = { [weak handler, editRestrictions] in
+            guard let handler, let open = editRestrictions.rowMenus[handler.focusedIndex] else { return false }
+            handler.focusLeavesForRowMenu = true
+            open()
+            return true
+        }
+    }
+
     /// The list's rows, extracted as `rowContext` draws them, with the row and
     /// header minimums and the separators they are drawn with — after the
     /// list has reserved its own place in the focus ring

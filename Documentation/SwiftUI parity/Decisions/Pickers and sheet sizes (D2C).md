@@ -119,7 +119,10 @@ Not decisions; recorded so they are not lost.
   list, which itself comes fourth (a scratch test of this lane's). That is
   why the tabs' context menus (A49) register no stop and open from the
   sidebar list's own Shift+F10. It bears on A30 (full SwiftUI context
-  menus), which may want the same for list and table rows.
+  menus), which may want the same for list and table rows. **Done for list
+  rows (2026-10-14):** a row's `.contextMenu` reports itself to the list
+  (`RowEditRestrictions.rowMenus`) instead of registering a stop, and the
+  list's Shift+F10 opens the cursor row's (`RowContextMenuTests`).
 - **`.onKeyPress(.return)` on a popover's content did not hear Return**
   with the focus inside it (the compact picker's calendar, focused through
   `FocusManager.focus(id:)` as it appeared). Worked around inside the

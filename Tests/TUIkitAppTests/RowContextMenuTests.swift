@@ -59,6 +59,9 @@ private final class Rows {
         /// A list with a selection binding and no menu of its own, under a
         /// text with a `.contextMenu`.
         case listUnderMenu
+        /// A list with no selection menu whose rows' views carry a
+        /// `.contextMenu` each.
+        case listRowMenusOnly
         /// A pull-down `Menu` above a scroll view holding a list with no menu
         /// of its own and its scrolling disabled, with lines below it to
         /// scroll to.
@@ -107,6 +110,13 @@ private struct RowsPage: View {
             selectionMenuTable.contextMenu { Button("outer") { rows.ran.append("outer") } }
         case .listUnderMenu: listUnderMenu
         case .menuAboveList: menuAboveList
+        case .listRowMenusOnly:
+            List(selection: Bindable(rows).selection) {
+                ForEach(items) { item in
+                    Text(item.name).contextMenu { Button("view \(item.id)") {} }
+                }
+            }
+            .frame(height: 10)
         }
     }
 
@@ -427,6 +437,33 @@ struct RowContextMenuTests {
         harness.key(KeyEvent(key: .down))
         harness.key(KeyEvent(key: .f10, shift: true))
         #expect(!harness.shows("row 3"), "\(harness.screen)")
+    }
+
+    /// A `.contextMenu` on a list row's view is no focus stop of its own —
+    /// three of them used to be three Tab stops ahead of the list (DEVS known
+    /// defect 30) — and the list's Shift+F10 opens the cursor row's.
+    @Test("A list row's own context menu opens from the list's Shift+F10, and is no focus stop")
+    func listRowMenuOpensFromTheList() throws {
+        let harness = Harness(.listRowMenusOnly)
+        harness.key(KeyEvent(key: .f10, shift: true))
+        #expect(harness.shows("view 1"), "the cursor row's menu: \(harness.screen)")
+        harness.escape()
+        // The cursor stayed on the row whose menu it was.
+        harness.key(KeyEvent(key: .f10, shift: true))
+        #expect(harness.shows("view 1"), "again, after the menu closed: \(harness.screen)")
+        harness.escape()
+        harness.key(KeyEvent(key: .down))
+        harness.key(KeyEvent(key: .f10, shift: true))
+        #expect(harness.shows("view 2") && !harness.shows("view 1"), "\(harness.screen)")
+        harness.escape()
+        // A right-click still opens the menu of the row it lands on.
+        harness.secondaryClick(try harness.position(of: "item3"))
+        #expect(harness.shows("view 3"), "\(harness.screen)")
+        harness.escape()
+        // And Tab has nowhere else to go: the list is the only stop.
+        harness.key(KeyEvent(key: .tab))
+        harness.key(KeyEvent(key: .f10, shift: true))
+        #expect(harness.shows("view 2"), "the list kept the focus: \(harness.screen)")
     }
 
     @Test("The selection menu wins over a row's own menu and a cell view's")

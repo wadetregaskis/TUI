@@ -85,8 +85,13 @@ extension ContextMenuModifier: Renderable {
                     context.environment.focusManager?.deactivateSection(id: sectionID)
                     state.needsSectionTeardown = false
                 }
-                focusID = attachKeyboardTrigger(stateBox: stateBox, context: context)
-                isFocused = focusID.map { FocusRegistration.isFocused(context: context, focusID: $0) } ?? false
+                // In a list row the list is the stop, and its Shift+F10 opens
+                // the cursor row's menu: the row reports it rather than being a
+                // stop of its own ahead of, or among, the list's rows.
+                if !reportsToListRow(stateBox: stateBox, context: context) {
+                    focusID = attachKeyboardTrigger(stateBox: stateBox, context: context)
+                    isFocused = focusID.map { FocusRegistration.isFocused(context: context, focusID: $0) } ?? false
+                }
             }
             // Published the way `.focusable()` publishes it, so a memo inside
             // the content sees the change; the bare assignment this replaced
@@ -115,6 +120,27 @@ extension ContextMenuModifier: Renderable {
         ContextMenuPresentation.present(
             menuItems, over: &baseBuffer, stateBox: stateBox, sectionID: sectionID, context: context)
         return baseBuffer
+    }
+
+    /// Reports this menu to the list row it is in, if it is in one, for the
+    /// list's Shift+F10 to open on that row (`RowEditRestrictions.rowMenus`),
+    /// and answers whether it did: then the content is no focus stop of its
+    /// own. Replayable, as the focus stop it stands in for is, so a row served
+    /// from a memo reports it again.
+    private func reportsToListRow(stateBox: StateBox<ContextMenuState>, context: RenderContext) -> Bool {
+        guard let restrictions = context.environment.listRowEditRestrictions, restrictions.currentRowIndex != nil
+        else { return false }
+        guard context.environment.isEnabled else { return true }
+        let onOpen = context.environment.menuOpenAction
+        RowMenuReporter.report(stateBox: stateBox, onOpen: onOpen, context: context)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        if let journal = context.recordingEffectJournal {
+            journal.append(
+                EffectJournal.Entry(kind: RowMenuReporter.kind, channelToken: context.environment.keyChannelToken) { replay in
+                    RowMenuReporter.report(stateBox: stateBox, onOpen: onOpen, context: replay)
+                })
+        }
+        return true
     }
 
     /// Makes the content a focus stop and opens the menu on **Shift+F10** while
@@ -169,6 +195,24 @@ extension ContextMenuModifier: Renderable {
                 })
         }
         return focusID
+    }
+}
+
+/// A list row's context menu reported to its list, shared by the live render
+/// and by a memo replaying it.
+@MainActor
+private enum RowMenuReporter {
+    /// The journal kind of the report.
+    static let kind = EffectJournal.Kind("contextMenu.listRow")
+
+    /// Reports the menu in `stateBox` to the list row `context` is drawing.
+    static func report(stateBox: StateBox<ContextMenuState>, onOpen: MenuOpenAction?, context: RenderContext) {
+        guard let restrictions = context.environment.listRowEditRestrictions,
+            let row = restrictions.currentRowIndex
+        else { return }
+        restrictions.reportRowMenu(row: row) {
+            ContextMenuPresentation.openFromKeyboard(stateBox, onOpen: onOpen)
+        }
     }
 }
 
@@ -257,6 +301,8 @@ extension View {
     /// keyboard's Menu key where the terminal reports it. TUI-specific: it
     /// is the reason a `.contextMenu` adds a Tab stop, which SwiftUI's does
     /// not, because a menu reachable only by mouse is not reachable at all.
+    /// In a `List` row it adds none: the list is the stop, and its Shift+F10
+    /// opens the cursor row's menu, as it opens a selection menu's.
     ///
     /// - Parameter menuItems: A view builder of the menu's `Button`s (and
     ///   `Divider`s).

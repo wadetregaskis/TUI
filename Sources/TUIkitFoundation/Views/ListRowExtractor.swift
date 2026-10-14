@@ -437,8 +437,11 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 // copy of its whole storage dictionary, and it ran once per
                 // visible row per frame (see `RowEditRestrictions.currentRowIndex`
                 // for the full reasoning). Stamped INSIDE the thunk, immediately
-                // before the render that might report against it.
+                // before the render that might report against it, and cleared
+                // after it, as the eager paths clear it, so what draws next
+                // outside a row reports against none.
                 context.environment.listRowEditRestrictions?.currentRowIndex = listRowIndex
+                defer { context.environment.listRowEditRestrictions?.currentRowIndex = nil }
                 // When the element is Equatable, wrap the row in a value-memo keyed
                 // by the element, so an unchanged row is served from the render cache
                 // instead of re-rendered. The wrapper is Renderable (adds no child
@@ -568,6 +571,9 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 context.environment.listRowEditRestrictions?.currentRowIndex = listRowIndex
                 let buffer = member.render(
                     width: rowContext.availableWidth, height: rowContext.availableHeight, context: rowContext)
+                // Cleared after, as the eager paths clear it, so what draws
+                // next outside a row reports against none.
+                context.environment.listRowEditRestrictions?.currentRowIndex = nil
                 return (buffer, extractRowBadgeValue(from: member.wrappedView))
             })
         box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) ?? {

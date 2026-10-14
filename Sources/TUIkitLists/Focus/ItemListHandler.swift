@@ -521,6 +521,12 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// through.
     package var openContextMenu: (() -> Bool)? { get { _openContextMenu } set { _openContextMenu = newValue } }
 
+    /// Whether the focus is leaving for the cursor row's own context menu,
+    /// which hands it back when it closes: then the cursor stays on that row
+    /// rather than going to the selection (``onFocusLost()``). Set by the
+    /// list's Shift+F10 as it opens the menu, and spent by the loss.
+    package var focusLeavesForRowMenu = false
+
     /// ``openContextMenu``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _openContextMenu: (() -> Bool)?
@@ -1738,6 +1744,13 @@ extension ItemListHandler {
         // at the table, in a mode they had not left, and Escape — still meant
         // to let the column go — clearing the selection instead.
         if columnEditing?.menuIsOpen() != true { columnFocus = nil }
+
+        // A row's own menu, opened on the cursor row, is the cursor's: the
+        // focus comes back to it when the menu closes.
+        if focusLeavesForRowMenu {
+            focusLeavesForRowMenu = false
+            return
+        }
 
         // When focus is lost, put the cursor on the selection (if any) so that
         // when focus returns, the user sees it: on the selected row, or for a
