@@ -45,7 +45,7 @@ import Foundation
 ///   durable storage is still a bad idea for the reason SwiftUI names: a value
 ///   nobody chose deliberately should not outlive the reason it was written.
 @propertyWrapper
-public struct SceneStorage<Value: Codable> {
+public struct SceneStorage<Value> {
     /// The scene-scoped key actually written.
     private let key: String
 
@@ -58,43 +58,23 @@ public struct SceneStorage<Value: Codable> {
     /// The namespace that separates scene state from app preferences.
     private static var prefix: String { "scene." }
 
-    /// Creates scene storage with the default backend.
-    ///
-    /// - Parameters:
-    ///   - wrappedValue: The value to use before anything is stored.
-    ///   - key: The key to store under, within the scene's namespace.
-    public init(wrappedValue: Value, _ key: String) {
-        self.key = Self.prefix + key
-        self.defaultValue = wrappedValue
-        self.storage = StorageDefaults.backend
-    }
+    /// How the value is read from and written to the store: as itself, or as
+    /// its raw value (``StorageCodec``).
+    private let codec: StorageCodec<Value>
 
-    /// Creates scene storage with a custom backend.
-    ///
-    /// - Parameters:
-    ///   - wrappedValue: The value to use before anything is stored.
-    ///   - key: The key to store under, within the scene's namespace.
-    ///   - storage: Where to store it.
-    public init(wrappedValue: Value, _ key: String, store storage: StorageBackend) {
+    /// Scene storage for `key`, within the scene's namespace, falling back to
+    /// `defaultValue`, in `storage`, kept as `codec` says.
+    private init(key: String, defaultValue: Value, storage: StorageBackend, codec: StorageCodec<Value>) {
         self.key = Self.prefix + key
-        self.defaultValue = wrappedValue
+        self.defaultValue = defaultValue
         self.storage = storage
-    }
-
-    /// Creates scene storage for an optional value, `nil` until something is
-    /// stored — mirrors SwiftUI's `init(_:)`.
-    ///
-    /// - Parameter key: The key to store under, within the scene's namespace.
-    public init<Wrapped>(_ key: String) where Value == Wrapped? {
-        self.key = Self.prefix + key
-        self.defaultValue = nil
-        self.storage = StorageDefaults.backend
+        self.codec = codec
     }
 
     /// The current value.
     public var wrappedValue: Value {
         get {
-            storage.value(forKey: key) ?? defaultValue
+            codec.read(storage, key) ?? defaultValue
         }
         nonmutating set {
             // Observed per key, as an `@Observable` property is: the store's
@@ -103,7 +83,7 @@ public struct SceneStorage<Value: Codable> {
             // through a control's `Binding` under a kept result — and nothing
             // else, and asks for a frame. See `StoredKey` for why this used to
             // clear the whole render cache on every write.
-            storage.setValue(newValue, forKey: key)
+            codec.write(storage, key, newValue)
         }
     }
 
@@ -113,6 +93,79 @@ public struct SceneStorage<Value: Codable> {
             get: { self.wrappedValue },
             set: { self.wrappedValue = $0 }
         )
+    }
+}
+
+// MARK: - Codable Values
+
+extension SceneStorage where Value: Codable {
+    /// Creates scene storage with the default backend.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: The value to use before anything is stored.
+    ///   - key: The key to store under, within the scene's namespace.
+    public init(wrappedValue: Value, _ key: String) {
+        self.init(key: key, defaultValue: wrappedValue, storage: StorageDefaults.backend, codec: CodableStorageCodec())
+    }
+
+    /// Creates scene storage with a custom backend.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: The value to use before anything is stored.
+    ///   - key: The key to store under, within the scene's namespace.
+    ///   - storage: Where to store it.
+    public init(wrappedValue: Value, _ key: String, store storage: StorageBackend) {
+        self.init(key: key, defaultValue: wrappedValue, storage: storage, codec: CodableStorageCodec())
+    }
+
+    /// Creates scene storage for an optional value, `nil` until something is
+    /// stored — mirrors SwiftUI's `init(_:)`.
+    ///
+    /// - Parameter key: The key to store under, within the scene's namespace.
+    public init<Wrapped>(_ key: String) where Value == Wrapped? {
+        self.init(key: key, defaultValue: nil, storage: StorageDefaults.backend, codec: CodableStorageCodec())
+    }
+}
+
+// MARK: - Raw-Representable Values
+
+extension SceneStorage where Value: RawRepresentable, Value.RawValue: Codable {
+    /// Creates scene storage for a raw-representable value, stored as its raw
+    /// value — mirrors SwiftUI's `init(wrappedValue:_:)` for a `String` or
+    /// `Int` raw value, and takes any `Codable` one.
+    ///
+    /// Disfavoured, so a type that is `Codable` too keeps the `Codable` form.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: The value to use before anything is stored.
+    ///   - key: The key to store under, within the scene's namespace.
+    @_disfavoredOverload
+    public init(wrappedValue: Value, _ key: String) {
+        self.init(key: key, defaultValue: wrappedValue, storage: StorageDefaults.backend, codec: RawValueStorageCodec())
+    }
+
+    /// Creates scene storage for a raw-representable value with a custom
+    /// backend, stored as its raw value.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: The value to use before anything is stored.
+    ///   - key: The key to store under, within the scene's namespace.
+    ///   - storage: Where to store it.
+    @_disfavoredOverload
+    public init(wrappedValue: Value, _ key: String, store storage: StorageBackend) {
+        self.init(key: key, defaultValue: wrappedValue, storage: storage, codec: RawValueStorageCodec())
+    }
+}
+
+extension SceneStorage {
+    /// Creates scene storage for an optional raw-representable value, `nil`
+    /// until something is stored, stored as its raw value — mirrors SwiftUI's
+    /// `init(_:)` for a raw-representable.
+    ///
+    /// - Parameter key: The key to store under, within the scene's namespace.
+    @_disfavoredOverload
+    public init<R>(_ key: String) where Value == R?, R: RawRepresentable, R.RawValue: Codable {
+        self.init(key: key, defaultValue: nil, storage: StorageDefaults.backend, codec: OptionalRawValueStorageCodec<R>())
     }
 }
 

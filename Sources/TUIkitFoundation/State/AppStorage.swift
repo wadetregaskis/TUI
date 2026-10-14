@@ -329,7 +329,8 @@ public enum StorageDefaults {
 /// A property wrapper that reads and writes to persistent storage.
 ///
 /// Use `@AppStorage` to persist simple values across app launches.
-/// Values must conform to `Codable`.
+/// Values are `Codable`, or `RawRepresentable` with a `Codable` raw value,
+/// which is what is stored.
 ///
 /// # Example
 ///
@@ -356,6 +357,14 @@ public enum StorageDefaults {
 /// - Arrays and Dictionaries of Codable types
 /// - Custom Codable structs and enums
 ///
+/// And any `RawRepresentable` type whose raw value is `Codable` — an
+/// `enum Mode: String { … }`, SwiftUI's commonest `@AppStorage` after a
+/// `Bool` — stored as its raw value; a stored raw value that is no case reads
+/// as nothing stored. SwiftUI takes `String` and `Int` raw values; any
+/// `Codable` one is taken here. A type that is both, an `enum Mode: String,
+/// Codable`, is stored by its `Codable` form, which for such an enum is its raw
+/// value too.
+///
 /// # Where it is stored
 ///
 /// A property that names a store (`store:`) uses it. One that names none uses
@@ -364,12 +373,16 @@ public enum StorageDefaults {
 /// closure the body made, a button's action say, writes to the store found
 /// for the body that made it.
 @propertyWrapper
-public struct AppStorage<Value: Codable> {
+public struct AppStorage<Value> {
     /// The key used for storage.
     private let key: String
 
     /// The default value if no stored value exists.
     private let defaultValue: Value
+
+    /// How the value is read from and written to a store: as itself, or as its
+    /// raw value.
+    private let codec: StorageCodec<Value>
 
     /// The store the property named, or `nil` for the one its view's
     /// environment names.
@@ -385,6 +398,51 @@ public struct AppStorage<Value: Codable> {
     /// names a store, which never reads it.
     private let environmentStore: Lock<(any StorageBackend)?>?
 
+    /// The property for `key`, falling back to `defaultValue`, in `store`, or
+    /// in its view's default store when that is `nil`, kept as `codec` says.
+    private init(key: String, defaultValue: Value, store: (any StorageBackend)?, codec: StorageCodec<Value>) {
+        self.key = key
+        self.defaultValue = defaultValue
+        self.codec = codec
+        self.namedStore = store
+        self.environmentStore = store == nil ? Lock(initialState: nil) : nil
+    }
+
+    /// The store read and written: the one named, else the one found for the
+    /// view, else the process's default.
+    private var storage: any StorageBackend {
+        if let namedStore { return namedStore }
+        return environmentStore?.withLock { $0 } ?? StorageDefaults.backend
+    }
+
+    /// The current value.
+    public var wrappedValue: Value {
+        get {
+            codec.read(storage, key) ?? defaultValue
+        }
+        nonmutating set {
+            // Observed per key, as an `@Observable` property is: the store's
+            // `setValue` announces the change through the key's `StoredKey`,
+            // which invalidates every view that read the key — in its body, or
+            // through a control's `Binding` under a kept result — and nothing
+            // else, and asks for a frame. See `StoredKey` for why this used to
+            // clear the whole render cache on every write.
+            codec.write(storage, key, newValue)
+        }
+    }
+
+    /// A binding to the stored value.
+    public var projectedValue: Binding<Value> {
+        Binding(
+            get: { self.wrappedValue },
+            set: { self.wrappedValue = $0 }
+        )
+    }
+}
+
+// MARK: - Codable Values
+
+extension AppStorage where Value: Codable {
     /// Creates an AppStorage with the default storage backend.
     ///
     /// - Parameters:
@@ -426,54 +484,120 @@ public struct AppStorage<Value: Codable> {
     /// modules add (a tab view's customization, a table's columns) can reach
     /// it without resolving back to themselves.
     package init(key: String, defaultValue: Value, store: (any StorageBackend)?) {
-        self.key = key
-        self.defaultValue = defaultValue
-        self.namedStore = store
-        self.environmentStore = store == nil ? Lock(initialState: nil) : nil
+        self.init(key: key, defaultValue: defaultValue, store: store, codec: CodableStorageCodec<Value>())
+    }
+}
+
+// MARK: - Raw-Representable Values
+
+extension AppStorage where Value: RawRepresentable, Value.RawValue: Codable {
+    /// Creates an AppStorage for a raw-representable value, stored as its raw
+    /// value — mirrors SwiftUI's `init(wrappedValue:_:store:)` for a `String`
+    /// or `Int` raw value, and takes any `Codable` one.
+    ///
+    /// Disfavoured, so a type that is `Codable` too keeps the `Codable` form
+    /// it had before this one existed.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: The default value.
+    ///   - key: The key to use for storage.
+    @_disfavoredOverload
+    public init(wrappedValue: Value, _ key: String) {
+        self.init(key: key, defaultValue: wrappedValue, store: nil, codec: RawValueStorageCodec<Value>())
     }
 
-    /// The store read and written: the one named, else the one found for the
-    /// view, else the process's default.
-    private var storage: any StorageBackend {
-        if let namedStore { return namedStore }
-        return environmentStore?.withLock { $0 } ?? StorageDefaults.backend
+    /// Creates an AppStorage for a raw-representable value in a custom storage
+    /// backend, stored as its raw value.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: The default value.
+    ///   - key: The key to use for storage.
+    ///   - storage: The storage backend to use.
+    @_disfavoredOverload
+    public init(wrappedValue: Value, _ key: String, store storage: any StorageBackend) {
+        self.init(key: key, defaultValue: wrappedValue, store: storage, codec: RawValueStorageCodec<Value>())
+    }
+}
+
+extension AppStorage {
+    /// Creates an AppStorage for an optional raw-representable value, `nil`
+    /// until something is stored, stored as its raw value — mirrors SwiftUI's
+    /// `init(_:store:)` for a raw-representable.
+    ///
+    /// - Parameters:
+    ///   - key: The key to use for storage.
+    ///   - storage: The storage backend to use, or `nil` for the default.
+    @_disfavoredOverload
+    public init<R>(_ key: String, store storage: (any StorageBackend)? = nil)
+    where Value == R?, R: RawRepresentable, R.RawValue: Codable {
+        self.init(key: key, defaultValue: nil, store: storage, codec: OptionalRawValueStorageCodec<R>())
+    }
+}
+
+// MARK: - Codecs
+
+/// How an ``AppStorage`` or a ``SceneStorage`` keeps its value in a store: as
+/// itself, for a `Codable` value, or as its raw value, for a raw-representable
+/// one — one subclass each, overriding both methods.
+///
+/// A class rather than a pair of `Sendable` closures, which captured the
+/// value type's metatype (Swift 6.2 warns of it, SendableMetatypes), and
+/// rather than an `any` of a protocol with a primary associated type: stored
+/// here, that crashed every test that made an `AppStorage` (signal 11 under
+/// Xcode's Swift 6.2.4, deployment target macOS 14; the cause was not
+/// pinned down — no rendering was involved). Immutable, so unchecked-`Sendable`
+/// is sound.
+class StorageCodec<Value>: @unchecked Sendable {
+    /// The value stored for `key`, or `nil` where there is none to read.
+    func read(_ store: any StorageBackend, _ key: String) -> Value? { nil }
+
+    /// Stores `value` for `key`.
+    func write(_ store: any StorageBackend, _ key: String, _ value: Value) {}
+}
+
+/// The value itself.
+final class CodableStorageCodec<Value: Codable>: StorageCodec<Value>, @unchecked Sendable {
+    override func read(_ store: any StorageBackend, _ key: String) -> Value? { store.value(forKey: key) }
+    override func write(_ store: any StorageBackend, _ key: String, _ value: Value) { store.setValue(value, forKey: key) }
+}
+
+/// The raw value; one that is no case reads as nothing stored.
+final class RawValueStorageCodec<Value: RawRepresentable>: StorageCodec<Value>, @unchecked Sendable
+where Value.RawValue: Codable {
+    override func read(_ store: any StorageBackend, _ key: String) -> Value? {
+        (store.value(forKey: key) as Value.RawValue?).flatMap(Value.init(rawValue:))
     }
 
-    /// The current value.
-    public var wrappedValue: Value {
-        get {
-            storage.value(forKey: key) ?? defaultValue
-        }
-        nonmutating set {
-            // Observed per key, as an `@Observable` property is: the store's
-            // `setValue` announces the change through the key's `StoredKey`,
-            // which invalidates every view that read the key — in its body, or
-            // through a control's `Binding` under a kept result — and nothing
-            // else, and asks for a frame. See `StoredKey` for why this used to
-            // clear the whole render cache on every write.
-            storage.setValue(newValue, forKey: key)
-        }
+    override func write(_ store: any StorageBackend, _ key: String, _ value: Value) {
+        store.setValue(value.rawValue, forKey: key)
+    }
+}
+
+/// An optional raw-representable's raw value; its `nil` as an optional raw
+/// value's `nil`.
+final class OptionalRawValueStorageCodec<Wrapped: RawRepresentable>: StorageCodec<Wrapped?>, @unchecked Sendable
+where Wrapped.RawValue: Codable {
+    override func read(_ store: any StorageBackend, _ key: String) -> Wrapped?? {
+        guard let raw: Wrapped.RawValue = store.value(forKey: key), let value = Wrapped(rawValue: raw) else { return nil }
+        return .some(value)
     }
 
-    /// A binding to the stored value.
-    public var projectedValue: Binding<Value> {
-        Binding(
-            get: { self.wrappedValue },
-            set: { self.wrappedValue = $0 }
-        )
+    override func write(_ store: any StorageBackend, _ key: String, _ value: Wrapped?) {
+        store.setValue(value.map(\.rawValue), forKey: key)
     }
 }
 
 // MARK: - SwiftUI's UserDefaults Forms
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-    extension AppStorage {
+    extension AppStorage where Value: Codable {
         /// Creates a property that reads and writes `key` in `store` —
         /// mirrors SwiftUI's `init(wrappedValue:_:store:)`.
         ///
         /// Takes any `Codable` value, where SwiftUI's takes the property-list
-        /// types and raw-representable ones. The value is stored as its JSON
-        /// encoding, as every TUIkit store keeps it.
+        /// types and raw-representable ones. A property-list value is stored
+        /// as itself, as SwiftUI stores it, and any other as its JSON encoding
+        /// (``UserDefaultsStorage``).
         ///
         /// - Parameters:
         ///   - wrappedValue: The default value if a value is not specified
@@ -497,6 +621,46 @@ public struct AppStorage<Value: Codable> {
         ///     for the store the view's environment names.
         public init<Wrapped>(_ key: String, store: UserDefaults? = nil) where Value == Wrapped? {
             self.init(key: key, defaultValue: nil, store: store.map { UserDefaultsStorage($0) })
+        }
+    }
+
+    extension AppStorage where Value: RawRepresentable, Value.RawValue: Codable {
+        /// Creates a property for a raw-representable value that reads and
+        /// writes `key` in `store`, stored as its raw value — mirrors SwiftUI's
+        /// `init(wrappedValue:_:store:)` for a `String` or `Int` raw value.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if a value is not specified
+        ///     for the given key.
+        ///   - key: The key to read and write the value to in the user
+        ///     defaults store.
+        ///   - store: The user defaults store to read and write to, or `nil`
+        ///     for the store the view's environment names.
+        @_disfavoredOverload
+        public init(wrappedValue: Value, _ key: String, store: UserDefaults?) {
+            self.init(
+                key: key, defaultValue: wrappedValue, store: store.map { UserDefaultsStorage($0) }, codec: RawValueStorageCodec<Value>())
+        }
+    }
+
+    extension AppStorage {
+        /// Creates a property for an optional raw-representable value, `nil`
+        /// until something is stored, in `store`, stored as its raw value —
+        /// mirrors SwiftUI's `init(_:store:)` for a raw-representable.
+        ///
+        /// The store is not defaulted, as SwiftUI's is: written without one,
+        /// `@AppStorage("key") var mode: Mode?` takes the form whose store is
+        /// a `StorageBackend`, which reads the same store, rather than finding
+        /// two forms that fit equally.
+        ///
+        /// - Parameters:
+        ///   - key: The key to read and write the value to in the user
+        ///     defaults store.
+        ///   - store: The user defaults store to read and write to, or `nil`
+        ///     for the store the view's environment names.
+        @_disfavoredOverload
+        public init<R>(_ key: String, store: UserDefaults?) where Value == R?, R: RawRepresentable, R.RawValue: Codable {
+            self.init(key: key, defaultValue: nil, store: store.map { UserDefaultsStorage($0) }, codec: OptionalRawValueStorageCodec<R>())
         }
     }
 #endif

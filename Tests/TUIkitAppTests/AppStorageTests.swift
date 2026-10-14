@@ -359,3 +359,77 @@ struct AppStoragePropertyWrapperTests {
         #expect(storage.wrappedValue == updated)
     }
 }
+
+// MARK: - Raw-representable values
+
+/// SwiftUI's commonest `@AppStorage` after a `Bool`: a `String`-backed enum
+/// that is not `Codable` (the semantic audit's item 85).
+private enum Mode: String {
+    case light, dark
+}
+
+private enum Level: Int {
+    case low = 1, high = 2
+}
+
+/// The spellings SwiftUI source writes, compiled against TUIkit's overloads:
+/// the raw-value forms where a value is only raw-representable, the
+/// `Codable` ones where it is both, and the optional forms. Built, never
+/// read: reading would reach the process's default store.
+private struct Spellings {
+    @AppStorage("mode") var mode: Mode = .light
+    @AppStorage("maybeMode") var maybeMode: Mode?
+    @AppStorage("theme") var theme: Theme = .light
+    @AppStorage("count") var count: Int?
+    @AppStorage("level", store: MockStorageBackend()) var level: Level = .low
+}
+
+@Suite("AppStorage of raw-representable values")
+struct AppStorageRawValueTests {
+    @Test("A raw-representable that is not Codable is stored as its raw value")
+    func storedAsRawValue() {
+        let backend = MockStorageBackend()
+        let mode = AppStorage(wrappedValue: Mode.light, "mode", store: backend)
+        #expect(mode.wrappedValue == .light)
+        mode.wrappedValue = .dark
+        #expect(mode.wrappedValue == .dark)
+        #expect(backend.value(forKey: "mode") == Optional("dark"))
+        let level = AppStorage(wrappedValue: Level.low, "level", store: backend)
+        level.wrappedValue = .high
+        #expect(backend.value(forKey: "level") == Optional(2))
+        #expect(AppStorage(wrappedValue: Level.low, "level", store: backend).wrappedValue == .high)
+    }
+
+    @Test("A stored raw value that is no case reads as nothing stored")
+    func unknownRawValue() {
+        let backend = MockStorageBackend()
+        backend.setValue("sepia", forKey: "mode")
+        #expect(AppStorage(wrappedValue: Mode.light, "mode", store: backend).wrappedValue == .light)
+    }
+
+    @Test("An optional raw-representable is nil until stored, and nil again once nil is stored")
+    func optionalRawValue() {
+        let backend = MockStorageBackend()
+        let mode = AppStorage<Mode?>("mode", store: backend)
+        #expect(mode.wrappedValue == nil)
+        mode.wrappedValue = .dark
+        #expect(mode.wrappedValue == .dark)
+        #expect(backend.value(forKey: "mode") == Optional("dark"))
+        mode.wrappedValue = nil
+        #expect(mode.wrappedValue == nil)
+    }
+
+    @Test("A raw-representable that is Codable too keeps its Codable form, which stores the same raw value")
+    func codableRawRepresentable() {
+        let backend = MockStorageBackend()
+        let theme = AppStorage(wrappedValue: Theme.light, "theme", store: backend)
+        theme.wrappedValue = .dark
+        #expect(backend.value(forKey: "theme") == Optional("dark"))
+        #expect(AppStorage(wrappedValue: Theme.light, "theme", store: backend).wrappedValue == .dark)
+    }
+
+    @Test("SwiftUI's spellings resolve")
+    func spellingsResolve() {
+        _ = Spellings()
+    }
+}

@@ -105,3 +105,26 @@ struct SceneStorageTests {
         #expect(rendered.lines[0].stripped.contains("one"))
     }
 }
+
+// MARK: - Raw-representable values
+
+/// A `String`-backed enum that is not `Codable`, as SwiftUI's scene storage
+/// takes it (the semantic audit's item 85).
+private enum Pane: String {
+    case list, detail
+}
+
+@Suite("SceneStorage of raw-representable values")
+struct SceneStorageRawValueTests {
+    @Test("A raw-representable that is not Codable is stored as its raw value, within the scene's namespace")
+    func storedAsRawValue() {
+        let backend = MockStorageBackend()
+        let pane = SceneStorage(wrappedValue: Pane.list, "pane", store: backend)
+        #expect(pane.wrappedValue == .list)
+        pane.wrappedValue = .detail
+        #expect(pane.wrappedValue == .detail)
+        #expect(backend.value(forKey: "scene.pane") == Optional("detail"))
+        backend.setValue("gallery", forKey: "scene.pane")
+        #expect(pane.wrappedValue == .list, "a raw value that is no case reads as nothing stored")
+    }
+}
