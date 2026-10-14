@@ -340,6 +340,13 @@ The optional `onDismiss:` closure runs on the presented → dismissed
 transition, whatever cleared the binding — a Close button, a key press, or a
 programmatic change.
 
+Where an app writes `.compact` into `\.verticalSizeClass`, a sheet is
+presented as a full-screen cover, as SwiftUI's is on an iPhone in landscape.
+`presentationCompactAdaptation(.none)` or `(.sheet)` on its content keeps it a
+sheet, and `(.fullScreenCover)` makes it a cover in a horizontally compact
+class too. Becoming a cover is not a dismissal: `onDismiss` does not run, and
+the content keeps its state.
+
 ### Insisting on an answer
 
 ``View/interactiveDismissDisabled(_:)`` takes away the reader's own ways out.

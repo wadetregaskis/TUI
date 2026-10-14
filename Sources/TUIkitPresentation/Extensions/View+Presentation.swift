@@ -337,16 +337,12 @@ extension View {
         onDismiss: (() -> Void)?,
         modal: Modal
     ) -> some View {
-        ModalPresentationModifier(
-            content: self,
-            isPresented: isPresented,
-            modal: modal,
-            style: style,
-            itemKey: itemKey
-        )
-        .onChange(of: isPresented.wrappedValue) { wasPresented, isPresentedNow in
-            if wasPresented, !isPresentedNow { onDismiss?() }
-        }
+        _AdaptiveModal(base: self, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
+            // On the app's binding, not the presenter's: a sheet that becomes a
+            // cover as the size class changes is not dismissed.
+            .onChange(of: isPresented.wrappedValue) { wasPresented, isPresentedNow in
+                if wasPresented, !isPresentedNow { onDismiss?() }
+            }
     }
 
     /// Presents content modally when a binding to a Boolean value is true.
@@ -355,6 +351,11 @@ extension View {
     /// the terminal presents the content as a centred overlay that dims the
     /// background rather than as a sliding sheet, but a call site written against
     /// SwiftUI's `.sheet(isPresented:onDismiss:content:)` works unchanged.
+    ///
+    /// In a vertically compact size class — which TUIkit's never is unless the
+    /// app writes one into the environment — it is presented as a full-screen
+    /// cover instead, as SwiftUI's is on an iPhone in landscape, or as the
+    /// content's ``View/presentationCompactAdaptation(_:)`` asks.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to a Boolean value that determines whether
@@ -415,6 +416,36 @@ extension View {
             itemKey: item.wrappedValue.map { identityKey($0.id) },
             onDismiss: onDismiss,
             modal: item.wrappedValue.map(content))
+    }
+}
+
+// MARK: - The adapting presenter
+
+/// A sheet or a cover, presented as a cover where a sheet adapts to one
+/// (``sheetIsCover(_:horizontal:vertical:)``).
+///
+/// One presenter whose style follows the size classes: it reads its style
+/// every frame, so a class written while the sheet is up changes no part of
+/// the structure, and both the presenting view and the presented content keep
+/// their state.
+struct _AdaptiveModal<Base: View, Modal: View>: View {
+    let base: Base
+    let isPresented: Binding<Bool>
+    let modal: Modal
+    let style: ModalPresentationModifier<Base, Modal>.Style
+    let itemKey: String?
+
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    var body: some View {
+        ModalPresentationModifier(
+            content: base,
+            isPresented: isPresented,
+            modal: modal,
+            style: style == .sheet && sheetIsCover(modal, horizontal: horizontalSizeClass, vertical: verticalSizeClass)
+                ? .fullScreen : style,
+            itemKey: itemKey)
     }
 }
 

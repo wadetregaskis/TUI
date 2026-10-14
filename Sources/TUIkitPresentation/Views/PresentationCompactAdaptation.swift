@@ -4,8 +4,8 @@
 //  How a presentation adapts to a compact size class (decisions A21, with
 //  B3's ruling: TUIkit follows a compact class an app writes, and changes no
 //  default): `PresentationAdaptation`, the `presentationCompactAdaptation`
-//  modifiers that state one on presented content, and the rule a popover
-//  follows.
+//  modifiers that state one on presented content, and the rules a popover and
+//  a sheet follow.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -113,8 +113,9 @@ extension View {
     ///     }
     /// ```
     ///
-    /// By default a popover becomes a sheet in a compact size class. TUIkit's
-    /// size classes are `.regular` unless the app writes `.compact` into the
+    /// By default a popover becomes a sheet in a compact size class, and a
+    /// sheet a full-screen cover in a vertically compact one. TUIkit's size
+    /// classes are `.regular` unless the app writes `.compact` into the
     /// environment, so this changes nothing until it does.
     ///
     /// - Parameter adaptation: The adaptation in either compact size class.
@@ -145,7 +146,21 @@ extension View {
     }
 }
 
-// MARK: - How a popover adapts
+// MARK: - How a presentation adapts
+
+/// The adaptation `content` states for the compact size class it is in — the
+/// vertical one where both are compact, a presentation being shortest of room
+/// there — `.automatic` where it states none, or `nil` in a regular class,
+/// where nothing adapts.
+@MainActor
+func compactAdaptation(
+    of content: any View, horizontal: UserInterfaceSizeClass?, vertical: UserInterfaceSizeClass?
+) -> PresentationAdaptation? {
+    let stated = presentationTrait((any PresentationCompactAdapting).self, of: content)
+    if vertical == .compact { return stated?.verticalAdaptation ?? .automatic }
+    if horizontal == .compact { return stated?.horizontalAdaptation ?? .automatic }
+    return nil
+}
 
 /// The form a popover takes.
 enum PopoverForm: Equatable {
@@ -156,25 +171,42 @@ enum PopoverForm: Equatable {
 /// classes.
 ///
 /// In a regular class it stays a popover. In a compact one it takes the
-/// adaptation its content states for that class — the vertical one where both
-/// are compact — and `.automatic` is a sheet, as an iOS popover becomes one;
-/// `.none` and `.popover` keep it a popover.
+/// adaptation its content states for that class (``compactAdaptation(of:horizontal:vertical:)``),
+/// and `.automatic` is a sheet, as an iOS popover becomes one; `.none` and
+/// `.popover` keep it a popover.
 @MainActor
 func popoverForm(
     of popover: any View, horizontal: UserInterfaceSizeClass?, vertical: UserInterfaceSizeClass?
 ) -> PopoverForm {
-    let stated = presentationTrait((any PresentationCompactAdapting).self, of: popover)
-    let adaptation: PresentationAdaptation
-    if vertical == .compact {
-        adaptation = stated?.verticalAdaptation ?? .automatic
-    } else if horizontal == .compact {
-        adaptation = stated?.horizontalAdaptation ?? .automatic
-    } else {
+    guard let adaptation = compactAdaptation(of: popover, horizontal: horizontal, vertical: vertical) else {
         return .popover
     }
     switch adaptation.kind {
+    case .none, .popover: return .popover
     case .automatic, .sheet: return .sheet
     case .fullScreenCover: return .fullScreenCover
-    case .none, .popover: return .popover
+    }
+}
+
+/// Whether a sheet whose content is `sheet` is presented as a full-screen
+/// cover under these size classes.
+///
+/// In a vertically compact class it is, as SwiftUI's is: "In vertically
+/// compact environments, such as iPhone in landscape orientation, a sheet
+/// presentation automatically adapts to appear as a full-screen cover." The
+/// content's adaptation says otherwise with `.none` or `.sheet` (`.popover`
+/// too: a sheet has no anchor to become one at). In a horizontally compact
+/// class alone it stays a sheet unless the content asks for a cover.
+@MainActor
+func sheetIsCover(
+    _ sheet: any View, horizontal: UserInterfaceSizeClass?, vertical: UserInterfaceSizeClass?
+) -> Bool {
+    guard let adaptation = compactAdaptation(of: sheet, horizontal: horizontal, vertical: vertical) else {
+        return false
+    }
+    switch adaptation.kind {
+    case .fullScreenCover: return true
+    case .automatic: return vertical == .compact
+    case .none, .sheet, .popover: return false
     }
 }

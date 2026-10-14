@@ -1,10 +1,14 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  PresentationCompactAdaptationTests.swift
 //
-//  A popover in a compact size class is a sheet, or what its content's
+//  A popover in a compact size class is a sheet, and a sheet in a vertically
+//  compact one a full-screen cover, or what the content's
 //  `presentationCompactAdaptation` asks for (decisions A21, B3). macOS is never
 //  compact, so SwiftUI's side is iOS's documented behaviour: "a popover
-//  presentation … in a horizontally compact size class … adapts to a sheet".
+//  presentation … in a horizontally compact size class … adapts to a sheet";
+//  "In vertically compact environments, such as iPhone in landscape
+//  orientation, a sheet presentation automatically adapts to appear as a
+//  full-screen cover".
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -27,8 +31,16 @@ private final class SizeClasses: @unchecked Sendable {
     var appearances = 0
 }
 
+/// Counts a sheet's content's appearances and its dismissals.
+@Observable
+private final class SheetLog: @unchecked Sendable {
+    var vertical: UserInterfaceSizeClass = .regular
+    var contentAppearances = 0
+    var dismissals = 0
+}
+
 @MainActor
-@Suite("A popover adapts to a compact size class")
+@Suite("A popover and a sheet adapt to a compact size class")
 struct PresentationCompactAdaptationTests {
     private enum Form: Equatable {
         case popover, sheet, cover, none
@@ -111,6 +123,38 @@ struct PresentationCompactAdaptationTests {
         #expect(form(view, horizontal: .compact) == .sheet)
     }
 
+    // MARK: - A sheet
+
+    @Test("A sheet is a cover in a vertically compact class, and a sheet in a horizontally compact one")
+    func sheetAdapts() {
+        let view = Text("anchor").sheet(isPresented: .constant(true)) { Text("detail") }
+        #expect(form(view, horizontal: .regular) == .sheet)
+        #expect(form(view, horizontal: .compact) == .sheet)
+        #expect(form(view, horizontal: .regular, vertical: .compact) == .cover)
+        #expect(form(view, horizontal: .compact, vertical: .compact) == .cover)
+    }
+
+    @Test("A sheet's content decides: none, sheet and popover keep the sheet, fullScreenCover covers")
+    func sheetStatedAdaptation() {
+        func view(_ adaptation: PresentationAdaptation) -> some View {
+            Text("anchor").sheet(isPresented: .constant(true)) {
+                Text("detail").presentationCompactAdaptation(adaptation)
+            }
+        }
+        #expect(form(view(.none), horizontal: .regular, vertical: .compact) == .sheet)
+        #expect(form(view(.sheet), horizontal: .regular, vertical: .compact) == .sheet)
+        #expect(form(view(.popover), horizontal: .regular, vertical: .compact) == .sheet)
+        #expect(form(view(.automatic), horizontal: .regular, vertical: .compact) == .cover)
+        #expect(form(view(.fullScreenCover), horizontal: .compact) == .cover)
+        let item = Text("anchor").sheet(item: .constant(Row(id: 1))) { row in Text("row \(row.id)") }
+        #expect(form(item, horizontal: .regular, vertical: .compact) == .cover)
+        // A cover never becomes a sheet.
+        let cover = Text("anchor").fullScreenCover(isPresented: .constant(true)) {
+            Text("detail").presentationCompactAdaptation(.sheet)
+        }
+        #expect(form(cover, horizontal: .regular, vertical: .compact) == .cover)
+    }
+
     // MARK: - Across a change of size class
 
     /// Counts its appearances: a presenting view that kept its place in the
@@ -136,6 +180,52 @@ struct PresentationCompactAdaptationTests {
 
     private final class Flag: @unchecked Sendable {
         var value = true
+    }
+
+    private struct SheetPresenter: View {
+        let log: SheetLog
+        let isPresented: Binding<Bool>
+        var body: some View {
+            Text("anchor")
+                .sheet(
+                    isPresented: isPresented, onDismiss: { log.dismissals += 1 },
+                    content: { Text("detail").onAppear { log.contentAppearances += 1 } })
+                .environment(\.verticalSizeClass, log.vertical)
+        }
+    }
+
+    private struct SheetPage: App {
+        let log: SheetLog
+        let isPresented: Binding<Bool>
+        init() { self.init(log: SheetLog(), isPresented: .constant(false)) }
+        init(log: SheetLog, isPresented: Binding<Bool>) { (self.log, self.isPresented) = (log, isPresented) }
+        var body: some Scene { WindowGroup { SheetPresenter(log: log, isPresented: isPresented) } }
+    }
+
+    @Test("A sheet that becomes a cover keeps its content and is not dismissed; Escape dismisses it once")
+    func sheetAcrossAChange() {
+        let (log, flag) = (SheetLog(), Flag())
+        let isPresented = Binding(get: { flag.value }, set: { flag.value = $0 })
+        let app = HeadlessApp(SheetPage(log: log, isPresented: isPresented), width: 40, height: 12)
+        var now: Int64 = 0
+        func frame() {
+            now += 16_666_667
+            app.frame(atNanos: now)
+        }
+        frame()
+        frame()
+        #expect(log.contentAppearances == 1)
+        log.vertical = .compact
+        frame()
+        frame()
+        #expect(log.contentAppearances == 1, "the sheet's content was made anew when it became a cover")
+        #expect(log.dismissals == 0, "becoming a cover ran onDismiss")
+        #expect(app.screen.contains { $0.contains("detail") }, "the cover is not drawn: \(app.screen)")
+        app.send(KeyEvent(key: .escape))
+        frame()
+        frame()
+        #expect(flag.value == false)
+        #expect(log.dismissals == 1)
     }
 
     @Test("The presenting view keeps its place when the size class changes, and Escape dismisses the sheet it became")

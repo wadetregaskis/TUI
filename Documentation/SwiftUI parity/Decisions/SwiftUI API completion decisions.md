@@ -330,8 +330,24 @@ vertical class's adaptation wins, since a presentation is shortest of room
 there; SwiftUI documents no order. The popover, sheet and cover presenters
 are always all present around the presenting view, and the size class picks
 whose binding is live, so a class written while the popover is up leaves the
-presenting view's state alone. Not yet adapting: a sheet (on a vertically
-compact iPhone SwiftUI presents one full screen) and `TabContent.popover`.
+presenting view's state alone. Not yet adapting: `TabContent.popover`, which
+SwiftUI offers on iOS 18. TUIkitTabs draws a tab's popover with Foundation's
+`PopoverPresentationModifier` and does not depend on TUIkitPresentation, where
+the sheet and the cover are; adapting it means that dependency, or an
+environment hook the app installs. Left for a ruling: a tab's popover in a
+compact class is an edge case, and the dependency is not free.
+
+**Shipped 2026-10-13: the sheet's adaptation.** SwiftUI documents it: "In
+vertically compact environments, such as iPhone in landscape orientation, a
+sheet presentation automatically adapts to appear as a full-screen cover."
+So in a vertically compact class a sheet is a cover (`.automatic`,
+`.fullScreenCover`) or stays a sheet (`.none`, `.sheet`, and `.popover`,
+there being no anchor for a sheet to become one at); in a horizontally
+compact class alone it stays a sheet unless the content asks for a cover. A
+sheet and a cover are one presenter whose style follows the class, so the
+presented content keeps its state too, and `onDismiss` watches the app's
+binding, so becoming a cover runs nothing. `modal(isPresented:)`, which
+`sheet` forwards to, adapts with it.
 
 **Shipped 2026-10-13: the split-view collapse.** In a compact horizontal
 class a `NavigationSplitView` collapses into a stack: the column on top at
