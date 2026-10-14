@@ -109,7 +109,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
         var extents: [Int] = []
         var gaps: [Int] = []
         for item in items {
-            let gap = item.spacing ?? GridItem.defaultSpacing
+            let gap = item.spacing ?? GridItem.defaultSpacing(wrapping: axis)
             switch item.size {
             case .fixed(let extent):
                 extents.append(max(0, extent))
@@ -135,7 +135,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
         proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         let tracks = GridItem.resolve(
-            items, available: across(of: proposal, subviewCount: subviews.count))
+            items, available: across(of: proposal, subviewCount: subviews.count), wrapping: axis)
         guard !tracks.isEmpty, !subviews.isEmpty else { return ViewSize(width: 0, height: 0) }
 
         let breadths = lineBreadths(subviews, tracks: tracks)
@@ -168,7 +168,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
         let tracks = GridItem.resolve(
-            items, available: axis == .vertical ? bounds.width : bounds.height)
+            items, available: axis == .vertical ? bounds.width : bounds.height, wrapping: axis)
         guard !tracks.isEmpty else { return }
 
         let breadths = lineBreadths(subviews, tracks: tracks)
@@ -477,7 +477,8 @@ public struct LazyHGrid<Content: View>: View {
     ///   - alignment: Vertical placement within a cell, and of a section's
     ///     header and footer down the grid (default: `.center`).
     ///   - spacing: Blank columns between columns, or `nil` (the default) for
-    ///     none.
+    ///     one, the gap an `HStack` leaves, so the words of two columns do not
+    ///     run together.
     ///   - pinnedViews: The kinds of child views that will be pinned to the
     ///     enclosing horizontal scroll view's leading and trailing edges: the
     ///     headers and footers of the grid's `Section`s (default: none). See
@@ -492,7 +493,7 @@ public struct LazyHGrid<Content: View>: View {
     ) {
         self.rows = rows
         self.alignment = alignment
-        self.spacing = spacing ?? 0
+        self.spacing = spacing ?? 1
         self.content = content()
         self.pinnedViews = pinnedViews
     }

@@ -54,9 +54,11 @@ public struct GridItem: Sendable, Equatable {
     /// How this track claims space.
     public var size: Size
 
-    /// Cells between this track and the next, or `nil` for the grid's default
-    /// of one — the same gap ``HStackLayout`` leaves, because two items with no
-    /// cell between them read as one item.
+    /// Cells between this track and the next, or `nil` for the grid's
+    /// default: one between a ``LazyVGrid``'s columns — the gap an
+    /// ``HStackLayout`` leaves, because two items with no cell between them
+    /// read as one item — and none between a ``LazyHGrid``'s rows, as a
+    /// ``VStackLayout`` leaves none.
     ///
     /// Trailing spacing, so the last track's value is never used.
     public var spacing: Int?
@@ -93,8 +95,16 @@ struct GridTrack: Equatable {
 }
 
 extension GridItem {
-    /// The default gap between tracks, matching ``HStackLayout``.
-    static let defaultSpacing = 1
+    /// The default gap between tracks: one cell between the columns of a grid
+    /// that wraps downward, as between an ``HStackLayout``'s children, and
+    /// none between the rows of one that wraps rightward, as between a
+    /// ``VStackLayout``'s.
+    ///
+    /// - Parameter axis: The way the grid wraps: `.vertical` for a
+    ///   ``LazyVGrid`` of columns, `.horizontal` for a ``LazyHGrid`` of rows.
+    static func defaultSpacing(wrapping axis: Axis) -> Int {
+        axis == .vertical ? 1 : 0
+    }
 
     /// Turns track *descriptions* into concrete tracks that fit `available`.
     ///
@@ -111,8 +121,11 @@ extension GridItem {
     /// - Parameters:
     ///   - items: The track descriptions.
     ///   - available: Cells along the repeating axis.
+    ///   - axis: The way the grid wraps, which decides a `nil` spacing
+    ///     (``defaultSpacing(wrapping:)``): a grid of columns by default.
     /// - Returns: The concrete tracks, in order. Empty if nothing fits.
-    static func resolve(_ items: [GridItem], available: Int) -> [GridTrack] {
+    static func resolve(_ items: [GridItem], available: Int, wrapping axis: Axis = .vertical) -> [GridTrack] {
+        let defaultSpacing = defaultSpacing(wrapping: axis)
         guard !items.isEmpty, available > 0 else { return [] }
 
         // Pass 1a: what the non-adaptive tracks demand, so the adaptive ones

@@ -131,7 +131,7 @@ struct LazyGridTests {
         let tracks = GridItem.resolve(
             [GridItem(.fixed(3), spacing: 4), GridItem(.fixed(3))], available: 40)
         #expect(tracks[0].spacing == 4)
-        #expect(tracks[1].spacing == GridItem.defaultSpacing)
+        #expect(tracks[1].spacing == GridItem.defaultSpacing(wrapping: .vertical))
     }
 
     // MARK: - LazyVGrid
@@ -200,6 +200,30 @@ struct LazyGridTests {
     }
 
     // MARK: - LazyHGrid
+
+    @Test("A LazyHGrid leaves a blank column between its columns and no blank row between its rows")
+    func horizontalGaps() {
+        // The deviations sweep's likely bug 18 (semantic audit 51): the gaps
+        // were the other way round — columns run together ("onethree") and a
+        // blank row between the rows. SwiftUI separates the columns, and a
+        // terminal's rows need no blank line, as a VStack's do not.
+        let drawn = lines(
+            LazyHGrid(rows: [GridItem(.fixed(1)), GridItem(.fixed(1))], alignment: .top) {
+                Text(verbatim: "one")
+                Text(verbatim: "two")
+                Text(verbatim: "three")
+                Text(verbatim: "four")
+            }, width: 30, height: 4)
+        #expect(Array(drawn.prefix(2)) == ["one three", "two four"], "\(drawn)")
+        // A stated spacing still wins on either axis.
+        let spaced = lines(
+            LazyHGrid(rows: [GridItem(.fixed(1), spacing: 1), GridItem(.fixed(1))], alignment: .top, spacing: 3) {
+                Text(verbatim: "one")
+                Text(verbatim: "two")
+                Text(verbatim: "three")
+            }, width: 30, height: 4)
+        #expect(Array(spaced.prefix(3)) == ["one   three", "", "two"], "\(spaced)")
+    }
 
     @Test("content wraps into a new column when the rows fill up")
     func horizontalWraps() {
