@@ -321,6 +321,19 @@ shipping these inert would ignore the app's own setting. The defaults stay
 regular, so nothing changes for an app that sets nothing. The work (about two
 days, as priced above) goes with B3's lane.
 
+**Shipped 2026-10-13: the popover half.** `PresentationAdaptation` and both
+`presentationCompactAdaptation` modifiers ship, read from the popover's
+content through the other presentation traits. In a compact class a popover
+is a sheet (`.automatic`, `.sheet`), a full-screen cover (`.fullScreenCover`)
+or stays a popover (`.none`, `.popover`). Where both classes are compact the
+vertical class's adaptation wins, since a presentation is shortest of room
+there; SwiftUI documents no order. The popover, sheet and cover presenters
+are always all present around the presenting view, and the size class picks
+whose binding is live, so a class written while the popover is up leaves the
+presenting view's state alone. Not yet adapting: a sheet (on a vertically
+compact iPhone SwiftUI presents one full screen) and `TabContent.popover`.
+`preferredCompactColumn` and the split-view collapse remain.
+
 ### A22. `DismissBehavior` waits on O9
 
 *`DismissBehavior`, `.interactive`, `.destructive`, and (from Wave 12) `Transaction.dismissBehavior`*
@@ -971,6 +984,9 @@ by SwiftUI's own behaviour on iOS and iPadOS:
 terminal owns the font and the cell size. **Lane owed:** 5–7 commits, about 3
 days (estimate): the popover adaptation, the split-view collapse, the compact
 `Table` and the compact sidebar tab view, each with tests.
+
+**2026-10-13:** the popover adaptation shipped (A21); the split-view collapse,
+the compact `Table` and the compact sidebar tab view remain.
 
 ### B4. `DynamicProperty.update()` writes back (superseded by lane DYNP)
 

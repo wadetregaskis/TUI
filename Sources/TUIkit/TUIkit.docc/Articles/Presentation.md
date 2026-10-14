@@ -41,6 +41,27 @@ a rectangle in the view's cells (an `Anchor<CellRect>.Source`, as SwiftUI's
 takes an `Anchor<CGRect>.Source`), and `.point(_:)` puts it at a unit point
 within it.
 
+### In a compact size class
+
+On iOS a popover in a compact size class is presented as a sheet, and TUIkit
+does the same where an app writes `.compact` into `\.horizontalSizeClass` or
+`\.verticalSizeClass` — a terminal's classes are `.regular` otherwise, so
+nothing changes for an app that writes neither. The content decides otherwise
+with `presentationCompactAdaptation(_:)`: `.none` and `.popover` keep the
+popover, `.fullScreenCover` covers the content area, and
+`presentationCompactAdaptation(horizontal:vertical:)` answers each class
+apart, the vertical one winning where both are compact. The presenting view
+keeps its state when the class changes while the popover is up; the content
+starts over, as another presentation.
+
+```swift
+Button("Details") { showing = true }
+    .popover(isPresented: $showing) {
+        Details()
+            .presentationCompactAdaptation(.none)
+    }
+```
+
 ## Full-screen covers
 
 `fullScreenCover(isPresented:onDismiss:content:)` replaces the page rather than
@@ -394,6 +415,7 @@ navigation between screens.
 
 - ``PresentationDetent``
 - ``PopoverAttachmentAnchor``
+- ``PresentationAdaptation``
 
 ### Notifications
 

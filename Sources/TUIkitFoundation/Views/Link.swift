@@ -426,31 +426,42 @@ private struct _Link<Label: View>: View {
                         TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks)))
         }
         return AnyView(
-            Button(
-                action: {
-                    guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
-                    open(destination)
-                    showing.wrappedValue = true
-                },
-                label: { resolvedLabel })
-            .buttonStyle(_LinkButtonStyle(indicator: focusIndicator))
-            .buttonTextStyle { $0.foreground = .palette.accent }
-            // Outermost, so the link covers everything the button style drew —
-            // its hover prefix included. The control IS the link; a hyperlink over
-            // only the letters would leave the cells beside them inert while
-            // looking identical.
-            .modifier(
-                TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks))
-            // The destination, where the user can read and copy it. Anchored to
-            // the link rather than shown in the status bar: a URL is long, the
-            // status bar is a row shared with every shortcut, and a destination
-            // that shoved those aside — or was truncated to fit, which would make
-            // it unusable — every time focus moved would be worse than not showing
-            // it at all.
-            .popover(isPresented: $showingDestination) {
+            PopoverPresentationModifier(
+                content: linkControl(open: open, gate: gate, showing: showing),
+                isPresented: $showingDestination,
                 // `verbatim`, because a URL is content and not a lookup key.
-                Text(verbatim: destination.absoluteString)
-            })
+                popover: Text(verbatim: destination.absoluteString),
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: .bottom))
+    }
+
+    /// The link as a control, which the destination's popover is anchored to.
+    /// That popover is built here rather than through `View.popover`, which
+    /// adapts to the size classes (`TUIkitPresentation`): the destination is a
+    /// note beside the link at any size, not a presentation of its own.
+    private func linkControl(open: OpenURLAction, gate: LinkActivationGate, showing: Binding<Bool>) -> some View {
+        Button(
+            action: {
+                guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
+                open(destination)
+                showing.wrappedValue = true
+            },
+            label: { resolvedLabel })
+        .buttonStyle(_LinkButtonStyle(indicator: focusIndicator))
+        .buttonTextStyle { $0.foreground = .palette.accent }
+        // Outermost, so the link covers everything the button style drew —
+        // its hover prefix included. The control IS the link; a hyperlink over
+        // only the letters would leave the cells beside them inert while
+        // looking identical.
+        .modifier(
+            TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks))
+        // The destination, where the user can read and copy it, is the
+        // popover the caller anchors to this. Anchored to the link rather
+        // than shown in the status bar: a URL is long, the status bar is a
+        // row shared with every shortcut, and a destination that shoved
+        // those aside — or was truncated to fit, which would make it
+        // unusable — every time focus moved would be worse than not showing
+        // it at all.
     }
 
     /// The link's visible text, which the display mode decides.
