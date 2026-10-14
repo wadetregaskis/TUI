@@ -508,18 +508,6 @@
     },
     {
       "match": [
-        "PhaseAnimator",
-        "PhaseAnimator.*",
-        "KeyframeAnimator",
-        "KeyframeAnimator.*",
-        "View.phaseAnimator(_:content:animation:)",
-        "View.keyframeAnimator(initialValue:repeating:content:keyframes:)",
-        "View.keyframeAnimator(initialValue:trigger:content:keyframes:)"
-      ],
-      "why": "The animator VIEWS: content described at each phase, or by a keyframe timeline, with the framework moving between them. Pre-rendering a subtree once per phase runs its render side effects once per phase (focus registration, hit-test regions, onAppear, preference writes); the live alternative — each step a withAnimation, rendering every frame while it runs — is O2 of the Wave 17 review, an owner decision. The keyframe timeline itself (KeyframeTimeline, Keyframes, KeyframeTrack, the four keyframes) ships; `View.transition(_:)` and `AnimatedCellRun` cover the cases the views would, from the two ends."
-    },
-    {
-      "match": [
         "Shader*",
         "View.colorEffect*",
         "View.layerEffect*",

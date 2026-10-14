@@ -244,9 +244,14 @@ messages cite that path), and what cites it.
   velocities (`p3.swift`); a `Spring`'s parameters, values and velocities by each way of making one (`p4.swift`,
   `p5.swift`); a `KeyframeTimeline`'s values over time (`p6.swift`, `p7.swift`); and the environment's default
   `contentTransition` and how `ContentTransition`s compare (`p8.swift`). Each is a program alone (`@main`, no
-  shared file); the numbers print to six places.
-- **Ran:** against the macOS 26.2 SDK, on the development Mac, 2026-10-03. `p1`, `p2`, `p3` and `p8` kept no
-  output; their results are in wave 12's decisions.
+  shared file); the numbers print to six places. `p9.swift` is the exception: it hosts a `PhaseAnimator` and a
+  `KeyframeAnimator` off-screen and records, through their closures, which phase or value each is handed as
+  their triggers change — a trigger runs a phase animator through every phase, not one step, and keyframes
+  replay from the initial value, both against SwiftUI's documentation.
+- **Ran:** against the macOS 26.2 SDK, on the development Mac, 2026-10-03; `p9` on 2026-10-14 (macOS 15.8,
+  Xcode's Swift 6.2.4, three runs alike). `p1`, `p2`, `p3` and `p8` kept no output; their results are in wave
+  12's decisions. `p9.out` prints the timing-dependent cases classified (start, end or between), so a rerun
+  compares with `diff`.
 - **Was:** `w12/probe/`.
 - **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`; `Tests/TUIkitTests/KeyframeTimelineTests.swift`,
   `Tests/TUIkitTests/SpringTests.swift`, `Tests/TUIkitTests/UnitCurveTests.swift`; wave 12's entries in

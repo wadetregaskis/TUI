@@ -49,11 +49,11 @@ default dissolve each wait on an A/B on the quiet machine, whose numbers
 decide them as agreed: A40 dissolves by default if that costs under about 1%
 when nothing animates.
 
-**Decided, lane owed.** A0's ruled O items but O1, O7, O17 and O16 (deferred), and with them
-A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
+**Decided, lane owed.** A0's ruled O items but O1, O2, O7, O17 and O16 (deferred), and with them
+A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A38 (O3) and
 A41 (O5); A42, B19 (after its A/B), B22 (a look at the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
-A25 shipped on 2026-10-14, and O7 with A12.
+Shipped on 2026-10-14: A25; O7 with A12; O1; O17; O2 with A37.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -90,7 +90,7 @@ ruling is in the review under its item. In brief, with the ruling:
   the terminal is on the same machine; then the host's setting too, by the
   clipboard's locality test. Shipped 2026-10-14.
 - **O2** `PhaseAnimator` and `KeyframeAnimator`. **(b)**; (c) is not easy,
-  so it is presented after (b).
+  so it is presented after (b). (b) shipped 2026-10-14.
 - **O3** `CustomAnimation`. **Detect, else live**: integrated lazily and
   memoised, a finished animation is its own pre-sampled table.
 - **O4** Matched geometry and zoom transitions. **(b), with (a) where
@@ -571,6 +571,12 @@ trigger form of that live phase animator, and its completion advance would use t
 animation completions this wave adds.
 
 **Decided with O2 (2026-10-12): (b), lane owed.**
+
+**Shipped (2026-10-14) with O2.** Measured on SwiftUI first
+(`Tools/SwiftUIProbes/Animation curves, springs and keyframes/p9.swift`): a
+trigger change runs through every phase and back to the first, not one step as
+SwiftUI's documentation says; the animation closure is handed the phase being
+entered.
 
 ### A38. `Animation.shouldMerge` and `Animation.velocity` wait on O3
 

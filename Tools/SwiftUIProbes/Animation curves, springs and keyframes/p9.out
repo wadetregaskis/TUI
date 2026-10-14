@@ -1,0 +1,15 @@
+phase+trigger appear: c0
+phase+trigger change 1: a1 c1 a2 c2 a0 c0
+phase+trigger change 2: a1 c1 a2 c2 a0 c0
+phase+trigger change 3: a1 c1 a2 c2 a0 c0
+phase+trigger changed twice, 0.3 s apart: a1 c1 a2 c2 a1 c1 a2 c2 a0 c0
+phase continuous 1.3s: c0 a1 c1 a2 c2 a0 c0 a1 c1 a2 c2 a0 c0
+phase nil-animation 0.5s: c0 c1 c2 c0
+phase nil-animation the next 1.5s: 
+keyframe+trigger appear: v0
+keyframe+trigger change 1: k0 v0 v1 v2 v3 v4 v5 v6 v7 v8 v9 v10
+keyframe+trigger change 2: k0 v0 v1 v2 v3 v4 v5 v6 v7 v8 v9 v10
+keyframe+trigger change 3, 0.12s in: k0 v0 vmid
+keyframe+trigger change 4, during the third: kmid vmid v10
+keyframe repeating:false: k3 v3
+keyframe repeating:true 0.75s: starts k3 v3, reaches v10 at least twice, falls back after it yes

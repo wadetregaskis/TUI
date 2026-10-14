@@ -183,7 +183,6 @@
   "View.onScrollTargetVisibilityChange(idType:threshold:_:)",
   "View.overlay(_:ignoresSafeAreaEdges:)",
   "View.overlay(_:in:fillStyle:)",
-  "View.phaseAnimator(_:trigger:content:animation:)",
   "View.presentationCornerRadius(_:)",
   "View.projectionEffect(_:)",
   "View.rotation3DEffect(_:axis:anchor:anchorZ:perspective:)",

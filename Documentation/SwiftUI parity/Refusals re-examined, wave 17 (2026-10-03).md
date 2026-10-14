@@ -901,6 +901,16 @@ see the class). So (c) is presented after (b), not built with it. Lane owed:
 (b), about two days: `PhaseAnimator` and `KeyframeAnimator` as views with real
 bodies, and their four modifiers. A37 follows it.
 
+**(b) shipped 2026-10-14**, with A37, after measuring SwiftUI
+(`Tools/SwiftUIProbes/Animation curves, springs and keyframes/p9.swift`), whose
+documentation disagrees with it twice. A phase animator's trigger runs through
+every phase and back to the first, not one step; a keyframe animator replays
+from its initial value, not from the end value. A step into a phase is a
+`withAnimation` with that phase's animation, the next starting when it is
+logically complete; keyframes play on the frame clock through a
+`TimelineView(.animation)`, paused at rest. Keyframes restarted part-way carry
+no velocity, TUIkit's keyframes taking no initial velocity.
+
 ### O3. `CustomAnimation` family — M
 
 - **The reason fails:** "State between frames forbids pre-sampling" is false
