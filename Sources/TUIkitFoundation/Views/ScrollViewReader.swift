@@ -41,10 +41,13 @@ public struct ScrollViewProxy {
     ///     movement: scroll just enough to make the row visible, not at
     ///     all if it already is.
     ///
-    /// > Note: Deviations from SwiftUI, both from the terminal scroll
-    ///   model. Horizontal-capable scroll views (`axes` containing
-    ///   `.horizontal`) don't participate — the seek rides the vertical
-    ///   row-windowing handshake. And a `.id(_:)` tag is read off the
+    /// On a purely horizontal scroll view the id names a column of the
+    /// `HStack` or `LazyHStack` that is its content, and the anchor's `x`
+    /// places it: `.leading`, `.center`, `.trailing`, or `nil` for minimal
+    /// movement.
+    ///
+    /// > Note: A deviation from SwiftUI, from the terminal scroll model: a
+    ///   `.id(_:)` tag is read off the
     ///   content stack's own children, never from inside a `ForEach` row: a
     ///   row's identity is its element's `id`, which is the rule `.tag(_:)`
     ///   follows too. Decided in one place, so every seek path gives the same

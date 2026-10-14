@@ -140,3 +140,58 @@ extension _HStackCore {
         return reply
     }
 }
+
+// MARK: - A Column Sought
+
+extension _HStackCore {
+    /// Where the column a purely horizontal scroll view seeks sits in a LAZY
+    /// row (``ScrollContentWindow/columnSeek``): its place as the walk put it,
+    /// for the scroll view to move to. Placed as ``reportTargetLayout(collected:context:)``
+    /// places columns.
+    func resolveColumnSeek(collected: [(FrameBuffer, Int, ChildView?)], context: RenderContext) {
+        guard let (reply, seek) = columnSeekReply(context: context) else { return }
+        var cursor = 0
+        for (buffer, gap, child) in collected {
+            cursor += gap
+            if let child, buffer.width > 0, child.matchesSeekKey(seek.key) {
+                reply.seekResolvedColumn = .init(origin: cursor, length: buffer.width)
+                return
+            }
+            cursor += buffer.width
+        }
+    }
+
+    /// Where the column a purely horizontal scroll view seeks sits in an EAGER
+    /// row, placed as ``reportTargetLayout(buffers:spacerWidths:gaps:context:)``
+    /// places columns. A spacer is no column to seek.
+    func resolveColumnSeek(
+        buffers: [FrameBuffer?], spacerWidths: [Int], gaps: StackGaps, children: [ChildView], context: RenderContext
+    ) {
+        guard let (reply, seek) = columnSeekReply(context: context) else { return }
+        var cursor = 0
+        var walk = StackGapWalk(gaps)
+        for (index, buffer) in buffers.enumerated() {
+            let width = buffer?.width ?? spacerWidths[index]
+            guard width > 0 else { continue }
+            cursor += walk.gap(before: index, extent: width)
+            walk.place(index, extent: width)
+            if buffer != nil, children[index].matchesSeekKey(seek.key) {
+                reply.seekResolvedColumn = .init(origin: cursor, length: width)
+                return
+            }
+            cursor += width
+        }
+    }
+
+    /// The reply a sought column is reported into, with the request, or `nil`
+    /// when none is sought here: a render pass at the scroll content's origin
+    /// (the context's test, read first, as ``targetLayoutReply(context:)``
+    /// reads it) whose window carries a column seek.
+    private func columnSeekReply(context: RenderContext) -> (ScrollContentReply, ScrollToRequest)? {
+        guard !context.isMeasuring, context.mayConsumeScrollWindow,
+            let window = context.environment.scrollContentWindow, let seek = window.columnSeek,
+            window.isAtOrigin(context.identity), let reply = window.reply
+        else { return nil }
+        return (reply, seek)
+    }
+}

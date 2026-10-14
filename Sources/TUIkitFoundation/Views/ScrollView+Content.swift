@@ -370,6 +370,9 @@ extension _ScrollViewCore {
             // purely horizontal view, where `scrollTo` would be asking about
             // columns and this window has nothing to say about them.
             seek: axes.contains(.vertical) ? seek : nil,
+            // …and on a purely horizontal view it names a column, which a
+            // horizontal stack at the origin finds for the offset below.
+            columnSeek: axes.contains(.vertical) || !horizontal ? nil : seek,
             // The rows of a marked stack, for a behaviour to settle on.
             reportsTargetLayout: handler?.scrollTargeting != nil,
             // The row at the top, held as the content above it changes — on
@@ -409,6 +412,29 @@ extension _ScrollViewCore {
                 topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
             redrawn.seek = contentReply.seekResolvedOffset.map { ($0, contentReply.resolvedOffsetIsHold) }
             return redrawn
+        }
+        if let column = contentReply.seekResolvedColumn, let seek, !remeasured, !context.isMeasuring {
+            // A column sought: the offset that shows it, by the request's
+            // anchor, adopted as a row's is — any overscroll excursion dropped
+            // with it. Drawn again at that offset when it moves, so what reads
+            // its place in the viewport reads the place it is drawn at. Once:
+            // the request is spent.
+            let target = seek.columnOffset(
+                targetX: column.origin, width: column.length, currentOffset: horizontalScrollOffset,
+                viewportWidth: contentWidth, totalWidth: extents.width)
+            handler?.horizontal.scrollOffset = target
+            handler?.horizontal.clearOverscroll()
+            if target != horizontalScrollOffset {
+                checkpoint?.rewind(context: context)
+                var redrawn = renderedContent(
+                    contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: horizontal,
+                    verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
+                    horizontalScrollOffset: target, slide: slide, edgeInset: edgeInset,
+                    handler: handler, checkpoint: checkpoint, context: context, settledExtents: extents,
+                    topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
+                redrawn.seek = redrawn.seek ?? contentReply.seekResolvedOffset.map { ($0, contentReply.resolvedOffsetIsHold) }
+                return redrawn
+            }
         }
         if let id = reply?.anchorID, let handler, !context.isMeasuring {
             reportVisibleID(id, handler: handler, context: context)

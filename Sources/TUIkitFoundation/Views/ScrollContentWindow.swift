@@ -25,7 +25,7 @@ struct ScrollContentWindow: Sendable, Hashable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.offset == rhs.offset, lhs.viewportHeight == rhs.viewportHeight,
             lhs.contentIdentity == rhs.contentIdentity, lhs.edgeInset == rhs.edgeInset,
-            lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek,
+            lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek, lhs.columnSeek == rhs.columnSeek,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow
         else { return false }
         return lhs.reportsTargetLayout == rhs.reportsTargetLayout && lhs.topRowHold == rhs.topRowHold
@@ -38,6 +38,7 @@ struct ScrollContentWindow: Sendable, Hashable {
         hasher.combine(edgeInset)
         hasher.combine(reportsIDAt)
         hasher.combine(seek)
+        hasher.combine(columnSeek)
         hasher.combine(linesAbove)
         hasher.combine(linesBelow)
         hasher.combine(reportsTargetLayout)
@@ -130,6 +131,14 @@ struct ScrollContentWindow: Sendable, Hashable {
     /// — and reports the offset via ``ScrollContentReply/seekResolvedOffset``
     /// for the ScrollView to adopt.
     var seek: ScrollToRequest?
+
+    /// A pending programmatic scroll on a purely HORIZONTAL scroll view, which
+    /// names a column, not a row: the horizontal stack at the content's origin
+    /// that holds the key reports where that column sits
+    /// (``ScrollContentReply/seekResolvedColumn``), and the scroll view moves
+    /// its horizontal offset to it. `nil` wherever ``seek`` is set — a view that
+    /// scrolls vertically seeks rows — and whenever nothing is sought.
+    var columnSeek: ScrollToRequest?
 
     /// The scroll content's lines above the stack that consumes this window,
     /// and below it: a `Section`'s header and footer, which the section draws
@@ -323,6 +332,11 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
     /// — in the content's coordinates, when the window asked.
     var targetLayoutColumns: TargetLayoutSpans?
 
+    /// Where the column ``ScrollContentWindow/columnSeek`` names sits, in the
+    /// content's coordinates — `nil` when nothing was sought or no column
+    /// holds the key (an unknown id is a no-op, as in SwiftUI).
+    var seekResolvedColumn: TargetLayoutSpans.Span?
+
     /// Whether this render refuted what the content's measure answered with
     /// before it: the uniform window's hypothesis that every row is as tall as
     /// the first (`renderUniformSeekWindow`). The canvas the ScrollView offered
@@ -363,6 +377,28 @@ package struct ScrollToRequest: Sendable, Hashable {
     /// the reveal snap applies the same reservation.
     var topInset = 0
     var bottomInset = 0
+
+    /// The horizontal offset that realises this request for a column of
+    /// `width` cells whose leading edge sits at content-space `targetX`, in a
+    /// viewport `viewportWidth` wide over content `totalWidth` wide, clamped to
+    /// the scrollable range: the anchor's `x` aligns the column's unit point
+    /// with the viewport's (0 = leading, 0.5 = centre, 1 = trailing), and no
+    /// anchor moves as little as shows the whole column — not at all if it
+    /// already shows. A horizontal view draws no indicator over its first or
+    /// last column, so nothing is reserved for one.
+    func columnOffset(targetX: Int, width: Int, currentOffset: Int, viewportWidth: Int, totalWidth: Int) -> Int {
+        let raw: Int
+        if let anchor {
+            raw = targetX - Int((Double(viewportWidth - width) * anchor.x).rounded())
+        } else if targetX < currentOffset {
+            raw = targetX
+        } else if targetX + width > currentOffset + viewportWidth {
+            raw = targetX + width - viewportWidth
+        } else {
+            raw = currentOffset
+        }
+        return max(0, min(raw, max(0, totalWidth - viewportWidth)))
+    }
 
     /// The window offset that realises this request for a row of
     /// `rowHeight` cells whose top sits at content-space `targetY`,

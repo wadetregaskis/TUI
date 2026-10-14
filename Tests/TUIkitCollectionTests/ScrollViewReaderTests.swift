@@ -227,9 +227,10 @@ struct ScrollViewReaderTests {
     }
 
     /// And the refusal that STAYS. A purely horizontal scroll view scrolls
-    /// columns; `scrollTo` names a row, and this window has nothing to say
-    /// about one. The rows a `LazyVStack` puts in it are simply the ones that
-    /// fit, at every offset there is.
+    /// columns, and seeks one where its content is a horizontal stack
+    /// (`ScrollViewReaderColumnTests`); a `LazyVStack`'s rows are no columns, so naming
+    /// one there moves nothing. Its rows are simply the ones that fit, at every
+    /// offset there is.
     @Test("scrollTo is still a no-op on a purely horizontal ScrollView")
     func horizontalOnlyScrollToIsRefused() {
         let tuiContext = TUIContext()
