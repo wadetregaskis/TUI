@@ -1286,6 +1286,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `subview.sizeThatFits(.zero)`, copied verbatim from a SwiftUI custom layout, fails to compile, even though `ProposedSize(width: 0, height: 0)` means exactly the same thing on a cell grid.
 - *Recommendation:* Fix the .zero half — `public static let zero = Self(width: 0, height: 0)` is one line and semantically identical to SwiftUI's. The .infinity omission is genuinely justified (Int? cannot carry it, and SwiftUI compatibility guide.md:112 argues correctly that ViewSize.isWidthFlexible already carries what the infinity probe infers); say so on the type, not only in the compatibility doc. replacingUnspecifiedDimensions(by:) is near-pointless here because _LayoutCore.grounded means a layout never receives an unspecified proposal, but it is cheap and keeps more ported source compiling.
 - *Status (2026-10-14 sweep):* **OPEN** — `ProposedSize` has no `.zero`.
+- *Status:* **FIXED** (2026-10-14): `ProposedSize.zero` (LayoutTypes.swift); `.infinity` stays out, a cell count having no infinite value. ProposedSizeTests.
 
 ### Gestures, hit testing and keyboard input
 

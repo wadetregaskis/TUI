@@ -23,6 +23,13 @@ public struct ProposedSize: Equatable, Sendable {
     /// No constraints - view should use its ideal size.
     public static let unspecified = Self(width: nil, height: nil)
 
+    /// A proposal of no space at all: the view's minimum size — mirrors
+    /// SwiftUI's `ProposedViewSize.zero`.
+    ///
+    /// SwiftUI's `.infinity` has no counterpart: a cell count has no infinite
+    /// value, and `Int.max` would overflow the arithmetic a layout does with it.
+    public static let zero = Self(width: 0, height: 0)
+
     /// Creates a proposed size with specific dimensions.
     public init(width: Int?, height: Int?) {
         self.width = width
