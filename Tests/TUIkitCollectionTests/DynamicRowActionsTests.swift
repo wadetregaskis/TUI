@@ -59,6 +59,14 @@ struct DynamicRowActionsTests {
         #expect(forEach.deleteAction != nil)
     }
 
+    @Test(".onMove(perform: nil) makes rows unmovable again (the semantic audit's item 75)")
+    func onMoveNilDisables() {
+        let forEach = ForEach(["a"], id: \.self) { Text($0) }
+            .onMove { _, _ in }
+            .onMove(perform: nil)
+        #expect(forEach.moveAction == nil)
+    }
+
     @Test(".onDelete(perform: nil) makes rows non-deletable again")
     func onDeleteNilDisables() {
         let forEach = ForEach(["a"], id: \.self) { Text($0) }

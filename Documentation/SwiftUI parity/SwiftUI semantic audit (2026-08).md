@@ -937,6 +937,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Verified: `ForEach(seas) { Text($0.name) }.onMove(perform: nil)` fails with "error: 'nil' is not compatible with expected argument type '(IndexSet, Int) -> Void'". Any conditional spelling — `.onMove(perform: canReorder ? move : nil)` — breaks the same way.
 - *Recommendation:* Fix: widen to `((IndexSet, Int) -> Void)?`. The stored property `onMoveAction` is already Optional, so it is a one-word change.
 - *Status (2026-10-14 sweep):* **OPEN** — `onMove(perform:)` takes no `nil`.
+- *Status:* **FIXED** (2026-10-14): `ForEach.onMove(perform:)` takes an optional action, `nil` making the rows unmovable; DynamicRowActionsTests.
 
 **76. `List.init(selection:content:) — binding optionality and the non-optional form`**
 

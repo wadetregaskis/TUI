@@ -157,9 +157,13 @@ extension ForEach where Content: View {
     /// - Note: As with ``onDelete(perform:)``, TUIkit returns the concrete
     ///   `ForEach` rather than SwiftUI's `some DynamicViewContent`.
     ///
-    /// - Parameter action: The reorder action `(source, destination)`.
+    /// Passing `nil` makes the rows unmovable again, as SwiftUI's optional
+    /// action does (the semantic audit's item 75).
+    ///
+    /// - Parameter action: The reorder action `(source, destination)`, or
+    ///   `nil` to disable moving.
     /// - Returns: A `ForEach` that reports the move action to its `List`.
-    public func onMove(perform action: @escaping (IndexSet, Int) -> Void) -> ForEach {
+    public func onMove(perform action: ((IndexSet, Int) -> Void)?) -> ForEach {
         var copy = self
         copy.onMoveAction = action
         return copy
