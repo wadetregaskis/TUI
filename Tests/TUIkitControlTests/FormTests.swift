@@ -234,6 +234,52 @@ struct FormTests {
         }
     }
 
+    /// Where `text` starts on the first line holding it, in cells.
+    private func column(of text: String, in out: [String]) -> Int? {
+        guard let line = out.first(where: { $0.contains(text) }), let range = line.firstRange(of: text) else { return nil }
+        return line.distance(from: line.startIndex, to: range.lowerBound)
+    }
+
+    /// The value column of a form whose first row is `modified` — `Name`:
+    /// `Alice`, under some modifier — and whose second is a bare row with a
+    /// longer label, beside the bare row's.
+    private func valueColumns(_ modified: some View) -> (alice: Int?, email: Int?, out: [String]) {
+        let out = lines(
+            Form {
+                modified
+                LabeledContent("Email address", value: "a@b.c")
+            })
+        return (column(of: "Alice", in: out), column(of: "a@b.c", in: out), out)
+    }
+
+    /// SwiftUI's form keeps a row in its place whatever is written on it —
+    /// measured: the label stays in the label column and the modifier applies
+    /// to the row (DEVS #7, the semantic audit's item 8). A modifier that can
+    /// be put back around the laid-out row is looked through.
+    @Test("A modifier written on a LabeledContent row keeps it a labelled row, on the pillar")
+    func modifiedLabeledRow() {
+        let row = LabeledContent("Name", value: "Alice")
+        for (name, columns) in [
+            ("foregroundStyle", valueColumns(row.foregroundStyle(.red))),
+            ("disabled", valueColumns(row.disabled(true))),
+            ("opacity", valueColumns(row.opacity(0.5))),
+            ("two modifiers", valueColumns(row.disabled(true).foregroundStyle(.red))),
+        ] {
+            #expect(columns.alice != nil && columns.alice == columns.email, "\(name): \(columns.out)")
+            #expect(columns.out.first { $0.contains("Alice") }?.contains("         Name ") == true, "\(name): \(columns.out)")
+        }
+    }
+
+    @Test("A modifier written on a Toggle row keeps it in the control column")
+    func modifiedControlRow() {
+        let bare = lines(Form { LabeledContent("Email address", value: "a@b.c"); Toggle("Wi-Fi", isOn: .constant(true)) })
+        // `.opacity`, not `.disabled`: `Toggle` answers `.disabled` itself,
+        // as a `Toggle`.
+        let faded = lines(
+            Form { LabeledContent("Email address", value: "a@b.c"); Toggle("Wi-Fi", isOn: .constant(true)).opacity(0.5) })
+        #expect(column(of: "Wi-Fi", in: bare) != nil && column(of: "Wi-Fi", in: faded) == column(of: "Wi-Fi", in: bare), "\(bare)\n\(faded)")
+    }
+
     // MARK: - macOS columns conventions
 
     @Test("A bare Toggle is box-first in the control column (its label is clickable)")

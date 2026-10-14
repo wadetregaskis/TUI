@@ -78,6 +78,11 @@ enum _FormRowKind {
 struct _FormRow {
     var kind: _FormRowKind
     var alignment: HorizontalAlignment?
+    /// The modifiers written on the row, put back around the row the form
+    /// lays out — a `LabeledContent("Name") { … }.foregroundStyle(.red)` is a
+    /// labelled row, red, as SwiftUI's form keeps it (see
+    /// `formElements(from:in:)`); `nil` for a row written bare.
+    var rewrap: (@MainActor (AnyView) -> AnyView)?
 
     init(_ kind: _FormRowKind, alignment: HorizontalAlignment? = nil) {
         self.kind = kind
@@ -205,6 +210,17 @@ private func baseRowView(_ kind: _FormRowKind, pillar: Int) -> some View {
     }
 }
 
+/// A row's natural layout (``baseRowView(_:pillar:)``) inside the modifiers
+/// that were written on it (``_FormRow/rewrap``).
+@MainActor @ViewBuilder
+private func rewrappedRowView(_ row: _FormRow, pillar: Int) -> some View {
+    if let rewrap = row.rewrap {
+        rewrap(AnyView(baseRowView(row.kind, pillar: pillar)))
+    } else {
+        baseRowView(row.kind, pillar: pillar)
+    }
+}
+
 /// Builds one row's view. An explicit ``View/formRowAlignment(_:)``
 /// frames the row to `contentWidth` at that alignment (columns only); otherwise a
 /// button defaults to right-aligned and every other kind keeps its natural width.
@@ -212,7 +228,7 @@ private func baseRowView(_ kind: _FormRowKind, pillar: Int) -> some View {
 /// apply.
 @MainActor @ViewBuilder
 private func formRowView(_ row: _FormRow, pillar: Int, contentWidth: Int) -> some View {
-    let base = baseRowView(row.kind, pillar: pillar)
+    let base = rewrappedRowView(row, pillar: pillar)
     if contentWidth > 0, let alignment = row.alignment {
         // Explicit override (e.g. left-align a button that defaults to the right).
         base.frame(width: contentWidth, alignment: Alignment(horizontal: alignment, vertical: .center))
@@ -369,10 +385,10 @@ private func groupedRowView(_ row: _FormRow, pillar: Int) -> some View {
     if case .button = row.kind {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
-            baseRowView(row.kind, pillar: pillar)
+            rewrappedRowView(row, pillar: pillar)
         }
     } else {
-        baseRowView(row.kind, pillar: pillar)
+        rewrappedRowView(row, pillar: pillar)
     }
 }
 

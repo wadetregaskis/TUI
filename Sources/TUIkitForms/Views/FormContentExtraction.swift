@@ -67,6 +67,9 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     if view is FormButtonRow {
         return [.row(_FormRow(.button(AnyView(view))))]
     }
+    if let wrapper = view as? any ContentRewrapping, let row = rewrappedRow(wrapper, in: walk) {
+        return [.row(row)]
+    }
     // A view of the app's own whose body is several views, a loop, an `if` or
     // a section — what a stack takes apart (`compositeMembers(of:context:)`,
     // decisions D1S, B-D1S-6) — is read through its body, as SwiftUI's form
@@ -87,6 +90,44 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     }
     return [.row(_FormRow(.plain(AnyView(view))))]
 }
+
+/// The one row a modifier written on a form row wraps — a labelled row, a
+/// checkbox or a button, under any number of modifiers that can be put back
+/// around something else (``ContentRewrapping``) — with the modifiers to put
+/// back around it as the form lays it out; `nil` for anything else, which
+/// stays a plain row drawn whole.
+///
+/// SwiftUI's form keeps such a row in its place whatever is written on it
+/// (measured, `.foregroundStyle`, `.disabled`, `.font`, `.frame`, `.opacity`,
+/// `.offset`, `.tag`, `.padding`, `.background`, `.help`, `.id`, in both
+/// styles: the label stays in the label column and the modifier applies to the
+/// row). Here the modifiers that can be put back are the ones TUIkit already
+/// moves onto the members of a group; `.padding`, `.background`, `.help`,
+/// `.tag` and `.id` cannot, and leave the row plain. Only a row the form classifies by its
+/// type is looked through: a view of the app's own is read through its body,
+/// which would be evaluated outside the modifiers' environment.
+@MainActor
+private func rewrappedRow<W: ContentRewrapping>(_ wrapper: W, in walk: RenderContext) -> _FormRow? {
+    let inner = wrapper.wrappedContent
+    var row: _FormRow
+    if let innerWrapper = inner as? any ContentRewrapping {
+        guard let innerRow = rewrappedRow(innerWrapper, in: walk) else { return nil }
+        row = innerRow
+    } else if inner is any FormLabeledRow || inner is FormControlRow || inner is FormButtonRow {
+        guard case .row(let innerRow) = formElements(from: inner, in: walk).first else { return nil }
+        row = innerRow
+    } else {
+        return nil
+    }
+    let innermost = row.rewrap
+    row.rewrap = { view in AnyView(wrapper.rewrapping(innermost?(view) ?? view)) }
+    return row
+}
+
+/// A view the form lays out as one labelled row: a ``LabeledContent``.
+protocol FormLabeledRow {}
+
+extension LabeledContent: FormLabeledRow {}
 
 /// Whether the form reads through the body of a view of type `V`: a view of
 /// the app's own whose body is several views, a loop, an `if` or a section —
