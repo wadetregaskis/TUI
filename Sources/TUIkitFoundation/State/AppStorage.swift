@@ -382,7 +382,7 @@ public struct AppStorage<Value> {
 
     /// How the value is read from and written to a store: as itself, or as its
     /// raw value.
-    private let codec: StorageCodec<Value>
+    private let codec: any StorageCodec<Value>
 
     /// The store the property named, or `nil` for the one its view's
     /// environment names.
@@ -400,7 +400,7 @@ public struct AppStorage<Value> {
 
     /// The property for `key`, falling back to `defaultValue`, in `store`, or
     /// in its view's default store when that is `nil`, kept as `codec` says.
-    private init(key: String, defaultValue: Value, store: (any StorageBackend)?, codec: StorageCodec<Value>) {
+    private init(key: String, defaultValue: Value, store: (any StorageBackend)?, codec: any StorageCodec<Value>) {
         self.key = key
         self.defaultValue = defaultValue
         self.codec = codec
@@ -538,51 +538,49 @@ extension AppStorage {
 
 /// How an ``AppStorage`` or a ``SceneStorage`` keeps its value in a store: as
 /// itself, for a `Codable` value, or as its raw value, for a raw-representable
-/// one — one subclass each, overriding both methods.
+/// one — one conformer each.
 ///
-/// A class rather than a pair of `Sendable` closures, which captured the
-/// value type's metatype (Swift 6.2 warns of it, SendableMetatypes), and
-/// rather than an `any` of a protocol with a primary associated type: stored
-/// here, that crashed every test that made an `AppStorage` (signal 11 under
-/// Xcode's Swift 6.2.4, deployment target macOS 14; the cause was not
-/// pinned down — no rendering was involved). Immutable, so unchecked-`Sendable`
-/// is sound.
-class StorageCodec<Value>: @unchecked Sendable {
+/// Empty structs behind a protocol, rather than a pair of `Sendable` closures,
+/// which captured the value type's metatype (Swift 6.2 warns of it,
+/// SendableMetatypes), or a class: an empty struct fits an existential's
+/// inline buffer, so making a property allocates nothing and copying one
+/// counts no references — and a property is made each time its view is.
+protocol StorageCodec<Value>: Sendable {
+    associatedtype Value
+
     /// The value stored for `key`, or `nil` where there is none to read.
-    func read(_ store: any StorageBackend, _ key: String) -> Value? { nil }
+    func read(_ store: any StorageBackend, _ key: String) -> Value?
 
     /// Stores `value` for `key`.
-    func write(_ store: any StorageBackend, _ key: String, _ value: Value) {}
+    func write(_ store: any StorageBackend, _ key: String, _ value: Value)
 }
 
 /// The value itself.
-final class CodableStorageCodec<Value: Codable>: StorageCodec<Value>, @unchecked Sendable {
-    override func read(_ store: any StorageBackend, _ key: String) -> Value? { store.value(forKey: key) }
-    override func write(_ store: any StorageBackend, _ key: String, _ value: Value) { store.setValue(value, forKey: key) }
+struct CodableStorageCodec<Value: Codable>: StorageCodec {
+    func read(_ store: any StorageBackend, _ key: String) -> Value? { store.value(forKey: key) }
+    func write(_ store: any StorageBackend, _ key: String, _ value: Value) { store.setValue(value, forKey: key) }
 }
 
 /// The raw value; one that is no case reads as nothing stored.
-final class RawValueStorageCodec<Value: RawRepresentable>: StorageCodec<Value>, @unchecked Sendable
-where Value.RawValue: Codable {
-    override func read(_ store: any StorageBackend, _ key: String) -> Value? {
+struct RawValueStorageCodec<Value: RawRepresentable>: StorageCodec where Value.RawValue: Codable {
+    func read(_ store: any StorageBackend, _ key: String) -> Value? {
         (store.value(forKey: key) as Value.RawValue?).flatMap(Value.init(rawValue:))
     }
 
-    override func write(_ store: any StorageBackend, _ key: String, _ value: Value) {
+    func write(_ store: any StorageBackend, _ key: String, _ value: Value) {
         store.setValue(value.rawValue, forKey: key)
     }
 }
 
 /// An optional raw-representable's raw value; its `nil` as an optional raw
 /// value's `nil`.
-final class OptionalRawValueStorageCodec<Wrapped: RawRepresentable>: StorageCodec<Wrapped?>, @unchecked Sendable
-where Wrapped.RawValue: Codable {
-    override func read(_ store: any StorageBackend, _ key: String) -> Wrapped?? {
+struct OptionalRawValueStorageCodec<Wrapped: RawRepresentable>: StorageCodec where Wrapped.RawValue: Codable {
+    func read(_ store: any StorageBackend, _ key: String) -> Wrapped?? {
         guard let raw: Wrapped.RawValue = store.value(forKey: key), let value = Wrapped(rawValue: raw) else { return nil }
         return .some(value)
     }
 
-    override func write(_ store: any StorageBackend, _ key: String, _ value: Wrapped?) {
+    func write(_ store: any StorageBackend, _ key: String, _ value: Wrapped?) {
         store.setValue(value.map(\.rawValue), forKey: key)
     }
 }

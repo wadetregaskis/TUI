@@ -60,11 +60,11 @@ public struct SceneStorage<Value> {
 
     /// How the value is read from and written to the store: as itself, or as
     /// its raw value (``StorageCodec``).
-    private let codec: StorageCodec<Value>
+    private let codec: any StorageCodec<Value>
 
     /// Scene storage for `key`, within the scene's namespace, falling back to
     /// `defaultValue`, in `storage`, kept as `codec` says.
-    private init(key: String, defaultValue: Value, storage: StorageBackend, codec: StorageCodec<Value>) {
+    private init(key: String, defaultValue: Value, storage: StorageBackend, codec: any StorageCodec<Value>) {
         self.key = Self.prefix + key
         self.defaultValue = defaultValue
         self.storage = storage
@@ -105,7 +105,7 @@ extension SceneStorage where Value: Codable {
     ///   - wrappedValue: The value to use before anything is stored.
     ///   - key: The key to store under, within the scene's namespace.
     public init(wrappedValue: Value, _ key: String) {
-        self.init(key: key, defaultValue: wrappedValue, storage: StorageDefaults.backend, codec: CodableStorageCodec())
+        self.init(key: key, defaultValue: wrappedValue, storage: StorageDefaults.backend, codec: CodableStorageCodec<Value>())
     }
 
     /// Creates scene storage with a custom backend.
@@ -115,7 +115,7 @@ extension SceneStorage where Value: Codable {
     ///   - key: The key to store under, within the scene's namespace.
     ///   - storage: Where to store it.
     public init(wrappedValue: Value, _ key: String, store storage: StorageBackend) {
-        self.init(key: key, defaultValue: wrappedValue, storage: storage, codec: CodableStorageCodec())
+        self.init(key: key, defaultValue: wrappedValue, storage: storage, codec: CodableStorageCodec<Value>())
     }
 
     /// Creates scene storage for an optional value, `nil` until something is
@@ -123,7 +123,7 @@ extension SceneStorage where Value: Codable {
     ///
     /// - Parameter key: The key to store under, within the scene's namespace.
     public init<Wrapped>(_ key: String) where Value == Wrapped? {
-        self.init(key: key, defaultValue: nil, storage: StorageDefaults.backend, codec: CodableStorageCodec())
+        self.init(key: key, defaultValue: nil, storage: StorageDefaults.backend, codec: CodableStorageCodec<Value>())
     }
 }
 
@@ -141,7 +141,7 @@ extension SceneStorage where Value: RawRepresentable, Value.RawValue: Codable {
     ///   - key: The key to store under, within the scene's namespace.
     @_disfavoredOverload
     public init(wrappedValue: Value, _ key: String) {
-        self.init(key: key, defaultValue: wrappedValue, storage: StorageDefaults.backend, codec: RawValueStorageCodec())
+        self.init(key: key, defaultValue: wrappedValue, storage: StorageDefaults.backend, codec: RawValueStorageCodec<Value>())
     }
 
     /// Creates scene storage for a raw-representable value with a custom
@@ -153,7 +153,7 @@ extension SceneStorage where Value: RawRepresentable, Value.RawValue: Codable {
     ///   - storage: Where to store it.
     @_disfavoredOverload
     public init(wrappedValue: Value, _ key: String, store storage: StorageBackend) {
-        self.init(key: key, defaultValue: wrappedValue, storage: storage, codec: RawValueStorageCodec())
+        self.init(key: key, defaultValue: wrappedValue, storage: storage, codec: RawValueStorageCodec<Value>())
     }
 }
 
