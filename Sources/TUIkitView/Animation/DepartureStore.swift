@@ -128,6 +128,30 @@ extension DepartureStore {
             departure: departure, leftAtNanos: nil, animation: nil, presentThisPass: true)
     }
 
+    /// Whether a view with a transition of its own has declared itself at
+    /// `identity` this pass — so an `if`'s default transition stands aside.
+    package func isPresent(at identity: ViewIdentity) -> Bool {
+        guard !entries.isEmpty else { return false }
+        return entries[identity]?.presentThisPass == true
+    }
+
+    /// Whether anything is recorded at `identity`: a view with a transition of
+    /// its own, present or leaving.
+    package func hasEntry(at identity: ViewIdentity) -> Bool {
+        !entries.isEmpty && entries[identity] != nil
+    }
+
+    /// Starts the removal of a view that has already gone, from the picture it
+    /// left: the default transition's departure, which its `if` reports
+    /// itself rather than by the view's absence (`OptionalPresence`).
+    package func beginDeparture(
+        _ departure: Departure, at identity: ViewIdentity, animation: Animation, nowNanos: Int64
+    ) {
+        completionTracker?.noteStarted(animation, at: nowNanos, key: nil)
+        entries[identity] = Entry(
+            departure: departure, leftAtNanos: nowNanos, animation: animation, presentThisPass: false)
+    }
+
     /// The picture to draw in the slot at `identity`, for a view that has gone.
     ///
     /// Returns `nil` when nothing left from there, when the removal has

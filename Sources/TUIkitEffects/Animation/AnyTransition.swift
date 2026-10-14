@@ -172,11 +172,12 @@ public struct AnyTransition: Sendable, Equatable {
 // MARK: - The built-in transitions
 
 extension AnyTransition {
-    /// Appears and disappears at once — the default, and what a view without
-    /// `.transition(_:)` does.
+    /// Appears and disappears at once.
     public static let identity = AnyTransition(.identity)
 
-    /// Fades in and out.
+    /// Fades in and out — the default, and what a view an `if` puts in or takes
+    /// out does without `.transition(_:)`, as in SwiftUI (see
+    /// `View.transition(_:)`).
     public static let opacity = AnyTransition(.opacity)
 
     /// Slides in from `edge`, and back out to it.

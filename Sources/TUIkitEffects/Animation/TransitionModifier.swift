@@ -62,11 +62,20 @@ extension View {
     /// `.onHover`), focus modifiers (`.focusable`, `.focused`), and `AnyView`.
     /// `if show { Toast().transition(.opacity).onAppear { … } }` plays.
     ///
-    /// ## What still jumps
+    /// ## A view with no transition
+    ///
+    /// A view an `if` puts in or takes out under an animated change fades when
+    /// no transition is written on it: the default is ``AnyTransition/opacity``,
+    /// as SwiftUI's is. The `if` keeps what its view last drew, so the removal
+    /// plays in the slot it leaves, as above. An `if`/`else` whose branch flips,
+    /// a `switch` and a `ForEach`'s rows still change at once.
+    ///
+    /// ## What does not play its transition
     ///
     /// The claim finds a departure only where the view carrying the transition
-    /// rendered at exactly that address, so these removals still happen at
-    /// once, as every removal inside a stack once did:
+    /// rendered at exactly that address, so these removals do not play it.
+    /// Where the `if` holds one view, the view fades instead, as one with no
+    /// transition does; the first and the last of these go at once:
     ///
     /// - An `if` holding several views — two or more, a `ForEach`, a `Group`
     ///   of several — which have no one slot to keep; or one view behind a
@@ -93,12 +102,12 @@ extension View {
     ///   or colours — inside an `AnyView` or behind a wrapper that draws
     ///   nothing as much as bare. The picture the removal would play is the
     ///   transition's alone, so drawing it would drop the padding and move the
-    ///   view; it snaps instead. `X.padding().transition(t)` plays, padding and
+    ///   view; it fades instead. `X.padding().transition(t)` plays, padding and
     ///   all — write the transition after anything that draws.
     /// - A transition behind one of four wrappers that draw nothing but are
     ///   not yet looked through: `.onPreferenceChange`, `.appHeader`, and the
     ///   two status-bar item modifiers. `X.transition(t).onPreferenceChange(…)`
-    ///   snaps — it played until 2026-09-24, when a removal began checking the
+    ///   fades — it played until 2026-09-24, when a removal began checking the
     ///   type of the view that left its picture; write the transition after
     ///   them.
     /// - The branch an `if`/`else` leaves. The other branch takes the slot at
@@ -120,8 +129,8 @@ extension View {
     /// ```
     ///
     /// The transition is erased to an ``AnyTransition`` and then plays exactly
-    /// as `transition(_:)` with an `AnyTransition` describes, including what still
-    /// jumps. A transition with a body of your own is drawn through that body —
+    /// as `transition(_:)` with an `AnyTransition` describes, including what does
+    /// not play it. A transition with a body of your own is drawn through that body —
     /// see ``Transition``.
     ///
     /// - Parameter transition: How to come and go.
@@ -300,6 +309,8 @@ extension _TransitionView {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
+extension _TransitionView: CarriesTransition {}
+
 extension _TransitionView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }

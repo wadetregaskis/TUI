@@ -220,6 +220,13 @@ public final class StateStorage: @unchecked Sendable {
     /// the rest of the per-identity state, so removed conditionals don't leak.
     private var lastConditionalCase: [ViewIdentity: Bool] = [:]
 
+    /// What each `if` without an `else` held when it last rendered — see
+    /// `OptionalPresence`. Pruned as ``lastConditionalCase`` is.
+    var optionalPresence: [ViewIdentity: OptionalPresence] = [:]
+
+    /// How many presence records the last sweep of ``optionalPresence`` kept.
+    private var optionalRecordsAfterSweep = 0
+
     /// How many branch records the last sweep of ``lastConditionalCase`` kept.
     ///
     /// The sweep runs when the table has grown well past that, not every pass.
@@ -696,6 +703,11 @@ extension StateStorage {
             }
             conditionalRecordsAfterSweep = lastConditionalCase.count
         }
+        if optionalPresence.count > 2 * optionalRecordsAfterSweep + 64 {
+            let stale = optionalPresence.keys.filter { !activeIdentities.contains($0) && !retained.retains($0) }
+            for identity in stale { optionalPresence.removeValue(forKey: identity) }
+            optionalRecordsAfterSweep = optionalPresence.count
+        }
         animations.endRenderPass()
         departures.endRenderPass()
     }
@@ -735,6 +747,8 @@ extension StateStorage {
         windowedRows.removeAll()
         lastConditionalCase.removeAll()
         conditionalRecordsAfterSweep = 0
+        optionalPresence.removeAll()
+        optionalRecordsAfterSweep = 0
         animations.removeAll()
         departures.removeAll()
     }

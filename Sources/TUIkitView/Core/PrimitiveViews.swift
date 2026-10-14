@@ -330,12 +330,19 @@ extension Optional: ChildViewProvider where Wrapped: View {
                 {
                     return members
                 }
-                return [ChildView(wrapped, childIndex: 0)]
+                let child = ChildView(wrapped, childIndex: 0)
+                let pictureType = departingPictureType(heldAs: Wrapped.self)
+                guard DefaultTransition.applies(toPictureType: pictureType) else { return [child] }
+                return [child.transitioningByDefault()]
             }
             let children = resolveChildViews(from: wrapped, as: provider, context: context)
             guard children.count == 1 else { return children }
             return [children[0].addressedIfTransparent(under: context.identity)]
         case .none:
+            let pictureType = departingPictureType(heldAs: Wrapped.self)
+            if DefaultTransition.applies(toPictureType: pictureType) {
+                DefaultTransition.absent(scope: context.identity, pictureType: pictureType, context: context)
+            }
             // The fast path, and all an app that animates nothing pays.
             guard let storage = context.stateStorage, !storage.departures.isEmpty else { return [] }
             // The present view's address — `(Wrapped, 0)` for a plain view,

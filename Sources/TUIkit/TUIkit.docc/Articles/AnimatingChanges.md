@@ -197,6 +197,11 @@ type of its own — ``OpacityTransition``, ``MoveTransition`` and the rest — a
 that caused it was animated, so leaving one on a view that also appears for
 other reasons — a page opening, a list rebuilding — stays instant.
 
+A view with no `.transition` that an `if` puts in or takes out under an
+animated change fades, as SwiftUI's does: the default is
+``AnyTransition/opacity``. An `if`/`else` that switches branches, a `switch` and
+a `ForEach`'s rows still change at once.
+
 A ``Transition`` of your own describes the view at each ``TransitionPhase`` with
 ordinary modifiers, and what animates is each modifier's value between one phase
 and the next:
@@ -229,8 +234,9 @@ not close up around it until it has finished leaving — whether the `if` has
 siblings or is the stack's only content, and with a `.frame` or an `.opacity`
 around it. Put the `.transition` on the view the `if` holds — after anything
 that draws, though a modifier that draws nothing of its own, such as
-`.onAppear` or `.foregroundStyle`, may come after it: a few shapes still remove
-at once, and `View.transition(_:)` lists them.
+`.onAppear` or `.foregroundStyle`, may come after it: in a few shapes the
+removal fades rather than play the transition, and `View.transition(_:)` lists
+them.
 
 ## Springs
 

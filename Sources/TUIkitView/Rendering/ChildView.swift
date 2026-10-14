@@ -417,6 +417,23 @@ public struct ChildView {
             resolvedIdentity: resolvedIdentity)
     }
 
+    /// A copy that draws its view through an `if`'s default transition — see
+    /// `_DefaultTransitionView`. Everything read off the view is kept.
+    package func transitioningByDefault() -> Self {
+        func wrapped<V: View>(_ view: V) -> any View { _DefaultTransitionView(content: view) }
+        return Self(
+            view: wrapped(view),
+            identityType: identityType,
+            childIndex: childIndex,
+            identityKey: identityKey,
+            providerSlot: providerSlot,
+            isSpacer: isSpacer,
+            spacerMinLength: spacerMinLength,
+            zIndex: zIndex,
+            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
+            resolvedIdentity: resolvedIdentity)
+    }
+
     package func modified<M: BufferModifier>(by modifier: M) -> Self {
         // Implicit existential opening, not a cast: passing the `any View` to a
         // generic parameter binds `V` to its dynamic type, so what is stored is
@@ -629,7 +646,7 @@ public struct ChildView {
     /// The wrapped child view itself, for containers that need to inspect the
     /// original view value — e.g. `List` peeling a `.badge(_:)` wrapper off a
     /// row — rather than measure or render it.
-    public var wrappedView: any View { view }
+    public var wrappedView: any View { (view as? any DefaultTransitionWrapping)?.transitionedView ?? view }
 
     /// The identity this child measures and renders under — the address that
     /// "Locating things without drawing them" §5a routes by — computed without
@@ -668,7 +685,7 @@ public struct ChildView {
     /// (see `providerSlot`), and the only caller is a scroll seek, which
     /// asks on the frames a `scrollTo` request arrives on and on no others.
     public var explicitIDKey: String? {
-        (view as? ExplicitIDProviding)?.explicitIDKey
+        (wrappedView as? ExplicitIDProviding)?.explicitIDKey
     }
 
     /// Whether this child is the seek target named by `key` — the one place

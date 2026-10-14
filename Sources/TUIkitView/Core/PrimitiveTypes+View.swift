@@ -54,8 +54,15 @@ extension Optional: Renderable where Wrapped: View {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         switch self {
         case .some(let view):
-            return TUIkitView.renderToBuffer(view, context: context)
+            let buffer = TUIkitView.renderToBuffer(view, context: context)
+            guard DefaultTransition.applies(toPictureType: departingPictureType(heldAs: Wrapped.self))
+            else { return buffer }
+            return DefaultTransition.present(buffer, scope: context.identity, context: context)
         case .none:
+            let pictureType = departingPictureType(heldAs: Wrapped.self)
+            if DefaultTransition.applies(toPictureType: pictureType) {
+                DefaultTransition.absent(scope: context.identity, pictureType: pictureType, context: context)
+            }
             // An `if` without an `else` is the commonest way a view is removed,
             // and this slot is the only thing left of it: the view is gone from
             // the tree, so nothing else can play out its removal transition.
@@ -77,6 +84,10 @@ extension Optional: Layoutable where Wrapped: View {
         case .some(let view):
             return measureChild(view, proposal: proposal, context: context)
         case .none:
+            let pictureType = departingPictureType(heldAs: Wrapped.self)
+            if DefaultTransition.applies(toPictureType: pictureType) {
+                DefaultTransition.absent(scope: context.identity, pictureType: pictureType, context: context)
+            }
             // A view on its way out still holds its slot open, or the page
             // would close up around it on the first frame of the removal and
             // the transition would play in a space that had already gone.

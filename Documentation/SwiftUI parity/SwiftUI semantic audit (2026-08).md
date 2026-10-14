@@ -310,7 +310,7 @@ verifier corrected the analyst, both are shown.
 - *Verifier's correction:* One overstatement to trim: it is not undocumented everywhere — AnyTransition.swift:75-76 states that `.identity` is "the default, and what a view without `.transition(_:)` does". That is a statement of behaviour, not a justification, and SwiftUI compatibility guide.md still says the whole family is unimplemented, so the recommendation (record it in §2) stands.
 - *Recommendation:* Document, don't fix. Defaulting to .opacity would mean wrapping every conditional child in a departure-recording view, costing a buffer copy plus a store write per conditional per frame in a framework that rebuilds the whole frame from the tree — a sound reason to decline. But it appears nowhere in SwiftUI compatibility guide.md, so a porter discovers it by watching their app not animate. Add it to §2 (intentional divergence).
 - *Status (2026-10-14 sweep):* **OPEN** — no `.transition` is still `.identity`, recorded only in `AnyTransition`'s doc comment, not in the guide or the deviations.
-- *Status:* **DOCUMENTED** (2026-10-14): a slated row in the deviations, with the cost that keeps it.
+- *Status:* **FIXED for `if`** (2026-10-14, the owner's ruling, option B after an A/B): an `if`'s view fades in and out under an animated change (`DefaultTransition.swift`, `DefaultTransitionTests`); an `if`/`else`'s branch, a `switch` and `ForEach` rows still change at once — a slated row in the deviations.
 
 ### App and scene structure
 
