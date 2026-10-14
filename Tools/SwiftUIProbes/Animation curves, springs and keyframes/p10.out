@@ -1,0 +1,3 @@
+delay(0.3).repeatForever, linear 0.4: first move after about 0.3 s; a pass every 0.7 s
+speed(2).delay(0.6), linear 0.4: first move after about 0.6 s; no repeat
+delay(0.6).speed(2), linear 0.4: first move after about 0.3 s; no repeat

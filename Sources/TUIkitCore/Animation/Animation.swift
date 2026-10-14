@@ -346,6 +346,16 @@ extension Animation {
 
 extension Animation {
     /// This animation, started `delay` seconds later.
+    ///
+    /// One delay, before the first pass, scaled by the animation's speed —
+    /// whatever order the modifiers were written in. SwiftUI's differs in two
+    /// orders (measured, `Tools/SwiftUIProbes/Animation curves, springs and
+    /// keyframes/p10.swift`): a delay written before `repeatForever` or
+    /// `repeatCount` comes again before every pass, and one written after
+    /// ``speed(_:)`` is not scaled by it. Its animation is a stack of
+    /// modifiers, each wrapping the one before; TUIkit's is one record of
+    /// curve, duration, delay, speed and repeat, which custom animations
+    /// (refusal review O3) will open up.
     public func delay(_ delay: TimeInterval) -> Animation {
         with(
             delayInterval: delayInterval + delay,
