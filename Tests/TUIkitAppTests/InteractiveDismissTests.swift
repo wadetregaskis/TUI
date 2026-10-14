@@ -158,4 +158,41 @@ struct InteractiveDismissTests {
         _ = outcome.context.keyEventDispatcher.dispatch(KeyEvent(key: .escape))
         #expect(box.value == disabled, "Escape closes it only when allowed to")
     }
+
+    // MARK: - Written anywhere in the content
+
+    /// Terms the reader must accept, which say so in their own body.
+    private struct Terms: View {
+        var body: some View {
+            Text(verbatim: "terms").interactiveDismissDisabled(true)
+        }
+    }
+
+    @Test("Written in a view of the app's own, or under a modifier, it still holds the sheet")
+    func anywhereInTheSheet() {
+        // The deviations sweep's likely bug 16 (semantic audit 40): SwiftUI
+        // honours it "from anywhere inside the presented content"; read off the
+        // content's outermost trait chain alone, these two closed on Escape.
+        let own = present(Text(verbatim: "page").sheet(isPresented: .constant(true)) { Terms() })
+        #expect(!own.escapeLabels.contains("dismiss"), "\(own.escapeLabels)")
+        let padded = present(
+            Text(verbatim: "page").sheet(isPresented: .constant(true)) {
+                Text(verbatim: "terms").interactiveDismissDisabled(true).padding()
+            })
+        #expect(!padded.escapeLabels.contains("dismiss"), "\(padded.escapeLabels)")
+        let box = StateBox(true)
+        let binding = Binding(get: { box.value }, set: { box.value = $0 })
+        let dispatched = present(Text(verbatim: "page").sheet(isPresented: binding) { Terms() })
+        _ = dispatched.context.keyEventDispatcher.dispatch(KeyEvent(key: .escape))
+        #expect(box.value, "Escape closed a sheet whose content forbade it")
+    }
+
+    @Test("Written in a view of the app's own, it still holds a popover against Escape")
+    func anywhereInThePopover() {
+        let box = StateBox(true)
+        let binding = Binding(get: { box.value }, set: { box.value = $0 })
+        let outcome = present(Text(verbatim: "anchor").popover(isPresented: binding) { Terms() })
+        _ = outcome.context.keyEventDispatcher.dispatch(KeyEvent(key: .escape))
+        #expect(box.value, "Escape closed a popover whose content forbade it")
+    }
 }

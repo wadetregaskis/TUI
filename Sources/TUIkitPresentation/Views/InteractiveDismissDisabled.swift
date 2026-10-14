@@ -21,7 +21,16 @@ struct _InteractiveDismissView<Content: View>: View, InteractiveDismissDisabling
 
 extension _InteractiveDismissView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkitView.renderToBuffer(content, context: context)
+        // Tells the presentation it is in, wherever in the content this is:
+        // the presenter reads the outermost trait chain before the content
+        // draws, and this flag, when Escape or a click arrives, for the rest.
+        // A per-frame registration — the gate is cleared before every render
+        // of the content — so a served subtree would stop forbidding.
+        if interactiveDismissIsDisabled, !context.isMeasuring, let gate = context.environment.dismissalGate {
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
+            gate.interactiveDismissIsDisabled = true
+        }
+        return TUIkitView.renderToBuffer(content, context: context)
     }
 }
 
@@ -58,6 +67,9 @@ extension View {
     /// A dismissal-disabled popover still swallows the click that lands outside
     /// it. Letting that click through to the page would be the opposite of what
     /// was asked for: the presentation stays up and something behind it acts.
+    ///
+    /// It holds from anywhere inside the presented content — in a view of the
+    /// app's own, under other modifiers — as SwiftUI's does.
     ///
     /// Alerts and confirmation dialogs are unaffected. Escape there does not
     /// dismiss anything — it CHOOSES the `.cancel`-role button, which is an

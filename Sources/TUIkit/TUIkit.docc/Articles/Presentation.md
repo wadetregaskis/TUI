@@ -357,7 +357,9 @@ the content keeps its state.
 ``View/interactiveDismissDisabled(_:)`` takes away the reader's own ways out.
 SwiftUI's gesture is a downward swipe; a terminal's are **Escape** and a click
 outside, so those are what it suppresses — Escape stops being offered on the
-status bar at all, rather than being offered and doing nothing.
+status bar at all, rather than being offered and doing nothing. It holds from
+anywhere inside the presented content, a view of your own or under other
+modifiers, as SwiftUI's does.
 
 ```swift
 .sheet(isPresented: $editing) {

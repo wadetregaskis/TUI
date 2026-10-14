@@ -27,6 +27,21 @@ package final class DismissalGate: Equatable {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _interceptor: ((@escaping () -> Void) -> Void)?
 
+    /// Whether the content forbade interactive dismissal this frame, wherever
+    /// in it `interactiveDismissDisabled` was written — set as the content
+    /// renders, as ``interceptor`` is, so a view of the app's own or a
+    /// modifier around it hides it from no one. The presenter's Escape and
+    /// outside click read it when the key or the click arrives; ``dismiss(_:)``
+    /// does not, being the app's own way out as well.
+    package var interactiveDismissIsDisabled: Bool {
+        get { _interactiveDismissIsDisabled }
+        set { _interactiveDismissIsDisabled = newValue }
+    }
+
+    /// ``interactiveDismissIsDisabled``'s storage: private, under the
+    /// `package` accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _interactiveDismissIsDisabled = false
+
     /// The cancel button the content drew last frame — a button with
     /// `.keyboardShortcut(.cancelAction)`, as a `.cancellationAction` toolbar
     /// item's is: its action, which the presenter's Escape runs in place of
@@ -129,8 +144,9 @@ extension EnvironmentValues {
 }
 
 /// The presentation's gate, kept in a manual `StateStorage` box at the
-/// presenter's identity, with last frame's interceptor and cancel button
-/// cleared: the content renders next and sets them again if it still has them.
+/// presenter's identity, with last frame's interceptor, cancel button and
+/// interactive-dismissal flag cleared: the content renders next and sets them
+/// again if it still has them.
 @MainActor
 package func presentationDismissalGate(context: RenderContext, propertyIndex: Int) -> DismissalGate {
     let key = StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex)
@@ -138,5 +154,6 @@ package func presentationDismissalGate(context: RenderContext, propertyIndex: In
     let resolved = gate?.value ?? DismissalGate()
     resolved.interceptor = nil
     resolved.cancelButton = nil
+    resolved.interactiveDismissIsDisabled = false
     return resolved
 }

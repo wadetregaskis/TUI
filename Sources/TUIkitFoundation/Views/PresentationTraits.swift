@@ -9,7 +9,10 @@
 //  static conformance check, not a preference. A preference is only readable
 //  after the subtree renders, and every one of these has to be known BEFORE
 //  it: the detent is the height being rendered into, and the Escape item is
-//  registered on the status bar before the content exists.
+//  registered on the status bar before the content exists. Interactive
+//  dismissal is also told AS the content renders, from wherever in it the
+//  modifier is, through the presentation's `DismissalGate`, which the
+//  presenter's Escape and outside click read when they arrive.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

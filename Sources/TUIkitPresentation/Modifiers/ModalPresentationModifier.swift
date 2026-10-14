@@ -317,7 +317,11 @@ extension ModalPresentationModifier: Renderable {
         // does now it has: "cancel" where it presses the content's cancel
         // button, which may keep the sheet up — not "dismiss" — and repeating
         // only if that button does.
-        if let escapeItemRegistration, gate.escapePressesCancelButton {
+        // And none at all where the content, drawn, forbade interactive
+        // dismissal from further in than the presenter could see beforehand.
+        if let escapeItemRegistration, gate.interactiveDismissIsDisabled {
+            context.environment.statusBar?.replaceSectionItems(registeredAs: escapeItemRegistration, with: [])
+        } else if let escapeItemRegistration, gate.escapePressesCancelButton {
             context.environment.statusBar?.replaceSectionItems(
                 registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
         }
@@ -403,10 +407,12 @@ extension ModalPresentationModifier: Renderable {
             // could not dismiss a sheet presented from a pushed screen.
             // The handler rides the modal's own grabbed section, so it
             // runs precisely while the modal holds the keyboard.
+            // Not where the content, drawn, forbade it (`DismissalGate`): the
+            // key falls through, as it does where the presenter saw it first.
             context.environment.keyEventDispatcher!.addHandler(
                 sectionID: sectionID
             ) { event in
-                guard event.key == .escape else { return false }
+                guard event.key == .escape, !gate.interactiveDismissIsDisabled else { return false }
                 escape(event.phase == .repeat)
                 return true
             }

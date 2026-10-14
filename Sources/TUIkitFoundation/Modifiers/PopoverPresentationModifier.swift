@@ -130,8 +130,10 @@ extension PopoverPresentationModifier: Renderable {
         if ownsPresentation, let storage = context.stateStorage {
             storage.storage(for: Self.teardownKey(context), default: PopoverTeardown()).value.isPending = true
         }
+        // Read again when the click arrives: the content, drawn, may forbid it
+        // from further in than the trait above could see (`DismissalGate`).
         let dismiss = {
-            guard !dismissIsDisabled else { return }
+            guard !dismissIsDisabled, !gate.interactiveDismissIsDisabled else { return }
             gate.dismiss { isPresented.wrappedValue = false }
         }
 
@@ -159,7 +161,7 @@ extension PopoverPresentationModifier: Renderable {
         if !dismissIsDisabled {
             escapeClaim = context.environment.statusBar?.claimEscape(gate.escapeLabel(dismissal: .closePopover))
             context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
-                guard event.key == .escape else { return false }
+                guard event.key == .escape, !gate.interactiveDismissIsDisabled else { return false }
                 // The content's cancel button where it drew one, as on macOS
                 // (`DismissalGate.escape`); an outside click still dismisses.
                 gate.escape(isRepeat: event.phase == .repeat) { isPresented.wrappedValue = false }
@@ -203,7 +205,11 @@ extension PopoverPresentationModifier: Renderable {
         // popover up. Unless the content claimed Escape for itself, whose
         // name stands — told by the claim's token, not its label: a popover
         // presented inside this one claims with the same "close popover".
-        if let escapeClaim, gate.escapePressesCancelButton {
+        if let escapeClaim, gate.interactiveDismissIsDisabled {
+            // Forbidden from further in than the trait above could see: no
+            // name for a way out that does nothing.
+            context.environment.statusBar?.withdrawEscapeClaim(escapeClaim)
+        } else if let escapeClaim, gate.escapePressesCancelButton {
             context.environment.statusBar?.renameEscapeClaim(
                 escapeClaim, to: gate.escapeLabel(dismissal: .closePopover))
         }

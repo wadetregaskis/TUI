@@ -225,8 +225,10 @@ extension ModalPresentationModifier {
         let escape = presented.escape
         let registration = context.environment.statusBar?.registerSectionItems(
             sectionID: sectionID, items: [escapeItem(gate: presented.gate, escape: escape)], composition: .merge)
+        let gate = presented.gate
         context.environment.keyEventDispatcher?.addHandler(sectionID: sectionID) { event in
-            guard event.key == .escape, focusManager?.activePaneID == sectionID else { return false }
+            guard event.key == .escape, focusManager?.activePaneID == sectionID, !gate.interactiveDismissIsDisabled
+            else { return false }
             escape(event.phase == .repeat)
             return true
         }

@@ -98,6 +98,16 @@ extension StatusBarState {
         }
     }
 
+    /// Withdraws the claim made with `token` — if it is still its pane's
+    /// claim, nothing having claimed Escape there since — for a presenter
+    /// whose content, once drawn, turned out to forbid what the claim names.
+    package func withdrawEscapeClaim(_ token: Int) {
+        let pane = focusManager?.currentPaneID
+        let standing = pane.map { paneEscapeClaims[$0] } ?? escapeClaim
+        guard standing?.token == token else { return }
+        setEscapeClaimHere(nil)
+    }
+
     /// Withdraws whatever claim on Escape stands in the pane rendering now.
     ///
     /// For a surface that takes the keyboard and names its Escape on an item
