@@ -108,9 +108,16 @@ extension Animation {
     /// Matches SwiftUI's, so `.easeInOut` means the same length of time in both.
     public static let defaultDuration: TimeInterval = 0.35
 
-    /// The animation to use when none is named: an ease-in-out over
-    /// ``defaultDuration``.
-    public static let `default` = Animation.easeInOut
+    /// The animation to use when none is named, as `withAnimation { … }`
+    /// with no argument does: SwiftUI's, a ``spring`` at the default pace
+    /// with no bounce. It is 92% of the way at 0.35 s and makes its last
+    /// visible change at about 0.84 s.
+    ///
+    /// Apple documents `default` as a spring of response 0.55, but the
+    /// curve SwiftUI draws on macOS 15.8 is the 0.5 one, ``spring`` (measured
+    /// frame by frame; the probe is the 2026-10-14 `animation-default` one).
+    /// Before macOS 14 SwiftUI's default was an ease-in-out, as TUIkit's was.
+    public static let `default` = Animation.spring
 
     /// A constant rate over `duration`.
     public static func linear(duration: TimeInterval) -> Animation {

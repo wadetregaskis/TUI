@@ -74,7 +74,6 @@ struct AnimationDescriptionTests {
         #expect(Animation.easeIn(duration: 0.2).description == "easeIn(duration: 0.2)")
         #expect(Animation.easeOut(duration: 0.2).description == "easeOut(duration: 0.2)")
         #expect(Animation.easeInOut(duration: 0.2).description == "easeInOut(duration: 0.2)")
-        #expect(Animation.default.description == "easeInOut(duration: 0.35)")
         // An arbitrary Bézier has no name, so it keeps the general spelling.
         #expect(
             Animation.timingCurve(0.1, 0.2, 0.3, 0.4, duration: 0.5).description
@@ -84,6 +83,18 @@ struct AnimationDescriptionTests {
         #expect(
             Animation.timingCurve(0.42, 0, 0.58, 1, duration: 0.2).description
                 == "easeInOut(duration: 0.2)")
+    }
+
+    /// SwiftUI's default, measured frame by frame on macOS 15.8: 92% of the
+    /// way at 0.35 s and 98% at 0.5 s. Pinned on the curve, not only by
+    /// equality, so the spring itself drifting is caught too.
+    @Test("The default animation is SwiftUI's: the no-bounce spring at the default pace")
+    func defaultIsSwiftUIsSpring() {
+        #expect(Animation.default == Animation.spring)
+        #expect(Animation.default.description == "spring(duration: 0.5, bounce: 0.0)")
+        #expect((0.90...0.95).contains(Animation.default.fraction(at: 0.35)))
+        #expect(Animation.default.fraction(at: 0.5) >= 0.98)
+        #expect(!Animation.default.isFinished(at: 0.35), "an ease-in-out would be done here")
     }
 
     @Test("A spring prints the arguments that would rebuild it")
