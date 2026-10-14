@@ -525,18 +525,24 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             arguments.append(text.content)
         }
 
-        // `Image` is deliberately NOT given an overload here. SwiftUI can
-        // interpolate an `Image` because its `Text` composites the resolved
-        // glyph/bitmap at render time; this type's argument list is a plain
-        // `[String]` substituted eagerly, at interpolation time, with no
-        // `RenderContext` and no environment (colour mode, character set,
-        // size) to render an `Image` against. A raster `Image` also loads
-        // asynchronously (`ImageLoadingPhase`), which an eager, synchronous
-        // interpolation cannot wait on. Even the synchronous `.symbol` case
-        // has no plain-text form: an SF Symbol is a rendered glyph, not
-        // characters. So there is nothing sound to append, and the catch-all
-        // above — which at least does not crash — is what an `Image` still
-        // binds to.
+        /// Interpolates an `Image`, as SwiftUI's `Text` draws one inline: a
+        /// system symbol as its glyph, and a picture as nothing.
+        ///
+        /// TUIkit's symbols are characters — `SFSymbol.glyph(named:)`, what
+        /// `Image(systemName:)` draws — so a symbol has a plain-text form to
+        /// substitute, where the catch-all above `String(describing:)`'d the
+        /// whole struct into the sentence. The glyph is the symbol's own, not a
+        /// `symbolVariant` of it: the argument is substituted here, before any
+        /// environment is known. A picture cannot sit in a line of text, so it
+        /// contributes nothing rather than its description.
+        public mutating func appendInterpolation(_ image: Image) {
+            appendPlaceholder("%@")
+            if case .symbol(let name) = image.content {
+                arguments.append(SFSymbol.glyph(named: name) ?? "")
+            } else {
+                arguments.append("")
+            }
+        }
 
         /// Interpolates a number through a printf-style format specifier —
         /// mirrors SwiftUI's `appendInterpolation(_:specifier:)`:

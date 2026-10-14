@@ -125,6 +125,17 @@ struct LocalizedStringKeyTests {
         #expect(key.resolved(with: service) == "Moved 3 rows to Backlog")
     }
 
+    @Test("Interpolating a system image contributes its glyph, and a picture nothing")
+    func interpolatingAnImage() {
+        // The deviations sweep's likely bug 24 (semantic audit 58): SwiftUI
+        // draws an interpolated `Image` inline; the catch-all drew the struct.
+        let service = isolatedService()
+        let key: LocalizedStringKey = "\(Image(systemName: "star")) Favourites"
+        #expect(key.key == "%@ Favourites")
+        #expect(key.resolved(with: service) == (SFSymbol.glyph(named: "star") ?? "?") + " Favourites")
+        #expect(SFSymbol.glyph(named: "star") != nil, "sanity: the symbol table has a star")
+    }
+
     @Test("Interpolating a Text contributes its own content, not its debug description")
     func interpolatingATextContributesItsContent() {
         // SwiftUI lets a `Text` interpolate another `Text` (and an `Image`)
