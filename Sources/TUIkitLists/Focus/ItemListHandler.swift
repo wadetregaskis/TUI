@@ -489,6 +489,13 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _primaryAction: ((SelectionValue) -> Void)?
 
+    /// The collapsed `NavigationSplitView`'s way to its next column, where
+    /// this list is in the column on top of one
+    /// (``EnvironmentValues/compactColumnAdvance``): choosing a row selects it
+    /// and shows the next column, as tapping a row does on iPhone. Set by the
+    /// list every frame from its environment.
+    var compactColumnAdvance: CompactColumnAdvance?
+
     /// Opens the container's row menu on the cursor row — Shift+F10 or the
     /// Menu key (``KeyEvent/opensContextMenu``) — and answers whether one
     /// opened. `nil` where the container has no menu, so the key falls

@@ -332,7 +332,24 @@ are always all present around the presenting view, and the size class picks
 whose binding is live, so a class written while the popover is up leaves the
 presenting view's state alone. Not yet adapting: a sheet (on a vertically
 compact iPhone SwiftUI presents one full screen) and `TabContent.popover`.
-`preferredCompactColumn` and the split-view collapse remain.
+
+**Shipped 2026-10-13: the split-view collapse.** In a compact horizontal
+class a `NavigationSplitView` collapses into a stack: the column on top at
+the full width, under a navigation stack's bar (the trail of the columns'
+titles, or ‹ Back) when it is not the sidebar, with Escape and `\.dismiss`
+going back a column. The four `preferredCompactColumn:` initializers ship;
+without one the split keeps the column itself, starting at the sidebar, as
+SwiftUI's documentation describes a collapsed split starting with its first
+list. Choosing a row of a `List` with a selection — Return, Space or a
+click — selects it and shows the next column, as tapping one does on
+iPhone; the row stays selected, so coming back and choosing it again goes
+forward again rather than clearing it. Column visibility, the handles, the
+widths and the sidebar chords are set aside while collapsed, as SwiftUI
+ignores visibility there. The columns behind the one on top render
+off-screen, as a stack's root does, and keep their state; a column ahead of
+it is not drawn. Not done: a `NavigationLink` in a column pushing onto the
+collapsed stack (TUIkit's links push only within a `NavigationStack`), and
+`Table` choosing a row the same way.
 
 ### A22. `DismissBehavior` waits on O9
 
@@ -985,8 +1002,8 @@ terminal owns the font and the cell size. **Lane owed:** 5–7 commits, about 3
 days (estimate): the popover adaptation, the split-view collapse, the compact
 `Table` and the compact sidebar tab view, each with tests.
 
-**2026-10-13:** the popover adaptation shipped (A21); the split-view collapse,
-the compact `Table` and the compact sidebar tab view remain.
+**2026-10-13:** the popover adaptation and the split-view collapse shipped
+(A21); the compact `Table` and the compact sidebar tab view remain.
 
 ### B4. `DynamicProperty.update()` writes back (superseded by lane DYNP)
 

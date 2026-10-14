@@ -76,7 +76,7 @@ struct NavigationSplitViewStyleBodyTests {
                     columns: AnyView(
                         _NavigationSplitViewCore(
                             sidebar: Text("sidebar"), content: EmptyView(), detail: Text("detail"),
-                            isThreeColumn: false, columnVisibility: nil)))),
+                            isThreeColumn: false, columnVisibility: nil, preferredCompactColumn: nil)))),
             context: makeRenderContext(width: 60, height: 8)
         ).lines.map(\.stripped)
         #expect(viaBody == split(.balanced))

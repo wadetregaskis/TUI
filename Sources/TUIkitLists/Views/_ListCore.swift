@@ -1656,6 +1656,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             firstRowHeight: source.content(at: 0).buffer.height)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
+        handler.compactColumnAdvance = context.environment.compactColumnAdvance
         // A hierarchical list's rows come from an `OutlineGroup`, which is what
         // knows how to open one — reached the same way `.onMove` / `.onDelete`
         // are, by asking the view the rows were extracted from, so through the

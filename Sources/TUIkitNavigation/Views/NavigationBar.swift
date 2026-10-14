@@ -3,7 +3,8 @@
 //
 //  The bar a pushed screen sits under: the trail of titles that got there (or
 //  ‹ Back and the title), the rule beneath, and Escape going back. Drawn by
-//  `NavigationStack` over the screen on top of its path.
+//  `NavigationStack` over the screen on top of its path, and by a collapsed
+//  `NavigationSplitView` over the column on top of its stack.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

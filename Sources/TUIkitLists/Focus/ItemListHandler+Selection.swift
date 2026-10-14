@@ -158,7 +158,8 @@ extension ItemListHandler {
         // A click is a pointer gesture with its own selection semantics —
         // whatever it does, it ends keyboard extend mode.
         isExtendingSelection = false
-        guard selectionMode == .multi else {
+        // In a collapsed split a click chooses the row, whatever the mode.
+        guard selectionMode == .multi, compactColumnAdvance == nil else {
             toggleSelectionAtFocusedIndex()
             return
         }
@@ -191,6 +192,12 @@ extension ItemListHandler {
     /// "still takes focus" precedent.
     func toggleSelectionAtFocusedIndex() {
         guard let itemID = id(at: focusedIndex), !selectionDisabledRows.contains(focusedIndex) else { return }
+        if let compactColumnAdvance, chooseRow(itemID) {
+            // The handler is not main-actor isolated, but the keys and the
+            // clicks that choose a row are only ever handled on the main actor.
+            MainActor.assumeIsolated { compactColumnAdvance() }
+            return
+        }
 
         switch selectionMode {
         case .single:
@@ -228,6 +235,24 @@ extension ItemListHandler {
             }
             selectionAnchor = focusedIndex
         }
+    }
+
+    /// Makes `itemID` the whole selection, for a list in the column on top of
+    /// a collapsed split view, where choosing a row goes to it: no toggling
+    /// off, so the row chosen before going back is chosen again, not cleared.
+    /// Answers whether there was a selection to make it — a list with no
+    /// selection binding chooses nothing, and goes nowhere, as on iPhone.
+    private func chooseRow(_ itemID: SelectionValue) -> Bool {
+        switch selectionMode {
+        case .single:
+            guard let singleSelection else { return false }
+            singleSelection.wrappedValue = itemID
+        case .multi:
+            guard let multiSelection else { return false }
+            multiSelection.wrappedValue = [itemID]
+            selectionAnchor = focusedIndex
+        }
+        return true
     }
 
     /// Returns whether the item at the given index is selected.

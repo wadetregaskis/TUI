@@ -153,6 +153,21 @@ NavigationSplitView {
 }
 ```
 
+### In a compact size class
+
+Where an app writes `.compact` into `\.horizontalSizeClass` — for a narrow
+terminal, say — the split collapses into a stack, as SwiftUI's does on iPhone.
+The sidebar starts on top, alone and at the full width. Choosing a row in a
+`List` with a selection — <kbd>Return</kbd>, <kbd>Space</kbd> or a click —
+selects it and shows the next column, under the bar a pushed screen has: the
+trail of the columns' `navigationTitle`s, or **‹ Back**. <kbd>Esc</kbd> and
+`@Environment(\.dismiss)` go back a column, to the row you chose, still
+chosen. Pass a ``NavigationSplitViewColumn`` binding, as
+`NavigationSplitView(preferredCompactColumn:sidebar:detail:)`, to read or set
+which column is on top. While the split is collapsed its visibility, handles,
+widths and sidebar chords are set aside; the columns behind the one on top keep
+their state, and one ahead of it is not drawn until it comes to the top.
+
 ## Topics
 
 ### Stack navigation
@@ -166,3 +181,4 @@ NavigationSplitView {
 - ``NavigationSplitView``
 - ``NavigationSplitViewStyle``
 - ``NavigationSplitViewVisibility``
+- ``NavigationSplitViewColumn``

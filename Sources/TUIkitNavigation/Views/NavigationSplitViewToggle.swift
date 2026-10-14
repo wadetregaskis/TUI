@@ -234,7 +234,10 @@ extension _NavigationSplitViewCore {
     func registerSidebarChords(
         context: RenderContext, toggleState: SplitViewToggleState, holdsFocus: Bool
     ) {
-        guard !context.isMeasuring, context.environment.isEnabled,
+        // A collapsed split registers none either: SwiftUI ignores column
+        // visibility there, so the chords would change nothing to see — until
+        // the split expanded again with its sidebar hidden.
+        guard !context.isMeasuring, context.environment.isEnabled, !isCollapsed(context),
             context.environment.keyboardShortcutRegistry != nil
         else { return }
         // The registry is emptied every walk. Declared as REPLAYABLE: a memo

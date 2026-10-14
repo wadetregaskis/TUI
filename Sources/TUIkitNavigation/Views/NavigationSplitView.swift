@@ -107,12 +107,32 @@ import TUIkitFoundation
 /// moves the keyboard to the leftmost column still showing, rather than out of
 /// the split.
 ///
+/// ## Collapsed Split Views
+///
+/// In a horizontally compact size class the split view collapses into a stack,
+/// as SwiftUI's does on iPhone: one column on top, full width, the columns
+/// before it behind, and a navigation bar over any column but the sidebar —
+/// the trail of the columns' ``View/navigationTitle(_:)-(LocalizedStringKey)``s,
+/// or **‹ Back** — with Escape and `@Environment(\.dismiss)` going back a
+/// column. Choosing a row in a `List` with a selection, with Return, Space or a
+/// click, selects it and shows the next column, as tapping one does on iPhone.
+/// A terminal's size classes are `.regular` unless the app writes `.compact`
+/// into `\.horizontalSizeClass`, so a split view collapses only where an app
+/// says so — for a narrow terminal, say.
+///
+/// Which column is on top starts as the sidebar. To read it or set it, pass a
+/// ``NavigationSplitViewColumn`` binding to an initializer such as
+/// ``init(preferredCompactColumn:sidebar:detail:)``: the split view writes it as
+/// the person goes forward and back. Column visibility is ignored while the
+/// split view is collapsed, as SwiftUI ignores it, and so are the handles and
+/// the column widths. The columns behind the one on top keep their state; a
+/// column ahead of it is not drawn until something brings it to the top.
+///
 /// ## TUI-Specific Behavior
 ///
 /// - Columns are separated by a vertical line character (`│`).
 /// - The split view renders within the content area between AppHeader and StatusBar.
 /// - Column widths are determined by the ``NavigationSplitViewStyle``.
-/// - No automatic collapsing to stack (terminal width is typically sufficient).
 public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: View {
     /// The sidebar column content.
     let sidebar: Sidebar
@@ -129,6 +149,9 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
     /// Binding to column visibility (optional).
     let columnVisibility: Binding<NavigationSplitViewVisibility>?
 
+    /// Binding to the column on top when the split view collapses (optional).
+    let preferredCompactColumn: Binding<NavigationSplitViewColumn>?
+
     public var body: some View {
         // Through the style in the environment: a built-in style's body IS the
         // columns, and a custom one's `makeBody` draws around them.
@@ -138,7 +161,8 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
                 content: content,
                 detail: detail,
                 isThreeColumn: isThreeColumn,
-                columnVisibility: columnVisibility
+                columnVisibility: columnVisibility,
+                preferredCompactColumn: preferredCompactColumn
             ))
     }
 }
@@ -160,6 +184,7 @@ extension NavigationSplitView where Content == EmptyView {
         self.detail = detail()
         self.isThreeColumn = false
         self.columnVisibility = nil
+        self.preferredCompactColumn = nil
     }
 
     /// Creates a two-column navigation split view with programmatic visibility control.
@@ -178,6 +203,7 @@ extension NavigationSplitView where Content == EmptyView {
         self.detail = detail()
         self.isThreeColumn = false
         self.columnVisibility = columnVisibility
+        self.preferredCompactColumn = nil
     }
 }
 
@@ -200,6 +226,7 @@ extension NavigationSplitView {
         self.detail = detail()
         self.isThreeColumn = true
         self.columnVisibility = nil
+        self.preferredCompactColumn = nil
     }
 
     /// Creates a three-column navigation split view with programmatic visibility control.
@@ -220,6 +247,7 @@ extension NavigationSplitView {
         self.detail = detail()
         self.isThreeColumn = true
         self.columnVisibility = columnVisibility
+        self.preferredCompactColumn = nil
     }
 }
 
@@ -237,6 +265,7 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
     let detail: Detail
     let isThreeColumn: Bool
     let columnVisibility: Binding<NavigationSplitViewVisibility>?
+    let preferredCompactColumn: Binding<NavigationSplitViewColumn>?
 
     /// The minimum width for any column in characters.
     let minimumColumnWidth = 10
@@ -251,11 +280,15 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let minWidth = minimumColumnWidth * (isThreeColumn ? 3 : 2)
+        // Collapsed, one column shows.
+        let minWidth = minimumColumnWidth * (isCollapsed(context) ? 1 : isThreeColumn ? 3 : 2)
         return ViewSize(width: minWidth, height: 1, isWidthFlexible: true, isHeightFlexible: true)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if isCollapsed(context) {
+            return renderCollapsed(context: context)
+        }
         let style = context.environment.navigationSplitViewStyle
         let toggleState = beginToggleRender(context: context)
         let visibility = resolveVisibility(toggleState: toggleState)
@@ -312,16 +345,7 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
                 focusManager?.registerSection(id: sectionID)
             }
 
-            // Create a context with the active focus section
-            var sectionContext = columnContext
-            sectionContext.environment.activeFocusSectionID = sectionID
-
-            // If this section is active, hand its borders the breathing ●
-            // (never active during measurement).
-            sectionContext.environment.focusIndicator = AnimatedColor.activeSection(
-                !columnContext.isMeasuring && (focusManager?.isActiveSection(sectionID) ?? false),
-                in: context.environment)
-
+            let sectionContext = columnFocusContext(columnContext, sectionID: sectionID, focusManager: focusManager)
             var buffer = renderColumn(column, context: sectionContext, toggleState: toggleState)
 
             // Click anywhere on a column activates that column's focus
@@ -446,6 +470,8 @@ enum SplitViewStateIndex {
     static let toggle = 3
     /// The handler of the ▶ edge column shown while a leading column is hidden.
     static let edge = 4
+    /// The collapsed stack's ``SplitViewCollapseState``.
+    static let collapse = 5
 
     /// The slot of the divider that follows `column`, or `nil` for the detail
     /// column, which is always trailing and has no divider after it.
@@ -542,9 +568,27 @@ extension _NavigationSplitViewCore {
         }
     }
 
+    /// A column's context: its focus section active in it, the breathing ●
+    /// handed to its borders while that section is (never while measuring),
+    /// and no enclosing collapsed split's way to a next column, which is not
+    /// this split's (``EnvironmentValues/compactColumnAdvance``).
+    func columnFocusContext(
+        _ columnContext: RenderContext, sectionID: String, focusManager: FocusManager?
+    ) -> RenderContext {
+        var sectionContext = columnContext
+        sectionContext.environment.activeFocusSectionID = sectionID
+        sectionContext.environment.focusIndicator = AnimatedColor.activeSection(
+            !columnContext.isMeasuring && (focusManager?.isActiveSection(sectionID) ?? false),
+            in: columnContext.environment)
+        if sectionContext.environment.compactColumnAdvance != nil {
+            sectionContext.environment.compactColumnAdvance = nil
+        }
+        return sectionContext
+    }
+
     /// Renders a single column, noting whether it removed the toggle with
     /// `.toolbar(removing:)` (see ``SplitViewToggleState/removedByColumn``).
-    fileprivate func renderColumn(
+    func renderColumn(
         _ column: NavigationSplitViewColumn, context: RenderContext, toggleState: SplitViewToggleState?
     ) -> FrameBuffer {
         guard let toggleState, !context.isMeasuring, let preferences = context.environment.preferenceStorage
@@ -557,7 +601,7 @@ extension _NavigationSplitViewCore {
     }
 
     /// Renders a single column's content.
-    fileprivate func renderColumnContent(_ column: NavigationSplitViewColumn, context: RenderContext) -> FrameBuffer {
+    func renderColumnContent(_ column: NavigationSplitViewColumn, context: RenderContext) -> FrameBuffer {
         // The column is its content's `containerRelativeFrame` container,
         // published under the column's own identity so each column's size is
         // noted in a slot of its own.
@@ -1032,7 +1076,7 @@ extension _NavigationSplitViewCore {
     /// replayable now, so they cannot stand in for these. Today a split's buffer
     /// always carries hit-test regions and is never stored anyway; this is what
     /// keeps a split correct once that stops being true.
-    fileprivate func declareFocusRegistrations(context: RenderContext, focusManager: FocusManager?) {
+    func declareFocusRegistrations(context: RenderContext, focusManager: FocusManager?) {
         guard !context.isMeasuring, focusManager != nil else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
     }
