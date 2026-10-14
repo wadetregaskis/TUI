@@ -126,18 +126,13 @@ struct ViewThatFitsRenderTests {
         #expect(buffer.lines[0].stripped == "reader" + String(repeating: " ", count: 6))
     }
 
-    /// The cost of the rule, stated rather than discovered. `_SliderCore` names a
-    /// real minimum for an unspecified proposal (`defaultTrackWidth + chrome`),
-    /// but `Slider`'s BODY is an `HStack`, and a stack reports the budget it
-    /// distributes — so a bare slider tracks the budget like everything else here
-    /// and wins at four cells, clipped, where it used to lose to the `Text`.
-    ///
-    /// That is the SwiftUI deviation the type doc records, in the smallest form
-    /// that shows it. It is here so the trade is pinned by a test and not only by
-    /// a comment: if a later change makes a stack report a rigid ideal, this test
-    /// says which behaviour changed back.
-    @Test("A filling candidate wins even where its rigid content overflows")
-    func fillingCandidateWinsAndClips() {
+    /// SwiftUI's rule: a candidate is held to its ideal width, which a filling
+    /// view states under an unspecified proposal. `Slider`'s body is an
+    /// `HStack`, which used to report the budget it distributes, so a bare
+    /// slider won at four cells and was clipped (DEVS #27); asked for its ideal
+    /// width it names its track's, which four cells do not hold.
+    @Test("A filling candidate whose ideal width overflows yields to the next, as in SwiftUI")
+    func fillingCandidateOverflowingYields() {
         let buffer = renderToBuffer(
             ViewThatFits(in: .horizontal) {
                 Slider(value: .constant(0.5), in: 0...1)
@@ -145,8 +140,21 @@ struct ViewThatFitsRenderTests {
             },
             context: ctx(width: 4, height: 3)
         )
-        #expect(buffer.lines[0].stripped != "v", "the filling candidate is taken, not the Text")
-        #expect(buffer.width == 4, "…and clipped to the space there is")
+        #expect(buffer.lines[0].stripped == "v", "the slider does not fit four cells")
+    }
+
+    @Test("A row with a Spacer yields where its rigid views do not fit")
+    func spacerRowYieldsWhenTooNarrow() {
+        let view = ViewThatFits {
+            HStack(spacing: 1) { Text("Name"); Spacer(); Text("Size") }
+            VStack(alignment: .leading, spacing: 0) { Text("Name"); Text("Size") }
+        }
+        // The row needs 11 cells: two words, two gaps and the Spacer's one-cell
+        // minimum.
+        let narrow = renderToBuffer(view, context: ctx(width: 10, height: 8))
+        #expect(narrow.lines.count == 2, "10 cells: the column — \(narrow.lines.map(\.stripped))")
+        let roomy = renderToBuffer(view, context: ctx(width: 11, height: 8))
+        #expect(roomy.lines.count == 1, "11 cells: the row — \(roomy.lines.map(\.stripped))")
     }
 
     /// The escape hatch the type doc points at, and the other half of the rule:
@@ -154,9 +162,8 @@ struct ViewThatFitsRenderTests {
     /// makes the reported width the frame's, at both probes, so the comparison
     /// against the real extent is the one it always was.
     ///
-    /// Passes before the fix as well as after — it guards against a later
-    /// simplification to "flexible implies fits", which would take the slider
-    /// here and clip it into four cells.
+    /// It guards against a later simplification to "flexible implies fits",
+    /// which would take the slider here and clip it into four cells.
     @Test("A bounded candidate is rigid again, and can still lose")
     func boundedCandidateStillLoses() {
         let buffer = renderToBuffer(

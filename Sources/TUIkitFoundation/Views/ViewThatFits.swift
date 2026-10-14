@@ -69,27 +69,15 @@ public enum Axis: Int8, CaseIterable, Hashable, Sendable, CustomStringConvertibl
 /// a single axis — for example `ViewThatFits(in: .horizontal)` only checks
 /// whether a candidate fits horizontally and ignores its height.
 ///
-/// A candidate whose reported extent *tracks* the space it is offered carries no
-/// ideal to compare against, so it is accepted on that axis — a view that fills
-/// the extent it is given cannot overflow it. A row holding a `Spacer`, a
-/// `List`, a `Table` with a `.ratio(_:)` column, `.frame(maxWidth: .infinity)`:
-/// all of those win at every width, and no candidate listed after one of them is
-/// ever reached. A candidate that flexes but names a *fixed* minimum — a bare
-/// `Slider`, `TextField` or `NavigationSplitView`, each of which answers an
-/// unspecified proposal with its own ideal — is still held to that minimum and
-/// can still lose. To make a filling candidate lose where it is too narrow,
-/// bound it (`.frame(maxWidth: 60)`) or list it after the ones to try first.
-///
-/// - Note: This deviates from SwiftUI, whose stacks report a rigid ideal for an
-///   unproposed axis and which therefore rejects a filling candidate whose rigid
-///   content overflows. That report is not available here: `_HStackCore` derives
-///   its width from the budget it distributes, and `ContainerViewCore` derives a
-///   bordered container's own fill flag from what its body *reported* while the
-///   render path derives it from what the body *drew* — so reporting a rigid
-///   ideal would make every bordered panel around a `Spacer` row measure as
-///   hugging while still rendering filled, breaking measure/render equivalence.
-///   Until those two are reconciled, a filling candidate wins at every width and
-///   clips rather than falling back.
+/// Each candidate is asked for its ideal width as SwiftUI asks it, with an
+/// unspecified proposal: a row holding a `Spacer` answers with the width of its
+/// rigid views, so it fits where they fit and yields to the next candidate where
+/// they do not; a bare `Slider` answers with its track's ideal and yields in a
+/// space too small for it. A view with no ideal width of its own — a `List`, a
+/// `TextEditor`, a linear `ProgressView` — answers none, and fits. On the
+/// vertical axis, a candidate whose reported height *tracks* the space it is
+/// offered carries no ideal to compare against, so it is accepted there: a view
+/// that fills the height it is given cannot overflow it.
 ///
 /// - Important: A `ViewThatFits`'s size depends on the **available width**, not
 ///   the proposal alone — it reports (and renders) whichever candidate currently
@@ -227,8 +215,17 @@ private struct _ViewThatFitsCore<Content: View>: View, Renderable, Layoutable {
         // at `.ratio(0.03)`, so every threshold silently keeps the bug for some
         // greedy view — and the symptom, "the fallback was chosen", looks like a
         // layout decision rather than a defect.
+        //
+        // The width probes ask under the ideal-width mark
+        // (``RenderContext/askingIdealWidth(_:)``), as SwiftUI asks with an
+        // unspecified proposal: a row of a `Spacer` between rigid views then
+        // reports the rigid views' width rather than the budget, and is held
+        // to it — it overflows a terminal too narrow for them and the next
+        // candidate is drawn, where it used to win at every width and clip. A
+        // view with no ideal width at all (a `List`, a `TextEditor`) reports
+        // none, and fits.
         let probeExtent = 1_000_000
-        var probeContext = context
+        var probeContext = axes.contains(.horizontal) ? context.askingIdealWidth() : context
         probeContext.availableWidth = probeExtent
         probeContext.availableHeight = probeExtent
 
@@ -245,7 +242,7 @@ private struct _ViewThatFitsCore<Content: View>: View, Renderable, Layoutable {
                 testsHeight && size.isHeightFlexible && size.height > context.availableHeight
             var narrower = size
             if overReportsWidth || overReportsHeight {
-                var narrowerProbe = context
+                var narrowerProbe = probeContext
                 narrowerProbe.availableWidth = probeExtent - 1
                 narrowerProbe.availableHeight = probeExtent - 1
                 narrower = candidate.measure(proposal: .unspecified, context: narrowerProbe)
