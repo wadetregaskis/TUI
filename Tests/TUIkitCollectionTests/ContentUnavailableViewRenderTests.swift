@@ -86,7 +86,7 @@ struct ContentUnavailableViewRenderTests {
 
     @Test("Search preset renders the canned label and description")
     func searchPreset() {
-        let view = ContentUnavailableView<Text, Text, EmptyView>.search
+        let view = ContentUnavailableView.search
         let lines = strippedLines(view, width: 40, height: 8)
 
         #expect(lines.count == 3)
@@ -97,7 +97,7 @@ struct ContentUnavailableViewRenderTests {
 
     @Test("Search-with-text interpolates the query into the title")
     func searchWithText() {
-        let view = ContentUnavailableView<Text, Text, EmptyView>.search(text: "swift")
+        let view = ContentUnavailableView.search(text: "swift")
         let lines = strippedLines(view, width: 40, height: 8)
 
         #expect(lines[0].trimmingCharacters(in: .whitespaces) == "No Results for 'swift'")

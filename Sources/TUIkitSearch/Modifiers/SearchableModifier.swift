@@ -143,6 +143,8 @@ struct SearchableModifier<Content: View>: View {
             content
                 .environment(\.isSearching, isSearching)
                 .environment(\.searchDismissal, dismissal)
+                // What `ContentUnavailableView.search` names.
+                .environment(\.searchQuery, text.wrappedValue)
                 // A `searchFocused` or `searchScopes` written outside belongs to
                 // THIS searchable's field, and not a searchable's in the content
                 // as well.

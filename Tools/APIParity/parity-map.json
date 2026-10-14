@@ -1024,10 +1024,6 @@
       "how": "ScrollViewReader.body: some View",
       "why": "Sources/TUIkitFoundation/Views/ScrollViewReader.swift:83 `public var body: some View`; same inferred-typealias artifact."
     },
-    "SearchUnavailableContent": {
-      "how": "ContentUnavailableView.search / .search(text:)",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitFoundation/Views/ContentUnavailableView.swift:126 and :140 — the same two entry points SwiftUI exposes through SearchUnavailableContent, spelled as statics on the shared ContentUnavailableView type."
-    },
     "Section.Body": {
       "how": "Section.body: some View",
       "why": "TUIkit's Section has a real `body: some View` returning `_SectionCore`, per the project's rule that a public control is a View with a real body. SwiftUI's declares `Body = Never` and renders as a primitive, so the differing typealias is a deliberate structural choice."

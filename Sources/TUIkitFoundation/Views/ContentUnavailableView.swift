@@ -160,47 +160,93 @@ extension ContentUnavailableView where Label == Text, Description == Text, Actio
 
 // MARK: - Search Preset
 
-extension ContentUnavailableView where Label == Text, Description == Text, Actions == EmptyView {
+extension ContentUnavailableView
+where
+    Label == SearchUnavailableContent.Label, Description == SearchUnavailableContent.Description,
+    Actions == SearchUnavailableContent.Actions
+{
     /// A content unavailable view for empty search results.
     ///
-    /// Displays "No Results" with a generic description.
-    public static var search: ContentUnavailableView<Text, Text, EmptyView> {
-        // `Text(verbatim:)` around an already-resolved string: the lookup has
-        // happened, and letting the RESULT bind to `Text`'s key overload would
-        // search for the translated prose as a key. The same reason
-        // `ColorPicker` hands its resolved title to `ColorPickerPanel`.
-        ContentUnavailableView<Text, Text, EmptyView>(
-            label: { Text(verbatim: Self.localized(.noResults)) },
-            description: { Text(verbatim: Self.localized(.noResultsHint)) },
-            actions: { EmptyView() }
-        )
+    /// Inside a ``View/searchable(text:placement:prompt:)``, it names the query
+    /// — "No Results for "zzz"" — as SwiftUI's does: "A `ContentUnavailableView`
+    /// initialized with this static member is expected to be contained within a
+    /// searchable view hierarchy. Such a configuration enables the search query
+    /// to be parsed into the view's description." Elsewhere, or with the query
+    /// empty, it says "No Results".
+    public static var search: Self {
+        Self(
+            label: { SearchUnavailableContent.Label(text: nil) },
+            description: { SearchUnavailableContent.Description() },
+            actions: { SearchUnavailableContent.Actions() })
     }
 
-    /// One framework string, resolved through the shared service.
-    private static func localized(_ key: LocalizationKey.Label) -> String {
-        LocalizationService.shared.string(for: key)
-    }
-
-    /// Creates a content unavailable view for empty search results with a query.
-    ///
-    /// Displays "No Results for '\(text)'" with a generic description.
+    /// A content unavailable view for empty search results with a query: "No
+    /// Results for "\(text)"", whatever search it is in — for a search field of
+    /// the app's own.
     ///
     /// - Parameter text: The search query that produced no results.
     /// - Returns: A configured content unavailable view.
-    public static func search(text: String) -> ContentUnavailableView<Text, Text, EmptyView> {
-        // The query goes in through `%@` rather than Swift interpolation, so a
-        // translation chooses both the wording AND its own quotation marks —
-        // „…“ in German, « … » in French — instead of inheriting the ASCII
-        // apostrophes this used to hardcode.
-        ContentUnavailableView<Text, Text, EmptyView>(
-            label: {
-                Text(
-                    verbatim: LocalizedStringKey.substituting(
-                        [text], into: Self.localized(.noResultsFor)))
-            },
-            description: { Text(verbatim: Self.localized(.noResultsHint)) },
-            actions: { EmptyView() }
-        )
+    public static func search(text: String) -> Self {
+        Self(
+            label: { SearchUnavailableContent.Label(text: text) },
+            description: { SearchUnavailableContent.Description() },
+            actions: { SearchUnavailableContent.Actions() })
+    }
+}
+
+/// The views of ``ContentUnavailableView/search`` — SwiftUI's type of the same
+/// name.
+public struct SearchUnavailableContent: Sendable {
+    /// The title: "No Results", or "No Results for "…"" naming the query.
+    public struct Label: View {
+        /// The query `search(text:)` was given, or `nil` for the enclosing
+        /// searchable's.
+        let text: String?
+
+        /// The query of the searchable this is in (``EnvironmentValues/searchQuery``).
+        @Environment(\.searchQuery) private var searchQuery
+
+        public var body: some View {
+            // The query goes in through `%@` rather than Swift interpolation,
+            // so a translation chooses both the wording AND its own quotation
+            // marks — „…" in German, « … » in French. `Text(verbatim:)` around
+            // the resolved string: the lookup has happened, and letting the
+            // RESULT bind to `Text`'s key overload would search for the
+            // translated prose as a key.
+            let query = text ?? searchQuery ?? ""
+            Text(
+                verbatim: query.isEmpty
+                    ? LocalizationService.shared.string(for: LocalizationKey.Label.noResults)
+                    : LocalizedStringKey.substituting(
+                        [query], into: LocalizationService.shared.string(for: LocalizationKey.Label.noResultsFor)))
+        }
+    }
+
+    /// The description: "Check the spelling or try a new search."
+    public struct Description: View {
+        public var body: some View {
+            Text(verbatim: LocalizationService.shared.string(for: LocalizationKey.Label.noResultsHint))
+        }
+    }
+
+    /// The actions: none.
+    public struct Actions: View {
+        public var body: some View { EmptyView() }
+    }
+}
+
+// MARK: - The search query
+
+private struct SearchQueryKey: EnvironmentKey {
+    static let defaultValue: String? = nil
+}
+
+extension EnvironmentValues {
+    /// The query of the ``View/searchable(text:placement:prompt:)`` this is in,
+    /// which ``ContentUnavailableView/search`` names, or `nil` outside one.
+    package var searchQuery: String? {
+        get { self[SearchQueryKey.self] }
+        set { self[SearchQueryKey.self] = newValue }
     }
 }
 

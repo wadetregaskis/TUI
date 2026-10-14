@@ -65,7 +65,7 @@ struct ContentUnavailableViewTests {
 
     @Test("Search preset renders 'No Results' text")
     func searchPreset() {
-        let view = ContentUnavailableView<Text, Text, EmptyView>.search
+        let view = ContentUnavailableView.search
         let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext()).isolatingRenderCache()
         let buffer = renderToBuffer(view, context: context)
         let content = buffer.lines.joined()
@@ -75,11 +75,34 @@ struct ContentUnavailableViewTests {
 
     @Test("Search with text renders query in title")
     func searchWithText() {
-        let view = ContentUnavailableView<Text, Text, EmptyView>.search(text: "swift")
+        let view = ContentUnavailableView.search(text: "swift")
         let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext()).isolatingRenderCache()
         let buffer = renderToBuffer(view, context: context)
         let content = buffer.lines.joined()
         #expect(content.contains("No Results for 'swift'"))
+    }
+
+    @Test("Inside a searchable, the search preset names the query, as SwiftUI's does")
+    func searchNamesTheQuery() {
+        // The deviations sweep's likely bug 5 (semantic audit 6): SwiftUI's
+        // preset is "expected to be contained within a searchable view
+        // hierarchy. Such a configuration enables the search query to be
+        // parsed into the view's description."
+        func drawn(_ query: String) -> String {
+            let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext())
+                .isolatingRenderCache()
+            return renderToBuffer(ContentUnavailableView.search.searchable(text: .constant(query)), context: context)
+                .lines.joined().stripped
+        }
+        #expect(drawn("zzz").contains("No Results for 'zzz'"), "\(drawn("zzz"))")
+        #expect(drawn("").contains("No Results") && !drawn("").contains("No Results for"), "\(drawn(""))")
+        // An explicit query wins over the searchable's.
+        let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext())
+            .isolatingRenderCache()
+        let explicit = renderToBuffer(
+            ContentUnavailableView.search(text: "mine").searchable(text: .constant("zzz")), context: context
+        ).lines.joined().stripped
+        #expect(explicit.contains("No Results for 'mine'"), "\(explicit)")
     }
 
     /// The two tests above pin the ENGLISH words, which is what a reader wants
@@ -132,7 +155,7 @@ struct ContentUnavailableViewTests {
             availableWidth: 80, availableHeight: 24, tuiContext: TUIContext()
         ).isolatingRenderCache()
         let queried = renderToBuffer(
-            ContentUnavailableView<Text, Text, EmptyView>.search(text: "swift"), context: context
+            ContentUnavailableView.search(text: "swift"), context: context
         ).lines.joined()
         #expect(queried.contains("swift"), "the query must reach the screen")
         #expect(!queried.contains("%@"), "the placeholder must not")
