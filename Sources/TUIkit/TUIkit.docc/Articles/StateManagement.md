@@ -139,6 +139,27 @@ observed like a change to an `@Observable` property, through the key's
 (`StorageDefaults.backend.setValue(_:forKey:)`) as much as for one through the
 wrapper.
 
+### Which store
+
+A property that names a store — `@AppStorage("key", store: …)` — uses it. One
+that names none uses the store `defaultAppStorage(_:)` set nearest above its
+view, on the view or on its scene, and ``StorageDefaults/backend`` where none
+is set:
+
+```swift
+WindowGroup {
+    ContentView()
+}
+.defaultAppStorage(UserDefaults(suiteName: "group.example.shared")!)
+```
+
+On Apple platforms both take a `UserDefaults`, as SwiftUI's do, and on every
+platform a ``StorageBackend``. The store is found where the view is drawn,
+before its `body` runs, so a closure the body made — a button's action — writes
+to the store the body read. Give it a store that lives as long as the view: one
+made afresh in `body` is correct, but a new store each time redraws the subtree
+beneath it.
+
 ### Your own store
 
 Any ``StorageBackend`` can stand behind `@AppStorage(_:store:)`. A store implements

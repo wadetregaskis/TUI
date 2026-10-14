@@ -183,10 +183,14 @@ final class StoredEntry {
     private var decoded: (value: Any, type: ObjectIdentifier)?
 
     /// The key as Observation sees it.
-    let key = StoredKey()
+    let key: StoredKey
 
-    init(data: Data? = nil) {
+    /// An entry holding `data`, whose readers are registered on `key`: a key
+    /// of its own unless its store shares one between instances
+    /// (``UserDefaultsStorage``).
+    init(data: Data? = nil, key: StoredKey = StoredKey()) {
         self.data = data
+        self.key = key
     }
 
     /// The stored value as `T`, from the kept value when it is a `T`, else

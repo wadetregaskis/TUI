@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitFoundation
 
 // MARK: - TableColumnCustomization
@@ -319,16 +320,37 @@ extension SceneStorage {
     }
 }
 
-extension AppStorage {
-    /// Creates a property that can save and restore table column state.
-    ///
-    /// - Parameters:
-    ///   - wrappedValue: The default value if table column state is not
-    ///     available for the given key.
-    ///   - key: A key used to save and restore the value.
-    public init<RowValue>(
-        wrappedValue: Value = TableColumnCustomization<RowValue>(), _ key: String
-    ) where Value == TableColumnCustomization<RowValue> {
-        self.init(wrappedValue: wrappedValue, key, store: StorageDefaults.backend)
+// SwiftUI's form takes a `UserDefaults`, which TUIkit has only on Apple
+// platforms (decisions A18): there it takes one, and elsewhere none.
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    extension AppStorage {
+        /// Creates a property that can save and restore table column state.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if table column state is not
+        ///     available for the given key.
+        ///   - key: A key used to save and restore the value.
+        ///   - store: The user defaults store to save it in, or `nil` for the
+        ///     store the view's environment names (`defaultAppStorage(_:)`).
+        public init<RowValue>(
+            wrappedValue: Value = TableColumnCustomization<RowValue>(), _ key: String, store: UserDefaults? = nil
+        ) where Value == TableColumnCustomization<RowValue> {
+            self.init(key: key, defaultValue: wrappedValue, store: store.map { UserDefaultsStorage($0) })
+        }
     }
-}
+#else
+    extension AppStorage {
+        /// Creates a property that can save and restore table column state.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if table column state is not
+        ///     available for the given key.
+        ///   - key: A key used to save and restore the value.
+        public init<RowValue>(
+            wrappedValue: Value = TableColumnCustomization<RowValue>(), _ key: String
+        ) where Value == TableColumnCustomization<RowValue> {
+            self.init(key: key, defaultValue: wrappedValue, store: nil)
+        }
+    }
+#endif

@@ -281,7 +281,9 @@ extension JSONFileStorage {
 /// Provides the default storage backend for ``AppStorage``.
 ///
 /// Override the backend before creating any `@AppStorage` properties
-/// if you want to use a custom storage backend.
+/// if you want to use a custom storage backend. To use another store for
+/// part of an app only, set it with `defaultAppStorage(_:)` on a view or a
+/// scene instead.
 ///
 /// ```swift
 /// StorageDefaults.backend = MyCustomBackend()
@@ -353,6 +355,14 @@ public enum StorageDefaults {
 /// - Date, Data, URL
 /// - Arrays and Dictionaries of Codable types
 /// - Custom Codable structs and enums
+///
+/// # Where it is stored
+///
+/// A property that names a store (`store:`) uses it. One that names none uses
+/// the store `defaultAppStorage(_:)` set nearest above its view — found where the view is drawn, before its `body` runs, as an
+/// `@Environment` is — and ``StorageDefaults/backend`` where none is set. A
+/// closure the body made, a button's action say, writes to the store found
+/// for the body that made it.
 @propertyWrapper
 public struct AppStorage<Value: Codable> {
     /// The key used for storage.
@@ -361,8 +371,19 @@ public struct AppStorage<Value: Codable> {
     /// The default value if no stored value exists.
     private let defaultValue: Value
 
-    /// The storage backend to use.
-    private let storage: StorageBackend
+    /// The store the property named, or `nil` for the one its view's
+    /// environment names.
+    private let namedStore: (any StorageBackend)?
+
+    /// For a property that names no store: the store `defaultAppStorage(_:)`
+    /// set where its view was last drawn, or `nil` where none was set.
+    ///
+    /// A box, so that the copies of the property a body's closures captured
+    /// see what is found for the view they came from; behind a lock, because
+    /// the property is `Sendable` (where its value is) and may be read off the
+    /// main actor while a walk sets this on it. `nil` for a property that
+    /// names a store, which never reads it.
+    private let environmentStore: Lock<(any StorageBackend)?>?
 
     /// Creates an AppStorage with the default storage backend.
     ///
@@ -370,9 +391,7 @@ public struct AppStorage<Value: Codable> {
     ///   - wrappedValue: The default value.
     ///   - key: The key to use for storage.
     public init(wrappedValue: Value, _ key: String) {
-        self.key = key
-        self.defaultValue = wrappedValue
-        self.storage = StorageDefaults.backend
+        self.init(key: key, defaultValue: wrappedValue, store: nil)
     }
 
     /// Creates an AppStorage with a custom storage backend.
@@ -381,22 +400,43 @@ public struct AppStorage<Value: Codable> {
     ///   - wrappedValue: The default value.
     ///   - key: The key to use for storage.
     ///   - storage: The storage backend to use.
-    public init(wrappedValue: Value, _ key: String, store storage: StorageBackend) {
-        self.key = key
-        self.defaultValue = wrappedValue
-        self.storage = storage
+    public init(wrappedValue: Value, _ key: String, store storage: any StorageBackend) {
+        self.init(key: key, defaultValue: wrappedValue, store: storage)
     }
 
     /// Creates an AppStorage for an optional value, `nil` until something is
     /// stored — mirrors SwiftUI's `init(_:store:)`.
     ///
+    /// Disfavoured, so that where SwiftUI's `UserDefaults` form exists
+    /// alongside it, `@AppStorage("key") var value: Int?` means that one, as
+    /// it does in SwiftUI. Both use the environment's store when given none.
+    ///
     /// - Parameters:
     ///   - key: The key to use for storage.
     ///   - storage: The storage backend to use, or `nil` for the default.
-    public init<Wrapped>(_ key: String, store storage: StorageBackend? = nil) where Value == Wrapped? {
+    @_disfavoredOverload
+    public init<Wrapped>(_ key: String, store storage: (any StorageBackend)? = nil) where Value == Wrapped? {
+        self.init(key: key, defaultValue: nil, store: storage)
+    }
+
+    /// The property for `key`, falling back to `defaultValue`, in `store`, or
+    /// in its view's default store when that is `nil`.
+    ///
+    /// Spelled with labels no public form shares, so the forms TUIkit's other
+    /// modules add (a tab view's customization, a table's columns) can reach
+    /// it without resolving back to themselves.
+    package init(key: String, defaultValue: Value, store: (any StorageBackend)?) {
         self.key = key
-        self.defaultValue = nil
-        self.storage = storage ?? StorageDefaults.backend
+        self.defaultValue = defaultValue
+        self.namedStore = store
+        self.environmentStore = store == nil ? Lock(initialState: nil) : nil
+    }
+
+    /// The store read and written: the one named, else the one found for the
+    /// view, else the process's default.
+    private var storage: any StorageBackend {
+        if let namedStore { return namedStore }
+        return environmentStore?.withLock { $0 } ?? StorageDefaults.backend
     }
 
     /// The current value.
@@ -424,6 +464,55 @@ public struct AppStorage<Value: Codable> {
     }
 }
 
+// MARK: - SwiftUI's UserDefaults Forms
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    extension AppStorage {
+        /// Creates a property that reads and writes `key` in `store` —
+        /// mirrors SwiftUI's `init(wrappedValue:_:store:)`.
+        ///
+        /// Takes any `Codable` value, where SwiftUI's takes the property-list
+        /// types and raw-representable ones. The value is stored as its JSON
+        /// encoding, as every TUIkit store keeps it.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if a value is not specified
+        ///     for the given key.
+        ///   - key: The key to read and write the value to in the user
+        ///     defaults store.
+        ///   - store: The user defaults store to read and write to, or `nil`
+        ///     for the store the view's environment names
+        ///     (`defaultAppStorage(_:)`).
+        public init(wrappedValue: Value, _ key: String, store: UserDefaults?) {
+            self.init(key: key, defaultValue: wrappedValue, store: store.map { UserDefaultsStorage($0) })
+        }
+
+        /// Creates a property for an optional value, `nil` until something
+        /// is stored, in `store` — mirrors SwiftUI's `init(_:store:)`.
+        ///
+        /// - Parameters:
+        ///   - key: The key to read and write the value to in the user
+        ///     defaults store.
+        ///   - store: The user defaults store to read and write to, or `nil`
+        ///     for the store the view's environment names.
+        public init<Wrapped>(_ key: String, store: UserDefaults? = nil) where Value == Wrapped? {
+            self.init(key: key, defaultValue: nil, store: store.map { UserDefaultsStorage($0) })
+        }
+    }
+#endif
+
+// MARK: - Finding the Store
+
+extension AppStorage: EnvironmentResolvable {
+    /// Hands a property that names no store the one `defaultAppStorage(_:)`
+    /// set where its view is, before the view's body runs.
+    public func resolveEnvironment(_ environment: EnvironmentValues) {
+        guard let environmentStore else { return }
+        let store = environment.defaultAppStorage?.store
+        environmentStore.withLock { $0 = store }
+    }
+}
+
 // MARK: - Sendability
 
 /// Sendable exactly when the value it stores is — and checked, not asserted.
@@ -431,8 +520,9 @@ public struct AppStorage<Value: Codable> {
 /// Conditional for the reason SwiftUI's own conformance is conditional
 /// (`extension AppStorage: Sendable where Value: Sendable`): the wrapper is a
 /// box, so it is only as safe to send as what is in the box. Every other stored
-/// property already qualifies — `key` is a `String` and ``StorageBackend``
-/// refines `Sendable` — so `defaultValue` is the only way anything can cross an
+/// property already qualifies — `key` is a `String`, ``StorageBackend``
+/// refines `Sendable` and the box the environment's store is kept in is a
+/// lock — so `defaultValue` is the only way anything can cross an
 /// isolation boundary inside this struct, and `Value: Codable` does not stop
 /// that being a mutable class.
 ///

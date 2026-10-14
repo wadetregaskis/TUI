@@ -223,6 +223,20 @@ specific supporting package/module/whatever), then that's fine." So the `store: 
 `defaultAppStorage(_:)` ship behind `canImport`, Core Data's `FetchRequest` becomes possible for Apple-only apps, and
 O10's Linux file exporter may be absent where its type is Apple-only. Lane owed.
 
+**Shipped 2026-10-13** (the storage half; Core Data and O10 remain). On Apple platforms `@AppStorage`'s `store:` takes
+a `UserDefaults` in every form SwiftUI has (the tab view and table column customization forms, and `@SceneStorage`'s
+tab view one, included), and `View.defaultAppStorage(_:)` and `Scene.defaultAppStorage(_:)` take one; on every
+platform both also take a TUIkit `StorageBackend`. An `@AppStorage` that names no store reads and writes the one set
+nearest above its view, found before its body runs and kept in a lock-guarded box the property's copies share — so a
+closure the body made writes where the body read — and `StorageDefaults.backend` where none is set. **Which stores
+share change announcements** (decided in the lane, a technical call): a `UserDefaults` cannot name its domain, and two
+made for one suite — `UserDefaults(suiteName:)` written in a view makes one each time the view is made — are two
+objects, so every `UserDefaultsStorage` shares one `StoredKey` per key name. A write through any store over a domain
+redraws the readers that read the key through any other; a key of that name in another domain costs its readers a
+redraw that finds nothing new. The table lives with `UserDefaultsStorage`, not on the app, because the process's
+default store exists before any app does. The alternative, documenting "pass a long-lived `UserDefaults`", would have
+left the inline spelling SwiftUI code commonly uses showing stale values.
+
 *Policy, with these symbols waiting on it: `AppStorage`/`SceneStorage`'s
 `store: UserDefaults` spellings, `View.defaultAppStorage(_:)`,
 `Scene.defaultAppStorage(_:)`; and, if allowed, Core Data's `FetchRequest`

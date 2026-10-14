@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Observation
 import TUIkitCore
 import TUIkitFoundation
@@ -55,6 +56,34 @@ extension Scene {
         transform: @escaping (inout V) -> Void
     ) -> some Scene {
         _EnvironmentScene(content: self) { transform(&$0[keyPath: keyPath]) }
+    }
+
+    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+        /// The default store used by ``AppStorage`` contained within the scene
+        /// and its views — mirrors SwiftUI's `Scene.defaultAppStorage(_:)`.
+        ///
+        /// An `@AppStorage` that names no store reads and writes the one set
+        /// nearest above it: a view's `defaultAppStorage(_:)` outweighs the
+        /// scene's.
+        ///
+        /// - Parameter store: The user defaults to use as the default store
+        ///   for `AppStorage`.
+        /// - Returns: A scene whose `@AppStorage` properties use `store`.
+        public func defaultAppStorage(_ store: UserDefaults) -> some Scene {
+            let value = DefaultAppStorage(store)
+            return _EnvironmentScene(content: self) { $0.defaultAppStorage = value }
+        }
+    #endif
+
+    /// The default store used by ``AppStorage`` contained within the scene
+    /// and its views: a TUIkit ``StorageBackend``, the form available on
+    /// every platform.
+    ///
+    /// - Parameter store: The store to use as the default for `AppStorage`.
+    /// - Returns: A scene whose `@AppStorage` properties use `store`.
+    public func defaultAppStorage(_ store: any StorageBackend) -> some Scene {
+        let value = DefaultAppStorage(store)
+        return _EnvironmentScene(content: self) { $0.defaultAppStorage = value }
     }
 }
 

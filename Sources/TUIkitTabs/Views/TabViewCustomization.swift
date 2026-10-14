@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitFoundation
 import TUIkitView
 
@@ -309,26 +310,61 @@ public struct TabCustomizationBehavior: Equatable, Sendable {
 
 // MARK: - Persisting it
 
-extension SceneStorage {
-    /// Creates a property that can save and restore tab view customization.
-    ///
-    /// - Parameters:
-    ///   - wrappedValue: The default value if tab view customization is not
-    ///     available for the given key.
-    ///   - key: A key used to save and restore the value.
-    public init(wrappedValue: Value = TabViewCustomization(), _ key: String) where Value == TabViewCustomization {
-        self.init(wrappedValue: wrappedValue, key, store: StorageDefaults.backend)
-    }
-}
+// SwiftUI's forms take a `UserDefaults`, which TUIkit has only on Apple
+// platforms (decisions A18): there each takes one, and elsewhere none.
 
-extension AppStorage {
-    /// Creates a property that can save and restore tab view customization.
-    ///
-    /// - Parameters:
-    ///   - wrappedValue: The default value if tab view customization is not
-    ///     available for the given key.
-    ///   - key: A key used to save and restore the value.
-    public init(wrappedValue: Value = TabViewCustomization(), _ key: String) where Value == TabViewCustomization {
-        self.init(wrappedValue: wrappedValue, key, store: StorageDefaults.backend)
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    extension SceneStorage {
+        /// Creates a property that can save and restore tab view customization.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if tab view customization is not
+        ///     available for the given key.
+        ///   - key: A key used to save and restore the value.
+        ///   - store: The user defaults store to save it in, or `nil` for the
+        ///     default store.
+        public init(wrappedValue: Value = TabViewCustomization(), _ key: String, store: UserDefaults? = nil)
+        where Value == TabViewCustomization {
+            self.init(wrappedValue: wrappedValue, key, store: store.map { UserDefaultsStorage($0) } ?? StorageDefaults.backend)
+        }
     }
-}
+
+    extension AppStorage {
+        /// Creates a property that can save and restore tab view customization.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if tab view customization is not
+        ///     available for the given key.
+        ///   - key: A key used to save and restore the value.
+        ///   - store: The user defaults store to save it in, or `nil` for the
+        ///     store the view's environment names (`defaultAppStorage(_:)`).
+        public init(wrappedValue: Value = TabViewCustomization(), _ key: String, store: UserDefaults? = nil)
+        where Value == TabViewCustomization {
+            self.init(key: key, defaultValue: wrappedValue, store: store.map { UserDefaultsStorage($0) })
+        }
+    }
+#else
+    extension SceneStorage {
+        /// Creates a property that can save and restore tab view customization.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if tab view customization is not
+        ///     available for the given key.
+        ///   - key: A key used to save and restore the value.
+        public init(wrappedValue: Value = TabViewCustomization(), _ key: String) where Value == TabViewCustomization {
+            self.init(wrappedValue: wrappedValue, key, store: StorageDefaults.backend)
+        }
+    }
+
+    extension AppStorage {
+        /// Creates a property that can save and restore tab view customization.
+        ///
+        /// - Parameters:
+        ///   - wrappedValue: The default value if tab view customization is not
+        ///     available for the given key.
+        ///   - key: A key used to save and restore the value.
+        public init(wrappedValue: Value = TabViewCustomization(), _ key: String) where Value == TabViewCustomization {
+            self.init(key: key, defaultValue: wrappedValue, store: nil)
+        }
+    }
+#endif
