@@ -2718,7 +2718,9 @@ Where it differs:
   `FocusManager.reservePlace`), so it comes ahead of its headers' folds and
   actions — and of the controls in its hand-written rows, as it already came
   ahead of a loop's — and takes the first focus (`SectionIsExpandedTests`).
-  The sidebar's folds are still to do.
+  **The sidebar folds (2026-10-14):** each `TabSection`'s header is a fold, the
+  folded set the sidebar's own state (`_SidebarSectionList`;
+  `TabViewSidebarTests`).
 
 ### B77. Type select moves the cursor, and a prefix's first character gives way to bare-key bindings
 

@@ -73,6 +73,34 @@ struct TabViewSidebarTests {
         #expect(!text.contains("▐"), "no strip chips: \(text)")
     }
 
+    /// A section's header folds, as a macOS sidebar's does (decisions B76).
+    @Test("A section's header folds its tabs away and opens them again, from the keyboard")
+    func sectionFolds() {
+        let box = Box()
+        let context = makeRenderContext(width: 60, height: 14)
+        let view = mail(box)
+        func lines() -> String { renderToBuffer(view, context: context).lines.map(\.stripped).joined(separator: "\n") }
+        let open = lines()
+        #expect(open.contains("▼") && open.contains("Work") && open.contains("Old"), "\(open)")
+        guard let manager = context.environment.focusManager,
+            let fold = manager.registeredFocusIDsInActiveSection().first(where: { !$0.hasPrefix("list") })
+        else {
+            Issue.record("the header is no focus stop")
+            return
+        }
+        #expect(manager.currentFocusedID?.hasPrefix("list") == true, "the list, not the fold, has the first focus")
+        manager.focus(id: fold)
+        _ = lines()
+        #expect(manager.dispatchKeyEvent(KeyEvent(key: .enter)))
+        let folded = lines()
+        #expect(folded.contains("▶") && folded.contains("Folders"), "\(folded)")
+        #expect(!folded.contains("Work") && !folded.contains("Old"), "\(folded)")
+        #expect(folded.contains("Inbox") && folded.contains("Archive"), "\(folded)")
+        #expect(manager.dispatchKeyEvent(KeyEvent(key: .enter)))
+        let reopened = lines()
+        #expect(reopened.contains("Work") && reopened.contains("Old"), "\(reopened)")
+    }
+
     @Test("The arrow keys move through the tabs, stepping over a disabled one, and Return chooses")
     func keysChooseTheTab() {
         let box = Box()

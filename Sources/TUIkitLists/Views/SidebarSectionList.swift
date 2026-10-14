@@ -41,6 +41,11 @@ package struct _SidebarSection: Identifiable {
 /// its rows drawn by `row` from their places: the list a `.sidebarAdaptable`
 /// tab view (TUIkitTabs) lists its tabs in.
 ///
+/// A section with a header folds, as a macOS sidebar's does: its header is a
+/// disclosure the keyboard and a click toggle, and a folded section's rows
+/// leave the list until it is opened again. What is folded is the sidebar's
+/// own state, kept by the section's place.
+///
 /// Built here rather than by the tab view: ``View/sectionActions(content:)``'s
 /// `some View` names `_SectionActionsView`, internal to this module, so in
 /// another module that type stays opaque, and the list's content asked the
@@ -57,6 +62,9 @@ package struct _SidebarSectionList<Row: View>: View {
     /// Draws the row at a place.
     let row: (Int) -> Row
 
+    /// The places of the sections the user has folded.
+    @State private var folded: Set<Int> = []
+
     package init(sections: [_SidebarSection], selection: Binding<Int?>, row: @escaping (Int) -> Row) {
         self.sections = sections
         self.selection = selection
@@ -66,18 +74,32 @@ package struct _SidebarSectionList<Row: View>: View {
     package var body: some View {
         List(selection: selection) {
             ForEach(sections) { section in
-                Section {
-                    ForEach(section.rows, id: \.self) { index in
-                        row(index)
-                    }
-                } header: {
-                    section.header ?? AnyView(EmptyView())
-                }
+                Section(
+                    header: section.header ?? AnyView(EmptyView()),
+                    content: ForEach(section.rows, id: \.self) { index in row(index) },
+                    footer: EmptyView(),
+                    // A run of tabs outside any section has no header to fold.
+                    isExpanded: section.header == nil ? nil : expansion(of: section.id)
+                )
                 .sectionActions { section.actions }
             }
         }
         // A sidebar list: no border, and a `Label` row's icon in the list
         // item tint, as a macOS sidebar draws it.
         .listStyle(.sidebar)
+    }
+
+    /// Whether the section at `place` is open, as its fold reads and writes it.
+    private func expansion(of place: Int) -> Binding<Bool> {
+        let folded = $folded
+        return Binding(
+            get: { !folded.wrappedValue.contains(place) },
+            set: { isOpen in
+                if isOpen {
+                    folded.wrappedValue.remove(place)
+                } else {
+                    folded.wrappedValue.insert(place)
+                }
+            })
     }
 }
