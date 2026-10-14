@@ -219,6 +219,7 @@ remaining instances are in the findings below. Worth a note in the contributing
 guide: **any environment value whose SwiftUI type is itself Optional needs two
 levels here.**
 - *Status (2026-10-14 sweep):* **OPEN** — only the `textCase` case is written up (Styling and theming design §3.1); no general rule in CONTRIBUTING.md.
+- *Status:* **FIXED** (2026-10-14): CONTRIBUTING.md's General Principles state the rule.
 
 **5. A protocol conformance is the seam.** `PickerOptionProvider`,
 `ButtonProvider`, `SectionRowExtractor`, `GridRowProviding` and
@@ -309,6 +310,7 @@ verifier corrected the analyst, both are shown.
 - *Verifier's correction:* One overstatement to trim: it is not undocumented everywhere — AnyTransition.swift:75-76 states that `.identity` is "the default, and what a view without `.transition(_:)` does". That is a statement of behaviour, not a justification, and SwiftUI compatibility guide.md still says the whole family is unimplemented, so the recommendation (record it in §2) stands.
 - *Recommendation:* Document, don't fix. Defaulting to .opacity would mean wrapping every conditional child in a departure-recording view, costing a buffer copy plus a store write per conditional per frame in a framework that rebuilds the whole frame from the tree — a sound reason to decline. But it appears nowhere in SwiftUI compatibility guide.md, so a porter discovers it by watching their app not animate. Add it to §2 (intentional divergence).
 - *Status (2026-10-14 sweep):* **OPEN** — no `.transition` is still `.identity`, recorded only in `AnyTransition`'s doc comment, not in the guide or the deviations.
+- *Status:* **DOCUMENTED** (2026-10-14): a slated row in the deviations, with the cost that keeps it.
 
 ### App and scene structure
 
@@ -825,6 +827,7 @@ verifier corrected the analyst, both are shown.
 - *Verifier's correction:* The Bool `.focused(_:)` form binding only the first focusable in its subtree is real, but it is already recorded as a remaining gap at Documentation/SwiftUI parity/SwiftUI compatibility guide.md:493. What survives is doc-drift inside that entry: its parenthetical '(SwiftUI binds a single control)' is true of `.focused(_:equals:)` and false of the Bool form — FocusState.md:129-139 draws precisely the opposite distinction. The line should say the Bool form is granular in TUIkit and name `.focused(_:equals:)` as the spelling to port to. Severity `doc-drift`, not `silent-divergence`.
 - *Recommendation:* Fix or document. Faithful behaviour for the Bool form is "true if the focused id belongs to any focusable that rendered inside this modifier's subtree" — reachable by having the modifier record the identity-path prefix it wrapped and asking the manager whether the focused control's path is under it, rather than handing out one id. If that is judged not worth it, say so in SwiftUI compatibility guide.md: the Bool form is granular here and .focused(_:equals:) is the spelling to port to.
 - *Status (2026-10-14 sweep):* **DOCUMENTED** — the guide §4a `@FocusState` row lists it, though its parenthetical is wrong for the `Bool` form.
+- *Status:* the parenthetical is corrected (2026-10-14): the `Bool` form's difference is stated as it is.
 
 **64. `View.fontWeight(_ weight: Font.Weight?)`**
 
@@ -1003,6 +1006,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Typechecked: `TabView { Text("a") }` fails with `error: generic parameter 'SelectionValue' could not be inferred` / `error: missing argument for parameter 'selection' in call`. Worse, executed (scratchpad/navprobe/main2.swift case A): `TabView(selection: .constant(0)) { Text("PageZero").tag(0); Text("PageOne").tag(1) }` — legal SwiftUI via the deprecated selection init, and legal TUIkit since both .tag and the selection init exist — compiles and renders a completely blank screen. Nothing warns.
 - *Recommendation:* Fix. Add TabView(@ViewBuilder content:); and when the content yields no Tab values, either render the tagged children as pages or refuse at compile time. Rendering nothing silently is the worst of the three options.
 - *Status (2026-10-14 sweep):* **OPEN** — a `TabView`'s content is a `TabContentBuilder`, so the old blank screen no longer compiles; the plain-view form is absent and unrecorded.
+- *Status:* **DOCUMENTED** (2026-10-14): the guide's TabView row and a slated row in the deviations; the fix (tagged children as pages) is owed.
 
 ### Scrolling
 
@@ -1580,6 +1584,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* A developer reading the DocC surface (the sentence appears verbatim in the extracted tuikit-docs/View.md) is told the vertical axis is honoured by some views. Executed: `Text("Hi").fixedSize(horizontal: true, vertical: true)` and `.fixedSize(horizontal: true, vertical: false)` both render 2x1. No view in the package reads a vertical fixed-size request, because none is ever written.
 - *Recommendation:* Correct the sentence now, independently of whether finding 1 is implemented. It is the cheapest fix in this family and the one most likely to send someone hunting for a bug that is actually a missing feature.
 - *Status (2026-10-14 sweep):* **OPEN** — FixedSizeModifier's doc still says `vertical` is honoured by height-greedy views.
+- *Status:* **FIXED** (2026-10-14): the doc says `vertical` is accepted and not yet honoured.
 
 ### Scrolling
 

@@ -375,6 +375,11 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   draw with" in the Theming Guide article
 - Search the codebase for similar patterns before implementing anything new
 - Consolidate and reuse before adding new functions or types
+- An environment value whose SwiftUI type is itself Optional takes two levels
+  here (`Font??`, `UnitPoint??`, the `Transaction?` a binding holds): the
+  outer `nil` is "nobody said", which inherits, and the inner is "said
+  `nil`", which is a statement. One level makes an explicit `nil`
+  indistinguishable from silence (the semantic audit's root cause 4)
 
 ### Crossing a module boundary
 

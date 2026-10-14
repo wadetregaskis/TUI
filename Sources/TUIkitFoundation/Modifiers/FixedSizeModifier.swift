@@ -49,8 +49,9 @@ extension View {
     /// - Parameters:
     ///   - horizontal: Fix the width at the ideal (content) width. Default `true`.
     ///   - vertical: Fix the height at the ideal height. Default `true`.
-    ///     (Currently honoured by views that are height-greedy; `List` keeps its
-    ///     scrollable height regardless.)
+    ///     Accepted and not yet honoured: nothing reads a vertical request, so a
+    ///     view keeps the height it would have had (a real fixed-size layout is
+    ///     owed; see the deviations' slated table).
     public func fixedSize(horizontal: Bool = true, vertical: Bool = true) -> some View {
         // Width is the axis that matters for the greedy views we have today; the
         // vertical flag is accepted for API parity and reserved for future use.
