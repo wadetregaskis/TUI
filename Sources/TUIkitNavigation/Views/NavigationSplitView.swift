@@ -114,8 +114,9 @@ import TUIkitFoundation
 /// before it behind, and a navigation bar over any column but the sidebar —
 /// the trail of the columns' ``View/navigationTitle(_:)-(LocalizedStringKey)``s,
 /// or **‹ Back** — with Escape and `@Environment(\.dismiss)` going back a
-/// column. Choosing a row in a `List` with a selection, with Return, Space or a
-/// click, selects it and shows the next column, as tapping one does on iPhone.
+/// column. Choosing a row in a `List` or `Table` with a selection, with Return,
+/// Space or a click, selects it and shows the next column, as tapping one does
+/// on iPhone.
 /// A terminal's size classes are `.regular` unless the app writes `.compact`
 /// into `\.horizontalSizeClass`, so a split view collapses only where an app
 /// says so — for a narrow terminal, say.

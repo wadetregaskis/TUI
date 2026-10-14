@@ -404,6 +404,25 @@ customization[visibility: "owner"] = .visible
 The customization records only what has been changed: a column it says
 nothing about follows its default visibility.
 
+### In a Compact Size Class
+
+Where an app writes `.compact` into `\.horizontalSizeClass`, a table shows its
+first column alone, across its whole width, and no header line, as SwiftUI's
+table does on iPhone. The first column is the first the customization shows.
+To say more in the room it has, read the size class and put more in that
+column, as SwiftUI's documentation suggests:
+
+```swift
+@Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+TableColumn("Name") { person in
+    Text(horizontalSizeClass == .compact ? person.fullName : person.givenName)
+}
+```
+
+In the column on top of a collapsed ``NavigationSplitView``, choosing a row
+selects it and shows the next column, as a `List`'s does.
+
 ### Multi-Line Cells and Truncation
 
 By default each cell occupies a single line (the classic table look). Raise a

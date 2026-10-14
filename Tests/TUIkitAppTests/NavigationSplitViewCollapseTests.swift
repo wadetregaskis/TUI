@@ -240,6 +240,39 @@ struct NavigationSplitViewCollapseTests {
         #expect(model.column == .detail)
     }
 
+    /// A row of the table in the sidebar.
+    private struct Dwarf: Identifiable, Sendable {
+        let id: String
+    }
+
+    private struct TableSidebar: View {
+        let model: SplitModel
+        var body: some View {
+            NavigationSplitView(preferredCompactColumn: Binding(get: { model.column }, set: { model.column = $0 })) {
+                Table(
+                    [Dwarf(id: "Ceres"), Dwarf(id: "Pluto")],
+                    selection: Binding(get: { model.planet }, set: { model.planet = $0 })
+                ) {
+                    TableColumn("Name", value: \Dwarf.id)
+                }
+            } detail: {
+                Text("about \(model.planet ?? "nothing")")
+            }
+            .environment(\.horizontalSizeClass, .compact)
+        }
+    }
+
+    @Test("A table's row is chosen the same way")
+    func tableChooses() {
+        let model = SplitModel()
+        let driver = Driver(TableSidebar(model: model))
+        driver.press(.down)
+        driver.press(.enter)
+        #expect(model.planet == "Pluto")
+        #expect(model.column == .detail)
+        #expect(driver.shows("about Pluto"), "\(driver.app.screen)")
+    }
+
     private struct Unselectable: View {
         let model: SplitModel
         var body: some View {

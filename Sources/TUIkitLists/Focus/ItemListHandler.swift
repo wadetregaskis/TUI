@@ -493,8 +493,15 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// this list is in the column on top of one
     /// (``EnvironmentValues/compactColumnAdvance``): choosing a row selects it
     /// and shows the next column, as tapping a row does on iPhone. Set by the
-    /// list every frame from its environment.
-    var compactColumnAdvance: CompactColumnAdvance?
+    /// list or table every frame from its environment.
+    package var compactColumnAdvance: CompactColumnAdvance? {
+        get { _compactColumnAdvance }
+        set { _compactColumnAdvance = newValue }
+    }
+
+    /// ``compactColumnAdvance``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _compactColumnAdvance: CompactColumnAdvance?
 
     /// Opens the container's row menu on the cursor row — Shift+F10 or the
     /// Menu key (``KeyEvent/opensContextMenu``) — and answers whether one

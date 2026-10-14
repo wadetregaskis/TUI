@@ -220,15 +220,16 @@ public struct Table<Value: Identifiable>: View {
     /// for a tree, which draws its sections' rows without their headers.
     var sectionHeaders: [_TableSectionHeader] = []
 
+    /// In a compact class the table shows its first column alone
+    /// (``shownColumns(compact:)``).
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     public var body: some View {
         _TableCore(
             data: data,
-            // Read here, at the body, so a change to the customization shows
-            // on the next frame; an empty customization still hides the
-            // columns whose default visibility is `.hidden`, as SwiftUI's
-            // table does with no binding at all.
-            columns: (columnCustomization?.wrappedValue ?? TableColumnCustomization())
-                .shownColumns(columns),
+            // Read here, at the body, so a change to the customization or the
+            // size class shows on the next frame.
+            columns: shownColumns(compact: horizontalSizeClass == .compact),
             singleSelection: singleSelection,
             multiSelection: multiSelection,
             sortModel: sortModel,
@@ -749,9 +750,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// The lines the column header takes: one, or none under
-    /// `.tableColumnHeaders(.hidden)`.
+    /// `.tableColumnHeaders(.hidden)` and in a horizontally compact size
+    /// class, where SwiftUI's table "automatically hides headers and all
+    /// columns after the first" (decisions B3).
     private func headerLines(_ environment: EnvironmentValues) -> Int {
-        environment.tableColumnHeadersVisibility == .hidden ? 0 : 1
+        environment.tableColumnHeadersVisibility == .hidden || environment.horizontalSizeClass == .compact ? 0 : 1
     }
 
     /// The cells the table's border takes on each side: one under a bordered
@@ -1726,6 +1729,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             firstRowHeight: heightOf(0))
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
+        handler.compactColumnAdvance = context.environment.compactColumnAdvance
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. `engageFocus`
         // still runs with the true answer: it publishes the Escape claim and
@@ -2793,6 +2797,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             firstRowHeight: 1)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
+        handler.compactColumnAdvance = context.environment.compactColumnAdvance
         return (handler, overflowing)
     }
 

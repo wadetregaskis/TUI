@@ -347,9 +347,9 @@ forward again rather than clearing it. Column visibility, the handles, the
 widths and the sidebar chords are set aside while collapsed, as SwiftUI
 ignores visibility there. The columns behind the one on top render
 off-screen, as a stack's root does, and keep their state; a column ahead of
-it is not drawn. Not done: a `NavigationLink` in a column pushing onto the
-collapsed stack (TUIkit's links push only within a `NavigationStack`), and
-`Table` choosing a row the same way.
+it is not drawn. A `Table` chooses its rows the same way since the compact
+`Table` (B3). Not done: a `NavigationLink` in a column pushing onto the
+collapsed stack (TUIkit's links push only within a `NavigationStack`).
 
 ### A22. `DismissBehavior` waits on O9
 
@@ -1003,7 +1003,10 @@ days (estimate): the popover adaptation, the split-view collapse, the compact
 `Table` and the compact sidebar tab view, each with tests.
 
 **2026-10-13:** the popover adaptation and the split-view collapse shipped
-(A21); the compact `Table` and the compact sidebar tab view remain.
+(A21), and the compact `Table`: no header line, and its first column alone
+(the first the customization shows) across the table's width, whatever
+width the column was given, since on iPhone the table is a list of that
+column. The compact sidebar tab view remains.
 
 ### B4. `DynamicProperty.update()` writes back (superseded by lane DYNP)
 
