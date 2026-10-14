@@ -929,6 +929,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Verified: Apple's sample body pasted verbatim onto a TUIkit ForEach fails to compile — the call resolves to the View-level dropDestination instead and reports "cannot convert value of type '()' to closure result type 'Bool'", a diagnostic that gives no hint of the real cause.
 - *Recommendation:* Fix: swap the closure parameters to `([Payload], Int)`. Pre-1.0, and the doc comment already claims the mirror. Dropping SwiftUI's `T: Transferable` constraint is a harmless relaxation and is not part of this finding.
 - *Status (2026-10-14 sweep):* **OPEN** — `ForEach`'s `dropDestination(for:action:)` still hands `(Int, [Payload])`; SwiftUI's is `([T], Int)`.
+- *Status:* **FIXED** (2026-10-14): `ForEach`'s, `DynamicTableRowContent`'s and `Table`'s `dropDestination(for:action:)` hand `([Payload], Int)`, as SwiftUI's do; every caller swapped.
 
 **75. `DynamicViewContent.onMove(perform:)`**
 

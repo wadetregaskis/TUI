@@ -86,7 +86,7 @@ extension ForEach where Content: View {
     /// ```swift
     /// List {
     ///     ForEach(tracks, id: \.self) { Text($0.title) }
-    ///         .dropDestination(for: Track.self) { index, tracks in
+    ///         .dropDestination(for: Track.self) { tracks, index in
     ///             self.tracks.insert(contentsOf: tracks, at: index)
     ///         }
     /// }
@@ -98,16 +98,17 @@ extension ForEach where Content: View {
     ///
     /// - Parameters:
     ///   - payloadType: The payload type these rows accept.
-    ///   - action: Inserts the payloads at the given index.
+    ///   - action: Inserts the payloads at the given index — the payloads
+    ///     first, then the index, as SwiftUI's.
     /// - Returns: A `ForEach` whose list takes drops between its rows.
     public func dropDestination<Payload>(
         for payloadType: Payload.Type = Payload.self,
-        action: @escaping (Int, [Payload]) -> Void
+        action: @escaping ([Payload], Int) -> Void
     ) -> ForEach {
         var copy = self
         copy.dropInsertion = (
             accepts: { $0 is Payload },
-            perform: { index, values in action(index, values.compactMap { $0 as? Payload }) }
+            perform: { index, values in action(values.compactMap { $0 as? Payload }, index) }
         )
         return copy
     }

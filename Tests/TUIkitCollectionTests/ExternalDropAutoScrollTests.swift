@@ -56,7 +56,7 @@ struct ExternalDropAutoScrollTests {
             session.beginFrame()
             let list = List(selection: .constant(String?.none)) {
                 ForEach(rows, id: \.self) { Text($0) }
-                    .dropDestination(for: Track.self) { index, drops in
+                    .dropDestination(for: Track.self) { drops, index in
                         self.dropped = (index, drops.count)
                     }
             }

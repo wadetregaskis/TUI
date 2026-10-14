@@ -240,12 +240,12 @@ private struct DropColumn: View {
             Table(items.map(Named.init(id:))) {
                 TableColumn("Name") { (item: Named) in Text(verbatim: "\(title) \(item.id)") }
             }
-            .dropDestination(for: String.self) { take($1, at: $0) }
+            .dropDestination(for: String.self) { take($0, at: $1) }
             .frame(width: 20, height: 9)
         } else {
             List {
                 ForEach(items, id: \.self) { Text(verbatim: "\(title) \($0)") }
-                    .dropDestination(for: String.self) { take($1, at: $0) }
+                    .dropDestination(for: String.self) { take($0, at: $1) }
             }
             .frame(width: 20, height: 8)
         }

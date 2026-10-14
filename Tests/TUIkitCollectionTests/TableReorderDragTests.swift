@@ -580,7 +580,7 @@ struct TableReorderDragTests {
             ) {
                 TableColumn("Name", value: \.name)
             }
-            .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
+            .dropDestination(for: String.self) { values, index in log.got.append((index, values)) }
             .frame(width: 20, height: 7)
             var context = RenderContext(
                 availableWidth: 20, availableHeight: 9, environment: env, tuiContext: tui)
@@ -647,7 +647,7 @@ struct TableReorderDragTests {
             let view = Table(rows.map(TableReorderRow.init), selection: .constant(String?.none)) {
                 TableColumn("Name", value: \.name)
             }
-            .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
+            .dropDestination(for: String.self) { values, index in log.got.append((index, values)) }
             .frame(width: 20, height: 9)
             var context = RenderContext(
                 availableWidth: 20, availableHeight: 11, environment: env, tuiContext: tui)
@@ -705,7 +705,7 @@ struct TableReorderDragTests {
             let view = Table(["a", "b", "c"].map(TableReorderRow.init), selection: .constant(String?.none)) {
                 TableColumn("Name", value: \.name)
             }
-            .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
+            .dropDestination(for: String.self) { values, index in log.got.append((index, values)) }
             .scrollDisabled(true)
             .frame(width: 20, height: 9)
             var context = RenderContext(

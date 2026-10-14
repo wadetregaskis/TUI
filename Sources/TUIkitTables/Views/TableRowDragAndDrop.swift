@@ -150,12 +150,12 @@ extension DynamicTableRowContent {
     ///   - payloadType: The type of the dropped values.
     ///   - action: Inserts the values at the offset.
     public func dropDestination<T>(
-        for payloadType: T.Type = T.self, action: @escaping (Int, [T]) -> Void
+        for payloadType: T.Type = T.self, action: @escaping ([T], Int) -> Void
     ) -> ModifiedContent<Self, OnInsertTableRowModifier> {
         ModifiedContent(
             content: self,
             modifier: OnInsertTableRowModifier(
-                accepts: { $0 is T }, perform: { offset, values in action(offset, values.compactMap { $0 as? T }) }))
+                accepts: { $0 is T }, perform: { offset, values in action(values.compactMap { $0 as? T }, offset) }))
     }
 }
 

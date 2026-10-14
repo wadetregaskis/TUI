@@ -51,7 +51,7 @@ struct ListRowDropDestinationTests {
             tui.dragAndDropSession.beginFrame()
             let view = List {
                 ForEach(rows, id: \.self) { Text($0) }
-                    .dropDestination(for: String.self) { index, values in
+                    .dropDestination(for: String.self) { values, index in
                         log.inserted.append((index, values))
                     }
             }
@@ -151,7 +151,7 @@ struct ListRowDropDestinationTests {
                     }
                     .draggable(name)
                 }
-                .dropDestination(for: String.self) { index, values in
+                .dropDestination(for: String.self) { values, index in
                     log.inserted.append((index, values))
                 }
             }
@@ -250,7 +250,7 @@ struct ListRowDropDestinationTests {
                     }
                     .draggable(name)
                 }
-                .dropDestination(for: String.self) { index, values in
+                .dropDestination(for: String.self) { values, index in
                     log.inserted.append((index, values))
                 }
             }
@@ -425,7 +425,7 @@ struct ListRowDropDestinationTests {
             tui.dragAndDropSession.beginFrame()
             let view = List {
                 ForEach(["a", "b", "c"], id: \.self) { Text($0) }
-                    .dropDestination(for: String.self) { index, values in
+                    .dropDestination(for: String.self) { values, index in
                         log.inserted.append((index, values))
                     }
             }
@@ -551,7 +551,7 @@ struct ListRowDropDestinationTests {
             tui.dragAndDropSession.beginFrame()
             let view = List {
                 ForEach(rows, id: \.self) { Text($0) }
-                    .dropDestination(for: String.self) { index, values in
+                    .dropDestination(for: String.self) { values, index in
                         log.inserted.append((index, values))
                     }
             }
@@ -597,7 +597,7 @@ struct ListRowDropDestinationTests {
             tui.dragAndDropSession.beginFrame()
             let view = List {
                 ForEach(["a", "b", "c"], id: \.self) { Text($0) }
-                    .dropDestination(for: String.self) { index, values in
+                    .dropDestination(for: String.self) { values, index in
                         log.inserted.append((index, values))
                     }
             }
@@ -644,7 +644,7 @@ struct ListRowDropDestinationTests {
             let view = List {
                 Group {
                     ForEach(["a", "b", "c", "d"], id: \.self) { Text($0) }
-                        .dropDestination(for: String.self) { index, values in
+                        .dropDestination(for: String.self) { values, index in
                             log.inserted.append((index, values))
                         }
                 }
@@ -677,7 +677,7 @@ struct ListRowDropDestinationTests {
 
         var body: some View {
             ForEach(["a", "b", "c", "d"], id: \.self) { Text($0) }
-                .dropDestination(for: String.self) { index, values in accept(index, values) }
+                .dropDestination(for: String.self) { values, index in accept(index, values) }
         }
     }
 

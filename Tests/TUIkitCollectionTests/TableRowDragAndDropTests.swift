@@ -155,7 +155,7 @@ struct TableRowDragAndDropTests {
                 } rows: {
                     TableRow(Fruit(id: "header"))
                     ForEach(fruit) { TableRow($0) }
-                        .dropDestination(for: String.self) { offset, values in
+                        .dropDestination(for: String.self) { values, offset in
                             log.entries.append("insert \(values) at \(offset)")
                         }
                 }

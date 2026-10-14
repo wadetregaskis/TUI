@@ -103,7 +103,7 @@ struct RowTransferDemoSection: View {
                     }
                     .draggable(TrackDrag(side: side, id: track.id))
                 }
-                .dropDestination(for: TrackDrag.self) { index, drops in
+                .dropDestination(for: TrackDrag.self) { drops, index in
                     for drop in drops { perform(drop, to: side, at: index) }
                 }
                 // `.onMove` alongside `.draggable`, for the KEYBOARD. The two

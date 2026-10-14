@@ -58,7 +58,7 @@ struct ExternalDropChromeTests {
             ) {
                 TableColumn("Name", value: \.name)
             }
-            .dropDestination(for: String.self) { index, values in log.got.append((index, values)) }
+            .dropDestination(for: String.self) { values, index in log.got.append((index, values)) }
             .frame(width: 20, height: 9)
             var context = RenderContext(
                 availableWidth: 20, availableHeight: 11, environment: env, tuiContext: tui)
@@ -116,7 +116,7 @@ struct ExternalDropChromeTests {
             tui.dragAndDropSession.beginFrame()
             let view = List(selection: .constant(String?.none)) {
                 ForEach(["a", "b", "c"], id: \.self) { Text($0) }
-                    .dropDestination(for: String.self) { index, values in
+                    .dropDestination(for: String.self) { values, index in
                         log.got.append((index, values))
                     }
             }
