@@ -588,41 +588,12 @@ private struct _ButtonCore: View, Renderable, Layoutable {
 
         // A `.keyboardShortcut(.defaultAction / .cancelAction)` wrapper plants a
         // claimable assignment in the environment; the wrapped button claims it
-        // and registers its action for the frame.
-        var resolvedShortcut: KeyboardShortcut?
-        if !isDisabled,
-            let assignment = context.environment.assignedKeyboardShortcut,
-            let shortcut = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
-        {
-            // `.command` is not a key a terminal can report, so it is resolved
-            // to whatever stands in for it here (`.commandKey(_:)`) — the one
-            // place that both holds the environment and knows the shortcut.
-            // Resolved on EVERY pass, because it is handed to the style so a
-            // menu row can print its hint (as AppKit draws a menu item's key
-            // equivalent), and a measure that didn't see the hint would size
-            // the menu too narrow for the render to fit it.
-            resolvedShortcut = shortcut.resolved(commandKey: context.environment.commandKey)
-            // Registration, though, is per-frame presence: the registry is
-            // emptied before every walk, so a button whose subtree was served
-            // from a value memo has to register again or its key equivalent is
-            // dead while the button is still on screen. Declared to any
-            // value-memoizing ancestor either way — as REPLAYABLE when the
-            // modifier carrying the shortcut is inside the memo, and as a plain
-            // render side effect when it was planted above one, where a served
-            // frame would leave the offer standing. See
-            // `KeyboardShortcutRegistrar`.
-            // A held shortcut repeats the action only under
-            // `.buttonRepeatBehavior(.enabled)`, as a held Return does.
-            let repeats = context.environment.buttonRepeatBehavior == .enabled
-            if let resolvedShortcut, !context.isMeasuring,
-                KeyboardShortcutRegistrar.register(
-                    resolvedShortcut, repeats: repeats, action: effectiveAction, context: context)
-            {
-                KeyboardShortcutRegistrar.declare(
-                    resolvedShortcut, repeats: repeats, action: effectiveAction, carrier: assignment,
-                    context: context)
-            }
-        }
+        // and registers its action for the frame. A held shortcut repeats the
+        // action only under `.buttonRepeatBehavior(.enabled)`, as a held Return
+        // does.
+        let resolvedShortcut = KeyboardShortcutRegistrar.claim(
+            action: effectiveAction, isDisabled: isDisabled,
+            repeats: context.environment.buttonRepeatBehavior == .enabled, context: context)
 
         let configuration = ButtonStyleConfiguration(
             title: label,

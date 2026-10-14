@@ -77,6 +77,26 @@ struct KeyboardShortcutTests {
         #expect(box.fired == 1)
     }
 
+    @Test("A toggle's shortcut flips it, as SwiftUI's shortcuts activate a button or toggle")
+    func toggleShortcut() {
+        // The deviations sweep's likely bug 8 (semantic audit 13): only a
+        // Button claimed a `.keyboardShortcut`, so on a Toggle it did nothing.
+        final class Box { var isOn = false }
+        let box = Box()
+        let view = Toggle("Bold", isOn: Binding(get: { box.isOn }, set: { box.isOn = $0 }))
+            .keyboardShortcut("b", modifiers: .command)
+        let (_, shortcuts) = render(view)
+        // `.command` stands for Control under the default `commandKey`.
+        #expect(shortcuts.trigger(for: KeyEvent(key: .character("b"), ctrl: true)))
+        #expect(box.isOn)
+        // A disabled toggle claims nothing.
+        let disabled = Toggle("Bold", isOn: Binding(get: { box.isOn }, set: { box.isOn = $0 }))
+            .keyboardShortcut("b", modifiers: .command).disabled(true)
+        let (_, none) = render(disabled)
+        #expect(!none.trigger(for: KeyEvent(key: .character("b"), ctrl: true)))
+        #expect(box.isOn)
+    }
+
     @Test("Modified Return/Escape do not trigger the semantic actions")
     func modifiedKeysIgnored() {
         final class Box { var fired = 0 }

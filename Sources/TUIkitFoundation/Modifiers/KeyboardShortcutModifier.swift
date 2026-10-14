@@ -97,11 +97,52 @@ extension KeyboardShortcutModifier: Layoutable {
 
 // MARK: - Registration
 
-/// The one registration a `Button`'s `.keyboardShortcut` makes, shared by the
+/// The one registration a control's `.keyboardShortcut` makes, shared by the
 /// live render and by a value memo replaying it — see `EffectJournal`.
 enum KeyboardShortcutRegistrar {
     /// The journal kind of a keyboard-shortcut registration.
     static let kind = EffectJournal.Kind("keyboardShortcut")
+
+    /// Claims the shortcut a `.keyboardShortcut` above offers, for the control
+    /// rendering at `context`, and registers `action` for it — what every
+    /// control with a primary action does with one: a `Button`, and a `Toggle`,
+    /// as SwiftUI's shortcuts "activate a button or toggle".
+    ///
+    /// `.command` is not a key a terminal can report, so the shortcut is
+    /// resolved to whatever stands in for it here (`.commandKey(_:)`) — the one
+    /// place that both holds the environment and knows the shortcut. Resolved
+    /// on EVERY pass, because a button hands it to its style so a menu row can
+    /// print its hint (as AppKit draws a menu item's key equivalent), and a
+    /// measure that didn't see the hint would size the menu too narrow for the
+    /// render to fit it.
+    ///
+    /// Registration, though, is per-frame presence: the registry is emptied
+    /// before every walk, so a control whose subtree was served from a value
+    /// memo has to register again or its key equivalent is dead while it is
+    /// still on screen. Declared to any value-memoizing ancestor either way
+    /// (``declare(_:repeats:action:carrier:context:)``).
+    ///
+    /// - Parameters:
+    ///   - action: What the shortcut does: the control's primary action.
+    ///   - isDisabled: Whether the control is disabled, which claims nothing.
+    ///   - repeats: Whether a held key's repeats run the action again.
+    ///   - context: Where the control renders.
+    /// - Returns: The shortcut as resolved here, or `nil` where none was
+    ///   offered, the control is disabled, or another control claimed it.
+    @MainActor
+    @discardableResult
+    static func claim(
+        action: @escaping () -> Void, isDisabled: Bool, repeats: Bool, context: RenderContext
+    ) -> KeyboardShortcut? {
+        guard !isDisabled, let assignment = context.environment.assignedKeyboardShortcut,
+            let shortcut = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
+        else { return nil }
+        let resolved = shortcut.resolved(commandKey: context.environment.commandKey)
+        if let resolved, !context.isMeasuring, register(resolved, repeats: repeats, action: action, context: context) {
+            declare(resolved, repeats: repeats, action: action, carrier: assignment, context: context)
+        }
+        return resolved
+    }
 
     /// Registers `action` for `shortcut` with `context`'s shortcut registry,
     /// reporting whether there was one.

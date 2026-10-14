@@ -681,6 +681,12 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             )
             FocusRegistration.register(
                 context: context, handler: handler, focusID: persistedFocusID)
+            // A `.keyboardShortcut` on the toggle flips it, as SwiftUI's
+            // shortcuts "activate a button or toggle". A held key flips it
+            // once: a toggle has no repeat behaviour to ask for more.
+            KeyboardShortcutRegistrar.claim(
+                action: { binding.wrappedValue.toggle() }, isDisabled: isDisabled, repeats: false,
+                context: context)
             // Drawing only — see `RenderContext.indicatesFocus(_:)`. Space still
             // flips it.
             isFocused = context.indicatesFocus(
