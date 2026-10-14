@@ -115,8 +115,12 @@ public struct VStackLayout: Layout, Sendable, Equatable {
         } else {
             height = content
         }
+        // A subview's explicit guide lines the subviews up, as a `VStack`'s
+        // rows are, and the column is as wide as the lined-up run.
+        let run = guideRun(
+            subviews, sizes: sizes.map { (width: $0.width, height: $0.height) }, fixedExtent: nil)
         return ViewSize(
-            width: sizes.map(\.width).max() ?? 0,
+            width: run?.extent ?? sizes.map(\.width).max() ?? 0,
             height: height,
             // Spacers excluded from the CROSS axis, not from both: a Spacer
             // "expands along the major axis of its containing stack layout",
@@ -153,11 +157,13 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             },
             statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: false) },
             sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: bounds.width, height: $1)).height })
+        let run = guideRun(
+            subviews, sizes: zip(sizes, heights).map { (width: $0.width, height: $1) }, fixedExtent: bounds.width)
         var y = bounds.y
         for (index, subview) in subviews.enumerated() {
             let height = heights[index]
             subview.place(
-                at: (x: bounds.x + alignedOffset(for: sizes[index].width, in: bounds.width), y: y),
+                at: (x: bounds.x + (run?.offsets[index] ?? alignedOffset(for: sizes[index].width, in: bounds.width)), y: y),
                 proposal: ProposedSize(width: sizes[index].width, height: height))
             // A gap is charged behind a child that was actually placed — the
             // distributor's own rule, which is what keeps a clipped tail from
@@ -178,6 +184,20 @@ public struct VStackLayout: Layout, Sendable, Equatable {
     /// the leading edge and overflows, rather than being pushed off the front.
     private func alignedOffset(for width: Int, in available: Int) -> Int {
         alignment.childOffset(childWidth: width, in: available)
+    }
+
+    /// The subviews' places across the column where any of them states its
+    /// own guide for ``alignment`` with `alignmentGuide`: every guide on one
+    /// line, as a `VStack`'s rows are (``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``).
+    /// `nil` where none does — almost every column — and the subviews are
+    /// placed by the guide's default instead (``alignedOffset(for:in:)``).
+    private func guideRun(
+        _ subviews: Subviews, sizes: [(width: Int, height: Int)], fixedExtent: Int?
+    ) -> AlignmentGuideRun? {
+        guard subviews.contains(where: { $0.child.providesAlignmentGuide }) else { return nil }
+        return horizontalGuideRun(
+            subviews.map(\.child), sizes: sizes, alignment: alignment, fixedExtent: fixedExtent,
+            context: subviews.context)
     }
 }
 
@@ -242,9 +262,13 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         } else {
             width = content
         }
+        // See `VStackLayout.sizeThatFits` — a subview's explicit guide lines
+        // the subviews up, other axis.
+        let run = guideRun(
+            subviews, sizes: sizes.map { (width: $0.width, height: $0.height) }, fixedExtent: nil)
         return ViewSize(
             width: width,
-            height: sizes.map(\.height).max() ?? 0,
+            height: run?.extent ?? sizes.map(\.height).max() ?? 0,
             isWidthFlexible: flexible,
             // See `VStackLayout.sizeThatFits` — same exclusion, other axis.
             // `_HStackCore` makes it by handling spacers in a branch that
@@ -280,6 +304,8 @@ public struct HStackLayout: Layout, Sendable, Equatable {
         // subview that took width, a gap by pair was asked of a subview and its
         // immediate successor, which an `EmptyView` member between two others
         // is: the row reserved one gap and placed another.
+        let run = guideRun(
+            subviews, sizes: zip(widths, sizes).map { (width: $0, height: $1.height) }, fixedExtent: bounds.height)
         var walk = StackGapWalk(gaps)
         var x = bounds.x
         for (index, subview) in subviews.enumerated() {
@@ -287,7 +313,7 @@ public struct HStackLayout: Layout, Sendable, Equatable {
             x += walk.gap(before: index, extent: width)
             walk.place(index, extent: width)
             subview.place(
-                at: (x: x, y: bounds.y + alignedOffset(for: sizes[index].height, in: bounds.height)),
+                at: (x: x, y: bounds.y + (run?.offsets[index] ?? alignedOffset(for: sizes[index].height, in: bounds.height))),
                 proposal: ProposedSize(width: width, height: sizes[index].height))
             x += width
         }
@@ -308,6 +334,17 @@ public struct HStackLayout: Layout, Sendable, Equatable {
     /// See ``VStackLayout/alignedOffset(for:in:)`` — same reasoning, other axis.
     private func alignedOffset(for height: Int, in available: Int) -> Int {
         alignment.childOffset(childHeight: height, in: available)
+    }
+
+    /// See ``VStackLayout/guideRun(_:sizes:fixedExtent:)`` — same rule, other
+    /// axis (``verticalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``).
+    private func guideRun(
+        _ subviews: Subviews, sizes: [(width: Int, height: Int)], fixedExtent: Int?
+    ) -> AlignmentGuideRun? {
+        guard subviews.contains(where: { $0.child.providesAlignmentGuide }) else { return nil }
+        return verticalGuideRun(
+            subviews.map(\.child), sizes: sizes, alignment: alignment, fixedExtent: fixedExtent,
+            context: subviews.context)
     }
 }
 
@@ -431,27 +468,53 @@ public struct ZStackLayout: Layout, Sendable, Equatable {
         proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(proposal) }
+        // A subview's explicit guide lines the layers up on that axis, as a
+        // `ZStack`'s are, and the stack is as large as the lined-up run.
+        let (across, down) = guideRuns(
+            subviews, sizes: sizes.map { (width: $0.width, height: $0.height) }, bounds: nil)
         return ViewSize(
-            width: sizes.map(\.width).max() ?? 0,
-            height: sizes.map(\.height).max() ?? 0)
+            width: across?.extent ?? sizes.map(\.width).max() ?? 0,
+            height: down?.extent ?? sizes.map(\.height).max() ?? 0)
     }
 
     public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
-        for subview in subviews {
-            let size = subview.sizeThatFits(proposal)
+        let sizes = subviews.map { $0.sizeThatFits(proposal) }
+        let (across, down) = guideRuns(
+            subviews, sizes: sizes.map { (width: $0.width, height: $0.height) }, bounds: bounds)
+        for (index, subview) in subviews.enumerated() {
+            let size = sizes[index]
             subview.place(
                 at: (
                     x: bounds.x
-                        + alignment.horizontal.childOffset(
-                            childWidth: size.width, in: bounds.width),
+                        + (across?.offsets[index]
+                            ?? alignment.horizontal.childOffset(childWidth: size.width, in: bounds.width)),
                     y: bounds.y
-                        + alignment.vertical.childOffset(
-                            childHeight: size.height, in: bounds.height)
+                        + (down?.offsets[index]
+                            ?? alignment.vertical.childOffset(childHeight: size.height, in: bounds.height))
                 ),
                 proposal: proposal)
         }
+    }
+
+    /// The layers' places across and down where any of them states its own
+    /// guide for that half of ``alignment`` — see
+    /// ``VStackLayout/guideRun(_:sizes:fixedExtent:)``; each `nil` where none
+    /// does, and the layers are placed by the guide's default on that axis.
+    private func guideRuns(
+        _ subviews: Subviews, sizes: [(width: Int, height: Int)], bounds: CellRect?
+    ) -> (across: AlignmentGuideRun?, down: AlignmentGuideRun?) {
+        guard subviews.contains(where: { $0.child.providesAlignmentGuide }) else { return (nil, nil) }
+        let children = subviews.map(\.child)
+        return (
+            horizontalGuideRun(
+                children, sizes: sizes, alignment: alignment.horizontal, fixedExtent: bounds?.width,
+                context: subviews.context),
+            verticalGuideRun(
+                children, sizes: sizes, alignment: alignment.vertical, fixedExtent: bounds?.height,
+                context: subviews.context)
+        )
     }
 }
 

@@ -97,4 +97,57 @@ struct StackLayoutAlignmentTests {
         #expect(quarter == 9, "custom guide placed at \(String(describing: quarter))")
         #expect(centred == 18, "centre placed at \(String(describing: centred))")
     }
+
+    @Test("A subview's explicit guide places it, as in VStack, HStack and ZStack")
+    func explicitGuides() {
+        // The deviations sweep's likely bug 9 (semantic audit 24): the layout
+        // stacks placed a subview by the alignment's default and ignored an
+        // `.alignmentGuide` written on it, which `VStack` and `HStack` honour.
+        let context = makeRenderContext(width: 20, height: 6)
+        func lines(_ view: some View) -> [String] {
+            renderToBuffer(view, context: context).lines.map(\.stripped)
+        }
+        let stack = lines(
+            VStack(alignment: .leading, spacing: 0) {
+                Text("ab").alignmentGuide(.leading) { _ in 2 }
+                Text("cdef")
+            })
+        let layout = lines(
+            VStackLayout(alignment: .leading, spacing: 0) {
+                Text("ab").alignmentGuide(.leading) { _ in 2 }
+                Text("cdef")
+            })
+        #expect(stack.prefix(2).map { $0.trimmingTrailing() } == ["ab", "  cdef"], "\(stack)")
+        #expect(layout == stack, "\(layout) vs \(stack)")
+        let row = lines(
+            HStack(alignment: .top, spacing: 0) {
+                Text("a").alignmentGuide(.top) { _ in 1 }
+                Text("b")
+            })
+        let rowLayout = lines(
+            HStackLayout(alignment: .top, spacing: 0) {
+                Text("a").alignmentGuide(.top) { _ in 1 }
+                Text("b")
+            })
+        #expect(rowLayout == row, "\(rowLayout) vs \(row)")
+        let layers = lines(
+            ZStack(alignment: .topLeading) {
+                Text("abcd")
+                Text("x").alignmentGuide(.leading) { _ in -2 }
+            })
+        let layersLayout = lines(
+            ZStackLayout(alignment: .topLeading) {
+                Text("abcd")
+                Text("x").alignmentGuide(.leading) { _ in -2 }
+            })
+        #expect(layersLayout == layers, "\(layersLayout) vs \(layers)")
+    }
+}
+
+private extension String {
+    func trimmingTrailing() -> String {
+        var copy = self
+        while copy.last == " " { copy.removeLast() }
+        return copy
+    }
 }
