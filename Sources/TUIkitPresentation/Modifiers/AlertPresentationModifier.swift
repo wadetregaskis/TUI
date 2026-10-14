@@ -63,6 +63,14 @@ public struct AlertPresentationModifier<Content: View, Actions: View, Message: V
     /// what a ``DialogSeverity/automatic`` severity makes critical.
     var presentsError: Bool = false
 
+    /// The actions as the dialog draws them, with SwiftUI's implicit button:
+    /// a confirmation dialog — the vertical form, which nothing else uses —
+    /// with no `.cancel` button gets a standard Cancel, and an alert with no
+    /// buttons a standard OK.
+    var shownActions: _ImplicitDialogActions<Actions> {
+        _ImplicitDialogActions(actions: actions, isConfirmation: verticalButtons)
+    }
+
     public var body: Never {
         fatalError("AlertPresentationModifier renders via Renderable")
     }
@@ -118,7 +126,7 @@ extension AlertPresentationModifier: Renderable {
             borderColor: borderColor,
             titleColor: titleColor,
             verticalButtons: verticalButtons,
-            actions: { actions }
+            actions: { shownActions }
         )
 
         // Register the alert focus section and activate it FIRST, so the page
@@ -152,7 +160,7 @@ extension AlertPresentationModifier: Renderable {
             let environment = context.environment
             if Self.preventsTermination(
                 stated: environment.dialogPreventsAppTermination,
-                buttons: alertActionButtons(from: actions),
+                buttons: alertActionButtons(from: shownActions),
                 isCritical: environment.dialogSeverity == .critical
                     || (environment.dialogSeverity == .automatic && presentsError))
             {
@@ -172,7 +180,7 @@ extension AlertPresentationModifier: Renderable {
             // so Escape does not choose it either; nor is one invented when the
             // alert has no cancel role. Both cases just close.
             let isPresented = self.isPresented
-            let cancel = alertActionButtons(from: actions).first {
+            let cancel = alertActionButtons(from: shownActions).first {
                 $0.role == .cancel && !$0.isDisabled
             }
             let dismiss = {
@@ -334,5 +342,36 @@ extension AlertPresentationModifier: Layoutable {
         measureChild(
             content, proposal: proposal,
             context: context.withChildIdentity(type: Content.self, index: 0))
+    }
+}
+
+// MARK: - Implicit buttons
+
+/// A dialog's actions with the button SwiftUI adds when the app gave none.
+///
+/// An alert: "If no actions are present, the system includes a standard
+/// \"OK\" action." A confirmation dialog: "Dialogs include a standard dismiss
+/// action by default. If you provide a button with a role of
+/// ``ButtonRole/cancel``, that button takes the place of the default dismiss
+/// action." Each does nothing but close the dialog, as every one of a
+/// dialog's buttons closes it after its action.
+struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
+    let actions: A
+    /// A confirmation dialog, which gets a Cancel, rather than an alert,
+    /// which gets an OK.
+    let isConfirmation: Bool
+
+    var body: some View { actions }
+
+    func extractButtons() -> [Button] {
+        let buttons = alertActionButtons(from: actions)
+        if isConfirmation {
+            guard !buttons.contains(where: { $0.role == .cancel }) else { return buttons }
+            return buttons + [
+                Button(LocalizationService.shared.string(for: LocalizationKey.Button.cancel), role: .cancel, action: {})
+            ]
+        }
+        guard buttons.isEmpty else { return buttons }
+        return [Button(LocalizationService.shared.string(for: LocalizationKey.Button.ok), action: {})]
     }
 }

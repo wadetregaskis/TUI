@@ -294,6 +294,11 @@ closes the alert either way, which is why `Cancel` above has something to do.
 An alert with no cancel role simply closes, and no other action is conscripted
 into the job.
 
+An alert with no actions at all has a standard **OK**, as SwiftUI's does, so
+`.alert("Saved", isPresented: $saved) {} message: { … }` still has a button to
+close it with; and a confirmation dialog with no `.cancel`-role button has a
+standard **Cancel** below its own. Each does nothing but close the dialog.
+
 Each action is a separate focusable control: <kbd>Tab</kbd> moves between them
 in drawn order and <kbd>Return</kbd> activates the focused one.
 
