@@ -193,7 +193,6 @@
   "View.scrollDismissesKeyboard(_:)",
   "View.scrollEdgeEffectHidden(_:for:)",
   "View.scrollEdgeEffectStyle(_:for:)",
-  "View.searchSelection(_:)",
   "View.sectionIndexLabel(_:)",
   "View.sensoryFeedback(_:trigger:)",
   "View.sensoryFeedback(_:trigger:condition:)",

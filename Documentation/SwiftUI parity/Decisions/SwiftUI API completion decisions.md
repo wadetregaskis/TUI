@@ -51,8 +51,9 @@ when nothing animates.
 
 **Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
-A41 (O5); A25, A42, B19 (after its A/B), B22 (a look at the faint tiers).
+A41 (O5); A42, B19 (after its A/B), B22 (a look at the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
+A25 shipped on 2026-10-14.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -418,6 +419,12 @@ searchable's field.
 
 **No longer waits.** A13 shipped on 2026-10-05, and `TextField` takes a
 `TextSelection?` binding, so this is ordinary work: owed.
+
+**Shipped (2026-10-14).** Written after the `searchable`, as `searchFocused`
+is, it binds that searchable's field and not one in its content: the field is
+a `TextField(_:text:selection:prompt:)`. It is available from macOS 15, with
+`TextSelection`, where SwiftUI's is macOS 26's: nothing in it needs more, and
+copying the later floor would be copying a limitation.
 
 ### A26. The scene-level dialog modifiers and optional scenes wait on O9
 

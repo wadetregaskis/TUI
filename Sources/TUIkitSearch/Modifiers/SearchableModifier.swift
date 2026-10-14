@@ -60,6 +60,10 @@ struct SearchableModifier<Content: View>: View {
     /// What ``View/searchScopes(_:scopes:)`` above us offered, if anything.
     @Environment(\.searchScopeBar) private var scopeBar
 
+    /// What ``View/searchSelection(_:)`` around us bound the field's
+    /// selection to, if anything.
+    @Environment(\.searchSelection) private var selection
+
     /// The magnifier that faces the field from `iconPlacement`'s side: 🔎 is
     /// RIGHT-pointing so it looks rightward into a trailing field, 🔍 is
     /// LEFT-pointing so it looks leftward into a leading one. (The Unicode
@@ -150,6 +154,7 @@ struct SearchableModifier<Content: View>: View {
                 // as well.
                 .environment(\.searchFocusOffer, nil)
                 .environment(\.searchScopeBar, nil)
+                .environment(\.searchSelection, nil)
         }
     }
 
@@ -211,7 +216,7 @@ struct SearchableModifier<Content: View>: View {
         }
         offered += suggestions.entries
         let isPresented = isPresented
-        let field = TextField("", text: text, prompt: prompt ?? defaultPrompt)
+        let field = baseField(prompt: prompt ?? defaultPrompt)
             .onEditingChanged { began in
                 isSearching = began
                 // The field's side of `isPresented`: presented while it holds
@@ -227,6 +232,16 @@ struct SearchableModifier<Content: View>: View {
         // binds a `searchFocused` focus state to it.
         return _SearchFieldFocus(content: field, search: dismissal)
     }
+
+    /// The query field, its selection bound where a `searchSelection` around
+    /// the searchable asked — the same field either way, so binding one does
+    /// not make the field a different view.
+    private func baseField(prompt: Text) -> TextField<Text> {
+        if #available(macOS 15, *), let binding = selection?.binding as? Binding<TextSelection?> {
+            return TextField("", text: text, selection: binding, prompt: prompt)
+        }
+        return TextField("", text: text, prompt: prompt)
+    }
 }
 
 // MARK: - Environment without reflection
@@ -238,5 +253,6 @@ extension SearchableModifier: ResolvesOwnEnvironment {
         _iconPlacement.resolveEnvironment(environment)
         _suggestions.resolveEnvironment(environment)
         _scopeBar.resolveEnvironment(environment)
+        _selection.resolveEnvironment(environment)
     }
 }
