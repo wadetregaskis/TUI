@@ -14,7 +14,8 @@ import TUIkitCore
 /// The object is stored by its type, enabling retrieval via
 /// `@Environment(MyModel.self)`. Only one object per type can be
 /// stored at each level of the view hierarchy; inner modifiers
-/// override outer ones for the same type.
+/// override outer ones for the same type, and a `nil` one clears an outer
+/// one's.
 ///
 /// This is framework infrastructure. Use the `.environment(_:)` modifier
 /// on `View` instead.
@@ -22,15 +23,16 @@ public struct ObjectEnvironmentModifier<Content: View, T: Observable>: View {
     /// The content view.
     public let content: Content
 
-    /// The observable object to inject.
-    public let object: T
+    /// The observable object to inject, or `nil` to clear one of its type.
+    public let object: T?
 
     /// Creates a new object environment modifier.
     ///
     /// - Parameters:
     ///   - content: The child view tree.
-    ///   - object: The observable object to make available.
-    public init(content: Content, object: T) {
+    ///   - object: The observable object to make available, or `nil` to
+    ///     clear one of its type placed further out.
+    public init(content: Content, object: T?) {
         self.content = content
         self.object = object
     }

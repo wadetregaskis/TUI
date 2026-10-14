@@ -120,6 +120,27 @@ public struct Environment<Value> {
         self.observableType = type
     }
 
+    /// Creates an environment property wrapper that reads an observable
+    /// object by its type, or `nil` where none has been set — mirrors
+    /// SwiftUI's `init(_:)` for an optional object.
+    ///
+    /// ```swift
+    /// @Environment(AppModel.self) var model: AppModel?
+    /// ```
+    ///
+    /// The non-optional form traps where nothing was injected; this one reads
+    /// `nil`.
+    ///
+    /// - Parameter objectType: The observable type to look up.
+    public init<T>(_ objectType: T.Type) where Value == T?, T: Observable {
+        self.keyPath = nil
+        // The OPTIONAL's metatype, which is what marks the lookup as one that
+        // may find nothing; ``wrappedValue`` looks up the wrapped type. Kept in
+        // the one stored metatype rather than a flag beside it, which would
+        // take the wrapper past three words (see the stored properties).
+        self.observableType = Value.self
+    }
+
     /// The current environment value.
     ///
     /// Prefers the environment captured into `box` at the owning view's render
@@ -128,7 +149,13 @@ public struct Environment<Value> {
     public var wrappedValue: Value {
         let env = box.environment ?? StateRegistration.activeEnvironment ?? EnvironmentValues()
         if let keyPath { return env[keyPath: keyPath] }
-        guard let type = observableType, let object = env.storedObject(ofType: type) as? Value else {
+        // An optional lookup names the optional's type: look up the wrapped
+        // one, and read `nil` where it is absent.
+        let optional = observableType as? any OptionalObjectType.Type
+        guard let type = optional?.wrappedObjectType ?? observableType,
+            let object = env.storedObject(ofType: type) as? Value
+        else {
+            if optional != nil, let absent = (Optional<Any>.none as Any) as? Value { return absent }
             fatalError(
                 "@Environment(\(Value.self).self): "
                     + "No object of type \(Value.self) found in the environment. "
@@ -137,6 +164,16 @@ public struct Environment<Value> {
         }
         return object
     }
+}
+
+/// An `Optional`, seen through its metatype: what an optional observable
+/// lookup (the optional form of `Environment.init(_:)`) looks up.
+private protocol OptionalObjectType {
+    static var wrappedObjectType: Any.Type { get }
+}
+
+extension Optional: OptionalObjectType {
+    static var wrappedObjectType: Any.Type { Wrapped.self }
 }
 
 // MARK: - Render-time resolution

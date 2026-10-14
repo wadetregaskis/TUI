@@ -84,9 +84,14 @@ extension View {
     ///     .environment(model)
     /// ```
     ///
-    /// - Parameter object: The observable object to inject.
+    /// `nil` clears an object of this type placed further out, so the views
+    /// below read none — mirrors SwiftUI, whose `environment(_:)` takes an
+    /// optional object (the semantic audit's item 88).
+    ///
+    /// - Parameter object: The observable object to inject, or `nil` to clear
+    ///   one of its type.
     /// - Returns: A view with the object available in the environment.
-    public func environment<T: Observable>(_ object: T) -> some View {
+    public func environment<T: Observable>(_ object: T?) -> some View {
         ObjectEnvironmentModifier(content: self, object: object)
     }
 }

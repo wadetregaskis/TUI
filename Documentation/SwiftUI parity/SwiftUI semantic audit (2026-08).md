@@ -1045,6 +1045,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `@Environment(Model.self) var model: Model?` fails to compile: `error: cannot convert value of type 'Model.Type' to expected argument type 'KeyPath<EnvironmentValues, Model?>'` (verified). So the only available spelling is the one that crashes at runtime when an ancestor forgot `.environment(model)`; the defensive spelling SwiftUI offers is unreachable.
 - *Recommendation:* Add `init<T: AnyObject & Observable>(_ objectType: T.Type) where Value == T?` whose `.observable` strategy returns the lookup result directly instead of trapping.
 - *Status (2026-10-14 sweep):* **OPEN** — no optional `@Environment(T.self) var x: T?`; the only form traps when nothing was injected.
+- *Status:* **FIXED** (2026-10-14): `Environment.init(_:)` for an optional object reads `nil` where none was set (EnvironmentProperty.swift); ObservableEnvironmentTests.
 
 **88. `View.environment(_:)`**
 
@@ -1053,6 +1054,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Apple's documented snippet, verbatim, fails to type-check against the built package: `Text("hi").environment(currentProfile)` where `currentProfile: Profile?` gives `error: value of optional type 'Profile?' must be unwrapped to a value of type 'Profile'`. The optional-model-in-environment pattern is common, and the workaround (`if let` / `??`) changes the view tree.
 - *Recommendation:* Add `public func environment<T: AnyObject & Observable>(_ object: T?) -> some View` that sets `env[observable: T.self] = object`; the subscript already accepts nil, so clearing works for free.
 - *Status (2026-10-14 sweep):* **OPEN** — `View.environment(_:)` takes no optional object (the `Scene` twin does).
+- *Status:* **FIXED** (2026-10-14): `View.environment(_:)` takes an optional object, `nil` clearing one placed further out (View+Environment.swift); ObservableEnvironmentTests.
 
 ### Text and typography
 

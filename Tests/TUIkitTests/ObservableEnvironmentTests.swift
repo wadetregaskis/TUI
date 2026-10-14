@@ -142,4 +142,43 @@ struct ObservableEnvironmentTests {
         let retrieved = env[observable: CounterModel.self]
         #expect(retrieved?.count == 100)
     }
+
+    // MARK: - Optional objects (the semantic audit's items 87 and 88)
+
+    @Test("An optional @Environment reads nil where no object was set, and the object where one was")
+    func optionalEnvironmentReadsNil() {
+        let wrapper = Environment<CounterModel?>(CounterModel.self)
+        StateRegistration.withHydration(environment: EnvironmentValues()) {
+            #expect(wrapper.wrappedValue == nil, "nil, where the non-optional form traps")
+        }
+        var env = EnvironmentValues()
+        let model = CounterModel()
+        model.count = 7
+        env[observable: CounterModel.self] = model
+        StateRegistration.withHydration(environment: env) {
+            #expect(wrapper.wrappedValue === model)
+        }
+    }
+
+    @Test(".environment(nil) clears an object placed further out")
+    func environmentNilClears() {
+        let model = CounterModel()
+        model.count = 3
+        let kept = renderToBuffer(
+            OptionalCounterReader().environment(model), context: makeRenderContext(width: 20, height: 2))
+        #expect(kept.lines.first?.stripped.hasPrefix("count 3") == true, "\(kept.lines)")
+        let cleared = renderToBuffer(
+            OptionalCounterReader().environment(nil as CounterModel?).environment(model),
+            context: makeRenderContext(width: 20, height: 2))
+        #expect(cleared.lines.first?.stripped.hasPrefix("none") == true, "\(cleared.lines)")
+    }
+}
+
+/// Draws the counter's count, or "none" where no counter is in the environment.
+private struct OptionalCounterReader: View {
+    @Environment(CounterModel.self) private var counter: CounterModel?
+
+    var body: some View {
+        Text(counter.map { "count \($0.count)" } ?? "none")
+    }
 }
