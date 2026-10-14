@@ -932,9 +932,6 @@
     "WindowToolbarFullScreenVisibility": {
       "why": "Exists only to feed `windowToolbarFullScreenVisibility(_:)`; TUIkit has no window and no window toolbar — the host terminal owns both, and TUIkit only ever knows a rows×columns grid (Sources/TUIkitApp/App/RenderLoop.swift)."
     },
-    "ToolbarDefaultItemKind.search": {
-      "why": "Removes the search field SwiftUI places in a window's toolbar by default. TUIkit has no toolbar for a search item to sit in: `.searchable` draws its field at the top of the searchable subtree, where the app put the modifier (Sources/TUIkitSearch/Extensions/View+Searchable.swift), so there is no framework-placed item to take away. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkitNavigation/Modifiers/ToolbarRemovalModifier.swift)."
-    },
     "KeyEquivalent.clear": {
       "why": "The keypad Clear key (U+F739). No terminal encoding TUIkit parses gives it a sequence of its own (it sits in Num Lock's position), so a shortcut or onKeyPress on it could never fire. Reopen if a terminal is found to send it, most likely under the kitty keyboard protocol (decisions A4). See decisions C4."
     },
@@ -964,10 +961,6 @@
     "DefaultPickerStyle": {
       "how": "PickerStyle.automatic / AutomaticPickerStyle",
       "why": "Sources/TUIkitPickers/Styles/PickerStyle+Variants.swift — `.automatic` ships alongside `.inline`, `.menu` and the TUI-specific `.radioGroup`."
-    },
-    "DefaultToolbarItem": {
-      "how": "SystemStatusBarItem.quit / .appearance / .theme",
-      "why": "/Users/robot/Documents/TUIkit/Sources/TUIkitFoundation/StatusBar/SystemStatusBarItem.swift:22,35,48 — the concrete system-provided items, plus `SystemStatusBarItem.items(onQuit:onAppearance:onTheme:)` at :73 for re-binding their actions."
     },
     "DynamicViewContent": {
       "how": "DynamicViewContentActions (internal protocol) on ForEach",

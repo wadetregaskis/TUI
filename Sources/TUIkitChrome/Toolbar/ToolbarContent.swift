@@ -60,6 +60,10 @@ struct _ToolbarItemSpec {
     /// as a `Spacer` of its own row (see ``_ToolbarBarRow``).
     var isFlexibleSpace = false
 
+    /// The default item a ``DefaultToolbarItem`` places, which declaring it
+    /// claims from the window's chrome; `nil` for every other item.
+    var defaultKind: ToolbarDefaultItemKind.Kind?
+
     /// Where the item sits in the content that declared it: the member of each
     /// block it is in, and the branch of each `if`/`else` — its structural
     /// identity, as a view's in a `ViewBuilder` is.
@@ -87,10 +91,13 @@ struct _ToolbarItemCollector {
 
     /// Adds an item at the current place.
     mutating func append(
-        placement: ToolbarItemPlacement, view: AnyView, id: String? = nil, isFlexibleSpace: Bool = false
+        placement: ToolbarItemPlacement, view: AnyView, id: String? = nil, isFlexibleSpace: Bool = false,
+        defaultKind: ToolbarDefaultItemKind.Kind? = nil
     ) {
         items.append(
-            _ToolbarItemSpec(placement: placement, view: view, id: id, isFlexibleSpace: isFlexibleSpace, path: path))
+            _ToolbarItemSpec(
+                placement: placement, view: view, id: id, isFlexibleSpace: isFlexibleSpace,
+                defaultKind: defaultKind, path: path))
     }
 
     /// Adds items collected elsewhere, at their places under the current one.

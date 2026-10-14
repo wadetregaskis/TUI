@@ -92,6 +92,13 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                         placement: item.placement, view: item.view, environment: context.environment,
                         identity: itemIdentity(item, depth: depth, context: context),
                         isFlexibleSpace: item.isFlexibleSpace))
+                // A default item moves the framework's own from where it is
+                // drawn by default (`DefaultToolbarItem`).
+                switch item.defaultKind {
+                case .search: chrome.claimSearchField()
+                case .title: chrome.removeTitle()
+                case .sidebarToggle, nil: break
+                }
             }
         } else if !context.isMeasuring, context.environment.windowChrome == nil, let storage = context.stateStorage {
             retainItems(depth: depth, storage: storage, context: context)

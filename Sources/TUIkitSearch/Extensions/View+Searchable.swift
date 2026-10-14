@@ -19,9 +19,10 @@ extension View {
     ///     .searchable(text: $query)   // you filter `results` by `query`
     /// ```
     ///
-    /// - Note: A terminal has no navigation toolbar to float a search field into,
-    ///   so `placement` is accepted for source compatibility but the field always
-    ///   renders at the top of the searchable subtree.
+    /// - Note: `placement` is a preference, as SwiftUI documents it, and the
+    ///   field renders at the top of the searchable subtree whatever it says —
+    ///   unless a `DefaultToolbarItem(kind: .search)` places the field in one of
+    ///   the window's bars, or `toolbar(removing: .search)` takes it away.
     ///
     /// - Parameters:
     ///   - text: The text to display and edit in the search field.

@@ -1287,7 +1287,17 @@ it. Lane owed: about a day, with the stale reasons it leaves (the map's and
 **`.title` shipped 2026-10-14**, with those reasons: the window's chrome
 records the removal per walk, as it records titles, and the stack's bar (and a
 collapsed split view's) reads it from the screen's preferences or the
-environment above. `.search` is owed.
+environment above.
+
+**`.search` shipped 2026-10-14**, with `DefaultToolbarItem(kind:placement:)`
+(TUIkitChrome; `ToolbarDefaultItemKind` moved to TUIkitFoundation so the three
+sibling modules can name it). Declaring a search item claims the window's
+field from its chrome, kept by frame, so a toolbar inside the searchable's
+content moves the field a frame later; the searchable hands its field, scopes
+and all, to the chrome for the item to draw, and its content stays its second
+child. `.toolbar(removing: .search)` draws the field nowhere. A `.title` item
+moves the title out of the top bar's slot. `.sidebarToggle` in a
+`DefaultToolbarItem` draws nothing (a slated deviation).
 
 ---
 

@@ -15,12 +15,14 @@
 /// ``View/toolbar(removing:)`` can take away.
 ///
 /// Mirrors SwiftUI's `ToolbarDefaultItemKind`: ``sidebarToggle``, the
-/// ``NavigationSplitView``'s own handles, and ``title``.
+/// ``NavigationSplitView``'s own handles, ``title`` and ``search``. A
+/// ``DefaultToolbarItem`` of a kind places that item in a bar.
 public struct ToolbarDefaultItemKind {
     /// The item kinds TUIkit has.
     package enum Kind {
         case sidebarToggle
         case title
+        case search
     }
 
     package let kind: Kind
@@ -42,6 +44,28 @@ public struct ToolbarDefaultItemKind {
     ///
     /// SwiftUI declares this `static let`; see ``sidebarToggle``.
     public static var title: Self { Self(kind: .title) }
+
+    /// The search field a `searchable` modifier draws at the top of the view
+    /// it modifies: in a bar where a ``DefaultToolbarItem`` of this kind
+    /// places it, and nowhere once `toolbar(removing:)` takes it away.
+    ///
+    /// SwiftUI declares this `static let`; see ``sidebarToggle``.
+    public static var search: Self { Self(kind: .search) }
+}
+
+private struct ToolbarSearchRemovedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether a `toolbar(removing: .search)` on or above this view took the
+    /// search field away, for a `searchable` modifier it holds. One drawn
+    /// anywhere else in the window says so through the window's chrome
+    /// (``WindowChromeState/searchFieldRemoved``).
+    package var toolbarSearchRemoved: Bool {
+        get { self[ToolbarSearchRemovedKey.self] }
+        set { self[ToolbarSearchRemovedKey.self] = newValue }
+    }
 }
 
 /// Not `Sendable`, exactly as SwiftUI declares it.

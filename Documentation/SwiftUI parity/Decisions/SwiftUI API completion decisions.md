@@ -49,7 +49,7 @@ default dissolve each wait on an A/B on the quiet machine, whose numbers
 decide them as agreed: A40 dissolves by default if that costs under about 1%
 when nothing animates.
 
-**Decided, lane owed.** A0's ruled O items but O1, O7 and O16 (deferred), and with them
+**Decided, lane owed.** A0's ruled O items but O1, O7, O17 and O16 (deferred), and with them
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A42, B19 (after its A/B), B22 (a look at the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
@@ -112,8 +112,8 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O15** `ButtonBorderShape`. **Support it.**
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
   **Defer.**
-- **O17** The toolbar's `.title` and `.search` items. **Do them.** `.title`
-  shipped 2026-10-14; `.search` is owed.
+- **O17** The toolbar's `.title` and `.search` items. **Do them.** Shipped
+  2026-10-14, with `DefaultToolbarItem`.
 
 ### A3. `layoutDirectionBehavior(_:)`: mirror now, or with right-to-left?
 

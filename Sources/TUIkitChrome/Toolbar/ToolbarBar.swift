@@ -43,12 +43,7 @@ struct _ToolbarBarRow: View {
         HStack(spacing: 1) {
             _ToolbarItemRun(entries: leading)
             if principal.isEmpty, !title.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(verbatim: title).bold()
-                    if !subtitle.isEmpty {
-                        Text(verbatim: subtitle).foregroundStyle(.palette.foregroundSecondary)
-                    }
-                }
+                _ToolbarTitle(title: title, subtitle: subtitle)
             }
             Spacer(minLength: 0)
             if !principal.isEmpty {
@@ -194,5 +189,24 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         var entryContext = context.withEnvironment(environment)
         entryContext.identity = entry.identity
         return entryContext
+    }
+}
+
+// MARK: - The Title
+
+/// The window's title as a bar draws it: bold, with the subtitle under it in
+/// the secondary colour. In the top bar's title slot, or wherever a
+/// `DefaultToolbarItem(kind: .title)` places it.
+struct _ToolbarTitle: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: title).bold()
+            if !subtitle.isEmpty {
+                Text(verbatim: subtitle).foregroundStyle(.palette.foregroundSecondary)
+            }
+        }
     }
 }

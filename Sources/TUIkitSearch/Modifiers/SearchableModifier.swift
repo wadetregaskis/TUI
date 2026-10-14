@@ -130,17 +130,20 @@ struct SearchableModifier<Content: View>: View {
         }
     }
 
-    /// The field above the content.
+    /// The field above the content — or in a bar, or nowhere
+    /// (``_SearchFieldPlace``).
     private var searchStack: some View {
         VStack(alignment: .leading, spacing: 0) {
             // The field, and the rows under it: one child, so the content stays
-            // the stack's second whether or not the rows show.
-            VStack(alignment: .leading, spacing: 0) {
-                fieldRow
-                if let accessories {
-                    _SearchAccessoryFrame(content: accessories, search: dismissal)
-                }
-            }
+            // the stack's second whether or not the rows show, and wherever the
+            // field is drawn.
+            _SearchFieldPlace(
+                field: VStack(alignment: .leading, spacing: 0) {
+                    fieldRow
+                    if let accessories {
+                        _SearchAccessoryFrame(content: accessories, search: dismissal)
+                    }
+                })
             // Both values reach the CONTENT only, which is where SwiftUI puts
             // them: they answer questions about the field, and the field is the
             // framework's, not the caller's.

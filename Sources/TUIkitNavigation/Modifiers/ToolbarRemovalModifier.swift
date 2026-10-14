@@ -90,20 +90,23 @@ struct ToolbarRemovalView<Content: View>: View {
             context.environment.preferenceStorage?.setValue(true, forKey: SidebarToggleRemovedKey.self)
         case .title:
             context.environment.preferenceStorage?.setValue(true, forKey: ToolbarTitleRemovedKey.self)
-            declareTitleRemoved(context: context)
+            windowChrome(context)?.removeTitle()
+        case .search:
+            windowChrome(context)?.removeSearchField()
         }
     }
 
-    /// Tells the window's chrome that its title slot is empty this walk, as a
+    /// The window's chrome, to tell of a removal this walk, as a
     /// `.navigationTitle` offers it a title (`PreferenceModifier`): on a drawn
     /// walk, and on the first frame's seeding walk, which measures — the top
-    /// bar's rows depend on whether there is a title. Presented content's
-    /// removal is the presentation's, not the window's.
-    private func declareTitleRemoved(context: RenderContext) {
+    /// bar's rows depend on whether there is a title, and a bar's on whether a
+    /// search field is in it. `nil` in presented content, whose removal is the
+    /// presentation's, not the window's.
+    private func windowChrome(_ context: RenderContext) -> WindowChromeState? {
         guard !context.isMeasuring || context.environment.seedsWindowChrome,
             !context.environment.presentationHostsToolbar
-        else { return }
-        context.environment.windowChrome?.removeTitle()
+        else { return nil }
+        return context.environment.windowChrome
     }
 }
 
@@ -144,6 +147,14 @@ extension View {
     /// `.navigationTitle`, which a terminal window's title would be set from;
     /// only the title item goes.
     ///
+    /// With ``ToolbarDefaultItemKind/search`` it removes the search field a
+    /// `searchable` modifier draws, wherever it would be drawn — at the top of
+    /// the view, or in a bar a ``DefaultToolbarItem`` placed it in — when the
+    /// modifier is on or above the searchable, or drawn anywhere else in the
+    /// window but in presented content. With no field drawn nothing can take
+    /// the focus to it, so `isSearching` stays `false`; the query binding is
+    /// the app's still.
+    ///
     /// ```swift
     /// NavigationSplitView {
     ///     Sidebar()
@@ -180,6 +191,9 @@ extension View {
             }
             .transformEnvironment(\.toolbarTitleRemoved) { removed in
                 if removes == .title { removed = true }
+            }
+            .transformEnvironment(\.toolbarSearchRemoved) { removed in
+                if removes == .search { removed = true }
             },
             removes: removes)
     }

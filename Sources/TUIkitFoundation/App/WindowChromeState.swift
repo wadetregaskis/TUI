@@ -341,6 +341,53 @@ package final class WindowChromeState: @unchecked Sendable {
         _titleRemoved = true
     }
 
+    // MARK: The search field's place
+
+    /// Whether a `DefaultToolbarItem(kind: .search)` claimed the window's
+    /// search field for a bar, this frame or the last.
+    ///
+    /// Last frame's claim counts because a toolbar declared inside the
+    /// searchable's content declares it after the searchable has drawn: the
+    /// field moves a frame late, as a bar appears a frame late (see the type's
+    /// own documentation). The first frame's seeding walk declares the toolbar,
+    /// so the first frame drawn has it. Kept by FRAME, not by walk: a frame can
+    /// begin a walk that never reaches the page, and a claim kept only to the
+    /// next walk was gone by the walk that drew it.
+    package var searchFieldClaimed: Bool { _searchFieldClaimedFrame.map { $0 >= frame - 1 } ?? false }
+
+    /// The frame that last declared a `DefaultToolbarItem(kind: .search)`.
+    private var _searchFieldClaimedFrame: Int?
+
+    /// Records a `DefaultToolbarItem(kind: .search)` a walk declared.
+    package func claimSearchField() {
+        _searchFieldClaimedFrame = frame
+    }
+
+    /// Whether a `.toolbar(removing: .search)` was drawn, this frame or the
+    /// last, for the reason ``searchFieldClaimed`` gives.
+    package var searchFieldRemoved: Bool { _searchFieldRemovedFrame.map { $0 >= frame - 1 } ?? false }
+
+    /// The frame that last drew a `.toolbar(removing: .search)`.
+    private var _searchFieldRemovedFrame: Int?
+
+    /// Records a `.toolbar(removing: .search)` a walk drew.
+    package func removeSearchField() {
+        _searchFieldRemovedFrame = frame
+    }
+
+    /// The field, with its scopes, that a claimed `searchable` handed over this
+    /// walk for the search item to draw: the first one drawn.
+    package var searchField: AnyView? { _searchField }
+
+    /// ``searchField``'s storage.
+    private var _searchField: AnyView?
+
+    /// Hands over a claimed searchable's field, unless another drawn earlier
+    /// this walk already did.
+    package func offerSearchField(_ field: AnyView) {
+        if _searchField == nil { _searchField = field }
+    }
+
     /// ``title`` and ``subtitle``, as ``offer(_:as:at:)`` chooses them.
     private var titles: (title: String, subtitle: String) {
         if let chosenTitles { return chosenTitles }
@@ -434,6 +481,7 @@ package final class WindowChromeState: @unchecked Sendable {
         subtitleOffers.removeAll(keepingCapacity: true)
         chosenTitles = nil
         _titleRemoved = false
+        _searchField = nil
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a
