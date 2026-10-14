@@ -2,9 +2,11 @@
 //  ToolbarRemovalModifier.swift
 //
 //  `View.toolbar(removing:)`: take away a control the framework provides by
-//  default. TUIkit's window bars hold only what a `.toolbar` places in them
-//  (see `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6); the one default item it
-//  has is the split view's sidebar toggle, which lives on the split itself.
+//  default. TUIkit's window bars hold what a `.toolbar` places in them (see
+//  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6) and the
+//  title; the default items are the split view's sidebar toggle, which lives on
+//  the split itself, and the title, in the top bar's title slot and on a
+//  navigation stack's bar.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -16,14 +18,13 @@ import TUIkitFoundation
 /// A kind of control the framework provides by default, which
 /// ``View/toolbar(removing:)`` can take away.
 ///
-/// Mirrors SwiftUI's `ToolbarDefaultItemKind`. TUIkit's window bars hold only
-/// what a `.toolbar` places in them, so the only kind is ``sidebarToggle``, the
-/// ``NavigationSplitView``'s own handles.
-/// SwiftUI's `.title` is not provided: TUIkit draws no default title to remove.
+/// Mirrors SwiftUI's `ToolbarDefaultItemKind`: ``sidebarToggle``, the
+/// ``NavigationSplitView``'s own handles, and ``title``.
 public struct ToolbarDefaultItemKind {
     /// The item kinds TUIkit has.
     enum Kind {
         case sidebarToggle
+        case title
     }
 
     let kind: Kind
@@ -36,6 +37,15 @@ public struct ToolbarDefaultItemKind {
     /// Swift 6 rejects, since the type is deliberately not `Sendable` (as in
     /// SwiftUI).
     public static var sidebarToggle: Self { Self(kind: .sidebarToggle) }
+
+    /// The title: the top bar's title slot, where the window's
+    /// `.navigationTitle` and `.navigationSubtitle` are shown, and the title a
+    /// ``NavigationStack``'s bar shows over a pushed screen, with its subtitle
+    /// and the trail of titles behind it. The stack's Back button stays, as a
+    /// macOS window keeps its back button when the title item goes.
+    ///
+    /// SwiftUI declares this `static let`; see ``sidebarToggle``.
+    public static var title: Self { Self(kind: .title) }
 }
 
 /// Not `Sendable`, exactly as SwiftUI declares it.
@@ -59,6 +69,22 @@ private struct SidebarToggleRemovedEnvironmentKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// Whether a ``View/toolbar(removing:)`` inside a navigation stack's pushed
+/// screen removed the title. A preference, because the modifier may sit
+/// anywhere in the screen and the stack reads the screen's preferences to draw
+/// its bar; `true` wins.
+struct ToolbarTitleRemovedKey: PreferenceKey {
+    static let defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+private struct ToolbarTitleRemovedEnvironmentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// Whether a ``View/toolbar(removing:)`` on or above this view removed a
     /// split view's sidebar toggle.
@@ -66,18 +92,26 @@ extension EnvironmentValues {
         get { self[SidebarToggleRemovedEnvironmentKey.self] }
         set { self[SidebarToggleRemovedEnvironmentKey.self] = newValue }
     }
+
+    /// Whether a ``View/toolbar(removing:)`` on or above this view removed the
+    /// title, for a navigation stack it holds.
+    var toolbarTitleRemoved: Bool {
+        get { self[ToolbarTitleRemovedEnvironmentKey.self] }
+        set { self[ToolbarTitleRemovedEnvironmentKey.self] = newValue }
+    }
 }
 
 // MARK: - Modifier
 
-/// Publishes a sidebar-toggle removal into the enclosing preference scope, for a
-/// split view whose column holds it, and renders `content` unchanged.
+/// Publishes a removal into the enclosing preference scope — the sidebar
+/// toggle's for a split view whose column holds it, the title's for a
+/// navigation stack whose screen holds it — declares a title's to the window's
+/// chrome, and renders `content` unchanged.
 struct ToolbarRemovalView<Content: View>: View {
     let content: Content
 
-    /// Whether this modifier removes the toggle; `false` for `nil`, which
-    /// publishes nothing.
-    let publishes: Bool
+    /// What this modifier removes; `nil`, which publishes nothing, for `nil`.
+    let removes: ToolbarDefaultItemKind.Kind?
 
     var body: Never {
         fatalError("ToolbarRemovalView renders via Renderable")
@@ -88,9 +122,27 @@ struct ToolbarRemovalView<Content: View>: View {
     /// ancestor serving a cached buffer or measurement would drop the write, and
     /// the split view would put its toggle back.
     private func publish(context: RenderContext) {
-        guard publishes else { return }
+        guard let removes else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
-        context.environment.preferenceStorage?.setValue(true, forKey: SidebarToggleRemovedKey.self)
+        switch removes {
+        case .sidebarToggle:
+            context.environment.preferenceStorage?.setValue(true, forKey: SidebarToggleRemovedKey.self)
+        case .title:
+            context.environment.preferenceStorage?.setValue(true, forKey: ToolbarTitleRemovedKey.self)
+            declareTitleRemoved(context: context)
+        }
+    }
+
+    /// Tells the window's chrome that its title slot is empty this walk, as a
+    /// `.navigationTitle` offers it a title (`PreferenceModifier`): on a drawn
+    /// walk, and on the first frame's seeding walk, which measures — the top
+    /// bar's rows depend on whether there is a title. Presented content's
+    /// removal is the presentation's, not the window's.
+    private func declareTitleRemoved(context: RenderContext) {
+        guard !context.isMeasuring || context.environment.seedsWindowChrome,
+            !context.environment.presentationHostsToolbar
+        else { return }
+        context.environment.windowChrome?.removeTitle()
     }
 }
 
@@ -103,8 +155,9 @@ extension ToolbarRemovalView: Renderable {
 
 extension ToolbarRemovalView: Layoutable {
     /// Publishes during a measure too: the split view measures a column to learn
-    /// what it asked for before it lays the handles out. The key's `reduce` is an
-    /// OR, so publishing twice in a pass is idempotent.
+    /// what it asked for before it lays the handles out. The keys' `reduce` is
+    /// an OR, so publishing twice in a pass is idempotent, and so is declaring
+    /// the title's removal to the window's chrome.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         publish(context: context)
         return measureChild(content, proposal: proposal, context: context)
@@ -119,6 +172,16 @@ extension View {
     /// (which goes back to three grip dots, or to a plain space when the split
     /// cannot resize) and the ▶ edge column shown while a leading column is
     /// hidden. `nil` removes nothing, and does not undo a removal further out.
+    ///
+    /// With ``ToolbarDefaultItemKind/title`` it removes the title: the top
+    /// bar's title slot is empty while the view is drawn — anywhere in the
+    /// window but in presented content, as one toolbar's title item serves the
+    /// whole window in SwiftUI — and a ``NavigationStack``'s bar over a pushed
+    /// screen draws its Back button alone, without the screen's title, its
+    /// subtitle or the trail, where the modifier is in that screen or on or
+    /// above the stack. The window's title is still the outermost
+    /// `.navigationTitle`, which a terminal window's title would be set from;
+    /// only the title item goes.
     ///
     /// ```swift
     /// NavigationSplitView {
@@ -139,20 +202,25 @@ extension View {
     /// code.
     ///
     /// The window's bars put no default item of their own beside what a
-    /// `.toolbar` places in them, so the split view's handles are all there is
-    /// to remove (see `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6).
+    /// `.toolbar` places in them and the title, so those and the split view's
+    /// handles are all there is to remove (see
+    /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6).
     ///
     /// - Parameter defaultItemKind: The kind of control to remove, or `nil`.
-    /// - Returns: A view whose split views omit that control.
+    /// - Returns: A view whose window and split views omit that control.
     public func toolbar(removing defaultItemKind: ToolbarDefaultItemKind?) -> some View {
-        // Reduced to a Bool before it reaches the environment or the preference
-        // store, neither of which should hold a non-Sendable value.
-        let removes = defaultItemKind?.kind == .sidebarToggle
+        // Reduced to its kind, and that to Bools, before it reaches the
+        // environment or the preference store, neither of which should hold a
+        // non-Sendable value.
+        let removes = defaultItemKind?.kind
         return ToolbarRemovalView(
             content: transformEnvironment(\.sidebarToggleRemoved) { removed in
-                if removes { removed = true }
+                if removes == .sidebarToggle { removed = true }
+            }
+            .transformEnvironment(\.toolbarTitleRemoved) { removed in
+                if removes == .title { removed = true }
             },
-            publishes: removes)
+            removes: removes)
     }
 }
 

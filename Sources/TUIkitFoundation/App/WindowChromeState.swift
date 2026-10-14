@@ -327,6 +327,20 @@ package final class WindowChromeState: @unchecked Sendable {
         chosenTitles = nil
     }
 
+    /// Whether this walk drew a `.toolbar(removing: .title)`: the top bar's
+    /// title slot is empty while one is drawn. ``title`` and ``subtitle`` are
+    /// still the window's — what a terminal window's title would be set from.
+    package var titleRemoved: Bool { _titleRemoved }
+
+    /// ``titleRemoved``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _titleRemoved = false
+
+    /// Records a `.toolbar(removing: .title)` the walk drew.
+    package func removeTitle() {
+        _titleRemoved = true
+    }
+
     /// ``title`` and ``subtitle``, as ``offer(_:as:at:)`` chooses them.
     private var titles: (title: String, subtitle: String) {
         if let chosenTitles { return chosenTitles }
@@ -419,6 +433,7 @@ package final class WindowChromeState: @unchecked Sendable {
         titleOffers.removeAll(keepingCapacity: true)
         subtitleOffers.removeAll(keepingCapacity: true)
         chosenTitles = nil
+        _titleRemoved = false
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a

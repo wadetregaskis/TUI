@@ -932,9 +932,6 @@
     "WindowToolbarFullScreenVisibility": {
       "why": "Exists only to feed `windowToolbarFullScreenVisibility(_:)`; TUIkit has no window and no window toolbar — the host terminal owns both, and TUIkit only ever knows a rows×columns grid (Sources/TUIkitApp/App/RenderLoop.swift)."
     },
-    "ToolbarDefaultItemKind.title": {
-      "why": "Removes the default title item SwiftUI puts in a window's toolbar. TUIkit draws no default title to remove: there is no toolbar, the terminal owns the window title, and the in-grid `.appHeader` is content the app writes itself. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkitNavigation/Modifiers/ToolbarRemovalModifier.swift)."
-    },
     "ToolbarDefaultItemKind.search": {
       "why": "Removes the search field SwiftUI places in a window's toolbar by default. TUIkit has no toolbar for a search item to sit in: `.searchable` draws its field at the top of the searchable subtree, where the app put the modifier (Sources/TUIkitSearch/Extensions/View+Searchable.swift), so there is no framework-placed item to take away. `ToolbarDefaultItemKind.sidebarToggle` is implemented (Sources/TUIkitNavigation/Modifiers/ToolbarRemovalModifier.swift)."
     },

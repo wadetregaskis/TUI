@@ -29,9 +29,12 @@ struct NavigationBar {
 
     /// The navigation bar, pinned to `ChromeStyle.barHeight(contentRows:)` rows.
     /// `escapeHandlerSlot` is the key dispatcher's handler count from before the
-    /// screen rendered: where the bar's Escape handler is filed.
+    /// screen rendered: where the bar's Escape handler is filed. `hidesTitle`
+    /// (a `.toolbar(removing: .title)`) leaves the Back button alone on the
+    /// bar: no title, subtitle or trail. The screen's title is still recorded,
+    /// for the trails of the screens pushed over it.
     func render(
-        title: String, subtitle: String, hidesBack: Bool, width: Int, escapeHandlerSlot: Int,
+        title: String, subtitle: String, hidesBack: Bool, hidesTitle: Bool, width: Int, escapeHandlerSlot: Int,
         context: RenderContext
     ) -> FrameBuffer {
         let coordinator = coordinator
@@ -129,9 +132,9 @@ struct NavigationBar {
         let titled = navigationBar(
             back: back,
             hidesBack: hidesBack,
-            title: title.truncatedToWidth(max(0, width - backWidth - 1)),
-            subtitle: subtitle,
-            crumbs: hidesBack
+            title: hidesTitle ? "" : title.truncatedToWidth(max(0, width - backWidth - 1)),
+            subtitle: hidesTitle ? "" : subtitle,
+            crumbs: hidesBack || hidesTitle
                 ? nil
                 : NavigationCrumbs.trail(
                     titles: coordinator.titles(upTo: coordinator.depth), fittingWidth: width),

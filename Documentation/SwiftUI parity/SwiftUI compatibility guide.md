@@ -669,8 +669,15 @@ family (`toolbar(id:)`), and `Commands`/the menu bar.
 
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
 toggle handles (the ◀ on the leftmost divider and the ▶ edge column), which
-stand in for SwiftUI's toolbar sidebar button. `ToolbarDefaultItemKind.title` is
-not provided, because TUIkit draws no default title item to remove.
+stand in for SwiftUI's toolbar sidebar button. `.toolbar(removing: .title)`
+(refusal review O17, 2026-10-14) empties the top bar's title slot while the
+view is drawn, anywhere in the window but in presented content, as one
+toolbar's title item serves the whole window in SwiftUI. A `NavigationStack`'s
+bar over a pushed screen then draws its Back button alone, without the
+screen's title, subtitle or trail, when the modifier is in that screen or on
+or above the stack; a collapsed `NavigationSplitView`'s bar does the same. The
+window's title, the outermost `.navigationTitle`, is unchanged: only the
+title item goes.
 
 ### 2.7 Fixed-`frame` default alignment is `.topLeading`, not `.center`
 

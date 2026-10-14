@@ -341,11 +341,14 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         let title = published?[NavigationTitleKey.self] ?? ""
         let subtitle = published?[NavigationSubtitleKey.self] ?? ""
         let hidesBack = published?[NavigationBackButtonHiddenKey.self] ?? false
+        // `.toolbar(removing: .title)` in the screen, or on or above the stack.
+        let hidesTitle =
+            published?[ToolbarTitleRemovedKey.self] == true || context.environment.toolbarTitleRemoved
 
         content = NavigationBar.padded(content, toWidth: width, height: contentHeight)
 
         var buffer = NavigationBar(coordinator: coordinator).render(
-            title: title, subtitle: subtitle, hidesBack: hidesBack, width: width,
+            title: title, subtitle: subtitle, hidesBack: hidesBack, hidesTitle: hidesTitle, width: width,
             escapeHandlerSlot: escapeHandlerSlot, context: context)
         buffer.appendVertically(content)
         return buffer

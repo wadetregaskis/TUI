@@ -262,6 +262,7 @@ extension _NavigationSplitViewCore {
             title: published?[NavigationTitleKey.self] ?? "",
             subtitle: published?[NavigationSubtitleKey.self] ?? "",
             hidesBack: published?[NavigationBackButtonHiddenKey.self] ?? false,
+            hidesTitle: published?[ToolbarTitleRemovedKey.self] == true || context.environment.toolbarTitleRemoved,
             width: width, escapeHandlerSlot: escapeHandlerSlot, context: barContext)
         buffer.appendVertically(content)
         return buffer

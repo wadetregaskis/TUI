@@ -1284,6 +1284,11 @@ instead of at the top of the subtree, and `toolbar(removing: .search)` hides
 it. Lane owed: about a day, with the stale reasons it leaves (the map's and
 `ToolbarRemovalModifier`'s, which still say TUIkit draws no default title).
 
+**`.title` shipped 2026-10-14**, with those reasons: the window's chrome
+records the removal per walk, as it records titles, and the stack's bar (and a
+collapsed split view's) reads it from the screen's preferences or the
+environment above. `.search` is owed.
+
 ---
 
 ## CONFIRM

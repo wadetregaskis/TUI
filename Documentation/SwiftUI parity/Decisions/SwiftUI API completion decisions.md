@@ -112,7 +112,8 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O15** `ButtonBorderShape`. **Support it.**
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
   **Defer.**
-- **O17** The toolbar's `.title` and `.search` items. **Do them.**
+- **O17** The toolbar's `.title` and `.search` items. **Do them.** `.title`
+  shipped 2026-10-14; `.search` is owed.
 
 ### A3. `layoutDirectionBehavior(_:)`: mirror now, or with right-to-left?
 
