@@ -414,17 +414,30 @@ extension Animation {
 // MARK: - Evaluation
 
 extension Animation {
-    /// One pass, after ``speed(_:)``.
-    public var effectivePassDuration: TimeInterval { passDuration / speedFactor }
+    /// One pass, after ``speed(_:)``: unbounded for a custom animation not yet
+    /// integrated as far as its end.
+    public var effectivePassDuration: TimeInterval { (resolvedPassDuration ?? .infinity) / speedFactor }
+
+    /// How long one pass takes, before ``speed(_:)``: ``passDuration`` — or, for
+    /// a custom animation, its length once it has been integrated as far as its
+    /// end, and `nil` before.
+    var resolvedPassDuration: TimeInterval? {
+        guard case .custom(let id) = curve else { return passDuration }
+        return id.curve.knownDuration
+    }
 
     /// The wait before the first pass, after ``speed(_:)``.
     public var effectiveDelay: TimeInterval { delayInterval / speedFactor }
 
     /// How long from the animation's start until it stops moving, or `nil` if it
     /// never does.
+    ///
+    /// A custom animation's is `nil` until it has been integrated as far as
+    /// its end; ``isFinished(at:)`` integrates as far as it is asked.
     public var totalDuration: TimeInterval? {
         switch repeatMode {
-        case .count(let n, _): effectiveDelay + effectivePassDuration * Double(n)
+        case .count(let n, _):
+            resolvedPassDuration.map { effectiveDelay + $0 / speedFactor * Double(n) }
         case .forever: nil
         }
     }
@@ -444,6 +457,11 @@ extension Animation {
         if case .spring(let omega, _, _) = curve, omega > 0 {
             let pace = min(passDuration, 2 * Double.pi / omega)
             natural = (delayInterval + passDuration * Double(passes - 1) + pace) / speedFactor
+        } else if case .custom(let id) = curve, let pass = resolvedPassDuration,
+            let logical = id.curve.logicalCompletionTime
+        {
+            // When the custom animation said so in its context, on its last pass.
+            natural = (delayInterval + pass * Double(passes - 1) + logical) / speedFactor
         }
         guard logicalCompletion >= 0 else { return natural }
         return min(natural, TimeInterval(logicalCompletion) / speedFactor)
@@ -465,7 +483,7 @@ extension Animation {
         switch repeatMode {
         case .count: nil
         case .forever(let autoreverses):
-            effectivePassDuration * (autoreverses ? 2 : 1)
+            resolvedPassDuration.map { $0 / speedFactor * (autoreverses ? 2 : 1) }
         }
     }
 
@@ -478,8 +496,14 @@ extension Animation {
     public func fraction(at elapsed: TimeInterval) -> Double {
         let time = (elapsed - effectiveDelay)
         guard time > 0 else { return 0 }
-        guard passDuration > 0 else { return 1 }
         let scaled = time * speedFactor
+        // A custom animation that has not finished by now is on its first
+        // pass, however it repeats: its pass lasts until it finishes.
+        if case .custom(let id) = curve, id.curve.duration(within: scaled) == nil {
+            return id.curve.progress(at: scaled)
+        }
+        let passDuration = resolvedPassDuration ?? 0
+        guard passDuration > 0 else { return 1 }
 
         let pass = Int(scaled / passDuration)
         let within = (scaled - Double(pass) * passDuration) / passDuration
@@ -491,14 +515,19 @@ extension Animation {
                 // at the start; anything else lands on the target.
                 return autoreverses && n.isMultiple(of: 2) ? 0 : 1
             }
-            return value(atPass: pass, within: within, autoreverses: autoreverses)
+            return value(atPass: pass, within: within, autoreverses: autoreverses, duration: passDuration)
         case .forever(let autoreverses):
-            return value(atPass: pass, within: within, autoreverses: autoreverses)
+            return value(atPass: pass, within: within, autoreverses: autoreverses, duration: passDuration)
         }
     }
 
     /// Whether the animation has stopped moving by `elapsed`.
     public func isFinished(at elapsed: TimeInterval) -> Bool {
+        // A custom animation is integrated as far as `elapsed` to learn
+        // whether its first pass has ended by then.
+        if case .custom(let id) = curve {
+            _ = id.curve.duration(within: max(0, (elapsed - effectiveDelay) * speedFactor))
+        }
         guard let totalDuration else { return false }
         return elapsed >= totalDuration
     }
@@ -509,10 +538,10 @@ extension Animation {
     /// — rather than mirroring its output. For an asymmetric curve those differ,
     /// and time reversal is what "plays in reverse" means (and what Core
     /// Animation does).
-    private func value(atPass pass: Int, within: Double, autoreverses: Bool) -> Double {
+    private func value(atPass pass: Int, within: Double, autoreverses: Bool, duration: TimeInterval) -> Double {
         let reversed = autoreverses && !pass.isMultiple(of: 2)
         return curve.value(
-            atFraction: reversed ? 1 - within : within, duration: passDuration)
+            atFraction: reversed ? 1 - within : within, duration: duration)
     }
 }
 
@@ -547,6 +576,8 @@ extension Animation {
     /// The factory call that would build ``curve`` at ``passDuration``.
     fileprivate var curveDescription: String {
         switch curve {
+        case .custom(let id):
+            return "Animation(\(id.curve.base))"
         case .bezier(let p1x, let p1y, let p2x, let p2y):
             // Recognised by control points rather than remembered: nothing is
             // stored to say which factory built this, and it does not need to

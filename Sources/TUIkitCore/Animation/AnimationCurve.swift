@@ -29,6 +29,11 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
     /// ``Animation/timingCurve(_:duration:)``.
     case circular(CircularCurve)
 
+    /// A ``CustomAnimation``, integrated on the frame grid as it is asked for
+    /// (``Animation/init(_:)``). Its pass lasts until the animation finishes,
+    /// which only integrating it far enough says.
+    case custom(CustomCurveID)
+
     /// The value at `fraction` of the way through an animation lasting
     /// `duration` seconds.
     ///
@@ -43,6 +48,8 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
                 at: fraction * duration, omega: omega, zeta: zeta, initialVelocity: initialVelocity)
         case .circular(let curve):
             curve.value(at: min(1, max(0, fraction)))
+        case .custom(let id):
+            id.curve.progress(at: fraction * duration)
         }
     }
 }

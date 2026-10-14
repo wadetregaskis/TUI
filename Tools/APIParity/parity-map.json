@@ -156,22 +156,6 @@
     },
     {
       "match": [
-        "CustomAnimation",
-        "CustomAnimation.*",
-        "AnimationContext",
-        "AnimationContext.*",
-        "AnimationState",
-        "AnimationState.*",
-        "AnimationStateKey",
-        "AnimationStateKey.*",
-        "Animation.animate(value:time:context:)",
-        "Animation.base",
-        "Animation.init(_:)"
-      ],
-      "why": "SwiftUI's hook for writing an animation CURVE of your own, by integrating a value forward from a mutable per-animation state. TUIkit's animations are closed-form functions of elapsed time on purpose, not integrated: that is what lets a repeating one be sampled once and handed to the run loop as finished frames (AnimatedCellRun), which is the whole difference between a decoration costing nothing and costing a render pass twenty times a second. A protocol whose contract is 'you may keep state between frames' cannot offer that, so adopting it would mean two animation models, one of which is never cheap."
-    },
-    {
-      "match": [
         "NSHostingView*",
         "NSHostingController*",
         "NSHostingScene*",

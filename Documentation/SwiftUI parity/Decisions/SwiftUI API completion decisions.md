@@ -92,7 +92,9 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O2** `PhaseAnimator` and `KeyframeAnimator`. **(b)**; (c) is not easy,
   so it is presented after (b). (b) shipped 2026-10-14.
 - **O3** `CustomAnimation`. **Detect, else live**: integrated lazily and
-  memoised, a finished animation is its own pre-sampled table.
+  memoised, a finished animation is its own pre-sampled table. Shipped
+  2026-10-14 (`CustomAnimationCurve`); merging a retarget by `shouldMerge`,
+  and running two side by side, is still owed — a retarget restarts from rest.
 - **O4** Matched geometry and zoom transitions. **(b), with (a) where
   possible.**
 - **O5** Materials and Glass (A41 lists the material symbols waiting on it).
