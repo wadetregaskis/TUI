@@ -830,8 +830,8 @@
     "ScaledShape": {
       "why": "A Shape adapter for scaling; neither Shape nor sub-cell scaling exists (glyph size is the terminal's font, see scaleEffect)."
     },
-    "ScrollEdgeEffectStyle": {
-      "why": "It selects a hard or soft fade of scrolled content passing beneath a bar. No content passes beneath chrome here, the bars being subtracted from what a view is offered (decisions B6), so today it would draw nothing; it waits on O7 of the refusal review."
+    "ScrollEdgeEffectStyle.soft": {
+      "why": "A fade of scrolled content seen through a bar. Content never passes under a bar here — bars are subtracted from what the view beside them is offered (decisions B6, whose fuller safe area the owner declined on 2026-10-12) — so there is nothing to see through, and the style is left out so that asking for it fails to compile (refusal review O7, ruled 2026-10-12). `.automatic` and `.hard` describe what is drawn, and ship."
     },
     "ScrollInputKind": {
       "why": "Its values are watchOS's — the Digital Crown and the double-tap hand-gesture shortcut — and the macOS SDK defines none, so no macOS source can name one, and View.scrollInputBehavior(_:for:) cannot be called there either. A terminal has neither input. The question macOS code can ask, whether scrolling is allowed at all, is .scrollDisabled (the ScrollInputBehavior entry)."

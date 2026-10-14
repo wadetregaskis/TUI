@@ -49,11 +49,11 @@ default dissolve each wait on an A/B on the quiet machine, whose numbers
 decide them as agreed: A40 dissolves by default if that costs under about 1%
 when nothing animates.
 
-**Decided, lane owed.** A0's ruled O items but O16 (deferred), and with them A12 (O7),
+**Decided, lane owed.** A0's ruled O items but O7 and O16 (deferred), and with them
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A37 (O2), A38 (O3) and
 A41 (O5); A42, B19 (after its A/B), B22 (a look at the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
-A25 shipped on 2026-10-14.
+A25 shipped on 2026-10-14, and O7 with A12.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -98,7 +98,7 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O5** Materials and Glass (A41 lists the material symbols waiting on it).
   **(b) for both**; a cell-resolution blur is an optional add-on.
 - **O6** `ShadowStyle`. **(b)**, radius and offsets in cells.
-- **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`.
+- **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.
 - **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
   and others. This reopens `submitLabel`. **Restated; awaiting the owner.**
 - **O9** Multi-scene apps. **(b)**, leaving room for real windowing.
@@ -179,6 +179,11 @@ design; these two modifiers are that question's modifiers.
 **Decided with O7 (2026-10-12): lane owed.** `ScrollEdgeEffectStyle` ships
 with `.automatic` and `.hard` and no `.soft`, and both modifiers are honoured
 by the medium: nothing passes under a bar, since B6's safe area is not built.
+
+**Shipped (2026-10-14) with O7.** Both modifiers return the view, and the
+tests assert the guarantee they rest on: under a `safeAreaBar` or a
+navigation bar, scrolled content stops at the bar's edge, whatever the effect
+asked for.
 
 ### A16. Colours that resolve themselves, and HDR
 

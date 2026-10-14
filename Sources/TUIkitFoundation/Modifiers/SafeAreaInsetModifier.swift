@@ -200,9 +200,10 @@ extension View {
     /// Shows the specified content as a bar above or below the modified view.
     ///
     /// SwiftUI's `safeAreaBar` is ``safeAreaInset(edge:alignment:spacing:content:)-(VerticalEdge,_,_,_)``
-    /// that also extends the scroll-edge effects of the views it insets. With
-    /// no safe area for content to run under there is no edge effect to extend,
-    /// so the two lay out alike.
+    /// that also extends the scroll edge effects
+    /// (``View/scrollEdgeEffectStyle(_:for:)``) of the views it insets. Content
+    /// never runs under a bar here, so there is no effect to extend, and the two
+    /// lay out alike.
     ///
     /// - Parameters:
     ///   - edge: The vertical edge to put the bar on.

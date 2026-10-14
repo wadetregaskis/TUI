@@ -1006,6 +1006,11 @@ beside the view (B6), because making it an error would mean removing the
 the medium, tested as a guarantee. Lane owed: about half a day. A12 follows
 it.
 
+**Shipped 2026-10-14**, with A12: `ScrollEdgeEffectStyle` (`.automatic`,
+`.hard`), `scrollEdgeEffectStyle(_:for:)` and `scrollEdgeEffectHidden(_:for:)`,
+in `ScrollEdgeEffect.swift`; `ScrollEdgeEffectStyle.soft` is declined in the
+parity map.
+
 ### O8. "Inert on macOS too" (X4): `SubmitLabel`, `View.submitLabel(_:)`, `ToolbarTitleDisplayMode`, `TabBarMinimizeBehavior`, `SensoryFeedback` (P11), `ContentShapeKinds.contextMenuPreview`/`.hoverEffect` (P3)
 
 **Owner, 2026-10-12 (second message):** omit them. "We already have the general rule that we don't implement SwiftUI API we
