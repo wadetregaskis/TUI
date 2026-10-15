@@ -564,6 +564,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Executed: `Text("A single line of text, too long to fit in a box.").fixedSize().frame(width: 20)` renders 20x3 ["A single line of", "text, too long to", "fit in a box."] — byte-identical to the same view without `.fixedSize()`. This is Apple's own doc example, which in SwiftUI produces one unwrapped line overflowing the frame. Separately, `.fixedSize(horizontal: true, vertical: true)` and `.fixedSize(horizontal: true, vertical: false)` both render 2x1 for Text("Hi") — the vertical flag changes nothing. Tests/TUIkitListsTests/ListTests.swift:790-821 pins only the List case.
 - *Recommendation:* Fix. Implement a `_FixedSizeView: Layoutable` that measures its child with a nil proposal on the fixed axes (ProposedSize already models "unspecified", and contentTargetHeight's `fills:` parameter shows the pattern). If that is not wanted, delete the `vertical:` parameter so the unhonourable half fails to compile, per the project's own rule 2.
 - *Status (2026-10-14 sweep):* **DOCUMENTED** — the guide's Modifiers row and the deviations' slated table.
+- *Status:* **FIXED** (2026-10-15): `_FixedSizeView` lays its content out at its ideal size on the fixed axes; Apple's example draws one line past the frame.
 
 **34. `View.frame(idealWidth:) / View.frame(idealHeight:)`**
 
@@ -1589,6 +1590,7 @@ verifier corrected the analyst, both are shown.
 - *Recommendation:* Correct the sentence now, independently of whether finding 1 is implemented. It is the cheapest fix in this family and the one most likely to send someone hunting for a bug that is actually a missing feature.
 - *Status (2026-10-14 sweep):* **OPEN** — FixedSizeModifier's doc still says `vertical` is honoured by height-greedy views.
 - *Status:* **FIXED** (2026-10-14): the doc says `vertical` is accepted and not yet honoured.
+- *Status:* **FIXED** (2026-10-15): `vertical` is honoured, with the rest of item 33, and the doc says so.
 
 ### Scrolling
 
