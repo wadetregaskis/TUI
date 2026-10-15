@@ -230,18 +230,19 @@ rewrite every `#expect` over 20 ms (4,100 lines, 123 s of whole-module type
 checking, 48 s of batch CPU), or move tests into module-only targets that
 import nothing else.
 
-**Where it stands.** Lane TT2 (b377b5f24, 2026-10-10) split the umbrella suite
-into four targets by area, each under 8,000 `#expect`s. That took a one-file
-test edit from about 60 to about 18 CPU seconds and a rebuild of every test
-file down 100 s (6.2.4) and 228 s (6.4.0) of CPU, at or above what B-TC1-1's
-module-only lever was estimated to buy; wall time moved 5–12 s. The four
-targets still import the umbrella, so the import part of the floor remains.
-Its size since the split is unmeasured; at most about 72 CPU seconds a full
-rebuild (estimate: ~25,700 lines × 2.8 ms).
+**Where it stands.** The second option was taken: lane TESTSPLIT (9df2c1c1a,
+2026-10-14) moved every test into a target of the module it tests, importing
+that module and its dependencies only
+([A-TS-1](<SwiftUI parity/Decisions/Compile time and binary size/Test targets split by module (TS).md>)),
+after lane TT2 (b377b5f24, 2026-10-10) had split the umbrella suite by area.
+What is left of this floor is the one target that still imports the umbrella,
+`TUIkitIntegrationTests` (164 files, by design: its tests cross modules). Its
+size there is unmeasured.
 
-**What would reopen it.** A per-`#expect` measurement after the split (one
-whole-module type check with `-debug-time-expression-type-checking` of one
-target, beside one module-only probe target) showing the floor matters.
+**What would reopen it.** A per-`#expect` measurement of the integration
+target (one whole-module type check with `-debug-time-expression-type-checking`)
+showing the floor matters there; the remedy would then be the first option,
+rewriting its outliers.
 
 ---
 
