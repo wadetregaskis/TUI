@@ -3,9 +3,11 @@
 //
 //  The sidebar toggle of ``NavigationSplitView``: the ▶ edge column that brings
 //  a hidden leading column back, the ◀ on the leftmost divider that hides one,
-//  the ⌃S and ⌥⌃S chords, the visibility steps behind all three, and the focus
-//  hand-over between a handle and the one that undoes it. Split out of `NavigationSplitView.swift`, which
-//  holds the columns and dividers.
+//  the visibility steps behind them and the ⌃S and ⌥⌃S chords, and the focus
+//  hand-over between a handle and the one that undoes it. Split out of
+//  `NavigationSplitView.swift`, which holds the columns and dividers; the
+//  chords are in `NavigationSplitViewChords.swift`, and a toolbar's button for
+//  the sidebar in `NavigationSplitViewBarToggle.swift`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -70,30 +72,6 @@ enum SplitViewToggle {
     }
 }
 
-// MARK: - Sidebar chord registration
-
-/// A split view's sidebar chords, as registered by its render and by a value
-/// memo replaying one — see `EffectJournal`.
-enum SidebarChordRegistrar {
-    /// The journal kind of a split view's sidebar chords.
-    static let kind = EffectJournal.Kind("sidebarChords")
-
-    /// Registers `action` as the framework default for each of `shortcuts`.
-    ///
-    /// The registry is looked up in `context`, not handed in, so a replay
-    /// registers into the registry of the walk that serves it.
-    @MainActor
-    static func register(
-        _ shortcuts: [KeyboardShortcut], holdsFocus: Bool, action: @escaping () -> Void,
-        context: RenderContext
-    ) {
-        guard let registry = context.environment.keyboardShortcutRegistry else { return }
-        for shortcut in shortcuts {
-            registry.registerDefault(shortcut, holdsFocus: holdsFocus, action: action)
-        }
-    }
-}
-
 // MARK: - State
 
 /// Where the keyboard goes once a handle's change has been drawn.
@@ -150,10 +128,6 @@ final class SplitViewToggleState {
     /// sidebar neither shows nor hides.
     let barAction = PanelToggle.Action()
 }
-
-/// The identity step the window's own button for a split view's sidebar
-/// takes under the split's.
-enum _SidebarToggleItemSlot {}
 
 // MARK: - Edge handler
 
@@ -221,55 +195,6 @@ extension _NavigationSplitViewCore {
         }
         registerSidebarChords(context: context, toggleState: state, holdsFocus: false)
         return state
-    }
-
-    /// Registers SwiftUI's two sidebar chords, View ▸ Show Sidebar
-    /// `("s", [.command, .control])` and the hidden Toggle Sidebar
-    /// `("s", [.command, .option])`, each resolved through `commandKey`: ⌃S and
-    /// ⌥⌃S under the default `.control`, none under `.unavailable`.
-    ///
-    /// They work wherever the focus is, as framework defaults
-    /// (`KeyboardShortcutRegistry.registerDefault`), so an app shortcut on the
-    /// same keys wins, and anything that consumes the key earlier in the input
-    /// chain (`onKeyEvent`, a focused sortable Table) does too. Every split
-    /// registers them twice: at the start of its render, which makes the first
-    /// split in render order the one that toggles when no split holds the focus;
-    /// and, if it holds the focus, again once its columns have rendered, which
-    /// makes the innermost focus-holding split win.
-    ///
-    /// A disabled split registers nothing, as a disabled `Button` registers no
-    /// shortcut. `.toolbar(removing: .sidebarToggle)` leaves the chords alone, as
-    /// SwiftUI's menu items stay when its toolbar button goes.
-    func registerSidebarChords(
-        context: RenderContext, toggleState: SplitViewToggleState, holdsFocus: Bool
-    ) {
-        // A collapsed split registers none either: SwiftUI ignores column
-        // visibility there, so the chords would change nothing to see — until
-        // the split expanded again with its sidebar hidden.
-        guard !context.isMeasuring, context.environment.isEnabled, !isCollapsed(context),
-            context.environment.keyboardShortcutRegistry != nil
-        else { return }
-        // The registry is emptied every walk. Declared as REPLAYABLE: a memo
-        // serving the split registers the chords again from the entry below.
-        // The split's own sections declare separately, in `renderToBuffer`.
-        context.environment.volatileReadTracker?.recordReplayableEffect()
-        let action = stepAction(toggleState: toggleState, focus: nil) { visibility, isThreeColumn in
-            SplitViewToggle.togglingSidebar(visibility, isThreeColumn: isThreeColumn)
-        }
-        let modifierSets: [EventModifiers] = [[.command, .control], [.command, .option]]
-        let shortcuts = modifierSets.compactMap {
-            KeyboardShortcut("s", modifiers: $0).resolved(commandKey: context.environment.commandKey)
-        }
-        SidebarChordRegistrar.register(shortcuts, holdsFocus: holdsFocus, action: action, context: context)
-        if let journal = context.recordingEffectJournal {
-            journal.append(
-                EffectJournal.Entry(
-                    kind: SidebarChordRegistrar.kind, channelToken: context.environment.keyChannelToken
-                ) { replay in
-                    SidebarChordRegistrar.register(
-                        shortcuts, holdsFocus: holdsFocus, action: action, context: replay)
-                })
-        }
     }
 
     /// The edge column for this render, if there is one, and the context the
@@ -347,61 +272,6 @@ extension _NavigationSplitViewCore {
         if let previous, previous != removed {
             context.renderCache?.invalidateRender(for: context.identity)
         }
-    }
-
-    /// The sidebar's toggle for a toolbar's button, for this render: published
-    /// to the views in the split's columns, so a
-    /// `DefaultToolbarItem(kind: .sidebarToggle)` declared there toggles this
-    /// split, and offered to the window, whose first split view is the one an
-    /// item declared round any split toggles.
-    ///
-    /// `nil`, and nothing offered, where the split shows no toggle handles —
-    /// `.toolbar(removing: .sidebarToggle)` on or in it — or is disabled, as
-    /// its chords are then; and while measuring, which declares nothing.
-    ///
-    /// The button toggles the sidebar alone, as ⌃S does (``SplitViewToggle/togglingSidebar(_:isThreeColumn:)``),
-    /// leaving the keyboard where it is: in the bar.
-    func sidebarToggle(
-        visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
-    ) -> PanelToggle? {
-        guard let toggleState, !context.isMeasuring, context.environment.isEnabled,
-            showsToggle(context: context, toggleState: toggleState)
-        else { return nil }
-        toggleState.barAction.perform = stepAction(toggleState: toggleState, focus: nil) { visibility, isThreeColumn in
-            SplitViewToggle.togglingSidebar(visibility, isThreeColumn: isThreeColumn)
-        }
-        let toggle = PanelToggle(
-            panel: .sidebar, owner: context.identity, isShown: visibleColumns.contains(.sidebar),
-            action: toggleState.barAction)
-        PanelToggleOffer.offer(
-            toggle, itemIdentity: context.withChildIdentity(erasedType: _SidebarToggleItemSlot.self, key: "bar").identity,
-            context: context)
-        return toggle
-    }
-
-    /// `context` for the columns to render in: with this split's
-    /// ``sidebarToggle(visibleColumns:context:toggleState:)``, so a toolbar item
-    /// declared in a column toggles this split's sidebar — and in a split with no
-    /// toggle, none of an outer one's.
-    func publishingSidebarToggle(
-        visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
-    ) -> RenderContext {
-        var columnBase = context
-        columnBase.environment.sidebarToggleScope = .split(
-            sidebarToggle(visibleColumns: visibleColumns, context: context, toggleState: toggleState))
-        return columnBase
-    }
-
-    /// The key hint of a handle that hides (`hides`) or shows a column: "hide
-    /// column" or "show column" — or, for the sidebar (`sidebar`) where a bar's
-    /// labelled button names it (`DefaultToolbarItem(kind:placement:label:)`),
-    /// that name, so the handles and the button speak of one thing.
-    func handleHint(hides: Bool, sidebar: Bool, context: RenderContext, toggleState: SplitViewToggleState) -> String {
-        if sidebar, let name = PanelToggle.name(of: context.identity, action: toggleState.barAction, in: context) {
-            return PanelToggle.activationLabel(for: .sidebar, hides: hides, named: name)
-        }
-        return LocalizationService.shared.string(
-            for: hides ? LocalizationKey.StatusBar.hideColumn : LocalizationKey.StatusBar.showColumn)
     }
 
     /// The edge column's focus section ID.
@@ -516,7 +386,7 @@ extension _NavigationSplitViewCore {
     /// (`nil` for a chord, which leaves the keyboard where it is). Reads the
     /// visibility when it runs, not when the handle was drawn, so several key
     /// presses in one input batch each take a step.
-    private func stepAction(
+    func stepAction(
         toggleState: SplitViewToggleState, focus: SplitViewFocusTarget?,
         step: @escaping (NavigationSplitViewVisibility, Bool) -> NavigationSplitViewVisibility?
     ) -> () -> Void {
