@@ -218,7 +218,6 @@ none" stay distinguishable. `textCase` was the same and is now fixed; the
 remaining instances are in the findings below. Worth a note in the contributing
 guide: **any environment value whose SwiftUI type is itself Optional needs two
 levels here.**
-- *Status (2026-10-14 sweep):* **OPEN** — only the `textCase` case is written up (Styling and theming design §3.1); no general rule in CONTRIBUTING.md.
 - *Status:* **FIXED** (2026-10-14): CONTRIBUTING.md's General Principles state the rule.
 
 **5. A protocol conformance is the seam.** `PickerOptionProvider`,
@@ -309,7 +308,6 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `if showDetail { Detail() }` (no .transition) with `Button("Toggle") { withAnimation { showDetail.toggle() } }`. SwiftUI cross-fades Detail in and out; TUIkit pops it in and out instantly. The ported source compiles and animates nothing, with no diagnostic.
 - *Verifier's correction:* One overstatement to trim: it is not undocumented everywhere — AnyTransition.swift:75-76 states that `.identity` is "the default, and what a view without `.transition(_:)` does". That is a statement of behaviour, not a justification, and SwiftUI compatibility guide.md still says the whole family is unimplemented, so the recommendation (record it in §2) stands.
 - *Recommendation:* Document, don't fix. Defaulting to .opacity would mean wrapping every conditional child in a departure-recording view, costing a buffer copy plus a store write per conditional per frame in a framework that rebuilds the whole frame from the tree — a sound reason to decline. But it appears nowhere in SwiftUI compatibility guide.md, so a porter discovers it by watching their app not animate. Add it to §2 (intentional divergence).
-- *Status (2026-10-14 sweep):* **OPEN** — no `.transition` is still `.identity`, recorded only in `AnyTransition`'s doc comment, not in the guide or the deviations.
 - *Status:* **FIXED for `if`** (2026-10-14, the owner's ruling, option B after an A/B): an `if`'s view fades in and out under an animated change (`DefaultTransition.swift`, `DefaultTransitionTests`); an `if`/`else`'s branch, a `switch` and `ForEach` rows still change at once — a slated row in the deviations.
 
 ### App and scene structure
@@ -914,7 +912,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Views/ContentUnavailableView.swift reproduces the defaults as three constrained overloads instead — init(label:description:actions:) at :56, init(label:) at :81 (Description == EmptyView, Actions == EmptyView), init(label:description:) at :92 (extension at :86 constrains Actions == EmptyView). There is no init(label:actions:). — `Sources/TUIkitFoundation/Views/ContentUnavailableView.swift:56,:81,:86-92`
 - *Divergence:* `ContentUnavailableView { Label("No Mail", systemImage: "tray.fill") } actions: { Button("Refresh") { reload() } }` compiles in SwiftUI and fails to compile in TUIkit — there is no overload skipping description. (The _:systemImage:description: inits DO ship, in Sources/TUIkitFoundation/SFSymbols/ControlSymbolInitializers.swift:190-224; that was my first suspicion and it was wrong.)
 - *Recommendation:* Fix: add `extension ContentUnavailableView where Description == EmptyView { init(@ViewBuilder label: () -> Label, @ViewBuilder actions: () -> Actions) }`. One overload, no behaviour change.
-- *Status (2026-10-14 sweep):* **OPEN** — no `ContentUnavailableView(label:actions:)` form (`Description == EmptyView`).
 - *Status:* **FIXED** (2026-10-14): `init(label:actions:)` (ContentUnavailableView.swift); ContentUnavailableViewTests.
 
 ### Buttons, links, menus and shortcuts
@@ -935,7 +932,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public func dropDestination<Payload>(for payloadType: Payload.Type = Payload.self, action: @escaping (Int, [Payload]) -> Void) -> ForEach` — index first, payloads second. The doc comment on it says it "mirrors SwiftUI's `DynamicViewContent.dropDestination(for:action:)`". — `Sources/TUIkitFoundation/Views/DynamicViewContent.swift:70`
 - *Divergence:* Verified: Apple's sample body pasted verbatim onto a TUIkit ForEach fails to compile — the call resolves to the View-level dropDestination instead and reports "cannot convert value of type '()' to closure result type 'Bool'", a diagnostic that gives no hint of the real cause.
 - *Recommendation:* Fix: swap the closure parameters to `([Payload], Int)`. Pre-1.0, and the doc comment already claims the mirror. Dropping SwiftUI's `T: Transferable` constraint is a harmless relaxation and is not part of this finding.
-- *Status (2026-10-14 sweep):* **OPEN** — `ForEach`'s `dropDestination(for:action:)` still hands `(Int, [Payload])`; SwiftUI's is `([T], Int)`.
 - *Status:* **FIXED** (2026-10-14): `ForEach`'s, `DynamicTableRowContent`'s and `Table`'s `dropDestination(for:action:)` hand `([Payload], Int)`, as SwiftUI's do; every caller swapped.
 
 **75. `DynamicViewContent.onMove(perform:)`**
@@ -944,7 +940,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* `public func onMove(perform action: @escaping (IndexSet, Int) -> Void) -> ForEach` — the parameter is non-optional. onDelete(perform:) 26 lines above (DynamicViewContent.swift:103) IS `((IndexSet) -> Void)?`, and its doc says "Passing `nil` makes the rows non-deletable again", so the asymmetry reads as an oversight rather than a decision. — `Sources/TUIkitFoundation/Views/DynamicViewContent.swift:129`
 - *Divergence:* Verified: `ForEach(seas) { Text($0.name) }.onMove(perform: nil)` fails with "error: 'nil' is not compatible with expected argument type '(IndexSet, Int) -> Void'". Any conditional spelling — `.onMove(perform: canReorder ? move : nil)` — breaks the same way.
 - *Recommendation:* Fix: widen to `((IndexSet, Int) -> Void)?`. The stored property `onMoveAction` is already Optional, so it is a one-word change.
-- *Status (2026-10-14 sweep):* **OPEN** — `onMove(perform:)` takes no `nil`.
 - *Status:* **FIXED** (2026-10-14): `ForEach.onMove(perform:)` takes an optional action, `nil` making the rows unmovable; DynamicRowActionsTests.
 
 **76. `List.init(selection:content:) — binding optionality and the non-optional form`**
@@ -953,7 +948,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Every TUIkit selection initializer takes a non-optional binding — `selection: Binding<SelectionValue?>` (List.swift:177-296) and `selection: Binding<Set<SelectionValue>>` (List.swift:298-424) — and there is no `Binding<SelectionValue>` form at all. The stored properties behind them are already Optional (`let singleSelection: Binding<SelectionValue?>?` at List.swift:104, `let multiSelection: Binding<Set<SelectionValue>>?` at :107), so the plumbing for the optional form exists. — `Sources/TUIkitLists/Views/List.swift:177`
 - *Divergence:* Verified compile errors for all three: `List(selection: Binding<UUID?>?.none) { … }` and `List(selection: Binding<Set<UUID>>?.none) { … }` both give "value of optional type … must be unwrapped", and `List(selection: Binding<UUID>.constant(x)) { … }` gives "no exact matches in call to initializer". The optional form is the one real code hits: `List(selection: isEditing ? $sel : nil) { … }`.
 - *Recommendation:* Fix the optional forms (add `?` and branch internally — the stored properties are already Optional). The non-optional "always one selected" form is a behaviour, not just a signature: either add it or record in Documentation/SwiftUI parity/SwiftUI compatibility guide.md that a terminal list always permits an empty selection.
-- *Status (2026-10-14 sweep):* **OPEN** — `List`'s selection forms take only `Binding<V?>` and `Binding<Set<V>>`; many initialisers to add.
 - *Status:* **PARTLY FIXED** (2026-10-14): every selection parameter takes an optional binding, `nil` selecting nothing (List.swift); ListRangeTests. The non-optional `Binding<SelectionValue>` form is absent and the guide says so: given `$selection` for an optional, it could outrank the optional form with `SelectionValue` the optional type, and how SwiftUI resolves that was not measured.
 - *Status:* **FIXED** (2026-10-14): the non-optional forms exist, `@_disfavoredOverload` as SwiftUI declares all ten of its own — probed: SwiftUI binds `SelectionValue` to the wrapped type for an optional binding and to the element for a `Set`, so the optional and multi-selection forms win — and activating the selected row again leaves it selected; ListRequiredSelectionTests. The two forms over a binding to a tree are absent, as their optional twins are.
 
@@ -1010,7 +1004,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Only `init(selection: Binding<SelectionValue>, @ViewBuilder content:)` exists (Sources/TUIkitTabs/Views/TabView.swift:133). The body erases content through a static cast — TabView.swift:141: `tabs: (content as? TabContentProvider)?.tabs() ?? []` — whose only conformers are Tab, EmptyView, TupleView, ForEach (Sources/TUIkitTabs/Views/TabContent.swift:35-56). With no Tab values the core bails at TabView.swift:449: `guard !tabs.isEmpty else { return FrameBuffer() }`. — `Sources/TUIkitTabs/Views/TabView.swift:141`
 - *Divergence:* Typechecked: `TabView { Text("a") }` fails with `error: generic parameter 'SelectionValue' could not be inferred` / `error: missing argument for parameter 'selection' in call`. Worse, executed (scratchpad/navprobe/main2.swift case A): `TabView(selection: .constant(0)) { Text("PageZero").tag(0); Text("PageOne").tag(1) }` — legal SwiftUI via the deprecated selection init, and legal TUIkit since both .tag and the selection init exist — compiles and renders a completely blank screen. Nothing warns.
 - *Recommendation:* Fix. Add TabView(@ViewBuilder content:); and when the content yields no Tab values, either render the tagged children as pages or refuse at compile time. Rendering nothing silently is the worst of the three options.
-- *Status (2026-10-14 sweep):* **OPEN** — a `TabView`'s content is a `TabContentBuilder`, so the old blank screen no longer compiles; the plain-view form is absent and unrecorded.
 - *Status:* **DOCUMENTED** (2026-10-14): the guide's TabView row and a slated row in the deviations; the fix (tagged children as pages) is owed.
 
 ### Scrolling
@@ -1047,7 +1040,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitView/State/State.swift:379-382 declares only the one-argument setter form: `public init(get: @escaping () -> Value, set: @escaping (Value) -> Void)`. Sources/TUIkitView/State/Binding+Optional.swift:49 declares only the opposite, failable direction: `public init?(_ base: Binding<Value?>)`. — `Sources/TUIkitView/State/State.swift:379`
 - *Divergence:* Both verified. `Binding<Int>(get: { n }, set: { v, t in n = v })` → `error: contextual closure type '(Int) -> Void' expects 1 argument, but 2 were used in closure body`. `let opt: Binding<Int?> = Binding($n)` → `error: cannot convert value of type 'Binding<Int>' to expected argument type 'Binding<Int??>'` — the failable unwrap overload is the only candidate, so the diagnostic actively misleads. The second is how SwiftUI code feeds a non-optional binding to `.sheet(item:)` or an optional-selection control.
 - *Recommendation:* Add both. `init<V>(_ base: Binding<V>) where Value == V?` is three lines. The transaction-taking setter can be stored alongside the existing one and invoked with `Transaction.ambient ?? Transaction()`.
-- *Status (2026-10-14 sweep):* **OPEN** — no `Binding(get:set:)` whose setter takes a `Transaction`, nor `Binding<V?>(_: Binding<V>)`.
 - *Status:* **FIXED** (2026-10-14): both forms ship (State.swift, Binding+Optional.swift); BindingTests. The guide names them.
 
 **87. `Environment.init(_:)`**
@@ -1056,7 +1048,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitView/Environment/EnvironmentProperty.swift:99 declares only `public init(_ type: Value.Type) where Value: Observable`, and the wrappedValue getter traps on a miss — EnvironmentProperty.swift:116-122 `fatalError("@Environment(\(Value.self).self): No object of type \(Value.self) found in the environment. Did you forget to call .environment(model)?")`. — `Sources/TUIkitView/Environment/EnvironmentProperty.swift:99`
 - *Divergence:* `@Environment(Model.self) var model: Model?` fails to compile: `error: cannot convert value of type 'Model.Type' to expected argument type 'KeyPath<EnvironmentValues, Model?>'` (verified). So the only available spelling is the one that crashes at runtime when an ancestor forgot `.environment(model)`; the defensive spelling SwiftUI offers is unreachable.
 - *Recommendation:* Add `init<T: AnyObject & Observable>(_ objectType: T.Type) where Value == T?` whose `.observable` strategy returns the lookup result directly instead of trapping.
-- *Status (2026-10-14 sweep):* **OPEN** — no optional `@Environment(T.self) var x: T?`; the only form traps when nothing was injected.
 - *Status:* **FIXED** (2026-10-14): `Environment.init(_:)` for an optional object reads `nil` where none was set (EnvironmentProperty.swift); ObservableEnvironmentTests.
 
 **88. `View.environment(_:)`**
@@ -1065,7 +1056,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitFoundation/Extensions/View+Environment.swift:88 declares only the non-optional form: `public func environment<T: Observable>(_ object: T) -> some View { ObjectEnvironmentModifier(content: self, object: object) }`. There is no second overload. The underlying storage already supports clearing — EnvironmentValues[observable:] is an Optional-valued subscript (Sources/TUIkitCore/Environment/EnvironmentKey.swift:90-93). — `Sources/TUIkitFoundation/Extensions/View+Environment.swift:88`
 - *Divergence:* Apple's documented snippet, verbatim, fails to type-check against the built package: `Text("hi").environment(currentProfile)` where `currentProfile: Profile?` gives `error: value of optional type 'Profile?' must be unwrapped to a value of type 'Profile'`. The optional-model-in-environment pattern is common, and the workaround (`if let` / `??`) changes the view tree.
 - *Recommendation:* Add `public func environment<T: AnyObject & Observable>(_ object: T?) -> some View` that sets `env[observable: T.self] = object`; the subscript already accepts nil, so clearing works for free.
-- *Status (2026-10-14 sweep):* **OPEN** — `View.environment(_:)` takes no optional object (the `Scene` twin does).
 - *Status:* **FIXED** (2026-10-14): `View.environment(_:)` takes an optional object, `nil` clearing one placed further out (View+Environment.swift); ObservableEnvironmentTests.
 
 ### Text and typography
@@ -1214,7 +1204,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* ForEach has the range initializer (`extension ForEach where Data == Range<Int>, ID == Int`, Views/ForEach.swift) but List does not: its data-driven initializers all require `Data.Element: Identifiable` or an explicit `id:` key path. — `Sources/TUIkitLists/Views/List.swift:607`
 - *Divergence:* Verified: `List(0..<5) { Text("\($0)") }` gives "error: initializer 'init(_:rowContent:)' requires that 'Int' conform to 'Identifiable'". `List(0..<5, id: \.self) { … }` does work, so the workaround is available but undiscoverable from the error.
 - *Recommendation:* Fix — three lines forwarding to the ForEach range initializer that already exists, in the same style as the neighbouring `List(_:rowContent:)` overloads.
-- *Status (2026-10-14 sweep):* **OPEN** — no `List(_: Range<Int>, rowContent:)`.
 - *Status:* **FIXED** (2026-10-14): `List(0..<n)` and its single- and multi-selection forms (List.swift); ListRangeTests.
 
 **105. `ListStyle.automatic / .sidebar / .inset / .bordered`** · *adjusted on verification*
@@ -1294,7 +1283,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Sources/TUIkitCore/Rendering/LayoutTypes.swift:16-35 declares exactly `width`, `height`, `static let unspecified`, `init(width:height:)` and `static func fixed(_:_:)`. There is no `zero`, no `infinity`, no `replacingUnspecifiedDimensions(by:)`. — `Sources/TUIkitCore/Rendering/LayoutTypes.swift:24`
 - *Divergence:* `subview.sizeThatFits(.zero)`, copied verbatim from a SwiftUI custom layout, fails to compile, even though `ProposedSize(width: 0, height: 0)` means exactly the same thing on a cell grid.
 - *Recommendation:* Fix the .zero half — `public static let zero = Self(width: 0, height: 0)` is one line and semantically identical to SwiftUI's. The .infinity omission is genuinely justified (Int? cannot carry it, and SwiftUI compatibility guide.md:112 argues correctly that ViewSize.isWidthFlexible already carries what the infinity probe infers); say so on the type, not only in the compatibility doc. replacingUnspecifiedDimensions(by:) is near-pointless here because _LayoutCore.grounded means a layout never receives an unspecified proposal, but it is cheap and keeps more ported source compiling.
-- *Status (2026-10-14 sweep):* **OPEN** — `ProposedSize` has no `.zero`.
 - *Status:* **FIXED** (2026-10-14): `ProposedSize.zero` (LayoutTypes.swift); `.infinity` stays out, a cell count having no infinite value. ProposedSizeTests.
 
 ### Gestures, hit testing and keyboard input
@@ -1368,7 +1356,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Only LocalizedStringKey and String overloads exist: Sources/TUIkitPresentation/Extensions/View+Presentation.swift:45, 73, 105, 130 (alert) and :170, 184, 205, 218 (confirmationDialog), with the presenting:/error: families in View+AlertPresenting.swift following the same two-overload pattern. `grep -rn "_ title: Text" Sources/` finds only navigationTitle and Label. — `Sources/TUIkitPresentation/Extensions/View+Presentation.swift:73`
 - *Divergence:* Typechecked: `Text("p").alert(Text("Title"), isPresented: .constant(true)) { Button("OK") {} }` fails with `error: cannot convert value of type 'Text' to expected argument type 'LocalizedStringKey'`. This is the correct failure mode under rule 2, but the gap is not a terminal limit — navigationTitle(_ title: Text) already exists and simply reads title.content (Sources/TUIkitFoundation/Extensions/View+Preferences.swift:95-97), with the styling loss documented there.
 - *Recommendation:* Fix — add the same one-line Text overload to alert and confirmationDialog, carrying navigationTitle's existing "the Text's styling is not carried" note.
-- *Status (2026-10-14 sweep):* **OPEN** — no `alert` or `confirmationDialog` taking a `Text` title.
 - *Status:* **FIXED** (2026-10-14): the eight `Text`-titled `alert` and `confirmationDialog` forms (View+TextTitledDialogs.swift); TextTitledDialogTests.
 
 ### Scrolling
@@ -1609,7 +1596,6 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* Documentation/SwiftUI parity/SwiftUI compatibility guide.md:119 places @AppStorage in that section and annotates it "`@AppStorage` is *enhanced* (pluggable backend)". Line 102 lists @Binding's surface as "`init(get:set:)`, `.constant`, `init(projectedValue:)`, dynamic-member lookup, `.animation(_:)`, `.transaction` + `.transaction(_:)`…". — `Documentation/SwiftUI parity/SwiftUI compatibility guide.md:119`
 - *Divergence:* Four concrete counterexamples to the @AppStorage ✓: `@AppStorage("mode") var mode: Mode = .a` for `enum Mode: String` does not compile; `@AppStorage("name") var name: String?` does not compile; `store: UserDefaults.standard` does not compile; and an @AppStorage write does not invalidate the render cache (findings 3 and 6). For @Binding, the transaction-taking `init(get:set:)` and `init<V>(_ base: Binding<V>) where Value == V?` do not compile (finding 8) — the listing is accurate about what is present, but §1's "port with no source change" framing carries a claim the two absences break.
 - *Recommendation:* Document: move the unsupported @AppStorage spellings into §2 with the UserDefaults-is-Apple-only reasoning (which is sound and mirrors §2.3's onReceive argument) or fix them per finding 6, and note the two Binding initializers wherever they land. This row is worth being strict about precisely because §1 is the section a porting developer trusts without checking.
-- *Status (2026-10-14 sweep):* **OPEN** — the `@AppStorage` examples compile now; the two missing `Binding` initialisers (item 86) are still unmentioned.
 - *Status:* **FIXED** (2026-10-14): item 86's forms ship and the guide's Binding passage names them.
 
 ### Value controls
