@@ -1588,8 +1588,7 @@ verifier corrected the analyst, both are shown.
 - *TUIkit:* The parameter documentation says: "- vertical: Fix the height at the ideal height. Default `true`. (Currently honoured by views that are height-greedy; `List` keeps its scrollable height regardless.)" No view is height-greedy-and-honouring. `vertical` is discarded on the next line (`environment(\.fixedSizeWidth, horizontal)`, :52), and \.fixedSizeWidth — the only key written — is read by _ListCore and NavigationSplitView only. — `Sources/TUIkitFoundation/Modifiers/FixedSizeModifier.swift:46-48 (contradicted at :51-52)`
 - *Divergence:* A developer reading the DocC surface (the sentence appears verbatim in the extracted tuikit-docs/View.md) is told the vertical axis is honoured by some views. Executed: `Text("Hi").fixedSize(horizontal: true, vertical: true)` and `.fixedSize(horizontal: true, vertical: false)` both render 2x1. No view in the package reads a vertical fixed-size request, because none is ever written.
 - *Recommendation:* Correct the sentence now, independently of whether finding 1 is implemented. It is the cheapest fix in this family and the one most likely to send someone hunting for a bug that is actually a missing feature.
-- *Status (2026-10-14 sweep):* **OPEN** — FixedSizeModifier's doc still says `vertical` is honoured by height-greedy views.
-- *Status:* **FIXED** (2026-10-14): the doc says `vertical` is accepted and not yet honoured.
+- *Status:* **FIXED** (2026-10-15), and moot: `fixedSize` now lays its content out at its ideal size on each fixed axis, `vertical` included (item 33), and its doc says so. (The 2026-10-14 sweep's OPEN line and that day's interim fix, a doc saying `vertical` was not yet honoured, are both superseded.)
 - *Status:* **FIXED** (2026-10-15): `vertical` is honoured, with the rest of item 33, and the doc says so.
 
 ### Scrolling
