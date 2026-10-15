@@ -91,9 +91,9 @@ public struct ColorPicker: View {
     ) {
         // A key whose Markdown styles it is drawn as its `Text`, as SwiftUI's
         // is; the plain words stay the title (the editor panel's among them).
-        let styled = titleKey.markdownTitle
-        self.title = styled?.plain ?? titleKey.localized
-        self.labelView = styled.map { AnyView($0.text) }
+        let title = titleKey.resolvedTitle
+        self.title = title.plain
+        self.labelView = title.styled.map { AnyView($0) }
         self.selection = selection
         self.supportsOpacity = supportsOpacity
         self.step = step

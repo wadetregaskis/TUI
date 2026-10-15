@@ -205,9 +205,9 @@ public struct Button: View {
     ) {
         // A key whose Markdown styles it is drawn as its `Text`, as SwiftUI's
         // is; the plain words stay the title.
-        let styled = titleKey.markdownTitle
-        self.label = styled?.plain ?? titleKey.localized
-        self.labelView = styled.map { AnyView($0.text) }
+        let title = titleKey.resolvedTitle
+        self.label = title.plain
+        self.labelView = title.styled.map { AnyView($0) }
         self.action = action
         self.role = role
         self.focusID = nil
