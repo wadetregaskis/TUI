@@ -37,9 +37,10 @@ package enum StackOverflow {
 /// Distributes `available` cells across a row or column of children.
 ///
 /// Shared by ``HStack`` (width) and ``VStack`` (height), their `Layout`
-/// spellings and the lazy stacks' guide queries. A row and a column share
-/// their space as SwiftUI's stacks do (decisions L14; columns since
-/// 2026-10-15). Children of a higher
+/// spellings and the lazy stacks' guide queries. A row shares its space as
+/// SwiftUI's stacks do (`shares`, decisions L14); a column, for now, places
+/// its children in order (``distributeInOrder(naturalSizes:isFlexible:available:gaps:)``,
+/// deviation L14b). Children of a higher
 /// ``View/layoutPriority(_:)`` are served first
 /// (``distributeLinearSpace(byPriority:naturalSizes:isFlexible:available:gaps:minimum:group:)``);
 /// among children of one priority (``distributeOnePriority(naturalSizes:isFlexible:isSpacer:available:gaps:minimumSize:statedMinimum:sizeAt:)``):
@@ -76,7 +77,7 @@ package enum StackOverflow {
 ///     spacing (which this function accounts for; callers pass the full extent).
 ///   - spacing: The gap rendered between adjacent non-empty children.
 ///   - shares: Whether children of one priority share the space as SwiftUI's
-///     do, as every stack's do, or are placed in order.
+///     do — a row's — or are placed in order — a column's, for now.
 ///   - isSpacer: Whether the child at an index is a `Spacer`, whose natural
 ///     size is its minimum length.
 ///   - priorities: Each child's ``View/layoutPriority(_:)``, or `nil` when every
@@ -297,9 +298,10 @@ func distributeOnePriority(
 /// nothing and the fixed ones are placed in order until the space runs out
 /// (``placeInOrder(_:isFlexible:available:gaps:)``).
 ///
-/// No stack places its children this way since 2026-10-15, when columns came
-/// to share as rows do; it is left only for `shares: false`, which nothing
-/// passes now.
+/// SwiftUI shares a column as it shares a row. Columns keep this rule for now
+/// (deviation L14b): shared, a control of several lines is squeezed in the
+/// middle of a column, and a squeezed inline menu, which then scrolls inside
+/// its border, draws differently served from the cache than drawn afresh.
 func distributeInOrder(naturalSizes: [Int], isFlexible: [Bool], available: Int, gaps: StackGaps) -> [Int] {
     let total = max(0, available)
     var result = naturalSizes.map { max(0, $0) }

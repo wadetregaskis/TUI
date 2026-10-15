@@ -1,9 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  StackSharingTests.swift
 //
-//  A row shares its width among children of one priority as SwiftUI's does,
-//  and since 2026-10-15 a column its height (deviation L14, closed by the
-//  owner's ruling of 2026-10-13: "follow SwiftUI's behaviour"): the least flexible first, each offered an equal
+//  A row shares its width among children of one priority as SwiftUI's does
+//  (deviation L14, closed by the owner's ruling of 2026-10-13: "follow
+//  SwiftUI's behaviour"): the least flexible first, each offered an equal
 //  share of what is left, spacers what the others leave. Each case is one
 //  SwiftUI measured on macOS 15 (`Tools/SwiftUIProbes/Layout priority/`,
 //  `share.out` and `flex.out`), a character of its monospaced font standing
@@ -13,7 +13,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Foundation
 import Testing
 
 @testable import TUIkitCore
@@ -22,7 +21,7 @@ import Testing
 @testable import TUIkitView
 
 @MainActor
-@Suite("A stack shares its length as SwiftUI's does")
+@Suite("A row shares its width as SwiftUI's does")
 struct StackSharingTests {
     private func row<V: View>(width: Int, spacing: Int = 0, @ViewBuilder _ content: () -> V) -> String {
         renderToBuffer(HStack(spacing: spacing) { content() }, context: makeRenderContext(width: width, height: 3))
@@ -102,26 +101,10 @@ struct StackSharingTests {
         let shared = distributeLinearSpace(
             naturalSizes: [3, 3], isFlexible: [false, false], available: 4, minimumSize: { _ in 1 })
         #expect(shared == [2, 2])
-    }
-
-    @Test("A column shares its height as a row shares its width (SwiftUI: a stack shares either axis)")
-    func columnShares() {
-        let column = renderToBuffer(
-            VStack(spacing: 0) {
-                ScrollView { VStack(spacing: 0) { ForEach(0..<2, id: \.self) { Text("a\($0)") } } }
-                ScrollView { VStack(spacing: 0) { ForEach(0..<18, id: \.self) { Text("b\($0)") } } }
-            }
-            .frame(height: 10, alignment: .top),
-            context: makeRenderContext(width: 8, height: 10)
-        ).lines.map(\.stripped)
-        // Two scroll views of two rows' and eighteen rows' content, in ten: each
-        // is dealt half, as SwiftUI deals them, where placed in order (as
-        // columns were until 2026-10-15) the first kept its two and the second
-        // took the eight left.
-        #expect(column.count == 10)
-        #expect(column[0].hasPrefix("a0") && column[1].hasPrefix("a1"), "\(column)")
-        #expect(column[2...4].allSatisfy { $0.trimmingCharacters(in: .whitespaces).isEmpty }, "\(column)")
-        #expect(column[5].hasPrefix("b0"), "\(column)")
+        // A column places its children in order (deviation L14b).
+        let column = distributeLinearSpace(
+            naturalSizes: [3, 3], isFlexible: [false, false], available: 4, shares: false, minimumSize: { _ in 1 })
+        #expect(column == [3, 1])
     }
 
     @Test("A child offered less than its ideal takes what it answers, leaving the rest to those after it")

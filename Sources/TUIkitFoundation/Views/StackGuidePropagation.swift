@@ -62,7 +62,7 @@ extension _VStackCore: AlignmentGuideQuerying {
         let priorities = layoutPriorities(of: children)
         let heights = distributeLinearSpace(
             naturalSizes: naturalHeights, isFlexible: isFlexible,
-            available: dimensions.height, spacing: spacing, isSpacer: { children[$0].isSpacer },
+            available: dimensions.height, spacing: spacing, shares: false, isSpacer: { children[$0].isSpacer },
             priorities: priorities,
             minimumSize: { minimumLength(of: children[$0], horizontally: false, across: nil, context: context) },
             statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
