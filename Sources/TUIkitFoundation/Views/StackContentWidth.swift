@@ -670,6 +670,21 @@ extension _VStackCore {
 /// walk — has to apply it too. An arm that said "flexible" for a capped
 /// answer where the walk said not would decide, by being the one that
 /// answered, whether `measureNaturalExtent` climbs past its first rung.
+extension _VStackCore {
+    /// The width a row that filled the stack's width has of its own: asked as
+    /// the whole-content walk asks every row (``rowWidthContext(_:width:)``) —
+    /// no width proposed, under the ideal-width mark, the stack's width
+    /// available. For the eager arm of the stack's measure, which answers the
+    /// whole-content ask from rows it measured at its own width.
+    func naturalWidthOfFiller(_ child: ChildView, widthLimit: Int, context: RenderContext) -> ViewSize {
+        var rowContext = context.askingIdealWidth()
+        rowContext.isMeasuring = true
+        rowContext.availableWidth = widthLimit
+        rowContext.leaveScrollOrigin()
+        return child.measure(proposal: ProposedSize(width: nil, height: nil), context: rowContext)
+    }
+}
+
 func wholeContentFlexibility(_ isFlexible: Bool, width: Int, limit: Int) -> Bool {
     isFlexible && width < limit
 }

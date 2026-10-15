@@ -330,10 +330,29 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // width of its own and never calls a capped answer flexible — counted
         // the same way here, or the first frame answers the ladder's rung and
         // the second the rows (`wholeContentWidth(of:limit:)`).
+        //
+        // The scroll view's same question at a stated width (`contentWidthAsk`'s
+        // `.serve`) the uniform arm answers with the walk once a render has
+        // seeded its hypothesis, which asks each row its OWN width. Asked here
+        // at the stack's width only, a row that fills that width answered it on
+        // the first frames and its own from then on — a fixed-size scroll view
+        // of filling rows laid out at one width and memoized at the other. So
+        // a row that came back filling the width is asked its own, as the walk
+        // asks it (`naturalWidthOfFiller`); one that did not is counted as it
+        // was measured, which the walk would find the same, and costs nothing
+        // more. Not asked of a stack nested in the content, which is drawn
+        // whole, as `anchoredSizeThatFits` leaves it out.
+        let servesWholeContent =
+            !asksIdealWidth && !isNestedInScrollContent(context: context)
+            && context.contentWidthAsk(proposal: proposal, widthLimit: widthLimit, heightLimit: heightLimit)
+                == .serve
         func counted(_ slot: RowSlot) -> Int {
-            asksIdealWidth
-                ? wholeContentWidth(of: slot.size, limit: widthLimit)
-                : min(slot.width, widthLimit)
+            if asksIdealWidth { return wholeContentWidth(of: slot.size, limit: widthLimit) }
+            guard servesWholeContent, hasNoWidthOfItsOwn(slot.size, limit: widthLimit) else {
+                return min(slot.width, widthLimit)
+            }
+            return wholeContentWidth(
+                of: naturalWidthOfFiller(slot.child, widthLimit: widthLimit, context: measureContext), limit: widthLimit)
         }
         var height = 0
         var maxWidth = 0
@@ -383,11 +402,11 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // every rung to the edge of `Int`, the filler reporting each new rung.
         let guideRun = slotGuideRun(
             slots, fixedExtent: nil, minimumExtent: maxWidth,
-            idealWidthLimit: asksIdealWidth ? widthLimit : nil, context: context)
+            idealWidthLimit: asksIdealWidth || servesWholeContent ? widthLimit : nil, context: context)
         let width = min(guideRun?.extent ?? maxWidth, widthLimit)
         return ViewSize(
             width: width, height: height,
-            isWidthFlexible: asksIdealWidth
+            isWidthFlexible: asksIdealWidth || servesWholeContent
                 ? wholeContentFlexibility(widthFlexible, width: width, limit: widthLimit)
                 : widthFlexible,
             isHeightFlexible: heightFlexible)
