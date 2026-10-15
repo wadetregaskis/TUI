@@ -10,7 +10,8 @@ import TUIkitFoundation
 /// macOS 15.8, `PROBES-1014/labeledcontent`): the label at the leading edge, a
 /// fixed value at the trailing edge — each line of a value of several ending
 /// there — and a field or a slider from 45% of the row, or from just after the
-/// label where the label is longer, to the trailing edge.
+/// label where the label is longer, to the trailing edge. The content's text
+/// is drawn in the secondary style, as SwiftUI's is.
 ///
 /// Both a grouped `Form`'s own labelled rows and a `LabeledContent` drawn in
 /// one (``LabeledContentPlacement/groupedFormRow``) are drawn by this.
@@ -61,6 +62,7 @@ private struct _GroupedLabeledRowCore: View, Renderable, Layoutable {
         return HStack(alignment: .top, spacing: 0) {
             collapsingLabel.frame(width: start, alignment: .leading)
             content
+                .foregroundStyle(.secondary)
                 .environment(\.unstatedMultilineTextAlignment, fills ? .leading : .trailing)
                 .frame(width: max(0, width - start), alignment: .trailing)
         }

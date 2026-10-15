@@ -82,6 +82,10 @@ extension LabeledContentStyle {
 /// - **In a grouped form**, as in a list's row, except that a field or a
 ///   slider starts at 45% of the row (`_GroupedLabeledRow`).
 ///
+/// In both, the content's text is drawn in the secondary style, as SwiftUI's
+/// is: a value's `Text` is greyed, while a field's, a slider's or a toggle's
+/// own drawing, which does not read the foreground style, is not.
+///
 /// A row of a TUIkit `Form` is not drawn through this style: the form lays its
 /// labelled rows out itself (`_FormFieldRow`).
 ///
@@ -133,6 +137,7 @@ struct _AutomaticLabeledContent: View {
             HStack(spacing: 0) {
                 _CollapsingLabel(label: configuration.label, controlDisabled: false)
                 configuration.content
+                    .foregroundStyle(.secondary)
                     .environment(\.unstatedMultilineTextAlignment, .trailing)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }

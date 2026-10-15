@@ -93,6 +93,31 @@ struct FormGroupedRowTests {
         #expect(gap > 10, "the value is across the row from its label: \(row.debugDescription)")
     }
 
+    /// The SGR a cell's text is written in, just before `text` on its line.
+    private func colour(of text: String, in view: some View) -> String? {
+        let lines = renderToBuffer(view, context: makeRenderContext(width: 60, height: 12)).lines
+        guard let line = lines.first(where: { $0.contains(text) }), let range = line.range(of: text) else {
+            return nil
+        }
+        let before = line[..<range.lowerBound]
+        return before.range(of: "\u{1B}[", options: .backwards).map { String(before[$0.lowerBound...]) }
+    }
+
+    @Test("A value's text is secondary, as SwiftUI's is; a field's own text is not")
+    func valueTextIsSecondary() throws {
+        let secondary = try #require(colour(of: "Alice", in: Text("Alice").foregroundStyle(.secondary)))
+        let primary = try #require(colour(of: "Alice", in: Text("Alice")))
+        #expect(secondary != primary, "precondition: the two styles differ")
+        let form = Form {
+            LabeledContent("Name", value: "Alice")
+            LabeledContent("Email") { TextField("", text: .constant("bob")) }
+        }
+        .formStyle(.grouped)
+        #expect(colour(of: "Alice", in: form) == secondary)
+        let field = try #require(colour(of: "bob", in: TextField("", text: .constant("bob"))))
+        #expect(colour(of: "bob", in: form) == field, "a field draws its text as it would anywhere")
+    }
+
     @Test("A columns form keeps its label column")
     func columnsUnchanged() throws {
         let drawn = lines(

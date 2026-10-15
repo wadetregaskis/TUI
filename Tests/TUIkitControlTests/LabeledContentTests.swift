@@ -54,6 +54,21 @@ struct LabeledContentTests {
         #expect(gap > 20, "the value is across the row from its label: \(row.debugDescription)")
     }
 
+    @Test("In a list's row, a value's text is secondary; on its own it is not")
+    func listRowValueIsSecondary() throws {
+        func colour(of view: some View) -> String? {
+            let lines = renderToBuffer(view, context: makeRenderContext(width: 40, height: 4)).lines
+            guard let line = lines.first(where: { $0.contains("1.0.3") }), let range = line.range(of: "1.0.3")
+            else { return nil }
+            let before = line[..<range.lowerBound]
+            return before.range(of: "\u{1B}[", options: .backwards).map { String(before[$0.lowerBound...]) }
+        }
+        let secondary = try #require(colour(of: Text("1.0.3").foregroundStyle(.secondary)))
+        let primary = try #require(colour(of: Text("1.0.3")))
+        #expect(colour(of: List { LabeledContent("Version", value: "1.0.3") }) == secondary)
+        #expect(colour(of: LabeledContent("Version", value: "1.0.3")) == primary)
+    }
+
     /// The value trails, and so does each line of a value of several: as the
     /// trailing value of SwiftUI's grouped `Form` does, where "short" over "a
     /// much longer line" ends both lines at the trailing edge (measured,
