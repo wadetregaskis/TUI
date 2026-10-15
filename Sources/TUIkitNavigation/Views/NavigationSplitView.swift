@@ -89,6 +89,12 @@ import TUIkitFoundation
 /// keeps the ◀ alone on its leftmost divider. `.toolbar(removing: .sidebarToggle)`
 /// (``View/toolbar(removing:)``) takes both handles away.
 ///
+/// A `DefaultToolbarItem(kind: .sidebarToggle)` puts a button for the sidebar
+/// in a bar: ◀ while it shows, ▶ while it is hidden, toggling it as ⌃S does.
+/// Declared in one of the split's columns it toggles this split; declared round
+/// it, the window's first split view. While the button is drawn the split leaves
+/// out its ▶ edge column, which the button stands in for; the divider's ◀ stays.
+///
 /// SwiftUI's sidebar chords work too, through ``EnvironmentValues/commandKey``:
 /// ⌃⌘S and ⌥⌘S, which are ⌃S and ⌥⌃S under the default `.control`. They toggle
 /// the sidebar only, as macOS does — two columns `.all` ⇄ `.detailOnly`, three
@@ -307,6 +313,7 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
         let (edge, columnsContext) = layOutEdge(
             visibleColumns: visibleColumns, context: context,
             focusManager: focusManager, toggleState: toggleState)
+        let columnBase = publishingSidebarToggle(visibleColumns: visibleColumns, context: context, toggleState: toggleState)
 
         // Resizable columns (the default) persist a user-chosen width per
         // non-trailing column and expose a draggable / focusable divider. This
@@ -338,7 +345,7 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
 
         for (index, column) in visibleColumns.enumerated() {
             let columnWidth = columnWidths[index]
-            let columnContext = context.withAvailableSize(width: columnWidth, height: context.availableHeight)
+            let columnContext = columnBase.withAvailableSize(width: columnWidth, height: context.availableHeight)
 
             // Register focus section for this column (skip during measurement)
             let sectionID = focusSectionID(for: column, context: context)

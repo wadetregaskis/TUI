@@ -144,7 +144,16 @@ final class SplitViewToggleState {
     /// is neither, and a sidebar that removed the toggle must not bring back the
     /// ▶ the moment it hides. A column not yet seen has no entry.
     var removedByColumn: [NavigationSplitViewColumn: Bool] = [:]
+
+    /// What a toolbar's button for the sidebar runs, kept across renders so
+    /// each render's ``PanelToggle`` compares equal to the last while the
+    /// sidebar neither shows nor hides.
+    let barAction = PanelToggle.Action()
 }
+
+/// The identity step the window's own button for a split view's sidebar
+/// takes under the split's.
+enum _SidebarToggleItemSlot {}
 
 // MARK: - Edge handler
 
@@ -277,7 +286,9 @@ extension _NavigationSplitViewCore {
         focusManager: FocusManager?, toggleState: SplitViewToggleState?
     ) -> (EdgeWiring?, RenderContext) {
         probeToggleRemoval(visibleColumns: visibleColumns, context: context, toggleState: toggleState)
+        // A bar's button for the sidebar stands in for the edge column.
         guard showsToggle(context: context, toggleState: toggleState),
+            !(context.environment.windowChrome?.hasBarToggle(for: context.identity) ?? false),
             visibleColumns.count < (isThreeColumn ? 3 : 2),
             context.availableWidth > visibleColumns.count
         else { return (nil, context) }
@@ -336,6 +347,49 @@ extension _NavigationSplitViewCore {
         if let previous, previous != removed {
             context.renderCache?.invalidateRender(for: context.identity)
         }
+    }
+
+    /// The sidebar's toggle for a toolbar's button, for this render: published
+    /// to the views in the split's columns, so a
+    /// `DefaultToolbarItem(kind: .sidebarToggle)` declared there toggles this
+    /// split, and offered to the window, whose first split view is the one an
+    /// item declared round any split toggles.
+    ///
+    /// `nil`, and nothing offered, where the split shows no toggle handles —
+    /// `.toolbar(removing: .sidebarToggle)` on or in it — or is disabled, as
+    /// its chords are then; and while measuring, which declares nothing.
+    ///
+    /// The button toggles the sidebar alone, as ⌃S does (``SplitViewToggle/togglingSidebar(_:isThreeColumn:)``),
+    /// leaving the keyboard where it is: in the bar.
+    func sidebarToggle(
+        visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
+    ) -> PanelToggle? {
+        guard let toggleState, !context.isMeasuring, context.environment.isEnabled,
+            showsToggle(context: context, toggleState: toggleState)
+        else { return nil }
+        toggleState.barAction.perform = stepAction(toggleState: toggleState, focus: nil) { visibility, isThreeColumn in
+            SplitViewToggle.togglingSidebar(visibility, isThreeColumn: isThreeColumn)
+        }
+        let toggle = PanelToggle(
+            panel: .sidebar, owner: context.identity, isShown: visibleColumns.contains(.sidebar),
+            action: toggleState.barAction)
+        context.environment.windowChrome?.offerPanelToggle(
+            toggle, environment: context.environment,
+            itemIdentity: context.withChildIdentity(erasedType: _SidebarToggleItemSlot.self, key: "bar").identity)
+        return toggle
+    }
+
+    /// `context` for the columns to render in: with this split's
+    /// ``sidebarToggle(visibleColumns:context:toggleState:)``, so a toolbar item
+    /// declared in a column toggles this split's sidebar — and in a split with no
+    /// toggle, none of an outer one's.
+    func publishingSidebarToggle(
+        visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
+    ) -> RenderContext {
+        var columnBase = context
+        columnBase.environment.sidebarToggleScope = .split(
+            sidebarToggle(visibleColumns: visibleColumns, context: context, toggleState: toggleState))
+        return columnBase
     }
 
     /// The edge column's focus section ID.

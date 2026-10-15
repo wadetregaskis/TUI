@@ -71,6 +71,11 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         let chrome = context.environment.windowChrome
+        // A split view whose bar button for its sidebar has gone draws its ▶
+        // edge column again (`WindowChromeState.hasBarToggle(for:)`).
+        if let chrome, !context.isMeasuring {
+            for owner in chrome.takeDroppedBarToggles() { context.renderCache?.invalidateRender(for: owner) }
+        }
         // This frame's tooltip rows — not the line about a copy while it stands
         // in for the line of key hints' items, in their row
         // (`StatusBarState.linesAboveItems`).

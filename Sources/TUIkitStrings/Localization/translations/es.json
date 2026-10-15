@@ -59,6 +59,8 @@
   "label.find": "Buscar",
   "label.replaceWith": "Reemplazar por",
   "label.hideColumn": "Ocultar “%@”",
+  "label.showSidebar": "Mostrar barra lateral",
+  "label.hideSidebar": "Ocultar barra lateral",
 
   "error.invalid_input": "Entrada no válida",
   "error.required_field": "Este campo es obligatorio",
@@ -103,6 +105,8 @@
   "statusbar.submit": "enviar",
   "statusbar.showColumn": "mostrar columna",
   "statusbar.hideColumn": "ocultar columna",
+  "statusbar.showSidebar": "mostrar barra lateral",
+  "statusbar.hideSidebar": "ocultar barra lateral",
   "statusbar.dismiss": "cerrar",
   "statusbar.cancel": "cancelar",
   "statusbar.goBack": "atrás",

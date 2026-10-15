@@ -59,6 +59,8 @@
   "label.find": "查找",
   "label.replaceWith": "替换为",
   "label.hideColumn": "隐藏“%@”",
+  "label.showSidebar": "显示边栏",
+  "label.hideSidebar": "隐藏边栏",
 
   "error.invalid_input": "输入无效",
   "error.required_field": "此字段为必填项",
@@ -103,6 +105,8 @@
   "statusbar.submit": "提交",
   "statusbar.showColumn": "显示列",
   "statusbar.hideColumn": "隐藏列",
+  "statusbar.showSidebar": "显示边栏",
+  "statusbar.hideSidebar": "隐藏边栏",
   "statusbar.dismiss": "关闭",
   "statusbar.cancel": "取消",
   "statusbar.goBack": "返回",

@@ -22,8 +22,16 @@ import TUIkitFoundation
 ///   modifies. The first searchable drawn is the window's.
 /// - ``ToolbarDefaultItemKind/title``: the window's title and subtitle,
 ///   instead of in the top bar's title slot.
-/// - ``ToolbarDefaultItemKind/sidebarToggle``: draws nothing; a
-///   ``NavigationSplitView``'s toggle handles stay on its divider.
+/// - ``ToolbarDefaultItemKind/sidebarToggle``: a button that hides and shows
+///   a ``NavigationSplitView``'s sidebar, as ⌃S does: ◀ while the sidebar
+///   shows, ▶ while it is hidden. Declared in one of a split view's columns
+///   it toggles that split's sidebar; declared round a split view, the
+///   window's — the first split view the window draws. While the button is
+///   drawn the split leaves out the ▶ edge column it would show for a hidden
+///   sidebar, which the button stands in for; the ◀ on its divider stays,
+///   since it also says the column can be hidden. Declare one in each split
+///   view's content to give each a button. Where there is no split view, or
+///   its toggle was removed (``View/toolbar(removing:)``), it draws nothing.
 ///
 /// ```swift
 /// NavigationStack {
@@ -87,7 +95,7 @@ private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
         case .title:
             return chrome.title.isEmpty ? nil : AnyView(_ToolbarTitle(title: chrome.title, subtitle: chrome.subtitle))
         case .sidebarToggle:
-            return nil
+            return AnyView(_PanelToggleButton(panel: .sidebar))
         }
     }
 

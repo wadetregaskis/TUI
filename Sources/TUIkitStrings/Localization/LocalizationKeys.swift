@@ -106,6 +106,10 @@ public enum LocalizationKey {
         /// A table's column menu: the item that hides the column it was opened
         /// on, its title as `%@`.
         case hideColumn = "label.hideColumn"
+        /// A toolbar's sidebar button, while the sidebar is hidden: its help.
+        case showSidebar = "label.showSidebar"
+        /// A toolbar's sidebar button, while the sidebar shows: its help.
+        case hideSidebar = "label.hideSidebar"
     }
 
     /// Border appearance names, as shown in a settings screen.
@@ -224,6 +228,10 @@ public enum LocalizationKey {
         case showColumn = "statusbar.showColumn"
         /// A split view's leftmost divider, whose ◀ hides the column to its left.
         case hideColumn = "statusbar.hideColumn"
+        /// A toolbar's sidebar button, while the sidebar is hidden.
+        case showSidebar = "statusbar.showSidebar"
+        /// A toolbar's sidebar button, while the sidebar shows.
+        case hideSidebar = "statusbar.hideSidebar"
 
         // MARK: What Escape does over a surface or a mode
 

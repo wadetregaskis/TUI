@@ -59,6 +59,8 @@
   "label.find": "検索",
   "label.replaceWith": "置換後の文字列",
   "label.hideColumn": "「%@」を非表示",
+  "label.showSidebar": "サイドバーを表示",
+  "label.hideSidebar": "サイドバーを非表示",
 
   "error.invalid_input": "入力が無効です",
   "error.required_field": "この項目は必須です",
@@ -103,6 +105,8 @@
   "statusbar.submit": "送信",
   "statusbar.showColumn": "列を表示",
   "statusbar.hideColumn": "列を隠す",
+  "statusbar.showSidebar": "サイドバーを表示",
+  "statusbar.hideSidebar": "サイドバーを隠す",
   "statusbar.dismiss": "閉じる",
   "statusbar.cancel": "キャンセル",
   "statusbar.goBack": "戻る",

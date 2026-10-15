@@ -134,8 +134,10 @@ extension View {
     /// With ``ToolbarDefaultItemKind/sidebarToggle`` it removes a
     /// ``NavigationSplitView``'s toggle handles: the ◀ on its leftmost divider
     /// (which goes back to three grip dots, or to a plain space when the split
-    /// cannot resize) and the ▶ edge column shown while a leading column is
-    /// hidden. `nil` removes nothing, and does not undo a removal further out.
+    /// cannot resize), the ▶ edge column shown while a leading column is
+    /// hidden, and the button a `DefaultToolbarItem(kind: .sidebarToggle)` draws
+    /// for the split. `nil` removes nothing, and does not undo a removal further
+    /// out.
     ///
     /// With ``ToolbarDefaultItemKind/title`` it removes the title: the top
     /// bar's title slot is empty while the view is drawn — anywhere in the

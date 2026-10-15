@@ -89,6 +89,8 @@ extension LocalizationService {
       "label.find": "Find",
       "label.replaceWith": "Replace with",
       "label.hideColumn": "Hide “%@”",
+      "label.showSidebar": "Show Sidebar",
+      "label.hideSidebar": "Hide Sidebar",
 
       "error.invalid_input": "Invalid input",
       "error.required_field": "This field is required",
@@ -133,6 +135,8 @@ extension LocalizationService {
       "statusbar.submit": "submit",
       "statusbar.showColumn": "show column",
       "statusbar.hideColumn": "hide column",
+      "statusbar.showSidebar": "show sidebar",
+      "statusbar.hideSidebar": "hide sidebar",
       "statusbar.dismiss": "dismiss",
       "statusbar.cancel": "cancel",
       "statusbar.goBack": "go back",

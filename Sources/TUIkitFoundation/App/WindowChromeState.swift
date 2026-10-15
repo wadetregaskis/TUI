@@ -388,6 +388,84 @@ package final class WindowChromeState: @unchecked Sendable {
         if _searchField == nil { _searchField = field }
     }
 
+    // MARK: The panels' toggles
+
+    /// A panel's toggle offered as the window's, with what an item drawing it
+    /// in a bar needs: the environment of the view that offered it, and an
+    /// identity under that view's for the item to keep its state at.
+    package struct PanelToggleOffer {
+        package let toggle: PanelToggle
+        package let environment: EnvironmentValues
+        package let itemIdentity: ViewIdentity
+    }
+
+    /// The window's toggle for each panel: the first offered this walk
+    /// (``offerPanelToggle(_:environment:itemIdentity:)``).
+    private var panelToggleOffers: [PanelToggle.Panel: PanelToggleOffer] = [:]
+
+    /// The window's toggle for `panel` — for the sidebar, the first
+    /// ``NavigationSplitView`` drawn this walk offered it — or `nil`. What a
+    /// toolbar's button for the panel declared round the view that owns it,
+    /// rather than inside, toggles.
+    ///
+    /// The first, because a view draws before its content does: a split view
+    /// nested in another's column offers after the outer one, and of two side
+    /// by side the first is the one a reader meets first.
+    package func panelToggle(_ panel: PanelToggle.Panel) -> PanelToggle? {
+        panelToggleOffers[panel]?.toggle
+    }
+
+    /// The window's toggle for `panel`, as it was offered.
+    package func panelToggleOffer(_ panel: PanelToggle.Panel) -> PanelToggleOffer? {
+        panelToggleOffers[panel]
+    }
+
+    /// Offers a panel's toggle as the window's, unless a view drawn earlier
+    /// this walk already offered one for the same kind of panel.
+    package func offerPanelToggle(
+        _ toggle: PanelToggle, environment: EnvironmentValues, itemIdentity: ViewIdentity
+    ) {
+        guard panelToggleOffers[toggle.panel] == nil else { return }
+        panelToggleOffers[toggle.panel] = PanelToggleOffer(
+            toggle: toggle, environment: environment, itemIdentity: itemIdentity)
+    }
+
+    /// The frame that last drew a bar's button for each panel's toggle, by the
+    /// identity of the view that owns the panel.
+    private var barTogglesDrawn: [ViewIdentity: Int] = [:]
+
+    /// The views whose panel's bar button went undrawn for a frame, since
+    /// ``takeDroppedBarToggles()`` was last asked.
+    private var barTogglesDropped: [ViewIdentity] = []
+
+    /// Records that a bar drew a button toggling the panel of the view at
+    /// `owner`, and returns whether that is news to it: whether
+    /// ``hasBarToggle(for:)`` said `false` before. The button then redraws the
+    /// view — a split view, drawn with its ▶ edge column before the bar was.
+    @discardableResult
+    package func noteBarToggleDrawn(for owner: ViewIdentity) -> Bool {
+        let isNew = !hasBarToggle(for: owner)
+        barTogglesDrawn[owner] = frame
+        return isNew
+    }
+
+    /// The split views whose bar button stopped being drawn — so each must
+    /// draw its ▶ edge column again — since this was last asked. The window's
+    /// chrome redraws them.
+    package func takeDroppedBarToggles() -> [ViewIdentity] {
+        defer { barTogglesDropped.removeAll() }
+        return barTogglesDropped
+    }
+
+    /// Whether a bar drew a button toggling the panel of the view at `owner`,
+    /// this frame or the last.
+    ///
+    /// Last frame's counts because the bars are drawn after the page: a split
+    /// view asks while it draws, before this frame's bars have.
+    package func hasBarToggle(for owner: ViewIdentity) -> Bool {
+        barTogglesDrawn[owner].map { $0 >= frame - 1 } ?? false
+    }
+
     /// ``title`` and ``subtitle``, as ``offer(_:as:at:)`` chooses them.
     private var titles: (title: String, subtitle: String) {
         if let chosenTitles { return chosenTitles }
@@ -466,6 +544,14 @@ package final class WindowChromeState: @unchecked Sendable {
     /// Counts a frame. Called by the run loop before the scene is walked.
     package func beginFrame() {
         frame += 1
+        // A split view that stopped being toggled from a bar is forgotten once
+        // its last frame has passed.
+        if !barTogglesDrawn.isEmpty {
+            for (owner, drawn) in barTogglesDrawn where drawn < frame - 1 {
+                barTogglesDrawn[owner] = nil
+                barTogglesDropped.append(owner)
+            }
+        }
     }
 
     /// Forgets the toolbar items the last walk declared. Called by the run loop
@@ -482,6 +568,7 @@ package final class WindowChromeState: @unchecked Sendable {
         chosenTitles = nil
         _titleRemoved = false
         _searchField = nil
+        panelToggleOffers.removeAll(keepingCapacity: true)
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a

@@ -669,8 +669,8 @@ modifiers (`toolbarBackground`, `toolbarRole`, `toolbarItemHidden`,
 family (`toolbar(id:)`), and `Commands`/the menu bar.
 
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
-toggle handles (the ◀ on the leftmost divider and the ▶ edge column), which
-stand in for SwiftUI's toolbar sidebar button. `.toolbar(removing: .title)`
+toggle handles (the ◀ on the leftmost divider and the ▶ edge column), and any
+sidebar button a bar draws for it. `.toolbar(removing: .title)`
 (refusal review O17, 2026-10-14) empties the top bar's title slot while the
 view is drawn, anywhere in the window but in presented content, as one
 toolbar's title item serves the whole window in SwiftUI. A `NavigationStack`'s
@@ -692,8 +692,13 @@ first item; the first frame of all has it. The field in a bar is a Tab stop
 after the page's, as every bar item is. `.toolbar(removing: .search)` draws the
 field nowhere, on or above the searchable or anywhere else in the window. In a
 sheet, a cover or a popover a `DefaultToolbarItem` draws nothing and moves
-nothing, and `.sidebarToggle` draws nothing anywhere: the split view's handles
-stay on its divider ([slated](<Deliberate deviations from SwiftUI.md#slated-to-change>)).
+nothing. `.sidebarToggle` (2026-10-14) draws a button that toggles a split
+view's sidebar as ⌃S does, ◀ while it shows and ▶ while it is hidden: the
+split's whose column it is declared in, else the window's first split view. A
+split whose sidebar button is drawn leaves out its ▶ edge column, which the
+button stands in for; the ◀ on its divider stays, as it also says the column
+can be hidden. Several split views can each have one, declared in their own
+columns.
 
 ### 2.7 Fixed-`frame` default alignment is `.topLeading`, not `.center`
 
