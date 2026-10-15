@@ -89,11 +89,15 @@ import TUIkitFoundation
 /// keeps the ◀ alone on its leftmost divider. `.toolbar(removing: .sidebarToggle)`
 /// (``View/toolbar(removing:)``) takes both handles away.
 ///
-/// A `DefaultToolbarItem(kind: .sidebarToggle)` puts a button for the sidebar
-/// in a bar: ◀ while it shows, ▶ while it is hidden, toggling it as ⌃S does.
-/// Declared in one of the split's columns it toggles this split; declared round
-/// it, the window's first split view. While the button is drawn the split leaves
-/// out its ▶ edge column, which the button stands in for; the divider's ◀ stays.
+/// The window's first split view also gets a button for its sidebar at the
+/// leading edge of the window's top bar, where the page has a top bar — ◀
+/// while the sidebar shows, ▶ while it is hidden, toggling it as ⌃S does — as
+/// SwiftUI's macOS toolbar does. A `DefaultToolbarItem(kind: .sidebarToggle)`
+/// puts one in whichever bar it places it in: declared in one of the split's
+/// columns it toggles this split, so each split view can have one; declared
+/// round it, the window's first split view, and the top bar's own goes. While a
+/// button is drawn the split leaves out its ▶ edge column, which the button
+/// stands in for; the divider's ◀ stays.
 ///
 /// SwiftUI's sidebar chords work too, through ``EnvironmentValues/commandKey``:
 /// ⌃⌘S and ⌥⌘S, which are ⌃S and ⌥⌃S under the default `.control`. They toggle

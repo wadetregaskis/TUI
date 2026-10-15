@@ -670,7 +670,11 @@ family (`toolbar(id:)`), and `Commands`/the menu bar.
 
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
 toggle handles (the ◀ on the leftmost divider and the ▶ edge column), and any
-sidebar button a bar draws for it. `.toolbar(removing: .title)`
+sidebar button a bar draws for it. As on macOS, the window's top bar shows a
+sidebar button at its leading edge for the window's first split view (one per
+window, as SwiftUI measured with two split views side by side and nested,
+2026-10-14) — but only where the page already has a top bar: a bar is three
+rows of a terminal's, and the split's own ◀ and ▶ already do the job. `.toolbar(removing: .title)`
 (refusal review O17, 2026-10-14) empties the top bar's title slot while the
 view is drawn, anywhere in the window but in presented content, as one
 toolbar's title item serves the whole window in SwiftUI. A `NavigationStack`'s

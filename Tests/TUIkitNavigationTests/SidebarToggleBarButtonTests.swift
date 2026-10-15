@@ -241,9 +241,12 @@ struct SidebarToggleBarButtonTests {
         let app = running(NestedApp())
         let screen = rows(app)
         let inner = try #require(position(of: "INNER", in: app), "\(screen)")
+        // The bar's last ◀: the window's own button for the outer split comes
+        // first, at the leading edge.
         let button = try #require(
             screen.indices.first { $0 < inner.row && screen[$0].contains("◀") }.map { row in
-                (row, screen[row].distance(from: screen[row].startIndex, to: screen[row].range(of: "◀")!.lowerBound))
+                (row, screen[row].distance(
+                    from: screen[row].startIndex, to: screen[row].range(of: "◀", options: .backwards)!.lowerBound))
             }, "\(screen)")
         click(app, at: button)
         settle(app)

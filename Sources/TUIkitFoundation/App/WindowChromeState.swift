@@ -70,18 +70,22 @@ package final class WindowChromeState: @unchecked Sendable {
         package let identity: ViewIdentity
         /// Whether it is a flexible ``ToolbarSpacer``: laid out as a `Spacer`.
         package var isFlexibleSpace = false
+        /// The default item a ``DefaultToolbarItem`` places, or `nil`: how the
+        /// window tells a sidebar button the page placed itself.
+        package var defaultKind: ToolbarDefaultItemKind.Kind?
 
         /// The memberwise initializer, spelled out because the synthesized one is internal and the
         /// toolbars (TUIkitChrome) declare these.
         package init(
             placement: ToolbarItemPlacement, view: AnyView, environment: EnvironmentValues, identity: ViewIdentity,
-            isFlexibleSpace: Bool = false
+            isFlexibleSpace: Bool = false, defaultKind: ToolbarDefaultItemKind.Kind? = nil
         ) {
             self.placement = placement
             self.view = view
             self.environment = environment
             self.identity = identity
             self.isFlexibleSpace = isFlexibleSpace
+            self.defaultKind = defaultKind
         }
     }
 

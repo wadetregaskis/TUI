@@ -23,7 +23,7 @@ extension _WindowChromeHost {
     func toolbarContentRows(
         _ edge: WindowChromeState.Edge, chrome: WindowChromeState, width: Int, context: RenderContext
     ) -> Int {
-        let entries = chrome.toolbarEntries(for: edge)
+        let entries = chrome.barEntries(for: edge)
         guard !entries.isEmpty else { return 0 }
         let style = chrome.style(edge)
         let measureContext = barContext(edge, width: width, rows: context.availableHeight, style: style, context: context)
@@ -64,7 +64,7 @@ extension _WindowChromeHost {
     ) -> FrameBuffer? {
         // A bar the page no longer declares anything for keeps its reserved
         // rows for the frame, blank: the caller pads them with its background.
-        let entries = chrome.toolbarEntries(for: edge)
+        let entries = chrome.barEntries(for: edge)
         let hasItems = contentRows > 0 && !entries.isEmpty
         guard hasItems || !tooltip.isEmpty else { return nil }
         let style = chrome.style(edge)

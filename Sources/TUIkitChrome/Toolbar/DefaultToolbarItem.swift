@@ -32,6 +32,9 @@ import TUIkitFoundation
 ///   since it also says the column can be hidden. Declare one in each split
 ///   view's content to give each a button. Where there is no split view, or
 ///   its toggle was removed (``View/toolbar(removing:)``), it draws nothing.
+///   Without one, a window whose page has a top bar shows a button for its
+///   first split view at the bar's leading edge, as SwiftUI's macOS toolbar
+///   does; an item of this kind for that split places it instead.
 ///
 /// ```swift
 /// NavigationStack {

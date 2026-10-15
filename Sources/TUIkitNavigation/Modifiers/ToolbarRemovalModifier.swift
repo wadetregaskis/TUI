@@ -135,9 +135,10 @@ extension View {
     /// ``NavigationSplitView``'s toggle handles: the ◀ on its leftmost divider
     /// (which goes back to three grip dots, or to a plain space when the split
     /// cannot resize), the ▶ edge column shown while a leading column is
-    /// hidden, and the button a `DefaultToolbarItem(kind: .sidebarToggle)` draws
-    /// for the split. `nil` removes nothing, and does not undo a removal further
-    /// out.
+    /// hidden, and the buttons a bar draws for the split: the one at the window's
+    /// top bar's leading edge, and any a `DefaultToolbarItem(kind:
+    /// .sidebarToggle)` places. `nil` removes nothing, and does not undo a
+    /// removal further out.
     ///
     /// With ``ToolbarDefaultItemKind/title`` it removes the title: the top
     /// bar's title slot is empty while the view is drawn — anywhere in the
@@ -175,9 +176,10 @@ extension View {
     /// Removing the handles does not change what `columnVisibility` can do from
     /// code.
     ///
-    /// The window's bars put no default item of their own beside what a
-    /// `.toolbar` places in them and the title, so those and the split view's
-    /// handles are all there is to remove (see
+    /// The window's bars put two default items of their own beside what a
+    /// `.toolbar` places in them: the title, and the button for the window's
+    /// split view's sidebar at the top bar's leading edge. Those, the search
+    /// field and the split view's handles are all there is to remove (see
     /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.6).
     ///
     /// - Parameter defaultItemKind: The kind of control to remove, or `nil`.
