@@ -88,6 +88,8 @@ private final class SplitHarness {
     let tui = TUIContext()
     let focusManager: FocusManager?
     let hasShortcutRegistry: Bool
+    /// The window's chrome the split offers its sidebar toggle to, if any.
+    var windowChrome: WindowChromeState?
 
     init(focus: Bool, shortcutRegistry: Bool = true) {
         focusManager = focus ? FocusManager() : nil
@@ -99,6 +101,7 @@ private final class SplitHarness {
         environment.applyRuntimeServices(from: tui)
         if !hasShortcutRegistry { environment.keyboardShortcutRegistry = nil }
         environment.focusManager = focusManager
+        environment.windowChrome = windowChrome
         return RenderContext(
             availableWidth: 60, availableHeight: 8, environment: environment, tuiContext: tui)
     }
@@ -174,6 +177,34 @@ struct NavigationSplitViewMemoTests {
         // stop a split being served.
         #expect(tracker.replayableEffects == 5)
         #expect(tracker.sideEffects == 0)
+    }
+
+    @Test("A split's offer of its sidebar toggle to the window is made again by a memo serving it")
+    func windowOfferReplays() throws {
+        let harness = SplitHarness(focus: false)
+        let chrome = WindowChromeState()
+        harness.windowChrome = chrome
+        let box = VisibilityBox()
+        let journal = harness.tui.renderCache.effectJournal
+
+        chrome.beginWalk()
+        let start = journal.beginRecording()
+        harness.frame(split(box))
+        let entries = Array(journal.entries(since: start))
+        journal.endRecording()
+        let offered = try #require(chrome.panelToggle(.sidebar), "the split offered no toggle")
+        #expect(entries.map(\.kind.name).contains("panelToggleOffer"))
+
+        // A later walk, served from those entries: the window has the toggle
+        // again, and it toggles the split.
+        chrome.beginWalk()
+        harness.beginWalk()
+        #expect(chrome.panelToggle(.sidebar) == nil)
+        for entry in entries { entry.apply(harness.context) }
+        let replayed = try #require(chrome.panelToggle(.sidebar), "the replay offered nothing")
+        #expect(replayed == offered)
+        replayed.action.perform()
+        #expect(box.visibility == .detailOnly)
     }
 
     @Test("A split's recorded chords, made again in a later walk, toggle it with the same precedence")

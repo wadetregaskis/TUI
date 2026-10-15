@@ -373,9 +373,9 @@ extension _NavigationSplitViewCore {
         let toggle = PanelToggle(
             panel: .sidebar, owner: context.identity, isShown: visibleColumns.contains(.sidebar),
             action: toggleState.barAction)
-        context.environment.windowChrome?.offerPanelToggle(
-            toggle, environment: context.environment,
-            itemIdentity: context.withChildIdentity(erasedType: _SidebarToggleItemSlot.self, key: "bar").identity)
+        PanelToggleOffer.offer(
+            toggle, itemIdentity: context.withChildIdentity(erasedType: _SidebarToggleItemSlot.self, key: "bar").identity,
+            context: context)
         return toggle
     }
 

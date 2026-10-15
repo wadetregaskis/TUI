@@ -20,7 +20,7 @@ import TUIkitView
 /// A ``NavigationSplitView`` publishes its sidebar's for the views in its
 /// columns (``EnvironmentValues/sidebarToggleScope``) — so a
 /// ``DefaultToolbarItem`` declared there toggles that split —
-/// and offers it to the window (``WindowChromeState/offerPanelToggle(_:environment:itemIdentity:)``)
+/// and offers it to the window (``PanelToggleOffer/offer(_:itemIdentity:context:)``)
 /// for an item declared round any split view.
 package struct PanelToggle: Sendable, Equatable {
     /// The panels a toolbar can toggle.
@@ -98,6 +98,42 @@ package struct PanelToggle: Sendable, Equatable {
     package var activationLabel: String {
         LocalizationService.shared.string(
             for: isShown ? LocalizationKey.StatusBar.hideSidebar : LocalizationKey.StatusBar.showSidebar)
+    }
+}
+
+// MARK: - The Window's Offer
+
+/// A panel's toggle offered to the window, as a render offers it and as a value
+/// memo serving that render offers it again — see `EffectJournal`.
+///
+/// The window's offers are emptied every walk
+/// (``WindowChromeState/beginWalk()``), and a split view is built to be served
+/// from a memo: an offer made only by its render left the window with no
+/// sidebar toggle on a frame that served the split, and the top bar's button,
+/// and any placed round the split, went.
+package enum PanelToggleOffer {
+    /// The journal kind of an offer.
+    static let kind = EffectJournal.Kind("panelToggleOffer")
+
+    /// Offers `toggle` as the window's toggle for its panel
+    /// (``WindowChromeState/offerPanelToggle(_:environment:itemIdentity:)``),
+    /// with `context`'s environment and `itemIdentity` for a bar's button to
+    /// draw it with — and records the offer for a memo to make again. Nothing
+    /// in presented content, whose bars are its own.
+    @MainActor
+    package static func offer(_ toggle: PanelToggle, itemIdentity: ViewIdentity, context: RenderContext) {
+        guard let chrome = context.environment.windowChrome, !context.environment.presentationHostsToolbar
+        else { return }
+        let environment = context.environment
+        chrome.offerPanelToggle(toggle, environment: environment, itemIdentity: itemIdentity)
+        environment.volatileReadTracker?.recordReplayableEffect()
+        if let journal = context.recordingEffectJournal {
+            journal.append(
+                EffectJournal.Entry(kind: kind, channelToken: environment.keyChannelToken) { replay in
+                    replay.environment.windowChrome?.offerPanelToggle(
+                        toggle, environment: environment, itemIdentity: itemIdentity)
+                })
+        }
     }
 }
 
