@@ -213,9 +213,17 @@ private enum StateIndex {
 ### SwiftUI API Design (non-negotiable)
 
 #### Init signatures: Keep them minimal
-- Public inits MUST match SwiftUI parameter names and order
-- TUI-specific options (focusID, emptyPlaceholder, etc.) MUST be modifiers, not init params
-- Minimize init overloads; prefer `@ViewBuilder` label variants over String convenience inits
+- Public inits MUST match SwiftUI parameter names and order; SwiftUI's own
+  signature stays exactly as it is
+- TUI-specific options that should reach a subtree (focusID, emptyPlaceholder,
+  styles, etc.) MUST be modifiers, not init params: an init param reaches only
+  its own view
+- A per-instance TUI-specific option with no meaning for a subtree (a toolbar
+  item's label, say) MAY be an extra init — preferred, as it leaves SwiftUI's
+  untouched and costs nothing unused — or a defaulted parameter (owner,
+  2026-10-14). A default stays source-compatible with SwiftUI call sites
+- Minimize init overloads (each extra one costs type-checking time and risks
+  ambiguity); prefer `@ViewBuilder` label variants over String convenience inits
 
 **Correct:**
 ```swift
@@ -230,7 +238,8 @@ List(selection: $selection, focusID: "my-list", emptyPlaceholder: "No items") { 
 ```
 
 #### Modifier-first principle
-TUI-specific behavior that SwiftUI handles via modifiers MUST also be modifiers:
+TUI-specific behavior that SwiftUI handles via modifiers, or that should apply
+to a whole view hierarchy, MUST also be modifiers:
 - Focus identity: `.focusID(_:)`
 - Placeholder text: `.listEmptyPlaceholder(_:)`
 - Visual customization: `.trackStyle(_:)`, `.buttonStyle(_:)`, etc.
