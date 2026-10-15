@@ -3,8 +3,8 @@
 //
 //  A bordered button drawn at each ``ControlSize`` in each
 //  ``ButtonBorderShape``: the density table of `ButtonFaceEdges.swift` — what
-//  it draws, that it measures what it draws, and that a three-row face's ring
-//  breathes with its caps.
+//  it draws, that it measures what it draws, and that a three-row face
+//  breathes whole.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -47,8 +47,8 @@ struct ControlSizeButtonTests {
             (ControlSize.mini, ["OK"]),
             (.small, ["▐OK▌"]),
             (.regular, ["▐ OK ▌"]),
-            (.large, [" ▄▄▄▄ ", "▐ OK ▌", " ▀▀▀▀ "]),
-            (.extraLarge, [" ▄▄▄▄▄▄ ", "▐  OK  ▌", " ▀▀▀▀▀▀ "]),
+            (.large, ["▗▄▄▄▄▖", "▐ OK ▌", "▝▀▀▀▀▘"]),
+            (.extraLarge, ["▗      ▖", "▐  OK  ▌", "▝      ▘"]),
         ])
     func capsule(size: ControlSize, expected: [String]) {
         for button in buttons(size, .automatic) {
@@ -80,7 +80,7 @@ struct ControlSizeButtonTests {
     @Test("A circle has no padding at any size")
     func circle() {
         #expect(drawn(Button("★") {}.buttonBorderShape(.circle)) == ["▐★▌"])
-        #expect(drawn(Button("★") {}.buttonBorderShape(.circle).controlSize(.extraLarge)) == [" ▄ ", "▐★▌", " ▀ "])
+        #expect(drawn(Button("★") {}.buttonBorderShape(.circle).controlSize(.extraLarge)) == ["▗ ▖", "▐★▌", "▝ ▘"])
     }
 
     @Test("A button with no face draws as it would at any size", arguments: ControlSize.allCases)
@@ -137,17 +137,41 @@ struct ControlSizeButtonTests {
             drawn(Button("OK") {}.controlSize(ControlSize.small ... .large)) == ["▐ OK ▌"])
     }
 
-    @Test("A focused three-row face breathes its ring with its caps", arguments: [false, true])
-    func ringBreathes(viewLabel: Bool) {
+    @Test(
+        "A focused three-row face breathes whole, its label's row too",
+        arguments: [false, true], [ControlSize.large, .extraLarge])
+    func tallFaceBreathesWhole(viewLabel: Bool, size: ControlSize) {
         let context = makeRenderContext(width: 40, height: 6)
         let button = viewLabel
-            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(.large))
-            : AnyView(Button("OK") {}.controlSize(.large))
+            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(size))
+            : AnyView(Button("OK") {}.controlSize(size))
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context) }
-        let rows = Set(buffer.animatedCells.map(\.offsetY))
-        #expect(rows == [0, 1, 2], "\(buffer.animatedCells.map { ($0.offsetX, $0.offsetY, $0.width) })")
-        let ring = buffer.animatedCells.filter { $0.offsetY != 1 }
-        #expect(ring.allSatisfy { $0.offsetX == 0 && $0.width == 6 })
+        let runs = buffer.animatedCells.map { ($0.offsetX, $0.offsetY, $0.width) }
+        #expect(Set(buffer.animatedCells.map(\.offsetY)) == [0, 1, 2], "\(runs)")
+        // Every row's run is the whole face, the label's field included: no
+        // part of the face is left at rest while the rest breathes.
+        #expect(buffer.animatedCells.allSatisfy { $0.offsetX == 0 && $0.width == buffer.width }, "\(runs)")
+        // And each run's frames differ, so the label's field moves with the rows.
+        let labelRow = buffer.animatedCells.first { $0.offsetY == 1 }
+        #expect(Set(labelRow?.frames ?? []).count > 1)
+    }
+
+    @Test(
+        "Where block elements fall short of the line, a three-row face has none",
+        arguments: [ControlSize.large, .extraLarge], [false, true])
+    func plainRowsWhereBlocksFallShort(size: ControlSize, viewLabel: Bool) {
+        var context = context()
+        context.environment.blockElementsFillTheLine = false
+        let button = viewLabel
+            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(size))
+            : AnyView(Button("OK") {}.controlSize(size))
+        let lines = renderToBuffer(button, context: context).lines
+        let padding = size == .extraLarge ? "  " : " "
+        #expect(lines.map(\.stripped) == [
+            String(repeating: " ", count: 4 + 2 * padding.count), " \(padding)OK\(padding) ",
+            String(repeating: " ", count: 4 + 2 * padding.count),
+        ])
+        #expect(!lines.joined().contains { ("\u{2580}"..."\u{259F}").contains($0) })
     }
 
     @Test("A focused mini face breathes its label", arguments: [false, true])

@@ -449,6 +449,18 @@ struct TmuxCompatibilityTests {
         #expect(TerminalHost.classifyClient(termtype: "ghostty 1.3.1", owningApplication: terminal) == false, "the termtype wins")
     }
 
+    /// Terminal.app draws Block Elements short of the line, and answers no
+    /// XTVERSION, so it is known only by the application that owns it.
+    @Test("Only a Terminal.app client draws block elements short of the line")
+    func blockElementsThroughTmux() {
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "", owningApplication: terminal) == false)
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "", owningApplication: ghostty))
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "", owningApplication: nil), "unnamed: as most do")
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "iTerm2 3.6.11", owningApplication: terminal), "it answered")
+    }
+
     @Test(
         "Skin tones survive through tmux only when every client is Ghostty",
         arguments: [

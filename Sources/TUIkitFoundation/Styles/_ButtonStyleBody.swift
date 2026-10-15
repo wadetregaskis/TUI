@@ -38,7 +38,9 @@ struct _ButtonStyleBody: View, Renderable {
         let environment = context.environment
         return Self(
             configuration: configuration,
-            appearance: appearance.sized(environment.controlSize, shape: environment.buttonBorderShape),
+            appearance: appearance.sized(
+                environment.controlSize, shape: environment.buttonBorderShape,
+                blockElementsFillTheLine: environment.blockElementsFillTheLine),
             isSized: true)
     }
 
@@ -158,6 +160,14 @@ struct _ButtonStyleBody: View, Renderable {
             return Self.capless(paddedLabel, label: labelFg, face: buttonBg, bold: bold, context: context, focused: isFocused && !isDisabled)
         }
 
+        // A three-row face is drawn whole in one colour, and breathes whole.
+        if let ring = appearance.edges.ring {
+            return tallStringFace(
+                paddedLabel, glyphs: capGlyphs, ring: ring,
+                label: labelFg, authored: cascadeForeground != nil,
+                face: buttonBg, bold: bold, context: context)
+        }
+
         // Caps match the background normally, pulsing to accent when focused —
         // as a whole cycle, so the run loop can breathe those two cells without
         // re-rendering the screen. On a face the terminal decides they rest in
@@ -204,7 +214,53 @@ struct _ButtonStyleBody: View, Renderable {
         if !context.isMeasuring {
             buffer.animatedCells = caps.runs(width: 2 + paddedLabel.strippedLength, caps: capGlyphs, row: 0)
         }
-        return Self.ringed(buffer, edges: appearance.edges, caps: caps, context: context)
+        return buffer
+    }
+
+    /// A three-row face around a string label, drawn whole in `face` and
+    /// breathing whole to the accent while it holds the focus
+    /// (``breathingFace(focused:face:context:draw:)``). Focused, a label colour
+    /// the framework chose is floored against the accent it then sits on; an
+    /// `authored` one — the app's own — is left as it is, as on any face.
+    @MainActor
+    private func tallStringFace(
+        _ paddedLabel: String, glyphs: (open: Character, close: Character), ring: ButtonFaceEdges.Ring,
+        label: Color, authored: Bool, face: Color, bold: Bool, context: RenderContext
+    ) -> FrameBuffer {
+        let focused = configuration.isFocused && configuration.isEnabled
+        let accent = context.environment.palette.accent.spendingAlpha(over: face)
+        let ink =
+            focused && !authored
+            ? label.ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: accent) : label
+        let labelWidth = paddedLabel.strippedLength
+        return Self.breathingFace(focused: focused, face: face, context: context) { colour in
+            let caps = Self.tallCaps(glyphs, ring: ring, face: colour)
+            var middle = FrameBuffer(lines: [
+                caps.open
+                    + ANSIRenderer.colorize(
+                        paddedLabel, foreground: ink.opaqueSpelling, background: colour.opaqueSpelling, bold: bold)
+                    + caps.close
+            ])
+            if let claim = OpacityRegion.claim(offsetX: 1, width: labelWidth, height: 1, ink: ink, field: colour) {
+                middle.opacityRegions.append(claim)
+            }
+            return Self.tallFace(around: middle, ring: ring, face: colour)
+        }
+    }
+
+    /// The caps of a three-row face's label row in `face`: its glyphs, or
+    /// cells of the face itself where the ring has no glyphs.
+    static func tallCaps(
+        _ glyphs: (open: Character, close: Character), ring: ButtonFaceEdges.Ring, face: Color
+    ) -> (open: String, close: String) {
+        guard ring != .plainRows else {
+            let cell = ANSIRenderer.colorize(" ", background: face)
+            return (cell, cell)
+        }
+        return (
+            ANSIRenderer.colorize(String(glyphs.open), foreground: face),
+            ANSIRenderer.colorize(String(glyphs.close), foreground: face)
+        )
     }
 
     /// What the string-label path resolved before it chose a variant: the state and
@@ -492,9 +548,65 @@ struct _ButtonStyleBody: View, Renderable {
             return caplessViewLabel(labelView, ink: ink, context: context)
         }
 
+        // A three-row face, drawn whole in one colour and breathing whole.
+        if let ring = appearance.edges.ring {
+            return tallViewFace(labelView, ink: ink, ring: ring, context: context)
+        }
+
         // Standard: half-block caps around the background-tinted, padded label.
         let row = standardRow(labelView, ink: ink, context: context)
         return drawStandardRow(row.view, caps: row.caps, context: context)
+    }
+
+    /// A three-row face around a `@ViewBuilder` label: the label's row as the
+    /// standard variant draws it, in one colour throughout, with the ring's
+    /// rows above and below, breathing whole while the button holds the focus
+    /// — the label drawn once per colour of the breath, as a plain button's
+    /// breathing label is (``BreathingLabel``).
+    private func tallViewFace(
+        _ labelView: AnyView, ink: ViewLabelInk, ring: ButtonFaceEdges.Ring, context: RenderContext
+    ) -> FrameBuffer {
+        let focused = configuration.isFocused && configuration.isEnabled
+        let accent = ink.palette.accent.spendingAlpha(over: ink.face)
+        let label =
+            focused ? ink.label.ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: accent)
+            : ink.label
+        return Self.breathingFace(focused: focused, face: ink.face, context: context) { colour in
+            let middle = TUIkitView.renderToBuffer(
+                tallRow(
+                    labelView, ring: ring, label: label, face: colour,
+                    fills: context.environment.buttonSizing.fills),
+                context: context)
+            return Self.tallFace(around: middle, ring: ring, face: colour)
+        }
+    }
+
+    /// A three-row face's label row for a `@ViewBuilder` label: the standard
+    /// row, its caps in the face's colour, or cells of the face where the
+    /// ring has no glyphs.
+    private func tallRow(
+        _ labelView: AnyView, ring: ButtonFaceEdges.Ring, label: Color, face: Color, fills: Bool
+    ) -> some View {
+        let glyphs = appearance.edges.caps ?? (TerminalSymbols.openCap, TerminalSymbols.closeCap)
+        return HStack(spacing: 0) {
+            tallCap(glyphs.open, ring: ring, face: face)
+            centred(labelView, fills: fills)
+                .foregroundStyle(label)
+                .padding(.horizontal, appearance.horizontalPadding)
+                .background(face)
+            tallCap(glyphs.close, ring: ring, face: face)
+        }
+    }
+
+    /// One cap of a three-row face's label row: its glyph in the face's
+    /// colour, or a cell of the face where the ring has no glyphs.
+    @ViewBuilder
+    private func tallCap(_ glyph: Character, ring: ButtonFaceEdges.Ring, face: Color) -> some View {
+        if ring == .plainRows {
+            Text(" ").background(face)
+        } else {
+            Text(String(glyph)).foregroundStyle(face)
+        }
     }
 
     /// A `.mini` face around a `@ViewBuilder` label: the label padded on the
@@ -541,7 +653,7 @@ struct _ButtonStyleBody: View, Renderable {
     ) -> FrameBuffer {
         var buffer = TUIkitView.renderToBuffer(row, context: context)
         if !context.isMeasuring, caps.isAnimating { handCapsOver(&buffer, caps: caps, context: context) }
-        return Self.ringed(buffer, edges: appearance.edges, caps: caps, context: context)
+        return buffer
     }
 
     /// Hands a drawn row's caps' breath to the run loop: as runs on a one-row
@@ -741,7 +853,20 @@ extension _ButtonStyleBody: Layoutable {
                     labelView, width: labelContext.availableWidth, proposal: proposal,
                     context: labelContext))
         }
-        let row = standardRow(labelView, ink: viewLabelInk(context: measureContext), context: measureContext)
+        let ink = viewLabelInk(context: measureContext)
+        if let ring = appearance.edges.ring {
+            // Clamped as `renderToBuffer` clamps a `Renderable`'s buffer.
+            let drawn = tallViewFace(labelView, ink: ink, ring: ring, context: measureContext)
+                .clamped(toWidth: width, height: measureContext.availableHeight)
+            guard drawn.width >= width else { return ViewSize.fixed(drawn.width, drawn.height) }
+            let row = tallRow(
+                labelView, ring: ring, label: ink.label, face: ink.face,
+                fills: measureContext.environment.buttonSizing.fills)
+            return ViewSize(
+                width: drawn.width, height: drawn.height,
+                isWidthFlexible: drawnViewFills(row, width: width, proposal: proposal, context: measureContext))
+        }
+        let row = standardRow(labelView, ink: ink, context: measureContext)
         // Clamped as `renderToBuffer` clamps a `Renderable`'s buffer.
         let drawn = drawStandardRow(row.view, caps: row.caps, context: measureContext)
             .clamped(toWidth: width, height: measureContext.availableHeight)

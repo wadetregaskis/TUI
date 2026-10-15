@@ -715,6 +715,27 @@ it). As on 2026-10-13 the records were not rewritten, so the rows wait in
 `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` and the ledger's
 `awaitingLandingMeasurement`.
 
+**The three-row faces, redrawn the same day** at the owner's choice from a live
+prototype (branch `proto/button-looks`, `ButtonLab`). A `.large` face's ring now
+meets its quadrant corners for every shape (`▗▄▄▖` / `▐ … ▌` / `▝▀▀▘`, the
+capsule's no longer stopping short); an `.extraLarge` capsule is three rows of
+the face itself, its corners quadrants (`▗  ▖` / `▐ … ▌` / `▝  ▘`); and a focused
+three-row face breathes whole — rows, caps and the label's field — where only
+its ring and caps did. No new glyph.
+
+**Apple Terminal draws Block Elements short of the line** (seen by the owner in
+Terminal.app 455.1 on macOS 15.8.1, 2026-10-15, against Ghostty 1.3 in the same
+session): it takes them from the font rather than drawing them as shapes, so a
+half block or quadrant stops short of the cell's top and bottom and a face built
+of them over three rows came apart into bands. One-row caps (`▐ … ▌`) read as a
+face there, and are kept. So on Apple Terminal — natively, and through tmux for a
+client the process walk names as Terminal.app (`TerminalHost.blockElementsFillTheLine`,
+`ClientCapabilities.blockElementsFillTheLine`) — a three-row face is three
+plain rows of the face, caps included, with no Block Elements glyph. A
+background colour fills the whole cell there, which is what the survey's `█`
+note below (*Appearance.block*) leans on too. Not yet measured as pixels (an
+`overhang_card.py` page of the rows would show how far short).
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027

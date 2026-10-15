@@ -142,17 +142,6 @@ package struct ButtonCapCycle {
         ].compactMap { $0 }
     }
 
-    /// The runs for the ring of a three-row face: its row above, at row 0, and
-    /// its row below, at `bottomRow`, each one run the width of the face.
-    @MainActor
-    func ringRuns(_ ring: ButtonFaceEdges.Ring, width: Int, bottomRow: Int) -> [AnimatedCellRun] {
-        guard isAnimating, width >= 2 else { return [] }
-        return [
-            run(ring.top(width: width), colors: breath, offsetX: 0, row: 0),
-            run(ring.bottom(width: width), colors: breath, offsetX: 0, row: bottomRow),
-        ].compactMap { $0 }
-    }
-
     @MainActor
     private func run(_ cells: String, colors: [Color], offsetX: Int, row: Int) -> AnimatedCellRun? {
         cycle.run(colors: colors, offsetX: offsetX, offsetY: row) {

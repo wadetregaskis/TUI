@@ -189,6 +189,7 @@ internal final class RenderLoop<A: App> {
                 return ClientCapabilities(
                     emojiChrome: TerminalHost.supportsEmojiChrome,
                     skinTonesSafe: true,
+                    blockElementsFillTheLine: TerminalHost.blockElementsFillTheLine,
                     mayImproveShortly: false)
             }
             // nil propagates ("could not ask; keep the previous answer") —
@@ -769,6 +770,7 @@ extension RenderLoop {
         environment.resolvedAutomaticToggleCharacterSet = .automatic(
             emojiChrome: capabilities.emojiChrome)
         environment.supportsEmojiChrome = capabilities.emojiChrome
+        environment.blockElementsFillTheLine = capabilities.blockElementsFillTheLine
         // The writer's tmux skin-tone scope follows the same per-client answer:
         // keep the tone bases tmux itself merges (the measured 70 — see
         // Character.tmuxMergedToneBases) only when every attached client also

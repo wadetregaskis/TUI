@@ -31,7 +31,7 @@
 /// One probe's answer — what the attached clients can render — plus whether
 /// it might improve on a short retry.
 ///
-/// Two capabilities, because they genuinely differ per terminal (measured):
+/// Three capabilities, because they genuinely differ per terminal (measured):
 /// - `emojiChrome`: all clients draw tmux's re-emission of the ⬛︎/⬜︎ VS-15
 ///   chrome correctly (Apple Terminal, iTerm2, Warp — NOT Ghostty, whose
 ///   native support depends on a compensation that cannot cross tmux).
@@ -44,6 +44,10 @@
 ///   the bases tmux detaches, which no client can repair — the strip, unlike
 ///   cursor compensation, survives the tmux hop: tmux's grid then holds and
 ///   re-emits the toneless cluster.
+/// - `blockElementsFillTheLine`: every client draws Block Elements glyphs the
+///   full height of the line (all but Terminal.app, which draws them from the
+///   font, short of it — `TerminalHost.blockElementsFillTheLine`). When false,
+///   a three-row button face is drawn without them.
 ///
 /// `mayImproveShortly` covers a measured race: the `client-attached` tmux hook
 /// fires — and the app probes — before the new client's XTVERSION reply has
@@ -54,13 +58,17 @@
 package struct ClientCapabilities: Equatable, Sendable {
     package let emojiChrome: Bool
     package let skinTonesSafe: Bool
+    package let blockElementsFillTheLine: Bool
     package let mayImproveShortly: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and the run loop (TUIkitApp, since step B3) makes these values.
-    package init(emojiChrome: Bool, skinTonesSafe: Bool, mayImproveShortly: Bool) {
+    package init(
+        emojiChrome: Bool, skinTonesSafe: Bool, blockElementsFillTheLine: Bool, mayImproveShortly: Bool
+    ) {
         self.emojiChrome = emojiChrome
         self.skinTonesSafe = skinTonesSafe
+        self.blockElementsFillTheLine = blockElementsFillTheLine
         self.mayImproveShortly = mayImproveShortly
     }
 }

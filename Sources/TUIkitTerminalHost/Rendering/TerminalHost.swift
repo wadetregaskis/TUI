@@ -76,6 +76,14 @@ package enum TerminalHost {
     /// advances these correctly with no help.
     package static var supportsEmojiChrome: Bool { isAppleTerminal || isITerm2 || isGhostty || isWarp }
 
+    /// Whether this terminal draws a Block Elements glyph (U+2580–259F) the
+    /// full height of its line. Apple Terminal draws them from the font,
+    /// short of the line (seen 2026-10-15: a three-row button of half blocks
+    /// and quadrants came apart into bands there and held together in
+    /// Ghostty), where Ghostty, iTerm2, kitty and WezTerm draw them as
+    /// shapes of their own. See *Terminal compatibility survey*.
+    package static var blockElementsFillTheLine: Bool { !isAppleTerminal }
+
     /// The `TERM_PROGRAM`-style name of the host terminal, from whichever
     /// signal in the environment carries it.
     ///
@@ -325,10 +333,11 @@ package enum TerminalHost {
             // it), but skin tones stay — tmux's own grid joins them correctly,
             // and an attach fires the hooks, which re-probe and fully redraw.
             return ClientCapabilities(
-                emojiChrome: false, skinTonesSafe: true, mayImproveShortly: false)
+                emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true, mayImproveShortly: false)
         }
         var chrome = true
         var skinTones = true
+        var blocksFill = true
         var mayImprove = false
         for client in clients {
             switch classifyClient(client) {
@@ -355,9 +364,25 @@ package enum TerminalHost {
             if clientRendersSkinTones(client) != true {
                 skinTones = false
             }
+            if !clientFillsBlockElements(
+                termtype: client.termtype, owningApplication: client.pid.flatMap(owningApplicationPath(ofTmuxClient:)))
+            {
+                blocksFill = false
+            }
         }
         return ClientCapabilities(
-            emojiChrome: chrome, skinTonesSafe: skinTones, mayImproveShortly: mayImprove)
+            emojiChrome: chrome, skinTonesSafe: skinTones, blockElementsFillTheLine: blocksFill,
+            mayImproveShortly: mayImprove)
+    }
+
+    /// Whether one tmux client draws Block Elements the full height of the
+    /// line (``blockElementsFillTheLine``): `false` only for a client known
+    /// to be Terminal.app, which answers no XTVERSION and so is named by the
+    /// application that owns it. A client neither signal names is taken to
+    /// fill the line, as every other surveyed terminal does.
+    static func clientFillsBlockElements(termtype: String, owningApplication: String?) -> Bool {
+        guard termtype.isEmpty, let owningApplication else { return true }
+        return !owningApplication.contains("/Terminal.app/Contents/MacOS/Terminal")
     }
 
     /// Whether one client renders SMP-base skin-tone clusters (👍🏽) correctly
