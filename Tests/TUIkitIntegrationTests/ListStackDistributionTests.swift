@@ -119,16 +119,11 @@ struct ListStackDistributionTests {
         #expect(size.isWidthFlexible)
     }
 
-    /// A column places its children in order, filling ones sharing what the
-    /// fixed ones leave by their natural sizes (deviation L14b); a row shares
-    /// as SwiftUI's does, each filling child an equal share and a spacer only
-    /// what the others leave (`Tools/SwiftUIProbes/Layout priority/flex.out`,
-    /// `spacer.out`).
-    @Test("Equal-weight flexible children split the column evenly, and a row as SwiftUI's does")
+    /// A stack, a row or a column, shares as SwiftUI's does: each filling
+    /// child an equal share and a spacer only what the others leave
+    /// (`Tools/SwiftUIProbes/Layout priority/flex.out`, `spacer.out`).
+    @Test("Equal-weight flexible children split a stack as SwiftUI's does")
     func flexibleDistributionSplitsEvenly() {
-        let column = distributeLinearSpace(
-            naturalSizes: [24, 24, 24, 0], isFlexible: [true, true, true, true], available: 24, shares: false)
-        #expect(column == [8, 8, 8, 0])
         let row = distributeLinearSpace(
             naturalSizes: [24, 24, 24, 0], isFlexible: [true, true, true, true], available: 24)
         #expect(row == [6, 6, 6, 6])

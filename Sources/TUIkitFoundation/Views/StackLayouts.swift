@@ -147,7 +147,6 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             isFlexible: sizes.map(\.isHeightFlexible),
             available: bounds.height,
             spacing: resolvedSpacing,
-            shares: false,
             isSpacer: { subviews[$0].child.isSpacer },
             priorities: priorities,
             minimumSize: {
