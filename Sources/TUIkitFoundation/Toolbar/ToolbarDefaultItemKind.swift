@@ -23,6 +23,7 @@ public struct ToolbarDefaultItemKind {
         case sidebarToggle
         case title
         case search
+        case inspectorToggle
     }
 
     package let kind: Kind
@@ -51,6 +52,16 @@ public struct ToolbarDefaultItemKind {
     ///
     /// SwiftUI declares this `static let`; see ``sidebarToggle``.
     public static var search: Self { Self(kind: .search) }
+
+    /// An inspector's toggle: the ▶ on the divider between a view and its
+    /// `inspector(isPresented:content:)`, and the button a
+    /// ``DefaultToolbarItem`` of this kind puts in a bar — ▶ while the inspector
+    /// shows, ◀ while it is hidden.
+    ///
+    /// A TUIkit addition: SwiftUI puts no button for an inspector in a toolbar
+    /// (measured on macOS 15.8, 2026-10-14), and an app adds its own. So the
+    /// window's bars show none unless a ``DefaultToolbarItem`` places one.
+    public static var inspectorToggle: Self { Self(kind: .inspectorToggle) }
 }
 
 private struct ToolbarSearchRemovedKey: EnvironmentKey {

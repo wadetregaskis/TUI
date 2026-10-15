@@ -161,6 +161,18 @@ final class _SplitPaneDividerHandler: PersistedFocusable {
     /// The pointer's gesture, from the sizes when it began.
     var drag = DividerDrag<[Int]>()
 
+    /// Hides the pane after the divider — an inspector — or `nil` where the
+    /// divider hides nothing. Rebuilt every render.
+    var hide: (() -> Void)?
+
+    /// The row of the divider's ▶, which a still click on hides the pane after
+    /// it; `nil` without one.
+    var arrowRow: Int?
+
+    /// Where the pointer pressed, and whether it has moved since: a press and
+    /// release on the ▶ with no movement between is a click on it.
+    var press: (row: Int, moved: Bool)?
+
     init(focusID: String, axis: Axis, index: Int, panes: SplitPaneSizes) {
         self.focusID = focusID
         self.axis = axis
@@ -169,6 +181,10 @@ final class _SplitPaneDividerHandler: PersistedFocusable {
     }
 
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        if let hide, event.key == .enter || event.key == .space {
+            hide()
+            return true
+        }
         let step = event.shift ? 5 : 1
         switch (axis, event.key) {
         case (.horizontal, .left), (.vertical, .up): move(by: -step)
@@ -254,17 +270,24 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         panes.bounds = bounds
 
         let palette = context.environment.palette
+        // The pane after the last divider's toggle, an inspector's; its panes
+        // are no inspector's last pane.
+        let trailingToggle = axis == .horizontal ? context.environment.trailingPaneToggle : nil
+        var paneContext = context
+        paneContext.environment.trailingPaneToggle = nil
         var result = FrameBuffer(emptyWithWidth: width, height: height)
         var offset = 0
         for (index, child) in children.enumerated() {
             let size = panes.sizes[index]
             let buffer = child.render(
                 width: axis == .horizontal ? size : across, height: axis == .horizontal ? across : size,
-                context: context)
+                context: paneContext)
             result.compositeCarryingClaimsOverNothing(with: buffer, at: position(offset), palette: palette)
             offset += size
             guard index + 1 < children.count else { break }
-            let divider = dividerBuffer(index: index, panes: panes, length: across, context: context)
+            let divider = dividerBuffer(
+                index: index, panes: panes, length: across,
+                hides: index == children.count - 2 ? trailingToggle : nil, context: context)
             result.compositeCarryingClaimsOverNothing(with: divider, at: position(offset), palette: palette)
             offset += 1
         }
@@ -366,8 +389,13 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
     /// The divider after pane `index`: a rule `length` cells long, in the
     /// border colour or the accent while it holds the focus, registered as a
     /// focus stop and a drag target.
+    ///
+    /// With `hides`, the toggle of the pane after it — an inspector's — the
+    /// rule carries a ▶ on its middle row, as a split view's leftmost divider
+    /// carries a ◀: a still click on it, or Return or Space with the divider
+    /// focused, hides the pane.
     private func dividerBuffer(
-        index: Int, panes: SplitPaneSizes, length: Int, context: RenderContext
+        index: Int, panes: SplitPaneSizes, length: Int, hides: PanelToggle?, context: RenderContext
     ) -> FrameBuffer {
         let stateStorage = context.stateStorage!
         let focusID = FocusRegistration.persistFocusID(
@@ -379,12 +407,22 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
             default: _SplitPaneDividerHandler(focusID: focusID, axis: axis, index: index, panes: panes))
         let handler = handlerBox.value
         handler.canBeFocused = context.environment.isEnabled
+        let hideAction = hides.map { toggle in toggle.action }
+        handler.hide = hideAction.map { action in { action.perform() } }
+        handler.arrowRow = hides == nil || length <= 0 ? nil : length / 2
         FocusRegistration.register(context: context, handler: handler, focusID: focusID)
-        let isFocused = context.indicatesFocus(FocusRegistration.isFocused(context: context, focusID: focusID))
+        let isFocused = FocusRegistration.isFocused(context: context, focusID: focusID)
+        if let hides {
+            FocusRegistration.publishActivationLabel(hides.activationLabel, context: context, isFocused: isFocused)
+        }
+        let showsFocus = context.indicatesFocus(isFocused)
 
         let palette = context.environment.palette
-        var buffer = DividerRule.buffer(
-            across: axis, length: length, colour: isFocused ? palette.accent : palette.border)
+        let colour = showsFocus ? palette.accent : palette.border
+        var buffer = DividerRule.buffer(across: axis, length: length, colour: colour)
+        if let hides, let row = handler.arrowRow {
+            buffer.lines[row] = ANSIRenderer.colorize(hides.arrow, foreground: colour.opaqueSpelling)
+        }
 
         if context.environment.isEnabled, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher
@@ -392,13 +430,29 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
             let focusManager = context.environment.focusManager
             let axis = self.axis
             let handlerID = dispatcher.register(in: context) { event in
-                handler.drag.handle(
+                if event.button == .left {
+                    switch event.phase {
+                    case .pressed: handler.press = (event.y, false)
+                    case .dragged: if event.x != 0 { handler.press?.moved = true }
+                    default: break
+                    }
+                }
+                let took = handler.drag.handle(
                     event, along: axis,
                     press: {
                         focusManager?.focus(id: focusID)
                         return handler.panes.sizes
                     },
                     move: { delta, start in handler.move(by: delta, from: start) })
+                // A still click on the ▶ hides the pane after it: pressed and
+                // released on its row, the pointer never moving between.
+                if event.button == .left, event.phase == .released, let press = handler.press {
+                    handler.press = nil
+                    if !press.moved, event.x == 0, let row = handler.arrowRow, press.row == row, event.y == row {
+                        handler.hide?()
+                    }
+                }
+                return took
             }
             buffer.hitTestRegions.append(
                 HitTestRegion(

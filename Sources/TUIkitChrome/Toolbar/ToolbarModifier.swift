@@ -97,7 +97,7 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                 switch item.defaultKind {
                 case .search: chrome.claimSearchField()
                 case .title: chrome.removeTitle()
-                case .sidebarToggle, nil: break
+                case .sidebarToggle, .inspectorToggle, nil: break
                 }
             }
         } else if !context.isMeasuring, context.environment.windowChrome == nil, let storage = context.stateStorage {

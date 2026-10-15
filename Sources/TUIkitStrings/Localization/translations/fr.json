@@ -61,6 +61,8 @@
   "label.hideColumn": "Masquer « %@ »",
   "label.showSidebar": "Afficher la barre latérale",
   "label.hideSidebar": "Masquer la barre latérale",
+  "label.showInspector": "Afficher l’inspecteur",
+  "label.hideInspector": "Masquer l’inspecteur",
 
   "error.invalid_input": "Entrée invalide",
   "error.required_field": "Ce champ est obligatoire",
@@ -107,6 +109,8 @@
   "statusbar.hideColumn": "masquer la colonne",
   "statusbar.showSidebar": "afficher la barre latérale",
   "statusbar.hideSidebar": "masquer la barre latérale",
+  "statusbar.showInspector": "afficher l’inspecteur",
+  "statusbar.hideInspector": "masquer l’inspecteur",
   "statusbar.dismiss": "fermer",
   "statusbar.cancel": "annuler",
   "statusbar.goBack": "retour",

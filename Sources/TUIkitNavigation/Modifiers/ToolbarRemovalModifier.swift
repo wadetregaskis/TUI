@@ -46,12 +46,23 @@ private struct ToolbarTitleRemovedEnvironmentKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct InspectorToggleRemovedEnvironmentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// Whether a ``View/toolbar(removing:)`` on or above this view removed a
     /// split view's sidebar toggle.
     var sidebarToggleRemoved: Bool {
         get { self[SidebarToggleRemovedEnvironmentKey.self] }
         set { self[SidebarToggleRemovedEnvironmentKey.self] = newValue }
+    }
+
+    /// Whether a ``View/toolbar(removing:)`` on or above this view removed an
+    /// inspector's toggle.
+    var inspectorToggleRemoved: Bool {
+        get { self[InspectorToggleRemovedEnvironmentKey.self] }
+        set { self[InspectorToggleRemovedEnvironmentKey.self] = newValue }
     }
 
     /// Whether a ``View/toolbar(removing:)`` on or above this view removed the
@@ -93,6 +104,9 @@ struct ToolbarRemovalView<Content: View>: View {
             windowChrome(context)?.removeTitle()
         case .search:
             windowChrome(context)?.removeSearchField()
+        case .inspectorToggle:
+            // The inspector reads its removal from the environment alone.
+            break
         }
     }
 
@@ -150,6 +164,11 @@ extension View {
     /// `.navigationTitle`, which a terminal window's title would be set from;
     /// only the title item goes.
     ///
+    /// With ``ToolbarDefaultItemKind/inspectorToggle`` it removes an
+    /// inspector's toggles, when the modifier is on or above the view the
+    /// `inspector(isPresented:content:)` modifies: the ▶ on the divider before
+    /// the inspector, and the buttons a bar draws for it.
+    ///
     /// With ``ToolbarDefaultItemKind/search`` it removes the search field a
     /// `searchable` modifier draws, wherever it would be drawn — at the top of
     /// the view, or in a bar a ``DefaultToolbarItem`` placed it in — when the
@@ -198,6 +217,9 @@ extension View {
             }
             .transformEnvironment(\.toolbarSearchRemoved) { removed in
                 if removes == .search { removed = true }
+            }
+            .transformEnvironment(\.inspectorToggleRemoved) { removed in
+                if removes == .inspectorToggle { removed = true }
             },
             removes: removes)
     }

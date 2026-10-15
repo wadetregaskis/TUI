@@ -27,6 +27,8 @@ package struct PanelToggle: Sendable, Equatable {
     package enum Panel: Sendable, Hashable {
         /// A ``NavigationSplitView``'s sidebar, the leading column.
         case sidebar
+        /// An `inspector(isPresented:content:)`'s column, the trailing one.
+        case inspector
     }
 
     /// What a toggle does, by reference: kept by its owner across renders, so
@@ -82,22 +84,31 @@ package struct PanelToggle: Sendable, Equatable {
 
     /// The button's arrow: which way the panel's edge moves. A sidebar,
     /// against the leading edge, goes with ◀ and comes back with ▶, as the
-    /// split view's own handles draw it.
+    /// split view's own handles draw it; an inspector, against the trailing
+    /// edge, the other way round.
     package var arrow: String {
-        isShown ? TerminalSymbols.leftArrow : TerminalSymbols.rightArrow
+        (panel == .sidebar) == isShown ? TerminalSymbols.leftArrow : TerminalSymbols.rightArrow
     }
 
     /// What the button's help says it does: SwiftUI's own labels for its
-    /// sidebar button.
+    /// sidebar button, and the same words for an inspector.
     package var helpText: String {
-        LocalizationService.shared.string(
-            for: isShown ? LocalizationKey.Label.hideSidebar : LocalizationKey.Label.showSidebar)
+        let key: LocalizationKey.Label =
+            switch panel {
+            case .sidebar: isShown ? .hideSidebar : .showSidebar
+            case .inspector: isShown ? .hideInspector : .showInspector
+            }
+        return LocalizationService.shared.string(for: key)
     }
 
     /// What Return does on the button, for the status bar's key hints.
     package var activationLabel: String {
-        LocalizationService.shared.string(
-            for: isShown ? LocalizationKey.StatusBar.hideSidebar : LocalizationKey.StatusBar.showSidebar)
+        let key: LocalizationKey.StatusBar =
+            switch panel {
+            case .sidebar: isShown ? .hideSidebar : .showSidebar
+            case .inspector: isShown ? .hideInspector : .showInspector
+            }
+        return LocalizationService.shared.string(for: key)
     }
 }
 
@@ -149,6 +160,7 @@ extension EnvironmentValues {
     package func panelToggleScope(_ panel: PanelToggle.Panel) -> PanelToggle.Scope {
         switch panel {
         case .sidebar: sidebarToggleScope
+        case .inspector: inspectorToggleScope
         }
     }
 
@@ -159,5 +171,35 @@ extension EnvironmentValues {
     package var sidebarToggleScope: PanelToggle.Scope {
         get { self[SidebarToggleScopeKey.self] }
         set { self[SidebarToggleScopeKey.self] = newValue }
+    }
+}
+
+/// Environment key for where an inspector button finds its toggle.
+private struct InspectorToggleScopeKey: EnvironmentKey {
+    static let defaultValue = PanelToggle.Scope.window
+}
+
+/// Environment key for the toggle of the pane a split view's last divider
+/// hides: an inspector's column.
+private struct TrailingPaneToggleKey: EnvironmentKey {
+    static let defaultValue: PanelToggle? = nil
+}
+
+extension EnvironmentValues {
+    /// Where a toolbar's inspector button declared here finds the toggle it
+    /// works: the innermost `inspector(isPresented:content:)` this view is in
+    /// the content or the inspector of, which has none where its toggle was
+    /// removed, or outside every inspector, the window's.
+    package var inspectorToggleScope: PanelToggle.Scope {
+        get { self[InspectorToggleScopeKey.self] }
+        set { self[InspectorToggleScopeKey.self] = newValue }
+    }
+
+    /// The toggle of the pane after an ``HSplitView``'s last divider, which
+    /// draws a ▶ that hides it: set by an inspector for the split it is the
+    /// last pane of, and cleared by the split for its panes.
+    package var trailingPaneToggle: PanelToggle? {
+        get { self[TrailingPaneToggleKey.self] }
+        set { self[TrailingPaneToggleKey.self] = newValue }
     }
 }

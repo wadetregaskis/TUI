@@ -110,6 +110,10 @@ public enum LocalizationKey {
         case showSidebar = "label.showSidebar"
         /// A toolbar's sidebar button, while the sidebar shows: its help.
         case hideSidebar = "label.hideSidebar"
+        /// A toolbar's inspector button, while the inspector is hidden: its help.
+        case showInspector = "label.showInspector"
+        /// A toolbar's inspector button, while the inspector shows: its help.
+        case hideInspector = "label.hideInspector"
     }
 
     /// Border appearance names, as shown in a settings screen.
@@ -232,6 +236,11 @@ public enum LocalizationKey {
         case showSidebar = "statusbar.showSidebar"
         /// A toolbar's sidebar button, while the sidebar shows.
         case hideSidebar = "statusbar.hideSidebar"
+        /// A toolbar's inspector button, while the inspector is hidden.
+        case showInspector = "statusbar.showInspector"
+        /// A toolbar's inspector button, or the divider before an inspector,
+        /// while the inspector shows.
+        case hideInspector = "statusbar.hideInspector"
 
         // MARK: What Escape does over a surface or a mode
 

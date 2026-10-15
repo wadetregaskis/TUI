@@ -35,6 +35,12 @@ import TUIkitFoundation
 ///   Without one, a window whose page has a top bar shows a button for its
 ///   first split view at the bar's leading edge, as SwiftUI's macOS toolbar
 ///   does; an item of this kind for that split places it instead.
+/// - ``ToolbarDefaultItemKind/inspectorToggle``, a TUIkit addition: a button
+///   that hides and shows an inspector (``View/inspector(isPresented:content:)``),
+///   ▶ while it shows, ◀ while it is hidden — the mirror of the sidebar's. It
+///   toggles the inspector it is declared round or in, else the window's
+///   first. The window shows none without one, as SwiftUI's toolbar shows no
+///   inspector button.
 ///
 /// ```swift
 /// NavigationStack {
@@ -99,6 +105,8 @@ private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
             return chrome.title.isEmpty ? nil : AnyView(_ToolbarTitle(title: chrome.title, subtitle: chrome.subtitle))
         case .sidebarToggle:
             return AnyView(_PanelToggleButton(panel: .sidebar))
+        case .inspectorToggle:
+            return AnyView(_PanelToggleButton(panel: .inspector))
         }
     }
 

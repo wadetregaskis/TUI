@@ -61,6 +61,8 @@
   "label.hideColumn": "隐藏“%@”",
   "label.showSidebar": "显示边栏",
   "label.hideSidebar": "隐藏边栏",
+  "label.showInspector": "显示检查器",
+  "label.hideInspector": "隐藏检查器",
 
   "error.invalid_input": "输入无效",
   "error.required_field": "此字段为必填项",
@@ -107,6 +109,8 @@
   "statusbar.hideColumn": "隐藏列",
   "statusbar.showSidebar": "显示边栏",
   "statusbar.hideSidebar": "隐藏边栏",
+  "statusbar.showInspector": "显示检查器",
+  "statusbar.hideInspector": "隐藏检查器",
   "statusbar.dismiss": "关闭",
   "statusbar.cancel": "取消",
   "statusbar.goBack": "返回",

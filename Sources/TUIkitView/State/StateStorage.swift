@@ -71,6 +71,7 @@ public final class StateStorage: @unchecked Sendable {
     /// | -130… | the property walk's record of an enum's case (`enumCaseIndex`) |
     /// | -140… | the property walk's record of a view holding an object (`objectHolderIndex`) |
     /// | -150… | `_ScrollIndicatorsFlashCore` (`scrollIndicatorsFlash(trigger:)`, a tracked value) |
+    /// | -160… | `_InspectorToggleHost` (`inspector(isPresented:content:)`'s toggle) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with

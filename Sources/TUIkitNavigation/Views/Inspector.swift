@@ -34,6 +34,17 @@ extension View {
     /// ``View/inspectorColumnWidth(min:ideal:max:)`` names. The view keeps its
     /// state while the inspector comes and goes.
     ///
+    /// The divider's middle row is a ▶ that hides the inspector — a still click
+    /// on it, or Return or Space with the divider focused — writing `false`
+    /// through `isPresented`, as a split view's leftmost divider carries a ◀.
+    /// To show it again, an app gives the reader a control of its own, as in
+    /// SwiftUI, or places TUIkit's `DefaultToolbarItem(kind: .inspectorToggle)`
+    /// in a bar: a button that hides and shows the inspector it is declared
+    /// round or in, else the window's first. The window puts none in its bars
+    /// by default, as SwiftUI puts none in a toolbar. `.toolbar(removing:
+    /// .inspectorToggle)` on or above this view takes the ▶ and the buttons
+    /// away.
+    ///
     /// - Parameters:
     ///   - isPresented: Whether the inspector is shown.
     ///   - content: The inspector's content.
@@ -90,7 +101,8 @@ struct _InspectorModifier<Content: View, Inspector: View>: View {
     var body: some View {
         let width = presentationTrait(InspectorColumnWidthProviding.self, of: inspector)
         let ideal = Swift.max(1, width?.idealWidth ?? Self.defaultWidth)
-        return HSplitView {
+        return _InspectorToggleHost(isPresented: isPresented) {
+            HSplitView {
             // The view takes what the column leaves: a split gives a pane that
             // fills the rest, and two that hug an even share each.
             content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -101,8 +113,79 @@ struct _InspectorModifier<Content: View, Inspector: View>: View {
                     minWidth: width?.minimumWidth, idealWidth: ideal,
                     maxWidth: width?.maximumWidth.map { .fixed($0) } ?? .infinity, alignment: .topLeading)
             }
+            }
         }
     }
+}
+
+// MARK: - The inspector's toggle
+
+/// Publishes an inspector's toggle round the view and its inspector, so a
+/// `DefaultToolbarItem(kind: .inspectorToggle)` declared in either toggles this
+/// inspector; offers it to the window, for one declared round it; and hands it
+/// to the split's last divider, which draws a ▶ that hides the inspector.
+///
+/// Renders its content at its own identity, so its one slot is in the range
+/// reserved for it (`StateStorage.StateKey`).
+///
+/// None of it where `.toolbar(removing: .inspectorToggle)` is on or above it,
+/// or it is disabled, or measuring — and then a toolbar item declared inside
+/// reaches no inspector further out.
+struct _InspectorToggleHost<Content: View>: View, Renderable, Layoutable {
+    let isPresented: Binding<Bool>
+    let content: Content
+
+    init(isPresented: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self.isPresented = isPresented
+        self.content = content()
+    }
+
+    var body: Never { fatalError("_InspectorToggleHost renders via Renderable") }
+
+    /// `context` for the content, with the inspector's toggle published.
+    private func toggling(_ context: RenderContext) -> RenderContext {
+        var inner = context
+        inner.environment.inspectorToggleScope = .split(nil)
+        inner.environment.trailingPaneToggle = nil
+        guard !context.isMeasuring, context.environment.isEnabled, !context.environment.inspectorToggleRemoved,
+            let storage = context.stateStorage
+        else { return inner }
+        storage.markActive(context.identity)
+        let action = storage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: InspectorToggleStateIndex.action),
+            default: PanelToggle.Action()
+        ).value
+        let binding = isPresented
+        action.perform = { binding.wrappedValue.toggle() }
+        let toggle = PanelToggle(
+            panel: .inspector, owner: context.identity, isShown: binding.wrappedValue, action: action)
+        PanelToggleOffer.offer(
+            toggle, itemIdentity: context.withChildIdentity(erasedType: _InspectorToggleItemSlot.self, key: "bar").identity,
+            context: context)
+        inner.environment.inspectorToggleScope = .split(toggle)
+        if toggle.isShown { inner.environment.trailingPaneToggle = toggle }
+        return inner
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        TUIkitView.renderToBuffer(content, context: toggling(context))
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: toggling(context))
+    }
+}
+
+/// The identity step a window's button for an inspector takes under the
+/// inspector's.
+enum _InspectorToggleItemSlot {}
+
+/// ``_InspectorToggleHost``'s `StateStorage` slots, at file scope because a
+/// generic type cannot hold static stored properties.
+private enum InspectorToggleStateIndex {
+    /// The toggle's ``PanelToggle/Action``, kept so each render's toggle
+    /// compares equal to the last while the inspector neither shows nor hides.
+    static let action = -160
 }
 
 /// Content that has named its inspector column's width.
