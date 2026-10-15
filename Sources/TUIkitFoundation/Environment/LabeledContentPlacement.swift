@@ -16,6 +16,9 @@ package enum LabeledContentPlacement: Sendable, Equatable {
     /// A list's row: the label leading, a fixed value at the trailing edge, a
     /// field or a slider filling the rest after the label.
     case listRow
+    /// A grouped form's row: the label leading, a fixed value at the trailing
+    /// edge, a field or a slider from 45% of the row.
+    case groupedFormRow
 }
 
 private struct LabeledContentPlacementKey: EnvironmentKey {

@@ -79,6 +79,8 @@ extension LabeledContentStyle {
 /// - **In a list's row**, the label leads and a fixed value sits at the
 ///   trailing edge, each line of a multi-line value ending there; a field or a
 ///   slider fills the rest after the label.
+/// - **In a grouped form**, as in a list's row, except that a field or a
+///   slider starts at 45% of the row (`_GroupedLabeledRow`).
 ///
 /// A row of a TUIkit `Form` is not drawn through this style: the form lays its
 /// labelled rows out itself (`_FormFieldRow`).
@@ -134,6 +136,8 @@ struct _AutomaticLabeledContent: View {
                     .environment(\.unstatedMultilineTextAlignment, .trailing)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
+        case .groupedFormRow:
+            _GroupedLabeledRow(label: configuration.label, content: configuration.content)
         }
     }
 }

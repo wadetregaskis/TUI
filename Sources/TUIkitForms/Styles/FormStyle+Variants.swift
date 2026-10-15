@@ -55,7 +55,9 @@ public struct ColumnsFormStyle: FormStyle, Equatable {
 }
 
 /// A form style that draws each ``Section`` as a bordered group with its title —
-/// the grouped (iOS-style) layout.
+/// the grouped (iOS-style) layout — and spreads each field row across it, as
+/// SwiftUI's does: the label at the leading edge, a fixed value at the trailing
+/// edge, a field or a slider from 45% of the row.
 ///
 /// `Equatable` on the same terms as ``AutomaticFormStyle``, and this is the half
 /// that earns the cross-type comparison: replacing it with either of the others

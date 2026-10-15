@@ -17,7 +17,10 @@ import TUIkitFoundation
 ///   left-aligned in the column after it, push buttons right-aligned, section
 ///   headers bold and right-aligned to the pillar, sections separated by a blank
 ///   line.
-/// - ``FormStyle/grouped`` — each ``Section`` drawn as a bordered group.
+/// - ``FormStyle/grouped`` — each ``Section`` drawn as a bordered group, and
+///   each field row spread across it as SwiftUI's are: the label at the leading
+///   edge, a fixed value at the trailing edge, a field or a slider from 45% of
+///   the row.
 ///
 /// Row kinds follow macOS conventions:
 ///
@@ -490,9 +493,13 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         if grouped, !margins.isEmpty, !margins.content.isZero {
             return AnyView(
                 column
+                    .environment(\.labeledContentPlacement, .groupedFormRow)
                     .transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
                     .padding(margins.content))
         }
+        // A grouped form's labelled rows spread across it, its own and any
+        // `LabeledContent` drawn in one (`_GroupedLabeledRow`).
+        if grouped { return AnyView(column.environment(\.labeledContentPlacement, .groupedFormRow)) }
         return AnyView(column)
     }
 
@@ -538,11 +545,15 @@ private struct _FormFieldRow: View {
     let content: AnyView
     let pillar: Int
     @Environment(\.labeledContentStyleChain) private var styles
+    @Environment(\.labeledContentPlacement) private var placement
 
     @ViewBuilder var body: some View {
         if !styles.isRoot {
             _StyledLabeledContent(
                 configuration: LabeledContentStyleConfiguration(label: label, content: content))
+        } else if placement == .groupedFormRow {
+            // A grouped form has no label column: each row spreads across.
+            _GroupedLabeledRow(label: label, content: content)
         } else if pillar == 0 {
             // A pillar of zero means there is no label column: every label
             // measured empty, or `.labelsHidden()` withheld them all. The gap in
@@ -579,5 +590,6 @@ extension Form where Content == FormStyleConfiguration.Content {
 extension _FormFieldRow: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _styles.resolveEnvironment(environment)
+        _placement.resolveEnvironment(environment)
     }
 }
