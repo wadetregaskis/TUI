@@ -47,36 +47,46 @@ extension EnvironmentValues {
 // MARK: - View Modifiers
 
 extension View {
-    /// Sets the aspect ratio and content mode for image rendering.
+    /// Constrains this view's dimensions to the given aspect ratio.
     ///
-    /// Use this modifier to control how images are scaled within their
-    /// available space.
+    /// Offers the view the largest size of the ratio that fits what this is
+    /// offered (`.fit`), or the smallest that covers it (`.fill`), and takes
+    /// what the view makes of it — as SwiftUI does, for any view:
     ///
     /// ```swift
-    /// // Use natural aspect ratio, fit within bounds
-    /// Image(.file("photo.png"))
-    ///     .aspectRatio(contentMode: .fit)
+    /// Color.blue.aspectRatio(16.0 / 9.0, contentMode: .fit)
     ///
-    /// // Force 16:9 ratio, fill bounds
-    /// Image(.url("https://example.com/banner.png"))
-    ///     .aspectRatio(16.0/9.0, contentMode: .fill)
+    /// Image(.file("photo.png"))
+    ///     .resizable()
+    ///     .scaledToFit()
     /// ```
     ///
+    /// The ratio is width over height in points, as SwiftUI's is; a cell is
+    /// taller than it is wide (``EnvironmentValues/imageCellAspect``), so a
+    /// square is about twice as many columns as rows. With `nil`, the view's own
+    /// ideal size gives the ratio — an image's, its picture's. A view that does
+    /// not take what it is offered, such as `Text`, keeps its size. A terminal
+    /// has nothing outside a view to draw into, so a fill larger than its space
+    /// is cut to it, centred, rather than drawn past it.
+    ///
     /// - Parameters:
-    ///   - aspectRatio: The ratio of width to height to use for the
-    ///     resulting view. Use `nil` to maintain the source image's
-    ///     natural aspect ratio.
-    ///   - contentMode: A flag that indicates whether this view fits or
-    ///     fills the parent context.
-    /// - Returns: A view that constrains this view's dimensions to the
-    ///   given aspect ratio and content mode.
+    ///   - aspectRatio: The ratio of width to height to use for the resulting
+    ///     view, or `nil` to keep the view's own.
+    ///   - contentMode: Whether this view fits or fills the space it is
+    ///     offered.
+    /// - Returns: A view that constrains this view's dimensions to the given
+    ///   aspect ratio and content mode.
     public func aspectRatio(_ aspectRatio: Double? = nil, contentMode: ContentMode) -> some View {
-        environment(\.imageContentMode, contentMode)
+        // The layout is SwiftUI's, for any view (`_AspectRatioView`). The
+        // environment still tells an image inside how it fills the box it is
+        // given: a resizable image stretches unless a content mode is set.
+        _AspectRatioView(content: self, aspectRatio: aspectRatio, contentMode: contentMode)
+            .environment(\.imageContentMode, contentMode)
             .environment(\.imageAspectRatio, aspectRatio)
     }
 
-    /// Scales this view to fit within the parent while maintaining the
-    /// aspect ratio.
+    /// Scales this view to fit within the space it is offered, keeping its
+    /// own aspect ratio.
     ///
     /// Equivalent to `.aspectRatio(contentMode: .fit)`.
     ///
@@ -92,8 +102,8 @@ extension View {
         aspectRatio(contentMode: .fit)
     }
 
-    /// Scales this view to fill the parent while maintaining the
-    /// aspect ratio.
+    /// Scales this view to fill the space it is offered, keeping its own
+    /// aspect ratio; what lies past that space is cut to it.
     ///
     /// Equivalent to `.aspectRatio(contentMode: .fill)`.
     ///

@@ -375,6 +375,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   **Owner** (2026-10-12: 2^20, a push past it reported, an environment
   variable to override it).
 
+### L15. A fill larger than its space is cut to it
+
+- **SwiftUI:** `aspectRatio(_:contentMode: .fill)` and `scaledToFill()` offer
+  the view the smallest size of the ratio that covers what they are offered,
+  and the view is that size, drawn past its frame unless `.clipped()` is
+  written: a 2:1 colour filling a 200×200 frame is 400×200, centred
+  (measured 2026-10-14, `PROBES-1014/aspect-ratio`).
+- **TUIkit:** the view is offered the same size, and drawn in a frame of the
+  space it was offered, centred, so it is cut to that space and takes no more
+  in the layout (`_AspectRatioView`, `AspectRatioLayoutTests`).
+- **Why:** a terminal has no outside to draw into: what lies past a view's
+  space is another view's cells, and the layout around it was sized for the
+  space, not the fill.
+- **Decided:** the owner's ruling of 2026-10-14 (the semantic audit's item 32,
+  option a: a real layout modifier). **Lane.**
+
 ---
 
 ## State and data flow
