@@ -209,6 +209,69 @@ extension _HStackCore {
         }
     }
 
+    /// The column an EAGER row shows at a purely horizontal scroll view's report
+    /// anchor (``ScrollContentWindow/columnReport``), for `.scrollPosition(id:)`
+    /// to read back: placed as ``resolveColumnSeek(buffers:spacerWidths:gaps:children:context:)``
+    /// places columns. A spacer is no column to report.
+    func reportColumnSample(
+        buffers: [FrameBuffer?], spacerWidths: [Int], gaps: StackGaps, context: RenderContext
+    ) {
+        guard let (reply, report) = columnReportReply(context: context) else { return }
+        var columns: [(ordinal: Int, end: Int)] = []
+        var cursor = 0
+        var walk = StackGapWalk(gaps)
+        for (index, buffer) in buffers.enumerated() {
+            let width = buffer?.width ?? spacerWidths[index]
+            guard width > 0 else { continue }
+            cursor += walk.gap(before: index, extent: width)
+            walk.place(index, extent: width)
+            cursor += width
+            if buffer != nil { columns.append((index, cursor)) }
+        }
+        reportColumn(columns, at: report, into: reply, context: context)
+    }
+
+    /// The same for a LAZY row, from the columns it placed — every one, in a
+    /// horizontal scroll view, which lays its content out whole and clips it.
+    func reportColumnSample(collected: [(FrameBuffer, Int, ChildView?)], context: RenderContext) {
+        guard let (reply, report) = columnReportReply(context: context) else { return }
+        var columns: [(ordinal: Int, end: Int)] = []
+        var cursor = 0
+        var ordinal = 0
+        for (buffer, gap, child) in collected {
+            cursor += gap + buffer.width
+            guard child != nil else { continue }
+            if buffer.width > 0 { columns.append((ordinal, cursor)) }
+            ordinal += 1
+        }
+        reportColumn(columns, at: report, into: reply, context: context)
+    }
+
+    /// Reports the id of the column under the report's sample: the first whose
+    /// trailing edge lies past it, clamped to the last.
+    private func reportColumn(
+        _ columns: [(ordinal: Int, end: Int)], at report: ScrollContentWindow.ColumnReport,
+        into reply: ScrollContentReply, context: RenderContext
+    ) {
+        guard let last = columns.last else { return }
+        let x = report.sampleX
+        let ordinal = columns.first { x < $0.end }?.ordinal ?? last.ordinal
+        var childContext = context
+        childContext.environment.scrollContentWindow = nil
+        reply.anchorID = resolveChildViewCollection(from: content, context: childContext).anyID(at: ordinal)
+    }
+
+    /// The reply a reported column goes into, with what asks for it, or `nil`
+    /// when none is asked for here — as ``columnSeekReply(context:)`` finds a
+    /// sought one.
+    private func columnReportReply(context: RenderContext) -> (ScrollContentReply, ScrollContentWindow.ColumnReport)? {
+        guard !context.isMeasuring, context.mayConsumeScrollWindow,
+            let window = context.environment.scrollContentWindow, let report = window.columnReport,
+            window.isAtOrigin(context.identity), let reply = window.reply
+        else { return nil }
+        return (reply, report)
+    }
+
     /// The reply a sought column is reported into, with the request, or `nil`
     /// when none is sought here: a render pass at the scroll content's origin
     /// (the context's test, read first, as ``targetLayoutReply(context:)``

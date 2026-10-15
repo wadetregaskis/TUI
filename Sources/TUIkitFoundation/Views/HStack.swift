@@ -637,6 +637,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
         reportTargetLayout(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, context: context)
         resolveColumnSeek(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, children: children, context: context)
+        reportColumnSample(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, context: context)
 
         // Final guard: the assembled row never exceeds the space we were given,
         // even when inter-child spacing alone would overflow a tiny terminal.
@@ -791,6 +792,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
         reportTargetLayout(collected: collected, context: context)
         resolveColumnSeek(collected: collected, context: context)
+        reportColumnSample(collected: collected, context: context)
 
         // === PASS 2: Apply vertical alignment and build result ===
         // Explicit guides resolve over the columns actually placed — a lazy row

@@ -26,6 +26,7 @@ struct ScrollContentWindow: Sendable, Hashable {
         guard lhs.offset == rhs.offset, lhs.viewportHeight == rhs.viewportHeight,
             lhs.contentIdentity == rhs.contentIdentity, lhs.edgeInset == rhs.edgeInset,
             lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek, lhs.columnSeek == rhs.columnSeek,
+            lhs.columnReport == rhs.columnReport,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow
         else { return false }
         return lhs.reportsTargetLayout == rhs.reportsTargetLayout && lhs.topRowHold == rhs.topRowHold
@@ -39,6 +40,7 @@ struct ScrollContentWindow: Sendable, Hashable {
         hasher.combine(reportsIDAt)
         hasher.combine(seek)
         hasher.combine(columnSeek)
+        hasher.combine(columnReport)
         hasher.combine(linesAbove)
         hasher.combine(linesBelow)
         hasher.combine(reportsTargetLayout)
@@ -139,6 +141,28 @@ struct ScrollContentWindow: Sendable, Hashable {
     /// its horizontal offset to it. `nil` wherever ``seek`` is set — a view that
     /// scrolls vertically seeks rows — and whenever nothing is sought.
     var columnSeek: ScrollToRequest?
+
+    /// Where a purely HORIZONTAL scroll view samples the column it reports to
+    /// `.scrollPosition(id:)`: its horizontal offset, its viewport's width and
+    /// the anchor's `x`. The horizontal stack at the content's origin reports
+    /// the column there (``ScrollContentReply/anchorID``), as a vertical
+    /// stack reports the row at ``reportsIDAt``. `nil` on a view that scrolls
+    /// vertically, which reports rows, and when nothing is listening.
+    var columnReport: ColumnReport?
+
+    /// See ``columnReport``.
+    struct ColumnReport: Hashable {
+        var offset: Int
+        var viewportWidth: Int
+        var unitX: Double
+
+        /// The content-space column the anchor names within the viewport.
+        var sampleX: Int {
+            let lastColumn = Double(max(1, viewportWidth) - 1)
+            let across = (lastColumn * unitX).rounded(.down)
+            return offset + Int(across)
+        }
+    }
 
     /// The scroll content's lines above the stack that consumes this window,
     /// and below it: a `Section`'s header and footer, which the section draws

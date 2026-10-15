@@ -373,6 +373,13 @@ extension _ScrollViewCore {
             // …and on a purely horizontal view it names a column, which a
             // horizontal stack at the origin finds for the offset below.
             columnSeek: axes.contains(.vertical) || !horizontal ? nil : seek,
+            // …and the column it shows, for a bound position to read back.
+            columnReport: axes.contains(.vertical) || !horizontal || context.isMeasuring
+                ? nil
+                : pageScrollPosition(context.environment).map {
+                    ScrollContentWindow.ColumnReport(
+                        offset: horizontalScrollOffset, viewportWidth: contentWidth, unitX: $0.columnUnitX)
+                },
             // The rows of a marked stack, for a behaviour to settle on.
             reportsTargetLayout: handler?.scrollTargeting != nil,
             // The row at the top, held as the content above it changes — on

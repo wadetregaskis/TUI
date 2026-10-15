@@ -206,6 +206,40 @@ struct ScrollPositionTests {
         #expect(position.viewID(type: Int.self) == 25, "\(screen)")
     }
 
+    /// A purely horizontal scroll view of columns, eager or lazy.
+    @ViewBuilder
+    private func columns(position: Binding<ScrollPosition>, lazy: Bool) -> some View {
+        if lazy {
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 1) { ForEach(0..<Self.rowCount, id: \.self) { Text("c\($0)") } }
+            }
+            .scrollPosition(position)
+        } else {
+            ScrollView(.horizontal) {
+                HStack(spacing: 1) { ForEach(0..<Self.rowCount, id: \.self) { Text("c\($0)") } }
+            }
+            .scrollPosition(position)
+        }
+    }
+
+    @Test("A horizontal scroll view reports the column it is showing, eager or lazy", arguments: [false, true])
+    func columnsReportVisibleID(lazy: Bool) {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+
+        renderFrame(columns(position: binding, lazy: lazy), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(position.viewID(type: Int.self) == 0)
+
+        position.scrollTo(id: 25, anchor: .leading)
+        renderFrame(columns(position: binding, lazy: lazy), tuiContext: tuiContext, focusManager: focusManager)
+        let screen = renderFrame(
+            columns(position: binding, lazy: lazy), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(screen.first?.hasPrefix("c25") == true, "precondition: the seek landed: \(screen)")
+        #expect(position.viewID(type: Int.self) == 25, "\(screen)")
+    }
+
     @Test("An unchanged position is not written back every frame")
     func writeBackSettles() {
         // A render-time write to a binding invalidates the subtree that wrote

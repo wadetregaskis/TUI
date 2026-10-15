@@ -213,9 +213,11 @@ extension ScrollPosition {
     ///
     /// "No ids to report" is narrower than it sounds, and was measured rather
     /// than assumed: the sample travels through the content's keyed
-    /// collection, so it answers only where a vertical stack's content, lazy
-    /// or eager, is a SINGLE `ForEach`. A stack holding two `ForEach`es reports
-    /// nothing, nor does a horizontal stack; and a `.id(_:)`-tagged child is
+    /// collection, so it answers only where a stack's content, lazy or eager,
+    /// is a SINGLE `ForEach`: a vertical stack's, or a horizontal stack's in a
+    /// scroll view that scrolls only across (whose column is sampled at the
+    /// anchor's `x`, or at the leading edge with no anchor stated). A stack
+    /// holding two `ForEach`es reports nothing; and a `.id(_:)`-tagged child is
     /// never reported even though ``scrollTo(id:anchor:)`` seeks to one
     /// perfectly well. Seeking is per-child, reading is per-collection.
     ///
@@ -413,6 +415,11 @@ extension View {
 final class ScrollPositionBinding {
     let binding: Binding<ScrollPosition>
     let anchor: UnitPoint
+    /// Where across the viewport a purely horizontal scroll view samples the
+    /// column it reports: the anchor's `x`, or the leading edge where none was
+    /// stated — the first column a reader sees, as the unstated anchor's
+    /// `.top` names the first row.
+    let columnUnitX: Double
     /// Whether the user's scrolls are reported as such (the request dropped,
     /// ``ScrollPosition/isPositionedByUser`` set). Not for the `id:` binding,
     /// whose positions are rebuilt from the bound id on every read: there is
@@ -422,6 +429,7 @@ final class ScrollPositionBinding {
     init(_ binding: Binding<ScrollPosition>, anchor: UnitPoint?, tracksUserPositioning: Bool = true) {
         self.binding = binding
         self.anchor = anchor ?? .top
+        self.columnUnitX = anchor?.x ?? 0
         self.tracksUserPositioning = tracksUserPositioning
     }
 }
@@ -444,7 +452,7 @@ final class ScrollPositionBinding {
 /// where the reported row is sampled, the anchor.
 extension ScrollPositionBinding: Equatable {
     nonisolated static func == (lhs: ScrollPositionBinding, rhs: ScrollPositionBinding) -> Bool {
-        lhs.anchor == rhs.anchor
+        lhs.anchor == rhs.anchor && lhs.columnUnitX == rhs.columnUnitX
     }
 }
 
