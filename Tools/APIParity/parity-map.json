@@ -604,8 +604,17 @@
     "BlendMode": {
       "why": "There is no blend function for it to name. A composite copies each cell over what it covers; the one blend TUIkit performs, `opacity`, resolves at the composite against whatever is behind (Documentation/Colour and styling/Opacity as composition.md). The modes multiply, screen and so on per pixel sample, which a cell does not have: see the per-pixel shading family."
     },
-    "ButtonBorderShape": {
-      "why": "Capsule/circle/roundedRectangle radii are vector paths; a cell-grid button can only pick bracket glyphs (Sources/TUIkitFoundation/Views/Button.swift:55) or box corner glyphs (BorderStyle.rounded, Sources/TUIkitStyling/Styles/BorderStyle.swift:109). No radius exists to name."
+    "ButtonBorderShape.AnimatableData": {
+      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
+    },
+    "ButtonBorderShape.InsetShape": {
+      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
+    },
+    "ButtonBorderShape.inset(by:)": {
+      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
+    },
+    "ButtonBorderShape.path(in:)": {
+      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
     },
     "Capsule": {
       "why": "A capsule is two semicircular end caps; the terminal's cap vocabulary is two half-block characters, TerminalSymbols.openCap (▐) and closeCap (▌) at Sources/TUIkitCore/Rendering/TerminalSymbols.swift:18-21 — a fixed pair of glyphs, not a parameterised curve."
@@ -646,8 +655,8 @@
     "ContentShapeKinds": {
       "why": "The option set naming which shape is being set (interaction / dragPreview / contextMenuPreview / focusEffect). Hit regions are cell rectangles with no shape to specify (Sources/TUIkitCore/Input/HitTestRegion.swift:29-42); the drag-preview kind is served by `.draggable(_:preview:)"
     },
-    "ControlSize": {
-      "why": "A point-metrics/type-size class; the terminal owns the font and cell size and every control is one cell-row tall (see the controlSize modifier). There is no scale axis for the enum to select along."
+    "ControlSize.init(_:)": {
+      "why": "Converts from AppKit's NSControl.ControlSize. TUIkit links no AppKit, as it must build on Linux; the five sizes are TUIkit's own enum's cases."
     },
     "Edge.Corner": {
       "why": "The corners of a rectangle, with `Edge.Corner.Set` and `Edge.Corner.Style` for the corner radii of `Shape.rect(corners:)` and `RoundedRectangularShapeCorners`. Cells have corners, but every consumer here is a shape, which waits on O0 of the refusal review; the enum would come with them. (The `rawValue`/`allCases` gaps once reported for `Edge` itself were synthesized-conformance false positives: `Edge` is at parity.)"

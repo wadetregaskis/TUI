@@ -619,6 +619,11 @@ struct _ButtonAppearance: Equatable {
     /// see ``ActiveChipCycle``, which says it at more length.
     var indicatesFocusInLabel: Bool = false
 
+    /// How a bordered face ends — its caps, and the ring of a three-row face.
+    /// The half-block caps until ``sized(_:shape:)`` reads the control size and
+    /// border shape in force; not read by a plain appearance.
+    var edges: ButtonFaceEdges = .capsule
+
     /// The default appearance — dimmed foreground, not bold.
     static let `default` = Self(
         foregroundColor: Color.palette.foregroundSecondary,

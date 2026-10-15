@@ -216,6 +216,12 @@ struct TerminalLedgerConformanceTests {
         // advance is read (Terminal compatibility survey.md, "The drop-operation
         // badge"), their landing and ink are not.
         "chrome_drop_link", "chrome_drop_forbidden",
+        // A bordered button's face at each control size and border shape,
+        // added 2026-10-15 (ButtonFaceEdges): advance read the same way, landing
+        // and ink not.
+        "chrome_eighth_right", "chrome_eighth_left", "chrome_lower_half", "chrome_upper_half",
+        "chrome_quadrant_lower_right", "chrome_quadrant_lower_left",
+        "chrome_quadrant_upper_right", "chrome_quadrant_upper_left",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

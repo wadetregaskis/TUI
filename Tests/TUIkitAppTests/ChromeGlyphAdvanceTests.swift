@@ -101,11 +101,22 @@ struct ChromeGlyphAdvanceTests {
     /// B10). `advance_probe.py` read both at one cell on all four hosts and
     /// tmux that day, but the records were not rewritten (the survey's "The
     /// drop-operation badge" says why), so they wait here too.
+    ///
+    /// The glyphs a bordered button's face ends in at each control size and
+    /// border shape joined on 2026-10-15 (`ButtonFaceEdges`), and wait the
+    /// same way: the survey's "A button's face at each control size" has what
+    /// the probe read.
+    private static let buttonFaceGlyphs: Set<String> = [
+        "chrome_eighth_right", "chrome_eighth_left", "chrome_lower_half", "chrome_upper_half",
+        "chrome_quadrant_lower_right", "chrome_quadrant_lower_left",
+        "chrome_quadrant_upper_right", "chrome_quadrant_upper_left",
+    ]
+
     private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
         let newKeySymbols: Set<String> = [
             "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
         ]
-        let awaiting = newKeySymbols.union(["chrome_drop_link", "chrome_drop_forbidden"])
+        let awaiting = newKeySymbols.union(["chrome_drop_link", "chrome_drop_forbidden"]).union(buttonFaceGlyphs)
         return [
             .ghostty: awaiting, .iTerm2: awaiting,
             .appleTerminal: awaiting, .warp: awaiting,
@@ -114,7 +125,7 @@ struct ChromeGlyphAdvanceTests {
 
     @Test("Every chrome glyph is a corpus row of one of the two chrome classes")
     func theSuiteHasSomethingToMeasure() {
-        #expect(Self.chromeRows.count == 36, "\(Self.chromeRows.count) chrome rows")
+        #expect(Self.chromeRows.count == 44, "\(Self.chromeRows.count) chrome rows")
     }
 
     /// The probes measure the corpus and nothing else (`advance_probe.py`'s

@@ -217,6 +217,15 @@ package enum TerminalWidthCorpus {
         // The drop-operation badges a drag's preview wears (decisions B10), added 2026-10-13.
         Entry(id: "chrome_drop_link", category: "chrome_glyph", text: "\u{2197}"),  // ↗ DropOperation.alias — EAW Ambiguous
         Entry(id: "chrome_drop_forbidden", category: "chrome_glyph", text: "\u{2298}"),  // ⊘ DropOperation.forbidden
+        // A bordered button's face at each control size and border shape (ButtonFaceEdges), added 2026-10-15.
+        Entry(id: "chrome_eighth_right", category: "chrome_glyph", text: "\u{2595}"),  // ▕ a rounded-rectangle button's leading edge — EAW Ambiguous
+        Entry(id: "chrome_eighth_left", category: "chrome_glyph", text: "\u{258F}"),  // ▏ a rounded-rectangle button's trailing edge — EAW Ambiguous
+        Entry(id: "chrome_lower_half", category: "chrome_glyph", text: "\u{2584}"),  // ▄ a three-row button's top edge — EAW Ambiguous
+        Entry(id: "chrome_upper_half", category: "chrome_glyph", text: "\u{2580}"),  // ▀ a three-row button's bottom edge — EAW Ambiguous
+        Entry(id: "chrome_quadrant_lower_right", category: "chrome_glyph", text: "\u{2597}"),  // ▗ a three-row button's top-leading corner
+        Entry(id: "chrome_quadrant_lower_left", category: "chrome_glyph", text: "\u{2596}"),  // ▖ a three-row button's top-trailing corner
+        Entry(id: "chrome_quadrant_upper_right", category: "chrome_glyph", text: "\u{259D}"),  // ▝ a three-row button's bottom-leading corner
+        Entry(id: "chrome_quadrant_upper_left", category: "chrome_glyph", text: "\u{2598}"),  // ▘ a three-row button's bottom-trailing corner
     ]
 
     /// Entries of one category.

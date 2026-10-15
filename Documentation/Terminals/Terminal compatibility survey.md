@@ -682,6 +682,39 @@ names nothing, and a user can set it to anything. An `LC_TERMINAL` naming a
 terminal with no model here falls through to `TERM` rather than blocking it:
 it did not name *this* host, so it has nothing to outrank.
 
+### A button's face at each control size — advance measured 2026-10-15
+
+Since 2026-10-15 a bordered button's face follows `ControlSize` and
+`ButtonBorderShape` (`ButtonFaceEdges.swift`): a rounded rectangle ends in the
+one-eighth blocks `▕ … ▏` instead of the half-block caps, and a `.large` or
+`.extraLarge` face is three rows, ringed above and below by half blocks met by
+quadrant corners (`▗▄▄▖` / `▐ … ▌` / `▝▀▀▘` for the rounded rectangle; a
+capsule's ring stops a cell short of each corner). The ring breathes with the
+caps, so a glyph that advanced two cells would shear the row it is drawn on and
+every run replayed over it.
+
+| Glyph | Codepoint | Where | East Asian Width | Corpus row |
+|---|---|---|---|---|
+| `▕` | U+2595 | a rounded rectangle's leading edge | **Ambiguous** | `chrome_eighth_right` |
+| `▏` | U+258F | a rounded rectangle's trailing edge | **Ambiguous** | `chrome_eighth_left` |
+| `▄` | U+2584 | a three-row face's top edge | **Ambiguous** | `chrome_lower_half` |
+| `▀` | U+2580 | a three-row face's bottom edge | **Ambiguous** | `chrome_upper_half` |
+| `▗` `▖` | U+2597, U+2596 | a rounded rectangle's top corners | Neutral | `chrome_quadrant_lower_right`, `chrome_quadrant_lower_left` |
+| `▝` `▘` | U+259D, U+2598 | its bottom corners | Neutral | `chrome_quadrant_upper_right`, `chrome_quadrant_upper_left` |
+
+**Advance measured with `advance_probe.py`**, its battery extended by the eight
+rows, run in each host from a `.command` file on the primary screen, on macOS
+15.8.1: **one cell for all eight** on Apple Terminal 455.1, iTerm2 3.7.4
+(ambiguous narrow, the default), Warp v0.2026.09.30.08.29 and tmux 3.7c (its own
+grid). Ghostty is **UNMEASURED**: it asks once per new script path before
+running one, and nobody was there to answer. The four Ambiguous rows join the
+borders' class (two cells where a host draws ambiguous characters wide, which
+TUIkit answers with autowrap off); the quadrants are Neutral. Ink is
+**UNMEASURED** on every host (`overhang_card.py` draws the rows; a person reads
+it). As on 2026-10-13 the records were not rewritten, so the rows wait in
+`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` and the ledger's
+`awaitingLandingMeasurement`.
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027

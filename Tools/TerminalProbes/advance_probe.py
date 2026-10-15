@@ -246,6 +246,17 @@ BATTERY.update({
     # operation (decisions B10). `+` is ASCII; these two are not.
     "chrome_drop_link": "\u2197",  # ↗ DropOperation.alias — EAW Ambiguous
     "chrome_drop_forbidden": "\u2298",  # ⊘ DropOperation.forbidden — EAW Neutral
+    # Added 2026-10-15: a bordered button's face at each control size and
+    # border shape (ButtonFaceEdges) — the rounded rectangle's eighth-block
+    # edges, and the half blocks and quadrants of a three-row face's ring.
+    "chrome_eighth_right": "\u2595",  # ▕ — EAW Ambiguous
+    "chrome_eighth_left": "\u258F",  # ▏ — EAW Ambiguous
+    "chrome_lower_half": "\u2584",  # ▄ — EAW Ambiguous
+    "chrome_upper_half": "\u2580",  # ▀ — EAW Ambiguous
+    "chrome_quadrant_lower_right": "\u2597",  # ▗ — EAW Neutral
+    "chrome_quadrant_lower_left": "\u2596",  # ▖ — EAW Neutral
+    "chrome_quadrant_upper_right": "\u259D",  # ▝ — EAW Neutral
+    "chrome_quadrant_upper_left": "\u2598",  # ▘ — EAW Neutral
 })
 
 def cursor_col(fd):

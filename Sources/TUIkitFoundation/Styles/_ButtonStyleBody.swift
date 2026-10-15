@@ -17,11 +17,32 @@ struct _ButtonStyleBody: View, Renderable {
     /// The resolved visual parameters to draw with.
     let appearance: _ButtonAppearance
 
+    /// Whether ``appearance`` is already at the control size and border shape
+    /// in force (``sized(in:)``), so a second resolve leaves it as it is.
+    var isSized = false
+
     var body: Never {
         fatalError("_ButtonStyleBody renders via Renderable")
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        sized(in: context).draw(context: context)
+    }
+
+    /// This body with its appearance at the ``ControlSize`` and
+    /// ``ButtonBorderShape`` in force under `context` — read here, at the one
+    /// place a measure and a render both pass, so the two cannot disagree.
+    private func sized(in context: RenderContext) -> Self {
+        // A plain appearance has no face to size: no environment read for it.
+        guard !isSized, !appearance.isPlain else { return self }
+        let environment = context.environment
+        return Self(
+            configuration: configuration,
+            appearance: appearance.sized(environment.controlSize, shape: environment.buttonBorderShape),
+            isSized: true)
+    }
+
+    private func draw(context: RenderContext) -> FrameBuffer {
         // A `@ViewBuilder` label renders via view composition, preserving its own
         // styling; plain string labels keep the procedural path below unchanged.
         if let labelView = configuration.labelView {
@@ -131,6 +152,12 @@ struct _ButtonStyleBody: View, Renderable {
             labelFg = isHovered ? palette.hoveredLabel(ink) : ink
         }
 
+        let bold = context.environment.legibilityWeight.applied(bold: isBold && !isDisabled, faint: false).bold
+        // A face with no caps (`.mini`) shows the focus in its label, as a link does.
+        guard let capGlyphs = appearance.edges.caps else {
+            return Self.capless(paddedLabel, label: labelFg, face: buttonBg, bold: bold, context: context, focused: isFocused && !isDisabled)
+        }
+
         // Caps match the background normally, pulsing to accent when focused —
         // as a whole cycle, so the run loop can breathe those two cells without
         // re-rendering the screen. On a face the terminal decides they rest in
@@ -149,11 +176,9 @@ struct _ButtonStyleBody: View, Renderable {
         // `colorize` each derived the identical sequence twice per button per
         // render. Wrapped as `colorize` wraps (`ANSIRenderer.wrap` is what
         // `render` returns), so the bytes are the same.
-        var capStyle = TextStyle()
-        capStyle.foregroundColor = caps.colorNow
-        let capSequence = ANSIRenderer.styleSequence(for: capStyle)
-        let openCap = ANSIRenderer.wrap(String(TerminalSymbols.openCap), in: capSequence)
-        let closeCap = ANSIRenderer.wrap(String(TerminalSymbols.closeCap), in: capSequence)
+        let capSequence = Self.capSequence(caps)
+        let openCap = ANSIRenderer.wrap(String(capGlyphs.open), in: capSequence)
+        let closeCap = ANSIRenderer.wrap(String(capGlyphs.close), in: capSequence)
         // The label's ink is not: `labelFg` is the app author's cascade colour
         // where there is one, left unfloored on purpose, or a palette slot through
         // `ensuringRenderedContrast`, a re-spelling that carries its alpha (§28).
@@ -163,7 +188,7 @@ struct _ButtonStyleBody: View, Renderable {
             foreground: labelFg.opaqueSpelling,
             background: buttonBg.opaqueSpelling,
             // A tier heavier under a bold legibility weight, as every label is.
-            bold: context.environment.legibilityWeight.applied(bold: isBold && !isDisabled, faint: false).bold
+            bold: bold
         )
 
         var buffer = FrameBuffer(lines: [openCap + styledLabel + closeCap])
@@ -177,10 +202,11 @@ struct _ButtonStyleBody: View, Renderable {
             buffer.opacityRegions.append(claim)
         }
         if !context.isMeasuring {
-            buffer.animatedCells = caps.runs(width: 2 + paddedLabel.strippedLength)
+            buffer.animatedCells = caps.runs(width: 2 + paddedLabel.strippedLength, caps: capGlyphs, row: 0)
         }
-        return buffer
+        return Self.ringed(buffer, edges: appearance.edges, caps: caps, context: context)
     }
+
     /// What the string-label path resolved before it chose a variant: the state and
     /// the colours the plain arm draws from.
     ///
@@ -461,9 +487,35 @@ struct _ButtonStyleBody: View, Renderable {
             return buffer
         }
 
+        // A face with no caps (`.mini`): the label breathes, as a link's does.
+        if appearance.edges.caps == nil {
+            return caplessViewLabel(labelView, ink: ink, context: context)
+        }
+
         // Standard: half-block caps around the background-tinted, padded label.
         let row = standardRow(labelView, ink: ink, context: context)
         return drawStandardRow(row.view, caps: row.caps, context: context)
+    }
+
+    /// A `.mini` face around a `@ViewBuilder` label: the label padded on the
+    /// face, breathing while the button holds the focus. See
+    /// ``capless(_:label:face:bold:context:focused:)``.
+    private func caplessViewLabel(_ labelView: AnyView, ink: ViewLabelInk, context: RenderContext) -> FrameBuffer {
+        let focused = configuration.isFocused && configuration.isEnabled
+        let ends = BorderRenderer.breathEnds(from: ink.label, on: ink.face)
+        return BreathingLabel.draw(
+            ends: ends, cycle: context.environment.selectionEmphasis.cycle(focused),
+            indicating: focused, isMeasuring: context.isMeasuring
+        ) { colour in
+            TUIkitView.renderToBuffer(
+                HStack(spacing: 0) {
+                    centred(labelView, fills: context.environment.buttonSizing.fills)
+                        .breathingForegroundStyle(colour, holdingPicturesAt: ends.bright)
+                        .padding(.horizontal, appearance.horizontalPadding)
+                        .background(ink.face)
+                },
+                context: context)
+        }
     }
 
     /// The standard variant's row for a `@ViewBuilder` label in `ink`, and the
@@ -488,7 +540,13 @@ struct _ButtonStyleBody: View, Renderable {
         _ row: Row, caps: ButtonCapCycle, context: RenderContext
     ) -> FrameBuffer {
         var buffer = TUIkitView.renderToBuffer(row, context: context)
-        guard !context.isMeasuring, caps.isAnimating else { return buffer }
+        if !context.isMeasuring, caps.isAnimating { handCapsOver(&buffer, caps: caps, context: context) }
+        return Self.ringed(buffer, edges: appearance.edges, caps: caps, context: context)
+    }
+
+    /// Hands a drawn row's caps' breath to the run loop: as runs on a one-row
+    /// face, and otherwise by saying the frame consulted the clock.
+    private func handCapsOver(_ buffer: inout FrameBuffer, caps: ButtonCapCycle, context: RenderContext) {
 
         // A run has to name the row it sits on, and these caps are single-line
         // `Text`s that the HStack centres against whatever height the label
@@ -496,12 +554,11 @@ struct _ButtonStyleBody: View, Renderable {
         // taller label (rare, and never from the string path) keeps the old
         // cost: say the frame consulted the clock, and the loop goes on
         // rendering every tick exactly as it does today.
-        if buffer.lines.count == 1 {
-            buffer.animatedCells += caps.runs(width: buffer.lines[0].strippedLength)
+        if buffer.lines.count == 1, let capGlyphs = appearance.edges.caps {
+            buffer.animatedCells += caps.runs(width: buffer.lines[0].strippedLength, caps: capGlyphs, row: 0)
         } else {
             context.environment.volatileReadTracker?.recordVolatileRead()
         }
-        return buffer
     }
 
     /// Where a plain variant draws a `@ViewBuilder` label, and at what width.
@@ -532,13 +589,15 @@ struct _ButtonStyleBody: View, Renderable {
     private func standardRow(
         _ labelView: AnyView, caps: Color, label: Color, face: Color, fills: Bool
     ) -> some View {
-        HStack(spacing: 0) {
-            Text(String(TerminalSymbols.openCap)).foregroundStyle(caps)
+        // Only a face with caps is drawn here (``renderViewLabel(_:context:)``).
+        let glyphs = appearance.edges.caps ?? (TerminalSymbols.openCap, TerminalSymbols.closeCap)
+        return HStack(spacing: 0) {
+            Text(String(glyphs.open)).foregroundStyle(caps)
             centred(labelView, fills: fills)
                 .foregroundStyle(label)
                 .padding(.horizontal, appearance.horizontalPadding)
                 .background(face)
-            Text(String(TerminalSymbols.closeCap)).foregroundStyle(caps)
+            Text(String(glyphs.close)).foregroundStyle(caps)
         }
     }
 
@@ -582,8 +641,8 @@ struct _ButtonStyleBody: View, Renderable {
             // aligned), unless the variant marks focus in the label instead.
             ? (appearance.indicatesFocusInLabel ? 0 : BorderRenderer.focusIndicatorWidth)
                 + 2 * appearance.horizontalPadding
-            // `▐ … ▌` end caps plus the padding either side.
-            : 2 + 2 * appearance.horizontalPadding
+            // The end caps (none at `.mini`) plus the padding either side.
+            : appearance.edges.capsWidth + 2 * appearance.horizontalPadding
     }
 
     /// `padded` centred in the width a flexible button fills — everything it is
@@ -633,6 +692,11 @@ extension _ButtonStyleBody: Layoutable {
     /// than that is not filling it, keeps the answer it always had, and pays
     /// for no second measure.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        sized(in: context).measure(proposal: proposal, context: context)
+    }
+
+    /// ``sizeThatFits(proposal:context:)`` once the appearance is sized.
+    private func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         if let labelView = configuration.labelView {
             return viewLabelSize(labelView, proposal: proposal, context: context)
         }
@@ -640,11 +704,12 @@ extension _ButtonStyleBody: Layoutable {
         let label = Self.fitLabel(
             configuration.title, into: context.availableWidth, chrome: chrome)
         let natural = chrome + label.strippedLength
+        let rows = appearance.isPlain ? 1 : appearance.edges.rows
         guard !appearance.isPlain, context.environment.buttonSizing.fills else {
-            return ViewSize.fixed(natural, 1)
+            return ViewSize.fixed(natural, rows)
         }
         // A flexible button with a face fills what it is offered, and says so.
-        return ViewSize(width: max(natural, context.availableWidth), height: 1, isWidthFlexible: true)
+        return ViewSize(width: max(natural, context.availableWidth), height: rows, isWidthFlexible: true)
     }
 
     /// A `@ViewBuilder` label's button: drawn under the context
@@ -665,10 +730,11 @@ extension _ButtonStyleBody: Layoutable {
     ) -> ViewSize {
         let measureContext = fixedMeasureContext(proposal: proposal, context: context)
         let width = measureContext.availableWidth
-        if appearance.isPlain {
+        if appearance.isPlain || appearance.edges.caps == nil {
             let size = measureFixedByRendering(self, proposal: proposal, context: context)
             guard size.width >= width else { return size }
-            let labelContext = plainLabelContext(labelView, context: measureContext)
+            // A `.mini` face draws its label in the whole of its offer.
+            let labelContext = appearance.isPlain ? plainLabelContext(labelView, context: measureContext) : measureContext
             return ViewSize(
                 width: size.width, height: size.height,
                 isWidthFlexible: drawnViewFills(

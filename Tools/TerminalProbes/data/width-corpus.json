@@ -1342,6 +1342,70 @@
    "scalars": [
     "U+2298"
    ]
+  },
+  {
+   "id": "chrome_eighth_right",
+   "class": "chrome_glyph",
+   "text": "▕",
+   "scalars": [
+    "U+2595"
+   ]
+  },
+  {
+   "id": "chrome_eighth_left",
+   "class": "chrome_glyph",
+   "text": "▏",
+   "scalars": [
+    "U+258F"
+   ]
+  },
+  {
+   "id": "chrome_lower_half",
+   "class": "chrome_glyph",
+   "text": "▄",
+   "scalars": [
+    "U+2584"
+   ]
+  },
+  {
+   "id": "chrome_upper_half",
+   "class": "chrome_glyph",
+   "text": "▀",
+   "scalars": [
+    "U+2580"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_lower_right",
+   "class": "chrome_glyph",
+   "text": "▗",
+   "scalars": [
+    "U+2597"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_lower_left",
+   "class": "chrome_glyph",
+   "text": "▖",
+   "scalars": [
+    "U+2596"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_upper_right",
+   "class": "chrome_glyph",
+   "text": "▝",
+   "scalars": [
+    "U+259D"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_upper_left",
+   "class": "chrome_glyph",
+   "text": "▘",
+   "scalars": [
+    "U+2598"
+   ]
   }
  ]
 }

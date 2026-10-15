@@ -1243,6 +1243,15 @@ a bordered button of three or more rows at `.large` or `.extraLarge`, say. One
 "button chrome" table with O15, the same density axis applied to the other
 controls. Lane owed: about three and a half days.
 
+**Shipped 2026-10-15, the button half:** `ControlSize`, `\.controlSize`,
+`controlSize(_:)` and its range form, and the bordered button's table in
+`ButtonFaceEdges.swift` — no padding at `.small`, no caps at `.mini` (the label
+breathes the focus instead), three rows at `.large` and `.extraLarge` with a
+ring that breathes with the caps, one more cell of padding at `.extraLarge`.
+A face-less (plain, borderless, link) button is unchanged, as SwiftUI changes
+only its font. `ButtonToggleStyle` draws through the same body, so it follows.
+The other controls' density is owed.
+
 ### O15. `ButtonBorderShape` (+ W04 `buttonBorderShape`) — M
 
 **Possible mapping:**
@@ -1261,6 +1270,13 @@ caps, brackets and a box IS choosing a border shape.
 
 **Ruled 2026-10-12: support it as best TUIkit can**, in O14's table. Lane
 owed: about a day and a half, after O14; its `Shape` conformance after W1.
+
+**Shipped 2026-10-15 with O14's button table**, a little differently from the
+mapping above: a capsule keeps the half-block caps; a rounded rectangle ends in
+the one-eighth blocks `▕ … ▏`, and its three-row ring meets quadrant corners
+where a capsule's stops a cell short; a circle is the capsule with no padding.
+`.roundedRectangle(radius:)` is `.roundedRectangle`. The `Shape` conformance
+waits on O0 (parity-map entries say so).
 A24 rides on O0 and O15.
 
 ### O16. `TextRenderer` group: `TextRenderer`, `TextProxy`, `Text.Layout`, `Text.LayoutKey`, `TextAttribute` (+ W11 `textRenderer`, `customAttribute`) — L

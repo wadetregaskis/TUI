@@ -109,8 +109,11 @@ ruling is in the review under its item. In brief, with the ruling:
   facts about which terminals take OSC 22 were corrected).
 - **O13** `Commands`, as a menu bar. **A full menu bar**; the app header
   optional, either, both or neither.
-- **O14** `ControlSize`. **(b)**, with extra render styles per size.
-- **O15** `ButtonBorderShape`. **Support it.**
+- **O14** `ControlSize`. **(b)**, with extra render styles per size. The
+  type, the environment value, both modifiers and the button's table shipped
+  2026-10-15 (`ButtonFaceEdges.swift`); the other controls are owed.
+- **O15** `ButtonBorderShape`. **Support it.** Shipped 2026-10-15 in O14's
+  table, without the `Shape` conformance, which waits on O0.
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.
   **Defer.**
 - **O17** The toolbar's `.title` and `.search` items. **Do them.** Shipped

@@ -124,20 +124,39 @@ package struct ButtonCapCycle {
     /// describes.
     @MainActor
     package func runs(width: Int) -> [AnimatedCellRun] {
+        runs(width: width, caps: (TerminalSymbols.openCap, TerminalSymbols.closeCap), row: 0)
+    }
+
+    /// The runs for caps `caps` at either end of row `row` of a button `width`
+    /// cells wide — a shape's own glyphs (``ButtonFaceEdges``), on the middle
+    /// row of a three-row face.
+    @MainActor
+    func runs(width: Int, caps: (open: Character, close: Character), row: Int) -> [AnimatedCellRun] {
         guard isAnimating, width >= 2 else { return [] }
         // ONE breath spent on both caps. Asking `cycle.run(dim:bright:…)` twice
         // would build the same pulse ramp twice — the two caps are the same
         // colours at opposite ends of the same row, never two animations.
         return [
-            run(TerminalSymbols.openCap, colors: breath, offsetX: 0),
-            run(TerminalSymbols.closeCap, colors: breath, offsetX: width - 1),
+            run(String(caps.open), colors: breath, offsetX: 0, row: row),
+            run(String(caps.close), colors: breath, offsetX: width - 1, row: row),
+        ].compactMap { $0 }
+    }
+
+    /// The runs for the ring of a three-row face: its row above, at row 0, and
+    /// its row below, at `bottomRow`, each one run the width of the face.
+    @MainActor
+    func ringRuns(_ ring: ButtonFaceEdges.Ring, width: Int, bottomRow: Int) -> [AnimatedCellRun] {
+        guard isAnimating, width >= 2 else { return [] }
+        return [
+            run(ring.top(width: width), colors: breath, offsetX: 0, row: 0),
+            run(ring.bottom(width: width), colors: breath, offsetX: 0, row: bottomRow),
         ].compactMap { $0 }
     }
 
     @MainActor
-    private func run(_ cap: Character, colors: [Color], offsetX: Int) -> AnimatedCellRun? {
-        cycle.run(colors: colors, offsetX: offsetX, offsetY: 0) {
-            ANSIRenderer.colorize(String(cap), foreground: $0)
+    private func run(_ cells: String, colors: [Color], offsetX: Int, row: Int) -> AnimatedCellRun? {
+        cycle.run(colors: colors, offsetX: offsetX, offsetY: row) {
+            ANSIRenderer.colorize(cells, foreground: $0)
         }
     }
 }
