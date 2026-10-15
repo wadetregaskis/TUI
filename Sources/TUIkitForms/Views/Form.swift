@@ -20,7 +20,7 @@ import TUIkitFoundation
 /// - ``FormStyle/grouped`` — each ``Section`` drawn as a bordered group, and
 ///   each field row spread across it as SwiftUI's are: the label at the leading
 ///   edge, a fixed value at the trailing edge, a field or a slider from 45% of
-///   the row.
+///   the row, and a toggle's checkbox at the trailing edge, its label leading.
 ///
 /// Row kinds follow macOS conventions:
 ///
@@ -30,6 +30,8 @@ import TUIkitFoundation
 ///   used directly (with its own label) sits in the control column, box first,
 ///   and the **whole control (box, gap, and label) is clickable** — so don't wrap
 ///   it in `LabeledContent` unless you want a separate field label to its left.
+///   In a grouped form a `Toggle`'s label leads the row and its checkbox trails
+///   it, as SwiftUI's does; there the box takes the click.
 /// - **Buttons** — a `Button` is right-aligned (macOS places confirmation buttons
 ///   on the right).
 ///
@@ -67,8 +69,9 @@ enum _FormRowKind {
     /// A field: right-aligned pillar label + a control/value left-aligned after it.
     case field(label: AnyView, content: AnyView)
     /// A self-labelled control (checkbox/radio): box-first, in the control column,
-    /// with its own (clickable) label.
-    case control(AnyView)
+    /// with its own (clickable) label — or in a grouped form, where it has a
+    /// label to move (`parts`), its label leading and the control trailing.
+    case control(AnyView, parts: (label: AnyView, control: AnyView)?)
     /// A push button: right-aligned to the form's content width.
     case button(AnyView)
     /// Anything else: a full-width row.
@@ -204,12 +207,31 @@ private func baseRowView(_ kind: _FormRowKind, pillar: Int) -> some View {
     switch kind {
     case .field(let label, let content):
         _FormFieldRow(label: label, content: content, pillar: pillar)
-    case .control(let view):
-        view.padding(.leading, controlIndent(pillar: pillar))
+    case .control(let view, let parts):
+        _FormControlRowView(view: view, parts: parts, indent: controlIndent(pillar: pillar))
     case .button(let view):
         view
     case .plain(let view):
         view
+    }
+}
+
+/// A self-labelled control's row: in the control column, box first — or in a
+/// grouped form, its label at the leading edge and the control at the
+/// trailing one, as a `LabeledContent`'s row is laid out there
+/// (`_GroupedLabeledRow`), the way SwiftUI's grouped form lays out a toggle.
+private struct _FormControlRowView: View {
+    let view: AnyView
+    let parts: (label: AnyView, control: AnyView)?
+    let indent: Int
+    @Environment(\.labeledContentPlacement) private var placement
+
+    var body: some View {
+        if placement == .groupedFormRow, let parts {
+            _GroupedLabeledRow(label: parts.label, content: parts.control)
+        } else {
+            view.padding(.leading, indent)
+        }
     }
 }
 

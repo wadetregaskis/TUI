@@ -40,6 +40,38 @@ struct FormGroupedRowTests {
         }
     }
 
+    @Test("A toggle's label leads the row and its checkbox trails it, as SwiftUI's grouped form lays it out")
+    func toggleBoxTrails() throws {
+        let drawn = lines(
+            Form {
+                LabeledContent("Name", value: "Alice")
+                Toggle("Notifications", isOn: .constant(true))
+            }
+            .formStyle(.grouped))
+        let row = try #require(drawn.first { $0.contains("Notifications") }, "drawn: \(drawn)")
+        let name = try #require(drawn.first { $0.contains("Name") })
+        #expect(row.hasPrefix("Notifications"), "the label leads: \(row.debugDescription)")
+        let box = row.trimmingCharacters(in: .whitespaces).dropFirst("Notifications".count)
+            .trimmingCharacters(in: .whitespaces)
+        #expect(!box.isEmpty, "a checkbox after the label: \(row.debugDescription)")
+        #expect(
+            row.trimmingCharacters(in: .whitespaces).count == name.trimmingCharacters(in: .whitespaces).count,
+            "the checkbox ends where the value does, at the trailing edge:\n\(name)\n\(row)")
+    }
+
+    @Test("In a columns form a toggle keeps its box first, in the control column")
+    func columnsToggleBoxLeads() throws {
+        let drawn = lines(
+            Form {
+                LabeledContent("Name", value: "Alice")
+                Toggle("Notifications", isOn: .constant(true))
+            }
+            .formStyle(.columns))
+        let row = try #require(drawn.first { $0.contains("Notifications") }, "drawn: \(drawn)")
+        let trimmed = row.trimmingCharacters(in: .whitespaces)
+        #expect(!trimmed.hasPrefix("Notifications") && trimmed.hasSuffix("Notifications"), "\(row.debugDescription)")
+    }
+
     @Test("A fixed value sits at the trailing edge, the label at the leading one")
     func fixedValueTrails() throws {
         let drawn = lines(Rows(label: "Email"))

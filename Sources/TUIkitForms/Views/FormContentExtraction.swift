@@ -61,8 +61,8 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     if let extractor = view as? FormContentExtractor {
         return extractor.extractFormElements(in: walk)
     }
-    if view is FormControlRow {
-        return [.row(_FormRow(.control(AnyView(view))))]
+    if let control = view as? FormControlRow {
+        return [.row(_FormRow(.control(AnyView(view), parts: control.groupedFormRowParts)))]
     }
     if view is FormButtonRow {
         return [.row(_FormRow(.button(AnyView(view))))]
