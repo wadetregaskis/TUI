@@ -1003,13 +1003,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   none of `.identity`, `.opacity` and `.interpolate` (measured, A40).
 - **TUIkit:** the change is drawn at once unless `.contentTransition(_:)` is
   written above it (A4).
-- **Why:** a default dissolve makes every `Text` drawn under an animation
-  compare its lines with the last frame's and keep a drawing in state; that
-  cost in the hottest view has not been measured.
-- **Decided:** [A40](<Decisions/SwiftUI API completion decisions.md#a40-should-a-content-change-dissolve-by-default-under-an-animation>). **Under review**: the owner leaned towards
-  dissolving by default unless it costs when nothing animates (2026-10-04),
-  and on 2026-10-05 it was agreed to A/B it and dissolve by default if that
-  costs under about 1%. The A/B is owed.
+- **Why:** a default dissolve makes every `Text` keep its last drawing in
+  state, whether or not anything animates: measured on 2026-10-15 at up to
+  +500% a frame (`fanout`), +69% on `textwall`, +13.5% on `menus`.
+- **Decided:** [A40](<Decisions/SwiftUI API completion decisions.md#a40-should-a-content-change-dissolve-by-default-under-an-animation>). **Owner**: agreed on 2026-10-05 to dissolve
+  by default if that cost under about 1%; measured far over it on
+  2026-10-15, so a change is drawn at once.
 
 ---
 

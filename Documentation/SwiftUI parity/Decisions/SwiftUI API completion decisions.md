@@ -44,10 +44,9 @@ that is decided and waits only on its implementation.
 **Still yours to answer.** A27 (pixel effects), A34 (the blur transition)
 and A48 (swipe actions): each entry ends in a recommendation.
 
-**Decided, waiting on a measurement.** A16's colour provider and A40's
-default dissolve each wait on an A/B on the quiet machine, whose numbers
-decide them as agreed: A40 dissolves by default if that costs under about 1%
-when nothing animates.
+**Decided, waiting on a measurement.** A16's colour provider waits on an A/B on
+the quiet machine. A40's default dissolve was measured on 2026-10-15 and, as
+agreed, not shipped: it cost far more than 1% (see A40).
 
 **Decided, lane owed.** A0's ruled O items but O1, O2, O7, O17 and O16 (deferred), and with them
 A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A38 (O3) and
@@ -637,6 +636,18 @@ each `Text` needs its previous drawing kept from before the change, which is a
 cost on every frame of every app, not only while animating; so the option is
 A/B'd first, and option 2 is adopted if that costs under about 1%. The A/B is
 owed on the quiet machine. The recommendation above predates both.
+
+**Measured on 2026-10-15: kept instant, as agreed.** A prototype (session notes
+`A40/`) kept each `Text`'s last drawing in state storage, at an identity of its
+own, and dissolved from it when its glyphs changed under an animation (a change
+of colour alone left to the colour's animation). It passed the suite and cost,
+warm, with nothing animating: `fanout` +500%, `anyview` +100%, `modifiers`
++97%, `textwall` +69%, `scrollfollow` +53%, `dashboard` +40%, `menus` +13.5%;
+`table` +0.2%. The price is the record every drawn text writes — a boxed value
+in the tracked-value table, a live mark, and the pass's sweep over them — and
+any design that dissolves from the last drawing has to keep that drawing
+somewhere for every text, since nothing else keeps it. So a port that relies
+on the default cross-fade still snaps until it writes `.contentTransition(.opacity)`.
 
 ### A41. Materials wait on O5
 
