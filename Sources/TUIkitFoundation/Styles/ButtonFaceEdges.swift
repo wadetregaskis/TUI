@@ -26,6 +26,11 @@ struct ButtonFaceEdges: Equatable, Sendable {
     let caps: (open: Character, close: Character)?
     /// The rows above and below a three-row face; `nil` for a one-row face.
     let ring: Ring?
+    /// Whether the face is drawn in lines alone, with no field under the
+    /// label: a rounded rectangle's. Its caps and ring are drawn in the
+    /// lines' ink on the surface, and the lines and the label breathe the
+    /// focus together (``_ButtonStyleBody/breathingOutline(focused:lines:label:context:draw:)``).
+    var isOutline = false
 
     /// The rows above and below a three-row face, and how its caps are drawn.
     enum Ring: Equatable, Sendable {
@@ -41,10 +46,14 @@ struct ButtonFaceEdges: Equatable, Sendable {
         /// the caps included: what a terminal that draws those glyphs short
         /// of the line gets for either (``EnvironmentValues/blockElementsFillTheLine``).
         case plainRows
+        /// A box of rounded corners and lines, `╭──╮` / `│ … │` / `╰──╯`,
+        /// round an outline face: a rounded rectangle's.
+        case roundedBox
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.caps?.open == rhs.caps?.open && lhs.caps?.close == rhs.caps?.close && lhs.ring == rhs.ring
+            && lhs.isOutline == rhs.isOutline
     }
 
     /// The cells the caps take, both together.
@@ -57,9 +66,16 @@ struct ButtonFaceEdges: Equatable, Sendable {
     /// and every bordered button TUIkit has drawn.
     static let capsule = Self(caps: (TerminalSymbols.openCap, TerminalSymbols.closeCap), ring: nil)
 
-    /// The one-eighth edges, `▕ … ▏`, which square the face's ends: a
-    /// rounded rectangle.
-    static let roundedRectangle = Self(caps: ("\u{2595}", "\u{258F}"), ring: nil)
+    /// Parentheses round the label and no field, `( … )`: a rounded
+    /// rectangle one row tall, drawn in lines.
+    static let roundedRectangle = Self(caps: ("(", ")"), ring: nil, isOutline: true)
+
+    /// A rounded box round the label and no field: a rounded rectangle three
+    /// rows tall, drawn in lines.
+    static let tallRoundedRectangle = Self(caps: ("\u{2502}", "\u{2502}"), ring: .roundedBox, isOutline: true)
+
+    /// No caps and no field: a `.mini` rounded rectangle, its label alone.
+    static let bareOutline = Self(caps: nil, ring: nil, isOutline: true)
 
     /// No caps: the face ends where its label does.
     static let none = Self(caps: nil, ring: nil)
@@ -83,9 +99,12 @@ extension _ButtonAppearance {
     /// | `.large`      | 3    | half-block ring | the style's |
     /// | `.extraLarge` | 3    | rows of the face (a capsule's) | the style's + 1 |
     ///
-    /// A `.circle` has no padding at any size. Where the terminal draws Block
-    /// Elements short of the line (Apple Terminal), a three-row face is three
-    /// plain rows of the face (``ButtonFaceEdges/Ring/plainRows``).
+    /// A rounded rectangle has no field, at any size: its edges are lines —
+    /// parentheses on one row, a rounded box on three — and at `.mini` it is
+    /// its label alone. A `.circle` has no padding at any size. Where the
+    /// terminal draws Block Elements short of the line (Apple Terminal), a
+    /// capsule's three-row face is three plain rows of the face
+    /// (``ButtonFaceEdges/Ring/plainRows``).
     func sized(_ size: ControlSize, shape: ButtonBorderShape, blockElementsFillTheLine: Bool) -> Self {
         guard !isPlain else { return self }
         var sized = self
@@ -96,17 +115,17 @@ extension _ButtonAppearance {
         switch size {
         case .mini:
             sized.horizontalPadding = 0
-            sized.edges = .none
+            sized.edges = square ? .bareOutline : .none
         case .small:
             sized.horizontalPadding = 0
             sized.edges = square ? .roundedRectangle : .capsule
         case .regular:
             sized.edges = square ? .roundedRectangle : .capsule
         case .large:
-            sized.edges = tall(.halfBlocks)
+            sized.edges = square ? .tallRoundedRectangle : tall(.halfBlocks)
         case .extraLarge:
             sized.horizontalPadding += 1
-            sized.edges = tall(square ? .halfBlocks : .faceRows)
+            sized.edges = square ? .tallRoundedRectangle : tall(.faceRows)
         }
         if shape.kind == .circle { sized.horizontalPadding = 0 }
         return sized
@@ -196,6 +215,73 @@ extension _ButtonStyleBody {
                 offsetX: 0, offsetY: row, width: first.strippedLength,
                 frames: rowFrames, frameTicks: cycle.frameTicks, clock: cycle.clock)
         }
+        return buffer
+    }
+
+    /// An outline face drawn whole — `draw(lines, label)` — its lines and its
+    /// label breathing together to the accent while `focused`, each from its
+    /// own resting colour; drawn once per step of the breath and handed to the
+    /// run loop a row at a time, as ``breathingFace(focused:face:context:draw:)``
+    /// is.
+    @MainActor
+    static func breathingOutline(
+        focused: Bool, lines: Color, label: Color, context: RenderContext, draw: (Color, Color) -> FrameBuffer
+    ) -> FrameBuffer {
+        let palette = context.environment.palette
+        let cycle = context.environment.selectionEmphasis.cycle(focused)
+        let accent = palette.accent.spendingAlpha(over: context.environment.enclosingSurface)
+        let lineBreath = focused ? cycle.colors(dim: lines, bright: accent) : []
+        let labelBreath = focused ? cycle.colors(dim: label, bright: accent) : []
+        let step = lineBreath.isEmpty ? 0 : cycle.step % lineBreath.count
+        var buffer =
+            lineBreath.isEmpty ? draw(lines, label) : draw(lineBreath[step], labelBreath[step % labelBreath.count])
+        guard !context.isMeasuring, lineBreath.count > 1, labelBreath.count == lineBreath.count,
+            cycle.isAnimating
+        else { return buffer }
+        let framed = zip(lineBreath, labelBreath).map { draw($0, $1).lines }
+        buffer.animatedCells += buffer.lines.indices.compactMap { row in
+            let rowFrames = framed.compactMap { row < $0.count ? $0[row] : nil }
+            guard rowFrames.count == framed.count, let first = rowFrames.first else { return nil }
+            return AnimatedCellRun(
+                offsetX: 0, offsetY: row, width: first.strippedLength,
+                frames: rowFrames, frameTicks: cycle.frameTicks, clock: cycle.clock)
+        }
+        return buffer
+    }
+
+    /// The ink an outline face's lines rest in: the border's, held visible on
+    /// the surface at the colours the terminal can show
+    /// (``ViewConstants/buttonOutlineContrastFloor``); lifted to the secondary
+    /// ink under the pointer, and faded with the label while disabled.
+    static func outlineInk(palette: any Palette, surface: Color, hovered: Bool, disabled: Bool) -> Color {
+        if disabled {
+            return palette.foregroundTertiary
+                .opacity(ViewConstants.disabledForeground, over: palette.background)
+                .spendingAlpha(over: surface)
+        }
+        if hovered { return palette.foregroundSecondary.resolve(with: palette).spendingAlpha(over: surface) }
+        return palette.border.resolve(with: palette).spendingAlpha(over: surface)
+            .ensuringRenderedContrast(atLeast: ViewConstants.buttonOutlineContrastFloor, against: surface)
+    }
+
+    /// The rows of a box round an outline face `width` cells wide, its caps
+    /// included, in `lines`: above (`top`) or below.
+    static func outlineBox(top: Bool, width: Int, lines: Color) -> String {
+        let corners: (Character, Character) = top ? ("\u{256D}", "\u{256E}") : ("\u{2570}", "\u{256F}")
+        guard width >= 2 else { return String(repeating: " ", count: max(0, width)) }
+        return ANSIRenderer.colorize(
+            String(corners.0) + String(repeating: "\u{2500}", count: width - 2) + String(corners.1),
+            foreground: lines)
+    }
+
+    /// An outline face round `middle`, its label's row: the box's rows above
+    /// and below it where the edges have a ring, and `middle` as it is where
+    /// they have none.
+    static func outline(around middle: FrameBuffer, edges: ButtonFaceEdges, lines: Color) -> FrameBuffer {
+        guard edges.ring != nil else { return middle }
+        var buffer = FrameBuffer(lines: [outlineBox(top: true, width: middle.width, lines: lines)])
+        buffer.appendVertically(middle)
+        buffer.appendVertically(FrameBuffer(lines: [outlineBox(top: false, width: middle.width, lines: lines)]))
         return buffer
     }
 

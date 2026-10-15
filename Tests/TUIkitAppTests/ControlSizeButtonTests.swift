@@ -63,10 +63,10 @@ struct ControlSizeButtonTests {
         "A bordered button at each size, as a rounded rectangle",
         arguments: [
             (ControlSize.mini, ["OK"]),
-            (.small, ["▕OK▏"]),
-            (.regular, ["▕ OK ▏"]),
-            (.large, ["▗▄▄▄▄▖", "▐ OK ▌", "▝▀▀▀▀▘"]),
-            (.extraLarge, ["▗▄▄▄▄▄▄▖", "▐  OK  ▌", "▝▀▀▀▀▀▀▘"]),
+            (.small, ["(OK)"]),
+            (.regular, ["( OK )"]),
+            (.large, ["╭────╮", "│ OK │", "╰────╯"]),
+            (.extraLarge, ["╭──────╮", "│  OK  │", "╰──────╯"]),
         ])
     func roundedRectangle(size: ControlSize, expected: [String]) {
         for button in buttons(size, .roundedRectangle) {
@@ -183,5 +183,39 @@ struct ControlSizeButtonTests {
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context) }
         #expect(!buffer.animatedCells.isEmpty)
         #expect(buffer.animatedCells.allSatisfy { $0.offsetY == 0 && $0.width == 2 })
+    }
+
+    @Test("A rounded rectangle has no field at any size, only lines", arguments: ControlSize.allCases, [false, true])
+    func outlineHasNoField(size: ControlSize, viewLabel: Bool) {
+        let button = viewLabel
+            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(size).buttonBorderShape(.roundedRectangle))
+            : AnyView(Button("OK") {}.controlSize(size).buttonBorderShape(.roundedRectangle))
+        let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context()).lines }
+        // No background is painted anywhere: no SGR 48 (nor 49's explicit reset is needed).
+        #expect(!lines.joined().contains("[48;"), "\(lines)")
+    }
+
+    @Test("A rounded rectangle's lines show at rest on every shipped palette, at 256 colours too")
+    func outlineLinesShowAtRest() {
+        for palette in PaletteRegistry.phosphorPresets + PaletteRegistry.appleTerminalProfiles {
+            let page = palette.background.resolve(with: palette)
+            let ink = _ButtonStyleBody.outlineInk(palette: palette, surface: page, hovered: false, disabled: false)
+            let ratio = ink.downsampledToPalette256().contrastRatio(against: page.downsampledToPalette256())
+            #expect(ratio >= ViewConstants.buttonOutlineContrastFloor - 0.01, "\(palette.name): \(ratio)")
+        }
+    }
+
+    @Test(
+        "A focused rounded rectangle breathes its lines and its label together",
+        arguments: [ControlSize.regular, .large], [false, true])
+    func outlineBreathes(size: ControlSize, viewLabel: Bool) {
+        let context = makeRenderContext(width: 40, height: 6)
+        let button = viewLabel
+            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(size).buttonBorderShape(.roundedRectangle))
+            : AnyView(Button("OK") {}.controlSize(size).buttonBorderShape(.roundedRectangle))
+        let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context) }
+        let runs = buffer.animatedCells.map { ($0.offsetX, $0.offsetY, $0.width) }
+        #expect(Set(buffer.animatedCells.map(\.offsetY)) == Set(0..<buffer.height), "\(runs)")
+        #expect(buffer.animatedCells.allSatisfy { $0.offsetX == 0 && $0.width == buffer.width }, "\(runs)")
     }
 }

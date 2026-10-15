@@ -736,6 +736,22 @@ background colour fills the whole cell there, which is what the survey's `█`
 note below (*Appearance.block*) leans on too. Not yet measured as pixels (an
 `overhang_card.py` page of the rows would show how far short).
 
+**A rounded rectangle is drawn in lines** since the same day: `( … )` on one
+row and `╭──╮` / `│ … │` / `╰──╯` on three, with no field, so the one-eighth
+edges `▕ ▏` above are drawn by no chrome now. **Advance measured** for the
+outline's glyphs, and for the square and bracket spellings under consideration,
+with a DSR probe run in each host from a `.command` file, macOS 15.8.1: **one
+cell each** for `( ) [ ] < >`, `╭ ╮ ╰ ╯`, `┌ ┐ └ ┘`, `─ │` and `⟨ ⟩` (U+27E8,
+U+27E9) on Apple Terminal 455.1, Ghostty 1.3.1, iTerm2 3.7.4 and Warp
+v0.2026.09.30.08.29. The box glyphs are East Asian Ambiguous, in the borders'
+class.
+
+**Enclosed glyphs, for a circular face — advance measured the same way:** one
+cell on all four hosts for `Ⓐ ⓐ ① ⑳ ⓪ ❶ ➊ ⓿ ⊕ ⊖ ⊗ ⊙ ⊛ ◉ ◯` and the SMP
+`🅐` (U+1F150). The combining enclosing circle U+20DD after a base (`A⃝`,
+`★⃝`, `+⃝`) advances **two** cells on Apple Terminal and one elsewhere. How
+each looks is not yet judged.
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027

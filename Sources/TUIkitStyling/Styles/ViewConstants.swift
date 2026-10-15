@@ -47,6 +47,17 @@ public enum ViewConstants {
     /// truecolour top.
     public static let rowBreathPeakContrastFloor: Double = 2.0
 
+    /// The least contrast a rounded-rectangle button's lines keep against the
+    /// surface they are drawn on, at rest.
+    ///
+    /// The button has no face — its lines are all there is of it — so they
+    /// must show at rest, at the colours the terminal can draw: the border's
+    /// ink, drawn without a floor, met the page on 256-colour Apple Terminal
+    /// and the button was a bare label until it took the focus (seen
+    /// 2026-10-15). Lower than ``labelContrastFloor``: a line is a shape, not
+    /// text to be read.
+    public static let buttonOutlineContrastFloor: Double = 2.0
+
     /// Background opacity for selected (but unfocused) rows.
     public static let selectedBackground: Double = 0.25
 

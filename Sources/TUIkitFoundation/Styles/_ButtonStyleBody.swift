@@ -113,7 +113,10 @@ struct _ButtonStyleBody: View, Renderable {
         // background. Hover bumps the tint slightly so the
         // affordance reads as "I am clickable" without the
         // pulsing animation that focus uses.
-        let buttonBg = isHovered ? palette.hoveredControlFace : palette.restingControlFace
+        // An outline face has no field: its label sits on the surface.
+        let buttonBg =
+            appearance.edges.isOutline ? surface
+            : isHovered ? palette.hoveredControlFace : palette.restingControlFace
 
         // Label foreground: a scoped cascade colour wins (in every state);
         // otherwise the style/role's own colour is used in every state too. A
@@ -155,6 +158,10 @@ struct _ButtonStyleBody: View, Renderable {
         }
 
         let bold = context.environment.legibilityWeight.applied(bold: isBold && !isDisabled, faint: false).bold
+        // A rounded rectangle: lines and the label, no field.
+        if appearance.edges.isOutline {
+            return outlineStringFace(paddedLabel, label: labelFg, bold: bold, context: context)
+        }
         // A face with no caps (`.mini`) shows the focus in its label, as a link does.
         guard let capGlyphs = appearance.edges.caps else {
             return Self.capless(paddedLabel, label: labelFg, face: buttonBg, bold: bold, context: context, focused: isFocused && !isDisabled)
@@ -245,6 +252,35 @@ struct _ButtonStyleBody: View, Renderable {
                 middle.opacityRegions.append(claim)
             }
             return Self.tallFace(around: middle, ring: ring, face: colour)
+        }
+    }
+
+    /// An outline face round a string label — its caps and any box in lines,
+    /// the label on the surface — the lines and the label breathing together
+    /// while the button holds the focus
+    /// (``breathingOutline(focused:lines:label:context:draw:)``).
+    @MainActor
+    private func outlineStringFace(
+        _ paddedLabel: String, label: Color, bold: Bool, context: RenderContext
+    ) -> FrameBuffer {
+        let edges = appearance.edges
+        let lines = Self.outlineInk(
+            palette: context.environment.palette, surface: context.environment.enclosingSurface,
+            hovered: configuration.isHovered, disabled: !configuration.isEnabled)
+        let labelWidth = paddedLabel.strippedLength
+        let focused = configuration.isFocused && configuration.isEnabled
+        return Self.breathingOutline(focused: focused, lines: lines, label: label, context: context) { lineInk, ink in
+            let open = edges.caps.map { ANSIRenderer.colorize(String($0.open), foreground: lineInk) } ?? ""
+            let close = edges.caps.map { ANSIRenderer.colorize(String($0.close), foreground: lineInk) } ?? ""
+            var middle = FrameBuffer(lines: [
+                open + ANSIRenderer.colorize(paddedLabel, foreground: ink.opaqueSpelling, bold: bold) + close
+            ])
+            if let claim = OpacityRegion.claim(
+                offsetX: edges.caps == nil ? 0 : 1, width: labelWidth, height: 1, ink: ink)
+            {
+                middle.opacityRegions.append(claim)
+            }
+            return Self.outline(around: middle, edges: edges, lines: lineInk)
         }
     }
 
@@ -426,7 +462,9 @@ struct _ButtonStyleBody: View, Renderable {
 
         // Computed up front so the standard path can floor its default label
         // colour against the face it sits on; the plain path ignores it.
-        let buttonBg = isHovered ? palette.hoveredControlFace : palette.restingControlFace
+        let buttonBg =
+            appearance.edges.isOutline ? surface
+            : isHovered ? palette.hoveredControlFace : palette.restingControlFace
 
         // Same rules as the string path: cascade wins untouched; framework
         // colours are floored against the face (see makeStandardBody).
@@ -543,6 +581,11 @@ struct _ButtonStyleBody: View, Renderable {
             return buffer
         }
 
+        // A rounded rectangle: lines and the label, no field.
+        if appearance.edges.isOutline {
+            return outlineViewFace(labelView, ink: ink, context: context)
+        }
+
         // A face with no caps (`.mini`): the label breathes, as a link's does.
         if appearance.edges.caps == nil {
             return caplessViewLabel(labelView, ink: ink, context: context)
@@ -578,6 +621,44 @@ struct _ButtonStyleBody: View, Renderable {
                     fills: context.environment.buttonSizing.fills),
                 context: context)
             return Self.tallFace(around: middle, ring: ring, face: colour)
+        }
+    }
+
+    /// An outline face round a `@ViewBuilder` label: ``outlineRow(_:lines:label:resting:fills:)``
+    /// with any box round it, the lines and the label breathing together while
+    /// the button holds the focus — the label drawn once per step of the
+    /// breath, as a plain button's breathing label is (``BreathingLabel``).
+    private func outlineViewFace(_ labelView: AnyView, ink: ViewLabelInk, context: RenderContext) -> FrameBuffer {
+        let lines = Self.outlineInk(
+            palette: ink.palette, surface: ink.surface, hovered: configuration.isHovered,
+            disabled: !configuration.isEnabled)
+        let focused = configuration.isFocused && configuration.isEnabled
+        let fills = context.environment.buttonSizing.fills
+        let resting = ink.label
+        return Self.breathingOutline(focused: focused, lines: lines, label: resting, context: context) { line, label in
+            let middle = TUIkitView.renderToBuffer(
+                outlineRow(labelView, lines: line, label: label, resting: resting, fills: fills),
+                context: context)
+            return Self.outline(around: middle, edges: appearance.edges, lines: line)
+        }
+    }
+
+    /// An outline face's label row for a `@ViewBuilder` label: the label,
+    /// padded, between its caps drawn in `lines` — no field. A picture in the
+    /// label keeps its `resting` ink while the glyphs breathe (``PictureInkHold``).
+    private func outlineRow(
+        _ labelView: AnyView, lines: Color, label: Color, resting: Color, fills: Bool
+    ) -> some View {
+        HStack(spacing: 0) {
+            if let caps = appearance.edges.caps {
+                Text(String(caps.open)).foregroundStyle(lines)
+            }
+            centred(labelView, fills: fills)
+                .breathingForegroundStyle(label, holdingPicturesAt: resting)
+                .padding(.horizontal, appearance.horizontalPadding)
+            if let caps = appearance.edges.caps {
+                Text(String(caps.close)).foregroundStyle(lines)
+            }
         }
     }
 
@@ -842,6 +923,19 @@ extension _ButtonStyleBody: Layoutable {
     ) -> ViewSize {
         let measureContext = fixedMeasureContext(proposal: proposal, context: context)
         let width = measureContext.availableWidth
+        if appearance.edges.isOutline {
+            let ink = viewLabelInk(context: measureContext)
+            // Clamped as `renderToBuffer` clamps a `Renderable`'s buffer.
+            let drawn = outlineViewFace(labelView, ink: ink, context: measureContext)
+                .clamped(toWidth: width, height: measureContext.availableHeight)
+            guard drawn.width >= width else { return ViewSize.fixed(drawn.width, drawn.height) }
+            let row = outlineRow(
+                labelView, lines: ink.label, label: ink.label, resting: ink.label,
+                fills: measureContext.environment.buttonSizing.fills)
+            return ViewSize(
+                width: drawn.width, height: drawn.height,
+                isWidthFlexible: drawnViewFills(row, width: width, proposal: proposal, context: measureContext))
+        }
         if appearance.isPlain || appearance.edges.caps == nil {
             let size = measureFixedByRendering(self, proposal: proposal, context: context)
             guard size.width >= width else { return size }

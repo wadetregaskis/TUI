@@ -10,12 +10,15 @@
 /// A shape used to draw a button's border — mirrors SwiftUI's
 /// `ButtonBorderShape`.
 ///
-/// A terminal draws a border in cells, so a shape is the glyphs a bordered
-/// button's face ends in: a capsule's are the half-block caps `▐ … ▌`, which
-/// round the face's ends, and a rounded rectangle's the thin one-eighth edges
-/// `▕ … ▏`, which square them. A circle is a capsule with no padding, for a
-/// button whose label is one glyph. A three-row button (``ControlSize/large``
-/// and ``ControlSize/extraLarge``) carries the shape all round its face.
+/// A terminal draws a border in cells, so a shape is how a bordered button's
+/// face is drawn. A capsule is a filled face ending in the half-block caps
+/// `▐ … ▌`, which round its ends; three rows tall (``ControlSize/large`` and
+/// ``ControlSize/extraLarge``) its rows are rounded off by quadrant corners.
+/// A rounded rectangle is drawn in lines, with no field under the label:
+/// parentheses, `( … )`, on one row, and a box with rounded corners,
+/// `╭──╮` / `│ … │` / `╰──╯`, on three; the lines show at rest, brighten under
+/// the pointer, and breathe the focus with the label. A circle is a capsule
+/// with no padding, for a button whose label is one glyph.
 ///
 /// Read by the built-in styles with a face; a plain, borderless or link
 /// button has none, and draws as it would.
