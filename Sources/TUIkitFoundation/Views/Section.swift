@@ -200,7 +200,10 @@ extension Section where Parent: View, Content: View, Footer: View, Parent == Tex
         _ titleKey: LocalizedStringKey,
         @ViewBuilder content: () -> Content
     ) {
-        self.init(titleKey.localized, content: content)
+        self.header = Text(titleKey)
+        self.content = content()
+        self.footer = EmptyView()
+        self.isExpanded = nil
     }
 
     /// Creates a section with a string title as the header, shown as written.

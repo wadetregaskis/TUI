@@ -40,7 +40,7 @@ extension Label where Title == Text, Icon == _ImageIcon {
     ///     ``LocalizedStringKey``.
     ///   - name: The name of the image resource.
     public init(_ titleKey: LocalizedStringKey, image name: String) {
-        self.init(titleKey.localized, image: name)
+        self.init(title: Text(titleKey), icon: _ImageIcon(image: Image(name)), iconIsVisible: true)
     }
 
     /// Creates a label with a title shown as written and an icon from an image
@@ -67,7 +67,10 @@ where Label == TUIkitFoundation.Label<Text, _ImageIcon>, Description == Text?, A
     ///     ``Image/init(_:bundle:)`` finds it.
     ///   - description: An optional sentence below the title.
     public init(_ title: LocalizedStringKey, image name: String, description: Text? = nil) {
-        self.init(title.localized, image: name, description: description)
+        self.init(
+            label: { TUIkitFoundation.Label(title, image: name) },
+            description: { description },
+            actions: { EmptyView() })
     }
 
     /// Creates an empty-state view with an image resource beside a title shown

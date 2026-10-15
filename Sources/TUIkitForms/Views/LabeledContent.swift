@@ -85,7 +85,8 @@ extension LabeledContent where Label == Text {
     ///   - titleKey: The key for the title shown as the label.
     ///   - content: A view builder producing the content.
     public init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) {
-        self.init(titleKey.localized, content: content)
+        self.label = Text(titleKey)
+        self.content = content()
     }
 
     /// Creates labelled content with a string title, shown as written.
@@ -111,7 +112,8 @@ extension LabeledContent where Label == Text, Content == Text {
     ///   - titleKey: The key for the title shown as the label.
     ///   - value: The value shown as the content.
     public init<S: StringProtocol>(_ titleKey: LocalizedStringKey, value: S) {
-        self.init(titleKey.localized, value: value)
+        self.label = Text(titleKey)
+        self.content = Text(String(value))
     }
 
     /// Creates labelled content with a string title, shown as written.
@@ -148,7 +150,8 @@ extension LabeledContent where Label == Text, Content == Text {
         value: F.FormatInput,
         format: F
     ) where F.FormatInput: Equatable, F.FormatOutput == String {
-        self.init(titleKey.localized, value: value, format: format)
+        self.label = Text(titleKey)
+        self.content = Text(value, format: format)
     }
 
     /// Creates labelled content with a title shown as written and a formatted

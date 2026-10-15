@@ -50,7 +50,7 @@ extension Button {
         systemImage: String,
         action: @escaping () -> Void
     ) {
-        self.init(titleKey.localized, systemImage: systemImage, action: action)
+        self.init(titleKey, systemImage: systemImage, role: nil, action: action)
     }
 
     /// Creates a button with an SF Symbol beside a title shown as written.
@@ -81,7 +81,9 @@ extension Button {
         role: ButtonRole?,
         action: @escaping () -> Void
     ) {
-        self.init(titleKey.localized, systemImage: systemImage, role: role, action: action)
+        self.init(role: role, action: action) {
+            Label(titleKey, systemImage: systemImage)
+        }
     }
 
     /// Creates a button with a role and an SF Symbol beside a title shown as
@@ -124,7 +126,9 @@ extension Toggle where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
         systemImage: String,
         isOn: Binding<Bool>
     ) {
-        self.init(titleKey.localized, systemImage: systemImage, isOn: isOn)
+        self.init(isOn: isOn) {
+            TUIkitFoundation.Label(titleKey, systemImage: systemImage)
+        }
     }
 
     /// Creates a toggle with an SF Symbol beside a label shown as written.
@@ -162,7 +166,10 @@ where Label == TUIkitFoundation.Label<Text, _SymbolIcon>, Description == Text?, 
         systemImage: String,
         description: Text? = nil
     ) {
-        self.init(titleKey.localized, systemImage: systemImage, description: description)
+        self.init(
+            label: { TUIkitFoundation.Label(titleKey, systemImage: systemImage) },
+            description: { description },
+            actions: { EmptyView() })
     }
 
     /// Creates an empty-state view with an SF Symbol beside a title shown as

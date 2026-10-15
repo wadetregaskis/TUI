@@ -479,7 +479,11 @@ extension Toggle where Label == Text {
         _ titleKey: LocalizedStringKey,
         isOn: Binding<Bool>
     ) {
-        self.init(titleKey.localized, isOn: isOn)
+        self.isOn = isOn
+        self.label = Text(titleKey)
+        self.focusID = nil
+        self.isDisabled = false
+        self.content = nil
     }
 
     /// Creates a toggle with a string label, displayed as written.

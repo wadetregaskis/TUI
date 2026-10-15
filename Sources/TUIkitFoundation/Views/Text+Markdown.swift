@@ -54,6 +54,28 @@ extension Text {
         charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%")
 }
 
+extension LocalizedStringKey {
+    /// This key drawn as a `Text` would draw it, with its plain words, when its
+    /// Markdown styles any of it; `nil` for a key Markdown leaves alone, which
+    /// is most of them and costs a byte scan.
+    ///
+    /// For a control that keeps its title as a `String` (a `Button`, a
+    /// `ColorPicker`): SwiftUI parses a control's title key as it parses a
+    /// `Text`'s (measured: `Button("**Save**") {}` draws the bold), so such a
+    /// control draws a styled key as this `Text`, and keeps the plain words as
+    /// the title for whatever reads it as text.
+    @MainActor package var markdownTitle: (text: Text, plain: String)? {
+        let template = LocalizationService.shared.string(
+            for: key, swiftUIKey: swiftUIKey, tableName: nil, bundle: nil)
+        guard InlineMarkdown.mightContainMarkup(template) else { return nil }
+        let parsed = Text.markdownRuns(in: template, key: self)
+        guard let runs = parsed.runs else { return nil }
+        var text = Text(verbatim: parsed.content)
+        text.runs = runs
+        return (text, parsed.content)
+    }
+}
+
 // MARK: - A template's parse, kept
 
 /// A key template's Markdown as far as it goes without the key's values: the

@@ -104,7 +104,7 @@ extension Menu where Label == Text {
     ///   - titleKey: The key for the menu's title.
     ///   - content: The menu's items — `Button`s, `Toggle`s and `Divider`s.
     public init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) {
-        self.init(titleKey.localized, content: content)
+        self.init(content: content) { Text(titleKey) }
     }
 
     /// Creates a menu that generates its label from a string, shown as written.

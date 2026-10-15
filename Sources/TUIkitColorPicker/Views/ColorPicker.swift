@@ -89,8 +89,14 @@ public struct ColorPicker: View {
         _ titleKey: LocalizedStringKey, selection: Binding<Color>,
         supportsOpacity: Bool = true, step: Double = 5
     ) {
-        self.init(
-            titleKey.localized, selection: selection, supportsOpacity: supportsOpacity, step: step)
+        // A key whose Markdown styles it is drawn as its `Text`, as SwiftUI's
+        // is; the plain words stay the title (the editor panel's among them).
+        let styled = titleKey.markdownTitle
+        self.title = styled?.plain ?? titleKey.localized
+        self.labelView = styled.map { AnyView($0.text) }
+        self.selection = selection
+        self.supportsOpacity = supportsOpacity
+        self.step = step
     }
 
     /// Creates a colour picker whose label is displayed as written.

@@ -3206,6 +3206,18 @@ label with `Text(titleKey)`.
 
 **Recommendation:** do it for the SwiftUI controls listed above.
 
+**Shipped 2026-10-15.** Every control whose SwiftUI label is a `Text` made from
+the key builds it with `Text(titleKey)`: `Toggle`, `Label`, `Link`, `Section`,
+`LabeledContent`, `Picker`, `Menu`, `NavigationLink`, `Stepper`, `Slider`,
+`ProgressView`, `Gauge`, `DatePicker`, `ContentUnavailableView` and the
+`systemImage:` forms (`DisclosureGroup`, `GroupBox` and `ControlGroup` already
+did). `Button` and `ColorPicker` keep their title as a `String`: a key whose
+Markdown styles it is drawn as its `Text`, and its plain words stay the title.
+A plain key costs the byte scan `Text` already pays. Not done: a `TextField`'s
+title (drawn as its placeholder), a `TableColumn`'s header and a `Tab`'s title,
+which are measured and drawn as strings; and TUIkit's own chrome, as above.
+Tests: `MarkdownTitleTests`.
+
 ### B88. A live text with an attributed format draws the characters only
 
 *`Text(_:format:)` over a `TimeDataSource` with an `AttributedString` output;

@@ -78,7 +78,8 @@ extension NavigationLink where Destination == Never {
     ///   - titleKey: The key for the link's title.
     ///   - value: The value to push. `nil` disables the link.
     public init<P: Hashable>(_ titleKey: LocalizedStringKey, value: P?) where Label == Text {
-        self.init(titleKey.localized, value: value)
+        self.target = .value(value.map { AnyHashable($0) })
+        self.label = Text(titleKey)
     }
 
     /// Creates a link with a text label, shown as written, that pushes `value`.
@@ -122,7 +123,8 @@ extension NavigationLink {
         _ titleKey: LocalizedStringKey,
         @ViewBuilder destination: () -> Destination
     ) where Label == Text {
-        self.init(titleKey.localized, destination: destination)
+        self.target = .view(destination())
+        self.label = Text(titleKey)
     }
 
     /// Creates a link with a text label, shown as written, pushing `destination`.

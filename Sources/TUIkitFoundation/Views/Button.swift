@@ -160,7 +160,7 @@ public struct Button: View {
         _ titleKey: LocalizedStringKey,
         action: @escaping () -> Void
     ) {
-        self.init(titleKey.localized, action: action)
+        self.init(titleKey, role: nil, action: action)
     }
 
     /// Creates a button with a title and action, displayed as written.
@@ -203,7 +203,15 @@ public struct Button: View {
         role: ButtonRole?,
         action: @escaping () -> Void
     ) {
-        self.init(titleKey.localized, role: role, action: action)
+        // A key whose Markdown styles it is drawn as its `Text`, as SwiftUI's
+        // is; the plain words stay the title.
+        let styled = titleKey.markdownTitle
+        self.label = styled?.plain ?? titleKey.localized
+        self.labelView = styled.map { AnyView($0.text) }
+        self.action = action
+        self.role = role
+        self.focusID = nil
+        self.isDisabled = false
     }
 
     /// Creates a button with a role and a title displayed as written.

@@ -195,9 +195,11 @@ extension Stepper where Label == Text {
         step: V.Stride = 1,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) {
+        let erased = eraseStepperValue(value: value, bounds: nil, step: step)
         self.init(
-            titleKey.localized, value: value, step: step,
-            onEditingChanged: onEditingChanged)
+            label: Text(titleKey),
+            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
     /// Creates a stepper with a title displayed as written.
@@ -236,9 +238,11 @@ extension Stepper where Label == Text {
         step: V.Stride = 1,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) {
+        let erased = eraseStepperValue(value: value, bounds: bounds, step: step)
         self.init(
-            titleKey.localized, value: value, in: bounds, step: step,
-            onEditingChanged: onEditingChanged)
+            label: Text(titleKey),
+            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
     /// Creates a stepper with a title displayed as written, and a range.
@@ -282,7 +286,7 @@ extension Stepper where Label == Text {
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.init(
-            titleKey.localized, onIncrement: onIncrement, onDecrement: onDecrement,
+            label: { Text(titleKey) }, onIncrement: onIncrement, onDecrement: onDecrement,
             onEditingChanged: onEditingChanged)
     }
 
@@ -300,21 +304,9 @@ extension Stepper where Label == Text {
         onDecrement: (() -> Void)?,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) {
-        // The handler still needs a value to drive its auto-repeat and its
-        // bounds arithmetic, and there is none — so it drives a throwaway. What
-        // it must NOT do is DISPLAY that throwaway: SwiftUI's callbacks stepper
-        // has no value at all, and showing a `0` that never moves however many
-        // times you press is a read-out that lies. The slot collapses instead;
-        // `stepperValueText(_:)` fills it when the caller has something to put
-        // there, which for this init — a stepper over colours, fonts, enum
-        // cases — it usually does.
-        var dummy = 0
-        let value = Binding(get: { dummy }, set: { dummy = $0 })
-        let erased = eraseStepperValue(value: value, bounds: nil, step: 1)
         self.init(
-            label: Text(String(title)),
-            display: { "" }, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
-            onIncrement: onIncrement, onDecrement: onDecrement, onEditingChanged: onEditingChanged)
+            label: { Text(String(title)) }, onIncrement: onIncrement, onDecrement: onDecrement,
+            onEditingChanged: onEditingChanged)
     }
 }
 
@@ -376,7 +368,14 @@ extension Stepper {
         onDecrement: (() -> Void)?,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) {
-        // No value to show — see the `LocalizedStringKey` overload above.
+        // The handler still needs a value to drive its auto-repeat and its
+        // bounds arithmetic, and there is none — so it drives a throwaway. What
+        // it must NOT do is DISPLAY that throwaway: SwiftUI's callbacks stepper
+        // has no value at all, and showing a `0` that never moves however many
+        // times you press is a read-out that lies. The slot collapses instead;
+        // `stepperValueText(_:)` fills it when the caller has something to put
+        // there, which for this init — a stepper over colours, fonts, enum
+        // cases — it usually does.
         var dummy = 0
         let value = Binding(get: { dummy }, set: { dummy = $0 })
         let erased = eraseStepperValue(value: value, bounds: nil, step: 1)
@@ -910,8 +909,8 @@ extension Stepper where Label == Text {
         in bounds: ClosedRange<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
-        self.init(titleKey.localized, value: value, in: bounds, step: step, format: format,
-                  onEditingChanged: onEditingChanged)
+        self.init(value: value, in: bounds, step: step, format: format,
+                  label: { Text(titleKey) }, onEditingChanged: onEditingChanged)
     }
 
     /// Creates a stepper with a title shown as written, whose value is shown
@@ -948,8 +947,8 @@ extension Stepper where Label == Text {
         step: F.FormatInput.Stride = 1, format: F,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where F.FormatInput: BinaryFloatingPoint, F.FormatOutput == String {
-        self.init(titleKey.localized, value: value, step: step, format: format,
-                  onEditingChanged: onEditingChanged)
+        self.init(value: value, step: step, format: format,
+                  label: { Text(titleKey) }, onEditingChanged: onEditingChanged)
     }
 
     /// Creates an unbounded stepper with a title shown as written, whose value

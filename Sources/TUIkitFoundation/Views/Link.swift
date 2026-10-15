@@ -86,7 +86,8 @@ extension Link where Label == Text {
     ///   - titleKey: The key for the title shown for the link.
     ///   - destination: The URL to open when the link is activated.
     public init(_ titleKey: LocalizedStringKey, destination: URL) {
-        self.init(titleKey.localized, destination: destination)
+        self.destination = destination
+        self.label = Text(titleKey)
     }
 
     /// Creates a link with a string title, shown as written.

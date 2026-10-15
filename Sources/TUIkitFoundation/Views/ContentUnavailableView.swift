@@ -118,7 +118,9 @@ extension ContentUnavailableView where Label == Text, Description == EmptyView, 
     ///
     /// - Parameter titleKey: The key for the title text.
     public init(_ titleKey: LocalizedStringKey) {
-        self.init(titleKey.localized)
+        self.init(
+            label: { Text(titleKey) }, description: { EmptyView() },
+            actions: { EmptyView() })
     }
 
     /// Creates a content unavailable view with a title shown as written.
@@ -147,7 +149,9 @@ extension ContentUnavailableView where Label == Text, Description == Text, Actio
     ///   - titleKey: The key for the title text.
     ///   - description: The key for the description text.
     public init(_ titleKey: LocalizedStringKey, description: LocalizedStringKey) {
-        self.init(titleKey.localized, description: description.localized)
+        self.init(
+            label: { Text(titleKey) }, description: { Text(description) },
+            actions: { EmptyView() })
     }
 
     /// Creates a content unavailable view with strings shown as written.

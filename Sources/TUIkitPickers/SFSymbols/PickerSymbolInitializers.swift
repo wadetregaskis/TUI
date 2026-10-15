@@ -27,9 +27,9 @@ extension Picker where Label == TUIkitFoundation.Label<Text, _SymbolIcon> {
         selection: Binding<SelectionValue>,
         @ViewBuilder content: () -> Content
     ) {
-        self.init(
-            titleKey.localized, systemImage: systemImage,
-            selection: selection, content: content)
+        self.init(selection: selection, content: content) {
+            TUIkitFoundation.Label(titleKey, systemImage: systemImage)
+        }
     }
 
     /// Creates a picker with an SF Symbol beside a label shown as written.

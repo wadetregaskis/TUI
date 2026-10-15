@@ -237,7 +237,7 @@ extension Picker where Label == Text {
         selection: Binding<SelectionValue>,
         @ViewBuilder content: () -> Content
     ) {
-        self.init(titleKey.localized, selection: selection, content: content)
+        self.init(selection: selection, content: content, label: { Text(titleKey) })
     }
 
     /// Creates a picker with a text label, displayed as written.

@@ -232,7 +232,7 @@ where Label == Text, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, M
         value: V,
         in bounds: ClosedRange<V> = 0...1
     ) {
-        self.init(titleKey.localized, value: value, in: bounds)
+        self.init(value: value, in: bounds) { Text(titleKey) }
     }
 
     /// Creates a gauge with a string title, displayed as written.

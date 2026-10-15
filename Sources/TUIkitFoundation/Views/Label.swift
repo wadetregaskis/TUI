@@ -130,7 +130,7 @@ extension Label where Title == Text, Icon == _SymbolIcon {
     ///     name rather than display text, so it is never a key.
     ///   - systemImage: The SF Symbol name, e.g. `"star.fill"`.
     public init(_ titleKey: LocalizedStringKey, systemImage: String) {
-        self.init(titleKey.localized, systemImage: systemImage)
+        self.init(titled: Text(titleKey), systemImage: systemImage)
     }
 
     /// Creates a label with a string title, shown as written, and an SF Symbol.
@@ -140,6 +140,12 @@ extension Label where Title == Text, Icon == _SymbolIcon {
     ///   - systemImage: The SF Symbol name, e.g. `"star.fill"`.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, systemImage: String) {
+        self.init(titled: Text(String(title)), systemImage: systemImage)
+    }
+
+    /// A label titled `title` with the SF Symbol `systemImage`, which both
+    /// public overloads make.
+    private init(titled title: Text, systemImage: String) {
         // Fall back to the title alone where the symbol would not actually
         // appear — see ``SFSymbol/canRender(named:)`` for the two halves of
         // that question, and why either alone is a trap.
@@ -150,7 +156,7 @@ extension Label where Title == Text, Icon == _SymbolIcon {
         // symbol whenever the varied name is absent.
         let showIcon = SFSymbol.canRender(named: systemImage)
         self.init(
-            title: Text(String(title)),
+            title: title,
             icon: _SymbolIcon(name: systemImage),
             iconIsVisible: showIcon)
     }

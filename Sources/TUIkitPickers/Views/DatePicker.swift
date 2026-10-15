@@ -168,9 +168,7 @@ extension DatePicker where Label == Text {
         selection: Binding<Date>,
         displayedComponents: Components = [.hourAndMinute, .date]
     ) {
-        self.init(
-            titleKey.localized, selection: selection,
-            displayedComponents: displayedComponents)
+        self.init(selection: selection, displayedComponents: displayedComponents) { Text(titleKey) }
     }
 
     /// Creates a date picker with a localized title, constrained to a range.
@@ -180,9 +178,7 @@ extension DatePicker where Label == Text {
         in range: ClosedRange<Date>,
         displayedComponents: Components = [.hourAndMinute, .date]
     ) {
-        self.init(
-            titleKey.localized, selection: selection, in: range,
-            displayedComponents: displayedComponents)
+        self.init(selection: selection, in: range, displayedComponents: displayedComponents) { Text(titleKey) }
     }
 
     /// Creates a date picker with a localized title and a lower bound.
@@ -192,9 +188,7 @@ extension DatePicker where Label == Text {
         in range: PartialRangeFrom<Date>,
         displayedComponents: Components = [.hourAndMinute, .date]
     ) {
-        self.init(
-            titleKey.localized, selection: selection, in: range,
-            displayedComponents: displayedComponents)
+        self.init(selection: selection, in: range, displayedComponents: displayedComponents) { Text(titleKey) }
     }
 
     /// Creates a date picker with a localized title and an upper bound.
@@ -204,9 +198,7 @@ extension DatePicker where Label == Text {
         in range: PartialRangeThrough<Date>,
         displayedComponents: Components = [.hourAndMinute, .date]
     ) {
-        self.init(
-            titleKey.localized, selection: selection, in: range,
-            displayedComponents: displayedComponents)
+        self.init(selection: selection, in: range, displayedComponents: displayedComponents) { Text(titleKey) }
     }
 
     /// Creates a date picker with a string title, displayed as written.

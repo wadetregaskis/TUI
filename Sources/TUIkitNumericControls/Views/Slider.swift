@@ -228,8 +228,7 @@ extension Slider where Label == Text, ValueLabel == EmptyView {
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where V.Stride: BinaryFloatingPoint {
         self.init(
-            titleKey.localized, value: value, in: bounds, step: step,
-            onEditingChanged: onEditingChanged)
+            value: value, in: bounds, step: step, label: { Text(titleKey) }, onEditingChanged: onEditingChanged)
     }
 
     /// Creates a slider with a title displayed as written.
@@ -248,20 +247,8 @@ extension Slider where Label == Text, ValueLabel == EmptyView {
         step: V.Stride = 0.01,
         onEditingChanged: @escaping (Bool) -> Void = { _ in }
     ) where V.Stride: BinaryFloatingPoint {
-        self.value = Binding(
-            get: { Double(value.wrappedValue) },
-            set: { value.wrappedValue = V($0) }
-        )
-        self.bounds = Double(bounds.lowerBound)...Double(bounds.upperBound)
-        self.step = Double(step)
-        self.label = Text(String(title))
-        self.minimumValueLabel = nil
-        self.maximumValueLabel = nil
-        self.trackStyle = .knob
-        // Auto-generated focusID from view identity (collision-free)
-        self.focusID = nil
-        self.isDisabled = false
-        self.onEditingChanged = onEditingChanged
+        self.init(
+            value: value, in: bounds, step: step, label: { Text(String(title)) }, onEditingChanged: onEditingChanged)
     }
 }
 

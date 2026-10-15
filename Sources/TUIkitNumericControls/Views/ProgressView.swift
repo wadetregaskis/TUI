@@ -174,7 +174,10 @@ extension ProgressView where Label == Text, CurrentValueLabel == EmptyView {
     ///
     /// - Parameter titleKey: The key for text describing the task in progress.
     public init(_ titleKey: LocalizedStringKey) {
-        self.init(titleKey.localized)
+        (self.fraction, self.flags) = Self.stored(nil)
+        self.style = .block
+        self.label = Text(titleKey)
+        self.currentValueLabel = nil
     }
 
     /// Creates an indeterminate progress view with a string title, as written.
@@ -274,7 +277,10 @@ extension ProgressView where Label == Text, CurrentValueLabel == EmptyView {
         value: V?,
         total: V = 1.0
     ) {
-        self.init(titleKey.localized, value: value, total: total)
+        (self.fraction, self.flags) = Self.stored(Self.normalizedFraction(value: value, total: total))
+        self.style = .block
+        self.label = Text(titleKey)
+        self.currentValueLabel = nil
     }
 
     /// Creates a progress view with a string title, displayed as written.
