@@ -483,6 +483,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             }
         )
         reportEagerTargetLayout(heights: finalHeights, children: children, window: window, context: context)
+        reportEagerSample(heights: finalHeights, window: window, context: context)
 
         // === PASS 2: Render each child into its allocated height ===
         //

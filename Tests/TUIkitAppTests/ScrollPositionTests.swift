@@ -174,6 +174,38 @@ struct ScrollPositionTests {
         #expect(position.viewID(type: Int.self) == 25)
     }
 
+    /// An eager column marked as the scroll target layout, as SwiftUI's
+    /// documentation writes `.scrollPosition(id:)`'s content — and the same
+    /// column unmarked, which a windowed stack's rows are reported without.
+    private func eagerColumn(position: Binding<ScrollPosition>, marked: Bool) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(0..<Self.rowCount, id: \.self) { Text("row \($0)") }
+            }
+            .scrollTargetLayout(isEnabled: marked)
+        }
+        .scrollPosition(position)
+    }
+
+    @Test("An eager column reports the row it is showing, marked or not", arguments: [true, false])
+    func eagerColumnReportsVisibleID(marked: Bool) {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+
+        renderFrame(eagerColumn(position: binding, marked: marked), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(position.viewID(type: Int.self) == 0)
+        #expect(!position.isPositionedByUser)
+
+        position.scrollTo(id: 25, anchor: .top)
+        renderFrame(eagerColumn(position: binding, marked: marked), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(position.viewID(type: Int.self) == 25)
+        let screen = renderFrame(
+            eagerColumn(position: binding, marked: marked), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(position.viewID(type: Int.self) == 25, "\(screen)")
+    }
+
     @Test("An unchanged position is not written back every frame")
     func writeBackSettles() {
         // A render-time write to a binding invalidates the subtree that wrote

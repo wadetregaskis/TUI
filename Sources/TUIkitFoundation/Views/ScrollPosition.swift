@@ -213,11 +213,11 @@ extension ScrollPosition {
     ///
     /// "No ids to report" is narrower than it sounds, and was measured rather
     /// than assumed: the sample travels through the content's keyed
-    /// collection, so it answers only where a WINDOWED stack's content is a
-    /// SINGLE `ForEach`. An eager `VStack` reports nothing; so does a stack
-    /// holding two `ForEach`es; and a `.id(_:)`-tagged child is never reported
-    /// even though ``scrollTo(id:anchor:)`` seeks to one perfectly well.
-    /// Seeking is per-child, reading is per-collection.
+    /// collection, so it answers only where a vertical stack's content, lazy
+    /// or eager, is a SINGLE `ForEach`. A stack holding two `ForEach`es reports
+    /// nothing, nor does a horizontal stack; and a `.id(_:)`-tagged child is
+    /// never reported even though ``scrollTo(id:anchor:)`` seeks to one
+    /// perfectly well. Seeking is per-child, reading is per-collection.
     ///
     /// SwiftUI reports a row only once the user scrolls past one; this reports
     /// the row the view shows after any scroll, and on the first frame. A

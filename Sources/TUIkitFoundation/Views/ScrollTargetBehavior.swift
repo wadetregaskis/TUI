@@ -357,10 +357,11 @@ extension View {
     /// Its reader is ``ViewAlignedScrollTargetBehavior``, which settles on the
     /// marked stack's rows and has nothing to settle on without the mark, as in
     /// SwiftUI. SwiftUI's `.scrollPosition(id:)` and ``ScrollPosition`` need
-    /// the mark too; TUIkit reports the rows of the content's windowed stack
-    /// to those whether or not they are marked (``ScrollPosition/viewID(type:)``
-    /// says which content that is), so there the common pairing reads back as
-    /// it does in SwiftUI with or without it (decisions B29).
+    /// the mark too; TUIkit reports the rows of the content's vertical stack,
+    /// lazy or eager, to those whether or not they are marked
+    /// (``ScrollPosition/viewID(type:)`` says which content that is), so there
+    /// the common pairing reads back as it does in SwiftUI with or without it
+    /// (decisions B29). A horizontal stack's columns are not reported.
     ///
     /// The views found are the rows of a vertical stack and the columns of a
     /// horizontal one — lazy or eager — that is the scroll view's content, or

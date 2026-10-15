@@ -36,6 +36,32 @@ extension _VStackCore {
         reply.targetLayoutRows = TargetLayoutSpans(placed: spans)
     }
 
+    /// The row an EAGER stack shows at the report anchor
+    /// (``ScrollContentWindow/reportsIDAt``), for `.scrollPosition(id:)` to read
+    /// back: the stack is drawn whole, so every row's place is known from the
+    /// heights its layout just gave them, placed as `appendVertically` places
+    /// them. Asked only by a scroll view with a position bound, so every other
+    /// stack pays a test of the window it already holds. Reported whether or
+    /// not the stack is marked, as a windowed stack's rows are (decisions B29).
+    func reportEagerSample(heights: [Int], window: ScrollContentWindow?, context: RenderContext) {
+        guard let window, let unit = window.reportsIDAt, let reply = window.reply else { return }
+        var rows: [(ordinal: Int, bottom: Int)] = []
+        var cursor = 0
+        for (ordinal, height) in heights.enumerated() where height > 0 {
+            if !rows.isEmpty { cursor += spacing }
+            cursor += height
+            rows.append((ordinal, cursor))
+        }
+        guard let last = rows.last else { return }
+        let line = window.sampleY(at: unit, contentBelow: window.hasContentBelow(stackBottom: last.bottom))
+        // The first row whose bottom lies past the sampled line (a line in an
+        // inter-row gap belongs to the row below it), clamped to the last row.
+        let ordinal = rows.first { line < $0.bottom }?.ordinal ?? last.ordinal
+        var childContext = context
+        childContext.environment.scrollContentWindow = nil
+        reply.anchorID = resolveChildViewCollection(from: content, context: childContext).anyID(at: ordinal)
+    }
+
     /// The rows of the full walk (a lazy stack under the anchored threshold):
     /// its slots carry every row's true place.
     func reportTargetLayout(slots: [RowSlot], window: ScrollContentWindow, context: RenderContext) {
