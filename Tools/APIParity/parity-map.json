@@ -132,7 +132,7 @@
         "EnvironmentValues.searchSuggestionsPlacement",
         "View.searchSuggestions(_:for:)"
       ],
-      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUIkit has one place: the field's drop-down (Sources/TUIkitTextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/SwiftUI parity/Parity work blocked on a decision.md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
+      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUIkit has one place: the field's drop-down (Sources/TUIkitTextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/Historical/Parity work blocked on a decision (2026-10-12).md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
     },
     {
       "match": [

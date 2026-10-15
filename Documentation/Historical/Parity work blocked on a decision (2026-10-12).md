@@ -1,5 +1,10 @@
 # Parity work blocked on a decision
 
+*Historical (moved here 2026-10-15): the last entry was answered and built on
+2026-10-12, leaving the file empty, as its own review below says. Kept for the
+reasoning recorded in its answered-so-far paragraph; questions for the owner now
+go in each lane's decisions file under `Documentation/SwiftUI parity/Decisions/`.*
+
 SwiftUI APIs that `Tools/APIParity` reports as gaps, where the gap is **not** a
 matter of effort. Each needs a call that changes what existing TUIkit code does,
 or picks between two defensible meanings. Implementing one of these without the
