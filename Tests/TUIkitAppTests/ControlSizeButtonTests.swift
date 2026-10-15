@@ -218,4 +218,38 @@ struct ControlSizeButtonTests {
         #expect(Set(buffer.animatedCells.map(\.offsetY)) == Set(0..<buffer.height), "\(runs)")
         #expect(buffer.animatedCells.allSatisfy { $0.offsetX == 0 && $0.width == buffer.width }, "\(runs)")
     }
+
+    @Test(
+        "A rounded rectangle of radius zero is square",
+        arguments: [
+            (ControlSize.mini, ["OK"]),
+            (.small, ["[OK]"]),
+            (.regular, ["[ OK ]"]),
+            (.large, ["┌────┐", "│ OK │", "└────┘"]),
+            (.extraLarge, ["┌──────┐", "│  OK  │", "└──────┘"]),
+        ])
+    func square(size: ControlSize, expected: [String]) {
+        for button in buttons(size, .roundedRectangle(radius: 0)) {
+            #expect(drawn(button) == expected)
+        }
+    }
+
+    @Test(
+        "Brackets of your own draw the rounded rectangle's face between them",
+        arguments: [
+            (ControlSize.small, ["<OK>"]),
+            (.regular, ["< OK >"]),
+            (.large, ["╭────╮", "│ OK │", "╰────╯"]),
+        ])
+    func brackets(size: ControlSize, expected: [String]) {
+        for button in buttons(size, .brackets("<", ">")) {
+            #expect(drawn(button) == expected)
+        }
+    }
+
+    @Test("Brackets wider than a cell draw as the rounded rectangle")
+    func wideBrackets() {
+        #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("中", "中"))) == ["( OK )"])
+        #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("⟨", "⟩"))) == ["⟨ OK ⟩"])
+    }
 }

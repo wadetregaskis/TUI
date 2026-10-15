@@ -49,6 +49,9 @@ struct ButtonFaceEdges: Equatable, Sendable {
         /// A box of rounded corners and lines, `╭──╮` / `│ … │` / `╰──╯`,
         /// round an outline face: a rounded rectangle's.
         case roundedBox
+        /// A box of square corners and lines, `┌──┐` / `│ … │` / `└──┘`,
+        /// round an outline face: a square rectangle's.
+        case squareBox
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
@@ -73,6 +76,22 @@ struct ButtonFaceEdges: Equatable, Sendable {
     /// A rounded box round the label and no field: a rounded rectangle three
     /// rows tall, drawn in lines.
     static let tallRoundedRectangle = Self(caps: ("\u{2502}", "\u{2502}"), ring: .roundedBox, isOutline: true)
+
+    /// Square brackets round the label and no field, `[ … ]`: a rectangle of
+    /// radius zero, one row tall, drawn in lines.
+    static let squareRectangle = Self(caps: ("[", "]"), ring: nil, isOutline: true)
+
+    /// A square box round the label and no field: a rectangle of radius zero
+    /// three rows tall, drawn in lines.
+    static let tallSquareRectangle = Self(caps: ("\u{2502}", "\u{2502}"), ring: .squareBox, isOutline: true)
+
+    /// `open` and `close` round the label and no field: TUIkit's own
+    /// ``ButtonBorderShape/brackets(_:_:)``, one row tall. A glyph that does
+    /// not take one cell draws the rounded rectangle's parentheses instead.
+    static func bracketed(_ open: Character, _ close: Character) -> Self {
+        guard String(open).strippedLength == 1, String(close).strippedLength == 1 else { return .roundedRectangle }
+        return Self(caps: (open, close), ring: nil, isOutline: true)
+    }
 
     /// No caps and no field: a `.mini` rounded rectangle, its label alone.
     static let bareOutline = Self(caps: nil, ring: nil, isOutline: true)
@@ -101,31 +120,40 @@ extension _ButtonAppearance {
     ///
     /// A rounded rectangle has no field, at any size: its edges are lines —
     /// parentheses on one row, a rounded box on three — and at `.mini` it is
-    /// its label alone. A `.circle` has no padding at any size. Where the
+    /// its label alone. A square one (radius zero) is the same in square
+    /// brackets and a square box; ``ButtonBorderShape/brackets(_:_:)`` between
+    /// its own glyphs, with the rounded box. A `.circle` has no padding at any size. Where the
     /// terminal draws Block Elements short of the line (Apple Terminal), a
     /// capsule's three-row face is three plain rows of the face
     /// (``ButtonFaceEdges/Ring/plainRows``).
     func sized(_ size: ControlSize, shape: ButtonBorderShape, blockElementsFillTheLine: Bool) -> Self {
         guard !isPlain else { return self }
         var sized = self
-        let square = shape.kind == .roundedRectangle
+        // The shapes drawn in lines: one row's edges, and three rows'.
+        let lines: (one: ButtonFaceEdges, tall: ButtonFaceEdges)?
+        switch shape.kind {
+        case .roundedRectangle: lines = (.roundedRectangle, .tallRoundedRectangle)
+        case .square: lines = (.squareRectangle, .tallSquareRectangle)
+        case .brackets(let open, let close): lines = (.bracketed(open, close), .tallRoundedRectangle)
+        case .automatic, .capsule, .circle: lines = nil
+        }
         func tall(_ ring: ButtonFaceEdges.Ring) -> ButtonFaceEdges {
             .tall(blockElementsFillTheLine ? ring : .plainRows)
         }
         switch size {
         case .mini:
             sized.horizontalPadding = 0
-            sized.edges = square ? .bareOutline : .none
+            sized.edges = lines == nil ? .none : .bareOutline
         case .small:
             sized.horizontalPadding = 0
-            sized.edges = square ? .roundedRectangle : .capsule
+            sized.edges = lines?.one ?? .capsule
         case .regular:
-            sized.edges = square ? .roundedRectangle : .capsule
+            sized.edges = lines?.one ?? .capsule
         case .large:
-            sized.edges = square ? .tallRoundedRectangle : tall(.halfBlocks)
+            sized.edges = lines?.tall ?? tall(.halfBlocks)
         case .extraLarge:
             sized.horizontalPadding += 1
-            sized.edges = square ? .tallRoundedRectangle : tall(.faceRows)
+            sized.edges = lines?.tall ?? tall(.faceRows)
         }
         if shape.kind == .circle { sized.horizontalPadding = 0 }
         return sized
@@ -265,9 +293,13 @@ extension _ButtonStyleBody {
     }
 
     /// The rows of a box round an outline face `width` cells wide, its caps
-    /// included, in `lines`: above (`top`) or below.
-    static func outlineBox(top: Bool, width: Int, lines: Color) -> String {
-        let corners: (Character, Character) = top ? ("\u{256D}", "\u{256E}") : ("\u{2570}", "\u{256F}")
+    /// included, in `lines`: above (`top`) or below, its corners square for a
+    /// ``ButtonFaceEdges/Ring/squareBox`` and round otherwise.
+    static func outlineBox(top: Bool, width: Int, square: Bool, lines: Color) -> String {
+        let corners: (Character, Character) =
+            square
+            ? (top ? ("\u{250C}", "\u{2510}") : ("\u{2514}", "\u{2518}"))
+            : (top ? ("\u{256D}", "\u{256E}") : ("\u{2570}", "\u{256F}"))
         guard width >= 2 else { return String(repeating: " ", count: max(0, width)) }
         return ANSIRenderer.colorize(
             String(corners.0) + String(repeating: "\u{2500}", count: width - 2) + String(corners.1),
@@ -278,10 +310,12 @@ extension _ButtonStyleBody {
     /// and below it where the edges have a ring, and `middle` as it is where
     /// they have none.
     static func outline(around middle: FrameBuffer, edges: ButtonFaceEdges, lines: Color) -> FrameBuffer {
-        guard edges.ring != nil else { return middle }
-        var buffer = FrameBuffer(lines: [outlineBox(top: true, width: middle.width, lines: lines)])
+        guard let ring = edges.ring else { return middle }
+        let square = ring == .squareBox
+        var buffer = FrameBuffer(lines: [outlineBox(top: true, width: middle.width, square: square, lines: lines)])
         buffer.appendVertically(middle)
-        buffer.appendVertically(FrameBuffer(lines: [outlineBox(top: false, width: middle.width, lines: lines)]))
+        buffer.appendVertically(
+            FrameBuffer(lines: [outlineBox(top: false, width: middle.width, square: square, lines: lines)]))
         return buffer
     }
 
