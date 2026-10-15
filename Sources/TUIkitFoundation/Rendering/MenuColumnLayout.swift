@@ -33,18 +33,27 @@ func renderMenuColumn(
 ) -> FrameBuffer {
     let menuView = menuColumnFrame(items, borderColor: borderColor)
     let plan = planMenuColumn(menuView, context: context, capHeight: capHeight)
-    // The two arms as an `if`/`else` would draw them, each at a branch identity
-    // of its own, rather than one or the other at this identity. A menu
-    // squeezed short of its rows and then given them back flips between them,
-    // and the flip is what drops the arm it leaves — the scroll position the
-    // squeezed menu had, above all. Drawn here at one identity, that position
-    // outlived the scroll view wherever an ancestor was served from the cache,
-    // which keeps everything under it alive, and a menu squeezed again came
-    // back scrolled where an uncached one starts at the top (the focus and
-    // mouse storm's trial 3, once columns share their height).
+    // The arm drawn is recorded at this identity, as an `if`/`else` records its
+    // branch, and a flip drops everything the menu drew before it: a menu
+    // squeezed short of its rows and then given them back must not keep the
+    // squeezed arm's scroll position, nor come back to it. Without the drop
+    // that position outlived the scroll view wherever an ancestor was served
+    // from the cache, which keeps everything under it alive, and a menu
+    // squeezed again came back scrolled where an uncached one starts at the
+    // top (the focus and mouse storm's trial 3, once columns share their
+    // height). Recorded here rather than by a `ConditionalView`, whose branch
+    // identity put every view in every menu one level deeper — hashed and
+    // compared through that level in every lookup and prune below it, which
+    // cost the menus scenario 4.4% — where only the rare squeezed arm needs an
+    // identity of its own. Nothing else records a branch here: the menu is a
+    // border, padding and a style round a `VStack`, and no `if`.
+    if !context.isMeasuring, let storage = context.stateStorage,
+        storage.recordConditionalBranch(context.identity, isTrueBranch: plan.scrolls)
+    {
+        storage.invalidateDescendants(of: context.identity)
+    }
     guard plan.scrolls else {
-        return renderToBuffer(
-            ConditionalView<Never, _>.falseContent(menuView), context: plan.sized)
+        return renderToBuffer(menuView, context: plan.sized)
     }
     // Taller than its budget: scroll inside it. The scroll goes INSIDE the
     // border, not around it — a ScrollView's "N more above/below" indicators
@@ -58,7 +67,7 @@ func renderMenuColumn(
         .frame(height: max(1, capHeight - 2))
         .bordered(style: nil, colour: borderColor.map(AnimatedColor.init), width: 1)
     return renderToBuffer(
-        ConditionalView<_, Never>.trueContent(scrolled), context: plan.sized.withAvailableHeight(capHeight))
+        scrolled, context: plan.sized.withAvailableHeight(capHeight).withBranchIdentity("scrolled"))
 }
 
 /// The size ``renderMenuColumn(_:context:capHeight:borderColor:)`` comes back
