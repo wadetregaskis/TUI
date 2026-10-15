@@ -312,6 +312,7 @@ messages cite that path), and what cites it.
 - **Was:** written for lane BUGS13's review fixes (`BUGS13/probe/`).
 - **Cited by:** `Sources/TUIkitForms/Styles/LabeledContentStyle.swift`; `Tests/TUIkitIntegrationTests/LabeledContentTests.swift`,
   `Tests/TUIkitIntegrationTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
 ### Stack spacing per pair
 
 - **Asks:** what `ViewSpacing`'s own values answer `distance(to:along:)` with — `ViewSpacing()` and `.zero` against
@@ -333,3 +334,20 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Layout row); B20 in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`;
   `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.
+
+### Flexible frames
+
+- **Asks:** how SwiftUI's flexible frame, `.frame(minWidth:idealWidth:maxWidth:…)`, sizes itself and what it
+  offers its content: a five- and a 37-character `Text`, a `Color.clear` and a `Text` made rigid by `.fixedSize()`,
+  under an ideal alone, a finite maximum alone, a minimum alone, each pair, `.infinity`, and an ideal above the
+  maximum; offered 80 and 20 characters by a fixed outer frame, and offered nothing by `.fixedSize()`; and the
+  same for heights, offered 10 and 2 lines and nothing (`frame.swift`, `frame.out`). A program of top-level code,
+  after the layout-priority probe; each size is read with a `GeometryReader`, in characters and lines of a
+  monospaced font. A maximum fills the offer up to it; an ideal is read only when nothing was offered, and is then
+  the frame's size; an ideal above the maximum wins.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-15.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIkitFoundation/Modifiers/FlexibleFrameAxis.swift`;
+  `Tests/TUIkitFoundationTests/FlexibleFrameSwiftUIRuleTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§2.1),
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (U1).

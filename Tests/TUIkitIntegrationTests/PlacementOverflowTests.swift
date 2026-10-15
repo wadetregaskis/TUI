@@ -118,7 +118,7 @@ struct PlacementOverflowTests {
 
     @Test("A frame its content's size keeps the content as it is unless the content's guide places it")
     func sameSizeFrameKeepsItsContent() {
-        // `.frame(maxWidth: .fixed(40))` around two ragged lines is their size. A
+        // `.frame(minWidth: 0)` around two ragged lines is their size. A
         // guide on `.leading` does not apply to the frame's `.center`, and a
         // `Subview` may carry a guide but here carries none, so neither is
         // placed: re-placed, each short line was centred on its own (" bb").
@@ -130,16 +130,16 @@ struct PlacementOverflowTests {
             }
         }
         let text = Text("aaaa\nbb")
-        #expect(render(text.alignmentGuide(.leading) { _ in 0 }.frame(maxWidth: .fixed(40))) == ["aaaa", "bb"])
-        #expect(render(ForEach(subviews: text) { $0.frame(maxWidth: .fixed(40)) }) == ["aaaa", "bb"])
-        #expect(render(text.alignmentGuide(.leading) { _ in 0 }.frame(maxHeight: .fixed(9))) == ["aaaa", "bb"])
+        #expect(render(text.alignmentGuide(.leading) { _ in 0 }.frame(minWidth: 0)) == ["aaaa", "bb"])
+        #expect(render(ForEach(subviews: text) { $0.frame(minWidth: 0) }) == ["aaaa", "bb"])
+        #expect(render(text.alignmentGuide(.leading) { _ in 0 }.frame(minHeight: 0)) == ["aaaa", "bb"])
         // A guide that applies still places it, in a frame its own size too:
         // SwiftUI's 4-wide view whose leading guide is 3 sits 3 cells left.
         let screen = Screen()
         let lines = screen.render(
             HStack(spacing: 0) {
                 Text("bbbb")
-                Text("rrrr").alignmentGuide(.leading) { _ in 3 }.frame(maxWidth: .fixed(40), alignment: .leading)
+                Text("rrrr").alignmentGuide(.leading) { _ in 3 }.frame(minWidth: 0, alignment: .leading)
             })
         #expect(lines.first == "brrrr", "\(lines)")
     }
@@ -153,13 +153,13 @@ struct PlacementOverflowTests {
         let text = Text("aaaa\nbb")
         let screen = Screen()
         var lines = screen.render(
-            text.alignmentGuide(.top) { _ in 0 }.frame(maxWidth: .fixed(40), alignment: .top))
+            text.alignmentGuide(.top) { _ in 0 }.frame(minWidth: 0, alignment: .top))
         #expect(Array(lines.prefix(2)) == ["aaaa", "bb"], "\(lines)")
         // The same when the guide puts the content past the frame's bottom:
         // the content's top on the frame's centre, one row down, so "bb" is
         // drawn below the frame, where its line is.
         lines = screen.render(
-            text.alignmentGuide(VerticalAlignment.center) { $0[.top] }.frame(maxWidth: .fixed(40)))
+            text.alignmentGuide(VerticalAlignment.center) { $0[.top] }.frame(minWidth: 0))
         #expect(Array(lines.prefix(3)) == ["", "aaaa", "bb"], "\(lines)")
     }
 

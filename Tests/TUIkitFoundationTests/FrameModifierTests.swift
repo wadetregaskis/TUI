@@ -65,7 +65,7 @@ struct FrameModifierTests {
         #expect(buffer.width == 30)
     }
 
-    @Test("FlexibleFrameView with fixed maxWidth constrains")
+    @Test("FlexibleFrameView with fixed maxWidth fills up to it")
     func frameFixedMaxWidth() {
         let frame = FlexibleFrameView(
             content: Text("Short"),
@@ -80,8 +80,9 @@ struct FrameModifierTests {
         let context = testContext(width: 40)
         let buffer = frame.renderToBuffer(context: context)
 
-        // Content "Short" is 5 chars, no maxWidth expansion without infinity
-        #expect(buffer.width <= 10)
+        // Content "Short" is 5 chars; the frame fills its offer up to the
+        // maximum, as SwiftUI's does.
+        #expect(buffer.width == 10)
     }
 
     @Test("FlexibleFrameView with minWidth enforces minimum")
@@ -226,11 +227,10 @@ struct FrameModifierTests {
         #expect(lastLine.contains("Hi"))
     }
 
-    @Test("FlexibleFrameView maxHeight constrains available height for content")
+    @Test("FlexibleFrameView with a minimum and maximum height fills its offer between them")
     func frameMaxHeight() {
-        // maxHeight constrains the availableHeight passed to child rendering,
-        // but does not clip content that exceeds constraints. This matches
-        // SwiftUI behavior where frame constraints inform layout, not clip.
+        // Both bounds stated, the frame takes the height it is offered held
+        // between them, as SwiftUI's does: 24 lines offered, 10 taken.
         let frame = FlexibleFrameView(
             content: Text("Short"),
             minWidth: nil,
@@ -244,8 +244,7 @@ struct FrameModifierTests {
         let context = testContext()
         let buffer = frame.renderToBuffer(context: context)
 
-        // minHeight 5 expands the 1-line content to 5 lines
-        #expect(buffer.height == 5)
+        #expect(buffer.height == 10)
     }
 
     @Test("FlexibleFrameView maxHeight infinity fills available space")

@@ -311,7 +311,19 @@ extension View {
 
     /// Sets flexible frame constraints for this view.
     ///
-    /// Use `.infinity` for maxWidth/maxHeight to expand to fill available space.
+    /// The frame is sized as SwiftUI's is. Along each axis it offers its
+    /// content what it was offered — or its ideal, when it was offered
+    /// nothing, as under ``View/fixedSize(horizontal:vertical:)`` — held to the
+    /// maximum. Its own size is the content's, raised to the minimum, and
+    /// grown to what it was offered up to the maximum: a frame with a maximum
+    /// fills its offer up to it, so `Text("Short").frame(maxWidth: 30)` is 30
+    /// cells wide offered 80, and `.infinity` fills whatever it is offered.
+    /// An ideal is read only when nothing was offered.
+    ///
+    /// One difference from SwiftUI: offered nothing, a frame with an ideal
+    /// and no maximum is as wide as its content offered that ideal, where
+    /// SwiftUI's is exactly the ideal. Add a maximum
+    /// (`.frame(idealWidth: 20, maxWidth: .infinity)`) for SwiftUI's size.
     ///
     /// # Examples
     ///
@@ -327,15 +339,24 @@ extension View {
     /// // Minimum size with expansion
     /// Text("Button")
     ///     .frame(minWidth: 10, maxWidth: .infinity)
+    ///
+    /// // As wide as offered, up to 60 columns
+    /// Text(message)
+    ///     .frame(maxWidth: 60, alignment: .leading)
     /// ```
     ///
     /// - Parameters:
     ///   - minWidth: Minimum width in characters.
-    ///   - idealWidth: Preferred width (used when no max is set).
-    ///   - maxWidth: Maximum width, or `.infinity` to fill available space.
+    ///   - idealWidth: The width offered to the content, and the frame's width,
+    ///     when the frame is offered no width.
+    ///   - maxWidth: Maximum width, filled up to when offered more, or
+    ///     `.infinity` to fill whatever is offered. An integer literal is a
+    ///     width in characters.
     ///   - minHeight: Minimum height in lines.
-    ///   - idealHeight: Preferred height (used when no max is set).
-    ///   - maxHeight: Maximum height, or `.infinity` to fill available space.
+    ///   - idealHeight: The height offered to the content, and the frame's
+    ///     height, when the frame is offered no height.
+    ///   - maxHeight: Maximum height, filled up to when offered more, or
+    ///     `.infinity` to fill whatever is offered.
     ///   - alignment: The alignment within the frame (default: .center).
     /// - Returns: A view with flexible frame constraints.
     public func frame(

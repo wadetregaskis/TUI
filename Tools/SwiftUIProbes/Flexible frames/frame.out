@@ -1,0 +1,78 @@
+short ideal 10	[80]	in=5 frame=5
+long ideal 10	[80]	in=37 frame=37
+short ideal 50	[80]	in=5 frame=5
+clear ideal 10	[80]	in=80 frame=80
+short max 30	[80]	in=5 frame=30
+long max 30	[80]	in=28 frame=30
+short min 10 max 30	[80]	in=5 frame=30
+short min 10	[80]	in=5 frame=10
+long min 10	[80]	in=37 frame=37
+long min 30	[80]	in=37 frame=37
+short ideal 20 max 30	[80]	in=5 frame=30
+short ideal 20 max inf	[80]	in=5 frame=80
+short ideal 40 max 30	[80]	in=5 frame=40
+short min 10 ideal 20	[80]	in=5 frame=10
+short min 0 max inf	[80]	in=5 frame=80
+short max inf	[80]	in=5 frame=80
+long max inf	[80]	in=37 frame=80
+clear max 30	[80]	in=30 frame=30
+clear min 10	[80]	in=80 frame=80
+short max 3	[80]	in=3 frame=3
+rigid8 max 3	[80]	in=8 frame=3
+rigid8 min 10 max 30	[80]	in=8 frame=30
+short ideal 10	[20]	in=5 frame=5
+long ideal 10	[20]	in=20 frame=20
+short ideal 50	[20]	in=5 frame=5
+clear ideal 10	[20]	in=20 frame=20
+short max 30	[20]	in=5 frame=20
+long max 30	[20]	in=20 frame=20
+short min 10 max 30	[20]	in=5 frame=20
+short min 10	[20]	in=5 frame=10
+long min 10	[20]	in=20 frame=20
+long min 30	[20]	in=28 frame=30
+short ideal 20 max 30	[20]	in=5 frame=20
+short ideal 20 max inf	[20]	in=5 frame=20
+short ideal 40 max 30	[20]	in=5 frame=20
+short min 10 ideal 20	[20]	in=5 frame=10
+short min 0 max inf	[20]	in=5 frame=20
+short max inf	[20]	in=5 frame=20
+long max inf	[20]	in=20 frame=20
+clear max 30	[20]	in=20 frame=20
+clear min 10	[20]	in=20 frame=20
+short max 3	[20]	in=3 frame=3
+rigid8 max 3	[20]	in=8 frame=3
+rigid8 min 10 max 30	[20]	in=8 frame=20
+short ideal 10	[ideal]	in=5 frame=10
+long ideal 10	[ideal]	in=10 frame=10
+short ideal 50	[ideal]	in=5 frame=50
+clear ideal 10	[ideal]	in=10 frame=10
+short max 30	[ideal]	in=5 frame=5
+long max 30	[ideal]	in=28 frame=30
+short min 10 max 30	[ideal]	in=5 frame=10
+short min 10	[ideal]	in=5 frame=10
+long min 10	[ideal]	in=37 frame=37
+long min 30	[ideal]	in=37 frame=37
+short ideal 20 max 30	[ideal]	in=5 frame=20
+short ideal 20 max inf	[ideal]	in=5 frame=20
+short ideal 40 max 30	[ideal]	in=5 frame=40
+short min 10 ideal 20	[ideal]	in=5 frame=20
+short min 0 max inf	[ideal]	in=5 frame=5
+short max inf	[ideal]	in=5 frame=5
+long max inf	[ideal]	in=37 frame=37
+clear max 30	[ideal]	in=0.81 frame=0.81
+clear min 10	[ideal]	in=10 frame=10
+short max 3	[ideal]	in=3 frame=3
+rigid8 max 3	[ideal]	in=8 frame=3
+rigid8 min 10 max 30	[ideal]	in=8 frame=10
+one ideal 3	[10]	in=1 frame=1
+one max 5	[10]	in=1 frame=5
+one min 2 max 5	[10]	in=1 frame=5
+clear ideal 3	[10]	in=10 frame=10
+one ideal 3	[2]	in=1 frame=1
+one max 5	[2]	in=1 frame=2
+one min 2 max 5	[2]	in=1 frame=2
+clear ideal 3	[2]	in=2 frame=2
+one ideal 3	[ideal]	in=1 frame=3
+one max 5	[ideal]	in=1 frame=1
+one min 2 max 5	[ideal]	in=1 frame=2
+clear ideal 3	[ideal]	in=3 frame=3

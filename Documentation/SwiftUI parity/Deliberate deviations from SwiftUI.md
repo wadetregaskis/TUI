@@ -92,8 +92,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** the same spellings take `Int` cells. `.padding(20)` is twenty
   columns at each side and twenty rows above and below, so an integer literal
   ported from SwiftUI means about 8 times as much across and 16 times as much
-  down. A fractional `CGFloat` expression does not compile, and a fixed
-  maximum is spelled `.frame(maxWidth: .fixed(200))`.
+  down. A fractional `CGFloat` expression does not compile. A frame's
+  maximum is a `FrameDimension`, which an integer literal is, so
+  `.frame(maxWidth: 200)` compiles and fills its offer up to 200 columns, as
+  SwiftUI's does up to 200 points; a `CGFloat` variable needs `.fixed(Int(…))`.
 - **Why:** a terminal addresses whole cells. Half a column cannot be drawn, and
   `CGFloat` would push a rounding decision onto every call site.
 - **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>); the owner names `.padding(20)` as a

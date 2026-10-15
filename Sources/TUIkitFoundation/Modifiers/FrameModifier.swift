@@ -7,7 +7,10 @@
 // MARK: - Frame Dimension
 
 /// Represents a frame dimension that can be a fixed value or infinity.
-public enum FrameDimension: Equatable, Sendable {
+///
+/// An integer literal is a fixed value, so SwiftUI's `.frame(maxWidth: 200)`
+/// compiles as written — in cells (§2.1 of the compatibility guide).
+public enum FrameDimension: Equatable, Sendable, ExpressibleByIntegerLiteral {
     /// A fixed size in characters/lines.
     case fixed(Int)
 
@@ -16,6 +19,11 @@ public enum FrameDimension: Equatable, Sendable {
 
     /// The special infinity value for frame constraints.
     public static let max: FrameDimension = .infinity
+
+    /// A fixed size of `value` cells.
+    public init(integerLiteral value: Int) {
+        self = .fixed(value)
+    }
 }
 
 // MARK: - Flexible Frame View
@@ -158,66 +166,53 @@ extension FlexibleFrameView: @preconcurrency Equatable where Content: Equatable 
 // MARK: - Renderable
 
 extension FlexibleFrameView {
-    /// The width the content is offered for a given available width.
+    /// The frame's width constraints, in order (``FlexibleFrameAxis``).
+    var widthAxis: FlexibleFrameAxis {
+        FlexibleFrameAxis(minimum: minWidth, ideal: idealWidth, maximum: maxWidth)
+    }
+
+    /// The frame's height constraints, in order (``FlexibleFrameAxis``).
+    var heightAxis: FlexibleFrameAxis {
+        FlexibleFrameAxis(minimum: minHeight, ideal: idealHeight, maximum: maxHeight)
+    }
+
+    /// The width the content is offered for a given available width: that
+    /// width, held to a finite maximum. An ideal width is not read — a frame
+    /// offered a width offers its content that width, as SwiftUI's does.
     ///
     /// Shared by ``renderToBuffer(context:)`` and ``sizeThatFits(proposal:context:)``
     /// so the measure and render passes can never disagree about how the
     /// frame constrains its content.
     func contentTargetWidth(availableWidth: Int) -> Int {
-        let target: Int
-        if let maximumWidth = maxWidth {
-            switch maximumWidth {
-            case .infinity:
-                target = availableWidth
-            case .fixed(let value):
-                target = min(value, availableWidth)
-            }
-        } else if let ideal = idealWidth {
-            target = min(ideal, availableWidth)
-        } else {
-            // No max constraint - offer the available width, then size to content.
-            target = availableWidth
-        }
-        // Floored, because this number is written straight onto the content's
-        // `availableWidth` and a leaf that builds a run from it (Divider) has
-        // no defence: `String(repeating:count:)` requires a non-negative count.
-        // Every chrome subtraction in the framework already clamps; the frame
-        // is where an app's own arithmetic — `.frame(width: available -
-        // labelWidth)` — arrives unexamined.
-        return max(0, target)
+        widthAxis.contentBudget(availableWidth, unspecified: false)
     }
 
     /// The height the content is offered for a given available height, or
     /// `nil` to use the content's intrinsic height. Shared by the render and
     /// measure passes (see ``contentTargetWidth(availableWidth:)``).
     ///
-    /// - Parameter fills: Whether `maxHeight: .infinity` should expand to
-    ///   `availableHeight`. True when rendering — the frame is being given
-    ///   concrete space and fills it. False when the caller asked for an IDEAL
-    ///   height (no height in the proposal): "as tall as I'm given" has no
-    ///   answer when nothing was given, so the honest report is the content's
-    ///   own height, flagged flexible. SwiftUI resolves an unspecified
-    ///   proposal the same way, and the alternative is a lie with visible
-    ///   consequences — inside a `ScrollView`, a frame reporting the measure
-    ///   budget as its natural height invents thousands of lines of scrollable
-    ///   emptiness under a one-line label.
+    /// - Parameter fills: Whether the frame was offered a height. True when
+    ///   rendering — the frame is being given concrete space, which a
+    ///   maximum fills up to. False when the caller asked for an IDEAL height
+    ///   (no height in the proposal): the content is offered the frame's
+    ///   ideal height, or its own where the frame has none, and "as tall as
+    ///   I'm given" has no answer when nothing was given, so the honest
+    ///   report is the content's own height, flagged flexible. SwiftUI
+    ///   resolves an unspecified proposal the same way, and the alternative
+    ///   is a lie with visible consequences — inside a `ScrollView`, a frame
+    ///   reporting the measure budget as its natural height invents thousands
+    ///   of lines of scrollable emptiness under a one-line label.
     func contentTargetHeight(availableHeight: Int, fills: Bool = true) -> Int? {
-        let target: Int?
-        if let maximumHeight = maxHeight {
-            switch maximumHeight {
-            case .infinity:
-                target = fills ? availableHeight : nil
-            case .fixed(let value):
-                target = min(value, availableHeight)
-            }
-        } else if let ideal = idealHeight {
-            target = min(ideal, availableHeight)
-        } else {
-            target = nil  // Use intrinsic height
+        let axis = heightAxis
+        if fills {
+            return axis.maximum == nil ? nil : axis.contentBudget(availableHeight, unspecified: false)
         }
-        // Floored for the reason given on `contentTargetWidth(availableWidth:)`
-        // — nil still means "use the content's own height", not zero.
-        return target.map { max(0, $0) }
+        // A finite maximum still holds a content asked its own height, as it
+        // always has; the frame comes out the same, cut to that maximum.
+        guard axis.ideal != nil else {
+            return axis.finiteMaximum == nil ? nil : axis.contentBudget(availableHeight, unspecified: false)
+        }
+        return axis.contentBudget(availableHeight, unspecified: true)
     }
 }
 
@@ -259,24 +254,10 @@ extension FlexibleFrameView: Renderable {
         // Render content
         let buffer = TUIkitView.renderToBuffer(content, context: contentContext)
 
-        // Apply minimum constraints
-        var finalWidth = buffer.width
-        var finalHeight = buffer.height
-
-        if let minimumWidth = minWidth {
-            finalWidth = max(finalWidth, minimumWidth)
-        }
-        if let minimumHeight = minHeight {
-            finalHeight = max(finalHeight, minimumHeight)
-        }
-
-        // Apply maximum constraints (expand to fill if infinity)
-        if let maximumWidth = maxWidth, case .infinity = maximumWidth {
-            finalWidth = max(finalWidth, context.availableWidth)
-        }
-        if let maximumHeight = maxHeight, case .infinity = maximumHeight {
-            finalHeight = max(finalHeight, context.availableHeight)
-        }
+        // The frame around the content: raised to a minimum, and grown to
+        // what it was offered up to a maximum (``FlexibleFrameAxis``).
+        let finalWidth = widthAxis.extent(content: buffer.width, offer: context.availableWidth)
+        let finalHeight = heightAxis.extent(content: buffer.height, offer: context.availableHeight)
 
         // If size matches buffer, return as-is — unless the content's own
         // guide places it, which it does even in a frame its own size:
@@ -305,14 +286,8 @@ extension FlexibleFrameView: Renderable {
             content,
             proposal: ProposedSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
             context: contentContext)
-        var finalWidth = max(size.width, minWidth ?? 0)
-        var finalHeight = max(size.height, minHeight ?? 0)
-        if let maximumWidth = maxWidth, case .infinity = maximumWidth {
-            finalWidth = max(finalWidth, context.availableWidth)
-        }
-        if let maximumHeight = maxHeight, case .infinity = maximumHeight {
-            finalHeight = max(finalHeight, context.availableHeight)
-        }
+        let finalWidth = widthAxis.extent(content: size.width, offer: context.availableWidth)
+        let finalHeight = heightAxis.extent(content: size.height, offer: context.availableHeight)
         return contentContext.placingChild(
             gradient: contentContext.gradientFrame,
             x: alignment.horizontal.childOffset(childWidth: size.width, in: finalWidth),
@@ -529,8 +504,7 @@ extension FlexibleFrameView: Layoutable {
         let targetHeight = contentTargetHeight(availableHeight: availableHeight, fills: fillsHeight)
         // Under the ideal-width ask the content is asked ITS ideal width, or
         // offered the frame's own ideal when it has one.
-        let contentProposalWidth: Int? =
-            asksIdealWidth ? idealWidth.map { max(0, min($0, availableWidth)) } : availableWidth
+        let contentProposalWidth = widthAxis.contentProposal(availableWidth, unspecified: asksIdealWidth)
         var contentContext = context
         contentContext.availableWidth = contentProposalWidth ?? availableWidth
         if let targetHeight {
@@ -555,7 +529,7 @@ extension FlexibleFrameView: Layoutable {
         var width = availableWidth
         var isWidthFlexible = true
         if asksIdealWidth {
-            let wanted = max(idealWidth ?? contentSize.width, minWidth ?? 0)
+            let wanted = widthAxis.extent(content: contentSize.width, offer: nil)
             width = max(0, min(wanted, availableWidth))
             isWidthFlexible =
                 wanted < availableWidth
@@ -563,31 +537,21 @@ extension FlexibleFrameView: Layoutable {
                     && contentSize.isWidthFlexible)
         }
 
-        var height = contentSize.height
-        if let minHeight {
-            height = max(height, minHeight)
-        }
-        if let maximumHeight = maxHeight, case .infinity = maximumHeight, fillsHeight {
-            height = max(height, availableHeight)
-        }
-        height = min(height, availableHeight)
+        let wantedHeight = heightAxis.extent(
+            content: contentSize.height, offer: fillsHeight ? availableHeight : nil)
+        let height = min(wantedHeight, availableHeight)
 
-        // The height half of the flexibility report, which `flexibleWidth` hard-codes
-        // to false. It used to be unobservable — an `.infinity` maxHeight reported
-        // `availableHeight`, so a parent offering more got the same answer whether or
-        // not it knew the frame could grow. Now that the report is the content's own
-        // height, "can grow" is the only thing distinguishing this from a rigid frame,
-        // and the measure/render parity harness reads it.
+        // The height half of the flexibility report. It used to be
+        // unobservable — an `.infinity` maxHeight reported `availableHeight`,
+        // so a parent offering more got the same answer whether or not it knew
+        // the frame could grow. Now that the report is the content's own
+        // height, "can grow" is the only thing distinguishing this from a
+        // rigid frame, and the measure/render parity harness reads it.
         return ViewSize(
             width: width, height: height,
             isWidthFlexible: isWidthFlexible,
-            isHeightFlexible: hasInfiniteMaxHeight || contentSize.isHeightFlexible)
-    }
-
-    /// Whether the frame fills its available height (`maxHeight: .infinity`).
-    private var hasInfiniteMaxHeight: Bool {
-        if case .infinity? = maxHeight { return true }
-        return false
+            isHeightFlexible: heightAxis.isFlexible(
+                reported: height, wanted: wantedHeight, contentFlexible: contentSize.isHeightFlexible))
     }
 
     /// Whether the frame fills its available width (`maxWidth: .infinity`).
@@ -623,12 +587,16 @@ extension FlexibleFrameView: Layoutable {
     private func measureAnalytically(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let availableWidth = proposal.width ?? context.availableWidth
         let availableHeight = proposal.height ?? context.availableHeight
+        let (widthAxis, heightAxis) = (self.widthAxis, self.heightAxis)
 
-        // The width/height the content is offered — the same shared helpers
-        // renderToBuffer uses. An `.infinity` maximum fills only a height that
-        // was actually proposed (see `contentTargetHeight(availableHeight:fills:)`).
+        // Offered no width — the ideal-width ask, ``RenderContext/asksIdealWidth``
+        // — the frame offers its content its ideal width, or nothing; and
+        // offered no height, its ideal height (see
+        // `contentTargetHeight(availableHeight:fills:)`). The same shared
+        // helpers renderToBuffer uses.
+        let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
         let fillsHeight = proposal.height != nil
-        let targetWidth = contentTargetWidth(availableWidth: availableWidth)
+        let targetWidth = widthAxis.contentBudget(availableWidth, unspecified: asksIdealWidth)
         let targetHeight = contentTargetHeight(availableHeight: availableHeight, fills: fillsHeight)
 
         var contentContext = context
@@ -643,26 +611,20 @@ extension FlexibleFrameView: Layoutable {
         }
         let contentSize = measureChild(
             content,
-            proposal: ProposedSize(width: targetWidth, height: targetHeight),
+            proposal: ProposedSize(
+                width: widthAxis.contentProposal(availableWidth, unspecified: asksIdealWidth),
+                height: targetHeight),
             context: contentContext)
 
         // Mirror renderToBuffer's final-size math: the content is capped at
-        // what the frame offers it, minimums floor the result, and an
-        // `.infinity` max fills the available extent.
-        var wantedWidth = min(contentSize.width, targetWidth)
-        var wantedHeight = targetHeight.map { min(contentSize.height, $0) } ?? contentSize.height
-        if let minimumWidth = minWidth {
-            wantedWidth = max(wantedWidth, minimumWidth)
-        }
-        if let minimumHeight = minHeight {
-            wantedHeight = max(wantedHeight, minimumHeight)
-        }
-        if let maximumWidth = maxWidth, case .infinity = maximumWidth {
-            wantedWidth = max(wantedWidth, availableWidth)
-        }
-        if let maximumHeight = maxHeight, case .infinity = maximumHeight, fillsHeight {
-            wantedHeight = max(wantedHeight, availableHeight)
-        }
+        // what the frame offers it — the universal `renderToBuffer` clamps the
+        // content's buffer there — and the frame is sized around it
+        // (``FlexibleFrameAxis/extent(content:offer:)``).
+        let wantedWidth = widthAxis.extent(
+            content: min(contentSize.width, targetWidth), offer: asksIdealWidth ? nil : availableWidth)
+        let wantedHeight = heightAxis.extent(
+            content: targetHeight.map { min(contentSize.height, $0) } ?? contentSize.height,
+            offer: fillsHeight ? availableHeight : nil)
 
         // The universal render clamp caps the frame's own buffer at its
         // availability, so the report must not exceed it either.
@@ -670,58 +632,16 @@ extension FlexibleFrameView: Layoutable {
         let height = min(wantedHeight, availableHeight)
 
         // An axis is flexible iff offering more space would grow the rendered
-        // frame:
-        // - an `.infinity` max always fills whatever is offered;
-        // - a frame squeezed below the size its constraints want (the clamp
-        //   engaged) grows back toward it when offered more — e.g. a
-        //   `.frame(width: 20)` in 12 cells reports (12, flexible);
-        // - otherwise growth comes from the content filling extra space,
-        //   unless a cap (a fixed max, or an ideal acting as one) already pins
-        //   the reported size — a `.frame(width: 30)` at its cap is rigid,
-        //   while a `maxWidth: .fixed(60)` frame in 40 cells still grows.
-        func axisFlexible(
-            isInfinity: Bool, reported: Int, wanted: Int, contentFlexible: Bool, cap: Int?
-        ) -> Bool {
-            if isInfinity { return true }
-            if reported < wanted { return true }
-            guard contentFlexible else { return false }
-            guard let cap else { return true }
-            return wanted < cap
-        }
-        let widthCap: Int?
-        var widthInfinity = false
-        if let maximumWidth = maxWidth {
-            if case .fixed(let value) = maximumWidth {
-                widthCap = value
-            } else {
-                widthCap = nil
-                widthInfinity = true
-            }
-        } else {
-            widthCap = idealWidth
-        }
-        let heightCap: Int?
-        var heightInfinity = false
-        if let maximumHeight = maxHeight {
-            if case .fixed(let value) = maximumHeight {
-                heightCap = value
-            } else {
-                heightCap = nil
-                heightInfinity = true
-            }
-        } else {
-            heightCap = idealHeight
-        }
-
+        // frame (``FlexibleFrameAxis/isFlexible(reported:wanted:contentFlexible:)``):
+        // a `.frame(width: 20)` in 12 cells reports (12, flexible), one at 20 is
+        // rigid, and a `maxWidth: 60` frame in 40 cells still grows.
         return ViewSize(
             width: width,
             height: height,
-            isWidthFlexible: axisFlexible(
-                isInfinity: widthInfinity, reported: width, wanted: wantedWidth,
-                contentFlexible: contentSize.isWidthFlexible, cap: widthCap),
-            isHeightFlexible: axisFlexible(
-                isInfinity: heightInfinity, reported: height, wanted: wantedHeight,
-                contentFlexible: contentSize.isHeightFlexible, cap: heightCap))
+            isWidthFlexible: widthAxis.isFlexible(
+                reported: width, wanted: wantedWidth, contentFlexible: contentSize.isWidthFlexible),
+            isHeightFlexible: heightAxis.isFlexible(
+                reported: height, wanted: wantedHeight, contentFlexible: contentSize.isHeightFlexible))
     }
 }
 

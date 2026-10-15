@@ -27,7 +27,7 @@ The proposal carries `proposal.width` and `proposal.height` as `Int?` ("nil = us
 
 - `.frame(width:, height:)` — fixed dimensions.
 - `.frame(minWidth:, idealWidth:, maxWidth:, minHeight:, idealHeight:, maxHeight:, alignment:)` — the flexible-frame form.
-- `FrameDimension` is `.fixed(Int)` or `.infinity`.
+- `FrameDimension` is `.fixed(Int)` or `.infinity`; an integer literal is `.fixed`.
 
 `VStack` / `HStack` distribute space between children using the `isWidthFlexible` / `isHeightFlexible` flags. `Spacer` is flexible-in-its-stack-axis. `LazyHStack` / `LazyVStack` do the same for streamed content. `NavigationSplitView` divides horizontal space between named columns using `.navigationSplitViewColumnWidth(...)`.
 
