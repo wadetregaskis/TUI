@@ -392,6 +392,18 @@ extension _NavigationSplitViewCore {
         return columnBase
     }
 
+    /// The key hint of a handle that hides (`hides`) or shows a column: "hide
+    /// column" or "show column" — or, for the sidebar (`sidebar`) where a bar's
+    /// labelled button names it (`DefaultToolbarItem(kind:placement:label:)`),
+    /// that name, so the handles and the button speak of one thing.
+    func handleHint(hides: Bool, sidebar: Bool, context: RenderContext, toggleState: SplitViewToggleState) -> String {
+        if sidebar, let name = PanelToggle.name(of: context.identity, action: toggleState.barAction, in: context) {
+            return PanelToggle.activationLabel(for: .sidebar, hides: hides, named: name)
+        }
+        return LocalizationService.shared.string(
+            for: hides ? LocalizationKey.StatusBar.hideColumn : LocalizationKey.StatusBar.showColumn)
+    }
+
     /// The edge column's focus section ID.
     func edgeSectionID(context: RenderContext) -> String {
         "nav-split-edge-\(context.identity.path)"
@@ -436,8 +448,13 @@ extension _NavigationSplitViewCore {
         // The same things `wireDivider` repeats from
         // `FocusRegistration.register`, which this bypasses for the same reason.
         FocusRegistration.publishHelpText(context: context, focusID: sectionID)
+        // ▶ brings the sidebar back unless a three-column split is down to its
+        // detail column, when it brings the content column back first.
+        let visibility = columnVisibility?.wrappedValue ?? toggleState.visibility
         FocusRegistration.publishActivationLabel(
-            LocalizationService.shared.string(for: LocalizationKey.StatusBar.showColumn),
+            handleHint(
+                hides: false, sidebar: !isThreeColumn || visibility != .detailOnly, context: context,
+                toggleState: toggleState),
             context: context, isFocused: focusManager.isFocused(id: sectionID))
 
         var mouseHandlerID: HitTestRegion.HandlerID?

@@ -46,7 +46,7 @@ extension WindowChromeState {
         var environment = offer.environment
         environment.sidebarToggleScope = .split(offer.toggle)
         return ToolbarEntry(
-            placement: .navigation, view: AnyView(_PanelToggleButton(panel: .sidebar)), environment: environment,
+            placement: .navigation, view: AnyView(_PanelToggleButton(panel: .sidebar, label: nil)), environment: environment,
             identity: offer.itemIdentity, defaultKind: .sidebarToggle)
     }
 }

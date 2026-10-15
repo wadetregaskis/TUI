@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitCore
 import TUIkitView
 
@@ -44,6 +45,14 @@ package struct PanelToggle: Sendable, Equatable {
         /// ``perform``'s storage: private, under the `package` accessor
         /// (CONTRIBUTING.md, "Crossing a module boundary").
         private var _perform: () -> Void = {}
+
+        /// The name the last labelled bar button for the panel drawn gave it
+        /// (`DefaultToolbarItem(kind:placement:label:)`), its label's text; `nil`
+        /// where the last one drawn had no label.
+        package var labelText: String? { get { _labelText } set { _labelText = newValue } }
+
+        /// ``labelText``'s storage.
+        private var _labelText: String?
 
         package init() {}
     }
@@ -90,23 +99,58 @@ package struct PanelToggle: Sendable, Equatable {
         (panel == .sidebar) == isShown ? TerminalSymbols.leftArrow : TerminalSymbols.rightArrow
     }
 
-    /// What the button's help says it does: SwiftUI's own labels for its
-    /// sidebar button, and the same words for an inspector.
-    package var helpText: String {
+    /// What the button's help says it does — SwiftUI's own labels for its
+    /// sidebar button, and the same words for an inspector — naming the panel
+    /// `name` where a toolbar item gave it one.
+    package func helpText(named name: String?) -> String {
+        Self.helpText(for: panel, hides: isShown, named: name)
+    }
+
+    /// What Return does on the button, for the status bar's key hints, naming
+    /// the panel `name` where a toolbar item gave it one.
+    package func activationLabel(named name: String?) -> String {
+        Self.activationLabel(for: panel, hides: isShown, named: name)
+    }
+
+    /// The name the panel's labelled bar button gave it, while a bar draws a
+    /// button for it: what the owner's own handles' key hints call it.
+    package func name(in context: RenderContext) -> String? {
+        Self.name(of: owner, action: action, in: context)
+    }
+
+    /// The name a labelled bar button gave the panel owned by the view at
+    /// `owner`, whose toggle's action is `action`, while a bar draws a button
+    /// for it (``WindowChromeState/hasBarToggle(for:)``).
+    package static func name(of owner: ViewIdentity, action: Action, in context: RenderContext) -> String? {
+        context.environment.windowChrome?.hasBarToggle(for: owner) == true ? action.labelText : nil
+    }
+
+    /// The help of a button that hides `panel` (`hides`) or shows it.
+    package static func helpText(for panel: Panel, hides: Bool, named name: String?) -> String {
+        if let name {
+            return LocalizationService.shared.string(
+                for: hides ? LocalizationKey.Label.hideNamedPanel : .showNamedPanel
+            ).replacingOccurrences(of: "%@", with: name)
+        }
         let key: LocalizationKey.Label =
             switch panel {
-            case .sidebar: isShown ? .hideSidebar : .showSidebar
-            case .inspector: isShown ? .hideInspector : .showInspector
+            case .sidebar: hides ? .hideSidebar : .showSidebar
+            case .inspector: hides ? .hideInspector : .showInspector
             }
         return LocalizationService.shared.string(for: key)
     }
 
-    /// What Return does on the button, for the status bar's key hints.
-    package var activationLabel: String {
+    /// The key hint of a control that hides `panel` (`hides`) or shows it.
+    package static func activationLabel(for panel: Panel, hides: Bool, named name: String?) -> String {
+        if let name {
+            return LocalizationService.shared.string(
+                for: hides ? LocalizationKey.StatusBar.hideNamedPanel : .showNamedPanel
+            ).replacingOccurrences(of: "%@", with: name)
+        }
         let key: LocalizationKey.StatusBar =
             switch panel {
-            case .sidebar: isShown ? .hideSidebar : .showSidebar
-            case .inspector: isShown ? .hideInspector : .showInspector
+            case .sidebar: hides ? .hideSidebar : .showSidebar
+            case .inspector: hides ? .hideInspector : .showInspector
             }
         return LocalizationService.shared.string(for: key)
     }

@@ -63,6 +63,8 @@
   "label.hideSidebar": "Seitenleiste ausblenden",
   "label.showInspector": "Inspektor einblenden",
   "label.hideInspector": "Inspektor ausblenden",
+  "label.showNamedPanel": "„%@“ einblenden",
+  "label.hideNamedPanel": "„%@“ ausblenden",
 
   "error.invalid_input": "Ungültige Eingabe",
   "error.required_field": "Dieses Feld ist erforderlich",
@@ -111,6 +113,8 @@
   "statusbar.hideSidebar": "Seitenleiste ausblenden",
   "statusbar.showInspector": "Inspektor einblenden",
   "statusbar.hideInspector": "Inspektor ausblenden",
+  "statusbar.showNamedPanel": "%@ einblenden",
+  "statusbar.hideNamedPanel": "%@ ausblenden",
   "statusbar.dismiss": "schließen",
   "statusbar.cancel": "abbrechen",
   "statusbar.goBack": "zurück",

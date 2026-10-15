@@ -93,6 +93,8 @@ extension LocalizationService {
       "label.hideSidebar": "Hide Sidebar",
       "label.showInspector": "Show Inspector",
       "label.hideInspector": "Hide Inspector",
+      "label.showNamedPanel": "Show “%@”",
+      "label.hideNamedPanel": "Hide “%@”",
 
       "error.invalid_input": "Invalid input",
       "error.required_field": "This field is required",
@@ -141,6 +143,8 @@ extension LocalizationService {
       "statusbar.hideSidebar": "hide sidebar",
       "statusbar.showInspector": "show inspector",
       "statusbar.hideInspector": "hide inspector",
+      "statusbar.showNamedPanel": "show %@",
+      "statusbar.hideNamedPanel": "hide %@",
       "statusbar.dismiss": "dismiss",
       "statusbar.cancel": "cancel",
       "statusbar.goBack": "go back",

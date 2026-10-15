@@ -145,7 +145,10 @@ macOS toolbar does. A `DefaultToolbarItem(kind: .sidebarToggle)` places one
 where you want it: it toggles the split whose column it is declared in, so each
 split view can have its own, or the window's first split view when it is
 declared round one, which then has no button of the top bar's own. While a
-button is drawn, the split leaves out its edge column. SwiftUI's sidebar chords, ⌃⌘S and
+button is drawn, the split leaves out its edge column. Give the item a label —
+`DefaultToolbarItem(kind: .sidebarToggle, placement: .navigation) { Text("Folders") }`,
+a TUIkit addition — to name the panel: the button draws it after its arrow, and
+the key hints of the button and of the split's own handles say "hide Folders". SwiftUI's sidebar chords, ⌃⌘S and
 ⌥⌘S, toggle the sidebar through ``EnvironmentValues/commandKey`` (<kbd>⌃S</kbd>
 and <kbd>⌥⌃S</kbd> by default) wherever the focus is; see <doc:KeyboardShortcuts>.
 The edge column needs the split to be at

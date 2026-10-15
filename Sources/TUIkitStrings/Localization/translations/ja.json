@@ -63,6 +63,8 @@
   "label.hideSidebar": "サイドバーを非表示",
   "label.showInspector": "インスペクタを表示",
   "label.hideInspector": "インスペクタを非表示",
+  "label.showNamedPanel": "「%@」を表示",
+  "label.hideNamedPanel": "「%@」を非表示",
 
   "error.invalid_input": "入力が無効です",
   "error.required_field": "この項目は必須です",
@@ -111,6 +113,8 @@
   "statusbar.hideSidebar": "サイドバーを隠す",
   "statusbar.showInspector": "インスペクタを表示",
   "statusbar.hideInspector": "インスペクタを隠す",
+  "statusbar.showNamedPanel": "%@を表示",
+  "statusbar.hideNamedPanel": "%@を隠す",
   "statusbar.dismiss": "閉じる",
   "statusbar.cancel": "キャンセル",
   "statusbar.goBack": "戻る",

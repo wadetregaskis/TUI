@@ -413,7 +413,8 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         FocusRegistration.register(context: context, handler: handler, focusID: focusID)
         let isFocused = FocusRegistration.isFocused(context: context, focusID: focusID)
         if let hides {
-            FocusRegistration.publishActivationLabel(hides.activationLabel, context: context, isFocused: isFocused)
+            FocusRegistration.publishActivationLabel(
+                hides.activationLabel(named: hides.name(in: context)), context: context, isFocused: isFocused)
         }
         let showsFocus = context.indicatesFocus(isFocused)
 

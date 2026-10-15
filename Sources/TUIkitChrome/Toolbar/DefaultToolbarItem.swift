@@ -65,6 +65,9 @@ public struct DefaultToolbarItem: ToolbarContent {
     /// Where the item goes.
     let placement: ToolbarItemPlacement
 
+    /// What a toggle's button shows beside its arrow, or `nil`.
+    let label: AnyView?
+
     /// Creates a toolbar item for a component the framework provides.
     ///
     /// - Parameters:
@@ -73,6 +76,47 @@ public struct DefaultToolbarItem: ToolbarContent {
     public init(kind: ToolbarDefaultItemKind, placement: ToolbarItemPlacement = .automatic) {
         self.kind = kind.kind
         self.placement = placement
+        self.label = nil
+    }
+
+    /// Creates a toolbar item for a component the framework provides, with a
+    /// label that names it.
+    ///
+    /// A TUIkit addition, for a toggle's button: with a sidebar on each side, or
+    /// several split views, two arrows alone do not say which panel each one
+    /// works.
+    ///
+    /// ```swift
+    /// NavigationSplitView { Folders() } detail: { Editor() }
+    ///     .inspector(isPresented: $showsInfo) { Info() }
+    ///     .toolbar {
+    ///         DefaultToolbarItem(kind: .sidebarToggle, placement: .navigation) {
+    ///             Label("Folders", systemImage: "sidebar.left")
+    ///         }
+    ///         DefaultToolbarItem(kind: .inspectorToggle, placement: .primaryAction) {
+    ///             Label("Info", systemImage: "sidebar.right")
+    ///         }
+    ///     }
+    /// ```
+    ///
+    /// The button draws the label after its arrow, and the label's text names
+    /// the panel wherever the panel's toggles are described while the button
+    /// is drawn: the button's help ("Hide “Folders”"), and the key hints of
+    /// the button, of the split view's ◀ divider and ▶ edge, and of the
+    /// inspector's divider ("hide Folders"). The ``ToolbarDefaultItemKind/search``
+    /// and ``ToolbarDefaultItemKind/title`` items draw no label.
+    ///
+    /// - Parameters:
+    ///   - kind: The kind of item.
+    ///   - placement: Which section of the toolbar the item should be placed in.
+    ///   - label: What the button shows after its arrow.
+    public init<Label: View>(
+        kind: ToolbarDefaultItemKind, placement: ToolbarItemPlacement = .automatic,
+        @ViewBuilder label: () -> Label
+    ) {
+        self.kind = kind.kind
+        self.placement = placement
+        self.label = AnyView(label())
     }
 
     /// Never called: an item hands itself to the bar.
@@ -81,7 +125,8 @@ public struct DefaultToolbarItem: ToolbarContent {
 
 extension DefaultToolbarItem: _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
-        items.append(placement: placement, view: AnyView(_DefaultToolbarItemCore(kind: kind)), defaultKind: kind)
+        items.append(
+            placement: placement, view: AnyView(_DefaultToolbarItemCore(kind: kind, label: label)), defaultKind: kind)
     }
 }
 
@@ -90,6 +135,7 @@ extension DefaultToolbarItem: _ToolbarContentPrimitive {
 /// the window's title.
 private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
     let kind: ToolbarDefaultItemKind.Kind
+    let label: AnyView?
 
     var body: Never { fatalError("_DefaultToolbarItemCore renders via Renderable") }
 
@@ -104,9 +150,9 @@ private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
         case .title:
             return chrome.title.isEmpty ? nil : AnyView(_ToolbarTitle(title: chrome.title, subtitle: chrome.subtitle))
         case .sidebarToggle:
-            return AnyView(_PanelToggleButton(panel: .sidebar))
+            return AnyView(_PanelToggleButton(panel: .sidebar, label: label))
         case .inspectorToggle:
-            return AnyView(_PanelToggleButton(panel: .inspector))
+            return AnyView(_PanelToggleButton(panel: .inspector, label: label))
         }
     }
 

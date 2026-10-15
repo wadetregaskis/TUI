@@ -63,6 +63,8 @@
   "label.hideSidebar": "Ocultar barra lateral",
   "label.showInspector": "Mostrar inspector",
   "label.hideInspector": "Ocultar inspector",
+  "label.showNamedPanel": "Mostrar “%@”",
+  "label.hideNamedPanel": "Ocultar “%@”",
 
   "error.invalid_input": "Entrada no válida",
   "error.required_field": "Este campo es obligatorio",
@@ -111,6 +113,8 @@
   "statusbar.hideSidebar": "ocultar barra lateral",
   "statusbar.showInspector": "mostrar inspector",
   "statusbar.hideInspector": "ocultar inspector",
+  "statusbar.showNamedPanel": "mostrar %@",
+  "statusbar.hideNamedPanel": "ocultar %@",
   "statusbar.dismiss": "cerrar",
   "statusbar.cancel": "cancelar",
   "statusbar.goBack": "atrás",

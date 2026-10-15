@@ -702,7 +702,11 @@ split's whose column it is declared in, else the window's first split view. A
 split whose sidebar button is drawn leaves out its ▶ edge column, which the
 button stands in for; the ◀ on its divider stays, as it also says the column
 can be hidden. Several split views can each have one, declared in their own
-columns.
+columns. TUIkit's own `DefaultToolbarItem(kind:placement:label:)` (2026-10-14)
+names the panel a button works — with a sidebar on each side, two arrows alone
+do not say which is which: the button draws the label after its arrow, and its
+text names the panel in the button's help and key hint and in the key hints of
+the panel's own handles ("hide Folders").
 
 ### 2.7 Fixed-`frame` default alignment is `.topLeading`, not `.center`
 

@@ -21,9 +21,17 @@ import TUIkitFoundation
 /// neither. Drawn, it tells the window so
 /// (``WindowChromeState/noteBarToggleDrawn(for:)``): the split view then leaves
 /// out its ▶ edge column, which the button stands in for.
+///
+/// With a label (`DefaultToolbarItem(kind:placement:label:)`), the button draws
+/// it after the arrow, and its text names the panel: in the button's help and
+/// key hint, and — handed to the panel's owner through the toggle's action —
+/// in the hints of the owner's own handles.
 struct _PanelToggleButton: View, Renderable, Layoutable {
     /// The panel the button toggles.
     let panel: PanelToggle.Panel
+
+    /// What the button shows after its arrow, or `nil`.
+    let label: AnyView?
 
     var body: Never { fatalError("_PanelToggleButton renders via Renderable") }
 
@@ -41,35 +49,58 @@ struct _PanelToggleButton: View, Renderable, Layoutable {
         "panel-toggle-\(context.identity.path)"
     }
 
-    private func button(_ toggle: PanelToggle, context: RenderContext) -> some View {
+    /// The label's text, which names the panel: rendered as a measure, which
+    /// registers nothing, and its first line taken without its colours, as a
+    /// tab's label view is read for the strip. `nil` without a label, or for one
+    /// that draws no text.
+    private func name(_ context: RenderContext) -> String? {
+        guard let label else { return nil }
+        var labelContext = context
+        labelContext.isMeasuring = true
+        let line = TUIkitView.renderToBuffer(label, context: labelContext).lines.first?.stripped ?? ""
+        let name = String(line.drop { $0 == " " }.reversed().drop { $0 == " " }.reversed())
+        return name.isEmpty ? nil : name
+    }
+
+    private func button(_ toggle: PanelToggle, name: String?, context: RenderContext) -> some View {
         let action = toggle.action
-        return Button { action.perform() } label: { Text(verbatim: toggle.arrow) }
-            .focusID(focusID(context))
-            .help(toggle.helpText)
+        return Button { action.perform() } label: {
+            HStack(spacing: 1) {
+                Text(verbatim: toggle.arrow)
+                label
+            }
+        }
+        .focusID(focusID(context))
+        .help(toggle.helpText(named: name))
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let toggle = toggle(context) else { return FrameBuffer() }
-        let buffer = TUIkitView.renderToBuffer(button(toggle, context: context), context: context)
+        let name = name(context)
+        let buffer = TUIkitView.renderToBuffer(button(toggle, name: name, context: context), context: context)
         guard !context.isMeasuring else { return buffer }
         // Noted afresh by every frame that draws it, which a memoised ancestor
         // serving its buffer would skip: the split view would bring its ▶
         // back under the button.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
-        if context.environment.windowChrome?.noteBarToggleDrawn(for: toggle.owner) == true {
-            // The split drew its ▶ before this frame's bars: drawn again, it
-            // leaves it out.
+        let isNew = context.environment.windowChrome?.noteBarToggleDrawn(for: toggle.owner) == true
+        let renamed = toggle.action.labelText != name
+        toggle.action.labelText = name
+        if isNew || renamed {
+            // The owner drew its handles before this frame's bars — a split
+            // view its ▶, the hints their old names: drawn again, it leaves
+            // the ▶ out and names the panel as this button does.
             context.renderCache?.invalidateRender(for: toggle.owner)
         }
         // What Return does here, in place of the button's own "activate".
         FocusRegistration.publishActivationLabel(
-            toggle.activationLabel, context: context,
+            toggle.activationLabel(named: name), context: context,
             isFocused: FocusRegistration.isFocused(context: context, focusID: focusID(context)))
         return buffer
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard let toggle = toggle(context) else { return ViewSize.fixed(0, 0) }
-        return measureChild(button(toggle, context: context), proposal: proposal, context: context)
+        return measureChild(button(toggle, name: nil, context: context), proposal: proposal, context: context)
     }
 }

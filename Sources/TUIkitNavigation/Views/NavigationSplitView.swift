@@ -783,7 +783,7 @@ extension _NavigationSplitViewCore {
         handler.hide = togglesColumn ? hideAction(toggleState: toggleState) : nil
         if togglesColumn {
             FocusRegistration.publishActivationLabel(
-                LocalizationService.shared.string(for: LocalizationKey.StatusBar.hideColumn),
+                handleHint(hides: true, sidebar: column == .sidebar, context: context, toggleState: toggleState),
                 context: context, isFocused: focusManager.isFocused(id: sectionID))
         }
         // Before the registration, as `FocusRegistrar.register` does it: where
