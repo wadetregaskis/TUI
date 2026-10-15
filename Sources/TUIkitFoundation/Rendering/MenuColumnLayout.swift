@@ -33,8 +33,18 @@ func renderMenuColumn(
 ) -> FrameBuffer {
     let menuView = menuColumnFrame(items, borderColor: borderColor)
     let plan = planMenuColumn(menuView, context: context, capHeight: capHeight)
+    // The two arms as an `if`/`else` would draw them, each at a branch identity
+    // of its own, rather than one or the other at this identity. A menu
+    // squeezed short of its rows and then given them back flips between them,
+    // and the flip is what drops the arm it leaves — the scroll position the
+    // squeezed menu had, above all. Drawn here at one identity, that position
+    // outlived the scroll view wherever an ancestor was served from the cache,
+    // which keeps everything under it alive, and a menu squeezed again came
+    // back scrolled where an uncached one starts at the top (the focus and
+    // mouse storm's trial 3, once columns share their height).
     guard plan.scrolls else {
-        return renderToBuffer(menuView, context: plan.sized)
+        return renderToBuffer(
+            ConditionalView<Never, _>.falseContent(menuView), context: plan.sized)
     }
     // Taller than its budget: scroll inside it. The scroll goes INSIDE the
     // border, not around it — a ScrollView's "N more above/below" indicators
@@ -47,7 +57,8 @@ func renderMenuColumn(
         .asChrome()
         .frame(height: max(1, capHeight - 2))
         .bordered(style: nil, colour: borderColor.map(AnimatedColor.init), width: 1)
-    return renderToBuffer(scrolled, context: plan.sized.withAvailableHeight(capHeight))
+    return renderToBuffer(
+        ConditionalView<_, Never>.trueContent(scrolled), context: plan.sized.withAvailableHeight(capHeight))
 }
 
 /// The size ``renderMenuColumn(_:context:capHeight:borderColor:)`` comes back
