@@ -133,7 +133,9 @@ The weights are keyed by test ID, and an ID names its module
 (`Module.Suite/test()`), so a suite that moves to another test target is a
 new suite to the cache, priced at the median until `--calibrate` runs again.
 Dividing the umbrella suite into four test targets (2026-10-10) moved 6,628
-tests out of `TUIkitTests` that way: recalibrate a cache made before it.
+tests out of `TUIkitTests` that way, and dividing it again into a target per
+module (2026-10-14) moved every one of its tests: recalibrate a cache made
+before either.
 
 ## One run at a time
 
@@ -259,8 +261,8 @@ serially at this HEAD:
 | test | cost alone |
 |---|---:|
 | `TUIkitAppTests.MenuHeightCeilingTests/popUpReachesItsLastRowAtItsLongest(count:)` | 3.85 s |
-| `TUIkitControlTests.ColorPickerPanelCrashSafetyTests/keyEventMonkeyDoesNotTrap()` | 3.79 s |
-| `TUIkitAppTests.MenuMeasureParityTests/everyWidthAgrees(rows:)` | 3.79 s |
+| `TUIkitColorPickerTests.ColorPickerPanelCrashSafetyTests/keyEventMonkeyDoesNotTrap()` | 3.79 s |
+| `TUIkitMenusTests.MenuMeasureParityTests/everyWidthAgrees(rows:)` | 3.79 s |
 
 Against 104.9 s of total serial work, that floor binds at about `-j 28`; beyond
 it the extra processes finish early and wait. The harness prints the floor and
@@ -305,7 +307,7 @@ it is a code change, not a documentation one.
 ## Known order dependence, and flakes
 
 Running serially — which only `--calibrate` does — fails one test outright:
-`TUIkitTests.TranslucentGroundTests/rootBackgroundCodes()` reads background
+`TUIkitChromeTests.TranslucentGroundTests/rootBackgroundCodes()` reads background
 codes another test leaves set, so it passes only under the interleaving a
 parallel run happens to give it. Calibration reports the failure and still
 writes the table, because a failure does not make a duration wrong.
@@ -473,7 +475,7 @@ evidence is the SwiftPM source above and CI.
 **One test binary or several.** SwiftPM's native build system makes one test
 product for the package (`TUIkitPackageTests`). swift-build — the default from
 6.4 (`swift build --help`: "default: swiftbuild"), so on CI's 6.4 and trunk
-lanes — makes one per test TARGET: ten here since the umbrella suite became four (a 6.4.0 build, 2026-10-10). On macOS each is
+lanes — makes one per test TARGET: ten here once the umbrella suite became four (a 6.4.0 build, 2026-10-10), and 27 since it became a target per module (2026-10-14). On macOS each is
 `<name>.xctest/Contents/MacOS/<name>`, as before; on Linux, native builds
 produce `<name>.xctest` as an executable file and swift-build a
 `<name>-test-runner` launcher beside `<name>.so` (CI's 6.4 build log links

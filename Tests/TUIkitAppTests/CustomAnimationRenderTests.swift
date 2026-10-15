@@ -10,7 +10,6 @@
 import Foundation
 import Testing
 
-import TUIkit
 @testable import TUIkitApp
 
 /// Linear over `duration` seconds — `.linear(duration:)` written as a custom

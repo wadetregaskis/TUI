@@ -215,7 +215,7 @@ struct StackGuardLinuxFloorTests {
 /// Covers the per-thread cache in ``StackGuard`` — the half of the fix that
 /// the pure parse tests above cannot reach. Serialised, and each test restores
 /// the cache it perturbs, because `cachedExtent` is process-wide state that
-/// the render tests in `TUIkitTests` also depend on.
+/// the render tests in `TUIkitFoundationTests` also depend on.
 @MainActor
 @Suite("Stack guard: per-thread extent cache", .serialized)
 struct StackGuardExtentCacheTests {

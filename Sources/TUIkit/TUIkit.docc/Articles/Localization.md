@@ -466,7 +466,7 @@ its `#"""` delimiters: that is the English compiled in, and
 
 ### 3. Update Tests
 
-Add tests in `Tests/TUIkitTests/LocalizationKeyConsistencyTests.swift`:
+Add tests in `Tests/TUIkitFoundationTests/LocalizationKeyConsistencyTests.swift`:
 
 ```swift
 @Test("All button keys exist in translations")

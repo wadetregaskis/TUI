@@ -9,8 +9,7 @@
 
 import Foundation
 
-import TUIkit
-@testable import TUIkitFoundation
+import TUIkitStyling
 
 /// Runs `body` with `ColorDepth.current` pinned to `depth` for the current
 /// task only.

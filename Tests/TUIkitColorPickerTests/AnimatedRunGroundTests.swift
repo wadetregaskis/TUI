@@ -1,0 +1,425 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  AnimatedRunGroundTests.swift
+//
+//  A run records what its containers painted beneath its cells — its GROUND —
+//  as they paint it, because nothing downstream can recover it: where the frame
+//  the render drew gives a cell a field of its own, the row shows that field and
+//  not the one beneath it.
+//
+//  The property every painter owes is one sentence: under every cell of a run
+//  whose drawn frame states no field, the ground records exactly the field the
+//  finished row shows there. So the suite draws a probe run inside each kind of
+//  painter the framework has, builds its row the way the run loop does, and holds
+//  the two to it — and then draws the same probe with a field of its own and
+//  checks the ground did not move.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkitApp
+import TUIkitColorPicker
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+@testable import TUIkitTabsTestSupport
+@testable import TUIkitTestSupport
+@testable import TUIkitView
+
+/// A two-cell run whose frames are `ab` on a field of its own (frame 0, a caret
+/// drawn visible) and `cd` on none (frame 1), drawing frame `drawn` into its
+/// lines — so a test can put either on screen and ask what is beneath.
+private struct GroundProbe: View, Renderable {
+    var drawn = 1
+    var body: Never { fatalError("renders via Renderable") }
+
+    static let frames = ["\u{1B}[48;5;196mab\u{1B}[0m", "cd"]
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = FrameBuffer(lines: [Self.frames[drawn]])
+        guard !context.isMeasuring else { return buffer }
+        buffer.animatedCells = [
+            AnimatedCellRun(offsetX: 0, offsetY: 0, width: 2, frames: Self.frames, clock: .content)
+        ]
+        return buffer
+    }
+}
+
+/// A two-cell run whose drawn frame STATES the terminal's own field (`ESC[49m`) —
+/// under both its cells, as a tab chip's label does on a `Color.default` palette,
+/// or, `late`, under its second cell only, after a first it leaves bare — and
+/// whose other frame states none.
+private struct DefaultFieldProbe: View, Renderable {
+    var late = false
+    var body: Never { fatalError("renders via Renderable") }
+
+    var frames: [String] {
+        late ? ["a\u{1B}[49mb\u{1B}[0m", "cd"] : ["\u{1B}[49mab\u{1B}[0m", "cd"]
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = FrameBuffer(lines: [frames[0]])
+        guard !context.isMeasuring else { return buffer }
+        buffer.animatedCells = [
+            AnimatedCellRun(offsetX: 0, offsetY: 0, width: 2, frames: frames, clock: .content)
+        ]
+        return buffer
+    }
+}
+
+/// A one-cell run whose first frame draws NOTHING — narrower than its run, as a
+/// blink's hidden phase can be — and whose second draws `x`, drawn as a blank.
+private struct NarrowFrameProbe: View, Renderable {
+    var body: Never { fatalError("renders via Renderable") }
+
+    static let frames = ["", "x"]
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = FrameBuffer(lines: [" "])
+        guard !context.isMeasuring else { return buffer }
+        buffer.animatedCells = [
+            AnimatedCellRun(offsetX: 0, offsetY: 0, width: 1, frames: Self.frames, clock: .cursor)
+        ]
+        return buffer
+    }
+}
+
+@MainActor
+@Suite("A run records the ground its containers painted under it")
+struct AnimatedRunGroundTests {
+
+    /// The page every row here is built on, as the run loop's content area has it.
+    private static let page = "\u{1B}[48;2;5;10;5m"
+    private static let width = 24
+
+    /// The view's rows as the run loop builds them, and the probe's runs on them
+    /// — only the probe's: a focused control beside it leaves a run of its own,
+    /// whose drawn frame this suite knows nothing about.
+    private func built(_ view: some View) -> (rows: [String], runs: [AnimatedCellRun]) {
+        let context = makeRenderContext(width: Self.width, height: 12)
+        let buffer = ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: context) }
+        let writer = FrameDiffWriter(
+            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let rows = writer.buildOutputLines(
+            buffer: buffer, terminalWidth: Self.width, terminalHeight: buffer.lines.count,
+            bgCode: Self.page, reset: ANSIRenderer.reset)
+        return (rows, buffer.animatedCells.filter { $0.frames == GroundProbe.frames })
+    }
+
+    @Test("Under a frame that states no field, the ground is the field the row shows", arguments: FieldPainter.allCases)
+    func groundIsWhatTheRowShows(painter: FieldPainter) throws {
+        let (rows, runs) = built(painter.view(GroundProbe(drawn: 1)))
+        try #require(!runs.isEmpty, "\(painter) carried no run up")
+        for run in runs {
+            let cells = paintedCells(rows[run.offsetY])
+            let ground = run.groundFields(onPage: Self.page).map(spelled)
+            let shown = (run.offsetX..<(run.offsetX + run.width)).map { cells[$0].background }
+            #expect(ground == shown, "\(painter): run at (\(run.offsetX), \(run.offsetY)) records \(ground)")
+            // Not vacuous: the probe itself paints nothing, so the row's field
+            // under it is the painter's — or, with no painter, the page.
+            if painter == .none { #expect(shown.allSatisfy { $0 == Self.page }) }
+        }
+    }
+
+    @Test("A frame drawn with a field of its own leaves the ground where it was", arguments: FieldPainter.allCases)
+    func theDrawnFrameDoesNotMoveTheGround(painter: FieldPainter) throws {
+        let bare = built(painter.view(GroundProbe(drawn: 1)))
+        let own = built(painter.view(GroundProbe(drawn: 0)))
+        try #require(bare.runs.count == own.runs.count && !own.runs.isEmpty)
+        for (drawnBare, drawnOwn) in zip(bare.runs, own.runs) {
+            #expect(
+                drawnOwn.groundFields(onPage: Self.page) == drawnBare.groundFields(onPage: Self.page),
+                "\(painter): the ground moved with the frame the render drew")
+            // And the row does show the frame's own field there — the thing a
+            // replay reading the row would have taken for the ground.
+            let cells = paintedCells(own.rows[drawnOwn.offsetY])
+            #expect(cells[drawnOwn.offsetX].background == "\u{1B}[48;5;196m")
+        }
+    }
+
+    /// A view that paints a field under its own run must declare the run INSIDE
+    /// that painter, or nothing records the field: the run is attached after the
+    /// paint. A colour swatch's focused bullet is the shape — ink over the
+    /// swatch's own fill — and declared on the whole swatch it recorded nothing.
+    @Test("A colour swatch's focused bullet records the swatch under it")
+    func aSwatchBulletRecordsTheSwatch() throws {
+        let context = makeRenderContext(width: Self.width, height: 3)
+        let buffer = ColorDepth.withCurrent(.truecolor) {
+            renderToScreen(ColorPicker("Colour", selection: .constant(.rgb(200, 40, 40))), context: context)
+        }
+        let run = try #require(
+            buffer.animatedCells.first { $0.frames.contains { $0.contains("●") } },
+            "the focused swatch left no bullet run")
+        #expect(run.groundFields(onPage: Self.page).map(spelled) == ["\u{1B}[48;2;200;40;40m"])
+    }
+
+    // MARK: - A frame that states the terminal's own field
+
+    /// A frame may state `ESC[49m` — the terminal's own field — as a field of its
+    /// own, and the painters disagree about it: a painter that restates its field
+    /// only after a reset (a `.background`, flat or ramp, a `List` row, a menu
+    /// row's bar, the page) lets it through, and compositing reads it as no field
+    /// and fills it. Whatever each does, the replay has to draw what the render
+    /// drew, so the drawn frame spliced over the row the render built is that row
+    /// — for a 49 stated in front of the frame's cells, and for one stated after a
+    /// cell it leaves bare, which the one record has to answer for too.
+    @Test(
+        "A frame that states the terminal's own field replays as each painter drew it",
+        arguments: FieldPainter.allCases, [false, true])
+    func aStatedTerminalFieldReplaysAsDrawn(painter: FieldPainter, late: Bool) throws {
+        let probe = DefaultFieldProbe(late: late)
+        let context = makeRenderContext(width: Self.width, height: 12)
+        let buffer = ColorDepth.withCurrent(.truecolor) {
+            renderToScreen(painter.view(probe), context: context)
+        }
+        let writer = FrameDiffWriter(
+            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let rows = writer.buildOutputLines(
+            buffer: buffer, terminalWidth: Self.width, terminalHeight: buffer.lines.count,
+            bgCode: Self.page, reset: ANSIRenderer.reset)
+        let runs = buffer.animatedCells.filter { $0.frames == probe.frames }
+        try #require(!runs.isEmpty, "\(painter) carried no run up")
+        for run in runs {
+            let row = rows[run.offsetY]
+            let replayed = FrameBuffer.patchingAnimatedCells(
+                in: row, with: run.frame(atIndex: 0), atColumn: run.offsetX, width: run.width,
+                fields: run.fields(onPage: Self.page))
+            let columns = run.offsetX..<(run.offsetX + run.width)
+            let shown = paintedCells(row)
+            let drawn = paintedCells(replayed)
+            #expect(
+                columns.map { drawn[$0].background } == columns.map { shown[$0].background },
+                "\(painter)\(late ? ", late" : ""): the render drew \(columns.map { shown[$0].background })")
+        }
+    }
+
+    /// The same probe under a fade, on the terminal's own page. The fade blends each
+    /// frame where it blends the lines, and a cell the frame puts on the terminal's
+    /// own field by stating `ESC[49m` has to be blended from what the painters made of
+    /// a stated 49 (``AnimatedCellRun/groundUnderStatedDefault``), as the splice draws
+    /// it — not from the ground, or the faded frame states a field the resolved row
+    /// does not show. A tab chip's label and a `.plain` block caret state it on a
+    /// `Color.default` palette.
+    ///
+    /// And the faded frame is then replayed LITERALLY where the fade covered it:
+    /// every covered cell of a faded frame names its field, and one the blend left on
+    /// the terminal's own page says so with a 49 of its own making. Below one half a
+    /// colour loses to that page, so under a compositor's colour — which fills a
+    /// stated 49 in the lines and in the record alike — the render drew the page and
+    /// the replay, reading the blend's 49 as a stated one, drew the compositor's
+    /// colour back. A frame that states no field (`GroundProbe`, drawn bare) meets the
+    /// same thing: its field comes from the ground, blends to the page, and is spelled
+    /// 49 too.
+    @Test(
+        "A faded frame that states the terminal's own field replays as each painter drew it",
+        arguments: FieldPainter.allCases, [0.6, 0.4])
+    func aFadedStatedTerminalFieldReplaysAsDrawn(painter: FieldPainter, alpha: Double) throws {
+        let context = makeRenderContext(width: Self.width, height: 12) { environment, _ in
+            environment.palette = ThemeProbePalette(background: .default, overlayBackground: .default)
+        }
+        let probes: [(view: AnyView, frames: [String], drawn: Int)] = [
+            (AnyView(DefaultFieldProbe()), DefaultFieldProbe().frames, 0),
+            (AnyView(GroundProbe(drawn: 1)), GroundProbe.frames, 1),
+        ]
+        for probe in probes {
+            let buffer = ColorDepth.withCurrent(.truecolor) {
+                renderToScreen(painter.view(probe.view).opacity(alpha), context: context)
+            }
+            // The probe's runs, recognised by their shape: the fade rewrote their bytes,
+            // and below one half on the terminal's own page it takes their glyphs too
+            // (the page as ink, on the page, is no glyph: §76). Nothing else in these
+            // painters leaves a two-cell run of two frames.
+            let runs = buffer.animatedCells.filter { $0.width == 2 && $0.frames.count == probe.frames.count }
+            try #require(!runs.isEmpty, "\(painter) carried no run up")
+            for run in runs {
+                let row = buffer.lines[run.offsetY]
+                let replayed = FrameBuffer.patchingAnimatedCells(
+                    in: row, with: run.frame(atIndex: probe.drawn), atColumn: run.offsetX, width: run.width,
+                    fields: run.fields(onPage: ""))
+                let columns = run.offsetX..<(run.offsetX + run.width)
+                let cells = paintedCells(row)
+                let drawnCells = paintedCells(replayed)
+                let what = "\(painter) at \(alpha), frame \(probe.frames[probe.drawn].stripped)"
+                // As the cells look, not as they are spelled: a list's cursor row on
+                // this palette is a reversal (`ESC[7;…;49m`), and a frame blended as
+                // if it were not drew its field in the slot the 7 shows as ink.
+                #expect(
+                    columns.allSatisfy { drawnCells[$0].looksLike(cells[$0]) },
+                    """
+                    \(what): replayed \(columns.map { drawnCells[$0].shown }), \
+                    the resolved row shows \(columns.map { cells[$0].shown })
+                    """)
+            }
+        }
+    }
+
+    /// A frame narrower than its run leaves its last cells to what is under them,
+    /// and faded, each is blended as that: the painter's field, from the ground. The
+    /// blend stands a blank in for a column no frame cell reaches, and it has said
+    /// nothing about its field — the ground's to fill. Taken as naming none, it took
+    /// the surface, and every tick of the empty frame drew the page where the faded
+    /// line has the painter's blue.
+    @Test("A faded frame narrower than its run is blended over the ground where it draws nothing")
+    func aFadedNarrowFrameIsBlendedOverTheGround() throws {
+        let context = makeRenderContext(width: 8, height: 1)
+        let buffer = ColorDepth.withCurrent(.truecolor) {
+            renderToScreen(NarrowFrameProbe().background(Color.rgb(0, 0, 200)).opacity(0.5), context: context)
+        }
+        let run = try #require(buffer.animatedCells.first { $0.width == 1 }, "the probe left no run")
+        let row = buffer.lines[run.offsetY]
+        let cells = paintedCells(row)
+        // Not vacuous: the row under the run is the blue, faded — not the page.
+        #expect(cells[run.offsetX].background != Self.page && !cells[run.offsetX].background.isEmpty)
+        for index in NarrowFrameProbe.frames.indices {
+            let replayed = FrameBuffer.patchingAnimatedCells(
+                in: row, with: run.frame(atIndex: index), atColumn: run.offsetX, width: run.width,
+                fields: run.fields(onPage: ""))
+            let drawn = paintedCells(replayed)
+            #expect(
+                drawn[run.offsetX].background == cells[run.offsetX].background,
+                """
+                frame \(index): replayed on \(drawn[run.offsetX].background.debugDescription), \
+                the faded row is on \(cells[run.offsetX].background.debugDescription)
+                """)
+        }
+    }
+
+    // MARK: - A pass that repaints every field
+
+    /// Where the fill sits relative to the dim.
+    enum Placement: String, CaseIterable, Sendable {
+        /// `.background(…).dimmed()`: the flatten washes out a ground a fill
+        /// already painted.
+        case fillInside
+        /// `.dimmed().background(…)`: the fill paints a ground the flatten left.
+        case fillOutside
+    }
+
+    /// The wash the flatten repaints every cell in.
+    enum Wash: String, CaseIterable, Sendable {
+        /// A palette whose backdrop is a colour: every frame names it.
+        case colour
+        /// `Color.default`: every frame states `ESC[49m`, so every cell of every
+        /// frame is drawn over the record of what the painters made of a stated
+        /// 49 (`AnimatedCellRun.groundUnderStatedDefault`), which the wash has to
+        /// reach as it reaches the ground.
+        case terminalsOwn
+    }
+
+    /// `.dimmed()` — and a modal's backdrop, which is the same flatten — rewrites
+    /// the field of every cell of every line and of every frame of every run it
+    /// keeps. The ground has to be rewritten with them: the replay draws a frame's
+    /// `ESC[49m` over the ground, and a ground the wash never reached still holds
+    /// the fill beneath the dim, so a spinner behind a sheet ticked on the fill it
+    /// had before the sheet opened.
+    @Test("A flatten washes the grounds of the runs it keeps", arguments: Placement.allCases, Wash.allCases)
+    func aFlattenWashesTheGround(placement: Placement, wash: Wash) throws {
+        let blue = Color.rgb(40, 40, 200)
+        let palette: any Palette =
+            switch wash {
+            case .colour: SystemPalette(.green)
+            case .terminalsOwn: ThemeProbePalette(background: .default, overlayBackground: .default)
+            }
+        let probe = GroundProbe(drawn: 1).padding(1)
+        let context = makeRenderContext(width: Self.width, height: 6)
+        let buffer = ColorDepth.withCurrent(.truecolor) {
+            switch placement {
+            case .fillInside: renderToScreen(probe.background(blue).dimmed().palette(palette), context: context)
+            case .fillOutside: renderToScreen(probe.dimmed().background(blue).palette(palette), context: context)
+            }
+        }
+        try #require(!buffer.animatedCells.isEmpty, "the dim dropped the probe's run")
+        let writer = FrameDiffWriter(
+            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let rows = writer.buildOutputLines(
+            buffer: buffer, terminalWidth: Self.width, terminalHeight: buffer.lines.count,
+            bgCode: Self.page, reset: ANSIRenderer.reset)
+        for run in buffer.animatedCells {
+            let cells = paintedCells(rows[run.offsetY])
+            let shown = (run.offsetX..<(run.offsetX + run.width)).map { cells[$0].background }
+            #expect(
+                run.groundFields(onPage: Self.page).map(spelled) == shown,
+                "\(placement), \(wash): the ground is not what the dimmed row shows")
+            // The field alone: the flatten re-spells every frame in its dim and ink,
+            // so a ground style would be restated in front of every cell at every
+            // tick to no effect.
+            #expect(
+                run.fields(onPage: Self.page).style == nil,
+                "\(placement), \(wash): the flatten left a ground style for every tick to restate")
+        }
+        // And the splice itself, which is what a tick does: the drawn frame over
+        // its ground is the row as the flatten drew it.
+        expectReplayIsIdentity(buffer, at: 1, "\(placement), \(wash)")
+    }
+
+    // MARK: - The ground itself
+
+    @Test("A run nothing painted under has no ground, and sits on the page")
+    func noPainterNoGround() {
+        let run = AnimatedCellRun(offsetX: 0, offsetY: 0, width: 3, frames: ["a", "b"], clock: .content)
+        #expect(run.ground == nil)
+        #expect(run.groundFields(onPage: Self.page).map(spelled) == Array(repeating: Self.page, count: 3))
+        // A row built on nothing puts nothing under it.
+        #expect(run.groundFields(onPage: "") == [nil, nil, nil])
+    }
+
+    /// A row is built with the page restated after every reset, so a reset inside
+    /// a ground puts the page back — and a painter's colour restated after it wins,
+    /// as the painter's restatement does in the row. The collapsed spelling is a
+    /// reset too. An explicit `49` is the terminal's own field, not the page.
+    @Test("A ground reads the way the row builder reads a row")
+    func groundReadsLikeARow() {
+        var run = AnimatedCellRun(offsetX: 0, offsetY: 0, width: 5, frames: ["a", "b"], clock: .content)
+        let red = "\u{1B}[48;5;196m"
+        run.ground = "\(red) \u{1B}[0m \u{1B}[0;48;5;21m \u{1B}[49m \u{1B}[0m\(red) "
+        #expect(
+            run.groundFields(onPage: Self.page).map(spelled)
+                == [red, Self.page, "\u{1B}[48;5;21m", "", red])
+    }
+
+    @Test("A cut run keeps the ground of the cells it kept")
+    func aCutKeepsItsGround() throws {
+        var run = AnimatedCellRun(offsetX: 2, offsetY: 0, width: 4, frames: ["abcd", "efgh"], clock: .content)
+        let red = "\u{1B}[48;5;196m"
+        let blue = "\u{1B}[48;5;21m"
+        run.ground = "\(red)  \(blue)  \u{1B}[0m"
+        let cut = try #require(run.clipped(toColumns: 3..<5))
+        #expect(cut.groundFields(onPage: "").map(spelled) == [red, blue])
+    }
+
+    @Test("A floating layer made opaque paints its runs' grounds")
+    func anOpaqueLayerPaintsItsRuns() {
+        var buffer = FrameBuffer(lines: ["ab"])
+        buffer.animatedCells = [
+            AnimatedCellRun(offsetX: 0, offsetY: 0, width: 2, frames: ["ab", "cd"], clock: .content)
+        ]
+        let green = "\u{1B}[48;5;28m"
+        let painted = buffer.paintedOver(background: green)
+        #expect(painted.animatedCells.first?.groundFields(onPage: "").map(spelled) == [green, green])
+    }
+
+    /// On a palette whose page is the terminal's own, a floating surface is spelled
+    /// `ESC[49m`, and compositing reads a stated 49 as no field and fills it: the row
+    /// under a run in a menu over a colour showed the colour, and the run's ground,
+    /// painted the same way, recorded it — agreeing with each other, and both wrong.
+    /// A surface states every cell's field, so it is composited as it is, and both
+    /// keep the terminal's own.
+    @Test("A run in a floating surface on the terminal's own page keeps the surface under it")
+    func aRunInASurfaceOnTheTerminalsOwnPage() throws {
+        let magenta = "\u{1B}[48;2;255;0;255m"
+        var page = FrameBuffer(
+            lines: Array(repeating: magenta + String(repeating: " ", count: 10) + "\u{1B}[0m", count: 3))
+        var content = FrameBuffer(lines: ["ab"])
+        content.animatedCells = [
+            AnimatedCellRun(offsetX: 0, offsetY: 0, width: 2, frames: ["ab", "cd"], clock: .content)
+        ]
+        page.overlays = [OverlayLayer(offsetX: 3, offsetY: 1, content: content)]
+        let composited = ColorDepth.withCurrent(.truecolor) {
+            page.compositingOverlays(maxWidth: 10, maxHeight: 3, palette: terminalPagePalette)
+        }
+        let run = try #require(composited.animatedCells.first)
+        let shown = Array(paintedCells(composited.lines[1])[3..<5].map(\.background))
+        #expect(shown == ["", ""], "the surface shows \(shown)")
+        #expect(run.groundFields(onPage: "").map(spelled) == shown)
+    }
+}

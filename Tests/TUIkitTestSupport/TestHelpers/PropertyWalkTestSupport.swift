@@ -7,7 +7,7 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
-import TUIkit
+import TUIkitCore
 @testable import TUIkitView
 
 /// Prepares `value`'s properties as the render walk does before evaluating

@@ -15,10 +15,9 @@
 import Foundation
 import Testing
 
-import TUIkit
 @testable import TUIkitCore
-@testable import TUIkitFoundation
 @testable import TUIkitStyling
+import TUIkitView
 
 /// The factor a colour's alpha becomes in a claim — what a cell painted in it owes.
 func owed(_ color: Color) -> Double {

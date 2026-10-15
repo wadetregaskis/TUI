@@ -1,0 +1,191 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ProcessWideState.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+// Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
+#if TUIKIT_TEST_SUPPORT && canImport(Testing)
+
+import Foundation
+import Testing
+
+@testable import TUIkitApp
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+@testable import TUIkitTestSupport
+
+/// The one place a test may change what every test in the process reads — and
+/// only from inside an exit test.
+///
+/// # Why
+///
+/// swift-testing runs every suite of every test target concurrently in ONE
+/// process (`parallel_test.py` splits them across several, and each of those is
+/// still shared). A value published process-wide is therefore in force for
+/// every test running at that moment, on every thread, for as long as it stays
+/// written:
+///
+/// - `.serialized` orders a suite's OWN tests. It does nothing about other
+///   suites, which is what the suites that relied on it were defending against.
+/// - A main-actor test that writes and restores within one synchronous stretch
+///   is invisible to other main-actor tests, but not to a nonisolated one on
+///   another thread, which can read the value mid-window.
+/// - Restoring does not undo a generation counter. `TerminalColors.generation`
+///   and `TerminalWidthTraits.generation` move on every real change, and the
+///   render cache clears everything when either has moved since its last pass.
+///
+/// Both flakes of 2026-09-28 were this. `ANSIPrefixKnownWidthTests`' fuzz, in
+/// `TUIkitCoreTests`, compares two width walks over the process's width traits
+/// and saw them disagree while the process-wide width-traits suite had moved
+/// the traits between the two. `BackdropMemoTests` saw a frame it expected
+/// served from the memo drawn afresh, because a colours test on another thread
+/// moved `TerminalColors.generation` between two of its frames.
+///
+/// # How
+///
+/// - A test that is ABOUT a process-wide publication — the setter, what it
+///   invalidates, a diagnostic knob that republishes — runs it in an exit test,
+///   `#expect(processExitsWith: .success) { … }`. Its body runs in a child
+///   process of its own, where no other test runs, so nothing needs restoring.
+///   Writes go through this type, which refuses them anywhere else: the issue
+///   is recorded against the test that tried, and the value is left alone.
+/// - Everything else pins for its own task — `TerminalWidthTraits.withTraits`,
+///   `TerminalColors.withCurrent`, `ColorDepth.withCurrent`,
+///   `TerminalHyperlink.withSupport`, `KittyGraphics.withSupport` — or poses the
+///   question on arguments.
+///
+/// SwiftLint's `process_wide_write_in_tests` forbids the writes this type wraps
+/// everywhere in `Tests/` except here and in `TUIkitStylingTests`' copy.
+///
+/// An exit test is not free: its child loads this whole test bundle. That is
+/// the price of a test whose subject is the process, so a test that is not
+/// about the publication itself should pin or pass arguments instead.
+enum ProcessWideState {
+
+    /// Whether this process is an exit test's child — the only place a
+    /// process-wide write cannot reach another test. Records an issue when not.
+    static func mayWrite(_ what: String) -> Bool {
+        if ExitTest.current != nil { return true }
+        Issue.record(
+            """
+            \(what) is read by every test in this process, on every thread, while \
+            it stays written. Write it inside an exit test — #expect(processExitsWith:) — \
+            whose body runs in a process of its own, or pin it for this task instead.
+            """)
+        return false
+    }
+
+    /// `TerminalColors.current`, the colours the terminal reported: read by
+    /// every render in the process, and its setter moves the generation the
+    /// render cache clears on.
+    static var colours: TerminalColors {
+        get { TerminalColors.current }
+        set { if mayWrite("TerminalColors.current") { TerminalColors.current = newValue } }
+    }
+
+    /// `TerminalWidthTraits.current`, the width the host claims for the
+    /// clusters it draws wide: read by every width measurement in the process,
+    /// on every thread, and its setter moves the generation the render cache
+    /// and `TextWrapping`'s memos drop themselves on.
+    static var widthTraits: TerminalWidthTraits {
+        get { TerminalWidthTraits.current }
+        set { if mayWrite("TerminalWidthTraits.current") { TerminalWidthTraits.current = newValue } }
+    }
+
+    /// `TerminalClient.simulated`. Main-actor state, but setting it republishes
+    /// the width traits and link support process-wide, which is its point.
+    @MainActor static var simulated: TerminalClient.Program? {
+        get { TerminalClient.simulated }
+        set { if mayWrite("TerminalClient.simulated") { TerminalClient.simulated = newValue } }
+    }
+
+    /// `TerminalClient.simulatedQuirks`, which republishes the width traits
+    /// its switches imply.
+    @MainActor static var simulatedQuirks: TerminalQuirks? {
+        get { TerminalClient.simulatedQuirks }
+        set { if mayWrite("TerminalClient.simulatedQuirks") { TerminalClient.simulatedQuirks = newValue } }
+    }
+
+    /// `TerminalClient.hyperlinkSupport`, which republishes
+    /// `TerminalHyperlink.isSupported`: whether every render emits OSC 8.
+    @MainActor static var hyperlinkSupport: Bool? {
+        get { TerminalClient.hyperlinkSupport }
+        set { if mayWrite("TerminalClient.hyperlinkSupport") { TerminalClient.hyperlinkSupport = newValue } }
+    }
+
+    /// `TerminalClient.graphicsSupport`, which republishes
+    /// `KittyGraphics.isSupported`: whether every render places pictures.
+    @MainActor static var graphicsSupport: Bool? {
+        get { TerminalClient.graphicsSupport }
+        set { if mayWrite("TerminalClient.graphicsSupport") { TerminalClient.graphicsSupport = newValue } }
+    }
+
+    /// `KittyGraphics.isSupported` itself, written behind the override's back
+    /// — as the startup path's publish would find it.
+    static var picturesSupported: Bool {
+        get { KittyGraphics.isSupported }
+        set { if mayWrite("KittyGraphics.isSupported") { KittyGraphics.isSupported = newValue } }
+    }
+
+    /// `TerminalClient.applyGraphicsSupport()`: publishes the ladder's live
+    /// answer to `KittyGraphics.isSupported`.
+    @MainActor static func applyGraphicsSupport() {
+        if mayWrite("TerminalClient.applyGraphicsSupport()") { TerminalClient.applyGraphicsSupport() }
+    }
+
+    /// `TerminalClient.urlOpeningSupport`, which republishes
+    /// `TerminalURLOpening.isEnabled`: whether activating a link in ANY test
+    /// hands its URL to the system opener, which launches a real browser.
+    @MainActor static var urlOpeningSupport: Bool? {
+        get { TerminalClient.urlOpeningSupport }
+        set { if mayWrite("TerminalClient.urlOpeningSupport") { TerminalClient.urlOpeningSupport = newValue } }
+    }
+
+    /// `TerminalURLOpening.runLoopOpener`: the opener every `OpenURLAction`
+    /// no environment handed one defers to, in ANY test — where the gate is
+    /// open and it is this machine's, a real browser.
+    static var runLoopOpener: (any URLOpenerBackend)? {
+        get { TerminalURLOpening.runLoopOpener }
+        set { if mayWrite("TerminalURLOpening.runLoopOpener") { TerminalURLOpening.runLoopOpener = newValue } }
+    }
+
+    /// `AppRunner.publishURLOpener()`: publishes that runner's opener, this
+    /// machine's, as ``runLoopOpener``.
+    @MainActor static func publishURLOpener(of runner: AppRunner<some App>) {
+        if mayWrite("AppRunner.publishURLOpener()") { runner.publishURLOpener() }
+    }
+
+    /// `StorageDiagnostics.report(_:)`: moves the process's latest failure and
+    /// its count, which a test elsewhere may be about to read as its own.
+    static func reportStorageFailure(_ failure: StorageFailure) {
+        if mayWrite("StorageDiagnostics.report(_:)") { StorageDiagnostics.report(failure) }
+    }
+
+    /// `StorageDiagnostics.reset()`: clears the latest failure and the count for
+    /// every test in the process, not just the caller.
+    static func resetStorageDiagnostics() {
+        if mayWrite("StorageDiagnostics.reset()") { StorageDiagnostics.reset() }
+    }
+
+    /// `TerminalHost.seedDiscoveredHost(_:)`: what identification does with the
+    /// name a terminal answered. It writes the environment, where each
+    /// `TerminalHost` detector not yet read finds it, and every one that reads
+    /// it keeps that answer for the life of the process.
+    static func seedDiscoveredHost(_ name: String) {
+        if mayWrite("TerminalHost.seedDiscoveredHost(_:)") { TerminalHost.seedDiscoveredHost(name) }
+    }
+
+    /// Sets `name` in the process environment, or unsets it for `nil`.
+    ///
+    /// There is one environment, every thread reads it, and `setenv` may move
+    /// the array a concurrent reader is walking. Several lazily-initialised
+    /// globals also latch on their first read of it — see SwiftLint's
+    /// `process_terminal_environment_mutation`.
+    static func setEnvironment(_ name: String, to value: String?) {
+        guard mayWrite("The environment variable \(name)") else { return }
+        if let value { setenv(name, value, 1) } else { unsetenv(name) }
+    }
+}
+
+#endif

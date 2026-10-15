@@ -9,7 +9,7 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
-import TUIkit
+import TUIkitStyling
 
 /// Every slot translucent. `Palette` requires nine and derives the rest, so this is
 /// the smallest type that fades a whole theme — and the reason the second tier of

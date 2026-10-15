@@ -19,7 +19,6 @@ import Testing
 import Glibc
 #endif
 
-import TUIkit
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport

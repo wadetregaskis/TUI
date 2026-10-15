@@ -19,6 +19,7 @@
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
 import Testing
+import TUIkitFoundation
 
 /// Waits until `condition` holds, or gives up once `timeout` has passed and
 /// ``HangBreaker/graceTurns`` more turns have not made it hold either.

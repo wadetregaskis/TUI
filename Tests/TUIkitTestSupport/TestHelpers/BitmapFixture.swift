@@ -17,6 +17,7 @@
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
 import Foundation
+import TUIkitFoundation
 
 /// A 24-bit uncompressed BMP of `width` × `height`, written to a temporary
 /// file that is deleted when the returned handle goes away.

@@ -9,8 +9,6 @@
 
 import Testing
 
-import TUIkit
-@testable import TUIkitFoundation
 @testable import TUIkitStrings
 
 /// Declares that a suite's assertions read the framework's OWN words back out

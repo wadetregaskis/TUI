@@ -15,7 +15,8 @@
 #endif
 import Testing
 
-import TUIkit
+import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation

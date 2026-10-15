@@ -1,0 +1,198 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ObservableInvalidationScopeTests.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Observation
+import Testing
+
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+@testable import TUIkitTestSupport
+@testable import TUIkitView
+
+/// An `@Observable` change used to clear the WHOLE render cache. A model that
+/// changes every frame — a clock, a progress counter — then made every frame
+/// a cold render of the entire tree, and nothing the memo held was ever
+/// served. The body that read the property was evaluated under observation
+/// tracking at its own identity, so the change now invalidates that identity
+/// alone: the reader re-renders with the new value, and a sibling that never
+/// read the model keeps its buffer.
+@MainActor
+@Suite("An observable change invalidates the view that read it, not the whole cache", .serialized)
+struct ObservableInvalidationScopeTests {
+
+    @Observable
+    final class Model {
+        var count = 0
+    }
+
+    /// A leaf that counts its renders, so a test can say which rows drew.
+    private struct CountingText: View, Renderable {
+        let text: String
+        let slot: Int
+        var body: Never { fatalError("CountingText renders via Renderable") }
+        func renderToBuffer(context: RenderContext) -> FrameBuffer {
+            Renders.count[slot] += 1
+            return FrameBuffer(text: text)
+        }
+    }
+
+    private enum Renders {
+        nonisolated(unsafe) static var count = [0, 0]
+        static func reset() { count = [0, 0] }
+    }
+
+    private struct Reader: View {
+        let model: Model
+        var body: some View { CountingText(text: "count \(model.count)", slot: 0) }
+    }
+
+    private struct EnvironmentReader: View {
+        @Environment(Model.self) private var model
+        var body: some View { CountingText(text: "count \(model.count)", slot: 0) }
+    }
+
+    private struct Sibling: View {
+        var body: some View { CountingText(text: "sibling", slot: 1) }
+    }
+
+    /// Caches what it reads of the model in `update()`, so `body` reads only
+    /// the copy: the model is read by `update()` alone.
+    @propertyWrapper
+    private struct CachedCount: DynamicProperty {
+        let model: Model
+        private var cached = -1
+
+        init(model: Model) {
+            self.model = model
+        }
+
+        var wrappedValue: Int { cached }
+
+        mutating func update() {
+            cached = model.count
+        }
+    }
+
+    private struct UpdateReader: View {
+        @CachedCount private var count: Int
+
+        init(model: Model) {
+            _count = CachedCount(model: model)
+        }
+
+        var body: some View { CountingText(text: "count \(count)", slot: 0) }
+    }
+
+    private static func frame<V: View>(_ view: V, tui: TUIContext, width: Int = 40) -> FrameBuffer {
+        let context = RenderContext(availableWidth: width, availableHeight: 10, tuiContext: tui)
+        tui.stateStorage.beginRenderPass()
+        tui.renderCache.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        tui.renderCache.removeInactive()
+        tui.stateStorage.endRenderPass()
+        return buffer
+    }
+
+    @Test("The reader re-renders with the new value and its sibling row is served from the cache")
+    func readerInvalidatedSiblingKept() {
+        let model = Model()
+        let tui = TUIContext()
+        let view = VStack {
+            _MemoizedRow(element: 1, content: Reader(model: model))
+            _MemoizedRow(element: 2, content: Sibling())
+        }
+        // Two frames before the warm one, not one: the first is where the
+        // cache learns that `Reader` reads, and a type learned to read clears
+        // the cache once at the next pass, so that nothing kept was measured
+        // with its reads untracked (`RenderCache.noteReads(_:)`).
+        _ = Self.frame(view, tui: tui)
+        _ = Self.frame(view, tui: tui)
+        Renders.reset()
+        let warm = Self.frame(view, tui: tui)
+        #expect(warm.lines.first?.stripped.contains("count 0") == true)
+        #expect(
+            Renders.count == [verifierRenders(hits: 1), verifierRenders(hits: 1)],
+            "both rows are memoised by the third frame: \(Renders.count)")
+        let before = tui.renderCache.stats
+
+        model.count = 7
+        let changed = Self.frame(view, tui: tui)
+        let delta = tui.renderCache.stats.delta(since: before)
+        #expect(changed.lines.first?.stripped.contains("count 7") == true, "the reader shows the new value")
+        // At least once, not exactly once: a memoised row that missed measures
+        // its content by rendering it (the leaf is not `Layoutable`) and then
+        // renders it, so a miss is two draws. The pin is the sibling's zero.
+        #expect(Renders.count[0] >= 1, "the reader re-rendered: \(Renders.count)")
+        // `hits: 2` — the counters are NOT reset between the warm frame and this
+        // one, so the sibling's tally holds a verifier render from each: it was
+        // served twice, which is the claim.
+        #expect(
+            Renders.count[1] == verifierRenders(hits: 2),
+            "the sibling was served from the cache: \(Renders.count)")
+        #expect(delta.clears == 0, "nothing cleared the whole cache: \(delta)")
+    }
+
+    @Test("A model reached through the environment invalidates only the row whose body read it")
+    func environmentReaderScoped() {
+        let model = Model()
+        let tui = TUIContext()
+        let view = VStack {
+            _MemoizedRow(element: 1, content: EnvironmentReader())
+            _MemoizedRow(element: 2, content: Sibling())
+        }
+        .environment(model)
+        _ = Self.frame(view, tui: tui)
+        _ = Self.frame(view, tui: tui)
+        let before = tui.renderCache.stats
+        Renders.reset()
+
+        model.count = 3
+        let changed = Self.frame(view, tui: tui)
+        let delta = tui.renderCache.stats.delta(since: before)
+        #expect(changed.lines.first?.stripped.contains("count 3") == true)
+        #expect(
+            Renders.count[0] >= 1 && Renders.count[1] == verifierRenders(hits: 1),
+            "\(Renders.count)")
+        #expect(delta.clears == 0, "\(delta)")
+    }
+
+    /// SwiftUI observes what an app property's `update()` reads, as it does
+    /// `body`'s reads: measured on macOS 15
+    /// (`Tools/SwiftUIProbes/Dynamic properties/dp.swift`,
+    /// case 5), a model read only in `update()` re-runs the body when it
+    /// changes, and one held but not read does not.
+    @Test("A model read in an app property's update() invalidates its view, as a read in body does")
+    func updateReadInvalidates() {
+        let model = Model()
+        let tui = TUIContext()
+        let view = VStack {
+            _MemoizedRow(element: 1, content: UpdateReader(model: model))
+            _MemoizedRow(element: 2, content: Sibling())
+        }
+        _ = Self.frame(view, tui: tui)
+        _ = Self.frame(view, tui: tui)
+        let warm = Self.frame(view, tui: tui)
+        #expect(warm.lines.first?.stripped.contains("count 0") == true)
+        #expect(
+            tui.renderCache.readingTypes.contains(UpdateReader.self),
+            "the read in update() was observed, so the cache knows the type reads")
+
+        model.count = 7
+        let changed = Self.frame(view, tui: tui)
+        #expect(changed.lines.first?.stripped.contains("count 7") == true, "the reader shows the new value")
+    }
+
+    @Test("The change still requests a frame")
+    func changeRequestsRender() {
+        let model = Model()
+        let tui = TUIContext()
+        let view = _MemoizedRow(element: 1, content: Reader(model: model))
+        _ = Self.frame(view, tui: tui)
+        AppState.shared.didRender()
+        model.count = 1
+        #expect(AppState.shared.needsRender)
+    }
+}

@@ -14,6 +14,7 @@
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
 import Foundation
+import TUIkitFoundation
 
 /// A gate a refresh body waits at until the test opens it.
 ///

@@ -677,7 +677,7 @@ single entry.
 The other three geometries, pinned the same way §1 was: `ImageRenderer` over a
 `41 × 41` (and `81 × 41`) frame, read back cell by cell. Three of the five
 answers are not the obvious ones, and every one of them is now a test in
-[GradientGeometryTests.swift](../../Tests/TUIkitTests/GradientGeometryTests.swift).
+[GradientGeometryTests.swift](../../Tests/TUIkitAppTests/GradientGeometryTests.swift).
 
 **A radius is absolute, so a circle stays a circle.** `RadialGradient(…,
 startRadius: 5, endRadius: 15)` gave the same colour at `d = 10` horizontally,

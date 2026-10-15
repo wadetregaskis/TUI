@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkitCore
+import TUIkitTerminalHost
 @testable import TUIkitTestSupport
 import TUIkitWidthCorpus
 

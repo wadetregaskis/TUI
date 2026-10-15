@@ -7,7 +7,6 @@
 import Foundation
 import Testing
 
-import TUIkit
 @testable import TUIkitCore  // `isOverhangingChromeGlyph` — internal to the width layer
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport

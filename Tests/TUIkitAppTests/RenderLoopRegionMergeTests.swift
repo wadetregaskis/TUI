@@ -6,8 +6,8 @@
 
 import Testing
 
-import TUIkit
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFoundation

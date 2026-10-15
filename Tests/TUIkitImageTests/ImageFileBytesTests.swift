@@ -15,7 +15,7 @@ import Testing
 /// that made that a bug: a non-ASCII path resolves, and a read failure still
 /// surfaces as `ImageLoadError`.
 ///
-/// In `TUIkitImageTests` rather than `TUIkitTests` deliberately: the Windows
+/// In `TUIkitImageTests` rather than `TUIkitFoundationTests` deliberately: the Windows
 /// lane cannot build the `TUIkit` umbrella yet (CONTRIBUTING.md), so this is
 /// the only target that even COMPILES there — and compiling is all it does.
 /// `.github/workflows/ci.yml:463` runs `build --target TUIkitImageTests`, and

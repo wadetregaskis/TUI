@@ -8,7 +8,8 @@ import Dispatch
 import Foundation
 import Testing
 
-import TUIkit
+import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
 @testable import TUIkitStrings
 @testable import TUIkitTestSupport

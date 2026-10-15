@@ -1,0 +1,145 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ScrollViewReaderMemoTests.swift
+//
+//  A `ScrollViewReader` publishes its registry to its content. The registry was
+//  not `Equatable`, and an environment value that cannot be compared turns off
+//  every memo below it — so everything inside a reader was drawn from scratch
+//  every frame. Found by the first `Stress` session: an editor following its
+//  caret with `proxy.scrollTo` spent 61% of each keystroke walking every row.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkitApp
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+import TUIkitSearch
+@testable import TUIkitTestSupport
+@testable import TUIkitView
+
+/// Whether the environment a render reached this leaf with could be compared.
+@MainActor
+private final class ComparabilityLog {
+    var sawUncomparable: Bool?
+}
+
+/// A leaf that records the environment's comparability where it is drawn.
+private struct ComparabilitySpy: View, Renderable {
+    let log: ComparabilityLog
+
+    var body: Never { fatalError("ComparabilitySpy renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        log.sawUncomparable = context.environment.hasUncomparableEnvironmentValue
+        return FrameBuffer(text: "spy")
+    }
+}
+
+@MainActor
+@Suite("Memos inside a ScrollViewReader, a bound scroll position or anchor, a searchable")
+struct ScrollViewReaderMemoTests {
+    @Test("A reader's content sees an environment the memos can compare")
+    func theReaderLeavesTheEnvironmentComparable() {
+        let log = ComparabilityLog()
+        let tuiContext = TUIContext()
+        let context = RenderContext(availableWidth: 40, availableHeight: 10, tuiContext: tuiContext)
+        _ = renderToBuffer(
+            ScrollViewReader { _ in
+                ScrollView { ComparabilitySpy(log: log) }
+            },
+            context: context)
+        #expect(log.sawUncomparable == false, "the reader's registry made the environment uncomparable")
+    }
+
+    /// The same for a scroll view bound with `.scrollPosition`, whose box is
+    /// built afresh by every body evaluation: compared by its anchor, the one
+    /// thing the content reads of it, it leaves the environment comparable.
+    @Test("A bound scroll position leaves its content's environment comparable")
+    func aBoundPositionLeavesTheEnvironmentComparable() {
+        let log = ComparabilityLog()
+        var position = ScrollPosition()
+        _ = renderToBuffer(
+            ScrollView { ComparabilitySpy(log: log) }
+                .scrollPosition(Binding(get: { position }, set: { position = $0 })),
+            context: RenderContext(availableWidth: 40, availableHeight: 10, tuiContext: TUIContext()))
+        #expect(log.sawUncomparable == false, "the position box made the environment uncomparable")
+    }
+
+    /// And for a bound `.anchorPosition`, a `Binding` built afresh by every body
+    /// evaluation: compared by the anchor it held when the modifier applied it.
+    @Test("A bound anchor position leaves its content's environment comparable")
+    func aBoundAnchorLeavesTheEnvironmentComparable() {
+        let log = ComparabilityLog()
+        var anchor: ScrollAnchor<Int>?
+        _ = renderToBuffer(
+            ScrollView { ComparabilitySpy(log: log) }
+                .anchorPosition(Binding(get: { anchor }, set: { anchor = $0 })),
+            context: RenderContext(availableWidth: 40, availableHeight: 10, tuiContext: TUIContext()))
+        #expect(log.sawUncomparable == false, "the anchor binding made the environment uncomparable")
+    }
+
+    /// And for a searchable's content, which is handed the action that ends
+    /// the search: an object the modifier keeps, compared by identity.
+    @Test("A searchable's content sees an environment the memos can compare")
+    func aSearchableLeavesTheEnvironmentComparable() {
+        let log = ComparabilityLog()
+        var query = ""
+        _ = renderToBuffer(
+            ComparabilitySpy(log: log).searchable(text: Binding(get: { query }, set: { query = $0 })),
+            context: RenderContext(availableWidth: 40, availableHeight: 10, tuiContext: TUIContext()))
+        #expect(log.sawUncomparable == false, "the dismiss action made the environment uncomparable")
+    }
+
+    /// And for suggestions, whose entries hold `AnyView` labels: compared by
+    /// presence and emptiness, because only a text field reads them, and it
+    /// declares.
+    @Test("Suggestions leave their content's environment comparable")
+    func suggestionsLeaveTheEnvironmentComparable() {
+        let inputLog = ComparabilityLog()
+        _ = renderToBuffer(
+            ComparabilitySpy(log: inputLog).textInputSuggestions { Text("x") },
+            context: RenderContext(availableWidth: 40, availableHeight: 10, tuiContext: TUIContext()))
+        #expect(inputLog.sawUncomparable == false, "text input suggestions made the environment uncomparable")
+
+        let searchLog = ComparabilityLog()
+        var query = ""
+        _ = renderToBuffer(
+            ComparabilitySpy(log: searchLog)
+                .searchable(text: Binding(get: { query }, set: { query = $0 }))
+                .searchSuggestions { Text("x") },
+            context: RenderContext(availableWidth: 40, availableHeight: 10, tuiContext: TUIContext()))
+        #expect(searchLog.sawUncomparable == false, "search suggestions made the environment uncomparable")
+    }
+
+    @Test("A row inside a reader is served from the row memo on an unchanged frame")
+    func rowsInsideAReaderAreServed() {
+        let tuiContext = TUIContext()
+        func frame() -> FrameBuffer {
+            var environment = EnvironmentValues()
+            environment.applyRuntimeServices(from: tuiContext)
+            environment.installVolatileReadTracker(VolatileReadTracker())
+            tuiContext.stateStorage.beginRenderPass()
+            tuiContext.renderCache.beginRenderPass()
+            let buffer = renderToBuffer(
+                ScrollViewReader { _ in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(0..<20, id: \.self) { index in Text("row \(index)") }
+                        }
+                    }
+                },
+                context: RenderContext(
+                    availableWidth: 40, availableHeight: 10,
+                    environment: environment, tuiContext: tuiContext))
+            tuiContext.stateStorage.endRenderPass()
+            tuiContext.renderCache.removeInactive()
+            return buffer
+        }
+        _ = frame()
+        let before = tuiContext.renderCache.stats.hits
+        _ = frame()
+        #expect(tuiContext.renderCache.stats.hits > before, "no memo served anything inside the reader")
+    }
+}

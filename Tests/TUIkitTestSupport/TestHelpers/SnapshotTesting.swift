@@ -10,7 +10,6 @@
 import Foundation
 import Testing
 
-import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 

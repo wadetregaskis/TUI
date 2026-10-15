@@ -9,7 +9,7 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
-import TUIkit
+import TUIkitFoundation
 
 /// The built-in styles, as a value a test can iterate.
 enum ButtonStyleCase: CustomStringConvertible {

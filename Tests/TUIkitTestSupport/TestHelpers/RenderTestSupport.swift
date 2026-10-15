@@ -9,7 +9,6 @@
 
 import Testing
 
-import TUIkit
 @testable import TUIkitFoundation
 
 // MARK: - Shared render-test context

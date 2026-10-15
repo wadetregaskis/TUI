@@ -9,7 +9,7 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
-import TUIkit
+import TUIkitStyling
 
 /// The terminal's own page: every field the palette names for the page — the
 /// page itself, a tab's surface, a chip's label, the wash a dim or a backdrop

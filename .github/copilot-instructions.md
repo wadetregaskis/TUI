@@ -104,7 +104,7 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
 
 - Uses Swift Testing framework (`@Test`, `#expect`, `@Suite`)
 - Tests run in parallel
-- Tests other than a module's unit tests live in four targets by area (`Tests/TUIkitTests`, `TUIkitCollectionTests`, `TUIkitControlTests`, `TUIkitAppTests`) and share the helpers in `Tests/TUIkitTestSupport` (CONTRIBUTING.md says which target a test goes in)
+- Tests live in a target per module, the target of the highest module a test needs (`TUIkitFoundationTests`, `TUIkitAppTests`, `TUIkitListsTests`, …; `TUIkitIntegrationTests` for a test needing two feature modules), and share helpers in support targets (`Tests/TUIkitTestSupport`, `TUIkitAppTestSupport`, …); CONTRIBUTING.md says which target a test goes in
 
 ## Code Style
 

@@ -9,7 +9,6 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
-import TUIkit
 @testable import TUIkitStyling
 
 /// An RGB page and ink whose accent is a terminal slot, which has no RGB until the

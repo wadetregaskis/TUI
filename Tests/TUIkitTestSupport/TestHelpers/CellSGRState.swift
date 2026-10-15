@@ -12,7 +12,6 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
-import TUIkit
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitStyling

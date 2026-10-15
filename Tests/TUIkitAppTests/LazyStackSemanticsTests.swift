@@ -1,0 +1,139 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  LazyStackSemanticsTests.swift
+//
+//  Pins the documented lazy-stack semantics and their deviations from
+//  SwiftUI (see §2.8 of Documentation/SwiftUI parity/SwiftUI compatibility guide.md, grounded in
+//  the LazyVStack docs and WWDC26's "Dive into lazy stacks and scrolling").
+//  If viewport-driven laziness inside ScrollView is ever implemented, the
+//  ScrollView cases here change intentionally.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkitApp
+@testable import TUIkitFoundation
+@testable import TUIkitTestSupport
+
+@MainActor
+@Suite("Lazy stack semantics vs SwiftUI")
+struct LazyStackSemanticsTests {
+    @Test("Overflow policy: both stack kinds clip the last child at the cell")
+    func overflowPolicies() {
+        // The lazy stack used to stop at the last WHOLE child instead, and its
+        // measure reported that row boundary — which read as a chosen natural
+        // size and ended measureNaturalExtent's ladder on its first rung,
+        // silently truncating scrollable content at ~the starting budget.
+        // Saturated content now reports and fills the limit in both kinds;
+        // laziness is about deferring off-limit children, not a different
+        // overflow picture.
+        let tall = { (label: String) in
+            VStack(spacing: 0) { Text("\(label)1"); Text("\(label)2"); Text("\(label)3") }
+        }
+        let context = makeBareRenderContext(width: 20, height: 5)
+
+        // Eager: distributes 5 lines across two 3-line children — the second
+        // is cut mid-child at the cell.
+        let eager = renderToBuffer(VStack(spacing: 0) { tall("a"); tall("b") }, context: context)
+        #expect(eager.height == 5, "eager clips at the cell: \(eager.lines.map(\.stripped))")
+        #expect(eager.lines.last?.stripped.contains("b2") == true, "second child partially visible")
+
+        let lazy = renderToBuffer(LazyVStack(spacing: 0) { tall("a"); tall("b") }, context: context)
+        #expect(lazy.height == 5, "lazy fills the limit too: \(lazy.lines.map(\.stripped))")
+        #expect(lazy.lines.last?.stripped.contains("b2") == true, "second child partially visible")
+    }
+
+    @Test("In a scroll-content context the full extent materialises (exact, not estimated)")
+    func fullExtentInScrollContext() {
+        // ScrollView measures its content with a generous height budget; the
+        // window then admits everything, so scrolling can reach every item.
+        let size = measureChild(
+            LazyVStack { ForEach(0..<100) { Text("Item \($0)") } },
+            proposal: .unspecified,
+            context: makeRenderContext(width: 30, height: 4096))
+        #expect(size.height == 100, "the extent is the real content height")
+    }
+
+    @Test("The measure budget caps both stack kinds alike")
+    func budgetCapsBothKinds() {
+        let budget = makeRenderContext(width: 30, height: 4096)
+        let lazy = measureChild(
+            LazyVStack { ForEach(0..<6000) { Text("Item \($0)") } },
+            proposal: .unspecified, context: budget)
+        let eager = measureChild(
+            VStack { ForEach(0..<6000) { Text("Item \($0)") } },
+            proposal: .unspecified, context: budget)
+        #expect(lazy.height == 4096 && eager.height == 4096,
+                "content past the budget is unreachable for BOTH; List is the big-data container")
+    }
+
+    @Test("Cross-axis width hugs the widest placed child (documented SwiftUI deviation)")
+    func crossAxisHugsWidest() {
+        // SwiftUI's LazyVStack ideal width is its FIRST subview's (it hasn't
+        // created the rest); TUIkit has rendered every visible child, so it
+        // hugs the real widest — child order must not matter.
+        func width<V: View>(_ view: V) -> Int {
+            measureChild(
+                view, proposal: .unspecified,
+                context: makeRenderContext(width: 60, height: 20)
+            ).width
+        }
+        let wide = "a much longer line"
+        #expect(width(LazyVStack { Text("hi"); Text(wide) }) == wide.count)
+        #expect(width(LazyVStack { Text(wide); Text("hi") }) == wide.count)
+        #expect(width(VStack { Text("hi"); Text(wide) }) == wide.count, "identical to the eager stack")
+    }
+
+    @Test("Laziness: lifecycle fires only for the visible window, standalone and in a ScrollView")
+    func lifecycleSemantics() {
+        nonisolated(unsafe) var standaloneAppeared: [Int] = []
+        nonisolated(unsafe) var scrollAppeared: [Int] = []
+
+        func render(_ view: some View, height: Int) {
+            let tuiContext = TUIContext()
+            var environment = EnvironmentValues()
+            environment.focusManager = FocusManager()
+            environment.applyRuntimeServices(from: tuiContext)
+            let context = RenderContext(
+                availableWidth: 30, availableHeight: height,
+                environment: environment, tuiContext: tuiContext)
+            tuiContext.lifecycle.beginRenderPass()
+            _ = renderToBuffer(view, context: context)
+            tuiContext.lifecycle.endRenderPass()
+        }
+
+        // Standalone: children past the fold are never rendered, so their
+        // onAppear correctly never fires — matching SwiftUI's laziness.
+        render(
+            LazyVStack {
+                ForEach(0..<50) { index in
+                    Text("Row \(index)").onAppear { standaloneAppeared.append(index) }
+                }
+            },
+            height: 8)
+        #expect(standaloneAppeared.count == 8, "exactly the windowed rows appear: \(standaloneAppeared)")
+
+        // In a ScrollView, viewport windowing renders (and fires lifecycle
+        // for) the rows intersecting the visible slice PLUS the one-row
+        // enumeration margin past each edge (§5d/§5g of "Locating things
+        // without drawing them": the margin row registers its focusables so a
+        // directional focus move can step just beyond the window; its appear
+        // firing slightly before visibility is the same prefetch-margin
+        // semantic SwiftUI's lazy containers have). At offset 0 with an
+        // 8-row viewport, rows 0..7 are visible and row 8 is the margin.
+        render(
+            ScrollView {
+                LazyVStack {
+                    ForEach(0..<50) { index in
+                        Text("Row \(index)").onAppear { scrollAppeared.append(index) }
+                    }
+                }
+            },
+            height: 8)
+        #expect(
+            scrollAppeared.count == 9,
+            "the visible window + one margin row materialise in scroll content: \(scrollAppeared)")
+        #expect(scrollAppeared.allSatisfy { $0 <= 8 }, "rows 0..8, nothing past the margin")
+    }
+}

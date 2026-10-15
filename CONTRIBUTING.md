@@ -534,7 +534,7 @@ anything at run time:
     exit test's body runs in a child process of its own.
   SwiftLint's `process_wide_write_in_tests` forbids the raw writes, and
   `ProcessWideState` refuses a write made outside an exit test. See
-  `Tests/TUIkitTestSupport/TestHelpers/ProcessWideState.swift` for the two flakes
+  `Tests/TUIkitAppTestSupport/TestHelpers/ProcessWideState.swift` for the two flakes
   this came from.
 - **A test that asserts the framework's own UI words** — "No items", "dismiss",
   "Done" — depends on the language `LocalizationService.shared` picked from
@@ -548,88 +548,56 @@ anything at run time:
 - **Numbers** in rendered chrome are grouped by `\.locale`, which is republished
   from the app language every frame. A test asserting "4,994" pins
   `environment.locale` explicitly rather than relying on the default.
-- The suite's tests that are not one module's unit tests (below) are four
-  test targets, one per area, with the same dependencies:
-  `Tests/TUIkitTests` (views, layout, styling, rendering, animation, the
-  environment), `Tests/TUIkitCollectionTests` (lists, tables, tabs, grids,
-  sections, rows, `ForEach`, scrolling, lazy stacks),
-  `Tests/TUIkitControlTests` (text input, pickers, forms, search, the numeric
-  controls, the colour picker, buttons, toggles, links, focus) and
-  `Tests/TUIkitAppTests` (the App and the run loop, the terminal, input, the
-  clipboard, chrome, menus, navigation, presentation, gestures, drag and drop,
-  storage). Put a new test file in the target of the area it tests, and in
-  `TUIkitTests` when it is of none of them. They are four so that an edit
-  rebuilds a quarter of the suite (`Package.swift` says more). A test target
-  cannot see another's declarations: a test that needs one goes in that
-  target, or the declaration moves to `Tests/TUIkitTestSupport`.
-- The helpers, mocks and fixtures that the four share live in
-  `Tests/TUIkitTestSupport`, a plain target. A helper that only one target's
-  files use stays in that target (`TestHelpers/WidthCorpus.swift` is
-  `TUIkitAppTests`'). Every test file of the four has
-  `@testable import TUIkitTestSupport`, so give a new one that line too.
-  Every file of the support target is wrapped in
+- The suite has a test target per module, so an edit to a module rebuilds
+  only the tests that can see it. A test file goes in the target of the
+  highest module it needs, counting what its helpers need:
+  - `Tests/TUIkitFoundationTests` when it needs nothing above
+    `TUIkitFoundation` and what it re-exports (views, layout, styling,
+    rendering, animation, the environment);
+  - `Tests/TUIkitAppTests` when it needs `TUIkitApp` (`HeadlessApp`,
+    `RenderLoop`, `InputHandler`, `FrameDiffWriter`, `Terminal`, or
+    `applyRuntimeServices(from:)`, which builds a render pass's environment)
+    and no feature module;
+  - `Tests/TUIkit<Module>Tests` when it needs one feature module —
+    `TUIkitLists`, `TUIkitTables`, `TUIkitMenus`, `TUIkitTextInput`, … —
+    with or without `TUIkitApp`;
+  - `Tests/TUIkitIntegrationTests`, the one target that depends on
+    everything, when it needs two feature modules.
+
+  A module that depends on another counts as the higher alone: a test of a
+  `Table` that also uses a `List` goes in `TUIkitTablesTests`, as
+  `TUIkitTables` depends on `TUIkitLists`. Import the modules at the top of
+  what the file needs (`import TUIkitLists`, plus `import TUIkitApp` where it
+  drives the App), not the umbrella `TUIkit`, which only
+  `TUIkitIntegrationTests` depends on; each module re-exports what it depends
+  on. `@testable import` a module whose internals the file reaches, and add
+  it to the target's `dependencies:` in `Package.swift` if it is not there.
+  `Tools/TestSplit` holds the scripts that placed the existing files, from
+  the compiler's index of what each one references.
+- A test target cannot see another's declarations, so a helper two targets
+  share lives in a support target, a plain target split the same way:
+  `Tests/TUIkitTestSupport` for the base (with the golden snapshots, its
+  `__Snapshots__`), `Tests/TUIkitAppTestSupport` for helpers needing the App
+  (`MockTerminal`, the render-loop harnesses), and a feature's own
+  (`TUIkitListsTestSupport`, `TUIkitTablesTestSupport`, …). A helper only one
+  target's files use stays in that target. A test file `@testable import`s
+  the support targets whose helpers it uses.
+  Every file of a support target is wrapped in
   `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, under a comment that says
   why; copy both into a new file there. `swift build -c release` builds the
   target too, without testability, so it must compile empty there
   (`Package.swift` says what else was measured). It holds no `@Test` and no
-  `@Suite`: it is linked into each of the four umbrella test targets, and a
-  suite in it would be found in each of them. The golden snapshots are its `__Snapshots__`.
-- The four lower library modules also have a test target each
-  (`TUIkitCoreTests`, `TUIkitStylingTests`, `TUIkitViewTests`,
-  `TUIkitImageTests`) that links **only that module**, so a module test cannot
-  reach across a layer boundary. Put a test in the module target it belongs to;
-  the four targets above are for integration tests and the modules with no test
-  target of their own: `TUIkitFoundation` (the substrate) and the modules
-  carved out of it, `TUIkitStrings` and `TUIkitTerminalHost` (step B2),
-  `TUIkitApp` (step B3), `TUIkitColorPicker` (step B4), `TUIkitNavigation`
-  (step B5), `TUIkitLists` (step B6), `TUIkitChrome`, `TUIkitEffects` and
-  `TUIkitMenus` (step B5b), `TUIkitBitmaps` (step B5c), `TUIkitTextInput`
-  (step B7), `TUIkitPresentation` (step C1, peeled out of
-  `TUIkitNavigation`), `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
-  (steps C2 to C4, peeled out of `TUIkitLists`), and `TUIkitForms`,
-  `TUIkitSearch`, `TUIkitPickers` and `TUIkitNumericControls` (steps C5 to
-  C8, peeled out of `TUIkitTextInput`), and `TUIkitCurveEditors` (C9b, peeled
-  out of `TUIkitColorPicker`).
-  A test there imports `TUIkit`, as an app does, and adds `@testable import` of
-  each module whose internals it reaches: `TUIkitApp` for the run loop and the
-  console layer (`HeadlessApp`, `RenderLoop`, `InputHandler`, `FrameDiffWriter`,
-  `Terminal`, and `applyRuntimeServices(from:)`, which builds a render pass's
-  environment: 300 test files import `TUIkitApp` for it alone, decisions
-  B-SPB3-1), `TUIkitColorPicker` for the colour picker's grids, handlers and
-  panel and the gradient editor's, `TUIkitCurveEditors` for the tone-curve and
-  channel-curve editors', `TUIkitNavigation` for the navigation containers' (crumbs,
-  split-view widths, the inspector), `TUIkitPresentation` for the
-  presentations' (sheet detents and sizing, alert buttons, dialog
-  suppression),
-  `TUIkitLists` for the lists' (`ItemListHandler`, row bands and
-  reordering), `TUIkitTables` for the tables' (table columns), `TUIkitTabs`
-  for the tabs' (tab bars), `TUIkitGrid` for the grids' (grid tracks),
-  `TUIkitChrome` for the window chrome's (the status bar view, toolbars,
-  notifications, tooltips, the window chrome host), `TUIkitEffects` for the
-  transitions' and the visual, scroll and colour effects', `TUIkitMenus` for
-  `Menu`'s, `ControlGroup`'s and `.contextMenu`'s, `TUIkitBitmaps` for the
-  bitmap path's (`_ImageCore`, `AsyncImage`'s decoding, the image options'
-  environment, asset catalogues), `TUIkitTextInput` for the text inputs'
-  (`TextFieldHandler`, `TextEditorHandler`, the field renderer),
-  `TUIkitPickers` for the pickers' (`_PickerMenuCore`, the radio group's
-  handler, the date picker's model), `TUIkitNumericControls` for the numeric
-  controls' (`SliderHandler`, `TrackRenderer`, the indeterminate renderer),
-  `TUIkitForms` for the forms'
-  (`FormContentExtraction`, a card's or panel's title), `TUIkitSearch` for
-  search's (the search presentation, dismissal and scope bar),
-  `TUIkitStrings` or
-  `TUIkitTerminalHost` for theirs, and `TUIkitFoundation` for the rest. A declaration's module is its directory's: each directory under
-  `Sources/` is a target of its own in `Package.swift`, at its default path,
-  since step C7 peeled the last member out of the last coarse group, a
-  target that named several directories.
-  (`Sources/TUIkitPresentation` compiled into `TUIkitNavigation` from step
-  B5 until step C1, `Sources/TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`
-  into `TUIkitLists` from step B6 until steps C2 to C4, and
-  `Sources/TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and
-  `TUIkitNumericControls` into `TUIkitTextInput` from step B7 until steps C5
-  to C8.)
-  `Tools/validate-test-boundaries.sh` checks the four modules' targets, and
-  that every file of `TUIkitTestSupport` is guarded, and runs in CI.
+  `@Suite`: it is linked into every test target that uses it, and a suite in
+  it would be found in each of them.
+- The four lower library modules' own unit tests (`TUIkitCoreTests`,
+  `TUIkitStylingTests`, `TUIkitViewTests`, `TUIkitImageTests`) link **only
+  that module** and what it depends on, so a module test cannot reach across
+  a layer boundary. A declaration's module is its directory's: each directory
+  under `Sources/` is a target of its own in `Package.swift`, at its default
+  path.
+  `Tools/validate-test-boundaries.sh` checks that every test file imports only
+  what its target depends on, and that every support-target file is guarded,
+  and runs in CI.
 - `Tests/ExampleTests` holds tests of the Example app's own views
   (`@testable import Example`), for when a test must drive what the app
   ships rather than a copy of its shape: a copy goes on passing after the

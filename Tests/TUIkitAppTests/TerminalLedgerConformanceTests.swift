@@ -7,9 +7,8 @@
 import Foundation
 import Testing
 
-import TUIkit
 @testable import TUIkitCore
-@testable import TUIkitFoundation
+import TUIkitTerminalHost
 @testable import TUIkitTestSupport
 
 // MARK: - The models against the measurements

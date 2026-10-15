@@ -3,7 +3,7 @@
 import CompilerPluginSupport
 import PackageDescription
 
-/// What the umbrella suite's four test targets and their support target, TUIkitTestSupport, depend on.
+/// Every library module: what TUIkitIntegrationTests, the one test target that can see everything, depends on.
 let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCurveEditors", "TUIkitEffects",
     "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
@@ -577,79 +577,234 @@ let package = Package(
             dependencies: ["TUIkit"],
             resources: [.copy("Resources")]
         ),
-        // The umbrella suite: integration tests + every test that exercises
-        // a control, the App/run loop, focus, or the shared render helpers (which
-        // live in TUIkitTestSupport, below). It is four test targets of one kind,
-        // with the same dependencies, whose every file `@testable import`s
-        // TUIkitTestSupport:
-        // - TUIkitTests: views, layout, styling, rendering, animation, the
-        //   environment, and any test that is of none of the areas below;
-        // - TUIkitCollectionTests: lists, tables, tabs, grids, sections, rows,
-        //   ForEach, scrolling and lazy stacks;
-        // - TUIkitControlTests: text input, pickers, forms, search, the numeric
-        //   controls, the colour picker, buttons, toggles, links and focus;
-        // - TUIkitAppTests: the App and the run loop, the terminal, input, the
-        //   clipboard, chrome, menus, navigation, presentation, gestures, drag
-        //   and drop, and storage.
-        // Four rather than one because a test target is one module, whose
-        // interface is emitted by one serial job whatever the -j, and every
-        // edit to any of its files waits for that job: dividing it makes an
-        // edit re-emit a quarter of the suite, and the four compile in
-        // parallel (the commit that divided it records the times). Each holds
-        // under 8,000 `#expect`s. A test that needs a declaration of another
-        // of the four moves to that target, or the declaration moves to
-        // TUIkitTestSupport. Module-specific *unit* tests live in the
-        // per-module test targets below, which link ONLY their module (+ its
-        // real deps) so a test that reaches across a module boundary fails to
-        // compile. `swift test` runs every target, so the full suite is
-        // unchanged. Tools/validate-test-boundaries.sh enforces this going
-        // forward (see also the per-target import guard it applies). A test
-        // imports TUIkit, as an app does, and `@testable import`s
-        // TUIkitFoundation where it reaches the framework's internals, or the
-        // carved module that declares them (TUIkitStrings, TUIkitTerminalHost,
-        // TUIkitApp, TUIkitColorPicker, TUIkitCurveEditors, TUIkitNavigation, TUIkitLists,
-        // TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
-        // TUIkitTextInput, TUIkitPresentation, TUIkitTables, TUIkitTabs,
-        // TUIkitGrid, TUIkitForms, TUIkitSearch, TUIkitPickers,
-        // TUIkitNumericControls).
-        .testTarget(
-            name: "TUIkitTests",
-            dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"],
-            // The fixtures read by path (an asset catalogue, and the `Assets.car`
-            // Xcode compiled from it), not via the resource bundle, so exclude
-            // them from the build rather than declaring them as resources.
-            exclude: ["__Fixtures__"]
-        ),
-        .testTarget(name: "TUIkitCollectionTests", dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"]),
-        .testTarget(name: "TUIkitControlTests", dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"]),
-        .testTarget(name: "TUIkitAppTests", dependencies: umbrellaTestDependencies + ["TUIkitTestSupport"]),
-        // The helpers, mocks and fixtures the umbrella suite's files share. Every
-        // file there `@testable import`s it, and its own declarations stay
-        // internal. A plain target, as CTestSupport is, which `swift build`
-        // builds even without `--build-tests`: in a release build, which has no
-        // testability, its `@testable import`s of the library would fail
-        // ("module 'TUIkitFoundation' was not compiled for testing"). So every
-        // file is wrapped in `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`,
-        // which this target defines for debug builds only, and a release build
-        // compiles it empty. The alternatives, measured 2026-10-10 in a probe
-        // package (lane TT2) on Swift 6.2.4, 6.3.3 and 6.4.0: as a test target
-        // the others depend on, 6.4's build system still builds it in release;
-        // `swift build -c release --product <a library product>` builds every
-        // target on 6.2 and 6.3; and `package` access instead of `@testable` would put every
-        // internal a helper uses into the library's package interface. A
-        // release TEST build passes the define itself:
+        // The framework's suite, a test target per module (the owner's request B-TC1-1, 2026-10-12; placed
+        // by Tools/TestSplit from the compiler's index of what each file references). A test lives in the
+        // target of the highest module it needs, its helpers' needs counted, and its target depends on
+        // what its files import, so an edit to a module rebuilds only the tests that can see it:
+        // - TUIkitFoundationTests: tests needing only TUIkitFoundation and what it re-exports;
+        // - TUIkitAppTests: those needing TUIkitApp and no feature module;
+        // - TUIkit<Module>Tests: those needing one feature module, with or without TUIkitApp;
+        // - TUIkitIntegrationTests, the one target that depends on everything: those needing two.
+        // A test target is one module, whose interface is emitted by one serial job whatever the -j, and
+        // every edit to any of its files waits for that job: more, smaller targets also re-emit less
+        // and compile in parallel (the commit that split them records the times). Test files that share
+        // a helper declared in one of them land together. Tools/validate-test-boundaries.sh checks that
+        // every test file imports only what its target depends on.
+        //
+        // Helpers two targets share live in support targets split the same way: TUIkitTestSupport for the
+        // base, TUIkitAppTestSupport, and a feature's own (TUIkitListsTestSupport, ...). Each is a plain
+        // target, as CTestSupport is, which `swift build` builds even without `--build-tests`: in a release
+        // build, which has no testability, its `@testable import`s of the library would fail ("module
+        // 'TUIkitFoundation' was not compiled for testing"). So every file is wrapped in
+        // `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, which these targets define for debug builds
+        // only, and a release build compiles them empty. The alternatives, measured 2026-10-10 in a probe
+        // package (lane TT2) on Swift 6.2.4, 6.3.3 and 6.4.0: as a test target the others depend on,
+        // 6.4's build system still builds it in release; `swift build -c release --product <a library
+        // product>` builds every target on 6.2 and 6.3; and `package` access instead of `@testable` would
+        // put every internal a helper uses into the library's package interface. A release TEST build
+        // passes the define itself:
         // `swift build -c release --build-tests -Xswiftc -enable-testing -Xswiftc -DTUIKIT_TEST_SUPPORT`.
-        // `canImport(Testing)`: a static Linux SDK ships no Testing module, and
-        // a debug build of the whole package for it would fail here.
-        // Golden snapshots are read and written by path (#filePath-relative, see
-        // TestHelpers/SnapshotTesting.swift), not via the resource bundle, so
-        // they are excluded from the build rather than declared as resources.
+        // `canImport(Testing)`: a static Linux SDK ships no Testing module, and a debug build of the whole
+        // package for it would fail here. Golden snapshots are read and written by path (#filePath-relative,
+        // see TestHelpers/SnapshotTesting.swift), not via the resource bundle, so they are excluded from
+        // the build rather than declared as resources; so are the asset-catalogue fixtures.
         .target(
             name: "TUIkitTestSupport",
-            dependencies: umbrellaTestDependencies,
-            path: "Tests/TUIkitTestSupport",
-            exclude: ["__Snapshots__"],
+            dependencies: [
+                "TUIkitCore", "TUIkitFoundation", "TUIkitStrings", "TUIkitStyling", "TUIkitView",
+            ],
+            path: "Tests/TUIkitTestSupport", exclude: ["__Snapshots__"],
             swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+        ),
+        .target(
+            name: "TUIkitAppTestSupport",
+            dependencies: [
+                "TUIkitApp", "TUIkitChrome", "TUIkitCore", "TUIkitFoundation", "TUIkitStyling", "TUIkitTestSupport",
+                "TUIkitView",
+            ],
+            path: "Tests/TUIkitAppTestSupport",
+            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+        ),
+        .target(
+            name: "TUIkitBitmapsTestSupport",
+            dependencies: [
+                "TUIkitBitmaps", "TUIkitFoundation", "TUIkitTestSupport",
+            ],
+            path: "Tests/TUIkitBitmapsTestSupport",
+            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+        ),
+        .target(
+            name: "TUIkitListsTestSupport",
+            dependencies: [
+                "TUIkitApp", "TUIkitCore", "TUIkitFoundation", "TUIkitLists", "TUIkitTestSupport",
+            ],
+            path: "Tests/TUIkitListsTestSupport",
+            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+        ),
+        .target(
+            name: "TUIkitTablesTestSupport",
+            dependencies: [
+                "TUIkitApp", "TUIkitCore", "TUIkitFoundation", "TUIkitLists", "TUIkitTables", "TUIkitTestSupport",
+                "TUIkitView",
+            ],
+            path: "Tests/TUIkitTablesTestSupport",
+            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+        ),
+        .target(
+            name: "TUIkitTabsTestSupport",
+            dependencies: [
+                "TUIkitFoundation", "TUIkitTabs", "TUIkitTestSupport",
+            ],
+            path: "Tests/TUIkitTabsTestSupport",
+            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+        ),
+        .testTarget(
+            name: "TUIkitAppKitTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppKit", "TUIkitAppTestSupport", "TUIkitBitmaps", "TUIkitBitmapsTestSupport",
+                "TUIkitCore", "TUIkitFoundation", "TUIkitImage", "TUIkitTestSupport",
+            ],
+            exclude: ["__Fixtures__"]
+        ),
+        .testTarget(
+            name: "TUIkitAppTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitChrome", "TUIkitCore", "TUIkitFoundation", "TUIkitImage",
+                "TUIkitStrings", "TUIkitStyling", "TUIkitTerminalHost", "TUIkitTestSupport", "TUIkitView",
+                "TUIkitWidthCorpus",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitBitmapsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitBitmaps", "TUIkitBitmapsTestSupport", "TUIkitCore",
+                "TUIkitFoundation", "TUIkitImage", "TUIkitStyling", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitChromeTests",
+            dependencies: [
+                "TUIkitChrome", "TUIkitCore", "TUIkitFoundation", "TUIkitStrings", "TUIkitStyling",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitColorPickerTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitColorPicker", "TUIkitCore", "TUIkitFoundation", "TUIkitLists",
+                "TUIkitNumericControls", "TUIkitStrings", "TUIkitStyling", "TUIkitTabsTestSupport",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitCurveEditorsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitCurveEditors", "TUIkitFoundation", "TUIkitImage", "TUIkitTestSupport",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitEffectsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitEffects", "TUIkitFoundation",
+                "TUIkitStyling", "TUIkitTerminalHost", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitFormsTests",
+            dependencies: [
+                "TUIkitForms", "TUIkitFoundation", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitFoundationTests",
+            dependencies: [
+                "CTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitImage", "TUIkitStrings", "TUIkitStyling",
+                "TUIkitTerminalHost", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitGridTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitGrid",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitIntegrationTests",
+            dependencies: umbrellaTestDependencies + [
+                "TUIkitAppTestSupport", "TUIkitListsTestSupport", "TUIkitTabsTestSupport", "TUIkitTestSupport",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitListsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitLists",
+                "TUIkitListsTestSupport", "TUIkitStyling", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitMenusTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitMenus", "TUIkitStyling",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitNavigationTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitNavigation",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitNumericControlsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitNumericControls",
+                "TUIkitStyling", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitPickersTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitPickers",
+                "TUIkitStyling", "TUIkitTerminalHost", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitPresentationTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitChrome", "TUIkitCore", "TUIkitFoundation",
+                "TUIkitPresentation", "TUIkitStrings", "TUIkitStyling", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitSearchTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitSearch", "TUIkitStrings",
+                "TUIkitStyling", "TUIkitTestSupport", "TUIkitTextInput", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitTablesTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitLists",
+                "TUIkitListsTestSupport", "TUIkitStyling", "TUIkitTables", "TUIkitTablesTestSupport",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitTabsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitStyling", "TUIkitTabs",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitTextInputTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitStyling",
+                "TUIkitTerminalHost", "TUIkitTestSupport", "TUIkitTextInput", "TUIkitView",
+            ]
         ),
         // C declarations a test needs that only the C importer makes — a struct
         // with bitfields, which the runtime's field list leaves out. Tests

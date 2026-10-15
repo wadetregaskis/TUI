@@ -67,7 +67,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15, 2026-10-10.
 - **Was:** `DYNP/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/DynamicProperty update write-back (DYNP).md`;
-  `Tests/TUIkitTests/DynamicPropertyTests.swift`, `Tests/TUIkitTests/ObservableInvalidationScopeTests.swift`. The
+  `Tests/TUIkitFoundationTests/DynamicPropertyTests.swift`, `Tests/TUIkitFoundationTests/ObservableInvalidationScopeTests.swift`. The
   probes of the next three folders reuse its harness.
 
 ### Dynamic property discovery
@@ -86,8 +86,8 @@ messages cite that path), and what cites it.
 - **Was:** `DYNP/optional/`; the second round `DYNV/probe/`.
 - **Cited by:** `Sources/TUIkitView/State/DynamicProperty.swift`,
   `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/PropertyPlans.swift`,
-  `Sources/TUIkitView/State/State.swift`; `Tests/TUIkitTests/DynamicPropertyStateKeyTests.swift` and the other
-  `DynamicProperty*Tests.swift` files, `Tests/TUIkitTests/StateSharedValueTests.swift`;
+  `Sources/TUIkitView/State/State.swift`; `Tests/TUIkitFoundationTests/DynamicPropertyStateKeyTests.swift` and the other
+  `DynamicProperty*Tests.swift` files, `Tests/TUIkitFoundationTests/StateSharedValueTests.swift`;
   `Documentation/SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md`,
   `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
@@ -118,7 +118,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15, SwiftUI 6.5.4, 2026-10-11.
 - **Was:** `SKEY/probe/`.
 - **Cited by:** `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/StateStorage.swift`;
-  `Tests/TUIkitTests/DynamicPropertyStateKeyTests.swift`;
+  `Tests/TUIkitFoundationTests/DynamicPropertyStateKeyTests.swift`;
   `Documentation/SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md`.
 
 ### Alignment guides
@@ -129,14 +129,14 @@ messages cite that path), and what cites it.
   region a flexible child sets (`guide2.swift` to `guide6.swift`, each with its `.out`; all share
   `guide.swift`'s harness).
 - **Also:** `GuideProbeTests.swift`, a Swift Testing suite that records TUIkit's placements for the same matrix
-  into `tuikit.out` (copy it into `Tests/TUIkitTests` to run it; it was written against TUIkit at 45e9a1f7a and
+  into `tuikit.out` (copy it into `Tests/TUIkitIntegrationTests` to run it; it was written against TUIkit at 45e9a1f7a and
   has not been re-checked against today's); `check.py`, which fits SwiftUI's rule and TUIkit's then rule to the
   two outputs (`python3 check.py`: 135 rows each, no mismatch) and says which of TUIkit's two rules made each of
   the 72 differing rows differ. `tuikit.out` records TUIkit before the fix this probe led to.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-11.
 - **Was:** `GUIDE/probe/` and `GUIDE/probe2/` (and `GUIDE/tuikit.out`).
-- **Cited by:** `Tests/TUIkitTests/AlignmentGuideParityTests.swift`,
-  `Tests/TUIkitTests/AlignmentGuideContainerParityTests.swift`;
+- **Cited by:** `Tests/TUIkitChromeTests/AlignmentGuideParityTests.swift`,
+  `Tests/TUIkitChromeTests/AlignmentGuideContainerParityTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Alignment guides outside their view (GUIDE).md`.
 
 ### List pinned headers and row stripes
@@ -167,12 +167,12 @@ messages cite that path), and what cites it.
 - **Was:** `D1S/probe/`, and `D1S/probe2/` for the second round.
 - **Cited by:** `Sources/TUIkitView/Core/AnyViewMembers.swift`, `Sources/TUIkitView/Rendering/CompositeMembers.swift`,
   `Sources/TUIkitForms/Views/FormContentExtraction.swift`, `Sources/TUIkitFoundation/Rendering/MenuSections.swift`,
-  `Sources/TUIkitLists/Views/ListRowEditOwner.swift`; `Tests/TUIkitTests/AnyViewMembersTests.swift`,
-  `Tests/TUIkitTests/SubviewLayoutTraitsTests.swift`, `Tests/TUIkitCollectionTests/ForEachRowMembersTests.swift`,
-  `Tests/TUIkitCollectionTests/ForEachRowVaryingMembersTests.swift`,
-  `Tests/TUIkitCollectionTests/SectionPartsTests.swift`, `Tests/TUIkitCollectionTests/CompositeMembersTests.swift`,
-  `Tests/TUIkitCollectionTests/ListMultiViewRowEditingTests.swift`,
-  `Tests/TUIkitControlTests/FormWrappedSectionTests.swift`, `Tests/TUIkitAppTests/MenuSectionTests.swift`;
+  `Sources/TUIkitLists/Views/ListRowEditOwner.swift`; `Tests/TUIkitListsTests/AnyViewMembersTests.swift`,
+  `Tests/TUIkitFoundationTests/SubviewLayoutTraitsTests.swift`, `Tests/TUIkitListsTests/ForEachRowMembersTests.swift`,
+  `Tests/TUIkitListsTests/ForEachRowVaryingMembersTests.swift`,
+  `Tests/TUIkitIntegrationTests/SectionPartsTests.swift`, `Tests/TUIkitListsTests/CompositeMembersTests.swift`,
+  `Tests/TUIkitListsTests/ListMultiViewRowEditingTests.swift`,
+  `Tests/TUIkitFormsTests/FormWrappedSectionTests.swift`, `Tests/TUIkitMenusTests/MenuSectionTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Sections and subview counting in stacks and loops (D1S).md`.
 
 ### Pinned section headers and footers
@@ -186,8 +186,8 @@ messages cite that path), and what cites it.
   `scan.swift`.
 - **Ran:** macOS 15.8, 2026-10-03.
 - **Was:** `w10b/probe/`.
-- **Cited by:** `Tests/TUIkitCollectionTests/PinnedRowSectionTests.swift`,
-  `Tests/TUIkitCollectionTests/LazyGridSectionTests.swift`; wave 10b's entries in
+- **Cited by:** `Tests/TUIkitIntegrationTests/PinnedRowSectionTests.swift`,
+  `Tests/TUIkitGridTests/LazyGridSectionTests.swift`; wave 10b's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
 ### Swift runtime layouts
 
@@ -217,7 +217,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** `T10/probe/`.
 - **Cited by:** `Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift`;
-  `Tests/TUIkitTests/SwiftUIKeySpellingTests.swift`; `Sources/TUIkit/TUIkit.docc/Articles/Localization.md`;
+  `Tests/TUIkitPresentationTests/SwiftUIKeySpellingTests.swift`; `Sources/TUIkit/TUIkit.docc/Articles/Localization.md`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Layout priority
@@ -233,7 +233,7 @@ messages cite that path), and what cites it.
 - **Was:** `L12/probe/`.
 - **Cited by:** `Sources/TUIkitFoundation/Views/LayoutValueKey.swift`, `Sources/TUIkitView/Core/BufferModifier.swift`,
   `Sources/TUIkitFoundation/Views/StackGuidePropagation.swift`,
-  `Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift`; `Tests/TUIkitTests/LayoutPriorityTests.swift`;
+  `Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift`; `Tests/TUIkitFoundationTests/LayoutPriorityTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (L14),
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
@@ -255,8 +255,8 @@ messages cite that path), and what cites it.
   12's decisions. `p9.out` prints the timing-dependent cases classified (start, end or between), so a rerun
   compares with `diff`.
 - **Was:** `w12/probe/`.
-- **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`; `Tests/TUIkitTests/KeyframeTimelineTests.swift`,
-  `Tests/TUIkitTests/SpringTests.swift`, `Tests/TUIkitTests/UnitCurveTests.swift`; wave 12's entries in
+- **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`; `Tests/TUIkitFoundationTests/KeyframeTimelineTests.swift`,
+  `Tests/TUIkitFoundationTests/SpringTests.swift`, `Tests/TUIkitFoundationTests/UnitCurveTests.swift`; wave 12's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
 
 ### Scroll anchoring
@@ -280,7 +280,7 @@ messages cite that path), and what cites it.
   `SCROLLANCHOR/probe/beside/`.
 - **Cited by:** `Sources/TUIkitFoundation/Views/ScrollWindowHold.swift`,
   `Sources/TUIkitFoundation/Views/StackTopRowHold.swift`, `Sources/TUIkitLists/Focus/ItemListHandler+Anchor.swift`,
-  `Tests/TUIkitCollectionTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
+  `Tests/TUIkitTablesTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
   `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.
 
@@ -294,7 +294,7 @@ messages cite that path), and what cites it.
   frame both lines start 3 characters in.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** written for lane BUGS13 (`BUGS13/probe/`).
-- **Cited by:** `Sources/TUIkitFoundation/Modifiers/FrameModifier.swift`; `Tests/TUIkitTests/PlacementOverflowTests.swift`;
+- **Cited by:** `Sources/TUIkitFoundation/Modifiers/FrameModifier.swift`; `Tests/TUIkitIntegrationTests/PlacementOverflowTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Trailing values and labels
@@ -310,8 +310,8 @@ messages cite that path), and what cites it.
   of "longer label"; alone, and in a columns form, the value leads.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** written for lane BUGS13's review fixes (`BUGS13/probe/`).
-- **Cited by:** `Sources/TUIkitForms/Styles/LabeledContentStyle.swift`; `Tests/TUIkitControlTests/LabeledContentTests.swift`,
-  `Tests/TUIkitControlTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+- **Cited by:** `Sources/TUIkitForms/Styles/LabeledContentStyle.swift`; `Tests/TUIkitIntegrationTests/LabeledContentTests.swift`,
+  `Tests/TUIkitIntegrationTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 ### Stack spacing per pair
 
 - **Asks:** what `ViewSpacing`'s own values answer `distance(to:along:)` with — `ViewSpacing()` and `.zero` against
@@ -329,7 +329,7 @@ messages cite that path), and what cites it.
 - **Was:** `BITEMS1/probe/`.
 - **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`,
   `Sources/TUIkitFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIkitView/Rendering/ChildInfo.swift`;
-  `Tests/TUIkitTests/ViewSpacingTests.swift`, `Tests/TUIkitTests/StackSpacingPerPairTests.swift`;
+  `Tests/TUIkitGridTests/ViewSpacingTests.swift`, `Tests/TUIkitGridTests/StackSpacingPerPairTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Layout row); B20 in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`;
   `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.

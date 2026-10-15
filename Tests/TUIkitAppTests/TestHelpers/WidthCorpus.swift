@@ -7,6 +7,7 @@
 import Foundation
 import Testing
 
+import TUIkitApp
 @testable import TUIkitCore
 @testable import TUIkitTestSupport
 import TUIkitWidthCorpus

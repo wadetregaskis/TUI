@@ -2,22 +2,28 @@
 #
 # validate-test-boundaries.sh — enforce per-module unit-test isolation.
 #
-# TUIkit's unit tests are split into per-module test targets (see Package.swift):
-# each links ONLY its module, so a test that reaches across a module boundary
-# fails to compile. This script is the fast, human-readable guard for that
-# property: it flags a module test target importing a module outside its
-# dependency closure BEFORE a full build would, with a clear message. The
-# umbrella suite's four test targets (TUIkitTests, TUIkitCollectionTests,
-# TUIkitControlTests, TUIkitAppTests) and their TUIkitTestSupport are
-# unrestricted (integration tests live there).
+# TUIkit's tests are split into per-module test targets (see Package.swift):
+# each links only the modules its tests need, so an edit to a module rebuilds
+# only the tests that can see it. This script is the fast, human-readable guard
+# for that property: it flags a test file importing a module its target does
+# not depend on BEFORE a full build would, with a clear message.
+#
+# - TUIkit{Core,Styling,View,Image}Tests, the low modules' own unit tests, may
+#   import their module and what it depends on (the table below).
+# - Every other per-module target (TUIkitFoundationTests, TUIkitAppTests,
+#   TUIkitListsTests, ... and the support targets TUIkitTestSupport,
+#   TUIkitAppTestSupport, TUIkitListsTestSupport, ...) may import what its
+#   entry in Package.swift lists in `dependencies:`. So a stray `import TUIkit`
+#   (the umbrella) there fails here: only TUIkitIntegrationTests depends on it.
+# - TUIkitIntegrationTests, ExampleTests and TUIkitMacrosTests are unrestricted.
 #
 # `swift test` already builds every target, so SPM enforces this at compile
 # time too; this script exists so the rule is explicit, documented, and catches
 # a stray `import TUIkit` in a module test the moment it lands (CI + pre-commit),
 # not only when the offending symbol happens to be referenced.
 #
-# It also checks that every file of TUIkitTestSupport, the umbrella suite's
-# plain support target, is wrapped in its guard. `swift build -c release`
+# It also checks that every file of a support target (Tests/*TestSupport), a
+# plain target, is wrapped in its guard. `swift build -c release`
 # builds that target without testability, so a file outside the guard builds
 # in debug and fails CI's release builds (Package.swift says why).
 #
@@ -37,35 +43,40 @@ cd "$(dirname "$0")/.."
 # `Color: View` moved into the module that owns `View` (see the comment on that
 # target), so a TUIkitView test may name a `Color`. TUIkitWidthCorpus is data
 # with no dependencies (the width corpus), so any layer's tests may read it.
-# TUIkitFoundation (the substrate, under the TUIkit umbrella) has no row: it has
-# no test target of its own, and its tests are the umbrella suite's, which this script
-# leaves unrestricted. Nor have the modules carved out of it, TUIkitStrings and
-# TUIkitTerminalHost (step B2), TUIkitApp (step B3), TUIkitColorPicker (step
-# B4), TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome,
-# TUIkitEffects and TUIkitMenus (step B5b), TUIkitBitmaps (step B5c) and
-# TUIkitTextInput (step B7), and TUIkitPresentation, peeled out of
-# TUIkitNavigation (step C1), TUIkitTables, TUIkitTabs and TUIkitGrid, peeled
-# out of TUIkitLists (steps C2 to C4), and TUIkitForms, TUIkitSearch,
-# TUIkitPickers and TUIkitNumericControls, peeled out of TUIkitTextInput
-# (steps C5 to C8), and TUIkitCurveEditors, peeled out of TUIkitColorPicker
-# (C9b): their tests stayed in the umbrella suite, which
-# `@testable import`s them. A module that gets a test target of its own gets a
-# row here, and joins the loop below.
+# Every other target's row is its `dependencies:` in Package.swift.
 allowed_for() {
     case "$1" in
         TUIkitCoreTests) echo "TUIkitCore TUIkitWidthCorpus" ;;
         TUIkitStylingTests) echo "TUIkitStyling" ;;
         TUIkitViewTests) echo "TUIkitView TUIkitCore TUIkitStyling" ;;
         TUIkitImageTests) echo "TUIkitImage TUIkitStyling" ;;
+        *)
+            # Its entry's `dependencies: [...]` in Package.swift, a test target's or a
+            # support target's: the quoted names from its `name:` line to the list's `]`.
+            awk -v name="name: \"$1\"," '
+                index($0, name) { found = 1; next }
+                found && /dependencies:/ { listing = 1 }
+                listing { line = $0; gsub(/umbrellaTestDependencies/, "", line)
+                          while (match(line, /"[A-Za-z]+"/)) {
+                              printf "%s ", substr(line, RSTART + 1, RLENGTH - 2); line = substr(line, RSTART + RLENGTH) } }
+                listing && /\]/ { exit }' Package.swift ;;
     esac
 }
 
 violations=0
 
-for target in TUIkitCoreTests TUIkitStylingTests TUIkitViewTests TUIkitImageTests; do
-    dir="Tests/$target"
+for dir in Tests/*Tests Tests/*TestSupport; do
+    target="${dir#Tests/}"
+    case "$target" in
+        TUIkitIntegrationTests | ExampleTests | TUIkitMacrosTests | CTestSupport) continue ;;
+    esac
     [ -d "$dir" ] || continue
-    allowed=" $(allowed_for "$target") "
+    if [ -z "$(allowed_for "$target" | tr -d ' ')" ]; then
+        echo "✘ $target has no entry in this script's table, nor dependencies in Package.swift."
+        violations=$((violations + 1))
+        continue
+    fi
+    allowed=" $(allowed_for "$target") $target "
 
     # Every `import TUIkit<Module>` (optionally @testable) in the target's files.
     while IFS= read -r line; do
@@ -73,14 +84,14 @@ for target in TUIkitCoreTests TUIkitStylingTests TUIkitViewTests TUIkitImageTest
         file="${line%%:*}"
         rest="${line#*:}"
         lineno="${rest%%:*}"
-        module=$(printf '%s\n' "$rest" | grep -oE 'TUIkit[A-Za-z]*' | head -1)
+        module=$(printf '%s\n' "${rest#*:}" | sed -E 's/^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+//' \
+            | grep -oE '^TUIkit[A-Za-z]*' | head -1 || true)
         # Only TUIkit* modules are governed here.
         case "$module" in TUIkit*) ;; *) continue ;; esac
         if [[ "$allowed" != *" $module "* ]]; then
             echo "✘ $file:$lineno imports '$module', which is outside $target's layer."
-            echo "    Allowed: $(allowed_for "$target"). Move this test to one of the umbrella suite's"
-            echo "    four targets (Tests/TUIkitTests, TUIkitCollectionTests, TUIkitControlTests,"
-            echo "    TUIkitAppTests; CONTRIBUTING.md says which) or drop the cross-module dependency."
+            echo "    Allowed: $(allowed_for "$target"). Move this test to the target of the highest"
+            echo "    module it needs (CONTRIBUTING.md says which), or drop the cross-module dependency."
             violations=$((violations + 1))
         fi
     done < <(grep -rnE '^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+TUIkit' "$dir" 2>/dev/null || true)
@@ -94,18 +105,19 @@ while IFS= read -r file; do
     last=$(grep -vE '^[[:space:]]*$' "$file" | tail -1)
     if [ "$first" != "$guard" ] || [ "$last" != "#endif" ]; then
         echo "✘ $file is not wrapped in '$guard' ... '#endif'."
-        echo "    A release build compiles TUIkitTestSupport without testability. Copy the guard,"
+        echo "    A release build compiles a support target without testability. Copy the guard,"
         echo "    and the comment above it, from another file there."
         violations=$((violations + 1))
     fi
-done < <(find Tests/TUIkitTestSupport -name '*.swift' -not -path '*/__*' 2>/dev/null | sort)
+done < <(find Tests/*TestSupport -name '*.swift' -not -path '*/__*' -not -path 'Tests/CTestSupport/*' 2>/dev/null \
+    | sort)
 
 if [ "$violations" -gt 0 ]; then
     echo ""
-    echo "✘ $violations test-boundary violation(s). Per-module test targets must stay within their module's layer,"
-    echo "  and every TUIkitTestSupport file must be guarded."
+    echo "✘ $violations test-boundary violation(s). Per-module test targets must import only what they depend on,"
+    echo "  and every support-target file must be guarded."
     exit 1
 fi
 
-echo "✓ Test module boundaries intact (TUIkit{Core,Styling,View,Image}Tests each stay within their layer;"
-echo "  every TUIkitTestSupport file is guarded)."
+echo "✓ Test module boundaries intact (every per-module test target imports only what it depends on;"
+echo "  every support-target file is guarded)."

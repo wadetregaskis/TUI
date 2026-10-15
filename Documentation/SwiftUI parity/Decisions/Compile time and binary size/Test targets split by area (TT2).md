@@ -1,5 +1,10 @@
 # Completing the SwiftUI API: decisions from lane TT2
 
+*Superseded on 2026-10-14 by a test target per module: see
+[`Test targets split by module (TS).md`](<Test targets split by module (TS).md>).
+The four targets by area below no longer exist; the support target's guard
+(B-TT2-1) carries over to every support target.*
+
 *Lane TT2 landed the test-target split the owner approved on 2026-10-08 ("fine,
 if it has a notable benefit"), which lane TT1 had measured as an experiment: the
 umbrella suite, one test target of 1,178 files, is four test targets by area
