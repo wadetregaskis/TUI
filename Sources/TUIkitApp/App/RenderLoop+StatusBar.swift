@@ -81,7 +81,11 @@ extension RenderLoop {
         // covers stays with (`TooltipState.heldPresentations`).
         tooltips.beginReshape(
             movedByTooltip: tooltipMovedThePage, presentations: windowChrome.presentationsOverPage)
-        dispatcher.setRegions(regions)
+        if dispatcher.setRegions(regions) {
+            // A held menu's highlight moved to the option the reshape put
+            // under the pointer: the next frame draws it.
+            scheduler?.requestWake("held-drag-reshape", at: nowNanos &+ 1)
+        }
         let tooltipRows = windowChrome.tooltipRows
         let onTooltipRows = dispatcher.restingPointer.map { tooltipRows.contains($0.y) } ?? false
         tooltips.endReshape(pointerOnTooltipRows: onTooltipRows) { dispatcher.reachesHoverObserver($0) }

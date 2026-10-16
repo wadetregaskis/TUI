@@ -374,8 +374,13 @@ package enum DropdownMenu {
         onActivate: @escaping (Int) -> Void,
         onDismiss: @escaping () -> Void
     ) -> HitTestRegion.HandlerID {
+        // Filed per OPTION, not per visible slot: a row scrolled into a cell is
+        // another control there, which is how the dispatcher knows a key that
+        // scrolled a held menu put a different option under the pointer
+        // (`MouseEventDispatcher.redeliverHeldDrag()`).
+        let rowContext = context.withChildIdentity(type: Row.self, index: index)
         // Weak: the dispatcher holds this handler (see `Button`'s).
-        mouseDispatcher.register(in: context) { [weak mouseDispatcher] event in
+        return mouseDispatcher.register(in: rowContext) { [weak mouseDispatcher] event in
             if onWheel(event) { return true }
             switch event.phase {
             case .entered:

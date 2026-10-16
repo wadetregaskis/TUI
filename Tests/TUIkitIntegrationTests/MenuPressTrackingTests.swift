@@ -272,6 +272,59 @@ struct MenuPressTrackingTests {
             "the lit row followed the rows to the pointer rather than staying put")
     }
 
+    /// The keyboard can scroll a menu too, under a pointer still holding the
+    /// button that opened it: Home, End and the Page keys move the rows, and the
+    /// pointer is then on a different one. The release chooses the row under
+    /// the pointer, so that is the row that has to be lit — a held menu showing
+    /// the first option while the release was about to choose the eleventh is
+    /// the wheel's bug again, by another route.
+    @Test(
+        "A key that scrolls a held menu lights the row then under the pointer",
+        arguments: [Key.end, .home, .pageDown])
+    func keyScrollUnderAHeldPointerMovesTheHighlight(key: Key) throws {
+        let (tui, context) = harness()
+        let chosen = Counter()
+        chosen.value = -1
+        let menu = Picker(
+            "Pick", selection: Binding(get: { chosen.value }, set: { chosen.value = $0 })
+        ) {
+            ForEach(0..<60, id: \.self) { index in Text("Option \(index)").tag(index) }
+        }
+        .selectionIndicatorStyle(.none)
+
+        let closed = renderArmed(menu, tui: tui, context: context)
+        let controlX = try #require(
+            closed.lines[0].stripped.firstIndex(of: "▐").map {
+                closed.lines[0].stripped.distance(from: closed.lines[0].stripped.startIndex, to: $0)
+            })
+        // Pressed and HELD: the menu opens on the press.
+        press(tui, context, x: controlX + 1, y: 0)
+        var frame = renderArmed(menu, tui: tui, context: context)
+        let target = try row(frame, "Option 5", context)
+        drag(tui, x: target.x, y: target.y)
+        renderArmed(menu, tui: tui, context: context)
+        if key == .home {
+            // Somewhere to come back from.
+            _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .end))
+            renderArmed(menu, tui: tui, context: context)
+        }
+        _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: key))
+        renderArmed(menu, tui: tui, context: context)
+        frame = renderArmed(menu, tui: tui, context: context)
+
+        let screen = frame.compositingOverlays(
+            maxWidth: context.availableWidth, maxHeight: context.availableHeight,
+            palette: context.environment.palette)
+        let underPointer = try #require(
+            screen.lines[target.y].stripped.split(separator: "Option ").last
+                .flatMap { Int($0.prefix { $0.isNumber }) },
+            "an option is under the pointer: \(screen.lines[target.y].stripped)")
+        _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .enter))
+        #expect(
+            chosen.value == underPointer,
+            "Return took Option \(chosen.value), but the pointer is on Option \(underPointer)")
+    }
+
     /// A mutable `Int` an escaping binding can write — a plain `var` captured by
     /// one would be a copy per closure.
     @MainActor

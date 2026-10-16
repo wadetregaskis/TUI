@@ -314,6 +314,11 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// currently in flight. See ``endsHeldGesture(_:)``.
     private var pointerMovedSincePress = false
 
+    /// The region the held gesture's last drag was hit-tested to, while a
+    /// press handed back to live hit-testing (``handOffGesture()``) is held —
+    /// what ``redeliverHeldDrag()`` compares a reshaped frame against.
+    private var heldDragTarget: HitTestRegion.HandlerID?
+
     /// The pop-up menu the press in flight opened, or `nil` when it opened
     /// none — see ``pressOpenedPopup(_:)``. Unlike ``gestureHandedOff`` this
     /// stands for the whole gesture, not for one handler call, because the
@@ -583,9 +588,48 @@ extension MouseEventDispatcher {
     /// The dispatcher reverses that during dispatch so the innermost
     /// matching handler wins — same intuition as a tap dispatched in a
     /// SwiftUI / AppKit view tree.
-    package func setRegions(_ regions: [HitTestRegion]) {
+    ///
+    /// - Returns: Whether a held drag was delivered again
+    ///   (``redeliverHeldDrag()``), whose effect the next frame has to draw.
+    @discardableResult
+    package func setRegions(_ regions: [HitTestRegion]) -> Bool {
         self.regions = regions
         reconcileHoverAfterReshape()
+        return redeliverHeldDrag()
+    }
+
+    /// Hands a held gesture's drag again to a region the reshape put under
+    /// the pointer.
+    ///
+    /// A menu row is lit by the held pointer's drags (a terminal reports a
+    /// held move as a drag, never as motion, so the hover lanes above never
+    /// see it), and a drag arrives only when the pointer moves. The keyboard
+    /// can move the rows without it: Home, End or a Page key scrolls a menu
+    /// still held open, and the pointer is then on another option — the one
+    /// the release will choose — while the highlight stayed where the key put
+    /// it. The wheel re-lights the row itself, from inside the menu; a key
+    /// reaches the menu before the rows move, so it falls to here.
+    ///
+    /// Only for a press handed back to live hit-testing, the menus' gestures:
+    /// a captured press hears every drag at its own handler wherever the
+    /// pointer is, and nothing slides under it. And only once that gesture
+    /// has dragged somewhere (``heldDragTarget``), and only when the region
+    /// now under the pointer is another control — a menu's rows are filed per
+    /// OPTION, so a row scrolled into the pointer's cell is one — so a frame
+    /// that moved nothing delivers nothing, and asks for no frame after it.
+    private func redeliverHeldDrag() -> Bool {
+        guard let target = heldDragTarget, let position = restingPosition,
+            let button = handedOffPresses.first(where: { pressedHandlers[$0] == nil })
+        else { return false }
+        let matching = matchingRegions(at: position.x, y: position.y)
+        guard let under = matching.first, under.handlerID != target else { return false }
+        let drag = MouseEvent(button: button, phase: .dragged, x: position.x, y: position.y)
+        heldDragTarget = under.handlerID
+        for region in matching where offer(drag, to: region) != .declined {
+            heldDragTarget = region.handlerID
+            return true
+        }
+        return false
     }
 
     /// Re-resolves the hover after the tree reshapes under a resting cursor.
@@ -930,6 +974,7 @@ extension MouseEventDispatcher {
         case .pressed:
             pressOrigin = (event.x, event.y)
             pointerMovedSincePress = false
+            heldDragTarget = nil
             // Cleared before the press is routed, so the handler about to
             // consume it can set it (see ``pressOpenedPopup(_:)``, which
             // starts the render count with it).
@@ -1013,6 +1058,7 @@ extension MouseEventDispatcher {
                 // ``endsPopupOpeningClick(_:)``).
                 pressOrigin = nil
                 pointerMovedSincePress = false
+                heldDragTarget = nil
                 pressPopup = nil
             }
         }
@@ -1099,6 +1145,9 @@ extension MouseEventDispatcher {
         // that wants to BLOCK what is beneath it consumes (returns true), as
         // the dimmed backdrops do.
         for region in matching where offer(event, to: region) != .declined {
+            // A handed-off gesture's drag, hit-tested live: where it went is
+            // what a reshape is compared against (``redeliverHeldDrag()``).
+            if event.phase == .dragged { heldDragTarget = region.handlerID }
             return true
         }
         return false
