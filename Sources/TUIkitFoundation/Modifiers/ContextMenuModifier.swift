@@ -5,7 +5,7 @@
 //  License: MIT
 
 import TUIkitCore
-import TUIkitFoundation
+import TUIkitView
 
 // MARK: - Context menu modifier
 
@@ -18,11 +18,22 @@ import TUIkitFoundation
 /// dismisses it. Like the alert / modal presentation modifiers this is
 /// *modifier infrastructure* rendered via ``Renderable`` (it is a `some View`
 /// wrapper, never a public control with a `Never` body).
-struct ContextMenuModifier<Content: View, MenuItems: View>: View {
+///
+/// It lives here, below TUIkitMenus, whose `.contextMenu(menuItems:)` makes
+/// it, because ``Link`` offers a menu of its own (Open Link, Copy Link) and
+/// TUIkitFoundation cannot see a module built on it.
+package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     let content: Content
     let menuItems: MenuItems
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitMenus makes these, for `.contextMenu(menuItems:)`.
+    package init(content: Content, menuItems: MenuItems) {
+        self.content = content
+        self.menuItems = menuItems
+    }
+
+    package var body: Never {
         fatalError("ContextMenuModifier renders via Renderable")
     }
 }
@@ -37,7 +48,7 @@ private enum StateIndex {
 // MARK: - Renderable
 
 extension ContextMenuModifier: Renderable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let sectionID = "contextmenu-\(context.identity.path)"
         // Its own child identity, so the content's / menu's @State never collides
         // with this modifier's state slot (mirrors AlertPresentationModifier).
@@ -257,78 +268,11 @@ extension ContextMenuModifier: Layoutable {
     /// The menu is presented *over* the content, so the layout footprint is just
     /// the content — and forwarding keeps the focus-section / trigger side effects
     /// on the render pass, never a measure.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // One environment application deeper, as `publishIsFocused` makes the
         // render walk's — by hand, because a measure must not note.
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)
         contentContext.environmentApplicationDepth += 1
         return measureChild(content, proposal: proposal, context: contentContext)
-    }
-}
-
-// MARK: - View extension
-
-extension View {
-    /// Adds a context menu (right-click / Ctrl-click pop-up of `Button`s) to this
-    /// view — mirrors SwiftUI's `contextMenu(menuItems:)`.
-    ///
-    /// ```swift
-    /// Text("Right-click me")
-    ///     .contextMenu {
-    ///         Button("Cut") { … }
-    ///         Button("Copy") { … }
-    ///         Divider()
-    ///         Button("Delete", role: .destructive) { … }
-    ///     }
-    /// ```
-    ///
-    /// The menu opens on the right-button **press**, and the rest of that
-    /// gesture belongs to it: keep the button down, drag over the rows to
-    /// highlight them, and release on one to run it — the way a Mac context
-    /// menu tracks. Letting go anywhere else puts the menu away without running
-    /// anything. A quick right-click works too — a release that never moved
-    /// completes a *click*, and leaves the menu up until the next one. Escape or
-    /// an outside click also dismisses it.
-    ///
-    /// Where the terminal swallows right-click (iTerm2 does by default) a
-    /// **Ctrl-click** opens it instead. Right-clicking works reliably in Apple
-    /// Terminal, Ghostty and Warp (see `Documentation/Terminals/Terminal compatibility survey.md`).
-    ///
-    /// From the keyboard: the modified view becomes a focus stop, and
-    /// **Shift+F10** opens the menu while it is focused — the binding every
-    /// platform that has a keyboard context-menu route agrees on (macOS has
-    /// none of its own, and Mac keyboards have no Menu key) — as does a PC
-    /// keyboard's Menu key where the terminal reports it. TUI-specific: it
-    /// is the reason a `.contextMenu` adds a Tab stop, which SwiftUI's does
-    /// not, because a menu reachable only by mouse is not reachable at all.
-    /// In a `List` row it adds none: the list is the stop, and its Shift+F10
-    /// opens the cursor row's menu, as it opens a selection menu's.
-    ///
-    /// - Parameter menuItems: A view builder of the menu's `Button`s (and
-    ///   `Divider`s).
-    /// - Returns: A view that shows the context menu on secondary-click.
-    public func contextMenu<MenuItems: View>(
-        @ViewBuilder menuItems: () -> MenuItems
-    ) -> some View {
-        ContextMenuModifier(content: self, menuItems: menuItems())
-    }
-
-    /// Adds a context menu with a custom preview to a view.
-    ///
-    /// The menu is the one ``View/contextMenu(menuItems:)`` shows, opened the same
-    /// ways. The preview is not shown, as on macOS: SwiftUI documents that
-    /// "this view modifier produces a context menu on macOS, but that platform
-    /// doesn't display the preview", which is the iOS lift-and-hold picture.
-    /// The `preview` closure is never called.
-    ///
-    /// - Parameters:
-    ///   - menuItems: A view builder of the menu's `Button`s (and `Divider`s).
-    ///   - preview: The view iOS shows beside the menu; not shown here.
-    /// - Returns: A view that shows the context menu on secondary-click.
-    public func contextMenu<MenuItems: View, Preview: View>(
-        @ViewBuilder menuItems: () -> MenuItems,
-        @ViewBuilder preview: () -> Preview
-    ) -> some View {
-        ContextMenuModifier(content: self, menuItems: menuItems())
     }
 }
