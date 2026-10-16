@@ -220,9 +220,16 @@ support in 0.64.0.
 
 ```bash
 # Build. With swiftly's `swift` the SDK is whichever `xcode-select` points at:
-# Xcode's (macOS 26) or the Command Line Tools' (macOS 15.5 here). Both build,
-# warning-free; the macOS 15 SDK does not isolate `UndoManager` to the main
-# actor, which `MainActorUndoManager` and `TextUndoStep` bridge (2026-10-15).
+# Xcode's (macOS 26) or the Command Line Tools' (macOS 15.5 here). Use Xcode's,
+# or Command Line Tools 26: the macOS 15 SDK carries the standard library and
+# Observation of Swift 6.1, under a 6.2 compiler. TUIkit's own modules build
+# against it — no `InlineArray` or task names there, each behind
+# `#if !canImport(Darwin) || canImport(FoundationModels)` (FoundationModels
+# arriving with the macOS 26 SDK), and no main-actor `UndoManager`, which
+# `MainActorUndoManager` and `TextUndoStep` bridge — but the Example and
+# Stress apps do not: their `@Observable` classes fail to expand there
+# ("declaration name 'shouldNotifyObservers' is not covered by macro
+# 'Observable'", 2026-10-16), as any app's may.
 swift build
 
 # Build with Xcode's own toolchain too, if `swift` on your PATH is a swift.org
