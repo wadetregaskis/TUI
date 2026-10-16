@@ -259,6 +259,8 @@ struct ScrollViewPage: View {
 
             ScrollPositionsDemo()
 
+            ScrollObservationDemo()
+
             DemoSection("page.scrollView.indicatorsOffSection") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.scrollView.indicatorsOffBody")
