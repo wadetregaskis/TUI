@@ -726,8 +726,7 @@ on three rows the shape drawn in quadrants (`▗▟ … ▙▖` for a capsule, `
 a rounded rectangle, `▝▜ … ▛▘` and `▜ … ▛` below), the whole face breathing the
 focus. The one-eighth edges `▕ ▏` above, and the half-block rings drawn earlier
 that day, are drawn by no chrome now; the four three-quadrant glyphs `▙ ▛ ▜ ▟`
-(U+2599, U+259B, U+259C, U+259F) are new to chrome, their advance **not yet
-measured**.
+(U+2599, U+259B, U+259C, U+259F) are new to chrome (advance below).
 
 **Apple Terminal draws Block Elements short of the line** (seen by the owner in
 Terminal.app 455.1 on macOS 15.8.1, 2026-10-15, against Ghostty 1.3 in the same
@@ -743,6 +742,19 @@ fills the whole cell there, which is what the survey's `█` note below
 `overhang_card.py` page of the rows would show how far short). (A first card of
 the families drew nothing in colour on Apple Terminal: it was spelt in 24-bit
 SGR, which Terminal.app ignores; TUIkit spells 256 colours there.)
+
+**Braille borders and faces** (`.braille`, `.braille(thickness:)`; the same
+evening): a box's border and a button's outline in Braille dots, the top and
+bottom edges and the two walls each their own glyph (`⡏⠉⢹` / `⡇ ⢸` / `⣇⣀⣸`;
+two dots thick `⣿⠛⣿` / `⣿ ⣿` / `⣿⣤⣿`), a button's shape drawn at dot
+resolution. **Advance measured** with a DSR probe
+(`dots_probe.py`, kept with the cards in the session notes) for the 36 Braille
+glyphs the faces and borders draw and the four three-quadrant glyphs `▙ ▛ ▜ ▟`
+of the solid faces: **one cell each** on Apple Terminal 455.1, iTerm2 3.7.5 and
+Warp v0.2026.09.30.08.29; Ghostty **not yet measured** (its run did not start).
+Braille Patterns are East Asian Neutral, so one cell is the rule; how each host
+draws a dot's size and spacing — font glyphs or drawn shapes — is not yet
+judged, and Apple Terminal's block-element shortfall may apply to them too.
 
 **Advance measured** for the lines faces' glyphs, with a DSR probe run in each
 host from a `.command` file, macOS 15.8.1: **one cell each** for `( ) [ ] < >`,

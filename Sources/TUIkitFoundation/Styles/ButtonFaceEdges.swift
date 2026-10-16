@@ -48,6 +48,10 @@ struct ButtonFaceEdges: Equatable, Sendable {
         /// A box of lines round an outline face: the glyphs of its row above
         /// and its row below.
         case box(top: BoxRow, bottom: BoxRow)
+        /// A dotted outline of `shape`, `thickness` Braille dots thick, round
+        /// an outline face: its rows above and below drawn from the shape at
+        /// the face's width.
+        case dots(TallShape, thickness: Int)
     }
 
     /// The shape a three-row solid face is drawn in.
@@ -121,11 +125,16 @@ enum ButtonFaceFamily: Equatable, Sendable {
     case lines(BorderStyle)
     /// No chrome at all: `.blank`.
     case blank
+    /// Dotted outlines of the shape, `thickness` Braille dots thick:
+    /// `.braille` and `.braille(thickness:)`.
+    case braille(thickness: Int)
 
     /// The family `appearance` draws buttons in.
     init(_ appearance: Appearance) {
         let style = appearance.borderStyle
-        if style == .none {
+        if let thickness = style.brailleThickness {
+            self = .braille(thickness: thickness)
+        } else if style == .none {
             self = .blank
         } else if style.paintsBackground {
             self = .solid
@@ -157,6 +166,10 @@ extension _ButtonAppearance {
     /// | ``ButtonBorderShape/brackets(_:_:)`` | between its glyphs; the rectangle's box | as the rounded rectangle |
     /// | circle | `(★)`; the capsule's box, as wide as tall | `▐★▌`; a disc in quadrants |
     ///
+    /// A braille face (`.braille`) is a dotted outline of the shape, drawn at
+    /// dot resolution (``_ButtonStyleBody/dotRows(_:width:rows:thickness:)``):
+    /// on one row its ends, on three the whole outline.
+    ///
     /// A lines face draws its box in the appearance's own border glyphs —
     /// rounded corners under `.rounded`, square ones under `.line`, heavy and
     /// double lines under `.heavy` and `.doubleLine`. A circle has no padding
@@ -183,8 +196,31 @@ extension _ButtonAppearance {
         case .lines(let style):
             sized.edges = size == .mini ? .bareOutline : Self.lineEdges(shape, tall: tall, style: style)
             if shape.kind == .circle { sized.horizontalPadding = tall ? 1 : 0 }
+        case .braille(let thickness):
+            sized.edges = size == .mini ? .bareOutline : Self.dotEdges(shape, tall: tall, thickness: thickness)
+            if shape.kind == .circle { sized.horizontalPadding = tall ? 2 : 0 }
         }
         return sized
+    }
+
+    /// A dotted outline face in `shape`, `thickness` dots thick: its caps the
+    /// ends of the shape's label row, which are the same whatever the face's
+    /// width, and on three rows the shape's rows above and below.
+    private static func dotEdges(_ shape: ButtonBorderShape, tall: Bool, thickness: Int) -> ButtonFaceEdges {
+        let outline: ButtonFaceEdges.TallShape
+        switch shape.kind {
+        case .automatic, .capsule: outline = .capsule
+        case .circle: outline = tall ? .circle : .capsule
+        case .roundedRectangle, .brackets: outline = .rectangle(radius: tall ? 1.5 : 0)
+        case .square: outline = .rectangle(radius: 0)
+        }
+        let rows = tall ? 3 : 1
+        // Wide enough that the label row's ends are the shape's own, not a
+        // narrow face's: the caps are its first and last cells.
+        let labelRow = _ButtonStyleBody.dotRows(outline, width: 12, rows: rows, thickness: thickness)[rows / 2]
+        return ButtonFaceEdges(
+            caps: (labelRow.first ?? " ", labelRow.last ?? " "),
+            ring: tall ? .dots(outline, thickness: thickness) : nil, isOutline: true)
     }
 
     /// A solid face in `shape`.
@@ -205,7 +241,7 @@ extension _ButtonAppearance {
     private static func lineEdges(_ shape: ButtonBorderShape, tall: Bool, style: BorderStyle) -> ButtonFaceEdges {
         // A square shape takes square corners whatever the border's are.
         let squareStyle = style == .rounded ? BorderStyle.line : style
-        let sides = (style.vertical, style.vertical)
+        let sides = (style.vertical, style.rightVertical)
         switch shape.kind {
         case .automatic, .capsule, .circle:
             return .lines(("(", ")"), box: tall ? style : nil)
@@ -273,22 +309,7 @@ extension _ButtonStyleBody {
     /// widths tall — or, in `wholeCells`, at each cell's middle.
     static func solidRows(_ shape: ButtonFaceEdges.TallShape, width: Int, wholeCells: Bool) -> [[FaceCell]] {
         let (w, h) = (Double(width), 6.0)
-        func inside(_ x: Double, _ y: Double) -> Bool {
-            switch shape {
-            case .capsule:
-                let r = h / 2
-                let cx = min(max(x, r), w - r)
-                return (x - cx) * (x - cx) + (y - r) * (y - r) <= r * r
-            case .rectangle(let radius):
-                guard radius > 0 else { return true }
-                let cx = min(max(x, radius), w - radius)
-                let cy = min(max(y, radius), h - radius)
-                return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= radius * radius
-            case .circle:
-                let (dx, dy) = ((x - w / 2) / (w / 2), (y - h / 2) / (h / 2))
-                return dx * dx + dy * dy <= 1
-            }
-        }
+        func inside(_ x: Double, _ y: Double) -> Bool { contains(shape, width: w, height: h, x: x, y: y) }
         return (0..<3).map { row in
             (0..<width).map { column in
                 let (x, y) = (Double(column), Double(row) * 2)
@@ -299,6 +320,61 @@ extension _ButtonStyleBody {
                 if inside(x + 0.25, y + 1.5) { bits |= 4 }
                 if inside(x + 0.75, y + 1.5) { bits |= 8 }
                 return bits == 15 ? .face : bits == 0 ? .empty : .glyph(quadrants[bits])
+            }
+        }
+    }
+
+    /// Whether the point (`x`, `y`) is inside `shape` drawn `width` by
+    /// `height`, in a cell's widths — a row being two of them tall.
+    nonisolated static func contains(
+        _ shape: ButtonFaceEdges.TallShape, width w: Double, height h: Double, x: Double, y: Double
+    ) -> Bool {
+        guard x >= 0, y >= 0, x <= w, y <= h else { return false }
+        switch shape {
+        case .capsule:
+            let r = min(h, w) / 2
+            let cx = min(max(x, r), w - r)
+            let cy = min(max(y, r), h - r)
+            return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r
+        case .rectangle(let radius):
+            let r = min(radius, h / 2, w / 2)
+            guard r > 0 else { return true }
+            let cx = min(max(x, r), w - r)
+            let cy = min(max(y, r), h - r)
+            return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r
+        case .circle:
+            let (dx, dy) = ((x - w / 2) / (w / 2), (y - h / 2) / (h / 2))
+            return dx * dx + dy * dy <= 1
+        }
+    }
+
+    /// A dotted outline of `shape` `width` cells wide and `rows` tall, a row
+    /// of cells at a time: each cell's Braille glyph, blank where it has no
+    /// dots. A dot — half a cell's width each way, so square — is on the
+    /// outline when it is inside the shape and within `thickness` dots of
+    /// the outside.
+    nonisolated static func dotRows(_ shape: ButtonFaceEdges.TallShape, width: Int, rows: Int, thickness: Int) -> [[Character]] {
+        let (w, h) = (Double(width), Double(rows) * 2)
+        let (columns, lines) = (width * 2, rows * 4)
+        func inside(_ dx: Int, _ dy: Int) -> Bool {
+            dx >= 0 && dy >= 0 && dx < columns && dy < lines
+                && contains(shape, width: w, height: h, x: (Double(dx) + 0.5) / 2, y: (Double(dy) + 0.5) / 2)
+        }
+        func onOutline(_ dx: Int, _ dy: Int) -> Bool {
+            inside(dx, dy)
+                && (1...max(1, thickness)).contains { step in
+                    !inside(dx - step, dy) || !inside(dx + step, dy) || !inside(dx, dy - step) || !inside(dx, dy + step)
+                }
+        }
+        // Each dot's bit, by row and column of the cell (Unicode's Braille numbering).
+        let bits: [[UInt32]] = [[0x01, 0x08], [0x02, 0x10], [0x04, 0x20], [0x40, 0x80]]
+        return (0..<rows).map { row in
+            (0..<width).map { column in
+                var mask: UInt32 = 0
+                for dy in 0..<4 {
+                    for dx in 0..<2 where onOutline(column * 2 + dx, row * 4 + dy) { mask |= bits[dy][dx] }
+                }
+                return mask == 0 ? " " : Unicode.Scalar(0x2800 + mask).map(Character.init) ?? " "
             }
         }
     }
@@ -403,10 +479,22 @@ extension _ButtonStyleBody {
     /// and below it where the edges have one, and `middle` as it is where
     /// they have none.
     static func outline(around middle: FrameBuffer, edges: ButtonFaceEdges, lines: Color) -> FrameBuffer {
-        guard case .box(let top, let bottom)? = edges.ring else { return middle }
-        var buffer = FrameBuffer(lines: [outlineBox(top, width: middle.width, lines: lines)])
+        let rows: (top: String, bottom: String)
+        switch edges.ring {
+        case .box(let top, let bottom):
+            rows = (outlineBox(top, width: middle.width, lines: lines), outlineBox(bottom, width: middle.width, lines: lines))
+        case .dots(let shape, let thickness):
+            let dots = dotRows(shape, width: middle.width, rows: 3, thickness: thickness)
+            rows = (
+                ANSIRenderer.colorize(String(dots[0]), foreground: lines),
+                ANSIRenderer.colorize(String(dots[2]), foreground: lines)
+            )
+        case .solid, nil:
+            return middle
+        }
+        var buffer = FrameBuffer(lines: [rows.top])
         buffer.appendVertically(middle)
-        buffer.appendVertically(FrameBuffer(lines: [outlineBox(bottom, width: middle.width, lines: lines)]))
+        buffer.appendVertically(FrameBuffer(lines: [rows.bottom]))
         return buffer
     }
 

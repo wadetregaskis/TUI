@@ -953,6 +953,14 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         guard let wall = borderColor.run(offsetX: 0, offsetY: 0, draw: {
             BorderRenderer.wall(style: borderStyle, color: $0)
         }) else { return runs }
+        // The right wall in its own glyph where the style draws it apart (a
+        // dotted border's); the left wall's run otherwise.
+        let right =
+            borderStyle.rightVertical == borderStyle.vertical
+            ? wall
+            : borderColor.run(offsetX: 0, offsetY: 0, draw: {
+                BorderRenderer.wall(style: borderStyle, color: $0, right: true)
+            }) ?? wall
         // The payload is worked out ONCE per side and carried by every shifted copy —
         // spans are run-relative, so a shift is the identity for them, exactly as it
         // already is for the frames. A box of height H emits 2 × (H − 2) wall runs (44
@@ -963,8 +971,8 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         let interiorRow = (1..<(lineCount - 1)).first { $0 != dividerRow } ?? 1
         var leftWall = wall
         leftWall.alpha = payload(row: interiorRow, offsetX: 0, width: wall.width)
-        var rightWall = wall
-        rightWall.alpha = payload(row: interiorRow, offsetX: innerWidth + 1, width: wall.width)
+        var rightWall = right
+        rightWall.alpha = payload(row: interiorRow, offsetX: innerWidth + 1, width: right.width)
         for row in 1..<(lineCount - 1) where row != dividerRow {
             runs.append(leftWall.shifted(byX: 0, y: row))
             runs.append(rightWall.shifted(byX: innerWidth + 1, y: row))

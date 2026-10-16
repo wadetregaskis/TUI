@@ -541,7 +541,7 @@ package enum DropdownMenu {
         // When a scrollbar is shown it takes the rightmost interior column, so
         // content fits the remaining width and each row is composed manually
         // (border + content + bar cell + border).
-        let verticalBorder = BorderRenderer.wall(style: borderStyle, color: borderColor)
+        let walls = BorderRenderer.walls(style: borderStyle, color: borderColor)
         let contentInner = barCells == nil ? innerWidth : max(1, innerWidth - 1)
 
         for (local, index) in visibleRange.enumerated() {
@@ -554,9 +554,9 @@ package enum DropdownMenu {
                     foreground: borderColor.opaqueSpelling)
                 if let barCells {
                     let cell = local < barCells.count ? barCells[local] : " "
-                    lines.append(verticalBorder + rule + cell + verticalBorder)
+                    lines.append(walls.left + rule + cell + walls.right)
                 } else {
-                    lines.append(verticalBorder + rule + verticalBorder)
+                    lines.append(walls.left + rule + walls.right)
                 }
             case .rendered(let content, _):
                 // Already painted — fitted to the content column and placed,
@@ -564,9 +564,9 @@ package enum DropdownMenu {
                 let fitted = fit(content, to: contentInner)
                 if let barCells {
                     let cell = local < barCells.count ? barCells[local] : " "
-                    lines.append(verticalBorder + fitted + ANSIRenderer.reset + cell + verticalBorder)
+                    lines.append(walls.left + fitted + ANSIRenderer.reset + cell + walls.right)
                 } else {
-                    lines.append(verticalBorder + fitted + ANSIRenderer.reset + verticalBorder)
+                    lines.append(walls.left + fitted + ANSIRenderer.reset + walls.right)
                 }
             case .option(let content, _):
                 let fill = index == highlightedRow ? highlight : nil
@@ -575,7 +575,7 @@ package enum DropdownMenu {
                     let styled = fill.map { paint(fitted, with: $0, reversal) } ?? fitted
                     let cell = local < barCells.count ? barCells[local] : " "
                     lines.append(
-                        verticalBorder + styled + ANSIRenderer.reset + cell + verticalBorder)
+                        walls.left + styled + ANSIRenderer.reset + cell + walls.right)
                 } else if case .reversed? = fill {
                     // A reversal must cover the row's own cells and not the walls either
                     // side of them, and `standardContentLine`'s fill is a persistent

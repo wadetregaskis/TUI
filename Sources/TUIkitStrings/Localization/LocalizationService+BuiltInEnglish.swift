@@ -182,6 +182,8 @@ extension LocalizationService {
       "appearance.line": "Line",
       "appearance.doubleLine": "Double line",
       "appearance.heavy": "Heavy",
+      "appearance.braille": "Braille",
+      "appearance.braille2": "Thick Braille",
       "appearance.block": "Block",
       "appearance.blank": "Blank",
 

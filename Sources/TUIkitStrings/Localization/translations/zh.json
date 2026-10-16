@@ -152,6 +152,8 @@
   "appearance.line": "细线",
   "appearance.doubleLine": "双线",
   "appearance.heavy": "粗线",
+  "appearance.braille": "盲文",
+  "appearance.braille2": "粗盲文",
   "appearance.block": "实块",
   "appearance.blank": "留白",
 

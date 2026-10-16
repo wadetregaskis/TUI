@@ -313,4 +313,47 @@ struct ControlSizeButtonTests {
         #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("中", "中"))) == ["│ OK │"])
         #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("⟨", "⟩"))) == ["⟨ OK ⟩"])
     }
+
+    @Test(
+        "The braille family: a dotted outline of the shape, one dot thick or two",
+        arguments: [
+            (Appearance.braille, ControlSize.regular, ButtonBorderShape.capsule, ["⢎ OK ⡱"]),
+            (.braille, .large, .capsule, ["⢠⠒⠉⠉⠒⡄", "⡇ OK ⢸", "⠘⠤⣀⣀⠤⠃"]),
+            (.braille, .regular, .roundedRectangle, ["⣏ OK ⣹"]),
+            (.braille, .large, .roundedRectangle, ["⡎⠉⠉⠉⠉⢱", "⡇ OK ⢸", "⢇⣀⣀⣀⣀⡸"]),
+            (.braille, .large, .roundedRectangle(radius: 0), ["⡏⠉⠉⠉⠉⢹", "⡇ OK ⢸", "⣇⣀⣀⣀⣀⣸"]),
+            (.braille(thickness: 2), .regular, .capsule, ["⢾ OK ⡷"]),
+            (.braille(thickness: 2), .large, .capsule, ["⢠⡶⠛⠛⢶⡄", "⣿ OK ⣿", "⠘⠷⣤⣤⠾⠃"]),
+        ])
+    func braille(appearance: Appearance, size: ControlSize, shape: ButtonBorderShape, expected: [String]) {
+        for button in buttons(size, shape, appearance) {
+            #expect(drawn(button) == expected)
+        }
+    }
+
+    @Test("A braille circle is a dotted disc, about as wide as it is tall")
+    func brailleCircle() {
+        for button in buttons(.large, .circle, .braille, label: "★") {
+            #expect(drawn(button) == ["⢠⠒⠉⠉⠉⠒⡄", "⡇  ★  ⢸", "⠘⠤⣀⣀⣀⠤⠃"])
+        }
+    }
+
+    @Test("A braille box draws its four sides in their own dots", arguments: [1, 2])
+    func brailleBox(thickness: Int) {
+        let box = drawn(Text("Hi").border().appearance(.braille(thickness: thickness)))
+        let expected =
+            thickness == 1
+            ? ["⡏⠉⠉⠉⠉⢹", "⡇ Hi ⢸", "⣇⣀⣀⣀⣀⣸"]
+            : ["⣿⠛⠛⠛⠛⣿", "⣿ Hi ⣿", "⣿⣤⣤⣤⣤⣿"]
+        #expect(box == expected)
+    }
+
+    @Test("A braille thickness is held to what a cell's dots can draw")
+    func brailleThicknessHeld() {
+        #expect(BorderStyle.braille(thickness: 0).brailleThickness == 1)
+        #expect(BorderStyle.braille(thickness: 9).brailleThickness == 4)
+        #expect(BorderStyle.braille(thickness: 4).vertical == "⣿", "a wall is at most a cell's two columns")
+        #expect(Appearance.braille(thickness: 1) == .braille)
+        #expect(Appearance.braille(thickness: 2).id == "braille2")
+    }
 }

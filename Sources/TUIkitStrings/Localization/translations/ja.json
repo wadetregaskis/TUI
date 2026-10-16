@@ -152,6 +152,8 @@
   "appearance.line": "細線",
   "appearance.doubleLine": "二重線",
   "appearance.heavy": "太線",
+  "appearance.braille": "点字",
+  "appearance.braille2": "太い点字",
   "appearance.block": "ブロック",
   "appearance.blank": "余白",
 

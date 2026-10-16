@@ -370,6 +370,8 @@ final class LocalizationKeyConsistencyTests {
         enumKeys.insert(LocalizationKey.Appearance.line.rawValue)
         enumKeys.insert(LocalizationKey.Appearance.doubleLine.rawValue)
         enumKeys.insert(LocalizationKey.Appearance.heavy.rawValue)
+        enumKeys.insert(LocalizationKey.Appearance.braille.rawValue)
+        enumKeys.insert(LocalizationKey.Appearance.braille2.rawValue)
         enumKeys.insert(LocalizationKey.Appearance.block.rawValue)
         enumKeys.insert(LocalizationKey.Appearance.blank.rawValue)
 
@@ -403,7 +405,7 @@ final class LocalizationKeyConsistencyTests {
         //   + statusbar + appearance + time span + key names
         let expectedKeyCount =
             26 + LocalizationKey.Label.allCases.count + 11 + 6 + 10 + 7 + 4
-            + LocalizationKey.StatusBar.allCases.count + 6 + LocalizationKey.TimeSpan.allCases.count
+            + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
             + LocalizationKey.KeyName.allCases.count
         #expect(
             englishTranslations.count == expectedKeyCount,

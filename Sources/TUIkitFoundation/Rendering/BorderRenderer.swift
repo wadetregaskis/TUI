@@ -165,8 +165,15 @@ extension BorderRenderer {
     /// `_ContainerViewCore`'s animating wall, the drop-down's frame, and the
     /// chrome rule — and a wall that an animation draws differently from the
     /// one `standardContentLine` draws is a seam down the side of the box.
-    static func wall(style: BorderStyle, color: Color) -> String {
-        band(String(style.vertical), style: style, color: color)
+    static func wall(style: BorderStyle, color: Color, right: Bool = false) -> String {
+        band(String(right ? style.rightVertical : style.vertical), style: style, color: color)
+    }
+
+    /// Both side walls, the right one shared with the left wherever the style
+    /// draws them alike, which is every style but a dotted one.
+    static func walls(style: BorderStyle, color: Color) -> (left: String, right: String) {
+        let left = wall(style: style, color: color)
+        return (left, style.rightVertical == style.vertical ? left : wall(style: style, color: color, right: true))
     }
 
     /// A horizontal rule in a style — the divider inside a menu, the chrome
@@ -479,7 +486,7 @@ extension BorderRenderer {
         let innerWidth = max(0, innerWidth)  // see standardTopBorder: negative traps
         let line =
             String(style.bottomLeft)
-            + String(repeating: style.horizontal, count: innerWidth)
+            + String(repeating: style.bottomHorizontal, count: innerWidth)
             + String(style.bottomRight)
         return band(line, style: style, color: color)
     }
@@ -531,7 +538,7 @@ extension BorderRenderer {
         return contentLine(
             content: content,
             innerWidth: innerWidth,
-            vertical: wall(style: style, color: color),
+            walls: walls(style: style, color: color),
             backgroundColor: backgroundColor
         )
     }
@@ -576,12 +583,12 @@ extension BorderRenderer {
         contentWidth: Int? = nil
     ) -> [String] {
         let innerWidth = max(0, innerWidth)  // see standardTopBorder: negative traps
-        let vertical = wall(style: style, color: color)
+        let walls = walls(style: style, color: color)
         return contents.map {
             contentLine(
                 content: $0,
                 innerWidth: innerWidth,
-                vertical: vertical,
+                walls: walls,
                 backgroundColor: backgroundColor,
                 knownWidth: contentWidth
             )
@@ -597,7 +604,7 @@ extension BorderRenderer {
     private static func contentLine(
         content: String,
         innerWidth: Int,
-        vertical: String,
+        walls: (left: String, right: String),
         backgroundColor: Color?,
         knownWidth: Int? = nil
     ) -> String {
@@ -633,19 +640,20 @@ extension BorderRenderer {
                 let clipped = cut.prefix.padToVisibleWidth(
                     innerWidth, knownVisibleWidth: cut.visibleWidth)
                 line.reserveCapacity(
-                    vertical.utf8.count * 2 + clipped.utf8.count + ANSIRenderer.reset.utf8.count)
-                line += vertical
+                    walls.left.utf8.count + walls.right.utf8.count + clipped.utf8.count
+                        + ANSIRenderer.reset.utf8.count)
+                line += walls.left
                 line += clipped
             } else {
                 line.reserveCapacity(
-                    vertical.utf8.count * 2 + content.utf8.count + pad
+                    walls.left.utf8.count + walls.right.utf8.count + content.utf8.count + pad
                         + ANSIRenderer.reset.utf8.count)
-                line += vertical
+                line += walls.left
                 line += content
                 if pad > 0 { line += asciiSpaces(pad) }
             }
             line += ANSIRenderer.reset
-            line += vertical
+            line += walls.right
             return line
         }
         let fittedLine: String
@@ -660,6 +668,6 @@ extension BorderRenderer {
             fittedLine = content + String(repeating: " ", count: innerWidth - width)
         }
         let styledContent = fittedLine.withPersistentBackground(backgroundColor)
-        return vertical + styledContent + ANSIRenderer.reset + vertical
+        return walls.left + styledContent + ANSIRenderer.reset + walls.right
     }
 }

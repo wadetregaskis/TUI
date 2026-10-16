@@ -132,6 +132,8 @@ public enum LocalizationKey {
         case line = "appearance.line"
         case doubleLine = "appearance.doubleLine"
         case heavy = "appearance.heavy"
+        case braille = "appearance.braille"
+        case braille2 = "appearance.braille2"
         case block = "appearance.block"
         case blank = "appearance.blank"
     }

@@ -14,8 +14,9 @@
 /// `Appearance` controls the structural styling of UI elements like border styles
 /// — of boxes and panels, and of a bordered button's face, so that the two look
 /// of a piece: a border of lines draws buttons in lines in the same glyphs, `.block`
-/// draws filled faces, and `.blank` a button's label alone (`ButtonBorderShape`
-/// says which member of the family each button is),
+/// draws filled faces, `.braille` dotted outlines (as thick as
+/// `.braille(thickness:)` says), and `.blank` a button's label alone
+/// (`ButtonBorderShape` says which member of the family each button is),
 /// while `Theme` controls the colors. Together they create a complete visual design.
 ///
 /// # Usage
@@ -130,6 +131,9 @@ extension Appearance {
         /// Heavy/bold borders (┏━┓).
         public static let heavy = Self(rawValue: "heavy")
 
+        /// Borders of Braille dots (⡏⠉⢹), one dot thick.
+        public static let braille = Self(rawValue: "braille")
+
         /// A solid band of full blocks (███), in the border colour.
         public static let block = Self(rawValue: "block")
 
@@ -161,6 +165,22 @@ extension Appearance {
     /// Uses `BorderStyle.heavy` for bold, prominent borders.
     public static let heavy = Appearance(id: .heavy, borderStyle: .heavy)
 
+    /// Borders of Braille dots, one dot thick: `BorderStyle.braille()`. A
+    /// bordered button is a dotted outline of its shape, any shape at any size,
+    /// its label inside (``ButtonBorderShape``).
+    public static let braille = Appearance(id: .braille, borderStyle: .braille())
+
+    /// Borders of Braille dots `thickness` dots thick — `2` is a bolder line,
+    /// and at most `4` (``BorderStyle/braille(thickness:)``).
+    ///
+    /// - Parameter thickness: The lines' thickness in dots.
+    /// - Returns: The dotted appearance of that thickness.
+    public static func braille(thickness: Int) -> Appearance {
+        let style = BorderStyle.braille(thickness: thickness)
+        let dots = style.brailleThickness ?? 1
+        return Appearance(id: dots == 1 ? .braille : ID(rawValue: "braille\(dots)"), borderStyle: style)
+    }
+
     /// A solid band of full blocks, drawn in the border colour.
     ///
     /// The heaviest a border gets: a band of colour around the content rather
@@ -185,7 +205,8 @@ extension Appearance {
 public struct AppearanceRegistry {
     /// All available appearances in cycling order.
     ///
-    /// Order: rounded (default) → line → doubleLine → heavy → block → blank
+    /// Order: rounded (default) → line → doubleLine → heavy → braille → thick
+    /// braille → block → blank
     ///
     /// Roughly by weight, so cycling with the appearance key walks from the
     /// usual to the extremes rather than jumping between them.
@@ -194,6 +215,8 @@ public struct AppearanceRegistry {
         .line,
         .doubleLine,
         .heavy,
+        .braille,
+        .braille(thickness: 2),
         .block,
         .blank,
     ]
