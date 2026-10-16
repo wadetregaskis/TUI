@@ -177,6 +177,11 @@ struct OverlaysPage: View {
     /// not re-derived from a focus the act of opening took away.
     @State private var presentedDemo: OverlayDemo = .alertStandard
 
+    /// The confirmation dialog's "Do not ask again": once on, Delete deletes
+    /// without asking, as on macOS — the app decides, from the value, whether
+    /// to present the dialog at all.
+    @State private var confirmSuppressed = false
+
     var body: some View {
         backgroundContent
             .modal(isPresented: $showOverlay) {
@@ -195,6 +200,10 @@ struct OverlaysPage: View {
                     }
                 },
                 message: { Text("page.overlays.confirm.message") })
+            // A destructive question: drawn as critical, and one the user may
+            // tell the app to stop asking.
+            .dialogSeverity(.critical)
+            .dialogSuppressionToggle("page.overlays.confirm.dontAsk", isSuppressed: $confirmSuppressed)
             // Note: notifications are hosted once at the app root (see
             // `ExampleApp` in main.swift) so a toast posted here survives
             // navigating back to the menu, rather than vanishing with the page.
@@ -282,9 +291,17 @@ struct OverlaysPage: View {
                         // answers rather than as nothing having happened.
                         Button("page.overlays.confirm.trigger") {
                             confirmChoice = "—"
-                            showConfirm = true
+                            if confirmSuppressed {
+                                confirmChoice = L("page.overlays.confirm.deletedWithoutAsking")
+                            } else {
+                                showConfirm = true
+                            }
                         }
                         ValueDisplayRow("page.overlays.confirm.result", confirmChoice)
+                        if confirmSuppressed {
+                            Button("page.overlays.confirm.askAgain") { confirmSuppressed = false }
+                                .buttonStyle(.borderless)
+                        }
                     }
                 }
             }
