@@ -873,12 +873,21 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // width-greedy row (`HStack { … Spacer() … }`) fill all of it, only for
         // the gutter + border clamp to chop the trailing cells — silently hiding
         // a right-flushed trailing view (issue #5).
+        //
+        // Less, where the list draws a scrollbar, the cells it keeps clear of
+        // the bar (`View.scrollbarSpacing(_:)`): the rows are laid out before
+        // the list knows whether it overflows, so the bar is PREDICTED here
+        // (``predictsScrollbar(stateStorage:context:)``) and the prediction
+        // checked once the list knows (``settleScrollbarPrediction``).
         var rowContext = context
+        let predictsBar = predictsScrollbar(stateStorage: stateStorage, context: context)
         if context.environment.fixedSizeWidth {
             rowContext.environment.fixedSizeWidth = false
         } else {
             rowContext.availableWidth = max(
-                1, context.availableWidth - style.horizontalChrome - listRowGutter)
+                1,
+                context.availableWidth - style.horizontalChrome - listRowGutter
+                    - context.environment.rowScrollbarSpacing(showsBar: predictsBar))
         }
         describeRows(in: &rowContext.environment, isSidebar: style is SidebarListStyle)
         yieldRowSecondaryClicks(in: &rowContext.environment)
@@ -953,7 +962,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 stateStorage: stateStorage,
                 palette: palette,
                 style: style,
-                targetContentHeight: targetContentHeight
+                targetContentHeight: targetContentHeight,
+                predictedBar: predictsBar
             )
             contentLines = result.lines
             contentRuns = result.runs
@@ -1125,7 +1135,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         stateStorage: StateStorage,
         palette: any Palette,
         style: any ListStyle,
-        targetContentHeight: Int
+        targetContentHeight: Int,
+        predictedBar: Bool
     ) -> (
         lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
         state: PopulatedRenderState
@@ -1147,6 +1158,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             context: context,
             contentHeight: targetContentHeight
         )
+        settleScrollbarPrediction(predictedBar, wantsScrollbar, context: context)
         // The slot is drawn among the rows and takes a line of the same content
         // area, so the rows get one less to walk. Reserved HERE, once, rather
         // than inside each window rule: the two rules disagree about indicator
@@ -1552,6 +1564,38 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         ).value
         handler.canBeFocused = canBeFocused
         FocusRegistration.reservePlace(context: context, handler: handler, focusID: persistedFocusID)
+    }
+
+    /// Whether this frame's rows are laid out for a vertical scrollbar —
+    /// asked before the rows are, which is before the list can know whether
+    /// they overflow.
+    ///
+    /// The last frame's answer where there was one (``ItemListHandler/showsScrollbar``),
+    /// which is this frame's but where the rows have just come to overflow or
+    /// to fit; else the visibility's: a bar for `.visible`, none otherwise.
+    /// No bar at all under the text indicators.
+    private func predictsScrollbar(stateStorage: StateStorage, context: RenderContext) -> Bool {
+        let environment = context.environment
+        guard environment.scrollIndicatorStyle == .scrollbar else { return false }
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
+        let stored: StateBox<ItemListHandler<SelectionValue>>? = stateStorage.existingStorage(for: key)
+        if let handler = stored?.value { return handler.showsScrollbar }
+        return environment.verticalScrollIndicatorVisibility == .visible
+    }
+
+    /// Asks for the next frame when the rows were laid out for the wrong
+    /// answer — for a bar the list then did not draw, or for none where it
+    /// drew one — and so a spacing short or over (``predictsScrollbar(stateStorage:context:)``).
+    ///
+    /// The handler holds this frame's answer by then, so the next frame
+    /// predicts it, and lays the rows out to it. It cannot flip back: rows
+    /// laid out narrower are no shorter, so a list that overflowed at one
+    /// width overflows at a narrower one.
+    private func settleScrollbarPrediction(_ predicted: Bool, _ drawn: Bool, context: RenderContext) {
+        guard predicted != drawn, !context.isMeasuring,
+            context.environment.rowScrollbarSpacing(showsBar: true) > 0
+        else { return }
+        context.requestWake(token: "list-scrollbar-\(context.identity.path)", afterSeconds: 0)
     }
 
     private func resolvePopulatedHandler(

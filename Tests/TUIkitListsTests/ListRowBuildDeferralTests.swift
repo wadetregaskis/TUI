@@ -51,8 +51,12 @@ struct ListRowBuildDeferralTests {
         }
         let renderContext = context()
         _ = renderToBuffer(view, context: renderContext)
+        #expect(counter.builds > 0, "frame 1 must build the visible rows")
+        // Frame 2 lays the rows out again, a cell narrower: frame 1 cannot know
+        // the list overflows — and so draws a bar, which its rows keep a cell
+        // clear of (`View.scrollbarSpacing(_:)`) — before its rows are laid out.
+        _ = renderToBuffer(view, context: renderContext)
         let firstFrameBuilds = counter.builds
-        #expect(firstFrameBuilds > 0, "frame 1 must build the visible rows")
 
         let warm = renderToBuffer(view, context: renderContext)
         let secondFrameBuilds = counter.builds - firstFrameBuilds
