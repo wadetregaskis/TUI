@@ -77,6 +77,18 @@ struct ListRowStyleTests {
         #expect(buffer.lines[0].contains("\u{1B}["))
     }
 
+    /// A palette role, faded or not, is resolved before it is painted: it
+    /// reached the emitter as a role and trapped there ("Semantic color must be
+    /// resolved before rendering"), so a row background could not be themed.
+    @Test("A background in a palette role is painted in the palette's colour",
+        arguments: [Color.palette.info, Color.palette.info.opacity(0.35)])
+    func paletteRoleBackground(_ color: Color) {
+        let buffer = renderToBuffer(
+            Text("hi").listRowBackground(color), context: makeRenderContext(width: 20, height: 3))
+        #expect(buffer.lines[0].stripped.hasPrefix("hi"))
+        #expect(buffer.lines[0].contains("48;"), "the row is painted: \(buffer.lines[0].debugDescription)")
+    }
+
     @Test("A background covers every line of a multi-line row")
     func backgroundCoversTallRows() {
         let buffer = renderToBuffer(

@@ -154,7 +154,11 @@ struct _ListRowColorView<Content: View>: View {
 extension _ListRowColorView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let foreground = TUIkitView.renderToBuffer(content, context: context)
-        guard let color, !foreground.isEmpty else { return foreground }
+        // Resolved against the palette in force, as `.background(_:)`'s colour
+        // is: `.listRowBackground(.palette.info)` named a role, which reached
+        // the emitter unresolved and trapped there.
+        guard let color = color?.resolve(with: context.environment.palette), !foreground.isEmpty
+        else { return foreground }
         // The fill spans the ROW — the full width offered, not the width the
         // text happens to take. A fill that stopped at the last character
         // would read as a highlight around the words, which is the opposite of
