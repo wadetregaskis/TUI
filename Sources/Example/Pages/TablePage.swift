@@ -197,6 +197,11 @@ struct TablePage: View {
     @State private var sortSelection: String?
     @State private var borderedStyleSelection: String?
     @State private var surfaceStyleSelection: String?
+    /// The styles section's three switches: column headers, striped rows, and
+    /// the cells kept clear of the scrollbar.
+    @State private var stylesShowHeaders = true
+    @State private var stylesStripe = true
+    @State private var stylesBarSpacing = 1
 
     /// The 300-row notes table, with or without a selection binding — two
     /// different `Table` initializers, so this is a branch rather than an
@@ -359,12 +364,24 @@ struct TablePage: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("page.table.stylesBody")
                         .foregroundStyle(.palette.foregroundSecondary)
+                    // `.tableColumnHeaders(.hidden)`, `.alternatingRowBackgrounds`
+                    // and TUIkit's `.scrollbarSpacing(_:)`, on both tables.
+                    HStack(spacing: 2) {
+                        Toggle("page.table.styles.headers", isOn: $stylesShowHeaders)
+                        Toggle("page.table.styles.stripes", isOn: $stylesStripe)
+                        Picker("page.table.styles.barSpacing", selection: $stylesBarSpacing) {
+                            ForEach(0..<4, id: \.self) { cells in Text(verbatim: "\(cells)").tag(cells) }
+                        }
+                    }
                     HStack(alignment: .top, spacing: 2) {
                         styledTable(".automatic", selection: $borderedStyleSelection)
                             .tableStyle(.automatic)
                         styledTable(".surface", selection: $surfaceStyleSelection)
                             .tableStyle(.surface)
                     }
+                    .tableColumnHeaders(stylesShowHeaders ? .visible : .hidden)
+                    .alternatingRowBackgrounds(stylesStripe ? .enabled : .disabled)
+                    .scrollbarSpacing(stylesBarSpacing)
                 }
             }
 
