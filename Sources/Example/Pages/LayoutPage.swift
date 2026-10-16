@@ -606,6 +606,8 @@ struct LayoutPage: View {
 
             subviewsSection
 
+            splitViewsSection
+
             // `.userResizable` — the size becomes the user's, not the layout's.
             // Bounded on both axes here so the demo shows the limits holding;
             // the ranges ARE the axis selection, so a `.userResizable(width:)`
