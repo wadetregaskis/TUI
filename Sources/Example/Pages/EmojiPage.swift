@@ -104,6 +104,8 @@ struct EmojiPage: View {
                 }
             }
 
+            SymbolsInViewsDemo()
+
             HStack(spacing: 1) {
                 Text("page.emoji.filterLabel").foregroundStyle(.palette.foregroundSecondary)
                 TextField("page.emoji.filterField", text: $filter,
