@@ -141,7 +141,13 @@ and <kbd>Left</kbd> and <kbd>Right</kbd> on it move to the columns either side.
 split, above it or inside one of its columns. Where the page has a top bar,
 the window's first split view gets a button for its sidebar at the bar's
 leading edge — ◀ while the sidebar shows, ▶ while it is hidden — as SwiftUI's
-macOS toolbar does. A `DefaultToolbarItem(kind: .sidebarToggle)` places one
+macOS toolbar does. A three-column split gets a second button beside it, for
+its content column (``ToolbarDefaultItemKind/contentColumnToggle``, a TUIkit
+addition): the two are coupled so that no press leaves the sidebar showing with
+no content column after it — the content button closes the sidebar with the
+content column and opens the content column alone, and the sidebar button opens
+both. `.toolbar(removing: .contentColumnToggle)` takes that button away and
+leaves the sidebar's. A `DefaultToolbarItem(kind: .sidebarToggle)` places one
 where you want it: it toggles the split whose column it is declared in, so each
 split view can have its own, or the window's first split view when it is
 declared round one, which then has no button of the top bar's own. While a

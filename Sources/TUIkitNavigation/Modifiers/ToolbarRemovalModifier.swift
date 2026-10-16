@@ -50,6 +50,10 @@ private struct InspectorToggleRemovedEnvironmentKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct ContentColumnToggleRemovedEnvironmentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// Whether a ``View/toolbar(removing:)`` on or above this view removed a
     /// split view's sidebar toggle.
@@ -63,6 +67,13 @@ extension EnvironmentValues {
     var inspectorToggleRemoved: Bool {
         get { self[InspectorToggleRemovedEnvironmentKey.self] }
         set { self[InspectorToggleRemovedEnvironmentKey.self] = newValue }
+    }
+
+    /// Whether a ``View/toolbar(removing:)`` on or above this view removed a
+    /// split view's content-column button.
+    var contentColumnToggleRemoved: Bool {
+        get { self[ContentColumnToggleRemovedEnvironmentKey.self] }
+        set { self[ContentColumnToggleRemovedEnvironmentKey.self] = newValue }
     }
 
     /// Whether a ``View/toolbar(removing:)`` on or above this view removed the
@@ -104,8 +115,9 @@ struct ToolbarRemovalView<Content: View>: View {
             windowChrome(context)?.removeTitle()
         case .search:
             windowChrome(context)?.removeSearchField()
-        case .inspectorToggle:
-            // The inspector reads its removal from the environment alone.
+        case .inspectorToggle, .contentColumnToggle:
+            // The inspector and the content column read their removal from
+            // the environment alone.
             break
         }
     }
@@ -169,6 +181,10 @@ extension View {
     /// `inspector(isPresented:content:)` modifies: the ▶ on the divider before
     /// the inspector, and the buttons a bar draws for it.
     ///
+    /// With ``ToolbarDefaultItemKind/contentColumnToggle`` it removes the
+    /// buttons a bar draws for a three-column split view's content column,
+    /// when the modifier is on or above the split view; its handles stay.
+    ///
     /// With ``ToolbarDefaultItemKind/search`` it removes the search field a
     /// `searchable` modifier draws, wherever it would be drawn — at the top of
     /// the view, or in a bar a ``DefaultToolbarItem`` placed it in — when the
@@ -220,6 +236,9 @@ extension View {
             }
             .transformEnvironment(\.inspectorToggleRemoved) { removed in
                 if removes == .inspectorToggle { removed = true }
+            }
+            .transformEnvironment(\.contentColumnToggleRemoved) { removed in
+                if removes == .contentColumnToggle { removed = true }
             },
             removes: removes)
     }

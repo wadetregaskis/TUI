@@ -30,6 +30,11 @@ package struct PanelToggle: Sendable, Equatable {
         case sidebar
         /// An `inspector(isPresented:content:)`'s column, the trailing one.
         case inspector
+        /// A three-column ``NavigationSplitView``'s content column, the middle
+        /// one. Its button and the sidebar's are coupled, so they can never
+        /// leave the sidebar showing with no content column after it
+        /// (`SplitViewToggle.togglingContent(_:)`). TUI-specific.
+        case content
     }
 
     /// What a toggle does, by reference: kept by its owner across renders, so
@@ -91,12 +96,12 @@ package struct PanelToggle: Sendable, Equatable {
         lhs.panel == rhs.panel && lhs.owner == rhs.owner && lhs.isShown == rhs.isShown && lhs.action === rhs.action
     }
 
-    /// The button's arrow: which way the panel's edge moves. A sidebar,
-    /// against the leading edge, goes with ◀ and comes back with ▶, as the
-    /// split view's own handles draw it; an inspector, against the trailing
-    /// edge, the other way round.
+    /// The button's arrow: which way the panel's edge moves. A sidebar or a
+    /// content column, closing towards the leading edge, goes with ◀ and comes
+    /// back with ▶, as the split view's own handles draw it; an inspector,
+    /// against the trailing edge, the other way round.
     package var arrow: String {
-        (panel == .sidebar) == isShown ? TerminalSymbols.leftArrow : TerminalSymbols.rightArrow
+        (panel != .inspector) == isShown ? TerminalSymbols.leftArrow : TerminalSymbols.rightArrow
     }
 
     /// What the button's help says it does — SwiftUI's own labels for its
@@ -136,6 +141,7 @@ package struct PanelToggle: Sendable, Equatable {
             switch panel {
             case .sidebar: hides ? .hideSidebar : .showSidebar
             case .inspector: hides ? .hideInspector : .showInspector
+            case .content: hides ? .hideContentColumn : .showContentColumn
             }
         return LocalizationService.shared.string(for: key)
     }
@@ -151,6 +157,7 @@ package struct PanelToggle: Sendable, Equatable {
             switch panel {
             case .sidebar: hides ? .hideSidebar : .showSidebar
             case .inspector: hides ? .hideInspector : .showInspector
+            case .content: hides ? .hideContentColumn : .showContentColumn
             }
         return LocalizationService.shared.string(for: key)
     }
@@ -199,13 +206,26 @@ private struct SidebarToggleScopeKey: EnvironmentKey {
     static let defaultValue = PanelToggle.Scope.window
 }
 
+/// Environment key for where a content-column button finds its toggle.
+private struct ContentColumnToggleScopeKey: EnvironmentKey {
+    static let defaultValue = PanelToggle.Scope.window
+}
+
 extension EnvironmentValues {
     /// Where a toolbar's button for `panel` declared here finds its toggle.
     package func panelToggleScope(_ panel: PanelToggle.Panel) -> PanelToggle.Scope {
         switch panel {
         case .sidebar: sidebarToggleScope
         case .inspector: inspectorToggleScope
+        case .content: contentColumnToggleScope
         }
+    }
+
+    /// Where a toolbar's content-column button declared here finds the toggle
+    /// it works, as ``sidebarToggleScope`` does for the sidebar's.
+    package var contentColumnToggleScope: PanelToggle.Scope {
+        get { self[ContentColumnToggleScopeKey.self] }
+        set { self[ContentColumnToggleScopeKey.self] = newValue }
     }
 
     /// Where a toolbar's sidebar button declared here finds the toggle it

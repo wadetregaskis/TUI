@@ -93,6 +93,8 @@ extension LocalizationService {
       "label.hideSidebar": "Hide Sidebar",
       "label.showInspector": "Show Inspector",
       "label.hideInspector": "Hide Inspector",
+      "label.showContentColumn": "Show Content Column",
+      "label.hideContentColumn": "Hide Content Column",
       "label.showNamedPanel": "Show “%@”",
       "label.hideNamedPanel": "Hide “%@”",
 
@@ -143,6 +145,8 @@ extension LocalizationService {
       "statusbar.hideSidebar": "hide sidebar",
       "statusbar.showInspector": "show inspector",
       "statusbar.hideInspector": "hide inspector",
+      "statusbar.showContentColumn": "show content column",
+      "statusbar.hideContentColumn": "hide content column",
       "statusbar.showNamedPanel": "show %@",
       "statusbar.hideNamedPanel": "hide %@",
       "statusbar.dismiss": "dismiss",

@@ -719,7 +719,14 @@ columns. TUIkit's own `DefaultToolbarItem(kind:placement:label:)` (2026-10-14)
 names the panel a button works — with a sidebar on each side, two arrows alone
 do not say which is which: the button draws the label after its arrow, and its
 text names the panel in the button's help and key hint and in the key hints of
-the panel's own handles ("hide Folders").
+the panel's own handles ("hide Folders"). TUIkit's own `.contentColumnToggle`
+(2026-10-16, owner's ruling on FB8) is a three-column split's second button,
+which the top bar draws beside the sidebar's by default: SwiftUI's split view
+has the sidebar's alone and reaches detail-only by dragging. The two are coupled
+so that every state is one press from any other and none leaves the sidebar
+showing with no content column after it — a sidebar whose choices change
+nothing on screen: the content button goes `.all`/`.doubleColumn` → `.detailOnly`
+→ `.doubleColumn`, and the sidebar button's `.detailOnly` → `.all` opens both.
 
 ### 2.7 Fixed-`frame` default alignment is `.topLeading`, not `.center`
 

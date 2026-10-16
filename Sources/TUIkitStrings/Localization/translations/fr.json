@@ -63,6 +63,8 @@
   "label.hideSidebar": "Masquer la barre latérale",
   "label.showInspector": "Afficher l’inspecteur",
   "label.hideInspector": "Masquer l’inspecteur",
+  "label.showContentColumn": "Afficher la colonne de contenu",
+  "label.hideContentColumn": "Masquer la colonne de contenu",
   "label.showNamedPanel": "Afficher « %@ »",
   "label.hideNamedPanel": "Masquer « %@ »",
 
@@ -113,6 +115,8 @@
   "statusbar.hideSidebar": "masquer la barre latérale",
   "statusbar.showInspector": "afficher l’inspecteur",
   "statusbar.hideInspector": "masquer l’inspecteur",
+  "statusbar.showContentColumn": "afficher la colonne de contenu",
+  "statusbar.hideContentColumn": "masquer la colonne de contenu",
   "statusbar.showNamedPanel": "afficher %@",
   "statusbar.hideNamedPanel": "masquer %@",
   "statusbar.dismiss": "fermer",

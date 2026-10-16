@@ -16,8 +16,9 @@ extension WindowChromeState {
     @MainActor
     func barEntries(for edge: Edge) -> [ToolbarEntry] {
         let entries = toolbarEntries(for: edge)
-        guard edge == .top, !entries.isEmpty, let automatic = automaticSidebarToggle else { return entries }
-        return [automatic] + entries
+        guard edge == .top, !entries.isEmpty else { return entries }
+        return [automaticSidebarToggle, automaticToggle(.content, kind: .contentColumnToggle)].compactMap { $0 }
+            + entries
     }
 
     /// The sidebar button the top bar shows by default, at its leading edge:
@@ -33,20 +34,31 @@ extension WindowChromeState {
     /// ``ToolbarDefaultItemKind/sidebarToggle`` for the same split itself, in
     /// either bar.
     @MainActor
-    private var automaticSidebarToggle: ToolbarEntry? {
-        guard let offer = panelToggleOffer(.sidebar) else { return nil }
+    private var automaticSidebarToggle: ToolbarEntry? { automaticToggle(.sidebar, kind: .sidebarToggle) }
+
+    /// The button the top bar shows by default for `panel` of the window's
+    /// split view — the sidebar's, and beside it a three-column split's
+    /// content column's (``ToolbarDefaultItemKind/contentColumnToggle``) — unless
+    /// the page placed one of `kind` for the same split itself.
+    @MainActor
+    private func automaticToggle(_ panel: PanelToggle.Panel, kind: ToolbarDefaultItemKind.Kind) -> ToolbarEntry? {
+        guard let offer = panelToggleOffer(panel) else { return nil }
         let placed = (declaredEntries(for: .top) + declaredEntries(for: .bottom)).contains { entry in
-            guard entry.defaultKind == .sidebarToggle else { return false }
-            switch entry.environment.sidebarToggleScope {
+            guard entry.defaultKind == kind else { return false }
+            switch entry.environment.panelToggleScope(panel) {
             case .window: return true
             case .split(let toggle): return toggle?.owner == offer.toggle.owner
             }
         }
         guard !placed else { return nil }
         var environment = offer.environment
-        environment.sidebarToggleScope = .split(offer.toggle)
+        switch panel {
+        case .sidebar: environment.sidebarToggleScope = .split(offer.toggle)
+        case .content: environment.contentColumnToggleScope = .split(offer.toggle)
+        case .inspector: environment.inspectorToggleScope = .split(offer.toggle)
+        }
         return ToolbarEntry(
-            placement: .navigation, view: AnyView(_PanelToggleButton(panel: .sidebar, label: nil)), environment: environment,
-            identity: offer.itemIdentity, defaultKind: .sidebarToggle)
+            placement: .navigation, view: AnyView(_PanelToggleButton(panel: panel, label: nil)), environment: environment,
+            identity: offer.itemIdentity, defaultKind: kind)
     }
 }

@@ -16,6 +16,9 @@ import TUIkitFoundation
 /// takes under the split's.
 enum _SidebarToggleItemSlot {}
 
+/// The identity a bar's automatic content-column button draws at.
+enum _ContentColumnToggleItemSlot {}
+
 // MARK: - The bar's toggle
 
 extension _NavigationSplitViewCore {
@@ -59,7 +62,34 @@ extension _NavigationSplitViewCore {
         var columnBase = context
         columnBase.environment.sidebarToggleScope = .split(
             sidebarToggle(visibleColumns: visibleColumns, context: context, toggleState: toggleState))
+        columnBase.environment.contentColumnToggleScope = .split(
+            contentColumnToggle(visibleColumns: visibleColumns, context: context, toggleState: toggleState))
         return columnBase
+    }
+
+    /// The content column's toggle for a toolbar's button, as
+    /// ``sidebarToggle(visibleColumns:context:toggleState:)`` is the
+    /// sidebar's: three-column splits only, and none where the button was
+    /// removed (`.toolbar(removing: .contentColumnToggle)`) or the split's
+    /// toggles were. See `SplitViewToggle.togglingContent(_:isThreeColumn:)`
+    /// for how it and the sidebar's stay coupled.
+    func contentColumnToggle(
+        visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
+    ) -> PanelToggle? {
+        guard isThreeColumn, let toggleState, !context.isMeasuring, context.environment.isEnabled,
+            !context.environment.contentColumnToggleRemoved, showsToggle(context: context, toggleState: toggleState)
+        else { return nil }
+        toggleState.contentBarAction.perform = stepAction(toggleState: toggleState, focus: nil) { visibility, isThreeColumn in
+            SplitViewToggle.togglingContent(visibility, isThreeColumn: isThreeColumn)
+        }
+        let toggle = PanelToggle(
+            panel: .content, owner: context.identity, isShown: visibleColumns.contains(.content),
+            action: toggleState.contentBarAction)
+        PanelToggleOffer.offer(
+            toggle,
+            itemIdentity: context.withChildIdentity(erasedType: _ContentColumnToggleItemSlot.self, key: "bar").identity,
+            context: context)
+        return toggle
     }
 
     /// The key hint of a handle that hides (`hides`) or shows a column: "hide

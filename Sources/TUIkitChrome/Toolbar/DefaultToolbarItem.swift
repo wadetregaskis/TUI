@@ -153,6 +153,8 @@ private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
             return AnyView(_PanelToggleButton(panel: .sidebar, label: label))
         case .inspectorToggle:
             return AnyView(_PanelToggleButton(panel: .inspector, label: label))
+        case .contentColumnToggle:
+            return AnyView(_PanelToggleButton(panel: .content, label: label))
         }
     }
 

@@ -63,6 +63,8 @@
   "label.hideSidebar": "隐藏边栏",
   "label.showInspector": "显示检查器",
   "label.hideInspector": "隐藏检查器",
+  "label.showContentColumn": "显示内容栏",
+  "label.hideContentColumn": "隐藏内容栏",
   "label.showNamedPanel": "显示“%@”",
   "label.hideNamedPanel": "隐藏“%@”",
 
@@ -113,6 +115,8 @@
   "statusbar.hideSidebar": "隐藏边栏",
   "statusbar.showInspector": "显示检查器",
   "statusbar.hideInspector": "隐藏检查器",
+  "statusbar.showContentColumn": "显示内容栏",
+  "statusbar.hideContentColumn": "隐藏内容栏",
   "statusbar.showNamedPanel": "显示%@",
   "statusbar.hideNamedPanel": "隐藏%@",
   "statusbar.dismiss": "关闭",

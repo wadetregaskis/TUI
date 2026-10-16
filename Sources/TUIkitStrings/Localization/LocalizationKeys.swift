@@ -114,6 +114,12 @@ public enum LocalizationKey {
         case showInspector = "label.showInspector"
         /// A toolbar's inspector button, while the inspector shows: its help.
         case hideInspector = "label.hideInspector"
+        /// A toolbar's content-column button, while a three-column split
+        /// view's content column is hidden: its help.
+        case showContentColumn = "label.showContentColumn"
+        /// A toolbar's content-column button, while the content column shows:
+        /// its help.
+        case hideContentColumn = "label.hideContentColumn"
         /// A toolbar's panel button a label named, while the panel is hidden:
         /// its help, the name as `%@`.
         case showNamedPanel = "label.showNamedPanel"
@@ -249,6 +255,11 @@ public enum LocalizationKey {
         /// A toolbar's inspector button, or the divider before an inspector,
         /// while the inspector shows.
         case hideInspector = "statusbar.hideInspector"
+        /// A toolbar's content-column button, while the content column is
+        /// hidden.
+        case showContentColumn = "statusbar.showContentColumn"
+        /// A toolbar's content-column button, while the content column shows.
+        case hideContentColumn = "statusbar.hideContentColumn"
         /// A control that shows a panel a toolbar item's label named, the name
         /// as `%@`.
         case showNamedPanel = "statusbar.showNamedPanel"

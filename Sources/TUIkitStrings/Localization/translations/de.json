@@ -63,6 +63,8 @@
   "label.hideSidebar": "Seitenleiste ausblenden",
   "label.showInspector": "Inspektor einblenden",
   "label.hideInspector": "Inspektor ausblenden",
+  "label.showContentColumn": "Inhaltsspalte einblenden",
+  "label.hideContentColumn": "Inhaltsspalte ausblenden",
   "label.showNamedPanel": "„%@“ einblenden",
   "label.hideNamedPanel": "„%@“ ausblenden",
 
@@ -113,6 +115,8 @@
   "statusbar.hideSidebar": "Seitenleiste ausblenden",
   "statusbar.showInspector": "Inspektor einblenden",
   "statusbar.hideInspector": "Inspektor ausblenden",
+  "statusbar.showContentColumn": "Inhaltsspalte einblenden",
+  "statusbar.hideContentColumn": "Inhaltsspalte ausblenden",
   "statusbar.showNamedPanel": "%@ einblenden",
   "statusbar.hideNamedPanel": "%@ ausblenden",
   "statusbar.dismiss": "schließen",

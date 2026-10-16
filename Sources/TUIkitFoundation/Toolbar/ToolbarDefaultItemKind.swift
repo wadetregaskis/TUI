@@ -24,6 +24,7 @@ public struct ToolbarDefaultItemKind {
         case title
         case search
         case inspectorToggle
+        case contentColumnToggle
     }
 
     package let kind: Kind
@@ -62,6 +63,17 @@ public struct ToolbarDefaultItemKind {
     /// (measured on macOS 15.8, 2026-10-14), and an app adds its own. So the
     /// window's bars show none unless a ``DefaultToolbarItem`` places one.
     public static var inspectorToggle: Self { Self(kind: .inspectorToggle) }
+
+    /// The button that shows and hides a three-column ``NavigationSplitView``'s
+    /// content column. The top bar draws one beside the sidebar's by default.
+    ///
+    /// TUI-specific: SwiftUI's split view has one button, for the sidebar, and
+    /// reaches detail-only by dragging. Here the two buttons are coupled so
+    /// that each shows its own column's state and none can leave the sidebar
+    /// showing with no content column after it — a sidebar whose choices
+    /// change nothing on screen. Hiding the content column hides the sidebar
+    /// with it; showing the sidebar shows the content column too.
+    public static var contentColumnToggle: Self { Self(kind: .contentColumnToggle) }
 }
 
 private struct ToolbarSearchRemovedKey: EnvironmentKey {

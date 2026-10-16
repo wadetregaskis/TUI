@@ -61,6 +61,19 @@ enum SplitViewToggle {
         }
     }
 
+    /// The visibility after the content-column button, in a three-column split:
+    /// the content column toggles, and the sidebar goes with it when it
+    /// closes — a sidebar with no content column after it has nothing to
+    /// choose for — so `.all` and `.doubleColumn` both close to `.detailOnly`,
+    /// which opens to `.doubleColumn`. Two columns have no content column, and
+    /// change nothing.
+    static func togglingContent(
+        _ visibility: NavigationSplitViewVisibility, isThreeColumn: Bool
+    ) -> NavigationSplitViewVisibility? {
+        guard isThreeColumn else { return nil }
+        return visibility == .detailOnly ? .doubleColumn : .detailOnly
+    }
+
     static func revealing(
         _ visibility: NavigationSplitViewVisibility, isThreeColumn: Bool
     ) -> NavigationSplitViewVisibility? {
@@ -127,6 +140,10 @@ final class SplitViewToggleState {
     /// each render's ``PanelToggle`` compares equal to the last while the
     /// sidebar neither shows nor hides.
     let barAction = PanelToggle.Action()
+
+    /// What a toolbar's button for the content column runs, kept as
+    /// ``barAction`` is.
+    let contentBarAction = PanelToggle.Action()
 }
 
 // MARK: - Edge handler

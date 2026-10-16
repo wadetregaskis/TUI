@@ -63,6 +63,8 @@
   "label.hideSidebar": "サイドバーを非表示",
   "label.showInspector": "インスペクタを表示",
   "label.hideInspector": "インスペクタを非表示",
+  "label.showContentColumn": "コンテンツ列を表示",
+  "label.hideContentColumn": "コンテンツ列を非表示",
   "label.showNamedPanel": "「%@」を表示",
   "label.hideNamedPanel": "「%@」を非表示",
 
@@ -113,6 +115,8 @@
   "statusbar.hideSidebar": "サイドバーを隠す",
   "statusbar.showInspector": "インスペクタを表示",
   "statusbar.hideInspector": "インスペクタを隠す",
+  "statusbar.showContentColumn": "コンテンツ列を表示",
+  "statusbar.hideContentColumn": "コンテンツ列を隠す",
   "statusbar.showNamedPanel": "%@を表示",
   "statusbar.hideNamedPanel": "%@を隠す",
   "statusbar.dismiss": "閉じる",
