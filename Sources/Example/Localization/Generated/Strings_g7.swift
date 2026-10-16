@@ -72,6 +72,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "Section B",
             "page.focus.focusedID": "Focused id",
             "page.focus.keyLoggerSection": "Key logger (.onKeyEvent)",
+            "page.focus.keyPressSection": "Keys on a view of your own (.onKeyPress)",
+            "page.focus.keyPressExplain": "Tab to the track: ← and → move the marker instead of the focus, and digits typed are kept below.",
+            "page.focus.keyPressDigits": "Digits:",
             "page.focus.keyLoggerDescription": "Every key you press is shown below.",
             "page.focus.lastKey": "Last key",
 
@@ -168,6 +171,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "Bereich B",
             "page.focus.focusedID": "Fokussierte id",
             "page.focus.keyLoggerSection": "Tastenprotokoll (.onKeyEvent)",
+            "page.focus.keyPressSection": "Tasten auf einer eigenen Ansicht (.onKeyPress)",
+            "page.focus.keyPressExplain": "Mit Tab zur Spur: ← und → bewegen die Markierung statt des Fokus, und eingetippte Ziffern bleiben unten stehen.",
+            "page.focus.keyPressDigits": "Ziffern:",
             "page.focus.keyLoggerDescription": "Jede Taste, die du drückst, wird unten angezeigt.",
             "page.focus.lastKey": "Letzte Taste",
 
@@ -261,6 +267,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "Section B",
             "page.focus.focusedID": "id focalisé",
             "page.focus.keyLoggerSection": "Enregistreur de touches (.onKeyEvent)",
+            "page.focus.keyPressSection": "Touches sur une vue à vous (.onKeyPress)",
+            "page.focus.keyPressExplain": "Atteignez la piste avec Tab : ← et → déplacent le repère au lieu du focus, et les chiffres tapés sont gardés ci-dessous.",
+            "page.focus.keyPressDigits": "Chiffres :",
             "page.focus.keyLoggerDescription": "Chaque touche que vous appuyez s'affiche ci-dessous.",
             "page.focus.lastKey": "Dernière touche",
 
@@ -354,6 +363,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "Sezione B",
             "page.focus.focusedID": "id con focus",
             "page.focus.keyLoggerSection": "Registratore tasti (.onKeyEvent)",
+            "page.focus.keyPressSection": "Tasti su una vista personalizzata (.onKeyPress)",
+            "page.focus.keyPressExplain": "Raggiungi la traccia con Tab: ← e → spostano l'indicatore invece del focus, e le cifre digitate restano sotto.",
+            "page.focus.keyPressDigits": "Cifre:",
             "page.focus.keyLoggerDescription": "Ogni tasto che premi viene mostrato sotto.",
             "page.focus.lastKey": "Ultimo tasto",
 
@@ -447,6 +459,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "Sección B",
             "page.focus.focusedID": "id enfocado",
             "page.focus.keyLoggerSection": "Registrador de teclas (.onKeyEvent)",
+            "page.focus.keyPressSection": "Teclas en una vista propia (.onKeyPress)",
+            "page.focus.keyPressExplain": "Llega a la pista con Tab: ← y → mueven la marca en lugar del foco, y los dígitos tecleados se guardan abajo.",
+            "page.focus.keyPressDigits": "Dígitos:",
             "page.focus.keyLoggerDescription": "Cada tecla que pulsas se muestra abajo.",
             "page.focus.lastKey": "Última tecla",
 
@@ -540,6 +555,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "区域 B",
             "page.focus.focusedID": "聚焦的 id",
             "page.focus.keyLoggerSection": "按键记录器（.onKeyEvent）",
+            "page.focus.keyPressSection": "自定义视图上的按键（.onKeyPress）",
+            "page.focus.keyPressExplain": "用 Tab 移到轨道上：← 和 → 移动标记而不是焦点，输入的数字会保留在下方。",
+            "page.focus.keyPressDigits": "数字：",
             "page.focus.keyLoggerDescription": "你按下的每个键都会显示在下方。",
             "page.focus.lastKey": "最后按键",
 
@@ -633,6 +651,9 @@ extension ExampleStrings {
             "page.focus.sectionB": "セクション B",
             "page.focus.focusedID": "フォーカス中の id",
             "page.focus.keyLoggerSection": "キーロガー（.onKeyEvent）",
+            "page.focus.keyPressSection": "独自のビューでのキー（.onKeyPress）",
+            "page.focus.keyPressExplain": "Tab でトラックへ。← と → はフォーカスではなくマーカーを動かし、入力した数字は下に残ります。",
+            "page.focus.keyPressDigits": "数字：",
             "page.focus.keyLoggerDescription": "押したすべてのキーが下に表示されます。",
             "page.focus.lastKey": "最後のキー",
 
