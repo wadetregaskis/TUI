@@ -139,6 +139,7 @@ struct AnimationPage: View {
             forever
             modifiers
             comingAndGoing
+            AnimatorsDemo()
             KeyboardHelpSection(shortcuts: [
                 "page.animation.help.tab",
                 "page.animation.help.activate",
