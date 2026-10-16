@@ -98,23 +98,32 @@ struct InteractiveDismissTests {
         #expect(present(sheet(false)).escapeLabels.contains("dismiss"))
     }
 
-    // MARK: - Escape stays the sheet's
+    // MARK: - Escape stays the presentation's
 
     /// An app's own Escape, declared outside the presentation — the Example's
-    /// "⎋ back" on every page — is live behind a sheet. A sheet that will not
-    /// close must still keep the key: unclaimed, it fell through to that item,
-    /// which took the page away from under a sheet still insisting on an
-    /// answer.
+    /// "⎋ back" on every page — is live behind a sheet or a popover. One that
+    /// will not close must still keep the key: unclaimed, it fell through to
+    /// that item, which took the page away from under a presentation still
+    /// insisting on an answer.
     ///
     /// Read with the frame's focus manager kept alive: the bar holds it weakly,
     /// and released, it cannot tell which section's items are showing.
-    @Test("a dismissal-disabled sheet keeps Escape from the app's own binding behind it")
-    func escapeStaysWithTheSheet() {
+    @Test("a dismissal-disabled presentation keeps Escape from the app's own binding behind it",
+          arguments: ["sheet", "popover"])
+    func escapeStaysWithThePresentation(kind: String) {
         let back = StateBox(false)
-        let outcome = present(
-            sheet(true).statusBarItems([
-                StatusBarItem(shortcut: Shortcut.escape, label: "back") { back.value = true }
-            ]))
+        let shown = StateBox(true)
+        let isPresented = Binding(get: { shown.value }, set: { shown.value = $0 })
+        let items: [any StatusBarItemProtocol] = [
+            StatusBarItem(shortcut: Shortcut.escape, label: "back") { back.value = true }
+        ]
+        let outcome =
+            kind == "sheet"
+            ? present(sheet(true, isPresented: isPresented).statusBarItems(items))
+            : present(
+                Text(verbatim: "anchor").popover(isPresented: isPresented) {
+                    Text(verbatim: "inside").interactiveDismissDisabled()
+                }.statusBarItems(items))
         withExtendedLifetime(outcome.focusManager) {
             let offered = outcome.statusBar.currentItems.filter {
                 $0.shortcut == Shortcut.escape && $0.displayInStatusBar
@@ -123,7 +132,8 @@ struct InteractiveDismissTests {
             _ = outcome.statusBar.handleKeyEvent(KeyEvent(key: .escape))
             _ = outcome.context.keyEventDispatcher.dispatch(KeyEvent(key: .escape))
         }
-        #expect(!back.value, "Escape reached the app's binding behind the sheet")
+        #expect(!back.value, "Escape reached the app's binding behind the \(kind)")
+        #expect(shown.value, "Escape closed the \(kind)")
     }
 
     /// The other half of keeping the key: a cancel button is an answer, so

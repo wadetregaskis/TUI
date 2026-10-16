@@ -156,17 +156,22 @@ extension PopoverPresentationModifier: Renderable {
             context.environment.statusBar?.preventQuit()
         }
         // The popover's name for its Escape, until the content has drawn
-        // (below): a claim, whose token names it as the popover's own.
-        var escapeClaim: Int?
-        if !dismissIsDisabled {
-            escapeClaim = context.environment.statusBar?.claimEscape(gate.escapeLabel(dismissal: .closePopover))
-            context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
-                guard event.key == .escape, !gate.interactiveDismissIsDisabled else { return false }
-                // The content's cancel button where it drew one, as on macOS
-                // (`DismissalGate.escape`); an outside click still dismisses.
-                gate.escape(isRepeat: event.phase == .repeat) { isPresented.wrappedValue = false }
+        // (below): a claim, whose token names it as the popover's own. Made
+        // where the content forbade interactive dismissal too, and the key
+        // handled: Escape is the popover's either way — its content's cancel
+        // button, or nothing (below). Left to fall through, it reached what
+        // the app had bound Escape to behind the popover, live there: an
+        // app-wide "⎋ back" took the page away from under it.
+        let escapeClaim = context.environment.statusBar?.claimEscape(gate.escapeLabel(dismissal: .closePopover))
+        context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
+            guard event.key == .escape else { return false }
+            if dismissIsDisabled || gate.interactiveDismissIsDisabled, !gate.escapePressesCancelButton {
                 return true
             }
+            // The content's cancel button where it drew one, as on macOS
+            // (`DismissalGate.escape`); an outside click still dismisses.
+            gate.escape(isRepeat: event.phase == .repeat) { isPresented.wrappedValue = false }
+            return true
         }
 
         // Keyed by the item, for the `item:` form — so a popover reopened for a
@@ -205,13 +210,16 @@ extension PopoverPresentationModifier: Renderable {
         // popover up. Unless the content claimed Escape for itself, whose
         // name stands — told by the claim's token, not its label: a popover
         // presented inside this one claims with the same "close popover".
-        if let escapeClaim, gate.interactiveDismissIsDisabled {
-            // Forbidden from further in than the trait above could see: no
-            // name for a way out that does nothing.
-            context.environment.statusBar?.withdrawEscapeClaim(escapeClaim)
-        } else if let escapeClaim, gate.escapePressesCancelButton {
+        if let escapeClaim, gate.escapePressesCancelButton {
             context.environment.statusBar?.renameEscapeClaim(
                 escapeClaim, to: gate.escapeLabel(dismissal: .closePopover))
+        } else if let escapeClaim, dismissIsDisabled || gate.interactiveDismissIsDisabled {
+            // No name for a way out that does nothing: the claim goes, and the
+            // key stays — held by an item of the popover's own section that
+            // shows nothing (`heldEscape`), which the bar's Escape items
+            // outside it give way to.
+            context.environment.statusBar?.withdrawEscapeClaim(escapeClaim)
+            context.environment.statusBar?.holdEscape(inSection: sectionID)
         }
         guard !panel.isEmpty else { return baseBuffer }
 

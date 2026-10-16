@@ -79,6 +79,17 @@ public enum SystemStatusBarItem {
         StatusBarItem(shortcut: Shortcut.escape, label: label, order: .escapeKey)
     }
 
+    /// Escape held by a presentation that offers no way out by it: content
+    /// that forbade interactive dismissal and drew no cancel button for the
+    /// key to press. Matched, so the key goes no further — not on to an app's
+    /// "⎋ back" outside the presentation, which is live behind it — and
+    /// neither shown nor doing anything, as there is nothing to offer.
+    /// Registered into the presentation's own section, whose `.merge` drops
+    /// every other Escape item.
+    package static var heldEscape: StatusBarItem {
+        StatusBarItem(shortcut: Shortcut.escape, label: "", displayInStatusBar: false) {}
+    }
+
     /// The Return entry, labelled by whatever claimed the key this frame. See
     /// ``escape(label:)-(LocalizedStringKey)`` — informational for the same
     /// reason, and a literal is a key here too.

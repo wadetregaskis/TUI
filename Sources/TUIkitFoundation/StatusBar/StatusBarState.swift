@@ -691,6 +691,20 @@ extension StatusBarState {
         sectionItems[index].items = items
     }
 
+    /// Holds Escape in `sectionID` without offering it
+    /// (``SystemStatusBarItem/heldEscape``): added to what the section's own
+    /// content registered there — which an Escape item of its own keeps — or
+    /// registered alone, merged with the items outside, whose Escape it
+    /// displaces.
+    package func holdEscape(inSection sectionID: String) {
+        guard let index = sectionItems.firstIndex(where: { $0.sectionID == sectionID }) else {
+            registerSectionItems(sectionID: sectionID, items: [SystemStatusBarItem.heldEscape], composition: .merge)
+            return
+        }
+        guard !sectionItems[index].items.contains(where: { $0.shortcut == Shortcut.escape }) else { return }
+        sectionItems[index].items.append(SystemStatusBarItem.heldEscape)
+    }
+
     /// Drops everything the view tree declared last pass, at the start of the
     /// next one.
     ///

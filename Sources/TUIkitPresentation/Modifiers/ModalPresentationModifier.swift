@@ -317,13 +317,13 @@ extension ModalPresentationModifier: Renderable {
         // only if that button does.
         // Where the content forbade interactive dismissal and drew no cancel
         // button, the item stays — Escape is still the presentation's — but
-        // is hidden and does nothing (`inertEscapeItem`).
+        // is hidden and does nothing (`SystemStatusBarItem.heldEscape`).
         if let escapeItemRegistration, gate.escapePressesCancelButton {
             context.environment.statusBar?.replaceSectionItems(
                 registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
         } else if let escapeItemRegistration, gate.interactiveDismissIsDisabled {
             context.environment.statusBar?.replaceSectionItems(
-                registeredAs: escapeItemRegistration, with: [inertEscapeItem()])
+                registeredAs: escapeItemRegistration, with: [SystemStatusBarItem.heldEscape])
         }
         guard !modalBuffer.isEmpty, isGrabbed, let detents, detents.height != nil else { return modalBuffer }
         let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
