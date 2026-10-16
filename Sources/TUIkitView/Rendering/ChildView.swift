@@ -128,6 +128,13 @@ public struct ChildView {
     /// in what was the struct's tail padding: its stride stays 128 bytes.
     package let providesLayoutValues: Bool
 
+    /// Whether `view` is an `if`'s default transition round the member
+    /// (``transitioningByDefault()``), which ``wrappedView`` looks through.
+    /// Asked by a cast, it was a conformance check on every child of every
+    /// stack each time a stack read its children — a few per cent of a frame.
+    /// A flag beside the two above.
+    private let isDefaultTransitioned: Bool
+
     /// Resolves a child's spacer flag and minimum length without a speculative
     /// runtime conformance cast on the common (non-spacer) path.
     ///
@@ -203,6 +210,7 @@ public struct ChildView {
         self.identityKey = nil
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
+        self.isDefaultTransitioned = false
     }
 
     /// Creates a child view wrapper with an explicit child index for identity propagation.
@@ -225,6 +233,7 @@ public struct ChildView {
         self.identityKey = nil
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
+        self.isDefaultTransitioned = false
     }
 
     /// Full-field copy initializer backing ``reindexed(to:providerSlot:)``.
@@ -239,7 +248,8 @@ public struct ChildView {
         zIndex: Double,
         providesAlignmentGuide: Bool,
         providesLayoutValues: Bool,
-        resolvedIdentity: ViewIdentity? = nil
+        resolvedIdentity: ViewIdentity? = nil,
+        isDefaultTransitioned: Bool = false
     ) {
         self.view = view
         self.identityType = identityType
@@ -252,6 +262,7 @@ public struct ChildView {
         self.providesAlignmentGuide = providesAlignmentGuide
         self.providesLayoutValues = providesLayoutValues
         self.resolvedIdentity = resolvedIdentity
+        self.isDefaultTransitioned = isDefaultTransitioned
     }
 
     /// This child with its identity under `parent` worked out now, so the
@@ -283,7 +294,7 @@ public struct ChildView {
             identityKey: identityKey, providerSlot: providerSlot, isSpacer: isSpacer,
             spacerMinLength: spacerMinLength, zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolved)
+            resolvedIdentity: resolved, isDefaultTransitioned: isDefaultTransitioned)
     }
 
     /// This child as the content of a conditional's branch whose identity is
@@ -315,7 +326,7 @@ public struct ChildView {
                 identityKey: identityKey, providerSlot: providerSlot, isSpacer: isSpacer,
                 spacerMinLength: spacerMinLength, zIndex: zIndex,
                 providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-                resolvedIdentity: branch)
+                resolvedIdentity: branch, isDefaultTransitioned: isDefaultTransitioned)
         }
         guard let identityKey, providerSlot == ProviderSlot.unnamespaced else {
             return resolvingIdentity(under: branch)
@@ -325,7 +336,7 @@ public struct ChildView {
             identityKey: identityKey, providerSlot: ProviderSlot.resolvedInBranch,
             isSpacer: isSpacer, spacerMinLength: spacerMinLength, zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolvedIdentity ?? branch.child(erasedType: identityType, key: identityKey))
+            resolvedIdentity: resolvedIdentity ?? branch.child(erasedType: identityType, key: identityKey), isDefaultTransitioned: isDefaultTransitioned)
     }
 
     /// This child with its identity fixed now, in `scope`: under it, or AT it
@@ -374,7 +385,7 @@ public struct ChildView {
             identityKey: key, providerSlot: ProviderSlot.resolvedInBranch, isSpacer: isSpacer,
             spacerMinLength: spacerMinLength, zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolvedIdentity)
+            resolvedIdentity: resolvedIdentity, isDefaultTransitioned: isDefaultTransitioned)
     }
 
     /// This child with `modifier` wrapped around it — what a provider hands
@@ -431,7 +442,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolvedIdentity)
+            resolvedIdentity: resolvedIdentity, isDefaultTransitioned: true)
     }
 
     package func modified<M: BufferModifier>(by modifier: M) -> Self {
@@ -515,7 +526,7 @@ public struct ChildView {
                 spacerMinLength: spacerMinLength,
                 zIndex: zIndex,
                 providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-                resolvedIdentity: resolved)
+                resolvedIdentity: resolved, isDefaultTransitioned: isDefaultTransitioned)
         }
         let resolvedType = identityType ?? type(of: view)
         return Self(
@@ -528,7 +539,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: parent.map { $0.child(erasedType: resolvedType, index: index) })
+            resolvedIdentity: parent.map { $0.child(erasedType: resolvedType, index: index) }, isDefaultTransitioned: isDefaultTransitioned)
     }
 
     /// This child as it leaves a provider that a `TupleView` is splicing in at
@@ -593,7 +604,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolved)
+            resolvedIdentity: resolved, isDefaultTransitioned: isDefaultTransitioned)
     }
 
     /// Creates a child wrapper that renders `view` but derives its per-child
@@ -623,6 +634,7 @@ public struct ChildView {
         self.identityKey = nil
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
+        self.isDefaultTransitioned = false
     }
 
     /// Creates a child wrapper whose per-child identity is keyed by a stable
@@ -641,12 +653,16 @@ public struct ChildView {
         self.identityKey = key
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
+        self.isDefaultTransitioned = false
     }
 
     /// The wrapped child view itself, for containers that need to inspect the
     /// original view value — e.g. `List` peeling a `.badge(_:)` wrapper off a
     /// row — rather than measure or render it.
-    public var wrappedView: any View { (view as? any DefaultTransitionWrapping)?.transitionedView ?? view }
+    public var wrappedView: any View {
+        guard isDefaultTransitioned, let wrapper = view as? any DefaultTransitionWrapping else { return view }
+        return wrapper.transitionedView
+    }
 
     /// The identity this child measures and renders under — the address that
     /// "Locating things without drawing them" §5a routes by — computed without
