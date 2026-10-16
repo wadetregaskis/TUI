@@ -509,7 +509,7 @@ struct RenderCacheStyleContractTests: RenderCacheHarness {
 
         let menu = frame(shared, CachePicker().equatable().pickerStyle(.menu))
         #expect(
-            drawn(menu) == "N ▐ One ▾ ▌",
+            drawn(menu) == "N ( One ▾ )",
             "a radio group was served under .menu: \(drawn(menu))")
     }
 

@@ -178,9 +178,12 @@ extension DropdownMenu {
             onDismiss: onDismiss)
         if !menu.isEnabled { popup.hitTestRegions.removeAll() }
 
+        // Under the control, however many rows it is tall: a pop-up button's
+        // face at `.large` is three.
+        let anchor = max(1, buffer.height)
         buffer.overlays.append(
             OverlayLayer(
-                offsetX: 0, offsetY: 1, content: popup, level: .popover, anchorHeight: 1,
+                offsetX: 0, offsetY: anchor, content: popup, level: .popover, anchorHeight: anchor,
                 holdsInput: true))
     }
 }

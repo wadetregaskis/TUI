@@ -60,7 +60,10 @@ enum _PickerEntry<SelectionValue: Hashable> {
 /// The presentation is controlled by ``View/pickerStyle(_:)``:
 ///
 /// - ``MenuPickerStyle`` (and the default ``AutomaticPickerStyle``) collapse
-///   the picker to a single line that opens a drop-down list of options.
+///   the picker to a pop-up button — the current value and a `▾` on a bordered
+///   button's face, `( Apple ▾ )`, which follows the ``Appearance``, the
+///   ``ControlSize`` and the ``ButtonBorderShape`` as a button's does — that
+///   opens a drop-down list of options.
 /// - ``InlinePickerStyle`` and ``RadioGroupPickerStyle`` present the options
 ///   inline as a radio-button group.
 /// - ``SegmentedPickerStyle`` and ``PalettePickerStyle`` draw the options as

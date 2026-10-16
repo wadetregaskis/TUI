@@ -824,7 +824,7 @@ struct _ButtonStyleBody: View, Renderable {
     /// a measure and a render that each work the number out for themselves
     /// drift, and the drift shows as a button laid out one cell from where it
     /// draws.
-    fileprivate static func chromeWidth(for appearance: _ButtonAppearance) -> Int {
+    static func chromeWidth(for appearance: _ButtonAppearance) -> Int {
         appearance.isPlain
             // No caps; the focus-indicator prefix always reserves its cells
             // (`BorderRenderer` pads with spaces when unfocused so things stay

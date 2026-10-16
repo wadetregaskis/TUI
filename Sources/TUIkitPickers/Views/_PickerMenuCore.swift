@@ -77,8 +77,9 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// What remains is what the width genuinely depends on: each option's label
     /// rendered to a string, which is what `DropdownMenu.innerWidth` measures.
     /// The two paths call the same two helpers, so they cannot answer
-    /// differently — and the `+ 2` is the two caps `collapsedLine` appends,
-    /// whose content is `fit(_:to:)`-padded to exactly the inner width.
+    /// differently — and the rest is the button face's own chrome
+    /// (``ControlFace``), round a title `fit(_:to:)`-padded to exactly the
+    /// inner width less the two cells of padding the face adds.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // The same context `measureFixedByRendering` would have rendered under,
         // because `innerWidth` caps itself against `availableWidth`.
@@ -90,7 +91,8 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let labels = renderedOptionLabels(context: measureContext)
         let inner = DropdownMenu.innerWidth(
             for: dropdownEntries(labels: labels), context: measureContext)
-        return ViewSize.fixed(inner + 2, 1)
+        let chrome = ControlFace.chrome(in: context.environment)
+        return ViewSize.fixed(Self.titleWidth(innerWidth: inner) + chrome.width, chrome.rows)
     }
 
     /// Every option's label, rendered once to the line the drop-down will show.
@@ -131,7 +133,6 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let isDisabled = self.isDisabled || !context.environment.isEnabled
-        let palette = context.environment.palette
         let stateStorage = context.stateStorage!
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -180,21 +181,13 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 : MenuPresentationLabels.dropDown.open,
             context: context, isFocused: isFocused)
 
-        let collapsed = collapsedLine(
-            innerWidth: innerWidth,
-            renderedLabels: renderedLabels,
-            currentValueText: renderedCurrentValueLabel(context: context),
-            isOpen: isOpen,
-            isFocused: isFocused,
-            isHovered: isHovered,
-            context: context,
-            palette: palette
-        )
-        var buffer = FrameBuffer(lines: [collapsed.text])
-        // The collapsed control IS the buffer's only row, so the caps' runs
-        // and the label's claims need no shifting.
-        if !context.isMeasuring { buffer.animatedCells = collapsed.animations }
-        buffer.opacityRegions += collapsed.claims
+        // The closed control is a pop-up BUTTON, as on a Mac: a bordered
+        // button's face round the value and the caret (``ControlFace``).
+        var buffer = ControlFace.draw(
+            collapsedTitle(
+                innerWidth: innerWidth, renderedLabels: renderedLabels,
+                currentValueText: renderedCurrentValueLabel(context: context), isOpen: isOpen),
+            focused: isFocused, hovered: isHovered, enabled: !isDisabled, context: context)
 
         attachCollapsedMouseHandlers(
             to: &buffer,
@@ -202,7 +195,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             handler: handler,
             hoverBox: hoverBox,
             persistedFocusID: persistedFocusID,
-            collapsedWidth: collapsed.text.strippedLength
+            collapsedWidth: buffer.width
         )
 
         guard isOpen else { return buffer }
@@ -378,7 +371,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 offsetX: 0,
                 offsetY: 0,
                 width: collapsedWidth,
-                height: 1,
+                height: max(1, buffer.height),
                 handlerID: mouseHandlerID,
                 focusID: persistedFocusID
             )
@@ -428,20 +421,18 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     // MARK: Collapsed Control
 
-    /// Draws the single-line collapsed control: `▐ Selection      ▾ ▌`.
-    private func collapsedLine(
-        innerWidth: Int,
-        renderedLabels: [String?],
-        currentValueText: String?,
-        isOpen: Bool,
-        isFocused: Bool,
-        isHovered: Bool,
-        context: RenderContext,
-        palette: any Palette
-    ) -> (text: String, animations: [AnimatedCellRun], claims: [OpacityRegion]) {
-        // Combine own + cascaded disabled (renderToBuffer's shadowing local does
-        // not reach this helper).
-        let isDisabled = self.isDisabled || !context.environment.isEnabled
+    /// The closed control's title's width: the menu's inner width less the
+    /// cell of padding each side of it the button face adds.
+    static func titleWidth(innerWidth: Int) -> Int {
+        max(0, innerWidth - 2)
+    }
+
+    /// The closed control's title: the current value fitted to the menu's
+    /// width, and the caret — `Selection      ▾`, which the face pads and
+    /// frames (``ControlFace``).
+    private func collapsedTitle(
+        innerWidth: Int, renderedLabels: [String?], currentValueText: String?, isOpen: Bool
+    ) -> String {
         // The current value's own label, or the text of the currently selected
         // option, if any.
         let selectedText: String
@@ -454,62 +445,8 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         } else {
             selectedText = ""
         }
-
         let caret = isOpen ? DropdownMenu.openCaret : DropdownMenu.closedCaret
-
-        // Content layout: leading space + text + caret + trailing space.
-        let textWidth = max(0, innerWidth - 3)
-        let fittedText = DropdownMenu.fit(selectedText, to: textWidth)
-        let content = " " + fittedText + caret + " "
-
-        // Same hover treatment as Button: bump the background tint while the
-        // cursor is over the control, focused or not. Caps and label colour are
-        // focus's, so the two are answered in different ink.
-        let buttonBg = isHovered ? palette.hoveredControlFace : palette.restingControlFace
-
-        // The label colours are floored (hue-preserving) against the face
-        // they sit on, like Button labels — see ButtonStyle.makeStandardBody.
-        let restingLabel: Color
-        if isDisabled {
-            // The disabled branch is floored too — it is the one that was not,
-            // which is how a disabled picker's value came to be painted in the
-            // same 256-colour entry as the face under it.
-            restingLabel = palette.foregroundTertiary
-                .opacity(ViewConstants.disabledForeground, over: palette.background)
-                .ensuringRenderedContrast(
-                    atLeast: ViewConstants.disabledLabelContrastFloor, against: buttonBg)
-        } else if isFocused {
-            restingLabel = palette.accent.ensuringRenderedContrast(
-                atLeast: ViewConstants.labelContrastFloor, against: buttonBg)
-        } else {
-            restingLabel = palette.foregroundSecondary.ensuringRenderedContrast(
-                atLeast: ViewConstants.labelContrastFloor, against: buttonBg)
-        }
-        // As on a button: on a face that cannot be measured the hover has no fill to
-        // show, so the label lifts instead (Opacity as composition §82).
-        let labelFg = isHovered && !isDisabled ? palette.hoveredLabel(restingLabel) : restingLabel
-
-        // The caps are glyphs, not a fill behind text, so they breathe all the
-        // way to the accent — and as a whole cycle, so the run loop can advance
-        // those two cells without re-rendering the page. Literally the same
-        // treatment as `Button`'s end caps, so it is the same type, and on a face
-        // the terminal decides it rests them in the tertiary tier as a button's.
-        let caps = ButtonCapCycle(
-            isFocused: isFocused && !isDisabled,
-            background: buttonBg, palette: palette, context: context)
-
-        // Through `ClaimingRow`, which gets the label's claim onto the columns the
-        // label actually occupies — past the opening cap — without a second piece of
-        // arithmetic. `labelFg` is the one colour here that can be translucent: it ends
-        // in `ensuringRenderedContrast`, which is a re-SPELLING and carries the slot's
-        // alpha, where `buttonBg` and the caps are composites that spend theirs (§29).
-        var row = ClaimingRow()
-        row.append(String(TerminalSymbols.openCap), cells: 1, ink: caps.colorNow)
-        row.append(
-            content, cells: content.strippedLength, ink: labelFg, field: buttonBg,
-            // A tier heavier under a bold legibility weight, as every label is.
-            bold: context.environment.legibilityWeight.applied(bold: isFocused && !isDisabled, faint: false).bold)
-        row.append(String(TerminalSymbols.closeCap), cells: 1, ink: caps.colorNow)
-        return (row.text, caps.runs(width: row.cells), row.claims)
+        let textWidth = max(0, Self.titleWidth(innerWidth: innerWidth) - caret.strippedLength)
+        return DropdownMenu.fit(selectedText, to: textWidth) + caret
     }
 }

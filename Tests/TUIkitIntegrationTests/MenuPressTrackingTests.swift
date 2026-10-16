@@ -190,7 +190,7 @@ struct MenuPressTrackingTests {
 
             let closed = renderArmed(menu, tui: tui, context: context)
             let controlX = try #require(
-                closed.lines[0].stripped.firstIndex(of: "▐").map {
+                closed.lines[0].stripped.firstIndex(of: "▾").map {
                     closed.lines[0].stripped.distance(
                         from: closed.lines[0].stripped.startIndex, to: $0)
                 })
@@ -238,7 +238,7 @@ struct MenuPressTrackingTests {
 
             let closed = renderArmed(menu, tui: tui, context: context)
             let controlX = try #require(
-                closed.lines[0].stripped.firstIndex(of: "▐").map {
+                closed.lines[0].stripped.firstIndex(of: "▾").map {
                     closed.lines[0].stripped.distance(
                         from: closed.lines[0].stripped.startIndex, to: $0)
                 })
@@ -294,7 +294,7 @@ struct MenuPressTrackingTests {
 
         let closed = renderArmed(menu, tui: tui, context: context)
         let controlX = try #require(
-            closed.lines[0].stripped.firstIndex(of: "▐").map {
+            closed.lines[0].stripped.firstIndex(of: "▾").map {
                 closed.lines[0].stripped.distance(from: closed.lines[0].stripped.startIndex, to: $0)
             })
         // Pressed and HELD: the menu opens on the press.
@@ -626,10 +626,10 @@ struct MenuPressTrackingTests {
         .selectionIndicatorStyle(.none)
 
         // The collapsed control sits after the picker's label on the same line;
-        // `▐` is its leading cap.
+        // `▾` is its caret, inside the button face it is drawn as.
         let closed = renderArmed(view, tui: tui, context: context)
         let controlX = try #require(
-            closed.lines[0].stripped.firstIndex(of: "▐").map {
+            closed.lines[0].stripped.firstIndex(of: "▾").map {
                 closed.lines[0].stripped.distance(from: closed.lines[0].stripped.startIndex, to: $0)
             })
         press(tui, context, x: controlX + 1, y: 0)
@@ -673,7 +673,7 @@ struct MenuPressTrackingTests {
         let closed = renderArmed(view, tui: tui, context: context)
         let control = closed.lines[2].stripped
         let controlX = try #require(
-            control.firstIndex(of: "▐").map { control.distance(from: control.startIndex, to: $0) })
+            control.firstIndex(of: "▾").map { control.distance(from: control.startIndex, to: $0) })
 
         press(tui, context, x: controlX + 1, y: 2)
         let opened = renderArmed(view, tui: tui, context: context)

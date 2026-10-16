@@ -74,10 +74,12 @@ struct ButtonCapsOnUnmeasurableFaceTests {
         case .viewLabel:
             Button {} label: { Text("Save") }.appearance(.block)
         case .picker:
+            // A button's face too (`ControlFace`), so the same family.
             Picker("Fruit", selection: .constant("a")) {
                 Text("Apple").tag("a")
                 Text("Banana").tag("b")
             }
+            .appearance(.block)
         }
     }
 

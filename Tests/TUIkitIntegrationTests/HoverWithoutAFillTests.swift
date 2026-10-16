@@ -115,7 +115,7 @@ struct HoverWithoutAFillTests {
         }
         switch site {
         case .button, .buttonView, .menuRow: return (2, 0)
-        case .picker: return (column("▐", plus: 2), 0)
+        case .picker: return (column("▾"), 0)
         case .stepper: return (column("3"), 0)
         case .slider: return (column("◀", plus: 3), 0)
         }

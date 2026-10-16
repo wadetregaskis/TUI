@@ -12,8 +12,8 @@
 /// Defines the visual appearance of UI controls.
 ///
 /// `Appearance` controls the structural styling of UI elements like border styles
-/// — of boxes and panels, and of a bordered button's face, so that the two look
-/// of a piece: a border of lines draws buttons in lines in the same glyphs, `.block`
+/// — of boxes and panels, and of a bordered button's face (a pop-up `Picker`'s
+/// closed control is one), so that the two look of a piece: a border of lines draws buttons in lines in the same glyphs, `.block`
 /// draws filled faces, `.braille` dotted outlines (as thick as
 /// `.braille(thickness:)` says), and `.blank` a button's label alone
 /// (`ButtonBorderShape` says which member of the family each button is),

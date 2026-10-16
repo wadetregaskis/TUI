@@ -393,13 +393,15 @@ struct FocusIndicatorAnimationTests {
 
     @Test("A focused picker hands over its end caps")
     func pickerCaps() {
-        // The collapsed control is a bracketed button in all but name, so it
-        // shares `ButtonCapCycle` — and must pin the same geometry.
+        // The collapsed control is a bracketed button in all but name — drawn
+        // by the button's own face (`ControlFace`) — so under `.block` it
+        // shares `ButtonCapCycle`, and must pin the same geometry.
         let buffer = focusedRender(
             Picker("Fruit", selection: .constant("a")) {
                 Text("Apple").tag("a")
                 Text("Banana").tag("b")
-            })
+            }
+            .appearance(.block))
         expectAnimates(buffer, runs: 2, "picker caps")
         // A picker draws its label BEFORE the control, so the caps do not sit
         // at the row's ends — they bracket the control wherever it landed.
@@ -408,6 +410,21 @@ struct FocusIndicatorAnimationTests {
         #expect(offsets[0] > 0, "the label precedes the control: \(offsets)")
         #expect(offsets[1] > offsets[0], "one cap at each end of the control")
         #expect(buffer.animatedCells.allSatisfy { $0.offsetY == 0 && $0.width == 1 })
+    }
+
+    @Test("A focused picker in lines, the default, hands over its whole face")
+    func pickerLinesFace() {
+        // As a lines button does: its lines and its value breathe together, in
+        // one run from the control's first cell to its last.
+        let buffer = focusedRender(
+            Picker("Fruit", selection: .constant("a")) {
+                Text("Apple").tag("a")
+                Text("Banana").tag("b")
+            })
+        expectAnimates(buffer, runs: 1, "picker face")
+        let run = buffer.animatedCells[0]
+        #expect(run.offsetX > 0, "the label precedes the control")
+        #expect(run.offsetX + run.width == buffer.lines[0].strippedLength, "the face runs to the control's end")
     }
 
     @Test("An unfocused or disabled picker animates nothing")
