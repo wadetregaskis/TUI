@@ -37,6 +37,8 @@ struct ScrollViewPage: View {
     @State private var indicatorStyle: ScrollIndicatorStyle = .scrollbar
     @State private var barArrows: ScrollbarArrows = .single
     @State private var barProportional: Bool = true
+    /// The bar's width in cells: one, or two (`.scrollbarWidth(_:)`).
+    @State private var barWidth = 1
     @State private var barClickBehavior: ScrollbarClickBehavior = .page
     @State private var revealFollowMargin = FollowMarginChoice.none.rawValue
     /// `.scrollDisabled` — the chrome stays, the gestures stop.
@@ -191,6 +193,7 @@ struct ScrollViewPage: View {
                     .scrollIndicatorStyle(indicatorStyle)
                     .scrollbarArrows(barArrows)
                     .scrollbarProportionalThumb(barProportional)
+                    .scrollbarWidth(barWidth)
                     .scrollbarClickBehavior(barClickBehavior)
                     .scrollFollowMargin(
                         FollowMarginChoice(rawValue: revealFollowMargin)?.margin ?? .none)
@@ -232,6 +235,10 @@ struct ScrollViewPage: View {
                         Text("page.scrollView.click.jump").tag(ScrollbarClickBehavior.jump)
                     }
                     Toggle("page.scrollView.proportionalThumb", isOn: $barProportional)
+                    Picker("page.scrollView.barWidth", selection: $barWidth) {
+                        Text("page.scrollView.barWidth.single").tag(1)
+                        Text("page.scrollView.barWidth.double").tag(2)
+                    }
                     // How early the reveal-on-focus scrolls: at the edge
                     // (default), 2 lines early, or keeping the control centred.
                     FollowMarginPicker(selection: $revealFollowMargin)
@@ -249,6 +256,8 @@ struct ScrollViewPage: View {
             }
 
             ScrollAnchoringDemo()
+
+            ScrollPositionsDemo()
 
             DemoSection("page.scrollView.indicatorsOffSection") {
                 VStack(alignment: .leading, spacing: 1) {
