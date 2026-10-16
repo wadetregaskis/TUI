@@ -31,6 +31,22 @@ package enum WordBoundary {
         character.isLetter || character.isNumber || character == "_"
     }
 
+    /// The kinds of character a double-click's run is one of.
+    package enum Kind {
+        /// A word's: ``isWordCharacter(_:)``.
+        case word
+        /// A blank: a space, a tab.
+        case blank
+        /// Anything else: punctuation, symbols.
+        case mark
+    }
+
+    /// Which ``Kind`` `character` is.
+    package static func kind(of character: Character) -> Kind {
+        if isWordCharacter(character) { return .word }
+        return character.isWhitespace ? .blank : .mark
+    }
+
     /// The index of the start of the word at or before `index`: skip any
     /// separator run, then the word run.
     ///

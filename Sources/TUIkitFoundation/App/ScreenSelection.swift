@@ -456,13 +456,12 @@ extension ScreenSelection {
         let lower = clip.x
         let upper = min(clip.x + clip.width, cells.count)
         guard column >= lower, column < upper else { return column..<(column + 1) }
-        func kind(_ index: Int) -> Int {
+        func kind(_ index: Int) -> WordBoundary.Kind {
             // A wide character's second cell is the character's.
             var index = index
             while index > lower, cells[index] == nil { index -= 1 }
-            guard let character = cells[index] else { return 2 }
-            if WordBoundary.isWordCharacter(character) { return 0 }
-            return character.isWhitespace ? 1 : 2
+            guard let character = cells[index] else { return .mark }
+            return WordBoundary.kind(of: character)
         }
         let wanted = kind(column)
         var start = column
