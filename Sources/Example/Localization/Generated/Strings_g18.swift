@@ -39,6 +39,9 @@ extension ExampleStrings {
             "page.help.name": "Name",
             "page.help.namePrompt": "Your name",
             "page.help.nameHelp": "Shown in the window title. Here ? is typed: hover to read this.",
+            "page.help.helpLinkSection": "A help button (HelpLink)",
+            "page.help.helpLinkLabel": "Not sure what these settings do?",
+            "page.help.helpLinkGuide": "A HelpLink runs an action, as here, or opens a URL: HelpLink(destination:).",
         ],
 
         "de": [
@@ -65,6 +68,9 @@ extension ExampleStrings {
             "page.help.name": "Name",
             "page.help.namePrompt": "Ihr Name",
             "page.help.nameHelp": "Erscheint im Fenstertitel. Hier wird ? getippt: Fahren Sie darüber, um dies zu lesen.",
+            "page.help.helpLinkSection": "Eine Hilfetaste (HelpLink)",
+            "page.help.helpLinkLabel": "Unsicher, was diese Einstellungen tun?",
+            "page.help.helpLinkGuide": "Ein HelpLink führt eine Aktion aus, wie hier, oder öffnet eine URL: HelpLink(destination:).",
         ],
 
         "fr": [
@@ -91,6 +97,9 @@ extension ExampleStrings {
             "page.help.name": "Nom",
             "page.help.namePrompt": "Votre nom",
             "page.help.nameHelp": "Affiché dans le titre de la fenêtre. Ici, ? est saisi : survolez pour lire ceci.",
+            "page.help.helpLinkSection": "Un bouton d'aide (HelpLink)",
+            "page.help.helpLinkLabel": "Vous ne savez pas à quoi servent ces réglages ?",
+            "page.help.helpLinkGuide": "Un HelpLink exécute une action, comme ici, ou ouvre une URL : HelpLink(destination:).",
         ],
 
         "it": [
@@ -117,6 +126,9 @@ extension ExampleStrings {
             "page.help.name": "Nome",
             "page.help.namePrompt": "Il tuo nome",
             "page.help.nameHelp": "Mostrato nel titolo della finestra. Qui ? viene digitato: passaci sopra per leggere questo.",
+            "page.help.helpLinkSection": "Un pulsante di aiuto (HelpLink)",
+            "page.help.helpLinkLabel": "Non sai a cosa servono queste impostazioni?",
+            "page.help.helpLinkGuide": "Un HelpLink esegue un'azione, come qui, oppure apre un URL: HelpLink(destination:).",
         ],
 
         "es": [
@@ -143,6 +155,9 @@ extension ExampleStrings {
             "page.help.name": "Nombre",
             "page.help.namePrompt": "Tu nombre",
             "page.help.nameHelp": "Se muestra en el título de la ventana. Aquí ? se escribe: pasa el puntero para leer esto.",
+            "page.help.helpLinkSection": "Un botón de ayuda (HelpLink)",
+            "page.help.helpLinkLabel": "¿No sabes qué hacen estos ajustes?",
+            "page.help.helpLinkGuide": "Un HelpLink ejecuta una acción, como aquí, o abre una URL: HelpLink(destination:).",
         ],
 
         "zh": [
@@ -169,6 +184,9 @@ extension ExampleStrings {
             "page.help.name": "名称",
             "page.help.namePrompt": "你的名字",
             "page.help.nameHelp": "显示在窗口标题中。在这里按 ? 会输入该字符：悬停即可阅读本说明。",
+            "page.help.helpLinkSection": "帮助按钮（HelpLink）",
+            "page.help.helpLinkLabel": "不确定这些设置的作用？",
+            "page.help.helpLinkGuide": "HelpLink 可以像这里一样执行一个动作，也可以打开一个 URL：HelpLink(destination:)。",
         ],
 
         "ja": [
@@ -195,6 +213,9 @@ extension ExampleStrings {
             "page.help.name": "名前",
             "page.help.namePrompt": "あなたの名前",
             "page.help.nameHelp": "ウィンドウのタイトルに表示されます。ここでは ? が入力されます。ホバーしてこの説明を読んでください。",
+            "page.help.helpLinkSection": "ヘルプボタン（HelpLink）",
+            "page.help.helpLinkLabel": "これらの設定が何をするか分からない？",
+            "page.help.helpLinkGuide": "HelpLink はここのように動作を実行するか、URL を開きます：HelpLink(destination:)。",
         ],
     ]
 }

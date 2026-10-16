@@ -50,6 +50,7 @@ struct HelpPage: View {
     @State private var trigger: TriggerChoice = .automatic
     @State private var verbose = false
     @State private var name = ""
+    @State private var showsGuide = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -68,6 +69,21 @@ struct HelpPage: View {
                         Text("page.help.trigger.always").tag(TriggerChoice.always)
                     }
                     .pickerStyle(.radioGroup)
+                }
+            }
+
+            // SwiftUI's help button: a "?" that runs an action, or opens a
+            // URL (`HelpLink(destination:)`). Here it shows a line of guidance.
+            DemoSection("page.help.helpLinkSection") {
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 1) {
+                        Text("page.help.helpLinkLabel")
+                        HelpLink { showsGuide.toggle() }
+                    }
+                    if showsGuide {
+                        Text("page.help.helpLinkGuide")
+                            .foregroundStyle(.palette.foregroundSecondary)
+                    }
                 }
             }
 
