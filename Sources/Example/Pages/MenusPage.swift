@@ -166,6 +166,8 @@ struct MenusPage: View {
                 }
             }
 
+            ShortcutsDemo()
+
             DemoSection("page.menus.boxSection") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.menus.boxInstruction")
