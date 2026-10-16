@@ -481,6 +481,33 @@ package struct SectionInfo {
     }
 }
 
+/// A section under an environment write is still a section to a `List` — its
+/// header, its rows and its footer, each a row of the list — with the write
+/// applied to all of them. Without it the list drew such a section as ONE
+/// row: `Section { … }.headerProminence(.increased)` lost its rows'
+/// selection, their tags and their badges, and the section its separators.
+/// The environment writes `SectionPartsProviding` already sees through.
+extension EnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        content.extractSectionInfo(context: contentContext(context))
+    }
+
+    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        content.extractSectionContentRows(context: contentContext(context))
+    }
+}
+
+/// As ``EnvironmentModifier``'s.
+extension TransformEnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        content.extractSectionInfo(context: transformed(context))
+    }
+
+    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        content.extractSectionContentRows(context: transformed(context))
+    }
+}
+
 extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
     package func extractSectionContentRows<RowID: Hashable>(
         context: RenderContext

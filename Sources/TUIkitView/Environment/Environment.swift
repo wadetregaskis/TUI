@@ -48,6 +48,14 @@ public struct EnvironmentModifier<Content: View, V>: View {
 
 extension EnvironmentModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        TUIkitView.renderToBuffer(content, context: contentContext(context))
+    }
+
+    /// The context the content is drawn in: `context` with the value written
+    /// — and noted, for the caches below (``noteEnvironmentChange``). For the
+    /// render, and for a caller that takes the content apart instead of
+    /// drawing it whole: a `List` reading the rows of a `Section` this wraps.
+    package func contentContext(_ context: RenderContext) -> RenderContext {
         // Create modified environment and render content with it.
         // The modified context carries the environment through the render tree —
         // no global state sync needed.
@@ -58,7 +66,7 @@ extension EnvironmentModifier: Renderable {
         // the same two objects and the mirrors need no re-deriving.
         var modifiedContext = context.withDerivedEnvironment(modifiedEnvironment)
         modifiedContext.environmentApplicationDepth += 1
-        return TUIkitView.renderToBuffer(content, context: modifiedContext)
+        return modifiedContext
     }
 }
 
@@ -248,7 +256,7 @@ public struct TransformEnvironmentModifier<Content: View, V>: View {
     /// instead. Through ONE access, the access to the object's property would
     /// be held across the caller's closure, and a closure that reads that same
     /// property (`{ $0 = model.count + 1 }`) would trap for exclusivity.
-    private func transformed(_ context: RenderContext) -> RenderContext {
+    package func transformed(_ context: RenderContext) -> RenderContext {
         var environment = context.environment
         let value: V
         if keyPath is ReferenceWritableKeyPath<EnvironmentValues, V> {
