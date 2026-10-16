@@ -931,7 +931,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         handler.textIndicatorInset = chrome.edgeInset
         return (
             chrome,
-            max(1, viewportWidth - (bars.vertical ? 1 + indicatorMargins.trailing : 0)),
+            max(1, viewportWidth - (bars.vertical ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0)),
             contentViewportHeight,
             bars.settled)
     }
@@ -1241,7 +1241,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         let indicatorMargins = indicatorMargins(context)
         // ≤2 reservations (one per axis) ⇒ converges in ≤3 measure rounds.
         for _ in 0..<3 {
-            let probeWidth = max(1, viewportWidth - (wantsScrollbar ? 1 + indicatorMargins.trailing : 0))
+            let probeWidth = max(
+                1, viewportWidth - (wantsScrollbar ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0))
             // What `resolveChrome` will leave the content at these bars, and not
             // just the bar's row: a round that changes nothing hands its extents
             // to the render, which fills them.

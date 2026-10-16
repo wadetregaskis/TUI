@@ -59,3 +59,43 @@ extension View {
         environment(\.scrollbarSpacing, max(0, cells))
     }
 }
+
+// MARK: - Width
+
+private struct ScrollbarWidthKey: EnvironmentKey {
+    static let defaultValue = 1
+}
+
+extension EnvironmentValues {
+    /// How many cells wide the vertical scrollbars in this subtree are: one, or
+    /// two for a double-width bar. Set through ``View/scrollbarWidth(_:)``.
+    public internal(set) var scrollbarWidth: Int {
+        get { self[ScrollbarWidthKey.self] }
+        set { self[ScrollbarWidthKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Draws the vertical scrollbars within this view `cells` wide: `1`, the
+    /// default, or `2` for a double-width bar.
+    ///
+    /// TUI-specific. A bar one cell wide is a thin target for a pointer, and a
+    /// thin line beside a page of text; two cells is easier to hit and to see,
+    /// for the column it costs. Every cell of a line of the bar draws the same
+    /// glyph — the thumb's eighths side by side, a doubled arrow (`▲▲`) at each
+    /// end — and the whole width takes the pointer. A ``ScrollView``, a
+    /// ``List``, a ``Table`` and a ``TextEditor`` draw it; an open menu's bar,
+    /// beside options the menu is sized to, stays one cell, and a horizontal
+    /// bar is a row, and stays one.
+    ///
+    /// ```swift
+    /// List(files) { … }
+    ///     .scrollbarWidth(2)
+    /// ```
+    ///
+    /// - Parameter cells: `1` or `2`; anything else is the nearer of the two.
+    /// - Returns: A view whose vertical scrollbars are that wide.
+    public func scrollbarWidth(_ cells: Int) -> some View {
+        environment(\.scrollbarWidth, min(2, max(1, cells)))
+    }
+}

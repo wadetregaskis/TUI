@@ -355,7 +355,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let displayLines = handler.readLines()
         let window = window(
             handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
-            wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring)
+            wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring,
+            barWidth: context.environment.scrollbarWidth)
         let contentWidth = window.contentWidth
         // The widths this frame asked for are the ones to keep (see
         // `EditorLayout.endFrame()`); a measure is not the end of a frame.
@@ -448,7 +449,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         return buffer
     }
 
-    /// Appends a one-column vertical scroll indicator to each row, and returns
+    /// Appends a vertical scroll indicator — one column, or two for a
+    /// double-width bar (`View.scrollbarWidth(_:)`) — to each row, and returns
     /// the animation runs its cells earn and the claims its colours owe.
     ///
     /// Converted WITH the caret rather than after it. The bar's pulse and the
@@ -469,7 +471,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         var bar = ScrollbarRenderer.verticalScrollbar(
             height: height, extent: extent, viewport: height, offset: offset,
             arrows: .none, proportional: true,
-            colors: flash.map { colors.flashing($0, in: context.environment.palette) } ?? colors)
+            colors: flash.map { colors.flashing($0, in: context.environment.palette) } ?? colors,
+            width: context.environment.scrollbarWidth)
         // One cell per row the editor drew — an unpainted space past the bar's
         // end, as it always was — so no claim outlives the row it was for.
         let rows = min(height, output.count)
@@ -484,7 +487,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         return (
             ScrollbarRenderer.verticalScrollbarRuns(
                 height: height, extent: extent, viewport: height, offset: offset,
-                arrows: .none, proportional: true, pulse: pulse
+                arrows: .none, proportional: true, pulse: pulse, width: context.environment.scrollbarWidth
             ).map { $0.shifted(byX: barColumn, y: 0) },
             claims)
     }
@@ -515,12 +518,12 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     /// in the layout, so neither is laid out again the next frame.
     private func window(
         _ handler: TextEditorHandler, lines: [[Character]], width: Int, height: Int, tabWidth: TabWidth,
-        wraps: Bool, follows: Bool
+        wraps: Bool, follows: Bool, barWidth: Int
     ) -> Window {
         guard wraps else {
             if follows { handler.wrapWidth = nil }
             let overflows = lines.count > height
-            let contentWidth = overflows ? max(1, width - 1) : width
+            let contentWidth = overflows ? max(1, width - barWidth) : width
             // In DISPLAY columns, the space the scroll window and the caret cell
             // live in (a tab makes the display column run ahead of the index).
             let caretColumn = TabLayout.displayColumn(
@@ -538,7 +541,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let layout = handler.layout()
         var rows = layout.wrapped(width: width, tabWidth: tabWidth)
         let overflows = rows.rowCount > height
-        let contentWidth = overflows ? max(1, width - 1) : width
+        let contentWidth = overflows ? max(1, width - barWidth) : width
         if overflows { rows = layout.wrapped(width: contentWidth, tabWidth: tabWidth) }
         // The width the keys move by: the one drawn, never a measure's probe,
         // which would leave the keys between frames moving by rows at a width

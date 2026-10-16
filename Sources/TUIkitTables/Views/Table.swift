@@ -925,7 +925,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             && context.environment.verticalScrollIndicators(
                 overflowing: data.count > rowArea
             ).bar
-        let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? 1 : 0))
+        let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
         let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
@@ -1038,11 +1038,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Decide the bar exactly as `renderToBuffer` does — at the width a bar
         // WOULD leave, where rows wrap taller and so overflow soonest.
         let overflows = multiLineOverflows(
-                rowArea: rowArea, innerWidth: innerWidth - 1, gutter: gutter, context: context)
+                rowArea: rowArea, innerWidth: innerWidth - context.environment.scrollbarWidth, gutter: gutter,
+                context: context)
         let wantsScrollbar = context.environment.verticalScrollIndicators(
             overflowing: overflows
         ).bar
-        let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? 1 : 0))
+        let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
         let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
@@ -1196,10 +1197,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             && context.environment.verticalScrollIndicators(
                 overflowing: isMultiLine
                     ? multiLineOverflows(
-                rowArea: rowArea, innerWidth: innerWidth - 1, gutter: gutter, context: context)
+                rowArea: rowArea, innerWidth: innerWidth - context.environment.scrollbarWidth, gutter: gutter,
+                context: context)
                     : data.count > rowArea
             ).bar
-        let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? 1 : 0))
+        let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
         let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
@@ -1482,7 +1484,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             height: contentHeight, extent: data.count, viewport: contentHeight, offset: visibleRange.lowerBound,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)))
+            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)),
+            width: context.environment.scrollbarWidth)
 
         // Content-only row lines; the bar cell is merged in at the END, keyed by
         // absolute line index, so an overscroll slide moves the rows and leaves
@@ -1888,7 +1891,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             offset: metrics.offset,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)))
+            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)),
+            width: context.environment.scrollbarWidth)
     }
 
     /// The wrapped lines of each cell of a row plus the row's height (its tallest
@@ -2261,7 +2265,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // …and, before a bar, the cells the rows keep clear of it, which the
         // columns were laid out without (`View.scrollbarSpacing(_:)`).
         let contentWidth = min(
-            innerWidth - (showsBar ? 1 : 0),
+            innerWidth - (showsBar ? bar.width : 0),
             tableContentWidth(rows.columnWidths, within: innerWidth, gutter: gutter)
                 + context.environment.rowScrollbarSpacing(showsBar: showsBar))
         // Whether the "N more" lines are this table's indicator — false for a
@@ -3643,9 +3647,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 offsetX: max(
                     0,
                     context.availableWidth - borderWidth(context.environment)
-                        - Self.containerPadding.trailing - 1),
+                        - Self.containerPadding.trailing - context.environment.scrollbarWidth),
                 offsetY: firstRowY,
-                width: 1, height: barHeight, handlerID: barHandlerID),
+                width: context.environment.scrollbarWidth, height: barHeight, handlerID: barHandlerID),
             at: 0
         )
         ScrollbarRenderer.driveAutoRepeat(

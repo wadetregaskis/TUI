@@ -109,7 +109,8 @@ extension _ScrollViewCore {
         let viewportWidth =
             proposal.width
             ?? min(
-                content.width + (mayDrawVerticalBar ? 1 + indicatorMargins.trailing : 0),
+                content.width
+                    + (mayDrawVerticalBar ? environment.scrollbarWidth + indicatorMargins.trailing : 0),
                 context.availableWidth)
         let viewportHeight =
             proposal.height
@@ -228,7 +229,8 @@ extension _ScrollViewCore {
                 focusManager: context.environment.focusManager))
         buffer.hitTestRegions.insert(
             HitTestRegion(
-                offsetX: contentWidth, offsetY: span.top, width: 1, height: span.length,
+                offsetX: contentWidth, offsetY: span.top, width: context.environment.scrollbarWidth,
+                height: span.length,
                 handlerID: barHandlerID),
             at: 0
         )
@@ -357,7 +359,7 @@ extension _ScrollViewCore {
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
             hoveredCell: handler.hoveredBarCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
-            cycle: pulse?.cycle, flash: flash)
+            cycle: pulse?.cycle, flash: flash, width: context.environment.scrollbarWidth)
         let memo: ScrollbarMemo<ClaimingColumn>
         if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
             handler.verticalScrollbarMemoHits += 1
@@ -376,7 +378,8 @@ extension _ScrollViewCore {
                 offset: handler.scrollOffset,
                 arrows: context.environment.scrollbarArrows,
                 proportional: context.environment.scrollbarProportionalThumb,
-                colors: flash.map { colors.flashing($0, in: palette) } ?? colors)
+                colors: flash.map { colors.flashing($0, in: palette) } ?? colors,
+                width: context.environment.scrollbarWidth)
             let runs =
                 pulse.map { pulse in
                     ScrollbarRenderer.verticalScrollbarRuns(
@@ -386,7 +389,7 @@ extension _ScrollViewCore {
                         offset: handler.scrollOffset,
                         arrows: context.environment.scrollbarArrows,
                         proportional: context.environment.scrollbarProportionalThumb,
-                        pulse: pulse)
+                        pulse: pulse, width: context.environment.scrollbarWidth)
                 } ?? []
             memo = ScrollbarMemo(key: key, bar: bar, runs: runs)
             handler.verticalScrollbarMemo = memo
@@ -421,7 +424,7 @@ extension _ScrollViewCore {
             lines[index] = line
         }
         var result = buffer.replacingLines(
-            lines, width: contentWidth + 1 + margins.trailing, uniformWidth: true)
+            lines, width: contentWidth + bar.width + margins.trailing, uniformWidth: true)
         result.opacityRegions += bar.claims(atColumn: contentWidth, row: span.top)
         // The bar's own cells, handed to the run loop. Its column is the last
         // one — the content was padded out to `contentWidth` above — and only
@@ -574,6 +577,8 @@ package struct ScrollbarMemo<Bar> {
         package let cycle: SelectionEmphasisCycle?
         /// How strongly a `scrollIndicatorsFlash` lit the bar, or `nil`.
         package let flash: Double?
+        /// The bar's width in cells (``View/scrollbarWidth(_:)``).
+        package let width: Int
 
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUIkitLists makes these, for the lists' scrollbars.
@@ -591,7 +596,8 @@ package struct ScrollbarMemo<Bar> {
             depth: ColorDepth,
             terminalColors: TerminalColors,
             cycle: SelectionEmphasisCycle?,
-            flash: Double? = nil
+            flash: Double? = nil,
+            width: Int = 1
         ) {
             self.length = length
             self.extent = extent
@@ -607,6 +613,7 @@ package struct ScrollbarMemo<Bar> {
             self.terminalColors = terminalColors
             self.cycle = cycle
             self.flash = flash
+            self.width = width
         }
     }
 

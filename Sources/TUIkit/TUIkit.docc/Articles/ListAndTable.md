@@ -536,6 +536,7 @@ ScrollView:
 List("Items", selection: $selected) { ... }
     .scrollIndicators(.visible)      // .automatic / .visible / .hidden / .never
     .scrollbarArrows(.single)        // .none / .single / .double
+    .scrollbarWidth(2)               // a double-width bar; 1 by default
 ```
 
 The scrollbar supports a proportional thumb, drag, click-to-page or

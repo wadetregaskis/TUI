@@ -207,8 +207,9 @@ package struct ClaimingRow: Sendable {
 
 // MARK: - A column of single cells
 
-/// A column one cell wide, assembled a line at a time: each line's finished bytes,
-/// and the cells that owe a blend.
+/// A column ``width`` cells wide — one, unless a double-width scrollbar asks for
+/// two (``View/scrollbarWidth(_:)``) — assembled a line at a time: each line's
+/// finished bytes, and the cells that owe a blend.
 ///
 /// The transpose of ``ClaimingRow``, and built out of it — every cell goes through
 /// `ClaimingRow.append`, so the pairing is still stated in exactly one place. Its
@@ -225,18 +226,25 @@ package struct ClaimingColumn {
     /// rectangle — see `appendCoalescing`.
     private(set) var claims: [OpacityRegion] = []
 
-    /// No arguments, spelled out because the implicit initializer is internal
-    /// and TUIkitTables makes these, for a table.
-    package init() {}
+    /// The cells across: every line is this many, its one glyph repeated.
+    package let width: Int
+
+    /// An empty column `width` cells wide — one by default. Spelled out because
+    /// the implicit initializer is internal and TUIkitTables makes these, for a
+    /// table.
+    package init(width: Int = 1) {
+        self.width = max(1, width)
+    }
 
     package var count: Int { lines.count }
 
     package var isEmpty: Bool { lines.isEmpty }
 
-    /// Appends one line: a single cell of `glyph`, painted in `ink` on `field`.
+    /// Appends one line: `glyph` in each of its ``width`` cells, painted in
+    /// `ink` on `field`.
     mutating func append(_ glyph: String, ink: Color?, field: Color?) {
         var cell = ClaimingRow()
-        cell.append(glyph, cells: 1, ink: ink, field: field)
+        cell.append(width == 1 ? glyph : String(repeating: glyph, count: width), cells: width, ink: ink, field: field)
         let line = lines.count
         lines.append(cell.text)
         for claim in cell.claims { claims.appendCoalescing(claim.shifted(byX: 0, y: line)) }
@@ -253,7 +261,7 @@ package struct ClaimingColumn {
         let count = max(0, count)
         if lines.count > count {
             lines.removeLast(lines.count - count)
-            claims = claims.compactMap { $0.clipped(toColumns: 0..<1, rows: 0..<count) }
+            claims = claims.compactMap { $0.clipped(toColumns: 0..<width, rows: 0..<count) }
         }
         while lines.count < count { append(" ", ink: nil, field: field) }
     }

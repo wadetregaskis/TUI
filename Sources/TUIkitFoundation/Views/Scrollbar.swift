@@ -897,15 +897,17 @@ package enum ScrollbarRenderer {
     }
 
     /// A vertical scrollbar `height` cells tall: a `▲`/`▼` arrow assembly at each
-    /// end (per `arrows`) wrapped around a sub-cell-precise track. One cell per
-    /// line, with the claims its colours owe in the bar's own coordinates — the
-    /// caller knows which column the bar lands in and shifts them there. Arrows are
-    /// dropped if the bar is too short to also show a track.
+    /// end (per `arrows`) wrapped around a sub-cell-precise track. `width` cells
+    /// per line — one, or two for a double-width bar (``View/scrollbarWidth(_:)``),
+    /// each line's glyph across them all — with the claims its colours owe in the
+    /// bar's own coordinates: the caller knows which column the bar lands in and
+    /// shifts them there. Arrows are dropped if the bar is too short to also show
+    /// a track.
     package static func verticalScrollbar(
         height: Int, extent: Int, viewport: Int, offset: Int,
-        arrows: ScrollbarArrows, proportional: Bool, colors: ScrollbarColors
+        arrows: ScrollbarArrows, proportional: Bool, colors: ScrollbarColors, width: Int = 1
     ) -> ClaimingColumn {
-        var bar = ClaimingColumn()
+        var bar = ClaimingColumn(width: width)
         guard height > 0 else { return bar }
         let reserve = height > arrowReserve(arrows) ? arrowReserve(arrows) : 0
         func arrow(_ glyph: String, atCell cell: Int) {
@@ -943,12 +945,12 @@ package enum ScrollbarRenderer {
     @MainActor
     package static func verticalScrollbarRuns(
         height: Int, extent: Int, viewport: Int, offset: Int,
-        arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse
+        arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse, width: Int = 1
     ) -> [AnimatedCellRun] {
         let frames = pulse.frames.map { colors in
             verticalScrollbar(
                 height: height, extent: extent, viewport: viewport, offset: offset,
-                arrows: arrows, proportional: proportional, colors: colors)
+                arrows: arrows, proportional: proportional, colors: colors, width: width)
         }
         guard let first = frames.first else { return [] }
         assertFramesOweOneClaim(frames.map(\.claims), "a scrollbar's pulse")

@@ -887,7 +887,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowContext.availableWidth = max(
                 1,
                 context.availableWidth - style.horizontalChrome - listRowGutter
-                    - context.environment.rowScrollbarSpacing(showsBar: predictsBar))
+                    - Self.cellsForBar(predictsBar, in: context.environment))
         }
         describeRows(in: &rowContext.environment, isSidebar: style is SidebarListStyle)
         yieldRowSecondaryClicks(in: &rowContext.environment)
@@ -1250,7 +1250,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 context: context,
                 palette: palette
             )
-            let contentRowWidth = max(1, rowWidth - 1)
+            let contentRowWidth = max(1, rowWidth - bar.width)
             (lines, visibleRowYRanges, animatedRuns, listRowClaims, contentClaims) = composeScrollbarRowLines(
                 visibleRows: visibleRows,
                 handler: handler,
@@ -1583,6 +1583,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         return environment.verticalScrollIndicatorVisibility == .visible
     }
 
+    /// The cells a bar takes from the rows' width, past the one cell of
+    /// trailing gutter it is drawn in: the spacing kept clear of it
+    /// (`View.scrollbarSpacing(_:)`), and the rest of a bar wider than a cell
+    /// (`View.scrollbarWidth(_:)`). None without a bar.
+    private static func cellsForBar(_ showsBar: Bool, in environment: EnvironmentValues) -> Int {
+        guard showsBar else { return 0 }
+        return environment.rowScrollbarSpacing(showsBar: true) + environment.scrollbarWidth - 1
+    }
+
     /// Asks for the next frame when the rows were laid out for the wrong
     /// answer — for a bar the list then did not draw, or for none where it
     /// drew one — and so a spacing short or over (``predictsScrollbar(stateStorage:context:)``).
@@ -1593,7 +1602,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// width overflows at a narrower one.
     private func settleScrollbarPrediction(_ predicted: Bool, _ drawn: Bool, context: RenderContext) {
         guard predicted != drawn, !context.isMeasuring,
-            context.environment.rowScrollbarSpacing(showsBar: true) > 0
+            Self.cellsForBar(true, in: context.environment) > 0
         else { return }
         context.requestWake(token: "list-scrollbar-\(context.identity.path)", afterSeconds: 0)
     }
@@ -2329,7 +2338,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             arrows: arrows, proportional: proportional,
             isFocused: false, isScrollEnabled: true, hoveredCell: nil,
             palette: ComparablePalette(palette), depth: ColorDepth.current,
-            terminalColors: TerminalColors.current, cycle: nil, flash: flash)
+            terminalColors: TerminalColors.current, cycle: nil, flash: flash,
+            width: context.environment.scrollbarWidth)
         if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
             handler.verticalScrollbarMemoHits += 1
             return remembered.bar
@@ -2337,7 +2347,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let bar = ScrollbarRenderer.verticalScrollbar(
             height: contentHeight, extent: extentLines, viewport: contentHeight, offset: offsetLines,
             arrows: arrows, proportional: proportional,
-            colors: .resting(in: palette, flash: flash))
+            colors: .resting(in: palette, flash: flash), width: context.environment.scrollbarWidth)
         handler.verticalScrollbarMemo = ScrollbarMemo(key: key, bar: bar, runs: [])
         return bar
     }
@@ -2743,7 +2753,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             buffer.hitTestRegions.insert(
                 HitTestRegion(
                     offsetX: barColumn, offsetY: topInset,
-                    width: showsBorder ? 2 : 1,
+                    width: context.environment.scrollbarWidth + (showsBorder ? 1 : 0),
                     height: state.scrollbarHeight, handlerID: barHandlerID),
                 at: 0
             )
