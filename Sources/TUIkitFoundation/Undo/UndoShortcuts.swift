@@ -69,7 +69,19 @@ public enum UndoCommand: Hashable, CaseIterable, Sendable {
     }
 }
 
-extension UndoCommand: ShortcutTableAction {}
+extension UndoCommand: ShortcutTableAction {
+    /// Ctrl-Z for undo and Ctrl-Shift-Z for redo, where a terminal can deliver
+    /// them: the chords nearest the Edit menu's ⌘Z and ⇧⌘Z, which no terminal
+    /// sends an app. Sorted, the hint named Ctrl-minus — the same command, and
+    /// a correct hint, but not the name anyone knows undo by.
+    @usableFromInline
+    package var preferredHints: [KeyboardShortcut] {
+        switch self {
+        case .undo: [KeyboardShortcut("z", modifiers: .control)]
+        case .redo: [KeyboardShortcut("z", modifiers: [.control, .shift])]
+        }
+    }
+}
 
 // MARK: - Undo Shortcuts
 
@@ -124,7 +136,8 @@ public struct UndoShortcuts: Hashable, Sendable {
 
     /// The chord to show for `command` on a terminal that reports keys as
     /// `reporting` says: of the keys that reach it, the ones such a terminal
-    /// can deliver as themselves, TUIkit's own first, then in order; `nil`
+    /// can deliver as themselves — ⌃Z for undo and ⌃⇧Z for redo first, the
+    /// names they are known by, then TUIkit's own, then in order; `nil`
     /// when it can deliver none. In a legacy encoding a Control chord with
     /// Shift, or on a key other than a letter or minus, arrives as another
     /// chord or not at all; under the kitty keyboard protocol each arrives as

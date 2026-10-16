@@ -219,16 +219,16 @@ struct AppUndoTests {
         let model = Model()
         let statusBar = StatusBarState()
         statusBar.undoManager = manager
-        #expect(!labels(statusBar).contains("⌃-"))
+        #expect(!labels(statusBar).contains("⌃Z"))
         set(model, to: 1, on: manager)
-        #expect(labels(statusBar).contains("⌃-"))
+        #expect(labels(statusBar).contains("⌃Z"))
         #expect(!labels(statusBar).contains("⌥_"))
 
-        let undo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌃-" })
+        let undo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌃Z" })
         undo.execute()
         #expect(model.value == 0)
         let shown = labels(statusBar)
-        let withoutUndo: [String] = shown.filter { $0 != "⌃-" }
+        let withoutUndo: [String] = shown.filter { $0 != "⌃Z" }
         #expect(shown == withoutUndo)
 
         let redo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌥_" })
@@ -245,13 +245,13 @@ struct AppUndoTests {
         set(model, to: 1, on: manager)
         set(model, to: 2, on: manager)
         manager.undo()
-        // A legacy terminal: Ctrl-minus for undo; for redo, Ctrl-_ and
-        // Ctrl-Shift-Z cannot be sent apart from Ctrl-minus and Ctrl-Z, so
-        // Option-_.
-        #expect(labels(statusBar).contains("⌃-") && labels(statusBar).contains("⌥_"))
-        // The kitty protocol with shifted keys: Ctrl-_.
+        // A legacy terminal: Ctrl-Z for undo, the name undo is known by
+        // (`UndoCommand.preferredHints`); for redo, Ctrl-_ and Ctrl-Shift-Z
+        // cannot be sent apart from Ctrl-minus and Ctrl-Z, so Option-_.
+        #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains("⌥_"))
+        // The kitty protocol: Ctrl-Shift-Z arrives as itself, and is redo's name.
         statusBar.undoKeys.reporting = KeyboardReporting(flags: .requested)
-        #expect(labels(statusBar).contains("⌃-") && labels(statusBar).contains("⌃_"))
+        #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains("⌃⇧Z"))
         // The app's own keys: Ctrl-Z alone for undo, Ctrl-Shift-Z alone for
         // redo — which a legacy terminal cannot send, so the bar names none.
         statusBar.undoKeys.publish(
@@ -410,7 +410,7 @@ struct AppUndoTests {
         statusBar.undoManager = manager
         statusBar.showUndoItems = false
         set(Model(), to: 1, on: manager)
-        #expect(!labels(statusBar).contains("⌃-"))
+        #expect(!labels(statusBar).contains("⌃Z"))
     }
 }
 

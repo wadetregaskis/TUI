@@ -15,6 +15,16 @@
 package protocol ShortcutTableAction: Hashable, CaseIterable, Sendable {
     /// What TUIkit binds this action to out of the box.
     var defaultShortcuts: Set<KeyboardShortcut> { get }
+
+    /// Of ``defaultShortcuts``, the ones a hint names first, best first —
+    /// where some chord is the action's canonical name and a sorted set would
+    /// put another ahead of it. Empty by default: the set's own order.
+    var preferredHints: [KeyboardShortcut] { get }
+}
+
+extension ShortcutTableAction {
+    @usableFromInline
+    package var preferredHints: [KeyboardShortcut] { [] }
 }
 
 /// A table of an app's changes to the keys of a closed set of actions, each
@@ -125,6 +135,8 @@ extension ShortcutTable {
     func hintShortcut(
         for action: Action, among candidates: [KeyboardShortcut], commandKey: CommandKeyBinding
     ) -> KeyboardShortcut? {
+        let preferred = action.preferredHints.compactMap { $0.resolved(commandKey: commandKey) }
+        if let named = preferred.first(where: candidates.contains) { return named }
         let stock = action.defaultShortcuts.compactMap { $0.resolved(commandKey: commandKey) }
         return candidates.first { stock.contains($0) } ?? candidates.first
     }

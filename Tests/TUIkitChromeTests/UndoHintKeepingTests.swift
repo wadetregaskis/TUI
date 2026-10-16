@@ -29,9 +29,9 @@ struct UndoHintKeepingTests {
     @Test("The same inputs return the kept hints, worked out once for both commands")
     func sameInputsKeep() {
         let keys = AppUndoKeys()
-        #expect(keys.hint(for: .undo) == "⌃-")
+        #expect(keys.hint(for: .undo) == "⌃Z")
         #expect(keys.hint(for: .redo) == "⌥_")
-        #expect(keys.hint(for: .undo) == "⌃-")
+        #expect(keys.hint(for: .undo) == "⌃Z")
         #expect(keys.hintResolutions == 1, "both hints from one resolution")
         // The run loop publishes the scene's table every frame, and the
         // reporting is written as it is: equal values are no change.
@@ -44,11 +44,11 @@ struct UndoHintKeepingTests {
     @Test("A change to the table changes the hint")
     func tableChangesTheHint() {
         let keys = AppUndoKeys()
-        #expect(keys.hint(for: .undo) == "⌃-")
-        keys.publish(UndoShortcuts([.undo: .only(KeyboardShortcut("z", modifiers: .control))]), commandKey: .control)
         #expect(keys.hint(for: .undo) == "⌃Z")
-        keys.publish(.default, commandKey: .control)
+        keys.publish(UndoShortcuts([.undo: .only(KeyboardShortcut("-", modifiers: .control))]), commandKey: .control)
         #expect(keys.hint(for: .undo) == "⌃-")
+        keys.publish(.default, commandKey: .control)
+        #expect(keys.hint(for: .undo) == "⌃Z")
         #expect(keys.hintResolutions == 3)
     }
 
@@ -67,11 +67,12 @@ struct UndoHintKeepingTests {
     @Test("A change to what the terminal reports changes the hint")
     func reportingChangesTheHint() {
         let keys = AppUndoKeys()
-        // A legacy terminal sends Ctrl-_ as Ctrl-minus, so redo names Option-_;
-        // the kitty protocol with shifted keys sends it as itself.
+        // A legacy terminal sends Ctrl-Shift-Z as Ctrl-Z and Ctrl-_ as
+        // Ctrl-minus, so redo names Option-_; the kitty protocol sends
+        // Ctrl-Shift-Z as itself.
         #expect(keys.hint(for: .redo) == "⌥_")
         keys.reporting = KeyboardReporting(flags: .requested)
-        #expect(keys.hint(for: .redo) == "⌃_")
+        #expect(keys.hint(for: .redo) == "⌃⇧Z")
         keys.reporting = .legacy
         #expect(keys.hint(for: .redo) == "⌥_")
     }
@@ -167,10 +168,10 @@ struct UndoHintKeepingTests {
         }
         for _ in 0..<3 {
             let line = frame()
-            #expect(line.contains("⌃-") && line.contains("⌥_"), "both hints on the bar: '\(line)'")
+            #expect(line.contains("⌃Z") && line.contains("⌥_"), "both hints on the bar: '\(line)'")
         }
         let hints = statusBar.currentSystemItems.filter { $0.order == .undo || $0.order == .redo }.map(\.shortcut)
-        #expect(hints == ["⌃-", "⌥_"])
+        #expect(hints == ["⌃Z", "⌥_"])
         #expect(statusBar.undoKeys.hintResolutions == 1)
     }
 }
