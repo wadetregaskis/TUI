@@ -10,7 +10,7 @@
 //  items. English is the source of truth; every other language carries the same
 //  key set.
 
-// swiftlint:disable line_length
+// swiftlint:disable file_length line_length
 
 extension ExampleStrings {
     static let g7: [String: [String: String]] = [
