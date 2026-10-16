@@ -73,6 +73,8 @@ struct FocusPage: View {
 
             KeyPressDemo()
 
+            CommandsDemo()
+
             DemoSection("page.focus.keyLoggerSection") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.focus.keyLoggerDescription")
