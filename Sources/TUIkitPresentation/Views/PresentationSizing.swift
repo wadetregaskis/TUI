@@ -28,8 +28,9 @@ import TUIkitView
 /// take the sheet's size across them (a vertical scroll view's boxes span the
 /// sheet's width). Anywhere else — a
 /// ``ZStack``, a ``Grid``, a lazy stack or lazy grid outside a scroll view —
-/// each box takes the whole proposal. Content with no box keeps its own size,
-/// offered the proposal.
+/// each box takes the whole proposal. Content with no box is offered the
+/// proposal; a detented sheet of it is laid on blank cells of its detent's
+/// height, so it is as tall as the detent.
 ///
 /// You don't need to define your own version of this protocol. The system
 /// sizings ``PresentationSizing/form``, ``PresentationSizing/page`` and

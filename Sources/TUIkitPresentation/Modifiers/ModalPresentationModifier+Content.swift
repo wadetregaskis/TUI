@@ -76,6 +76,26 @@ extension ModalPresentationModifier {
         return true
     }
 
+    /// The sheet's content as a box: every cell of its extent painted, and as
+    /// tall as its detent asks.
+    ///
+    /// A `Dialog` or a `Panel` is one already — it fills its rectangle, and
+    /// takes the detent's height to be its own (``sheetDetentHeight``) — and
+    /// comes back unchanged. Plain content is not: a stack's spacing rows and
+    /// the ends of its short lines paint nothing, so a centred sheet of it
+    /// showed the dimmed page through every gap, where SwiftUI's sheet is
+    /// opaque whatever it holds; and nothing took the detent's height, so a
+    /// grabber dragged up changed the detent — past a live sheet's
+    /// `upThrough`, dimming the page — and drew the sheet no taller. Laid on
+    /// blank cells of the box's size, it is the box a `Dialog`'s interior is.
+    static func sheetBox(_ buffer: FrameBuffer, detentHeight: Int?, palette: any Palette) -> FrameBuffer {
+        let height = max(buffer.height, detentHeight ?? 0)
+        guard buffer.width > 0, !(buffer.linesAreUniformWidth && height == buffer.height) else { return buffer }
+        var box = FrameBuffer(emptyWithWidth: buffer.width, height: height)
+        box.compositeCarryingClaimsOverNothing(with: buffer, at: (x: 0, y: 0), palette: palette)
+        return box
+    }
+
     /// Renders the presented content at the size its style gives it: a sheet
     /// at its own height or its detent's (`detentHeight`), a cover over the
     /// whole content area.
@@ -124,7 +144,9 @@ extension ModalPresentationModifier {
                     background.presentationBackground(behind: modal), context: sheetContext,
                     capHeight: capHeight)
             }
-            return renderPresentedDialog(modal, context: sheetContext, capHeight: capHeight)
+            return Self.sheetBox(
+                renderPresentedDialog(modal, context: sheetContext, capHeight: capHeight),
+                detentHeight: detentHeight, palette: context.environment.palette)
         case .fullScreen:
             // The cover IS the screen: full width and the whole content area,
             // so there is nothing of the page left to show through and nothing

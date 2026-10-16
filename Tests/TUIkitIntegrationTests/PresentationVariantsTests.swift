@@ -255,16 +255,16 @@ struct PresentationVariantsTests {
                 "a blank row escaped the box: \(lines)")
     }
 
-    /// Content with no box has nothing to stretch, so it keeps its own size —
-    /// and, crucially, gains no opaque skirt underneath it.
-    @Test("Boxless sheet content keeps its size rather than gaining blank rows")
-    func detentLeavesBoxlessContentAlone() {
+    /// Content with no box is laid on one of its detent's size: a sheet is
+    /// as tall as its detent whatever it holds, as SwiftUI's is.
+    @Test("Boxless sheet content fills its detent")
+    func detentSizesBoxlessContent() {
         let buffer = renderToBuffer(
             Text("page").sheet(isPresented: .constant(true)) {
                 Text("one line").presentationDetents([.medium])
             },
             context: context(width: 30, height: 20))
-        #expect(buffer.overlays[0].content.height == 1)
+        #expect(buffer.overlays[0].content.height == 10)
     }
 
     @Test("Without a selection the smallest detent wins")

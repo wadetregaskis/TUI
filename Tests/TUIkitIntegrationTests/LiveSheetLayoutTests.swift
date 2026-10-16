@@ -280,11 +280,13 @@ struct LiveSheetLayoutTests {
         #expect(model.presented)
     }
 
-    /// The dock reserved the whole detent, and content with no box draws
-    /// only its own height: the page was laid out in 14 of 20 rows, with four
-    /// blank rows between it and the sheet's rule.
-    @Test("A live sheet with no box docks the rows it draws, not its detent's, at every detent")
-    func boxlessSheetDocksItsRows() {
+    /// Content with no box is still a sheet as tall as its detent, as
+    /// SwiftUI's is: the box it would otherwise lack is laid under it, so the
+    /// dock reserves the detent's rows and the sheet fills them. (It used to
+    /// keep its own two rows, which left a grabber dragged up changing the
+    /// detent and drawing nothing taller.)
+    @Test("A live sheet with no box fills its detent's rows, at every detent")
+    func boxlessSheetFillsItsDetent() {
         let model = LiveSheetModel()
         let app = HeadlessApp(DockedApp(model: model, boxed: false), width: 40, height: 20)
         var now: Int64 = 0
@@ -297,14 +299,14 @@ struct LiveSheetLayoutTests {
         }
         settle()
         var screen = rows(app)
-        #expect(screen.contains { $0.contains("page height 18") }, "\(screen)")
-        #expect(screen[18].contains("─"), "the rule is not on the row under the page: \(screen)")
-        #expect(screen[19].contains("sheet body"), "\(screen)")
-        // Moved to its other detent, it still draws two rows, and docks two.
+        #expect(screen.contains { $0.contains("page height 14") }, "\(screen)")
+        #expect(screen[14].contains("─"), "the rule is not on the row under the page: \(screen)")
+        #expect(screen[15].contains("sheet body"), "\(screen)")
+        // Moved to its other detent, it fills that one.
         model.detent = .medium
         settle()
         screen = rows(app)
-        #expect(screen.contains { $0.contains("page height 18") }, "\(screen)")
+        #expect(screen.contains { $0.contains("page height 10") }, "\(screen)")
     }
 
     /// The presenter starts a sheet for another item over; doing it after

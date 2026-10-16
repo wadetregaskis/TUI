@@ -39,11 +39,13 @@ extension EnvironmentValues {
     /// lazy grid outside a scroll view pass it on, and each box below takes
     /// the whole of it.
     ///
-    /// Content with no box (a bare `Text`) has nothing to stretch, so it keeps
-    /// its own size. The alternative — padding the presented buffer out to the
-    /// detent — is what this replaced: those rows were blank, unstyled and
-    /// *opaque*, so they punched a hole through the dialog's page rather than
-    /// belonging to anything.
+    /// Content with no box (a bare `Text`, a stack of controls) has nothing to
+    /// stretch: the presenter lays it on blank cells of the detent's size
+    /// instead, so the sheet is as tall as its detent whatever it holds, as
+    /// SwiftUI's is (`ModalPresentationModifier.sheetBox`). Those rows are the
+    /// sheet's own. What this replaced padded every presented buffer out to
+    /// the detent, a short `Dialog` too, whose blank rows under its bottom
+    /// border then belonged to nothing.
     package var sheetDetentHeight: Int? {
         get { self[SheetDetentHeightKey.self] }
         set { self[SheetDetentHeightKey.self] = newValue }
