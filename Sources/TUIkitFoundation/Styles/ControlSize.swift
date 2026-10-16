@@ -13,10 +13,11 @@
 /// A terminal owns the font and the cell, so a size cannot make a control's
 /// text larger. It says how much chrome the control draws around its content:
 /// a bordered button at `.small` drops the padding inside its caps, at `.mini`
-/// the caps too, and at `.large` and `.extraLarge` it is three rows tall —
-/// ringed in half blocks at `.large`, three rows of the face at `.extraLarge` —
-/// and breathes whole while it holds the focus. The other controls follow
-/// where they have chrome to trim or room to give.
+/// the caps too, and at `.large` and `.extraLarge` it is three rows tall — in
+/// a box of lines, or its shape drawn in quadrants on a solid face (see
+/// ``ButtonBorderShape`` for the families) — and breathes whole while it holds
+/// the focus. The other controls follow where they have chrome to trim or room
+/// to give.
 ///
 /// ```swift
 /// HStack {

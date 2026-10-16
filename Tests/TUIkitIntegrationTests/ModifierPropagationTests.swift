@@ -92,10 +92,10 @@ struct ModifierPropagationTests {
         let context = testContext()
         let buffer = renderToBuffer(button, context: context)
 
-        // Button should render with caps
-        #expect(buffer.lines[0].stripped.contains("\u{2590}"))
+        // Button should render with caps: the default appearance's, in lines
+        #expect(buffer.lines[0].stripped.contains("("))
         #expect(buffer.lines[0].stripped.contains("Test"))
-        #expect(buffer.lines[0].stripped.contains("\u{258C}"))
+        #expect(buffer.lines[0].stripped.contains(")"))
         #expect(!actionCalled, "Action should not be called during render")
     }
 

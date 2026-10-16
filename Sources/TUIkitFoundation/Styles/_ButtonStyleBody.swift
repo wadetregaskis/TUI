@@ -40,6 +40,7 @@ struct _ButtonStyleBody: View, Renderable {
             configuration: configuration,
             appearance: appearance.sized(
                 environment.controlSize, shape: environment.buttonBorderShape,
+                family: ButtonFaceFamily(environment.appearance),
                 blockElementsFillTheLine: environment.blockElementsFillTheLine),
             isSized: true)
     }
@@ -150,28 +151,30 @@ struct _ButtonStyleBody: View, Renderable {
             // label lifts instead, the app's colour too: it is then the only thing that
             // can answer the pointer, as on a plain button (Opacity as composition §82).
             let ink = cascadeForeground.resolve(with: palette)
-            labelFg = isHovered ? palette.hoveredLabel(ink) : ink
+            labelFg = isHovered ? hoverLift(ink, palette: palette) : ink
         } else {
             let ink = (baseForeground?.resolve(with: palette) ?? palette.foregroundSecondary)
                 .ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: buttonBg)
-            labelFg = isHovered ? palette.hoveredLabel(ink) : ink
+            labelFg = isHovered ? hoverLift(ink, palette: palette) : ink
         }
 
         let bold = context.environment.legibilityWeight.applied(bold: isBold && !isDisabled, faint: false).bold
         // A rounded rectangle: lines and the label, no field.
         if appearance.edges.isOutline {
-            return outlineStringFace(paddedLabel, label: labelFg, bold: bold, context: context)
+            return outlineStringFace(
+                paddedLabel, label: labelFg, authored: cascadeForeground != nil, bold: bold, context: context)
         }
         // A face with no caps (`.mini`) shows the focus in its label, as a link does.
         guard let capGlyphs = appearance.edges.caps else {
             return Self.capless(paddedLabel, label: labelFg, face: buttonBg, bold: bold, context: context, focused: isFocused && !isDisabled)
         }
 
-        // A three-row face is drawn whole in one colour, and breathes whole.
-        if let ring = appearance.edges.ring {
-            return tallStringFace(
-                paddedLabel, glyphs: capGlyphs, ring: ring,
-                label: labelFg, authored: cascadeForeground != nil,
+        // A face whose ends are its own cells — three rows of it, or a
+        // rectangle's square ends — is drawn whole in one colour, and breathes
+        // whole.
+        if appearance.edges.capsAreFace {
+            return wholeStringFace(
+                paddedLabel, label: labelFg, authored: cascadeForeground != nil,
                 face: buttonBg, bold: bold, context: context)
         }
 
@@ -224,52 +227,47 @@ struct _ButtonStyleBody: View, Renderable {
         return buffer
     }
 
-    /// A three-row face around a string label, drawn whole in `face` and
-    /// breathing whole to the accent while it holds the focus
-    /// (``breathingFace(focused:face:context:draw:)``). Focused, a label colour
+    /// A solid face drawn whole round a string label — its ends cells of the
+    /// face, and the shape's rows above and below where it is three rows tall
+    /// — breathing whole to the accent while it holds the focus
+    /// (``breathingFace(_:context:draw:)``). Focused, a label colour
     /// the framework chose is floored against the accent it then sits on; an
     /// `authored` one — the app's own — is left as it is, as on any face.
     @MainActor
-    private func tallStringFace(
-        _ paddedLabel: String, glyphs: (open: Character, close: Character), ring: ButtonFaceEdges.Ring,
-        label: Color, authored: Bool, face: Color, bold: Bool, context: RenderContext
+    private func wholeStringFace(
+        _ paddedLabel: String, label: Color, authored: Bool, face: Color, bold: Bool, context: RenderContext
     ) -> FrameBuffer {
-        let focused = configuration.isFocused && configuration.isEnabled
-        let accent = context.environment.palette.accent.spendingAlpha(over: face)
-        let ink =
-            focused && !authored
-            ? label.ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: accent) : label
+        let (breath, ink) = wholeBreath(face: face, label: label, authored: authored, context: context)
         let labelWidth = paddedLabel.strippedLength
-        return Self.breathingFace(focused: focused, face: face, context: context) { colour in
-            let caps = Self.tallCaps(glyphs, ring: ring, face: colour)
+        let ring = appearance.edges.ring
+        return Self.breathingFace(breath, context: context) { colour in
+            let end = ANSIRenderer.colorize(" ", background: colour)
             var middle = FrameBuffer(lines: [
-                caps.open
+                end
                     + ANSIRenderer.colorize(
                         paddedLabel, foreground: ink.opaqueSpelling, background: colour.opaqueSpelling, bold: bold)
-                    + caps.close
+                    + end
             ])
             if let claim = OpacityRegion.claim(offsetX: 1, width: labelWidth, height: 1, ink: ink, field: colour) {
                 middle.opacityRegions.append(claim)
             }
-            return Self.tallFace(around: middle, ring: ring, face: colour)
+            guard case .solid(let shape, let wholeCells)? = ring else { return middle }
+            return Self.solidFace(around: middle, shape: shape, wholeCells: wholeCells, face: colour)
         }
     }
 
     /// An outline face round a string label — its caps and any box in lines,
     /// the label on the surface — the lines and the label breathing together
     /// while the button holds the focus
-    /// (``breathingOutline(focused:lines:label:context:draw:)``).
+    /// (``breathingOutline(_:context:draw:)``).
     @MainActor
     private func outlineStringFace(
-        _ paddedLabel: String, label: Color, bold: Bool, context: RenderContext
+        _ paddedLabel: String, label: Color, authored: Bool, bold: Bool, context: RenderContext
     ) -> FrameBuffer {
         let edges = appearance.edges
-        let lines = Self.outlineInk(
-            palette: context.environment.palette, surface: context.environment.enclosingSurface,
-            hovered: configuration.isHovered, disabled: !configuration.isEnabled)
         let labelWidth = paddedLabel.strippedLength
-        let focused = configuration.isFocused && configuration.isEnabled
-        return Self.breathingOutline(focused: focused, lines: lines, label: label, context: context) { lineInk, ink in
+        let breath = outlineBreath(label: label, authored: authored, context: context)
+        return Self.breathingOutline(breath, context: context) { lineInk, ink in
             let open = edges.caps.map { ANSIRenderer.colorize(String($0.open), foreground: lineInk) } ?? ""
             let close = edges.caps.map { ANSIRenderer.colorize(String($0.close), foreground: lineInk) } ?? ""
             var middle = FrameBuffer(lines: [
@@ -284,19 +282,38 @@ struct _ButtonStyleBody: View, Renderable {
         }
     }
 
-    /// The caps of a three-row face's label row in `face`: its glyphs, or
-    /// cells of the face itself where the ring has no glyphs.
-    static func tallCaps(
-        _ glyphs: (open: Character, close: Character), ring: ButtonFaceEdges.Ring, face: Color
-    ) -> (open: String, close: String) {
-        guard ring != .plainRows else {
-            let cell = ANSIRenderer.colorize(" ", background: face)
-            return (cell, cell)
-        }
-        return (
-            ANSIRenderer.colorize(String(glyphs.open), foreground: face),
-            ANSIRenderer.colorize(String(glyphs.close), foreground: face)
-        )
+    /// The breath of this button's outline face, its label `label`, drawn as
+    /// stated where it is `authored` — worked out once, for the drawing and
+    /// for the measure's probe of it.
+    private func outlineBreath(label: Color, authored: Bool, context: RenderContext) -> OutlineBreath {
+        let lines = Self.outlineInk(
+            palette: context.environment.palette, surface: context.environment.enclosingSurface,
+            hovered: configuration.isHovered, disabled: !configuration.isEnabled)
+        return OutlineBreath(
+            focused: configuration.isFocused && configuration.isEnabled, hovered: configuration.isHovered,
+            lines: lines, label: label, labelBreathes: !authored, context: context)
+    }
+
+    /// The breath of this button's solid face drawn whole, and its label's ink:
+    /// focused, a label colour the framework chose is floored against the
+    /// accent it then sits on, and an `authored` one is left as it is.
+    private func wholeBreath(
+        face: Color, label: Color, authored: Bool, context: RenderContext
+    ) -> (breath: FaceBreath, ink: Color) {
+        let focused = configuration.isFocused && configuration.isEnabled
+        let accent = context.environment.palette.accent.spendingAlpha(over: face)
+        let ink =
+            focused && !authored
+            ? label.ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: accent) : label
+        return (FaceBreath(focused: focused, face: face, context: context), ink)
+    }
+
+    /// A label's ink under the pointer. On a face, the face shows the hover
+    /// and the label keeps its colour wherever the face can be measured
+    /// (``Palette/hoveredLabel(_:)``); an outline face has none, so its label
+    /// lifts as a plain button's does (``Palette/hoveredForeground(_:)``).
+    private func hoverLift(_ ink: Color, palette: any Palette) -> Color {
+        appearance.edges.isOutline ? palette.hoveredForeground(ink) : palette.hoveredLabel(ink)
     }
 
     /// What the string-label path resolved before it chose a variant: the state and
@@ -441,6 +458,9 @@ struct _ButtonStyleBody: View, Renderable {
         let label: Color
         /// The standard variant's face. The plain variant draws none.
         let face: Color
+        /// Whether ``label`` is the app's own colour (a cascade's), drawn as
+        /// stated rather than breathed.
+        let authored: Bool
     }
 
     /// The colours a `@ViewBuilder` label is drawn in under `context`, by the
@@ -495,13 +515,14 @@ struct _ButtonStyleBody: View, Renderable {
             // label lifts instead, the app's colour too: it is then the only thing that
             // can answer the pointer, as on a plain button (Opacity as composition §82).
             let ink = cascadeForeground.resolve(with: palette)
-            labelFg = isHovered ? palette.hoveredLabel(ink) : ink
+            labelFg = isHovered ? hoverLift(ink, palette: palette) : ink
         } else {
             let ink = (baseForeground?.resolve(with: palette) ?? palette.foregroundSecondary)
                 .ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: buttonBg)
-            labelFg = isHovered ? palette.hoveredLabel(ink) : ink
+            labelFg = isHovered ? hoverLift(ink, palette: palette) : ink
         }
-        return ViewLabelInk(palette: palette, surface: surface, label: labelFg, face: buttonBg)
+        return ViewLabelInk(
+            palette: palette, surface: surface, label: labelFg, face: buttonBg, authored: cascadeForeground != nil)
     }
 
     /// Renders a `@ViewBuilder` button label (``ButtonStyleConfiguration/labelView``)
@@ -591,9 +612,9 @@ struct _ButtonStyleBody: View, Renderable {
             return caplessViewLabel(labelView, ink: ink, context: context)
         }
 
-        // A three-row face, drawn whole in one colour and breathing whole.
-        if let ring = appearance.edges.ring {
-            return tallViewFace(labelView, ink: ink, ring: ring, context: context)
+        // A face whose ends are its own cells, drawn whole and breathing whole.
+        if appearance.edges.capsAreFace {
+            return wholeViewFace(labelView, ink: ink, context: context)
         }
 
         // Standard: half-block caps around the background-tinted, padded label.
@@ -601,26 +622,20 @@ struct _ButtonStyleBody: View, Renderable {
         return drawStandardRow(row.view, caps: row.caps, context: context)
     }
 
-    /// A three-row face around a `@ViewBuilder` label: the label's row as the
-    /// standard variant draws it, in one colour throughout, with the ring's
-    /// rows above and below, breathing whole while the button holds the focus
-    /// — the label drawn once per colour of the breath, as a plain button's
-    /// breathing label is (``BreathingLabel``).
-    private func tallViewFace(
-        _ labelView: AnyView, ink: ViewLabelInk, ring: ButtonFaceEdges.Ring, context: RenderContext
-    ) -> FrameBuffer {
-        let focused = configuration.isFocused && configuration.isEnabled
-        let accent = ink.palette.accent.spendingAlpha(over: ink.face)
-        let label =
-            focused ? ink.label.ensuringRenderedContrast(atLeast: ViewConstants.labelContrastFloor, against: accent)
-            : ink.label
-        return Self.breathingFace(focused: focused, face: ink.face, context: context) { colour in
+    /// A solid face drawn whole round a `@ViewBuilder` label: ``wholeRow(_:label:face:fills:)``,
+    /// in one colour throughout, with the shape's rows above and below where
+    /// it is three rows tall, breathing whole while the button holds the
+    /// focus — the label drawn once per colour of the breath, as a plain
+    /// button's breathing label is (``BreathingLabel``).
+    private func wholeViewFace(_ labelView: AnyView, ink: ViewLabelInk, context: RenderContext) -> FrameBuffer {
+        let ring = appearance.edges.ring
+        let (breath, label) = wholeBreath(face: ink.face, label: ink.label, authored: ink.authored, context: context)
+        return Self.breathingFace(breath, context: context) { colour in
             let middle = TUIkitView.renderToBuffer(
-                tallRow(
-                    labelView, ring: ring, label: label, face: colour,
-                    fills: context.environment.buttonSizing.fills),
+                wholeRow(labelView, label: label, face: colour, fills: context.environment.buttonSizing.fills),
                 context: context)
-            return Self.tallFace(around: middle, ring: ring, face: colour)
+            guard case .solid(let shape, let wholeCells)? = ring else { return middle }
+            return Self.solidFace(around: middle, shape: shape, wholeCells: wholeCells, face: colour)
         }
     }
 
@@ -629,13 +644,10 @@ struct _ButtonStyleBody: View, Renderable {
     /// the button holds the focus — the label drawn once per step of the
     /// breath, as a plain button's breathing label is (``BreathingLabel``).
     private func outlineViewFace(_ labelView: AnyView, ink: ViewLabelInk, context: RenderContext) -> FrameBuffer {
-        let lines = Self.outlineInk(
-            palette: ink.palette, surface: ink.surface, hovered: configuration.isHovered,
-            disabled: !configuration.isEnabled)
-        let focused = configuration.isFocused && configuration.isEnabled
         let fills = context.environment.buttonSizing.fills
         let resting = ink.label
-        return Self.breathingOutline(focused: focused, lines: lines, label: resting, context: context) { line, label in
+        let breath = outlineBreath(label: resting, authored: ink.authored, context: context)
+        return Self.breathingOutline(breath, context: context) { line, label in
             let middle = TUIkitView.renderToBuffer(
                 outlineRow(labelView, lines: line, label: label, resting: resting, fills: fills),
                 context: context)
@@ -662,31 +674,16 @@ struct _ButtonStyleBody: View, Renderable {
         }
     }
 
-    /// A three-row face's label row for a `@ViewBuilder` label: the standard
-    /// row, its caps in the face's colour, or cells of the face where the
-    /// ring has no glyphs.
-    private func tallRow(
-        _ labelView: AnyView, ring: ButtonFaceEdges.Ring, label: Color, face: Color, fills: Bool
-    ) -> some View {
-        let glyphs = appearance.edges.caps ?? (TerminalSymbols.openCap, TerminalSymbols.closeCap)
-        return HStack(spacing: 0) {
-            tallCap(glyphs.open, ring: ring, face: face)
+    /// A whole solid face's label row for a `@ViewBuilder` label: the label,
+    /// padded, on the face, between two cells of the face.
+    private func wholeRow(_ labelView: AnyView, label: Color, face: Color, fills: Bool) -> some View {
+        HStack(spacing: 0) {
+            Text(" ").background(face)
             centred(labelView, fills: fills)
                 .foregroundStyle(label)
                 .padding(.horizontal, appearance.horizontalPadding)
                 .background(face)
-            tallCap(glyphs.close, ring: ring, face: face)
-        }
-    }
-
-    /// One cap of a three-row face's label row: its glyph in the face's
-    /// colour, or a cell of the face where the ring has no glyphs.
-    @ViewBuilder
-    private func tallCap(_ glyph: Character, ring: ButtonFaceEdges.Ring, face: Color) -> some View {
-        if ring == .plainRows {
             Text(" ").background(face)
-        } else {
-            Text(String(glyph)).foregroundStyle(face)
         }
     }
 
@@ -929,8 +926,11 @@ extension _ButtonStyleBody: Layoutable {
             let drawn = outlineViewFace(labelView, ink: ink, context: measureContext)
                 .clamped(toWidth: width, height: measureContext.availableHeight)
             guard drawn.width >= width else { return ViewSize.fixed(drawn.width, drawn.height) }
+            // The row the drawing drew, in the colours it drew it in, so the
+            // pass's memo serves the probe everything in it.
+            let now = outlineBreath(label: ink.label, authored: ink.authored, context: measureContext).now
             let row = outlineRow(
-                labelView, lines: ink.label, label: ink.label, resting: ink.label,
+                labelView, lines: now.lines, label: now.label, resting: ink.label,
                 fills: measureContext.environment.buttonSizing.fills)
             return ViewSize(
                 width: drawn.width, height: drawn.height,
@@ -948,14 +948,17 @@ extension _ButtonStyleBody: Layoutable {
                     context: labelContext))
         }
         let ink = viewLabelInk(context: measureContext)
-        if let ring = appearance.edges.ring {
+        if appearance.edges.capsAreFace {
             // Clamped as `renderToBuffer` clamps a `Renderable`'s buffer.
-            let drawn = tallViewFace(labelView, ink: ink, ring: ring, context: measureContext)
+            let drawn = wholeViewFace(labelView, ink: ink, context: measureContext)
                 .clamped(toWidth: width, height: measureContext.availableHeight)
             guard drawn.width >= width else { return ViewSize.fixed(drawn.width, drawn.height) }
-            let row = tallRow(
-                labelView, ring: ring, label: ink.label, face: ink.face,
-                fills: measureContext.environment.buttonSizing.fills)
+            // The row the drawing drew, in the colours it drew it in, so the
+            // pass's memo serves the probe everything in it.
+            let (breath, label) = wholeBreath(
+                face: ink.face, label: ink.label, authored: ink.authored, context: measureContext)
+            let row = wholeRow(
+                labelView, label: label, face: breath.now, fills: measureContext.environment.buttonSizing.fills)
             return ViewSize(
                 width: drawn.width, height: drawn.height,
                 isWidthFlexible: drawnViewFills(row, width: width, proposal: proposal, context: measureContext))

@@ -10,18 +10,29 @@
 /// A shape used to draw a button's border — mirrors SwiftUI's
 /// `ButtonBorderShape`.
 ///
-/// A terminal draws a border in cells, so a shape is how a bordered button's
-/// face is drawn. A capsule is a filled face ending in the half-block caps
-/// `▐ … ▌`, which round its ends; three rows tall (``ControlSize/large`` and
-/// ``ControlSize/extraLarge``) its rows are rounded off by quadrant corners.
-/// A rounded rectangle is drawn in lines, with no field under the label:
-/// parentheses, `( … )`, on one row, and a box with rounded corners,
-/// `╭──╮` / `│ … │` / `╰──╯`, on three; the lines show at rest, brighten under
-/// the pointer, and breathe the focus with the label. A rounded rectangle of
-/// radius zero is square: `[ … ]`, and `┌──┐` / `│ … │` / `└──┘`. TUIkit's own
-/// ``brackets(_:_:)`` draws the same face between any two glyphs of a cell
-/// each. A circle is a capsule with no padding, for a button whose label is
-/// one glyph.
+/// A terminal draws a border in cells, so a shape is which member of a
+/// family a bordered button's face is — the family being the ``Appearance``
+/// in force, so that every shape on a page looks of a piece. A capsule's
+/// ends are curved, a rounded rectangle's sides straight with small corners,
+/// and a circle is a capsule about as wide as it is tall:
+///
+/// - **Lines** — `.rounded`, the default, and `.line`, `.heavy`,
+///   `.doubleLine`: no field under the label. A capsule is `( OK )`, and on
+///   three rows (``ControlSize/large``, ``ControlSize/extraLarge``) `( OK )`
+///   in a box of the appearance's lines; a rounded rectangle `│ OK │`, in the
+///   same box; radius zero `[ OK ]`, in a box with square corners; a circle
+///   `(★)`. The lines show at rest, lift under the pointer, and breathe the
+///   focus with the label.
+/// - **Solid** — `.block`: filled faces. A capsule ends in the half-block caps
+///   `▐ OK ▌`; a rectangle in square ends of the face; a circle `▐★▌`. On
+///   three rows each is its shape drawn in quadrants — a capsule's corners
+///   curve in two steps (`▗▟`), a rounded rectangle's in one (`▟`), radius
+///   zero's not at all — or, on a terminal that draws block elements short of
+///   the line (Apple Terminal), in whole cells.
+/// - **Blank** — `.blank`: the label alone, breathing the focus.
+///
+/// TUIkit's own ``brackets(_:_:)`` draws a lines face between any two glyphs
+/// of a cell each.
 ///
 /// Read by the built-in styles with a face; a plain, borderless or link
 /// button has none, and draws as it would.

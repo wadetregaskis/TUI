@@ -393,7 +393,8 @@ struct ThemeBundleTests {
         // The section in a `List`, whose section headers take the chrome role
         // a theme styles; in a stack a header is drawn as written (B16).
         let view = VStack {
-            Button("Save") {}.buttonStyle(.borderedProminent)
+            // A face for the tint to reach: the solid family's (the default draws lines).
+            Button("Save") {}.buttonStyle(.borderedProminent).appearance(.block)
             List { Section("settings") { Text("body") } }
         }
         .theme(theme)
@@ -413,12 +414,12 @@ struct ThemeBundleTests {
     @Test(".theme installs a control style for the subtree")
     func themeControlStyle() {
         let theme = Theme(palette: SystemPalette(.green), buttonStyle: .plain)
-        // Plain buttons have no bracket caps; the default style does. Applying the
-        // theme should make the button render plain (no caps).
+        // Plain buttons have no caps; the default style's are its lines'
+        // parentheses. Applying the theme should make the button render plain.
         let themed = renderToBuffer(
             VStack { Button("X") {} }.theme(theme), context: makeRenderContext()
         ).lines.joined().stripped
-        #expect(!themed.contains("▐") && !themed.contains("▌"), "theme buttonStyle should make it plain")
+        #expect(!themed.contains("(") && !themed.contains(")"), "theme buttonStyle should make it plain")
     }
 }
 
@@ -429,7 +430,8 @@ struct TintTests {
     @Test("tint recolours a control's accent affordance")
     func tintButtonAccent() {
         let context = makeRenderContext()
-        let view = Button("Save") {}.buttonStyle(.borderedProminent).tint(.rgb(7, 8, 9))
+        // On a face: the solid family's (the default draws lines).
+        let view = Button("Save") {}.buttonStyle(.borderedProminent).tint(.rgb(7, 8, 9)).appearance(.block)
         let line = renderToBuffer(view, context: context).lines.joined()
         // The tint shows as the button's face (accent blended over the
         // background); the label is contrast-floored against that face.

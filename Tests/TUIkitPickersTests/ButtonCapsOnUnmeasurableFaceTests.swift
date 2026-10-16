@@ -68,10 +68,11 @@ struct ButtonCapsOnUnmeasurableFaceTests {
     @ViewBuilder
     private func view(_ control: Control) -> some View {
         switch control {
+        // A solid face's caps (`.block`'s family): the default draws lines.
         case .stringLabel:
-            Button("Save") {}
+            Button("Save") {}.appearance(.block)
         case .viewLabel:
-            Button {} label: { Text("Save") }
+            Button {} label: { Text("Save") }.appearance(.block)
         case .picker:
             Picker("Fruit", selection: .constant("a")) {
                 Text("Apple").tag("a")

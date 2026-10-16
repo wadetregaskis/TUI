@@ -192,7 +192,10 @@ struct RowStyleReplayTests {
                 _ = renderToScreen(row.view(drawn: 0), context: context)
                 return renderToScreen(row.view(drawn: 0), context: context)
             }
-            let line = try #require(unfaded.animatedCells.first.map { unfaded.lines[$0.offsetY] })
+            // The probe's run, by its shape, as `built` finds it: a focused
+            // button above the list breathes too.
+            let probe = unfaded.animatedCells.first { $0.width == 2 && $0.frames.count == SpinnerProbe.frames.count }
+            let line = try #require(probe.map { unfaded.lines[$0.offsetY] })
             try #require(
                 paintedCells(line).contains {
                     $0.state.reversesVideo || $0.shownAttributes.split(separator: ";").contains("2")

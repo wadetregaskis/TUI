@@ -23,7 +23,8 @@ import Testing
 struct IndicatorAnimationSpeedFocusTests {
     /// Each run a focused `view` leaves, as (frames, frame ticks, cycle ticks).
     private func runs(_ view: some View) -> [(frames: Int, frameTicks: Int, cycleTicks: Int64)] {
-        focusedRender(view).animatedCells.map {
+        // A solid face's two caps: the runs counted here (`.block`'s family).
+        focusedRender(view.appearance(.block)).animatedCells.map {
             (
                 $0.frames.count, $0.frameTicks, $0.cycleTicks
             )

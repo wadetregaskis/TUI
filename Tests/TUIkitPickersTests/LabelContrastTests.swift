@@ -84,7 +84,9 @@ struct LabelContrastTests {
             environment.palette = palette
             let context = RenderContext(
                 availableWidth: 40, availableHeight: 4, environment: environment, tuiContext: tui)
-            let raw = renderToBuffer(view, context: context).lines.joined()
+            // On a face: the solid family's (`.block`). The default draws lines,
+            // with no field for a label to be painted on.
+            let raw = renderToBuffer(view.appearance(.block), context: context).lines.joined()
             guard let text = raw.range(of: label) else { return nil }
             let preceding = String(raw[raw.startIndex..<text.lowerBound])
             guard let fg = lastColor(in: preceding, prefix: "38;2;"),

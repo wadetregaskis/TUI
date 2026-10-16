@@ -39,9 +39,10 @@ struct ButtonRenderTests {
             .lines.joined(separator: "\n")
     }
 
-    // U+2590 ▐ opening cap, U+258C ▌ closing cap (TerminalSymbols.openCap/closeCap).
-    private let openCap = "\u{2590}"
-    private let closeCap = "\u{258C}"
+    // The default appearance's caps: a capsule drawn in lines, `( … )`
+    // (ButtonFaceEdges; `.block`'s solid capsule ends in ▐ … ▌ instead).
+    private let openCap = "("
+    private let closeCap = ")"
 
     // MARK: - Default (bracketed) style
 
@@ -68,7 +69,7 @@ struct ButtonRenderTests {
     func emptyLabelSingleLine() {
         let out = lines(Button("") {})
         #expect(out.count == 1, "single line: \(out)")
-        // Caps stay continuous around the (empty) label + its padding: `▐  ▌`.
+        // Caps stay continuous around the (empty) label + its padding: `(  )`.
         // The line is NOT blank and NOT a border gap (cf. the Panel empty-title class).
         #expect(out[0] == "\(openCap)  \(closeCap)", "got: '\(out[0])'")
         #expect(out[0].hasPrefix(openCap), "starts with the opening cap")
@@ -183,7 +184,7 @@ struct ButtonRenderTests {
         // Standard chrome = 2 caps + 2 padding = 4 cells; width 8 → 4 for label.
         let out = lines(Button("Submit Form Now") {}, width: 8)
         #expect(out.count == 1)
-        #expect(out[0] == "\(openCap) Sub\u{2026} \(closeCap)", "got: '\(out[0])'")  // ▐ Sub… ▌
+        #expect(out[0] == "\(openCap) Sub\u{2026} \(closeCap)", "got: '\(out[0])'")  // ( Sub… )
         #expect(out[0].contains("\u{2026}"), "truncation shows an ellipsis")
         #expect(out[0].strippedLength <= 8, "never overflows the available width")
         #expect(out[0].hasPrefix(openCap))

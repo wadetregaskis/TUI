@@ -209,7 +209,7 @@ struct AutomaticSidebarToggleTests {
         #expect(!bar.contains("◀"), "not in the top bar: \(bar)")
         let itemRow = try #require(screen.firstIndex { $0.contains("ITEM") })
         let sideRow = try #require(screen.firstIndex { $0.contains("SIDE") })
-        #expect(screen.indices.contains { $0 > sideRow && $0 != itemRow && screen[$0].contains("▐ ◀ ▌") },
+        #expect(screen.indices.contains { $0 > sideRow && $0 != itemRow && screen[$0].contains("( ◀ )") },
             "in the bottom bar: \(screen)")
     }
 

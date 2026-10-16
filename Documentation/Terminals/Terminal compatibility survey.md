@@ -715,13 +715,19 @@ it). As on 2026-10-13 the records were not rewritten, so the rows wait in
 `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` and the ledger's
 `awaitingLandingMeasurement`.
 
-**The three-row faces, redrawn the same day** at the owner's choice from a live
-prototype (branch `proto/button-looks`, `ButtonLab`). A `.large` face's ring now
-meets its quadrant corners for every shape (`▗▄▄▖` / `▐ … ▌` / `▝▀▀▘`, the
-capsule's no longer stopping short); an `.extraLarge` capsule is three rows of
-the face itself, its corners quadrants (`▗  ▖` / `▐ … ▌` / `▝  ▘`); and a focused
-three-row face breathes whole — rows, caps and the label's field — where only
-its ring and caps did. No new glyph.
+**Since the evening of 2026-10-15 a button's face follows the `Appearance`**,
+the owner's choice from a live prototype and two cards of candidate families
+(`ButtonLab` on branch `proto/button-looks`; the cards are kept in the session
+notes): under `.rounded` (the default), `.line`, `.heavy` and `.doubleLine` it is
+drawn in lines with no field — `( OK )`, `│ OK │`, `[ OK ]` at radius zero, `(★)`
+for a circle, in a box of the appearance's own glyphs on three rows; under
+`.block` it is a filled face — `▐ OK ▌`, square face ends for a rectangle, and
+on three rows the shape drawn in quadrants (`▗▟ … ▙▖` for a capsule, `▟ … ▙` for
+a rounded rectangle, `▝▜ … ▛▘` and `▜ … ▛` below), the whole face breathing the
+focus. The one-eighth edges `▕ ▏` above, and the half-block rings drawn earlier
+that day, are drawn by no chrome now; the four three-quadrant glyphs `▙ ▛ ▜ ▟`
+(U+2599, U+259B, U+259C, U+259F) are new to chrome, their advance **not yet
+measured**.
 
 **Apple Terminal draws Block Elements short of the line** (seen by the owner in
 Terminal.app 455.1 on macOS 15.8.1, 2026-10-15, against Ghostty 1.3 in the same
@@ -730,21 +736,19 @@ half block or quadrant stops short of the cell's top and bottom and a face built
 of them over three rows came apart into bands. One-row caps (`▐ … ▌`) read as a
 face there, and are kept. So on Apple Terminal — natively, and through tmux for a
 client the process walk names as Terminal.app (`TerminalHost.blockElementsFillTheLine`,
-`ClientCapabilities.blockElementsFillTheLine`) — a three-row face is three
-plain rows of the face, caps included, with no Block Elements glyph. A
-background colour fills the whole cell there, which is what the survey's `█`
-note below (*Appearance.block*) leans on too. Not yet measured as pixels (an
-`overhang_card.py` page of the rows would show how far short).
+`ClientCapabilities.blockElementsFillTheLine`) — a solid three-row face is drawn
+in whole cells of the face, with no Block Elements glyph. A background colour
+fills the whole cell there, which is what the survey's `█` note below
+(*Appearance.block*) leans on too. Not yet measured as pixels (an
+`overhang_card.py` page of the rows would show how far short). (A first card of
+the families drew nothing in colour on Apple Terminal: it was spelt in 24-bit
+SGR, which Terminal.app ignores; TUIkit spells 256 colours there.)
 
-**A rounded rectangle is drawn in lines** since the same day: `( … )` on one
-row and `╭──╮` / `│ … │` / `╰──╯` on three, with no field, so the one-eighth
-edges `▕ ▏` above are drawn by no chrome now. **Advance measured** for the
-outline's glyphs, and for the square and bracket spellings under consideration,
-with a DSR probe run in each host from a `.command` file, macOS 15.8.1: **one
-cell each** for `( ) [ ] < >`, `╭ ╮ ╰ ╯`, `┌ ┐ └ ┘`, `─ │` and `⟨ ⟩` (U+27E8,
-U+27E9) on Apple Terminal 455.1, Ghostty 1.3.1, iTerm2 3.7.4 and Warp
-v0.2026.09.30.08.29. The box glyphs are East Asian Ambiguous, in the borders'
-class.
+**Advance measured** for the lines faces' glyphs, with a DSR probe run in each
+host from a `.command` file, macOS 15.8.1: **one cell each** for `( ) [ ] < >`,
+`╭ ╮ ╰ ╯`, `┌ ┐ └ ┘`, `─ │` and `⟨ ⟩` (U+27E8, U+27E9) on Apple Terminal 455.1,
+Ghostty 1.3.1, iTerm2 3.7.4 and Warp v0.2026.09.30.08.29. The box glyphs are
+East Asian Ambiguous, in the borders' class.
 
 **Enclosed glyphs, for a circular face — advance measured the same way:** one
 cell on all four hosts for `Ⓐ ⓐ ① ⑳ ⓪ ❶ ➊ ⓿ ⊕ ⊖ ⊗ ⊙ ⊛ ◉ ◯` and the SMP
