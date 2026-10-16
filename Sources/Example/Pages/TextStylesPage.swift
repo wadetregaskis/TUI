@@ -292,6 +292,8 @@ struct TextStylesPage: View {
                     .frame(height: 6)
                 }
             }
+
+            RedactionAndSelectionDemo()
         }
     }
 }
