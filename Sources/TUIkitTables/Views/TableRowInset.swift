@@ -31,28 +31,47 @@ enum TableRowInset {
     /// fill, so it takes the fill and nothing the line states after it — the
     /// colour of the row's text is not the cell's. A line that opens with no
     /// fill is the line it was with a space in front.
+    ///
+    /// On the line's bytes, and only as far as its leading escapes: the fill a
+    /// row opens on is stated before its first visible cell, so nothing after
+    /// that can change where the cell goes. Every line of every row comes
+    /// through here every frame — walked as segments, which decoded the text up
+    /// to the next escape to hand over its first character, it was a tenth of
+    /// a frame of a table of wrapped rows.
     static func inset(_ line: String) -> String {
-        var consumed = 0
-        var afterFill: Int?
-        line.forEachANSISegment { segment in
-            // `.ansi` is the segment kind (an escape sequence), not a colour.
-            // swiftlint:disable:next framework_colour_literal
-            guard case .ansi(let sequence, let isSGR) = segment else { return false }
-            consumed += sequence.utf8.count
-            if isSGR, let sets = backgroundEffect(of: sequence) { afterFill = sets ? consumed : nil }
-            return true
+        var line = line
+        return line.withUTF8 { bytes in
+            guard let base = bytes.baseAddress else { return " " }
+            let split = leadingFillEnd(of: bytes) ?? 0
+            return String(unsafeUninitializedCapacity: bytes.count + 1) { out in
+                guard let target = out.baseAddress else { return 0 }
+                target.initialize(from: base, count: split)
+                target[split] = UInt8(ascii: " ")
+                (target + split + 1).initialize(from: base + split, count: bytes.count - split)
+                return bytes.count + 1
+            }
         }
-        guard let afterFill else { return " " + line }
-        let split = line.utf8.index(line.utf8.startIndex, offsetBy: afterFill)
-        return String(line[..<split]) + " " + String(line[split...])
+    }
+
+    /// The offset just past the escape that leaves the background set, among
+    /// the escapes `bytes` opens with — `nil` if they leave it the terminal's.
+    static func leadingFillEnd(of bytes: UnsafeBufferPointer<UInt8>) -> Int? {
+        var index = 0
+        var afterFill: Int?
+        while index < bytes.count, bytes[index] == 0x1B {
+            let (end, isSGR) = String.escapeSequenceEnd(startingAt: index, in: bytes)
+            if isSGR, let sets = backgroundEffect(of: bytes[index..<end]) { afterFill = sets ? end : nil }
+            index = end
+        }
+        return afterFill
     }
 
     /// What an SGR sequence does to the background: `true` when it states one,
     /// `false` when it puts back the terminal's own (`0`, an empty reset, `49`),
     /// `nil` when it leaves the background alone.
-    static func backgroundEffect(of sequence: String) -> Bool? {
+    static func backgroundEffect<Bytes: BidirectionalCollection<UInt8>>(of sequence: Bytes) -> Bool? {
         // `ESC [` … `m`: the parameters between.
-        let body = sequence.utf8.dropFirst(2).dropLast()
+        let body = sequence.dropFirst(2).dropLast()
         guard !body.isEmpty else { return false }
         var effect: Bool?
         var skip = 0

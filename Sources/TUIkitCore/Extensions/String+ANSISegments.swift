@@ -147,6 +147,47 @@ extension String {
         return (cursor, false)  // unterminated: the payload runs to the end
     }
 
+    /// ``escapeSequenceEnd(startingAt:in:)-(_,UnicodeScalarView)`` on a
+    /// line's UTF-8 bytes: the offset just past the escape sequence beginning
+    /// at `index`, which must address an `ESC`, and whether it was SGR.
+    ///
+    /// The same three shapes, by the same rules, for a caller that wants only
+    /// the escapes at the head of a line and should not decode the text after
+    /// them to find out where they end. Every byte the rules name is ASCII, and
+    /// no byte of a multi-byte UTF-8 sequence is, with one exception spelled
+    /// out below: the 8-bit `ST`, the scalar U+009C, is the two bytes `C2 9C`.
+    package static func escapeSequenceEnd(
+        startingAt index: Int, in bytes: UnsafeBufferPointer<UInt8>
+    ) -> (end: Int, isSGR: Bool) {
+        var cursor = index + 1
+        guard cursor < bytes.count else { return (cursor, false) }
+        let introducer = UInt32(bytes[cursor])
+
+        if introducer == 0x5B {  // '[' — CSI
+            cursor += 1
+            while cursor < bytes.count, isCSIBodyByte(UInt32(bytes[cursor])) { cursor += 1 }
+            guard cursor < bytes.count, isCSIFinalByte(UInt32(bytes[cursor])) else { return (cursor, false) }
+            return (cursor + 1, bytes[cursor] == 0x6D)  // 'm'
+        }
+
+        if (0x20...0x2F).contains(introducer) {  // `ESC ( B` and its family
+            cursor += 1
+            while cursor < bytes.count, (0x20...0x2F).contains(bytes[cursor]) { cursor += 1 }
+            return (Swift.min(cursor + 1, bytes.count), false)
+        }
+
+        guard isStringFamilyIntroducer(introducer) else { return (cursor, false) }
+        cursor += 1
+        while cursor < bytes.count {
+            let byte = bytes[cursor]
+            cursor += 1
+            if byte == 0x07 { return (cursor, false) }  // BEL
+            if byte == 0xC2, cursor < bytes.count, bytes[cursor] == 0x9C { return (cursor + 1, false) }  // 8-bit ST
+            if byte == 0x1B, cursor < bytes.count, bytes[cursor] == 0x5C { return (cursor + 1, false) }  // ESC \ — ST
+        }
+        return (cursor, false)  // unterminated: the payload runs to the end
+    }
+
     /// The index just past the CSI escape sequence beginning at `index`, which
     /// must address the ESC.
     ///

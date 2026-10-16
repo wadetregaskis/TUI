@@ -148,6 +148,32 @@ struct ANSISegmentStreamingTests {
         #expect(visible.count == 2, "the modifier is its own cluster, not part of the escape")
         #expect(visible.last == "x")
     }
+
+    /// The byte walker a line's head is scanned with (`TableRowInset`) ends
+    /// every escape where the scalar walker does, and says SGR as it does —
+    /// including the 8-bit `ST`, which is one scalar and two bytes.
+    @Test("The byte walker ends each escape where the scalar walker does")
+    func byteWalkerMatchesScalarWalker() {
+        for line in Self.corpus {
+            let scalars = line.unicodeScalars
+            Array(line.utf8).withUnsafeBufferPointer { buffer in
+                var index = scalars.startIndex
+                while index < scalars.endIndex {
+                    guard scalars[index].value == 0x1B else {
+                        index = scalars.index(after: index)
+                        continue
+                    }
+                    let (end, isSGR) = String.escapeSequenceEnd(startingAt: index, in: scalars)
+                    let offset = line.utf8.distance(from: line.utf8.startIndex, to: index)
+                    let byteResult = String.escapeSequenceEnd(startingAt: offset, in: buffer)
+                    let expected = line.utf8.distance(from: line.utf8.startIndex, to: end)
+                    #expect(byteResult.end == expected, "\(Array(line.unicodeScalars.map(\.value))) at \(offset)")
+                    #expect(byteResult.isSGR == isSGR, "\(Array(line.unicodeScalars.map(\.value))) at \(offset)")
+                    index = end
+                }
+            }
+        }
+    }
 }
 
 /// `leavesSGROpen` asks one question — is anything still in force at the end of
