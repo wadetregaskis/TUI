@@ -39,6 +39,8 @@ struct StatePersistencePage: View {
     @AppStorage("state.launchTaps") private var launchTaps: Int = 0
     @AppStorage("state.remembered") private var remembered: Bool = false
     @AppStorage("state.note") private var note: String = ""
+    /// Where the user was, rather than what they chose: `@SceneStorage`.
+    @SceneStorage("state.lastPanel") private var lastPanel: String = "one"
 
     /// An @Observable model, projected with @Bindable below.
     @State private var settings = DemoSettings()
@@ -73,6 +75,19 @@ struct StatePersistencePage: View {
                         .foregroundStyle(.palette.foregroundSecondary)
                     TextField("page.state.notePlaceholder", text: $note)
                         .frame(width: 32)
+                }
+            }
+
+            DemoSection("page.state.sceneSection") {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("page.state.sceneDescription")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    Picker("page.state.scenePanel", selection: $lastPanel) {
+                        Text("page.state.scenePanel.one").tag("one")
+                        Text("page.state.scenePanel.two").tag("two")
+                        Text("page.state.scenePanel.three").tag("three")
+                    }
+                    .pickerStyle(.segmented)
                 }
             }
 
