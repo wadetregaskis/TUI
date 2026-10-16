@@ -420,7 +420,10 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
 
         let palette = context.environment.palette
         let colour = showsFocus ? palette.accent : palette.border
-        var buffer = DividerRule.buffer(across: axis, length: length, colour: colour)
+        var buffer =
+            context.environment.splitViewDividerGrip == .hidden
+            ? DividerRule.buffer(across: axis, length: length, colour: colour)
+            : DividerRule.buffer(across: axis, length: length, colour: colour, gripSkipping: handler.arrowRow)
         if let hides, let row = handler.arrowRow {
             buffer.lines[row] = ANSIRenderer.colorize(hides.arrow, foreground: colour.opaqueSpelling)
         }

@@ -23,6 +23,24 @@ package enum DividerRule {
             ? FrameBuffer(lines: Array(repeating: painted, count: max(0, length)))
             : FrameBuffer(lines: [String(repeating: painted, count: max(0, length))])
     }
+
+    /// ``buffer(across:length:colour:)`` with a grip at its middle: three `◦`
+    /// in the rule's colour, as a `NavigationSplitView`'s resizable divider
+    /// draws them — the cue that the rule is there to be dragged. None on a
+    /// rule too short to keep some of itself either side, and none at
+    /// `skipping`, a cell its owner draws something else in.
+    package static func buffer(
+        across axis: Axis, length: Int, colour: Color, gripSkipping skipped: Int?
+    ) -> FrameBuffer {
+        guard length >= 5 else { return buffer(across: axis, length: length, colour: colour) }
+        let glyph = axis == .horizontal ? "│" : "─"
+        let centre = length / 2
+        let grip = Set([centre - 1, centre, centre + 1].filter { $0 != skipped })
+        let cells = (0..<length).map { index in
+            ANSIRenderer.colorize(grip.contains(index) ? "◦" : glyph, foreground: colour.opaqueSpelling)
+        }
+        return axis == .horizontal ? FrameBuffer(lines: cells) : FrameBuffer(lines: [cells.joined()])
+    }
 }
 
 /// A press on a divider and the drag that follows it.
