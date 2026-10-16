@@ -214,6 +214,46 @@ extension _ScrollViewCore {
         return holds ? .holding : .tracking
     }
 
+    /// Keeps an eagerly drawn page roughly where it was when a change of the
+    /// viewport's width reflows it.
+    ///
+    /// A windowed stack holds the row at the top across any change above it
+    /// (``topRowHold(handler:glued:placed:context:)``). Content drawn whole — a
+    /// `VStack` of sections, as most pages are — has no rows to hold: its
+    /// offset stays where it was in lines, as SwiftUI's does, so a window made
+    /// narrower wrapped the text above the view onto more lines and slid what
+    /// was being read off the bottom, and one made wider slid it off the top.
+    /// Here the offset scales with the content's height across the reflow, so
+    /// the same part of the page stays in view, near enough: text above it that
+    /// rewraps keeps its share of the height.
+    ///
+    /// Only for a reflow — the width changed since the last frame drawn — and
+    /// only where the default hold applies: at the top a view stays at the top,
+    /// a view following its tail follows it, a seek or a position request
+    /// placed the frame itself, and ``ScrollWindowHold/offset`` or a change
+    /// made under `Transaction.scrollContentOffsetAdjustmentBehavior =
+    /// .disabled` keeps the offset as it is.
+    ///
+    /// Records the height `drawing` gives the content as it goes, as every
+    /// render does: a sliced reply's from its metadata, estimate and all.
+    func recordContentHeight(
+        of drawing: ScrollContentDrawing, handler: ScrollViewHandler, contentWidth: Int, placed: Bool,
+        context: RenderContext
+    ) {
+        let heightBefore = handler.contentHeight
+        handler.contentHeight = drawing.slice?.totalHeight ?? drawing.buffer.height
+        handler.contentHeightIsEstimate = drawing.slice?.totalIsEstimate ?? false
+        guard !context.isMeasuring else { return }
+        defer { handler.lastContentWidth = contentWidth }
+        guard drawing.slice == nil, !placed, axes.contains(.vertical), let lastWidth = handler.lastContentWidth,
+            lastWidth != contentWidth, heightBefore > 0, handler.contentHeight != heightBefore,
+            handler.scrollOffset > 0, pageWindowHold(context.environment) == .topRow,
+            !context.environment.transaction.disablesScrollContentOffsetAdjustment
+        else { return }
+        let scaled = Double(handler.scrollOffset) * Double(handler.contentHeight) / Double(heightBefore)
+        handler.scrollOffset = Int(scaled.rounded())
+    }
+
     /// What a later drawing of the content in the same frame — drawn again
     /// where a focus snap, a re-glue or a reader of this view's space moved
     /// the offset — does about the row at the top: keeps track of it whenever

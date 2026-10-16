@@ -295,6 +295,11 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// with false precision. Re-synced every render pass.
     var contentHeightIsEstimate = false
 
+    /// The width the content was last drawn at on a render pass: what tells a
+    /// reflow — the viewport narrowed or widened — from content that changed
+    /// (`_ScrollViewCore.recordContentHeight`).
+    var lastContentWidth: Int?
+
     /// Whether the measures that decide this view's bars have seen its content
     /// walk a lazy stack nested in it — below a header, or in a row of an outer
     /// lazy stack — rather than estimate it (`RenderCache.nestedStackWalks`).

@@ -631,8 +631,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // all — the §3 scrollbar trade), and every content-space consumer
         // below rebases by the slice origin. An estimated total is surfaced
         // in the indicators as an approximate count.
-        handler.contentHeight = drawing.slice?.totalHeight ?? drawing.buffer.height
-        handler.contentHeightIsEstimate = drawing.slice?.totalIsEstimate ?? false
+        recordContentHeight(
+            of: drawing, handler: handler, contentWidth: contentWidth, placed: seekOffset != nil || requested || wasGluedToBottom, context: context)
         if let seekOffset {
             // The content rendered AT the request's offset; adopt it, dropping
             // any overscroll excursion with it — the slide drawn later would
