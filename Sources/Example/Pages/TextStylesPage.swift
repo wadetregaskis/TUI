@@ -150,6 +150,11 @@ struct TextStylesPage: View {
                     Text("page.textStyles.wrapClamp")
                     .lineLimit(2)
                     .frame(width: 46)
+                    // Wrapped with a blank row between its lines: `.lineSpacing`
+                    // counts ROWS here, where SwiftUI's counts points.
+                    Text("page.textStyles.wrapSpaced")
+                        .lineSpacing(1)
+                        .frame(width: 46)
                 }
             }
 
