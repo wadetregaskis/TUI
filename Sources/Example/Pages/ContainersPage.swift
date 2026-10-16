@@ -113,6 +113,7 @@ struct ContainersPage: View {
         VStack(alignment: .leading, spacing: 1) {
             ContainerTypesRow().equatable()
             SettingsAndAlignmentRow().equatable()
+            GroupingContainersRow()
             // ProgressView used to live here; it now has its own demo page
             // (press the back-tick shortcut on the menu) covering both
             // determinate and indeterminate variants of every style.
