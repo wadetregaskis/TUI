@@ -328,6 +328,7 @@ struct OverlaysPage: View {
 
                         Button("page.overlays.variants.liveSheet") { showLive = true }
                     }
+                    InsistentSheetButton()
                 }
             }
 
