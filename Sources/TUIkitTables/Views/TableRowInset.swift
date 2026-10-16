@@ -40,16 +40,24 @@ enum TableRowInset {
     /// a frame of a table of wrapped rows.
     static func inset(_ line: String) -> String {
         var line = line
-        return line.withUTF8 { bytes in
-            guard let base = bytes.baseAddress else { return " " }
-            let split = leadingFillEnd(of: bytes) ?? 0
-            return String(unsafeUninitializedCapacity: bytes.count + 1) { out in
-                guard let target = out.baseAddress else { return 0 }
-                target.initialize(from: base, count: split)
-                target[split] = UInt8(ascii: " ")
-                (target + split + 1).initialize(from: base + split, count: bytes.count - split)
-                return bytes.count + 1
-            }
+        return line.withUTF8(inset(bytes:))
+    }
+
+    /// ``inset(_:)-(String)`` on the line's bytes, written in one allocation.
+    ///
+    /// A function of its own rather than a closure in `withUTF8`: nested
+    /// there, two closures' types were left for the solver to infer together,
+    /// which the type-check guard's limits time out on.
+    private static func inset(bytes: UnsafeBufferPointer<UInt8>) -> String {
+        guard let base = bytes.baseAddress else { return " " }
+        let split: Int = leadingFillEnd(of: bytes) ?? 0
+        let count: Int = bytes.count
+        return String(unsafeUninitializedCapacity: count + 1) { (out: UnsafeMutableBufferPointer<UInt8>) -> Int in
+            guard let target = out.baseAddress else { return 0 }
+            target.initialize(from: base, count: split)
+            target[split] = UInt8(ascii: " ")
+            (target + split + 1).initialize(from: base + split, count: count - split)
+            return count + 1
         }
     }
 
