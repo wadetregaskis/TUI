@@ -6069,7 +6069,7 @@ private struct _TableColumnMenu: View {
 // MARK: - Table Content View
 
 /// Simple view that renders pre-computed lines.
-private struct _TableContentView: View, Renderable {
+private struct _TableContentView: View, Renderable, Layoutable {
     let lines: [String]
 
     /// The breathing row's cells, already positioned among `lines` — the header
@@ -6088,6 +6088,15 @@ private struct _TableContentView: View, Renderable {
 
     var body: Never {
         fatalError("_TableContentView renders via Renderable")
+    }
+
+    /// The size the rows draw at, without drawing them: each line a cell
+    /// wider for the inset (`TableRowInset`), and none at all for no lines.
+    /// The container that holds them measures them every frame, and measured
+    /// by rendering, every line was inset — a new string — only to be counted.
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        guard !lines.isEmpty else { return ViewSize.fixed(0, 0) }
+        return ViewSize.fixed(lines.reduce(0) { Swift.max($0, $1.strippedLength) } + 1, lines.count)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
