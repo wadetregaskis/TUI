@@ -76,6 +76,15 @@ extension ModalPresentationModifier {
         return true
     }
 
+    /// The ESC item while the content forbids interactive dismissal and has
+    /// no cancel button for Escape to press: matched, so Escape goes no
+    /// further than the presentation — not to an app's "⎋ back" outside it,
+    /// live behind it — and neither shown nor doing anything, as there is no
+    /// way out to offer.
+    func inertEscapeItem() -> StatusBarItem {
+        StatusBarItem(shortcut: Shortcut.escape, label: "", displayInStatusBar: false) {}
+    }
+
     /// Renders the presented content at the size its style gives it: a sheet
     /// at its own height or its detent's (`detentHeight`), a cover over the
     /// whole content area.

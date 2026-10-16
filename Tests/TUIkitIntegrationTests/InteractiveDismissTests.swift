@@ -29,7 +29,10 @@ struct InteractiveDismissTests {
     /// own rendered height.
     private func present(
         _ view: some View, width: Int = 60, height: Int = 20
-    ) -> (escapeLabels: [String], overlayHeight: Int, context: TUIContext) {
+    ) -> (
+        escapeLabels: [String], overlayHeight: Int, context: TUIContext, statusBar: StatusBarState,
+        focusManager: FocusManager?
+    ) {
         let tui = TUIContext()
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
@@ -59,7 +62,7 @@ struct InteractiveDismissTests {
             .filter { $0.shortcut == Shortcut.escape }
             .map { $0.label }
         let tallest = buffer.overlays.map { $0.content.height }.max() ?? 0
-        return (escapes, tallest, tui)
+        return (escapes, tallest, tui, statusBar, environment.focusManager)
     }
 
     private func sheet(
@@ -93,6 +96,52 @@ struct InteractiveDismissTests {
     @Test("passing false changes nothing")
     func falseIsANoOp() {
         #expect(present(sheet(false)).escapeLabels.contains("dismiss"))
+    }
+
+    // MARK: - Escape stays the sheet's
+
+    /// An app's own Escape, declared outside the presentation — the Example's
+    /// "⎋ back" on every page — is live behind a sheet. A sheet that will not
+    /// close must still keep the key: unclaimed, it fell through to that item,
+    /// which took the page away from under a sheet still insisting on an
+    /// answer.
+    ///
+    /// Read with the frame's focus manager kept alive: the bar holds it weakly,
+    /// and released, it cannot tell which section's items are showing.
+    @Test("a dismissal-disabled sheet keeps Escape from the app's own binding behind it")
+    func escapeStaysWithTheSheet() {
+        let back = StateBox(false)
+        let outcome = present(
+            sheet(true).statusBarItems([
+                StatusBarItem(shortcut: Shortcut.escape, label: "back") { back.value = true }
+            ]))
+        withExtendedLifetime(outcome.focusManager) {
+            let offered = outcome.statusBar.currentItems.filter {
+                $0.shortcut == Shortcut.escape && $0.displayInStatusBar
+            }
+            #expect(offered.isEmpty, "the bar offers \(offered.map(\.label))")
+            _ = outcome.statusBar.handleKeyEvent(KeyEvent(key: .escape))
+            _ = outcome.context.keyEventDispatcher.dispatch(KeyEvent(key: .escape))
+        }
+        #expect(!back.value, "Escape reached the app's binding behind the sheet")
+    }
+
+    /// The other half of keeping the key: a cancel button is an answer, so
+    /// Escape still presses it — as on a Mac — and the bar says so.
+    @Test("Escape still presses a dismissal-disabled sheet's cancel button")
+    func escapePressesCancel() {
+        let cancelled = StateBox(false)
+        let outcome = present(
+            Text(verbatim: "page").sheet(isPresented: .constant(true)) {
+                Button("Cancel") { cancelled.value = true }
+                    .keyboardShortcut(.cancelAction)
+                    .interactiveDismissDisabled()
+            })
+        #expect(outcome.escapeLabels.contains("cancel"), "\(outcome.escapeLabels)")
+        withExtendedLifetime(outcome.focusManager) {
+            _ = outcome.statusBar.handleKeyEvent(KeyEvent(key: .escape))
+        }
+        #expect(cancelled.value, "Escape did not press the cancel button")
     }
 
     // MARK: - What still works

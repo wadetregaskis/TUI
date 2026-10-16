@@ -64,6 +64,12 @@ extension View {
     /// the point of the modifier, not a gap in it. It is how a sheet insists on
     /// an answer rather than letting the reader wander off.
     ///
+    /// Escape still belongs to the sheet. It presses the content's cancel
+    /// button, where it has one (`.keyboardShortcut(.cancelAction)`), as it
+    /// would on a Mac — that is an answer — and otherwise does nothing. It never
+    /// reaches what the app bound Escape to behind the sheet, such as an
+    /// app-wide "⎋ back".
+    ///
     /// A dismissal-disabled popover still swallows the click that lands outside
     /// it. Letting that click through to the page would be the opposite of what
     /// was asked for: the presentation stays up and something behind it acts.

@@ -209,9 +209,7 @@ extension ModalPresentationModifier: Renderable {
         let escapeItemRegistration =
             context.isMeasuring
             ? nil
-            : takeKeyboard(
-                sectionID: sectionID, gate: gate, escape: escape, dismissIsDisabled: dismissIsDisabled,
-                context: context)
+            : takeKeyboard(sectionID: sectionID, gate: gate, escape: escape, context: context)
 
         // The drag-offset handler is a MANUAL box at this identity, and
         // nothing else hydrates it — endRenderPass would prune it every
@@ -317,13 +315,15 @@ extension ModalPresentationModifier: Renderable {
         // does now it has: "cancel" where it presses the content's cancel
         // button, which may keep the sheet up — not "dismiss" — and repeating
         // only if that button does.
-        // And none at all where the content, drawn, forbade interactive
-        // dismissal from further in than the presenter could see beforehand.
-        if let escapeItemRegistration, gate.interactiveDismissIsDisabled {
-            context.environment.statusBar?.replaceSectionItems(registeredAs: escapeItemRegistration, with: [])
-        } else if let escapeItemRegistration, gate.escapePressesCancelButton {
+        // Where the content forbade interactive dismissal and drew no cancel
+        // button, the item stays — Escape is still the presentation's — but
+        // is hidden and does nothing (`inertEscapeItem`).
+        if let escapeItemRegistration, gate.escapePressesCancelButton {
             context.environment.statusBar?.replaceSectionItems(
                 registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
+        } else if let escapeItemRegistration, gate.interactiveDismissIsDisabled {
+            context.environment.statusBar?.replaceSectionItems(
+                registeredAs: escapeItemRegistration, with: [inertEscapeItem()])
         }
         guard !modalBuffer.isEmpty, isGrabbed, let detents, detents.height != nil else { return modalBuffer }
         let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
@@ -335,17 +335,17 @@ extension ModalPresentationModifier: Renderable {
 
     /// Makes the presented sheet the keyboard's for this frame: its focus
     /// section registered, activated as a presented one and marked modal, the
-    /// input grabbed for it, the quit key stopped if its content asked, and —
-    /// unless its content forbade interactive dismissal — Escape bound to
-    /// `escape`, on the status bar and as a key handler.
+    /// input grabbed for it, the quit key stopped if its content asked, and
+    /// Escape bound to `escape`, on the status bar and as a key handler — kept
+    /// even where the content forbids interactive dismissal, when it does
+    /// nothing (see ``View/interactiveDismissDisabled(_:)``).
     ///
     /// - Returns: The ESC item's registration, for naming it again once the
     ///   content has drawn, or `nil` when none was published.
     private func takeKeyboard(
         sectionID: String, gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void,
-        dismissIsDisabled: Bool, context: RenderContext
+        context: RenderContext
     ) -> Int? {
-        var registration: Int?
         // Section registration/activation + the status-bar item are
         // per-frame render side effects: a memoised replay of this subtree
         // would skip them, leaving a modal that no longer grabs focus.
@@ -393,29 +393,32 @@ extension ModalPresentationModifier: Renderable {
         // also advertising the page's own keys, which do nothing while it
         // is up.
         //
-        // …unless the content asked not to be dismissed by hand, in which
-        // case the item is not published at all: no key binding, and
-        // nothing on the status bar offering a way out that does not work.
-        if !dismissIsDisabled {
-            registration = context.environment.statusBar?.registerSectionItems(
-                sectionID: sectionID, items: [escapeItem(gate: gate, escape: escape)], composition: .merge)
-            // The same dismissal as a layer-2 key handler, the way the
-            // alert and popover presenters register theirs. The item alone
-            // was unreachable from a pushed NavigationStack screen: its bar
-            // claims the ESC label ("go back") every frame, and the status
-            // bar skips EVERY escape item while a claim stands — so ESC
-            // could not dismiss a sheet presented from a pushed screen.
-            // The handler rides the modal's own grabbed section, so it
-            // runs precisely while the modal holds the keyboard.
-            // Not where the content, drawn, forbade it (`DismissalGate`): the
-            // key falls through, as it does where the presenter saw it first.
-            context.environment.keyEventDispatcher!.addHandler(
-                sectionID: sectionID
-            ) { event in
-                guard event.key == .escape, !gate.interactiveDismissIsDisabled else { return false }
-                escape(event.phase == .repeat)
-                return true
-            }
+        // Kept where the content asked not to be dismissed by hand, too: then
+        // the item is named again once the content has drawn (`drawSheet`) —
+        // its cancel button's, or hidden and inert. Escape is the
+        // presentation's either way. Unpublished, the key fell through to
+        // whatever the app had bound it to OUTSIDE the presentation, which is
+        // live: the Example's "⎋ back" took the page away from under a sheet
+        // that would not close.
+        let registration = context.environment.statusBar?.registerSectionItems(
+            sectionID: sectionID, items: [escapeItem(gate: gate, escape: escape)], composition: .merge)
+        // The same as a layer-2 key handler, the way the alert and popover
+        // presenters register theirs. The item alone was unreachable from a
+        // pushed NavigationStack screen: its bar claims the ESC label ("go
+        // back") every frame, and the status bar skips EVERY escape item
+        // while a claim stands — so ESC could not dismiss a sheet presented
+        // from a pushed screen. The handler rides the modal's own grabbed
+        // section, so it runs precisely while the modal holds the keyboard.
+        // Where the content, drawn, forbade dismissal (`DismissalGate`) and
+        // has no cancel button for Escape to press, it takes the key and
+        // does nothing.
+        context.environment.keyEventDispatcher!.addHandler(
+            sectionID: sectionID
+        ) { event in
+            guard event.key == .escape else { return false }
+            if gate.interactiveDismissIsDisabled, !gate.escapePressesCancelButton { return true }
+            escape(event.phase == .repeat)
+            return true
         }
         return registration
     }
