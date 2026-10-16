@@ -208,6 +208,8 @@ struct ColorsPage: View {
                 }
             }
 
+            ColorEffectsDemo()
+
             Spacer()
         }
         .scrollableDemoPage()
