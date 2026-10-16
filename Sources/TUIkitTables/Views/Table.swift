@@ -926,8 +926,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 overflowing: data.count > rowArea
             ).bar
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? 1 : 0))
+        // The columns stop short of the bar by the spacing; the rows' fills do
+        // not (`View.scrollbarSpacing(_:)`).
+        let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
         let columnWidths = calculateColumnWidths(
-            availableWidth: contentInnerWidth, spacing: columnSpacing, gutter: gutter,
+            availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
         var headerLine = renderHeader(
             columnWidths: columnWidths, gutter: gutter, palette: palette
@@ -1040,8 +1043,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             overflowing: overflows
         ).bar
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? 1 : 0))
+        // The columns stop short of the bar by the spacing; the rows' fills do
+        // not (`View.scrollbarSpacing(_:)`).
+        let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
         let columnWidths = calculateColumnWidths(
-            availableWidth: contentInnerWidth, spacing: columnSpacing, gutter: gutter,
+            availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
         let contentWidth = tableContentWidth(columnWidths, within: innerWidth, gutter: gutter)
 
@@ -1194,9 +1200,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     : data.count > rowArea
             ).bar
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? 1 : 0))
+        // The columns stop short of the bar by the spacing; the rows' fills do
+        // not (`View.scrollbarSpacing(_:)`).
+        let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
 
         let columnWidths = calculateColumnWidths(
-            availableWidth: contentInnerWidth, spacing: columnSpacing, gutter: gutter,
+            availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
 
         let contentLines: [String]
@@ -2248,8 +2257,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // to the *content* width (the columns), not the full interior, so a focused
         // row or a scroll indicator is never wider than the header and rows; that
         // width mismatch is what made the wrapping VStack centre the header.
-        let contentWidth = tableContentWidth(rows.columnWidths, within: innerWidth, gutter: gutter)
         let showsBar = !bar.isEmpty
+        // …and, before a bar, the cells the rows keep clear of it, which the
+        // columns were laid out without (`View.scrollbarSpacing(_:)`).
+        let contentWidth = min(
+            innerWidth - (showsBar ? 1 : 0),
+            tableContentWidth(rows.columnWidths, within: innerWidth, gutter: gutter)
+                + context.environment.rowScrollbarSpacing(showsBar: showsBar))
         // Whether the "N more" lines are this table's indicator — false for a
         // bar AND for hidden indicators, which is why it is the handler's
         // resolved answer rather than `!showsBar`.
@@ -2541,6 +2555,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 lines.append(visual.background.painting(content, padding: padding))
                 continue
             }
+            // To the row's width, which is past its cells before a scrollbar by
+            // the spacing kept clear of it (`View.scrollbarSpacing(_:)`).
+            if rowWidth > cellColumn { content.append(contentsOf: asciiSpaces(rowWidth - cellColumn)) }
             lines.append(content)
         }
         // Same recolour-the-finished-line trick the single-line path uses: one

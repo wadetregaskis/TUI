@@ -541,6 +541,18 @@ List("Items", selection: $selected) { ... }
 The scrollbar supports a proportional thumb, drag, click-to-page or
 click-to-jump, end-arrow stepping, and auto-repeat while a button is held.
 
+A table keeps one cell clear between its columns and the bar, so its text
+does not run into the bar's column of ink; a row's fill (a stripe, the
+selection, the focused row's breath) still runs on to the bar.
+``View/scrollbarSpacing(_:)`` changes it — `0` puts the columns against the
+bar, `2` or `3` give them more room:
+
+```swift
+Table(files) { ... }
+    .scrollIndicators(.visible)
+    .scrollbarSpacing(0)
+```
+
 ## Sections
 
 Use ``Section`` to group list items with headers and optional footers:
