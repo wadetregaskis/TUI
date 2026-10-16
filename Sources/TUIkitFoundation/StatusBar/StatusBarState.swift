@@ -440,7 +440,8 @@ public final class StatusBarState: @unchecked Sendable {
     /// The bar is not isolated to the main actor, though it only ever runs
     /// there; `UndoManager` is.
     private func undoItems(_ undoManager: UndoManager) -> [StatusBarItem] {
-        let (canUndo, canRedo) = MainActor.assumeIsolated { (undoManager.canUndo, undoManager.canRedo) }
+        let reference = MainActorUndoManager(undoManager)
+        let (canUndo, canRedo) = MainActor.assumeIsolated { (reference.manager.canUndo, reference.manager.canRedo) }
         let localization = LocalizationService.shared
         var items: [StatusBarItem] = []
         if canUndo {

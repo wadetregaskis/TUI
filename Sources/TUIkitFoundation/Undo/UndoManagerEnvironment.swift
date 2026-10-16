@@ -13,7 +13,29 @@ private struct UndoManagerKey: EnvironmentKey {
     /// No undo outside a running app — a snapshot render, a test — as
     /// SwiftUI's is `nil` "when the environment represents a context that
     /// doesn't support undo and redo operations".
-    static let defaultValue: UndoManager? = nil
+    ///
+    /// Computed, not stored: the macOS 26 SDK isolates `UndoManager` to the
+    /// main actor, which makes it `Sendable`, and the macOS 15 SDK does not,
+    /// where a stored static of the type is a global Swift 6 rejects. Nothing
+    /// is stored, so there is nothing to make safe, under either.
+    static var defaultValue: UndoManager? { nil }
+}
+
+/// An `UndoManager` carried into `MainActor.assumeIsolated` from code that is
+/// not isolated, though it only ever runs on the main actor.
+///
+/// The macOS 26 SDK isolates `UndoManager` to the main actor, which makes it
+/// `Sendable` and this needless; the macOS 15 SDK — the Command Line Tools'
+/// — does not, and there sending the manager into the closure is a data-race
+/// error. A box rather than `nonisolated(unsafe)`, which the 26 SDK would
+/// warn is unnecessary. Use it only where the manager is touched inside the
+/// closure, on the main actor.
+package struct MainActorUndoManager: @unchecked Sendable {
+    package let manager: UndoManager
+
+    package init(_ manager: UndoManager) {
+        self.manager = manager
+    }
 }
 
 extension EnvironmentValues {

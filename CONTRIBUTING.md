@@ -219,7 +219,10 @@ support in 0.64.0.
 ## Build, Test & Lint
 
 ```bash
-# Build
+# Build. With swiftly's `swift` the SDK is whichever `xcode-select` points at:
+# Xcode's (macOS 26) or the Command Line Tools' (macOS 15.5 here). Both build,
+# warning-free; the macOS 15 SDK does not isolate `UndoManager` to the main
+# actor, which `MainActorUndoManager` and `TextUndoStep` bridge (2026-10-15).
 swift build
 
 # Build with Xcode's own toolchain too, if `swift` on your PATH is a swift.org

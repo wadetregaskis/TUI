@@ -53,7 +53,9 @@ public enum UndoCommand: Hashable, CaseIterable, Sendable {
     /// The input chain is not isolated to the main actor, though it only ever
     /// runs there; `UndoManager` is.
     package func perform(on manager: UndoManager) -> Bool {
-        MainActor.assumeIsolated {
+        let reference = MainActorUndoManager(manager)
+        return MainActor.assumeIsolated {
+            let manager = reference.manager
             switch self {
             case .undo:
                 guard manager.canUndo else { return false }

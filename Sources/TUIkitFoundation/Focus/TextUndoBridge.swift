@@ -73,12 +73,13 @@ package enum TextUndoBridge {
         // The control is only ever touched on the main actor, where this runs;
         // the compiler cannot know that of a type that is not isolated.
         nonisolated(unsafe) let control = control
-        MainActor.assumeIsolated { register(control, mark: mark, on: manager, undoing: true) }
+        let manager = MainActorUndoManager(manager)
+        MainActor.assumeIsolated { register(control, mark: mark, on: manager.manager, undoing: true) }
     }
 
     @MainActor
-    private static func register<Control: AppUndoableText>(
-        _ control: Control, mark: TextUndoMark, on manager: UndoManager, undoing: Bool
+    fileprivate static func register(
+        _ control: any AppUndoableText, mark: TextUndoMark, on manager: UndoManager, undoing: Bool
     ) {
         // Without grouping by event a registration needs a group around it,
         // or Foundation's `UndoManager` raises; with it, the event's group
@@ -88,10 +89,14 @@ package enum TextUndoBridge {
         if needsGroup { manager.beginUndoGrouping() }
         // The mark is captured as well as passed: the manager keeps its target
         // unowned, and the step is what keeps the mark alive.
-        manager.registerUndo(withTarget: mark) { [weak control, mark] _ in
-            guard let control else { return }
-            let moved = undoing ? control.undoOwnStep(mark: mark) : control.redoOwnStep(mark: mark)
-            if moved { register(control, mark: mark, on: manager, undoing: !undoing) }
+        let step = TextUndoStep(control: control, manager: manager, undoing: undoing)
+        manager.registerUndo(withTarget: mark) { [step, mark] _ in
+            // The manager runs its steps on the main actor. The macOS 26 SDK's
+            // handler says so; the macOS 15 SDK's (the Command Line Tools')
+            // does not, and is `@Sendable` besides — hence the step, which
+            // asserts as much, rather than the control and the manager
+            // captured here.
+            MainActor.assumeIsolated { step.run(mark: mark) }
         }
         if needsGroup { manager.endUndoGrouping() }
     }
@@ -108,7 +113,8 @@ package enum TextUndoBridge {
     /// all, and leaves its steps to ``DepartedUndoSteps``.
     package static func forget(_ marks: [TextUndoMark], on manager: UndoManager) {
         guard !marks.isEmpty else { return }
-        MainActor.assumeIsolated { removeActions(of: marks, from: manager) }
+        let manager = MainActorUndoManager(manager)
+        MainActor.assumeIsolated { removeActions(of: marks, from: manager.manager) }
     }
 
     @MainActor
@@ -161,5 +167,33 @@ package final class DepartedUndoSteps: @unchecked Sendable {
         swap(&taken, &pending)
         lock.unlock()
         for (marks, manager) in taken { TextUndoBridge.removeActions(of: marks, from: manager) }
+    }
+}
+
+/// One step a text control registered with the undo manager: the control,
+/// held weakly so a step can neither keep one alive nor reach one that is
+/// gone, the manager its inverse goes back to, and which way it moves.
+///
+/// `@unchecked Sendable` because the macOS 15 SDK's `registerUndo` handler is
+/// `@Sendable` and the control and the manager are not; the step is only ever
+/// run on the main actor (``TextUndoBridge``), which the macOS 26 SDK states.
+private final class TextUndoStep: @unchecked Sendable {
+    weak var control: (any AppUndoableText)?
+    let manager: UndoManager
+    let undoing: Bool
+
+    init(control: any AppUndoableText, manager: UndoManager, undoing: Bool) {
+        self.control = control
+        self.manager = manager
+        self.undoing = undoing
+    }
+
+    /// Takes the control one state back (or forward), and registers the
+    /// opposite step.
+    @MainActor
+    func run(mark: TextUndoMark) {
+        guard let control else { return }
+        let moved = undoing ? control.undoOwnStep(mark: mark) : control.redoOwnStep(mark: mark)
+        if moved { TextUndoBridge.register(control, mark: mark, on: manager, undoing: !undoing) }
     }
 }

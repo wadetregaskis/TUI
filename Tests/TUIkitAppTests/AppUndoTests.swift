@@ -35,7 +35,14 @@ struct AppUndoTests {
         let old = model.value
         model.value = value
         manager.beginUndoGrouping()
-        manager.registerUndo(withTarget: model) { [self] model in self.set(model, to: old, on: manager) }
+        // The manager runs the handler on the main actor; the macOS 15 SDK's
+        // handler is only `@Sendable`, so the manager and the model cross into
+        // it as the framework's do (`MainActorUndoManager`).
+        let reference = MainActorUndoManager(manager)
+        manager.registerUndo(withTarget: model) { [self] model in
+            nonisolated(unsafe) let model = model
+            MainActor.assumeIsolated { self.set(model, to: old, on: reference.manager) }
+        }
         manager.endUndoGrouping()
     }
 
