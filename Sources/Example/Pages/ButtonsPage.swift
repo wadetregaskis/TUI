@@ -47,6 +47,16 @@ struct ButtonsPage: View {
     @State private var clickCount: Int = 0
     @State private var tintToggle: Bool = true
 
+    /// The appearance the looks section draws its buttons in, by id — empty
+    /// for the app's own (the Theme page's picker, or the appearance key).
+    @State private var looksAppearance = ""
+
+    /// The app's appearance, which the looks section uses until another is
+    /// picked — read so the modifier can always be written, rather than
+    /// written only when something was picked, which would swap the section's
+    /// identity and with it every `@State` below.
+    @Environment(\.appearance) private var appAppearance
+
     /// Which focus affordance the two links below use. Off is the default a
     /// `Link` ships with — the words themselves breathe, and nothing is
     /// reserved beside them, which is what lets a link sit inside a sentence.
@@ -138,6 +148,73 @@ struct ButtonsPage: View {
             themeableText
             linksSection
         }
+    }
+
+    // MARK: - Looks
+
+    /// One button at every control size (rows) and border shape (columns),
+    /// under the appearance picked: the three axes a bordered button's face is
+    /// drawn from. `.controlSize(_:)` and `.buttonBorderShape(_:)` are
+    /// SwiftUI's; the appearance is TUIkit's, and chooses the family —
+    /// lines, solid blocks, Braille dots, or the label alone.
+    @ViewBuilder
+    private var looksSection: some View {
+        DemoSection("page.buttons.section.looks") {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("page.buttons.looks.description")
+                    .foregroundStyle(.palette.foregroundSecondary)
+                Picker("page.buttons.looks.appearance", selection: $looksAppearance) {
+                    Text("page.buttons.looks.appAppearance").tag("")
+                    ForEach(AppearanceRegistry.all, id: \.id) { appearance in
+                        Text(appearance.localizedName).tag(appearance.id)
+                    }
+                }
+                Grid(alignment: .leading, horizontalSpacing: 2, verticalSpacing: 1) {
+                    GridRow {
+                        Text("")
+                        looksHeading("page.buttons.looks.shape.capsule")
+                        looksHeading("page.buttons.looks.shape.rounded")
+                        looksHeading("page.buttons.looks.shape.square")
+                        looksHeading("page.buttons.looks.shape.circle")
+                        looksHeading("page.buttons.looks.shape.brackets")
+                    }
+                    ForEach(Self.looksSizes, id: \.key) { size in
+                        GridRow(alignment: .center) {
+                            looksHeading(size.key)
+                            looksButton("page.buttons.save", .capsule, size.size)
+                            looksButton("page.buttons.save", .roundedRectangle, size.size)
+                            looksButton("page.buttons.save", .roundedRectangle(radius: 0), size.size)
+                            // A circle is as wide as it is tall: one glyph.
+                            looksButton("+", .circle, size.size)
+                            looksButton("page.buttons.save", .brackets("<", ">"), size.size)
+                        }
+                    }
+                }
+                .appearance(AppearanceRegistry.appearance(withId: Appearance.ID(rawValue: looksAppearance)) ?? appAppearance)
+            }
+        }
+    }
+
+    /// The control sizes, smallest first, with the key naming each.
+    private static let looksSizes: [(key: String, size: ControlSize)] = [
+        ("page.buttons.looks.size.mini", .mini),
+        ("page.buttons.looks.size.small", .small),
+        ("page.buttons.looks.size.regular", .regular),
+        ("page.buttons.looks.size.large", .large),
+        ("page.buttons.looks.size.extraLarge", .extraLarge),
+    ]
+
+    /// A row's or a column's name, in the quiet caption colour.
+    private func looksHeading(_ key: String) -> some View {
+        Text(L(key)).foregroundStyle(.palette.foregroundSecondary)
+    }
+
+    /// One sample: a bordered button of `shape` at `size`, counted like the
+    /// others on the page.
+    private func looksButton(_ key: String, _ shape: ButtonBorderShape, _ size: ControlSize) -> some View {
+        Button(L(key)) { clickCount += 1 }
+            .buttonBorderShape(shape)
+            .controlSize(size)
     }
 
     @ViewBuilder
@@ -500,6 +577,8 @@ struct ButtonsPage: View {
                     compositionColumn
                 }
             }
+
+            looksSection
 
             hyperlinkSection
 
