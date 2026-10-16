@@ -843,6 +843,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        let context = RowSelectionIndicator.resolvingForTable(context)
         if let style = customStyle(context.environment) {
             return style.measureBody(
                 configuration: TableStyleConfiguration(table: AnyView(self)), proposal: proposal,
@@ -1159,6 +1160,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var context = RowSelectionIndicator.resolvingForTable(context)
         if let style = customStyle(context.environment) {
             return style.makeBuffer(
                 configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
@@ -1169,7 +1171,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // the finished buffer is painted with it at the end. Taken AFTER the
         // prepared table hands over, which renders in this same context and
         // would otherwise lift its surface off this one's.
-        let (context, surface) = CollectionSurface.drawing(context, when: context.environment.tableStyle.builtInChrome == .surface)
+        let surface: CollectionSurface?
+        (context, surface) = CollectionSurface.drawing(context, when: context.environment.tableStyle.builtInChrome == .surface)
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
         // The enabled selection scopes filed before the cells are drawn: any

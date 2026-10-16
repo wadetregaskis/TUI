@@ -463,6 +463,10 @@ struct ScrollWindowHoldTests {
                     Table(items, selection: .constant(Int?.none)) {
                         TableColumn("Name", value: \Row.tallName).lineLimit(2)
                     }
+                    // The width the rows' wrapping was laid out for: two cells
+                    // narrower, a renamed row's longer id wraps so that its
+                    // second line reads as a row of its own to `listedRows`.
+                    .rowSelectionIndicator(.visible)
                     .anchorPosition(anchor))
             }
         }

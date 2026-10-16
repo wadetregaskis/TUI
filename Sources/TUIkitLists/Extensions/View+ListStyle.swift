@@ -95,8 +95,12 @@ extension View {
     /// draws its mark in the pad cell its rows already had and so has nothing
     /// to give back.
     ///
-    /// - Parameter visibility: `.hidden` to leave the mark off; `.automatic`
-    ///   (the default) or `.visible` to draw it.
+    /// Left `.automatic`, a `List` draws the mark, and a `Table` draws it only
+    /// where colour cannot show the selection — a terminal with no colour —
+    /// keeping its two cells for its columns everywhere else.
+    ///
+    /// - Parameter visibility: `.hidden` to leave the mark off; `.visible` to
+    ///   draw it; `.automatic` (the default) as above.
     /// - Returns: A view with the row-selection-indicator visibility set on its
     ///   environment.
     public func rowSelectionIndicator(_ visibility: Visibility) -> some View {

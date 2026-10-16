@@ -18,7 +18,11 @@ extension EnvironmentValues {
     /// Whether a `List` or `Table` marks its selected row with a `●` in the
     /// gutter, in addition to the background highlight.
     ///
-    /// - `.automatic` (default) and `.visible`: the mark is drawn, subject to
+    /// - `.automatic` (default): a `List` draws the mark; a `Table` draws it
+    ///   only where colour cannot show the selection — a terminal with no
+    ///   colour at all — and gives its two cells back otherwise
+    ///   (`RowSelectionIndicator.resolvingForTable(_:)`).
+    /// - `.visible`: the mark is drawn, subject to
     ///   ``unfocusedSelectionVisibility``.
     /// - `.hidden`: it is not, and the highlight alone says which row is
     ///   selected. For a table of glyphs — where every row already begins with
@@ -31,7 +35,7 @@ extension EnvironmentValues {
     /// back — its mark goes in the one pad cell its rows already had.
     ///
     /// Set via ``View/rowSelectionIndicator(_:)``.
-    var rowSelectionIndicator: Visibility {
+    package var rowSelectionIndicator: Visibility {
         get { self[RowSelectionIndicatorKey.self] }
         set { self[RowSelectionIndicatorKey.self] = newValue }
     }

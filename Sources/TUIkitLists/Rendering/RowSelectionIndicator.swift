@@ -124,6 +124,19 @@ package struct RowSelectionIndicator: Equatable {
     /// when the answer is a space.
     var isBlank: Bool { glyph == " " }
 
+    /// `context` with a `Table`'s answer for an ``EnvironmentValues/rowSelectionIndicator``
+    /// left `.automatic`: no mark where colour can show the selection — the
+    /// highlight says which rows are selected, and the mark's two cells go
+    /// back to the columns — and the mark where it cannot, a terminal with no
+    /// colour at all, where nothing else tells a selected row from the rest.
+    /// A `List`'s mark costs it no cells, so a list keeps it.
+    package static func resolvingForTable(_ context: RenderContext) -> RenderContext {
+        guard context.environment.rowSelectionIndicator == .automatic else { return context }
+        var context = context
+        context.environment.rowSelectionIndicator = ColorDepth.current == .noColor ? .visible : .hidden
+        return context
+    }
+
     /// Whether a control should set cells aside for the mark at all.
     ///
     /// A control with no selection binding has nothing to mark, and one told

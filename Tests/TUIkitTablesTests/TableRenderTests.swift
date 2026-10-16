@@ -168,7 +168,8 @@ struct TableRenderTests {
             Table(sampleRows, selection: .constant("2")) {
                 TableColumn("Name", value: \Row.name)
                 TableColumn("Size", value: \Row.size)
-            },
+            }
+            .rowSelectionIndicator(.visible),
             context: tableContext(width: 30, height: 8)
         )
         let stripped = buffer.lines.map { $0.stripped }

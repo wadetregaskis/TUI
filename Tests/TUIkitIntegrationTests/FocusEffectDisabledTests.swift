@@ -533,6 +533,7 @@ struct FocusEffectDisabledTests {
         ) {
             TableColumn("Name", value: \SweepRow.name)
         }
+        .rowSelectionIndicator(.visible)
         .frame(width: 24, height: 5)
         expectDistinguishable(table, "Table")
         expectIndistinguishable(table, "Table")

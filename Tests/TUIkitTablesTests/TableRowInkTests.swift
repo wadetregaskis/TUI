@@ -270,7 +270,7 @@ struct TableRowInkTests {
         var context = makeRenderContext(width: 40, height: 10)
         context.environment.listRowEditRestrictions = RowEditRestrictions()
         let buffer = ColorDepth.withCurrent(.truecolor) {
-            renderToBuffer(table.tableStyle(.inset), context: context)
+            renderToBuffer(table.tableStyle(.inset).rowSelectionIndicator(.visible), context: context)
         }
         // Cell by cell, as every row was before the ink was shared: the blank
         // selection mark states its colour and closes, and so does each of the

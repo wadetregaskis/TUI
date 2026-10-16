@@ -139,6 +139,7 @@ struct SelectableRowAlphaTests {
     func bandedClaimsStartPastTheGutter() {
         let drawn = buffer(
             table(.constant([]))
+                .rowSelectionIndicator(.visible)
                 .foregroundStyle(
                     LinearGradient(
                         colors: [Color.rgb(200, 40, 40).opacity(0.5), Color.rgb(40, 40, 200)],

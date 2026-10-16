@@ -42,10 +42,14 @@ struct TableNoSelectionTests {
         enum Kind {
             /// `Table(_:columns:)` — no selection binding at all.
             case plain
-            /// `Table(_:selection:columns:)`, nothing selected.
+            /// `Table(_:selection:columns:)`, nothing selected, its mark asked
+            /// for — where colour can show the selection, a table leaves it
+            /// off unless told otherwise.
             case selectable
             /// Selectable, but told to leave the mark off.
             case markHidden
+            /// Selectable, the mark left to the table (`.automatic`).
+            case markAutomatic
         }
 
         func render(_ kind: Kind) -> FrameBuffer {
@@ -60,8 +64,9 @@ struct TableNoSelectionTests {
                         Table(rows.map(Row.init)) {
                             TableColumn("Name", value: \.name)
                         })
-                case .selectable: AnyView(selectable)
+                case .selectable: AnyView(selectable.rowSelectionIndicator(.visible))
                 case .markHidden: AnyView(selectable.rowSelectionIndicator(.hidden))
+                case .markAutomatic: AnyView(selectable)
                 }
             var context = RenderContext(
                 availableWidth: 22, availableHeight: 9, environment: env, tuiContext: tui)
@@ -129,6 +134,19 @@ struct TableNoSelectionTests {
                     "\(kind) \(label): the border, its pad, and then the value")
             }
         }
+    }
+
+    /// Left to itself, a table marks its selection with the highlight alone
+    /// wherever colour can show it, and gives the mark's two cells back to its
+    /// columns; on a terminal with no colour, the mark is all there is to tell
+    /// a selected row by, and it keeps it.
+    @Test("Left to itself, it marks the selection only where colour cannot")
+    func automaticMarkFollowsColour() {
+        let fixture = Fixture()
+        let coloured = ColorDepth.withCurrent(.truecolor) { fixture.render(.markAutomatic).lines.map(\.stripped) }
+        #expect(indent(of: "alpha", in: coloured) == 2, "the border, its pad, and then the value")
+        let plain = ColorDepth.withCurrent(.noColor) { fixture.render(.markAutomatic).lines.map(\.stripped) }
+        #expect(indent(of: "alpha", in: plain) == 4, "the border, its pad, the mark's cell, the gap after it")
     }
 
     /// Where `label` starts on whichever line carries it, or `nil` if no line

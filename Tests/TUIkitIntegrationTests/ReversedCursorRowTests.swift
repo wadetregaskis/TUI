@@ -95,9 +95,12 @@ struct ReversedCursorRowTests {
                     ForEach(0..<3, id: \.self) { Text("row \($0)") }
                 }
             case .table:
+                // The mark asked for: these tests are about it, and a table left
+                // to itself draws none where colour shows the selection.
                 Table(ReversedCursorRowTests.rows, selection: .constant(selection)) {
                     TableColumn("Name") { Text(verbatim: $0.name) }
                 }
+                .rowSelectionIndicator(.visible)
             }
         }
 
