@@ -49,9 +49,14 @@ struct FocusPage: View {
                         .focusSection("focus-section-b")
                     }
 
+                    // One line, cut in the middle: a control given no
+                    // `.focusID` is known by its identity path, which is as long
+                    // as the view tree is deep.
                     ValueDisplayRow(
                         "page.focus.focusedID",
                         focusManager?.currentFocusedID ?? "—")
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             }
 
