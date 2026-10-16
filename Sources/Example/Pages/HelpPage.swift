@@ -75,9 +75,14 @@ struct HelpPage: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.help.samplesDescription")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    // Three rows apart, the height of a one-line panel, so under
-                    // "Always" each panel has room directly below its view.
-                    VStack(alignment: .leading, spacing: 3) {
+                    // Packed as a page would pack them. Help changes no layout:
+                    // a panel is drawn over the page, and under "Always" the
+                    // panels find places beside their views that cover none of
+                    // the others (below, above, right or left), a panel with no
+                    // such place left out until its view is pointed at or
+                    // focused. Rows kept open for them were space the page
+                    // gave up whether or not a panel was showing.
+                    VStack(alignment: .leading, spacing: 1) {
                         Button("page.help.rebuild") {}
                             .help("page.help.rebuildHelp")
                         Toggle("page.help.verbose", isOn: $verbose)
