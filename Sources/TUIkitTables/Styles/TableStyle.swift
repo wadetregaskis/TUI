@@ -172,7 +172,10 @@ public struct BorderedTableStyle: TableStyle, Equatable {
 /// on the surface a `TabView`'s body is drawn on — one plane's step off what
 /// the table sits on — and the header on a step stronger still, its titles
 /// bold in the primary ink. Every other row stripes over that surface, as
-/// under every style.
+/// under every style, its stripe running from edge to edge, inset cell
+/// included. On a 256-colour terminal whose cube paints the header's step on
+/// the stripe's entry, the header takes a further step, or the tone the
+/// table sits on, so it never reads as one more striped row.
 ///
 /// SwiftUI has no such style: a macOS table needs none, its window drawing a
 /// table's rows on a field of their own. Whether TUIkit's default should look

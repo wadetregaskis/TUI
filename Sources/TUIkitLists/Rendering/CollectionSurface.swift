@@ -38,11 +38,38 @@ package struct CollectionSurface: Equatable {
     /// Where the text would read worse there than ``isReadable(_:in:)``
     /// allows, the header sits on what the collection sits on instead: a band
     /// the rows are lifted from, still a tone of its own.
+    ///
+    /// And it is checked against the rows as painted: the header has to be told
+    /// from the rows AND from their stripe, which a coarse terminal can paint on
+    /// the very entry the header's step lands on (measured: Green's, Homebrew's,
+    /// Man Page's and Silver Aerogel's on the 256-colour cube, where the header
+    /// read as one more striped row; on sixteen colours most palettes' step
+    /// lands on the rows' own grey). So the step is the first of the header's
+    /// step, a second step, and what the collection sits on that is readable
+    /// and painted on an entry of its own; where none is, it is as before.
     init(_ environment: EnvironmentValues) {
-        let palette = environment.palette
         body = environment.liftedSurface
+        header = Self.headerTone(over: body, in: environment)
+    }
+
+    /// The tone the header sits on, over rows on `body` — see ``init(_:)``.
+    private static func headerTone(over body: Color, in environment: EnvironmentValues) -> Color {
+        let palette = environment.palette
         let stronger = palette.lifted(from: body).resolve(with: palette)
-        header = Self.isReadable(stronger, in: environment) ? stronger : environment.enclosingSurface
+        let fallback = isReadable(stronger, in: environment) ? stronger : environment.enclosingSurface
+        let depth = ColorDepth.current
+        guard depth > .noColor else { return fallback }
+        let rows = body.downsampled(to: depth)
+        let stripe = palette.stripeFill(over: body, at: depth)?.downsampled(to: depth)
+        func standsApart(_ tone: Color) -> Bool {
+            let shown = tone.downsampled(to: depth)
+            return shown != rows && shown != stripe && isReadable(tone, in: environment)
+        }
+        if standsApart(stronger) { return stronger }
+        let further = palette.lifted(from: stronger).resolve(with: palette)
+        if standsApart(further) { return further }
+        if standsApart(environment.enclosingSurface) { return environment.enclosingSurface }
+        return fallback
     }
 
     /// Whether the palette's text reads on `tone` as the terminal paints both

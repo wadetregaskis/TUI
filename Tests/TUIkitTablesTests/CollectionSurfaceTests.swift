@@ -169,4 +169,30 @@ struct CollectionSurfaceTests {
             }
         }
     }
+
+    @Test(
+        "The header's tone is told from the rows' and from their stripe, as painted",
+        arguments: [ColorDepth.truecolor, .palette256, .basic16])
+    func headerStandsApart(depth: ColorDepth) throws {
+        var clashes: [String] = []
+        for palette in Self.statedPalettes {
+            var environment = EnvironmentValues()
+            environment.palette = palette
+            let (tones, stripe) = withColorDepth(depth) {
+                let tones = CollectionSurface(environment)
+                return (tones, palette.stripeFill(over: tones.body, at: depth))
+            }
+            let header = try #require(Self.painted(tones.header, at: depth))
+            let body = try #require(Self.painted(tones.body, at: depth))
+            // Sixteen colours have four greys, and on most palettes the rows,
+            // the page and every readable step land on one of them: the header
+            // keeps its tone there only where one stands apart. It must never
+            // read as a striped row, at any depth.
+            if header == body, depth > .basic16 { clashes.append("\(palette.name): header = rows") }
+            if let stripe, let painted = Self.painted(stripe, at: depth), painted == header {
+                clashes.append("\(palette.name): header = stripe")
+            }
+        }
+        #expect(clashes.isEmpty, "at \(depth): \(clashes)")
+    }
 }
