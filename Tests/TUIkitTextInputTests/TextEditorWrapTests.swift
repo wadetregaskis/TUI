@@ -158,7 +158,11 @@ struct TextEditorWrapTests {
         harness.mouse(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
         #expect(harness.frame(page).lines.first?.stripped.hasPrefix("cccc") == true)
         #expect(handler.selectedText(try #require(handler.selectionRange)) == "cccc dd")
-        // A Shift-click there is a selection's end too.
+        // A Shift-click there is a selection's end too. The click before it
+        // comes a second after the drag's press, a cell from it, so that it
+        // is not a double-click, which would select a word.
+        harness.syncEventClock()
+        harness.now += 1_000_000_000
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 2))
         harness.mouse(MouseEvent(button: .left, phase: .released, x: 2, y: 2))
         harness.frame(page)

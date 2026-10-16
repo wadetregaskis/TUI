@@ -20,6 +20,10 @@ import TUIkitFoundation
 ///   ``TextFieldHandler/characterIndex(forColumn:contentWidth:displayWidths:)``),
 /// - and begins a selection anchored there; dragging extends it.
 ///
+/// A double-click selects the word clicked and a triple-click the paragraph
+/// (``TextFieldHandler/range(of:around:)``), and a drag after either extends
+/// by words or paragraphs.
+///
 /// Shift-click extends the existing selection to the clicked column instead of
 /// starting a new one. The hover state machine (``entered`` / ``exited``) rides
 /// on the same region. Selection highlighting is handled by the content
@@ -160,10 +164,15 @@ enum TextFieldMouseHandler {
                     }
                     return true
                 }
+                handler.multiClickRun = nil
                 if event.shift {
                     // Shift-click: keep the anchor, extend to the clicked column.
                     handler.startOrExtendSelection()
                     placeHead(at: event)
+                } else if let granularity = TextSelectionGranularity(clickCount: event.clickCount) {
+                    // A double-click selects the word clicked, a triple-click
+                    // the paragraph; a drag after either extends by them.
+                    handler.selectRun(granularity, around: selectionEnd?(event).offset ?? caretOffset(event))
                 } else {
                     // Plain click: caret to the column and drop any selection.
                     // Don't anchor here — a drag anchors on its first .dragged
@@ -178,6 +187,8 @@ enum TextFieldMouseHandler {
                 }
                 return true
             case .dragged:
+                // After a multi-click, by its runs.
+                if handler.extendRun(to: selectionEnd?(event).offset ?? caretOffset(event)) { return true }
                 // The press was claimed, so this drag is bound to us: extend the
                 // selection to the dragged column, anchored at the press.
                 handler.startOrExtendSelection(from: handler.pressAnchor)

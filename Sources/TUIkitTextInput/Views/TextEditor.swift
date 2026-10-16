@@ -941,6 +941,9 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     /// caret at the clicked line/column (mapping the click through the current
     /// scroll offsets), and dragging extends a selection from the press point.
     /// Shift-click extends the existing selection instead of starting a new one.
+    /// A double-click selects the word clicked and a triple-click the line,
+    /// with its line break (``TextEditorHandler/range(of:around:)``), and a
+    /// drag after either extends by words or lines.
     @MainActor
     private func registerMouse(
         context: RenderContext, buffer: inout FrameBuffer, handler: TextEditorHandler,
@@ -1000,10 +1003,16 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
             switch event.phase {
             case .pressed where event.button == .left:
                 focusManager?.focus(id: focusID)
+                handler.multiClickRun = nil
                 if event.shift {
                     handler.pressAnchor = nil
                     handler.startOrExtendSelection()
                     placeCursor(at: event, asSelectionEnd: true)
+                } else if let granularity = TextSelectionGranularity(clickCount: event.clickCount) {
+                    // A double-click selects the word clicked, a triple-click
+                    // the line; a drag after either extends by them.
+                    placeCursor(at: event)
+                    handler.selectRun(granularity, around: handler.cursor)
                 } else {
                     // Plain click: place the caret and drop any selection. Do
                     // NOT anchor here — a collapsed anchor (anchor == cursor)
@@ -1022,6 +1031,11 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                 }
                 return true
             case .dragged:
+                if handler.multiClickRun != nil {
+                    placeCursor(at: event)
+                    _ = handler.extendRun(to: handler.cursor)
+                    return true
+                }
                 handler.startOrExtendSelection(from: handler.pressAnchor)
                 placeCursor(at: event, asSelectionEnd: true)
                 return true

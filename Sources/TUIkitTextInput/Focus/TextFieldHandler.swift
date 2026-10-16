@@ -165,6 +165,11 @@ final class TextFieldHandler: PersistedFocusable {
     /// on under `.upstream`. `nil` anchors a drag at the caret.
     var pressAnchor: Int?
 
+    /// The run a double- or triple-click selected, and what it is a run of,
+    /// for a drag after it to extend by (``extendRun(to:)``); `nil` after any
+    /// other press.
+    var multiClickRun: (granularity: TextSelectionGranularity, range: Range<Int>)?
+
     /// A selection's head that a drag or a Shift-click put on a vertical
     /// field's wrapped row's first character under `.upstream`, while the
     /// head is still there; `nil` otherwise. The caret rule reads that offset

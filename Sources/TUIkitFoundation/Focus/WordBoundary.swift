@@ -47,6 +47,26 @@ package enum WordBoundary {
         return character.isWhitespace ? .blank : .mark
     }
 
+    /// The run of one ``Kind`` around the character at `index` — a word, the
+    /// blanks between words, or a run of marks: what a double-click in a text
+    /// input selects. At the end of the text it is the run before, as a
+    /// double-click past the last word selects that word; a line break is a
+    /// run of its own, as `NSTextView` selects one alone (macOS 15.8).
+    package static func run(in characters: [Character], around index: Int) -> Range<Int> {
+        guard !characters.isEmpty else { return 0..<0 }
+        let index = min(max(0, index), characters.count - 1)
+        guard !characters[index].isNewline else { return index..<(index + 1) }
+        let wanted = kind(of: characters[index])
+        func extends(_ character: Character) -> Bool {
+            !character.isNewline && kind(of: character) == wanted
+        }
+        var start = index
+        while start > 0, extends(characters[start - 1]) { start -= 1 }
+        var end = index + 1
+        while end < characters.count, extends(characters[end]) { end += 1 }
+        return start..<end
+    }
+
     /// The index of the start of the word at or before `index`: skip any
     /// separator run, then the word run.
     ///

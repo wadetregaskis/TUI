@@ -355,6 +355,14 @@ pointer points at. Text the app means to be copied from the keyboard belongs in
 a ``TextField`` or ``TextEditor``, whose Shift-arrow selection and Ctrl-C are
 the keyboard's.
 
+Inside a text input a click places the caret and a drag selects, as in any
+text control. A double-click selects the word clicked — or the run of blanks
+or marks, or past the end the last word — and a triple-click the paragraph: a
+field's text, an editor's line with its line break. A drag after either
+extends by words or paragraphs, keeping what was clicked. A `SecureField`
+selects all of its text on a double-click, as macOS's does, since it shows no
+word breaks.
+
 ## Raw Events
 
 For full control, handle the raw event and return whether you consumed it.
