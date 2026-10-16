@@ -249,6 +249,8 @@ struct TextInputPage: View {
                 }
             }
 
+            ClipboardButtonsDemo()
+
             // MARK: Disabled
             DemoSection("page.textField.section.disabled") {
                 VStack(alignment: .leading, spacing: 1) {
