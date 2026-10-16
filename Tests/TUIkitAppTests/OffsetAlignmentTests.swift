@@ -32,17 +32,25 @@ struct OffsetAlignmentTests {
         return buffer.overlays.first?.offsetX
     }
 
+    /// Where a child with an offset of zero is drawn — in place, among its
+    /// siblings, as an offset of nothing displaces nothing — in the first line
+    /// of the buffer the container returned.
+    private func drawnX(_ view: some View, label: String) -> Int? {
+        let line = renderToBuffer(view, context: context()).lines.first?.stripped ?? ""
+        return line.range(of: label).map { line.distance(from: line.startIndex, to: $0.lowerBound) }
+    }
+
     private static let band = String(repeating: "▒", count: 28)
 
     @Test("An offset of zero leaves an aligned child exactly where alignment put it")
     func zeroOffsetDoesNotMove() {
         // Without the offset the label is centred by hand-checkable arithmetic:
         // 8 cells inside 28 leaves 10 either side.
-        let placed = floatedX(
+        let placed = drawnX(
             ZStack(alignment: .center) {
                 Text(verbatim: Self.band)
                 Text(verbatim: " on top ").offset(x: 0)
-            })
+            }, label: " on top ")
         #expect(placed == 10)
     }
 
@@ -58,11 +66,11 @@ struct OffsetAlignmentTests {
 
     @Test("Trailing alignment places an offset child by its own width too")
     func trailingAlignment() {
-        let placed = floatedX(
+        let placed = drawnX(
             ZStack(alignment: .trailing) {
                 Text(verbatim: Self.band)
                 Text(verbatim: " on top ").offset(x: 0)
-            })
+            }, label: " on top ")
         #expect(placed == 20)
     }
 

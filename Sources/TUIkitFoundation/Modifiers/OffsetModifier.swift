@@ -41,7 +41,11 @@ extension OffsetView: Renderable, Layoutable {
         // a gradient spans stays where the layout put it.
         let rendered = TUIkitView.renderToBuffer(
             content, context: context.isMeasuring ? context : context.placingChild(gradient: nil, x: x, y: y))
-        guard !context.isMeasuring else { return rendered }
+        // An offset of nothing draws the view where it is, in its place among
+        // its siblings: floated, it was drawn over every one of them —
+        // whatever their order and z-index — for a displacement of no cells,
+        // which an offset that animates back home always ends on.
+        guard !context.isMeasuring, x != 0 || y != 0 else { return rendered }
 
         // Paint NOTHING at the natural position (the terminal has no
         // transparency, so an in-place blank box would erase the layers
@@ -80,7 +84,8 @@ extension View {
     /// displaced content composites above sibling views rather than in its
     /// own z-position. In practice this matches the main uses — nudging
     /// decorations and floating transient effects (see the Mouse page's
-    /// drag-and-drop poof).
+    /// drag-and-drop poof). An offset of zero displaces nothing and draws the
+    /// view in its own place, in order among its siblings.
     ///
     /// - Parameters:
     ///   - x: Columns to shift right (negative shifts left).

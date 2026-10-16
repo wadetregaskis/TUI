@@ -57,4 +57,18 @@ struct OffsetModifierTests {
         #expect(out[0].contains("under"), "the layer beneath survived: \(out)")
         #expect(out[0].contains("XX"), "the offset view drew: \(out)")
     }
+
+    /// An offset of nothing is no displacement: the view draws in its place,
+    /// in order among its siblings. Floated, it was drawn over every one of
+    /// them — here over the later sibling that should cover it — which an
+    /// offset animating back home always ends on.
+    @Test("A zero offset draws the view in its own place, under a later sibling")
+    func zeroOffsetDrawsInPlace() {
+        let out = composited(
+            ZStack(alignment: .leading) {
+                Text("AAAA").offset(x: 0, y: 0)
+                Text("BB")
+            })
+        #expect(out.first?.hasPrefix("BBAA") == true, "the later sibling is on top: \(out)")
+    }
 }

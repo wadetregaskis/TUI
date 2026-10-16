@@ -62,8 +62,13 @@ struct AnimatableModifierTests {
             let storage = screen.context.environment.stateStorage!
             storage.beginRenderPass()
             defer { storage.endRenderPass() }
-            return renderToBuffer(Text("ab").offset(x: x), context: screen.context)
-                .overlays.first?.offsetX
+            let buffer = renderToBuffer(Text("ab").offset(x: x), context: screen.context)
+            // An offset of nothing is drawn in its own place, not floated: no
+            // layer, and the text in the buffer's own lines.
+            guard let layer = buffer.overlays.first else {
+                return buffer.lines.first?.stripped.hasPrefix("ab") == true ? 0 : nil
+            }
+            return layer.offsetX
         }
 
         #expect(column(0, atMillis: 0) == 0)
