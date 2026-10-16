@@ -423,7 +423,6 @@ final class TextEditorHandler: PersistedFocusable {
         case .yank: yank()
         case .transpose: transpose()
         case .openLine: openLine()
-        case .pageDown: movePage(by: 1)
         case .selectAll: selectAll()
         case .moveWordBackward, .moveWordBackwardAndModifySelection: moveWordLeft()
         case .moveWordForward, .moveWordForwardAndModifySelection: moveWordRight()
@@ -467,7 +466,7 @@ final class TextEditorHandler: PersistedFocusable {
     /// neither, so a multi-line paste collapsed onto one row with literal
     /// carriage returns baked into the bound string. Normalise every
     /// convention (CRLF, lone CR, lone LF) to `\n` before splitting.
-    private func insert(_ string: String) {
+    func insert(_ string: String) {
         var lines = readLines()
         // Character-level: CRLF is ONE Character, so both it and a lone CR
         // compare directly. (No Foundation here, deliberately.)

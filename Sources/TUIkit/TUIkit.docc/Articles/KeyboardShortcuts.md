@@ -287,11 +287,11 @@ not bind would, and Layer 3.5 fires your button.
 | ⌃T | Transpose the characters around the caret | Yours |
 | ⌃P, ⌃N | `TextEditor`: previous, next line | Yours |
 | ⌃O | `TextEditor`: open a line after the caret | Yours |
-| ⌃V | `TextEditor`: page down | Yours |
 | ⌃⌥A | Select all | The control's |
 | ⌃C, ⌃X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours. While a mouse selection is on the screen, ⌃C copies that instead, until the control takes a key |
 | ⌃Z | Undo | The control's |
-| ⌃V, ⌃U | A field's paste and erase | The field's |
+| ⌃V | Paste, in a field or a `TextEditor` | The control's |
+| ⌃U | A field's erase | The field's |
 
 A chord gives way when what it does can be done some other way in that
 control, and keeps the key when it is the only way. Select-all has no other key

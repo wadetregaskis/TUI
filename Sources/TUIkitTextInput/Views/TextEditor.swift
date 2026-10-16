@@ -33,7 +33,7 @@ import TUIkitFoundation
 /// | Ctrl-Y | Yank the last kill |
 /// | Ctrl-T | Transpose the two characters around the cursor |
 /// | Ctrl-O | Open a new line after the cursor |
-/// | Ctrl-V | Page down |
+/// | Ctrl-V | Paste |
 /// | Ctrl-C / Ctrl-X | Copy / cut the selection (with nothing selected, the key passes on) |
 /// | Ctrl-Z | Undo the last change |
 /// | Ctrl-Shift-Z | Redo, where the terminal tells it from Ctrl-Z (the kitty keyboard protocol) |
@@ -44,18 +44,17 @@ import TUIkitFoundation
 ///
 /// ``TextField`` and ``SecureField`` read the Emacs chords from the same
 /// table, and they differ where a field is one line with a keyboard selection.
-/// There, Ctrl-V pastes, Ctrl-U erases the field, and Ctrl-O, Ctrl-P and
-/// Ctrl-N do nothing. Ctrl-D
+/// There, Ctrl-U erases the field, and Ctrl-O, Ctrl-P and Ctrl-N do nothing. Ctrl-D
 /// deletes a field's selection and Ctrl-Y replaces it, where the editor drops
 /// its selection before any Emacs chord and acts at the cursor. A field
 /// reads Option first, so Option-Ctrl-B and F move by a word in a field and by
 /// a character here.
 ///
-/// Ctrl-C, Ctrl-X and Ctrl-Z stand in for ⌘C, ⌘X and ⌘Z, which a terminal app
-/// never receives, as they do in a field. Copy and cut act on the selection;
-/// with nothing selected they pass the key on, so an app's ⌘C or ⌘X fires, or
-/// `QuitShortcut.ctrlC` quits. Paste arrives through the terminal's own paste,
-/// since Ctrl-V is the page down here. Each change is registered with the app's
+/// Ctrl-C, Ctrl-X, Ctrl-V and Ctrl-Z stand in for ⌘C, ⌘X, ⌘V and ⌘Z, which a
+/// terminal app never receives, as they do in a field. Copy and cut act on the
+/// selection; with nothing selected they pass the key on, so an app's ⌘C or ⌘X
+/// fires, or `QuitShortcut.ctrlC` quits. Ctrl-V pastes the clipboard over the
+/// selection, and the terminal's own paste arrives as well. Each change is registered with the app's
 /// undo manager (``EnvironmentValues/undoManager``), so Ctrl-minus and the
 /// status bar's "undo" take it back from anywhere, and Ctrl-Z is the app's
 /// undo, as ⌘Z is a window's on macOS. Each event's changes are one step there;

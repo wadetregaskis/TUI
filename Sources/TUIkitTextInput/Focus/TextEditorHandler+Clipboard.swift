@@ -10,21 +10,24 @@ import TUIkitFoundation
 // MARK: - Command-Key Stand-Ins
 
 extension TextEditorHandler {
-    /// The Command-key stand-in `event` is, among the three the editor binds:
-    /// copy, cut and undo. Read before anything else, and in particular before
-    /// a selection is dropped, because copy and cut act on it.
+    /// The Command-key stand-in `event` is, among the ones the editor binds:
+    /// copy, cut, paste, undo and redo. Read before anything else, and in
+    /// particular before a selection is dropped, because copy, cut and paste
+    /// act on it.
     ///
-    /// The editor binds only those three of a field's five. Ctrl-V stays the
-    /// Emacs page down it has always been here, and a paste reaches the editor
-    /// through the terminal's own paste. Ctrl-U, which erases a whole field,
-    /// is not bound: one chord erasing a whole document is a different thing.
+    /// Ctrl-V pastes here as it does in a field, the stand-in for ⌘V. It was
+    /// the Emacs page down, the one Emacs chord an editor kept over a field's
+    /// meaning, so the editor was the one text control in which Ctrl-V did
+    /// not paste; Page Down still pages, and no other chord was a convention
+    /// to move page down to. Ctrl-U, which erases a whole field, is not bound:
+    /// one chord erasing a whole document is a different thing.
     func standInCommand(for event: KeyEvent) -> StandInEditingCommand? {
         guard event.ctrl, case .character(let character) = event.key,
             let command = StandInEditingCommand(control: character, shift: event.shift)
         else { return nil }
         switch command {
-        case .copy, .cut, .undo, .redo: return command
-        case .paste, .erase: return nil
+        case .copy, .cut, .paste, .undo, .redo: return command
+        case .erase: return nil
         }
     }
 
@@ -45,7 +48,13 @@ extension TextEditorHandler {
                 deleteSelection(span)
             }
             return true
-        case .undo, .redo, .paste, .erase:
+        case .paste:
+            // Over the selection, as a typed key goes; the clipboard's line
+            // breaks kept, as the terminal's own paste keeps them.
+            if let span = selectionRange { deleteSelection(span) }
+            if let pasted = clipboard.read(), !pasted.isEmpty { insert(pasted) }
+            return true
+        case .undo, .redo, .erase:
             return false
         }
     }

@@ -290,11 +290,11 @@ struct GivingWayCase: Sendable, CustomTestStringConvertible {
         control("d", hosts: PrecedenceHost.allCases, edited: (field: "aXcd", editor: "aX\ncd")),
         control("k", hosts: PrecedenceHost.allCases, edited: (field: "aX", editor: "aX\ncd")),
         control("t", hosts: PrecedenceHost.allCases, edited: (field: "baXcd", editor: "baX\ncd")),
-        // The editor's own: a field has no other line to go to or open, and no
-        // page to go down.
+        // The editor's own: a field has no other line to go to or open. (Ctrl-V
+        // is the editor's paste, as it is a field's, and is kept: see
+        // `KeepingCase`.)
         control("n", hosts: [.textEditor], edited: (field: "", editor: "ab\ncXd")),
         control("o", hosts: [.textEditor], edited: (field: "", editor: "aX\nb\ncd")),
-        control("v", hosts: [.textEditor], edited: (field: "", editor: "ab\ncXd")),
         // Ctrl-K fills the kill ring first, so a yank that happened shows.
         Self(
             name: "Ctrl-Y", chord: ctrl("y"), shortcut: .command("y"), hosts: PrecedenceHost.allCases,

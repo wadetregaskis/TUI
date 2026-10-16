@@ -164,16 +164,15 @@ struct TextEditorUndoClipboardTests {
         #expect(box.text == "Sab", "the first editor's own undo")
     }
 
-    /// The editor binds three of a field's five stand-ins. Ctrl-V is still
-    /// the Emacs page down, and reads no clipboard; Ctrl-U is not bound.
-    @Test("Ctrl-V still pages down, and Ctrl-U is not the editor's")
-    func pasteAndEraseAreNotBound() {
+    /// Ctrl-V pastes, as ⌘V does and as it does in a field — the clipboard's
+    /// line breaks kept — and Ctrl-U, a field's erase, is not the editor's.
+    @Test("Ctrl-V pastes, and Ctrl-U is not the editor's")
+    func pasteIsBoundAndEraseIsNot() {
         let (editor, box, board) = makeEditor("ab\ncd")
-        board.contents = "PASTED"
+        board.contents = "P1\nP2"
         #expect(editor.handleKeyEvent(ctrl("v")))
-        #expect(box.text == "ab\ncd", "Ctrl-V pasted")
-        #expect(editor.cursor.line == 1, "Ctrl-V did not page down")
+        #expect(box.text == "P1\nP2ab\ncd", "Ctrl-V did not paste at the caret")
         #expect(!editor.handleKeyEvent(ctrl("u")))
-        #expect(box.text == "ab\ncd")
+        #expect(box.text == "P1\nP2ab\ncd")
     }
 }

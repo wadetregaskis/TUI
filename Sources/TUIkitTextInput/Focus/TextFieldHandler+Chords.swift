@@ -154,7 +154,7 @@ extension TextFieldHandler {
             extendSelectionToPreviousWordBoundary()
         case .moveWordForwardAndModifySelection:
             extendSelectionToNextWordBoundary()
-        case .moveToPreviousLine, .moveToNextLine, .openLine, .pageDown:
+        case .moveToPreviousLine, .moveToNextLine, .openLine:
             return false
         }
         return true

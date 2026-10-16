@@ -49,8 +49,6 @@ enum TextEditingCommand: Equatable {
     case transpose
     /// Ctrl-O: break the line after the caret and leave the caret where it is.
     case openLine
-    /// Ctrl-V: down a screenful.
-    case pageDown
     /// Option-Ctrl-A: select everything.
     case selectAll
     /// Option-B: back to the previous word boundary.
@@ -89,7 +87,6 @@ enum TextEditingCommand: Equatable {
         case "y", "Y": self = .yank
         case "t", "T": self = .transpose
         case "o", "O": self = .openLine
-        case "v", "V": self = .pageDown
         default: return nil
         }
     }
@@ -152,7 +149,7 @@ extension TextEditingCommand {
         case .moveToStartOfLine, .moveToEndOfLine:
             homeAndEndReachLineEnds
         case .moveBackward, .moveForward, .moveToPreviousLine, .moveToNextLine, .deleteForward,
-            .killToEndOfLine, .yank, .transpose, .openLine, .pageDown, .moveWordBackward,
+            .killToEndOfLine, .yank, .transpose, .openLine, .moveWordBackward,
             .moveWordForward, .moveWordBackwardAndModifySelection, .moveWordForwardAndModifySelection:
             true
         }
