@@ -100,6 +100,20 @@ struct ListSeparatorTests {
         #expect(tinted.contains(red + "─"), "\(tinted.debugDescription) has no \(red.debugDescription)")
     }
 
+    /// A separator is between rows, not part of one: the selected row's fill
+    /// stops at its content, and the rule under it is drawn on the list's
+    /// ground, as the rule under any other row is.
+    @Test("A selected row's fill does not run on over the rule under it")
+    func ruleIsNotSelected() {
+        let list = List(selection: .constant(Optional("a"))) {
+            ForEach(Self.names, id: \.self) { Text($0) }
+        }
+        .listRowSeparator(.visible)
+        let rules = buffer(list).lines.filter { $0.stripped.contains("─") }
+        #expect(rules.count == 2, "\(buffer(list).lines.map(\.stripped))")
+        #expect(rules.first == rules.last, "the selected row's rule is painted apart: \(rules.map(\.debugDescription))")
+    }
+
     @Test("A section's separators are the lines under its header and under its last row")
     func sections() {
         let list = List {

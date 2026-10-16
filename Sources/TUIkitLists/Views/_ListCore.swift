@@ -4187,10 +4187,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             : 0..<0
 
         /// The mark, the badge and the fill this row owes, per line (``rowClaims(over:lines:rowWidth:indicator:badgeColumns:badgeInk:)``).
+        /// Over every line but a separator's, which is drawn on the list's
+        /// own ground (below).
         func claims(over backgroundColor: Color?) -> [OpacityRegion] {
             Self.rowClaims(
-                over: backgroundColor, lines: row.buffer.lines.count, rowWidth: rowWidth,
-                indicator: indicator, badgeColumns: badgeColumns, badgeInk: badgeInk)
+                over: backgroundColor, lines: row.buffer.lines.count - (row.content.separatorLine == nil ? 0 : 1),
+                rowWidth: rowWidth, indicator: indicator, badgeColumns: badgeColumns, badgeInk: badgeInk)
         }
 
         /// The row's content, with its fades spent against the fill the row paints
@@ -4202,10 +4204,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// point of a pulse for the runs that replay it.
         func lines(over backgroundColor: Color?) -> [String] {
             content.lines(over: backgroundColor).enumerated().map { lineIndex, line in
-                // The separator's line: the rule across the content's width.
+                // The separator's line: the rule across the content's width, on
+                // the list's own ground, whatever the row's fill. A separator
+                // is between rows, not part of one: painted in the row's fill,
+                // a selected or focused row's highlight ran on over the rule
+                // under it, and read as a row a line taller than its content.
                 if let separator = row.content.separatorLine, lineIndex == row.buffer.lines.count - 1 {
                     let rule = separator.drawn(width: max(0, rowWidth - listRowGutter), palette: palette)
-                    return renderPlainLine(line: rule, rowWidth: rowWidth, backgroundColor: backgroundColor, gutter: " ")
+                    return renderPlainLine(line: rule, rowWidth: rowWidth, backgroundColor: nil, gutter: " ")
                 }
                 if shouldRenderBadge && lineIndex == 0 {
                     return renderLineWithBadge(
