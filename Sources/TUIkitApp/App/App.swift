@@ -899,7 +899,8 @@ extension AppRunner {
                     // The notice went out behind the diff writer's back.
                     renderer.forgetTerminalStyling()
                 }
-                if inputHandler.handle(keyEvent) {
+                let silencedTooltip = inputHandler.silencePointerTooltip(for: keyEvent)
+                if inputHandler.handle(keyEvent) || silencedTooltip {
                     appState.setNeedsRender()
                 }
 

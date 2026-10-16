@@ -145,6 +145,17 @@ internal struct InputHandler {
 // MARK: - Internal API
 
 extension InputHandler {
+    /// Sends the pointer's tooltip away for a key going down — any but the
+    /// help key, which reveals the focused view's instead
+    /// (`TooltipState.noteKeyPress()`).
+    ///
+    /// - Returns: Whether one went, so the frame that takes it away is drawn
+    ///   whether or not anything takes the key.
+    func silencePointerTooltip(for event: KeyEvent) -> Bool {
+        guard event.phase != .release, let tooltipState, event.key != tooltipState.helpKey else { return false }
+        return tooltipState.noteKeyPress()
+    }
+
     /// Dispatches a key event through the five-layer priority chain.
     ///
     /// - Parameter event: The key event to handle.

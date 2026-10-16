@@ -153,7 +153,11 @@ public final class TooltipState: @unchecked Sendable {
 
     /// The pointer's candidate as a frame shows it: the one ``held`` through
     /// the bar's reflow, or else the one the pointer is over.
-    private var pointerCandidate: Candidate? { held ?? hovered }
+    private var pointerCandidate: Candidate? { pointerSilenced ? nil : held ?? hovered }
+
+    /// Whether a key has sent the pointer's tooltip away until the pointer
+    /// moves (``noteKeyPress()``).
+    private var pointerSilenced = false
 
     /// The focused view's candidate: the one the focused control last
     /// published. Kept across walks; see the type's discussion.
@@ -311,8 +315,28 @@ public final class TooltipState: @unchecked Sendable {
     /// - Returns: Whether one was let go: the frame that takes it away is
     ///   owed, and nothing else may ask for it.
     package func notePointerMoved() -> Bool {
-        guard held != nil else { return false }
+        let wasSilenced = pointerSilenced
+        pointerSilenced = false
+        guard held != nil else { return wasSilenced && hovered != nil }
         held = nil
+        return true
+    }
+
+    /// Sends the pointer's tooltip away until the pointer moves to another
+    /// cell (``notePointerMoved()``), as a key press does on a Mac.
+    ///
+    /// A tooltip is help for the view the pointer rests on, and a reader who
+    /// has started typing or moving the focus is not reading it: kept, the
+    /// help of a toolbar button the pointer happened to rest on stayed in the
+    /// status bar while the keyboard worked somewhere else entirely. The
+    /// focused view's tooltip is not the pointer's and stays, as does the help
+    /// key's reveal, which this does not reach.
+    ///
+    /// - Returns: Whether a tooltip the pointer had, shown or pending, went:
+    ///   the frame that takes it away is owed.
+    package func noteKeyPress() -> Bool {
+        guard !pointerSilenced, held ?? hovered != nil else { return false }
+        pointerSilenced = true
         return true
     }
 
