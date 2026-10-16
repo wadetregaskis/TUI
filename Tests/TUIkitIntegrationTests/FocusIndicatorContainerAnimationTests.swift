@@ -192,9 +192,10 @@ struct FocusIndicatorContainerAnimationTests {
         expectAnimates(buffer, runs: 1, "table cursor row")
         let run = buffer.animatedCells[0]
         // Past the border and the column header vertically; past the border
-        // and the container's one cell of horizontal padding across.
+        // across, and no further: the row's inset cell is the row's, and
+        // breathes with it (`TableRowInset`).
         #expect(run.offsetY == 2)
-        #expect(run.offsetX == 2)
+        #expect(run.offsetX == 1)
         let pictures: Set<String> = Set(run.frames.map(\.stripped))
         #expect(pictures.count == 1, "the pulse changed the row's text")
     }

@@ -597,6 +597,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// `rowContentLeft` in `attachMouseHandlers`.
     static var containerPadding: EdgeInsets { EdgeInsets(horizontal: 1, vertical: 0) }
 
+    /// The padding the container is DRAWN with: ``containerPadding`` less the
+    /// leading cell, which the header and the rows draw themselves so a row's
+    /// fill reaches the table's edge (``TableRowInset``). The geometry is
+    /// ``containerPadding``'s either way.
+    static var drawnContainerPadding: EdgeInsets {
+        EdgeInsets(top: containerPadding.top, leading: 0, bottom: containerPadding.bottom, trailing: containerPadding.trailing)
+    }
+
     /// The gap between columns in a row that is riding the pointer.
     static var previewColumnSpacing: Int { 2 }
 
@@ -1083,14 +1091,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let container = ContainerView(
             title: nil,
             style: containerStyle(context.environment),
-            padding: Self.containerPadding
+            padding: Self.drawnContainerPadding
         ) {
             VStack(alignment: .leading, spacing: 0) {
                 // No claims on the analytic MEASURE path: it reports a size and draws
                 // nothing, and a claim describes cells that were never on screen.
                 _TableHeaderView(
                     line: headerLines(context.environment) > 0 ? headerLine : nil, claims: [])
-                _TableSizeStub(width: content.width, height: content.height)
+                // The rows' lines with the inset cell each draws (`TableRowInset`).
+                _TableSizeStub(width: content.height > 0 ? content.width + 1 : content.width, height: content.height)
             }
         }
         let measured = measureChild(
@@ -1266,7 +1275,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let container = ContainerView(
             title: nil,
             style: containerStyle(context.environment),
-            padding: Self.containerPadding
+            padding: Self.drawnContainerPadding
         ) {
             // `.leading`: the header sits left, over its columns. A focused/selected
             // row or a scroll indicator must never be wider than the other lines, or
@@ -6061,16 +6070,18 @@ private struct _TableContentView: View, Renderable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = FrameBuffer(lines: lines)
+        // The table's leading inset cell, drawn as part of each row
+        // (`TableRowInset`): everything here moves one cell along.
+        var buffer = FrameBuffer(lines: lines.map(TableRowInset.inset))
         // A measure pass draws nothing, so a run left on it would describe
         // cells that were never on screen — and keep the clock alive from a
         // pass that produced no frame. A claim on a measure buffer is harmless
         // by comparison, but it is the same statement about cells nobody drew.
         guard !context.isMeasuring else { return buffer }
-        buffer.animatedCells = runs
-        buffer.opacityRegions = claims
-        buffer.hitTestRegions = payload.hitTestRegions
-        buffer.overlays = payload.overlays
+        buffer.animatedCells = runs.map(TableRowInset.inset)
+        buffer.opacityRegions = claims.map(TableRowInset.inset)
+        buffer.hitTestRegions = payload.hitTestRegions.map { $0.shifted(byX: 1, y: 0) }
+        buffer.overlays = payload.overlays.map { $0.shifted(byX: 1, y: 0) }
         return buffer
     }
 }
@@ -6098,8 +6109,9 @@ private struct _TableHeaderView: View, Renderable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let line else { return FrameBuffer(lines: []) }
-        var buffer = FrameBuffer(lines: [line])
-        buffer.opacityRegions += claims
+        // The leading inset cell, as the rows draw it (`TableRowInset`).
+        var buffer = FrameBuffer(lines: [TableRowInset.inset(line)])
+        buffer.opacityRegions += claims.map(TableRowInset.inset)
         return buffer
     }
 }
