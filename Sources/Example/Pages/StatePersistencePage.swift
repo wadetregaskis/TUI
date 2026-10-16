@@ -91,6 +91,8 @@ struct StatePersistencePage: View {
                 }
             }
 
+            UndoDemo()
+
             DemoSection("page.state.bindableSection") {
                 // Derive Bindings into the @Observable model we already own.
                 let bindable = Bindable(settings)
