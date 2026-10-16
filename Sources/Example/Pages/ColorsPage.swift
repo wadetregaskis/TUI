@@ -187,6 +187,23 @@ struct ColorsPage: View {
                                     center: .center, angle: .zero)
                             }
                         }
+                        // A mesh: nine colours on a 3 × 3 grid of points, the
+                        // middle one pulled up and right so the colours bend
+                        // round it — a gradient no one-axis ramp can draw.
+                        GeometryBlock(name: "mesh") {
+                            MeshGradient(
+                                width: 3, height: 3,
+                                points: [
+                                    [0, 0], [0.5, 0], [1, 0],
+                                    [0, 0.5], [0.7, 0.3], [1, 0.5],
+                                    [0, 1], [0.5, 1], [1, 1],
+                                ],
+                                colors: [
+                                    .rgb(255, 80, 80), .rgb(255, 160, 60), .rgb(255, 230, 90),
+                                    .rgb(200, 60, 160), .rgb(240, 240, 240), .rgb(90, 220, 120),
+                                    .rgb(80, 80, 220), .rgb(60, 160, 255), .rgb(40, 200, 200),
+                                ])
+                        }
                     }
                 }
             }
