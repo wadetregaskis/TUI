@@ -338,6 +338,8 @@ struct ListPage: View {
             // Rows can be any height — a `List` measures each row's rendered
             // height and windows/scrolls by lines, so a two-line cell just works.
             // 12 items in an 8-row frame → it scrolls, with a scrollbar.
+            ListRowsDemo()
+
             DemoSection("page.list.multiLineSection") {
                 VStack(alignment: .leading, spacing: 0) {
                     // Line- vs row-centric scrolling, live: with two-line rows,
