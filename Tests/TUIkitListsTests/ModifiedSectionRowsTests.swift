@@ -11,7 +11,8 @@
 
 import Testing
 
-import TUIkit
+import TUIkitFoundation
+import TUIkitLists
 @testable import TUIkitTestSupport
 
 @MainActor
