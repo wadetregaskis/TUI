@@ -362,14 +362,18 @@ struct OverlaysPage: View {
         // A sheet beside the page rather than over it: docked at the bottom,
         // with the page laid out in the rows above and still live — up to
         // `.medium`; grown past it, the sheet is a modal again.
+        //
+        // Its content is plain, with its title as a heading: the grabber's rule
+        // is already the sheet's top edge, and a `Panel` under it drew a second
+        // one a row below — two rules where a sheet has one.
         .sheet(isPresented: $showLive) {
-            Panel("page.overlays.variants.liveSheetTitle") {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("page.overlays.variants.liveSheetBody")
-                    Button("button.close") { showLive = false }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
+            VStack(alignment: .leading, spacing: 1) {
+                Text("page.overlays.variants.liveSheetTitle").bold()
+                Text("page.overlays.variants.liveSheetBody")
+                Button("button.close") { showLive = false }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
+            .padding(.horizontal, 1)
             .presentationDetents([.height(8), .medium, .large])
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled(upThrough: .medium))
