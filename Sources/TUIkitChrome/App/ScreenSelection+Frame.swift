@@ -80,7 +80,7 @@ extension ScreenSelection {
         }
         current = selection
         guard selection.isHighlighted else { return buffer }
-        return Self.highlighting(selection, in: buffer, palette: palette)
+        return Self.highlighting(selection, in: buffer, palette: palette, pictures: buffer.hitTestRegions.pictureRects)
     }
 }
 
@@ -91,13 +91,21 @@ extension ScreenSelection {
     /// text inputs (``FieldTextLayout/selectionColors(palette:background:ink:)``), reverse video
     /// where the palette leaves the colours to the terminal.
     ///
+    /// Except a picture's cells (`pictures`, read off the frame's
+    /// `HitTestRegion.pictureCorners`): their glyphs and colours ARE the
+    /// picture — a solid style's pixels are spaces on their colour, a fine
+    /// style's two pixels a half block's two colours — so the selection
+    /// colour is laid over them, translucent, rather than drawn in their place,
+    /// which left a flat field of selection colour where a picture was, or
+    /// half blocks scattered over one.
+    ///
     /// Composited as a painted layer over the page, so the cells
     /// under it give up what they claimed there: an opacity region stops
     /// fading them, and an animated run stops redrawing them, as under a menu.
     @MainActor
-    static func highlighting(_ selection: Selection, in buffer: FrameBuffer, palette: any Palette)
-        -> FrameBuffer
-    {
+    static func highlighting(
+        _ selection: Selection, in buffer: FrameBuffer, palette: any Palette, pictures: [CellRect] = []
+    ) -> FrameBuffer {
         let colors = Self.selectionColors(palette: palette, background: nil)
             .resolved(with: palette)
         var style = TextStyle()
@@ -129,12 +137,8 @@ extension ScreenSelection {
                 palette: palette, overlayIsPainted: true)
             band = nil
         }
-        for row in start.y...max(start.y, end.y) where row < buffer.lines.count {
-            let cells = cellsOf(row)
-            guard let columns = Self.columns(of: resolved, onRow: row, cells: cells) else {
-                flush()
-                continue
-            }
+        /// The selected text of `columns`, in the selection's colours.
+        func highlighted(_ columns: Range<Int>, of cells: [Character?]) -> String {
             var text = ""
             for column in columns {
                 if column < cells.count {
@@ -143,7 +147,32 @@ extension ScreenSelection {
                     text.append(" ")
                 }
             }
-            let line = ANSIRenderer.wrap(text, in: introducer)
+            return ANSIRenderer.wrap(text, in: introducer)
+        }
+        for row in start.y...max(start.y, end.y) where row < buffer.lines.count {
+            let cells = cellsOf(row)
+            guard let columns = Self.columns(of: resolved, onRow: row, cells: cells) else {
+                flush()
+                continue
+            }
+            // A picture's cells on this row are tinted, and the text either
+            // side of them highlighted as text, each a layer of its own.
+            if !pictures.isEmpty {
+                let (text, tinted) = Self.splitting(columns, onRow: row, by: pictures)
+                if !tinted.isEmpty {
+                    flush()
+                    for segment in text {
+                        result = result.compositedResolvingOpacity(
+                            with: FrameBuffer(lines: [highlighted(segment, of: cells)]),
+                            at: (x: segment.lowerBound, y: row), palette: palette, overlayIsPainted: true)
+                    }
+                    for span in tinted {
+                        result = Self.tinting(span, onRow: row, of: result, colour: style.backgroundColor, palette: palette)
+                    }
+                    continue
+                }
+            }
+            let line = highlighted(columns, of: cells)
             if let open = band, open.columns == columns, open.top + open.lines.count == row {
                 band?.lines.append(line)
             } else {
@@ -153,5 +182,49 @@ extension ScreenSelection {
         }
         flush()
         return result
+    }
+
+    /// The share of the selection colour laid over a picture's cells: under
+    /// half, so the picture's own glyphs still draw (`Opacity as composition`,
+    /// the glyph contest), and enough to read as selected.
+    static let pictureTint = 0.45
+
+    /// `columns` of `row` split into what a picture covers and what it does
+    /// not: the text segments, left to right, and the picture spans.
+    static func splitting(
+        _ columns: Range<Int>, onRow row: Int, by pictures: [CellRect]
+    ) -> (text: [Range<Int>], tinted: [Range<Int>]) {
+        let tinted = pictures
+            .filter { (picture: CellRect) in (picture.y..<(picture.y + picture.height)).contains(row) }
+            .map { columns.clamped(to: $0.x..<($0.x + $0.width)) }
+            .filter { !$0.isEmpty }
+            .sorted { $0.lowerBound < $1.lowerBound }
+        guard !tinted.isEmpty else { return ([columns], []) }
+        var text: [Range<Int>] = []
+        var from = columns.lowerBound
+        for span in tinted {
+            if span.lowerBound > from { text.append(from..<span.lowerBound) }
+            from = max(from, span.upperBound)
+        }
+        if from < columns.upperBound { text.append(from..<columns.upperBound) }
+        return (text, tinted)
+    }
+
+    /// `buffer` with the selection colour laid over `span` of `row`, at
+    /// ``pictureTint``: the cells keep their glyphs, and their colours move
+    /// toward the selection's.
+    @MainActor
+    static func tinting(
+        _ span: Range<Int>, onRow row: Int, of buffer: FrameBuffer, colour: Color?, palette: any Palette
+    ) -> FrameBuffer {
+        guard let colour, !span.isEmpty else { return buffer }
+        var layer = FrameBuffer(lines: [
+            ANSIRenderer.colorize(String(repeating: " ", count: span.count), background: colour.opaqueSpelling)
+        ])
+        layer.opacityRegions = [
+            OpacityRegion(offsetX: 0, offsetY: 0, width: span.count, height: 1, opacity: pictureTint)
+        ]
+        return buffer.compositedResolvingOpacity(
+            with: layer, at: (x: span.lowerBound, y: row), palette: palette, overlayIsPainted: true)
     }
 }

@@ -315,6 +315,12 @@ List(invite.recipients) { recipient in
 .textSelection(.enabled)
 ```
 
+Selected text is drawn in the selection colours of the text fields. A
+picture — an ``Image`` drawn in characters, blocks or Braille — keeps its
+glyphs and colours under a selection and takes a tint of the selection colour
+instead: its cells are pixels, and drawing them as text left a flat field of
+selection colour where the picture was.
+
 A selection reads characters, not views: a wide character once, each row's
 trailing blanks dropped, rows joined with line breaks. Its text is fixed when
 the drag ends, and the highlight goes as soon as the cells under it change —

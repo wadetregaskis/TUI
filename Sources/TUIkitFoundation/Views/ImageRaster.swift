@@ -88,6 +88,13 @@ struct _ImageRasterHost: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        raster.renderToBuffer(options: options, context: context)
+        var buffer = raster.renderToBuffer(options: options, context: context)
+        // Where the picture is, for a screen selection over it, which tints a
+        // picture's cells rather than repainting them as text
+        // (`HitTestRegion.pictureCorners`). A measure draws nowhere.
+        if !context.isMeasuring, !buffer.isEmpty {
+            buffer.hitTestRegions += HitTestRegion.pictureCorners(width: buffer.width, height: buffer.height)
+        }
+        return buffer
     }
 }
