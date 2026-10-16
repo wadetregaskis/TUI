@@ -21,7 +21,7 @@ private var panelText: String { LocalizationService.shared.string(for: "page.ani
 
 /// The Animation page's "Coming and going" demo reduced to what drives it: a
 /// button that toggles the panel inside a one-second linear `withAnimation`,
-/// and the page's own slot, ``AnimationPage/panelSlot(showsPanel:reservesSpace:transition:)``,
+/// and the page's own slot, ``AnimationPage/panelSlot(showsPanel:space:transition:)``,
 /// standing in a scrolling stack exactly as it stands in the page's — the
 /// `if` with its `.transition`, in a stack under one `.frame(height:)` that
 /// is `nil` unless the space is kept.
@@ -33,7 +33,7 @@ private var panelText: String { LocalizationService.shared.string(for: "page.ani
 /// removal has got — and the transitions the page offers only through a menu.
 private struct PanelPage: View {
     @State private var showsPanel = false
-    let reservesSpace: Bool
+    let space: AnimationPage.PanelSpace
     let transition: AnyTransition
 
     var body: some View {
@@ -43,7 +43,7 @@ private struct PanelPage: View {
                     withAnimation(.linear(duration: 1)) { showsPanel.toggle() }
                 }
                 AnimationPage.panelSlot(
-                    showsPanel: showsPanel, reservesSpace: reservesSpace, transition: transition)
+                    showsPanel: showsPanel, space: space, transition: transition)
                 Text("below")
             }
         }
@@ -52,20 +52,24 @@ private struct PanelPage: View {
 }
 
 private struct PanelApp: App {
-    let reservesSpace: Bool
+    let space: AnimationPage.PanelSpace
     let transition: AnyTransition
 
     init() {
-        self.init(reservesSpace: false, transition: .opacity)
+        self.init(space: .closesUp, transition: .opacity)
     }
 
     init(reservesSpace: Bool, transition: AnyTransition) {
-        self.reservesSpace = reservesSpace
+        self.init(space: reservesSpace ? .kept : .closesUp, transition: transition)
+    }
+
+    init(space: AnimationPage.PanelSpace, transition: AnyTransition) {
+        self.space = space
         self.transition = transition
     }
 
     var body: some Scene {
-        WindowGroup { PanelPage(reservesSpace: reservesSpace, transition: transition) }
+        WindowGroup { PanelPage(space: space, transition: transition) }
     }
 }
 
@@ -302,6 +306,34 @@ struct AnimationPageShowHideTests {
         }
     }
 
+    /// The third choice: the slot's height animated with the panel, so the
+    /// page below is pushed down as it arrives — part-way part-way through —
+    /// and drawn back up as it goes.
+    @Test("Pushing, the page below moves with the panel as it comes and goes")
+    func pushesAsItMoves() {
+        let page = PanelDriver(
+            PanelApp(space: .pushes, transition: .opacity), width: 40, height: 20, belowText: "below")
+        let before = page.belowRow
+        #expect(page.pressFocused(), "precondition: the button took the key")
+        page.advance(byMillis: 500)
+        let arriving = page.belowRow
+        page.advance(byMillis: 700)
+        let shown = page.belowRow
+        #expect(page.pressFocused(), "precondition: the button took the key")
+        page.advance(byMillis: 500)
+        let going = page.belowRow
+        page.advance(byMillis: 700)
+        let after = page.belowRow
+        guard let before, let arriving, let shown, let going, let after else {
+            Issue.record("the page is drawn")
+            return
+        }
+        #expect(before < arriving && arriving < shown, "the page below moved part-way: \(before), \(arriving), \(shown)")
+        #expect(shown < before + 7, "pushed by the panel's rows: \(before) → \(shown)")
+        #expect(after < going && going < shown, "and back up part-way: \(shown), \(going), \(after)")
+        #expect(after == before)
+    }
+
     // MARK: - The whole page
 
     /// The page itself, as the owner used it: the demo's own buttons clicked,
@@ -316,7 +348,10 @@ struct AnimationPageShowHideTests {
             let page = PageDriver(
                 AnimationPageApp(), width: 100, height: 70, belowText: "demo.keyboardControls")
             if reservesSpace {
-                #expect(page.click("page.animation.reserveSpace"), "precondition: the toggle took the click")
+                // "Its space" is a picker: opened on its value, then the choice.
+                #expect(page.click("page.animation.space.closesUp"), "precondition: the picker took the click")
+                page.jump(byMillis: 17)
+                #expect(page.click("page.animation.reserveSpace"), "precondition: the menu took the click")
                 page.jump(byMillis: 17)
             }
             let before = page.belowRow

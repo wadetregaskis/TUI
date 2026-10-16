@@ -37,7 +37,28 @@ struct AnimationPage: View {
     @State private var isWarm = false
     @State private var showsPanel = false
     @State private var transition = 0
-    @State private var reservesSpace = false
+    @State private var space = PanelSpace.closesUp
+
+    /// What happens to the space the panel in "Coming and going" takes.
+    enum PanelSpace: Hashable, CaseIterable {
+        /// Taken at once as it comes, and given back once it has gone: the
+        /// transition draws over a layout that is already final.
+        case closesUp
+        /// Kept whether it is there or not, so nothing below ever moves.
+        case kept
+        /// Grown and shrunk with it: an animated frame height, clipped, so the
+        /// page below is pushed as it arrives — what SwiftUI does for every
+        /// insertion, its siblings' positions animating with the change.
+        case pushes
+
+        var key: String {
+            switch self {
+            case .closesUp: "page.animation.space.closesUp"
+            case .kept: "page.animation.reserveSpace"
+            case .pushes: "page.animation.space.pushes"
+            }
+        }
+    }
 
     /// The shapes a change can be given. Each is a family rather than a preset:
     /// the pace, the speed and — where it means anything — the springiness are
@@ -379,7 +400,7 @@ struct AnimationPage: View {
                     }
                 }
                 Self.panelSlot(
-                    showsPanel: showsPanel, reservesSpace: reservesSpace,
+                    showsPanel: showsPanel, space: space,
                     transition: Self.transitions[transition].transition)
             }
         }
@@ -398,7 +419,11 @@ struct AnimationPage: View {
             Button("page.animation.button.toggle") {
                 withAnimation(animation) { showsPanel.toggle() }
             }
-            Toggle("page.animation.reserveSpace", isOn: $reservesSpace)
+            Picker("page.animation.space", selection: $space) {
+                ForEach(PanelSpace.allCases, id: \.self) { choice in
+                    Text(L(choice.key)).tag(choice)
+                }
+            }
         }
     }
 

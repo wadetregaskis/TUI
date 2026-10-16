@@ -9,10 +9,16 @@ import TUIkit
 extension AnimationPage {
     /// The panel, and the two answers to "what happens to the space it was in?"
     ///
-    /// Either way the removal itself plays out — the slot a `nil` leaves behind
-    /// holds the panel's rows open until the transition has finished. The
-    /// toggle is about what happens *after* that: reclaimed, and the page
-    /// closes up; reserved, and the gap stays so nothing below ever moves.
+    /// Unless it pushes, the removal itself plays out — the slot a `nil` leaves
+    /// behind holds the panel's rows open until the transition has finished.
+    /// The picker is about what happens *after* that: reclaimed, and the page
+    /// closes up; reserved, and the gap stays so nothing below ever moves. Or
+    /// the rows grow and shrink WITH the panel — a fixed frame's height is
+    /// animatable, and the clip cuts the panel to it — so the page below is
+    /// pushed down as it arrives and drawn back up as it goes. That is what a
+    /// SwiftUI stack does with any insertion under `withAnimation`: its
+    /// siblings' positions animate. TUIkit's transitions draw over a layout that
+    /// is already final, so here it is the slot's height that is animated.
     ///
     /// A function rather than a view of its own, so that what it returns
     /// stands in the page's stack exactly as if it were written there: a view
@@ -21,10 +27,10 @@ extension AnimationPage {
     ///
     /// - Parameters:
     ///   - showsPanel: Whether the panel is there.
-    ///   - reservesSpace: Whether its rows are kept while it is not.
+    ///   - space: What happens to its rows as it comes and goes.
     ///   - transition: How it comes and goes.
     static func panelSlot(
-        showsPanel: Bool, reservesSpace: Bool, transition: AnyTransition
+        showsPanel: Bool, space: PanelSpace, transition: AnyTransition
     ) -> some View {
         // The frame is on a stack that is always there, and the `if` is inside
         // it. On the `if` itself — `(showsPanel ? panel : nil).frame(…)`, which
@@ -56,6 +62,19 @@ extension AnimationPage {
                     .transition(transition)
             }
         }
-        .frame(height: reservesSpace ? 5 : nil, alignment: .top)
+        .frame(height: height(showsPanel: showsPanel, space: space), alignment: .top)
+        // Only a pushing slot is ever shorter than the panel; clipped always,
+        // so changing the choice swaps no view.
+        .clipped()
+    }
+
+    /// The slot's height: none of its own while it closes up, the panel's five
+    /// rows while it is kept, and the panel's or nothing while it pushes.
+    private static func height(showsPanel: Bool, space: PanelSpace) -> Int? {
+        switch space {
+        case .closesUp: nil
+        case .kept: 5
+        case .pushes: showsPanel ? 5 : 0
+        }
     }
 }
