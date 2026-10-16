@@ -17,7 +17,10 @@ import TUIkitCore
 /// background, over plain text, over a scroll view's content — selects the
 /// cells it crosses, in reading order as a terminal does, clipped to the pane
 /// it started in (a scroll view, a split view's column, else the content
-/// area). A double-click selects a word, a triple-click the row. A drag with
+/// area). A double-click selects a word; a triple-click the line it is on, in
+/// its context — the run of text between the box's walls or wide gaps either
+/// side, as macOS selects a line of the text view clicked rather than of the
+/// window; a quadruple-click the whole row. A drag with
 /// Option (or ⌘ in iTerm2, which reports it the same way) selects a
 /// rectangle, as both terminals' own block selection does. The status bar and
 /// the app header are never selected.
@@ -87,10 +90,11 @@ package final class ScreenSelection: @unchecked Sendable {
     }
 
     /// What the ends snap to: a drag's cells, a double-click's words, a
-    /// triple-click's rows.
+    /// triple-click's lines in context, a quadruple-click's rows.
     package enum Unit: Equatable {
         case character
         case word
+        case line
         case row
     }
 
@@ -395,8 +399,54 @@ extension ScreenSelection {
         case .word:
             start.x = wordBounds(at: start.x, in: cells(start.y), clip: selection.clip).lowerBound
             end.x = wordBounds(at: end.x, in: cells(end.y), clip: selection.clip).upperBound - 1
+        case .line:
+            start.x = lineBounds(at: start.x, in: cells(start.y), clip: selection.clip).lowerBound
+            end.x = lineBounds(at: end.x, in: cells(end.y), clip: selection.clip).upperBound - 1
         }
         return (start, end)
+    }
+
+    /// The line of text around `column` in its context — what a triple-click
+    /// selects: the run between the nearest walls either side (a box's border,
+    /// a divider, a block element) or gaps of three blanks or more, which part
+    /// a page's columns, trimmed of the blanks at its ends. A click on a wall
+    /// or a blank between runs takes the clip's whole row, as a quadruple-click
+    /// does.
+    ///
+    /// On a contact card, `│  Ada Lovelace     │`, a line is `Ada Lovelace`:
+    /// not the card's padding, and not its walls.
+    static func lineBounds(at column: Int, in cells: [Character?], clip: Rect) -> Range<Int> {
+        let lower = clip.x
+        let upper = min(clip.x + clip.width, cells.count)
+        let row = lower..<max(lower, upper)
+        guard column >= lower, column < upper else { return row }
+        func character(_ index: Int) -> Character? {
+            // A wide character's second cell is the character's.
+            var index = index
+            while index > lower, cells[index] == nil { index -= 1 }
+            return cells[index]
+        }
+        func isWall(_ index: Int) -> Bool {
+            guard let scalar = character(index)?.unicodeScalars.first else { return false }
+            return (0x2500...0x259F).contains(scalar.value)
+        }
+        func isBlank(_ index: Int) -> Bool { character(index)?.isWhitespace ?? true }
+        /// Whether `index` starts a gap of three blanks or more running `step`
+        /// away from the click.
+        func isGap(_ index: Int, step: Int) -> Bool {
+            (0..<3).allSatisfy { offset in
+                let cell = index + offset * step
+                return cell >= lower && cell < upper && isBlank(cell)
+            }
+        }
+        guard !isWall(column), !isBlank(column) else { return row }
+        var start = column
+        while start > lower, !isWall(start - 1), !isGap(start - 1, step: -1) { start -= 1 }
+        var end = column + 1
+        while end < upper, !isWall(end), !isGap(end, step: 1) { end += 1 }
+        while start < end, isBlank(start) { start += 1 }
+        while end > start, isBlank(end - 1) { end -= 1 }
+        return start..<end
     }
 
     /// The run of cells around `column` of one kind — a word, the blanks

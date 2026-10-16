@@ -62,6 +62,22 @@ struct ScreenSelectionReadingTests {
         #expect(text(Point(x: 1, y: 0), Point(x: 8, y: 0), unit: .word) == "hello world")
     }
 
+    /// A triple-click's line is the run of text it is in, in its context: not
+    /// a box's padding or its walls, not a column beside it across a gap; a
+    /// click on a wall takes the row, as a quadruple-click does.
+    @Test("A line in context: between a box's walls or wide gaps, trimmed")
+    func lineInContext() {
+        func line(_ text: String, at column: Int) -> String {
+            let cells = ScreenSelection.cells(of: text)
+            let clip = ScreenSelection.Rect(x: 0, y: 0, width: cells.count, height: 1)
+            return String(ScreenSelection.lineBounds(at: column, in: cells, clip: clip).compactMap { cells[$0] })
+        }
+        #expect(line("│  Ada Lovelace     │", at: 5) == "Ada Lovelace")
+        #expect(line("Name: Ada    Role: Countess", at: 2) == "Name: Ada")
+        #expect(line("Name: Ada    Role: Countess", at: 15) == "Role: Countess")
+        #expect(line("│  Ada Lovelace     │", at: 0) == "│  Ada Lovelace     │", "a wall takes the row")
+    }
+
     @Test("A wide character is read once, whichever of its cells the selection touches")
     func wideCharacters() {
         let lines = ["a界b"]

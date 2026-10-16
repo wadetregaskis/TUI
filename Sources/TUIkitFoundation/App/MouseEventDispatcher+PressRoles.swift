@@ -342,7 +342,9 @@ final class HeldPress {
         self.claimer = claimer
         self.pane = pane
         self.selection = selection
-        if press.clickCount >= 2 { beginSelection(unit: press.clickCount == 2 ? .word : .row) }
+        if press.clickCount >= 2 {
+            beginSelection(unit: press.clickCount == 2 ? .word : press.clickCount == 3 ? .line : .row)
+        }
     }
 
     /// One event of the rest of the gesture.

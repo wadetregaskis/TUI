@@ -267,8 +267,13 @@ TUIkit selects by itself, as a terminal would:
   press to the pointer in reading order, whole rows between, and keeps to the
   pane it started in: a scroll view's viewport, a split view's column, or else
   the content area. The app header and the status bar are never selected.
-- **A double-click selects a word, a triple-click the row**, and a drag after
-  either extends by words or rows. **Option-drag** selects a rectangle (iTerm2
+- **A double-click selects a word, a triple-click the line in its context,
+  a quadruple-click the row**, and a drag after any of them extends by
+  words, lines or rows. A line in its context is the run of text between the
+  walls either side — a box's border, a divider — or gaps of three blanks or
+  more: triple-clicking a name on a bordered card selects the name, not the
+  card's padding and walls, as macOS selects a line of the text view clicked
+  rather than of the window. **Option-drag** selects a rectangle (iTerm2
   reports ⌘ the same way).
 - **A drag that starts on a control is the control's**: a button, a field, a
   slider, a `.draggable` view, a list row — except that a drag starting on
