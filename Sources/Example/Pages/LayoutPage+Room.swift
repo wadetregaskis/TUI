@@ -44,14 +44,24 @@ struct LayoutRoomDemo: View {
                     ZStack(alignment: .topLeading) {
                         Text("page.layout.room.first").frame(width: 14, height: 3).border(.palette.accent)
                             .zIndex(frontIsFirst ? 1 : 0)
-                        // Moved by padding, not `.offset`: an offset view draws
-                        // above its siblings whatever its z-index (a terminal
-                        // deviation, see `View.offset(x:y:)`).
+                        // Placed by its alignment guides, as SwiftUI places a
+                        // layer within a ZStack — not by padding, whose cells
+                        // are part of the layer and would cover the box behind
+                        // (a layer paints its whole box here, blanks too), nor
+                        // by `.offset`, which draws above its siblings whatever
+                        // its z-index (a terminal deviation, see
+                        // `View.offset(x:y:)`).
                         Text("page.layout.room.second").frame(width: 14, height: 3).border(.palette.success)
-                            .padding(.leading, 6).padding(.top, 1)
                             .zIndex(frontIsFirst ? 0 : 1)
+                            // The guides last: a container reads a guide only
+                            // off the outermost modifier (see
+                            // `View.alignmentGuide(_:computeValue:)`).
+                            .alignmentGuide(.leading) { $0[.leading] - 6 }
+                            .alignmentGuide(.top) { $0[.top] - 1 }
                     }
-                    .frame(width: 22, height: 4, alignment: .topLeading)
+                    // Room for both: the second box sits 6 cells along and
+                    // a row down from the first.
+                    .frame(width: 24, height: 6, alignment: .topLeading)
                     Button("page.layout.room.swap") { frontIsFirst.toggle() }
                 }
 
