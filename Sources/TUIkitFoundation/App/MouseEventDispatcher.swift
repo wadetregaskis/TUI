@@ -617,11 +617,29 @@ extension MouseEventDispatcher {
     /// now under the pointer is another control — a menu's rows are filed per
     /// OPTION, so a row scrolled into the pointer's cell is one — so a frame
     /// that moved nothing delivers nothing, and asks for no frame after it.
+    ///
+    /// A press that opened a menu and has not moved since has dragged nowhere,
+    /// and its pointer rests on whatever row the menu drew under it. That row
+    /// is taken as where it is — a baseline, delivered nothing — on the first
+    /// frame the menu is on screen, so a key that then scrolls another row
+    /// under the unmoved pointer lights that one, as it does for a pointer that
+    /// had dragged. (Not from the press itself: the menu arriving under the
+    /// pointer would then count as a row sliding under it, and a plain click
+    /// would light, and its release choose, whatever row it opened under.)
     private func redeliverHeldDrag() -> Bool {
-        guard let target = heldDragTarget, let position = restingPosition,
+        // Where the pointer rests, or — a press not moved since, in a terminal
+        // that reports no plain motion — where it pressed. Only for this: a
+        // press counted as where the pointer rests for the hover too would
+        // light the row a context menu opened under it, which a menu the
+        // pointer opened must not do until the pointer moves.
+        guard let position = restingPosition ?? (pointerMovedSincePress ? nil : pressOrigin),
             let button = handedOffPresses.first(where: { pressedHandlers[$0] == nil })
         else { return false }
         let matching = matchingRegions(at: position.x, y: position.y)
+        guard let target = heldDragTarget else {
+            if pressPopup != nil, pressPopupIsOnScreen { heldDragTarget = matching.first?.handlerID }
+            return false
+        }
         guard let under = matching.first, under.handlerID != target else { return false }
         let drag = MouseEvent(button: button, phase: .dragged, x: position.x, y: position.y)
         heldDragTarget = under.handlerID

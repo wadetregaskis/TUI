@@ -325,6 +325,64 @@ struct MenuPressTrackingTests {
             "Return took Option \(chosen.value), but the pointer is on Option \(underPointer)")
     }
 
+    /// The same, for a pointer held where it pressed: a terminal that reports
+    /// no plain motion says where the pointer is only by its press, and a
+    /// press that opened the menu over itself has dragged nowhere. The row the
+    /// menu drew under it is where it is; End scrolling another row there
+    /// lights that one.
+    @Test("A key that scrolls a menu held open over an unmoved pointer lights the row under it")
+    func keyScrollUnderAnUnmovedHeldPointer() throws {
+        let (tui, context) = harness()
+        let chosen = Counter()
+        chosen.value = -1
+        // Four rows down the page, so the menu opening over the control has
+        // rows above it to open into, and one of them lands under the press.
+        let menu = VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<4, id: \.self) { _ in Text(verbatim: "-") }
+            Picker(
+                "Pick", selection: Binding(get: { chosen.value }, set: { chosen.value = $0 })
+            ) {
+                ForEach(0..<60, id: \.self) { index in Text("Option \(index)").tag(index) }
+            }
+            .selectionIndicatorStyle(.none)
+        }
+
+        let closed = renderArmed(menu, tui: tui, context: context)
+        // On the control's title rather than its caret: the menu opens over
+        // the control, and its rows' text — not their scroll bar — lands there.
+        let titleX = try #require(
+            closed.lines[4].stripped.firstIndex(of: "(").map {
+                closed.lines[4].stripped.distance(from: closed.lines[4].stripped.startIndex, to: $0) + 3
+            })
+        // Pressed and HELD on the control: the menu opens on the press, and
+        // nothing moves after it.
+        press(tui, context, x: titleX, y: 4)
+        renderArmed(menu, tui: tui, context: context)
+        var frame = renderArmed(menu, tui: tui, context: context)
+        var screen = frame.compositingOverlays(
+            maxWidth: context.availableWidth, maxHeight: context.availableHeight,
+            palette: context.environment.palette)
+        try #require(
+            screen.lines[4].stripped.contains("Option"),
+            "the menu drew a row under the pointer: \(screen.lines[4].stripped)")
+        _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .end))
+        renderArmed(menu, tui: tui, context: context)
+        frame = renderArmed(menu, tui: tui, context: context)
+
+        screen = frame.compositingOverlays(
+            maxWidth: context.availableWidth, maxHeight: context.availableHeight,
+            palette: context.environment.palette)
+        let underPointer = try #require(
+            screen.lines[4].stripped.split(separator: "Option ").last
+                .flatMap { Int($0.prefix { $0.isNumber }) },
+            "an option is under the pointer: \(screen.lines[4].stripped)")
+        #expect(underPointer > 40, "End scrolled the menu under the pointer: Option \(underPointer)")
+        _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .enter))
+        #expect(
+            chosen.value == underPointer,
+            "Return took Option \(chosen.value), but the pointer is on Option \(underPointer)")
+    }
+
     /// A mutable `Int` an escaping binding can write — a plain `var` captured by
     /// one would be a copy per closure.
     @MainActor
