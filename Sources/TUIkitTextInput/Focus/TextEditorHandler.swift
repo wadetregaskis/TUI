@@ -261,18 +261,24 @@ final class TextEditorHandler: PersistedFocusable {
             return true
         }
         // Any key that changes the text records what the text was, so Ctrl-Z
-        // takes back one key's edit at a time, as it does in a field. Compared
-        // after the fact rather than pushed by each edit, because an edit can
-        // write more than once (typing over a selection deletes, then
-        // inserts) and is still one step to take back.
+        // takes back one key's edit at a time, as it does in a field.
+        return recordingUndoStep {
+            if let standIn { return perform(standIn) }
+            return handleEditingKey(event)
+        }
+    }
+
+    /// Runs `edit`, and if it changed the text, records the text and caret as
+    /// they were before it as one step to take back. Compared after the fact
+    /// rather than pushed by each edit, because an edit can write more than
+    /// once (typing over a selection deletes, then inserts) and is still one
+    /// step to take back.
+    ///
+    /// - Returns: What `edit` returns.
+    private func recordingUndoStep(_ edit: () -> Bool) -> Bool {
         let textBefore = text.wrappedValue
         let caretBefore = cursor
-        let handled: Bool
-        if let standIn {
-            handled = perform(standIn)
-        } else {
-            handled = handleEditingKey(event)
-        }
+        let handled = edit()
         if text.wrappedValue != textBefore,
             let mark = undoHistory.record(text: textBefore, caret: caretBefore), let undoManager
         {
