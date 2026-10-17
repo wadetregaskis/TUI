@@ -53,6 +53,32 @@ struct ScreenSelectionReadingTests {
         #expect(text(Point(x: 1, y: 0), Point(x: 3, y: 2), shape: .rectangle) == "ell\neco\nhir")
     }
 
+    func html(_ anchor: Point, _ head: Point, in lines: [String], shape: ScreenSelection.Shape = .stream) -> String {
+        ScreenSelection.html(
+            of: ScreenSelection.Selection(
+                anchor: anchor, head: head, clip: Self.area, shape: shape, unit: .character, text: ""),
+            in: lines)
+    }
+
+    @Test("Its HTML: a run drawn alike is one span stating its styling; default cells are plain text")
+    func htmlRuns() {
+        let lines = ["\u{1B}[1;38;2;1;2;3mbold\u{1B}[0m plain", "\u{1B}[3;4mit\u{1B}[0m"]
+        let out = html(Point(x: 0, y: 0), Point(x: 1, y: 1), in: lines)
+        #expect(out.hasPrefix("<pre"))
+        #expect(out.contains("<span style=\"color: #010203; font-weight: bold\">bold</span> plain\n"))
+        #expect(out.contains("<span style=\"font-style: italic; text-decoration: underline\">it</span></pre>"))
+    }
+
+    @Test("Its HTML escapes markup, reverses a reversed run, and takes a rectangle's columns")
+    func htmlDetails() {
+        let lines = ["a<b>&c", "\u{1B}[7mrev\u{1B}[0m"]
+        #expect(html(Point(x: 0, y: 0), Point(x: 5, y: 0), in: lines).contains("a&lt;b&gt;&amp;c"))
+        #expect(
+            html(Point(x: 0, y: 1), Point(x: 2, y: 1), in: lines)
+                .contains("<span style=\"color: Canvas; background-color: CanvasText\">rev</span>"))
+        #expect(html(Point(x: 1, y: 0), Point(x: 2, y: 1), in: lines, shape: .rectangle).contains("&lt;b\n"))
+    }
+
     @Test("A word, and a row")
     func units() {
         #expect(text(Point(x: 7, y: 0), Point(x: 7, y: 0), unit: .word) == "world")
@@ -176,6 +202,21 @@ struct ScreenSelectionGestureTests {
         #expect(log.writes == ["alpha beta"])
         // A Mac keeps the selection after a copy.
         #expect(harness.tui.screenSelection.hasSelection)
+    }
+
+    @Test("To a terminal that takes OSC 5522 the copy carries its styling as HTML")
+    func copiesHTML() throws {
+        let page = Page(first: Box("alpha beta gamma"))
+        let harness = harness(page)
+        harness.tui.clipboardWriter = ClipboardWriter.stated(terminal: .honoured, isLocal: false, mime: true)
+        let alpha = try find("alpha", in: harness, page)
+        drag(harness, from: alpha, to: (alpha.x + 4, alpha.y), page: page)
+        #expect(harness.press(KeyEvent(key: .character("c"), ctrl: true)))
+        let sent = harness.tui.clipboardWriter.takePendingSequences()
+        let html = Data("text/html".utf8).base64EncodedString()
+        let packet = try #require(sent.components(separatedBy: "\u{1B}]5522;type=wdata:mime=\(html);").dropFirst().first)
+        let payload = try #require(Data(base64Encoded: String(packet.prefix { $0 != "\u{1B}" })))
+        #expect(String(bytes: payload, encoding: .utf8)?.contains(">alpha</span></pre>") == true, "in the theme's ink")
     }
 
     @Test("The selection is drawn in the text inputs' selection colours")

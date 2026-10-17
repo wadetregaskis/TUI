@@ -205,8 +205,9 @@ package final class ScreenSelection: @unchecked Sendable {
         isOpen: { [weak self] in self?.menuAnchor != nil },
         close: { [weak self] in self?.closeMenu() })
 
-    /// Copies text: the app's ``ClipboardWriter``, announcing the result.
-    var copy: (String) -> Void = { _ in }
+    /// Copies text, with more forms of it beside (its styling as HTML): the
+    /// app's ``ClipboardWriter``, announcing the result.
+    var copy: (String, [ClipboardRepresentation]) -> Void = { _, _ in }
 
     /// Where the selection's context menu was opened — the cell right-clicked
     /// inside the selection — while it is open; `nil` when it is not.
@@ -284,7 +285,7 @@ extension ScreenSelection {
         selection.isMaking = false
         current = selection
         refreshText()
-        if copiesOnRelease, let text = current?.text, !text.isEmpty { copy(text) }
+        if copiesOnRelease, let text = current?.text, !text.isEmpty { copy(text, representations()) }
     }
 
     /// Drops the selection, and its menu with it.
@@ -334,7 +335,7 @@ extension ScreenSelection {
     /// selected, so the key goes on.
     package func copySelection() -> Bool {
         guard let text = current?.text else { return false }
-        copy(text)
+        copy(text, representations())
         return true
     }
 

@@ -358,8 +358,9 @@ machine, and otherwise nowhere — and the status bar says which. See
 `Documentation/Terminals/Terminal compatibility survey.md`, "OSC 52 clipboard writes".
 A terminal that speaks kitty's clipboard protocol, OSC 5522, is sent every
 form a copy has beside its text — a link's Copy Link as a URI list, its
-Copy as Markdown as Markdown — so an app that pastes those takes them as
-such; `TUIKIT_OSC5522=1` or `0` overrides what the terminal said.
+Copy as Markdown as Markdown, a screen selection with its colours, weight
+and decoration as HTML — so an app that pastes those takes them as such;
+`TUIKIT_OSC5522=1` or `0` overrides what the terminal said.
 
 There is no keyboard route to the screen selection: what it selects is what a
 pointer points at. Text the app means to be copied from the keyboard belongs in

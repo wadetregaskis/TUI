@@ -613,11 +613,11 @@ public struct SGRState: Sendable, Equatable {
     /// The background in force, or `nil` for the terminal's default — the value
     /// ``renderedBackground`` spells, for a caller that compares backgrounds
     /// cell by cell and would otherwise build a `String` per cell to do it.
-    var backgroundColour: Colour? { background }
+    package var backgroundColour: Colour? { background }
 
     /// The foreground in force, or `nil` for the terminal's default — the ink
     /// twin of ``backgroundColour``, for the same kind of caller.
-    var foregroundColour: Colour? { foreground }
+    package var foregroundColour: Colour? { foreground }
 
     /// `colour` as the escape that puts it in force as the background: what
     /// ``renderedBackground`` spells for a state holding it, and `ESC[49m` for
@@ -637,5 +637,15 @@ public struct SGRState: Sendable, Equatable {
         var parameters = ""
         background.append(to: &parameters, introducer: 48)
         return "\u{1B}[" + parameters + "m"
+    }
+}
+
+// MARK: - Reading the state
+
+extension SGRState {
+    /// Whether the attribute SGR `code` turns on is in force: 1 bold, 2 dim,
+    /// 3 italic, 4 underline, 5 and 6 blink, 7 reverse, 8 hidden, 9 strike.
+    package func isOn(_ code: Int) -> Bool {
+        (1...9).contains(code) && attributes & Self.bit(code) != 0
     }
 }

@@ -5922,7 +5922,8 @@ WezTerm and foot where the environment names them
 of any DECRQM, and iTerm2's answer is known. Where the answer is yes, a copy
 sent to the terminal goes by OSC 5522 with every form the app has of it — a
 link as `text/uri-list`, Markdown as `text/markdown` — and its text as
-`text/plain`; `TUIKIT_OSC5522=1` or `0` overrides. The acknowledgement is
+`text/plain`, and a screen selection as `text/html` (its cells' colours,
+weight and decoration); `TUIKIT_OSC5522=1` or `0` overrides. The acknowledgement is
 swallowed with every other reply. kitty and Ghostty-tip are owed a run.
 
 ## Inherited state: the defaults raw mode asserts — since 2026-10-05

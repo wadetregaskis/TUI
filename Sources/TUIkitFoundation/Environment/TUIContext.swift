@@ -532,10 +532,12 @@ package final class TUIContext: @unchecked Sendable {
     /// weakly, as the context owns all three.
     private func wireScreenSelection() {
         mouseEventDispatcher.screenSelection = screenSelection
-        screenSelection.copy = { [weak self] text in
+        screenSelection.copy = { [weak self] text, representations in
             // Read when the copy is made: a test may hand the context a writer.
             guard let writer = self?.clipboardWriter else { return }
-            MainActor.assumeIsolated { _ = writer.write(text, announcingSuccess: true) }
+            MainActor.assumeIsolated {
+                _ = writer.write(text, representations: representations, announcingSuccess: true)
+            }
         }
     }
 }
