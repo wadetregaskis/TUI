@@ -11,8 +11,11 @@
 ///
 /// TUIkit ships the two SwiftUI names a terminal can tell apart:
 /// - ``DefaultTextFieldStyle`` (`.automatic`): the field draws itself — a
-///   coloured surface with half-block caps for its rounded ends, so it reads
-///   as a box you can type into even when it is empty.
+///   coloured surface between caps, so it reads as a box you can type into
+///   even when it is empty. The caps follow the appearance's family, as a
+///   button's do: the appearance's line, `│text│`, under `.rounded` (the
+///   default) and every appearance of lines, and half-blocks rounding the
+///   surface off, `▐text▌`, under `.block` and the others.
 /// - ``PlainTextFieldStyle`` (`.plain`): no surface and no caps. The text sits
 ///   on whatever is behind it, which is what an editable value inline in a
 ///   sentence or a row wants.
@@ -67,7 +70,7 @@
 ///   here the question must be answerable.
 public protocol TextFieldStyle: Sendable {
     /// Whether the field paints its own surface: the field-background colour
-    /// behind the text, and the half-block caps at either end.
+    /// behind the text, and the caps at either end.
     ///
     /// `false` leaves the text on whatever is behind the field — deliberately
     /// no background at all rather than the palette's, so a plain field inside

@@ -144,6 +144,17 @@ enum ButtonFaceFamily: Equatable, Sendable {
     }
 }
 
+extension Appearance {
+    /// The border style whose lines this appearance draws controls' chrome
+    /// in — `.rounded`, the default, and every other appearance of lines — or
+    /// `nil` for one whose controls are solid, blank or Braille: what a text
+    /// field reads to draw line caps on its surface rather than half-blocks
+    /// (``ButtonFaceFamily/lines(_:)``).
+    package var controlLines: BorderStyle? {
+        if case .lines(let style) = ButtonFaceFamily(self) { style } else { nil }
+    }
+}
+
 extension _ButtonAppearance {
     /// This appearance at `size`, in `shape`, in `family`: the density table
     /// of ``ControlSize``, the members of each family for each

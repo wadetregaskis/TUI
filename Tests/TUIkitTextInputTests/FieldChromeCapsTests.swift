@@ -40,7 +40,7 @@ struct FieldChromeCapsTests {
         // the resting cap colour: at sixteen colours the cap then spells as slot 15
         // (97), where xterm's table puts a dark surface somewhere else entirely.
         let resting = try #require(
-            FieldChrome(style: style, palette: palette, isHovered: false).capColor?.opaqueSpelling.rgbComponents)
+            FieldChrome(style: style, palette: palette, isHovered: false, appearance: .block).capColor?.opaqueSpelling.rgbComponents)
         let white = TerminalColors.RGB(red: 255, green: 255, blue: 255)
         let cap = TerminalColors.RGB(red: resting.red, green: resting.green, blue: resting.blue)
         let skewed = TerminalColors(
@@ -54,7 +54,7 @@ struct FieldChromeCapsTests {
                 for hovered in [false, true, false] {
                     TerminalColors.withCurrent(terminal) {
                         ColorDepth.withCurrent(depth) {
-                            let chrome = FieldChrome(style: style, palette: palette, isHovered: hovered)
+                            let chrome = FieldChrome(style: style, palette: palette, isHovered: hovered, appearance: .block)
                             let expected = Self.spelled(chrome)
                             #expect(chrome.open == expected?.open, "open @\(depth), hovered \(hovered)")
                             #expect(chrome.close == expected?.close, "close @\(depth), hovered \(hovered)")
@@ -68,9 +68,29 @@ struct FieldChromeCapsTests {
         #expect(sixteenColourOpens.count == 2)
     }
 
+    @Test("Under an appearance of lines, the caps are its vertical line in the border's colour, on the surface")
+    func lineCaps() throws {
+        let palette = SystemPalette(.green)
+        for (appearance, glyph) in [(Appearance.rounded, "│"), (.heavy, "┃"), (.line, "│")] {
+            for hovered in [false, true] {
+                let chrome = FieldChrome(
+                    style: DefaultTextFieldStyle(), palette: palette, isHovered: hovered, appearance: appearance)
+                let ink = try #require(chrome.capColor).opaqueSpelling
+                let field = try #require(chrome.capField).opaqueSpelling
+                #expect(field == chrome.surface?.opaqueSpelling, "on the field's own surface")
+                #expect(chrome.open == ANSIRenderer.colorize(glyph, foreground: ink, background: field))
+                #expect(chrome.close == chrome.open)
+                #expect(chrome.width == 2, "a cell each, as half-blocks are")
+            }
+        }
+        let resting = FieldChrome(style: DefaultTextFieldStyle(), palette: palette, isHovered: false, appearance: .rounded)
+        #expect(resting.capColor == palette.border.resolve(with: palette), "the border's colour at rest")
+    }
+
     @Test("A plain field has no caps")
     func plainFieldHasNoCaps() {
-        let chrome = FieldChrome(style: PlainTextFieldStyle(), palette: SystemPalette(.green), isHovered: false)
+        let chrome = FieldChrome(
+            style: PlainTextFieldStyle(), palette: SystemPalette(.green), isHovered: false, appearance: .rounded)
         #expect(chrome.open.isEmpty)
         #expect(chrome.close.isEmpty)
         #expect(chrome.width == 0)

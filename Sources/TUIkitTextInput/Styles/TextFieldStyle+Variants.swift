@@ -8,7 +8,9 @@ import TUIkitFoundation
 
 // MARK: - Default
 
-/// The ordinary field: a coloured surface with half-block caps.
+/// The ordinary field: a coloured surface between caps in the appearance's
+/// family — its line, `│text│`, under the default `.rounded` and every
+/// appearance of lines; half-blocks, `▐text▌`, under `.block`.
 ///
 /// Matches SwiftUI's `.automatic`, and is what a `TextField` or `SecureField`
 /// draws with no style applied.

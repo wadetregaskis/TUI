@@ -19,8 +19,9 @@ import Testing
 // MARK: - Helpers
 
 /// The half-block caps that wrap the field content (U+2590 / U+258C).
-private let openCap = "▐"
-private let closeCap = "▌"
+/// The caps of a field under the default appearance, `.rounded`: its line.
+private let openCap = "│"
+private let closeCap = "│"
 
 /// Whether `rawLine` paints any cell on the palette's caret colour.
 ///

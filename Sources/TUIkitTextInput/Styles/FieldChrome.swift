@@ -53,16 +53,31 @@ struct FieldChrome {
     /// target is a miss the pointer has no way to see coming.
     var trailingCells: Int { width - leadingCells }
 
+    /// The field's surface under the caps, or `nil` where they are half-blocks
+    /// in the surface's colour, which have no background of their own.
+    let capField: Color?
+
     /// Builds the chrome for a style, tinting the caps toward the accent while
     /// hovered so the affordance reads as "clickable" without mimicking the
     /// focused look.
-    /// - Parameter background: what the field is drawn ON — the page, or the
-    ///   surface of a container that painted one (a `TabView`'s body). The
-    ///   field's own surface is derived from it, so a field inside a tab does
-    ///   not come out the same colour as the tab.
+    ///
+    /// The caps follow the appearance's family, as a button's do. Under an
+    /// appearance of lines — `.rounded`, the default — they are its vertical
+    /// line, in the border's colour, on the field's surface — `│text│`, the
+    /// fill saying the field is editable and the lines matching every other
+    /// control's, the line in the middle of its cell leaving half a cell
+    /// between it and the text. Otherwise they are half-blocks in the
+    /// surface's colour, `▐text▌`, which round the surface off. Either way
+    /// they are a cell each, so a field is as wide under every appearance.
+    /// - Parameters:
+    ///   - background: what the field is drawn ON — the page, or the surface
+    ///     of a container that painted one (a `TabView`'s body). The field's
+    ///     own surface is derived from it, so a field inside a tab does not
+    ///     come out the same colour as the tab.
+    ///   - appearance: The appearance in force, whose family the caps follow.
     init(
         style: any TextFieldStyle, palette: any Palette, isHovered: Bool,
-        on background: Color? = nil
+        on background: Color? = nil, appearance: Appearance
     ) {
         guard style.drawsFieldSurface else {
             self.width = 0
@@ -70,26 +85,43 @@ struct FieldChrome {
             self.close = ""
             self.surface = nil
             self.capColor = nil
+            self.capField = nil
             return
         }
         let surface =
             (background.map { palette.fieldBackground(on: $0) } ?? palette.fieldBackground)
             .resolve(with: palette)
-        let capColor =
-            isHovered
-            ? Color.lerp(surface, palette.accent.resolve(with: palette), phase: 0.35)
-            : surface
         self.width = 2
-        let caps = Self.caps(in: capColor.opaqueSpelling)
-        self.open = caps.open
-        self.close = caps.close
         self.surface = surface
-        self.capColor = capColor
+        if let lines = appearance.controlLines {
+            let border = palette.border.resolve(with: palette)
+            let ink = isHovered ? Color.lerp(border, palette.accent.resolve(with: palette), phase: 0.35) : border
+            let caps = Self.caps(
+                (String(lines.vertical), String(lines.vertical)), in: ink.opaqueSpelling, on: surface.opaqueSpelling)
+            self.open = caps.open
+            self.close = caps.close
+            self.capColor = ink
+            self.capField = surface
+        } else {
+            let capColor =
+                isHovered
+                ? Color.lerp(surface, palette.accent.resolve(with: palette), phase: 0.35)
+                : surface
+            let caps = Self.caps(
+                (String(TerminalSymbols.openCap), String(TerminalSymbols.closeCap)), in: capColor.opaqueSpelling,
+                on: nil)
+            self.open = caps.open
+            self.close = caps.close
+            self.capColor = capColor
+            self.capField = nil
+        }
     }
 
     /// The pair of caps last spelled, with everything their bytes are a function of.
     private struct SpelledCaps {
+        let glyphs: (open: String, close: String)
         let color: Color
+        let field: Color?
         let depth: ColorDepth
         /// By value, as `ScrollbarMemo.Key` keeps it: at sixteen colours an RGB
         /// colour is spelled as the slot nearest what the terminal REPORTED that
@@ -103,29 +135,35 @@ struct FieldChrome {
     /// The caps last spelled. Main-actor state, like the chrome itself.
     private static var lastCaps: SpelledCaps?
 
-    /// The two caps in `color`, spelled once per colour, depth and terminal report
-    /// rather than twice per field per render.
+    /// The two caps, `glyphs` in `color` on `field`, spelled once per glyphs,
+    /// colours, depth and terminal report rather than twice per field per render.
     ///
-    /// The glyphs are constants, so the bytes are a function of the colour, the
-    /// depth the emitter quantises to and the terminal's report — and nothing else.
+    /// The bytes are a function of the glyphs, the colours, the depth the emitter
+    /// quantises to and the terminal's report — and nothing else.
     /// Every unhovered field on a page has the same cap colour, so the last pair
     /// answers almost every field: the spelling (a `TextStyle`, its introducer
     /// derived, twice) was 5.3% of a page of 200 fields. A miss — a hovered field's
     /// lerped colour, a palette or depth change — spells them as `colorize` does.
-    private static func caps(in color: Color) -> (open: String, close: String) {
+    private static func caps(
+        _ glyphs: (open: String, close: String), in color: Color, on field: Color?
+    ) -> (open: String, close: String) {
         let depth = ColorDepth.current
         let terminal = TerminalColors.current
-        if let last = lastCaps, last.color == color, last.depth == depth, last.terminal == terminal {
+        if let last = lastCaps, last.glyphs == glyphs, last.color == color, last.field == field, last.depth == depth,
+            last.terminal == terminal
+        {
             return (last.open, last.close)
         }
         // One introducer for the pair, wrapped as `colorize` wraps (`ANSIRenderer.wrap`
         // is what `render` returns), as a button's caps are.
         var style = TextStyle()
         style.foregroundColor = color
+        style.backgroundColor = field
         let sequence = ANSIRenderer.styleSequence(for: style)
-        let open = ANSIRenderer.wrap(String(TerminalSymbols.openCap), in: sequence)
-        let close = ANSIRenderer.wrap(String(TerminalSymbols.closeCap), in: sequence)
-        lastCaps = SpelledCaps(color: color, depth: depth, terminal: terminal, open: open, close: close)
+        let open = ANSIRenderer.wrap(glyphs.open, in: sequence)
+        let close = ANSIRenderer.wrap(glyphs.close, in: sequence)
+        lastCaps = SpelledCaps(
+            glyphs: glyphs, color: color, field: field, depth: depth, terminal: terminal, open: open, close: close)
         return (open, close)
     }
 
@@ -136,16 +174,16 @@ struct FieldChrome {
     /// ``trailingCells`` is — `TextField` and `SecureField` would each have re-derived
     /// it, which is how the two drift.
     ///
-    /// The caps are half-block glyphs with no background of their own, so this is an
-    /// INK claim. The field's surface is claimed by the content renderer, which is what
-    /// paints it (§30).
+    /// Half-block caps have no background of their own, so they make an INK claim;
+    /// line caps are drawn on the field's surface, and claim it too. The rest of the
+    /// surface is claimed by the content renderer, which is what paints it (§30).
     func claims(lineWidth: Int) -> [OpacityRegion] {
         guard let capColor, width > 0 else { return [] }
         return [
-            OpacityRegion.claim(width: leadingCells, height: 1, ink: capColor),
+            OpacityRegion.claim(width: leadingCells, height: 1, ink: capColor, field: capField),
             OpacityRegion.claim(
                 offsetX: lineWidth - trailingCells, width: trailingCells, height: 1,
-                ink: capColor),
+                ink: capColor, field: capField),
         ].compactMap { $0 }
     }
 

@@ -344,7 +344,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         // style draws (two cap cells, or none for `.plain`).
         let chrome = FieldChrome(
             style: context.environment.textFieldStyle, palette: palette,
-            isHovered: false, on: context.environment.surfaceBackground)
+            isHovered: false, on: context.environment.surfaceBackground,
+            appearance: context.environment.appearance)
         let contentWidth = max(minContentWidth, context.availableWidth - chrome.width)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -438,7 +439,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         // for the same cell. A `.plain` field has no caps at all.
         let hoveredChrome = FieldChrome(
             style: context.environment.textFieldStyle, palette: palette,
-            isHovered: isHovered, on: context.environment.surfaceBackground)
+            isHovered: isHovered, on: context.environment.surfaceBackground,
+            appearance: context.environment.appearance)
         var buffer = FrameBuffer(
             text: hoveredChrome.open + fieldContent.line + hoveredChrome.close)
 

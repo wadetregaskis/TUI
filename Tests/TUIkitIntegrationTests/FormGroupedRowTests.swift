@@ -85,8 +85,8 @@ struct FormGroupedRowTests {
         let drawn = lines(Rows(label: "Email"))
         let row = try #require(drawn.first { $0.contains("Email") }, "drawn: \(drawn)")
         #expect(row.hasPrefix("Email"))
-        #expect(column(of: "▐", in: row) == 27, "45% of 60: \(row.debugDescription)")
-        #expect(row.hasSuffix("▌"), "and runs to the trailing edge: \(row.debugDescription)")
+        #expect(column(of: "│", in: row) == 27, "45% of 60: \(row.debugDescription)")
+        #expect(row.hasSuffix("│"), "and runs to the trailing edge: \(row.debugDescription)")
     }
 
     @Test("A field after a label longer than the share starts just after the label")
@@ -94,7 +94,7 @@ struct FormGroupedRowTests {
         let label = "A label longer than the first share"
         let drawn = lines(Rows(label: label))
         let row = try #require(drawn.first { $0.contains(label) }, "drawn: \(drawn)")
-        #expect(column(of: "▐", in: row) == label.count + 1, "\(row.debugDescription)")
+        #expect(column(of: "│", in: row) == label.count + 1, "\(row.debugDescription)")
     }
 
     @Test("Each line of a multi-line value ends at the trailing edge")

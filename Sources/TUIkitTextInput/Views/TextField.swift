@@ -697,7 +697,8 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // style draws (two cap cells, or none for `.plain`).
         let chrome = FieldChrome(
             style: context.environment.textFieldStyle, palette: palette,
-            isHovered: false, on: context.environment.surfaceBackground)
+            isHovered: false, on: context.environment.surfaceBackground,
+            appearance: context.environment.appearance)
         let contentWidth = max(minContentWidth, context.availableWidth - chrome.width)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -789,7 +790,8 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // came from, re-derived with the hover tint.
         let hoveredChrome = FieldChrome(
             style: context.environment.textFieldStyle, palette: palette,
-            isHovered: isHovered, on: context.environment.surfaceBackground)
+            isHovered: isHovered, on: context.environment.surfaceBackground,
+            appearance: context.environment.appearance)
 
         // The ▾/▴ combo-box affordance sits inside the field surface, against
         // the trailing cap.

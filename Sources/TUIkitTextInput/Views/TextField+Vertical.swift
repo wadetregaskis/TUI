@@ -97,7 +97,8 @@ extension _TextFieldCore {
         let palette = context.environment.palette
         let chrome = FieldChrome(
             style: context.environment.textFieldStyle, palette: palette,
-            isHovered: false, on: context.environment.surfaceBackground)
+            isHovered: false, on: context.environment.surfaceBackground,
+            appearance: context.environment.appearance)
         let contentWidth = max(minContentWidth, context.availableWidth - chrome.width)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -151,7 +152,8 @@ extension _TextFieldCore {
         var buffer = assembleVertical(
             rows, chrome: FieldChrome(
                 style: context.environment.textFieldStyle, palette: palette,
-                isHovered: !isDisabled && hoverBox.value, on: context.environment.surfaceBackground),
+                isHovered: !isDisabled && hoverBox.value, on: context.environment.surfaceBackground,
+                appearance: context.environment.appearance),
             suggestionsOpen: suggestionMenu?.isOpen, palette: palette, textWidth: layout.width,
             isMeasuring: context.isMeasuring)
 

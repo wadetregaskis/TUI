@@ -135,7 +135,7 @@ struct LabeledContentTests {
         // line on the gap in front of it.
         let out = line(
             LabeledContent("Note") { TextField("", text: .constant("")) }, width: 40)
-        let fieldStart = out.firstIndex(of: "▐").map { out.distance(from: out.startIndex, to: $0) }
+        let fieldStart = out.firstIndex(of: "│").map { out.distance(from: out.startIndex, to: $0) }
         #expect(fieldStart != nil, "a field was drawn: \(out.debugDescription)")
         // "Note" (4) + one space of stack spacing: the field starts right after
         // the label, not halfway across the line.

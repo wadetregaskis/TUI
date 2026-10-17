@@ -26,8 +26,10 @@ import TUIkitTextInput
 struct TextFieldStyleTests {
 
     /// The half-block caps an `.automatic` field wraps its content in.
-    private let openCap = "▐"
-    private let closeCap = "▌"
+    /// The caps an `.automatic` field draws under the default appearance,
+    /// `.rounded`: its line.
+    private let openCap = "│"
+    private let closeCap = "│"
 
     private func context(width: Int, focusManager: FocusManager) -> RenderContext {
         var environment = EnvironmentValues()

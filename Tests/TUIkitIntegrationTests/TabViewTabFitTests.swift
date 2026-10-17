@@ -169,8 +169,9 @@ struct TabViewFillingTabTests {
             width: 30, height: 12
         ).lines.map(\.stripped)
         let field = lines.first { $0.contains("hello") } ?? ""
-        #expect(field.contains("▐hello"), "no field:\n\(dump(lines))")
-        #expect(field.contains("▌"), "the field's closing cap is gone:\n\(dump(lines))")
+        #expect(field.contains("│hello"), "no field:\n\(dump(lines))")
+        // The field's own closing cap, after its blank: not the tab's border.
+        #expect(field.range(of: #"│hello *│"#, options: .regularExpression) != nil, "the field's closing cap is gone:\n\(dump(lines))")
     }
 
     /// A `.toContentWidth` strip folded onto eight rows, where the tabs were

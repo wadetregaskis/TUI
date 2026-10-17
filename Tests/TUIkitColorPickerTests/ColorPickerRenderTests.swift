@@ -125,7 +125,10 @@ struct ColorPickerRenderTests {
     @Test("An RGB channel row shows editable percent, integer and hex fields")
     func panelChannelEditableFields() {
         let lines = renderToBuffer(
-            ColorPickerPanel("Pick", selection: .constant(.rgb(205, 100, 50)), isPresented: .constant(true)),
+            // Half-block caps, which only a field draws, so they count fields
+            // where the dialog's own lines are drawn too.
+            ColorPickerPanel("Pick", selection: .constant(.rgb(205, 100, 50)), isPresented: .constant(true))
+                .environment(\.appearance, .block),
             context: makeRenderContext(width: 70, height: 30)
         ).lines.map { $0.stripped }
         let rRow = lines.first { $0.contains("R ◀") } ?? ""
@@ -144,7 +147,9 @@ struct ColorPickerRenderTests {
         let box = ColorBoxRef(.rgb(200, 100, 50))
         let ctx = makeRenderContext(width: 70, height: 30)
         let fm = ctx.environment.focusManager!
+        // Half-block caps, which only a field draws, so they count fields.
         let panel = ColorPickerPanel("C", selection: box.binding, isPresented: .constant(true))
+            .environment(\.appearance, .block)
         func render() -> [String] { renderToBuffer(panel, context: ctx).lines.map { $0.stripped } }
         _ = render()
         _ = fm.dispatchKeyEvent(KeyEvent(key: .tab))                 // hex field → strip
