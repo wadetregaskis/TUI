@@ -100,6 +100,13 @@ public final class LocalizationService: @unchecked Sendable {
     /// lookup, in every language. Under `lock`.
     private var registeredKeysSpellSwiftUI = false
 
+    /// What ``string(for:swiftUIKey:tableName:bundle:)`` has answered, so a key
+    /// asked for again — every `Text` of every frame — is one lookup rather
+    /// than a walk of every language and every table, twice where SwiftUI
+    /// spells the key differently. Emptied by everything that can change an
+    /// answer: the language, and the strings an app registers. Under `lock`.
+    private var resolved = ResolvedStrings()
+
     /// The app's own string tables — see ``BundleStringTables``. Used under
     /// `lock`.
     private let bundleTables: BundleStringTables
@@ -186,6 +193,7 @@ public final class LocalizationService: @unchecked Sendable {
         currentLanguage = language
         _currentLocale = language.locale(in: region)
         lookupCodes = Self.lookupCodes(asked: [], language: language)
+        resolved = ResolvedStrings()
         lock.unlock()
         // After the lock, deliberately — see `currentLanguage`.
         saveLanguagePreference(language)
@@ -247,6 +255,7 @@ public final class LocalizationService: @unchecked Sendable {
         currentLanguage = language
         _currentLocale = language.locale(in: region)
         lookupCodes = Self.lookupCodes(asked: [], language: language)
+        resolved = ResolvedStrings()
         lock.unlock()
     }
 
@@ -284,6 +293,7 @@ public final class LocalizationService: @unchecked Sendable {
     package func registerWithoutRendering(translations: [String: [String: String]]) {
         lock.lock()
         defer { lock.unlock() }
+        resolved = ResolvedStrings()
         for (code, table) in translations {
             appTranslations[code, default: [:]].merge(table) { _, new in new }
             if !registeredKeysSpellSwiftUI, table.keys.contains(where: Self.holdsPrintfConversion) {
@@ -352,6 +362,16 @@ public final class LocalizationService: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
+        let memoKey = ResolvedStrings.Key(key: key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle)
+        if let answer = resolved.answer(for: memoKey) { return answer }
+        let answer = _resolve(key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle)
+        resolved.remember(answer, for: memoKey)
+        return answer
+    }
+
+    /// The walk ``string(for:swiftUIKey:tableName:bundle:)`` remembers the
+    /// answer of. Called under the lock.
+    private func _resolve(_ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?) -> String {
         let namesTable = !bundleTables.isDefaultTable(tableName, in: bundle)
         for code in lookupCodes {
             if let swiftUIKey,
