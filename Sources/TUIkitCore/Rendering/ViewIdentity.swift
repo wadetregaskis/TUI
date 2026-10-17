@@ -613,13 +613,22 @@ public struct RetainedSubtreeIndex {
     /// properties on `IdentityNode` cost every deep-chain page that never
     /// climbs at all (+9.5% on `modifiers`, allocation size), measured.
     private var verdicts: [Int: Bool] = [:]
+    /// The hashes one ``retains(_:)`` climbed through, to write its verdict
+    /// back on — kept between calls so the prune's hundreds of climbs share
+    /// one buffer instead of allocating one each.
+    private var climbed: [Int] = []
 
-    /// - Parameter roots: The pass's retained subtree roots, in any order.
-    public init(roots: [ViewIdentity]) {
+    /// - Parameters:
+    ///   - roots: The pass's retained subtree roots, in any order.
+    ///   - expectedChecks: About how many identities will be asked of — room
+    ///     for their verdicts is made up front, where growing to it one rehash
+    ///     at a time was a percent of a frame (`kitchensink`).
+    public init(roots: [ViewIdentity], expectedChecks: Int = 0) {
         self.roots = roots
         self.hashes = Set(roots.map(\.structuralHash))
         self.shallowest = roots.map(\.depth).min() ?? .max
         self.anyRootIsRaw = roots.contains(where: \.isRawRooted)
+        if !roots.isEmpty { verdicts.reserveCapacity(expectedChecks) }
     }
 
     /// Whether nothing is retained at all — the caller can skip the ask.
@@ -639,7 +648,7 @@ public struct RetainedSubtreeIndex {
         // Climb until a root, a node already judged, or above the shallowest
         // root; then write the verdict back on every node passed on the way.
         var cursor = identity.parent
-        var climbed: [Int] = []
+        climbed.removeAll(keepingCapacity: true)
         var verdict = false
         while let candidate = cursor, candidate.depth >= shallowest {
             let hash = candidate.structuralHash

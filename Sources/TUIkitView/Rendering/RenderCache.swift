@@ -1176,8 +1176,11 @@ extension RenderCache {
 
     /// The pass's retained roots, indexed for the prune — built once per
     /// ``removeInactive()``, which asks of every unmarked entry.
+    ///
+    /// Sized by the last prune's asks: a page asks much the same of every
+    /// frame, and a big cache whose entries were all marked asks nothing.
     private func retainedIndex() -> RetainedSubtreeIndex {
-        RetainedSubtreeIndex(roots: retainedSubtreeRoots)
+        RetainedSubtreeIndex(roots: retainedSubtreeRoots, expectedChecks: lastPrune.retainedChecks)
     }
 
     /// Begins a new render pass by draining any deferred `@State` invalidations,
