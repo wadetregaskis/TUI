@@ -70,8 +70,7 @@ struct RowTransferDemoSection: View {
                 // to the List, so clicking a row selects it exactly as it does
                 // in the demo above.
                 Text("page.rows.keyboardMoveHint")
-                    .foregroundStyle(.palette.foregroundTertiary)
-                    .dim()
+                    .foregroundStyle(.palette.foregroundSecondary)
                 HStack(alignment: .top, spacing: 3) {
                     list(.queue, title: "page.list.transferQueue")
                     list(.backlog, title: "page.list.transferBacklog")

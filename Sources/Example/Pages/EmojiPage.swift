@@ -375,7 +375,6 @@ private struct BugCaseRow: View {
                 labelAndStrip
                 Text("— \(description.localized)")
                     .foregroundStyle(.palette.foregroundSecondary)
-                    .dim()
             }
             HStack(spacing: 2) {
                 labelAndStrip

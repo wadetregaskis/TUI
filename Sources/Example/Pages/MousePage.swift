@@ -181,8 +181,7 @@ struct MousePage: View {
                     Text("page.mouse.scrollInstruction")
                         .foregroundStyle(.palette.foregroundSecondary)
                     Text("page.mouse.scrollTerminalNote")
-                        .foregroundStyle(.palette.foregroundTertiary)
-                        .dim()
+                        .foregroundStyle(.palette.foregroundSecondary)
                     // 2-D scroll position display. The vertical and
                     // horizontal axes each get their own line so you
                     // can see independent accumulation.
@@ -279,8 +278,7 @@ struct MousePage: View {
                     // drag, and the Lists page is what ROWS do. The note
                     // says so, so the overlap doesn't read as duplication.
                     Text("page.mouse.dragDropRowsNote")
-                        .foregroundStyle(.palette.foregroundTertiary)
-                        .dim()
+                        .foregroundStyle(.palette.foregroundSecondary)
                     HStack(alignment: .top, spacing: 4) {
                         shelfZone
                         basketZone
@@ -314,12 +312,10 @@ struct MousePage: View {
                     switch TerminalClient.current.program {
                     case .iTerm2:
                         Text("page.mouse.iTerm2RightClickNote")
-                            .foregroundStyle(.palette.foregroundTertiary)
-                            .dim()
+                            .foregroundStyle(.palette.foregroundSecondary)
                     case .appleTerminal:
                         Text("page.mouse.appleTerminalModifierNote")
-                            .foregroundStyle(.palette.foregroundTertiary)
-                            .dim()
+                            .foregroundStyle(.palette.foregroundSecondary)
                     default:
                         EmptyView()
                     }

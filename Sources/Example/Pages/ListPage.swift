@@ -156,8 +156,7 @@ struct ListPage: View {
                     Text("page.list.editableInstruction")
                         .foregroundStyle(.palette.foregroundSecondary)
                     Text("page.rows.keyboardMoveHint")
-                        .foregroundStyle(.palette.foregroundTertiary)
-                        .dim()
+                        .foregroundStyle(.palette.foregroundSecondary)
                     Picker("page.list.reorderFeedback", selection: $reorderFeedback) {
                         ForEach(ReorderFeedbackChoice.allCases, id: \.rawValue) { choice in
                             Text(choice.label).tag(choice.rawValue)
