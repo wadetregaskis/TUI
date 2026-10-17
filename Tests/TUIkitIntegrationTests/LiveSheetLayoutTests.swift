@@ -188,10 +188,10 @@ struct LiveSheetLayoutTests {
         app.frame(atNanos: Self.frameNanos)
         let screen = rows(app)
         #expect(screen.contains { $0.contains("page height 14") }, "\(screen)")
-        // The grabber's rule on the row under the page, the panel's title
-        // below it.
-        #expect(screen[14].contains("─"), "the sheet does not start on the row under the page: \(screen)")
-        #expect(screen.firstIndex { $0.contains("Sheet") } == 15, "\(screen)")
+        // The panel's top edge, its title and the grabber's handle in it, on
+        // the row under the page.
+        #expect(screen[14].contains("═"), "the sheet does not start on the row under the page: \(screen)")
+        #expect(screen.firstIndex { $0.contains("Sheet") } == 14, "\(screen)")
         #expect(screen[19].contains("╰") || screen[19].contains("└"), "the sheet's foot is not the last row: \(screen)")
     }
 

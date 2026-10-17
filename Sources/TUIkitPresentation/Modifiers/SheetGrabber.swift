@@ -115,6 +115,13 @@ final class _SheetGrabberHandler: PersistedFocusable {
 /// Draws a sheet's grabber over its content and makes it live.
 @MainActor
 enum SheetGrabber {
+    /// Whether a sheet of `content` with its grabber shown draws the grabber
+    /// into the content's own top edge (``SheetContentDrawsBox``), drawing
+    /// the content as tall as its detent, rather than on a row above it.
+    static func isInTopBorder(of content: any View) -> Bool {
+        presentationTrait(SheetContentDrawsBox.self, of: content) != nil
+    }
+
     /// Whether a sheet with `detents` shows its grabber, `visibility` being
     /// what its content asked (``View/presentationDragIndicator(_:)``): unless
     /// hidden, wherever there are two heights to move between.
@@ -132,8 +139,13 @@ enum SheetGrabber {
     /// lit by the pointer and breathing while the grabber holds the focus.
     ///
     /// - Parameters:
-    ///   - sheet: The sheet's content, drawn one row short of its detent.
+    ///   - sheet: The sheet's content, drawn one row short of its detent —
+    ///     or as tall as it, with `inTopBorder`.
     ///   - detents: The sheet's detents this frame.
+    ///   - inTopBorder: Whether the grabber is drawn into the content's own
+    ///     top edge (``SheetContentDrawsBox``) rather than as a rule above
+    ///     it. Where the top row turns out not to be a box's edge, the rule
+    ///     is drawn above it after all, a row more than the detent.
     ///   - sectionID: The sheet's focus section.
     ///   - focusIDIndex: The presenter's `StateStorage` index for the
     ///     grabber's focus id.
@@ -141,7 +153,7 @@ enum SheetGrabber {
     ///   - context: The presenter's context.
     static func attach(
         to sheet: FrameBuffer, detents: PresentedDetents, contentInteraction: PresentationContentInteraction,
-        sectionID: String, focusIDIndex: Int, handlerIndex: Int, context: RenderContext
+        inTopBorder: Bool = false, sectionID: String, focusIDIndex: Int, handlerIndex: Int, context: RenderContext
     ) -> FrameBuffer {
         guard !context.isMeasuring, let stateStorage = context.stateStorage else { return sheet }
         var registering = context
@@ -161,10 +173,22 @@ enum SheetGrabber {
         FocusRegistration.register(context: registering, handler: handler, focusID: focusID)
         let isFocused = context.indicatesFocus(FocusRegistration.isFocused(context: registering, focusID: focusID))
 
+        if inTopBorder, let run = topBorderRun(of: sheet) {
+            var sheet = sheet
+            drawHandle(
+                into: &sheet, run: run, isFocused: isFocused, isHovered: handler.isHovered,
+                environment: context.environment)
+            if handler.canBeFocused {
+                registerWheel(handler: handler, interaction: contentInteraction, on: &sheet, context: context)
+                registerDrag(handler: handler, focusID: focusID, on: &sheet, context: context)
+            }
+            return sheet
+        }
         let width = max(1, sheet.width)
         var rule = DividerRule.buffer(across: .vertical, length: width, colour: context.environment.palette.border)
         drawHandle(
-            into: &rule, isFocused: isFocused, isHovered: handler.isHovered, environment: context.environment)
+            into: &rule, run: (start: 0, glyph: "─", length: rule.width), isFocused: isFocused,
+            isHovered: handler.isHovered, environment: context.environment)
         if handler.canBeFocused { registerDrag(handler: handler, focusID: focusID, on: &rule, context: context) }
         rule.appendVertically(sheet)
         if handler.canBeFocused {
@@ -212,23 +236,59 @@ enum SheetGrabber {
         sheet.hitTestRegions.append(region(inFront))
     }
 
-    /// The handle in the middle of the rule, in the grip's glyphs and ink.
-    private static func drawHandle(
-        into rule: inout FrameBuffer, isFocused: Bool, isHovered: Bool, environment: EnvironmentValues
-    ) {
-        // The rule is a run of `─` with no corners, so the whole of it is the
-        // run the handle centres in.
-        guard let span = BorderGrip.centredSpan(in: rule.width + 2, size: BorderGrip.Size.horizontal) else { return }
-        let glyphs = BorderGrip.Glyphs.standingOut(from: "─")
-        let ink = BorderGrip.ink(isFocused: isFocused, isHovered: isHovered, environment: environment)
-        BorderGrip.mark(
-            String(repeating: glyphs.horizontal, count: span.count), cells: span.count, into: &rule,
-            at: (x: span.lowerBound - 1, y: 0), ink: ink)
+    /// The longest run of one line glyph between the corners of `sheet`'s top
+    /// row — a box's top edge, beside its title — or `nil` where the row is
+    /// not a box's top edge: a corner at each end, as a rounded, single,
+    /// double or heavy border draws.
+    static func topBorderRun(of sheet: FrameBuffer) -> (start: Int, glyph: Character, length: Int)? {
+        guard let top = sheet.lines.first else { return nil }
+        let cells = Array(top.stripped)
+        guard cells.count >= 3, "╭┌╔┏".contains(cells[0]), "╮┐╗┓".contains(cells[cells.count - 1]) else {
+            return nil
+        }
+        var best: (start: Int, glyph: Character, length: Int)?
+        var index = 1
+        while index < cells.count - 1 {
+            let glyph = cells[index]
+            var end = index + 1
+            while end < cells.count - 1, cells[end] == glyph { end += 1 }
+            if "─═━".contains(glyph), end - index > best?.length ?? 0 { best = (index, glyph, end - index) }
+            index = end
+        }
+        return best
     }
 
-    /// The whole rule as the drag target: a press focuses the grabber, and the
-    /// drag moves the sheet's top edge with the pointer, snapping to the
-    /// nearest detent as it goes — up is taller.
+    /// The handle on `buffer`'s top row, in the grip's glyphs and ink: in the
+    /// middle of the row where that is all `run` — the whole of a rule, which
+    /// has no corners, or a box's top edge clear of its title — and otherwise
+    /// in the middle of `run`, the longest stretch of the edge beside it.
+    private static func drawHandle(
+        into buffer: inout FrameBuffer, run: (start: Int, glyph: Character, length: Int), isFocused: Bool,
+        isHovered: Bool, environment: EnvironmentValues
+    ) {
+        let cells: Range<Int>
+        let runCells = run.start..<(run.start + run.length)
+        if let middle = BorderGrip.centredSpan(in: buffer.width, size: BorderGrip.Size.horizontal),
+            runCells.contains(middle.lowerBound), runCells.contains(middle.upperBound - 1)
+        {
+            cells = middle
+        } else if let span = BorderGrip.centredSpan(in: run.length + 2, size: BorderGrip.Size.horizontal) {
+            cells = (run.start + span.lowerBound - 1)..<(run.start + span.upperBound - 1)
+        } else {
+            return
+        }
+        let glyphs = BorderGrip.Glyphs.standingOut(from: run.glyph)
+        let ink = BorderGrip.ink(isFocused: isFocused, isHovered: isHovered, environment: environment)
+        BorderGrip.mark(
+            String(repeating: glyphs.horizontal, count: cells.count), cells: cells.count, into: &buffer,
+            at: (x: cells.lowerBound, y: 0), ink: ink)
+    }
+
+    /// The whole rule — or the box's top edge the grabber is drawn into — as
+    /// the drag target: a press focuses the grabber, and the drag moves the
+    /// sheet's top edge with the pointer, snapping to the nearest detent as it
+    /// goes — up is taller. Appended, so that on a box's edge it is in front
+    /// of what the box drew there.
     private static func registerDrag(
         handler: _SheetGrabberHandler, focusID: String, on rule: inout FrameBuffer, context: RenderContext
     ) {

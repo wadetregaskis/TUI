@@ -393,3 +393,9 @@ extension Dialog where Footer == EmptyView {
         )
     }
 }
+
+// MARK: - In a detented sheet
+
+/// A dialog draws its own box, so a detented sheet's grabber goes into its
+/// top edge (`SheetGrabber`).
+extension Dialog: SheetContentDrawsBox {}

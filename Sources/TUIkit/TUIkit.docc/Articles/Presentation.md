@@ -126,8 +126,11 @@ A sheet with two detents or more opens at the smallest — each time it is
 presented, and for each item a `sheet(item:)` is presented for — and has a
 **grabber**: a
 rule across its top edge with a handle in the middle — the divider of a
-``VSplitView``, between the sheet and the page — inside the detent's height. It
-is a focus stop after the sheet's own controls:
+``VSplitView``, between the sheet and the page — inside the detent's height.
+Content that draws its own box, a ``Dialog`` or a `Panel`, has the handle in
+its box's top edge instead, beside its title, so the sheet has one top edge
+rather than a rule and a border a row apart. It is a focus stop after the
+sheet's own controls:
 
 | Key | Moves the sheet to |
 |---|---|

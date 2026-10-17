@@ -266,3 +266,9 @@ struct _PanelCore<Content: View, Footer: View>: View, Renderable, Layoutable {
         )
     }
 }
+
+// MARK: - In a detented sheet
+
+/// A panel draws its own box, so a detented sheet's grabber goes into its top
+/// edge (`SheetGrabber`).
+extension Panel: SheetContentDrawsBox {}

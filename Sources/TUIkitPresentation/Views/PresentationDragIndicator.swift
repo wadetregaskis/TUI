@@ -30,7 +30,9 @@ extension View {
     ///
     /// The indicator is the sheet's **grabber**: a rule across its top edge
     /// with a handle in the middle — the divider of a `VSplitView`, between the
-    /// sheet and the page. It is a focus stop after the sheet's own controls:
+    /// sheet and the page — or, on content that draws its own box (a
+    /// ``Dialog``, a `Panel`), the handle in that box's top edge. It is a focus
+    /// stop after the sheet's own controls:
     /// ↑ moves the sheet to its next larger detent and ↓ to its next smaller,
     /// ↖ and ↘ (Home and End) to the smallest and the largest — where the
     /// terminal sends them to the app, which is not yet measured for every

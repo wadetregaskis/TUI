@@ -382,8 +382,9 @@ struct OverlaysPage: View {
         // `.medium`; grown past it, the sheet is a modal again.
         //
         // Its content is plain, with its title as a heading: the grabber's rule
-        // is already the sheet's top edge, and a `Panel` under it drew a second
-        // one a row below — two rules where a sheet has one.
+        // is the sheet's top edge, across the page's width, as a split view's
+        // divider is. (A `Panel` here would carry the grabber's handle in its
+        // own top edge, as the detented sheet's `Dialog` does.)
         .sheet(isPresented: $showLive) {
             VStack(alignment: .leading, spacing: 1) {
                 Text("page.overlays.variants.liveSheetTitle").bold()

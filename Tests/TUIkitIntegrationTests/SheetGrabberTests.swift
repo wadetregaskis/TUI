@@ -108,15 +108,35 @@ struct SheetGrabberTests {
 
     // MARK: - Drawn
 
-    @Test("A sheet with two detents or more has a rule on top with a handle, and is its detent's height")
-    func drawsTheRule() throws {
+    @Test("A sheet with two detents or more draws its grabber's handle into its panel's top edge, and is its detent's height")
+    func drawsTheHandle() throws {
         let harness = harness()
         let layer = try #require(sheet(frame(harness, GrabbedSheet())))
         let rows = layer.content.lines.map(\.stripped)
-        #expect(rows.count == 6, "the smallest detent, the rule included: \(rows)")
+        #expect(rows.count == 6, "the smallest detent, the panel filling it: \(rows)")
+        let top = try #require(rows.first)
+        #expect(top.hasPrefix("╭") && top.hasSuffix("╮"), "the panel's own top edge, no rule above it: \(rows)")
+        #expect(top.contains("SHEET"), "its title kept: \(rows)")
+        #expect(top.contains("═"), "the handle, beside the title: \(rows)")
+        #expect(layer.content.hitTestRegions.contains { $0.focusID?.hasPrefix("sheet-grabber") == true && $0.offsetY == 0 })
+    }
+
+    @Test("Plain content still has the grabber's rule for its top edge, with a seven-cell handle")
+    func plainContentHasTheRule() throws {
+        struct Plain: View {
+            var body: some View {
+                Text("PAGE").sheet(isPresented: .constant(true)) {
+                    Text("SHEET").frame(width: 20)
+                        .presentationDetents([.height(6), .large]).presentationDragIndicator(.visible)
+                }
+            }
+        }
+        let harness = harness()
+        let layer = try #require(sheet(frame(harness, Plain())))
+        let rows = layer.content.lines.map(\.stripped)
+        #expect(rows.count == 6, "\(rows)")
         #expect(rows.first?.allSatisfy { $0 == "─" || $0 == "═" } == true, "\(rows)")
-        #expect(rows.first?.contains("═══════") == true, "a seven-cell handle: \(rows)")
-        #expect(rows[1].contains("SHEET"), "the panel under the rule: \(rows)")
+        #expect(rows.first?.contains("═══════") == true, "\(rows)")
     }
 
     @Test("One detent, or the indicator hidden: no rule, no stop, no drag", arguments: [false, true])

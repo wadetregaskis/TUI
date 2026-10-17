@@ -304,11 +304,14 @@ extension ModalPresentationModifier: Renderable {
         escape: @escaping (_ isRepeat: Bool) -> Void, escapeItemRegistration: Int?, sectionID: String,
         context: RenderContext
     ) -> FrameBuffer {
+        // The grabber takes a row above the content, unless the content draws
+        // its own box, whose top edge it is drawn into.
+        let inTopBorder = isGrabbed && SheetGrabber.isInTopBorder(of: modal)
         let modalBuffer = gate.drawingContent(context: context) {
             renderModal(
                 context: context, modalContext: modalContext,
                 overlayHeight: context.environment.overlayContentHeight,
-                detentHeight: detents?.height.map { isGrabbed ? max(1, $0 - 1) : $0 })
+                detentHeight: detents?.height.map { isGrabbed && !inTopBorder ? max(1, $0 - 1) : $0 })
         }
         // Registered before the content drew, so that the content's own items
         // in this section replace it, the ESC item is named for what Escape
@@ -329,7 +332,7 @@ extension ModalPresentationModifier: Renderable {
         let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
         return SheetGrabber.attach(
             to: modalBuffer, detents: detents, contentInteraction: interaction?.contentInteraction ?? .automatic,
-            sectionID: sectionID, focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber,
+            inTopBorder: inTopBorder, sectionID: sectionID, focusIDIndex: StateIndex.grabberFocusID, handlerIndex: StateIndex.grabber,
             context: context)
     }
 

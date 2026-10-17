@@ -83,6 +83,15 @@ extension Optional: PresentationTraitWrapper where Wrapped: View {
     package var presentationTraitContent: any View { self ?? EmptyView() }
 }
 
+// MARK: - A box of its own
+
+/// Presented content that draws its own box — a `Dialog`, a `Panel` — whose
+/// top edge a detented sheet's grabber is drawn into, as a live sheet's plain
+/// content has the grabber's rule for its top edge, rather than on a row of
+/// its own above the box: two rules where a sheet has one edge.
+@MainActor
+package protocol SheetContentDrawsBox {}
+
 // MARK: - interactiveDismissDisabled()
 
 /// Content that has asked not to be dismissed by hand.
