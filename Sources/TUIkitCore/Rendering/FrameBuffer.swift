@@ -630,10 +630,14 @@ extension FrameBuffer {
 
         var result: [String] = []
         result.reserveCapacity(maxHeight)
-        // Each combined row's width, kept as the result's `lineWidths` — see
-        // below the loop.
+        // Settled before the loop — see below it — so a uniform result, the
+        // common one-line row, builds no `widths` it would not keep.
+        let resultUniform =
+            linesAreUniformWidth && other.linesAreUniformWidth && height <= other.height
+        // Each combined row's width, kept as the result's `lineWidths` where
+        // the result is ragged — see below the loop.
         var widths: [Int] = []
-        widths.reserveCapacity(maxHeight)
+        if !resultUniform { widths.reserveCapacity(maxHeight) }
 
         for row in 0..<maxHeight {
             let left = row < lines.count ? lines[row] : ""
@@ -662,7 +666,9 @@ extension FrameBuffer {
             if spacingApplied > 0 { combined += asciiSpaces(spacingApplied) }
             combined += right
             result.append(combined)
-            widths.append(max(leftWidth, myWidth) + spacingApplied + other.knownWidth(ofRow: row, line: right))
+            if !resultUniform {
+                widths.append(max(leftWidth, myWidth) + spacingApplied + other.knownWidth(ofRow: row, line: right))
+            }
         }
 
         // Supply the uniform-width hint the
@@ -676,8 +682,6 @@ extension FrameBuffer {
         // be zero-wide). So the result is uniform exactly when both sides are
         // uniform and `other` is at least as tall — anything less certain stays
         // the safe `false` ("unknown", byte-identical: the consumer re-measures).
-        let resultUniform =
-            linesAreUniformWidth && other.linesAreUniformWidth && height <= other.height
         storage = result
         width = newWidth
         linesAreUniformWidth = resultUniform
@@ -687,7 +691,8 @@ extension FrameBuffer {
         // every accumulated row (`left.strippedLength` above), so a row of k
         // ragged children measured its first child's lines k times: 5.6% of a
         // frame of Stress `framedcolumns`, in `_HStackCore.renderClip`.
-        lineWidths = widths
+        // A uniform result needs none: every row is `newWidth`.
+        lineWidths = resultUniform ? nil : widths
         Self.assertLineWidthsInvariant(self)
 
         // `other`'s content lands to the right, past this buffer + spacing.
