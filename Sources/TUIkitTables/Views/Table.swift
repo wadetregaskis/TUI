@@ -1304,17 +1304,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         //
         // An unframed table in a `VStack` reaches none of this and still hugs,
         // which is what it wants.
-        let filledContentLines: [String]
-        if context.hasExplicitHeight, contentLines.count < rowArea {
-            let padWidth = contentLines.map(\.strippedLength).max() ?? 0
-            filledContentLines =
-                contentLines
-                + Array(
-                    repeating: String(repeating: " ", count: padWidth),
-                    count: rowArea - contentLines.count)
-        } else {
-            filledContentLines = contentLines
-        }
+        let (filledContentLines, filledContentWidths) = Self.filled(
+            contentLines, toRows: context.hasExplicitHeight ? rowArea : nil)
 
         let container = ContainerView(
             title: nil,
@@ -1331,8 +1322,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     line: headerLines(context.environment) > 0 ? headerLine : nil,
                     claims: header.claims)
                 _TableContentView(
-                    lines: filledContentLines, runs: contentRuns, claims: contentClaims,
-                    payload: contentPayload)
+                    lines: filledContentLines, lineWidths: filledContentWidths, runs: contentRuns,
+                    claims: contentClaims, payload: contentPayload)
             }
         }
         var buffer = render(container, on: surface, context: context)
@@ -6099,11 +6090,32 @@ private struct _TableColumnMenu: View {
     }
 }
 
+extension _TableCore {
+    /// `lines`, padded with blank lines as wide as the widest to `rows` where
+    /// that is more, and each line's visible width — measured once, here: the
+    /// content view sizes itself and builds its buffer from these rather than
+    /// measuring every line again for each.
+    static func filled(_ lines: [String], toRows rows: Int?) -> (lines: [String], widths: [Int]) {
+        let widths = lines.map(\.strippedLength)
+        guard let rows, lines.count < rows else { return (lines, widths) }
+        let padWidth = widths.max() ?? 0
+        let blanks = rows - lines.count
+        return (
+            lines + Array(repeating: String(repeating: " ", count: padWidth), count: blanks),
+            widths + Array(repeating: padWidth, count: blanks)
+        )
+    }
+}
+
 // MARK: - Table Content View
 
 /// Simple view that renders pre-computed lines.
 private struct _TableContentView: View, Renderable, Layoutable {
     let lines: [String]
+
+    /// Each line's visible width, as the table measured it once making them:
+    /// `lines.map(\.strippedLength)`.
+    let lineWidths: [Int]
 
     /// The breathing row's cells, already positioned among `lines` — the header
     /// above and the container around shift them along with the lines.
@@ -6129,13 +6141,18 @@ private struct _TableContentView: View, Renderable, Layoutable {
     /// by rendering, every line was inset — a new string — only to be counted.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard !lines.isEmpty else { return ViewSize.fixed(0, 0) }
-        return ViewSize.fixed(lines.reduce(0) { Swift.max($0, $1.strippedLength) } + 1, lines.count)
+        return ViewSize.fixed((lineWidths.max() ?? 0) + 1, lines.count)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // The table's leading inset cell, drawn as part of each row
-        // (`TableRowInset`): everything here moves one cell along.
-        var buffer = FrameBuffer(lines: lines.map(TableRowInset.inset))
+        // (`TableRowInset`): everything here moves one cell along. The inset
+        // adds exactly one cell to every line, so the widths are known.
+        let widths = lineWidths.map { $0 + 1 }
+        let width = widths.max() ?? 0
+        var buffer = FrameBuffer(
+            lines: lines.map(TableRowInset.inset), width: width,
+            uniformWidth: widths.allSatisfy { $0 == width }, lineWidths: widths)
         // A measure pass draws nothing, so a run left on it would describe
         // cells that were never on screen — and keep the clock alive from a
         // pass that produced no frame. A claim on a measure buffer is harmless
