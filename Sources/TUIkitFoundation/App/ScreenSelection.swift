@@ -451,11 +451,13 @@ extension ScreenSelection {
 
     /// The run of cells around `column` of one kind — a word, the blanks
     /// between words, or a run of other marks — within the clip: what a
-    /// double-click selects.
+    /// double-click selects. On a web address, the address
+    /// (``urlBounds(at:in:clip:)``).
     static func wordBounds(at column: Int, in cells: [Character?], clip: Rect) -> Range<Int> {
         let lower = clip.x
         let upper = min(clip.x + clip.width, cells.count)
         guard column >= lower, column < upper else { return column..<(column + 1) }
+        if let address = urlBounds(at: column, in: cells, clip: clip) { return address }
         func kind(_ index: Int) -> WordBoundary.Kind {
             // A wide character's second cell is the character's.
             var index = index

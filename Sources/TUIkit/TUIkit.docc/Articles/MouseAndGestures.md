@@ -269,7 +269,9 @@ TUIkit selects by itself, as a terminal would:
   the content area. The app header and the status bar are never selected.
 - **A double-click selects a word, a triple-click the line in its context,
   a quadruple-click the row**, and a drag after any of them extends by
-  words, lines or rows. A line in its context is the run of text between the
+  words, lines or rows. A double-click on a web address — from its scheme's
+  `://` or a `www.` to the next blank, less a sentence's full stop or
+  closing bracket — selects the whole address. A line in its context is the run of text between the
   walls either side — a box's border, a divider — or gaps of three blanks or
   more: triple-clicking a name on a bordered card selects the name, not the
   card's padding and walls, as macOS selects a line of the text view clicked

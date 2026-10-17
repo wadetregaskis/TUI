@@ -78,6 +78,21 @@ struct ScreenSelectionReadingTests {
         #expect(line("│  Ada Lovelace     │", at: 0) == "│  Ada Lovelace     │", "a wall takes the row")
     }
 
+    @Test("A double-click on a web address selects the address, less a sentence's marks around it")
+    func addresses() {
+        func word(_ text: String, at column: Int) -> String {
+            let cells = ScreenSelection.cells(of: text)
+            let clip = ScreenSelection.Rect(x: 0, y: 0, width: cells.count, height: 1)
+            return String(ScreenSelection.wordBounds(at: column, in: cells, clip: clip).compactMap { cells[$0] })
+        }
+        let sentence = "(see https://en.wikipedia.org/wiki/Swift_(language)). Done"
+        #expect(word(sentence, at: 20) == "https://en.wikipedia.org/wiki/Swift_(language)")
+        #expect(word(sentence, at: 5) == "https://en.wikipedia.org/wiki/Swift_(language)")
+        #expect(word(sentence, at: 0) == "(", "the bracket before it is a mark")
+        #expect(word("Go to www.swift.org, then", at: 9) == "www.swift.org")
+        #expect(word("a.b/c d", at: 0) == "a", "no scheme and no www.: words as before")
+    }
+
     @Test("A wide character is read once, whichever of its cells the selection touches")
     func wideCharacters() {
         let lines = ["a界b"]
