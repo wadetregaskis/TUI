@@ -11,7 +11,9 @@
 import Foundation
 import Testing
 import TUIkitCore
-import UniformTypeIdentifiers
+#if canImport(UniformTypeIdentifiers)
+    import UniformTypeIdentifiers
+#endif
 
 @testable import TUIkitApp
 @testable import TUIkitFoundation
@@ -145,6 +147,7 @@ struct MIMEPasteTests {
         #expect(x.key == .character("x"))
     }
 
+    #if canImport(UniformTypeIdentifiers)
     @Test("A paste command for pictures is offered the picture, as its UTType; one for text, the text")
     func itemProvider() throws {
         let picture = PasteAttachment(type: "image/png", bytes: Self.picture)
@@ -155,4 +158,5 @@ struct MIMEPasteTests {
         #expect(text.canLoadObject(ofClass: NSString.self))
         #expect(Text.pastedItem(text: "", attachments: []) == nil, "a paste of nothing offers nothing")
     }
+    #endif
 }
