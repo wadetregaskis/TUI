@@ -799,6 +799,32 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 - Self.containerPadding.trailing)
     }
 
+    /// The width inside, for a table that shows its vertical scrollbar or
+    /// does not: ``innerWidth(_:_:)`` and the cell ``trailingPadding(_:showsBar:)``
+    /// gives back.
+    private func innerWidth(_ width: Int, _ environment: EnvironmentValues, showsBar: Bool) -> Int {
+        innerWidth(width, environment) + Self.containerPadding.trailing
+            - trailingPadding(environment, showsBar: showsBar)
+    }
+
+    /// The cells between the rows' last column and the table's edge: one,
+    /// as before them — except beside a `.surface` table's vertical scrollbar,
+    /// none. A bordered table's blank cell after the bar mirrors the one before
+    /// the rows, inside a frame; a surface table has no frame, and the
+    /// column of surface past the bar read as the table running on past its
+    /// own edge (the owner's ruling, 2026-10-16).
+    private func trailingPadding(_ environment: EnvironmentValues, showsBar: Bool) -> Int {
+        showsBar && environment.tableStyle.builtInChrome == .surface ? 0 : Self.containerPadding.trailing
+    }
+
+    /// The padding the container is drawn with, for a table that shows its
+    /// vertical scrollbar or does not — see ``trailingPadding(_:showsBar:)``.
+    private func drawnPadding(_ environment: EnvironmentValues, showsBar: Bool) -> EdgeInsets {
+        var padding = Self.drawnContainerPadding
+        padding.trailing = trailingPadding(environment, showsBar: showsBar)
+        return padding
+    }
+
     /// The container the header and rows are drawn in: bordered, or not, as
     /// the table style says.
     private func containerStyle(_ environment: EnvironmentValues) -> ContainerStyle {
@@ -919,13 +945,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func analyticSingleLineSize(context: RenderContext) -> (width: Int, height: Int) {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
-        let innerWidth = innerWidth(context.availableWidth, context.environment)
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         let wantsScrollbar =
             !data.isEmpty
             && context.environment.verticalScrollIndicators(
                 overflowing: data.count > rowArea
             ).bar
+        let innerWidth = innerWidth(context.availableWidth, context.environment, showsBar: wantsScrollbar)
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
@@ -996,7 +1022,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             contentSize = (widest, min(data.count, rowArea))
         }
 
-        return analyticSize(headerLine: headerLine, content: contentSize, context: context)
+        return analyticSize(headerLine: headerLine, content: contentSize, showsBar: wantsScrollbar, context: context)
     }
 
     /// A multi-line table's size, computed rather than rendered — or `nil` for
@@ -1034,16 +1060,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard !data.isEmpty else { return nil }
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
-        let innerWidth = innerWidth(context.availableWidth, context.environment)
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         // Decide the bar exactly as `renderToBuffer` does — at the width a bar
         // WOULD leave, where rows wrap taller and so overflow soonest.
         let overflows = multiLineOverflows(
-                rowArea: rowArea, innerWidth: innerWidth - context.environment.scrollbarWidth, gutter: gutter,
-                context: context)
+                rowArea: rowArea,
+                innerWidth: innerWidth(context.availableWidth, context.environment, showsBar: true)
+                    - context.environment.scrollbarWidth,
+                gutter: gutter, context: context)
         let wantsScrollbar = context.environment.verticalScrollIndicators(
             overflowing: overflows
         ).bar
+        let innerWidth = innerWidth(context.availableWidth, context.environment, showsBar: wantsScrollbar)
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
@@ -1086,7 +1114,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             headerLine += String(
                 repeating: " ", count: max(0, innerWidth - headerLine.strippedLength))
         }
-        return analyticSize(headerLine: headerLine, content: content, context: context)
+        return analyticSize(headerLine: headerLine, content: content, showsBar: wantsScrollbar, context: context)
     }
 
     /// The table's outer size, given the header line and the content block's
@@ -1094,12 +1122,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// fixed-size stand-in for the rows. Both analytic paths end here so
     /// neither can drift from the container `renderToBuffer` builds.
     private func analyticSize(
-        headerLine: String, content: (width: Int, height: Int), context: RenderContext
+        headerLine: String, content: (width: Int, height: Int), showsBar: Bool, context: RenderContext
     ) -> (width: Int, height: Int) {
         let container = ContainerView(
             title: nil,
             style: containerStyle(context.environment),
-            padding: Self.drawnContainerPadding
+            padding: drawnPadding(context.environment, showsBar: showsBar)
         ) {
             VStack(alignment: .leading, spacing: 0) {
                 // No claims on the analytic MEASURE path: it reports a size and draws
@@ -1186,7 +1214,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         // Calculate available width inside container (subtract border + padding).
         let gutter = selectionGutter(context.environment)
-        let innerWidth = innerWidth(context.availableWidth, context.environment)
 
         // A single-line table decides a scrollbar cheaply (one line per row).
         // A multi-line table's overflow is its total WRAPPED height, so that
@@ -1200,10 +1227,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             && context.environment.verticalScrollIndicators(
                 overflowing: isMultiLine
                     ? multiLineOverflows(
-                rowArea: rowArea, innerWidth: innerWidth - context.environment.scrollbarWidth, gutter: gutter,
-                context: context)
+                rowArea: rowArea,
+                innerWidth: innerWidth(context.availableWidth, context.environment, showsBar: true)
+                    - context.environment.scrollbarWidth,
+                gutter: gutter, context: context)
                     : data.count > rowArea
             ).bar
+        let innerWidth = innerWidth(context.availableWidth, context.environment, showsBar: wantsScrollbar)
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
@@ -1289,7 +1319,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let container = ContainerView(
             title: nil,
             style: containerStyle(context.environment),
-            padding: Self.drawnContainerPadding
+            padding: drawnPadding(context.environment, showsBar: wantsScrollbar)
         ) {
             // `.leading`: the header sits left, over its columns. A focused/selected
             // row or a scroll indicator must never be wider than the other lines, or
@@ -3650,7 +3680,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 offsetX: max(
                     0,
                     context.availableWidth - borderWidth(context.environment)
-                        - Self.containerPadding.trailing - context.environment.scrollbarWidth),
+                        - trailingPadding(context.environment, showsBar: true) - context.environment.scrollbarWidth),
                 offsetY: firstRowY,
                 width: context.environment.scrollbarWidth, height: barHeight, handlerID: barHandlerID),
             at: 0

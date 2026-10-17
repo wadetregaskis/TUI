@@ -86,6 +86,37 @@ struct CollectionSurfaceTests {
         #expect(widths.count == 1, "\(buffer.lines.map(\.stripped))")
     }
 
+    /// The owner's ruling, 2026-10-16: a blank cell after a bordered table's bar
+    /// mirrors the one before its rows, inside the frame; a surface table has
+    /// no frame, and the column of surface past the bar read as the table
+    /// running on past its edge.
+    @Test("A surface table's scrollbar is its last column; a bordered table's keeps a cell before the border")
+    func barAtTheEdge() throws {
+        let many = (0..<12).map { Row(id: $0, name: "row\($0)") }
+        func lastInk(_ style: some TableStyle) throws -> (column: Int, width: Int) {
+            let buffer = renderToBuffer(
+                Table(many) { TableColumn("Name", value: \Row.name) }
+                    .tableStyle(style).frame(height: 6).scrollIndicators(.visible),
+                context: makeRenderContext(width: 30, height: 10))
+            let row = try #require(buffer.lines.map(\.stripped).first { $0.contains("row0") })
+            let characters = Array(row)
+            let last = try #require(characters.lastIndex { $0 != " " })
+            return (last, characters.count)
+        }
+        let surface = try lastInk(.surface)
+        #expect(surface.column == surface.width - 1, "the bar is the surface table's last column")
+        let bordered = try lastInk(.bordered)
+        // The border's `│` is the last ink; the bar stands one blank cell before it.
+        #expect(bordered.column == bordered.width - 1)
+        let borderedRow = try #require(
+            renderToBuffer(
+                Table(many) { TableColumn("Name", value: \Row.name) }
+                    .tableStyle(.bordered).frame(height: 6).scrollIndicators(.visible),
+                context: makeRenderContext(width: 30, height: 10)
+            ).lines.map(\.stripped).first { $0.contains("row0") })
+        #expect(Array(borderedRow)[bordered.width - 2] == " ", "the bordered table's blank cell before its border")
+    }
+
     @Test("A bordered or inset table paints no surface")
     func otherStylesPaintNone() {
         for buffer in [table(.automatic), table(.inset)] {
