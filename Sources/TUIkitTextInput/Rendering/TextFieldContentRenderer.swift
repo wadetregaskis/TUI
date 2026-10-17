@@ -499,7 +499,13 @@ struct TextFieldContentRenderer: FieldTextLayout {
         //
         // Worked out only where there is a caret: the rows of a vertical field
         // that the caret is not on have no use for its cycle.
-        let setup = clampedPosition.map { _ in
+        //
+        // Nor while text is selected, as on a Mac, which hides the insertion
+        // point then: typing replaces the whole selection, so the highlight is
+        // the caret, and a caret drawn in it or beside it told of an insertion
+        // point that is not there. The window still follows the cursor.
+        let drawsCaret = selectionRange.map(\.isEmpty) ?? true
+        let setup = clampedPosition.flatMap { _ in drawsCaret ? () : nil }.map { _ in
             Self.caretSetup(
                 palette: palette, background: background, textForeground: textForeground,
                 selection: selection,

@@ -595,7 +595,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                     }
                 rendered = styledRow(
                     Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, width: rows.width,
-                    caret: top + screenRow == caretRow ? caret : nil, selection: selection, styling: styling)
+                    caret: top + screenRow == caretRow && handler.selectionRange == nil ? caret : nil,
+                    selection: selection, styling: styling)
                 // On to the next row: the rest of this line's, then the next line's.
                 if rowInLine + 1 < layout.rows.count {
                     rowInLine += 1
@@ -645,7 +646,10 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
                     }
                 rendered = styledRow(
                     lineChars, tabWidth: tabWidth, scrollColumn: handler.scrollColumn, width: width,
-                    caret: lineIndex == handler.cursorLine ? caret : nil,
+                    // No caret while text is selected, as on a Mac: the
+                    // selection is what typing replaces (see the field's
+                    // `buildTextWithCursor`).
+                    caret: lineIndex == handler.cursorLine && handler.selectionRange == nil ? caret : nil,
                     selection: selection, styling: styling)
             } else {
                 rendered = emptyRow(width: width, background: styling.background)

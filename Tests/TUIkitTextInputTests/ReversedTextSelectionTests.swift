@@ -167,6 +167,18 @@ struct ReversedTextSelectionTests {
         }
     }
 
+    /// The owner's question, 2026-10-16: should the one-cell caret show while
+    /// text is selected? Not on a Mac, which hides the insertion point then:
+    /// typing replaces the selection, so the highlight is the caret.
+    @Test("A field draws no caret while text is selected, and draws it again once none is")
+    func noCaretOnASelection() {
+        let blinking = TextCursorStyle(shape: .block, animation: .blink)
+        let palette = SystemPalette(.green)
+        #expect(field(palette: palette, cursor: 4, selection: 1..<4, cursorStyle: blinking).caret == nil)
+        #expect(field(palette: palette, cursor: 1, selection: 1..<4, cursorStyle: blinking).caret == nil)
+        #expect(field(palette: palette, cursor: 4, selection: nil, cursorStyle: blinking).caret != nil)
+    }
+
     @Test("Only the selected cells are reversed", arguments: Fixture.allCases)
     func onlyTheSelectionReverses(_ fixture: Fixture) {
         TerminalColors.withCurrent(.unknown) {
@@ -246,31 +258,23 @@ struct ReversedTextSelectionTests {
         }
     }
 
-    /// Two reversals read as none, and that is the point: the caret's cell stands out
-    /// against its reversed neighbours exactly as a terminal's own cursor does over a
-    /// selection.
-    @Test("A block caret on a reversed selection un-reverses its own cell", arguments: Fixture.allCases)
-    func blockCaretOnAReversedSelection(_ fixture: Fixture) {
+    /// No caret is drawn on a selection (as on a Mac, the selection is what typing
+    /// replaces), so the cell the caret would be on is reversed with the rest.
+    @Test("A reversed selection reverses every cell of it, the head's too", arguments: Fixture.allCases)
+    func reversedSelectionWithItsHead(_ fixture: Fixture) {
         TerminalColors.withCurrent(.unknown) {
             let drawn = cells(
                 field(
                     palette: fixture.palette, cursor: 1, selection: 1..<4,
                     cursorStyle: TextCursorStyle(shape: .block, animation: .none)
                 ).line)
-            // Every closure below is hoisted out of its `#expect` on purpose. A closure
-            // inside a macro expansion and one in ordinary source, in the same enclosing
-            // closure, are lowered to a SINGLE SIL function — so one of the two bodies
-            // never runs. Do not fold these back into the `#expect`s; see
-            // Tools/CompilerBugs/MacroClosureDiscriminatorCollision.
-            let caret = drawn.first { $0.character == "b" }
-            #expect(
-                caret?.state.reversesVideo == false,
-                "\(fixture): the caret's cell is reversed with its neighbours")
-            let rest = drawn.filter { "cd".contains($0.character) }
-            let restIsReversed = rest.allSatisfy { $0.state.reversesVideo }
-            #expect(
-                rest.count == 2 && restIsReversed,
-                "\(fixture): the rest of the selection is not reversed")
+            // Hoisted out of the `#expect` on purpose: a closure inside a macro
+            // expansion and one in ordinary source, in the same enclosing closure, are
+            // lowered to a SINGLE SIL function — so one of the two bodies never runs.
+            // See Tools/CompilerBugs/MacroClosureDiscriminatorCollision.
+            let selected = drawn.filter { "bcd".contains($0.character) }
+            let allReversed = selected.allSatisfy { $0.state.reversesVideo }
+            #expect(selected.count == 3 && allReversed, "\(fixture): the selection is not all reversed")
         }
     }
 
@@ -293,7 +297,7 @@ struct ReversedTextSelectionTests {
     // MARK: - The editor
 
     @Test(
-        "An editor's selection reverses, and its block caret un-reverses its own cell",
+        "An editor's selection reverses, the head's cell too: no caret is drawn on it",
         arguments: Fixture.allCases)
     func editorSelectionReverses(_ fixture: Fixture) {
         TerminalColors.withCurrent(.unknown) {
@@ -301,13 +305,10 @@ struct ReversedTextSelectionTests {
                 editorBuffer(palette: fixture.palette).lines.first ?? ""
             }
             let drawn = cells(row)
-            let selected = drawn.filter { "cd".contains($0.character) }
+            let selected = drawn.filter { "bcd".contains($0.character) }
             #expect(
-                selected.count == 2 && selected.allSatisfy { $0.state.reversesVideo },
+                selected.count == 3 && selected.allSatisfy { $0.state.reversesVideo },
                 "\(fixture): the selection is not reversed in \(row.debugDescription)")
-            #expect(
-                drawn.first { $0.character == "b" }?.state.reversesVideo == false,
-                "\(fixture): the caret's cell is reversed in \(row.debugDescription)")
             #expect(
                 drawn.first { $0.character == "e" }?.state.reversesVideo == false,
                 "\(fixture): an unselected cell is reversed in \(row.debugDescription)")

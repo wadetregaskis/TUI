@@ -186,19 +186,21 @@ struct TextEditorAlphaTests {
         }
     }
 
-    /// A selection's cells owe its text's alpha over the highlight's opaque field; the
-    /// caret on the selection owes no ink; the cell before it owes the text and the well.
+    /// A selection's cells owe its text's alpha over the highlight's opaque field —
+    /// all of them: no caret is drawn while text is selected, as on a Mac, so the
+    /// head's cell is selected text like the rest; the cell before it owes the text
+    /// and the well.
     @Test("An editor's selection claims its text over an opaque highlight")
     func selectionClaims() throws {
         let palette = FadedAll()
         let selection = TextFieldContentRenderer.selectionColors(palette: palette, background: well(palette))
         try #require(selection.background.isOpaque && !selection.foreground.isOpaque, "the premise")
         let drawn = try focused("abcdef\nsecond", palette: palette, place: dragLeftAcrossBCD)
-        for column in [2, 3] {
+        for column in [1, 2, 3] {
             let owes = owed(atColumn: column, row: 0, in: drawn)
             #expect(owes.ink == owed(selection.foreground) && owes.field == 1, "selected (\(column), 0) owes \(owes)")
         }
-        #expect(owed(atColumn: 1, row: 0, in: drawn).ink == 1, "the caret owes ink")
+        #expect(drawn.animatedCells.isEmpty, "no caret run while text is selected")
         let before = owed(atColumn: 0, row: 0, in: drawn)
         #expect(before.ink == owed(palette.foreground) && before.field == owed(well(palette)), "(0, 0) owes \(before)")
     }

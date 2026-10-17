@@ -363,7 +363,8 @@ or marks, or past the end the last word — and a triple-click the paragraph: a
 field's text, an editor's line with its line break. A drag after either
 extends by words or paragraphs, keeping what was clicked. A `SecureField`
 selects all of its text on a double-click, as macOS's does, since it shows no
-word breaks.
+word breaks. While text is selected no caret is drawn, as on a Mac: typing
+replaces the selection, so the highlight is where it goes.
 
 ## Raw Events
 
