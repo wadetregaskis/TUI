@@ -22,22 +22,42 @@ struct LinkContextMenuTests {
     static let docs = URL(string: "https://swift.org/documentation/")!
     static let home = URL(string: "https://swift.org/")!
 
+    /// The URLs the links opened.
+    final class Opened: @unchecked Sendable {
+        var urls: [URL] = []
+    }
+
     private struct LinksApp: App {
         let board: FakeClipboard?
+        let opened: Opened?
+        let activation: LinkActivation
 
-        init() { board = nil }
-        init(board: FakeClipboard) { self.board = board }
+        init() {
+            board = nil
+            opened = nil
+            activation = .open
+        }
+
+        init(board: FakeClipboard, opened: Opened, activation: LinkActivation) {
+            self.board = board
+            self.opened = opened
+            self.activation = activation
+        }
 
         var body: some Scene {
             WindowGroup {
-                if let board {
+                if let board, let opened {
                     VStack(alignment: .leading) {
                         Link("Swift docs", destination: LinkContextMenuTests.docs)
                         Link("swift.org", destination: LinkContextMenuTests.home)
                     }
                     .environment(\.clipboardAccess, board.access)
                     // Opening a link launches nothing here.
-                    .environment(\.openURL, OpenURLAction { _ in .handled })
+                    .environment(\.openURL, OpenURLAction { url in
+                        opened.urls.append(url)
+                        return .handled
+                    })
+                    .linkActivation(activation)
                 }
             }
         }
@@ -46,11 +66,12 @@ struct LinkContextMenuTests {
     @MainActor
     private final class Harness {
         let board = FakeClipboard()
+        let opened = Opened()
         let app: HeadlessApp<LinksApp>
         private var now: Int64 = 0
 
-        init() {
-            app = HeadlessApp(LinksApp(board: board), width: 50, height: 16)
+        init(activation: LinkActivation = .open) {
+            app = HeadlessApp(LinksApp(board: board, opened: opened, activation: activation), width: 50, height: 16)
             frame()
             frame()
         }
@@ -107,6 +128,22 @@ struct LinkContextMenuTests {
         #expect(!harness.shows("Copy Label"), "the popover's menu, not the link's")
         try harness.choose("Copy Link")
         #expect(harness.board.writes == [Self.docs.absoluteString])
+    }
+
+    @Test(".linkActivation(.copy): activating copies the destination and opens nothing, and Open Link still opens")
+    func activationCopies() throws {
+        let harness = Harness(activation: .copy)
+        harness.app.send(KeyEvent(key: .enter))
+        harness.frame()
+        #expect(harness.board.writes == [Self.docs.absoluteString])
+        #expect(harness.opened.urls.isEmpty)
+        #expect(harness.shows(Self.docs.absoluteString), "the popover shows what was copied")
+        harness.app.send(KeyEvent(key: .escape))
+        harness.frame()
+        try harness.rightClick("Swift docs")
+        try harness.choose("Open Link")
+        #expect(harness.opened.urls == [Self.docs])
+        #expect(harness.board.writes.count == 1)
     }
 
     @Test("Copy Label copies the words shown, and Copy as Markdown both")

@@ -24,7 +24,8 @@ import Foundation
 /// A right-click on the link — or Shift+F10 while it holds the focus — opens
 /// its context menu: Open Link, Copy Link, Copy Label where the words it
 /// shows are not its address, and Copy as Markdown; a right-click on the
-/// destination's popover offers Copy Link. TUI-specific: SwiftUI's
+/// destination's popover offers Copy Link. ``View/linkActivation(_:)`` makes
+/// activating a link copy its destination instead. TUI-specific: SwiftUI's
 /// `Link` has none, but a Mac's text view offers Open Link and Copy Link on a
 /// link in it, and a terminal's user has no browser's address bar to copy
 /// from.
@@ -385,6 +386,7 @@ private struct _Link<Label: View>: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.clipboardAccess) private var clipboard
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.linkActivation) private var activation
     @Environment(\.linkUnderline) private var underline
     @Environment(\.terminalHyperlinks) private var terminalHyperlinks
     @Environment(\.linkFocusIndicator) private var focusIndicator
@@ -439,10 +441,25 @@ private struct _Link<Label: View>: View {
                     .modifier(
                         TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks)))
         }
-        let activate = {
-            guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
+        // Opening, which Open Link always does, outside the repeat gate: a
+        // menu's choice is never a held key. Activating opens or copies, as
+        // `.linkActivation(_:)` says, and either way raises the popover, which
+        // shows what was copied.
+        let openLink = {
             open(destination)
             showing.wrappedValue = true
+        }
+        let activation = self.activation
+        let clipboard = self.clipboard
+        let activate = {
+            guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
+            switch activation {
+            case .open:
+                openLink()
+            case .copy:
+                _ = clipboard.write(destination.absoluteString, announcingSuccess: true)
+                showing.wrappedValue = true
+            }
         }
         let control = PopoverPresentationModifier(
             content: linkControl(activate: activate),
@@ -468,7 +485,7 @@ private struct _Link<Label: View>: View {
             ContextMenuModifier(
                 content: control,
                 menuItems: LinkContextMenu(
-                    destination: destination, label: labelText, clipboard: clipboard, open: activate),
+                    destination: destination, label: labelText, clipboard: clipboard, open: openLink),
                 keyboardRoute: .contentStops))
     }
 
@@ -527,6 +544,7 @@ extension _Link: ResolvesOwnEnvironment {
         _openURL.resolveEnvironment(environment)
         _clipboard.resolveEnvironment(environment)
         _isEnabled.resolveEnvironment(environment)
+        _activation.resolveEnvironment(environment)
         _underline.resolveEnvironment(environment)
         _terminalHyperlinks.resolveEnvironment(environment)
         _focusIndicator.resolveEnvironment(environment)
