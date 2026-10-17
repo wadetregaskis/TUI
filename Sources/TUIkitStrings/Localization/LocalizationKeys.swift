@@ -183,8 +183,9 @@ public enum LocalizationKey {
         case undo = "menu.undo"
         /// The Redo command, before the action's name.
         case redo = "menu.redo"
-        /// A link's context menu: open the link, as activating it does.
-        case openLink = "menu.openLink"
+        /// A link's context menu: show its destination, in the popover
+        /// activating it raises.
+        case showLink = "menu.showLink"
         /// A link's context menu: copy its destination.
         case copyLink = "menu.copyLink"
         /// A link's context menu: copy the words it shows, where they are not

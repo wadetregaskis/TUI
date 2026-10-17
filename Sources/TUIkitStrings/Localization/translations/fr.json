@@ -97,7 +97,7 @@
   "menu.exit": "Quitter",
   "menu.undo": "Annuler",
   "menu.redo": "Rétablir",
-  "menu.openLink": "Ouvrir le lien",
+  "menu.showLink": "Afficher le lien",
   "menu.copyLink": "Copier le lien",
   "menu.copyLinkLabel": "Copier le libellé",
   "menu.copyLinkAsMarkdown": "Copier en Markdown",

@@ -97,7 +97,7 @@
   "menu.exit": "Salir",
   "menu.undo": "Deshacer",
   "menu.redo": "Rehacer",
-  "menu.openLink": "Abrir enlace",
+  "menu.showLink": "Mostrar enlace",
   "menu.copyLink": "Copiar enlace",
   "menu.copyLinkLabel": "Copiar etiqueta",
   "menu.copyLinkAsMarkdown": "Copiar como Markdown",

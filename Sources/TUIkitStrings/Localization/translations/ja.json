@@ -97,7 +97,7 @@
   "menu.exit": "終了",
   "menu.undo": "取り消す",
   "menu.redo": "やり直す",
-  "menu.openLink": "リンクを開く",
+  "menu.showLink": "リンクを表示",
   "menu.copyLink": "リンクをコピー",
   "menu.copyLinkLabel": "ラベルをコピー",
   "menu.copyLinkAsMarkdown": "Markdownとしてコピー",

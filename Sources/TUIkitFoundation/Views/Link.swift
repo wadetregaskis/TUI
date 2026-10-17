@@ -22,11 +22,13 @@ import Foundation
 /// ``View/linkUnderline(_:)``.
 ///
 /// A right-click on the link — or Shift+F10 while it holds the focus — opens
-/// its context menu: Open Link, Copy Link, Copy Label where the words it
-/// shows are not its address, and Copy as Markdown; a right-click on the
-/// destination's popover offers Copy Link. ``View/linkActivation(_:)`` makes
+/// its context menu: Show Link, which raises the popover, Copy Link, Copy
+/// Label where the words it shows are not its address, and Copy as Markdown;
+/// a right-click on the destination's popover offers Copy Link. A link that
+/// writes its URL on the row has the same menu less Show Link, on a
+/// right-click. ``View/linkActivation(_:)`` makes
 /// activating a link copy its destination instead. TUI-specific: SwiftUI's
-/// `Link` has none, but a Mac's text view offers Open Link and Copy Link on a
+/// `Link` has none, but a Mac's text view offers Copy Link on a
 /// link in it, and a terminal's user has no browser's address bar to copy
 /// from.
 ///
@@ -431,35 +433,38 @@ private struct _Link<Label: View>: View {
         // who wants one of those adds it the way they would to any text —
         // `.focusable()`, `.onTapGesture`, `.onKeyEvent` — and the wrapper,
         // not the link, is what registers.
+        let clipboard = self.clipboard
         guard display == .popover else {
+            let text = resolvedLabel
+                // Beneath the label's own colour, as the button style's tint
+                // sits beneath it in the control form: a label that names
+                // a colour keeps it either way.
+                .foregroundStyle(.palette.accent)
+                .modifier(
+                    TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks))
+            guard isEnabled else { return AnyView(text) }
+            // The copies are offered here too, on a right-click: the URL is on
+            // the row, but selecting it by hand is a drag, and Copy as Markdown
+            // is not on the row at all. Show Link is not: the URL is shown.
+            // The text takes no focus, so no keyboard opens this menu.
             return AnyView(
-                resolvedLabel
-                    // Beneath the label's own colour, as the button style's tint
-                    // sits beneath it in the control form: a label that names
-                    // a colour keeps it either way.
-                    .foregroundStyle(.palette.accent)
-                    .modifier(
-                        TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks)))
-        }
-        // Opening, which Open Link always does, outside the repeat gate: a
-        // menu's choice is never a held key. Activating opens or copies, as
-        // `.linkActivation(_:)` says, and either way raises the popover, which
-        // shows what was copied.
-        let openLink = {
-            open(destination)
-            showing.wrappedValue = true
+                ContextMenuModifier(
+                    content: text,
+                    menuItems: LinkContextMenu(
+                        destination: destination, label: display == .urlOnly ? nil : labelText,
+                        clipboard: clipboard, show: nil),
+                    keyboardRoute: .contentStops))
         }
         let activation = self.activation
-        let clipboard = self.clipboard
+        // Activating opens or copies, as `.linkActivation(_:)` says, and
+        // either way raises the popover, which shows what was copied.
         let activate = {
             guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
             switch activation {
-            case .open:
-                openLink()
-            case .copy:
-                _ = clipboard.write(destination.absoluteString, announcingSuccess: true)
-                showing.wrappedValue = true
+            case .open: open(destination)
+            case .copy: _ = clipboard.write(destination.absoluteString, announcingSuccess: true)
             }
+            showing.wrappedValue = true
         }
         let control = PopoverPresentationModifier(
             content: linkControl(activate: activate),
@@ -484,8 +489,12 @@ private struct _Link<Label: View>: View {
         return AnyView(
             ContextMenuModifier(
                 content: control,
+                // Show Link raises the popover and opens nothing: "Open" is
+                // kept for opening the destination in the browser of the
+                // machine the terminal is on, which nothing yet can.
                 menuItems: LinkContextMenu(
-                    destination: destination, label: labelText, clipboard: clipboard, open: openLink),
+                    destination: destination, label: labelText, clipboard: clipboard,
+                    show: { showing.wrappedValue = true }),
                 keyboardRoute: .contentStops))
     }
 
@@ -494,7 +503,7 @@ private struct _Link<Label: View>: View {
     /// adapts to the size classes (`TUIkitPresentation`): the destination is a
     /// note beside the link at any size, not a presentation of its own.
     private func linkControl(activate: @escaping () -> Void) -> some View {
-        Button(action: activate, label: { resolvedLabel.modifier(RecordsLinkLabelText(record: labelText)) })
+        Button(action: activate, label: { resolvedLabel })
         .buttonStyle(_LinkButtonStyle(indicator: focusIndicator))
         .buttonTextStyle { $0.foreground = .palette.accent }
         // Outermost, so the link covers everything the button style drew —
@@ -528,11 +537,11 @@ private struct _Link<Label: View>: View {
             // `spacing: 0` and the space written into the second `Text`: an
             // HStack's spacing is layout, and this one is part of the sentence.
             HStack(spacing: 0) {
-                label.underline(underline)
+                label.underline(underline).modifier(RecordsLinkLabelText(record: labelText))
                 Text(verbatim: " (\(destination.absoluteString))").underline(underline)
             }
         case .popover:
-            label.underline(underline)
+            label.underline(underline).modifier(RecordsLinkLabelText(record: labelText))
         }
     }
 }

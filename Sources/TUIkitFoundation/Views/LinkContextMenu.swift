@@ -1,7 +1,7 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  LinkContextMenu.swift
 //
-//  The menu a right-click or Shift+F10 opens on a link: Open Link, then the
+//  The menu a right-click or Shift+F10 opens on a link: Show Link, then the
 //  ways to copy it.
 //
 //  Created by Wade Tregaskis
@@ -58,7 +58,10 @@ struct RecordsLinkLabelText: BufferModifier {
 
 /// A link's context menu.
 ///
-/// Open Link does what activating the link does. Copy Link copies the
+/// Show Link raises the popover that shows the destination, where the link
+/// is a control; a link that writes its URL on the row has none. "Open" is
+/// kept for opening the destination in the browser of the machine the
+/// terminal is on, which nothing yet can. Copy Link copies the
 /// destination; Copy Label the words the link shows, offered only where they
 /// are not the destination written out (``LinkContextMenu/labelIsDestination(_:_:)``);
 /// Copy as Markdown both, as `[label](destination)`, or as an autolink,
@@ -66,18 +69,22 @@ struct RecordsLinkLabelText: BufferModifier {
 /// in the status bar, since nothing else on screen changes.
 ///
 /// TUI-specific: SwiftUI's `Link` has no menu of its own — a Mac's text view
-/// offers Open Link and Copy Link on a link in it.
+/// offers Copy Link on a link in it.
 struct LinkContextMenu: View {
     let destination: URL
-    let label: LinkLabelText
+    /// The words the label drew, or `nil` where it draws none of its own.
+    let label: LinkLabelText?
     let clipboard: ClipboardAccess
-    let open: () -> Void
+    /// Raises the destination's popover, or `nil` where there is none.
+    let show: (() -> Void)?
 
     var body: some View {
         let url = destination.absoluteString
-        let words = label.text
-        Button(LocalizationService.shared.string(for: LocalizationKey.Menu.openLink), action: open)
-        Divider()
+        let words = label?.text ?? ""
+        if let show {
+            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.showLink), action: show)
+            Divider()
+        }
         Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLink)) {
             _ = clipboard.write(url, announcingSuccess: true)
         }

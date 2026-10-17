@@ -127,7 +127,7 @@ extension LocalizationService {
       "menu.exit": "Exit",
       "menu.undo": "Undo",
       "menu.redo": "Redo",
-      "menu.openLink": "Open Link",
+      "menu.showLink": "Show Link",
       "menu.copyLink": "Copy Link",
       "menu.copyLinkLabel": "Copy Label",
       "menu.copyLinkAsMarkdown": "Copy as Markdown",

@@ -15,8 +15,7 @@ public enum LinkActivation: Sendable, Equatable, CaseIterable {
     case open
 
     /// Copies the destination to the clipboard, and says so in the status bar,
-    /// instead of opening it. Open Link in the link's context menu still opens
-    /// it.
+    /// instead of opening it.
     case copy
 }
 
@@ -40,7 +39,7 @@ extension View {
     /// opener on the server (see ``OpenURLAction``), and an app whose links
     /// are addresses to paste elsewhere rather than pages to visit. Either way
     /// the destination's popover shows what the link holds, and the link's
-    /// context menu offers both Open Link and Copy Link.
+    /// context menu offers Copy Link.
     ///
     /// ```swift
     /// VStack {

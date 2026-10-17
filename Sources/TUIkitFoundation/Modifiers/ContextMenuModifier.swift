@@ -20,7 +20,7 @@ import TUIkitView
 /// wrapper, never a public control with a `Never` body).
 ///
 /// It lives here, below TUIkitMenus, whose `.contextMenu(menuItems:)` makes
-/// it, because ``Link`` offers a menu of its own (Open Link, Copy Link) and
+/// it, because ``Link`` offers a menu of its own (Show Link, Copy Link) and
 /// TUIkitFoundation cannot see a module built on it.
 package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     let content: Content

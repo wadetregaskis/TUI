@@ -1,7 +1,7 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  LinkContextMenuTests.swift
 //
-//  A link's context menu: Open Link, Copy Link, Copy Label where the label is
+//  A link's context menu: Show Link, Copy Link, Copy Label where the label is
 //  not the destination, and Copy as Markdown — opened by a right-click or by
 //  Shift+F10 on the link's own focus stop, which stays the link's only one.
 //
@@ -31,17 +31,20 @@ struct LinkContextMenuTests {
         let board: FakeClipboard?
         let opened: Opened?
         let activation: LinkActivation
+        let display: LinkDisplay
 
         init() {
             board = nil
             opened = nil
             activation = .open
+            display = .popover
         }
 
-        init(board: FakeClipboard, opened: Opened, activation: LinkActivation) {
+        init(board: FakeClipboard, opened: Opened, activation: LinkActivation, display: LinkDisplay) {
             self.board = board
             self.opened = opened
             self.activation = activation
+            self.display = display
         }
 
         var body: some Scene {
@@ -58,6 +61,7 @@ struct LinkContextMenuTests {
                         return .handled
                     })
                     .linkActivation(activation)
+                    .linkDisplay(display)
                 }
             }
         }
@@ -70,8 +74,10 @@ struct LinkContextMenuTests {
         let app: HeadlessApp<LinksApp>
         private var now: Int64 = 0
 
-        init(activation: LinkActivation = .open) {
-            app = HeadlessApp(LinksApp(board: board, opened: opened, activation: activation), width: 50, height: 16)
+        init(activation: LinkActivation = .open, display: LinkDisplay = .popover) {
+            app = HeadlessApp(
+                LinksApp(board: board, opened: opened, activation: activation, display: display), width: 60,
+                height: 16)
             frame()
             frame()
         }
@@ -106,11 +112,11 @@ struct LinkContextMenuTests {
         }
     }
 
-    @Test("A right-click on a link offers Open Link and three copies, and Copy Link copies the destination")
+    @Test("A right-click on a link offers Show Link and three copies, and Copy Link copies the destination")
     func rightClickMenu() throws {
         let harness = Harness()
         try harness.rightClick("Swift docs")
-        for title in ["Open Link", "Copy Link", "Copy Label", "Copy as Markdown"] {
+        for title in ["Show Link", "Copy Link", "Copy Label", "Copy as Markdown"] {
             #expect(harness.shows(title), "\(title) is offered")
         }
         try harness.choose("Copy Link")
@@ -130,7 +136,7 @@ struct LinkContextMenuTests {
         #expect(harness.board.writes == [Self.docs.absoluteString])
     }
 
-    @Test(".linkActivation(.copy): activating copies the destination and opens nothing, and Open Link still opens")
+    @Test(".linkActivation(.copy): activating copies the destination and opens nothing, nor does Show Link")
     func activationCopies() throws {
         let harness = Harness(activation: .copy)
         harness.app.send(KeyEvent(key: .enter))
@@ -140,10 +146,22 @@ struct LinkContextMenuTests {
         #expect(harness.shows(Self.docs.absoluteString), "the popover shows what was copied")
         harness.app.send(KeyEvent(key: .escape))
         harness.frame()
+        #expect(!harness.shows(Self.docs.absoluteString), "precondition: the popover went")
         try harness.rightClick("Swift docs")
-        try harness.choose("Open Link")
-        #expect(harness.opened.urls == [Self.docs])
+        try harness.choose("Show Link")
+        #expect(harness.shows(Self.docs.absoluteString), "Show Link raises the popover")
+        #expect(harness.opened.urls.isEmpty, "and opens nothing")
         #expect(harness.board.writes.count == 1)
+    }
+
+    @Test("A link that writes its URL on the row has the copies on a right-click, and no Show Link")
+    func urlOnTheRow() throws {
+        let harness = Harness(display: .urlInParentheses)
+        try harness.rightClick("Swift docs")
+        #expect(harness.shows("Copy Link"))
+        #expect(!harness.shows("Show Link"), "the URL is shown already")
+        try harness.choose("Copy Label")
+        #expect(harness.board.writes == ["Swift docs"], "the caller's words, not the URL after them")
     }
 
     @Test("Copy Label copies the words shown, and Copy as Markdown both")

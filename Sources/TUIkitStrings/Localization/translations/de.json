@@ -97,7 +97,7 @@
   "menu.exit": "Beenden",
   "menu.undo": "Widerrufen",
   "menu.redo": "Wiederholen",
-  "menu.openLink": "Link öffnen",
+  "menu.showLink": "Link anzeigen",
   "menu.copyLink": "Link kopieren",
   "menu.copyLinkLabel": "Beschriftung kopieren",
   "menu.copyLinkAsMarkdown": "Als Markdown kopieren",
