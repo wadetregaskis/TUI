@@ -48,6 +48,15 @@ when unset), the visual/aspect probes print to the terminal.
   the mark for real DESTROYED the Image page, so `lrm+coloured` and `lrm+wide`
   were added for the two axes that block lacked. STILL OPEN — see
   Terminal compatibility survey.md's "RTL characters as image PIXELS".
+- `scrollbar_arrow_card.py` — whether a host draws the corner triangles `◢◣`
+  and `◥◤` as ONE arrow across two cells, for a double-width scrollbar's ends
+  (FB6): each half between magenta flanks, alone and paired, in the bar's own
+  colours, and again in double width. `▲▲`/`▼▼` and `█` are the calibration
+  rows. UNREAD on every host (2026-10-16).
+- `lines_small_card.py` — the candidate one-row looks for a button under an
+  appearance of lines, other than `( Save )` (FB14): bars, corners, underline,
+  brackets, eighth blocks, at `.small` and `.regular`, alone and in a row with
+  one focused. A design card for the owner's eye, not a measurement.
 - `breath_card.py` — how a host paints TUIkit's reversing row breaths: at 16
   colours, a cursor row whose breath runs between a slot fill and reverse video
   (the whole row the text's colour, every glyph on it the page's); without
