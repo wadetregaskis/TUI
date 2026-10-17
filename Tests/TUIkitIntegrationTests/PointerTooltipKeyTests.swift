@@ -68,4 +68,21 @@ struct PointerTooltipKeyTests {
         #expect(!fixture.handler.silencePointerTooltip(for: KeyEvent(key: .character("?"))))
         #expect(fixture.tooltips.resolved(nowNanos: 0)?.text == "Hide Sidebar")
     }
+
+    /// A toggle clicked under the pointer changes its help — Hide Sidebar, then
+    /// Show Sidebar — and the tooltip says what it does now, without starting
+    /// its delay again; the pointer leaving still takes it, though the view
+    /// last said something else when the pointer came.
+    @Test("A hovered view's changed help replaces its tooltip's text, and leaving still takes it")
+    func hoveredHelpFollowsTheView() {
+        let fixture = makeFixture()
+        fixture.tooltips.hovering("Hide Sidebar", owner: "toggle", handlerID: nil, nowNanos: 0, delaySeconds: 1)
+        fixture.tooltips.hoveredViewDrew(owner: "toggle", text: "Show Sidebar")
+        let second: Int64 = 1_000_000_000
+        #expect(fixture.tooltips.resolved(nowNanos: second)?.text == "Show Sidebar", "the delay already served")
+        fixture.tooltips.hoveredViewDrew(owner: "elsewhere", text: "Something else")
+        #expect(fixture.tooltips.resolved(nowNanos: second)?.text == "Show Sidebar", "another view's help is not it")
+        fixture.tooltips.leaving("Hide Sidebar", owner: "toggle")
+        #expect(fixture.tooltips.resolved(nowNanos: second) == nil)
+    }
 }

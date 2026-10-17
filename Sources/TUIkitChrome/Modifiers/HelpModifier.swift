@@ -64,6 +64,10 @@ extension HelpModifier: Renderable {
         dispatcher.requestFeature(.motion, in: context)
 
         let captured = text
+        // The view across frames, which its candidate is found by however its
+        // help changes — and told of that change here, as it draws.
+        let owner = context.identity.path
+        tooltips.hoveredViewDrew(owner: owner, text: text)
         let trigger = context.environment.tooltipTrigger
         let capturedStyle = trigger.presentation(context.environment.tooltipStyle)
         let capturedDelay = context.environment.tooltipDelay
@@ -100,7 +104,7 @@ extension HelpModifier: Renderable {
                 // alive whenever it calls it.
                 let arrival = dispatcher.map { Int64(bitPattern: $0.nowNanos()) } ?? FrameClock.nowNanos
                 tooltips.hovering(
-                    captured, handlerID: idBox.id, nowNanos: arrival,
+                    captured, owner: owner, handlerID: idBox.id, nowNanos: arrival,
                     style: capturedStyle, delaySeconds: capturedDelay)
                 // This view is the candidate now, which is tooltip-session
                 // state no memo keys on: a row memoized above it was served as
@@ -121,7 +125,7 @@ extension HelpModifier: Renderable {
                 drawing.changed()
                 return true
             case .exited:
-                tooltips.leaving(captured)
+                tooltips.leaving(captured, owner: owner)
                 // Under `.always` the panel IS stored, ranked first for the
                 // pointer (`TooltipState.placementRank`), so its leaving is a
                 // change to report, as the arrival was.

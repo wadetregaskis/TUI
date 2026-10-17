@@ -65,6 +65,13 @@ public final class TooltipState: @unchecked Sendable {
         /// candidate the moment the focus moves (``syncFocus(focusID:)``),
         /// rather than at the end of the walk that proves it gone.
         var focusID: String?
+        /// The identity of the view that published a hover candidate, which
+        /// outlives its per-frame handler id and its text: a toggle's help
+        /// that changes as it is clicked (Hide Sidebar, then Show Sidebar) is
+        /// still the candidate of the view under the pointer
+        /// (``hoveredViewDrew(owner:text:)``). `nil` where the publisher
+        /// named none.
+        var owner: String?
         /// The frame clock when this became the candidate — the re-entry test,
         /// not the deadline.
         var sinceNanos: Int64
@@ -217,11 +224,12 @@ public final class TooltipState: @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - text: The localized help text.
+    ///   - owner: The view's identity, across frames (``Candidate/owner``).
     ///   - handlerID: The view's hit region, for a popover to anchor to.
     ///   - nowNanos: The frame's monotonic clock, which the hover delay is
     ///     measured from.
     package func hovering(
-        _ text: String, handlerID: HitTestRegion.HandlerID?, nowNanos: Int64,
+        _ text: String, owner: String? = nil, handlerID: HitTestRegion.HandlerID?, nowNanos: Int64,
         style: TooltipStyle = .statusBar, delaySeconds: Double = 0
     ) {
         // Re-entering the SAME region must not restart the delay: the
@@ -231,14 +239,23 @@ public final class TooltipState: @unchecked Sendable {
         // rather than the id for exactly that reason — ids are per-frame.
         // The view held through the bar's reflow, under the pointer again, is
         // the same candidate too, its delay already served (``held``).
-        if let held, held.text == text {
+        // So is the view it was published for, with help that has changed
+        // since.
+        func isSame(_ candidate: Candidate) -> Bool {
+            candidate.text == text || (owner != nil && candidate.owner == owner)
+        }
+        if var held, isSame(held) {
+            held.text = text
             hovered = held
             self.held = nil
             return
         }
-        if let hovered, hovered.text == text { return }
+        if let hovered, isSame(hovered) {
+            self.hovered?.text = text
+            return
+        }
         hovered = Candidate(
-            text: text, handlerID: handlerID, sinceNanos: nowNanos,
+            text: text, handlerID: handlerID, owner: owner, sinceNanos: nowNanos,
             showAtNanos: nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000),
             style: style)
     }
@@ -252,13 +269,28 @@ public final class TooltipState: @unchecked Sendable {
     ///
     /// Moved out from under the pointer by the status bar's own rows, the
     /// candidate is held rather than dropped (``held``).
-    package func leaving(_ text: String) {
-        guard hovered?.text == text else { return }
+    ///
+    /// - Parameters:
+    ///   - text: The help text the view had when the pointer entered it.
+    ///   - owner: The view's identity, which finds its candidate however its
+    ///     text has changed since.
+    package func leaving(_ text: String, owner: String? = nil) {
+        guard let candidate = hovered, candidate.text == text || (owner != nil && candidate.owner == owner)
+        else { return }
         if reshapeIsTooltipReflow, held == nil {
             held = hovered
             heldPresentations = reshapePresentations
         }
         hovered = nil
+    }
+
+    /// Takes the help a hovered view drew this frame, where it has changed
+    /// since the pointer entered it: a toggle clicked under the pointer
+    /// explains what it does now, not what it did. The delay already served
+    /// stands, as it does for a view re-registered under a resting pointer.
+    package func hoveredViewDrew(owner: String, text: String) {
+        if hovered?.owner == owner, hovered?.text != text { hovered?.text = text }
+        if held?.owner == owner, held?.text != text { held?.text = text }
     }
 
     // MARK: - A page moving under a resting pointer
