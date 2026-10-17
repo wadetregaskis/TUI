@@ -23,7 +23,8 @@ import Foundation
 ///
 /// A right-click on the link — or Shift+F10 while it holds the focus — opens
 /// its context menu: Open Link, Copy Link, Copy Label where the words it
-/// shows are not its address, and Copy as Markdown. TUI-specific: SwiftUI's
+/// shows are not its address, and Copy as Markdown; a right-click on the
+/// destination's popover offers Copy Link. TUI-specific: SwiftUI's
 /// `Link` has none, but a Mac's text view offers Open Link and Copy Link on a
 /// link in it, and a terminal's user has no browser's address bar to copy
 /// from.
@@ -446,8 +447,16 @@ private struct _Link<Label: View>: View {
         let control = PopoverPresentationModifier(
             content: linkControl(activate: activate),
             isPresented: $showingDestination,
-            // `verbatim`, because a URL is content and not a lookup key.
-            popover: Text(verbatim: destination.absoluteString),
+            // `verbatim`, because a URL is content and not a lookup key. A
+            // right-click on it offers Copy Link, as on the link: the popover
+            // holds no focus stop, so the link's own menu is the keyboard's
+            // way to the same copy.
+            popover: ContextMenuModifier(
+                content: Text(verbatim: destination.absoluteString),
+                menuItems: Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLink)) { [clipboard] in
+                    _ = clipboard.write(destination.absoluteString, announcingSuccess: true)
+                },
+                keyboardRoute: .contentStops),
             attachmentAnchor: .rect(.bounds),
             arrowEdge: .bottom)
         // A disabled link offers nothing: it carries no destination for the

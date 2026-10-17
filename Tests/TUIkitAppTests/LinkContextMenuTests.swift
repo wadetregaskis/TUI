@@ -36,6 +36,8 @@ struct LinkContextMenuTests {
                         Link("swift.org", destination: LinkContextMenuTests.home)
                     }
                     .environment(\.clipboardAccess, board.access)
+                    // Opening a link launches nothing here.
+                    .environment(\.openURL, OpenURLAction { _ in .handled })
                 }
             }
         }
@@ -93,6 +95,18 @@ struct LinkContextMenuTests {
         try harness.choose("Copy Link")
         #expect(harness.board.writes == [Self.docs.absoluteString])
         #expect(!harness.shows("Copy Label"), "the menu closed")
+    }
+
+    @Test("A right-click on the destination's popover offers Copy Link")
+    func popoverMenu() throws {
+        let harness = Harness()
+        harness.app.send(KeyEvent(key: .enter))
+        harness.frame()
+        #expect(harness.shows(Self.docs.absoluteString), "precondition: the popover shows the destination")
+        try harness.rightClick(Self.docs.absoluteString)
+        #expect(!harness.shows("Copy Label"), "the popover's menu, not the link's")
+        try harness.choose("Copy Link")
+        #expect(harness.board.writes == [Self.docs.absoluteString])
     }
 
     @Test("Copy Label copies the words shown, and Copy as Markdown both")
