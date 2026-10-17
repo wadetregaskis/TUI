@@ -48,7 +48,10 @@ struct AnimationPage: View {
         case kept
         /// Grown and shrunk with it: an animated frame height, clipped, so the
         /// page below is pushed as it arrives — what SwiftUI does for every
-        /// insertion, its siblings' positions animating with the change.
+        /// insertion, its siblings' positions animating with the change. Only
+        /// for a transition that moves the panel: one that fades it or
+        /// reveals it in place closes up after instead, so the panel's text
+        /// stands still while it is uncovered.
         case pushes
 
         var key: String {
@@ -122,13 +125,15 @@ struct AnimationPage: View {
         return speed == 1 ? base : base.speed(speed)
     }
 
-    /// The transitions the panel can come and go with.
-    private static let transitions: [(key: String, transition: AnyTransition)] = [
-        ("page.animation.transition.opacity", .opacity),
-        ("page.animation.transition.slide", .slide),
-        ("page.animation.transition.moveTop", .move(edge: .top)),
-        ("page.animation.transition.scale", .scale),
-        ("page.animation.transition.both", .move(edge: .leading).combined(with: .opacity)),
+    /// The transitions the panel can come and go with, and whether each MOVES
+    /// it: a fade and a reveal from the centre uncover a panel that stands
+    /// still, so there is nothing for its space to grow with (``PanelSpace/pushes``).
+    private static let transitions: [(key: String, transition: AnyTransition, moves: Bool)] = [
+        ("page.animation.transition.opacity", .opacity, false),
+        ("page.animation.transition.slide", .slide, true),
+        ("page.animation.transition.moveTop", .move(edge: .top), true),
+        ("page.animation.transition.scale", .scale, false),
+        ("page.animation.transition.both", .move(edge: .leading).combined(with: .opacity), true),
     ]
 
     var body: some View {
@@ -401,7 +406,8 @@ struct AnimationPage: View {
                     }
                 }
                 Self.panelSlot(
-                    showsPanel: showsPanel, space: space,
+                    showsPanel: showsPanel,
+                    space: space == .pushes && !Self.transitions[transition].moves ? .closesUp : space,
                     transition: Self.transitions[transition].transition)
             }
         }
