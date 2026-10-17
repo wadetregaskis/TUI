@@ -147,6 +147,24 @@ struct StrippedLengthFastPathTests {
         #expect(text.strippedLength == oracle(text))
     }
 
+    /// Lines put together from the pieces above at random, so the fused
+    /// escape-and-width pass (`standaloneStrippedLength`) meets every order
+    /// of escape, chrome, wide text and cluster, not only the listed ones.
+    @Test("matches the oracle on random styled lines")
+    func randomLinesMatchOracle() {
+        let pieces = [
+            "a", " ", "word", "│", "──", "▎", "日本", "ｆ", "■", "…", "\u{1B}[31m", "\u{1B}[0m",
+            "\u{1B}[1;38;2;1;2;3m", "\u{1B}[", "\u{1B}", "\u{1B}(B", "\u{1B}]8;;u\u{1B}\\", "🤙🏽", "e\u{0301}",
+            "\u{0301}", "\u{1F3FB}", "🇬🇧", "\u{FE0F}", "\u{7F}", "\t",
+        ]
+        var generator = SystemRandomNumberGenerator()
+        for _ in 0..<3_000 {
+            let count = Int.random(in: 0...12, using: &generator)
+            let text = (0..<count).map { _ in pieces.randomElement(using: &generator)! }.joined()
+            #expect(text.strippedLength == oracle(text), "\(text.debugDescription)")
+        }
+    }
+
     /// The ASCII fast path and the general scalar path must agree wherever
     /// both apply — a non-breaking space is measured identically to a plain
     /// one, so appending it flips the input off the ASCII path without

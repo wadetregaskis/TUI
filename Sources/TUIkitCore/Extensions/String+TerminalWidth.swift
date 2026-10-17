@@ -1074,6 +1074,10 @@ extension String {
             return unicodeScalars.terminalRunWidth
         }
 
+        // Escapes, and visible scalars that each stand alone as a cluster —
+        // nearly every styled line: one pass, no indices.
+        if let width = standaloneStrippedLength() { return width }
+
         // General path: ANSI present — measure each visible run independently (a
         // trailing Extend scalar after an SGR terminator must not fuse onto the
         // previous run; see `forEachVisibleANSIRun(_:)`). Each run is a borrowed
@@ -1229,6 +1233,56 @@ extension String {
     ///    the escapes, so it grapheme-clusters on its own — a run that begins
     ///    at an `Extend` scalar starts a fresh cluster there, exactly as a
     ///    standalone `String` of those scalars would.
+    /// The visible width when every visible scalar stands alone as its own
+    /// grapheme cluster (``Character/isStandaloneClusterScalar(_:)``), or `nil`
+    /// at the first that might not — an emoji, a combining mark — for the
+    /// run-by-run measure to answer.
+    ///
+    /// The escape scan of ``forEachVisibleANSIRun(_:)``, fused with the width
+    /// sum, over the scalar view's iterator: no index is stepped, compared or
+    /// validated, and no run is sliced. Indexing the scalars was most of the
+    /// cost of measuring a styled line — `_StringGuts.validateScalarIndex`, the
+    /// index comparisons and the slicing — 3% and more of a frame of a table
+    /// (Stress `table-multiline`, 2026-10-17). Where every scalar stands alone,
+    /// the runs' widths are the scalars' widths summed, wherever the escapes
+    /// split them.
+    private func standaloneStrippedLength() -> Int? {
+        var width = 0
+        var state = EscapeScanState.normal
+        for scalar in unicodeScalars {
+            let value = scalar.value
+            var visible = false
+            switch state {
+            case .normal:
+                if value == 0x1B { state = .sawESC } else { visible = true }
+            case .sawESC:
+                let seen = Self.escapeIntroducerScan(on: value)
+                state = seen.state
+                visible = seen.visible
+            case .escIntermediate, .string, .stringSawESC:
+                state = Self.escapeBodyScan(state, on: value)
+            case .csi:
+                if Self.isCSIBodyByte(value) { break }
+                if Self.isCSIFinalByte(value) {
+                    state = .normal
+                } else if value == 0x1B {
+                    state = .sawESC
+                } else {
+                    visible = true
+                    state = .normal
+                }
+            }
+            guard visible else { continue }
+            if value >= 0x20, value <= 0x7E {
+                width += 1
+                continue
+            }
+            guard Character.isStandaloneClusterScalar(value) else { return nil }
+            width += scalar.loneTerminalWidth
+        }
+        return width
+    }
+
     private func forEachVisibleANSIRun(_ body: (Substring.UnicodeScalarView) -> Void) {
         // Single forward pass over the scalar view, tracking the start index of
         // the current visible run so each run can be yielded as a slice
