@@ -95,7 +95,7 @@ package final class HeadlessApp<A: App> {
             focusManager: focusManager, paletteManager: paletteManager,
             appearanceManager: appearanceManager, keyboardShortcuts: tuiContext.keyboardShortcuts,
             dragAndDropSession: tuiContext.dragAndDropSession,
-            tooltipState: tuiContext.tooltipState,
+            tooltipState: tuiContext.tooltipState, unhandledKeyBell: tuiContext.terminalBell,
             // A script has no process to quit or suspend.
             onQuit: {}, onSuspend: {}, screenSelection: tuiContext.screenSelection)
         // As `AppRunner` wires it, so a click on a status-bar item that only

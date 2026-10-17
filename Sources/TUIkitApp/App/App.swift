@@ -185,6 +185,7 @@ extension AppRunner {
             keyboardShortcuts: tuiContext.keyboardShortcuts,
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState,
+            unhandledKeyBell: tuiContext.terminalBell,
             onQuit: { [weak self] in
                 self?.isRunning = false
             },

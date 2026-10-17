@@ -89,6 +89,10 @@ internal struct InputHandler {
     /// harness driving the chain need not wire a service it is not exercising.
     var tooltipState: TooltipState?
 
+    /// The bell rung for a key press nothing took — the app's, set by the
+    /// runner. `nil` (a test harness) rings nothing.
+    var unhandledKeyBell: TerminalBell?
+
     /// Called when the user requests to quit the application.
     let onQuit: () -> Void
 
@@ -172,6 +176,19 @@ extension InputHandler {
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
     func handle(_ event: KeyEvent) -> Bool {
+        let taken = dispatchKey(event)
+        // A key press nothing took rings the bell, as an unhandled key does
+        // on a Mac (NSBeep): typing at a page with nothing to type into,
+        // an arrow at the end of a list that has nowhere to go. A release, or
+        // a repeat the kitty keyboard protocol reports as one, rings nothing:
+        // the press already did.
+        if !taken, event.phase == .press { unhandledKeyBell?.ring() }
+        return taken
+    }
+
+    /// Offers `event` to the chain's layers in order, reporting whether one
+    /// took it.
+    private func dispatchKey(_ event: KeyEvent) -> Bool {
         // A release goes to the focus path's key-press handlers and nowhere
         // else. Every other layer acts on a key going down, and a release
         // offered to them would act a second time for one keystroke. Only a
