@@ -180,6 +180,11 @@ package final class HeadlessApp<A: App> {
     /// How many times a frame rang the terminal's bell (``TerminalBell``).
     package var bellsWritten: Int { terminal.bellsWritten }
 
+    /// Where the frames so far left the terminal's cursor, in cells from the
+    /// top-left, if they put it somewhere and wrote nothing after —
+    /// where they parked it (`RenderLoop.parkCursor`) — or `nil`.
+    package var cursor: CellPoint? { terminal.cursor }
+
     /// The app's render cache, for what its counters say about the frames: how
     /// many rows were served and how many drawn, what the memos hit.
     package var renderCache: RenderCache { tuiContext.renderCache }
@@ -222,6 +227,9 @@ final class InMemoryTerminal: TerminalProtocol {
     /// How many lone `BEL`s were written: the terminal's bell, which a frame
     /// writes as a write of its own (``TerminalBell/takePending()``).
     private(set) var bellsWritten = 0
+    /// Where the cursor was last put, in cells from the top-left, or `nil`
+    /// once something has been drawn after it, which moved it on.
+    private(set) var cursor: CellPoint?
 
     init(width: Int, height: Int) {
         size = (width, height)
@@ -231,6 +239,7 @@ final class InMemoryTerminal: TerminalProtocol {
     func write(_ string: String) {
         bytesWritten &+= string.utf8.count
         if string == "\u{07}" { bellsWritten += 1 }
+        if cursor != nil, !string.stripped.isEmpty { cursor = nil }
     }
     func readKeyEvent() -> KeyEvent? { nil }
     func enableRawMode() {}
@@ -241,6 +250,7 @@ final class InMemoryTerminal: TerminalProtocol {
     // the emission volume: a frame that repositions more writes more.
     func moveCursor(toRow row: Int, column: Int) {
         write(ANSIRenderer.moveCursor(toRow: row, column: column))
+        cursor = CellPoint(x: column - 1, y: row - 1)
     }
     func hideCursor() {}
     func showCursor() {}

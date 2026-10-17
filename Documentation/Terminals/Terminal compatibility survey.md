@@ -1233,6 +1233,21 @@ exchanges that used it. A link that slow loses its answers either way.
     `MouseEvent.meta`, so **⌥-click** toggles rows in a multi-selection
     here. Note this is the *opposite* forwarding choice from iTerm2,
     which delivers ⌘ as +8 and swallows ⌥ (see its Input section).
+- **Dead keys (observed by the owner 2026-10-16, not yet probed):** with
+  "Use Option as Meta key" off, ⌥E starts an accent and nothing reaches the
+  app until the next key finishes it (`é`, one character). Meanwhile
+  Terminal draws the pending `´` itself, **at its cursor, hidden or not,
+  pushing the rest of that row one cell right** until the composition ends
+  and the app's next frame repaints the row. An app cannot stop the push —
+  the composition is the terminal's and is never reported — but it chooses
+  where the cursor is. Since 2026-10-17 the run loop parks the hidden cursor
+  on the focused text control's insertion point after every frame and
+  animation tick (`RenderLoop+Cursor.swift`), so the `´` appears on the
+  caret and pushes the text after it, as marked text does in a Mac text
+  field; before, it appeared wherever the frame's last write ended. A frame
+  that writes nothing moves nothing. Other hosts' dead-key and IME
+  composition drawing is unmeasured; they would place it at the cursor too
+  if they draw it in the grid at all.
 
 ---
 

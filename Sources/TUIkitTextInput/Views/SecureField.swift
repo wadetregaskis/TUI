@@ -455,8 +455,10 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
 
         // The caret animates itself — see the note in TextField. Past the
         // opening cap, which is the only chrome before the content.
-        if !context.isMeasuring, let caret = fieldContent.caret {
-            buffer.animatedCells = [caret.shifted(byX: chrome.leadingCells, y: 0)]
+        // And where the run loop parks the terminal's cursor, past the cap too.
+        if !context.isMeasuring {
+            if let caret = fieldContent.caret { buffer.animatedCells = [caret.shifted(byX: chrome.leadingCells, y: 0)] }
+            handler.insertionPoint = fieldContent.insertionColumn.map { CellPoint(x: chrome.leadingCells + $0, y: 0) }
         }
 
         // The content's translucent colours, shifted by exactly what the caret is

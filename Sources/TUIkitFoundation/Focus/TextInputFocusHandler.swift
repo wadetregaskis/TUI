@@ -25,4 +25,21 @@ package protocol TextInputFocusHandler: AnyObject {
     /// (``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``)
     /// the one fact about itself it depends on.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool
+
+    /// The cell the insertion point is on, as the control last drew it: in the
+    /// coordinates of the control's own hit-test region, the one that carries
+    /// its focus id; `nil` where it is scrolled out of the control's view, or
+    /// the control keeps none.
+    ///
+    /// The run loop parks the terminal's hidden cursor there after each frame
+    /// (`RenderLoop.parkCursor`). A terminal draws what an input method is
+    /// composing at its cursor — Apple Terminal's pending accent after ⌥E,
+    /// say — so that is where the composition appears: on the caret, as in any
+    /// text control, instead of wherever the frame's last write ended.
+    var insertionPoint: CellPoint? { get }
+}
+
+extension TextInputFocusHandler {
+    /// None: the control's input has no insertion point to show.
+    package var insertionPoint: CellPoint? { nil }
 }

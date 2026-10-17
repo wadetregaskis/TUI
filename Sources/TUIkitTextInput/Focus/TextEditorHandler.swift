@@ -123,6 +123,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// (Ctrl-Y) — a single-slot kill ring, matching the macOS text system.
     private(set) var killRing = ""
 
+    /// Where the editor last drew its insertion point, in its own region's
+    /// cells: set by each render pass (see
+    /// ``TextInputFocusHandler/insertionPoint``).
+    var insertionPoint: CellPoint?
+
     /// The clipboard Ctrl-C and Ctrl-X write: the one in the environment the
     /// editor was created in, and kept, as a field's is. Injectable, so a test
     /// never touches the real pasteboard; see ``ClipboardAccess``.

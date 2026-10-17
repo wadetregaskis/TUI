@@ -819,6 +819,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         if !context.isMeasuring, let caret = fieldContent.caret {
             buffer.animatedCells = [caret.shifted(byX: chrome.leadingCells, y: 0)]
         }
+        // Where the run loop parks the terminal's cursor, past the cap too.
+        if !context.isMeasuring {
+            handler.insertionPoint = fieldContent.insertionColumn.map { CellPoint(x: chrome.leadingCells + $0, y: 0) }
+        }
 
         Self.attachFieldClaims(
             to: &buffer, content: fieldContent.claims, chrome: hoveredChrome,

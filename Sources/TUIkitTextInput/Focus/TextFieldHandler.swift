@@ -215,6 +215,11 @@ final class TextFieldHandler: PersistedFocusable {
     /// (see ``isSecure``).
     var killRing = ""
 
+    /// Where the field last drew its insertion point, in its own region's
+    /// cells: set by each render pass (see
+    /// ``TextInputFocusHandler/insertionPoint``).
+    var insertionPoint: CellPoint?
+
     /// The text content type used for input character filtering.
     ///
     /// When set, both typed characters and pasted text are filtered against

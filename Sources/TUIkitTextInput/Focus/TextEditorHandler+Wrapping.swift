@@ -143,4 +143,23 @@ extension TextEditorHandler {
         rowStartHead = cursor
         syncDesiredColumn()
     }
+
+    /// The cell the caret is on in the window a frame draws, whether or not a
+    /// caret is drawn there, or `nil` where it is scrolled out of view — for
+    /// the run loop to park the terminal's cursor on
+    /// (``TextInputFocusHandler/insertionPoint``).
+    ///
+    /// - Parameters:
+    ///   - column: The caret's display column: in its row where the
+    ///     editor wraps (`rows`), in its line where it scrolls sideways.
+    ///   - rows: The wrapped rows, or `nil` where the editor scrolls sideways.
+    ///   - width: The columns the text is drawn in, a scroll bar's left out.
+    ///   - height: The rows drawn.
+    func drawnInsertionPoint(column: Int, rows: WrappedRows?, width: Int, height: Int) -> CellPoint? {
+        let point =
+            rows.map { CellPoint(x: column, y: caretRow(in: $0) - topRow(in: $0)) }
+            ?? CellPoint(x: column - scrollColumn, y: cursorLine - scrollLine)
+        guard (0..<width).contains(point.x), (0..<height).contains(point.y) else { return nil }
+        return point
+    }
 }

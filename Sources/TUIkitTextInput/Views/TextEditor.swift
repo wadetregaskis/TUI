@@ -195,8 +195,7 @@ public struct TextEditor: View {
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
                     selection: presented ? findChannel : selection, menuTarget: menuTarget
-                )
-                .textEditingMenu(menuTarget)
+                ).textEditingMenu(menuTarget)
             }
             .onKeyPress(keys: ["g", "G"]) { press in
                 // Ctrl-G presents the find bar: Ctrl-F is the editor's own
@@ -366,7 +365,11 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let contentWidth = window.contentWidth
         // The widths this frame asked for are the ones to keep (see
         // `EditorLayout.endFrame()`); a measure is not the end of a frame.
-        if !context.isMeasuring { handler.layout().endFrame() }
+        // And where the caret is, for the run loop to park the terminal's cursor on.
+        if !context.isMeasuring {
+            handler.layout().endFrame()
+            handler.insertionPoint = handler.drawnInsertionPoint(column: window.caretColumn, rows: window.rows, width: window.contentWidth, height: height)
+        }
 
         // A subtle field background so the editor reads as a text field (like
         // TextField's chrome) rather than plain text — no full box. Opt into the

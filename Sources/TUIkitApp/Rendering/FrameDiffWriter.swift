@@ -133,6 +133,11 @@ final class FrameDiffWriter {
     /// the frame.
     private var previousContentLines: [String] = []
 
+    /// Whether this pass of ``writeContentDiff(newLines:terminal:startRow:terminalWidth:bgCode:reset:)``
+    /// has moved the terminal's cursor — which every write it makes begins by
+    /// doing, so it is also whether it wrote anything.
+    private var movedCursor = false
+
     /// The frame last built for the terminal, in screen order. What a headless
     /// harness compares two runs by (see `HeadlessApp.screen`).
     package var shownLines: [String] {
@@ -692,6 +697,9 @@ extension FrameDiffWriter {
     }
 
     /// Compares new content lines with the previous frame and writes only changed lines.
+    ///
+    /// - Returns: Whether it wrote anything, and so moved the cursor.
+    @discardableResult
     func writeContentDiff(
         newLines: [String],
         terminal: any TerminalProtocol,
@@ -699,7 +707,8 @@ extension FrameDiffWriter {
         terminalWidth: Int,
         bgCode: String,
         reset: String
-    ) {
+    ) -> Bool {
+        movedCursor = false
         let changedRows = writeDiff(
             newLines: newLines, previousLines: previousContentLines, terminal: terminal,
             startRow: startRow, terminalWidth: terminalWidth)
@@ -713,6 +722,14 @@ extension FrameDiffWriter {
             reset: reset
         )
         previousContentLines = newLines
+        return movedCursor
+    }
+
+    /// Moves `terminal`'s cursor, and notes that this pass did
+    /// (``movedCursor``).
+    private func moveCursor(on terminal: any TerminalProtocol, toRow row: Int, column: Int) {
+        movedCursor = true
+        terminal.moveCursor(toRow: row, column: column)
     }
 
     /// Invalidates all cached previous frames, forcing a full repaint on the next render.
@@ -810,11 +827,11 @@ extension FrameDiffWriter {
                 continue
             case .spans(let spans):
                 for span in spans {
-                    terminal.moveCursor(toRow: startRow + row, column: span.column + 1)
+                    moveCursor(on: terminal, toRow: startRow + row, column: span.column + 1)
                     terminal.write(span.content)
                 }
             case .wholeLine:
-                terminal.moveCursor(toRow: startRow + row, column: 1)
+                moveCursor(on: terminal, toRow: startRow + row, column: 1)
                 // A built row opens by STATING ITS BACKGROUND, not by resetting,
                 // so anything else this pass carried in — a bold, an underline,
                 // a reverse — would still be in force, and the `ESC[2K` the row
@@ -848,7 +865,7 @@ extension FrameDiffWriter {
             }
             let eraseEntireLine = "\u{1B}[2K"
             for row in newLines.count..<previousLines.count {
-                terminal.moveCursor(toRow: startRow + row, column: 1)
+                moveCursor(on: terminal, toRow: startRow + row, column: 1)
                 terminal.write(eraseEntireLine)
             }
         }
@@ -938,7 +955,7 @@ extension FrameDiffWriter {
             // and the pass that just ended leaves its last cell's attributes
             // in force (spans never close), so a reverse or an underline
             // carried in would be what the erase painted the two cells with.
-            terminal.moveCursor(toRow: startRow + row, column: repaintCol)
+            moveCursor(on: terminal, toRow: startRow + row, column: repaintCol)
             if terminalStyle?.isDefault != true { terminal.write(reset) }
             terminal.write(bgCode + "\u{1B}[K" + reset)
 
@@ -949,7 +966,7 @@ extension FrameDiffWriter {
             // cursor past the terminal edge, wrapping subsequent characters to the
             // next row and causing content to appear in the wrong place.
             if let suffix = lines[row].ansiSGRContextAndCleanSuffix(from: splitAt) {
-                terminal.moveCursor(toRow: startRow + row, column: repaintCol)
+                moveCursor(on: terminal, toRow: startRow + row, column: repaintCol)
                 terminal.write(suffix)
             }
             // Sequences this writer did not model: the row's own SGR context,

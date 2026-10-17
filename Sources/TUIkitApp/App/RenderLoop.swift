@@ -94,6 +94,12 @@ internal final class RenderLoop<A: App> {
     /// in `RenderLoop+Replay.swift`, can reach it.
     var replayable: ReplayableFrame?
 
+    /// Where the last frame left the terminal's hidden cursor: on the focused
+    /// text control's insertion point (`RenderLoop+Cursor.swift`), in screen
+    /// cells from the top-left, or `nil` where it was left wherever the
+    /// frame's last write ended.
+    var parkedCursor: CellPoint?
+
     /// The terminal's size at the previous frame, `nil` before the first: a
     /// frame drawn at another size stamps `RenderCache.terminalResizedAtNanos`.
     private var lastFrameSize: (width: Int, height: Int)?
@@ -976,7 +982,7 @@ extension RenderLoop {
         // cell. See `Terminal.beginSynchronizedUpdate()`.
         synchronizedUpdates?.beginSynchronizedUpdate()
 
-        diffWriter.writeContentDiff(
+        let wrote = diffWriter.writeContentDiff(
             newLines: outputLines,
             terminal: terminal,
             startRow: 1,
@@ -984,6 +990,10 @@ extension RenderLoop {
             bgCode: backgroundCodes.content,
             reset: reset
         )
+        parkCursor(
+            at: insertionPointOnScreen(
+                in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),
+            afterWriting: wrote)
 
         // Keep what an animation tick would need to patch: the lines actually on
         // screen, the runs composited into absolute positions, and the geometry

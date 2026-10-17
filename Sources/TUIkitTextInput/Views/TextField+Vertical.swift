@@ -148,6 +148,13 @@ extension _TextFieldCore {
                 affinity: handler.caretAffinity, firstRow: firstRow, count: rowCount),
             isFocused: isFocused, palette: palette, cursorStyle: context.environment.textCursorStyle,
             cursorTimer: context.environment.cursorTimer, cursorTiming: context.environment.indicatorCycleTiming)
+        // Where the run loop parks the terminal's cursor: the row the caret
+        // is on, past the cap.
+        if !context.isMeasuring {
+            handler.insertionPoint = rows.indices.lazy.compactMap { row in
+                rows[row].insertionColumn.map { CellPoint(x: chrome.leadingCells + $0, y: row) }
+            }.first
+        }
 
         var buffer = assembleVertical(
             rows, chrome: FieldChrome(

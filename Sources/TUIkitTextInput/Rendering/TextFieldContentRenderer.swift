@@ -110,10 +110,20 @@ struct TextFieldContentRenderer: FieldTextLayout {
         /// escape instead.
         let claims: [OpacityRegion]
 
-        init(line: String, caret: AnimatedCellRun? = nil, claims: [OpacityRegion] = []) {
+        /// The column the insertion point is on, in the content's own
+        /// coordinates, whether or not a caret is drawn there (none is over a
+        /// selection); `nil` where the line has no insertion point, or it is
+        /// scrolled out of the window.
+        let insertionColumn: Int?
+
+        init(
+            line: String, caret: AnimatedCellRun? = nil, claims: [OpacityRegion] = [],
+            insertionColumn: Int? = nil
+        ) {
             self.line = line
             self.caret = caret
             self.claims = claims
+            self.insertionColumn = insertionColumn
         }
     }
 
@@ -194,7 +204,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         guard legibilityWeight.drawsPlainBold else { return content }
         return FieldContent(
             line: ANSIRenderer.applyPersistentBold(content.line), caret: content.caret?.drawnBold(),
-            claims: content.claims)
+            claims: content.claims, insertionColumn: content.insertionColumn)
     }
 
     /// The coalescing accumulator a focused field's cells are written into:
@@ -513,8 +523,10 @@ struct TextFieldContentRenderer: FieldTextLayout {
                 appearsActive: appearsActive)
         }
         var caret: AnimatedCellRun?
+        var insertionColumn: Int?
 
         func emitCaret(cells: Int, underlying: Character, isSelected: Bool) {
+            if cellX >= scrollStart, cellX < windowEnd { insertionColumn = cellX - scrollStart }
             // The scroll window is anchored so the caret is always fully inside
             // it. If that ever stops holding, fall back to the ordinary clipped
             // character rather than leave a run describing cells that are not
@@ -566,7 +578,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         }
         flushRun()
 
-        return FieldContent(line: runs.line, caret: caret, claims: runs.claims)
+        return FieldContent(line: runs.line, caret: caret, claims: runs.claims, insertionColumn: insertionColumn)
     }
 
     /// The caret's blink cycle and the five colours its frames pick between —

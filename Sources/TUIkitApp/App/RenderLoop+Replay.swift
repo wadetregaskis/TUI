@@ -308,7 +308,7 @@ extension RenderLoop {
         // Held like a rendered frame when it patches more than one row: two
         // spinners' ticks land together. No transmissions come first.
         synchronizedUpdates?.beginSynchronizedUpdate()
-        diffWriter.writeContentDiff(
+        let wrote = diffWriter.writeContentDiff(
             newLines: lines,
             terminal: terminal,
             startRow: frame.startRow,
@@ -316,6 +316,9 @@ extension RenderLoop {
             bgCode: frame.backgroundCode,
             reset: ANSIRenderer.reset
         )
+        // Back onto the insertion point the rendered frame parked it on: a
+        // blinking caret's own tick is the commonest write that moves it off.
+        parkCursor(at: parkedCursor, afterWriting: wrote)
         terminal.endFrame()
         // `replayable.contentLines` deliberately keeps the RENDER's lines, not
         // these. The diff writer already tracks what is on screen; this is the
