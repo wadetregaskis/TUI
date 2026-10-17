@@ -136,7 +136,10 @@ innermost first, and only once the focused control has let the key go. A
 Delete the control does not use becomes the command of the nearest view that
 has one — before the focus system spends an arrow on moving the focus, and
 before your `.keyboardShortcut`s, so an exit command takes Escape from a
-cancel button.
+cancel button. An exit command is asked ahead of the status bar's items and
+the `.onKeyEvent` handlers around it as well: a page whose "⎋ back" is bound
+to Escape keeps it only while the focus is outside every view with an exit
+command.
 
 On Apple platforms the copy, cut and paste commands —
 `onCopyCommand(perform:)`, `onCutCommand(perform:)` and
