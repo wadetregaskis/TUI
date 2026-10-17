@@ -146,6 +146,10 @@ struct TextEditorWrapTests {
     @Test("Upstream, a drag head on the top row's first cell scrolls nothing")
     func upstreamHeadOnTopRowStart() throws {
         let (harness, page, handler) = try editor("aaaa bbbb cccc dddd eeee", width: 6, height: 3, affinity: .upstream)
+        // Every event on the harness's clock from the start: stamped by the
+        // machine's, the drag's press made the multi-click timing below hang
+        // on the load the suite ran under.
+        harness.syncEventClock()
         handler.moveCursor(toLine: 0, column: 24)
         let rows = harness.frame(page).lines.map(\.stripped)
         try #require(zip(rows, ["cccc", "dddd", "eeee"]).allSatisfy { $0.hasPrefix($1) })
@@ -161,7 +165,6 @@ struct TextEditorWrapTests {
         // A Shift-click there is a selection's end too. The click before it
         // comes a second after the drag's press, a cell from it, so that it
         // is not a double-click, which would select a word.
-        harness.syncEventClock()
         harness.now += 1_000_000_000
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 2))
         harness.mouse(MouseEvent(button: .left, phase: .released, x: 2, y: 2))
