@@ -137,7 +137,7 @@ extension View {
     /// One border, drawn as the titleless container it has always been: a
     /// blank cell either side of the content, so text does not run up against
     /// the line — and none for content that paints its own surface to its
-    /// edges (``PaintsToItsEdges``), whose blank cells were strips of the page
+    /// edges (``View/_paintsToItsEdges``), whose blank cells were strips of the page
     /// between the border and the surface. That one is SwiftUI's own border,
     /// which is drawn on the view's edge with no inset at all.
     private func ring(style: BorderStyle?, colour: AnimatedColor?) -> some View {
@@ -148,20 +148,12 @@ extension View {
                 borderStyle: style,
                 borderColor: colour
             ),
-            padding: throughWrappers(self, as: (any PaintsToItsEdges).self) == nil
-                ? EdgeInsets(horizontal: 1, vertical: 0) : EdgeInsets()
+            padding: Self._paintsToItsEdges ? EdgeInsets() : EdgeInsets(horizontal: 1, vertical: 0)
         ) {
             self
         }
     }
 }
-
-/// A view that paints its own surface to its edges — a `TextEditor`'s field —
-/// so a border around it needs no blank cell inside it: the surface is what
-/// keeps the content off the line. Looked for through single-content wrappers
-/// (`.frame`, …), as `TextEditor(…).frame(height: 4).border()` writes it.
-@MainActor
-package protocol PaintsToItsEdges {}
 
 // MARK: - Border rings
 

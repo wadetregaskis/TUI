@@ -222,6 +222,7 @@ identifier_name:
     - _providesAlignmentGuide
     - _providesContainerValues
     - _providesLayoutValues
+    - _paintsToItsEdges
     - _changesLayout
     - _statesSpacingPreference
     - _handsOverChildren

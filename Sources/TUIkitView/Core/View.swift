@@ -134,6 +134,18 @@ public protocol View {
     /// with a constant rather than a walk of casts.
     static var _providesLayoutValues: Bool { get }
 
+    /// Static witness: whether this view paints its own surface to its edges
+    /// — a `TextEditor`'s field — or wraps one that does, so a border around
+    /// it needs no blank cell inside it: the surface keeps the content off the
+    /// line. `false` for every view but those, and the single-content
+    /// wrappers around them, which forward their content's answer.
+    ///
+    /// A witness rather than a cast, as ``_providesZIndex`` is: `.border()`
+    /// asks every time a body builds one, and a walk of casts down the
+    /// wrappers, the value boxed to start it, was 2% of a frame of bordered
+    /// views (Stress `anyview`, cold, 2026-10-17).
+    static var _paintsToItsEdges: Bool { get }
+
     /// Static witness: whether this view type may state a spacing preference
     /// of its own (a `ViewSpacing` other than the default) — because it is a
     /// `Layout` (whose `spacing(subviews:cache:)` says), or holds one where a
@@ -246,6 +258,12 @@ public extension View {
     /// Default: a view sets no layout value. `.layoutPriority(_:)` and
     /// `.layoutValue(key:value:)` override this.
     static var _providesLayoutValues: Bool { false }
+
+    /// Default: a view leaves the cells at its edges to what is behind it.
+    /// `TextEditor` overrides this. A constant, never `Body`'s answer: the
+    /// single-content wrappers forward it, and a forwarded witness whose
+    /// default follows `Body` loops for ever on a view that holds itself.
+    static var _paintsToItsEdges: Bool { false }
 
     /// Default: whether this view hands its container several views
     /// (``_handsOverChildren``) — a view of the app's own whose body is several
