@@ -219,11 +219,11 @@ def main() -> int:
         one does — what says which of the two the app is showing."""
         return screen.display[1]
 
-    def waited(condition, since: float) -> tuple:
-        """Polls `condition` to the paint deadline: whether it came true, and
-        how long after `since` (the keystroke) it had."""
+    def waited(condition, since: float, timeout: float = None) -> tuple:
+        """Polls `condition` to the paint deadline (or `timeout`): whether it
+        came true, and how long after `since` (the keystroke) it had."""
         start = since
-        end = time.time() + args.paint_timeout
+        end = time.time() + (args.paint_timeout if timeout is None else timeout)
         while not condition():
             if time.time() >= end or not pump(min(0.05, end - time.time())):
                 return condition(), time.time() - start
@@ -309,13 +309,29 @@ def main() -> int:
         # was read is the menu's title back on the title row — not any change
         # of screen, which a blinking caret makes whether or not the Esc was
         # read.
+        def returned() -> bool:
+            return title() != page_title if menu_title is None else title() == menu_title
+
         sent = time.time()
         ok = ok and send("esc")
-        if menu_title is None:
-            back, back_latency = waited(lambda: title() != page_title, since=sent)
+        # A view holding the focus may take Escape for itself: its exit
+        # command (`.onExitCommand`) answers before the page's "back", as in
+        # SwiftUI — the Focus page's Commands board refills on Escape, and the
+        # arrows above can walk the focus onto it. So an Escape that has not
+        # returned within a moment is followed by Tab, which steps the focus
+        # off that view, and another Escape — at most three times, each to
+        # the full paint deadline, so a page that never returns still fails.
+        back, back_latency = waited(returned, since=sent, timeout=min(2.0, args.paint_timeout))
+        stepped = 0
+        while not back and ok and stepped < 3:
+            stepped += 1
+            ok = ok and send("tab")
+            ok = ok and send("esc")
+            back, back_latency = waited(returned, since=sent)
+        if back and stepped:
+            print(f"note: item {item}'s focused view took Escape; Tab×{stepped} then Escape returned", flush=True)
+        if menu_title is None and back:
             menu_title = steady_title()
-        else:
-            back, back_latency = waited(lambda: title() == menu_title, since=sent)
         if args.from_top:
             # Return the selection to the top for the next item's Down-walk.
             for _ in range(item):
