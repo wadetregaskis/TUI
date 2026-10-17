@@ -113,6 +113,26 @@ struct StripeLegibilityTests {
         }
     }
 
+    /// The owner's ruling, 2026-10-16: a stripe is a quiet guide for the eye,
+    /// one step off its ground — Green's on Apple Terminal's cube was 1.23:1
+    /// off black and too strong, Basic's 1.07:1 off white and too faint. At
+    /// truecolour the step is hit; on the cube, the entry nearest it in a hue
+    /// near the stripe asked for keeps within a coarse step of it.
+    @Test("A stripe is one quiet step off its ground", arguments: [ColorDepth.truecolor, .palette256])
+    func oneStep(depth: ColorDepth) {
+        let step = ViewConstants.alternatingRowContrast
+        let (low, high) = depth == .truecolor ? (step - 0.02, step + 0.02) : (1.05, 1.3)
+        for palette in Self.statedPalettes {
+            for (groundName, ground) in Self.grounds(of: palette, at: depth) {
+                guard let measured = Self.measure(palette, over: ground, at: depth) else { continue }
+                let off = measured.stripe.contrastRatio(against: measured.ground)
+                #expect(
+                    off >= low && off <= high,
+                    "\(palette.name) over its \(groundName) at \(depth): the stripe is \(off):1 off its ground")
+            }
+        }
+    }
+
     @Test("A 256-colour terminal still stripes every palette")
     func stripesSurviveTheCube() {
         let unstriped = Self.statedPalettes.filter { palette in

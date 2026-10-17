@@ -14,10 +14,16 @@ extension Palette {
     /// What an alternating row's stripe paints over `ground` at `depth`, or `nil`
     /// for no stripe.
     ///
-    /// At truecolour, the accent at ``ViewConstants/alternatingRowBackground``
-    /// over the ground — eased off a few points at a time where the text would
-    /// fall under the floor in (4) below on it, and none where it falls under
-    /// at every share. A coarser terminal does not draw that colour, it draws
+    /// At truecolour, the share of the accent over the ground that sets the
+    /// stripe ``ViewConstants/alternatingRowContrast`` off the ground, up to
+    /// ``ViewConstants/alternatingRowBackground`` of it — or, where the accent
+    /// is too near the ground to get that far, the palette's own step off it
+    /// (``lifted(from:)``) — eased off a few points at a time where the text
+    /// would fall under the floor in (4) below on it, and none where it falls
+    /// under at every share. One step of contrast rather than one share of the
+    /// accent: the share set Green's, White's and Pro's stripes 1.4:1 off the
+    /// page and Basic's 1.17:1, where a stripe is a quiet guide that has only
+    /// to show. A coarser terminal does not draw that colour, it draws
     /// the entry nearest it, and nearest is not good enough for a band under
     /// every other row: measured across the sixteen stated palettes
     /// (`StripeLegibilityTests`), the cube put five palettes' stripe
@@ -28,7 +34,11 @@ extension Palette {
     ///
     /// So at 256 or 16 colours the stripe is the entry nearest that colour —
     /// at 16, the grey slot nearest it — among those that keep four things
-    /// true, measured on the entries the terminal paints:
+    /// true, measured on the entries the terminal paints. Nearest in CONTRAST
+    /// off the ground first, its hue second: the cube's entries are coarse
+    /// steps, and the nearest in colour to the stripe put Green's on the
+    /// cube 1.23:1 off black and Basic's 1.07:1 off white, where an entry
+    /// nearer the step was there to take:
     ///
     /// 1. **It shows**: it is not the ground's own entry.
     /// 2. **It is not a highlight**: it is none of the five row fills
@@ -48,7 +58,7 @@ extension Palette {
     /// Chosen once per ground, palette colours and depth, and kept.
     package func stripeFill(over ground: Color, at depth: ColorDepth = .current) -> Color? {
         guard depth > .noColor else { return nil }
-        let target = accent.opacity(ViewConstants.alternatingRowBackground, over: ground)
+        let target = steppedStripe(over: ground)
         let text = foreground.spendingAlpha(over: ground)
         // The ACCENT measured too, not only the blend: 15% of a colour the
         // terminal decides is, below half, the ground itself — a fill that
@@ -62,8 +72,8 @@ extension Palette {
             // page (Violet's surface: 4.49:1 at the full share), a fainter stripe
             // rather than a less readable row.
             let floor = StripeKey.readableFloor(text: textRGB, ground: groundRGB)
-            for share in stride(from: ViewConstants.alternatingRowBackground, to: 0.0, by: -0.03) {
-                let stripe = accent.opacity(share, over: ground)
+            for share in stride(from: 1.0, to: 0.0, by: -0.2) {
+                let stripe = share == 1 ? target : target.opacity(share, over: ground)
                 guard let rgb = stripe.rgbComponents else { return nil }
                 if StripeKey.contrast(StripeKey.packed(textRGB), StripeKey.packed(rgb)) >= floor { return stripe }
             }
@@ -76,6 +86,42 @@ extension Palette {
             text: StripeKey.packed(textRGB), depth: depth, table: table,
             fills: fills.map { [$0.selection, $0.focusDim, $0.focusBright, $0.emphasisDim, $0.emphasisBright] })
         return StripeKey.chosen(key)
+    }
+
+    /// The stripe asked for over `ground`, before a terminal's palette or the
+    /// text has a say: the share of the accent that sets it
+    /// ``ViewConstants/alternatingRowContrast`` off the ground, found by
+    /// halving — the contrast grows with the share — up to
+    /// ``ViewConstants/alternatingRowBackground``; or the palette's step off
+    /// the ground, where even that much of the accent stays nearer it.
+    func steppedStripe(over ground: Color) -> Color {
+        let step = ViewConstants.alternatingRowContrast
+        let most = accent.opacity(ViewConstants.alternatingRowBackground, over: ground)
+        if most.contrastRatio(against: ground) >= step {
+            return Self.share(of: accent, upTo: ViewConstants.alternatingRowBackground, over: ground, reaching: step)
+        }
+        // The palette's own step off the ground, as far toward it as the step
+        // asks, or all of it where it stops short; the accent's most, where
+        // that is the further of the two.
+        let lifted = lifted(from: ground).resolve(with: self)
+        guard lifted.contrastRatio(against: ground) > most.contrastRatio(against: ground) else { return most }
+        guard lifted.contrastRatio(against: ground) > step else { return lifted }
+        return Self.share(of: lifted, upTo: 1, over: ground, reaching: step)
+    }
+
+    /// The share of `colour` over `ground`, up to `most`, that sets it `step`
+    /// off the ground, found by halving: the contrast grows with the share.
+    private static func share(of colour: Color, upTo most: Double, over ground: Color, reaching step: Double) -> Color {
+        var (low, high) = (0.0, most)
+        for _ in 0..<12 {
+            let share = (low + high) / 2
+            if colour.opacity(share, over: ground).contrastRatio(against: ground) < step {
+                low = share
+            } else {
+                high = share
+            }
+        }
+        return colour.opacity(high, over: ground)
     }
 }
 
@@ -159,7 +205,26 @@ private struct StripeKey: Hashable {
                 && Self.contrast(entry.rgb, ground) < quietest
                 && Self.contrast(text, entry.rgb) >= readable
         }
-        return candidates.min { Self.distance($0.rgb, target) < Self.distance($1.rgb, target) }?.colour
+        // Nearest the step in contrast off the ground — by ratio, so a step
+        // too far and one too short weigh the same — and near the stripe
+        // asked for in colour, the two weighed together: by contrast alone a
+        // cube entry of any hue at the right step won (Red's stripe came out
+        // blue, Novel's bright green), and by colour alone the nearest entry
+        // could be a long step off the ground (Green's on the cube, 1.23:1).
+        // Two thousandths of the ratio's log per unit of sRGB distance: an
+        // entry 0.03 nearer the step in log ratio loses to one 15 units
+        // nearer the stripe asked for.
+        //
+        // The step itself, off the ground as painted — not the stripe asked
+        // for, measured against it: the painted ground can be a step darker
+        // than the ground the stripe was asked over (Green's 050a05 is drawn
+        // black), which made the asked stripe read 1.23:1 off it.
+        let step = log(ViewConstants.alternatingRowContrast)
+        func score(_ entry: Entry) -> Double {
+            abs(log(Self.contrast(entry.rgb, ground)) - step)
+                + 0.002 * Double(Self.distance(entry.rgb, target)).squareRoot()
+        }
+        return candidates.min { score($0) < score($1) }?.colour
     }
 
     /// Squared distance between two colours in sRGB.

@@ -61,8 +61,19 @@ public enum ViewConstants {
     /// Background opacity for selected (but unfocused) rows.
     public static let selectedBackground: Double = 0.25
 
-    /// Background opacity for alternating row tinting.
+    /// The most of the accent an alternating row's stripe takes over its
+    /// ground: the stripe is the share of it that sets the stripe
+    /// ``alternatingRowContrast`` off the ground, up to this.
     public static let alternatingRowBackground: Double = 0.15
+
+    /// The contrast ratio an alternating row's stripe aims at off the rows'
+    /// ground, at every depth: a guide for the eye across many columns, which
+    /// needs to show and nothing more (the owner's ruling, 2026-10-16: Green's
+    /// stripe on Apple Terminal too strong, Basic's too faint). The same step
+    /// off a surface table's body as off the page, so a surface table's
+    /// stripes sit a step above its rows as a plain table's sit a step above
+    /// the page.
+    public static let alternatingRowContrast: Double = 1.15
 
     /// Accent opacity for focus borders and indicator caps in their dim state.
     public static let focusBorderDim: Double = 0.20
