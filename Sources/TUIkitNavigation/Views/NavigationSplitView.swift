@@ -1044,25 +1044,39 @@ extension _NavigationSplitViewCore {
     /// `FrameBuffer(lines: lines, width: width)` constructor dropped
     /// them, which broke per-column click-to-focus on NavigationSplitView.
     fileprivate func padToSize(_ buffer: FrameBuffer, width: Int, height: Int) -> FrameBuffer {
-        var lines = buffer.lines
-
-        // Pad each line to the target width
-        let paddedLines = lines.map { line -> String in
-            let lineWidth = line.strippedLength
+        // Each line padded to the target width, and its width kept: the
+        // buffer's own where it knows it (uniform, or `lineWidths`), measured
+        // only where it does not — and the result handed over with every
+        // width known, rather than measured again by `replacingLines`. Every
+        // column of a split view came through here every frame, and measuring
+        // each line twice was 6% and more of a frame of one (Stress
+        // `kitchensink`, 2026-10-17).
+        var lines: [String] = []
+        var widths: [Int] = []
+        lines.reserveCapacity(max(height, buffer.lines.count))
+        widths.reserveCapacity(max(height, buffer.lines.count))
+        for (row, line) in buffer.lines.enumerated() {
+            let lineWidth =
+                buffer.linesAreUniformWidth ? buffer.width : buffer.lineWidths?[row] ?? line.strippedLength
             if lineWidth < width {
-                return line + String(repeating: " ", count: width - lineWidth)
+                lines.append(line + asciiSpaces(width - lineWidth))
+                widths.append(width)
+            } else {
+                lines.append(line)
+                widths.append(lineWidth)
             }
-            return line
         }
-        lines = paddedLines
 
         // Pad to target height
         let emptyLine = String(repeating: " ", count: width)
         while lines.count < height {
             lines.append(emptyLine)
+            widths.append(width)
         }
 
-        return buffer.replacingLines(lines)
+        let resultWidth = widths.max() ?? 0
+        return buffer.replacingLines(
+            lines, width: resultWidth, uniformWidth: widths.allSatisfy { $0 == resultWidth }, lineWidths: widths)
     }
 }
 
