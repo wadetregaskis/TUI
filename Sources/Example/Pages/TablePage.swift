@@ -216,8 +216,10 @@ struct TablePage: View {
 
     @TableColumnBuilder<NoteEntry, Never>
     private var notesColumns: some TableColumnContent<NoteEntry, Never> {
+        // As wide as the widest index, "300": wider, the trailing alignment
+        // put blank cells between the table's edge and every number.
         TableColumn("#", value: \NoteEntry.index)
-            .width(5)
+            .width(3)
             .alignment(.trailing)
         TableColumn("page.table.column.details", value: \NoteEntry.note)
             .lineLimit(3)
