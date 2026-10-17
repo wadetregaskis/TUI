@@ -32,10 +32,17 @@ enum Headless {
     /// signal: identical output hashes identically, on every run and every
     /// platform. Deliberately not `String.hashValue`, which is seeded per
     /// process and so differs between two runs of the same work.
+    ///
+    /// The bytes are read from the line's contiguous UTF-8 storage: stepping
+    /// `line.utf8` went through the collection witnesses a byte at a time and
+    /// was 3.3% of a kitchensink bench frame — the instrument weighing on what
+    /// it measures. The hash is the same either way.
     private static func contentChecksum(_ buffer: FrameBuffer) -> Int {
         var hash = 5381
-        for line in buffer.lines {
-            for byte in line.utf8 { hash = (hash &* 33) ^ Int(byte) }
+        for var line in buffer.lines {
+            line.withUTF8 { bytes in
+                for byte in bytes { hash = (hash &* 33) ^ Int(byte) }
+            }
         }
         return hash
     }
