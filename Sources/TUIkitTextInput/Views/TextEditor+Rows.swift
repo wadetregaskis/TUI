@@ -41,19 +41,22 @@ extension _TextEditorCore {
                     cell += layout.cellWidths[end]
                     end += 1
                 }
+                // A block's columns are this row's cells already.
                 let selection: Range<Int>? =
                     caret == nil
                     ? nil
-                    : handler.selectedColumns(inLine: line, lineLength: lines[line].count).flatMap { selected in
-                        let lower = max(selected.lowerBound, span.start)
-                        let upper = min(selected.upperBound, end)
-                        guard lower < upper else { return nil }
-                        return layout.cells(inRow: rowInLine, before: lower)
-                            ..< layout.cells(inRow: rowInLine, before: upper)
-                    }
+                    : handler.blockCells(onRow: top + screenRow)
+                        ?? handler.selectedColumns(inLine: line, lineLength: lines[line].count).flatMap { selected in
+                            let lower = max(selected.lowerBound, span.start)
+                            let upper = min(selected.upperBound, end)
+                            guard lower < upper else { return nil }
+                            return layout.cells(inRow: rowInLine, before: lower)
+                                ..< layout.cells(inRow: rowInLine, before: upper)
+                        }
                 rendered = styledRow(
                     Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, width: rows.width,
-                    caret: top + screenRow == caretRow && handler.selectionRange == nil ? caret : nil,
+                    caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
+                        ? caret : nil,
                     selection: selection, styling: styling)
                 // On to the next row: the rest of this line's, then the next line's.
                 if rowInLine + 1 < layout.rows.count {
@@ -95,19 +98,22 @@ extension _TextEditorCore {
                 // in display cells, so convert the bounds (a char range maps to a
                 // contiguous display range — expansion is monotonic — and a
                 // selected tab highlights its whole span, as in any editor).
+                // A block's columns are this line's display columns already.
                 let selection: Range<Int>? =
                     caret == nil
                     ? nil
-                    : handler.selectedColumns(inLine: lineIndex, lineLength: lineChars.count).map {
-                        TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
-                            ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
-                    }
+                    : handler.blockCells(onRow: lineIndex)
+                        ?? handler.selectedColumns(inLine: lineIndex, lineLength: lineChars.count).map {
+                            TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
+                                ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
+                        }
                 rendered = styledRow(
                     lineChars, tabWidth: tabWidth, scrollColumn: handler.scrollColumn, width: width,
                     // No caret while text is selected, as on a Mac: the
                     // selection is what typing replaces (see the field's
                     // `buildTextWithCursor`).
-                    caret: lineIndex == handler.cursorLine && handler.selectionRange == nil ? caret : nil,
+                    caret: lineIndex == handler.cursorLine && handler.selectionRange == nil && handler.block == nil
+                        ? caret : nil,
                     selection: selection, styling: styling)
             } else {
                 rendered = emptyRow(width: width, background: styling.background)

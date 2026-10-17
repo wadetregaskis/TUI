@@ -42,6 +42,11 @@ extension TextEditorHandler {
     func perform(_ command: StandInEditingCommand) -> Bool {
         switch command {
         case .copy, .cut:
+            if let block {
+                clipboard.write(blockText(block))
+                if command == .cut { deleteBlock(block) }
+                return true
+            }
             guard let span = selectionRange else { return false }
             clipboard.write(selectedText(span))
             if command == .cut {
@@ -52,6 +57,7 @@ extension TextEditorHandler {
             // Over the selection, as a typed key goes; the clipboard's line
             // breaks kept, as the terminal's own paste keeps them.
             if let span = selectionRange { deleteSelection(span) }
+            if let block { deleteBlock(block) }
             if let pasted = clipboard.read(), !pasted.isEmpty { insert(pasted) }
             return true
         case .undo, .redo, .erase:
@@ -65,6 +71,7 @@ extension TextEditorHandler {
     /// edit, with the cursor where it was, and drops the selection. With
     /// nothing to undo it does nothing, and the key is still the editor's.
     func undo() {
+        block = nil
         if let undoManager {
             _ = UndoCommand.undo.perform(on: undoManager)
         } else {
@@ -75,6 +82,7 @@ extension TextEditorHandler {
     /// Ctrl-Shift-Z, the stand-in for ⇧⌘Z, where the terminal tells it from
     /// Ctrl-Z: redoes, as ``undo()`` undoes.
     func redo() {
+        block = nil
         if let undoManager {
             _ = UndoCommand.redo.perform(on: undoManager)
         } else {
@@ -154,7 +162,7 @@ extension TextEditorHandler {
 // MARK: - The context menu
 
 extension TextEditorHandler: TextEditingMenuHandler {
-    var menuCanCopy: Bool { selectionRange != nil }
+    var menuCanCopy: Bool { selectionRange != nil || block?.columns.isEmpty == false }
 
     var menuCanYank: Bool { !killRing.isEmpty }
 

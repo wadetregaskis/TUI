@@ -371,6 +371,16 @@ selects all of its text on a double-click, as macOS's does, since it shows no
 word breaks. While text is selected no caret is drawn, as on a Mac: typing
 replaces the selection, so the highlight is where it goes.
 
+In a `TextEditor`, **Option-drag** (⌘-drag in iTerm2) selects a block: the
+same columns of every row it spans — the rows as drawn, where the editor
+wraps. Copy takes them row by row, joined by line breaks; Cut, Backspace or
+Delete take them out of every row; typing or pasting replaces them once, at
+the block's top-left corner. Pressing Shift partway through the drag swaps
+which corner the pointer moves, as on the screen selection. The app's
+`selection:` binding is not told of a block; it sees the caret. A field's
+one row makes a block and an ordinary selection the same, so in a
+`TextField` an Option-drag selects as a drag does.
+
 A right-click (or Ctrl-click) on a `TextField`, `SecureField` or `TextEditor`
 opens its editing menu — Cut, Copy, Paste, Select All, and Yank while a ⌃K has
 left text for it — and Shift+F10 opens it on the focused one. Cut and Copy

@@ -635,6 +635,12 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // `asSelectionEnd`: the event ends a selection — a drag's head, a
         // Shift-click — whose end may be a wrapped row's first character
         // under `.upstream`, where a caret cannot be.
+        /// The grid cell under the pointer, for a block: on a drawn row, and
+        /// up to the column after the last drawn one.
+        func gridPoint(_ event: MouseEvent) -> CellPoint {
+            handler.gridPoint(atScreenRow: max(0, min(event.y, height - 1)), column: max(0, min(event.x, contentWidth)))
+        }
+
         func placeCursor(at event: MouseEvent, asSelectionEnd: Bool = false) {
             let row = max(0, min(event.y, height - 1))
             handler.rowStartHead = nil
@@ -673,7 +679,13 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             case .pressed where event.button == .left && !event.ctrl:
                 focusManager?.focus(id: focusID)
                 handler.multiClickRun = nil
-                if event.shift {
+                // Every press starts afresh: a block goes with the rest.
+                handler.block = nil
+                if event.meta {
+                    // Option-drag (⌘-drag in iTerm2): a block, from here.
+                    placeCursor(at: event)
+                    handler.beginBlock(at: gridPoint(event), shift: event.shift)
+                } else if event.shift {
                     handler.pressAnchor = nil
                     handler.startOrExtendSelection()
                     placeCursor(at: event, asSelectionEnd: true)
@@ -700,6 +712,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 }
                 return true
             case .dragged:
+                if handler.block != nil {
+                    placeCursor(at: event)
+                    handler.extendBlock(to: gridPoint(event), shift: event.shift)
+                    return true
+                }
                 if handler.multiClickRun != nil {
                     placeCursor(at: event)
                     _ = handler.extendRun(to: handler.cursor)
@@ -709,6 +726,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 placeCursor(at: event, asSelectionEnd: true)
                 return true
             case .released where event.button == .left:
+                handler.finishBlock()
                 // A drag or a Shift-click that ends on its own anchor leaves no
                 // selection, and its head is a caret. Where the head is a
                 // wrapped row's first character (`rowStartHead`, drawn at that

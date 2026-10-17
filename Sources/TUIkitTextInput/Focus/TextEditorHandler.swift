@@ -40,6 +40,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// mouse handler and consumed/cleared by the next keystroke.
     var selectionAnchor: TextEditorPosition?
 
+    /// A rectangular selection, an Option-drag's, in place of the selection
+    /// between ``selectionAnchor`` and the caret (`TextEditorHandler+Block.swift`).
+    var block: TextEditorBlock?
+
     /// Where the last plain press landed as a selection's end, for the drag
     /// that may follow it to anchor at
     /// (``selectionPosition(atScreenRow:column:in:)``): a wrapped row's first
@@ -187,7 +191,7 @@ final class TextEditorHandler: PersistedFocusable {
         layout().lines
     }
 
-    private func writeLines(_ lines: [[Character]]) {
+    func writeLines(_ lines: [[Character]]) {
         let joined = lines.map { String($0) }.joined(separator: "\n")
         write(joined)
         // The lines just written are the layout of the text just written —
@@ -301,7 +305,15 @@ final class TextEditorHandler: PersistedFocusable {
         // selection drive editing without the editor carrying a full
         // keyboard-selection model.
         if let span = selectionRange {
-            if !event.ctrl, !event.alt, let handled = replaceSelection(span, with: event.key) {
+            if !event.ctrl, !event.alt, let handled = replace(with: event.key, removing: { deleteSelection(span) }) {
+                return handled
+            }
+            clearSelection()
+        }
+        // A block, likewise: its columns go from every row, and what is typed
+        // goes in once, where its top-left corner was.
+        if let block {
+            if !event.ctrl, !event.alt, let handled = replace(with: event.key, removing: { deleteBlock(block) }) {
                 return handled
             }
             clearSelection()
@@ -331,21 +343,21 @@ final class TextEditorHandler: PersistedFocusable {
     /// If `key` is a text edit, replaces the selection with it and returns true;
     /// returns nil for any other key so the caller clears the selection and
     /// handles the key normally.
-    private func replaceSelection(_ span: SelectionSpan, with key: Key) -> Bool? {
+    private func replace(with key: Key, removing remove: () -> Void) -> Bool? {
         switch key {
         case .backspace, .delete:
-            deleteSelection(span)
+            remove()
         case .character(let character) where isInsertable(character):
-            deleteSelection(span)
+            remove()
             insert(String(character))
         case .space:
-            deleteSelection(span)
+            remove()
             insert(" ")
         case .enter:
-            deleteSelection(span)
+            remove()
             insertNewline()
         case .paste(let string):
-            deleteSelection(span)
+            remove()
             insert(string)
         default:
             return nil
@@ -788,15 +800,17 @@ extension TextEditorHandler {
     func selectAll() {
         let lines = readLines()
         guard !(lines.count == 1 && lines[0].isEmpty) else { return }
+        block = nil
         selectionAnchor = TextEditorPosition(line: 0, column: 0)
         cursorLine = lines.count - 1
         cursorColumn = lines[cursorLine].count
         syncDesiredColumn(lines)
     }
 
-    /// Drops the selection without moving the cursor.
+    /// Drops the selection, and a block, without moving the cursor.
     func clearSelection() {
         selectionAnchor = nil
+        block = nil
     }
 
     /// Anchors a selection at `start` — a drag's press (``pressAnchor``) — or
