@@ -127,6 +127,28 @@ struct FocusCommandTests {
         #expect(log.entries == ["onKeyPress", "exit"])
     }
 
+    /// An app's page-level Escape — Example's "⎋ back", an `.onKeyEvent` around
+    /// the page — took the key from a focused board whose exit command was to
+    /// fill it again: the view nearest the focus answers first.
+    @Test("An exit command takes Escape from the page's own key handler while the focus is inside it")
+    func beforeThePagesHandler() {
+        let log = CommandLog()
+        let harness = InputChainHarness()
+        harness.play([KeyEvent(key: .escape), KeyEvent(key: .tab), KeyEvent(key: .escape)]) {
+            VStack {
+                Text("board").focusable()
+                    .onExitCommand { log.entries.append("exit") }
+                Text("other").focusable()
+            }
+            .onKeyEvent { event in
+                guard event.key == .escape else { return false }
+                log.entries.append("page")
+                return true
+            }
+        }
+        #expect(log.entries == ["exit", "page"])
+    }
+
     @Test("A key the focused control uses is not a command")
     func afterTheFocusedControl() {
         let log = CommandLog()

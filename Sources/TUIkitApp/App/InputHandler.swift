@@ -287,6 +287,19 @@ extension InputHandler {
             focusDeclinedEscape = true
         }
 
+        // The exit command (`.onExitCommand`) of a view that holds or contains
+        // the focus answers Escape before the status bar's items and the
+        // page's own key handlers, as the view nearest the focus answers
+        // first in SwiftUI: an app's "⎋ back" bound to Escape took the key
+        // from a focused board whose exit command was to fill it again. Only
+        // the command stage, which nothing but an exit command answers
+        // Escape at — a control's own Escape still comes after the bar.
+        if event.key == .escape, !focusDeclinedEscape, !focusManager.hasTextInputFocus,
+            focusedViewCommands(event)
+        {
+            return true
+        }
+
         // Layer 0.5: mid-drag navigators. While something is in hand they
         // scroll whatever the pointer is over — reaching a destination that is
         // off screen without letting go — and they must beat every layer below,

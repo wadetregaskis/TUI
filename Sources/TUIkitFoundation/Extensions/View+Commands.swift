@@ -81,6 +81,10 @@ extension View {
     /// Escape alone or with Shift, as on macOS. (macOS also sends it for ⌘.,
     /// which a terminal cannot deliver.)
     ///
+    /// It is asked before the status bar's items and the key handlers of the
+    /// views around it — an app's "⎋ back", say — as the view nearest the
+    /// focus answers first.
+    ///
     /// - Parameter action: The action to perform; `nil` keeps the command for
     ///   this view and does nothing.
     /// - Returns: A view that handles the exit command while it holds the focus.
