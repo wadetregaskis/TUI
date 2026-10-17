@@ -194,6 +194,14 @@ extension Terminal {
     func askModesOfIdentifiedHost() {
         pinGraphemeClusteringIfNeeded()
         detectMIMEClipboard()
+        enableMIMEPasteEventsIfSupported()
+    }
+
+    /// The same modes put back on a resume, which ``inputModesOff`` and the
+    /// grapheme-clustering restore took off: nothing is asked again.
+    func resumeModesOfIdentifiedHost() {
+        pinGraphemeClusteringIfNeeded()
+        enableMIMEPasteEventsIfSupported()
     }
 
     /// Asks a host that may be asked (``TerminalClient/mayAskMIMEClipboard``)

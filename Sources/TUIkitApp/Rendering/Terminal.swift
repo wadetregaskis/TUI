@@ -269,6 +269,12 @@ final class Terminal: TerminalProtocol {
     /// but the first wait here for the next ``readEvent()``.
     var queuedInputs = InputQueue<TerminalInput>()
 
+    /// The OSC 5522 paste in progress, if any (`TerminalMIMEPaste.swift`),
+    /// and one its last reply completed, for the parser to hand out ahead of
+    /// whatever came after that reply.
+    var mimePaste = MIMEPasteSession()
+    var completedMIMEPaste: TerminalInput?
+
     /// Colour answers the terminal volunteered, siphoned out of the keystrokes
     /// by the parser and waiting for the run loop to take them.
     ///
@@ -823,12 +829,15 @@ extension Terminal {
     /// - palette-change reports (mode 2031), for the same reason: the mode
     ///   outlives this process, and the shell never asked to be told about
     ///   themes;
+    /// - OSC 5522 paste events, where they were set (a terminal ignores a
+    ///   reset of a mode it does not have, as Apple Terminal does 2031's);
     /// - bracketed paste.
     static let inputModesOff =
         "\u{1B}[>1;0m"
         + "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l"
         + "\u{1B}[?1004l"
         + "\u{1B}[?2031l"
+        + "\u{1B}[?5522l"
         + "\u{1B}[?2004l"
 
     /// Puts back the grapheme-clustering mode this process pinned on

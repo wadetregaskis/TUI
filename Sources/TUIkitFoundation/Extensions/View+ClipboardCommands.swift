@@ -66,9 +66,11 @@
         ///
         /// - Parameters:
         ///   - supportedContentTypes: The types the view accepts, most
-        ///     preferred first. The command triggers only if the clipboard's
-        ///     text conforms to one of them (`.text`, `.plainText`,
-        ///     `.utf8PlainText`, …).
+        ///     preferred first. The command triggers only if what is pasted
+        ///     conforms to one of them: its text (`.text`, `.plainText`,
+        ///     `.utf8PlainText`, …) or, where the terminal hands over more
+        ///     than text (OSC 5522 paste events), a picture (`.png`, `.image`)
+        ///     or another of the clipboard's types.
         ///   - payloadAction: The action, given the pasted items.
         /// - Returns: A view that handles the Paste command while it holds the
         ///   focus.
@@ -96,14 +98,35 @@
             clipboardCommand("v") { event, clipboard in
                 let text: String?
                 if case .paste(let pasted) = event.key { text = pasted } else { text = clipboard.read() }
-                guard let text, !text.isEmpty else { return false }
-                let item = NSItemProvider(object: text as NSString)
+                guard let item = Self.pastedItem(text: text, attachments: event.pasteAttachments) else { return false }
                 guard supportedContentTypes.contains(where: { item.hasItemConformingToTypeIdentifier($0.identifier) }),
                     let payload = validator([item])
                 else { return false }
                 payloadAction(payload)
                 return true
             }
+        }
+    }
+
+    // MARK: - What was pasted
+
+    extension View {
+        /// What a paste offers a paste command: its text, and each of the
+        /// clipboard's other types the terminal handed over, as the type a
+        /// `UTType` names its MIME type; `nil` where it offers nothing.
+        static func pastedItem(text: String?, attachments: [PasteAttachment]) -> NSItemProvider? {
+            let text = text.flatMap { $0.isEmpty ? nil : $0 }
+            guard text != nil || !attachments.isEmpty else { return nil }
+            let item = text.map { NSItemProvider(object: $0 as NSString) } ?? NSItemProvider()
+            for attachment in attachments {
+                guard let type = UTType(mimeType: attachment.type) else { continue }
+                let data = Data(attachment.bytes)
+                item.registerDataRepresentation(forTypeIdentifier: type.identifier, visibility: .all) { completion in
+                    completion(data, nil)
+                    return nil
+                }
+            }
+            return item
         }
     }
 

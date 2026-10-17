@@ -52,10 +52,27 @@ public struct KeyEvent: Equatable, Sendable {
     /// digit.
     public let numericPad: Bool
 
+    /// What a ``Key/paste(_:)`` carries beside its text: the clipboard's
+    /// other types, a picture among them, where the terminal hands them over
+    /// (OSC 5522 paste events). Empty for every other key, and for a paste a
+    /// terminal could only bracket.
+    package let pasteAttachments: [PasteAttachment]
+
     /// Creates a key event.
     public init(
         key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false,
         phase: Phase = .press, capsLock: Bool = false, numericPad: Bool = false
+    ) {
+        self.init(
+            key: key, ctrl: ctrl, alt: alt, shift: shift, phase: phase, capsLock: capsLock,
+            numericPad: numericPad, pasteAttachments: [])
+    }
+
+    /// Creates a key event, a paste with more than text among them.
+    package init(
+        key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false,
+        phase: Phase = .press, capsLock: Bool = false, numericPad: Bool = false,
+        pasteAttachments: [PasteAttachment]
     ) {
         self.key = key
         self.ctrl = ctrl
@@ -64,6 +81,7 @@ public struct KeyEvent: Equatable, Sendable {
         self.phase = phase
         self.capsLock = capsLock
         self.numericPad = numericPad
+        self.pasteAttachments = pasteAttachments
     }
 
     /// Creates a key event from a character.
@@ -75,6 +93,7 @@ public struct KeyEvent: Equatable, Sendable {
         self.phase = .press
         self.capsLock = false
         self.numericPad = false
+        self.pasteAttachments = []
     }
 }
 
@@ -711,4 +730,20 @@ extension KeyEvent {
         }
     }
     // swiftlint:enable cyclomatic_complexity
+}
+
+// MARK: - What a paste carries beside its text
+
+/// One of the clipboard's types handed over with a paste: its MIME type and
+/// its bytes — `image/png` and a picture's file, say.
+package struct PasteAttachment: Equatable, Sendable {
+    /// The MIME type, as the terminal named it.
+    package let type: String
+    /// The bytes.
+    package let bytes: [UInt8]
+
+    package init(type: String, bytes: [UInt8]) {
+        self.type = type
+        self.bytes = bytes
+    }
 }

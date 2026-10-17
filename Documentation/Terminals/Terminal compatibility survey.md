@@ -5923,7 +5923,22 @@ of any DECRQM, and iTerm2's answer is known. Where the answer is yes, a copy
 sent to the terminal goes by OSC 5522 with every form the app has of it — a
 link as `text/uri-list`, Markdown as `text/markdown` — and its text as
 `text/plain`, and a screen selection as `text/html` (its cells' colours,
-weight and decoration); `TUIKIT_OSC5522=1` or `0` overrides. The acknowledgement is
+weight and decoration); `TUIKIT_OSC5522=1` or `0` overrides.
+
+**Paste events (mode 5522, kitty 0.44.1 and later).** Where a terminal says
+it takes OSC 5522, TUIkit also sets `CSI ? 5522 h` (and resets it with the
+other input modes on exit and suspend). A paste then arrives not bracketed
+but as an unsolicited read reply listing the clipboard's types under a
+one-time password — `type=read:status=OK:pw=…`, one `status=DATA` packet
+with `mime=.` whose payload is the types, space-separated, then
+`status=DONE` (kitty's `send_paste_event`, read from its source; the
+specification shows no packet) — and TUIkit reads the first text type and
+the first `image/*` with that password and `name=Paste event`, so no
+permission prompt appears. The reply's `DATA` packets (each type's in order)
+become one paste key event: its text, and the picture's bytes beside it,
+which a view's `onPasteCommand(of: [.png])` is offered. A refused or failed
+read loses the paste, as one the terminal never delivered would be.
+Unmeasured on any host here, for the reasons the table gives. The acknowledgement is
 swallowed with every other reply. kitty and Ghostty-tip are owed a run.
 
 ## Inherited state: the defaults raw mode asserts — since 2026-10-05

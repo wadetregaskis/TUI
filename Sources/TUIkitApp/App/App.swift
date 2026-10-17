@@ -833,8 +833,8 @@ extension AppRunner {
         // cursor-key mode but not that: the advance model was frozen into the
         // diff writer at startup on the strength of the pin, so a resume
         // without it compensated every later frame against a terminal whose
-        // mode had changed under it.
-        terminal.pinGraphemeClusteringIfNeeded()
+        // mode had changed under it. Paste events (mode 5522) likewise.
+        terminal.resumeModesOfIdentifiedHost()
         // The kitty keyboard protocol's flags are pushed again by
         // `enableRawMode`, as `disableRawMode` popped them.
         renderer.invalidateDiffCache()

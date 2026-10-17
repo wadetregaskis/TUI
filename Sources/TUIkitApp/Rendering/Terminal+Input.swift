@@ -158,7 +158,11 @@ extension Terminal {
                 return input.count >= Self.maxStringSequenceBytes ? abandonSequence(.string) : nil
             }
             noteVolunteeredColorReply(headOfInputLength: length)
+            noteClipboardReply(headOfInputLength: length)
             consume(length)
+            // A paste that reply completed goes ahead of whatever follows it
+            // (``extractDeliverableEvent()``).
+            if completedMIMEPaste != nil { return [] }
             return tryExtractRegularEvent()
         }
 
@@ -695,6 +699,10 @@ extension Terminal {
     private func extractDeliverableEvent() -> TerminalInput? {
         while let bytes = tryExtractRegularEvent() {
             staleFrames = 0
+            if let paste = completedMIMEPaste {
+                completedMIMEPaste = nil
+                return paste
+            }
             if let event = finalize(bytes: bytes) { return event }
             // STOP, rather than go round again, when that was the paste-start
             // marker and its content has not all arrived: the bytes behind it

@@ -6,14 +6,20 @@
 
 import Foundation
 import TUIkit
+import UniformTypeIdentifiers
 
 /// Image demo page for loading an image from the local filesystem.
 ///
 /// Displays a bundled demo image and provides status bar items to
 /// cycle through character set, color mode, and dithering settings.
+///
+/// A picture pasted here (⌘V, or the terminal's paste) is shown in its place,
+/// where the terminal hands pictures over: kitty's OSC 5522 paste events.
 struct ImageFilePage: View {
     @State private var settings = ImageDemoSettings()
     @State private var zoom: Double = 1.0
+    /// Where a pasted picture was written, to be shown as a file is.
+    @State private var pastedPath: String?
 
     var body: some View {
         // The image lives in a two-axis ScrollView fitted to the viewport: at zoom 1
@@ -25,12 +31,17 @@ struct ImageFilePage: View {
             imageContent
                 .imageDemoSettings(settings)
         }
+        .onPasteCommand(of: Self.pastedTypes) { providers in
+            Self.showPasted(providers, at: $pastedPath)
+        }
         .statusBarItems(statusBarItems)
         .navigationTitle("menu.item.imageFile")
     }
 
     @ViewBuilder private var imageContent: some View {
-        if let path = Bundle.module.path(forResource: "demo-image", ofType: "jpg", inDirectory: "Resources") {
+        if let path = pastedPath
+            ?? Bundle.module.path(forResource: "demo-image", ofType: "jpg", inDirectory: "Resources")
+        {
             Image(.file(path))
                 .imagePlaceholder("page.imageFile.loading")
                 .imagePlaceholderSpinner(true)
@@ -38,6 +49,30 @@ struct ImageFilePage: View {
         } else {
             Text("\(L("page.imageFile.resourceNotFound")): demo-image.jpg")
                 .foregroundStyle(.error)
+        }
+    }
+
+    /// The pictures a paste may bring, most preferred first.
+    static let pastedTypes: [UTType] = [.png, .jpeg, .gif, .tiff, .image]
+
+    /// Writes the first picture `providers` hold to a temporary file and
+    /// shows it: the image view loads files and URLs, not bytes in memory.
+    static func showPasted(_ providers: [NSItemProvider], at path: Binding<String?>) {
+        // Crosses to the provider's queue only to come back: it is read and
+        // written on the main actor alone.
+        nonisolated(unsafe) let path = path
+        for provider in providers {
+            guard let type = pastedTypes.first(where: { provider.hasItemConformingToTypeIdentifier($0.identifier) })
+            else { continue }
+            _ = provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
+                guard let data else { return }
+                let file = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("tuikit-pasted-\(UUID().uuidString)")
+                    .appendingPathExtension(type.preferredFilenameExtension ?? "png")
+                guard (try? data.write(to: file)) != nil else { return }
+                Task { @MainActor in path.wrappedValue = file.path }
+            }
+            return
         }
     }
 
