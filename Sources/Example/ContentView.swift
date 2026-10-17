@@ -151,6 +151,11 @@ struct ContentView: View {
         // Show current page based on state
         // Note: Background color is set by AppRunner using theme.background
         pageContent(for: currentPage, pageSetter: pageSetter)
+            // Every page keeps what was entered on it while you visit another —
+            // text typed, toggles set, a list's selection — for the session. The
+            // pages that demonstrate persistence persist through their own
+            // storage, across sessions; nothing else does.
+            .keepsStateWhileHidden()
             // One column of breathing room down each side, on every page.
             // Applied here rather than in `scrollableDemoPage()` because only 22
             // of the 36 pages use that wrapper — a split view, a tab view and

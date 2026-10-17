@@ -388,10 +388,14 @@ extension ConditionalView: Renderable {
         case .falseContent: isTrueBranch = false
         }
 
+        // Inside `keepsStateWhileHidden()` the branch left keeps its state: the
+        // flip is still recorded, and the state is left for the retained
+        // subtree to keep.
         let shouldInvalidate =
             !context.isMeasuring
             && stateStorage.recordConditionalBranch(
                 context.identity, isTrueBranch: isTrueBranch)
+            && !context.environment.keepsHiddenState
 
         switch self {
         case .trueContent(let content):

@@ -309,6 +309,22 @@ private struct FocusSuppressedKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct KeepsHiddenStateKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the state of a branch a conditional turns away from is kept
+    /// rather than dropped — set by `View.keepsStateWhileHidden(_:)` for its
+    /// content, and read by ``ConditionalView``, which otherwise drops the
+    /// branch it left the moment it flips, as SwiftUI gives a view inserted
+    /// again fresh state.
+    package var keepsHiddenState: Bool {
+        get { self[KeepsHiddenStateKey.self] }
+        set { self[KeepsHiddenStateKey.self] = newValue }
+    }
+}
+
 extension EnvironmentValues {
     /// Whether a control rendered here should stay OUT of the focus ring while
     /// everything else about it goes on working.

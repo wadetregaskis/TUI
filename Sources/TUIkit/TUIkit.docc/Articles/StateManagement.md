@@ -264,6 +264,7 @@ declares a retained subtree for the pass, and nothing under a retained root is d
 - a lazy stack, `List` or `Table`, for the rows outside its window
 - a collapsed `DisclosureGroup`, for its content
 - a memoized subtree served from the render cache, for everything below it
+- ``View/keepsStateWhileHidden(_:)``, for everything below it, for as long as it renders
 
 The declaration is made again on each pass that renders the declaring view, so once that
 view leaves the tree its subtree is dropped too. A row deleted from a windowed container's
@@ -273,7 +274,9 @@ subtree, which for a `List` or `Table` is as long as it renders.
 `ConditionalView` drops the inactive branch's state itself, but only on a render pass where
 it renders a different branch from the one it rendered last, and never while measuring.
 Outside a retained root the end-of-pass prune would drop that state anyway; under one, this
-is what drops it. A conditional that is not rendered, in a row outside the window or in a
+is what drops it — except under ``View/keepsStateWhileHidden(_:)``, whose point is to keep it:
+a page a `switch` leaves there has its state back when the `switch` returns to it, where
+SwiftUI, and TUIkit everywhere else, gives it fresh state. A conditional that is not rendered, in a row outside the window or in a
 memoized subtree served from the cache, notices the change on the next pass that renders
 it, not on the frame the condition changed.
 
