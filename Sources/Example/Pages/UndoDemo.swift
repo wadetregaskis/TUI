@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import TUIkit
 
 /// The app's undo: changes registered with `\.undoManager` are taken back by
