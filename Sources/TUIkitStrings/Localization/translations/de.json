@@ -97,6 +97,10 @@
   "menu.exit": "Beenden",
   "menu.undo": "Widerrufen",
   "menu.redo": "Wiederholen",
+  "menu.openLink": "Link öffnen",
+  "menu.copyLink": "Link kopieren",
+  "menu.copyLinkLabel": "Beschriftung kopieren",
+  "menu.copyLinkAsMarkdown": "Als Markdown kopieren",
 
   "statusbar.quit": "beenden",
   "statusbar.appearance": "Aussehen",

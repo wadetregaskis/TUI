@@ -21,6 +21,13 @@ import Foundation
 /// — regardless of the label form. Turn the underline off for a subtree with
 /// ``View/linkUnderline(_:)``.
 ///
+/// A right-click on the link — or Shift+F10 while it holds the focus — opens
+/// its context menu: Open Link, Copy Link, Copy Label where the words it
+/// shows are not its address, and Copy as Markdown. TUI-specific: SwiftUI's
+/// `Link` has none, but a Mac's text view offers Open Link and Copy Link on a
+/// link in it, and a terminal's user has no browser's address bar to copy
+/// from.
+///
 /// That is the default ``LinkDisplay/popover`` mode. In the two modes that
 /// write the URL onto the row — ``LinkDisplay/urlOnly`` and
 /// ``LinkDisplay/urlInParentheses`` — the link is **not a control**: it takes
@@ -371,7 +378,12 @@ private struct _Link<Label: View>: View {
     /// which is what activation DOES now — see the comment on `body`.
     @State private var showingDestination = false
 
+    /// The words the label drew last, for the context menu's copies.
+    @State private var labelText = LinkLabelText()
+
     @Environment(\.openURL) private var openURL
+    @Environment(\.clipboardAccess) private var clipboard
+    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.linkUnderline) private var underline
     @Environment(\.terminalHyperlinks) private var terminalHyperlinks
     @Environment(\.linkFocusIndicator) private var focusIndicator
@@ -426,28 +438,37 @@ private struct _Link<Label: View>: View {
                     .modifier(
                         TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks)))
         }
+        let activate = {
+            guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
+            open(destination)
+            showing.wrappedValue = true
+        }
+        let control = PopoverPresentationModifier(
+            content: linkControl(activate: activate),
+            isPresented: $showingDestination,
+            // `verbatim`, because a URL is content and not a lookup key.
+            popover: Text(verbatim: destination.absoluteString),
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .bottom)
+        // A disabled link offers nothing: it carries no destination for the
+        // terminal either (`TerminalHyperlinkModifier`).
+        guard isEnabled else { return AnyView(control) }
+        // Its menu opens on the link's own focus stop, so Tab crosses a link
+        // once, menu or not.
         return AnyView(
-            PopoverPresentationModifier(
-                content: linkControl(open: open, gate: gate, showing: showing),
-                isPresented: $showingDestination,
-                // `verbatim`, because a URL is content and not a lookup key.
-                popover: Text(verbatim: destination.absoluteString),
-                attachmentAnchor: .rect(.bounds),
-                arrowEdge: .bottom))
+            ContextMenuModifier(
+                content: control,
+                menuItems: LinkContextMenu(
+                    destination: destination, label: labelText, clipboard: clipboard, open: activate),
+                keyboardRoute: .contentStops))
     }
 
     /// The link as a control, which the destination's popover is anchored to.
     /// That popover is built here rather than through `View.popover`, which
     /// adapts to the size classes (`TUIkitPresentation`): the destination is a
     /// note beside the link at any size, not a presentation of its own.
-    private func linkControl(open: OpenURLAction, gate: LinkActivationGate, showing: Binding<Bool>) -> some View {
-        Button(
-            action: {
-                guard gate.allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
-                open(destination)
-                showing.wrappedValue = true
-            },
-            label: { resolvedLabel })
+    private func linkControl(activate: @escaping () -> Void) -> some View {
+        Button(action: activate, label: { resolvedLabel.modifier(RecordsLinkLabelText(record: labelText)) })
         .buttonStyle(_LinkButtonStyle(indicator: focusIndicator))
         .buttonTextStyle { $0.foreground = .palette.accent }
         // Outermost, so the link covers everything the button style drew —
@@ -495,6 +516,8 @@ private struct _Link<Label: View>: View {
 extension _Link: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _openURL.resolveEnvironment(environment)
+        _clipboard.resolveEnvironment(environment)
+        _isEnabled.resolveEnvironment(environment)
         _underline.resolveEnvironment(environment)
         _terminalHyperlinks.resolveEnvironment(environment)
         _focusIndicator.resolveEnvironment(environment)

@@ -97,6 +97,10 @@
   "menu.exit": "退出",
   "menu.undo": "撤销",
   "menu.redo": "重做",
+  "menu.openLink": "打开链接",
+  "menu.copyLink": "复制链接",
+  "menu.copyLinkLabel": "复制标签",
+  "menu.copyLinkAsMarkdown": "复制为 Markdown",
 
   "statusbar.quit": "退出",
   "statusbar.appearance": "外观",

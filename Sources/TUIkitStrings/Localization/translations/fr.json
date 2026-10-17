@@ -97,6 +97,10 @@
   "menu.exit": "Quitter",
   "menu.undo": "Annuler",
   "menu.redo": "Rétablir",
+  "menu.openLink": "Ouvrir le lien",
+  "menu.copyLink": "Copier le lien",
+  "menu.copyLinkLabel": "Copier le libellé",
+  "menu.copyLinkAsMarkdown": "Copier en Markdown",
 
   "statusbar.quit": "quitter",
   "statusbar.appearance": "apparence",

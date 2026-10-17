@@ -204,6 +204,10 @@ final class LocalizationKeyConsistencyTests {
             LocalizationKey.Menu.exit,
             LocalizationKey.Menu.undo,
             LocalizationKey.Menu.redo,
+            LocalizationKey.Menu.openLink,
+            LocalizationKey.Menu.copyLink,
+            LocalizationKey.Menu.copyLinkLabel,
+            LocalizationKey.Menu.copyLinkAsMarkdown,
         ]
 
         for key in keys {
@@ -349,6 +353,10 @@ final class LocalizationKeyConsistencyTests {
         enumKeys.insert(LocalizationKey.Menu.exit.rawValue)
         enumKeys.insert(LocalizationKey.Menu.undo.rawValue)
         enumKeys.insert(LocalizationKey.Menu.redo.rawValue)
+        enumKeys.insert(LocalizationKey.Menu.openLink.rawValue)
+        enumKeys.insert(LocalizationKey.Menu.copyLink.rawValue)
+        enumKeys.insert(LocalizationKey.Menu.copyLinkLabel.rawValue)
+        enumKeys.insert(LocalizationKey.Menu.copyLinkAsMarkdown.rawValue)
 
         // Dialog keys
         enumKeys.insert(LocalizationKey.Dialog.confirm.rawValue)
@@ -404,7 +412,7 @@ final class LocalizationKeyConsistencyTests {
         // button + label + error + placeholder + menu + dialog + validation
         //   + statusbar + appearance + time span + key names
         let expectedKeyCount =
-            26 + LocalizationKey.Label.allCases.count + 11 + 6 + 10 + 7 + 4
+            26 + LocalizationKey.Label.allCases.count + 11 + 6 + 14 + 7 + 4
             + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
             + LocalizationKey.KeyName.allCases.count
         #expect(

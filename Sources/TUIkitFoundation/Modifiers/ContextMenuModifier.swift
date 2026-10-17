@@ -25,12 +25,28 @@ import TUIkitView
 package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     let content: Content
     let menuItems: MenuItems
+    let keyboardRoute: KeyboardRoute
+
+    /// How the keyboard reaches the menu.
+    package enum KeyboardRoute {
+        /// The content becomes a focus stop of its own, on which Shift+F10
+        /// opens the menu: `.contextMenu(menuItems:)`'s, which cannot know
+        /// whether its content is a control.
+        case ownStop
+        /// Shift+F10 opens the menu while a focus stop the content registered
+        /// holds the focus, and the content gets no stop of its own: for a
+        /// control that is one already, as a ``Link`` is, which would
+        /// otherwise be two stops for Tab to cross. It reports nothing to a
+        /// list row it is in, whose Shift+F10 opens the row's own menu.
+        case contentStops
+    }
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitMenus makes these, for `.contextMenu(menuItems:)`.
-    package init(content: Content, menuItems: MenuItems) {
+    package init(content: Content, menuItems: MenuItems, keyboardRoute: KeyboardRoute = .ownStop) {
         self.content = content
         self.menuItems = menuItems
+        self.keyboardRoute = keyboardRoute
     }
 
     package var body: Never {
@@ -99,7 +115,7 @@ extension ContextMenuModifier: Renderable {
                 // In a list row the list is the stop, and its Shift+F10 opens
                 // the cursor row's menu: the row reports it rather than being a
                 // stop of its own ahead of, or among, the list's rows.
-                if !reportsToListRow(stateBox: stateBox, context: context) {
+                if keyboardRoute == .ownStop, !reportsToListRow(stateBox: stateBox, context: context) {
                     focusID = attachKeyboardTrigger(stateBox: stateBox, context: context)
                     isFocused = focusID.map { FocusRegistration.isFocused(context: context, focusID: $0) } ?? false
                 }
@@ -109,6 +125,9 @@ extension ContextMenuModifier: Renderable {
             // served the unfocused frame after Tab arrived.
             FocusRegistration.publishIsFocused(isFocused, context: context, into: &contentContext)
             var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
+            if !context.isMeasuring, keyboardRoute == .contentStops {
+                attachContentStopsTrigger(stateBox: stateBox, regions: buffer.hitTestRegions, context: context)
+            }
             if !context.isMeasuring {
                 ContextMenuPresentation.attachTrigger(
                     to: &buffer, stateBox: stateBox, focusID: focusID, context: context)
@@ -189,11 +208,37 @@ extension ContextMenuModifier: Renderable {
             handler: ActionHandler(focusID: focusID, action: {}, triggerKeys: []),
             focusID: focusID)
 
-        // Replayable, as `onKeyEvent`'s is: a memo serving the content makes the
-        // registration again from its journal, in the section it was made in.
+        registerOpenKey(stateBox: stateBox, focusIDs: [focusID], onOpen: onOpen, context: context)
+        return focusID
+    }
+
+    /// Opens the menu on **Shift+F10** while one of the focus stops the
+    /// content just registered holds the focus — ``KeyboardRoute/contentStops``.
+    /// They are the ids its hit-test regions carry, which is how an enclosing
+    /// `ScrollView` finds them too. Content with none has no keyboard route to
+    /// the menu, as it has none to anything else.
+    private func attachContentStopsTrigger(
+        stateBox: StateBox<ContextMenuState>, regions: [HitTestRegion], context: RenderContext
+    ) {
+        guard context.environment.focusManager != nil, context.environment.isEnabled else { return }
+        var focusIDs: [String] = []
+        for case let focusID? in regions.map(\.focusID) where !focusIDs.contains(focusID) {
+            focusIDs.append(focusID)
+        }
+        guard !focusIDs.isEmpty else { return }
+        registerOpenKey(
+            stateBox: stateBox, focusIDs: focusIDs, onOpen: context.environment.menuOpenAction, context: context)
+    }
+
+    /// Registers the Shift+F10 handler for `focusIDs`. Replayable, as
+    /// `onKeyEvent`'s is: a memo serving the content makes the registration
+    /// again from its journal, in the section it was made in.
+    private func registerOpenKey(
+        stateBox: StateBox<ContextMenuState>, focusIDs: [String], onOpen: MenuOpenAction?, context: RenderContext
+    ) {
         let sectionID = context.environment.activeFocusSectionID
         ContextMenuKeyRegistrar.register(
-            stateBox: stateBox, focusID: focusID, onOpen: onOpen, sectionID: sectionID, context: context)
+            stateBox: stateBox, focusIDs: focusIDs, onOpen: onOpen, sectionID: sectionID, context: context)
         context.environment.volatileReadTracker?.recordReplayableEffect()
         if let journal = context.recordingEffectJournal {
             journal.append(
@@ -201,11 +246,10 @@ extension ContextMenuModifier: Renderable {
                     kind: ContextMenuKeyRegistrar.kind, channelToken: context.environment.keyChannelToken
                 ) { replay in
                     ContextMenuKeyRegistrar.register(
-                        stateBox: stateBox, focusID: focusID, onOpen: onOpen, sectionID: sectionID,
+                        stateBox: stateBox, focusIDs: focusIDs, onOpen: onOpen, sectionID: sectionID,
                         context: replay)
                 })
         }
-        return focusID
     }
 }
 
@@ -234,12 +278,13 @@ private enum ContextMenuKeyRegistrar {
     /// The journal kind of the registration.
     static let kind = EffectJournal.Kind("contextMenu.openKey")
 
-    /// Adds the handler that opens the menu on Shift+F10 while `focusID` holds
-    /// the focus, to `context`'s key dispatcher in `sectionID`. It looks the
-    /// dispatcher and the focus manager up in `context`, so a replay registers
-    /// into, and asks, the services of the frame that serves it.
+    /// Adds the handler that opens the menu on Shift+F10 while one of
+    /// `focusIDs` holds the focus, to `context`'s key dispatcher in
+    /// `sectionID`. It looks the dispatcher and the focus manager up in
+    /// `context`, so a replay registers into, and asks, the services of the
+    /// frame that serves it.
     static func register(
-        stateBox: StateBox<ContextMenuState>, focusID: String, onOpen: MenuOpenAction?, sectionID: String?,
+        stateBox: StateBox<ContextMenuState>, focusIDs: [String], onOpen: MenuOpenAction?, sectionID: String?,
         context: RenderContext
     ) {
         // The focus manager, weakly, and not the context: the key dispatcher
@@ -248,7 +293,8 @@ private enum ContextMenuKeyRegistrar {
         // after its loop (scroll lane review 3).
         let focusManager = context.environment.focusManager
         context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { [weak focusManager] event in
-            guard event.opensContextMenu, focusManager?.isFocused(id: focusID) == true
+            guard event.opensContextMenu, let focusManager,
+                focusIDs.contains(where: { focusManager.isFocused(id: $0) })
             else { return false }
             // Opened from the keyboard, which has no other way to point at a
             // row: on the first item, written back through the box (see

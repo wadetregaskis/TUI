@@ -97,6 +97,10 @@
   "menu.exit": "Esci",
   "menu.undo": "Annulla",
   "menu.redo": "Ripeti",
+  "menu.openLink": "Apri link",
+  "menu.copyLink": "Copia link",
+  "menu.copyLinkLabel": "Copia etichetta",
+  "menu.copyLinkAsMarkdown": "Copia come Markdown",
 
   "statusbar.quit": "esci",
   "statusbar.appearance": "aspetto",
