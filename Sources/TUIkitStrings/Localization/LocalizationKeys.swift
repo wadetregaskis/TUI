@@ -193,6 +193,13 @@ public enum LocalizationKey {
         case copyLinkLabel = "menu.copyLinkLabel"
         /// A link's context menu: copy it as a Markdown link.
         case copyLinkAsMarkdown = "menu.copyLinkAsMarkdown"
+        /// A text field's or editor's context menu: cut the selection.
+        case cut = "menu.cut"
+        /// A text field's or editor's context menu: select all the text.
+        case selectAll = "menu.selectAll"
+        /// A text field's or editor's context menu: insert the text the last
+        /// kill (Ctrl-K) removed, as Ctrl-Y does.
+        case yank = "menu.yank"
     }
 
     /// Dialog titles and messages

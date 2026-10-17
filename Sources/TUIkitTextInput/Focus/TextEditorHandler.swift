@@ -121,7 +121,7 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// The last text removed by a kill command (Ctrl-K), replayed by yank
     /// (Ctrl-Y) — a single-slot kill ring, matching the macOS text system.
-    private var killRing = ""
+    private(set) var killRing = ""
 
     /// The clipboard Ctrl-C and Ctrl-X write: the one in the environment the
     /// editor was created in, and kept, as a field's is. Injectable, so a test
@@ -231,7 +231,7 @@ final class TextEditorHandler: PersistedFocusable {
     /// or split. Without this, an anchor left on a removed line becomes a
     /// phantom selection spanning past the end of the document, and the next
     /// edit key replaces text the user never selected.
-    private func normalizeStaleState() {
+    func normalizeStaleState() {
         let lines = readLines()
         cursorLine = min(max(0, cursorLine), lines.count - 1)
         cursorColumn = min(max(0, cursorColumn), lines[cursorLine].count)
@@ -275,7 +275,7 @@ final class TextEditorHandler: PersistedFocusable {
     /// step to take back.
     ///
     /// - Returns: What `edit` returns.
-    private func recordingUndoStep(_ edit: () -> Bool) -> Bool {
+    func recordingUndoStep(_ edit: () -> Bool) -> Bool {
         let textBefore = text.wrappedValue
         let caretBefore = cursor
         let handled = edit()
@@ -723,7 +723,7 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     /// Ctrl-Y: inserts the most recently killed text at the cursor.
-    private func yank() {
+    func yank() {
         guard !killRing.isEmpty else { return }
         insert(killRing)
     }

@@ -972,7 +972,7 @@ extension TextFieldHandler {
     /// shifted. Without this, a collapsed anchor left at the old end of the
     /// text becomes a phantom selection after a backspace (anchor 11, cursor
     /// 10) and the next delete indexes past the end of the string - a crash.
-    private func normalizeStaleState() {
+    func normalizeStaleState() {
         let maxPos = text.wrappedValue.count
         cursorPosition = max(0, min(cursorPosition, maxPos))
         if let anchor = selectionAnchor,

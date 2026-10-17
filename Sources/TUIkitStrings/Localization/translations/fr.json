@@ -101,6 +101,9 @@
   "menu.copyLink": "Copier le lien",
   "menu.copyLinkLabel": "Copier le libellé",
   "menu.copyLinkAsMarkdown": "Copier en Markdown",
+  "menu.cut": "Couper",
+  "menu.selectAll": "Tout sélectionner",
+  "menu.yank": "Réinsérer",
 
   "statusbar.quit": "quitter",
   "statusbar.appearance": "apparence",

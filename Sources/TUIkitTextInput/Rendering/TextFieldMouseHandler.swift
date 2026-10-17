@@ -134,7 +134,8 @@ enum TextFieldMouseHandler {
         let mouseHandlerID = mouseDispatcher.register(in: context, hoverBox: captureHoverBox) { [weak mouseDispatcher] event in
             defer { handler.publishSelection() }
             switch event.phase {
-            case .pressed where event.button == .left:
+            // Ctrl-click is a secondary click, the field's context menu's.
+            case .pressed where event.button == .left && !event.ctrl:
                 focusManager?.focus(id: captureFocusID)
                 // Every press starts afresh: a drag after one that sets no
                 // anchor of its own — on the `▾`, a Shift-click — anchors at

@@ -101,6 +101,9 @@
   "menu.copyLink": "リンクをコピー",
   "menu.copyLinkLabel": "ラベルをコピー",
   "menu.copyLinkAsMarkdown": "Markdownとしてコピー",
+  "menu.cut": "カット",
+  "menu.selectAll": "すべてを選択",
+  "menu.yank": "ヤンク",
 
   "statusbar.quit": "終了",
   "statusbar.appearance": "外観",

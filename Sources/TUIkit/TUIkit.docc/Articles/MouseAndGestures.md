@@ -366,6 +366,13 @@ selects all of its text on a double-click, as macOS's does, since it shows no
 word breaks. While text is selected no caret is drawn, as on a Mac: typing
 replaces the selection, so the highlight is where it goes.
 
+A right-click (or Ctrl-click) on a `TextField`, `SecureField` or `TextEditor`
+opens its editing menu — Cut, Copy, Paste, Select All, and Yank while a ⌃K has
+left text for it — and Shift+F10 opens it on the focused one. Cut and Copy
+act on the selection, and are offered disabled without one, and always in a
+`SecureField`, which never copies its contents. A disabled control offers no
+menu.
+
 ## Raw Events
 
 For full control, handle the raw event and return whether you consumed it.

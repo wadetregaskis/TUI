@@ -131,6 +131,9 @@ extension LocalizationService {
       "menu.copyLink": "Copy Link",
       "menu.copyLinkLabel": "Copy Label",
       "menu.copyLinkAsMarkdown": "Copy as Markdown",
+      "menu.cut": "Cut",
+      "menu.selectAll": "Select All",
+      "menu.yank": "Yank",
 
       "statusbar.quit": "quit",
       "statusbar.appearance": "appearance",

@@ -37,7 +37,8 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
         /// holds the focus, and the content gets no stop of its own: for a
         /// control that is one already, as a ``Link`` is, which would
         /// otherwise be two stops for Tab to cross. It reports nothing to a
-        /// list row it is in, whose Shift+F10 opens the row's own menu.
+        /// list row it is in, whose Shift+F10 opens the row's own menu. A
+        /// disabled control offers no menu, to the pointer either.
         case contentStops
     }
 
@@ -128,7 +129,7 @@ extension ContextMenuModifier: Renderable {
             if !context.isMeasuring, keyboardRoute == .contentStops {
                 attachContentStopsTrigger(stateBox: stateBox, regions: buffer.hitTestRegions, context: context)
             }
-            if !context.isMeasuring {
+            if !context.isMeasuring, keyboardRoute == .ownStop || context.environment.isEnabled {
                 ContextMenuPresentation.attachTrigger(
                     to: &buffer, stateBox: stateBox, focusID: focusID, context: context)
             }

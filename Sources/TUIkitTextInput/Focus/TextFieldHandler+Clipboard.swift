@@ -118,3 +118,26 @@ extension TextFieldHandler {
         clipboard.read()
     }
 }
+
+// MARK: - The context menu
+
+extension TextFieldHandler: TextEditingMenuHandler {
+    var menuCanCopy: Bool { !isSecure && hasSelection }
+
+    var menuCanYank: Bool { !killRing.isEmpty }
+
+    /// Carries out a context-menu command as its key does: each edit records
+    /// its own step to take back, and the selection is published after.
+    func performMenuCommand(_ command: TextEditingMenuCommand) {
+        defer { publishSelection() }
+        defer { forgetMovedRowStartHead() }
+        normalizeStaleState()
+        switch command {
+        case .cut: cutSelection()
+        case .copy: copySelection()
+        case .paste: paste()
+        case .yank: _ = perform(TextEditingCommand.yank)
+        case .selectAll: selectAll()
+        }
+    }
+}

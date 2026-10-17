@@ -101,6 +101,9 @@
   "menu.copyLink": "Copiar enlace",
   "menu.copyLinkLabel": "Copiar etiqueta",
   "menu.copyLinkAsMarkdown": "Copiar como Markdown",
+  "menu.cut": "Cortar",
+  "menu.selectAll": "Seleccionar todo",
+  "menu.yank": "Reinsertar",
 
   "statusbar.quit": "salir",
   "statusbar.appearance": "apariencia",

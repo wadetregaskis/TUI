@@ -107,9 +107,10 @@ struct MouseHitTestPropagationTests {
         let buffer = renderToBuffer(view, context: context)
         dispatcher.setRegions(buffer.hitTestRegions)
 
-        // We expect exactly two hit-test regions, one per TextField
-        // (Text views don't emit regions).
-        let regions = buffer.hitTestRegions
+        // We expect exactly two focusable hit-test regions, one per TextField
+        // (Text views don't emit regions, and a field's context-menu trigger
+        // carries no focus id).
+        let regions = buffer.hitTestRegions.filter { $0.focusID != nil }
         #expect(regions.count == 2, "expected 2 TextField regions, got \(regions.count)")
         guard regions.count >= 2 else { return }
         // Click the *second* region (Search field — bigger y).

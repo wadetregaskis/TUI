@@ -313,7 +313,8 @@ struct StateBindingIdentityTests {
         let buffer = renderToBuffer(page, context: context)
         dispatcher.setRegions(buffer.hitTestRegions)
 
-        let regions = buffer.hitTestRegions
+        // A field's context-menu trigger carries no focus id.
+        let regions = buffer.hitTestRegions.filter { $0.focusID != nil }
         // Two enabled TextFields (Input + Search) — the Disabled one
         // doesn't install a hit-test region.
         guard regions.count >= 2 else {

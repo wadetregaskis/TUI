@@ -217,6 +217,10 @@ public struct TextField<Label: View>: View {
     /// for none — the `selection:` initialisers.
     var selection: _TextSelectionChannel?
 
+    /// Where the field's context menu finds its handler — the same object
+    /// frame after frame, so the menu and a memo of it see one value.
+    @State private var menuTarget = TextEditingMenuTarget()
+
     @ViewBuilder
     public var body: some View {
         if let formatting {
@@ -240,8 +244,11 @@ public struct TextField<Label: View>: View {
                     onSubmitAction: onSubmitAction,
                     onEditingChangedAction: onEditingChangedAction,
                     axis: axis,
-                    selection: selection
-                ))
+                    selection: selection,
+                    menuTarget: menuTarget
+                )
+            )
+            .textEditingMenu(menuTarget)
         }
     }
 }
@@ -639,6 +646,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// render, which adopts what the app wrote there.
     let selection: _TextSelectionChannel?
 
+    /// Where the field's context menu finds the handler, which the core
+    /// writes there as it resolves it.
+    let menuTarget: TextEditingMenuTarget
+
     /// Minimum width for the text field content area. Small, so an explicit
     /// narrow `.frame(width:)` is honoured (e.g. a 0–255 / "100%" numeric field
     /// that only needs room for a few characters plus the cursor); fields without
@@ -925,6 +936,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
+        menuTarget.handler = handler
         // Compose the per-field closure with any cascading `.onSubmit(of:)` in
         // scope that matches this field's role (.text by default). Stays nil when
         // there's nothing to run, so Return still falls through to a dialog's

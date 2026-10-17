@@ -150,3 +150,34 @@ extension TextEditorHandler {
         return parts.joined(separator: "\n")
     }
 }
+
+// MARK: - The context menu
+
+extension TextEditorHandler: TextEditingMenuHandler {
+    var menuCanCopy: Bool { selectionRange != nil }
+
+    var menuCanYank: Bool { !killRing.isEmpty }
+
+    /// Carries out a context-menu command as its key does: an edit is one
+    /// step to take back (``recordingUndoStep(_:)``), and the selection is
+    /// published after. Yank drops the selection first and inserts at the
+    /// caret, as Ctrl-Y does here.
+    func performMenuCommand(_ command: TextEditingMenuCommand) {
+        defer { publishSelection() }
+        defer { forgetMovedRowStartHead() }
+        normalizeStaleState()
+        forgetHistoryIfReplaced()
+        _ = recordingUndoStep {
+            switch command {
+            case .cut: return perform(StandInEditingCommand.cut)
+            case .copy: return perform(StandInEditingCommand.copy)
+            case .paste: return perform(StandInEditingCommand.paste)
+            case .yank:
+                clearSelection()
+                yank()
+            case .selectAll: selectAll()
+            }
+            return true
+        }
+    }
+}

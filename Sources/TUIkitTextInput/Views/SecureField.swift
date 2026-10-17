@@ -111,6 +111,9 @@ public struct SecureField<Label: View>: View {
     /// Action to perform when the user submits (presses Enter).
     var onSubmitAction: (() -> Void)?
 
+    /// Where the field's context menu finds its handler — see ``TextField``.
+    @State private var menuTarget = TextEditingMenuTarget()
+
     public var body: some View {
         _StyledFieldFrame(
             content: _SecureFieldCore(
@@ -118,8 +121,11 @@ public struct SecureField<Label: View>: View {
                 prompt: fieldPrompt(prompt, title: label),
                 focusID: focusID,
                 isDisabled: isDisabled,
-                onSubmitAction: onSubmitAction
-            ))
+                onSubmitAction: onSubmitAction,
+                menuTarget: menuTarget
+            )
+        )
+        .textEditingMenu(menuTarget)
     }
 }
 
@@ -299,6 +305,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
     let focusID: String?
     let isDisabled: Bool
     let onSubmitAction: (() -> Void)?
+    /// Where the field's context menu finds the handler.
+    let menuTarget: TextEditingMenuTarget
 
     private typealias StateIndex = SecureFieldStateIndex
 
@@ -376,6 +384,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         handler.canBeFocused = !isDisabled
         // The one place secure fields diverge from plain ones: no extraction.
         handler.isSecure = true
+        menuTarget.handler = handler
         // Compose the per-field closure with any cascading `.onSubmit(of:)` that
         // matches this field's role (see TextField for the rationale; stays nil
         // when empty so Return can fall through).

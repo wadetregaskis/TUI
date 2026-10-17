@@ -101,6 +101,9 @@
   "menu.copyLink": "复制链接",
   "menu.copyLinkLabel": "复制标签",
   "menu.copyLinkAsMarkdown": "复制为 Markdown",
+  "menu.cut": "剪切",
+  "menu.selectAll": "全选",
+  "menu.yank": "粘回",
 
   "statusbar.quit": "退出",
   "statusbar.appearance": "外观",

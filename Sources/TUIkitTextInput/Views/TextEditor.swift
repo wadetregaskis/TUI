@@ -177,6 +177,8 @@ public struct TextEditor: View {
     /// The match the find bar last selected, as character offsets, for an
     /// editor with no selection binding of the app's to steer.
     @State private var findSelection: Range<Int>?
+    /// Where the editor's context menu finds its handler — see ``TextField``.
+    @State private var menuTarget = TextEditingMenuTarget()
 
     @ViewBuilder public var body: some View {
         // The two built-in styles are drawn by the core, which reads which one
@@ -192,7 +194,9 @@ public struct TextEditor: View {
                 }
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
-                    selection: presented ? findChannel : selection)
+                    selection: presented ? findChannel : selection, menuTarget: menuTarget
+                )
+                .textEditingMenu(menuTarget)
             }
             .onKeyPress(keys: ["g", "G"]) { press in
                 // Ctrl-G presents the find bar: Ctrl-F is the editor's own
@@ -274,6 +278,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
     let focusID: String?
     let isDisabled: Bool
     var selection: _TextSelectionChannel?
+    /// Where the editor's context menu finds the handler.
+    let menuTarget: TextEditingMenuTarget
 
     private typealias StateIndex = TextEditorStateIndex
 
@@ -318,6 +324,7 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
+        menuTarget.handler = handler
         // The app's undo manager, which the editor's edits are registered with,
         // and where the editor leaves them when it goes away; and the steps of
         // text the app has replaced since, taken out of it.
@@ -1005,7 +1012,8 @@ private struct _TextEditorCore: View, Renderable, Layoutable {
         let handlerID = mouseDispatcher.register(in: context) { event in
             defer { handler.publishSelection() }
             switch event.phase {
-            case .pressed where event.button == .left:
+            // Ctrl-click is a secondary click, the editor's context menu's.
+            case .pressed where event.button == .left && !event.ctrl:
                 focusManager?.focus(id: focusID)
                 handler.multiClickRun = nil
                 if event.shift {
