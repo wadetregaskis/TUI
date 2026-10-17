@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIkitCore
 import TUIkitFoundation
 import TUIkitStyling
@@ -65,12 +66,32 @@ package struct CollectionSurface: Equatable {
             let shown = tone.downsampled(to: depth)
             return shown != rows && shown != stripe && isReadable(tone, in: environment)
         }
-        if standsApart(stronger) { return stronger }
         let further = palette.lifted(from: stronger).resolve(with: palette)
-        if standsApart(further) { return further }
-        if standsApart(environment.enclosingSurface) { return environment.enclosingSurface }
-        return fallback
+        let candidates = [stronger, further, environment.enclosingSurface].filter(standsApart)
+        guard depth < .truecolor else { return candidates.first ?? fallback }
+        // On a coarse terminal, the candidate that stands apart nearest a quiet
+        // step off the rows, not the first: the cube's rungs are far apart in
+        // dark saturated hues, and two steps off the page landed Grass's and
+        // Red Sands' headers on black (2.64:1 off Grass's rows), Ocean's on
+        // `000087` (2.41:1) — a band too loud for a header, the owner's
+        // ruling, where the page itself stood 1.76:1 and 1.11:1 off them.
+        func offStep(_ tone: Color) -> Double {
+            guard let shown = tone.downsampled(to: depth).rgbComponents, let row = rows.rgbComponents else {
+                return .infinity
+            }
+            // Arithmetic, not ink: the entries' RGB, to measure a contrast with.
+            // swiftlint:disable:next framework_colour_literal
+            let shownEntry = Color.rgb(shown.red, shown.green, shown.blue)
+            // swiftlint:disable:next framework_colour_literal
+            let ratio = shownEntry.contrastRatio(against: Color.rgb(row.red, row.green, row.blue))
+            return abs(log(ratio) - log(Self.headerStep))
+        }
+        return candidates.min { offStep($0) < offStep($1) } ?? fallback
     }
+
+    /// The step, in contrast off the rows, a header aims at on a coarse
+    /// terminal: visibly its own band, a little more than a stripe's step.
+    static let headerStep = 1.25
 
     /// Whether the palette's text reads on `tone` as the terminal paints both
     /// at the current depth: at 4.5:1, or where the ground the collection sits

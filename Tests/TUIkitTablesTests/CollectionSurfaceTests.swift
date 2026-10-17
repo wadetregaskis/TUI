@@ -226,4 +226,25 @@ struct CollectionSurfaceTests {
         }
         #expect(clashes.isEmpty, "at \(depth): \(clashes)")
     }
+
+    /// The owner's ruling, 2026-10-16: some themes' surface headers were black,
+    /// or near it, on Apple Terminal's cube — two steps off the page in a dark
+    /// saturated hue, where the cube's rungs are far apart. Grass's was black
+    /// on rows of `005f00`, 2.64:1, where its page stood 1.76:1 off them.
+    @Test("On the cube a surface header is the quietest tone that stands apart, not the furthest step")
+    func quietHeaderOnTheCube() throws {
+        for name in ["Grass", "Red Sands"] {
+            let palette = try #require(Self.statedPalettes.first { $0.name == name })
+            var environment = EnvironmentValues()
+            environment.palette = palette
+            let tones = withColorDepth(.palette256) { CollectionSurface(environment) }
+            let header = try #require(Self.painted(tones.header, at: .palette256))
+            let body = try #require(Self.painted(tones.body, at: .palette256))
+            let page = try #require(Self.painted(palette.background, at: .palette256))
+            #expect(header.rgbComponents.map { $0.red | $0.green | $0.blue } != 0, "\(name): a black header")
+            #expect(
+                header.contrastRatio(against: body) <= page.contrastRatio(against: body) + 0.01,
+                "\(name): the header is further off the rows than the page is")
+        }
+    }
 }
