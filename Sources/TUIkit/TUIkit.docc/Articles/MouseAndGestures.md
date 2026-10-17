@@ -276,7 +276,12 @@ TUIkit selects by itself, as a terminal would:
   more: triple-clicking a name on a bordered card selects the name, not the
   card's padding and walls, as macOS selects a line of the text view clicked
   rather than of the window. **Option-drag** selects a rectangle (iTerm2
-  reports ⌘ the same way).
+  reports ⌘ the same way). Pressing Shift partway through swaps which
+  corner the pointer moves — the corner the drag started from follows it,
+  by as much as it moves — and letting Shift go swaps them back, so any side
+  of the rectangle can be adjusted without starting again. That needs the
+  terminal to report Shift on a drag it is already reporting; one whose
+  Shift-drag is its own selection may take the drag back instead.
 - **A drag that starts on a control is the control's**: a button, a field, a
   slider, a `.draggable` view, a list row — except that a drag starting on
   a list's or table's row text that `.textSelection(.enabled)` made

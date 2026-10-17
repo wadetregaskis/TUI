@@ -116,6 +116,14 @@ package final class ScreenSelection: @unchecked Sendable {
         package var shownIn: Rect?
         /// Whether a drag is still making it.
         package var isMaking = true
+        /// Whether Shift was held at the drag's last step: a rectangle's
+        /// corners swap roles each time it goes down or comes up
+        /// (``ScreenSelection/extend(to:shift:)``).
+        var shiftHeld = false
+        /// Where the moving corner is from the pointer: none until Shift
+        /// swaps the corners, then the distance from the pointer to the
+        /// corner it took over.
+        var pointerOffset = Point(x: 0, y: 0)
     }
 
     /// The selection, if there is one.
@@ -222,13 +230,13 @@ package final class ScreenSelection: @unchecked Sendable {
 
 extension ScreenSelection {
     /// Starts a selection at `point`, clipped to `clip` — both the screen's.
-    func begin(at point: Point, clip: Rect, shape: Shape, unit: Unit) {
+    func begin(at point: Point, clip: Rect, shape: Shape, unit: Unit, shift: Bool = false) {
         guard var clip = clip.intersection(contentArea), clip.contains(point) else { return }
         let point = onPage(point)
         clip.y -= frameTop
         current = Selection(
             anchor: point, head: point, clip: clip, shape: shape, unit: unit, text: "",
-            shownIn: contentArea)
+            shownIn: contentArea, shiftHeld: shift)
         refreshText()
     }
 
@@ -238,10 +246,27 @@ extension ScreenSelection {
     /// A stream dragged past the clip's bottom runs to the end of its last row,
     /// and past its top to the start of its first, as a terminal's selection
     /// does at the edge of the screen and a Mac's does past the end of a text.
-    func extend(to point: Point) {
+    ///
+    /// A rectangle's corners swap roles when Shift goes down or comes up
+    /// during the drag: the corner that stood still moves with the pointer
+    /// from then on, by as much as the pointer moves, and the one the pointer
+    /// was dragging stays where it is — so either side of a rectangle can be
+    /// adjusted in one drag, as in macOS's own area selection.
+    ///
+    /// TUI-specific in its trigger: a Mac's screenshot selection moves a
+    /// rectangle with Space, which a terminal reports to no mouse gesture.
+    func extend(to point: Point, shift: Bool = false) {
         guard var selection = current, selection.isMaking else { return }
-        let point = onPage(point)
+        var point = onPage(point)
         let clip = selection.clip
+        if selection.shape == .rectangle {
+            if shift != selection.shiftHeld {
+                selection.shiftHeld = shift
+                swap(&selection.anchor, &selection.head)
+                selection.pointerOffset = Point(x: selection.head.x - point.x, y: selection.head.y - point.y)
+            }
+            point = Point(x: point.x + selection.pointerOffset.x, y: point.y + selection.pointerOffset.y)
+        }
         if selection.shape == .stream, point.y >= clip.y + clip.height {
             selection.head = Point(x: clip.x + clip.width - 1, y: clip.y + clip.height - 1)
         } else if selection.shape == .stream, point.y < clip.y {

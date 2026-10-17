@@ -352,7 +352,7 @@ final class HeldPress {
         switch event.phase {
         case .dragged:
             if !isSelecting, event.x != press.x || event.y != press.y { beginSelection(unit: .character) }
-            if isSelecting { selection?.extend(to: ScreenSelection.Point(x: event.x, y: event.y)) }
+            if isSelecting { selection?.extend(to: ScreenSelection.Point(x: event.x, y: event.y), shift: event.shift) }
         case .released:
             if isSelecting { selection?.finish() }
             // With no selection to make, a release outside the pane is a
@@ -373,7 +373,7 @@ final class HeldPress {
         guard let selection else { return }
         selection.begin(
             at: ScreenSelection.Point(x: press.x, y: press.y), clip: pane,
-            shape: press.meta ? .rectangle : .stream, unit: unit)
+            shape: press.meta ? .rectangle : .stream, unit: unit, shift: press.shift)
         isSelecting = selection.hasSelection
     }
 

@@ -3308,6 +3308,13 @@ Three things follow, and the first is the one that was wrong before.
 
   It also means the two openers put the URL on **different machines** over
   ssh — see below.
+- **Shift pressed partway through a reported drag — UNMEASURED.** A
+  rectangular screen selection swaps which corner the pointer moves when a
+  drag's motion reports start or stop carrying Shift (since 2026-10-17,
+  `ScreenSelection.extend(to:shift:)`). Apple Terminal has no Shift bypass,
+  so it should report the bit; whether a host whose Shift-drag is its own
+  selection (Ghostty, Warp, kitty, xterm) keeps reporting a drag it began
+  reporting once Shift goes down has not been probed.
 - **Shift-click is NOT the bypass.** The xterm convention says shift means
   "handle this yourself, do not report it", and the earlier paragraph here
   recommended it on that basis. In practice Ghostty and Warp both take

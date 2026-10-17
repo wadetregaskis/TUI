@@ -147,8 +147,10 @@ struct ScreenSelectionGestureTests {
         return (lines[row][..<prefix].count, row)
     }
 
-    func left(_ harness: InputChainHarness, _ phase: MousePhase, _ x: Int, _ y: Int, meta: Bool = false) {
-        harness.mouse(MouseEvent(button: .left, phase: phase, x: x, y: y, meta: meta))
+    func left(
+        _ harness: InputChainHarness, _ phase: MousePhase, _ x: Int, _ y: Int, meta: Bool = false, shift: Bool = false
+    ) {
+        harness.mouse(MouseEvent(button: .left, phase: phase, x: x, y: y, shift: shift, meta: meta))
     }
 
     func drag(_ harness: InputChainHarness, from: (x: Int, y: Int), to: (x: Int, y: Int), page: Page) {
@@ -245,6 +247,37 @@ struct ScreenSelectionGestureTests {
         left(harness, .pressed, alpha.x + 1, alpha.y, meta: true)
         left(harness, .dragged, alpha.x + 3, alpha.y + 1, meta: true)
         #expect(harness.tui.screenSelection.current?.text == "lph\neco")
+    }
+
+    @Test("Shift during an Option-drag moves the rectangle's other corner, and letting it go swaps back")
+    func rectangleCornerSwap() throws {
+        let page = Page(first: Box("alpha beta gamma"))
+        let harness = harness(page)
+        let alpha = try find("alpha", in: harness, page)
+        left(harness, .pressed, alpha.x + 1, alpha.y, meta: true)
+        left(harness, .dragged, alpha.x + 3, alpha.y + 1, meta: true)
+        // Shift down: the press's corner follows the pointer, by as much as
+        // it moves; the corner the pointer was dragging stays.
+        left(harness, .dragged, alpha.x + 3, alpha.y + 1, meta: true, shift: true)
+        #expect(harness.tui.screenSelection.current?.text == "lph\neco", "swapping moves nothing")
+        left(harness, .dragged, alpha.x + 5, alpha.y + 1, meta: true, shift: true)
+        #expect(harness.tui.screenSelection.current?.text == "h\no")
+        // Shift up: the pointer takes the first corner back, from where it is.
+        left(harness, .dragged, alpha.x + 6, alpha.y + 1, meta: true)
+        #expect(harness.tui.screenSelection.current?.text == "h\no")
+        left(harness, .dragged, alpha.x + 8, alpha.y + 1, meta: true)
+        #expect(harness.tui.screenSelection.current?.text == "ha\nond")
+    }
+
+    @Test("Shift during an ordinary drag swaps nothing")
+    func streamIgnoresShift() throws {
+        let page = Page(first: Box("alpha beta gamma"))
+        let harness = harness(page)
+        let alpha = try find("alpha", in: harness, page)
+        left(harness, .pressed, alpha.x, alpha.y)
+        left(harness, .dragged, alpha.x + 2, alpha.y)
+        left(harness, .dragged, alpha.x + 4, alpha.y, shift: true)
+        #expect(harness.tui.screenSelection.current?.text == "alpha")
     }
 
     @Test("A drag that starts on a control is the control's")
