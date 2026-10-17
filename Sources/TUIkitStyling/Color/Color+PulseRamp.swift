@@ -154,7 +154,7 @@ extension Color {
         }
         // Dropping the greys can empty a ramp whose whole span was off-hue.
         // A steady bright beats a grey flicker.
-        let answer = ramp.isEmpty ? [bright] : ramp
+        let answer = ramp.isEmpty ? [bright] : Self.monotonicInLightness(ramp, at: depth)
         pulseRampCacheLock.withLock {
             // A backstop against unbounded growth, not a working-set estimate:
             // a real app has a handful of accents at a handful of depths. Same
@@ -163,6 +163,46 @@ extension Color {
             pulseRampCache[key] = answer
         }
         return answer
+    }
+
+    /// `ramp`'s longest run of shades whose lightness, as `depth` draws them,
+    /// only ever moves one way — from the dim end toward the bright one,
+    /// which it keeps — the smoother of two equally long runs.
+    ///
+    /// Each shade appearing once is not enough for a breath: the cube's
+    /// nearest entry to a lerp need not be monotonic in LIGHTNESS either. On
+    /// Grass, amber over green, the 256-colour ramp ran L\* 49, 52, 55, 70,
+    /// 58, 73, 74, 77 — up, back down, up again: the owner saw the toggle's
+    /// focus breathe in a double beat, a heartbeat. Red Sands' went 63 then
+    /// 58. Dropping the one that goes back keeps the fade a fade.
+    static func monotonicInLightness(_ ramp: [Color], at depth: ColorDepth) -> [Color] {
+        guard ramp.count > 2 else { return ramp }
+        let lightness = ramp.map { $0.rendered(at: depth).perceivedLightness ?? 0 }
+        let rising = lightness[ramp.count - 1] >= lightness[0]
+        func onward(_ from: Int, _ to: Int) -> Bool {
+            rising ? lightness[to] > lightness[from] : lightness[to] < lightness[from]
+        }
+        // The best run ending at each shade: its length, the sum of its steps
+        // squared (less is smoother), and the shade before it.
+        var best: [(length: Int, roughness: Double, previous: Int?)] = []
+        for end in ramp.indices {
+            var choice: (length: Int, roughness: Double, previous: Int?) = (1, 0, nil)
+            for start in 0..<end where onward(start, end) {
+                let step = lightness[end] - lightness[start]
+                let candidate = (best[start].length + 1, best[start].roughness + step * step, Optional(start))
+                if candidate.0 > choice.length || (candidate.0 == choice.length && candidate.1 < choice.roughness) {
+                    choice = candidate
+                }
+            }
+            best.append(choice)
+        }
+        var kept: [Color] = []
+        var index: Int? = ramp.count - 1
+        while let current = index {
+            kept.append(ramp[current])
+            index = best[current].previous
+        }
+        return kept.reversed()
     }
 
     /// The breath between two cube entries: the two ends, with at most one

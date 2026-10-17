@@ -70,6 +70,30 @@ struct PulseRampTests {
         }
     }
 
+    /// A shade appearing once is not enough: the cube's nearest entry to a lerp
+    /// need not be monotonic in lightness either. Grass's toggle, amber over
+    /// green, breathed L* 49, 52, 55, 70, 58, 73, 74, 77 on a 256-colour
+    /// terminal — up, back, up — which the owner saw as a double beat.
+    @Test("A breath's lightness only ever moves one way")
+    func monotonicLightness() {
+        for palette in statedPalettes {
+            let ends = palette.accentPulse()
+            for (name, steps) in [
+                ("the focus pulse", ramp(palette)),
+                ("accentPulse", Color.pulseRamp(from: ends.dim, to: ends.bright, depth: .palette256)),
+            ] {
+                let lightness = steps.map { $0.rendered(at: .palette256).perceivedLightness ?? 0 }
+                guard let first = lightness.first, let last = lightness.last, lightness.count > 1 else { continue }
+                let rising = last >= first
+                for index in 1..<lightness.count {
+                    #expect(
+                        rising ? lightness[index] > lightness[index - 1] : lightness[index] < lightness[index - 1],
+                        "\(palette.name), \(name): L* \(lightness) turns back at step \(index)")
+                }
+            }
+        }
+    }
+
     /// …but a fade ASKED to reach black keeps it. Red Sands' focus wash breathes
     /// away from its brick page, from a dark brown (`3D1916`) to near-black
     /// (`000005`); the cube draws that as `5F0000` to black, and with the black
