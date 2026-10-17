@@ -630,6 +630,10 @@ extension FrameBuffer {
 
         var result: [String] = []
         result.reserveCapacity(maxHeight)
+        // Each combined row's width, kept as the result's `lineWidths` — see
+        // below the loop.
+        var widths: [Int] = []
+        widths.reserveCapacity(maxHeight)
 
         for row in 0..<maxHeight {
             let left = row < lines.count ? lines[row] : ""
@@ -648,16 +652,7 @@ extension FrameBuffer {
             // Only an unmeasured ragged buffer falls back to `strippedLength`
             // (the dominant cost this avoids). Rows past this buffer's height
             // are zero-wide.
-            let leftWidth: Int
-            if row >= lines.count {
-                leftWidth = 0
-            } else if linesAreUniformWidth {
-                leftWidth = myWidth
-            } else if let knownWidths = lineWidths {
-                leftWidth = knownWidths[row]
-            } else {
-                leftWidth = left.strippedLength
-            }
+            let leftWidth = knownWidth(ofRow: row, line: left)
             let leftPad = max(0, myWidth - leftWidth)
             var combined = ""
             combined.reserveCapacity(
@@ -667,6 +662,7 @@ extension FrameBuffer {
             if spacingApplied > 0 { combined += asciiSpaces(spacingApplied) }
             combined += right
             result.append(combined)
+            widths.append(max(leftWidth, myWidth) + spacingApplied + other.knownWidth(ofRow: row, line: right))
         }
 
         // Supply the uniform-width hint the
@@ -685,7 +681,14 @@ extension FrameBuffer {
         storage = result
         width = newWidth
         linesAreUniformWidth = resultUniform
-        lineWidths = nil
+        // Known row by row: the left padded to `myWidth` (or wider, where a
+        // line overhangs), the gap, and the right as `other` knew it — measured
+        // here once where it did not. Without them the NEXT append re-measured
+        // every accumulated row (`left.strippedLength` above), so a row of k
+        // ragged children measured its first child's lines k times: 5.6% of a
+        // frame of Stress `framedcolumns`, in `_HStackCore.renderClip`.
+        lineWidths = widths
+        Self.assertLineWidthsInvariant(self)
 
         // `other`'s content lands to the right, past this buffer + spacing.
         // Appended in place rather than via `a + b`, which allocates and copies
@@ -704,6 +707,17 @@ extension FrameBuffer {
             opacityRegions.append(
                 contentsOf: other.shiftedOpacityRegions(byX: myWidth + spacingApplied, y: 0))
         }
+    }
+
+    /// The visible width of row `row`, whose string is `line`: none past the
+    /// last row, the buffer's width where its lines are uniform, the width it
+    /// carries in ``lineWidths``, and measured only where it knows none of
+    /// these.
+    private func knownWidth(ofRow row: Int, line: String) -> Int {
+        if row >= lines.count { return 0 }
+        if linesAreUniformWidth { return width }
+        if let lineWidths { return lineWidths[row] }
+        return line.strippedLength
     }
 
     /// This buffer with `background` in force on every cell that names none of
