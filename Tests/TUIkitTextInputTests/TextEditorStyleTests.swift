@@ -47,6 +47,20 @@ struct TextEditorStyleTests {
         #expect(!paintsField(editor.textEditorStyle(.plain)))
     }
 
+    /// The owner's ruling, 2026-10-16: the blank cell a border keeps either side
+    /// of its content was a strip of the page between the line and the editor's
+    /// field. SwiftUI's border sits on the view's edge with no inset at all.
+    @Test("A border hugs an editor's field, through a frame; around text it keeps its blank cell")
+    func borderHugsTheField() {
+        let context = makeRenderContext(width: 20, height: 6)
+        let editor = renderToBuffer(
+            TextEditor(text: .constant("ab")).frame(height: 2).border(), context: context
+        ).lines.map(\.stripped)
+        #expect(editor.contains { $0.hasPrefix("│ab") }, "the editor's text starts at the line: \(editor)")
+        let text = renderToBuffer(Text("ab").border(), context: context).lines.map(\.stripped)
+        #expect(text.contains { $0.hasPrefix("│ ab") }, "text keeps its blank cell: \(text)")
+    }
+
     @Test("A custom style draws its body in the editor's place")
     func custom() {
         let drawn = renderToBuffer(

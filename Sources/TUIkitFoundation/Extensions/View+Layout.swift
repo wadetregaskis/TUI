@@ -11,7 +11,10 @@ extension View {
     ///
     /// Content is inset by 1 character on each side so text doesn't touch
     /// the border characters. The total width overhead is 4 characters
-    /// (2 for borders + 2 for inner padding).
+    /// (2 for borders + 2 for inner padding). A `TextEditor` is not inset: its
+    /// field reaches its edges and keeps the text off the line, and the inset
+    /// would be a strip of the page between the two — the border sits on its
+    /// edges, as SwiftUI's does on any view's.
     ///
     /// Internally this creates a `ContainerView` without title or footer,
     /// ensuring consistent padding and rendering across all bordered views.
@@ -131,7 +134,12 @@ extension View {
         }
     }
 
-    /// One border, drawn as the titleless container it has always been.
+    /// One border, drawn as the titleless container it has always been: a
+    /// blank cell either side of the content, so text does not run up against
+    /// the line — and none for content that paints its own surface to its
+    /// edges (``PaintsToItsEdges``), whose blank cells were strips of the page
+    /// between the border and the surface. That one is SwiftUI's own border,
+    /// which is drawn on the view's edge with no inset at all.
     private func ring(style: BorderStyle?, colour: AnimatedColor?) -> some View {
         ContainerView(
             style: ContainerStyle(
@@ -139,12 +147,21 @@ extension View {
                 showFooterSeparator: false,
                 borderStyle: style,
                 borderColor: colour
-            )
+            ),
+            padding: throughWrappers(self, as: (any PaintsToItsEdges).self) == nil
+                ? EdgeInsets(horizontal: 1, vertical: 0) : EdgeInsets()
         ) {
             self
         }
     }
 }
+
+/// A view that paints its own surface to its edges — a `TextEditor`'s field —
+/// so a border around it needs no blank cell inside it: the surface is what
+/// keeps the content off the line. Looked for through single-content wrappers
+/// (`.frame`, …), as `TextEditor(…).frame(height: 4).border()` writes it.
+@MainActor
+package protocol PaintsToItsEdges {}
 
 // MARK: - Border rings
 

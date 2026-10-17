@@ -1071,3 +1071,9 @@ extension TextEditor: ResolvesOwnEnvironment {
         _find.resolveEnvironment(environment)
     }
 }
+
+// MARK: - Inside a border
+
+/// Its field reaches its edges, so `.border()` draws on them, with no blank
+/// cell of page between.
+extension TextEditor: PaintsToItsEdges {}
