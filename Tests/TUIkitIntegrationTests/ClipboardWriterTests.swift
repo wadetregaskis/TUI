@@ -42,10 +42,10 @@ extension ClipboardWriter {
     static func stated(
         terminal: TerminalClient.ClipboardWriteSupport, isLocal: Bool, hasHelper: Bool = true,
         helperWorks: Bool = true, log: SystemClipboardLog = SystemClipboardLog(),
-        now: @escaping @Sendable () -> UInt64 = { 0 }
+        mime: Bool = false, now: @escaping @Sendable () -> UInt64 = { 0 }
     ) -> ClipboardWriter {
         ClipboardWriter(
-            terminalSupport: { terminal }, isLocal: { isLocal },
+            terminalSupport: { terminal }, isLocal: { isLocal }, mimeSupport: { mime },
             system: StatedClipboard(isAvailable: hasHelper, helperWorks: helperWorks, log: log),
             nowNanos: now, requestFrame: {})
     }

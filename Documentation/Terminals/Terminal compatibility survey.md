@@ -5895,6 +5895,36 @@ whether DA1's `52` changes.
 | tmux 3.7c, `external` | yes | no (`ESC[?1;2;4c`, tmux's own) | no buffer | — | — | — |
 | tmux 3.7c, `on` | yes | no | buffer kept; the client UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 
+## OSC 5522 clipboard: any MIME type — measured 2026-10-17 on three hosts
+
+kitty's clipboard protocol (https://sw.kovidgoyal.net/kitty/clipboard/)
+copies and pastes any MIME type, where OSC 52 carries text alone: a write
+opens with `ESC ] 5522 ; type=write ST`, sends each type as `type=wdata`
+packets (its MIME type and at most 4096 bytes before encoding, base64), and
+closes with an empty `type=wdata`; the terminal acknowledges
+`type=write:status=DONE` or an error (`EPERM`, `EINVAL`, `EBUSY`, `EFBIG`).
+Support is asked with DECRQM, `CSI ? 5522 $ p`; 0 or 4 is none.
+
+Measured with `Tools/TerminalProbes/clipboard_mime_probe.py` (support, a
+four-type write, the type list), each run inside the host:
+
+| Host | DECRQM 5522 | Write acknowledged | Pasteboard after |
+|---|---|---|---|
+| iTerm2 3.6 | `4` (permanently reset) | no | unchanged |
+| Apple Terminal 455.1 | no reply (DSR answered) | no | unchanged |
+| Warp | no reply (DSR answered) | no | unchanged |
+| kitty 0.49.1 | NOT MEASURED: kitty cannot open a window on the measuring VM (no OpenGL 3.3) | | |
+| Ghostty 1.3.1 | NOT MEASURED (its `-e` consent prompt); the protocol is on Ghostty's development branch, not in 1.3.1 | | |
+
+None of the three printed anything. TUIkit asks only Ghostty, and kitty,
+WezTerm and foot where the environment names them
+(`TerminalClient.mayAskMIMEClipboard`): Apple Terminal prints the final `p`
+of any DECRQM, and iTerm2's answer is known. Where the answer is yes, a copy
+sent to the terminal goes by OSC 5522 with every form the app has of it — a
+link as `text/uri-list`, Markdown as `text/markdown` — and its text as
+`text/plain`; `TUIKIT_OSC5522=1` or `0` overrides. The acknowledgement is
+swallowed with every other reply. kitty and Ghostty-tip are owed a run.
+
 ## Inherited state: the defaults raw mode asserts — since 2026-10-05
 
 Modes outlive the program that set them. A killed `vim`, `less` or `htop`, or

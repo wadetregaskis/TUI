@@ -43,6 +43,10 @@ enum TerminalModeQuery {
     /// cluster into one cell group and gives emoji presentation two columns.
     static let graphemeClustering = 2027
 
+    /// Private mode 5522, kitty's clipboard protocol: answered set or reset
+    /// by a terminal that takes OSC 5522 writes (``TerminalClient/mimeClipboard``).
+    static let mimeClipboard = 5522
+
     /// A DECRPM reply value (`CSI ? Ps ; Pm $ y`).
     enum State: Int, Equatable {
         case notRecognised = 0
@@ -181,5 +185,22 @@ extension Terminal {
         writeImmediate("\u{1B}[?\(TerminalModeQuery.graphemeClustering)h")
         pinnedGraphemeClustering = true
         armSignalRestore()
+    }
+
+    /// The DEC private modes asked of a host once it is identified, which is
+    /// what makes asking safe (see ``TerminalModeQuery``): grapheme
+    /// clustering pinned on Ghostty, and OSC 5522 asked of the hosts that may
+    /// speak it.
+    func askModesOfIdentifiedHost() {
+        pinGraphemeClusteringIfNeeded()
+        detectMIMEClipboard()
+    }
+
+    /// Asks a host that may be asked (``TerminalClient/mayAskMIMEClipboard``)
+    /// whether it takes OSC 5522, and records the answer for the clipboard
+    /// writer. Under tmux nothing is asked: it passes no OSC 5522 on.
+    func detectMIMEClipboard() {
+        guard !TerminalHost.isTmux, TerminalClient.mayAskMIMEClipboard else { return }
+        TerminalClient.mimeClipboardDetected = queryMode(TerminalModeQuery.mimeClipboard)?.isSupported ?? false
     }
 }

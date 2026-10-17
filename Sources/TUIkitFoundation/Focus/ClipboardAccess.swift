@@ -29,6 +29,12 @@ package struct ClipboardAccess: Sendable {
     /// is ``write(_:announcingSuccess:)``'s.
     var put: @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult
 
+    /// Puts `text` on the clipboard with more forms of it beside, where the
+    /// clipboard can take them; `nil` puts the text alone (``put``).
+    var putRepresentations:
+        (@Sendable (_ text: String, _ representations: [ClipboardRepresentation], _ announcingSuccess: Bool)
+            -> ClipboardWriteResult)?
+
     /// Reads the clipboard, or `nil` when there is nothing to read.
     package var read: @Sendable () -> String?
 
@@ -47,6 +53,17 @@ package struct ClipboardAccess: Sendable {
         put(text, announcingSuccess)
     }
 
+    /// Puts `text` on the clipboard, and with it `representations` — more
+    /// forms of the same copy — where the clipboard takes them (see
+    /// ``ClipboardWriter/write(_:representations:announcingSuccess:)``).
+    @discardableResult
+    package func write(
+        _ text: String, representations: [ClipboardRepresentation], announcingSuccess: Bool = false
+    ) -> ClipboardWriteResult {
+        guard let putRepresentations, !representations.isEmpty else { return put(text, announcingSuccess) }
+        return putRepresentations(text, representations, announcingSuccess)
+    }
+
     /// The access a running app hands its controls: `writer`'s routes.
     ///
     /// Copies run in event handlers, on the main actor, which is where the
@@ -55,15 +72,25 @@ package struct ClipboardAccess: Sendable {
         put = { text, announcing in
             MainActor.assumeIsolated { writer.write(text, announcingSuccess: announcing) }
         }
+        putRepresentations = { text, representations, announcing in
+            MainActor.assumeIsolated {
+                writer.write(text, representations: representations, announcingSuccess: announcing)
+            }
+        }
         read = { MainActor.assumeIsolated { writer.read() } }
         typed = nil
     }
 
     init(
         put: @escaping @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult,
+        putRepresentations: (
+            @Sendable (_ text: String, _ representations: [ClipboardRepresentation], _ announcingSuccess: Bool)
+                -> ClipboardWriteResult
+        )? = nil,
         read: @escaping @Sendable () -> String?, typed: TypedClipboard? = nil
     ) {
         self.put = put
+        self.putRepresentations = putRepresentations
         self.read = read
         self.typed = typed
     }

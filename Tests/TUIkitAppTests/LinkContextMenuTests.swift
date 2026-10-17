@@ -121,6 +121,7 @@ struct LinkContextMenuTests {
         }
         try harness.choose("Copy Link")
         #expect(harness.board.writes == [Self.docs.absoluteString])
+        #expect(harness.board.representations == [["text/uri-list": Self.docs.absoluteString]])
         #expect(!harness.shows("Copy Label"), "the menu closed")
     }
 
@@ -172,6 +173,9 @@ struct LinkContextMenuTests {
         try harness.rightClick("Swift docs")
         try harness.choose("Copy as Markdown")
         #expect(harness.board.writes == ["Swift docs", "[Swift docs](https://swift.org/documentation/)"])
+        #expect(
+            harness.board.representations.last == ["text/markdown": "[Swift docs](https://swift.org/documentation/)"],
+            "Markdown as Markdown, where the terminal takes it")
     }
 
     @Test("A link whose words are its address offers no Copy Label, and copies as an autolink")

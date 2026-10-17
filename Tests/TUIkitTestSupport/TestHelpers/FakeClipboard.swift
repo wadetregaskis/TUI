@@ -12,6 +12,7 @@
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUIkitTestSupport in Package.swift).
 #if TUIKIT_TEST_SUPPORT && canImport(Testing)
 
+import Foundation
 @testable import TUIkitFoundation
 
 /// Records what a text control hands the clipboard, and answers reads from the
@@ -22,6 +23,9 @@ final class FakeClipboard: @unchecked Sendable {
     var contents: String?
     /// Every write, in order.
     var writes: [String] = []
+    /// The forms beside each write's text (``ClipboardRepresentation``), as
+    /// MIME type to text, in order; empty for a write of text alone.
+    var representations: [[String: String]] = []
 
     init(contents: String? = nil) {
         self.contents = contents
@@ -33,6 +37,14 @@ final class FakeClipboard: @unchecked Sendable {
         ClipboardAccess(
             put: { [self] text, _ in
                 writes.append(text)
+                representations.append([:])
+                contents = text
+                return .copied
+            },
+            putRepresentations: { [self] text, forms, _ in
+                writes.append(text)
+                representations.append(
+                    Dictionary(forms.map { ($0.type, String(bytes: $0.data, encoding: .utf8) ?? "") }) { first, _ in first })
                 contents = text
                 return .copied
             },

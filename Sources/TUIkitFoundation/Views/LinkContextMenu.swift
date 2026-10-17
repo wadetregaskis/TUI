@@ -66,7 +66,11 @@ struct RecordsLinkLabelText: BufferModifier {
 /// are not the destination written out (``LinkContextMenu/labelIsDestination(_:_:)``);
 /// Copy as Markdown both, as `[label](destination)`, or as an autolink,
 /// `<destination>`, where the label is the destination. Each copy is announced
-/// in the status bar, since nothing else on screen changes.
+/// in the status bar, since nothing else on screen changes. Where the terminal
+/// takes more than text (OSC 5522, ``TerminalClient/mimeClipboard``), Copy
+/// Link also puts the destination as `text/uri-list`, and Copy as Markdown
+/// its Markdown as `text/markdown`, so an app that pastes links or Markdown
+/// takes them as such.
 ///
 /// TUI-specific: SwiftUI's `Link` has no menu of its own — a Mac's text view
 /// offers Copy Link on a link in it.
@@ -86,7 +90,10 @@ struct LinkContextMenu: View {
             Divider()
         }
         Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLink)) {
-            _ = clipboard.write(url, announcingSuccess: true)
+            // As a URI list too, which is how a pasteboard says "a link".
+            _ = clipboard.write(
+                url, representations: [ClipboardRepresentation(type: "text/uri-list", text: url)],
+                announcingSuccess: true)
         }
         if !words.isEmpty, !Self.labelIsDestination(words, destination) {
             Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLinkLabel)) {
@@ -94,7 +101,10 @@ struct LinkContextMenu: View {
             }
         }
         Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLinkAsMarkdown)) {
-            _ = clipboard.write(Self.markdown(label: words, destination: destination), announcingSuccess: true)
+            let markdown = Self.markdown(label: words, destination: destination)
+            _ = clipboard.write(
+                markdown, representations: [ClipboardRepresentation(type: "text/markdown", text: markdown)],
+                announcingSuccess: true)
         }
     }
 

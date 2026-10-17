@@ -133,6 +133,31 @@ final class InMemoryClipboard: ClipboardBackend {
     }
 }
 
+// MARK: - Representations
+
+/// One more form of a copy than its text: a MIME type and its bytes —
+/// `text/html` for styled text, `text/markdown`, `text/uri-list` for a link,
+/// `image/png` for a picture.
+///
+/// Carried only where the terminal takes them (OSC 5522,
+/// ``TerminalClient/mimeClipboard``); everywhere else a copy is its text.
+package struct ClipboardRepresentation: Equatable, Sendable {
+    /// The MIME type, as a pasteboard names it: `text/html`.
+    package let type: String
+    /// The bytes.
+    package let data: Data
+
+    package init(type: String, data: Data) {
+        self.type = type
+        self.data = data
+    }
+
+    /// Text in `type`, as UTF-8.
+    package init(type: String, text: String) {
+        self.init(type: type, data: Data(text.utf8))
+    }
+}
+
 // MARK: - OSC 52
 
 /// The OSC 52 write TUIkit sends, spelled as Ghostty's documentation requires
@@ -155,6 +180,41 @@ enum ClipboardSequence {
         guard !text.isEmpty else { return nil }
         return "\u{1B}]52;c;" + Data(text.utf8).base64EncodedString() + "\u{1B}\\"
     }
+
+    /// The OSC 5522 write of `text` as `text/plain` and every one of
+    /// `representations` after it, or `nil` for empty text: kitty's clipboard
+    /// protocol (https://sw.kovidgoyal.net/kitty/clipboard/).
+    ///
+    /// `type=write` opens it; each type follows as `type=wdata` packets, its
+    /// MIME type and its bytes base64 (standard, padded), at most 4096 bytes
+    /// before encoding to a packet, one type's packets all sent before the
+    /// next type's; an empty `type=wdata` closes it. The terminal answers
+    /// `type=write:status=DONE`, or an error, which the input parser swallows
+    /// with every other reply. A type with no bytes is left out: an empty
+    /// `wdata` would close the write.
+    static func write(_ text: String, representations: [ClipboardRepresentation]) -> String? {
+        guard !text.isEmpty else { return nil }
+        let introducer = "\u{1B}]5522;"
+        let terminator = "\u{1B}\\"
+        var out = introducer + "type=write" + terminator
+        let parts = [ClipboardRepresentation(type: "text/plain", text: text)] + representations
+        for part in parts where !part.data.isEmpty {
+            let mime = Data(part.type.utf8).base64EncodedString()
+            var offset = part.data.startIndex
+            while offset < part.data.endIndex {
+                let end = part.data.index(offset, offsetBy: mimeChunkBytes, limitedBy: part.data.endIndex)
+                    ?? part.data.endIndex
+                out += introducer + "type=wdata:mime=" + mime + ";"
+                    + part.data[offset..<end].base64EncodedString() + terminator
+                offset = end
+            }
+        }
+        return out + introducer + "type=wdata" + terminator
+    }
+
+    /// The most bytes of a type an OSC 5522 packet carries, before encoding:
+    /// the protocol's limit.
+    static let mimeChunkBytes = 4096
 }
 
 // MARK: - The writer
@@ -185,6 +245,10 @@ package final class ClipboardWriter: @unchecked Sendable {
     /// Whether this machine's clipboard is the user's (``SessionLocality``).
     /// A tmux session can be attached from another machine at any moment.
     private let isLocal: @MainActor () -> Bool
+
+    /// Whether the terminal takes OSC 5522, so a terminal copy carries every
+    /// representation rather than its text alone.
+    private let mimeSupport: @MainActor () -> Bool
 
     /// This machine's clipboard (``ClipboardBackend``): its helpers in a
     /// running app, memory everywhere else.
@@ -224,12 +288,14 @@ package final class ClipboardWriter: @unchecked Sendable {
             TerminalClient.clipboardWrites
         },
         isLocal: @escaping @MainActor () -> Bool = { SessionLocality.isLocal() },
+        mimeSupport: @escaping @MainActor () -> Bool = { TerminalClient.mimeClipboard },
         system: any ClipboardBackend,
         nowNanos: @escaping @Sendable () -> UInt64 = { MonotonicClock.nowNanoseconds },
         requestFrame: @escaping @Sendable () -> Void = { AppState.shared.setNeedsRender() }
     ) {
         self.terminalSupport = terminalSupport
         self.isLocal = isLocal
+        self.mimeSupport = mimeSupport
         self.system = system
         self.hasSystemHelper = system.isAvailable
         self.nowNanos = nowNanos
@@ -243,8 +309,15 @@ package final class ClipboardWriter: @unchecked Sendable {
     ///   the status bar. A selection's copy does — nothing else on screen says
     ///   it happened — and a text control's does not. Anything short of a
     ///   plain success always does.
+    /// - Parameter representations: More forms of the copy than its text —
+    ///   styled text as HTML, a link as a URI list — which go with it where
+    ///   the terminal takes them (``TerminalClient/mimeClipboard``), and
+    ///   nowhere else: this machine's clipboard is written by a helper that
+    ///   takes text.
     @MainActor @discardableResult
-    func write(_ text: String, announcingSuccess: Bool) -> ClipboardWriteResult {
+    func write(
+        _ text: String, representations: [ClipboardRepresentation] = [], announcingSuccess: Bool
+    ) -> ClipboardWriteResult {
         let result: ClipboardWriteResult
         if text.isEmpty {
             result = .nothingToCopy
@@ -254,7 +327,11 @@ package final class ClipboardWriter: @unchecked Sendable {
             switch route {
             case .terminal(let confirmed):
                 // Non-nil: the text is not empty.
-                if let sequence = ClipboardSequence.write(text) { pending.append(sequence) }
+                let sequence =
+                    mimeSupport()
+                    ? ClipboardSequence.write(text, representations: representations)
+                    : ClipboardSequence.write(text)
+                if let sequence { pending.append(sequence) }
                 result = confirmed ? .copied : .sentToTerminal
             case .system:
                 result = system.write(text) ? .copied : .failed

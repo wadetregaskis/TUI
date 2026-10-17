@@ -357,8 +357,10 @@ extension AppRunner {
         // known to answer it: DECRQM's `CSI ? Ps $ p` is the one CSI shape
         // Apple Terminal prints instead of consuming. Before the render loop,
         // for the same reason identification is — the advance model this
-        // protects is frozen into `FrameDiffWriter` at construction.
-        terminal.pinGraphemeClusteringIfNeeded()
+        // protects is frozen into `FrameDiffWriter` at construction. And
+        // whether a copy can carry more than text (OSC 5522), asked under the
+        // same rule.
+        terminal.askModesOfIdentifiedHost()
 
         // Which other chords the host may send ⌃\'s byte for, now that it
         // is named.

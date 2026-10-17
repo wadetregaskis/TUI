@@ -165,6 +165,15 @@ when unset), the visual/aspect probes print to the terminal.
   alternate screen. NOT YET RUN on any host (2026-10-05): Ghostty, iTerm2 with
   its clipboard setting on and off, Apple Terminal, Warp, kitty, and tmux with
   `set-clipboard on` and `external` are owed.
+- `clipboard_mime_probe.py` — does the terminal speak OSC 5522, kitty's
+  clipboard protocol for any MIME type? DECRQM for mode 5522, then a write of
+  text/plain, text/html, text/markdown and a 2×2 PNG, the acknowledgement,
+  what macOS's pasteboard then holds (`clipboard info`), and the type list
+  (a read of `.`, which asks no permission); `--read` reads text/plain back,
+  which may prompt. Queries go to `/dev/tty`, so a `.command` wrapper may
+  send the summary to a file. Leaves the clipboard as the write left it.
+  JSON to `$PROBE_OUT`. Run 2026-10-17 on iTerm2, Apple Terminal and Warp
+  (none speaks it); kitty and Ghostty's development branch are owed.
 - `identity_probe.py` — asks the terminal WHO it is over escape queries
   (DA1/DA2/DA3, XTVERSION, XTGETTCAP), DSR-fenced so a silent terminal
   cannot stall it. This is the measurement behind identifying a host over
