@@ -290,8 +290,7 @@ extension _TextEditorCore {
                 return
             }
             let drawn = TextFieldContentRenderer.caretFrames(
-                cycle.cursor, shape: cycle.shape, cells: cells,
-                underlying: underlying, isSelected: isSelected, colors: cycle.colors)
+                cycle.cursor, shape: cycle.shape, cells: cells, underlying: underlying, colors: cycle.colors)
             // Out of band, and claiming its FIELD per frame. Every frame's ink is spent,
             // so "no ink claim" is true of them all; the field is not — a blink-off
             // frame shows the well and a block frame shows the caret's own opaque

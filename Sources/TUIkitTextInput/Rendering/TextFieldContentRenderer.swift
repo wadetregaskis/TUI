@@ -518,7 +518,6 @@ struct TextFieldContentRenderer: FieldTextLayout {
         let setup = clampedPosition.flatMap { _ in drawsCaret ? () : nil }.map { _ in
             Self.caretSetup(
                 palette: palette, background: background, textForeground: textForeground,
-                selection: selection,
                 cursorStyle: cursorStyle, speed: cursorSpeed, cursorTimer: cursorTimer, timing: cursorTiming,
                 appearsActive: appearsActive)
         }
@@ -540,9 +539,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
                     reversed: isSelected && selection.isReversed)
                 return
             }
-            let drawn = Self.caretFrames(
-                cycle, shape: cursorStyle.shape, cells: cells,
-                underlying: underlying, isSelected: isSelected, colors: colors)
+            let drawn = Self.caretFrames(cycle, shape: cursorStyle.shape, cells: cells, underlying: underlying, colors: colors)
             flushRun()
             runs.appendVerbatim(drawn.frames[drawn.drawnIndex])
             if cycle.isAnimating {
@@ -613,9 +610,8 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// Nine parameters: the caret's colours need five, and how it moves needs four
     /// (speed, clock, forced timing, whether the field appears active), each of
     /// which both callers already hold separately.
-    static func caretSetup(  // swiftlint:disable:this function_parameter_count
+    static func caretSetup(
         palette: any Palette, background: Color?, textForeground: Color,
-        selection: FieldSelectionStyle,
         cursorStyle: TextCursorStyle, speed: IndicatorAnimationSpeed, cursorTimer: CursorTimer?,
         timing: IndicatorCycleTiming?, appearsActive: Bool
     ) -> (cycle: CursorCycle, colors: CaretColors) {
@@ -638,14 +634,6 @@ struct TextFieldContentRenderer: FieldTextLayout {
                 background: background,
                 blockText: ground.opaqueSpelling,
                 text: textForeground.spendingAlpha(over: ground),
-                // Spent over the highlight: the opaque field that is literally behind
-                // this ink in the blink-OFF frame, as the ground is behind `text`'s. It
-                // is not opaque itself — `readableText(on:)` floors a palette slot and
-                // keeps its alpha — so a faded palette's caret on a selected character
-                // handed the emitter a translucent colour (§60).
-                selectionText: selection.foreground.spendingAlpha(over: selection.background),
-                selectionBackground: selection.background,
-                selectionIsReversed: selection.isReversed,
                 // A block paints the caret's own colour and punches the character out
                 // of it in the ground. Where the caret's colour or the ground has no
                 // RGB that pair is one nobody can check for contrast — and for a
@@ -668,7 +656,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         /// caret's own cells then take what is behind the field, exactly as
         /// the rest of the line does.
         ///
-        /// As AUTHORED, alpha intact. ``caretCells(_:shape:cells:underlying:isSelected:colors:)``
+        /// As AUTHORED, alpha intact. ``caretCells(_:shape:cells:underlying:colors:)``
         /// spells it opaque where it paints it and reports the alpha back, so the bytes
         /// and the claim beside them come from the one colour. It used to be stored
         /// already spelled, which is where a faded well's alpha was lost (§61.2).
@@ -680,13 +668,6 @@ struct TextFieldContentRenderer: FieldTextLayout {
         let blockText: Color
 
         let text: Color
-        let selectionText: Color
-        let selectionBackground: Color
-
-        /// Whether a selected cell's pair is stated beside an SGR 7
-        /// (``FieldSelectionStyle/isReversed``). A block caret has to know: it
-        /// reverses the cell it sits on, and two reversals read as none.
-        let selectionIsReversed: Bool
 
         /// Whether a block caret reverses the cell under it instead of painting its own
         /// colour — set where that colour or the ground has no RGB, so the block would
@@ -700,13 +681,10 @@ struct TextFieldContentRenderer: FieldTextLayout {
         shape: TextCursorStyle.Shape,
         cells: Int,
         underlying: Character,
-        isSelected: Bool,
         colors: CaretColors
     ) -> Caret {
         let drawn = cycle.states.map {
-            caretCells(
-                $0, shape: shape, cells: cells,
-                underlying: underlying, isSelected: isSelected, colors: colors)
+            caretCells($0, shape: shape, cells: cells, underlying: underlying, colors: colors)
         }
         // One span per frame, the whole caret wide, because a caret paints its cells in
         // ONE field per frame — a block shows its own opaque colour, every other frame
@@ -765,7 +743,6 @@ struct TextFieldContentRenderer: FieldTextLayout {
         shape: TextCursorStyle.Shape,
         cells: Int,
         underlying: Character,
-        isSelected: Bool,
         colors: CaretColors
     ) -> (cells: String, fieldAlpha: Double) {
         // The FIELD each arm paints, reported beside the bytes so the two cannot
@@ -776,36 +753,25 @@ struct TextFieldContentRenderer: FieldTextLayout {
         func owed(_ colour: Color?) -> Double {
             colour.map { OpacityRegion.opacity(of: $0.alpha) } ?? 1
         }
-        // The cell as it stands WITHOUT the caret. A selection whose highlight cannot
-        // be measured is itself a reversal, so the character under the caret is drawn
-        // with the 7 exactly where its neighbours are.
-        let cellIsReversed = isSelected && colors.selectionIsReversed
+        // The cell as it stands WITHOUT the caret. Never a selected one: no caret
+        // is drawn while text is selected.
         guard state.visible else {
-            let field = isSelected ? colors.selectionBackground : colors.background
             return (
                 ANSIRenderer.colorize(
-                    String(underlying),
-                    foreground: isSelected ? colors.selectionText : colors.text,
-                    background: field?.opaqueSpelling,
-                    inverted: cellIsReversed),
-                owed(field))
+                    String(underlying), foreground: colors.text, background: colors.background?.opaqueSpelling),
+                owed(colors.background))
         }
         switch shape {
         case .block where colors.blockReverses:
             // The caret reverses the CELL, as the terminal's own block cursor does:
-            // the pair it already had, exchanged. Over a selection that is itself
-            // reversed the flag comes OFF — two reversals read as none, and a cell
-            // standing plain among reversed neighbours is exactly what marks it.
-            // `blockText` is the ground, which stands in for a `.plain` field that
-            // states no background of its own: a reversal has to name both sides.
-            let field = isSelected ? colors.selectionBackground : colors.background
+            // the pair it already had, exchanged. `blockText` is the ground, which
+            // stands in for a `.plain` field that states no background of its own:
+            // a reversal has to name both sides.
             return (
                 ANSIRenderer.colorize(
-                    String(underlying),
-                    foreground: isSelected ? colors.selectionText : colors.text,
-                    background: (field ?? colors.blockText).opaqueSpelling,
-                    inverted: !cellIsReversed),
-                owed(field))
+                    String(underlying), foreground: colors.text,
+                    background: (colors.background ?? colors.blockText).opaqueSpelling, inverted: true),
+                owed(colors.background))
         case .block:
             // Floored against the caret's CURRENT colour, per frame: the block
             // is the cursor's colour and the character is punched out of it, so
