@@ -40,8 +40,9 @@ struct MIMEPasteSession {
 
     private enum Phase {
         case idle
-        /// A paste event: its password, and the types listed so far.
-        case listing(password: String, types: [String])
+        /// A paste event: its password, whether it pastes the primary
+        /// selection, and the types listed so far.
+        case listing(password: String, primary: Bool, types: [String])
         /// The read for it: the bytes of each type, in arrival order.
         case reading(parts: [(type: String, bytes: [UInt8])])
     }
@@ -59,19 +60,21 @@ struct MIMEPasteSession {
         switch (phase, status) {
         case (.idle, "OK"):
             // Unsolicited, with a password: the user pasted.
+            // A middle-click's paste is of the primary selection, and says so.
             guard let password = metadata["pw"] else { return nil }
-            phase = .listing(password: password, types: [])
-        case (.listing(let password, let types), "DATA") where Self.decodedText(metadata["mime"]) == ".":
+            phase = .listing(password: password, primary: metadata["loc"] == "primary", types: [])
+        case (.listing(let password, let primary, let types), "DATA") where Self.decodedText(metadata["mime"]) == ".":
             let listed = Self.decoded(payload).flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
-            phase = .listing(password: password, types: types + listed.split(whereSeparator: \.isWhitespace).map(String.init))
-        case (.listing(let password, let types), "DONE"):
+            let more = listed.split(whereSeparator: \.isWhitespace).map(String.init)
+            phase = .listing(password: password, primary: primary, types: types + more)
+        case (.listing(let password, let primary, let types), "DONE"):
             let wanted = Self.wanted(from: types)
             guard !wanted.isEmpty else {
                 phase = .idle
                 return nil
             }
             phase = .reading(parts: [])
-            return .request(Self.readRequest(wanted, password: password))
+            return .request(Self.readRequest(wanted, password: password, primary: primary))
         case (.reading(var parts), "DATA"):
             guard let type = Self.decodedText(metadata["mime"]), let bytes = Self.decoded(payload) else { return nil }
             if parts.last?.type == type {
@@ -102,11 +105,13 @@ struct MIMEPasteSession {
         return wanted
     }
 
-    /// The read of `types` under a paste event's one-time password.
-    static func readRequest(_ types: [String], password: String) -> String {
+    /// The read of `types` under a paste event's one-time password, of the
+    /// primary selection where the paste was.
+    static func readRequest(_ types: [String], password: String, primary: Bool = false) -> String {
         let name = Data("Paste event".utf8).base64EncodedString()
         let list = Data(types.joined(separator: " ").utf8).base64EncodedString()
-        return "\u{1B}]5522;type=read:pw=\(password):name=\(name);\(list)\u{1B}\\"
+        let location = primary ? ":loc=primary" : ""
+        return "\u{1B}]5522;type=read\(location):pw=\(password):name=\(name);\(list)\u{1B}\\"
     }
 
     /// The paste `parts` make: the text type's bytes as the text, every other

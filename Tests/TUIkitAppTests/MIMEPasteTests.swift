@@ -63,6 +63,18 @@ struct MIMEPasteTests {
         #expect(request == .request(expected))
     }
 
+    @Test("A middle-click's paste of the primary selection reads the primary selection")
+    func primarySelection() {
+        var session = MIMEPasteSession()
+        let event = Self.pasteEvent("text/plain")
+            .replacingOccurrences(of: "status=OK:pw=", with: "status=OK:loc=primary:pw=")
+        guard case .request(let request)? = feed(&session, event).first else {
+            Issue.record("a request")
+            return
+        }
+        #expect(request.hasPrefix("\u{1B}]5522;type=read:loc=primary:pw="))
+    }
+
     @Test("The read's packets become one paste: the text, and the picture's bytes in order")
     func paste() {
         var session = MIMEPasteSession()

@@ -5931,8 +5931,11 @@ other input modes on exit and suspend). A paste then arrives not bracketed
 but as an unsolicited read reply listing the clipboard's types under a
 one-time password — `type=read:status=OK:pw=…`, one `status=DATA` packet
 with `mime=.` whose payload is the types, space-separated, then
-`status=DONE` (kitty's `send_paste_event`, read from its source; the
-specification shows no packet) — and TUIkit reads the first text type and
+`status=DONE`, the OK carrying `loc=primary` for a paste of the primary
+selection (kitty's `send_paste_event`, read from its source; the
+specification shows no packet). kitty sends this INSTEAD of the bracketed
+text — `boss.py`'s `paste_from_clipboard` returns once `send_paste_event`
+has — so the text comes only through the read. TUIkit reads the first text type and
 the first `image/*` with that password and `name=Paste event`, so no
 permission prompt appears. The reply's `DATA` packets (each type's in order)
 become one paste key event: its text, and the picture's bytes beside it,
