@@ -153,14 +153,19 @@ struct MenusPage: View {
                     // A menu of SETTINGS rather than of commands. The
                     // `.menuActionDismissBehavior(.disabled)` is written on the
                     // three toggles (inside `stickyItem`), NOT on the `Menu`, so
-                    // `Done` below them closes it the ordinary way — the modifier
-                    // scopes to whatever subtree it is applied to.
+                    // `Turn All Off` below them — an ordinary command, with an
+                    // effect of its own — closes it the ordinary way: the
+                    // modifier scopes to whatever subtree it is applied to.
                     Menu("page.menus.stickyTitle") {
                         stickyItem("page.menus.sticky.hidden", $showsHidden)
                         stickyItem("page.menus.sticky.sizes", $showsSizes)
                         stickyItem("page.menus.sticky.previews", $showsPreviews)
                         Divider()
-                        Button("page.menus.sticky.done") {}
+                        Button("page.menus.sticky.allOff") {
+                            showsHidden = false
+                            showsSizes = false
+                            showsPreviews = false
+                        }
                     }
                     ValueDisplayRow("page.menus.showing", showingSummary)
                 }
