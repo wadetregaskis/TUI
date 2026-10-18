@@ -33,18 +33,36 @@ enum Headless {
     /// platform. Deliberately not `String.hashValue`, which is seeded per
     /// process and so differs between two runs of the same work.
     ///
-    /// The bytes are read from the line's contiguous UTF-8 storage: stepping
-    /// `line.utf8` went through the collection witnesses a byte at a time and
-    /// was 3.3% of a kitchensink bench frame — the instrument weighing on what
-    /// it measures. The hash is the same either way.
+    /// Eight bytes a step, from each line's contiguous UTF-8 storage, so the
+    /// hash's serial multiply runs once per word rather than once per byte:
+    /// byte by byte it was 20.6% of a `dashboard` profile. The checksum is
+    /// outside the timed region, so it never moved a bench's numbers — only
+    /// every share a profile of one reports, which it understated by as much.
+    /// Each line's length closes its words, so where the lines break counts.
     private static func contentChecksum(_ buffer: FrameBuffer) -> Int {
-        var hash = 5381
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
         for var line in buffer.lines {
-            line.withUTF8 { bytes in
-                for byte in bytes { hash = (hash &* 33) ^ Int(byte) }
-            }
+            line.withUTF8 { hash = mixed(UnsafeRawBufferPointer($0), into: hash) }
         }
-        return hash
+        return Int(truncatingIfNeeded: hash)
+    }
+
+    /// FNV-1a's step over `bytes` taken a little-endian word at a time, then
+    /// the bytes that do not fill one, then their count.
+    private static func mixed(_ bytes: UnsafeRawBufferPointer, into start: UInt64) -> UInt64 {
+        let prime: UInt64 = 0x100_0000_01b3
+        var hash = start
+        var offset = 0
+        while offset + 8 <= bytes.count {
+            let word = UInt64(littleEndian: bytes.loadUnaligned(fromByteOffset: offset, as: UInt64.self))
+            hash = (hash ^ word) &* prime
+            offset += 8
+        }
+        while offset < bytes.count {
+            hash = (hash ^ UInt64(bytes[offset])) &* prime
+            offset += 1
+        }
+        return (hash ^ UInt64(bytes.count)) &* prime
     }
 
     /// Whether a frame carries anything a reader would see. A frame of nothing
