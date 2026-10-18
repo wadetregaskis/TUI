@@ -382,7 +382,7 @@ extension Animation {
     /// logical completion or repeat of TUIkit's around it.
     private var plainCustomAnimation: (any CustomAnimation)? {
         guard case .custom(let id) = curve, delayInterval == 0, speedFactor == 1, logicalCompletion < 0,
-            case .count(1, _) = repeatMode
+            case .count(1, _, _) = repeatMode
         else { return nil }
         return id.curve.base
     }

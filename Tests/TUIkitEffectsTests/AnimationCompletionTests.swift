@@ -227,8 +227,14 @@ struct AnimationCompletionTests {
             uniqueKeysWithValues: Mirror(reflecting: animation).children.map { ($0.label ?? "", "\($0.value)") })
         #expect(children["curve"] == "easeIn(duration: 2.0)")
         #expect(children["duration"] == "2.0")
-        #expect(children["delay"] == "1.0")
+        // Written before the repeat, the delay comes before every pass.
+        #expect(children["delayEachPass"] == "1.0")
+        #expect(children["delay"] == nil, "no delay leads")
         #expect(children["repeatCount"] == "3")
+        let leading = Dictionary(
+            uniqueKeysWithValues: Mirror(reflecting: Animation.easeIn(duration: 2).repeatCount(3).delay(1)).children
+                .map { ($0.label ?? "", "\($0.value)") })
+        #expect(leading["delay"] == "1.0")
         #expect(children["speed"] == nil, "a default is left out")
         #expect(Mirror(reflecting: Animation.linear).displayStyle == .struct)
     }

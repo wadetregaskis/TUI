@@ -76,6 +76,8 @@ public struct AnimationCycle<Value: VectorArithmetic>: Sendable where Value: Sen
         // fade served, freezing it. A delayed repeat renders per frame
         // instead (the caller falls back when this returns nil), which honours
         // the delay correctly; the one-time delay is not worth a cycle anyway.
+        // A delay written BEFORE the repeat is part of every pass, so it is
+        // inside the period and samples like the rest of it.
         guard animation.effectiveDelay <= 0 else { return nil }
         // One value per standard animation frame, 50 ms, on either clock.
         let frame = AnimationClock.seconds(forTicks: AnimationClock.standardFrameTicks)

@@ -29,14 +29,33 @@ import Foundation
 /// and handing the run loop finished frames to replay (``AnimatedCellRun``).
 /// See <doc:AnimatingYourOwnView>.
 public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible {
-    /// How many times, and in which directions, the curve is played.
+    /// How many times, and in which directions, the curve is played, and how
+    /// long each pass waits before it plays.
+    ///
+    /// `passDelay` is a ``delay(_:)`` written BEFORE the repeat, which SwiftUI
+    /// repeats with the pass (measured, `Tools/SwiftUIProbes/Animation curves,
+    /// springs and keyframes/p11.swift`): every pass, a reversed one too,
+    /// holds where it starts for that long, before ``speed(_:)``. A `Float`
+    /// and an `Int32`, for the bytes: with them the enum is the nine bytes the
+    /// pass count and its flag took alone, where an `Int` and a `Double`
+    /// would add a word to every `Animation`, `Transaction` and `Binding`.
+    /// Seven significant digits are plenty for a wait, and two billion passes
+    /// for a count.
     enum Repeat: Sendable, Equatable, Hashable {
         /// A number of one-way passes. `autoreverses` plays every second pass
         /// backwards, so `.count(2, autoreverses: true)` ends where it started.
-        case count(Int, autoreverses: Bool)
+        /// A single pass has no `passDelay`: its delay leads (`delayInterval`).
+        case count(Int32, passDelay: Float, autoreverses: Bool)
 
         /// Passes without end, alternating direction when `autoreverses`.
-        case forever(autoreverses: Bool)
+        case forever(passDelay: Float, autoreverses: Bool)
+
+        /// The wait before every pass, before ``Animation/speed(_:)``.
+        var passDelay: TimeInterval {
+            switch self {
+            case .count(_, let delay, _), .forever(let delay, _): TimeInterval(delay)
+            }
+        }
     }
 
     /// The shape of one pass.
@@ -60,7 +79,10 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
     /// keeps moving after it.
     let passDuration: TimeInterval
 
-    /// How long to wait before the first pass, before ``speed(_:)``.
+    /// How long to wait before the first pass, before ``speed(_:)`` — a
+    /// delay written after one is stored multiplied by it, so the speed's
+    /// division gives it back unscaled. A delay written before a repeat is
+    /// not here but in ``Repeat/passDelay``.
     let delayInterval: TimeInterval
 
     /// The rate multiplier. 2 runs it twice as fast.
@@ -75,7 +97,7 @@ public struct Animation: Sendable, Equatable, Hashable, CustomStringConvertible 
         delayInterval: TimeInterval = 0,
         speedFactor: Double = 1,
         logicalCompletion: TimeInterval = -1,
-        repeatMode: Repeat = .count(1, autoreverses: false)
+        repeatMode: Repeat = .count(1, passDelay: 0, autoreverses: false)
     ) {
         self.curve = curve
         self.passDuration = max(0, passDuration)
@@ -324,7 +346,7 @@ extension Animation {
     /// a merge continues one (``AnimationStore``); any other as it is.
     package func carrying(velocity: Double) -> Animation {
         guard case .spring(let omega, let zeta, _, let merges) = curve, velocity.isFinite, delayInterval == 0,
-            speedFactor == 1, logicalCompletion < 0, case .count(1, _) = repeatMode
+            speedFactor == 1, logicalCompletion < 0, case .count(1, _, _) = repeatMode
         else { return self }
         return Animation(
             curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity, merges: merges),
@@ -368,24 +390,25 @@ extension Animation {
 extension Animation {
     /// This animation, started `delay` seconds later.
     ///
-    /// One delay, before the first pass, scaled by the animation's speed —
-    /// whatever order the modifiers were written in. SwiftUI's differs in two
-    /// orders (measured, `Tools/SwiftUIProbes/Animation curves, springs and
-    /// keyframes/p10.swift`): a delay written before `repeatForever` or
-    /// `repeatCount` comes again before every pass, and one written after
-    /// ``speed(_:)`` is not scaled by it. Its animation is a stack of
-    /// modifiers, each wrapping the one before; TUIkit's is one record of
-    /// curve, duration, delay, speed and repeat, which custom animations
-    /// (refusal review O3) will open up.
+    /// Composed as SwiftUI's is, each modifier wrapping the animation before
+    /// it (measured, `Tools/SwiftUIProbes/Animation curves, springs and
+    /// keyframes/p10.swift` and `p11.swift`): a delay written before
+    /// ``repeatCount(_:autoreverses:)`` or ``repeatForever(autoreverses:)``
+    /// comes again before every pass, reversed ones too, and one written
+    /// after them comes once; a delay written before ``speed(_:)`` is scaled
+    /// by it, and one written after is not.
     public func delay(_ delay: TimeInterval) -> Animation {
-        with(
-            delayInterval: delayInterval + delay,
+        // Stored before the speed, as every time here is: a delay written
+        // after a speed is outside it, so it is stored multiplied by it.
+        let stored = delay * speedFactor
+        return with(
+            delayInterval: delayInterval + stored,
             // A completion time is counted from the start, which moved.
-            logicalCompletion: logicalCompletion < 0 ? nil : TimeInterval(logicalCompletion) + delay)
+            logicalCompletion: logicalCompletion < 0 ? nil : TimeInterval(logicalCompletion) + stored)
     }
 
-    /// This animation, run `speed` times as fast. The delay scales with it, as
-    /// it does in SwiftUI.
+    /// This animation, run `speed` times as fast. A delay written before it
+    /// scales with it, as it does in SwiftUI.
     public func speed(_ speed: Double) -> Animation {
         with(speedFactor: speedFactor * speed)
     }
@@ -416,7 +439,10 @@ extension Animation {
     /// pass runs backwards, so an even count ends where it started and an odd
     /// one ends at the target.
     public func repeatCount(_ repeatCount: Int, autoreverses: Bool = true) -> Animation {
-        with(repeatMode: .count(max(1, repeatCount), autoreverses: autoreverses))
+        let passes = Int32(clamping: max(1, repeatCount))
+        // One pass is the animation as it was, its delay still leading.
+        guard passes > 1 else { return with(repeatMode: .count(1, passDelay: 0, autoreverses: autoreverses)) }
+        return repeating(.count(passes, passDelay: passDelayIncludingLead, autoreverses: autoreverses))
     }
 
     /// This animation, played until something stops it.
@@ -428,7 +454,21 @@ extension Animation {
     ///   where it cannot, it re-renders the affected subtree for as long as the
     ///   view is on screen.
     public func repeatForever(autoreverses: Bool = true) -> Animation {
-        with(repeatMode: .forever(autoreverses: autoreverses))
+        repeating(.forever(passDelay: passDelayIncludingLead, autoreverses: autoreverses))
+    }
+
+    /// The wait before each pass once this animation repeats: its leading
+    /// delay, which the repeat now plays before every pass, after any wait it
+    /// already had there. A repeat of a repeat replaces it, as it always has
+    /// here; SwiftUI's own answer to one is erratic (p11, case 6).
+    private var passDelayIncludingLead: Float {
+        Float(repeatMode.passDelay + delayInterval)
+    }
+
+    /// This animation repeating as `mode` says, its leading delay moved into
+    /// the pass.
+    private func repeating(_ mode: Repeat) -> Animation {
+        with(delayInterval: 0, repeatMode: mode)
     }
 }
 
@@ -457,8 +497,8 @@ extension Animation {
     /// its end; ``isFinished(at:)`` integrates as far as it is asked.
     public var totalDuration: TimeInterval? {
         switch repeatMode {
-        case .count(let n, _):
-            resolvedPassDuration.map { effectiveDelay + $0 / speedFactor * Double(n) }
+        case .count(let n, _, _):
+            resolvedPassDuration.map { effectiveDelay + ($0 + repeatMode.passDelay) / speedFactor * Double(n) }
         case .forever: nil
         }
     }
@@ -473,16 +513,18 @@ extension Animation {
     /// SwiftUI's criterion describes. ``logicallyComplete(after:)`` can bring
     /// it forward, never past the end.
     public var logicalCompletionDuration: TimeInterval? {
-        guard let total = totalDuration, case .count(let passes, _) = repeatMode else { return nil }
+        guard let total = totalDuration, case .count(let count, _, _) = repeatMode else { return nil }
+        let passes = Double(count)
+        let wait = repeatMode.passDelay
         var natural = total
         if case .spring(let omega, _, _, _) = curve, omega > 0 {
             let pace = min(passDuration, 2 * Double.pi / omega)
-            natural = (delayInterval + passDuration * Double(passes - 1) + pace) / speedFactor
+            natural = (delayInterval + (passDuration + wait) * (passes - 1) + wait + pace) / speedFactor
         } else if case .custom(let id) = curve, let pass = resolvedPassDuration,
             let logical = id.curve.logicalCompletionTime
         {
             // When the custom animation said so in its context, on its last pass.
-            natural = (delayInterval + pass * Double(passes - 1) + logical) / speedFactor
+            natural = (delayInterval + (pass + wait) * (passes - 1) + wait + logical) / speedFactor
         }
         guard logicalCompletion >= 0 else { return natural }
         return min(natural, TimeInterval(logicalCompletion) / speedFactor)
@@ -503,8 +545,8 @@ extension Animation {
     public var cyclePeriod: TimeInterval? {
         switch repeatMode {
         case .count: nil
-        case .forever(let autoreverses):
-            resolvedPassDuration.map { $0 / speedFactor * (autoreverses ? 2 : 1) }
+        case .forever(let wait, let autoreverses):
+            resolvedPassDuration.map { ($0 + TimeInterval(wait)) / speedFactor * (autoreverses ? 2 : 1) }
         }
     }
 
@@ -518,26 +560,30 @@ extension Animation {
         let time = (elapsed - effectiveDelay)
         guard time > 0 else { return 0 }
         let scaled = time * speedFactor
+        let wait = repeatMode.passDelay
         // A custom animation that has not finished by now is on its first
         // pass, however it repeats: its pass lasts until it finishes.
-        if case .custom(let id) = curve, id.curve.duration(within: scaled) == nil {
-            return id.curve.progress(at: scaled)
+        if case .custom(let id) = curve, id.curve.duration(within: max(0, scaled - wait)) == nil {
+            return scaled <= wait ? 0 : id.curve.progress(at: scaled - wait)
         }
         let passDuration = resolvedPassDuration ?? 0
-        guard passDuration > 0 else { return 1 }
+        // An instant pass jumps when its wait ends, or at once without one.
+        guard passDuration > 0 else { return wait > 0 && scaled < wait ? 0 : 1 }
 
-        let pass = Int(scaled / passDuration)
-        let within = (scaled - Double(pass) * passDuration) / passDuration
+        // Each pass is its wait, then the curve.
+        let pass = Int(scaled / (wait + passDuration))
+        let into = scaled - Double(pass) * (wait + passDuration)
+        let within = max(0, into - wait) / passDuration
 
         switch repeatMode {
-        case .count(let n, let autoreverses):
-            guard pass < n else {
+        case .count(let n, _, let autoreverses):
+            guard pass < Int(n) else {
                 // Finished. An even number of autoreversing passes lands back
                 // at the start; anything else lands on the target.
                 return autoreverses && n.isMultiple(of: 2) ? 0 : 1
             }
             return value(atPass: pass, within: within, autoreverses: autoreverses, duration: passDuration)
-        case .forever(let autoreverses):
+        case .forever(_, let autoreverses):
             return value(atPass: pass, within: within, autoreverses: autoreverses, duration: passDuration)
         }
     }
@@ -547,7 +593,7 @@ extension Animation {
         // A custom animation is integrated as far as `elapsed` to learn
         // whether its first pass has ended by then.
         if case .custom(let id) = curve {
-            _ = id.curve.duration(within: max(0, (elapsed - effectiveDelay) * speedFactor))
+            _ = id.curve.duration(within: max(0, (elapsed - effectiveDelay) * speedFactor - repeatMode.passDelay))
         }
         guard let totalDuration else { return false }
         return elapsed >= totalDuration
@@ -581,16 +627,20 @@ extension Animation {
     /// is appended in modifier order, so the string round-trips by eye.
     public var description: String {
         var text = curveDescription
-        if delayInterval != 0 { text += ".delay(\(delayInterval))" }
+        // The wait before every pass is a delay written before the repeat,
+        // and the speed scales it; the leading delay, written after both,
+        // is already unscaled.
+        if repeatMode.passDelay != 0 { text += ".delay(\(repeatMode.passDelay))" }
         if speedFactor != 1 { text += ".speed(\(speedFactor))" }
         if logicalCompletion >= 0 { text += ".logicallyComplete(after: \(logicalCompletion))" }
         switch repeatMode {
-        case .count(1, _): break
-        case .count(let n, let autoreverses):
+        case .count(1, _, _): break
+        case .count(let n, _, let autoreverses):
             text += ".repeatCount(\(n), autoreverses: \(autoreverses))"
-        case .forever(let autoreverses):
+        case .forever(_, let autoreverses):
             text += ".repeatForever(autoreverses: \(autoreverses))"
         }
+        if delayInterval != 0 { text += ".delay(\(effectiveDelay))" }
         return text
     }
 
@@ -670,14 +720,15 @@ extension Animation: CustomDebugStringConvertible, CustomReflectable {
             ("curve", curveDescription), ("duration", passDuration),
         ]
         if delayInterval != 0 { children.append(("delay", delayInterval)) }
+        if repeatMode.passDelay != 0 { children.append(("delayEachPass", repeatMode.passDelay)) }
         if speedFactor != 1 { children.append(("speed", speedFactor)) }
         if logicalCompletion >= 0 { children.append(("logicallyCompleteAfter", logicalCompletion)) }
         switch repeatMode {
-        case .count(1, _): break
-        case .count(let passes, let autoreverses):
-            children.append(("repeatCount", passes))
+        case .count(1, _, _): break
+        case .count(let passes, _, let autoreverses):
+            children.append(("repeatCount", Int(passes)))
             children.append(("autoreverses", autoreverses))
-        case .forever(let autoreverses):
+        case .forever(_, let autoreverses):
             children.append(("repeatsForever", true))
             children.append(("autoreverses", autoreverses))
         }

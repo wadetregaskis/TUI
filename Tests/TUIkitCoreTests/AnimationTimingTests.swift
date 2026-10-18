@@ -34,6 +34,76 @@ struct AnimationTimingTests {
         #expect(abs(animation.fraction(at: 0.75) - 0.5) < 1e-6)
     }
 
+    @Test("A delay written after a speed is not scaled by it, as SwiftUI's is not (p10)")
+    func delayAfterSpeed() {
+        let animation = Animation.linear(duration: 0.4).speed(2).delay(0.6)
+        #expect(abs(animation.effectiveDelay - 0.6) < 1e-12)
+        #expect(abs(animation.totalDuration! - 0.8) < 1e-12)
+        // And a later speed scales everything inside it, that delay too.
+        #expect(abs(animation.speed(2).effectiveDelay - 0.3) < 1e-12)
+    }
+
+    /// The value at every 0.05 s from 0 to `end`, to two decimals: the shape
+    /// the SwiftUI probe p11 prints.
+    private func series(_ animation: Animation, until end: Double) -> [Double] {
+        stride(from: 0.0, through: end + 1e-9, by: 0.05).map { (animation.fraction(at: $0) * 100).rounded() / 100 }
+    }
+
+    @Test("A delay written before a repeat comes before every pass, reversed ones too (p11)")
+    func delayRepeatsWithThePass() {
+        let animation = Animation.linear(duration: 0.4).delay(0.3).repeatForever(autoreverses: true)
+        let values = series(animation, until: 1.5)
+        // Waits 0.3 s at 0, rises over 0.4 s, waits 0.3 s at 1, falls over
+        // 0.4 s, and waits again at 0: a 1.4 s cycle.
+        #expect(values[0...6].allSatisfy { $0 == 0 }, "\(values)")
+        #expect(values[10] == 0.5)
+        #expect(values[14...20].allSatisfy { $0 == 1 }, "\(values)")
+        #expect(values[24] == 0.5)
+        #expect(values[28...30].allSatisfy { $0 == 0 }, "\(values)")
+        #expect(abs(animation.cyclePeriod! - 1.4) < 1e-6)
+        // A count ends after its last pass's wait and curve.
+        #expect(abs(Animation.linear(duration: 0.4).delay(0.3).repeatCount(2).totalDuration! - 1.4) < 1e-6)
+    }
+
+    @Test("A delay written after a repeat comes once (p11)")
+    func delayAfterRepeatLeads() {
+        let animation = Animation.linear(duration: 0.4).repeatCount(2, autoreverses: false).delay(0.3)
+        #expect(animation.effectiveDelay == 0.3)
+        #expect(abs(animation.totalDuration! - 1.1) < 1e-6)
+        #expect(abs(animation.fraction(at: 0.8) - 0.25) < 1e-6, "the second pass follows the first at once")
+        // Both: the inner wait repeats, the outer one leads.
+        let both = Animation.linear(duration: 0.4).delay(0.2).repeatCount(2, autoreverses: false).delay(0.3)
+        #expect(abs(both.totalDuration! - 1.5) < 1e-6)
+        #expect(both.fraction(at: 0.45) == 0)
+        #expect(abs(both.fraction(at: 0.6) - 0.25) < 1e-6)
+        #expect(both.fraction(at: 1.0) == 0, "the second pass's wait")
+    }
+
+    @Test("A speed scales a delay inside it, and a delay outside it repeats unscaled (p11)")
+    func speedAndPassDelay() {
+        // delay, then speed, then repeat: a 0.15 s wait and a 0.2 s pass.
+        let inside = Animation.linear(duration: 0.4).delay(0.3).speed(2).repeatCount(2, autoreverses: false)
+        #expect(abs(inside.totalDuration! - 0.7) < 1e-6)
+        #expect(abs(inside.fraction(at: 0.25) - 0.5) < 1e-6)
+        #expect(inside.fraction(at: 0.4) == 0)
+        // speed, then delay, then repeat: a 0.3 s wait and a 0.2 s pass.
+        let outside = Animation.linear(duration: 0.4).speed(2).delay(0.3).repeatCount(2, autoreverses: false)
+        #expect(abs(outside.totalDuration! - 1.0) < 1e-6)
+        #expect(abs(outside.fraction(at: 0.4) - 0.5) < 1e-6)
+        #expect(outside.fraction(at: 0.75) == 0)
+        #expect(abs(outside.fraction(at: 0.9) - 0.5) < 1e-6)
+    }
+
+    @Test("One pass keeps its delay leading, and moves as the animation unrepeated")
+    func singlePassKeepsLead() {
+        let delayed = Animation.linear(duration: 0.4).delay(0.3)
+        let once = delayed.repeatCount(1)
+        #expect(once.effectiveDelay == 0.3)
+        for time in [0.2, 0.4, 0.6, 0.8] {
+            #expect(once.fraction(at: time) == delayed.fraction(at: time))
+        }
+    }
+
     @Test("Speeds compose by multiplying")
     func speedsCompose() {
         #expect(Animation.linear(duration: 1).speed(2).speed(3).effectivePassDuration == 1.0 / 6)

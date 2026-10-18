@@ -123,7 +123,8 @@ struct AllBytesDefinedTests {
             { $0.pointee = .unstated }, { $0.pointee = .statedNone }, { $0.pointee = .stated(.headline) },
         ]),
         Conformer(Animation.Repeat.self, [
-            { $0.pointee = .count(2, autoreverses: true) }, { $0.pointee = .forever(autoreverses: false) },
+            { $0.pointee = .count(2, passDelay: 0.5, autoreverses: true) },
+            { $0.pointee = .forever(passDelay: 0.25, autoreverses: false) },
         ]),
     ]
 

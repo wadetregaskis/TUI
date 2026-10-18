@@ -249,13 +249,17 @@ messages cite that path), and what cites it.
   their triggers change — a trigger runs a phase animator through every phase, not one step, and keyframes
   replay from the initial value, both against SwiftUI's documentation. `p10.swift` hosts one too, and times
   an animated value: a delay written before `repeatForever` comes before every pass, and one written after
-  `speed(_:)` is not scaled by it (the semantic audit's item 4).
+  `speed(_:)` is not scaled by it (the semantic audit's item 4). `p11.swift` prints the value every 0.05 s
+  for the orders `p10` left open: an autoreversing repeat's wait holds where each pass starts, a delay after a
+  repeat comes once, a delay after a speed repeats unscaled, and a repeat of a repeat is erratic.
 - **Ran:** against the macOS 26.2 SDK, on the development Mac, 2026-10-03; `p9` and `p10` on 2026-10-14 (macOS 15.8,
-  Xcode's Swift 6.2.4, three runs alike). `p1`, `p2`, `p3` and `p8` kept no output; their results are in wave
+  Xcode's Swift 6.2.4, three runs alike); `p11` on 2026-10-18 (macOS 15.8, Xcode's Swift 6.2.4; a frame's
+  timing moves a value in the second decimal from run to run, so compare its shape, not with `diff`). `p1`, `p2`, `p3` and `p8` kept no output; their results are in wave
   12's decisions. `p9.out` prints the timing-dependent cases classified (start, end or between), so a rerun
   compares with `diff`.
 - **Was:** `w12/probe/`.
-- **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`; `Tests/TUIkitFoundationTests/KeyframeTimelineTests.swift`,
+- **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`, `Sources/TUIkitCore/Animation/Animation.swift`;
+  `Tests/TUIkitCoreTests/AnimationTimingTests.swift`, `Tests/TUIkitFoundationTests/KeyframeTimelineTests.swift`,
   `Tests/TUIkitFoundationTests/SpringTests.swift`, `Tests/TUIkitFoundationTests/UnitCurveTests.swift`; wave 12's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
 
