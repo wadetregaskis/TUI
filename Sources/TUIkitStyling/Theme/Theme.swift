@@ -448,6 +448,16 @@ extension Palette {
     /// terminal has quantised it) and the neutral must still clear the floor.
     /// On a truecolor terminal nothing overshoots and this never fires, so the
     /// hue is kept wherever it can be shown.
+    /// How far, in ΔL*, a hue-keeping step may overshoot once the terminal has
+    /// quantised it before a grey is preferred, whatever the separation asked
+    /// for: a step that keeps its hue reads as the palette's own, where a grey
+    /// beside a coloured page reads as a foreign colour. 15 lets Man Page's
+    /// surface tables keep their cream (`d7d787`) on a 256-colour terminal,
+    /// where 10 (twice the usual separation) turned them grey (owner, E10,
+    /// 2026-10-17); the near-black greens and the amber that needed the grey
+    /// overshoot by far more and still get it.
+    static var inHueOvershootAllowance: Double { 15 }
+
     static func quietest(
         _ preferred: Color, steppedFrom base: Color, separation: Double
     ) -> Color {
@@ -471,7 +481,7 @@ extension Palette {
         // entry to it is a corner. Half a cube rung of new spread is enough to
         // call that.
         let inventedChroma = spread(quantisedPreferred) - spread(quantisedBase) > 48
-        guard overshoot > separation * 2 || inventedChroma else { return preferred }
+        guard overshoot > max(separation * 2, inHueOvershootAllowance) || inventedChroma else { return preferred }
 
         // A grey of the base's own lightness, walked the same way the hued step
         // was — so it clears the same floor rather than landing wherever the

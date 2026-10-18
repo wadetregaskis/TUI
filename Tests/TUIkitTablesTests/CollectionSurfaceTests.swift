@@ -201,6 +201,19 @@ struct CollectionSurfaceTests {
         }
     }
 
+    @Test("Man Page's surface keeps its cream at 256 colours rather than turning grey")
+    func manPageKeepsItsHue() throws {
+        // E10 (owner, 2026-10-17): the hue-keeping step overshoots the cube's
+        // rungs by more than twice the separation there, and was traded for a
+        // grey; a grey table on a cream page read as a foreign colour.
+        let palette = try #require(PaletteRegistry.palette(withName: "Man Page"))
+        var environment = EnvironmentValues()
+        environment.palette = palette
+        let tones = withColorDepth(.palette256) { CollectionSurface(environment) }
+        let body = try #require(Self.painted(tones.body, at: .palette256)?.rgbComponents)
+        #expect(!(body.red == body.green && body.green == body.blue), "grey: \(body)")
+    }
+
     @Test(
         "The header's tone is told from the rows' and from their stripe, as painted",
         arguments: [ColorDepth.truecolor, .palette256, .basic16])
