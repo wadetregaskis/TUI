@@ -189,10 +189,10 @@ extension Animation {
     /// preserving velocity from one animation to the next. Optionally blends
     /// the duration values between springs over a time period.
     ///
-    /// TUIkit's springs are closed-form functions of elapsed time, and a
-    /// change that retargets one mid-flight starts the next from where its
-    /// picture is, at rest: neither velocity nor a blend of durations carries
-    /// over, and `blendDuration` has nothing to blend.
+    /// TUIkit's springs are closed-form functions of elapsed time. A change
+    /// that retargets one mid-flight starts the next from where its picture
+    /// is, at the velocity it was moving, as SwiftUI's merge does; durations
+    /// are not blended, so `blendDuration` has nothing to blend.
     ///
     /// - Parameters:
     ///   - spring: A description of the spring's motion.
@@ -228,9 +228,9 @@ extension Animation {
     /// animations.
     ///
     /// SwiftUI tunes these for a pointer that is continuously retargeting the
-    /// spring. A terminal's pointer reports a cell at a time, and TUIkit's
-    /// spring restarts from rest when retargeted, so here they are the quick
-    /// springs their numbers describe.
+    /// spring. A terminal's pointer reports a cell at a time, so here they are
+    /// the quick springs their numbers describe, carrying their velocity into
+    /// each retarget as any spring does.
     @_disfavoredOverload
     public static func interactiveSpring(
         response: Double = 0.15, dampingFraction: Double = 0.86, blendDuration: TimeInterval = 0.25
@@ -263,9 +263,10 @@ extension Animation {
     /// produce values in the range [0, 1] that are then used to interpolate
     /// within the [from, to] range of the animated property.
     ///
-    /// SwiftUI preserves velocity across overlapping changes by ADDING the
-    /// animations. TUIkit's springs carry no velocity across a retarget (see
-    /// ``spring(_:blendDuration:)``); the starting velocity is honoured, in the
+    /// SwiftUI's never merges: a change that arrives while it runs starts
+    /// another animation beside it, and the two ADD. TUIkit's merges as
+    /// ``spring(_:blendDuration:)`` does, the value's velocity carrying into
+    /// the spring that takes over. The starting velocity is honoured, in the
     /// closed form, for the change it is given to.
     ///
     /// - Parameters:
@@ -315,6 +316,19 @@ extension Animation {
             curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity),
             passDuration: AnimationCurve.springSettleDuration(
                 omega: omega, zeta: zeta, initialVelocity: velocity))
+    }
+
+    /// This animation starting with `velocity` — in whole changes per second,
+    /// as a spring's initial velocity is — where it is a spring with nothing of
+    /// TUIkit's around it (no delay, speed, repeat or logical completion), as
+    /// a merge continues one (``AnimationStore``); any other as it is.
+    package func carrying(velocity: Double) -> Animation {
+        guard case .spring(let omega, let zeta, _) = curve, velocity.isFinite, delayInterval == 0,
+            speedFactor == 1, logicalCompletion < 0, case .count(1, _) = repeatMode
+        else { return self }
+        return Animation(
+            curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity),
+            passDuration: AnimationCurve.springSettleDuration(omega: omega, zeta: zeta, initialVelocity: velocity))
     }
 
     /// A spring with no bounce — the one to reach for when a change should feel

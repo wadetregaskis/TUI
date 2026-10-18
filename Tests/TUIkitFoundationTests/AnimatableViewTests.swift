@@ -147,11 +147,15 @@ struct AnimatableViewTests {
         _ = screen.render(1, atMillis: 0)
         #expect(screen.render(1, atMillis: 500) == 5)
 
-        // Halfway there, the target moves. The new animation must begin at 0.5
-        // — where the picture actually is — not at the old target, which would
-        // jump the bar to full and then walk it back down.
+        // Halfway there, the target moves. The picture must stay at 0.5 —
+        // where it actually is — not jump to the old target and walk back.
         #expect(screen.render(0, atMillis: 500) == 5)
-        #expect(screen.render(0, atMillis: 1000) == 3)
+        // Then, as SwiftUI's animations do, the two run side by side (O3): the
+        // first goes on to 1 while the second takes 1 back to 0, so their
+        // motions cancel and the bar holds at 0.5 until the first ends at 1 s,
+        // then falls to 0 by 1.5 s. (Restarted from rest, it showed 0.25.)
+        #expect(screen.render(0, atMillis: 1000) == 5)
+        #expect(screen.render(0, atMillis: 1250) == 3)
         #expect(screen.render(0, atMillis: 1500) == 0)
     }
 

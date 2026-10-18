@@ -97,6 +97,24 @@ public final class AnimationStore: @unchecked Sendable {
         /// anything has stored over it. See
         /// ``value(for:target:animation:nowNanos:isMeasuring:)``.
         var appeared: (pass: UInt64, walk: UInt64)?
+
+        /// The animations of earlier changes still running beside this one,
+        /// each with the change it animates — `nil`, nearly always, when
+        /// nothing overlaps. See ``Segment``.
+        var earlier: [Segment]?
+    }
+
+    /// An earlier change's animation, still running beside a later one —
+    /// SwiftUI's additive model: a change that interrupts an animation which
+    /// does not merge with it (`Animation.shouldMerge`) animates only its own
+    /// part of the way, from the earlier target to its own, and the earlier
+    /// animation runs on to where it was headed. What is drawn is the later
+    /// animation's value less what each earlier one has yet to cover.
+    private struct Segment {
+        /// The change this animated: its target, less where it started.
+        let delta: Any
+        let animation: Animation
+        let startNanos: Int64
     }
 
     private var records: [Key: Record] = [:]
@@ -213,7 +231,9 @@ extension AnimationStore {
             // from the start value to the target. The target is still recorded
             // as `target`, so an unchanged re-declaration stays settled and a
             // NEW value animates from where the picture actually is.
-            if let running = record.animation, running.isFinished(at: elapsed(record, nowNanos)) {
+            if let running = record.animation, running.isFinished(at: elapsed(record, nowNanos)),
+                Self.earlierFinished(record, at: nowNanos)
+            {
                 store(
                     Record(from: presented, target: recorded, animation: nil, startNanos: nowNanos),
                     for: key, isMeasuring: isMeasuring)
@@ -242,12 +262,8 @@ extension AnimationStore {
             return target
         }
 
-        // Changed, animated: start from where the picture actually IS, not from
-        // where the last animation was headed. Retargeting mid-flight is the
-        // common case (a value driven by held arrow keys), and starting from the
-        // old target would snap backwards before moving forwards.
         store(
-            Record(from: presented, target: target, animation: animation, startNanos: nowNanos),
+            retargeted(record, from: from, to: target, by: animation, presented: presented, nowNanos: nowNanos),
             for: key, isMeasuring: isMeasuring)
         noteStarted(animation, at: nowNanos, key: key, isMeasuring: isMeasuring)
         return presented
@@ -312,7 +328,7 @@ extension AnimationStore {
     /// Whether the value at `key` is still moving at `nowNanos`.
     package func isAnimating(at key: Key, nowNanos: Int64) -> Bool {
         guard let record = records[key], let animation = record.animation else { return false }
-        return !animation.isFinished(at: elapsed(record, nowNanos))
+        return !animation.isFinished(at: elapsed(record, nowNanos)) || !Self.earlierFinished(record, at: nowNanos)
     }
 
     /// Whether `value` differs from the last one seen at `key`.
@@ -339,7 +355,7 @@ extension AnimationStore {
     public func hasLiveAnimations(at nowNanos: Int64) -> Bool {
         records.values.contains { record in
             guard let animation = record.animation, !record.servedByRuns else { return false }
-            return !animation.isFinished(at: elapsed(record, nowNanos))
+            return !animation.isFinished(at: elapsed(record, nowNanos)) || !Self.earlierFinished(record, at: nowNanos)
         }
     }
 
@@ -362,7 +378,7 @@ extension AnimationStore {
     ) -> AnimationCycle<D>? {
         // A scrubbed body is a picture of one instant, not a cycle to replay.
         guard scrub == nil, let record = records[key],
-            let animation = record.animation, animation.repeatsForever,
+            let animation = record.animation, animation.repeatsForever, record.earlier == nil,
             let from = record.from as? D, let target = record.target as? D
         else { return nil }
         return AnimationCycle<D>(
@@ -482,8 +498,87 @@ extension AnimationStore {
         // retired even-count autoreverse the two are equal, so this changes
         // nothing there.
         guard let animation = record.animation else { return from }
-        return from.interpolated(
+        var value = from.interpolated(
             towards: target, amount: animation.fraction(at: elapsed(record, nowNanos)))
+        if let earlier = record.earlier {
+            for segment in earlier {
+                guard let delta = segment.delta as? D else { continue }
+                let time = Double(nowNanos - segment.startNanos) / 1_000_000_000
+                value -= delta.scaled(by: 1 - segment.animation.fraction(at: time))
+            }
+        }
+        return value
+    }
+
+    /// Whether every earlier change's animation at `record` has finished.
+    private static func earlierFinished(_ record: Record, at nowNanos: Int64) -> Bool {
+        record.earlier?.allSatisfy {
+            $0.animation.isFinished(at: Double(nowNanos - $0.startNanos) / 1_000_000_000)
+        } ?? true
+    }
+
+    /// The record of a change to `target` animated by `animation`, arriving
+    /// while the picture stands at `presented` — SwiftUI's two ways to take
+    /// over a running animation (O3).
+    ///
+    /// - **It merges** (`Animation.shouldMerge(previous:…)`, which a spring
+    ///   answers yes): the new animation replaces the running one from where
+    ///   the picture is, carrying how fast it is moving — a spring keeps its
+    ///   momentum, where it used to restart at rest.
+    /// - **It does not**: the running animation goes on beside it to where it
+    ///   was headed, and the new one animates only the rest of the way, from
+    ///   that target to its own (see ``Segment``).
+    ///
+    /// With nothing running, it starts from where the picture is, at rest, as
+    /// it always did: a retarget from a settled picture has nothing to carry.
+    private func retargeted<D: VectorArithmetic>(
+        _ record: Record, from: D, to target: D, by animation: Animation, presented: D, nowNanos: Int64
+    ) -> Record {
+        guard let running = record.animation, !running.isFinished(at: elapsed(record, nowNanos)),
+            let recorded = record.target as? D
+        else {
+            return Record(from: presented, target: target, animation: animation, startNanos: nowNanos)
+        }
+        var context = AnimationContext<D>()
+        let elapsedTime = elapsed(record, nowNanos)
+        if animation.shouldMerge(previous: running, value: target - presented, time: elapsedTime, context: &context) {
+            // From the running animation's own value, not the picture: the
+            // earlier changes still running beside it go on subtracting what
+            // they have yet to cover, and starting from the picture would
+            // count that twice.
+            let own = from.interpolated(towards: recorded, amount: running.fraction(at: elapsedTime))
+            let velocity = Self.velocity(of: running, from: from, target: recorded, at: elapsedTime)
+            return Record(
+                from: own, target: target,
+                animation: animation.carrying(velocity: Self.share(of: velocity, along: target - own)),
+                startNanos: nowNanos, earlier: record.earlier)
+        }
+        var earlier = record.earlier ?? []
+        earlier.append(Segment(delta: recorded - from, animation: running, startNanos: record.startNanos))
+        return Record(from: recorded, target: target, animation: animation, startNanos: nowNanos, earlier: earlier)
+    }
+
+    /// How fast `animation`, taking a value from `from` to `target`, moves it
+    /// `time` seconds in, per second: the change across the frame before.
+    private static func velocity<D: VectorArithmetic>(
+        of animation: Animation, from: D, target: D, at time: TimeInterval
+    ) -> D {
+        // The frame grid every animation steps on: 1/60 s.
+        let frame = 1.0 / 60
+        guard time >= frame else { return .zero }
+        let before = from.interpolated(towards: target, amount: animation.fraction(at: time - frame))
+        let now = from.interpolated(towards: target, amount: animation.fraction(at: time))
+        return (now - before).scaled(by: 1 / frame)
+    }
+
+    /// `velocity` as a share of `change` per second — the part of it along
+    /// the change, which is all a spring's initial velocity can say.
+    private static func share<D: VectorArithmetic>(of velocity: D, along change: D) -> Double {
+        let changeSquared = change.magnitudeSquared
+        guard changeSquared > 0 else { return 0 }
+        // The dot product, from magnitudes: |v + c|² = |v|² + 2 v·c + |c|².
+        let dot = ((velocity + change).magnitudeSquared - velocity.magnitudeSquared - changeSquared) / 2
+        return dot / changeSquared
     }
 
     private func elapsed(_ record: Record, _ nowNanos: Int64) -> TimeInterval {

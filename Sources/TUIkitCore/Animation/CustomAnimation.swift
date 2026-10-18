@@ -364,9 +364,9 @@ extension Animation {
     /// `Animation.shouldMerge(previous:value:time:context:)`.
     ///
     /// A plain custom animation answers itself. Of TUIkit's curves a spring
-    /// says yes, as SwiftUI's does, and the rest no — though TUIkit restarts a
-    /// spring from where the value stands, at rest, rather than carrying its
-    /// velocity across.
+    /// says yes, as SwiftUI's does, and carries the value's velocity into the
+    /// spring that takes over; the rest say no, and run beside the change
+    /// they interrupt, their motions adding.
     public func shouldMerge<V: VectorArithmetic>(
         previous: Animation, value: V, time: TimeInterval, context: inout AnimationContext<V>
     ) -> Bool {
