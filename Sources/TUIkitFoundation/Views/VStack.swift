@@ -114,7 +114,13 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// `.clip` size: analytic sum-and-clamp. Sums child heights, takes the widest
     /// child for the width, and clamps both to the constraint so the column never
     /// over-reports the space it was given.
-    private func clipSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    ///
+    /// Asked only whether it overflows (`RenderContext.asksOverflow`), it may
+    /// stop once its rows pass the budget: `overflowProbeSizeThatFits`, which
+    /// asks this walk with a `stop` — the one walk, so a column that never
+    /// reaches it answers from the rows it measured, as it does unasked.
+    func clipSizeThatFits(proposal: ProposedSize, context: RenderContext, stoppingAt stop: Int? = nil) -> ViewSize {
+        if context.asksOverflow { return overflowProbeSizeThatFits(proposal: proposal, context: context) }
         let children = resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
 
@@ -184,6 +190,13 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             // its parent and mis-drove width distribution.)
             if !child.isSpacer, size.isWidthFlexible {
                 hasFlexibleWidth = true
+            }
+            // Under the overflow probe only (`overflowProbeSizeThatFits`): the
+            // rows so far and their gaps reach the budget, so the column does.
+            if let stop, totalHeight + totalLinearSpacing(occupiedChildren: occupiedRows, spacing: spacing) >= stop {
+                return ViewSize(
+                    width: min(maxWidth, max(0, widthLimit)), height: stop,
+                    isWidthFlexible: hasFlexibleWidth, isHeightFlexible: hasFlexibleHeight)
             }
         }
         // One gap per occupied row, not per child: PASS 3 of `renderClip`

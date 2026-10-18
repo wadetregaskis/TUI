@@ -242,12 +242,20 @@ public struct RenderContext {
     /// for the rows its budget reaches otherwise. Anything that compares
     /// generations across passes compares `generationIgnoringIdealWidth`.
     ///
-    /// Bit 6 is kept for a second mark of the same kind, which is what took
-    /// the generation from seven bits to six: it costs a wrap at 64 bumps
-    /// rather than 128, and the keyed bump's sixty-four generations became
-    /// sixty-three (``invalidatingMeasureMemo(keyedBy:)``). The stride has no
-    /// free byte, and a mark anywhere else would have had to be added to both
-    /// keys.
+    /// Bit 6 is the OVERFLOW mark: set while a scroll view's first scrollbar
+    /// round asks only WHETHER its content is taller than the viewport
+    /// (`asksOverflow`), so an eager column may stop measuring once its rows
+    /// pass the budget. Its answer then covers only the rows it measured — its
+    /// width and flexibility are theirs — and a full measure must never be
+    /// served it.
+    ///
+    /// The overflow mark is what took the generation from seven bits to six. It
+    /// costs a wrap at 64 plain bumps rather than 128; the keyed bump's
+    /// sixty-four generations became sixty-three; and a keyed bump with a plain
+    /// bump or two beneath it, or nested in another, can now come back round to
+    /// the generation it started from (``invalidatingMeasureMemo(keyedBy:)``
+    /// counts which). The stride has no free byte, and a mark anywhere else
+    /// would have had to be added to both keys.
     public var measureGeneration: UInt8 = 0
 
     /// The column this view's top-left is PREDICTED to sit at, in the frame of
@@ -320,6 +328,10 @@ public struct RenderContext {
     /// ``measureGeneration`` without the ideal-width mark: the generation a
     /// value kept across passes is compared by, since an answer filed under
     /// the probe is the same answer when a render asks for it.
+    ///
+    /// The OVERFLOW mark stays in (bit 6): an answer filed under it covers
+    /// only the rows a column measured before it stopped, and is not the
+    /// answer an unmarked ask is owed.
     @inlinable
     package var generationIgnoringIdealWidth: UInt8 { measureGeneration & 0x7F }
 
@@ -328,6 +340,31 @@ public struct RenderContext {
     package func askingIdealWidth(_ asks: Bool = true) -> Self {
         var copy = self
         copy.measureGeneration = asks ? copy.measureGeneration | 0x80 : copy.measureGeneration & 0x7F
+        return copy
+    }
+
+    /// Whether this measure asks only whether the content is taller than its
+    /// budget allows — see ``measureGeneration``'s bit 6. Under it,
+    /// `availableHeight` is one line past the height asked about, and an eager
+    /// column may stop measuring once its rows reach it: what it then reports
+    /// is that budget, as the whole column would, but a width and flexibility
+    /// that are only its measured rows'.
+    ///
+    /// Set by the scroll view's first scrollbar round
+    /// (`contentOverflowsCanvas`, in `ScrollView+Content.swift`), and only
+    /// for content whose measure is, by its type, an eager column's. The
+    /// column clears it for its rows, and offers them the budget the unmarked
+    /// ask would have (`StackOverflowProbe.swift`): only its own answer is
+    /// partial.
+    @inlinable
+    package var asksOverflow: Bool { measureGeneration & 0x40 != 0 }
+
+    /// This context with the overflow mark set or cleared — see
+    /// ``asksOverflow``.
+    @inlinable
+    package func askingOverflow(_ asks: Bool = true) -> Self {
+        var copy = self
+        copy.measureGeneration = asks ? copy.measureGeneration | 0x40 : copy.measureGeneration & 0xBF
         return copy
     }
 
@@ -399,8 +436,8 @@ public struct RenderContext {
     /// This context with its generation moved on by `step`.
     private func invalidatingMeasureMemo(by step: UInt8) -> Self {
         var copy = self
-        // The low six bits only: bits 7 and 6 are marks (the ideal-width mark
-        // and the one kept beside it), which a bump must neither set nor clear.
+        // The low six bits only: bits 7 and 6 are the ideal-width and overflow
+        // marks, which a bump must neither set nor clear.
         let marks: UInt8 = 0xC0, generationBits: UInt8 = 0x3F
         copy.measureGeneration =
             (copy.measureGeneration & marks) | ((copy.measureGeneration &+ step) & generationBits)

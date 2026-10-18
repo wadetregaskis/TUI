@@ -1166,8 +1166,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// overflows at all, at the ladder's first rung and no further
     /// (``contentOverflowsCanvas(contentWidth:viewportHeight:oneLinePast:context:)``): a
     /// yes reserves the bar and moves on; a no measures the ladder as before,
-    /// and its answer decides. For content this view has seen walk a nested
-    /// lazy stack (`contentWalksNestedStacks`) it asks one line past the
+    /// and its answer decides. Content that is, by its type, an eager column
+    /// is asked the same question with the overflow mark, and stops measuring
+    /// its rows a line past the viewport (see there). For content this view
+    /// has seen walk a nested lazy stack (`contentWalksNestedStacks`) it asks
+    /// one line past the
     /// viewport instead: at the rung each such stack walks every row it
     /// holds, and there each stops a screenful in (see
     /// `contentOverflowsCanvas`). Not on a view that also scrolls

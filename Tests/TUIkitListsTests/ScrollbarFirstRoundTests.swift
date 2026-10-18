@@ -267,20 +267,23 @@ struct ScrollbarFirstRoundTests {
             "\(shape): \(decided.rowMeasures) row measures with the bar decided, \(hidden.rowMeasures) without")
     }
 
-    /// An eager column measures every row whatever its budget, so the shortcut
-    /// saves it nothing — and must cost it nothing either: deciding the bar is
-    /// one measure of each row, the first round's, at the width the bar then
-    /// narrows. Asked at a budget of its own and then climbed anyway, it would
-    /// be two: rows that claim no natural size are served only to the budget
-    /// they answered.
-    @Test("An eager column that overflows is measured once more to decide the bar, not twice")
-    func eagerColumnPaysOneRound() {
+    /// An eager column measures every row whatever its budget, so at the
+    /// ladder's first rung deciding the bar was one more measure of each row,
+    /// the first round's, at the width the bar then narrows: 400 here. Asked
+    /// with the overflow mark (`RenderContext.asksOverflow`), the column stops
+    /// once its rows pass the viewport, so it is a screenful and a line — the
+    /// scroll view is the page less its first line, 19 lines, and the round
+    /// stops at the twentieth row. Its rows are asked what the rung asks them,
+    /// so rows that claim no natural size are still measured once each, not
+    /// twice.
+    @Test("An eager column that overflows is measured a screenful more to decide the bar, not once more whole")
+    func eagerColumnPaysOneScreenful() {
         let rows = 400
         let decided = writeFrame(.counted(rows: rows), indicators: .automatic)
         let hidden = writeFrame(.counted(rows: rows), indicators: .hidden)
         #expect(drawsBar(decided.screen), "precondition: \(rows) rows draw the bar: \(decided.screen)")
         #expect(
-            decided.rowMeasures - hidden.rowMeasures == rows,
+            decided.rowMeasures - hidden.rowMeasures == 20,
             "\(decided.rowMeasures) row measures with the bar decided, \(hidden.rowMeasures) without")
     }
 
@@ -300,6 +303,14 @@ struct ScrollbarFirstRoundTests {
 }
 
 // MARK: - The assumption
+
+/// A view of the app's own whose body is an eager column of `count` rows.
+private struct RowsOfText: View {
+    let count: Int
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) { ForEach(0..<count, id: \.self) { Text("row \($0)") } }
+    }
+}
 
 /// Where the shortcut and the ladder disagree on whether `content` overflows,
 /// among the viewport heights given — each asked in a context of its own, so
@@ -338,12 +349,66 @@ private func disagreements(
     return found
 }
 
+/// ``disagreements(_:_:heights:contentWidth:availableWidth:)`` for the eager
+/// columns the first round asks with the overflow mark, which stop a line
+/// past the viewport: with gaps, with wrapped rows, with a filling row, with a
+/// choice by height, with gaps that pull the rows together, and behind a view
+/// of the app's own.
+@MainActor
+private func disagreementsOverEagerColumns(
+    heights: [Int], contentWidth: Int, availableWidth: Int, oneLinePast: Bool
+) -> [String] {
+    func ask(_ name: String, _ content: some View) -> [String] {
+        disagreements(
+            name, content, heights: heights, contentWidth: contentWidth, availableWidth: availableWidth,
+            oneLinePast: oneLinePast)
+    }
+    var found: [String] = []
+    found += ask(
+        "ten rows two lines apart",
+        VStack(alignment: .leading, spacing: 2) { ForEach(0..<10, id: \.self) { Text("row \($0)") } })
+    found += ask(
+        "a column of six wrapped paragraphs",
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<6, id: \.self) { Text("\($0): " + String(repeating: "words that wrap ", count: 4)) }
+        })
+    found += ask(
+        "a column with a filling row between two lines",
+        VStack(alignment: .leading, spacing: 0) {
+            Text("top")
+            Text("x").frame(maxHeight: .infinity)
+            Text("bottom")
+        })
+    found += ask(
+        "a line over twenty rows or a line, whichever fits",
+        VStack(alignment: .leading, spacing: 0) {
+            Text("head")
+            ViewThatFits(in: .vertical) {
+                VStack(alignment: .leading, spacing: 0) { ForEach(0..<20, id: \.self) { Text("row \($0)") } }
+                Text("short")
+            }
+        })
+    found += ask(
+        "five lines and three rows pulled two lines up each",
+        VStack(alignment: .leading, spacing: -2) {
+            Text("1\n2\n3\n4\n5")
+            Text("a")
+            Text("b")
+            Text("c")
+        })
+    found += ask("thirty rows in a view of the app's own", RowsOfText(count: 30))
+    return found
+}
+
 /// ``disagreements(_:_:heights:contentWidth:availableWidth:)`` for every content
-/// the agreement tests hold the shortcut to: rows, a padded and bordered
-/// column, lazy stacks direct, under a header and in the rows of an outer one,
-/// a wrapped paragraph alone and beside a mark in a row, a spacer, a filling
-/// frame, a colour, a nested scroll view, a list, a geometry reader, and
-/// content that picks its layout by the height it is offered.
+/// the agreement tests hold the shortcut to: rows, eager columns the overflow
+/// mark stops (with gaps, with wrapped rows, with a filling row, with a choice
+/// by height, with gaps that pull rows together, behind a view of the app's
+/// own), a padded and bordered column, lazy stacks direct, under a header and
+/// in the rows of an outer one, a wrapped paragraph alone and beside a mark in
+/// a row, a spacer, a filling frame, a colour, a nested scroll view, a list, a
+/// geometry reader, and content that picks its layout by the height it is
+/// offered.
 @MainActor
 private func disagreementsOverEveryContent(
     heights: [Int], contentWidth: Int, availableWidth: Int, oneLinePast: Bool = false
@@ -357,6 +422,8 @@ private func disagreementsOverEveryContent(
     found += ask(
         "ten rows",
         VStack(alignment: .leading, spacing: 0) { ForEach(0..<10, id: \.self) { Text("row \($0)") } })
+    found += disagreementsOverEagerColumns(
+        heights: heights, contentWidth: contentWidth, availableWidth: availableWidth, oneLinePast: oneLinePast)
     found += ask(
         "twenty-six rows, padded and bordered to thirty lines",
         VStack(alignment: .leading, spacing: 0) { ForEach(0..<26, id: \.self) { Text("row \($0)") } }
@@ -443,6 +510,12 @@ struct ScrollbarShortcutAgreementTests {
     /// for content that fits; a no it contradicts would only cost the climb.
     /// Content that picks its layout by the height it is offered is here too,
     /// since a smaller budget would have had it pick another.
+    ///
+    /// An eager column is asked the same rung with the overflow mark, and
+    /// stops once its rows pass the viewport: its rows are asked what the rung
+    /// asks them, and rows and gaps that reach a line past the viewport are a
+    /// column taller than it, so the two still cannot differ — a column whose
+    /// gaps pull its rows together excepted, which is never stopped.
     @Test("The shortcut says what the ladder says, around every content's own height")
     func shortcutAgreesWithTheLadder() {
         let found = disagreementsOverEveryContent(heights: Self.heights, contentWidth: 30, availableWidth: 30)

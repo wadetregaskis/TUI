@@ -218,23 +218,57 @@ extension _ScrollViewCore {
     /// taller content is measured once more for it. The hint is never cleared
     /// (see there), so content that has stopped walking a nested stack keeps
     /// paying both, for no walk saved.
+    ///
+    /// ## An eager column stops a line past the viewport
+    ///
+    /// At the rung, "an eager stack measures every row whatever it is
+    /// offered": a column of three hundred rows was measured whole for a yes
+    /// its first screenful already gave, and then whole again a column
+    /// narrower for the scroll range — two walks of the content a frame, a
+    /// quarter of the `churn` frame each. So for content whose measure is, by
+    /// its type, an eager column's (`measuresAsEagerColumn`: a `VStack`, or a
+    /// view of the app's own whose body is one), the rung's question is asked
+    /// with the overflow mark (`RenderContext.asksOverflow`) at one line past
+    /// the viewport. The column asks each row exactly what the rung asks it —
+    /// the mark cleared, the rung's budget — and stops once its rows and gaps
+    /// reach the line past the viewport, reporting that line, which is what
+    /// the whole column reports there. So the answer is the rung's for every
+    /// such content, `ViewThatFits` and filling rows included, every row's
+    /// answer and memo entry is the one it had, and a tab view among the rows
+    /// files the extent it always did; only the column's own answer is
+    /// partial, and the mark keeps it apart from every unmarked ask. A column
+    /// that fits walks its rows once, as at the rung, and answers from them;
+    /// but its unmarked answer is not filed, so a no leaves the ladder its rows
+    /// rather than the column, and the ladder re-sums them — a lookup per row,
+    /// on a frame whose content overflowed at the view's latest render and
+    /// fits now, the only frames that ask `resolveScrollbars`'s first round
+    /// and get a no.
+    /// Not with `oneLinePast`, whose rows are asked one line past the viewport
+    /// on purpose; nor for any other content, where something between the
+    /// probe and a column could read the width it stopped at.
     func contentOverflowsCanvas(
         contentWidth: Int, viewportHeight: Int, oneLinePast: Bool = false, context: RenderContext
     ) -> Bool {
         // The ladder's first rung, as `contentExtents` and then
         // `measureNaturalExtent` ask it of a vertical view's content: the same
         // canvas, no ideal-width mark, the width stated, the starting budget —
-        // or one line past the viewport. The stated width is the context's
-        // own but for a view no column wide, whose first round still asks at
-        // one.
+        // or one line past the viewport, or, marked, one line past it for an
+        // eager column that asks its rows the rung (above). The stated width
+        // is the context's own but for a view no column wide, whose first
+        // round still asks at one.
         var probe = contentCanvasContext(
             contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: false,
             context: context
         ).askingIdealWidth(false)
         probe.availableWidth = contentWidth
-        probe.availableHeight =
-            oneLinePast && viewportHeight < Int.max
-            ? viewportHeight + 1 : naturalExtentStartingBudget(forVisible: viewportHeight)
+        if !oneLinePast, viewportHeight >= 0, viewportHeight < Int.max, measuresAsEagerColumn(Content.self) {
+            probe = probe.askingOverflow()
+            probe.availableHeight = viewportHeight + 1
+        } else {
+            probe.availableHeight =
+                oneLinePast && viewportHeight < Int.max
+                ? viewportHeight + 1 : naturalExtentStartingBudget(forVisible: viewportHeight)
+        }
         return measureChild(
             content, proposal: ProposedSize(width: contentWidth, height: nil), context: probe
         ).height > viewportHeight
