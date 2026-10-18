@@ -939,12 +939,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 footer: footer, context: context) - titleOverhead
         )
 
-        let contentLines: [String]
-        var contentRuns: [AnimatedCellRun] = []
-        var contentClaims: [OpacityRegion] = []
+        var content: _ListContentView
         let renderState: PopulatedRenderState?
         if source.isEmpty {
-            contentLines = buildEmptyStateLines(context: context)
+            content = _ListContentView(lines: buildEmptyStateLines(context: context))
             // Empty is not inert. The list still occupies its frame, so it is
             // still somewhere a drag can be dropped — and everything that makes
             // that true (the container's hit region, the drop destination, the
@@ -965,25 +963,19 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 targetContentHeight: targetContentHeight,
                 predictedBar: predictsBar
             )
-            contentLines = result.lines
-            contentRuns = result.runs
-            contentClaims = result.claims
+            content = _ListContentView(
+                lines: result.lines, runs: result.runs, claims: result.claims, knownWidth: result.lineWidth)
             renderState = result.state
         }
 
         // Pad content to fill the available height (SwiftUI
         // behavior: List is greedy).
-        var paddedContentLines = contentLines
-        if paddedContentLines.count < targetContentHeight {
-            let extra = targetContentHeight - paddedContentLines.count
-            paddedContentLines.append(contentsOf: Array(repeating: "", count: extra))
-        }
+        content.fill(toHeight: targetContentHeight)
 
         var buffer = renderContainer(
             title: title,
             config: containerConfig,
-            content: _ListContentView(
-                lines: paddedContentLines, runs: contentRuns, claims: contentClaims),
+            content: content,
             footer: footer,
             context: context
         )
@@ -1138,7 +1130,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         targetContentHeight: Int,
         predictedBar: Bool
     ) -> (
-        lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
+        lines: [String], lineWidth: Int?, runs: [AnimatedCellRun], claims: [OpacityRegion],
         state: PopulatedRenderState
     ) {
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -1152,12 +1144,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // hand: a drag hovering this list borrows a row's worth of content for
         // its landing slot, and only the handler knows a drag is hovering.
         let (handler, wantsScrollbar) = resolvePopulatedHandler(
-            source: source,
-            persistedFocusID: persistedFocusID,
-            stateStorage: stateStorage,
-            context: context,
-            contentHeight: targetContentHeight
-        )
+            source: source, persistedFocusID: persistedFocusID, stateStorage: stateStorage,
+            context: context, contentHeight: targetContentHeight)
         settleScrollbarPrediction(predictedBar, wantsScrollbar, context: context)
         // The slot is drawn among the rows and takes a line of the same content
         // area, so the rows get one less to walk. Reserved HERE, once, rather
@@ -1235,6 +1223,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var scrollbarColumn: Int?
         var scrollbarHeight = 0
         var rowContentWidth = 0
+        /// Every line's width, where the composer made them all one: the bar
+        /// path fits each row to the content column and adds the bar's cells.
+        var lineWidth: Int?
         // Where the first drawn row stands among its section's content rows —
         // which only a striped list reads, and which a source whose rows'
         // types are still to be asked can only learn by asking the rows above.
@@ -1270,6 +1261,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             scrollbarColumn = (style.showsBorder ? 1 : 0) + style.rowPadding.leading + contentRowWidth
             scrollbarHeight = bar.count
             rowContentWidth = max(0, contentRowWidth - 1)
+            lineWidth = contentRowWidth + bar.width
         } else {
             (lines, visibleRowYRanges, animatedRuns, listRowClaims, contentClaims) = composeRowLines(
                 handler: handler,
@@ -1289,6 +1281,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
         return (
             lines: lines,
+            lineWidth: lineWidth,
             runs: animatedRuns,
             claims: listRowClaims,
             state: PopulatedRenderState(
@@ -5011,7 +5004,7 @@ struct PinnedHeaderCover {
 
 /// Simple view that renders pre-computed lines.
 struct _ListContentView: View, Renderable {
-    let lines: [String]
+    var lines: [String]
 
     /// The breathing rows' cells, already positioned among `lines` — the
     /// container shifts them past its border along with the lines themselves.
@@ -5022,12 +5015,31 @@ struct _ListContentView: View, Renderable {
     /// claims for itself and arrives separately (`PopulatedRenderState.contentClaims`).
     var claims: [OpacityRegion] = []
 
+    /// Every line's width but the filler's, where the composer made them all
+    /// one, so the buffer is built without measuring them again.
+    var knownWidth: Int?
+
+    /// How many empty lines at the end only fill the list's height.
+    var fillerLines = 0
+
     var body: Never {
         fatalError("_ListContentView renders via Renderable")
     }
 
+    /// Empty lines added up to `height`.
+    mutating func fill(toHeight height: Int) {
+        guard lines.count < height else { return }
+        fillerLines += height - lines.count
+        lines.append(contentsOf: repeatElement("", count: height - lines.count))
+    }
+
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = FrameBuffer(lines: lines)
+        var buffer = knownWidth.map { width in
+            let known = lines.count - fillerLines
+            return FrameBuffer(
+                lines: lines, width: known > 0 ? width : 0, uniformWidth: fillerLines == 0 || known == 0,
+                lineWidths: Array(repeating: width, count: known) + Array(repeating: 0, count: fillerLines))
+        } ?? FrameBuffer(lines: lines)
         // A measure pass draws nothing, so a run left on it would describe
         // cells that were never on screen — and keep the clock alive from a
         // pass that produced no frame.
