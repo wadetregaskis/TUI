@@ -58,13 +58,13 @@ struct RefreshableTests {
     @Test("Ctrl-R runs the action")
     func controlRRefreshes() async {
         let harness = Harness()
-        nonisolated(unsafe) var refreshes = 0
-        let view = Text("content").refreshable { refreshes += 1 }
+        let refreshes = Lock(initialState: 0)
+        let view = Text("content").refreshable { refreshes.bump() }
 
         _ = harness.frame(view)
         harness.press(.character("r"), ctrl: true)
-        await settle(until: { refreshes == 1 })
-        #expect(refreshes == 1)
+        await settle(until: { refreshes.total == 1 })
+        #expect(refreshes.total == 1)
     }
 
     @Test("A bare r is left alone")
@@ -72,8 +72,8 @@ struct RefreshableTests {
         // Refreshable content is usually a list, and a list's rows are
         // reachable by typing. Claiming an unmodified letter would swallow it.
         let harness = Harness()
-        nonisolated(unsafe) var refreshes = 0
-        _ = harness.frame(Text("content").refreshable { refreshes += 1 })
+        let refreshes = Lock(initialState: 0)
+        _ = harness.frame(Text("content").refreshable { refreshes.bump() })
 
         harness.press(.character("r"))
         harness.press(.character("x"), ctrl: true)
@@ -81,7 +81,7 @@ struct RefreshableTests {
         // A budget, deliberately: the claim is that nothing ran, so waiting too
         // little can only weaken it — never make it fail.
         await yieldToSpawnedWork()
-        #expect(refreshes == 0)
+        #expect(refreshes.total == 0)
     }
 
     @Test("A second Ctrl-R during a refresh does not start another")
@@ -89,23 +89,23 @@ struct RefreshableTests {
         // SwiftUI will not run a second refresh over a running one either, and
         // an app's reload is rarely re-entrant.
         let harness = Harness()
-        nonisolated(unsafe) var started = 0
+        let started = Lock(initialState: 0)
         let gate = RefreshGate()
         let view = Text("content").refreshable {
-            started += 1
+            started.bump()
             await gate.hold()
         }
 
         let idle = harness.frame(view).lines
         harness.press(.character("r"), ctrl: true)
-        await settle(until: { started == 1 })
-        #expect(started == 1)
+        await settle(until: { started.total == 1 })
+        #expect(started.total == 1)
 
         // Still in flight: the handler must consume the key, not queue work.
         _ = harness.frame(view)
         harness.press(.character("r"), ctrl: true)
         await yieldToSpawnedWork()
-        #expect(started == 1)
+        #expect(started.total == 1)
 
         // The run has to have ENDED before the next request, and the body
         // returning is not that edge — `RefreshAction` clears the run state
@@ -116,8 +116,8 @@ struct RefreshableTests {
         // Finished: the next one is allowed again.
         _ = harness.frame(view)
         harness.press(.character("r"), ctrl: true)
-        await settle(until: { started == 2 })
-        #expect(started == 2)
+        await settle(until: { started.total == 2 })
+        #expect(started.total == 2)
     }
 
     /// Coalescing must not depend on HOW the refresh was asked for. The
@@ -127,25 +127,25 @@ struct RefreshableTests {
     @Test("The environment action coalesces exactly as Ctrl-R does")
     func environmentRouteCoalesces() async {
         let harness = Harness()
-        nonisolated(unsafe) var runs = 0
+        let runs = Lock(initialState: 0)
         let gate = RefreshGate()
         let action = RefreshAction(
             {
-                runs += 1
+                runs.bump()
                 await gate.hold()
             }, state: RefreshAction.RunState())
 
         // Two calls through the environment, the second while the first is in
         // flight — the shape a second click on "Refresh Now" makes.
         let first = Task { @MainActor in await action() }
-        await settle(until: { runs == 1 })
-        #expect(runs == 1)
+        await settle(until: { runs.total == 1 })
+        #expect(runs.total == 1)
         // Spawned rather than awaited: if coalescing breaks, this call runs the
         // action body and blocks on the gate, so awaiting it here would HANG a
         // regression instead of failing it.
         let second = Task { @MainActor in await action() }
         await yieldToSpawnedWork()
-        #expect(runs == 1, "a second request while running started another")
+        #expect(runs.total == 1, "a second request while running started another")
         #expect(action.isRunning)
 
         gate.release()
@@ -158,8 +158,8 @@ struct RefreshableTests {
         // …and once it has finished, it can run again.
         gate.reset()
         let third = Task { @MainActor in await action() }
-        await settle(until: { runs == 2 })
-        #expect(runs == 2)
+        await settle(until: { runs.total == 2 })
+        #expect(runs.total == 2)
         gate.release()
         await third.value
         _ = harness
@@ -179,18 +179,18 @@ struct RefreshableTests {
         }
 
         let harness = Harness()
-        nonisolated(unsafe) var runs = 0
+        let runs = Lock(initialState: 0)
         let gate = RefreshGate()
         nonisolated(unsafe) var seen: RefreshAction?
         let view = Reader(report: { seen = $0 }).refreshable {
-            runs += 1
+            runs.bump()
             await gate.hold()
         }
 
         _ = harness.frame(view)
         harness.press(.character("r"), ctrl: true)
-        await settle(until: { runs == 1 })
-        #expect(runs == 1)
+        await settle(until: { runs.total == 1 })
+        #expect(runs.total == 1)
 
         guard let action = seen else {
             Issue.record("the subtree saw no refresh action")
@@ -200,7 +200,7 @@ struct RefreshableTests {
         // hang is a much worse regression signal than a failed expectation.
         let viaEnvironment = Task { @MainActor in await action() }
         await yieldToSpawnedWork()
-        #expect(runs == 1, "the environment route stacked onto a running refresh")
+        #expect(runs.total == 1, "the environment route stacked onto a running refresh")
 
         gate.release()
         await viaEnvironment.value
@@ -211,7 +211,7 @@ struct RefreshableTests {
         // The point of `\.refresh`: a Reload button nested anywhere inside can
         // run the same refresh the key does.
         let harness = Harness()
-        nonisolated(unsafe) var refreshes = 0
+        let refreshes = Lock(initialState: 0)
         nonisolated(unsafe) var seen: RefreshAction?
 
         struct Reader: View {
@@ -224,13 +224,13 @@ struct RefreshableTests {
         }
 
         _ = harness.frame(
-            Reader(report: { seen = $0 }).refreshable { refreshes += 1 })
+            Reader(report: { seen = $0 }).refreshable { refreshes.bump() })
         guard let action = seen else {
             Issue.record("the subtree saw no refresh action")
             return
         }
         await action()
-        #expect(refreshes == 1)
+        #expect(refreshes.total == 1)
     }
 
     @Test("Outside a refreshable there is nothing to refresh")
@@ -509,7 +509,7 @@ struct RefreshableTests {
         // registers a second Ctrl-R handler and one keypress starts two
         // refreshes — the exact bug `onKeyEvent` had.
         let harness = Harness()
-        nonisolated(unsafe) var refreshes = 0
+        let refreshes = Lock(initialState: 0)
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.applyRuntimeServices(from: harness.tuiContext)
@@ -520,7 +520,7 @@ struct RefreshableTests {
         let real = RenderContext(
             availableWidth: 30, availableHeight: 6,
             environment: environment, tuiContext: harness.tuiContext)
-        let view = Text("content").refreshable { refreshes += 1 }
+        let view = Text("content").refreshable { refreshes.bump() }
 
         harness.tuiContext.keyEventDispatcher.clearHandlers()
         harness.tuiContext.stateStorage.beginRenderPass()
@@ -529,8 +529,8 @@ struct RefreshableTests {
         harness.tuiContext.stateStorage.endRenderPass()
 
         harness.press(.character("r"), ctrl: true)
-        await settle(until: { refreshes == 1 })
-        #expect(refreshes == 1)
+        await settle(until: { refreshes.total == 1 })
+        #expect(refreshes.total == 1)
     }
 
     @Test("A view that is only measured answers no keys")
@@ -540,7 +540,7 @@ struct RefreshableTests {
         // ViewThatFits candidate that lost, a row outside the window. It is
         // not on screen, so Ctrl-R must not reach it.
         let harness = Harness()
-        nonisolated(unsafe) var refreshes = 0
+        let refreshes = Lock(initialState: 0)
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.applyRuntimeServices(from: harness.tuiContext)
@@ -552,11 +552,19 @@ struct RefreshableTests {
         harness.tuiContext.keyEventDispatcher.clearHandlers()
         harness.tuiContext.stateStorage.beginRenderPass()
         _ = renderToBuffer(
-            Text("content").refreshable { refreshes += 1 }, context: measuring)
+            Text("content").refreshable { refreshes.bump() }, context: measuring)
         harness.tuiContext.stateStorage.endRenderPass()
 
         harness.press(.character("r"), ctrl: true)
         await yieldToSpawnedWork()
-        #expect(refreshes == 0)
+        #expect(refreshes.total == 0)
     }
+}
+
+/// A count a refresh action bumps where it runs — off the main actor — and a
+/// test reads on it. Under a lock: as a `nonisolated(unsafe) var` it was a data
+/// race, which ThreadSanitizer reported in `noOverlappingRefreshes`.
+private extension Lock where State == Int {
+    func bump() { withLock { $0 += 1 } }
+    var total: Int { withLock { $0 } }
 }
