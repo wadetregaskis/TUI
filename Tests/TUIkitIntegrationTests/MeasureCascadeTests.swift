@@ -127,4 +127,36 @@ struct MeasureCascadeTests {
             passes.measures <= 8,
             "the cascade must stay linear in nesting depth (was 29 pre-fix), got \(passes.measures)")
     }
+
+    @Test("A column's one scroll view is not measured to deal the column out")
+    func loneScrollViewInColumn() {
+        let counter = PassCounter()
+        let alone = passCounts(counter, ScrollView { CountingProbe(counter: counter) })
+        let underHeading = passCounts(
+            counter,
+            VStack(spacing: 0) {
+                Text("Heading")
+                Divider()
+                ScrollView { CountingProbe(counter: counter) }
+            })
+        // The column gives the scroll view what the heading and divider leave,
+        // whatever its content says: its content is measured only by its own
+        // render, as when it stands alone.
+        #expect(underHeading.measures == alone.measures, "\(underHeading) against \(alone)")
+    }
+
+    @Test("Two scroll views in a column are measured: their natural heights share the space")
+    func twoScrollViewsInColumn() {
+        let counter = PassCounter()
+        let alone = passCounts(counter, ScrollView { CountingProbe(counter: counter) })
+        let two = passCounts(
+            counter,
+            VStack(spacing: 0) {
+                ScrollView { CountingProbe(counter: counter) }
+                ScrollView { Text("other") }
+            })
+        // The column asks each for its natural height, one measure more than
+        // the scroll view's own render makes.
+        #expect(two.measures == alone.measures + 1, "\(two) against \(alone)")
+    }
 }

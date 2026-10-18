@@ -134,6 +134,18 @@ public protocol View {
     /// with a constant rather than a walk of casts.
     static var _providesLayoutValues: Bool { get }
 
+    /// Static witness: whether every view of this type takes all the room it
+    /// is offered on both axes, whatever its content — reports itself
+    /// flexible on both, on every measure. `false` for every view but
+    /// `ScrollView`.
+    ///
+    /// A column reads it (through ``ChildView``) to skip a measure whose
+    /// answer it would not use: its only filling child is dealt what the
+    /// others leave, whatever that child's own height, and a scroll view's
+    /// measure walks all of its content. `true` must hold for the bare type:
+    /// a modifier round it answers `false`, as it may lay the view out anew.
+    static var _fillsItsOffer: Bool { get }
+
     /// Static witness: whether this view paints its own surface to its edges
     /// — a `TextEditor`'s field — or wraps one that does, so a border around
     /// it needs no blank cell inside it: the surface keeps the content off the
@@ -258,6 +270,10 @@ public extension View {
     /// Default: a view sets no layout value. `.layoutPriority(_:)` and
     /// `.layoutValue(key:value:)` override this.
     static var _providesLayoutValues: Bool { false }
+
+    /// Default: a view's size depends on what it holds. `ScrollView`
+    /// overrides this.
+    static var _fillsItsOffer: Bool { false }
 
     /// Default: a view leaves the cells at its edges to what is behind it.
     /// `TextEditor` overrides this. A constant, never `Body`'s answer: the

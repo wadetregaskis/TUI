@@ -223,6 +223,7 @@ identifier_name:
     - _providesContainerValues
     - _providesLayoutValues
     - _paintsToItsEdges
+    - _fillsItsOffer
     - _changesLayout
     - _statesSpacingPreference
     - _handsOverChildren

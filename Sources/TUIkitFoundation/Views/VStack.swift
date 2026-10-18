@@ -429,11 +429,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         guard !children.isEmpty else { return FrameBuffer() }
 
         // === PASS 1: Measure every child's natural size ===
-        var childSizes: [ViewSize] = []
-        childSizes.reserveCapacity(children.count)
-        for child in children {
-            childSizes.append(child.measure(proposal: .unspecified, context: context))
-        }
+        let childSizes = naturalSizes(of: children, context: context)
 
         var naturalHeight = [Int](repeating: 0, count: children.count)
         var isFlexible = [Bool](repeating: false, count: children.count)

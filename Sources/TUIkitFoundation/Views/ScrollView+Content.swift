@@ -918,3 +918,11 @@ extension _ScrollViewCore {
         return result
     }
 }
+
+extension ScrollView {
+    /// A scroll view takes all it is offered on both axes, whatever it holds:
+    /// `_ScrollViewCore.sizeThatFits` answers flexible on every measure, and
+    /// what the body puts round it (`.disabled`, the background) leaves the
+    /// size alone. See ``View/_fillsItsOffer``.
+    public static var _fillsItsOffer: Bool { true }
+}
