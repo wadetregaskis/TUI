@@ -143,7 +143,6 @@
   "View.onDropSessionUpdated(_:)",
   "View.onScrollTargetVisibilityChange(idType:threshold:_:)",
   "View.overlay(_:ignoresSafeAreaEdges:)",
-  "View.presentationCornerRadius(_:)",
   "View.projectionEffect(_:)",
   "View.rotation3DEffect(_:axis:anchor:anchorZ:perspective:)",
   "View.rotationEffect(_:anchor:)",

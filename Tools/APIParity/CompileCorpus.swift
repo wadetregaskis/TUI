@@ -3668,3 +3668,18 @@ private struct CorpusContainerShapes: View {
         )
     }
 }
+
+/// A sheet's corner radius, as SwiftUI's documentation writes it.
+@MainActor
+private struct CorpusPresentationCornerRadius: View {
+    @State private var showSettings = false
+
+    var body: some View {
+        Button("View Settings") { showSettings = true }
+            .sheet(isPresented: $showSettings) {
+                Text("Settings")
+                    .presentationDetents([.medium, .large])
+                    .presentationCornerRadius(21)
+            }
+    }
+}

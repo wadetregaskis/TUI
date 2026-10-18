@@ -111,6 +111,11 @@ extension ModalPresentationModifier {
         case .sheet:
             var sheetContext = modalContext
             var capHeight = overlayHeight
+            // The corners the content named for its sheet go to the sheet's
+            // box, as its detent's height does (``EnvironmentValues/sheetCornerRadius``).
+            if let radius = presentationTrait(PresentationCornerRadiusProviding.self, of: modal)?.cornerRadius {
+                sheetContext.environment.sheetCornerRadius = radius
+            }
             // A sizing the content named proposes the sheet's size, and its box
             // takes it — the height as a detent's, the width likewise (see
             // ``EnvironmentValues/sheetProposedWidth``). A detent's height wins.

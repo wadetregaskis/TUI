@@ -271,7 +271,11 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let appearance = context.environment.appearance
-        let effectiveBorderStyle = style.borderStyle ?? appearance.borderStyle
+        // A presentation's corner radius (`presentationCornerRadius(_:)`) is
+        // this box's when it is the sheet's outermost, and consumed below with
+        // the sheet's size.
+        let effectiveBorderStyle = (style.borderStyle ?? appearance.borderStyle)
+            .withCornerRadius(context.environment.sheetCornerRadius)
         let palette = context.environment.palette
         // Every frame of the border's colour, not just the one on screen: a
         // border handed an animating colour leaves runs for its own cells
@@ -1020,6 +1024,9 @@ extension RenderContext {
     /// of a key nobody wrote is a lookup that misses.
     mutating func consumeSheetSize() {
         consumeSheetSize(along: [.horizontal, .vertical])
+        // The corner radius is the box's alone, not a size a scroll view passes
+        // on along one axis: only a box takes it.
+        if environment.sheetCornerRadius != nil { environment.sheetCornerRadius = nil }
     }
 
     /// Takes a sheet's size off the environment along `axes` only: a scroll

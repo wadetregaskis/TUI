@@ -274,6 +274,24 @@ size. Animatable data is each type's radii.
 particular `isUniform`, and what a concentric minimum that is itself concentric
 means. Half a day with the machine.
 
+### B-W1-14. A sheet's corner radius is its box's corners (decisions A24)
+
+*`View.presentationCornerRadius(_:)`*
+
+A24, decided with O0 and O15: a radius has a cell reading now, the one a shape's
+lines take — zero is `┌`, any other radius `╭`, `nil` the appearance's. A terminal
+sheet has no card of its own; its content's outermost box (a `Dialog`, a
+`Panel`, a `.border()`) is the sheet. So the modifier is a presentation trait,
+read by the presenter as a detent is, which hands the radius to that box through
+the environment (`sheetCornerRadius`, beside `sheetDetentHeight`), and the box
+consumes it, so a box inside keeps its own corners. Only light lines have both
+corners: a heavy, double, dotted or block box keeps its own. A popover and a
+full-screen cover have no box to round.
+
+**The fuller version:** rounded heavy and double corners do not exist in
+Unicode; a block box could cut its corners in quadrants as a filled rounded
+rectangle does. An hour, if wanted.
+
 ## C. Declined
 
 ### C-W1-1. `Path`'s boolean operations and its stroke outline
