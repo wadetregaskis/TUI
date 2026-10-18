@@ -220,6 +220,14 @@ struct ShadowTests {
         #expect(clear.lines == plain.lines)
     }
 
+    @Test("A shadowed view's value hash reads the shadow, so the render memo can keep the view")
+    func memoReadsTheShadow() {
+        let plans = ValueHashPlans()
+        let type = type(of: Text("ab").shadow(radius: 1, x: 1, y: 1))
+        let plan = plans.plan(for: type).pointee
+        #expect(plan.shape != .bypass, "\(plan.bypassReason ?? "")")
+    }
+
     // MARK: - Inner shadows
 
     @Test("An inner shadow darkens the cells the view paints toward its edges, ink and field alike")
