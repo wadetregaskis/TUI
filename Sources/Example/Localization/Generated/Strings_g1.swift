@@ -139,6 +139,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "a gradient behind the words, not in them",
             "page.colors.section.materials": "Materials",
             "page.colors.material.caption": "each name sits on a material laid over the middle of a striped row; the stripes show through it, tinted toward the page, more the thinner it is (the row's ends are bare, to compare)",
+            "page.colors.section.shadows": "Shadows",
+            "page.colors.shadow.caption": "each card casts its shadow two columns right and a row down onto the panel; its number is the radius, the cells the shadow fades out across (the units are cells, as .padding's are)",
+            "page.colors.shadow.text": "a label with no background casts its letters",
+            "page.colors.shadow.glow": "a coloured shadow on a dark page reads as a glow",
 
             // page.containers
             "page.containers.aCardView": "A Card view",
@@ -471,6 +475,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "ein Verlauf hinter den Wörtern, nicht in ihnen",
             "page.colors.section.materials": "Materialien",
             "page.colors.material.caption": "jeder Name liegt auf einem Material über der Mitte einer gestreiften Zeile; die Streifen scheinen hindurch, zur Farbe der Seite hin getönt, umso mehr, je dünner es ist (die Enden der Zeile bleiben frei, zum Vergleich)",
+            "page.colors.section.shadows": "Schatten",
+            "page.colors.shadow.caption": "jede Karte wirft ihren Schatten zwei Spalten nach rechts und eine Zeile nach unten auf die Fläche; ihre Zahl ist der Radius, die Zellen, über die der Schatten ausläuft (die Einheit sind Zellen, wie bei .padding)",
+            "page.colors.shadow.text": "eine Beschriftung ohne Hintergrund wirft ihre Buchstaben",
+            "page.colors.shadow.glow": "ein farbiger Schatten auf einer dunklen Seite wirkt wie ein Leuchten",
 
             // page.containers
             "page.containers.aCardView": "Eine Card-Ansicht",
@@ -803,6 +811,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "un dégradé derrière les mots, pas dedans",
             "page.colors.section.materials": "Matériaux",
             "page.colors.material.caption": "chaque nom repose sur un matériau posé au milieu d’une rangée rayée ; les rayures transparaissent, teintées vers la page, d’autant plus qu’il est fin (les bouts de la rangée restent nus, pour comparer)",
+            "page.colors.section.shadows": "Ombres",
+            "page.colors.shadow.caption": "chaque carte projette son ombre deux colonnes à droite et une rangée plus bas sur le panneau ; son numéro est le rayon, les cellules sur lesquelles l’ombre s’estompe (l’unité est la cellule, comme pour .padding)",
+            "page.colors.shadow.text": "un libellé sans fond projette ses lettres",
+            "page.colors.shadow.glow": "une ombre colorée sur une page sombre se lit comme une lueur",
 
             // page.containers
             "page.containers.aCardView": "Une vue Card",
@@ -1135,6 +1147,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "una sfumatura dietro le parole, non dentro",
             "page.colors.section.materials": "Materiali",
             "page.colors.material.caption": "ogni nome poggia su un materiale steso al centro di una riga a strisce; le strisce traspaiono, tinte verso la pagina, tanto più quanto è sottile (le estremità della riga restano scoperte, per confronto)",
+            "page.colors.section.shadows": "Ombre",
+            "page.colors.shadow.caption": "ogni scheda proietta la sua ombra due colonne a destra e una riga più in basso sul pannello; il suo numero è il raggio, le celle lungo cui l’ombra sfuma (l’unità è la cella, come per .padding)",
+            "page.colors.shadow.text": "un’etichetta senza sfondo proietta le sue lettere",
+            "page.colors.shadow.glow": "un’ombra colorata su una pagina scura si legge come un bagliore",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1467,6 +1483,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "un degradado detrás de las palabras, no en ellas",
             "page.colors.section.materials": "Materiales",
             "page.colors.material.caption": "cada nombre está sobre un material puesto en el centro de una fila a rayas; las rayas se transparentan, teñidas hacia la página, más cuanto más fino es (los extremos de la fila quedan al descubierto, para comparar)",
+            "page.colors.section.shadows": "Sombras",
+            "page.colors.shadow.caption": "cada tarjeta proyecta su sombra dos columnas a la derecha y una fila más abajo sobre el panel; su número es el radio, las celdas a lo largo de las que la sombra se desvanece (la unidad es la celda, como en .padding)",
+            "page.colors.shadow.text": "una etiqueta sin fondo proyecta sus letras",
+            "page.colors.shadow.glow": "una sombra de color sobre una página oscura se ve como un resplandor",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1799,6 +1819,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "渐变在文字后面，而不是在文字里",
             "page.colors.section.materials": "材质",
             "page.colors.material.caption": "每个名称都位于铺在条纹行中间的材质上；条纹透出，向页面色调偏移，材质越薄透出越多（行的两端保持裸露，以作对比）",
+            "page.colors.section.shadows": "阴影",
+            "page.colors.shadow.caption": "每张卡片把阴影投在面板上，向右偏两列、向下偏一行；卡片上的数字是半径，即阴影逐渐淡出所跨越的单元格数（单位是单元格，与 .padding 相同）",
+            "page.colors.shadow.text": "没有背景的标签投下的是它的字母",
+            "page.colors.shadow.glow": "深色页面上的彩色阴影看起来像光晕",
 
             // page.containers
             "page.containers.aCardView": "一个 Card 视图",
@@ -2131,6 +2155,10 @@ extension ExampleStrings {
             "page.colors.gradientStyle.background": "文字の中ではなく、文字の背後のグラデーション",
             "page.colors.section.materials": "マテリアル",
             "page.colors.material.caption": "各名前は縞模様の行の中央に敷いたマテリアルの上にある。縞は透けて見え、ページの色に寄せられる。薄いほど多く透ける（比較のため行の両端は覆わない）",
+            "page.colors.section.shadows": "影",
+            "page.colors.shadow.caption": "各カードはパネルの上に、右へ2列・下へ1行ずらして影を落とします。数字は半径で、影が消えていくまでのセル数です（単位は .padding と同じくセルです）",
+            "page.colors.shadow.text": "背景のないラベルは文字の形の影を落とします",
+            "page.colors.shadow.glow": "暗いページ上の色付きの影は光彩のように見えます",
 
             // page.containers
             "page.containers.aCardView": "Card ビュー",
