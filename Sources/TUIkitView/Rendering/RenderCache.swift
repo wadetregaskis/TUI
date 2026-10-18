@@ -1281,8 +1281,11 @@ extension RenderCache {
     public func removeInactive() {
         var retainedChecks = 0
         var retained = retainedIndex()
+        // Read once: a read of a class's stored property is checked for
+        // exclusivity at run time, and this one was read once per entry.
+        let active = activeIdentities
         func isLive(_ identity: ViewIdentity) -> Bool {
-            if activeIdentities.contains(identity) { return true }
+            if active.contains(identity) { return true }
             retainedChecks += 1
             return retained.retains(identity)
         }
