@@ -620,18 +620,6 @@
     "BlendMode": {
       "why": "There is no blend function for it to name. A composite copies each cell over what it covers; the one blend TUIkit performs, `opacity`, resolves at the composite against whatever is behind (Documentation/Colour and styling/Opacity as composition.md). The modes multiply, screen and so on per pixel sample, which a cell does not have: see the per-pixel shading family."
     },
-    "ButtonBorderShape.AnimatableData": {
-      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
-    },
-    "ButtonBorderShape.InsetShape": {
-      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
-    },
-    "ButtonBorderShape.inset(by:)": {
-      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
-    },
-    "ButtonBorderShape.path(in:)": {
-      "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
-    },
     "CGPoint.AnimatableData": {
       "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
     },

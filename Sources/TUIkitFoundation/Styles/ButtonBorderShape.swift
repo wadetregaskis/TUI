@@ -43,6 +43,11 @@
 /// Read by the built-in styles with a face; a plain, borderless or link
 /// button has none, and draws as it would.
 ///
+/// It is a ``Shape`` as well, as SwiftUI's is: a capsule (and `.automatic`,
+/// which defers to the shape ``View/buttonBorderShape(_:)`` sets, as
+/// ``Shape/buttonBorder`` does), a rectangle rounded a column and a half, a
+/// square one, or a circle — drawn as any shape of those kinds is.
+///
 /// ```swift
 /// Button("Sign In") {}
 ///     .buttonStyle(.borderedProminent)

@@ -26,6 +26,14 @@ protocol BoxDrawnShape {
     func boxCorners(in rect: CGRect) -> RectangleCornerRadii?
 }
 
+/// A shape that stands for another the environment decides — `.buttonBorder`
+/// for the button border shape in force, `ContainerRelativeShape` for the
+/// container's — drawn as that one.
+protocol EnvironmentResolvedShape {
+    /// The shape to draw in `environment`.
+    func resolvedShape(in environment: EnvironmentValues) -> any Shape
+}
+
 // MARK: - The core
 
 /// A shape drawn: what the public shape views' bodies are made of.
@@ -66,7 +74,10 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         // A stroke as a shape (`stroke(lineWidth:)`) is drawn as the stroke it
         // is, so a rectangle's is the box of glyphs.
         var (drawn, drawing): (any Shape, ShapeDrawing) = (shape, drawing)
-        if let stroking = shape as? any StrokingShape {
+        if let resolving = drawn as? any EnvironmentResolvedShape {
+            drawn = resolving.resolvedShape(in: environment)
+        }
+        if let stroking = drawn as? any StrokingShape {
             drawn = stroking.strokedShape.shape
             drawing = .stroke(stroking.strokedShape.style, antialiased: self.drawing.isAntialiased)
         }

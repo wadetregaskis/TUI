@@ -94,6 +94,19 @@ struct ShapeTests {
         #expect(stroked.animatableData == AnimatablePair(1, 1))
     }
 
+    @Test("A button border shape is the shape its family stands for; .buttonBorder defers to the environment")
+    func buttonBorderShape() {
+        let frame = CGRect(x: 0, y: 0, width: 20, height: 10)
+        #expect(ButtonBorderShape.capsule.path(in: frame) == Capsule().path(in: frame))
+        #expect(ButtonBorderShape.circle.path(in: frame) == Circle().path(in: frame))
+        #expect(ButtonBorderShape.roundedRectangle(radius: 0).path(in: frame) == Rectangle().path(in: frame))
+        #expect(ButtonBorderShape.capsule.inset(by: 2).path(in: frame) == Capsule().inset(by: 2).path(in: frame))
+        let square = VStack { ButtonBorderShape.buttonBorder.stroke(.red) }
+            .buttonBorderShape(.roundedRectangle(radius: 0))
+        #expect(text(screen(square, width: 6, height: 3)) == ["┌────┐", "│    │", "└────┘"])
+        #expect(text(screen(ButtonBorderShape.buttonBorder.stroke(.red), width: 6, height: 3)) == ["╭────╮", "│    │", "╰────╯"])
+    }
+
     // MARK: The box-drawing tier
 
     @Test("A rectangle-family stroke is a box of line glyphs, a corner per corner")
