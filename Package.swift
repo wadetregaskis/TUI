@@ -5,8 +5,8 @@ import PackageDescription
 
 /// Every library module: what TUIkitIntegrationTests, the one test target that can see everything, depends on.
 let umbrellaTestDependencies: [Target.Dependency] = [
-    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCurveEditors", "TUIkitEffects",
-    "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
+    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
+    "TUIkitEffects", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
     "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings",
     "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
     "TUIkitWidthCorpus", "CTestSupport",
@@ -72,6 +72,10 @@ let package = Package(
         // `GradientEditorPanel`. Re-exports TUIkitNumericControls, TUIkitPresentation, TUIkitTabs and
         // TUIkitTextInput, which its panels are made of.
         .library(name: "TUIkitColorPicker", targets: ["TUIkitColorPicker"]),
+        // TUIkitCommands: SwiftUI's commands — `Commands`, `CommandMenu`, `CommandGroup` and the placements —
+        // and the scene they are declared on: `Scene.commands(content:)` and its kin draw the menu bar.
+        // Re-exports TUIkitApp, whose `Scene` they extend.
+        .library(name: "TUIkitCommands", targets: ["TUIkitCommands"]),
         // TUIkitCurveEditors: the tone-curve and channel-curve editor panels, which host `ColorPickerPanel`'s
         // body. Re-exports TUIkitColorPicker, TUIkitImage (their initializers take an `ASCIIToneCurve`),
         // TUIkitNumericControls and TUIkitPickers.
@@ -245,6 +249,22 @@ let package = Package(
         .target(
             name: "TUIkitApp",
             dependencies: ["TUIkitChrome", "TUIkitFoundation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // Lane O13's leaf, built on TUIkitApp: SwiftUI's commands and the menu bar a scene that declares them
+        // draws (refusal review O13, ruled 2026-10-12: a full menu bar). `Commands`, `CommandsBuilder`,
+        // `CommandMenu`, `CommandGroup`, `CommandGroupPlacement` and `EmptyCommands`. On TUIkitApp because
+        // `Scene.commands(content:)` is a modifier of TUIkitApp's `Scene`, and no lower module may see a scene;
+        // the menu bar's drop-downs are TUIkitFoundation's menu engine, the one a pop-up `Menu` uses, so it needs
+        // nothing of TUIkitMenus. The run loop and the chrome host reach the bar through hooks of their own
+        // that name nothing of this module (an opaque scene declaration, the window chrome's menu-bar view), so
+        // an app that declares no commands links none of it. Nothing in TUIkitFoundation may use it
+        // (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports TUIkitApp and
+        // TUIkitFoundation (Sources/TUIkitCommands/Exports.swift).
+        .target(
+            name: "TUIkitCommands",
+            dependencies: ["TUIkitApp", "TUIkitFoundation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -502,9 +522,9 @@ let package = Package(
 
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
-        // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitCurveEditors, TUIkitEffects, TUIkitForms, TUIkitGrid,
-        // TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers, TUIkitPresentation,
-        // TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
+        // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitCommands, TUIkitCurveEditors, TUIkitEffects,
+        // TUIkitForms, TUIkitGrid, TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers,
+        // TUIkitPresentation, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names
         // TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the
@@ -512,10 +532,10 @@ let package = Package(
         .target(
             name: "TUIkit",
             dependencies: [
-                "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCurveEditors", "TUIkitEffects",
-                "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls",
-                "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
-                "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
+                "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
+                "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs",
+                "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -693,6 +713,13 @@ let package = Package(
             dependencies: [
                 "TUIkitApp", "TUIkitColorPicker", "TUIkitCore", "TUIkitFoundation", "TUIkitLists",
                 "TUIkitNumericControls", "TUIkitStrings", "TUIkitStyling", "TUIkitTabsTestSupport",
+                "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitCommandsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCommands", "TUIkitCore", "TUIkitFoundation",
                 "TUIkitTestSupport", "TUIkitView",
             ]
         ),

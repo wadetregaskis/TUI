@@ -156,7 +156,7 @@ The lane is therefore **required** on released toolchains. Observed state:
 | `TUIkitColorPicker` | carved out of TUIkitFoundation at module split step B4 (2026-10-08), built on it and (since steps C3, B7, C7 and C1) on TUIkitTabs, TUIkitTextInput, TUIkitNumericControls and TUIkitPresentation (on TUIkitLists from step B6 until C3, on TUIkitNavigation from step B5 until C1, and on TUIkitImage and, from C8, TUIkitPickers until C9b took the editors out; the gradient editor came back on 2026-10-12, needing neither), with no POSIX API; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before all four of those do) |
 | `TUIkitCurveEditors` | peeled out of TUIkitColorPicker at C9b (2026-10-11) as TUIkitColorEditors, renamed on 2026-10-12 when the gradient editor went back, built on it, on TUIkitImage, TUIkitPickers and TUIkitNumericControls, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitColorPicker` does) |
 | the four modules' own test targets | advisory, each with a 30-minute timeout |
-| `TUIkit`, build-tests, test, smoke | fail until the console layer is ported (TUIkitApp since module split step B3, which has no Windows step of its own: it is POSIX by design) |
+| `TUIkit`, build-tests, test, smoke | fail until the console layer is ported (TUIkitApp since module split step B3, which has no Windows step of its own: it is POSIX by design; nor has TUIkitCommands, lane O13's module, which is built on it) |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
 point of binding the lane is that it stays true. `TUIkitImage`'s failure went

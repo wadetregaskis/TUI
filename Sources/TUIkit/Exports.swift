@@ -14,7 +14,8 @@
 // TUIkitTerminalHost) comes through TUIkitFoundation's own re-exports; one
 // carved out that is built on TUIkitFoundation is re-exported here: TUIkitApp
 // (`App`, `Scene` and the run loop, since step B3), TUIkitColorPicker
-// (`ColorPicker` and its panel, since step B4), TUIkitCurveEditors (the
+// (`ColorPicker` and its panel, since step B4), TUIkitCommands (the
+// commands and the menu bar they draw, since lane O13), TUIkitCurveEditors (the
 // tone-curve and channel-curve editors, TUIkitColorPicker's until C9b and
 // TUIkitColorEditors' until 2026-10-12), TUIkitNavigation (the
 // navigation containers, since step B5, and the presentations until step C1),
@@ -51,6 +52,7 @@
 @_exported import TUIkitBitmaps
 @_exported import TUIkitChrome
 @_exported import TUIkitColorPicker
+@_exported import TUIkitCommands
 @_exported import TUIkitCore
 @_exported import TUIkitCurveEditors
 @_exported import TUIkitEffects

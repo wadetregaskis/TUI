@@ -54,6 +54,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitNavigation` | `NavigationStack`, `NavigationPath`, `NavigationLink`, the split views, the inspector | |
 | `TUIkitPresentation` | `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover`, `modal` | `TUIkitChrome` |
 | `TUIkitMenus` | `Menu`, `ControlGroup`, `.contextMenu`, the menu styles | |
+| `TUIkitCommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIkitApp` |
 | `TUIkitTextInput` | `TextField`, `SecureField`, `TextEditor` | |
 | `TUIkitPickers` | `Picker`, `RadioButtonGroup`, `DatePicker` | |
 | `TUIkitNumericControls` | `Slider`, `Stepper`, `Gauge`, `ProgressView` | |

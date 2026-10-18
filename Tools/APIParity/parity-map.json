@@ -297,15 +297,10 @@
     },
     {
       "match": [
-        "Commands*",
-        "CommandGroup*",
-        "CommandMenu*",
-        "CommandsBuilder*",
         "*.commands*",
         "*.commandsRemoved*",
         "*.commandsReplaced*",
         "View.onCommand*",
-        "EmptyCommands*",
         "ImportFromDevicesCommands*",
         "InspectorCommands*",
         "SidebarCommands*",
@@ -313,7 +308,7 @@
         "TextFormattingCommands*",
         "ToolbarCommands*"
       ],
-      "why": "The menu-bar command system — CommandMenu, CommandGroup and their placements — plus `onCommand`'s responder-chain selectors. A terminal has no menu bar. SwiftUI compatibility guide.md §2.6 records the substitute: TUIkit's chrome is a status bar of shortcut hints built from `StatusBarItem`, whose identity IS the shortcut it announces."
+      "why": "What of the command system lane O13 (refusal review O13, ruled 2026-10-12: a full menu bar) has not built yet: the scene modifiers that declare commands and draw the menu bar, and the standard command sets. The vocabulary (Commands, CommandsBuilder, CommandMenu, CommandGroup, CommandGroupPlacement, EmptyCommands) is TUIkitCommands'. `onCommand`'s Objective-C selectors and responder chain stay declined."
     },
     {
       "match": [

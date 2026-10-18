@@ -3704,3 +3704,63 @@ private struct CorpusShadowedCards: View {
 private let corpusShadowStyles: [ShadowStyle] = [
     .drop(radius: 2), .drop(color: .black.opacity(0.4), radius: 1, x: 1, y: 2), .inner(radius: 1, y: 1),
 ]
+
+// MARK: - Commands
+
+/// SwiftUI's command vocabulary as its documentation writes it: a menu of the
+/// app's own, additions to and replacements of the standard groups, `if` and
+/// `if`/`else`, a `Group` past ten, and commands of the app's own type reading
+/// the focused view's value.
+@MainActor
+private struct CorpusNoteCommands: Commands {
+    @FocusedValue(\.corpusNoteTitle) private var noteTitle
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some Commands {
+        CommandMenu("Note") {
+            Button("Duplicate \(noteTitle ?? "")") {}
+                .keyboardShortcut("d")
+                .disabled(noteTitle == nil)
+            Divider()
+            Section("Danger") {
+                Button("Delete", role: .destructive) {}
+            }
+        }
+        CommandMenu(Text("Format")) {
+            Toggle("Bold", isOn: .constant(isEnabled))
+        }
+        CommandGroup(replacing: .newItem) {
+            Button("New Note") {}.keyboardShortcut("n")
+        }
+        CommandGroup(before: .undoRedo) { Button("History") {} }
+        CommandGroup(after: .pasteboard) { Button("Paste Plain") {} }
+        if isEnabled {
+            CommandGroup(after: .help) { Button("Guide") {} }
+        } else {
+            EmptyCommands()
+        }
+        Group {
+            CommandGroup(after: .appInfo) { Button("Licence") {} }
+            CommandGroup(replacing: .appTermination) { Button("Leave") {} }
+        }
+    }
+}
+
+private struct CorpusNoteTitleKey: FocusedValueKey {
+    typealias Value = String
+}
+
+extension FocusedValues {
+    fileprivate var corpusNoteTitle: String? {
+        get { self[CorpusNoteTitleKey.self] }
+        set { self[CorpusNoteTitleKey.self] = newValue }
+    }
+}
+
+/// Every placement SwiftUI names.
+@MainActor
+private let corpusPlacements: [CommandGroupPlacement] = [
+    .appInfo, .appSettings, .systemServices, .appVisibility, .appTermination, .newItem, .saveItem, .importExport,
+    .printItem, .undoRedo, .pasteboard, .textEditing, .textFormatting, .toolbar, .sidebar, .windowSize,
+    .windowArrangement, .windowList, .singleWindowList, .help,
+]
