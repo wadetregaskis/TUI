@@ -13,10 +13,24 @@ extension _VStackCore {
     /// spacer, `heights` its rows), placed down the column and across it by
     /// `guideRun` or the alignment within `alignmentWidth`, then clamped to
     /// the space the column was given.
+    ///
+    /// While any of them is still on its way to its place under an animation,
+    /// or a view that has left (`departing`) is still leaving, the column is
+    /// drawn as each of them is (`StackGlide`).
     func assembleColumn(
-        _ children: [ChildView], buffers: [FrameBuffer?], heights finalHeights: [Int],
+        _ children: [ChildView], departing: [ChildView], buffers: [FrameBuffer?], heights finalHeights: [Int],
         alignmentWidth: Int, guideRun: AlignmentGuideRun?, context: RenderContext
     ) -> FrameBuffer {
+        let column = columnPlacements(
+            buffers: buffers, heights: finalHeights, alignmentWidth: alignmentWidth, guideRun: guideRun,
+            availableWidth: context.availableWidth)
+        if let gliding = context.glidingStackBuffer(
+            children, buffers: buffers, at: column.targets, departing: departing,
+            width: column.width, height: column.height)
+        {
+            return gliding.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        }
+
         // Empty children (e.g. `if false { ChildView() }`, which
         // ViewBuilder lowers to `Optional<ChildView>.none`, and
         // `EmptyView()`) are filtered from layout entirely: they

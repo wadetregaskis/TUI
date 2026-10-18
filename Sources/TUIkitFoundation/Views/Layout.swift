@@ -427,14 +427,26 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
         // `_GridCore`. Saying otherwise here is what hid a bug for a month.
         let gradientFrame = context.gradientContentFrame(
             width: bounds.width, height: bounds.height)
-        var showingThrough: [AnimatedCellRun] = []
-        for entry in placements.entries {
-            let child = subviews[entry.index].child
-            let childSize = child.measure(proposal: entry.proposal, context: context)
-            let rendered = child.render(
+        let entries = placements.entries
+        let children = entries.map { subviews[$0.index].child }
+        let pictures = entries.indices.map { index in
+            let entry = entries[index]
+            let childSize = children[index].measure(proposal: entry.proposal, context: context)
+            return children[index].render(
                 width: entry.proposal.width ?? childSize.width,
                 height: entry.proposal.height ?? childSize.height,
                 context: context.placingChild(gradient: gradientFrame, x: entry.x, y: entry.y))
+        }
+        // While a subview is on its way to where the layout now places it
+        // under an animation, each is drawn where it is (`StackGlide`).
+        if let gliding = context.glidingStackBuffer(
+            children, buffers: pictures, at: entries.map { ChildPlacement(x: $0.x, y: $0.y) }, departing: [],
+            width: bounds.width, height: bounds.height)
+        {
+            return gliding
+        }
+        var showingThrough: [AnimatedCellRun] = []
+        for (entry, rendered) in zip(entries, pictures) {
             // In place: `composited` rebuilds every line of the canvas per
             // call, so folding n children through it is n × canvas even though
             // each child covers a couple of rows.

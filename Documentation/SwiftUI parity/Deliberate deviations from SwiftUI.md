@@ -1007,7 +1007,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the view whole. A custom `Transition`'s body is drawn by rendering it at its
   end phase and at `.identity` and interpolating the values between; while a
   view leaves, its content is the picture it last drew, and the view keeps its
-  `.identity` size throughout.
+  `.identity` size throughout. The views around it glide as SwiftUI's do
+  where A6 says.
 - **Why:** a frame is rebuilt from the tree, and a removed view no longer
   exists in it.
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>).
@@ -1040,6 +1041,37 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [A40](<Decisions/SwiftUI API completion decisions.md#a40-should-a-content-change-dissolve-by-default-under-an-animation>). **Owner**: agreed on 2026-10-05 to dissolve
   by default if that cost under about 1%; measured far over it on
   2026-10-15, so a change is drawn at once.
+
+### A6. Places glide in whole cells, and only in some containers; sizes change at once
+
+- **SwiftUI (measured, macOS 15.8, 2026-10-17, `plan/fb16/FB16Probe.swift`
+  with presentation frames every 0.5 s):** a change of layout takes effect at
+  once, and under an animation every view whose frame changed glides to its
+  new one — the view below an inserted row moved 187 → 194 → 202 → 218 →
+  234 → 247 over an 8 s linear animation, for every transition, `.identity`
+  included. A removed view plays its removal where it was, drawn beneath its
+  siblings (its layer comes first in every removal sample), while they close
+  up over it. Frames glide in points, sizes as well as positions, in every
+  container.
+- **TUIkit:** the children of an eager `VStack`, `HStack` and `ZStack` and
+  the subviews of a `Layout` glide from their old places to their new ones,
+  in whole cells, rounded half away from zero; a view leaving an eager stack
+  or a `ZStack` gives its room back at once and is drawn where it was,
+  beneath its siblings unless a `.zIndex` lifts it (`StackGlide`,
+  `StackGlideTests`). A lazy stack, a `Grid`, a `List`'s and a `Table`'s rows
+  move their children at once; there, in a `Layout` and where a `nil` is
+  rendered on its own, a removal keeps its room while it plays and gives it
+  back at once after. A container's own size — a border, a background, a
+  frame — changes at once, so a border around a stack that has given a
+  removal's room back is drawn at its new size while the view leaving is
+  drawn past it.
+- **Why:** a terminal draws whole cells; a glide is remembered per
+  container (`PlacementStore`), and the containers that window their rows or
+  lay out a lattice have not been given that memory yet. A size that glides
+  would need a presented size for every view that draws around its content.
+- **Decided:** [decisions FB16](<Decisions/Insertion and removal model (FB16).md>),
+  B-FB16-1 to B-FB16-8, A-FB16-1. **Owner** for the model (FB16 (a′),
+  2026-10-18); **Lane** for what stops short of it.
 
 ---
 

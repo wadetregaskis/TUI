@@ -41,7 +41,7 @@ extension _VStackCore: AlignmentGuideQuerying {
     ) -> Double? {
         guard overflow == .clip else { return nil }
         let context = context.publishingContainerAxis(.vertical)
-        let children = resolveChildViews(from: content, context: context)
+        let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
 
         var naturalHeights: [Int] = []

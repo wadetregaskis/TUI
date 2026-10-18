@@ -24,11 +24,14 @@ import TUIkitView
 /// ## What a terminal changes about this
 ///
 /// The effects are applied to the **rendered buffer**, not to the layout. A
-/// view sliding in gets its space at once and moves into it; it does not push
-/// its siblings along as it grows. That is a real difference from SwiftUI, and
-/// it is what makes a transition cost one buffer transform per frame rather
-/// than a full re-layout — in a grid of whole cells, a view growing by
-/// fractions of a cell has nothing to show for most of the frames anyway.
+/// view sliding in gets its space at once and moves into it, as SwiftUI's
+/// does — measured, the layout changes at once and the views it displaces
+/// glide out of its way with the change (``View/transition(_:)``, "The views
+/// around it"). What a transition here never does is change the view's own
+/// size as it plays: that is what makes it cost one buffer transform per
+/// frame rather than a full re-layout — in a grid of whole cells, a view
+/// growing by fractions of a cell has nothing to show for most of the frames
+/// anyway.
 ///
 /// `.scale` is the effect that changes most: there is no sub-cell rendering to
 /// shrink, so it reveals the view from its anchor a whole cell at a time.

@@ -390,9 +390,11 @@ private struct HeldDirectly: View {
 struct TransitionRemovalAddressTests {
 
     /// A removal that did not play is a view that is simply gone on the frame
-    /// it was removed, and a stack that closed up around it on the same frame.
-    /// Sampled at the start, half-way and after the end of a one-second slide.
-    @Test("The removal slides out over its second and only then gives up its row",
+    /// it was removed. One that plays slides out where the view was, while the
+    /// row below glides up into the room it gave back at once (`StackGlide`,
+    /// drawn in by `RemovalScreen`). Sampled at the start, half-way and after
+    /// the end of a one-second slide.
+    @Test("The removal slides out over its second where the view was",
         arguments: RemovalSurround.allCases)
     func removalPlaysOut(surround: RemovalSurround) {
         let screen = RemovalScreen(animation: .linear(duration: 1)) {
@@ -417,7 +419,7 @@ struct TransitionRemovalAddressTests {
         } when: {
             surround.stillSnaps
         }
-        #expect(screen.draw(false, atMillis: 2200) == sibling, "still holding its row after the end")
+        #expect(screen.draw(false, atMillis: 2200) == sibling, "still drawn after the end")
     }
 
     /// The other half of the contract, for every shape: a `nil` nothing is
@@ -446,7 +448,7 @@ struct TransitionRemovalAddressTests {
         } when: {
             held.stillSnaps
         }
-        #expect(screen.draw(false, atMillis: 2200) == ["----"], "still holding its row after the end")
+        #expect(screen.draw(false, atMillis: 2200) == ["----"], "still drawn after the end")
     }
 
     /// The third axis: no stack at all. A `nil` rendered directly draws the

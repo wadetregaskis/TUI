@@ -367,7 +367,8 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// `.clip` size: the shared `resolvedLayout` (measure → distribute → height),
     /// reported with its analytic total width clamped to the constraint.
     private func clipSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let children = resolveChildViews(from: content, context: context)
+        // A view that has left takes no room (`StackGlide`).
+        let children = stackChildren(of: content, context: context).laidOut
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
         let widthLimit = proposal.width ?? context.availableWidth
         let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
@@ -505,8 +506,15 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// the width (clipping trailing columns at the cell), children render into the
     /// row height, are vertically aligned, and the row is clamped.
     private func renderClip(context: RenderContext) -> FrameBuffer {
-        let children = resolveChildViews(from: content, context: context)
-        guard !children.isEmpty else { return FrameBuffer() }
+        // A view that has left takes no room, and is drawn where it was while
+        // its removal plays (`StackGlide`).
+        let split = stackChildren(of: content, context: context)
+        let children = split.laidOut
+        guard !children.isEmpty else {
+            guard !split.departing.isEmpty else { return FrameBuffer() }
+            return context.glidingStackBuffer(
+                [], buffers: [], at: [], departing: split.departing, width: 0, height: 0) ?? FrameBuffer()
+        }
 
         let gaps = gaps(between: children, context: context)
         let layout = resolvedLayout(children, gaps: gaps, availableWidth: context.availableWidth, context: context)
@@ -604,6 +612,22 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         // heights `sizeThatFits` reported — not off these buffers — so the two
         // passes cannot disagree about where a guided child sits.
         let guideRun = layout.guideRun
+
+        // Where each child lands. While any of them is still on its way there
+        // under an animation, or a view that has left is still leaving, the
+        // row is drawn as each of them is (`StackGlide`).
+        let row = rowPlacements(
+            buffers: buffers, widths: finalWidths, gaps: gaps, rowHeight: rowHeight, guideRun: guideRun)
+        if let gliding = context.glidingStackBuffer(
+            children, buffers: buffers, at: row.targets, departing: split.departing,
+            width: row.width, height: row.height)
+        {
+            reportTargetLayout(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, context: context)
+            resolveColumnSeek(
+                buffers: buffers, spacerWidths: finalWidths, gaps: gaps, children: children, context: context)
+            reportColumnSample(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, context: context)
+            return gliding.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        }
 
         var result = FrameBuffer()
         var placedIndex = 0
@@ -854,7 +878,7 @@ extension _HStackCore: AlignmentGuideQuerying {
     ) -> Double? {
         guard overflow == .clip else { return nil }
         let context = context.publishingContainerAxis(.horizontal)
-        let children = resolveChildViews(from: content, context: context)
+        let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
         let gaps = gaps(between: children, context: context)
         let layout = resolvedLayout(children, gaps: gaps, availableWidth: dimensions.width, context: context)

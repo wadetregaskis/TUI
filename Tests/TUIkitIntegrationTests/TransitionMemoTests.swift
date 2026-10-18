@@ -163,8 +163,9 @@ struct TransitionMemoTests {
     }
 
     /// The oracle above says the cache changed nothing. This says there was a
-    /// removal to change: half-way through, the detail is part-way out and
-    /// still holding its row, in the cached app as in the uncached one.
+    /// removal to change: half-way through, the detail is part-way out in its
+    /// own row while the row below glides up into the room it gave back
+    /// (`StackGlide`), in the cached app as in the uncached one.
     @Test("Half-way through, the detail is sliding out in its own row", arguments: MemoizedRemovalShape.allCases)
     func removalIsUnderWayHalfWay(shape: MemoizedRemovalShape) {
         let app = HeadlessApp(RowsApp(shape: shape, transition: .move(edge: .trailing)), width: 30, height: 14)
@@ -194,6 +195,13 @@ struct TransitionMemoTests {
         #expect(
             halfWay.map { $0.row == shown.row && $0.column > shown.column } == true,
             "not sliding out half-way:\n\(app.screen.map(\.stripped))")
-        #expect(row(of: "below")?.row == below.row, "the page closed up before the removal ended")
+        #expect(
+            row(of: "below").map { (below.row - 1)...below.row ~= $0.row } == true,
+            "the page below jumped rather than gliding up the detail's one row")
+        for _ in 0..<45 { frame() }
+        // A `List` of fixed height keeps its own; anything else gives the row back.
+        #expect(
+            row(of: "below")?.row == (shape == .listRow ? below.row : below.row - 1),
+            "the page below did not close up once the detail had gone")
     }
 }

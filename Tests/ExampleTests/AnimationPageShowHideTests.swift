@@ -208,7 +208,10 @@ struct AnimationPageShowHideTests {
             belowText: "below")
     }
 
-    @Test("Hiding the panel slides it out in place, with the space kept or not",
+    /// SwiftUI's model, measured (`plan/fb16/samples.txt`): the space goes on
+    /// the frame the panel does, and the page below glides up into it while
+    /// the panel slides out where it was. Kept, nothing below moves at all.
+    @Test("Hiding the panel slides it out in place, the page below gliding up or kept still",
         arguments: [false, true])
     func hidingSlidesOut(reservesSpace: Bool) {
         let page = panelPage(reservesSpace: reservesSpace, transition: .move(edge: .trailing))
@@ -224,17 +227,29 @@ struct AnimationPageShowHideTests {
         #expect(
             page.panelCorner.map { $0 == shownCorner } == true,
             "the panel was gone on the first frame of its removal:\n\(page.screen.map(\.stripped))")
-        #expect(page.belowRow == shownBelow, "the page closed up on the first frame of the removal")
+        #expect(page.belowRow == shownBelow, "the page below jumped on the first frame of the removal")
 
         page.advance(byMillis: 500)
+        // In its own row — or, its space given back, one above: the slot's
+        // stack, empty now, takes no gap, and glides up into the one above it
+        // as the page below does into the panel's rows.
         #expect(
-            page.panelCorner.map { $0.row == shownCorner.row && $0.column > shownCorner.column }
-                == true,
+            page.panelCorner.map {
+                (reservesSpace ? [shownCorner.row] : [shownCorner.row - 1, shownCorner.row]).contains($0.row)
+                    && $0.column > shownCorner.column
+            } == true,
             "not sliding out half-way:\n\(page.screen.map(\.stripped))")
-        #expect(page.belowRow == shownBelow, "the page closed up before the removal finished")
+        if reservesSpace {
+            #expect(page.belowRow == shownBelow, "the kept space was given back")
+        } else {
+            #expect(
+                page.belowRow.map { $0 > shownBelow - 6 && $0 < shownBelow } == true,
+                "the page below is not on its way up half-way: \(page.belowRow ?? -1)")
+        }
 
         page.advance(byMillis: 700)
         #expect(page.panelCorner == nil, "still drawn after the removal ended")
+        #expect(page.belowRow == (reservesSpace ? shownBelow : shownBelow - 6))
     }
 
     /// The page's default transition, and the one whose failure the owner saw.
@@ -306,13 +321,13 @@ struct AnimationPageShowHideTests {
         }
     }
 
-    /// The third choice: the slot's height animated with the panel, so the
-    /// page below is pushed down as it arrives — part-way part-way through —
-    /// and drawn back up as it goes.
-    @Test("Pushing, the page below moves with the panel as it comes and goes")
-    func pushesAsItMoves() {
+    /// The default: what SwiftUI's stack does with any insertion and removal
+    /// under `withAnimation` — the page below is pushed down as the panel
+    /// arrives, part-way part-way through, and drawn back up as it goes.
+    @Test("By default the page below glides with the panel as it comes and goes")
+    func pageBelowGlides() {
         let page = PanelDriver(
-            PanelApp(space: .pushes, transition: .opacity), width: 40, height: 20, belowText: "below")
+            PanelApp(space: .closesUp, transition: .opacity), width: 40, height: 20, belowText: "below")
         let before = page.belowRow
         #expect(page.pressFocused(), "precondition: the button took the key")
         page.advance(byMillis: 500)
@@ -329,7 +344,7 @@ struct AnimationPageShowHideTests {
             return
         }
         #expect(before < arriving && arriving < shown, "the page below moved part-way: \(before), \(arriving), \(shown)")
-        #expect(shown < before + 7, "pushed by the panel's rows: \(before) → \(shown)")
+        #expect(shown == before + 6, "pushed by the panel's rows and a gap: \(before) → \(shown)")
         #expect(after < going && going < shown, "and back up part-way: \(shown), \(going), \(after)")
         #expect(after == before)
     }
@@ -341,7 +356,7 @@ struct AnimationPageShowHideTests {
     /// draws around the slot. Not timed against the curve — the page's curve
     /// is the page's to change — so the fade is checked for being part-way,
     /// neither the ink it was drawn in nor the page behind it.
-    @Test("On the page itself, Show / hide fades the panel out and Keep the space keeps it",
+    @Test("On the page itself, Show / hide fades the panel out, the page gliding up unless the space is kept",
         arguments: [false, true])
     func wholePageFadesAndKeepsItsSpace(reservesSpace: Bool) {
         ColorDepth.withCurrent(.truecolor) {
@@ -356,6 +371,9 @@ struct AnimationPageShowHideTests {
             }
             let before = page.belowRow
             #expect(page.click("page.animation.button.toggle"), "precondition: the button took the click")
+            // The frame that shows the change, where everything below the
+            // panel still stands where it was and starts to glide down.
+            page.jump(byMillis: 17)
             page.jump(byMillis: 800)
             let shownPanel = page.position(of: panelText)
             let shown = page.colours(of: panelText)
@@ -384,7 +402,13 @@ struct AnimationPageShowHideTests {
             #expect(
                 drawn.map { $0.ink != shown.ink && $0.ink != shown.page } == true,
                 "part-way out, the panel's ink \(drawn?.ink ?? []) is not between \(shown.ink) and the page \(shown.page)")
-            #expect(page.belowRow == shownBelow, "the page closed up before the removal finished")
+            if reservesSpace {
+                #expect(page.belowRow == shownBelow, "the kept space was given back")
+            } else {
+                #expect(
+                    page.belowRow.map { $0 > before && $0 < shownBelow } == true,
+                    "the page below is not on its way up part-way through the removal")
+            }
 
             page.jump(byMillis: 700)
             #expect(page.position(of: panelText) == nil, "still drawn after the removal ended")

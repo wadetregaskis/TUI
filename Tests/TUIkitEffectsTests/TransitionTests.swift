@@ -57,6 +57,11 @@ enum WrappedTransition: String, CaseIterable, Sendable {
 
     /// The rows drawn once it has gone.
     var gone: [String] { isAlone ? [] : ["------"] }
+
+    /// The rows drawn while its removal would be playing: none of it, and the
+    /// sibling below gliding up from the row it had (`StackGlide`) — the
+    /// layout change animates whether or not the removal can be drawn.
+    var goneWhileSiblingGlides: [String] { isAlone ? [] : ["      ", "------"] }
 }
 
 private struct WrappedHost: View {
@@ -117,7 +122,7 @@ struct TransitionTests {
             defer { storage.endRenderPass() }
             return renderToBuffer(
                 Host(showing: showing, transition: transition), context: context
-            ).lines.map(\.stripped)
+            ).withLayersDrawn().lines.map(\.stripped)
         }
     }
 
@@ -127,9 +132,10 @@ struct TransitionTests {
     func insertionSlides() {
         let screen = Screen(.linear(duration: 1))
         _ = screen.draw(false, .move(edge: .leading), atMillis: 0)
-        // On the frame it appears it is entirely off to the leading side.
-        #expect(screen.draw(true, .move(edge: .leading), atMillis: 0)[0].trimmingCharacters(
-            in: .whitespaces).isEmpty)
+        // On the frame it appears it is entirely off to the leading side, and
+        // the row below has not moved down out of its row yet: it glides, as
+        // SwiftUI's does (`plan/fb16/samples.txt`).
+        #expect(screen.draw(true, .move(edge: .leading), atMillis: 0) == ["----", "    "])
         #expect(screen.draw(true, .move(edge: .leading), atMillis: 500)[0] == "XX  ")
         #expect(screen.draw(true, .move(edge: .leading), atMillis: 1000)[0] == "XXXX")
     }
@@ -239,24 +245,29 @@ struct TransitionTests {
 
     // MARK: - Leaving
 
-    @Test("A removal inside a stack plays out, holding its row open")
+    @Test("A removal inside a stack plays out where the view was")
     func removalInsideAStackPlaysOut() {
         // `if` inside a stack is how a view comes and goes in almost every app,
         // and it used to be the one shape a removal could not play in: a stack
         // asks its children to flatten themselves and a `nil` optional flattened
         // to NO children, so the instant the condition went false there was
         // nothing standing where the view stood. Now the `nil` keeps a slot for
-        // exactly as long as something is still leaving from it.
+        // exactly as long as something is still leaving from it — taking no
+        // room, as in SwiftUI: the row below glides up while the view slides
+        // out where it was, beneath it (`StackGlide`).
         let screen = Screen(.linear(duration: 1))
         // Let it arrive first — appearing under an animation is itself animated,
         // so the view is only whole once the insertion has run its second.
         _ = screen.draw(true, .move(edge: .trailing), atMillis: 0)
         #expect(screen.draw(true, .move(edge: .trailing), atMillis: 1000) == ["XXXX", "----"])
         // The frame it goes: still whole, still in its own row, and the row
-        // below has not moved up.
+        // below has not moved up yet.
         #expect(screen.draw(false, .move(edge: .trailing), atMillis: 1000) == ["XXXX", "----"])
-        #expect(screen.draw(false, .move(edge: .trailing), atMillis: 1500) == ["  XX", "----"])
-        // Played out: the slot goes, and the stack finally closes up.
+        #expect(screen.draw(false, .move(edge: .trailing), atMillis: 1400) == ["  XX", "----"])
+        // Past half-way the row below has reached the view's row, and is drawn
+        // over what is left of it.
+        #expect(screen.draw(false, .move(edge: .trailing), atMillis: 1600) == ["----"])
+        // Played out: the slot goes.
         #expect(screen.draw(false, .move(edge: .trailing), atMillis: 2200) == ["----"])
     }
 
@@ -418,9 +429,10 @@ struct TransitionTests {
         _ = screen.draw(true, atMillis: 0)
         #expect(screen.draw(true, atMillis: 1100) == wrapped.shown, "precondition: it arrived")
         #expect(
-            screen.draw(false, atMillis: 1100) == wrapped.gone,
+            screen.draw(false, atMillis: 1100) == wrapped.goneWhileSiblingGlides,
             "the removal played without what surrounds the transition")
-        #expect(screen.draw(false, atMillis: 1600) == wrapped.gone)
+        #expect(screen.draw(false, atMillis: 1600) == wrapped.goneWhileSiblingGlides)
+        #expect(screen.draw(false, atMillis: 2200) == wrapped.gone)
     }
 
     @Test("An unanimated removal is instant")

@@ -105,6 +105,12 @@ extension Optional: Layoutable where Wrapped: View {
 /// removal plays: the picture the view left behind, part-way gone, at the size
 /// it had.
 ///
+/// An eager stack lays the slot out nowhere — the room goes at once, as in
+/// SwiftUI — and draws it where the view last was (`StackGlide`,
+/// ``ChildView/isDeparting``); a container that knows nothing of that lays
+/// it out at the size it reports here, holding the room until the removal
+/// has played.
+///
 /// A view of its own rather than the `nil` itself, because the flattening
 /// claim has already established WHICH view left from here (`viewType`) and
 /// the `nil`'s own type need not say so — see `Optional`'s

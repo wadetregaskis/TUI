@@ -24,6 +24,27 @@ extension View {
     /// is what makes it safe to leave a transition on a view that appears for
     /// other reasons (a page being opened, a list being rebuilt).
     ///
+    /// ## The views around it
+    ///
+    /// The transition decides only how the view itself arrives and leaves. The
+    /// layout changes at once, as SwiftUI's does: inserted, the view takes its
+    /// room on the frame it appears; removed, it gives the room back on the
+    /// frame it goes. Under the animation, every view the change moved glides
+    /// from its old place to its new one — measured in SwiftUI
+    /// (`plan/fb16/samples.txt`), the row below an inserted one moved 187 →
+    /// 202 → 218 → 247 over an 8 s linear animation, whatever the transition,
+    /// `.identity` included. So a fading view is drawn where it lands from the
+    /// first frame, and the row below slides away from over it; a view fading
+    /// out is drawn where it was, and the row below slides up over it. A view
+    /// leaving is drawn beneath the views around it, as SwiftUI draws it,
+    /// unless a `.zIndex` lifts it.
+    ///
+    /// That is what an eager `VStack`, `HStack` and `ZStack` do, and a
+    /// `Layout` with its subviews' places. Elsewhere a removal keeps its room
+    /// while it plays and gives it back at once after — in a `Layout`, a lazy
+    /// stack, a `Grid`, a `List` and a `nil` rendered on its own — and the
+    /// children of a lazy stack, a `Grid` and a `List` move at once.
+    ///
     /// ## How a view that no longer exists still leaves
     ///
     /// An **insertion** works wherever the view appears, because the view is
@@ -32,9 +53,8 @@ extension View {
     /// A **removal** has no view: the body no longer produces one, and a
     /// terminal rebuilds its whole frame from the tree. What plays it is
     /// whatever still stands where it stood — the `nil` the optional became —
-    /// drawing the picture the view left behind on its last frame. While that
-    /// runs, the slot keeps the size the view had, so the stack around it does
-    /// not close up until the removal has finished.
+    /// drawing the picture the view left behind on its last frame, where the
+    /// view last was.
     ///
     /// This holds both where the optional is itself the thing being rendered (a
     /// page's body, a modifier's content) and for the far commoner `if` inside a

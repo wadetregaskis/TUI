@@ -82,14 +82,14 @@ package func departingSlot<Content: View>(
                 at: context.identity, ofType: pictureType, nowNanos: frame.nowNanos,
                 frameAnimation: frameAnimation)
         else { return nil }
-        return ChildView(slot)
+        return ChildView.departing(slot, identityType: nil)
     }
     guard
         storage.departures.hasDeparture(
             directlyUnder: context.identity, addressedAs: Content.self, ofType: pictureType,
             nowNanos: frame.nowNanos, frameAnimation: frameAnimation)
     else { return nil }
-    return ChildView(slot, identityType: Content.self, childIndex: 0)
+    return ChildView.departing(slot, identityType: Content.self)
 }
 
 // MARK: - Wrappers a parting picture passes through

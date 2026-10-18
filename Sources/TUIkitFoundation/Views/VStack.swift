@@ -121,7 +121,8 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// reaches it answers from the rows it measured, as it does unasked.
     func clipSizeThatFits(proposal: ProposedSize, context: RenderContext, stoppingAt stop: Int? = nil) -> ViewSize {
         if context.asksOverflow { return overflowProbeSizeThatFits(proposal: proposal, context: context) }
-        let children = resolveChildViews(from: content, context: context)
+        // A view that has left takes no room (`StackGlide`).
+        let children = stackChildren(of: content, context: context).laidOut
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
 
         var totalHeight = 0
@@ -438,8 +439,15 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// clamp.
     private func renderClip(context: RenderContext) -> FrameBuffer {
         let window = resolveEagerSeek(context: context)
-        let children = resolveChildViews(from: content, context: context)
-        guard !children.isEmpty else { return FrameBuffer() }
+        // A view that has left takes no room, and is drawn where it was while
+        // its removal plays (`StackGlide`).
+        let split = stackChildren(of: content, context: context)
+        let children = split.laidOut
+        guard !children.isEmpty else {
+            guard !split.departing.isEmpty else { return FrameBuffer() }
+            return context.glidingStackBuffer(
+                [], buffers: [], at: [], departing: split.departing, width: 0, height: 0) ?? FrameBuffer()
+        }
 
         // === PASS 1: Measure every child's natural size ===
         let childSizes = naturalSizes(of: children, context: context)
@@ -570,8 +578,8 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         }
 
         return assembleColumn(
-            children, buffers: buffers, heights: finalHeights, alignmentWidth: alignmentWidth,
-            guideRun: guideRun, context: context)
+            children, departing: split.departing, buffers: buffers, heights: finalHeights,
+            alignmentWidth: alignmentWidth, guideRun: guideRun, context: context)
     }
 
     /// `.window` render (lazy `LazyVStack`): append whole children top-down while

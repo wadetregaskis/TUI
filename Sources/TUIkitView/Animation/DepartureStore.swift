@@ -42,7 +42,9 @@ public final class DepartureStore: @unchecked Sendable {
         /// Draws the view at `phase` — `1` fully present, `0` fully gone.
         public let render: (Double) -> FrameBuffer
 
-        /// The size it occupied, so its slot keeps its shape while it leaves.
+        /// The size it occupied: what its picture is drawn at, and the room a
+        /// slot keeps where the container holds the room open while it leaves
+        /// (an eager stack does not — `StackGlide`).
         public let width: Int
 
         /// The number of rows it occupied.

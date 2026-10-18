@@ -38,13 +38,16 @@ final class RemovalScreen<Content: View> {
     }
 
     /// The view at `millis` on the frame clock, with what comes and goes there
-    /// or not, styling stripped.
+    /// or not, styling stripped — and what is drawn past a stack drawn in
+    /// (``FrameBuffer/withLayersDrawn()``): a removed view's room goes at once,
+    /// so while it leaves it, and the siblings gliding into its room, are
+    /// drawn past the stack that has closed up (`StackGlide`).
     func draw(_ showing: Bool, atMillis millis: Int) -> [String] {
         context.environment.frameNowNanos = Int64(millis) * 1_000_000
         let storage = context.environment.stateStorage!
         storage.beginRenderPass()
         defer { storage.endRenderPass() }
-        return renderToBuffer(content(showing), context: context).lines.map(\.stripped)
+        return renderToBuffer(content(showing), context: context).withLayersDrawn().lines.map(\.stripped)
     }
 }
 

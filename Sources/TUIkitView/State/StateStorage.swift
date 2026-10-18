@@ -284,6 +284,10 @@ public final class StateStorage: @unchecked Sendable {
     /// something to play out. See ``DepartureStore``.
     public let departures = DepartureStore()
 
+    /// Where each container last placed its children, so a change of layout
+    /// under an animation moves them from there. See ``PlacementStore``.
+    public let placements = PlacementStore()
+
     /// The completions waiting on the animations a change started. See
     /// ``AnimationCompletionTracker``.
     public let animationCompletions = AnimationCompletionTracker()
@@ -599,6 +603,7 @@ extension StateStorage {
         }
         animations.beginRenderPass()
         departures.beginRenderPass()
+        placements.beginRenderPass()
         activeIdentities.removeAll(keepingCapacity: true)
         retainedSubtreeRoots.removeAll(keepingCapacity: true)
         beginSceneRender()
@@ -711,6 +716,7 @@ extension StateStorage {
         }
         animations.endRenderPass()
         departures.endRenderPass()
+        placements.endRenderPass(retaining: &retained)
     }
 
     /// Removes all state for descendants of the given identity.
@@ -752,6 +758,7 @@ extension StateStorage {
         optionalRecordsAfterSweep = 0
         animations.removeAll()
         departures.removeAll()
+        placements.removeAll()
     }
 }
 

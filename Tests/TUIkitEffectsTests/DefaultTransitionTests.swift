@@ -92,19 +92,27 @@ private func fades(_ buffer: FrameBuffer) -> [Double] {
 @Suite("The default transition")
 struct DefaultTransitionTests {
 
-    @Test("An if's view fades in and out of a stack, holding its row while it leaves")
+    /// SwiftUI's model, measured (`plan/fb16/samples.txt`): the row below
+    /// glides as the view comes and goes, and the view fades where it is —
+    /// arriving in its new row with the row below not yet moved out of it,
+    /// leaving in its old row with the row below gliding up into it. What is
+    /// drawn past the stack, which has closed up at once, is drawn in.
+    @Test("An if's view fades in and out of a stack while the row below glides")
     func stackedFades() {
         let screen = Screen()
         _ = screen.draw(Stacked(showing: false), atMillis: 0, animated: false)
-        let arriving = screen.draw(Stacked(showing: true), atMillis: 10, animated: true)
-        #expect(arriving.lines.map(\.stripped) == ["XXXX", "----"])
-        #expect(fades(arriving) == [0], "it arrives from nothing")
-        #expect(fades(screen.draw(Stacked(showing: true), atMillis: 510, animated: false)) == [0.5])
+        let arriving = screen.draw(Stacked(showing: true), atMillis: 10, animated: true).withLayersDrawn()
+        #expect(arriving.lines.map(\.stripped) == ["----", "    "], "the row below has not moved yet")
+        #expect(fades(arriving).allSatisfy { $0 == 0 }, "it arrives from nothing")
+        let halfIn = screen.draw(Stacked(showing: true), atMillis: 510, animated: false).withLayersDrawn()
+        #expect(halfIn.lines.map(\.stripped) == ["XXXX", "----"])
+        #expect(fades(halfIn) == [0.5])
         #expect(fades(screen.draw(Stacked(showing: true), atMillis: 1100, animated: false)).isEmpty, "arrived")
 
         _ = screen.draw(Stacked(showing: false), atMillis: 1200, animated: true)
         let leaving = screen.draw(Stacked(showing: false), atMillis: 1700, animated: false)
-        #expect(leaving.lines.map(\.stripped) == ["XXXX", "----"], "its row is held while it leaves")
+        #expect(leaving.lines.map(\.stripped) == ["XXXX"], "its row has gone from the layout")
+        #expect(leaving.withLayersDrawn().lines.map(\.stripped) == ["XXXX", "----"], "the row below is on its way up")
         #expect(fades(leaving) == [0.5])
         #expect(screen.draw(Stacked(showing: false), atMillis: 2300, animated: false).lines.map(\.stripped) == ["----"])
     }

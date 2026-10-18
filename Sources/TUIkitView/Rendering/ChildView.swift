@@ -145,6 +145,17 @@ public struct ChildView {
     /// may lay the view out anew.
     package let fillsItsOffer: Bool
 
+    /// Whether this child is the slot a `nil` keeps for a view still leaving
+    /// from there (`DepartureSlot`, made by ``departing(_:identityType:)``),
+    /// rather than a view that is present.
+    ///
+    /// An eager stack lays such a child out nowhere — the view has gone, and
+    /// SwiftUI's stack closes up at once — and draws its parting picture
+    /// where the view last was (`ChildGlide`). A flag beside the four above,
+    /// in the struct's tail padding: its stride stays 128 bytes. Carried by
+    /// every copy, as a wrapper put round the slot draws the same picture.
+    package let isDeparting: Bool
+
     /// Resolves a child's spacer flag and minimum length without a speculative
     /// runtime conformance cast on the common (non-spacer) path.
     ///
@@ -222,6 +233,7 @@ public struct ChildView {
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
         self.isDefaultTransitioned = false
+        self.isDeparting = false
     }
 
     /// Creates a child view wrapper with an explicit child index for identity propagation.
@@ -246,6 +258,7 @@ public struct ChildView {
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
         self.isDefaultTransitioned = false
+        self.isDeparting = false
     }
 
     /// Full-field copy initializer backing ``reindexed(to:providerSlot:)``.
@@ -262,7 +275,8 @@ public struct ChildView {
         providesLayoutValues: Bool,
         resolvedIdentity: ViewIdentity? = nil,
         isDefaultTransitioned: Bool = false,
-        fillsItsOffer: Bool = false
+        fillsItsOffer: Bool = false,
+        isDeparting: Bool = false
     ) {
         self.view = view
         self.identityType = identityType
@@ -277,6 +291,7 @@ public struct ChildView {
         self.resolvedIdentity = resolvedIdentity
         self.isDefaultTransitioned = isDefaultTransitioned
         self.fillsItsOffer = fillsItsOffer
+        self.isDeparting = isDeparting
     }
 
     /// This child with its identity under `parent` worked out now, so the
@@ -303,7 +318,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength, zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolved, isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
     }
 
     /// This child as the content of a conditional's branch whose identity is
@@ -336,7 +351,7 @@ public struct ChildView {
                 spacerMinLength: spacerMinLength, zIndex: zIndex,
                 providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
                 resolvedIdentity: branch, isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
         }
         guard let identityKey, providerSlot == ProviderSlot.unnamespaced else {
             return resolvingIdentity(under: branch)
@@ -347,7 +362,7 @@ public struct ChildView {
             isSpacer: isSpacer, spacerMinLength: spacerMinLength, zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolvedIdentity ?? branch.child(erasedType: identityType, key: identityKey), isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
     }
 
     /// This child with its identity fixed now, in `scope`: under it, or AT it
@@ -397,7 +412,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength, zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolvedIdentity, isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
     }
 
     /// This child with `modifier` wrapped around it — what a provider hands
@@ -437,7 +452,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolvedIdentity)
+            resolvedIdentity: resolvedIdentity, isDeparting: isDeparting)
     }
 
     /// A copy that draws its view through an `if`'s default transition — see
@@ -454,7 +469,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolvedIdentity, isDefaultTransitioned: true)
+            resolvedIdentity: resolvedIdentity, isDefaultTransitioned: true, isDeparting: isDeparting)
     }
 
     package func modified<M: BufferModifier>(by modifier: M) -> Self {
@@ -476,7 +491,7 @@ public struct ChildView {
             spacerMinLength: spacerMinLength,
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
-            resolvedIdentity: resolvedIdentity)
+            resolvedIdentity: resolvedIdentity, isDeparting: isDeparting)
     }
 
     /// A copy whose positional identity is rebased to `index`, and whose
@@ -539,7 +554,7 @@ public struct ChildView {
                 zIndex: zIndex,
                 providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
                 resolvedIdentity: resolved, isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
         }
         let resolvedType = identityType ?? type(of: view)
         return Self(
@@ -553,7 +568,7 @@ public struct ChildView {
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: parent.map { $0.child(erasedType: resolvedType, index: index) }, isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
     }
 
     /// This child as it leaves a provider that a `TupleView` is splicing in at
@@ -619,7 +634,7 @@ public struct ChildView {
             zIndex: zIndex,
             providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
             resolvedIdentity: resolved, isDefaultTransitioned: isDefaultTransitioned,
-            fillsItsOffer: fillsItsOffer)
+            fillsItsOffer: fillsItsOffer, isDeparting: isDeparting)
     }
 
     /// Creates a child wrapper that renders `view` but derives its per-child
@@ -651,6 +666,7 @@ public struct ChildView {
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
         self.isDefaultTransitioned = false
+        self.isDeparting = false
     }
 
     /// Creates a child wrapper whose per-child identity is keyed by a stable
@@ -671,6 +687,35 @@ public struct ChildView {
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
         self.isDefaultTransitioned = false
+        self.isDeparting = false
+    }
+
+    /// The slot a `nil` keeps for a view still leaving from there, addressed
+    /// as that view was: `(identityType, 0)` under the context it is resolved
+    /// in, or transparent with no `identityType` (``isDeparting``).
+    package static func departing<V: View>(_ view: V, identityType: Any.Type?) -> Self {
+        Self(
+            view: view, identityType: identityType, childIndex: 0, identityKey: nil,
+            providerSlot: ProviderSlot.unnamespaced, isSpacer: false, spacerMinLength: nil,
+            zIndex: 0, providesAlignmentGuide: false, providesLayoutValues: false,
+            isDeparting: true)
+    }
+
+    /// What tells this child apart from its siblings — see ``ChildIdentityStep``.
+    package var identityStep: ChildIdentityStep {
+        ChildIdentityStep(
+            type: identityType, index: childIndex, key: identityKey, slot: providerSlot,
+            resolved: resolvedIdentity)
+    }
+
+    /// Whether this child's ``identityStep`` is `step`, asked without building
+    /// one: a container that has not changed asks it of every child on every
+    /// frame, and building the step copies — and retains — the key and the
+    /// resolved identity to compare and drop them.
+    package func hasIdentityStep(_ step: ChildIdentityStep) -> Bool {
+        childIndex == step.index && providerSlot == step.slot
+            && identityType.map(ObjectIdentifier.init) == step.type.map(ObjectIdentifier.init)
+            && identityKey == step.key && resolvedIdentity?.structuralHash == step.resolved?.structuralHash
     }
 
     /// The identity a child of `type` at `index` — or keyed by `key`,

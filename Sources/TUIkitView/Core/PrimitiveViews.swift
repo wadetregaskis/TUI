@@ -277,7 +277,9 @@ extension ConditionalView: ChildViewProvider {
 /// views animated in and jumped out. So a `nil` that something is still leaving
 /// from keeps one slot — a `DepartureSlot`, drawing the picture that view left
 /// behind — until the removal has played out, and then goes back to
-/// contributing nothing.
+/// contributing nothing. Whether the slot takes room is the container's
+/// business: an eager stack gives the room back at once and draws the slot
+/// where the view was (`StackGlide`).
 ///
 /// The slot borrows `Wrapped`'s identity rather than `Optional`'s, so it lands
 /// on exactly the address the present view rendered at and finds what that view

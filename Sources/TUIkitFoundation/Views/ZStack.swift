@@ -84,7 +84,10 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // walk that drew it kept whole (`RenderContext.takingSectionsApart()`):
         // it publishes no axis, which is how every stack clears that.
         let context = context.takingSectionsApart()
-        let children = resolveChildViews(from: content, context: context)
+        // A layer that has left takes no room, and is drawn where it was while
+        // its removal plays (`StackGlide`).
+        let split = stackChildren(of: content, context: context)
+        let children = split.laidOut
 
         // Draw children in ascending z-index. Ties keep their tree order, so
         // the sort is made stable by using the original index as a tiebreaker.
@@ -135,6 +138,12 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // lives inside it. `ZStack {}` still yields a bare buffer — `reduce`
         // over no children returns the initial value.
         guard frameWidth > 0, frameHeight > 0 else {
+            if let gliding = context.glidingStackBuffer(
+                drawn, buffers: buffers, at: buffers.map { _ in ChildPlacement(x: 0, y: 0) },
+                departing: split.departing, width: 0, height: 0)
+            {
+                return gliding
+            }
             return buffers.reduce(FrameBuffer()) {
                 $0.compositedCarryingClaimsOverNothing(with: $1, at: (x: 0, y: 0), palette: context.environment.palette)
             }
@@ -170,6 +179,15 @@ private struct _ZStackCore<Content: View>: View, Renderable {
                 y: verticalRun?.offsets[index]
                     ?? alignment.vertical.childOffset(childHeight: buffer.height, in: frameHeight)
             )
+        }
+        // While a layer is on its way to where the alignment now puts it under
+        // an animation, or a layer that has left is still leaving, each is
+        // drawn where it is (`StackGlide`).
+        if let gliding = context.glidingStackBuffer(
+            drawn, buffers: buffers, at: layers.map { ChildPlacement(x: $0.x, y: $0.y) },
+            departing: split.departing, width: drawnWidth, height: drawnHeight)
+        {
+            return gliding
         }
         return FrameBuffer.layered(
             layers, width: drawnWidth, height: drawnHeight, splitsOverhang: overhangs,
@@ -214,7 +232,8 @@ extension _ZStackCore: Layoutable {
     /// not size.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = context.takingSectionsApart()
-        let children = resolveChildViews(from: content, context: context)
+        // A layer that has left takes no room (`StackGlide`).
+        let children = stackChildren(of: content, context: context).laidOut
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
 
         var maxWidth = 0
@@ -302,7 +321,7 @@ extension _ZStackCore: AlignmentGuideQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         let context = context.takingSectionsApart()
-        let children = resolveChildViews(from: content, context: context)
+        let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
         let drawn = children.filter { !$0.isSpacer }
         let sizes = drawn.map { child -> (width: Int, height: Int) in

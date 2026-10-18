@@ -416,6 +416,26 @@ extension AnimationStore {
         walk &+= 1
     }
 
+    /// Which walk of the pass is being rendered — see ``beginWalk()``.
+    package var currentWalk: UInt64 { walk }
+
+    /// Records the value at `key` as standing at `value`, settled there, where
+    /// nothing has asked about it before — so that the next
+    /// ``value(for:target:animation:nowNanos:isMeasuring:)`` with a different
+    /// target animates FROM `value`, where a first sight would draw the
+    /// target at once.
+    ///
+    /// For a value whose last position is known to something other than the
+    /// store: a container's child, whose placement the container remembers
+    /// (``PlacementStore``) and asks the store about only while it moves. A
+    /// record already here is left alone — the value is in flight, and its
+    /// picture is where the next change starts from. Not marked as an
+    /// appearance, so a change on the same walk animates.
+    package func settle<D: VectorArithmetic>(_ key: Key, at value: D, nowNanos: Int64) {
+        guard scrub == nil, records[key] == nil else { return }
+        store(Record(from: value, target: value, animation: nil, startNanos: nowNanos), for: key, isMeasuring: false)
+    }
+
     /// A record of `target` first seen now: settled at it, nothing running.
     private func appearance<D>(of target: D, at nowNanos: Int64) -> Record {
         Record(from: target, target: target, animation: nil, startNanos: nowNanos, appeared: (pass, walk))

@@ -52,7 +52,11 @@ extension _VStackCore {
     /// same mark on the path below that threshold, bounded by the rows this
     /// stack holds. An eager stack draws every row, so the render marks them.
     func naturalRowSlots(width: Int?, context: RenderContext, keepsMeasuresLive: Bool = false) -> [RowSlot] {
-        let children = resolveChildViews(from: content, context: context)
+        // An eager column lays out no room for a view that has left (`StackGlide`).
+        let children =
+            overflow == .clip
+            ? stackChildren(of: content, context: context).laidOut
+            : resolveChildViews(from: content, context: context)
         return rowSlots(
             count: children.count, childAt: { children[$0] }, width: width, context: context,
             keepsMeasuresLive: keepsMeasuresLive, stoppingPast: nil)

@@ -1994,7 +1994,9 @@ long as the view is visible, and a body is allowed to leave something there.
   a collapse) is drawn inside the size it has at rest, rather than re-laying
   out its siblings on every frame. TUIkit's transitions have never moved
   their neighbours (see `AnyTransition`); this is the same rule applied to a
-  custom body.
+  custom body. (Since 2026-10-18 the neighbours glide with the change of
+  layout itself, as SwiftUI's do — decisions FB16; a transition still never
+  changes the size of the view it plays on.)
 - **A body that changes its structure between phases does not animate the
   difference.** A value is interpolated only where both renders produced it
   at the same place; a modifier present at one phase and not the other is
