@@ -293,16 +293,10 @@ public struct ChildView {
         // including the whole `EnvironmentValues`, which was affordable while
         // this ran on the memoised `ForEach` path alone and is not now that
         // every spliced child resolves.
-        let resolved: ViewIdentity
-        if let resolvedIdentity {
-            resolved = resolvedIdentity
-        } else if let identityKey {
-            resolved = parent.child(
-                erasedType: identityType,
-                key: providerSlot >= 0 ? "\(providerSlot)#\(identityKey)" : identityKey)
-        } else {
-            resolved = parent.child(erasedType: identityType, index: childIndex)
-        }
+        let resolved =
+            resolvedIdentity
+            ?? Self.identity(
+                of: identityType, index: childIndex, key: identityKey, slot: providerSlot, under: parent)
         return Self(
             view: view, identityType: identityType, childIndex: childIndex,
             identityKey: identityKey, providerSlot: providerSlot, isSpacer: isSpacer,
@@ -677,6 +671,16 @@ public struct ChildView {
         self.providerSlot = ProviderSlot.unnamespaced
         self.resolvedIdentity = nil
         self.isDefaultTransitioned = false
+    }
+
+    /// The identity a child of `type` at `index` — or keyed by `key`,
+    /// namespaced by `slot` — has under `parent`: the step ``childContext(_:)``
+    /// takes, for a child whose identity is worked out without a context.
+    nonisolated static func identity(
+        of type: Any.Type, index: Int, key: String?, slot: Int32, under parent: ViewIdentity
+    ) -> ViewIdentity {
+        guard let key else { return parent.child(erasedType: type, index: index) }
+        return parent.child(erasedType: type, key: slot >= 0 ? "\(slot)#\(key)" : key)
     }
 
     /// The wrapped child view itself, for containers that need to inspect the
