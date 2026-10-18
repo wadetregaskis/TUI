@@ -289,10 +289,10 @@ struct GestureArenaLifetimeTests {
     /// given up at the disable, as a removed one is not. The outer tap runs
     /// the row's click then — 0.1 s after the row's release, by the button
     /// or by a timer, with no click after it — and the next click runs what
-    /// it lands on as usual, the box beside the row included. TUIkit treats
-    /// a disabled view as one that has gone (decisions B-F2-2): the outer
-    /// tap runs at the next press, and that press, beside the row, runs
-    /// nothing of its own.
+    /// it lands on as usual, the box beside the row included. Until
+    /// decisions B-F2-2's fuller version, TUIkit gave a disabled view's
+    /// gestures up at the next press, as a removed view's: the outer tap ran
+    /// then, and that press, beside the row, ran nothing of its own.
     @Test(
         "A row disabled while its double tap waits lets the tap around it run the row's click at once",
         arguments: NextClick.allCases)
@@ -306,29 +306,16 @@ struct GestureArenaLifetimeTests {
         frame(harness, at: 100, view)
         harness.click(1, 1, view)
         frame(harness, at: 200, view)
+        #expect(log.entries == ["hide", "outer"], "the outer tap runs the row's click at the disable")
         frame(harness, at: 1_000, view)
-        withKnownIssue("B-F2-2: a disabled view's gestures wait for the next press, as a removed view's do") {
-            #expect(log.entries == ["hide", "outer"], "the outer tap runs the row's click at the disable")
-        }
+        #expect(log.entries == ["hide", "outer"])
         harness.click(x, y, view)
         frame(harness, at: 1_100, view)
         let ran = ["hide", "outer"] + own
-        if next == .besideIt {
-            withKnownIssue("B-F2-2: TUIkit's press beside the row is the outer tap's held click") {
-                #expect(log.entries == ran)
-            }
-        } else {
-            #expect(log.entries == ran)
-        }
+        #expect(log.entries == ran)
         frame(harness, at: 2_000, view)
         harness.click(7, 0, view)
-        if next == .besideIt {
-            withKnownIssue("B-F2-2: TUIkit's press beside the row is the outer tap's held click") {
-                #expect(log.entries == ran + ["outer"])
-            }
-        } else {
-            #expect(log.entries == ran + ["outer"])
-        }
+        #expect(log.entries == ran + ["outer"])
     }
 
     /// A sequence that waits for its second tap once clicked, on a 4×1 box

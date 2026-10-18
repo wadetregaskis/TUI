@@ -345,6 +345,12 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// the handler table. See ``GestureArena``.
     var gestureRoles: [HitTestRegion.HandlerID: GestureRole] = [:]
 
+    /// The gestures a disabled view kept from an earlier frame, by
+    /// participant: filed by the walk so an arena can give them up at the
+    /// disable (``fileDisabledGesture(_:in:)``, decisions B-F2-2). Cleared
+    /// with the handler table.
+    var disabledGestureParticipants: Set<ObjectIdentifier> = []
+
     /// The regions that take a left press only for its click, by handler id —
     /// see ``PressRole``. Cleared with the handler table, refiled by every walk
     /// (and every memo replay) that registers them.
@@ -431,6 +437,7 @@ extension MouseEventDispatcher {
         applicationHandlerIDs.removeAll(keepingCapacity: true)
         wheelHandlerIDs.removeAll(keepingCapacity: true)
         gestureRoles.removeAll(keepingCapacity: true)
+        disabledGestureParticipants.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
         selectionScopes.removeAll(keepingCapacity: true)
         _enabledSelectionScopeCount = 0

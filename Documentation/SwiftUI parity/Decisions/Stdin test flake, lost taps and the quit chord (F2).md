@@ -173,6 +173,19 @@ it runs at the disable rather than at the next tick. About three hours with
 tests. Per frame it costs a lookup per disabled gesture attachment, and only
 while an arena exists.
 
+**Fuller version shipped (lane INPUT, 2026-10-18).** A disabled view's
+attachment files the participant it already has as disabled
+(`MouseEventDispatcher.fileDisabledGesture(_:in:)`, a state lookup per
+disabled attachment per walk; replayed by a memo that serves it). The first
+arena input after that walk — the next frame's tick, which the walk asks the
+run loop for (`hasPendingGestureDisable`), or an event that comes first —
+cancels each such gesture, so its `@GestureState` resets; one that had not
+won its press goes out of the running and what it held back runs, and one
+that had won holds the next left-button event, as a departed one does
+(`GestureArena.cancelDisabled(_:)`). `GestureArenaLifetimeTests.disabledRow`
+now passes as measured on macOS, without its known issues;
+`GestureDisableTests` pins the drag's reset (S1) and the frame asked for.
+
 ### B-F2-3. A gesture whose view has gone lives until the next left-button event
 
 *Every attached gesture: `gesture`, `highPriorityGesture`,

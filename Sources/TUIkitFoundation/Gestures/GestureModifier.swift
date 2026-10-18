@@ -223,6 +223,12 @@ final class GestureParticipants {
         byOwner[owner] = made
         return made
     }
+
+    /// The participant `owner` made in an earlier frame, if it made one:
+    /// a disabled view's attachment looks, and never makes one.
+    func existingParticipant(for owner: ObjectIdentifier) -> GestureParticipant? {
+        byOwner[owner]
+    }
 }
 
 /// The modifier behind ``View/gesture(_:including:)``,
@@ -257,19 +263,28 @@ struct GestureAttachment<Content: View, G: Gesture>: View {
 
 extension GestureAttachment: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // A disabled view takes no gesture, as a disabled control takes no
-        // click; and a measure pass registers nothing and starts no clock.
-        guard !context.isMeasuring, context.environment.isEnabled,
+        // A measure pass registers nothing and starts no clock.
+        guard !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher,
             let storage = context.stateStorage
         else {
             return TUIkitView.renderToBuffer(content, context: context)
         }
+        let key = StateStorage.StateKey(
+            identity: context.identity, propertyIndex: GestureAttachmentStateIndex.participants)
+        // A disabled view takes no gesture, as a disabled control takes no
+        // click. One it took before is filed as disabled, so that an arena
+        // still holding it gives it up at the disable, as macOS does
+        // (decisions B-F2-2); looked up, never made.
+        guard context.environment.isEnabled else {
+            let existing: StateBox<GestureParticipants>? = storage.existingStorage(for: key)
+            if let participant = existing?.value.existingParticipant(for: ObjectIdentifier(Self.self)) {
+                dispatcher.fileDisabledGesture(participant, in: context)
+            }
+            return TUIkitView.renderToBuffer(content, context: context)
+        }
         storage.markActive(context.identity)
-        let box: StateBox<GestureParticipants> = storage.storage(
-            for: StateStorage.StateKey(
-                identity: context.identity, propertyIndex: GestureAttachmentStateIndex.participants),
-            default: GestureParticipants())
+        let box: StateBox<GestureParticipants> = storage.storage(for: key, default: GestureParticipants())
         let participant = box.value.participant(for: ObjectIdentifier(Self.self))
 
         // A gesture reporting locations in a named space asks to be found in

@@ -758,16 +758,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ### I9. Gesture timing
 
-- **SwiftUI:** a disabled view's gestures give up when it is disabled
-  (measured, macOS 15.8, F2 probes); a table row's double-click uses the
-  system's interval, 0.5 s.
+- **SwiftUI:** a table row's double-click uses the system's interval, 0.5 s.
 - **TUIkit:** a long press ends, and a multi-tap gives up, on the first frame at
   or past its deadline, counted from the event that armed it. A tap's next click counts if released within 0.35 s of
   the last release, as measured on SwiftUI; a list row's double-click counts
   presses within 400 ms. A
   drag's velocity is a least-squares fit of the last 100 ms of reports, as
-  UIKit's pan recognizer fits them (SwiftUI's own estimator is unknown). A disabled view's
-  gestures are given up at the next press, as a removed view's are.
+  UIKit's pan recognizer fits them (SwiftUI's own estimator is unknown). A
+  disabled view's gestures are given up at the disable, as on macOS, on the
+  frame after the one that disabled it (B-F2-2, no longer a deviation).
 - **Why:** the run loop checks deadlines at each frame's start, and each click
   interval follows its own macOS counterpart: a tap's the measured tap, a
   row's `NSTableView`'s (B92, B93).

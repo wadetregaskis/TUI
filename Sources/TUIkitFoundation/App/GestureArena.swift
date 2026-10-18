@@ -48,10 +48,13 @@ import TUIkitCore
 /// nothing more — no clock, no event — and reports nothing, and what it holds
 /// back stays held, until the next event of the left button has been decided:
 /// then it is given up, which releases what it held. That event is decided
-/// as if it were still there. Measured on macOS 15.8 for a removed view; a
-/// disabled one macOS gives up at the disable, releasing what it held then
-/// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``, decisions
-/// B-F2-2).
+/// as if it were still there. Measured on macOS 15.8 for a removed view
+/// (``MouseEventDispatcher/routeThroughGestures(_:matching:)``).
+///
+/// A disabled view's gestures are given up at the disable instead, as macOS
+/// does: a gesture that has not won its press lets go at once, and one that
+/// has holds the next event of the left button, as above
+/// (``cancelDisabled(_:)``).
 ///
 /// So a departed gesture, and the arena it is in, live until that event —
 /// in a session driven by the keyboard alone, for as long as it runs. Until
@@ -61,13 +64,14 @@ import TUIkitCore
 /// (``markDeparted(filed:)``) and ticks the arena, a cost in the gestures on
 /// screen. Nothing asks the run loop for a wake on its behalf: it has no
 /// deadline. What counts as departed is whatever the last walk did not file,
-/// which takes in more than the measured removal and `.disabled`: a gesture
+/// which takes in more than the measured removal: a gesture
 /// turned off by `gesture(_:isEnabled: false)` or its mask (filed with no
 /// participant), one under a background a modal renders isolated, and one
 /// on a row a scroll view windows out — all unmeasured on macOS. A gesture
-/// whose view comes back before that event — disabled, then enabled again —
-/// is filed again and carries on where it was, as a removed one never is;
-/// macOS is unmeasured there too (decisions B-F2-3).
+/// whose view comes back before that event — windowed out, then back — is
+/// filed again and carries on where it was, as a removed one never is; macOS
+/// is unmeasured there too (decisions B-F2-3). One disabled, then enabled
+/// again, was given up at the disable.
 ///
 /// A press that comes while a ranked gesture still waits does not settle it:
 /// both arenas live on (the dispatcher's ``MouseEventDispatcher/gestureArenas``),
@@ -421,6 +425,9 @@ final class GestureArena {
     }
 
     private func isEngaged(_ contender: Contender) -> Bool {
+        // Given up at its disable having won its press: cancelled, and still
+        // holding the arena until the next event of the left button.
+        if contender.gaveUpAtDisable { return !contender.isOut }
         guard let phase = contender.participant.root?.phase else { return false }
         return phase == .possible || phase == .active
     }
@@ -478,6 +485,58 @@ final class GestureArena {
         }
     }
 
+    /// Gives up, at the disable, on every gesture here whose view the frame on
+    /// screen files as disabled (`disabled`, by participant), and says
+    /// whether that took one out of the running — whether what it held back
+    /// may now run.
+    ///
+    /// As macOS 15.8 does (F2 probes review4b–d; decisions B-F2-2): each is
+    /// cancelled at once, so a `@GestureState` it updated resets then. One
+    /// that has not won the press — a double tap waiting for its next click,
+    /// a tap held back behind it — lets go at once, so the tap around a row
+    /// disabled while its double tap waits runs the row's click at the
+    /// disable. One that has won it — a sequence waiting for its second
+    /// gesture, a drag under way — still holds the next event of the left
+    /// button, as a departed gesture does: a waiting sequence disabled keeps
+    /// the tap around it, which it had cancelled, off the next click beside
+    /// it, and that click then gives it up.
+    func cancelDisabled(_ disabled: Set<ObjectIdentifier>) -> Bool {
+        var released = false
+        for contender in contenders
+        where !contender.isOut && !contender.gaveUpAtDisable
+            && disabled.contains(ObjectIdentifier(contender.participant))
+        {
+            contender.gaveUpAtDisable = true
+            let won = hasWon(contender)
+            contender.participant.root?.cancel()
+            if !won {
+                contender.isOut = true
+                released = true
+            }
+        }
+        return released
+    }
+
+    /// Whether `contender` has won its press: a ranked gesture that nothing
+    /// holds back and that has recognized, so it cancelled what was ranked
+    /// after it. A simultaneous gesture holds nothing, and never has.
+    private func hasWon(_ contender: Contender) -> Bool {
+        guard ranked.contains(where: { $0.contender === contender }),
+            let phase = contender.participant.root?.phase
+        else { return false }
+        return contender.holdCount == 0 && !contender.isHeldBack && phase.hasRecognized
+    }
+
+    /// Whether a gesture here, still in the running and not yet given up for
+    /// it, is filed as disabled (`disabled`, by participant): what the run
+    /// loop asks after a walk, to ask for the frame that gives it up.
+    func hasPendingDisable(_ disabled: Set<ObjectIdentifier>) -> Bool {
+        contenders.contains { contender in
+            !contender.isOut && !contender.gaveUpAtDisable
+                && disabled.contains(ObjectIdentifier(contender.participant))
+        }
+    }
+
     /// Gives up on every departed gesture still in the running, and says
     /// whether there was one.
     func cancelDeparted() -> Bool {
@@ -492,6 +551,7 @@ final class GestureArena {
     private func cancel(_ contender: Contender) {
         guard !contender.isOut else { return }
         contender.isOut = true
-        contender.participant.root?.cancel()
+        // Already cancelled at its disable: once is its reset.
+        if !contender.gaveUpAtDisable { contender.participant.root?.cancel() }
     }
 }

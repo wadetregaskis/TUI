@@ -484,6 +484,12 @@ extension RenderLoop {
             scheduler: animationScheduler)
         // What the frame's geometry observers are owed, now it is drawn (`GeometryCoordinator`).
         tuiContext.mouseEventDispatcher.geometry.endFrame(frame: buffer, retainedBy: tuiContext.stateStorage)
+        // A gesture this walk disabled is given up at the next frame's tick,
+        // which runs what it held back: that frame is asked for now, so it
+        // comes at the disable (decisions B-F2-2).
+        if tuiContext.mouseEventDispatcher.hasPendingGestureDisable {
+            animationScheduler?.requestWake("gesture-disable", at: frameNowNanos &+ 1)
+        }
 
         writeFrame(
             buffer: buffer,
