@@ -45,7 +45,23 @@ import TUIkitCore
 /// since: when it comes back it is placed directly, as SwiftUI places a view
 /// it inserts, not glided from wherever it stood when it went. And kept, a
 /// record per stack in every row a list had been scrolled through was a table
-/// that grew with the scrolling, which ``endRenderPass()`` walked every frame.
+/// that grew with the scrolling.
+///
+/// ## When records are forgotten
+///
+/// Not every pass. Telling a record a memo served from one nothing rendered
+/// takes a structural compare against every served root, and a page whose
+/// memos serve something on every frame — nearly every page — paid it for
+/// every record on every frame: 81.5% of a `fanout` frame, and that scenario
+/// +557% (Time Profiler, 2026-10-18, `PlacementStore.endRenderPass` under
+/// `StateStorage.endRenderPass`). So the table is pruned only when it has
+/// grown past ``pruneThreshold`` — twice what the last prune left, and never
+/// below ``minimumPruneThreshold`` — which a page whose containers stay the
+/// same never reaches, and which a list scrolled through reaches once per
+/// doubling: amortised, a constant per record. Until then a record that
+/// went off screen lingers, harmlessly: nothing reads it unless its container
+/// renders again, and a container that renders again finds where it was last
+/// drawn, which is where it was last seen.
 ///
 /// Main-actor by discipline rather than by annotation, exactly as
 /// ``StateStorage`` is — it is a stored property of one, and rendering is
@@ -110,6 +126,15 @@ public final class PlacementStore: @unchecked Sendable {
     /// The subtrees a memo served this pass (``retainServedSubtree(_:)``).
     private var servedRoots: [ViewIdentity] = []
 
+    /// The fewest records a prune is run at: see "When records are
+    /// forgotten".
+    package static let minimumPruneThreshold = 512
+
+    /// How many records the table may hold before the end of a pass prunes
+    /// it: twice what the last prune left, and at least
+    /// ``minimumPruneThreshold``.
+    private(set) package var pruneThreshold = PlacementStore.minimumPruneThreshold
+
     /// Creates an empty store.
     public init() {}
 
@@ -161,27 +186,30 @@ extension PlacementStore {
         servedRoots.append(root)
     }
 
-    /// Forgets the containers that neither rendered this pass nor stand in a
-    /// subtree a memo served.
+    /// Once the table has outgrown ``pruneThreshold``, forgets the
+    /// containers that neither rendered this pass nor stand in a subtree a
+    /// memo served, and sets the next threshold from what is left.
     ///
-    /// Called from ``StateStorage/endRenderPass()``. Nothing to look at on a
-    /// pass that asked about every record, which is every pass no memo
-    /// served a container on. Collect-then-remove, the spelling
+    /// Called from ``StateStorage/endRenderPass()``. Below the threshold it
+    /// looks at nothing — see "When records are forgotten" for why not every
+    /// pass. Collect-then-remove, the spelling
     /// ``AnimationStore/endRenderPass()`` uses and says why.
     package func endRenderPass() {
-        guard records.count > askedThisPass else { return }
+        guard records.count > pruneThreshold, records.count > askedThisPass else { return }
         var served = RetainedSubtreeIndex(roots: servedRoots)
         var stale: [ViewIdentity] = []
         for (identity, record) in records where record.lastPass != pass {
             if !served.retains(identity) { stale.append(identity) }
         }
         for identity in stale { records.removeValue(forKey: identity) }
+        pruneThreshold = max(Self.minimumPruneThreshold, 2 * records.count)
     }
 
     /// Forgets everything.
     public func removeAll() {
         records.removeAll()
         askedThisPass = 0
+        pruneThreshold = Self.minimumPruneThreshold
     }
 }
 
