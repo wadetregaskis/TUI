@@ -162,38 +162,18 @@ private struct _ZStackCore<Content: View>: View, Renderable {
             guided && (frameWidth > context.availableWidth || frameHeight > context.availableHeight)
         let drawnWidth = overhangs ? min(frameWidth, max(0, context.availableWidth)) : frameWidth
         let drawnHeight = overhangs ? min(frameHeight, max(0, context.availableHeight)) : frameHeight
-        var result = FrameBuffer(
-            lines: Array(
-                repeating: String.spaces(drawnWidth),
-                count: drawnHeight))
-        // The runs of a lower layer a later one shows the field of, whose frames turn
-        // it: punched under the later layer, they ask for a render at their steps.
-        var showingThrough: [AnimatedCellRun] = []
-        for (index, layer) in buffers.enumerated() {
-            var buffer = layer
-            var dx =
-                horizontalRun?.offsets[index]
-                ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: frameWidth)
-            var dy =
-                verticalRun?.offsets[index]
-                ?? alignment.vertical.childOffset(childHeight: buffer.height, in: frameHeight)
-            if overhangs, !buffer.fits(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight) {
-                let placement = buffer.splitPlacing(at: (x: dx, y: dy), inWidth: drawnWidth, height: drawnHeight)
-                // Before this layer's cells land, so the layers after it cut
-                // what it draws past the stack, as they cut each other.
-                if !context.isMeasuring { result.overlays.append(contentsOf: placement.overflow) }
-                (buffer, dx, dy) = (placement.inside, placement.insideOrigin.x, placement.insideOrigin.y)
-            }
-            showingThrough += result.runsShowingThrough(buffer, at: (x: dx, y: dy))
-            result = result.compositedCarryingClaimsOverNothing(
-                with: buffer, at: (x: dx, y: dy), palette: context.environment.palette)
+        let layers = buffers.enumerated().map { index, buffer in
+            (
+                buffer: buffer,
+                x: horizontalRun?.offsets[index]
+                    ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: frameWidth),
+                y: verticalRun?.offsets[index]
+                    ?? alignment.vertical.childOffset(childHeight: buffer.height, in: frameHeight)
+            )
         }
-        if !showingThrough.isEmpty {
-            context.requestWake(
-                token: "zstack-base-run-\(context.identity.path)",
-                forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
-        }
-        return result
+        return FrameBuffer.layered(
+            layers, width: drawnWidth, height: drawnHeight, splitsOverhang: overhangs,
+            wakeToken: "zstack-base-run-\(context.identity.path)", context: context)
     }
 }
 
