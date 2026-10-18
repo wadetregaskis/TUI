@@ -82,7 +82,10 @@ button does; one column runs `╷ │ ╵`; one cell is `○` or `□`. `stroke`
 inside the frame. A wider or dashed stroke is rasterized.
 
 The box is light lines in every `Appearance`: a shape is geometry the caller
-drew, not chrome the theme owns.
+drew, not chrome the theme owns. Its glyphs are the light `BorderStyle`s', drawn
+by the shapes' own cell emitter (`ShapeCells`) rather than by `BorderRenderer`,
+whose functions take one colour: a stroke in a gradient paints each cell its
+own colour, and a translucent one claims its alpha as every shape cell does.
 
 **The fuller version:** follow the appearance's family as a button face does
 — heavy and double lines, a Braille outline, a block ring — and draw a stroke
@@ -312,3 +315,28 @@ intersection for fills — coverage combined, no outline made — is possible la
 It waits on decisions A3 (deferred with right-to-left support): SwiftUI's
 `.mirrors(in: .leftToRight)` really mirrors, so the property cannot be a
 constant that compiles and means nothing. A parity-map family names it.
+
+## Owed
+
+What the shapes unblock and this lane did not reach. None is a decision; each is
+work.
+
+- **`contentShape(_:_:eoFill:)` and `ContentShapeKinds`** (refusal review P3), and
+  `contentShape` for shapes other than a rectangle (B-W1-10's fuller version).
+- **`ShapeStyle.shadow(_:)`** with lane O6's `ShadowStyle`, **`glassEffect(_:in:)`**
+  and `DefaultGlassEffectShape` with lane GLASS, and the zoom transition's
+  `MatchedTransitionSourceConfiguration.clipShape(_:)` with lane O4: each takes a
+  `Shape`, which is here now.
+- **`mask(alignment:_:)`** (decisions A27): the cell-coverage rule a clip shape
+  keeps by (B-W1-11) is the natural one, but A27's choice is the owner's.
+- **`Canvas` and `GraphicsContext`** (the refusal review's D3): a drawing context
+  of paths, filled and stroked through this lane's rasterizer.
+- **`ImagePaint`** (W9): a shape filled with an image, which the rasterizer's
+  per-pixel paint is ready for.
+- **A picture for a shape on a terminal that takes one** (B-W1-4's fuller
+  version), and the half-block emitter shared with images (B-W1-1's).
+- **An A/B** of the box path (`ContainerViewCore` reads one more environment value
+  for a sheet's corner radius, B-W1-14) on the `deep`, `kitchensink` and
+  `dashboard` Stress scenarios; nothing else here touches a path that existed
+  before.
+
