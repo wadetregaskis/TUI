@@ -19,13 +19,15 @@ struct SGRStateExtendedColourTests {
         // ESC[58;5;4m sets the underline colour to palette 4. Re-parsing its
         // arguments as top-level codes read the 5 as blink and the 4 as
         // underline — inventing two attributes and emitting them separately.
+        // It is netted as the underline's colour, and spelled again in the
+        // colon form, which a terminal that does not know 58 ignores whole.
         var state = SGRState()
         state.apply("\u{1B}[58;5;4m")
-        #expect(state.rendered == "\u{1B}[58;5;4m")
+        #expect(state.rendered == "\u{1B}[58:5:4m")
 
         var truecolor = SGRState()
         truecolor.apply("\u{1B}[58;2;10;20;30m")
-        #expect(truecolor.rendered == "\u{1B}[58;2;10;20;30m")
+        #expect(truecolor.rendered == "\u{1B}[58:2::10:20:30m")
     }
 
     @Test("A truncated introducer cannot swallow its neighbour")

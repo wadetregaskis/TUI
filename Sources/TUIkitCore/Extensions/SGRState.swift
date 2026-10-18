@@ -33,7 +33,8 @@
 /// terminal the original run and feeding it ``rendered`` must leave the same
 /// styling. Everything SGR can express and TUIkit emits is modelled — the
 /// on/off attributes, the 16 foreground and background colours in both
-/// brightness ranges, and the 256-colour and 24-bit forms of each.
+/// brightness ranges, the 256-colour and 24-bit forms of each, and an
+/// underline's shape (`4:n`) and colour (SGR 58).
 ///
 /// A code outside that set is passed through verbatim, in order, ahead of the
 /// netted state: unknown means "not safe to reason about", and dropping a code
@@ -93,6 +94,35 @@ public struct SGRState: Sendable, Equatable {
                 parameters += ";"
                 parameters += String(green)
                 parameters += ";"
+                parameters += String(blue)
+            }
+        }
+
+        /// Appends the parameter as SGR 58 spells an underline colour: ONE
+        /// parameter, its arguments after colons — `58:5:n`, `58:2::r:g:b`.
+        ///
+        /// Never the semicolon form `58;5;n`, though most terminals that colour
+        /// underlines read both. A terminal that does not know 58 reads that
+        /// form's arguments as codes of their own: Apple Terminal blinked text
+        /// under `4;58;5;196`, and Warp changed the background under
+        /// `4:4;58;5;46` (read by the owner, 2026-10-18) — the 5 read as blink,
+        /// the 46 as a colour — where the colon form is one parameter they
+        /// ignore. There is no named form; a named colour is spelled by its
+        /// index, which is what it is.
+        func appendUnderlineColour(to parameters: inout String) {
+            switch self {
+            case .named(let code):
+                parameters += "58:5:"
+                parameters += String(code % 10 + (code >= 90 ? 8 : 0))
+            case .indexed(let index):
+                parameters += "58:5:"
+                parameters += String(index)
+            case .rgb(let red, let green, let blue):
+                parameters += "58:2::"
+                parameters += String(red)
+                parameters += ":"
+                parameters += String(green)
+                parameters += ":"
                 parameters += String(blue)
             }
         }
@@ -165,12 +195,22 @@ public struct SGRState: Sendable, Equatable {
     /// The background, or `nil` for the terminal's default.
     private var background: Colour?
 
+    /// How an underline in force is drawn, as SGR `4:n` numbers it: 2 double,
+    /// 3 curly, 4 dotted, 5 dashed — and 0 for the plain single line of SGR 4.
+    /// Always 0 while no underline is in force, so equal states compare equal.
+    private var underlineShape: UInt8 = 0
+
+    /// The underline's colour (SGR 58), or `nil` for the text's own (SGR 59).
+    /// It outlives the underline, as a terminal's does: SGR 24 ends the line,
+    /// not its colour.
+    private var underlineColour: Colour?
+
     /// Codes this model does not understand, kept verbatim and in order.
     private var passthrough: [String] = []
 
     /// Whether the state is the terminal's default — nothing to emit.
     public var isDefault: Bool {
-        attributes == 0 && foreground == nil && background == nil && passthrough.isEmpty
+        attributes == 0 && foreground == nil && background == nil && underlineColour == nil && passthrough.isEmpty
     }
 
     public init() {}
@@ -394,6 +434,10 @@ public struct SGRState: Sendable, Equatable {
         var index = 0
         while index < codes.count {
             guard case .number(let value) = codes[index] else {
+                if case .text(let text) = codes[index], applySubparameters(text) {
+                    index += 1
+                    continue
+                }
                 passthrough.append(codes[index].text)
                 index += 1
                 continue
@@ -402,10 +446,8 @@ public struct SGRState: Sendable, Equatable {
             case 0:
                 self = Self()
                 statement = .reset
-            case 1...9:
-                attributes |= Self.bit(value)
-            case 21, 22, 23, 24, 25, 27, 28, 29:
-                attributes &= ~Self.attributesOff(by: value)
+            case 1...9, 21, 22, 23, 24, 25, 27, 28, 29, 59:
+                applyAttribute(value)
             case 30...37, 90...97:
                 foreground = .named(value)
             case 39:
@@ -457,9 +499,63 @@ public struct SGRState: Sendable, Equatable {
         switch introducer {
         case 38: foreground = colour
         case 48: background = colour
-        default: passthrough.append(parameters.map(\.text).joined(separator: ";"))
+        default: underlineColour = colour
         }
         return (span, true)
+    }
+
+    /// Folds an attribute's on or off code, or 59, which clears the
+    /// underline's colour. A plain 4 is a single line, whatever shape one
+    /// before it had, and 24 ends the line in every shape.
+    private mutating func applyAttribute(_ code: Int) {
+        switch code {
+        case 1...9:
+            attributes |= Self.bit(code)
+            if code == 4 { underlineShape = 0 }
+        case 59:
+            underlineColour = nil
+        default:
+            attributes &= ~Self.attributesOff(by: code)
+            if code == 24 { underlineShape = 0 }
+        }
+    }
+
+    /// Folds one parameter with colon-separated arguments that this model
+    /// reads — an underline's shape, `4:n`, or its colour, `58:5:n`,
+    /// `58:2::r:g:b` (or `58:2:r:g:b`, without the colour-space slot) — and
+    /// says whether it was one. Any other is left for the passthrough.
+    private mutating func applySubparameters(_ text: String) -> Bool {
+        let fields = text.split(separator: ":", omittingEmptySubsequences: false)
+        switch fields.first {
+        case "4":
+            guard fields.count == 2, let shape = UInt8(fields[1]), shape <= 5 else { return false }
+            if shape == 0 {
+                attributes &= ~Self.bit(4)
+                underlineShape = 0
+            } else {
+                attributes |= Self.bit(4)
+                underlineShape = shape == 1 ? 0 : shape
+            }
+            return true
+        case "58":
+            let arguments = fields.dropFirst().map { Int($0) }
+            switch (arguments.first, arguments.count) {
+            case (5, 2):
+                guard let index = arguments[1] else { return false }
+                underlineColour = .indexed(index)
+            case (2, 4), (2, 5):
+                let channels = arguments.suffix(3)
+                guard let red = channels[channels.startIndex], let green = channels[channels.startIndex + 1],
+                    let blue = channels[channels.startIndex + 2]
+                else { return false }
+                underlineColour = .rgb(red, green, blue)
+            default:
+                return false
+            }
+            return true
+        default:
+            return false
+        }
     }
 
     private static func extendedColourSpan(_ codes: [Parameter], from index: Int) -> Int {
@@ -490,7 +586,7 @@ public struct SGRState: Sendable, Equatable {
         while attribute <= 9 {
             if attributes & Self.bit(attribute) != 0 {
                 if !result.isEmpty { result += ";" }
-                result += String(attribute)
+                appendAttribute(attribute, to: &result)
             }
             attribute += 1
         }
@@ -502,7 +598,22 @@ public struct SGRState: Sendable, Equatable {
             if !result.isEmpty { result += ";" }
             background.append(to: &result, introducer: 48)
         }
+        if let underlineColour {
+            if !result.isEmpty { result += ";" }
+            underlineColour.appendUnderlineColour(to: &result)
+        }
         return result
+    }
+
+    /// Appends the code that turns `attribute` on: its number, and for an
+    /// underline drawn other than single, `4:n`.
+    private func appendAttribute(_ attribute: Int, to parameters: inout String) {
+        if attribute == 4, underlineShape != 0 {
+            parameters += "4:"
+            parameters += String(underlineShape)
+        } else {
+            parameters += String(attribute)
+        }
     }
 
     /// The shortest sequence that takes a terminal from `previous` to this
@@ -519,24 +630,19 @@ public struct SGRState: Sendable, Equatable {
         else { return absolute }
 
         var codes = ""
-        let turnedOn = attributes & ~previous.attributes
+        var turnedOn = attributes & ~previous.attributes
+        // An underline that stays on in another shape is stated again.
+        if underlineShape != previous.underlineShape { turnedOn |= attributes & Self.bit(4) }
         var attribute = 1
         while attribute <= 9 {
             if turnedOn & Self.bit(attribute) != 0 {
                 if !codes.isEmpty { codes += ";" }
-                codes += String(attribute)
+                appendAttribute(attribute, to: &codes)
             }
             attribute += 1
         }
-        if foreground != previous.foreground {
-            if !codes.isEmpty { codes += ";" }
-            if let foreground { foreground.append(to: &codes, introducer: 38) } else { codes += "39" }
-        }
-        if background != previous.background {
-            if !codes.isEmpty { codes += ";" }
-            if let background { background.append(to: &codes, introducer: 48) } else { codes += "49" }
-        }
-        // Unreachable — equal attributes, foreground and background with equal
+        appendColourChanges(from: previous, to: &codes)
+        // Unreachable — equal attributes, shape and colours with equal
         // passthrough IS equality — but a delta that says nothing would silently
         // leave the previous styling in force, so spend the bytes rather than
         // trust the reasoning.
@@ -546,6 +652,23 @@ public struct SGRState: Sendable, Equatable {
         // spells out `ESC[39;49m` where `ESC[0m` says the same in four bytes.
         // Both are correct, so take whichever is smaller.
         return delta.utf8.count <= absolute.utf8.count ? delta : absolute
+    }
+
+    /// Appends the codes for each colour that differs from `previous`'s: the
+    /// colour, or its slot's default code (39, 49, 59) where it went.
+    private func appendColourChanges(from previous: Self, to codes: inout String) {
+        if foreground != previous.foreground {
+            if !codes.isEmpty { codes += ";" }
+            if let foreground { foreground.append(to: &codes, introducer: 38) } else { codes += "39" }
+        }
+        if background != previous.background {
+            if !codes.isEmpty { codes += ";" }
+            if let background { background.append(to: &codes, introducer: 48) } else { codes += "49" }
+        }
+        if underlineColour != previous.underlineColour {
+            if !codes.isEmpty { codes += ";" }
+            if let underlineColour { underlineColour.appendUnderlineColour(to: &codes) } else { codes += "59" }
+        }
     }
 
     /// ``rendered(changingFrom:)`` for bytes a row has yet to be finished with —
@@ -586,6 +709,12 @@ public struct SGRState: Sendable, Equatable {
         else { return false }
         let mine = attributes & Self.visibleOnBlankCell
         guard mine == other.attributes & Self.visibleOnBlankCell else { return false }
+        // An underline on a blank cell is drawn in its shape and its colour.
+        if mine & Self.bit(4) != 0,
+            underlineShape != other.underlineShape || underlineColour != other.underlineColour
+        {
+            return false
+        }
         // Those attributes draw in the foreground colour (or, for reverse, AS
         // the background), so with any of them in force the foreground is as
         // visible as the background is.
