@@ -61,7 +61,9 @@ struct RoundedCorners: Equatable, Sendable {
 /// draw. Where the terminal draws Block Elements short of the line (Apple
 /// Terminal, ``EnvironmentValues/blockElementsFillTheLine``), a corner is a
 /// whole cell — drawn where at least half covered — as a solid button face's
-/// is there, and only the one-row caps are glyphs.
+/// is there, and only the one-row caps are glyphs. A single cell is every
+/// corner at once, and cut at each it would be nothing: it is its coverage
+/// alone on every terminal, so a one-cell capsule is a block, a status dot.
 enum ShapeBoxCells {
     /// The quadrant glyph for each set of quadrants — bit 0 top-leading, 1
     /// top-trailing, 2 bottom-leading, 3 bottom-trailing.
@@ -153,6 +155,8 @@ enum ShapeBoxCells {
         let (left, right) = (column == 0, column == columns - 1)
         let (top, bottom) = (row == 0, row == rows - 1)
         guard (left || right) && (top || bottom) else { return bits }
+        // One cell is all four corners: cutting each would leave nothing.
+        if rows == 1, columns == 1 { return bits }
         if rows == 1, columns > 1 {
             // The caps: a one-row face's ends, kept on every terminal, as a
             // solid button's are (Terminal compatibility survey, "Apple

@@ -252,6 +252,20 @@ struct ShapeRasterTests {
         #expect(cells[0, 0] == ShapeCells.Cell(ink: .red, field: nil, glyph: "▟"))
     }
 
+    /// Before, every corner of the one cell lost its quadrant, and the cell
+    /// drew nothing — while Apple Terminal's whole cells drew it, and the same
+    /// shape stroked drew `○`.
+    @Test("A one-cell rounded fill is its coverage, on every terminal")
+    func oneCellFill() {
+        let dot = Path(roundedRect: CGRect(x: 0, y: 0, width: 1, height: 2), cornerRadius: 0.5)
+        for wholeCells in [false, true] {
+            let cells = ShapeBoxCells.fill(
+                dot, columns: 1, rows: 1, aspect: 2, corners: RoundedCorners(all: true), wholeCells: wholeCells
+            ) { _, _ in .red }
+            #expect(cells[0, 0] == ShapeCells.Cell(ink: nil, field: .red, glyph: " "), "whole cells: \(wholeCells)")
+        }
+    }
+
     // MARK: Bytes and claims
 
     @Test("Cells become one introducer a run, and claims for what is translucent or absent")

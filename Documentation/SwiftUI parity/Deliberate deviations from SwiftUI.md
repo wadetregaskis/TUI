@@ -1000,8 +1000,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   in force; `stroke` and `strokeBorder` draw the same box. Filled, their
   rounded corners are cut at quadrant resolution, by at least one quadrant
   however small the radius, and one row tall the ends are the caps `▐ ▌`; on
-  Apple Terminal a corner is a whole cell. `Rectangle().fill(s)` is `Color` as a
-  view, byte for byte (`ShapeTests`, `ShapeRasterTests`).
+  Apple Terminal a corner is a whole cell. A single cell, every corner at
+  once, is its coverage: a one-cell capsule is a block. `Rectangle().fill(s)`
+  is `Color` as a view, byte for byte (`ShapeTests`, `ShapeRasterTests`).
 - **Why:** these shapes' edges land on cell boundaries, and the glyphs are the
   medium's own drawing of them; a radius below half a cell has no other way to
   show, and a corner the caller rounded should look rounded.
