@@ -133,6 +133,65 @@ struct PathTests {
         expectPath(tangent, matches: "0 0 m 7 0 l 8.65685 0 10 1.34315 10 3 c")
     }
 
+    @Test("An arc is cut as SwiftUI cuts it: quarter turns from its start, then what is left")
+    func arcPieces() {
+        var forward = Path()
+        forward.addRelativeArc(center: .zero, radius: 1, startAngle: .zero, delta: .degrees(135))
+        expectPath(forward, matches: "1 0 m 1 0.552285 0.552285 1 0 1 c -0.265216 1 -0.51957 0.894643 -0.707107 0.707107 c")
+        var back = Path()
+        back.addRelativeArc(center: .zero, radius: 1, startAngle: .degrees(30), delta: .degrees(-200))
+        expectPath(
+            back,
+            matches: """
+                0.866025 0.5 m 1.14217 0.0217074 0.978293 -0.589883 0.5 -0.866025 c 0.0217074 -1.14217 -0.589883 \
+                -0.978293 -0.866025 -0.5 c -0.924351 -0.398977 -0.964551 -0.288528 -0.984808 -0.173648 c
+                """)
+    }
+
+    /// Every expectation is SwiftUI's on macOS 15.8 (the W1 review's
+    /// `desc.swift` probe, session notes). Before, a NaN angle trapped in
+    /// `Int(_:)`, and a turn of `1e10` added six billion curves.
+    @Test("An arc of an angle that is no finite number, or a huge one, is SwiftUI's: a move, or 1,023 quarter turns")
+    func degenerateArcs() {
+        func arc(delta: Double, start: Double = 0) -> Path {
+            Path { $0.addRelativeArc(center: .zero, radius: 1, startAngle: .radians(start), delta: .radians(delta)) }
+        }
+        func curves(_ path: Path) -> Int {
+            var count = 0
+            path.forEach { if case .curve = $0 { count += 1 } }
+            return count
+        }
+        expectPath(arc(delta: .nan), matches: "1 0 m")
+        expectPath(arc(delta: .infinity), matches: "1 0 m")
+        #expect(arc(delta: 1, start: .nan).isEmpty)
+        var joined = Path()
+        joined.move(to: CGPoint(x: 5, y: 5))
+        joined.addRelativeArc(center: .zero, radius: 1, startAngle: .zero, delta: .radians(.nan))
+        expectPath(joined, matches: "5 5 m 1 0 l")
+        // A progress ring with nothing to count, and the absolute arc's own
+        // non-finite angles.
+        let (done, total) = (0.0, 0.0)
+        let ring = Path {
+            $0.addArc(center: .zero, radius: 1, startAngle: .zero, endAngle: .degrees(360 * done / total), clockwise: false)
+        }
+        expectPath(ring, matches: "1 0 m")
+        let endless = Path {
+            $0.addArc(center: .zero, radius: 1, startAngle: .zero, endAngle: .radians(.infinity), clockwise: false)
+        }
+        expectPath(endless, matches: "1 0 m")
+        #expect(Path { $0.addArc(center: .zero, radius: 1, startAngle: .radians(.nan), endAngle: .zero, clockwise: false) }.isEmpty)
+        // Past 1,024 quarter turns, 1,023 of them; up to it, every one and the rest.
+        for (delta, count, end) in [
+            (1e10, 1023, CGPoint(x: 0, y: -1)), (1e20, 1023, CGPoint(x: 0, y: -1)), (-1e4, 1023, CGPoint(x: 0, y: 1)),
+            (1607, 1024, CGPoint(x: 0.0752864, y: -0.997162)),
+        ] {
+            let path = arc(delta: delta)
+            #expect(curves(path) == count, "a turn of \(delta)")
+            let reached = path.currentPoint ?? .zero
+            #expect(abs(reached.x - end.x) < 1e-3 && abs(reached.y - end.y) < 1e-3, "a turn of \(delta) ends at \(reached)")
+        }
+    }
+
     @Test("Bounds hold a curve's extremes, not its control points")
     func bounds() {
         let quad = Path { $0.move(to: .zero); $0.addQuadCurve(to: CGPoint(x: 10, y: 0), control: CGPoint(x: 5, y: 10)) }

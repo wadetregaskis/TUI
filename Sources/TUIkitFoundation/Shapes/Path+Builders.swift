@@ -323,6 +323,12 @@ extension Path {
     ) {
         let raw = clockwise ? startAngle.radians - endAngle.radians : endAngle.radians - startAngle.radians
         let turn = 2 * Double.pi
+        // An angle that is not a finite number is the relative arc's to
+        // refuse; a whole turn here would draw a circle SwiftUI does not.
+        guard raw.isFinite else {
+            addRelativeArc(center: center, radius: radius, startAngle: startAngle, delta: .radians(raw), transform: transform)
+            return
+        }
         var sweep = raw >= turn ? turn : raw.truncatingRemainder(dividingBy: turn)
         if sweep < 0 { sweep += turn }
         addRelativeArc(
@@ -334,7 +340,17 @@ extension Path {
     ///
     /// A positive `delta` increases the angle, which runs clockwise on screen.
     /// An unclosed subpath is joined to the arc's start by a line; otherwise
-    /// the arc starts a subpath.
+    /// the arc starts a subpath. The arc is cubic curves of a quarter turn each
+    /// from its start, and one of what is left — SwiftUI's cut (measured).
+    ///
+    /// An angle that is not a finite number adds what SwiftUI's does
+    /// (measured): nothing for the start, only the start for `delta` — so a
+    /// progress ring's `360 * done / total` with `total` zero draws nothing.
+    /// And like SwiftUI's, an arc is at most 1,024 curves: past that many
+    /// quarter turns it stops after 1,023 (measured: a turn of 1,608.4 radians
+    /// ends on its end, one of 1,608.6 a quarter turn short of a whole number
+    /// of turns), so a turn of `1e10` costs what one of a thousand quarter
+    /// turns does.
     ///
     /// - Parameters:
     ///   - center: The centre of the circle.
@@ -345,25 +361,34 @@ extension Path {
     public mutating func addRelativeArc(
         center: CGPoint, radius: CGFloat, startAngle: Angle, delta: Angle, transform: CGAffineTransform = .identity
     ) {
-        func onCircle(_ angle: Double) -> CGPoint {
-            CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle)).applying(transform)
+        let (start, turn) = (startAngle.radians, delta.radians)
+        guard start.isFinite else { return }
+        let origin = CGPoint(x: center.x + radius * cos(start), y: center.y + radius * sin(start)).applying(transform)
+        if current != nil, elements.last != .closeSubpath { addLine(to: origin) } else { move(to: origin) }
+        guard turn.isFinite, turn != 0 else { return }
+        let quarter = Double.pi / 2
+        let sign: Double = turn < 0 ? -1 : 1
+        // The tolerance keeps a whole number of quarter turns from growing a
+        // sliver of a curve out of rounding.
+        let needed = (abs(turn) / quarter - 1e-9).rounded(.up)
+        let capped = needed > 1024
+        let pieces = capped ? 1023 : max(1, Int(needed))
+        for piece in 0..<pieces {
+            let from = start + sign * quarter * Double(piece)
+            let to = piece == pieces - 1 && !capped ? start + turn : from + sign * quarter
+            addArcPiece(center: center, radius: radius, from: from, to: to, transform: transform)
         }
-        let start = onCircle(startAngle.radians)
-        if current != nil, elements.last != .closeSubpath { addLine(to: start) } else { move(to: start) }
-        let segments = max(1, Int((abs(delta.radians) / (Double.pi / 2) - 1e-9).rounded(.up)))
-        let step = delta.radians / Double(segments)
-        guard step != 0 else { return }
-        let control = 4.0 / 3.0 * tan(step / 4) * radius
-        var angle = startAngle.radians
-        for _ in 0..<segments {
-            let next = angle + step
-            let from = CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
-            let to = CGPoint(x: center.x + radius * cos(next), y: center.y + radius * sin(next))
-            let control1 = CGPoint(x: from.x - control * sin(angle), y: from.y + control * cos(angle))
-            let control2 = CGPoint(x: to.x + control * sin(next), y: to.y - control * cos(next))
-            addCurve(to: to.applying(transform), control1: control1.applying(transform), control2: control2.applying(transform))
-            angle = next
-        }
+    }
+
+    /// One curve of an arc, from angle `from` to angle `to` — a quarter turn
+    /// or less.
+    private mutating func addArcPiece(center: CGPoint, radius: CGFloat, from: Double, to: Double, transform: CGAffineTransform) {
+        let control = 4.0 / 3.0 * tan((to - from) / 4) * radius
+        let start = CGPoint(x: center.x + radius * cos(from), y: center.y + radius * sin(from))
+        let end = CGPoint(x: center.x + radius * cos(to), y: center.y + radius * sin(to))
+        let control1 = CGPoint(x: start.x - control * sin(from), y: start.y + control * cos(from))
+        let control2 = CGPoint(x: end.x + control * sin(to), y: end.y - control * cos(to))
+        addCurve(to: end.applying(transform), control1: control1.applying(transform), control2: control2.applying(transform))
     }
 
     /// Adds an arc of `radius` tangent to the line from the current point to
