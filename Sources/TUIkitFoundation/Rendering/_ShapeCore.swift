@@ -41,6 +41,21 @@ func resolvedShape(_ shape: any Shape, in context: RenderContext, columns: Int, 
     return resolving.resolvedShape(in: context, columns: columns, rows: rows)
 }
 
+/// What `shape`, asked to draw `drawing` for a view `columns` × `rows` in
+/// `context`, draws: the shape it stands for — and a stroke as a shape
+/// (`stroke(lineWidth:)`) as the stroke it is, so a rectangle's is the box of
+/// glyphs.
+func resolvedDrawing(
+    of shape: any Shape, as drawing: ShapeDrawing, in context: RenderContext, columns: Int, rows: Int
+) -> (shape: any Shape, drawing: ShapeDrawing) {
+    let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
+    guard let stroking = drawn as? any StrokingShape else { return (drawn, drawing) }
+    return (
+        resolvedShape(stroking.strokedShape.shape, in: context, columns: columns, rows: rows),
+        .stroke(stroking.strokedShape.style, antialiased: drawing.isAntialiased)
+    )
+}
+
 // MARK: - The core
 
 /// A shape drawn: what the public shape views' bodies are made of.
@@ -78,19 +93,10 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         let extent = context.gradientFrame ?? GradientFrame(width: columns, height: rows)
         let painter = ShapePainter(paint: paint, extent: extent, aspect: aspect, palette: environment.palette)
         let monochrome = ColorDepth.current == .noColor
-        // A stroke as a shape (`stroke(lineWidth:)`) is drawn as the stroke it
-        // is, so a rectangle's is the box of glyphs.
-        var (drawn, drawing): (any Shape, ShapeDrawing) = (
-            resolvedShape(shape, in: context, columns: columns, rows: rows), drawing
-        )
-        if let stroking = drawn as? any StrokingShape {
-            drawn = resolvedShape(stroking.strokedShape.shape, in: context, columns: columns, rows: rows)
-            drawing = .stroke(stroking.strokedShape.style, antialiased: self.drawing.isAntialiased)
-        }
-        let frame = ShapeFrame(columns: columns, rows: rows, aspect: aspect)
-        let cells = Self.cells(
-            drawn, drawing: drawing, frame: frame, painter: painter, monochrome: monochrome,
-            wholeCells: !environment.blockElementsFillTheLine)
+        let drawn = resolvedDrawing(of: shape, as: drawing, in: context, columns: columns, rows: rows)
+        let cells = ShapeCells.drawing(
+            drawn.shape, as: drawn.drawing, frame: ShapeFrame(columns: columns, rows: rows, aspect: aspect),
+            painter: painter, monochrome: monochrome, wholeCells: !environment.blockElementsFillTheLine)
         return cells.buffer()
     }
 
@@ -102,11 +108,16 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         }
         return style.paint(in: environment)
     }
+}
 
-    /// `shape` drawn as `drawing` in a `columns` × `rows` frame, by whichever
-    /// tier it qualifies for.
-    private static func cells(
-        _ shape: any Shape, drawing: ShapeDrawing, frame: ShapeFrame, painter: ShapePainter, monochrome: Bool,
+// MARK: - The two tiers
+
+extension ShapeCells {
+    /// `shape` drawn as `drawing` in `frame`, by whichever tier it qualifies
+    /// for: the box-drawing one for the rectangle family, the rasterizer for
+    /// everything else.
+    static func drawing(
+        _ shape: any Shape, as drawing: ShapeDrawing, frame: ShapeFrame, painter: ShapePainter, monochrome: Bool,
         wholeCells: Bool
     ) -> ShapeCells {
         let (rect, columns, rows, aspect) = (frame.rect, frame.columns, frame.rows, frame.aspect)
