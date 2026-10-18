@@ -519,6 +519,19 @@
         "Color.exposureAdjust(_:)"
       ],
       "why": "No terminal renders HDR: every colour escape a terminal takes is 8-bit sRGB (truecolour SGR, the 256 cube, the 16 slots; OSC 4/10/11 and Ghostty's widest `rgb:`/`rgbi:` specifications are SDR too, Ghostty VT reference adoption study.md), and none reports a display headroom. `Color.ResolvedHDR` and `resolveHDR(in:)` would hand an app linear components and a headroom above 1 that nothing on screen could show, and `exposureAdjust(_:)` would brighten by stops a colour whose top is already the terminal's white — each pretending to a range the medium does not have, which the owner ruled out (decisions A16: \"only APIs that fail gracefully; none that pretend\"). `Color.headroom(_:)` IS implemented: an SDR display always meets the cap, so the colour comes back as it is. SwiftUI has no query of the shape \"is HDR supported\" for TUIkit to answer \"no\" through; `allowedDynamicRange` is a setting, declined with the per-pixel family."
+    },
+    {
+      "match": [
+        "*.union(_:eoFill:)",
+        "*.intersection(_:eoFill:)",
+        "*.subtracting(_:eoFill:)",
+        "*.symmetricDifference(_:eoFill:)",
+        "*.lineIntersection(_:eoFill:)",
+        "*.lineSubtraction(_:eoFill:)",
+        "Path.normalized(eoFill:)",
+        "Path.strokedPath(_:)"
+      ],
+      "why": "A path's boolean operations and its stroke outline: exact geometric clipping of one outline by another, and offsetting a curve by half a line width, each a computational-geometry library of its own (refusal review W1, 'Not in this cut'). Shapes otherwise ship (Sources/TUIkitFoundation/Shapes): what a stroke or a fill COVERS is drawn exactly, by rasterising the path and the stroke's pieces, but no outline of the result is made as a Path. Absent rather than approximated, so a call fails to compile; a mask-level union or intersection for fills is possible later (decisions file W1)."
     }
   ],
   "renamed": {
@@ -754,9 +767,6 @@
     "OutlineSubgroupChildren": {
       "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkitLists/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
     },
-    "Path": {
-      "why": "Bezier control points are fractional; the coordinate space here is integer cells only (CellRect, Sources/TUIkitFoundation/Views/GeometryReader.swift:77-95). 0 occurrences of a SwiftUI-like Path under Sources (the three \\bPath\\b hits are a navigation-path comment and a localisation string)."
-    },
     "PreferredColorSchemeKey": {
       "why": "The preference key behind `View.preferredColorScheme(_:)`, kept out with it (see that entry)."
     },
@@ -784,14 +794,8 @@
     "ProjectionTransform": {
       "why": "A 3×3 matrix over continuous coordinates, produced by GeometryEffect and consumed by `projectionEffect`. TUIkit's geometry is whole cells with no matrix: its only spatial operation is a whole-cell offset. The transforms wait on decisions A27."
     },
-    "RectangleCornerRadii": {
-      "why": "Four CGFloat radii; there is no radius anywhere in TUIkit's chrome model — BorderStyle stores four corner Characters instead (Sources/TUIkitStyling/Styles/BorderStyle.swift:13-22)."
-    },
     "RotatedShape": {
       "why": "A Shape adapter for rotation; neither Shape nor rotation exists on a cell grid (see rotationEffect — glyphs cannot be rotated and wide cells cannot be transposed)."
-    },
-    "RoundedCornerStyle": {
-      "why": "circular vs continuous (squircle) corner curvature is a difference measured well below one cell; both collapse to the same single character (╭) in BorderStyle.rounded (Sources/TUIkitStyling/Styles/BorderStyle.swift:109)."
     },
     "RoundedRectangle": {
       "why": "A corner radius needs sub-cell coverage to round; the terminal's rounded corner is a single character — BorderStyle.rounded uses ╭╮╰╯ (Sources/TUIkitStyling/Styles/BorderStyle.swift:109-128) — with exactly one radius, take it or leave it."
