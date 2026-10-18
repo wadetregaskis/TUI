@@ -562,9 +562,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   Motion setting, and the app decides what to change (Apple's documentation;
   not measured).
 - **TUIkit:** under it, an animated change of `.offset`, `.position`, padding
-  or a fixed `.frame`, a visual effect's offset, an `.animated` scroll
-  transition's offset and a drag preview's flight jump to their end. Fades,
-  colours, the focus breath, spinners and progress still animate. An app's own
+  or a fixed `.frame`, a visual effect's offset, a shadow's offset, an
+  `.animated` scroll transition's offset and a drag preview's flight jump to
+  their end. Fades, colours, a shadow's radius, the focus breath, spinners and
+  progress still animate. An app's own
   `Animatable` values are left to the app, as in SwiftUI. The value comes from
   the user's `TUIKIT_REDUCE_MOTION`, the app's TUI-only
   `Scene.reduceMotion(_:)`, or the system setting only where TUIkit is sure

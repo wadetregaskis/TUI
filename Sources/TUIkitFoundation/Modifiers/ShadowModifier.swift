@@ -59,7 +59,12 @@ private enum AnimationSlot {
 /// The radius and the offset move, in whole cells, so a change of either
 /// inside ``withAnimation(_:_:)`` grows or slides the shadow rather than
 /// jumping it, as SwiftUI's does.
-extension ShadowModifier: Animatable {
+///
+/// The offset is motion and the radius is not: where motion is reduced a
+/// change of the offset alone jumps to its end and starts nothing, as an
+/// `.offset` beside it does, and a change of the radius still grows the
+/// shadow, with the offset at its end meanwhile (owner decision A-D3M-1).
+extension ShadowModifier: PartlySpatialAnimatable {
     var animatableData: AnimatablePair<Double, AnimatablePair<Double, Double>> {
         get { AnimatablePair(Double(style.radius), AnimatablePair(Double(style.x), Double(style.y))) }
         set {
@@ -67,6 +72,23 @@ extension ShadowModifier: Animatable {
             style.x = Self.cells(newValue.second.first)
             style.y = Self.cells(newValue.second.second)
         }
+    }
+
+    /// This shadow with its offset at `target`'s and its radius as it is.
+    func holdingMotion(at target: Self) -> Self {
+        var held = self
+        held.style.x = target.style.x
+        held.style.y = target.style.y
+        return held
+    }
+
+    /// This modifier where its animation has got to, its offset at its end
+    /// where motion is reduced.
+    @MainActor
+    static func _animated(
+        _ modifier: Self, owner: Any.Type, context: RenderContext, isMeasuring: Bool
+    ) -> Self? {
+        animatedValueHoldingMotion(of: modifier, owner: owner, context: context, isMeasuring: isMeasuring)
     }
 
     /// `value` rounded to whole cells, held to ±2^30 — past every screen, and

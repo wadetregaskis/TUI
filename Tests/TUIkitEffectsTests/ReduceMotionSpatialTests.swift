@@ -246,4 +246,39 @@ struct ReduceMotionSpatialTests {
         #expect(reduced?.opacity == 0.5, "the fade was cut short")
         #expect(halfway(reducesMotion: true, atMillis: 2000)?.opacity == 1, "the fade does not end")
     }
+
+    /// Where a shadow is drawn: its overflow past `Text("ab")`'s frame, as the
+    /// layer's place — at `x - radius`, `-radius` for a shadow wholly to the
+    /// right of the label.
+    private func shadowPlace(_ buffer: FrameBuffer) -> (x: Int, y: Int)? {
+        buffer.overlays.first(where: \.isOverflow).map { ($0.offsetX, $0.offsetY) }
+    }
+
+    @Test("A shadow's offset jumps to its end where motion is reduced, and slides where it is not")
+    func shadowOffsetJumps() {
+        func place(reducesMotion: Bool) -> (x: Int, y: Int)? {
+            shadowPlace(
+                Screen(reducesMotion: reducesMotion)
+                    .halfway(from: Text("ab").shadow(radius: 0, x: 4), to: Text("ab").shadow(radius: 0, x: 20)))
+        }
+        #expect(place(reducesMotion: false)?.x == 12, "it slides")
+        #expect(place(reducesMotion: true)?.x == 20)
+
+        let reduced = completion(
+            reducesMotion: true, from: Text("ab").shadow(radius: 0, x: 4), to: Text("ab").shadow(radius: 0, x: 20))
+        #expect(reduced.firedAtOnce && !reduced.liveHalfway, "an offset held still starts no animation")
+    }
+
+    @Test("A shadow's radius still grows where motion is reduced, its offset at its end meanwhile")
+    func shadowRadiusStillAnimates() {
+        func place(reducesMotion: Bool) -> (x: Int, y: Int)? {
+            shadowPlace(
+                Screen(reducesMotion: reducesMotion)
+                    .halfway(from: Text("ab").shadow(radius: 0, x: 4), to: Text("ab").shadow(radius: 4, x: 20)))
+        }
+        let moving = place(reducesMotion: false)
+        #expect(moving?.x == 10 && moving?.y == -2, "x 12, radius 2")
+        let reduced = place(reducesMotion: true)
+        #expect(reduced?.x == 18 && reduced?.y == -2, "x 20 at once, radius 2 on its way to 4")
+    }
 }

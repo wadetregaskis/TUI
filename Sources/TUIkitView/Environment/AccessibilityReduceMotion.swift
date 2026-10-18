@@ -28,10 +28,11 @@ extension EnvironmentValues {
     ///
     /// TUIkit also holds still what would move in X and Y: an animated change
     /// of ``View/offset(x:y:)``, ``View/position(x:y:)``, padding or a fixed
-    /// frame — and an offset in a ``View/visualEffect(_:)`` — jumps to its end
-    /// value, and a dragged view's picture neither lifts out of its place nor
-    /// flies back to it when the drag is cancelled: it is at the pointer from
-    /// the start, and gone where it is at the end. Motion here means spatial
+    /// frame — and an offset in a ``View/visualEffect(_:)`` or a
+    /// ``View/shadow(color:radius:x:y:)`` — jumps to its end value (a shadow's
+    /// radius still grows), and a dragged view's picture neither lifts out of
+    /// its place nor flies back to it when the drag is cancelled: it is at the
+    /// pointer from the start, and gone where it is at the end. Motion here means spatial
     /// motion: colour and opacity
     /// animations, the focus breath, the caret's blink, spinners, progress
     /// indicators and symbol effects each say something, and keep moving.
