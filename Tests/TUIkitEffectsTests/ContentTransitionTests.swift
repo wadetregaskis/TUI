@@ -56,6 +56,22 @@ struct ContentTransitionTests {
         #expect(settled.lines == Frames(nil).draw(label("BBBB"), atMillis: 0).lines, "done, it is the new drawing")
     }
 
+    @Test("A burst of changes faster than half the dissolve is followed, one change behind")
+    func burstFollows() {
+        // A held key's auto-repeat on a counter: a change every 100 ms under a
+        // one-second dissolve. Each dissolve starts from the last value drawn,
+        // so the glyphs move on with the burst instead of standing at the
+        // first value until it ends.
+        let frames = Frames(.linear(duration: 1))
+        _ = frames.draw(label("1").contentTransition(.numericText()), atMillis: 0)
+        var seen: [String] = []
+        for (index, value) in ["2", "3", "4", "5"].enumerated() {
+            seen.append(frames.text(label(value).contentTransition(.numericText()), atMillis: (index + 1) * 100))
+        }
+        #expect(seen == ["1", "2", "3", "4"], "\(seen)")
+        #expect(frames.text(label("5").contentTransition(.numericText()), atMillis: 1500) == "5")
+    }
+
     @Test("Interpolating keeps matching glyphs and moves their colours")
     func interpolatesColours() {
         let frames = Frames(.linear(duration: 1))

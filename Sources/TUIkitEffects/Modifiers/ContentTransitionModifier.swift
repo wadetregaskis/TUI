@@ -220,13 +220,17 @@ extension _ContentTransitionView: Renderable, Layoutable {
             storage.setTrackedValue(fades, for: key)
         }
 
-        // The picture on screen right now, before this frame's change: a
-        // dissolve still under way, or the last drawing.
-        let onScreen = fade.shown.map { drawn(fade, over: $0, at: now, context: context) }
-        if let onScreen, let shown = fade.shown, shown.lines != buffer.lines || shown.width != buffer.width,
+        // A change dissolves from the last drawing — not from the picture on
+        // screen, which during a dissolve is the old glyphs blended toward
+        // the new and hands its glyphs over only half way. Started from that
+        // picture, a burst of changes faster than half the animation (a held
+        // key's auto-repeat on a counter) restarted from the old glyphs every
+        // time, and the number stood still until the burst ended. From the
+        // last drawing it follows the burst, one change behind.
+        if let shown = fade.shown, shown.lines != buffer.lines || shown.width != buffer.width,
             frame.canAnimate, let animation = context.environment.transaction.effectiveAnimation
         {
-            fade.outgoing = onScreen
+            fade.outgoing = shown
             fade.animation = animation
             fade.startNanos = now
             storage.animationCompletions.noteStarted(animation, at: now, key: nil)
