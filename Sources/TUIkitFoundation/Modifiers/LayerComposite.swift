@@ -245,7 +245,30 @@ func compositeLayer<Layer: View>(
     case .baseOnly: return baseBuffer
     case .placed(let buffer, let at): (layerBuffer, offset) = (buffer, at)
     }
+    return compositeDrawnLayer(layerBuffer, at: offset, under: baseBuffer, context: context, modifierType: modifierType)
+}
 
+/// `layerBuffer`, already drawn and placed at `offset` in `baseBuffer`'s frame,
+/// with the base composited over it, cut back to the base's box: the half of
+/// ``compositeLayer(_:under:alignment:context:modifierType:)`` that follows the
+/// placement, for a layer that is not a view.
+///
+/// What the layer draws past the base's frame rides among its floating layers
+/// (`OverflowingPlacement.insideCarryingOverflow`), and `offset` is where the
+/// part inside the frame lands.
+///
+/// - Parameters:
+///   - layerBuffer: The layer, inside the base's frame at `offset`.
+///   - offset: Where the layer lands in the base's frame.
+///   - baseBuffer: The base, already rendered at `context`'s identity.
+///   - context: The modifier's context.
+///   - modifierType: The modifier's own type — see ``layerContext(_:modifierType:)``.
+/// - Returns: The composite, the base's size.
+@MainActor
+func compositeDrawnLayer(
+    _ layerBuffer: FrameBuffer, at offset: (x: Int, y: Int), under baseBuffer: FrameBuffer,
+    context: RenderContext, modifierType: Any.Type
+) -> FrameBuffer {
     // `_ZStackCore`'s sequence for two children: a blank canvas the base's
     // size, the layer onto it at its offset, then the base over both — asking
     // for a render at each step of a run of the layer whose field the base
