@@ -82,10 +82,26 @@ view where that is known; past the frame it is overflow
 [B-GUIDE-3](<Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>)),
 drawn at the screen root over the views before the shadowed one, cut under the
 views after it, and clipped by a scroll view, a list, a table cell or a surface
-as SwiftUI clips a shadow at a scroll view's edge. A row of the shadow with a
-gap in it (a label's shadow under "a b") claims the gap at alpha 0, because
-compositing replaces every cell a line spans and an unclaimed blank there would
-erase the glyph behind it.
+as SwiftUI clips a shadow at a scroll view's edge.
+
+The layer is the shadow's whole rectangle. A cell of it that the shadow misses
+— a corner past the last ring, the gap in a label's shadow under "a b" — is
+claimed with its whole layer at 0, which leaves what is behind it untouched:
+compositing replaces every cell a line spans, and an unclaimed blank there
+would erase the glyph behind it. Laid row by row from each row's first shadowed
+cell, as it first was, the overflow was cut into a layer for every row round
+the corners, since overflow is cut into one layer per run of rows that start
+at the same column (`OverlayLayer.drawnParts()`): sixteen for a radius of ten,
+every one a draw at the screen root, and sixteen such cards spent the root's
+whole budget of draws (measured from a probe on a debug build: 16 cards of
+`.shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)`, 260 layers,
+235 ms a root composite; as rectangles, 100 layers and 141 ms, the rest being
+the cards after each shadow cutting it where they paint). A rectangle is at
+most four, one a side of the view, whatever the radius. The price is the
+corners: a run beneath one (a control's breath) is held to the frame drawn at
+the last render, as a run beneath the shadow itself already was, and beneath
+any translucent layer drawn at the root (`Opacity as composition.md` §109,
+"what it does not cover yet").
 
 What that shares with every overflow: a view after the shadowed one cuts the
 shadow under every cell it PAINTS, a glyph's cell included, where SwiftUI would

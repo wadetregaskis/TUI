@@ -58,21 +58,32 @@ struct ShadowTests {
         /// The brightest channel of the field at `column`, `row`; `nil` where
         /// the cell states none (the page shows).
         func field(_ column: Int, _ row: Int) -> Int? {
-            Self.level(cell(column, row)?.state.backgroundColour)
+            Self.level(painted(column, row)?.state.backgroundColour)
         }
 
         /// The brightest channel of the ink at `column`, `row`.
-        func ink(_ column: Int, _ row: Int) -> Int? { Self.level(cell(column, row)?.ink) }
+        func ink(_ column: Int, _ row: Int) -> Int? { Self.level(painted(column, row)?.ink) }
 
         /// The glyph at `column`, `row`.
-        func glyph(_ column: Int, _ row: Int) -> Character? { cell(column, row)?.glyph }
+        func glyph(_ column: Int, _ row: Int) -> Character? { painted(column, row)?.glyph }
 
         /// The fields of row `row`, from `columns`, the page reading as its own level.
         func fields(row: Int, _ columns: Range<Int>) -> [Int] {
             columns.map { field($0, row) ?? ShadowTests.page }
         }
 
-        private func cell(_ column: Int, _ row: Int) -> PaintedCell? {
+        /// A cell as drawn: its glyph and the netted state it is drawn in.
+        struct Cell: Equatable {
+            let glyph: Character
+            let state: SGRState
+        }
+
+        /// The cell at `column`, `row`.
+        func cell(_ column: Int, _ row: Int) -> Cell? {
+            painted(column, row).map { Cell(glyph: $0.glyph, state: $0.state) }
+        }
+
+        private func painted(_ column: Int, _ row: Int) -> PaintedCell? {
             guard buffer.lines.indices.contains(row) else { return nil }
             let cells = paintedCells(buffer.lines[row])
             return cells.indices.contains(column) ? cells[column] : nil
@@ -173,6 +184,48 @@ struct ShadowTests {
         let unclipped = screen(ScrollView { shadowed() }.scrollClipDisabled().frame(height: 1).padding(2))
         #expect(unclipped.fields(row: 1, 3..<7) == [ring, ring, ring, ring])
         #expect(unclipped.fields(row: 3, 3..<7) == [ring, ring, ring, ring])
+    }
+
+    /// Each overflow layer is one draw at the screen root, and every draw there
+    /// costs a pass over the screen. Laid row by row, a shadow's rows each start
+    /// at their own column round its corners, and the overflow was cut into one
+    /// layer a row there: sixteen for a radius of ten.
+    @Test("A drop shadow past its view is at most four layers, one a side, whatever its radius")
+    func overflowLayerCount() {
+        for radius in [1, 3, 10, 40] {
+            let buffer = renderToBuffer(
+                box.shadow(radius: radius, x: 1, y: 2),
+                context: makeRenderContext(width: 12, height: 8).isolatingRenderCache())
+            let overflow = buffer.overlays.filter(\.isOverflow)
+            #expect(!overflow.isEmpty && overflow.count <= 4, "radius \(radius): \(overflow.count) layers")
+        }
+    }
+
+    @Test("Where a shadow's rectangle lays nothing, what is behind it is left exactly as it was")
+    func cornersKeepWhatIsBehind() {
+        func view(shadowed: Bool) -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Text("abcdefghijklmn").foregroundStyle(.red).background(Color.rgb(0, 0, 200)).bold().underline()
+                }
+                Group {
+                    if shadowed { box.shadow(radius: 3) } else { box }
+                }
+                .padding(.leading, 6)
+            }
+        }
+        let plain = screen(view(shadowed: false), width: 16)
+        let shadowed = screen(view(shadowed: true), width: 16)
+        // The box is at columns 6…7 of row 3, its shadow's rectangle columns 3…10
+        // of rows 0…6. Three rows up, the cells two and three columns out are past
+        // the third ring (3.6 and 4.2 cells); two rows up, three columns out (3.6).
+        let corners = [(3, 0), (4, 0), (9, 0), (10, 0), (3, 1), (10, 1)]
+        for (column, row) in corners {
+            #expect(
+                shadowed.cell(column, row) == plain.cell(column, row),
+                "(\(column), \(row)): \(String(describing: shadowed.cell(column, row)))")
+        }
+        #expect(shadowed.field(5, 0) != plain.field(5, 0), "the third ring, beside them, is shadowed")
     }
 
     @Test("A shadow changes no size and moves nothing")

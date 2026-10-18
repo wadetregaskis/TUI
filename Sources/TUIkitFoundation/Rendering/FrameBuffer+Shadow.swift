@@ -78,7 +78,7 @@ extension FrameBuffer {
         else { return self }
         let escape = ANSIRenderer.backgroundCode(for: colour.opaqueSpelling)
         var result = self
-        for (piece, alpha) in Self.shadowPieces(field, spans: nil) where alpha > 0 {
+        for (piece, alpha) in Self.shadowPieces(field) where alpha > 0 {
             var block = FrameBuffer(
                 lines: Array(
                     repeating: escape + String.spaces(piece.width) + ANSIRenderer.reset, count: piece.height),
@@ -92,54 +92,46 @@ extension FrameBuffer {
         return result
     }
 
-    /// The drop shadow's layer: each row of `field` painted from its first cell
-    /// with any alpha to its last, in `escape`, and claimed at the alpha of each
-    /// cell — `0` at a cell between two shadowed ones that the shadow misses,
-    /// which keeps whatever is behind it exactly: compositing replaces every
-    /// cell a line spans, and an unclaimed blank there would erase the glyph
-    /// behind it.
+    /// The drop shadow's layer: the whole of `field`'s rectangle painted in
+    /// `escape`, each cell claimed at the shadow's alpha there — and a cell the
+    /// shadow misses (a corner past the last ring, the gap in "a b"'s shadow)
+    /// claimed with its whole layer at `0`, which leaves whatever is behind it
+    /// untouched: compositing replaces every cell a line spans, and an unclaimed
+    /// blank there would erase the glyph behind it.
+    ///
+    /// A rectangle, every line the same, rather than each row from its first
+    /// shadowed cell to its last: what is drawn past the view's frame becomes
+    /// overflow layers, cut into one for each run of lines that start at the same
+    /// column (`OverlayLayer.drawnParts()`), and a shadow's rows each start at
+    /// their own column round its corners — sixteen layers for a radius of ten,
+    /// sixteen cards of them enough to spend the root compositor's whole budget.
+    /// As a rectangle it is at most four, one a side of the frame, whatever the
+    /// radius.
     static func shadowLayer(_ field: ShadowField, escape: String) -> FrameBuffer {
-        var lines: [String] = []
-        var lineWidths: [Int] = []
-        var spans: [Range<Int>?] = []
-        lines.reserveCapacity(field.height)
-        for row in 0..<field.height {
-            let shadowed = (0..<field.width).filter { field.alpha(column: $0, row: row) > 0 }
-            guard let first = shadowed.first, let last = shadowed.last else {
-                lines.append("")
-                lineWidths.append(0)
-                spans.append(nil)
-                continue
-            }
-            lines.append(String.spaces(first) + escape + String.spaces(last + 1 - first) + ANSIRenderer.reset)
-            lineWidths.append(last + 1)
-            spans.append(first..<(last + 1))
-        }
-        var layer = FrameBuffer(lines: lines, width: field.width, lineWidths: lineWidths)
-        layer.opacityRegions = shadowPieces(field, spans: spans).compactMap { piece, alpha in
+        let line = escape + String.spaces(field.width) + ANSIRenderer.reset
+        var layer = FrameBuffer(
+            lines: Array(repeating: line, count: field.height), width: field.width, uniformWidth: true)
+        layer.opacityRegions = shadowPieces(field).compactMap { piece, alpha in
             alpha == .max ? nil : piece
         }
         return layer
     }
 
     /// `field` cut into rectangles of one alpha each, rows cut alike joined —
-    /// each a claim on the field of its cells at that alpha. Where `spans` is
-    /// given, only the cells inside its row's span are cut, and a row with none
-    /// has no rectangle.
-    static func shadowPieces(
-        _ field: ShadowField, spans: [Range<Int>?]?
-    ) -> [(piece: OpacityRegion, alpha: UInt8)] {
+    /// each a claim on the field of its cells at that alpha, and at alpha `0` a
+    /// claim of the whole layer at `0`: the cells keep what is behind them as it
+    /// is, glyph, colours and attributes, rather than blending to it.
+    static func shadowPieces(_ field: ShadowField) -> [(piece: OpacityRegion, alpha: UInt8)] {
         let whole = OpacityRegion(offsetX: 0, offsetY: 0, width: field.width, height: field.height, opacity: 1)
-        // `-1` outside a row's span: no claim there at all.
-        let pieces = cutting(whole) { row, column -> Int in
-            if let spans, !(spans[row]?.contains(column) ?? false) { return -1 }
-            return Int(field.alpha(column: column, row: row))
-        }
-        return pieces.compactMap { piece, kind in
-            guard kind >= 0 else { return nil }
+        let pieces = cutting(whole) { row, column in field.alpha(column: column, row: row) }
+        return pieces.map { piece, alpha in
             var claimed = piece
-            claimed.fieldOpacity = OpacityRegion.opacity(of: UInt8(kind))
-            return (claimed, UInt8(kind))
+            if alpha == 0 {
+                claimed.opacity = 0
+            } else {
+                claimed.fieldOpacity = OpacityRegion.opacity(of: alpha)
+            }
+            return (claimed, alpha)
         }
     }
 }
