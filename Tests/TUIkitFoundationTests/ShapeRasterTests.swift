@@ -55,6 +55,23 @@ struct ShapeRasterTests {
         #expect(evenOdd.coverage(x: 0, y: 0) == 1)
     }
 
+    /// Before, a crossing was converted to a sample index before it was held
+    /// to the row, and one past `Int.max` trapped.
+    @Test("A far-off point's crossings are held to the grid")
+    func farOffPoints() {
+        // A triangle reaching to the largest finite x covers the whole grid,
+        // and one reaching as far left the whole of its own rows.
+        let wedge = [[CGPoint.zero, CGPoint(x: CGFloat.greatestFiniteMagnitude, y: 0), CGPoint(x: 0, y: 4)]]
+        let coverage = ShapeCoverage(polygons: wedge, evenOdd: false, width: 4, height: 4)
+        #expect((0..<4).allSatisfy { x in (0..<4).allSatisfy { coverage.coverage(x: x, y: $0) == 1 } })
+        let left = [[CGPoint(x: 4, y: 0), CGPoint(x: -CGFloat.greatestFiniteMagnitude, y: 2), CGPoint(x: 4, y: 4)]]
+        #expect(ShapeCoverage(polygons: left, evenOdd: false, width: 4, height: 4).coverage(x: 0, y: 1) == 1)
+        // An edge too steep for its slope to be finite, beginning on a row of
+        // samples: its crossing there is its top, not zero times infinity.
+        let sliver = [[CGPoint(x: 0, y: 0.125), CGPoint(x: CGFloat.greatestFiniteMagnitude, y: 0.125 + 1e-15), CGPoint(x: 0, y: 3)]]
+        #expect(ShapeCoverage(polygons: sliver, evenOdd: false, width: 4, height: 4).coverage(x: 3, y: 1) == 1)
+    }
+
     // MARK: Stroking
 
     /// The stroke of `points` in `style`, as coverage of a `size` grid.

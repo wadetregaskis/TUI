@@ -88,11 +88,9 @@ struct ShapeCoverage: Equatable {
     /// Counts the sample points of pixel row `row` whose x lies in
     /// `[start, end)` — at `(i + ½) / samples` across each pixel.
     private mutating func fill(from start: Double, to end: Double, row: Int) {
-        let scale = Double(samples)
-        // The first sample index at or after `start`, and the first at or
-        // after `end`: samples `first..<last` are inside.
-        let first = max(0, Int((start * scale - 0.5).rounded(.up)))
-        let last = min(width * samples, Int((end * scale - 0.5).rounded(.up)))
+        // Samples `first..<last` are inside.
+        let first = sampleIndex(atOrAfter: start)
+        let last = sampleIndex(atOrAfter: end)
         guard first < last else { return }
         let base = row * width
         var sample = first
@@ -102,6 +100,17 @@ struct ShapeCoverage: Equatable {
             counts[base + pixel] += UInt16(pixelEnd - sample)
             sample = pixelEnd
         }
+    }
+
+    /// The first sample index of a row at or after `x`, held to the row's
+    /// `0…width × samples` while it is still a `Double`: a far-off point's
+    /// crossing — a line to `.greatestFiniteMagnitude`, a shape scaled by
+    /// `1e19` — lies past any `Int`, and converting it first trapped.
+    private func sampleIndex(atOrAfter x: Double) -> Int {
+        let limit = width * samples
+        let index = (x * Double(samples) - 0.5).rounded(.up)
+        guard index > 0 else { return 0 }
+        return index < Double(limit) ? Int(index) : limit
     }
 
     /// One edge of a polygon, top to bottom, with which way it ran.
@@ -126,10 +135,15 @@ struct ShapeCoverage: Equatable {
                 guard y0 != y1, y0.isFinite, y1.isFinite, previous.x.isFinite, point.x.isFinite else { continue }
                 let downward = y1 > y0
                 let (top, bottom) = downward ? (previous, point) : (point, previous)
+                // A slope too steep to hold is the steepest that is held: where
+                // it is infinite, the crossing at the edge's own top would be
+                // zero times infinity — not a number, which no clamp orders.
+                let slope = Double(bottom.x - top.x) / Double(bottom.y - top.y)
+                let held = slope.isFinite ? slope : slope > 0 ? Double.greatestFiniteMagnitude : -Double.greatestFiniteMagnitude
                 edges.append(
                     Edge(
-                        top: Double(top.y), bottom: Double(bottom.y), x0: Double(top.x),
-                        slope: Double(bottom.x - top.x) / Double(bottom.y - top.y), direction: downward ? 1 : -1))
+                        top: Double(top.y), bottom: Double(bottom.y), x0: Double(top.x), slope: held,
+                        direction: downward ? 1 : -1))
             }
         }
         return edges
