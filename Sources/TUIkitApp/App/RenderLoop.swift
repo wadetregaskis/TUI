@@ -779,6 +779,9 @@ extension RenderLoop {
         environment.supportsEmojiChrome = capabilities.emojiChrome
         environment.blockElementsFillTheLine = capabilities.blockElementsFillTheLine
         environment.cornerTrianglesFillTheCell = capabilities.cornerTrianglesFillTheCell
+        // Not per tmux client: tmux re-spells line styles for each client
+        // itself (`TerminalHost.lineStyles`).
+        environment.lineStyleSupport = TerminalHost.lineStyles
         // The writer's tmux skin-tone scope follows the same per-client answer:
         // keep the tone bases tmux itself merges (the measured 70 — see
         // Character.tmuxMergedToneBases) only when every attached client also

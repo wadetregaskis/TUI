@@ -304,33 +304,62 @@ extension Text {
         return copy
     }
 
-    /// Applies or removes an underline — mirrors SwiftUI's `underline(_:…)`.
+    /// Applies or removes a solid underline — mirrors SwiftUI's
+    /// `underline(_:color:)`.
     ///
-    /// SwiftUI's `color:` and `pattern:` arguments are absent: a terminal draws
-    /// one underline, in the text's own colour, and has no dashed or dotted
-    /// variants to choose between. Omitting them makes
-    /// `underline(true, color: .red)` fail to compile rather than compile and
-    /// quietly ignore half of what it asked for.
-    ///
-    /// - Parameter isActive: Whether the text is underlined. `false` overrides
-    ///   an ancestor's ``View/underline(_:)``.
+    /// - Parameters:
+    ///   - isActive: Whether the text is underlined. `false` overrides an
+    ///     ancestor's ``View/underline(_:pattern:color:)``.
+    ///   - color: The line's colour, or `nil` for the text's own. Drawn where
+    ///     the terminal colours underlines (see ``LineStyle``).
     /// - Returns: A new text with the underline setting applied.
-    public func underline(_ isActive: Bool = true) -> Text {
+    public func underline(_ isActive: Bool = true, color: Color? = nil) -> Text {
+        underline(isActive, pattern: .solid, color: color)
+    }
+
+    /// Applies or removes an underline in a pattern — mirrors SwiftUI's
+    /// `underline(_:pattern:color:)`.
+    ///
+    /// The line is drawn as the terminal can: a pattern it lacks is a single
+    /// line, a colour it lacks the text's own (see ``LineStyle``).
+    ///
+    /// - Parameters:
+    ///   - isActive: Whether the text is underlined.
+    ///   - pattern: The line's pattern.
+    ///   - color: The line's colour, or `nil` for the text's own.
+    /// - Returns: A new text with the underline setting applied.
+    public func underline(_ isActive: Bool = true, pattern: LineStyle.Pattern, color: Color? = nil) -> Text {
         var copy = self
-        copy.style.isUnderlined = isActive
+        copy.style.underline = .some(isActive ? LineStyle(pattern: pattern, color: color) : nil)
         return copy
     }
 
     /// Applies or removes a strikethrough — mirrors SwiftUI's
-    /// `strikethrough(_:…)`, without the `color:`/`pattern:` arguments for the
-    /// reason given on ``underline(_:)``.
+    /// `strikethrough(_:color:)`.
     ///
-    /// - Parameter isActive: Whether the text is struck through. `false`
-    ///   overrides an ancestor's ``View/strikethrough(_:)``.
+    /// - Parameters:
+    ///   - isActive: Whether the text is struck through. `false` overrides an
+    ///     ancestor's ``View/strikethrough(_:pattern:color:)``.
+    ///   - color: The line's colour, or `nil` for the text's own. Only iTerm2
+    ///     colours a strikethrough (see ``LineStyle``).
     /// - Returns: A new text with the strikethrough setting applied.
-    public func strikethrough(_ isActive: Bool = true) -> Text {
+    public func strikethrough(_ isActive: Bool = true, color: Color? = nil) -> Text {
+        strikethrough(isActive, pattern: .solid, color: color)
+    }
+
+    /// Applies or removes a strikethrough in a pattern — mirrors SwiftUI's
+    /// `strikethrough(_:pattern:color:)`.
+    ///
+    /// A terminal's strikethrough is one solid line, whatever the pattern.
+    ///
+    /// - Parameters:
+    ///   - isActive: Whether the text is struck through.
+    ///   - pattern: The line's pattern.
+    ///   - color: The line's colour, or `nil` for the text's own.
+    /// - Returns: A new text with the strikethrough setting applied.
+    public func strikethrough(_ isActive: Bool = true, pattern: LineStyle.Pattern, color: Color? = nil) -> Text {
         var copy = self
-        copy.style.isStrikethrough = isActive
+        copy.style.strikethrough = .some(isActive ? LineStyle(pattern: pattern, color: color) : nil)
         return copy
     }
 
@@ -629,11 +658,57 @@ package struct TextStyle: Sendable, Equatable {
     /// Whether the text is italic, or `nil` if this `Text` never said.
     var isItalic: Bool?
 
-    /// Whether the text is underlined, or `nil` if this `Text` never said.
-    package var isUnderlined: Bool?
+    /// The underline this `Text` stated: the outer `nil` means it never said,
+    /// the inner `nil` that it said none, and a line how it is drawn.
+    ///
+    /// Doubly optional for ``font``'s reason: "not underlined" must be a
+    /// statement, or `Text(x).underline(false)` could not escape an inherited
+    /// `.underline()`. Its line goes with it, so the nearest statement decides
+    /// the shape and colour as well as whether there is a line at all.
+    var underline: Text.LineStyle?? {
+        get { statedUnderline.value }
+        set { statedUnderline = StatedLine(newValue) }
+    }
+    private var statedUnderline = StatedLine.unstated
 
-    /// Whether the text is strikethrough, or `nil` if this `Text` never said.
-    var isStrikethrough: Bool?
+    /// The strikethrough this `Text` stated, as ``underline`` states the
+    /// underline.
+    var strikethrough: Text.LineStyle?? {
+        get { statedStrikethrough.value }
+        set { statedStrikethrough = StatedLine(newValue) }
+    }
+    private var statedStrikethrough = StatedLine.unstated
+
+    /// The colour SGR 58 draws: the underline's, or where the underline has
+    /// none, the strikethrough's — which only a terminal that colours a
+    /// strikethrough is left holding (``fittingLines(to:)``).
+    var lineColour: Color? {
+        underline.flatMap { $0 }?.color ?? strikethrough.flatMap { $0 }?.color
+    }
+
+    /// Whether the text is underlined, or `nil` if this `Text` never said.
+    /// Turning it on keeps a line already stated, and states a single one
+    /// otherwise.
+    package var isUnderlined: Bool? {
+        get { underline.map { $0 != nil } }
+        set { underline = Self.line(newValue, keeping: underline) }
+    }
+
+    /// Whether the text is strikethrough, or `nil` if this `Text` never said,
+    /// as ``isUnderlined`` says it for the underline.
+    var isStrikethrough: Bool? {
+        get { strikethrough.map { $0 != nil } }
+        set { strikethrough = Self.line(newValue, keeping: strikethrough) }
+    }
+
+    /// The line `isOn` states: unstated, off, or `current`'s line if it was
+    /// on, a single one if not.
+    private static func line(_ isOn: Bool?, keeping current: Text.LineStyle??) -> Text.LineStyle?? {
+        guard let isOn else { return .none }
+        guard isOn else { return .some(.none) }
+        if case .some(.some(let line)) = current { return .some(line) }
+        return .some(.single)
+    }
 
     /// Whether the text is dimmed, or `nil` if this `Text` never said.
     var isDim: Bool?
@@ -692,6 +767,28 @@ extension TextStyle {
         var copy = self
         copy.foregroundColor = foregroundColor?.resolve(with: palette)
         copy.backgroundColor = backgroundColor?.resolve(with: palette)
+        copy.underline = underline.map { $0?.resolved(with: palette) }
+        copy.strikethrough = strikethrough.map { $0?.resolved(with: palette) }
+        return copy
+    }
+
+    /// This style with its lines reduced to what a terminal that draws
+    /// `support` draws: each shape it lacks a single line, each colour it lacks
+    /// the text's own (``Text/LineStyle/fittingUnderline(to:)``).
+    ///
+    /// SGR 58 is ONE colour, the underline's, which iTerm2 lends the
+    /// strikethrough too; so where both lines state colours, the underline's
+    /// is the one drawn.
+    package func fittingLines(to support: LineStyleSupport) -> TextStyle {
+        guard underline != nil || strikethrough != nil else { return self }
+        var copy = self
+        copy.underline = underline.map { $0?.fittingUnderline(to: support) }
+        copy.strikethrough = strikethrough.map { $0?.fittingStrikethrough(to: support) }
+        if case .some(.some(let line)) = copy.underline, line.color != nil,
+            case .some(.some(let struck)) = copy.strikethrough, struck.color != nil
+        {
+            copy.strikethrough = .some(Text.LineStyle(pattern: .solid))
+        }
         return copy
     }
 }
@@ -794,8 +891,8 @@ extension Text: Renderable, Layoutable {
         var result = own
         result.isBold = own.isBold ?? cascaded.bold
         result.isItalic = own.isItalic ?? cascaded.italic
-        result.isUnderlined = own.isUnderlined ?? cascaded.underline
-        result.isStrikethrough = own.isStrikethrough ?? cascaded.strikethrough
+        result.underline = own.underline ?? cascaded.underlineLine
+        result.strikethrough = own.strikethrough ?? cascaded.strikethroughLine
         result.isDim = own.isDim ?? cascaded.dim
         // A secondary scale steps the RESOLVED intensity down one tier, so it
         // is applied after everything else has had its say: bold → plain,
@@ -953,6 +1050,7 @@ extension Text: Renderable, Layoutable {
         let font = resolvedFont(stating: style.font, context: context)
         let cascaded = cascadedAttributes(context: context, font: font)
         var effectiveStyle = applyingCascadedEmphasis(to: style, cascaded, context: context)
+            .fittingLines(to: context.environment.lineStyleSupport)
         let effectiveCase = cascaded.effectiveTextCase
 
         // Foreground precedence: an explicit *concrete* colour on this Text wins;
@@ -1272,7 +1370,8 @@ extension Text: Renderable, Layoutable {
                 if paintsRamp { runTakesRamp.append(own.foregroundColor == nil) }
                 runStyle = own.merged(over: effectiveStyle)
             }
-            resolvedRunStyles.append(runStyle.resolved(with: palette))
+            resolvedRunStyles.append(
+                runStyle.fittingLines(to: context.environment.lineStyleSupport).resolved(with: palette))
         }
 
         var cursor = (run: 0, offset: 0)

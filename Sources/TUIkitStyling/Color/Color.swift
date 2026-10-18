@@ -89,6 +89,12 @@ public struct Color: Sendable, Hashable {
         return copy
     }
 
+    /// The opaque colour `value` names — for a holder that keeps only a
+    /// colour's value, as a text's line does (SGR has no alpha for a line).
+    package static func opaque(_ value: ColorValue) -> Self {
+        Self(value: value)
+    }
+
     /// This colour with `alpha` carried over from `source`.
     ///
     /// Every `Color` → `Color` derivation ends in this, so "did it carry the

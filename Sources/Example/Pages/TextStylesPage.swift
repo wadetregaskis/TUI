@@ -11,6 +11,7 @@ import TUIkit
 ///
 /// Shows various text styling options including:
 /// - Basic styles (bold, italic, underline, etc.)
+/// - Line styles (underline patterns and colours, a coloured strikethrough)
 /// - Combined styles
 /// - Special effects (blink, inverted)
 /// - Cascading styles (container-level modifiers that apply to a whole subtree)
@@ -45,6 +46,16 @@ struct TextStylesPage: View {
                 Text("page.textStyles.underline").underline()
                 Text("page.textStyles.strikethrough").strikethrough()
                 Text("page.textStyles.dimmed").dim()
+            }
+
+            DemoSection("page.textStyles.section.lines") {
+                Text("page.textStyles.line.caption")
+                    .foregroundStyle(.palette.foregroundSecondary)
+                Text("page.textStyles.line.double").underline(pattern: .double)
+                Text("page.textStyles.line.curly").underline(pattern: .curly, color: .red)
+                Text("page.textStyles.line.dotted").underline(pattern: .dot)
+                Text("page.textStyles.line.dashed").underline(pattern: .dash, color: .palette.accent)
+                Text("page.textStyles.line.struck").strikethrough(color: .red)
             }
 
             DemoSection("page.textStyles.section.combined") {

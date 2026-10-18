@@ -106,8 +106,8 @@ extension TextStyle {
         result.font = font ?? base.font
         result.isBold = isBold ?? base.isBold
         result.isItalic = isItalic ?? base.isItalic
-        result.isUnderlined = isUnderlined ?? base.isUnderlined
-        result.isStrikethrough = isStrikethrough ?? base.isStrikethrough
+        result.underline = underline ?? base.underline
+        result.strikethrough = strikethrough ?? base.strikethrough
         result.isDim = isDim ?? base.isDim
         result.isBlink = isBlink || base.isBlink
         result.isInverted = isInverted || base.isInverted

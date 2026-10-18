@@ -76,6 +76,15 @@ public struct StyleAttributes: Sendable, Hashable {
     public var strikethrough: Bool?
     public var dim: Bool?
 
+    /// How the underline is drawn where ``underline`` is `true`: `nil` for a
+    /// single line in the text's colour. It travels with ``underline``, so the
+    /// nearest entry to state an underline decides its line too.
+    public var underlineStyle: Text.LineStyle?
+
+    /// How the strikethrough is drawn where ``strikethrough`` is `true`, as
+    /// ``underlineStyle`` says it for the underline.
+    public var strikethroughStyle: Text.LineStyle?
+
     /// The case transform, as a THIRD state: `nil` is "nothing was said",
     /// `.some(nil)` is "cleared here", `.some(.some(c))` is `c`.
     ///
@@ -101,7 +110,9 @@ public struct StyleAttributes: Sendable, Hashable {
         strikethrough: Bool? = nil,
         dim: Bool? = nil,
         textCase: TextCase?? = nil,
-        textScale: Text.Scale? = nil
+        textScale: Text.Scale? = nil,
+        underlineStyle: Text.LineStyle? = nil,
+        strikethroughStyle: Text.LineStyle? = nil
     ) {
         self.foreground = foreground
         self.background = background
@@ -112,6 +123,20 @@ public struct StyleAttributes: Sendable, Hashable {
         self.dim = dim
         self.textCase = textCase
         self.textScale = textScale
+        self.underlineStyle = underlineStyle
+        self.strikethroughStyle = strikethroughStyle
+    }
+
+    /// The underline these attributes state, as a `Text` states one: `nil`
+    /// if they say nothing, `.some(nil)` for none, or the line.
+    var underlineLine: Text.LineStyle?? {
+        underline.map { $0 ? underlineStyle ?? .single : nil }
+    }
+
+    /// The strikethrough these attributes state, as ``underlineLine`` states
+    /// the underline.
+    var strikethroughLine: Text.LineStyle?? {
+        strikethrough.map { $0 ? strikethroughStyle ?? .single : nil }
     }
 
     /// The case transform to actually apply.
@@ -142,6 +167,9 @@ public struct StyleAttributes: Sendable, Hashable {
             strikethrough: strikethrough ?? base.strikethrough,
             dim: dim ?? base.dim,
             textCase: textCase ?? base.textCase,
-            textScale: textScale ?? base.textScale)
+            textScale: textScale ?? base.textScale,
+            // A line's style goes with whoever stated the line.
+            underlineStyle: underline != nil ? underlineStyle : base.underlineStyle,
+            strikethroughStyle: strikethrough != nil ? strikethroughStyle : base.strikethroughStyle)
     }
 }

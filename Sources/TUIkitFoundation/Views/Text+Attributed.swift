@@ -95,11 +95,11 @@ extension Text {
         if let font = run.font {
             style.font = .some(font)
         }
-        if run.underlineStyle != nil {
-            style.isUnderlined = true
+        if let line = run.underlineStyle {
+            style.underline = .some(line)
         }
-        if run.strikethroughStyle != nil {
-            style.isStrikethrough = true
+        if let line = run.strikethroughStyle {
+            style.strikethrough = .some(line)
         }
         // `InlinePresentationIntent` is Darwin Foundation's: swift-foundation
         // has neither it nor the Markdown initializer that sets it (checked on

@@ -118,7 +118,7 @@ extension ANSIRenderer {
         if style.isBold == true { writer.add(StyleCode.bold) }
         if style.isDim == true { writer.add(StyleCode.dim) }
         if style.isItalic == true { writer.add(StyleCode.italic) }
-        if style.isUnderlined == true { writer.add(StyleCode.underline) }
+        if let line = style.underline.flatMap({ $0 }) { writer.add(line.underlineParameter) }
         if style.isBlink { writer.add(StyleCode.blink) }
         if style.isInverted { writer.add(StyleCode.inverse) }
         if style.isStrikethrough == true { writer.add(StyleCode.strikethrough) }
@@ -129,6 +129,9 @@ extension ANSIRenderer {
         }
         if let background = style.backgroundColor {
             writer.add(background.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
+        }
+        if let lineColour = style.lineColour {
+            writer.addUnderlineColour(lineColour.foregroundParameters())
         }
         return writer.finish()
     }
@@ -579,6 +582,28 @@ private struct SGRWriter {
             add(String(red))
             add(String(green))
             add(String(blue))
+        }
+    }
+
+    /// Appends a colour as SGR 58 states an underline's: one parameter, its
+    /// arguments after colons (`58:5:n`, `58:2::r:g:b`), which a terminal that
+    /// does not colour underlines ignores whole — see
+    /// `SGRState.Colour.appendUnderlineColour(to:)`. 58 has no named form, so
+    /// one of the sixteen inks is spelled by its index; the terminal's own ink
+    /// (39) is no colour at all.
+    mutating func addUnderlineColour(_ colour: SGRColourParameters) {
+        switch colour {
+        case .none:
+            break
+        case .code(let code):
+            guard (30...37).contains(code) || (90...97).contains(code) else { break }
+            add("58:5:\(code % 10 + (code >= 90 ? 8 : 0))")
+        case .indexed(let index):
+            add("58:5:\(index)")
+        // A pattern over parameters already decided, not a colour drawn.
+        // swiftlint:disable:next framework_colour_literal
+        case .rgb(let red, let green, let blue):
+            add("58:2::\(red):\(green):\(blue)")
         }
     }
 

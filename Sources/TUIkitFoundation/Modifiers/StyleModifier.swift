@@ -78,14 +78,42 @@ extension View {
         style(.text, StyleAttributes(italic: enabled))
     }
 
-    /// Underlines all text in this view's subtree.
-    public func underline(_ enabled: Bool = true) -> some View {
-        style(.text, StyleAttributes(underline: enabled))
+    /// Underlines all text in this view's subtree — mirrors SwiftUI's
+    /// `underline(_:pattern:color:)`.
+    ///
+    /// The line is drawn as the terminal can: see ``Text/LineStyle``.
+    ///
+    /// - Parameters:
+    ///   - isActive: Whether the text is underlined. `false` overrides an
+    ///     ancestor's underline.
+    ///   - pattern: The line's pattern.
+    ///   - color: The line's colour, or `nil` for the text's own.
+    public func underline(
+        _ isActive: Bool = true, pattern: Text.LineStyle.Pattern = .solid, color: Color? = nil
+    ) -> some View {
+        style(
+            .text,
+            StyleAttributes(underline: isActive, underlineStyle: Text.LineStyle(pattern: pattern, color: color)))
     }
 
-    /// Strikes through all text in this view's subtree.
-    public func strikethrough(_ enabled: Bool = true) -> some View {
-        style(.text, StyleAttributes(strikethrough: enabled))
+    /// Strikes through all text in this view's subtree — mirrors SwiftUI's
+    /// `strikethrough(_:pattern:color:)`.
+    ///
+    /// A terminal's strikethrough is one solid line, whatever the pattern,
+    /// and only iTerm2 colours it: see ``Text/LineStyle``.
+    ///
+    /// - Parameters:
+    ///   - isActive: Whether the text is struck through. `false` overrides an
+    ///     ancestor's strikethrough.
+    ///   - pattern: The line's pattern.
+    ///   - color: The line's colour, or `nil` for the text's own.
+    public func strikethrough(
+        _ isActive: Bool = true, pattern: Text.LineStyle.Pattern = .solid, color: Color? = nil
+    ) -> some View {
+        style(
+            .text,
+            StyleAttributes(
+                strikethrough: isActive, strikethroughStyle: Text.LineStyle(pattern: pattern, color: color)))
     }
 
     /// Sets the font weight for all text in this view's subtree. On a terminal,

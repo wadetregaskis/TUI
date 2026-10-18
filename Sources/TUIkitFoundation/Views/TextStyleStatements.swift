@@ -26,7 +26,7 @@
 // nothing without library evolution, which is how TUIkit is built.)
 
 /// A `Color?` a `TextStyle` stores: see the note above.
-enum StatedColor: Equatable, _AllBytesDefined {
+enum StatedColor: Hashable, _AllBytesDefined {
     case unstated
     case stated(Color)
 
@@ -73,6 +73,48 @@ enum StatedFont: Equatable, _AllBytesDefined {
         case .unstated: .none
         case .statedNone: .some(.none)
         case .stated(let font): .some(.some(font))
+        }
+    }
+}
+
+/// A colour's value, or none: a `Color?` without the colour's alpha, for a
+/// line, whose colour SGR draws opaque. Four bytes where a `StatedColor` is
+/// five — which keeps a `Text` at 64, a multiple of its alignment, so a view
+/// holding one has no padding after it. See the note above.
+enum StatedColorValue: Hashable, _AllBytesDefined {
+    case unstated
+    case stated(Color.ColorValue)
+
+    init(_ color: Color?) {
+        if let color { self = .stated(color.value) } else { self = .unstated }
+    }
+
+    var value: Color? {
+        if case .stated(let value) = self { Color.opaque(value) } else { nil }
+    }
+}
+
+/// A line — an underline or a strikethrough — a `TextStyle` stores: never
+/// stated, stated off, or stated on in a style. A `Text.LineStyle??` in all but
+/// name: see the note above.
+enum StatedLine: Equatable, _AllBytesDefined {
+    case unstated
+    case off
+    case on(Text.LineStyle)
+
+    init(_ line: Text.LineStyle??) {
+        switch line {
+        case .none: self = .unstated
+        case .some(.none): self = .off
+        case .some(.some(let line)): self = .on(line)
+        }
+    }
+
+    var value: Text.LineStyle?? {
+        switch self {
+        case .unstated: .none
+        case .off: .some(.none)
+        case .on(let line): .some(.some(line))
         }
     }
 }

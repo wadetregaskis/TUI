@@ -820,6 +820,49 @@ by its owning application, Warp by that or its XTVERSION name), into
 `EnvironmentValues.cornerTrianglesFillTheCell`; an unmeasured host gets the
 triangles.
 
+### Underline shapes and colours (W11b) — read by the owner 2026-10-18
+
+`line_style_card.py` (session notes, `plan/e19/`) prints "Sample text" under
+each SGR line style, labelled with the sequence it sends; the owner read it in
+four hosts. kitty: not read.
+
+| Sent | Ghostty 1.3.1 | iTerm2 3.7 | Warp v0.2026.10.14 | Apple Terminal 455.1 |
+|---|---|---|---|---|
+| `4` single | yes | yes | yes | yes |
+| `21` double (ECMA-48) | yes | yes | not drawn | **no underline** |
+| `4:2` double | yes | yes | yes | **no underline, green background** |
+| `4:3` curly | yes | yes | not drawn as asked | **a background colour** |
+| `4:4` dotted | yes | yes | not drawn as asked | **a background colour** |
+| `4:5` dashed | yes | yes | not drawn as asked | **a background colour** |
+| `4;58;5;196` single, red line | yes | yes | not drawn as asked | underline, and the text **blinks** |
+| `4;58:2::255:0:0` the same, colon form | yes | yes | not drawn as asked | the underline only |
+| `4:4;58;5;46` dotted, green | yes | yes | **the background changes** | the colour as a **background** |
+| `4:5;58;5;33` dashed, blue | yes | yes | **the foreground changes** | the colour as a **background** |
+| `9` strikethrough | yes | yes | yes | **not drawn** |
+| `9;58;5;196` strikethrough + 58 | struck in the text's colour | **struck in red** | — | struck nowhere; the text **blinks** |
+
+Each misreading fits one model, though none was confirmed beyond the reading.
+Apple Terminal drops the colon and reads `4:2` to `4:5` as the backgrounds 42 to
+45. Both Warp and Apple Terminal read `58`'s semicolon arguments as codes of
+their own: 5 as blink, 46 and 33 as colours. The colon form of 58 is one
+parameter to both, and each ignores it.
+
+So TUIkit (`TerminalHost.lineStyles`, since 2026-10-18):
+- spells an underline's colour only in the colon form, `58:5:n` or
+  `58:2::r:g:b`, never `58;…` (`SGRState`, `ANSIRenderer`), and spells a
+  double line `4:2`, never `21`, which several terminals read as bold-off;
+- sends iTerm2 every shape and colour, and colours its strikethrough with 58;
+- sends Ghostty every shape and colour, and strikes through in the text's colour;
+- sends Warp `4:2` for a double line, the plain `4` for every other shape, and
+  no colour;
+- sends Apple Terminal the plain `4` for every shape, and no colour;
+- under tmux, sends every shape and colour: tmux re-spells them for each
+  client from that client's own terminfo (`Smulx`, `Setulc`) and falls back to
+  a plain line, so a client never sees what it cannot draw;
+- sends a host it has not measured the plain line, as Apple Terminal gets: a
+  shape such a host misreads can come out as a background or a blink, and the
+  owner would rather have a plain line than that.
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027
