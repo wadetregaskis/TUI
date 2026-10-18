@@ -164,7 +164,9 @@
             let readable = items.filter { $0.canLoadObject(ofClass: NSString.self) }
             let typed = items.flatMap { item in
                 item.registeredTypeIdentifiers.compactMap { identifier -> (NSItemProvider, String, String)? in
-                    guard let type = UTType(identifier), !type.conforms(to: .text),
+                    // Plain text is the copy's text already; styled text — HTML,
+                    // RTF, which conform to `.text` too — is a representation.
+                    guard let type = UTType(identifier), !type.conforms(to: .plainText),
                         let mime = type.preferredMIMEType
                     else { return nil }
                     return (item, identifier, mime)

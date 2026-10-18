@@ -119,10 +119,16 @@ struct ClipboardMIMETests {
             completion(Data([0x89, 0x50, 0x4E, 0x47]), nil)
             return nil
         }
+        // HTML conforms to `.text`, and is a representation of its own, not
+        // the copy's text.
+        item.registerDataRepresentation(forTypeIdentifier: "public.html", visibility: .all) { completion in
+            completion(Data("<b>caption</b>".utf8), nil)
+            return nil
+        }
         ClipboardCommand.write([item], to: clipboard)
         await settle(until: { written.text != nil })
         #expect(written.text == "caption")
-        #expect(written.types == ["image/png"])
+        #expect(Set(written.types) == ["image/png", "text/html"], "\(written.types)")
     }
     #endif
 
