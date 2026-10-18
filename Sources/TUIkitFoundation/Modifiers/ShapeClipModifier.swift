@@ -33,10 +33,7 @@ extension _ShapeClip: Renderable {
         let buffer = TUIkitView.renderToBuffer(content, context: context)
         let (columns, rows) = (buffer.width, buffer.height)
         guard columns > 0, rows > 0 else { return buffer }
-        var drawn: any Shape = shape
-        if let resolving = drawn as? any EnvironmentResolvedShape {
-            drawn = resolving.resolvedShape(in: context.environment)
-        }
+        let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
         // A rectangle keeps the frame, which `clipped()` has already cut to.
         if let rectangle = drawn as? Rectangle, rectangle.insetAmount == 0 { return buffer }
         let kept = Self.keptCells(

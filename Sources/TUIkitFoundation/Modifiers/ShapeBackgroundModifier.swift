@@ -42,10 +42,7 @@ extension _ShapeBackground: Renderable {
         var base = TUIkitView.renderToBuffer(content, context: context)
         let (columns, rows) = (base.width, base.height)
         if columns > 0, rows > 0 {
-            var drawn: any Shape = shape
-            if let resolving = drawn as? any EnvironmentResolvedShape {
-                drawn = resolving.resolvedShape(in: context.environment)
-            }
+            let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
             let coverage = ShapeCoverage(
                 cellsOf: drawn, evenOdd: fillStyle.isEOFilled,
                 frame: ShapeFrame(columns: columns, rows: rows, aspect: context.environment.imageCellAspect))

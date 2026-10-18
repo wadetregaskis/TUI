@@ -3639,3 +3639,32 @@ private struct CorpusShapeModifiers: View {
         }
     }
 }
+
+/// Container shapes and the shapes that follow them, macOS 26's corner
+/// vocabulary included.
+@MainActor
+private struct CorpusContainerShapes: View {
+    var body: some View {
+        VStack {
+            Text("Inner")
+                .padding(1)
+                .background(.blue, in: ContainerRelativeShape())
+                .padding(1)
+                .containerShape(RoundedRectangle(cornerRadius: 3))
+            ConcentricRectangle().fill(.red).padding(1).containerShape(.rect(cornerRadius: 3))
+            ConcentricRectangle(corners: .concentric(minimum: 1), isUniform: true).stroke(.green)
+            ConcentricRectangle(topLeadingCorner: .concentric, topTrailingCorner: 0, bottomLeadingCorner: .fixed(2))
+                .fill(.orange)
+            ConcentricRectangle(uniformTopCorners: .concentric, uniformBottomCorners: 0).fill(.mint)
+            ContainerRelativeShape().strokeBorder(.white, lineWidth: 1).containerShape(Capsule())
+        }
+    }
+
+    var corners: (RoundedRectangularShapeCorners?, Edge.Corner.Set, CGFloat, AnyShape) {
+        (
+            RoundedRectangle(cornerRadius: 2).corners(in: CGSize(width: 10, height: 4)), [.top, .bottomLeading],
+            RectangleCornerRadii(topLeading: 2)[.topLeading],
+            AnyShape(.rect(corners: .concentric, isUniform: false))
+        )
+    }
+}

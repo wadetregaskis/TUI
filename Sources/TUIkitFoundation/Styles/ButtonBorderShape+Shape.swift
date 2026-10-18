@@ -109,9 +109,9 @@ extension ButtonBorderShape: BoxDrawnShape {
 extension ButtonBorderShape: EnvironmentResolvedShape {
     /// ``automatic`` defers to the environment's button border shape, as
     /// ``Shape/buttonBorder`` does; every other shape is itself.
-    func resolvedShape(in environment: EnvironmentValues) -> any Shape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
         guard kind == .automatic else { return self }
-        let stated = environment.buttonBorderShape
+        let stated = context.environment.buttonBorderShape
         return stated.kind == .automatic ? Self.capsule : stated
     }
 }

@@ -644,17 +644,11 @@
     "ColorRenderingMode": {
       "why": "It selects the colour space a Canvas or an ImageRenderer composites in, linear or non-linear sRGB. TUIkit has neither, and its one blend, `opacity`, is done in encoded sRGB, so the mode would have nothing to select. If `drawingGroup(opaque:colorMode:)` ships (decisions A27), the type comes with it."
     },
-    "ConcentricRectangle": {
-      "why": "It exists to inset a rounded rectangle so nested corner radii stay concentric; TUIkit's corners are single characters with no radius (Sources/TUIkitStyling/Styles/BorderStyle.swift:69-141), so there is no radius to keep concentric."
-    },
     "ContentShapeKinds": {
       "why": "The option set naming which shape is being set (interaction / dragPreview / contextMenuPreview / focusEffect). Hit regions are cell rectangles with no shape to specify (Sources/TUIkitCore/Input/HitTestRegion.swift:29-42); the drag-preview kind is served by `.draggable(_:preview:)"
     },
     "ControlSize.init(_:)": {
       "why": "Converts from AppKit's NSControl.ControlSize. TUIkit links no AppKit, as it must build on Linux; the five sizes are TUIkit's own enum's cases."
-    },
-    "Edge.Corner": {
-      "why": "The corners of a rectangle, with `Edge.Corner.Set` and `Edge.Corner.Style` for the corner radii of `Shape.rect(corners:)` and `RoundedRectangularShapeCorners`. Cells have corners, but every consumer here is a shape, which waits on O0 of the refusal review; the enum would come with them. (The `rawValue`/`allCases` gaps once reported for `Edge` itself were synthesized-conformance false positives: `Edge` is at parity.)"
     },
     "EdgeInsets.init(_:)": {
       "why": "Converts from AppKit/UIKit's NSDirectionalEdgeInsets, whose values are points. TUIkit insets count cells, so the conversion would have to invent a point-to-cell scale; and TUIkit links no AppKit, as it must build on Linux."
@@ -760,12 +754,6 @@
     },
     "ProjectionTransform": {
       "why": "A 3×3 matrix over continuous coordinates, produced by GeometryEffect and consumed by `projectionEffect`. TUIkit's geometry is whole cells with no matrix: its only spatial operation is a whole-cell offset. The transforms wait on decisions A27."
-    },
-    "RoundedRectangularShape": {
-      "why": "A protocol abstracting over rounded-rectangle shapes and their corner treatment; TUIkit has no shapes and no corner radii — a container outline is BorderStyle's eight fixed characters (Sources/TUIkitStyling/Styles/BorderStyle.swift:13-34)."
-    },
-    "RoundedRectangularShapeCorners": {
-      "why": "Names which corners of a rounded rectangle are rounded; a terminal corner is one character that either IS the rounded glyph (╭) or is not (Sources/TUIkitStyling/Styles/BorderStyle.swift:69-128) — there is no partial-corner state to describe."
     },
     "SafeAreaRegions": {
       "why": "An option set over `.container` and `.keyboard`. Neither is a live distinction here: a terminal has no on-screen keyboard, and the container region is the whole grid less the chrome the app declared, subtracted before layout (decisions B6, whose fuller safe area the owner declined on 2026-10-12)."

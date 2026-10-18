@@ -252,6 +252,20 @@ nonisolated struct _StrokeBorderInset<Content: InsettableShape>: Shape {
     static var role: ShapeRole { Content.role }
 }
 
+extension _StrokeBorderInset: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    /// The border of the shape the bordered one stands for, inset as this one
+    /// is — so `ContainerRelativeShape().strokeBorder(…)` borders the container's
+    /// shape.
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func bordering<S: InsettableShape>(_ resolved: S) -> any Shape {
+            _StrokeBorderInset<S>(shape: resolved, amount: amount)
+        }
+        guard let resolved = shape.resolvedShape(in: context, columns: columns, rows: rows) as? any InsettableShape
+        else { return self }
+        return bordering(resolved)
+    }
+}
+
 extension _StrokeBorderInset: BoxDrawnShape {
     func boxCorners(in rect: CGRect) -> RectangleCornerRadii? {
         (shape as? any BoxDrawnShape)?.boxCorners(in: rect)

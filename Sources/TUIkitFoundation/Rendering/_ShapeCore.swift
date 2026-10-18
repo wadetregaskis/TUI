@@ -27,11 +27,18 @@ protocol BoxDrawnShape {
 }
 
 /// A shape that stands for another the environment decides — `.buttonBorder`
-/// for the button border shape in force, `ContainerRelativeShape` for the
-/// container's — drawn as that one.
+/// for the button border shape in force, `ContainerRelativeShape` and
+/// `ConcentricRectangle` for the container's — drawn as that one.
 protocol EnvironmentResolvedShape {
-    /// The shape to draw in `environment`.
-    func resolvedShape(in environment: EnvironmentValues) -> any Shape
+    /// The shape to draw in `context`, for a view `columns` × `rows` cells.
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape
+}
+
+/// `shape` as it is drawn in `context`: the shape it stands for, where it stands
+/// for another.
+func resolvedShape(_ shape: any Shape, in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+    guard let resolving = shape as? any EnvironmentResolvedShape else { return shape }
+    return resolving.resolvedShape(in: context, columns: columns, rows: rows)
 }
 
 // MARK: - The core
@@ -73,12 +80,11 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         let monochrome = ColorDepth.current == .noColor
         // A stroke as a shape (`stroke(lineWidth:)`) is drawn as the stroke it
         // is, so a rectangle's is the box of glyphs.
-        var (drawn, drawing): (any Shape, ShapeDrawing) = (shape, drawing)
-        if let resolving = drawn as? any EnvironmentResolvedShape {
-            drawn = resolving.resolvedShape(in: environment)
-        }
+        var (drawn, drawing): (any Shape, ShapeDrawing) = (
+            resolvedShape(shape, in: context, columns: columns, rows: rows), drawing
+        )
         if let stroking = drawn as? any StrokingShape {
-            drawn = stroking.strokedShape.shape
+            drawn = resolvedShape(stroking.strokedShape.shape, in: context, columns: columns, rows: rows)
             drawing = .stroke(stroking.strokedShape.style, antialiased: self.drawing.isAntialiased)
         }
         let frame = ShapeFrame(columns: columns, rows: rows, aspect: aspect)

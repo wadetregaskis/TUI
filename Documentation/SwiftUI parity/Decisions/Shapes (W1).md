@@ -231,6 +231,49 @@ clipped, for B-W1-10's reason.
 its coverage as alpha. Half a day; the ½ rule is what every other glyph decision
 here takes.
 
+### B-W1-12. A container-relative shape is inset by the nearest side
+
+*`View.containerShape(_:)`, `ContainerRelativeShape`*
+
+A `containerShape(_:)` publishes its shape, its size (its content measured as a
+frame offered what the modifier is offered) and its place, a carried geometry
+origin started there (`RenderContext.geometryOriginX`, which stacks, frames,
+paddings and offsets move onto each child). A `ContainerRelativeShape` inside is
+drawn as the container's shape inset by how far inside the container it lies —
+the nearest of its four sides, a row counting the cell aspect — and drawn in its
+frame grown by that distance, so its outline sits on its frame with every radius
+shrunk by the distance: concentric. In box glyphs a corner is `╭` while the
+container's radius outlasts the distance and `┌` once it is used up. Its border
+(`strokeBorder`) borders the container's shape. SwiftUI's inset rule for a view
+nearer one side than another is not measured; the nearest side keeps the shape
+inside the container.
+
+**The fuller version:** an inset per side, so a view hugging one edge keeps that
+edge's corners and rounds the far ones less. An hour, once SwiftUI's rule is
+measured on a macOS 26 machine.
+
+### B-W1-13. macOS 26's corner vocabulary, from the SDK's declarations
+
+*`ConcentricRectangle` (its nine initialisers and the eight `.rect(…)`
+spellings), `RoundedRectangularShape`, `RoundedRectangularShapeCorners`,
+`Edge.Corner` with `Set` and `Style`, `RectangleCornerRadii[corner]`, the
+rounded shapes' `corners(in:)`, `containerShape(_:)` for a rounded rectangular
+shape*
+
+Declared as the Xcode SDK's `SwiftUICore` interface declares them; this Mac runs
+macOS 15, so SwiftUI's behaviour is not measured and the doc comments are not in
+the symbol graphs. What each does here: a `Style` is a fixed radius (a number
+literal is one) or concentric with the container's corner on its side, no
+smaller than its minimum; a `ConcentricRectangle` resolves its corners against the
+container as B-W1-12 places it, and without a container a concentric corner is
+its minimum; `isUniform` makes every corner the smallest of the four; a circle's
+and a capsule's `corners(in:)` are half the shorter side, and `nil` without a
+size. Animatable data is each type's radii.
+
+**The fuller version:** measure each on a macOS 26 machine and match it — in
+particular `isUniform`, and what a concentric minimum that is itself concentric
+means. Half a day with the machine.
+
 ## C. Declined
 
 ### C-W1-1. `Path`'s boolean operations and its stroke outline
