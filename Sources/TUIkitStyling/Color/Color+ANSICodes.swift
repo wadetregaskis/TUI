@@ -49,6 +49,18 @@ package enum SGRColourParameters: Equatable, Sendable {
 }
 
 extension Color {
+    /// What is said when this colour, translucent, reaches the SGR emitter: the
+    /// debug assertion in ``foregroundParameters(depth:)`` and
+    /// ``backgroundParameters(depth:)``, and the release build's one report
+    /// through `SoftTrap` from `ANSIRenderer`. One spelling, so the two builds
+    /// say the same thing.
+    package var translucentEmissionMessage: String {
+        "a translucent colour reached the ANSI emitter (alpha \(alpha)): the view "
+            + "that painted it does not carry alpha to the compositor, so it renders "
+            + "opaque. See 'Opacity as composition.md' §16; prefer .opacity(_:) on "
+            + "the VIEW for a fade that works everywhere."
+    }
+
     /// This colour downsampled to fit `depth`.
     ///
     /// Colours that already fit pass through unchanged; higher-depth ones are
@@ -125,14 +137,12 @@ extension Color {
         // An assertion rather than a `fatalError` (which is what `.semantic`
         // gets): this is an unmigrated path rather than a broken invariant, and it
         // degrades to what the framework did before alpha existed. Loud in a debug
-        // build, never a crash in someone's terminal. Section 16 of
-        // `Documentation/Colour and styling/Opacity as composition.md` lists which paths honour it.
-        assert(
-            isOpaque,
-            "a translucent colour reached the ANSI emitter (alpha \(alpha)): the view "
-                + "that painted it does not carry alpha to the compositor, so it renders "
-                + "opaque. See 'Opacity as composition.md' §16; prefer .opacity(_:) on "
-                + "the VIEW for a fade that works everywhere.")
+        // build, never a crash in someone's terminal. A release build reports it
+        // once through `SoftTrap`, from `ANSIRenderer`, which draws every styled
+        // run: this module cannot reach `SoftTrap` (it has no TUIkitCore below
+        // it). Section 16 of `Documentation/Colour and styling/Opacity as
+        // composition.md` lists which paths honour it.
+        assert(isOpaque, translucentEmissionMessage)
         if depth == .noColor { return .none }
         switch downsampled(to: depth).value {
         case .ansi(let slot): return .code(slot.foregroundCode)
@@ -192,14 +202,12 @@ extension Color {
         // An assertion rather than a `fatalError` (which is what `.semantic`
         // gets): this is an unmigrated path rather than a broken invariant, and it
         // degrades to what the framework did before alpha existed. Loud in a debug
-        // build, never a crash in someone's terminal. Section 16 of
-        // `Documentation/Colour and styling/Opacity as composition.md` lists which paths honour it.
-        assert(
-            isOpaque,
-            "a translucent colour reached the ANSI emitter (alpha \(alpha)): the view "
-                + "that painted it does not carry alpha to the compositor, so it renders "
-                + "opaque. See 'Opacity as composition.md' §16; prefer .opacity(_:) on "
-                + "the VIEW for a fade that works everywhere.")
+        // build, never a crash in someone's terminal. A release build reports it
+        // once through `SoftTrap`, from `ANSIRenderer`, which draws every styled
+        // run: this module cannot reach `SoftTrap` (it has no TUIkitCore below
+        // it). Section 16 of `Documentation/Colour and styling/Opacity as
+        // composition.md` lists which paths honour it.
+        assert(isOpaque, translucentEmissionMessage)
         if depth == .noColor { return .none }
         switch downsampled(to: depth).value {
         case .ansi(let slot): return .code(slot.backgroundCode)

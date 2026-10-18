@@ -125,15 +125,48 @@ extension ANSIRenderer {
         // Each colour reads the depth as its codes always did (the default
         // argument, per colour), so a style with no colour reads none.
         if let foreground = style.foregroundColor {
+            checkOpaque(foreground)
             writer.add(foreground.foregroundParameters(), extended: SGRColourParameters.extendedForeground)
         }
         if let background = style.backgroundColor {
+            checkOpaque(background)
             writer.add(background.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
         }
         if let lineColour = style.lineColour {
+            checkOpaque(lineColour)
             writer.addUnderlineColour(lineColour.foregroundParameters())
         }
         return writer.finish()
+    }
+
+    /// Reports `colour` if it is translucent: a view painted it without
+    /// carrying its alpha to the compositor, so it is about to be drawn opaque.
+    ///
+    /// The colour emitters assert the same thing, but an assertion is gone from
+    /// a release build, where an unmigrated path then drew a translucent colour
+    /// at full strength without a word. This is the release build's word: one
+    /// report per distinct message through `SoftTrap`, which a debug build stops
+    /// at instead. It sits here rather than beside the assertion because
+    /// TUIkitStyling has nothing below it that holds `SoftTrap`, and here is
+    /// where every styled run is spelled.
+    ///
+    /// The test is a byte compare on a branch that is never taken, and the
+    /// report sits out of line, so a frame of opaque colours pays only the
+    /// compare. (Returning no parameters for alpha 0 instead was measured at
+    /// +0.9% to +3.3%; see `Color.foregroundParameters(depth:)`.)
+    @inline(__always)
+    static func checkOpaque(_ colour: Color) {
+        if _slowPath(!colour.isOpaque) { reportTranslucent(colour) }
+    }
+
+    /// The out-of-line half of ``checkOpaque(_:)``.
+    ///
+    /// - Parameters:
+    ///   - colour: The translucent colour.
+    ///   - report: Where the message goes: `SoftTrap`, or a test's own log.
+    @inline(never)
+    static func reportTranslucent(_ colour: Color, to report: (String) -> Void = { SoftTrap.report($0) }) {
+        report(colour.translucentEmissionMessage)
     }
 
     /// Generates the ANSI escape sequence for a background color.
@@ -147,6 +180,7 @@ extension ANSIRenderer {
         // the same bytes by building an array of codes, joining it and
         // concatenating twice: one allocation where that took four, and this
         // runs once per painted line.
+        checkOpaque(color)
         var writer = SGRWriter()
         writer.add(color.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
         return writer.finish() ?? ""

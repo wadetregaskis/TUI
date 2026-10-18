@@ -1218,18 +1218,21 @@ What it got wrong is how many places have to draw that rectangle.
 ### 16.2 The emitter's answer, now that it is a policy rather than a stopgap
 
 `foregroundCodes` / `backgroundCodes` cannot composite — they have no backdrop —
-so they answer in two ways rather than one:
+so a translucent colour that reaches them is drawn at full strength. Two answers
+were tried:
 
-- **alpha 0 → no SGR parameters at all.** An answer, not a degradation: the cell
-  keeps the colour it had, which is what transparent means, near enough, for the
-  one case where "near enough" exists without a backdrop. Checked *before* the
-  assertion, because `.clear` is public API and a reader writing it deserves the
-  sensible result on every path. Without it the answer was this colour at full
-  strength — and `.clear`'s underlying value is black, so `.border(.clear)` drew a
-  solid black box in a release build, where the assertion is compiled out.
-- **partial alpha → full strength, and an assertion in debug.** There is no answer
-  available, so this is a gap marker. It names the framework's own diagnosis and
-  points here rather than naming a `package` function the reader cannot find.
+- **alpha 0 → no SGR parameters at all**, so the cell keeps the colour it had.
+  It was withdrawn (5df13c4a1): checked on every colour emitted, it cost
+  +0.9% to +3.3% of colour-heavy frames, a permanent tax to protect paths that
+  had not been migrated. The paint sites check alpha instead, once per view,
+  as each is migrated; `Color.foregroundParameters(depth:)` keeps the numbers.
+- **any alpha → full strength, and a word about it.** A debug build asserts at
+  the emitter. A release build, where the assertion is gone, reports it once
+  per distinct message through `SoftTrap` (2026-10-18), from
+  `ANSIRenderer.styleSequence(for:)` and `backgroundCode(for:)`, which spell
+  every styled run: a byte compare on a branch never taken, with the report
+  out of line. The message names the framework's own diagnosis and points
+  here rather than naming a `package` function the reader cannot find.
 
 ### 16.3 Honoured as of this branch
 

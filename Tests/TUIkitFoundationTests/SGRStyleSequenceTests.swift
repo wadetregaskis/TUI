@@ -103,4 +103,16 @@ struct SGRStyleSequenceTests {
             #expect(ANSIRenderer.styleSequence(for: style) == "\u{1B}[4m")
         }
     }
+
+    @Test("A translucent colour at the emitter is reported in words that name its alpha")
+    func translucentColourReport() {
+        // A release build has no assertion, so this report is all an app
+        // developer sees of an unmigrated path; a debug build would stop at it,
+        // so the test sends it to a log of its own.
+        var reports: [String] = []
+        ANSIRenderer.reportTranslucent(Color.rgb(255, 0, 0).opacity(0.5)) { reports.append($0) }
+        #expect(reports.count == 1)
+        #expect(reports.first?.contains("alpha 128") == true)
+        #expect(reports.first?.contains("Opacity as composition.md") == true)
+    }
 }
