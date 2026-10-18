@@ -325,6 +325,12 @@ extension AnimationStore {
         records[key] != nil
     }
 
+    /// How many earlier changes' animations the record at `key` still keeps
+    /// beside its own; `nil` without a record. For tests.
+    func earlierCount(at key: Key) -> Int? {
+        records[key].map { $0.earlier?.count ?? 0 }
+    }
+
     /// Whether the value at `key` is still moving at `nowNanos`.
     package func isAnimating(at key: Key, nowNanos: Int64) -> Bool {
         guard let record = records[key], let animation = record.animation else { return false }
@@ -504,6 +510,10 @@ extension AnimationStore {
             for segment in earlier {
                 guard let delta = segment.delta as? D else { continue }
                 let time = Double(nowNanos - segment.startNanos) / 1_000_000_000
+                // A finished one has arrived, whatever its curve last said:
+                // an even count of autoreversing passes ends where it began,
+                // and its change snaps to the target then, as SwiftUI's does.
+                guard !segment.animation.isFinished(at: time) else { continue }
                 value -= delta.scaled(by: 1 - segment.animation.fraction(at: time))
             }
         }
@@ -553,7 +563,11 @@ extension AnimationStore {
                 animation: animation.carrying(velocity: Self.share(of: velocity, along: target - own)),
                 startNanos: nowNanos, earlier: record.earlier)
         }
-        var earlier = record.earlier ?? []
+        // Only the ones still running: a finished one adds nothing, and a
+        // value retargeted on every frame would otherwise keep them all.
+        var earlier = (record.earlier ?? []).filter {
+            !$0.animation.isFinished(at: Double(nowNanos - $0.startNanos) / 1_000_000_000)
+        }
         earlier.append(Segment(delta: recorded - from, animation: running, startNanos: record.startNanos))
         return Record(from: recorded, target: target, animation: animation, startNanos: nowNanos, earlier: earlier)
     }

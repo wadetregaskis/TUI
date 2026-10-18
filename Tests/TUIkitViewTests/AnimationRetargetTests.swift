@@ -85,6 +85,31 @@ struct AnimationRetargetTests {
         }
     }
 
+    @Test("An earlier animation that ends back where it started stops counting once it ends")
+    func finishedEarlierStopsCounting() {
+        // Out and back: it ends at its start, and SwiftUI snaps the value to
+        // the target when it does (p11).
+        let store = store(animatingTo: 10, by: Animation.linear(duration: 0.2).repeatCount(2, autoreverses: true))
+        let later = Animation.linear(duration: 1)
+        _ = store.value(for: key, target: 20.0, animation: later, nowNanos: second / 10, isMeasuring: false)
+        // At 0.5 s the first is over; the second is 0.4 of the way from 10.
+        let value = store.value(for: key, target: 20.0, animation: later, nowNanos: second / 2, isMeasuring: false)
+        #expect(abs(value - 14) < 1e-9, "\(value)")
+    }
+
+    @Test("Retargeting again and again keeps only the earlier animations still running")
+    func finishedEarlierIsDropped() {
+        let quick = Animation.linear(duration: 0.1)
+        let store = store(animatingTo: 1, by: quick)
+        // A change every 1/20 s, each animation lasting two of them.
+        for step in 1...200 {
+            _ = store.value(
+                for: key, target: Double(step + 1), animation: quick, nowNanos: Int64(step) * second / 20,
+                isMeasuring: false)
+        }
+        #expect((store.earlierCount(at: key) ?? 0) <= 2, "\(store.earlierCount(at: key) ?? -1)")
+    }
+
     @Test("The loop runs until every animation is done, an earlier one outlasting a later")
     func earlierOutlasts() {
         let slow = Animation.linear(duration: 2)
