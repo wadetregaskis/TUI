@@ -22,9 +22,7 @@ import TUIkitApp
 @Suite("A press while a gesture waits")
 struct GestureSessionTests {
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     /// A frame at `millis` on the harness's clock.

@@ -20,9 +20,7 @@ import TUIkitApp
 @Suite("Gesture arenas across presses")
 struct GestureArenaLifetimeTests {
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     /// A frame at `millis` on the harness's clock.

@@ -65,12 +65,10 @@ struct SheetWheelResizeTests {
     private static let height = 20
 
     private func harness() -> InputChainHarness {
-        let harness = InputChainHarness(width: Self.width, height: Self.height) { environment in
+        InputChainHarness(width: Self.width, height: Self.height) { environment in
             environment.terminalWidth = Self.width
             environment.overlayContentHeight = Self.height
         }
-        harness.syncEventClock()
-        return harness
     }
 
     /// A frame, composited, with the composited regions live.

@@ -19,9 +19,7 @@ import TUIkitApp
 @Suite("Gesture adaptors")
 struct GestureAdaptorTests {
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     private func box(_ gesture: some Gesture) -> some View {

@@ -762,7 +762,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (measured, macOS 15.8, F2 probes); a table row's double-click uses the
   system's interval, 0.5 s.
 - **TUIkit:** a long press ends, and a multi-tap gives up, on the first frame at
-  or past its deadline. A tap's next click counts if released within 0.35 s of
+  or past its deadline, counted from the event that armed it. A tap's next click counts if released within 0.35 s of
   the last release, as measured on SwiftUI; a list row's double-click counts
   presses within 400 ms. A
   drag's velocity is an average of report-to-report speeds. A disabled view's

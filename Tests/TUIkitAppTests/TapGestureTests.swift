@@ -27,9 +27,7 @@ struct TapGestureTests {
     }
 
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     @Test("A click on the view taps once, on the release")

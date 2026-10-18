@@ -20,9 +20,7 @@ import TUIkitApp
 @Suite("SwiftUI's @GestureState")
 struct GestureStateTests {
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     /// A view whose body reads the gesture state, and logs each value it draws

@@ -97,9 +97,10 @@ saying when they do arrive.
 A multi-tap gives up on the frame clock: the run loop ticks the arena at the
 start of each frame, and wakes for the deadline (B92). It drains input before
 it renders, though, and the frame-rate cap can hold that frame back by up to a
-frame; and the deadline itself counts from the first frame after the release
-(B92), up to a frame late already. So a press that comes just after the
-double tap's deadline, within about two frames of it (33 ms at 60 Hz), or one
+frame; and the deadline itself counted from the first frame after the release
+(B92) until 2026-10-18, up to a frame late already. So a press that comes just after the
+double tap's deadline, within about a frame of it (17 ms at 60 Hz; two
+frames until 2026-10-18), or one
 slow frame in a heavy app, is fed to the double tap before the tick that
 would have failed it. The press is too late to continue the
 double tap, which restarts at it. A single tap held back behind the double tap still holds the first
@@ -122,10 +123,9 @@ in which the first click's single tap runs late or not at all.
 **The fuller version:** tick the arena to the press's own time before a press
 is routed (`MouseEventDispatcher.beginGestureArena`), so a deadline the press
 has passed fails its gesture first. In an app the event clock and the frame
-clock are one clock. Under the test harness they are kept apart (B92), and
-every test that clicks a timed gesture without `syncEventClock()` would read
-real monotonic time against `harness.now`. So that half needs the harness's
-clocks joined, which is B92's fuller version. About two hours with B92's hour.
+clock are one clock, and since B92's fuller version shipped (2026-10-18) the
+test harnesses' are too, so the press's own time can be ticked to. About an
+hour now.
 It adds a branch to the press path only, not to frames.
 
 ### B-F2-2. A disabled view's gestures are given up at the next press, as a removed view's are

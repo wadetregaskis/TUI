@@ -30,6 +30,11 @@ final class InputChainHarness {
 
     /// The frame clock, in nanoseconds: what the next frame reads as
     /// `frameNowNanos`. A test advances it to reach a deadline.
+    ///
+    /// The event clock too: an event handed to the dispatcher arrives at
+    /// `now`, as in an app, where the two are one clock. A gesture's timer
+    /// runs from its event's time and ends at a frame's, so kept apart they
+    /// would never meet (decisions B92).
     var now: Int64 = 0
 
     /// How many times the chain asked the app to quit.
@@ -87,6 +92,7 @@ final class InputChainHarness {
             undoManager: undoManager,
             undoKeys: tui.undoKeys,
             screenSelection: tui.screenSelection)
+        tui.mouseEventDispatcher.nowNanos = { [weak self] in UInt64(max(0, self?.now ?? 0)) }
     }
 
     /// Renders one frame of `view`, clearing every per-frame registry first.

@@ -26,9 +26,7 @@ struct LongPressAndDragGestureTests {
     }
 
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     // MARK: Long press

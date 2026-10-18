@@ -205,10 +205,9 @@ final class TapGestureNode<Value>: GestureNode<Value> {
     /// When the last click of the sequence was released, on the event clock.
     private var releaseTime: Int64 = 0
 
-    /// The running timer, on the frame clock: a first press that may not be
-    /// held past it, or a release whose next click may not end after it.
-    /// Armed by the event, set by the first tick after it — so the event clock
-    /// and the frame clock are never compared.
+    /// The running timer: a first press that may not be held past it, or a
+    /// release whose next click may not end after it. It runs from the
+    /// event's own time, and the frame clock's ticks end it.
     private var timer = GestureTimer()
 
     override func receive(_ input: GestureInput, deliver: Bool) {
@@ -233,7 +232,7 @@ final class TapGestureNode<Value>: GestureNode<Value> {
                 // later one runs on the wait its release started, which the
                 // press does not stop: macOS gives a double tap up 0.35 s
                 // after the first release with the second press still down.
-                timer.arm(seconds: TapGesture.maximumHold)
+                timer.arm(seconds: TapGesture.maximumHold, at: pointer.timeNanos)
             }
             pressing = true
             pressLocation = pointer.globalLocation
@@ -265,7 +264,7 @@ final class TapGestureNode<Value>: GestureNode<Value> {
                 report(makeValue(pointer))
             } else {
                 releaseTime = pointer.timeNanos
-                timer.arm(seconds: TapGesture.multiTapInterval)
+                timer.arm(seconds: TapGesture.multiTapInterval, at: pointer.timeNanos)
             }
         }
     }
@@ -292,43 +291,36 @@ final class TapGestureNode<Value>: GestureNode<Value> {
 
 // MARK: - Timer
 
-/// A recognizer's timer: armed by an event with a duration, and given its
-/// deadline by the first frame-clock tick after — the event clock (when a
-/// report arrived) and the frame clock (what a frame reads as now) are the
-/// same clock in an app but not in a test harness, so a deadline is never
-/// computed from one and compared with the other.
+/// A recognizer's timer: armed by an event with a duration, it runs out that
+/// long after the event's own time, and the first frame-clock tick at or past
+/// that ends it.
+///
+/// The event clock (when a report arrived) and the frame clock (what a frame
+/// reads as now) are one clock in an app, `MonotonicClock`, and in each test
+/// harness (`HeadlessApp`, `InputChainHarness`). Until 2026-10-18 they were
+/// kept apart in a harness, so a deadline was set by the first tick after the
+/// event instead, which put it up to a frame late (decisions B92).
 struct GestureTimer {
-    private var duration: Int64?
     private var expiry: Int64?
 
-    /// Starts the timer: it expires `seconds` after the next tick.
-    mutating func arm(seconds: Double) {
-        duration = Self.nanos(seconds)
-        expiry = nil
+    /// Starts the timer: it runs out `seconds` after `start`, the time of
+    /// the event that armed it.
+    mutating func arm(seconds: Double, at start: Int64) {
+        expiry = start &+ Self.nanos(seconds)
     }
 
     mutating func disarm() {
-        duration = nil
         expiry = nil
     }
 
-    /// Whether the timer has run out at `now` — setting its deadline from
-    /// `now` if this is the first tick since it was armed.
-    mutating func hasExpired(at now: Int64) -> Bool {
-        guard let duration else { return false }
-        guard let expiry else {
-            expiry = now &+ duration
-            return duration <= 0
-        }
+    /// Whether the timer has run out at `now`.
+    func hasExpired(at now: Int64) -> Bool {
+        guard let expiry else { return false }
         return now >= expiry
     }
 
-    /// When the timer runs out: its deadline once a tick has set one, or `0`
-    /// — "as soon as possible" — while it waits for that tick.
-    var deadline: Int64? {
-        guard duration != nil else { return nil }
-        return expiry ?? 0
-    }
+    /// When the timer runs out, while it runs.
+    var deadline: Int64? { expiry }
 
     /// `seconds` in nanoseconds, never negative.
     static func nanos(_ seconds: Double) -> Int64 {

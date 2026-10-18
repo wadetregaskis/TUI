@@ -121,7 +121,7 @@ final class LongPressGestureNode: GestureNode<Bool> {
                 report(pressing)
             } else {
                 phase = .possible
-                timer.arm(seconds: minimumDuration)
+                timer.arm(seconds: minimumDuration, at: pointer.timeNanos)
                 report(pressing)
             }
         case .moved:

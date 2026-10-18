@@ -146,10 +146,6 @@ struct TextEditorWrapTests {
     @Test("Upstream, a drag head on the top row's first cell scrolls nothing")
     func upstreamHeadOnTopRowStart() throws {
         let (harness, page, handler) = try editor("aaaa bbbb cccc dddd eeee", width: 6, height: 3, affinity: .upstream)
-        // Every event on the harness's clock from the start: stamped by the
-        // machine's, the drag's press made the multi-click timing below hang
-        // on the load the suite ran under.
-        harness.syncEventClock()
         handler.moveCursor(toLine: 0, column: 24)
         let rows = harness.frame(page).lines.map(\.stripped)
         try #require(zip(rows, ["cccc", "dddd", "eeee"]).allSatisfy { $0.hasPrefix($1) })

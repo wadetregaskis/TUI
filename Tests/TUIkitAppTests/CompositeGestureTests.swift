@@ -22,9 +22,7 @@ import TUIkitApp
 @Suite("SwiftUI's composite gestures")
 struct CompositeGestureTests {
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     private func box(_ gesture: some Gesture) -> some View {

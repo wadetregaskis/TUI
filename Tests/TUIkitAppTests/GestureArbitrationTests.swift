@@ -22,9 +22,7 @@ import TUIkitApp
 @Suite("Gesture arbitration")
 struct GestureArbitrationTests {
     private func makeHarness() -> InputChainHarness {
-        let harness = InputChainHarness()
-        harness.syncEventClock()
-        return harness
+        InputChainHarness()
     }
 
     /// A 10×6 stack: a 10×3 child with its own tap on top, a plain 10×3 area

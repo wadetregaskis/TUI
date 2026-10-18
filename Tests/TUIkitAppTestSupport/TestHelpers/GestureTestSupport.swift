@@ -47,12 +47,6 @@ extension InputChainHarness {
     func click(_ x: Int, _ y: Int, _ build: () -> some View) {
         pointer([(.pressed, x, y), (.released, x, y)], build)
     }
-
-    /// Makes the dispatcher read its event times from ``now`` — for the tests
-    /// that measure a velocity from them.
-    func syncEventClock() {
-        tui.mouseEventDispatcher.nowNanos = { [weak self] in UInt64(max(0, self?.now ?? 0)) }
-    }
 }
 
 #endif

@@ -51,12 +51,10 @@ struct TextMultiClickTests {
         }
     }
 
-    /// A harness whose dispatcher reads the frame clock, so presses at one
-    /// instant count up as a multi-click.
+    /// A harness: its dispatcher reads the frame clock, as every harness's
+    /// does, so presses at one instant count up as a multi-click.
     func harness() -> InputChainHarness {
-        let harness = InputChainHarness(width: 40, height: 10)
-        harness.syncEventClock()
-        return harness
+        InputChainHarness(width: 40, height: 10)
     }
 
     /// `count` clicks at (`x`, `y`), a frame after each event. With `dragTo`,

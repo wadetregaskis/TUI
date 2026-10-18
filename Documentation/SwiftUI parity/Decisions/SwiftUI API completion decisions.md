@@ -3334,6 +3334,13 @@ intervals (a tap's hold, a multi-tap's gap) use the report times.
 two clocks are one; in a test harness they are not, which is why they are
 kept apart. An hour, with the harness's clocks joined.
 
+**Fuller version shipped (lane INPUT, 2026-10-18; settled by the owner's
+earlier rulings, open to veto).** A deadline runs from the time of the event
+that armed it (`GestureTimer.arm(seconds:at:)`), and the first frame at or
+past it ends the gesture. `InputChainHarness` reads its events on its frame
+clock, as `HeadlessApp` already did, so the two clocks are one in every
+harness too (its `syncEventClock()` is gone). `GestureDeadlineTests`.
+
 ### B93. Two double-click windows: a row's and a tap's
 
 *`TapGesture(count:)`, `SpatialTapGesture(count:coordinateSpace:)`,
