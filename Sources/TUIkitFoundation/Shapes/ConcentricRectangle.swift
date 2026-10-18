@@ -180,7 +180,7 @@ extension ConcentricRectangle: EnvironmentResolvedShape {
         guard let container = context.environment.containerShapeContext else {
             return UnevenRoundedRectangle(cornerRadii: radii(container: nil, inset: 0))
         }
-        let inset = container.distance(ofViewAt: context.geometryOrigin, columns: columns, rows: rows, aspect: aspect)
+        let inset = container.distance(ofViewAt: context.containerRelativeOrigin, columns: columns, rows: rows, aspect: aspect)
         let containerRadii = container.shape.cornerRadii(
             in: CGSize(width: CGFloat(container.columns), height: CGFloat(container.rows) * CGFloat(aspect)))
         return UnevenRoundedRectangle(cornerRadii: radii(container: containerRadii, inset: inset))

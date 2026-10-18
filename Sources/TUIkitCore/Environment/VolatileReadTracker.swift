@@ -158,7 +158,10 @@ public final class VolatileReadTracker: @unchecked Sendable {
     ///   declares none. Recorded through ``recordClockedRead(movingAt:)``,
     ///   which also says when the entry moves (``clockedReads``);
     /// - a notification host's read of its service's toasts, which a `post`
-    ///   changes without writing anything the render cache sees.
+    ///   changes without writing anything the render cache sees;
+    /// - a container-relative shape's read of where it is in its container
+    ///   (`RenderContext.containerRelativeOrigin`), which sets its corners: a
+    ///   subtree that moves under the same size keeps its key.
     ///
     /// Like ``reads``, only ever compared as a delta.
     ///

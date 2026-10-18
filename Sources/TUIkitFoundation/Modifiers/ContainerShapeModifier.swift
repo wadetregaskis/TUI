@@ -208,6 +208,24 @@ extension ContainerInsetShape: BoxDrawnShape {
     }
 }
 
+extension RenderContext {
+    /// The carried origin a container-relative shape is drawn by — noted, on
+    /// a render, as a read no memo keys on.
+    ///
+    /// A memo keys a subtree by its identity, value and size, not by where it
+    /// is: a `ForEach` row that moves inside its container under the same size
+    /// — reordered, say — is served the buffer drawn where it was, and a
+    /// container-relative shape in it would keep that place's corners. So a
+    /// subtree that reads its place here is not kept. With no origin carried,
+    /// the shape is drawn the same wherever it is, and nothing is noted; a
+    /// measure draws nothing, so neither is it.
+    var containerRelativeOrigin: (x: Int, y: Int)? {
+        let origin = geometryOrigin
+        if origin != nil, !isMeasuring { environment.volatileReadTracker?.recordUnkeyedRead() }
+        return origin
+    }
+}
+
 extension ContainerShapeContext {
     /// How far inside the container a view `columns` × `rows` at the carried
     /// origin `origin` lies, in square units, rows `aspect` units tall: the
@@ -228,7 +246,8 @@ extension ContainerRelativeShape: EnvironmentResolvedShape {
     func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
         guard let container = context.environment.containerShapeContext else { return self }
         let distance = container.distance(
-            ofViewAt: context.geometryOrigin, columns: columns, rows: rows, aspect: context.environment.imageCellAspect)
+            ofViewAt: context.containerRelativeOrigin, columns: columns, rows: rows,
+            aspect: context.environment.imageCellAspect)
         return ContainerInsetShape(container: container.shape, distance: distance, extra: insetAmount)
     }
 }

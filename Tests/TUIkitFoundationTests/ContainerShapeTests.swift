@@ -61,6 +61,44 @@ struct ContainerShapeTests {
         #expect(glyphs(minimum, width: 6, height: 3)[0] == "╭────╮")
     }
 
+    /// A column of rows inside a rounded container: the top and bottom rows
+    /// round their outer corners, the middle one — four columns in from the
+    /// sides and six units from the top and bottom — is square.
+    private func column(_ items: [String]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(items, id: \.self) { item in
+                ZStack {
+                    ContainerRelativeShape().stroke(.red)
+                    Text(item)
+                }
+                .frame(width: 6, height: 3)
+            }
+        }
+        .padding(.horizontal, 4)
+        .containerShape(RoundedRectangle(cornerRadius: 2))
+    }
+
+    /// `ForEach` memoizes each row by its element, keyed by its identity, value
+    /// and size — not by where it is. Before, a container-relative shape read
+    /// its place without saying so, a row reordered under the same size was
+    /// served the buffer drawn where it was, and kept that place's corners.
+    @Test("A row that moves inside its container takes the corners of where it now is")
+    func movedRowTakesItsNewCorners() {
+        let context = makeRenderContext(width: 14, height: 9)
+        let cache = context.renderCache!
+        func frame(_ items: [String]) -> [String] {
+            cache.beginRenderPass()
+            defer { cache.removeInactive() }
+            return renderToScreen(column(items), context: context).lines.map(\.stripped)
+        }
+        let first = frame(["a", "b", "c"])
+        #expect(first[0] == "    ╭────╮    " && first[3] == "    ┌────┐    ", "\(first)")
+        let moved = frame(["b", "a", "c"])
+        #expect(moved[0] == "    ╭────╮    ", "the middle row, moved to the top, kept its square corners: \(moved)")
+        #expect(moved[3] == "    ┌────┐    ", "the top row, moved to the middle, kept its round corners: \(moved)")
+        #expect(moved[1].contains("b") && moved[4].contains("a"))
+    }
+
     @Test("The corner vocabulary: corners, sets of them, and styles")
     func corners() {
         #expect(Edge.Corner.Set.top.contains(.topLeading))
