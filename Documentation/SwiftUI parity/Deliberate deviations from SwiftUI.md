@@ -149,6 +149,24 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B90](<Decisions/SwiftUI API completion decisions.md#b90-distances-are-cells-along-either-axis>). **Lane** (the fuller version converts points
   through the reported cell size).
 
+### U5. A shape's unit is square
+
+- **SwiftUI:** `Shape.path(in:)` is handed the view's frame in points, square
+  on screen; a `lineWidth`, a `cornerRadius` or a dash is in points (the SDK's
+  declarations).
+- **TUIkit:** the frame is handed in square units: its columns across, and its
+  rows times `\.imageCellAspect` (about 2, the cell's height over its width;
+  2 where the terminal does not report it) down. A shape computed from the
+  rectangle keeps its proportions — a circle is round — and every literal
+  length is in columns, so `lineWidth: 1` is a column wide and half a row tall
+  where it runs along a row. A shape's `sizeThatFits(_:)` answers in cells, as a
+  custom `Layout`'s does (`ShapeTests`, `PathTests`).
+- **Why:** in cells a circle would be twice as tall as it is wide; in pixels the
+  numbers are large and wrong by up to 2.3× where the terminal does not say its
+  cell size. The aspect is a ratio, in which the display scale cancels.
+- **Decided:** [O0](<Refusals re-examined, wave 17 (2026-10-03).md#o0-shapes-the-unit-of-shapepathin--gates-w1>),
+  ruled 2026-10-12: (B); [§2.12](<SwiftUI compatibility guide.md#212-a-shapes-unit-is-square-a-column-across-the-same-down>). **Owner.**
+
 ---
 
 ## Layout
@@ -955,6 +973,57 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   as an add-on once this shows in the Example.
 - **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
   ruled 2026-10-12: option (b). **Medium**; Glass still owed.
+
+### C6. A shape draws within its frame
+
+- **SwiftUI:** a stroke is centred on the shape's outline, so half of it lies
+  outside the frame and is drawn there; an offset, rotated or scaled shape
+  draws wherever its path goes (Apple's documentation; not measured).
+- **TUIkit:** a shape draws only the cells of its frame. A rasterized stroke
+  loses its outer half where the outline touches the frame — a stroked circle
+  is thinner at its four extremes — and a moved shape is cut at the frame's
+  edge. `strokeBorder(_:lineWidth:antialiased:)` draws the whole line, inside.
+  A rectangle-family stroke drawn in lines sits in the outermost cells either
+  way (`ShapeTests`).
+- **Why:** a view's buffer is the size it reports ([L5](#l5-a-view-does-not-draw-outside-the-size-it-reports));
+  drawing past it would mean a floating layer per shape.
+- **Decided:** [B-W1-5](<Decisions/Shapes (W1).md#b-w1-5-a-shape-draws-within-its-frame>). **Lane.**
+
+### C7. A rectangle-family shape draws in the terminal's own glyphs
+
+- **SwiftUI:** every shape is rasterized, its corners curved at the radius
+  given and its strokes as wide as asked (Apple's documentation).
+- **TUIkit:** `Rectangle`, `RoundedRectangle`, `UnevenRoundedRectangle`,
+  `Capsule` and `ContainerRelativeShape`, stroked no wider than a column and
+  undashed, are a box of light line glyphs — `┌` where a corner's radius is
+  zero, `╭` where it is not, whatever the radius — in whatever `Appearance` is
+  in force; `stroke` and `strokeBorder` draw the same box. Filled, their
+  rounded corners are cut at quadrant resolution, by at least one quadrant
+  however small the radius, and one row tall the ends are the caps `▐ ▌`; on
+  Apple Terminal a corner is a whole cell. `Rectangle().fill(s)` is `Color` as a
+  view, byte for byte (`ShapeTests`, `ShapeRasterTests`).
+- **Why:** these shapes' edges land on cell boundaries, and the glyphs are the
+  medium's own drawing of them; a radius below half a cell has no other way to
+  show, and a corner the caller rounded should look rounded.
+- **Decided:** refusal review W1; [B-W1-2](<Decisions/Shapes (W1).md#b-w1-2-a-rectangle-family-stroke-is-a-box-of-light-lines-whatever-the-appearance>),
+  [B-W1-3](<Decisions/Shapes (W1).md#b-w1-3-a-rectangle-family-fill-cuts-its-rounded-corners-in-quadrants>). **Lane.**
+
+### C8. Every other shape is antialiased per half cell, and never a picture
+
+- **SwiftUI:** a shape is rasterized per pixel and antialiased (Apple's
+  documentation).
+- **TUIkit:** a `Circle`, an `Ellipse`, a `Path`, a shape of the app's own and
+  any transformed or trimmed shape is rasterized at half-cell resolution — a
+  column across, half a row down — each half drawn at the share of it the shape
+  covers, as alpha, composited over what is behind (`FillStyle(antialiased:
+  false)` draws a half at least half covered, whole). It is cells on every
+  terminal, including those that take pictures; with no colour, it is the
+  half-block glyphs alone (`ShapeRasterTests`).
+- **Why:** a shape's picture always has transparent pixels, which a terminal
+  composites against the cell it is placed in rather than against what TUIkit
+  knows is behind it — the reason a translucent gradient declines the picture
+  path too (`BackgroundModifier.pictured`).
+- **Decided:** [B-W1-4](<Decisions/Shapes (W1).md#b-w1-4-the-rasterizer-draws-half-blocks-at-their-coverage-and-no-shape-is-a-picture>). **Lane.**
 
 ---
 

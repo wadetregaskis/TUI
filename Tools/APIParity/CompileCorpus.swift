@@ -3486,3 +3486,130 @@ private struct CorpusPagerView: View {
         Button("Page \(pager.page)") { pager.page += 1 }
     }
 }
+
+// MARK: - Shapes (lane W1)
+
+/// A shape of the app's own, written as SwiftUI's documentation writes one:
+/// computed from the rectangle it is given, so it keeps its proportions in
+/// TUIkit's square units.
+private struct CorpusTriangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.closeSubpath()
+        }
+    }
+}
+
+/// An insettable shape of the app's own, so `strokeBorder` reaches it.
+private struct CorpusInsetDiamond: InsettableShape {
+    var inset: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let frame = rect.insetBy(dx: inset, dy: inset)
+        var path = Path()
+        path.addLines([
+            CGPoint(x: frame.midX, y: frame.minY), CGPoint(x: frame.maxX, y: frame.midY),
+            CGPoint(x: frame.midX, y: frame.maxY), CGPoint(x: frame.minX, y: frame.midY),
+        ])
+        path.closeSubpath()
+        return path
+    }
+
+    func inset(by amount: CGFloat) -> Self {
+        Self(inset: inset + amount)
+    }
+}
+
+/// An animatable shape: its data is `CGFloat`, as SwiftUI's examples write it.
+private struct CorpusWedge: Shape {
+    var fraction: CGFloat
+
+    var animatableData: CGFloat {
+        get { fraction }
+        set { fraction = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.midY))
+        path.addArc(
+            center: CGPoint(x: rect.midX, y: rect.midY), radius: min(rect.width, rect.height) / 2,
+            startAngle: .degrees(-90), endAngle: .degrees(-90 + 360 * Double(fraction)), clockwise: false)
+        path.closeSubpath()
+        return path
+    }
+}
+
+@MainActor
+private struct CorpusShapes: View {
+    @State private var progress: CGFloat = 0.25
+
+    var body: some View {
+        VStack {
+            Rectangle()
+            Rectangle().fill(.red)
+            Circle().fill(.blue, style: FillStyle(eoFill: true, antialiased: false))
+            Circle().stroke(lineWidth: 2)
+            Circle().stroke(.green, lineWidth: 1)
+            Circle().stroke(.green, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [0, 4]))
+            Circle().strokeBorder(.orange, lineWidth: 1)
+            Circle().strokeBorder(lineWidth: 2)
+            Ellipse().fill(LinearGradient(colors: [.red, .blue], startPoint: .top, endPoint: .bottom))
+            Capsule(style: .circular).fill(.purple)
+            RoundedRectangle(cornerRadius: 4, style: .continuous).stroke(.gray)
+            RoundedRectangle(cornerSize: CGSize(width: 4, height: 2)).fill(.mint)
+            UnevenRoundedRectangle(topLeadingRadius: 3, bottomTrailingRadius: 3).fill(.teal)
+            UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(topLeading: 2), style: .circular).stroke(.cyan)
+            ContainerRelativeShape().fill(.yellow)
+            CorpusTriangle().fill(.orange)
+            CorpusInsetDiamond().strokeBorder(.white, lineWidth: 1)
+            CorpusWedge(fraction: progress).fill(.pink)
+            Circle().trim(from: 0, to: progress).stroke(.blue, style: StrokeStyle(lineWidth: 1, lineCap: .round))
+            Rectangle().rotation(.degrees(30)).fill(.red)
+            Rectangle().scale(0.5).fill(.red)
+            Rectangle().scale(x: 0.5, y: 1, anchor: .leading).fill(.red)
+            Rectangle().transform(CGAffineTransform(rotationAngle: 0.5)).fill(.red)
+            Rectangle().size(width: 4, height: 2).fill(.red)
+            Rectangle().size(CGSize(width: 4, height: 2), anchor: .center).fill(.red)
+            AnyShape(Circle()).fill(.red)
+            Circle().fill(.yellow).stroke(.red, lineWidth: 1)
+            Capsule().fill(.yellow).strokeBorder(.red, lineWidth: 1)
+            Path { $0.addEllipse(in: CGRect(x: 0, y: 0, width: 10, height: 10)) }.fill(.green)
+        }
+    }
+
+    /// The leading-dot spellings, where a concrete shape is expected.
+    var shapes: [AnyShape] {
+        [
+            AnyShape(.rect), AnyShape(.circle), AnyShape(.capsule), AnyShape(.ellipse), AnyShape(.containerRelative),
+            AnyShape(.rect(cornerRadius: 2)), AnyShape(.rect(cornerSize: CGSize(width: 2, height: 1))),
+            AnyShape(.rect(cornerRadii: RectangleCornerRadii(topLeading: 2))),
+            AnyShape(.rect(topLeadingRadius: 2, bottomTrailingRadius: 2)), AnyShape(.capsule(style: .circular)),
+        ]
+    }
+
+    /// A shape's adapters keep their types, as SwiftUI's do.
+    var adapters: (OffsetShape<Circle>, RotatedShape<Rectangle>, ScaledShape<Ellipse>, TransformedShape<Capsule>) {
+        (
+            Circle().offset(x: 2, y: 1), Rectangle().rotation(.degrees(45)), Ellipse().scale(2),
+            Capsule().transform(.identity)
+        )
+    }
+
+    /// Path's value API.
+    func pathArithmetic() -> (CGRect, Bool, Path, String) {
+        var path = Path(roundedRect: CGRect(x: 0, y: 0, width: 10, height: 4), cornerRadius: 1)
+        path.addRelativeArc(center: .zero, radius: 2, startAngle: .zero, delta: .degrees(90))
+        path.addArc(tangent1End: CGPoint(x: 5, y: 0), tangent2End: CGPoint(x: 5, y: 5), radius: 1)
+        path.addQuadCurve(to: CGPoint(x: 1, y: 1), control: .zero)
+        path.addCurve(to: CGPoint(x: 2, y: 2), control1: .zero, control2: CGPoint(x: 1, y: 2))
+        path.forEach { element in
+            if case .closeSubpath = element { return }
+        }
+        let moved = path.applying(CGAffineTransform(translationX: 1, y: 1)).offsetBy(dx: 1, dy: 1)
+        return (moved.boundingRect, moved.contains(.zero, eoFill: true), moved.trimmedPath(from: 0, to: 0.5), moved.description)
+    }
+}

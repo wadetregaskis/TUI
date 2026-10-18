@@ -212,20 +212,26 @@ extension Path {
     /// degenerate curves — and a close.
     static func roundedRect(_ rect: CGRect, corners: CornerSizes, style: RoundedCornerStyle) -> Path {
         let (minX, minY, maxX, maxY) = (rect.minX, rect.minY, rect.maxX, rect.maxY)
-        let half = CGSize(width: rect.width / 2, height: rect.height / 2)
         var path = Path()
         path.move(to: CGPoint(x: maxX, y: minY + (corners.topTrailing.height + rect.height - corners.bottomTrailing.height) / 2))
-        // Each corner: where it is, its size, and the directions along which
-        // it leaves the edge it arrives on (`inward`, toward the corner's
-        // own edge's far end) and runs along the next edge (`along`).
-        let walk: [(corner: CGPoint, size: CGSize, arrive: Direction, leave: Direction)] = [
-            (CGPoint(x: maxX, y: maxY), corners.bottomTrailing, Direction(dx: 0, dy: 1), Direction(dx: -1, dy: 0)),
-            (CGPoint(x: minX, y: maxY), corners.bottomLeading, Direction(dx: -1, dy: 0), Direction(dx: 0, dy: -1)),
-            (CGPoint(x: minX, y: minY), corners.topLeading, Direction(dx: 0, dy: -1), Direction(dx: 1, dy: 0)),
-            (CGPoint(x: maxX, y: minY), corners.topTrailing, Direction(dx: 1, dy: 0), Direction(dx: 0, dy: 1)),
+        // Each corner: where it is, its size, the directions of travel along
+        // the edge into it (`arrive`) and out of it (`leave`), and its
+        // neighbours along the side it shares horizontally and vertically.
+        typealias Step = (corner: CGPoint, size: CGSize, arrive: Direction, leave: Direction, across: CGSize, down: CGSize)
+        let walk: [Step] = [
+            (CGPoint(x: maxX, y: maxY), corners.bottomTrailing, Direction(dx: 0, dy: 1), Direction(dx: -1, dy: 0),
+             corners.bottomLeading, corners.topTrailing),
+            (CGPoint(x: minX, y: maxY), corners.bottomLeading, Direction(dx: -1, dy: 0), Direction(dx: 0, dy: -1),
+             corners.bottomTrailing, corners.topLeading),
+            (CGPoint(x: minX, y: minY), corners.topLeading, Direction(dx: 0, dy: -1), Direction(dx: 1, dy: 0),
+             corners.topTrailing, corners.bottomLeading),
+            (CGPoint(x: maxX, y: minY), corners.topTrailing, Direction(dx: 1, dy: 0), Direction(dx: 0, dy: 1),
+             corners.topLeading, corners.bottomTrailing),
         ]
         for step in walk {
-            let continuous = style == .continuous && Self.continuousFits(step.size, in: half)
+            let continuous =
+                style == .continuous
+                && Self.continuousFits(step.size, beside: step.across, step.down, in: rect.size)
             path.addCorner(at: step.corner, size: step.size, arrive: step.arrive, leave: step.leave, continuous: continuous)
         }
         path.closeSubpath()
@@ -233,12 +239,16 @@ extension Path {
     }
 
     /// Whether a continuous corner of `size` — which starts half as far again
-    /// from its corner as a circle's — fits in half the box. Where it does not,
-    /// the corner is drawn circular: SwiftUI blends the two there, by an amount
-    /// below anything a cell can show.
-    static func continuousFits(_ size: CGSize, in half: CGSize) -> Bool {
-        size.width * ContinuousCorner.extent <= half.width + 1e-9
-            && size.height * ContinuousCorner.extent <= half.height + 1e-9
+    /// from its corner as a circle's — fits along each side it shares, with
+    /// its neighbour there reaching as far: two continuous corners of radius 3
+    /// need a side of 9.2, and one of 4 beside a square corner needs 6.1 (both
+    /// measured as SwiftUI's). Where it does not fit, the corner is drawn
+    /// circular: SwiftUI blends the two there, by an amount below anything a
+    /// cell can show.
+    static func continuousFits(_ size: CGSize, beside across: CGSize, _ down: CGSize, in box: CGSize) -> Bool {
+        let reach = ContinuousCorner.extent
+        return (size.width + across.width) * reach <= box.width + 1e-9
+            && (size.height + down.height) * reach <= box.height + 1e-9
     }
 
     /// Apple's continuous corner, as offsets from the corner over its radius:

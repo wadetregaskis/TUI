@@ -22,7 +22,11 @@ import TUIkitCore
 /// ```
 public struct EmptyView: View, Equatable {
     /// Creates an empty view.
-    public init() {}
+    ///
+    /// `nonisolated`, as SwiftUI's is: it makes nothing, and a shape's
+    /// `stroke(_:lineWidth:antialiased:)` — nonisolated in SwiftUI and here —
+    /// hands one over as the stroke's background.
+    nonisolated public init() {}
 
     public var body: Never {
         fatalError("EmptyView has no body")

@@ -532,6 +532,12 @@
         "Path.strokedPath(_:)"
       ],
       "why": "A path's boolean operations and its stroke outline: exact geometric clipping of one outline by another, and offsetting a curve by half a line width, each a computational-geometry library of its own (refusal review W1, 'Not in this cut'). Shapes otherwise ship (Sources/TUIkitFoundation/Shapes): what a stroke or a fill COVERS is drawn exactly, by rasterising the path and the stroke's pieces, but no outline of the result is made as a Path. Absent rather than approximated, so a call fails to compile; a mask-level union or intersection for fills is possible later (decisions file W1)."
+    },
+    {
+      "match": [
+        "*.layoutDirectionBehavior"
+      ],
+      "why": "A shape's LayoutDirectionBehavior — whether it mirrors in a right-to-left layout — waits with the type and `View.layoutDirectionBehavior(_:)` on decisions A3, deferred with right-to-left support (B1): `.mirrors(in: .leftToRight)` really mirrors in SwiftUI (measured), so the property cannot be a constant that compiles and means nothing. Every TUIkit layout is left to right, which is what a shape's `.fixed` would say."
     }
   ],
   "renamed": {
@@ -608,9 +614,6 @@
     "AccessibilityZoomGestureAction": {
       "why": "It describes a VoiceOver pinch/zoom gesture (direction, location, point). SGR mouse reporting has no pinch and no sub-cell location, and there is no assistive technology to originate the gesture. TUIkit's real zoom is `.imageZoom(_:)` in Sources/TUIkitBitmaps/Views/Image+RenderingOptionModifiers.swift."
     },
-    "AnyShape": {
-      "why": "Type erasure over a Shape protocol that does not and cannot exist here (see Shape). TUIkit's erasure story is AnyView / AnyLayout (Sources/TUIkitFoundation/Views/AnyLayout.swift) — there is nothing shape-shaped to erase."
-    },
     "AssistiveAccess": {
       "why": "A Scene that supplies an alternate interface for iOS's Assistive Access mode. A terminal app has no iOS lifecycle and no system mode to supply one for."
     },
@@ -629,9 +632,6 @@
     "ButtonBorderShape.path(in:)": {
       "why": "ButtonBorderShape's conformance to Shape and InsettableShape. The shape itself ships, as the glyphs a bordered button's face ends in (Sources/TUIkitFoundation/Styles/ButtonBorderShape.swift); a path waits on O0 of the refusal review, which settles the unit of `Shape.path(in:)` for the whole Shapes cluster (decisions A24 rides on O0 and O15)."
     },
-    "Capsule": {
-      "why": "A capsule is two semicircular end caps; the terminal's cap vocabulary is two half-block characters, TerminalSymbols.openCap (▐) and closeCap (▌) at Sources/TUIkitCore/Rendering/TerminalSymbols.swift:18-21 — a fixed pair of glyphs, not a parameterised curve."
-    },
     "CGPoint.AnimatableData": {
       "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
     },
@@ -643,9 +643,6 @@
     },
     "CGSize.AnimatableData": {
       "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
-    },
-    "Circle": {
-      "why": "A curve needs sub-cell coverage, and cells are roughly twice as tall as they are wide, so even a circle approximated in glyphs comes out distorted (`View.imageCellAspect(_:)` exists for exactly that). Where a round affordance is wanted TUIkit draws a glyph (`●`, `○`). Shapes as a whole wait on O0 of the refusal review."
     },
     "Color.Representation": {
       "why": "The type of Color's transferRepresentation; see that entry."
@@ -662,9 +659,6 @@
     "ConcentricRectangle": {
       "why": "It exists to inset a rounded rectangle so nested corner radii stay concentric; TUIkit's corners are single characters with no radius (Sources/TUIkitStyling/Styles/BorderStyle.swift:69-141), so there is no radius to keep concentric."
     },
-    "ContainerRelativeShape": {
-      "why": "It resolves to the enclosing container's shape, so nested corners stay concentric. No container publishes a shape or a radius: a container draws a `BorderStyle` box whose corners are single glyphs, so there is nothing to be concentric with."
-    },
     "ContentShapeKinds": {
       "why": "The option set naming which shape is being set (interaction / dragPreview / contextMenuPreview / focusEffect). Hit regions are cell rectangles with no shape to specify (Sources/TUIkitCore/Input/HitTestRegion.swift:29-42); the drag-preview kind is served by `.draggable(_:preview:)"
     },
@@ -680,9 +674,6 @@
     "EdgeInsets.inset(by:edges:)": {
       "why": "Grows insets by a RectangleCornerInsets, the per-corner radii of a rounded rectangle (declined under its own entry). Cell geometry has no corner radii to add."
     },
-    "Ellipse": {
-      "why": "Same as Circle: curved edges require fractional cell coverage that a glyph cell cannot express, and TUIkit has no path rasterizer — only glyph selection (Sources/TUIkitImage/ShapeSampling.swift is raster-to-glyph matching, not vector drawing)."
-    },
     "EmptyMatchedTransitionSourceConfiguration": {
       "why": "The empty base value passed into `matchedTransitionSource(id:in:configuration:)`. Inapplicable for the same reason as the protocol it conforms to — no transition machinery, no corner geometry."
     },
@@ -691,9 +682,6 @@
     },
     "EnvironmentValues.minimumScaleFactor": {
       "why": "The environment half of minimumScaleFactor(_:); absent for the same reason — glyph size belongs to the terminal emulator, not to the app."
-    },
-    "FillShapeView": {
-      "why": "The View produced by Shape.fill(_:); no Shape exists. Filling a rectangular area with a colour is BackgroundModifier (Sources/TUIkitFoundation/Modifiers/BackgroundModifier.swift:15-42)."
     },
     "Font.Design.rounded": {
       "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md P1)."
@@ -746,9 +734,6 @@
     "ImagePaint": {
       "why": "A ShapeStyle that fills a shape with a tiled or scaled image, resolved per pixel against the shape's coverage. There are no shapes to fill (O0 of the refusal review), and a raster draws through `Image`, which is TUIkit's raster-to-cell renderer."
     },
-    "InsettableShape": {
-      "why": "It exists so `strokeBorder` can inset a shape by half its line width. A terminal's line is exactly one cell wide and its inset exactly one cell, which `padding` and `border` already express; shapes as a whole wait on O0 of the refusal review."
-    },
     "LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)": {
       "why": "A colour's spoken name comes from Apple's accessibility colour naming, which is private and has no counterpart in the open-source Foundation, and a screen reader reads a terminal only through what is on screen, so a name would have to be drawn. Declined (owner, 2026-10-05; decisions A33, removed when this entry landed): code that uses it does not compile, and the app says what it means in words. Interpolating the colour's description instead would read `Color(…)` aloud, the quiet wrong answer."
     },
@@ -757,9 +742,6 @@
     },
     "MatchedTransitionSourceConfiguration": {
       "why": "Configures a zoom transition's source: its corner shape and background. It waits with `matchedTransitionSource` on O4 of the refusal review (decisions A23)."
-    },
-    "OffsetShape": {
-      "why": "A Shape adapter (Shape.offset(x:y:)); no Shape protocol exists. Whole-cell offsetting of a VIEW does exist as View.offset(x:y:) (Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift:71)."
     },
     "OutlineSubgroupChildren": {
       "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkitLists/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
@@ -791,12 +773,6 @@
     "ProjectionTransform": {
       "why": "A 3×3 matrix over continuous coordinates, produced by GeometryEffect and consumed by `projectionEffect`. TUIkit's geometry is whole cells with no matrix: its only spatial operation is a whole-cell offset. The transforms wait on decisions A27."
     },
-    "RotatedShape": {
-      "why": "A Shape adapter for rotation; neither Shape nor rotation exists on a cell grid (see rotationEffect — glyphs cannot be rotated and wide cells cannot be transposed)."
-    },
-    "RoundedRectangle": {
-      "why": "A corner radius needs sub-cell coverage to round; the terminal's rounded corner is a single character — BorderStyle.rounded uses ╭╮╰╯ (Sources/TUIkitStyling/Styles/BorderStyle.swift:109-128) — with exactly one radius, take it or leave it."
-    },
     "RoundedRectangularShape": {
       "why": "A protocol abstracting over rounded-rectangle shapes and their corner treatment; TUIkit has no shapes and no corner radii — a container outline is BorderStyle's eight fixed characters (Sources/TUIkitStyling/Styles/BorderStyle.swift:13-34)."
     },
@@ -805,9 +781,6 @@
     },
     "SafeAreaRegions": {
       "why": "An option set over `.container` and `.keyboard`. Neither is a live distinction here: a terminal has no on-screen keyboard, and the container region is the whole grid less the chrome the app declared, subtracted before layout (decisions B6, whose fuller safe area the owner declined on 2026-10-12)."
-    },
-    "ScaledShape": {
-      "why": "A Shape adapter for scaling; neither Shape nor sub-cell scaling exists (glyph size is the terminal's font, see scaleEffect)."
     },
     "ScrollEdgeEffectStyle.soft": {
       "why": "A fade of scrolled content seen through a bar. Content never passes under a bar here — bars are subtracted from what the view beside them is offered (decisions B6, whose fuller safe area the owner declined on 2026-10-12) — so there is nothing to see through, and the style is left out so that asking for it fails to compile (refusal review O7, ruled 2026-10-12). `.automatic` and `.hard` describe what is drawn, and ship."
@@ -826,21 +799,6 @@
     },
     "ShadowStyle": {
       "why": "It parameterises drop/inner shadows by radius and fractional offset, both sub-cell quantities on a grid whose smallest unit is one whole cell (CellRect is Int-only, Sources/TUIkitFoundation/Views/GeometryReader.swift:77-95). See `shadow`."
-    },
-    "Shape": {
-      "why": "A Shape is `path(in:) -> Path` over continuous coordinates, rasterised with antialiasing, and a cell has no partial coverage. TUIkit draws its one shape, the rectangle, from box-drawing characters through `BorderStyle`. Shapes as a whole wait on O0 of the refusal review, which fixes their unit."
-    },
-    "ShapeRole": {
-      "why": "It tells a ShapeStyle whether it is filling, stroking, or drawing a separator, so the style can adapt; there is no Shape and no ShapeStyle. The separator role does have a colour home — Palette.border, which Divider defaults to (Sources/TUIkitFoundation/Views/Spacer.swift:138)."
-    },
-    "ShapeView": {
-      "why": "The protocol that makes a filled/stroked Shape a View; with no Shape and no fill/stroke rasterization there is nothing to conform. TUIkit's equivalent leaf-drawing hook is Renderable (Sources/TUIkitView/Rendering/Renderable.swift:53)."
-    },
-    "StrokeBorderShapeView": {
-      "why": "The View produced by InsettableShape.strokeBorder; its whole reason for existing is insetting by half a fractional line width, which cannot arise when the line is one indivisible cell."
-    },
-    "StrokeShapeView": {
-      "why": "The View produced by Shape.stroke(_:style:); with no Shape and a fixed one-cell stroke there is nothing to construct. Rectangle stroking is View.border(...) (Sources/TUIkitFoundation/Extensions/View+Layout.swift:36)."
     },
     "SubmitLabel": {
       "why": "It names an on-screen keyboard's Return key ('Go', 'Send', 'Search'), and a terminal has no on-screen keyboard. It shipped once as a value stored in the environment that nothing read, which is worse than absence — the call compiled and the developer never learned the affordance does not exist — so it was removed (c5f31f85) and `.submitLabel(.send)` now fails to compile. `.onSubmit`, the behaviour rather than the legend, is fully implemented.\n\nThe obvious substitute WAS evaluated and declined 2026-08-17: a status-bar hint ('⏎ Send') while the field holds focus, using the per-focus-section registration StatusBarState already has. Four reasons. (1) It would fight the app for the Return slot: a StatusBarItem's identity IS its shortcut (StatusBarItem.swift — the hover state machine compares it across renders) and `resolvedSectionItems` drops any global item sharing one, so focusing a field would evict an app's own '⏎ select' item and restore it on blur. (2) It could lie: Return only submits when a submit action exists — `combinedSubmitAction` returns nil otherwise, deliberately, so Return falls through to a dialog's default button — so a field with `.submitLabel(.send)` and no `.onSubmit` would advertise 'Send' while Return fired 'Cancel'. Suppressing the hint in that case diverges from SwiftUI, which shows the label regardless. (3) Chrome churn: items joining and leaving on every Tab shift the bar, and at narrow widths can flip it into renderCompact, changing the other items too. (4) `\\.statusBar` is Optional, so it would be inert in an app that does not use the bar — the honesty guarantee would not be unconditional.\n\nIf revisited, the shape to build is opt-in app/scene-level chrome (a TUI-specific `.submitLabelHint(_:)`, default off) so `.submitLabel` is data the app chooses to render, the Return slot is only contended when asked for, and (2) becomes the app's explicit choice. Trigger to reconsider: a real app wanting it."
@@ -877,12 +835,6 @@
     },
     "ToolbarTitleDisplayMode": {
       "why": "Exists only to feed `toolbarTitleDisplayMode(_:)`; a cell grid has a single glyph size (TUIkit has no Font type), so `.large`/`.inline`/`.inlineLarge` collapse to one representation."
-    },
-    "TransformedShape": {
-      "why": "A Shape adapter carrying a CGAffineTransform; the grid supports only integer translation (View.offset, Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift:71) and there is no Shape to transform."
-    },
-    "UnevenRoundedRectangle": {
-      "why": "Per-corner radii presuppose a radius at all; BorderStyle names four corner CHARACTERS (topLeft/topRight/bottomLeft/bottomRight, Sources/TUIkitStyling/Styles/BorderStyle.swift:13-22), which is the terminal's whole corner vocabulary."
     },
     "View.allowsTightening(_:)": {
       "why": "It asks the type setter to reduce inter-character spacing so a line fits without truncating. A TUIkit app emits characters and the emulator advances a whole cell per column — 1 for most, 2 for East Asian wide and most emoji, 0 for combining marks. There is no sub-cell spacing to reduce. Fitting text into less space is spelled truncationMode(_:), lineLimit(_:) or ViewThatFits here."
