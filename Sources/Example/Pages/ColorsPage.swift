@@ -212,16 +212,18 @@ struct ColorsPage: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("page.colors.material.caption")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    // Each material over the same busy row: the ramp's colours
-                    // show through tinted toward the surface, more of them the
-                    // thinner it is, and the pattern's glyphs stay.
+                    // Each material is a panel over the middle of the same busy
+                    // row, the row's ends left bare to compare against: under
+                    // the panel the ramp's colours show through tinted toward
+                    // the surface, more of them the thinner it is, and the
+                    // pattern's glyphs stay.
                     ForEach(MaterialSample.all) { sample in
-                        ZStack(alignment: .leading) {
-                            Text(verbatim: String(repeating: "▚", count: MaterialSample.width))
+                        ZStack {
+                            Text(verbatim: String(repeating: "▚", count: MaterialSample.rowWidth))
                                 .foregroundStyle(
                                     LinearGradient(colors: Self.warm, startPoint: .leading, endPoint: .trailing))
-                            Text(verbatim: " \(sample.name)")
-                                .frame(width: MaterialSample.width, alignment: .leading)
+                            Text(verbatim: sample.name)
+                                .frame(width: MaterialSample.panelWidth)
                                 .background(sample.material)
                         }
                     }
@@ -249,8 +251,12 @@ private struct MaterialSample: Identifiable {
     let material: Material
     var id: String { name }
 
-    /// How wide each row is, the pattern and the material alike.
-    static let width = 30
+    /// How wide each row's pattern is.
+    static let rowWidth = 40
+
+    /// How wide the material over the middle of it is: narrower than the row,
+    /// so the pattern is bare at both ends.
+    static let panelWidth = 24
 
     static let all = [
         Self(name: ".ultraThinMaterial", material: .ultraThin),

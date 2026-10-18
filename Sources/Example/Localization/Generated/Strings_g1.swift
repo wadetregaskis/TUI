@@ -131,7 +131,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "the four geometries, each over the same two colours:",
             "page.colors.gradientStyle.background": "a gradient behind the words, not in them",
             "page.colors.section.materials": "Materials",
-            "page.colors.material.caption": "a translucent surface over what is behind it: the colours show through, tinted",
+            "page.colors.material.caption": "each name sits on a material laid over the middle of a striped row; the stripes show through it, tinted toward the page, more the thinner it is (the row's ends are bare, to compare)",
 
             // page.containers
             "page.containers.aCardView": "A Card view",
@@ -456,7 +456,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "die vier Geometrien, jede über dieselben zwei Farben:",
             "page.colors.gradientStyle.background": "ein Verlauf hinter den Wörtern, nicht in ihnen",
             "page.colors.section.materials": "Materialien",
-            "page.colors.material.caption": "eine durchscheinende Fläche über dem, was dahinter liegt: die Farben scheinen getönt hindurch",
+            "page.colors.material.caption": "jeder Name liegt auf einem Material über der Mitte einer gestreiften Zeile; die Streifen scheinen hindurch, zur Farbe der Seite hin getönt, umso mehr, je dünner es ist (die Enden der Zeile bleiben frei, zum Vergleich)",
 
             // page.containers
             "page.containers.aCardView": "Eine Card-Ansicht",
@@ -781,7 +781,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "les quatre géométries, chacune sur les deux mêmes couleurs :",
             "page.colors.gradientStyle.background": "un dégradé derrière les mots, pas dedans",
             "page.colors.section.materials": "Matériaux",
-            "page.colors.material.caption": "une surface translucide sur ce qui se trouve derrière : les couleurs transparaissent, teintées",
+            "page.colors.material.caption": "chaque nom repose sur un matériau posé au milieu d’une rangée rayée ; les rayures transparaissent, teintées vers la page, d’autant plus qu’il est fin (les bouts de la rangée restent nus, pour comparer)",
 
             // page.containers
             "page.containers.aCardView": "Une vue Card",
@@ -1106,7 +1106,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "le quattro geometrie, ciascuna sugli stessi due colori:",
             "page.colors.gradientStyle.background": "una sfumatura dietro le parole, non dentro",
             "page.colors.section.materials": "Materiali",
-            "page.colors.material.caption": "una superficie traslucida su ciò che sta dietro: i colori traspaiono, tinti",
+            "page.colors.material.caption": "ogni nome poggia su un materiale steso al centro di una riga a strisce; le strisce traspaiono, tinte verso la pagina, tanto più quanto è sottile (le estremità della riga restano scoperte, per confronto)",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1431,7 +1431,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "las cuatro geometrías, cada una sobre los mismos dos colores:",
             "page.colors.gradientStyle.background": "un degradado detrás de las palabras, no en ellas",
             "page.colors.section.materials": "Materiales",
-            "page.colors.material.caption": "una superficie translúcida sobre lo que hay detrás: los colores se transparentan, teñidos",
+            "page.colors.material.caption": "cada nombre está sobre un material puesto en el centro de una fila a rayas; las rayas se transparentan, teñidas hacia la página, más cuanto más fino es (los extremos de la fila quedan al descubierto, para comparar)",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1756,7 +1756,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "四种几何形态，都使用相同的两种颜色：",
             "page.colors.gradientStyle.background": "渐变在文字后面，而不是在文字里",
             "page.colors.section.materials": "材质",
-            "page.colors.material.caption": "覆盖在后方内容上的半透明表面：颜色透出，带有色调",
+            "page.colors.material.caption": "每个名称都位于铺在条纹行中间的材质上；条纹透出，向页面色调偏移，材质越薄透出越多（行的两端保持裸露，以作对比）",
 
             // page.containers
             "page.containers.aCardView": "一个 Card 视图",
@@ -2081,7 +2081,7 @@ extension ExampleStrings {
             "page.colors.gradientStyle.geometries": "4 つのジオメトリ、いずれも同じ 2 色で:",
             "page.colors.gradientStyle.background": "文字の中ではなく、文字の背後のグラデーション",
             "page.colors.section.materials": "マテリアル",
-            "page.colors.material.caption": "背後のものに重なる半透明の面：色が色味を帯びて透けて見える",
+            "page.colors.material.caption": "各名前は縞模様の行の中央に敷いたマテリアルの上にある。縞は透けて見え、ページの色に寄せられる。薄いほど多く透ける（比較のため行の両端は覆わない）",
 
             // page.containers
             "page.containers.aCardView": "Card ビュー",
