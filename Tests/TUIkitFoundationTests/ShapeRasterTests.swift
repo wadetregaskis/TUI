@@ -124,6 +124,26 @@ struct ShapeRasterTests {
         #expect((0..<24).map { triple.coverage(x: $0, y: 3) == 1 ? "#" : "." }.joined() == "####..######....##......")
     }
 
+    /// Before, the pattern was walked a dash at a time whatever its size: a
+    /// dash of `1e-6` round this circle was a hundred million dashes, and one
+    /// along a line to the edge of the plane never ended.
+    @Test("A dash pattern too fine to see, or too long to walk, draws the line unbroken")
+    func unbrokenDashes() {
+        let circle = Path(ellipseIn: CGRect(x: 0, y: 0, width: 40, height: 40)).contours(tolerance: 0.05)
+        for dash: [CGFloat] in [[1e-6], [1e-13], [0.1, 0.3], [0.25, 0.25]] {
+            #expect(ShapeStroker.dashed(circle, style: StrokeStyle(dash: dash)) == circle, "dash \(dash)")
+        }
+        // A pattern a pixel long is dashes.
+        #expect(ShapeStroker.dashed(circle, style: StrokeStyle(dash: [0.5, 0.5])).count > 100)
+        // A line to the edge of the plane.
+        let horizon = [Path.Contour(points: [CGPoint(x: 0, y: 4), CGPoint(x: CGFloat.greatestFiniteMagnitude, y: 4)], isClosed: false)]
+        #expect(ShapeStroker.dashed(horizon, style: StrokeStyle(dash: [2, 2])) == horizon)
+        // Drawn, the fine pattern is the line.
+        let line = [CGPoint(x: 0, y: 4), CGPoint(x: 10, y: 4)]
+        let fine = stroked(line, StrokeStyle(lineWidth: 2, dash: [1e-6]))
+        #expect((0..<10).allSatisfy { fine.coverage(x: $0, y: 3) == 1 })
+    }
+
     // MARK: Half blocks
 
     /// A circle filling a `columns` × `rows` frame at aspect 2.

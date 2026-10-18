@@ -1018,7 +1018,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   covers, as alpha, composited over what is behind (`FillStyle(antialiased:
   false)` draws a half at least half covered, whole). It is cells on every
   terminal, including those that take pictures; with no colour, it is the
-  half-block glyphs alone (`ShapeRasterTests`).
+  half-block glyphs alone. A dash pattern that would be walked more than
+  65,536 lengths along a stroke — a dashed line to the edge of the plane —
+  draws the line unbroken, where CoreGraphics walks every dash (0.13 s over
+  10⁷ units, unfinished over 10⁹; measured); one shorter than a pixel draws
+  unbroken in both (`ShapeRasterTests`).
 - **Why:** a shape's picture always has transparent pixels, which a terminal
   composites against the cell it is placed in rather than against what TUIkit
   knows is behind it — the reason a translucent gradient declines the picture

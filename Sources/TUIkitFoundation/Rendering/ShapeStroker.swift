@@ -157,6 +157,38 @@ enum ShapeStroker {
 
     // MARK: Dashes
 
+    /// The least a dash pattern's lengths may come to and be drawn as dashes:
+    /// a pixel across. CoreGraphics draws a pattern shorter than a device
+    /// pixel as the line unbroken, whatever share of it is painted (measured,
+    /// the W1 review's `dashfine.swift` probe: at a unit a pixel `[0.75]` and
+    /// `[0.1, 0.3]` are solid where `[1]` and `[0.25, 0.75]` are not, and at
+    /// four pixels a unit `[0.1]` is solid where `[0.25]` is dashed).
+    static let shortestDashPattern: CGFloat = 1
+
+    /// The most lengths of a pattern one stroke walks: past this many, the
+    /// line is drawn unbroken. A dashed line longer than any frame — one to the
+    /// edge of the plane — would otherwise be walked a dash at a time to its far
+    /// end, which CoreGraphics does (measured: `[2, 2]` over 10⁷ units takes it
+    /// 0.13 s, and over 10⁹ it does not finish in two minutes). At the limit a
+    /// two-length pattern a pixel long still dashes 32,768 pixels of line,
+    /// many times round the largest terminal.
+    static let dashWalkLimit = 65_536
+
+    /// How long `contour` is, along its points — and back to its start when it
+    /// is closed.
+    private static func length(of contour: Path.Contour) -> CGFloat {
+        let points = contour.points
+        guard points.count > 1 else { return 0 }
+        var total: CGFloat = 0
+        for index in 1..<points.count {
+            total += Path.Segment.distance(points[index - 1], points[index])
+        }
+        if contour.isClosed, let first = points.first, let last = points.last {
+            total += Path.Segment.distance(last, first)
+        }
+        return total
+    }
+
     /// The lines `contours` dash into: the pattern's "on" stretches, as open
     /// lines, the phase walked off from each subpath's start. A contour dashes
     /// whole when the pattern is empty or has no length.
@@ -166,11 +198,20 @@ enum ShapeStroker {
     /// `[4, 2, 6]` paints the 2 the second time round. That is CoreGraphics'
     /// rule, which SwiftUI strokes by (measured, the W1 review's `arcs.swift`
     /// probe, session notes); read as it stood, a lone length was all painted.
+    ///
+    /// A pattern too fine to show or too long to walk draws the line unbroken
+    /// — one whose lengths come to less than ``shortestDashPattern``, or one
+    /// that would walk more than ``dashWalkLimit`` of them along the lines
+    /// given — so a dash of `1e-6` round a circle, or any dash along a line to
+    /// the edge of the plane, costs what a plain stroke does.
     static func dashed(_ contours: [Path.Contour], style: StrokeStyle) -> [Path.Contour] {
         let lengths = style.dash.map { max(0, $0) }
         let pattern = lengths.count.isMultiple(of: 2) ? lengths : lengths + lengths
         let period = pattern.reduce(0, +)
         guard !pattern.isEmpty, period > 0 else { return contours }
+        // A length that is not a number fails the `<=`: the line, unbroken.
+        let walks = contours.reduce(0) { $0 + length(of: $1) } / period * CGFloat(pattern.count)
+        guard lengths.reduce(0, +) >= shortestDashPattern, walks <= CGFloat(dashWalkLimit) else { return contours }
         var lines: [Path.Contour] = []
         for contour in contours {
             var points = contour.points
