@@ -405,3 +405,56 @@ extension FrameBuffer {
         return OverflowingPlacement(inside: inside, insideOrigin: origin, overflow: overflow)
     }
 }
+
+// MARK: - Drawing a view past its slot
+
+extension FrameBuffer {
+    /// An empty footprint `width` × `height` — the slot the layout gave a view
+    /// — with this buffer drawn `(offsetX, offsetY)` from its top-leading
+    /// corner, past it: what a view hands back when what it draws stands
+    /// outside the place it is laid out in. A spring transition's overshoot
+    /// (`TransitionPicture.slotBuffer()`) and a matched geometry effect's view
+    /// drawn at another view's frame both are.
+    ///
+    /// The picture is drawn as content past its region is
+    /// (``splitPlacing(at:inWidth:height:)``): at the view's own place in the
+    /// stacking order, over the views before it and under the views after it,
+    /// as SwiftUI draws a view past its frame (measured for a frame, an
+    /// overlay and a scale effect, decisions B-GUIDE-3). A terminal has no
+    /// transparency, so the view paints nothing where it came from, as
+    /// `View.offset(x:y:)` does.
+    ///
+    /// - **Only the cells it paints are drawn**, with the unstyled blanks at
+    ///   either end of each line left out (`OverlayLayer.drawnParts()`), so a
+    ///   slot-width row of padding erases none of a neighbour's cells as it
+    ///   passes over them. Interior blanks still paint: a `Spacer` between two
+    ///   labels covers what is under the gap for as long as the bounce lasts,
+    ///   since a cell holds one glyph.
+    /// - **Its hit regions travel with it**, cut with its cells: a click lands
+    ///   on what is drawn where it lands. A later sibling cuts the picture
+    ///   away beneath the cells it paints, its regions with it, so a peer
+    ///   drawn over the bounce keeps its clicks — the reason these regions used
+    ///   to stay in the slot, when the picture floated over every sibling.
+    ///   The geometry markers stay in the slot, where the view is laid out.
+    /// - **It does not slide back on screen.** `clampsToScreen` is the pop-over
+    ///   policy: keep the whole layer visible by moving it. A view bouncing at
+    ///   the right edge that jumped left instead is not the animation anyone
+    ///   asked for, so this takes the pointer-anchored policy — stay put, lose
+    ///   what falls off the edge.
+    ///
+    /// - Parameters:
+    ///   - width: The slot's width, which the footprint declares.
+    ///   - height: The slot's height, in rows the footprint reserves.
+    ///   - offsetX: How far right of the slot's leading edge the picture
+    ///     starts.
+    ///   - offsetY: How far below the slot's top the picture starts.
+    /// - Returns: The footprint, carrying the picture as layers drawn past it.
+    package func drawnPastSlot(width: Int, height: Int, offsetX: Int, offsetY: Int) -> FrameBuffer {
+        let placement = splitPlacing(at: (x: offsetX, y: offsetY), inWidth: 0, height: 0)
+        var footprint = FrameBuffer(footprintWidth: width, height: height)
+        footprint.hitTestRegions = hitTestRegions.filter(\.isGeometryMarker)
+        // The picture first, then what it carries floating, which draws over it.
+        footprint.overlays = placement.overflow + placement.inside.overlays
+        return footprint
+    }
+}
