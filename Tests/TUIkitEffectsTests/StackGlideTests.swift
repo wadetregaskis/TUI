@@ -218,6 +218,20 @@ struct StackGlideTests {
         #expect(half[3] == (lifted ? "X" : "B"), "\(half)")
     }
 
+    @Test("Held, a removal keeps its room until it has played, then closes up at once")
+    func heldRemovalKeepsItsRoom() {
+        let frames = Frames()
+        func column(_ showing: Bool) -> some View {
+            Column(showing: showing, transition: .opacity).transitionSpace(.held)
+        }
+        _ = frames.draw(column(true), atMillis: 0)
+        _ = frames.draw(column(false), atMillis: 1000, animating: .linear(duration: 1))
+        let half = frames.draw(column(false), atMillis: 1500)
+        #expect(frames.row(of: "B", in: half) == 5, "standing still while the view leaves: \(half)")
+        let after = frames.draw(column(false), atMillis: 2100)
+        #expect(frames.row(of: "B", in: after) == 1, "closed up once it had gone: \(after)")
+    }
+
     // MARK: - Interruption, reduce motion
 
     /// A change mid-glide takes over from where the picture is: a linear

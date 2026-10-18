@@ -349,6 +349,31 @@ struct AnimationPageShowHideTests {
         #expect(after == before)
     }
 
+    /// Held (`.transitionSpace(.held)`): the space stays while the panel
+    /// leaves, so the page below stands still under the removal, and goes at
+    /// once when the panel has gone.
+    @Test("Held, the page below stands still while the panel leaves, then closes up")
+    func heldSpaceStandsStill() {
+        let page = PanelDriver(
+            PanelApp(space: .held, transition: .opacity), width: 40, height: 20, belowText: "below")
+        let before = page.belowRow
+        #expect(page.pressFocused(), "precondition: the button took the key")
+        page.advance(byMillis: 1200)
+        let shown = page.belowRow
+        #expect(page.pressFocused(), "precondition: the button took the key")
+        page.advance(byMillis: 500)
+        let going = page.belowRow
+        page.advance(byMillis: 700)
+        let after = page.belowRow
+        guard let before, let shown, let going, let after else {
+            Issue.record("the page is drawn")
+            return
+        }
+        #expect(shown == before + 6)
+        #expect(going == shown, "the page below moved while the panel left: \(shown) → \(going)")
+        #expect(after == before, "the page did not close up after the panel went")
+    }
+
     // MARK: - The whole page
 
     /// The page itself, as the owner used it: the demo's own buttons clicked,

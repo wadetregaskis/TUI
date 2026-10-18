@@ -7,16 +7,18 @@
 import TUIkit
 
 extension AnimationPage {
-    /// The panel, and the two answers to "what happens to the space it was
+    /// The panel, and the three answers to "what happens to the space it was
     /// in?"
     ///
     /// By default it is what SwiftUI's stack does: the space is taken on the
     /// frame the panel appears and given back on the frame it goes, and the
     /// page below glides with the change while the panel plays its transition
     /// where it is — fading in where it lands, the page sliding away from over
-    /// it; fading out where it was, the page sliding up over it. Kept, a fixed
-    /// frame holds the space whether the panel is there or not, so nothing
-    /// below ever moves.
+    /// it; fading out where it was, the page sliding up over it. Held
+    /// (`.transitionSpace(.held)`, TUIkit's own), the space stays while the
+    /// panel leaves and goes once it has gone, so the page stands still under
+    /// the removal and then moves up at once. Kept, a fixed frame holds the
+    /// space whether the panel is there or not, so nothing below ever moves.
     ///
     /// A function rather than a view of its own, so that what it returns
     /// stands in the page's stack exactly as if it were written there: a view
@@ -38,8 +40,8 @@ extension AnimationPage {
         // measured: a `nil` framed 50 tall adds no height to its stack, the
         // same `nil` in a `VStack` framed 50 tall adds 50.
         //
-        // One frame whatever the choice, with a height of `nil` when the
-        // space is not kept — NOT `if kept {
+        // One frame and one `transitionSpace` whatever the choice, with a
+        // height of `nil` when the space is not kept — NOT `if kept {
         // slot.frame(…) } else { slot }`. Swapping the wrapper is a change of
         // view IDENTITY: every `@State` below it is recreated at its initial
         // value the moment the picker moves, which is a bug this page would
@@ -65,5 +67,6 @@ extension AnimationPage {
             }
         }
         .frame(height: space == .kept ? 5 : nil, alignment: .top)
+        .transitionSpace(space == .held ? .held : .released)
     }
 }

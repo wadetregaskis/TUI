@@ -44,6 +44,8 @@ extension View {
     /// while it plays and gives it back at once after — in a `Layout`, a lazy
     /// stack, a `Grid`, a `List` and a `nil` rendered on its own — and the
     /// children of a lazy stack, a `Grid` and a `List` move at once.
+    /// ``View/transitionSpace(_:)`` keeps the room in an eager stack too, for
+    /// an app that wants the views around to stand still while a view leaves.
     ///
     /// ## How a view that no longer exists still leaves
     ///

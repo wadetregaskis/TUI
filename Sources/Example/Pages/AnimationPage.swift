@@ -45,12 +45,16 @@ struct AnimationPage: View {
         /// page below gliding as the change animates while the panel plays its
         /// transition where it is: SwiftUI's stack, and the default.
         case closesUp
+        /// Kept while the panel leaves, so the page below stands still under
+        /// its removal and moves up once it has gone: `.transitionSpace(.held)`.
+        case held
         /// Kept whether it is there or not, so nothing below ever moves.
         case kept
 
         var key: String {
             switch self {
             case .closesUp: "page.animation.space.closesUp"
+            case .held: "page.animation.space.held"
             case .kept: "page.animation.reserveSpace"
             }
         }

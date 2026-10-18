@@ -38,8 +38,9 @@ is that of the main decisions file:*
 - **A removal** in an eager stack or a `ZStack` takes no room: the slot a
   `nil` keeps (`DepartureSlot`, now marked `ChildView.isDeparting`) is laid
   out nowhere and drawn where the view last was.
-- **The Example's** Animation page offers close up (the default, SwiftUI's)
-  and keep the space.
+- **The opt-out**, `.transitionSpace(.held)`, keeps the room as before.
+- **The Example's** Animation page offers close up (the default, SwiftUI's),
+  hold then close up, and keep the space.
 
 ## A. Needs your decision
 
@@ -201,5 +202,17 @@ the animation store treats a value (`AnimationStore.beginWalk()`).
 *`AnimationPage.PanelSpace`*
 
 It animated the slot's height to imitate SwiftUI's stack, which is now what
-the default does: the page below glides as the panel comes and goes. Its
-strings go from all seven languages, and "close up after" is now "close up".
+the default does: the page below glides as the panel comes and goes. In its
+place, "hold, then close up" shows `.transitionSpace(.held)`. Strings in all
+seven languages.
+
+### B-FB16-12. The opt-out is a TUI-specific modifier, `.transitionSpace(.held)`
+
+*`TransitionSpace`, `View.transitionSpace(_:)`, `EnvironmentValues.transitionSpace`*
+
+No SwiftUI API holds a removed view's room; the SDK has none, and the room
+going at once is the measured behaviour. The modifier is per subtree, as the
+modifier-first rule asks, and reaches every eager stack and `ZStack` below it:
+the slot is then laid out at the view's size until the removal has played,
+and given back at once after. Insertions still glide; the hold is about a
+removal's room.

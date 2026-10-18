@@ -22,7 +22,8 @@ struct StackChildren {
 }
 
 /// `content`'s children as an eager stack treats them: a view that has left
-/// takes no room, as in SwiftUI.
+/// takes no room, as in SwiftUI, unless the environment holds its room while
+/// it leaves (``View/transitionSpace(_:)``).
 ///
 /// One check where nothing is leaving anywhere — every frame of every app but
 /// the few a removal plays on — and a scan of the children where something
@@ -31,7 +32,7 @@ struct StackChildren {
 func stackChildren<Content: View>(of content: Content, context: RenderContext) -> StackChildren {
     let children = resolveChildViews(from: content, context: context)
     guard let storage = context.stateStorage, !storage.departures.isEmpty,
-        children.contains(where: \.isDeparting)
+        children.contains(where: \.isDeparting), context.environment.transitionSpace == .released
     else { return StackChildren(laidOut: children, departing: []) }
     return StackChildren(
         laidOut: children.filter { !$0.isDeparting }, departing: children.filter(\.isDeparting))
