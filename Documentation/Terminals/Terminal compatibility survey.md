@@ -4751,7 +4751,12 @@ key, pressed just before the terminal sent that, and arrives as Escape, with
 the rest parsed on its own (`Terminal.tryExtractMetaPrefixed()`, 2026-10-11).
 Before that the pair was read as Option+Escape and the report lost, or the
 paste typed out as keys, and an `ESC` in front of a sequence cut short went
-on to the one that cut it: `ESC ESC [1;2 ESC [A` was Option+Up.
+on to the one that cut it: `ESC ESC [1;2 ESC [A` was Option+Up. One level
+further in it still did until 2026-10-18: an `ESC` in front of that
+(`ESC ESC ESC [1;2 ESC [A`) was Escape and Option+Up, and so was Option on a
+UTF-8 lead that a sequence cut short (`ESC 0xC3 ESC [A`, with or without an
+`ESC` in front). Each is now Escape for every `ESC` that had nothing to
+prefix, then the sequence (`ParserNestedEdgeTests`).
 
 The ESC-prefixed spelling of Option-[ is `ESC [`, the CSI introducer, so it
 is read as the start of a control sequence and never reaches an app as a
@@ -4766,6 +4771,15 @@ or an arrow that the terminal sends — cuts it short, and that sequence
 parses on its own (2026-10-11). Before that, the sequence's first bytes were read as the rest of this one, and
 what followed them was typed out as keys: a paste's text, a report's
 coordinates.
+
+A legacy report's coordinate past 223 does not fit its byte. xterm sends a
+0 byte past the end (from its source; not captured), which the parser
+refuses with the report. A terminal that let the byte wrap would spell
+column or row 251 as `ESC` (a hypothesis: no measured terminal wraps, and
+those measured with a mouse report in SGR, 1006, which TUIkit asks for). Read as a new sequence, that `ESC` and the row's byte
+arrived as an Option chord; since 2026-10-18 an `ESC` in a coordinate's place
+cuts the report short only when `[`, `O` or a string introducer follows it,
+and is otherwise the coordinate, the report dropped as malformed.
 
 *Not yet captured (2026-08-13):* **what Apple Terminal actually sends for
 ⌥←/⌥→.** The parser change above was verified against all three spellings by

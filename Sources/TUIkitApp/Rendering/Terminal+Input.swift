@@ -166,18 +166,8 @@ extension Terminal {
             return tryExtractRegularEvent()
         }
 
-        // Alt + a multi-byte character: a meta-sending terminal prefixes
-        // whatever the keyboard produced, ASCII or not (Option+ß under a
-        // German layout arrives as ESC + the two bytes of ß). Same
-        // put-the-prefix-back dance as `tryExtractMetaPrefixed()` when the
-        // character's tail hasn't arrived yet.
         if second >= 0x80 {
-            consume(1)
-            if let inner = tryExtractPlainText() {
-                return [0x1B] + inner
-            }
-            input.prepend(0x1B)
-            return nil
+            return tryExtractMetaOnText()
         }
 
         // Alt+key — 2 bytes total.
@@ -234,6 +224,16 @@ extension Terminal {
             if held - input.count == inner.count, Self.takesMetaPrefix(inner) {
                 return [0x1B] + inner
             }
+            // An Escape the inner read settled on after dropping what came
+            // behind it (a sequence cut short, a mis-framed lead) goes after
+            // this one as it is. Put back, its `ESC` became the meta prefix of
+            // whatever followed the dropped bytes: `ESC ESC ESC [1;2 ESC [A`
+            // was Escape and Option+Up until 2026-10-18. Everything else put
+            // back reads the same again.
+            if inner == [0x1B] {
+                if let escape = finalize(bytes: inner) { queuedInputs.append(escape) }
+                return [0x1B]
+            }
             input.prepend(contentsOf: inner)
             return [0x1B]
         }
@@ -245,6 +245,32 @@ extension Terminal {
         // the prefix of whatever came next — `ESC ESC [1;2 ESC [A` was
         // Option+Up until 2026-10-11 — and in front of a skip it read as a
         // new sequence cutting the skip short, and the rest was typed.
+        if input.count != held { return [0x1B] }
+        input.prepend(0x1B)
+        return nil
+    }
+
+    /// Alt + a multi-byte character: a meta-sending terminal prefixes
+    /// whatever the keyboard produced, ASCII or not (Option+ß under a German
+    /// layout arrives as `ESC` + the two bytes of ß). Assumes `input` starts
+    /// with `ESC` and a byte of 0x80 or more. Same put-the-prefix-back dance
+    /// as ``tryExtractMetaPrefixed()`` when the character's tail hasn't
+    /// arrived yet.
+    ///
+    /// A lead the parser drops as mis-framed (its tail cut short by an `ESC`,
+    /// or an orphan continuation byte) leaves the `ESC` nothing to prefix, as
+    /// a sequence cut short does in ``tryExtractMetaPrefixed()``: it is the
+    /// Escape key. Put back, it became the prefix of the sequence that cut
+    /// the lead short, so `ESC 0xC3 ESC [A` was Option+Up until 2026-10-18.
+    ///
+    /// Apart from ``tryExtractRegularEvent()``, which is at its complexity
+    /// limit.
+    private func tryExtractMetaOnText() -> [UInt8]? {
+        consume(1)
+        let held = input.count
+        if let inner = tryExtractPlainText() {
+            return [0x1B] + inner
+        }
         if input.count != held { return [0x1B] }
         input.prepend(0x1B)
         return nil
@@ -407,8 +433,24 @@ extension Terminal {
         // and the paste's start marker; until 2026-10-11 that marker went
         // into the report, `MouseEvent.parseLegacy` refused it, and the paste
         // was typed out as keys.
+        //
+        // Except a coordinate's: one past 223 does not fit a byte, and a
+        // terminal that let it wrap would spell column or row 251 as `ESC`
+        // (a hypothesis: xterm sends a 0 byte past the end, and no measured
+        // terminal wraps). Taken as a new sequence, that `ESC` and the byte
+        // after it arrived as an Option chord. So an `ESC` in a coordinate's
+        // place cuts the report short only when an introducer follows it
+        // (``continuesEscapeSequence(_:)``), as one does in every sequence
+        // that could cut in (a meta prefix's `ESC ESC` is cut at the second),
+        // and nothing is decided until the byte after it arrives. Otherwise
+        // it is the coordinate, and the report is malformed and dropped. The
+        // button's byte is not a coordinate: it stays as it was.
         if firstParam == 0x4D {
             for index in 3..<min(input.count, 6) where input[index] == 0x1B {
+                if index > 3 {
+                    guard index + 1 < input.count else { return nil }
+                    guard Self.continuesEscapeSequence(input[index + 1]) else { continue }
+                }
                 consume(index)
                 return nil
             }
