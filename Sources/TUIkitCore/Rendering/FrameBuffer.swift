@@ -718,7 +718,11 @@ extension FrameBuffer {
     /// last row, the buffer's width where its lines are uniform, the width it
     /// carries in ``lineWidths``, and measured only where it knows none of
     /// these.
-    private func knownWidth(ofRow row: Int, line: String) -> Int {
+    ///
+    /// `line` may be another spelling of the row's string — the same cells
+    /// in other colours, as a list row's content is once spent on its fill —
+    /// since only its width is asked of it.
+    package func knownWidth(ofRow row: Int, line: String) -> Int {
         if row >= lines.count { return 0 }
         if linesAreUniformWidth { return width }
         if let lineWidths { return lineWidths[row] }

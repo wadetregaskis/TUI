@@ -4204,19 +4204,19 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 // under it, and read as a row a line taller than its content.
                 if let separator = row.content.separatorLine, lineIndex == row.buffer.lines.count - 1 {
                     let rule = separator.drawn(width: max(0, rowWidth - listRowGutter), palette: palette)
-                    return renderPlainLine(line: rule, rowWidth: rowWidth, backgroundColor: nil, gutter: " ")
+                    return renderPlainLine(
+                        line: rule, lineLength: rule.strippedLength, rowWidth: rowWidth, backgroundColor: nil, gutter: " ")
                 }
                 if shouldRenderBadge && lineIndex == 0 {
                     return renderLineWithBadge(
                         line: line, badge: badge!, rowWidth: rowWidth, backgroundColor: backgroundColor,
                         ink: badgeInk, gutter: gutter, bold: context.environment.legibilityWeight.drawsPlainBold)
                 } else {
+                    // Its width from the content's buffer, which mostly knows it:
+                    // `line` is that buffer's row, or the same cells spent on a fill.
                     return renderPlainLine(
-                        line: line,
-                        rowWidth: rowWidth,
-                        backgroundColor: backgroundColor,
-                        gutter: lineIndex == 0 ? gutter : " "
-                    )
+                        line: line, lineLength: row.buffer.knownWidth(ofRow: lineIndex, line: line), rowWidth: rowWidth,
+                        backgroundColor: backgroundColor, gutter: lineIndex == 0 ? gutter : " ")
                 }
             }
         }
@@ -4919,13 +4919,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
     /// Renders a plain line without badge.
     /// Layout: [1 pad][content][right padding]
+    ///
+    /// `lineLength` is `line`'s visible width, which the caller knows.
     private func renderPlainLine(
         line: String,
+        lineLength: Int,
         rowWidth: Int,
         backgroundColor: Color?,
         gutter: String
     ) -> String {
-        let lineLength = line.strippedLength
         let usedWidth = 1 + lineLength
         let rightPadding = max(1, rowWidth - usedWidth)
         let paddedLine = gutter + line + String.spaces(rightPadding)
