@@ -317,14 +317,6 @@ extension _ButtonStyleBody {
         case face
     }
 
-    /// The quadrant glyphs by which quadrants are inside: bit 0 top-leading,
-    /// 1 top-trailing, 2 bottom-leading, 3 bottom-trailing. All four is a
-    /// cell of the face, drawn as its background.
-    private static let quadrants: [Character] = [
-        " ", "\u{2598}", "\u{259D}", "\u{2580}", "\u{2596}", "\u{258C}", "\u{259E}", "\u{259B}",
-        "\u{2597}", "\u{259A}", "\u{2590}", "\u{259C}", "\u{2584}", "\u{2599}", "\u{259F}", "\u{2588}",
-    ]
-
     /// A solid three-row face `width` cells wide in `shape`, a row of cells
     /// at a time: the shape sampled at each quadrant — a quadrant is half a
     /// cell across and a whole cell's width down, a row being two cells'
@@ -341,7 +333,7 @@ extension _ButtonStyleBody {
                 if inside(x + 0.75, y + 0.5) { bits |= 2 }
                 if inside(x + 0.25, y + 1.5) { bits |= 4 }
                 if inside(x + 0.75, y + 1.5) { bits |= 8 }
-                return bits == 15 ? .face : bits == 0 ? .empty : .glyph(quadrants[bits])
+                return bits == 15 ? .face : bits == 0 ? .empty : .glyph(TerminalSymbols.quadrants[bits])
             }
         }
     }

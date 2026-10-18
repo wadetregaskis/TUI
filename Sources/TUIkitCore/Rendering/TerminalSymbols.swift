@@ -20,6 +20,17 @@ public enum TerminalSymbols {
     /// Left half block (U+258C), used as closing cap for input controls.
     public static let closeCap: Character = "\u{258C}"
 
+    // MARK: - Quadrants
+
+    /// The quadrant glyphs by which quadrants of a cell are inked: bit 0
+    /// top-leading, 1 top-trailing, 2 bottom-leading, 3 bottom-trailing —
+    /// from the space (none) to the full block (all four). What a solid
+    /// button's three-row face and a filled shape's corners are drawn in.
+    package static let quadrants: [Character] = [
+        " ", "\u{2598}", "\u{259D}", "\u{2580}", "\u{2596}", "\u{258C}", "\u{259E}", "\u{259B}",
+        "\u{2597}", "\u{259A}", "\u{2590}", "\u{259C}", "\u{2584}", "\u{2599}", "\u{259F}", "\u{2588}",
+    ]
+
     // MARK: - Arrows
 
     /// Left-pointing triangle (U+25C0), used by Stepper and Slider.
