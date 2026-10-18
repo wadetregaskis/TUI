@@ -56,6 +56,7 @@ need no type of your own:
 |------------|------------|
 | ``View/opacity(_:)`` | The fade |
 | ``View/offset(x:y:)`` | The displacement — layout is untouched, so this is the cheapest |
+| ``View/shadow(color:radius:x:y:)`` | The radius and the offset, in whole cells, and the colour |
 | ``View/padding(_:_:)`` | The insets, and the layout around them |
 | ``View/frame(width:height:alignment:)`` | A **fixed** width and height |
 | ``View/foregroundStyle(_:)-(Color)``, ``View/background(_:)-(Color)``, ``View/border(_:style:width:)-(Color,_,_)`` | The colour |

@@ -1005,6 +1005,12 @@ look too heavy in the Example.
 **Ruled 2026-10-12: (b), cells as-is**, documented. Lane owed: about two days;
 `ShapeStyle.shadow` after W1.
 
+**`View.shadow(color:radius:x:y:)` and `ShadowStyle` shipped 2026-10-18**
+(`Sources/TUIkitFoundation/Modifiers/ShadowModifier.swift`, Deliberate
+deviations C6, decisions [Shadows (O6)](<Decisions/Shadows (O6).md>)).
+`ShapeStyle.shadow(_:)`, the one consumer of a `ShadowStyle` and so the only
+route to `.inner`, is still owed after W1.
+
 ### O7. `ScrollEdgeEffectStyle` (+ W10 `scrollEdgeEffectStyle`/`Hidden`) — S–M
 
 - **`.hard`:** a divider rule where content passes under a bar.

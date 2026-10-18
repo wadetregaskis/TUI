@@ -98,7 +98,8 @@ ruling is in the review under its item. In brief, with the ruling:
   possible.**
 - **O5** Materials and Glass (A41 lists the material symbols waiting on it).
   **(b) for both**; a cell-resolution blur is an optional add-on.
-- **O6** `ShadowStyle`. **(b)**, radius and offsets in cells.
+- **O6** `ShadowStyle`. **(b)**, radius and offsets in cells. `View.shadow(color:radius:x:y:)`
+  and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shadows (O6).md>)).
 - **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.
 - **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
   and others. This reopens `submitLabel`. **Restated; awaiting the owner.**
@@ -475,7 +476,7 @@ already, `View.clipShape(_:style:)` and `View.contentShape(_:eoFill:)`/`(_:_:eoF
 
 Wave 16 shipped what a cell grid keeps honestly: `clipped(antialiased:)` (the
 cut `ScrollView` and `List` already made) and `compositingGroup()` (a guarantee
-the compositor keeps). Blur, blend modes, luminance to alpha and the background
+the compositor keeps). `View.shadow(color:radius:x:y:)` followed with O6 (2026-10-18). Blur, blend modes, luminance to alpha and the background
 extension effect joined the map's per-pixel shading family. The rest is yours.
 
 **Transforms.** A glyph cannot be scaled or turned, and an affine transform

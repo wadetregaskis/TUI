@@ -312,6 +312,37 @@ Two more rules make fading a container behave the way you would expect:
 - **What is behind keeps its own foreground.** A translucent pane over text
   tints the surface under the text, not the text — which stays legible.
 
+### Shadows
+
+``View/shadow(color:radius:x:y:)`` draws a drop shadow with the same
+compositing. The cells the view paints — its glyphs, and the cells it gives a
+field — are moved `x` columns right and `y` rows down, and darken whatever
+they fall on by the shadow colour's alpha: a third, in black, unless you say
+otherwise. What is behind keeps its characters, so text under a shadow stays
+readable, only darker.
+
+```swift
+Text("Saved")
+    .padding(1)
+    .background(.blue)
+    .shadow(radius: 1, x: 2, y: 1)
+```
+
+The numbers are **cells**, like `.padding(_:)`'s. `radius` softens the edge:
+the shadow fades out across that many cells beyond it, so `0` is a hard
+terminal-style shadow and `2` or `3` is already soft. A radius carried over
+from SwiftUI's points is far too large here: a cell is about eight points
+across, so divide by eight or so.
+
+The shadow is behind the view: where the view paints its own background, the
+shadow is hidden, and where it leaves the background clear — a label with no
+`.background` — the shadow shows through around its letters. Past the view's
+edges it is drawn over the views before it and under the ones after it, and a
+``ScrollView`` cuts it at its edge. A shadow needs a backdrop to darken: on a
+near-black page a black shadow is barely there, and a light panel behind the
+view, or a coloured shadow — `.shadow(color: .palette.accent.opacity(0.5),
+radius: 2)` reads as a glow — shows it.
+
 ## Semantic Colors
 
 `SemanticColor` provides palette-aware color tokens that resolve at render time. This is the bridge between the color system and the theming system.

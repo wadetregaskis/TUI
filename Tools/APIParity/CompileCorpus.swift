@@ -3683,3 +3683,24 @@ private struct CorpusPresentationCornerRadius: View {
             }
     }
 }
+
+// MARK: - Shadows, in whole cells (lane O6)
+
+/// `shadow(color:radius:x:y:)` as SwiftUI code writes it: the radius alone, a
+/// translucent colour with an offset, and a semantic colour. Integer literals
+/// are cells here (`.padding(8)`'s unit); a fractional radius does not compile.
+@MainActor
+private struct CorpusShadowedCards: View {
+    var body: some View {
+        VStack {
+            Text("Card").padding().background(.white).shadow(radius: 4)
+            Text("Lifted").shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+            Color.blue.shadow(color: .primary, radius: 0, x: 2, y: 2)
+        }
+    }
+}
+
+/// `ShadowStyle`'s two kinds, every argument but the radius defaulted or stated.
+private let corpusShadowStyles: [ShadowStyle] = [
+    .drop(radius: 2), .drop(color: .black.opacity(0.4), radius: 1, x: 1, y: 2), .inner(radius: 1, y: 1),
+]

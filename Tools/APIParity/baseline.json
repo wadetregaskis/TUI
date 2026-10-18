@@ -153,7 +153,6 @@
   "View.sensoryFeedback(_:trigger:)",
   "View.sensoryFeedback(_:trigger:condition:)",
   "View.sensoryFeedback(trigger:_:)",
-  "View.shadow(color:radius:x:y:)",
   "View.swipeActions(edge:allowsFullSwipe:content:)",
   "View.tabBarMinimizeBehavior(_:)",
   "View.tabViewSearchActivation(_:)",

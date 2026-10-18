@@ -256,7 +256,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**; the guide placements were
   closed by the owner's 2026-10-12 ruling ("try to support it"), and content
   larger than its region was not
-  ([B-GUIDE3-1](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>)). The other exception is displaced drawing, L6.
+  ([B-GUIDE3-1](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>)). The other exceptions are displaced drawing, L6,
+  and a drop shadow, which is drawn past its view the same way, at the view's
+  place in the stacking order (since 2026-10-18, C6).
 
 ### L6. Displaced drawing floats over its neighbours
 
@@ -1042,6 +1044,26 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   glyph decision takes (`Opacity as composition.md` §6a).
 - **Decided:** refusal review W1 ("rects clip to the frame; other shapes mask
   cells at coverage ≥ ½"), [B-W1-11](<Decisions/Shapes (W1).md#b-w1-11-a-clip-keeps-a-cell-at-half-coverage-and-leaves-the-hit-area-alone>). **Lane.**
+
+### C10. A shadow is whole cells, cast by the cells a view paints
+
+- **SwiftUI:** `shadow(color:radius:x:y:)` and `ShadowStyle` blur, tint and
+  offset a view's per-pixel alpha, the radius and the offsets in points (the
+  SDK's declarations and Apple's documentation; not measured).
+- **TUIkit:** they are whole cells. The shadow is cast by the cells the view
+  paints — a glyph, or a cell with a field, reverse video or a line of its
+  own — moved `x` columns and `y` rows, at the colour's alpha, and `radius` is
+  an alpha falloff across that many cells beyond it, `1 / (radius + 1)` less a
+  cell and rounded at the corners. So a ported `radius: 8` is eight cells, as
+  `.padding(8)` is, where SwiftUI's is eight points; and a label with no
+  background casts the shape of its letters a whole cell at a time. What the
+  shadow falls on keeps its glyphs, ink and field darkened together
+  (`ShadowTests`, `ShadowFieldTests`).
+- **Why:** a terminal addresses whole cells (U1), and the one alpha a cell has
+  that matters to a shadow is whether the view paints it.
+- **Decided:** [O6](<Refusals re-examined, wave 17 (2026-10-03).md#o6-shadowstyle--w16-shadow-w13-shapestyleshadow--m>),
+  ruled 2026-10-12: option (b), cells as-is, documented;
+  [B-O6-1](<Decisions/Shadows (O6).md#b-o6-1-a-shadow-is-cast-by-the-cells-a-view-paints-and-falls-off-by-whole-rings>). **Owner.**
 
 ---
 
