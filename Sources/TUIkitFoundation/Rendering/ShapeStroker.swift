@@ -160,8 +160,15 @@ enum ShapeStroker {
     /// The lines `contours` dash into: the pattern's "on" stretches, as open
     /// lines, the phase walked off from each subpath's start. A contour dashes
     /// whole when the pattern is empty or has no length.
+    ///
+    /// An odd number of lengths is laid twice end to end, so that painted and
+    /// unpainted alternate through it — `[2]` is two painted, two not, and
+    /// `[4, 2, 6]` paints the 2 the second time round. That is CoreGraphics'
+    /// rule, which SwiftUI strokes by (measured, the W1 review's `arcs.swift`
+    /// probe, session notes); read as it stood, a lone length was all painted.
     static func dashed(_ contours: [Path.Contour], style: StrokeStyle) -> [Path.Contour] {
-        let pattern = style.dash.map { max(0, $0) }
+        let lengths = style.dash.map { max(0, $0) }
+        let pattern = lengths.count.isMultiple(of: 2) ? lengths : lengths + lengths
         let period = pattern.reduce(0, +)
         guard !pattern.isEmpty, period > 0 else { return contours }
         var lines: [Path.Contour] = []

@@ -112,6 +112,18 @@ struct ShapeRasterTests {
         #expect(dots.coverage(x: 2, y: 3) == 0)
     }
 
+    /// CoreGraphics' own strokes (the W1 review's `arcs.swift` probe): `[4]`
+    /// is `####....`, `[4, 2, 6]` is `####..######....##......`. Before, a lone
+    /// length dashed nothing: every stretch of it was painted.
+    @Test("An odd number of dash lengths runs twice, so painted and unpainted alternate")
+    func oddDashes() {
+        let line = [CGPoint(x: 0, y: 4), CGPoint(x: 24, y: 4)]
+        let single = stroked(line, StrokeStyle(lineWidth: 2, dash: [4]), size: 24)
+        #expect((0..<24).map { single.coverage(x: $0, y: 3) == 1 ? "#" : "." }.joined() == "####....####....####....")
+        let triple = stroked(line, StrokeStyle(lineWidth: 2, dash: [4, 2, 6]), size: 24)
+        #expect((0..<24).map { triple.coverage(x: $0, y: 3) == 1 ? "#" : "." }.joined() == "####..######....##......")
+    }
+
     // MARK: Half blocks
 
     /// A circle filling a `columns` × `rows` frame at aspect 2.
