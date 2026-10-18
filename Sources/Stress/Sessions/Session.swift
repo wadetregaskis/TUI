@@ -290,6 +290,7 @@ enum Sessions {
             ImageRowsSession.descriptor,
             MenusSession.descriptor,
             ThemesSession.descriptor,
+            GlidesSession.descriptor,
         ]
 
     @MainActor
