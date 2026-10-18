@@ -15,8 +15,8 @@ import Foundation
 /// shape; if no container shape was defined, it is a rectangle — mirrors
 /// SwiftUI's `ContainerRelativeShape`.
 ///
-/// Inside a ``View/containerShape(_:)`` it is drawn as that shape, inset by how
-/// far inside the container it lies — the nearest side deciding — so its
+/// Inside a ``View/containerShape(_:)-(T)`` it is drawn as that shape, inset by
+/// how far inside the container it lies — the nearest side deciding — so its
 /// corners stay concentric with the container's: drawn as lines a corner is `╭`
 /// while the container's radius outlasts the inset, and `┌` once it is used up.
 /// Calling ``path(in:)`` directly has no container to ask, and answers the

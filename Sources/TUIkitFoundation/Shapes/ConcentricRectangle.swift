@@ -16,10 +16,11 @@ import Foundation
 ///
 /// A corner styled ``Edge/Corner/Style/concentric`` takes the radius of the
 /// container's corner on its side — the container set by
-/// ``View/containerShape(_:)`` — less how far inside the container this shape
-/// lies, so nested rounded panels stay concentric; and a corner inset as far as
-/// the container's radius is square, `┌`. A fixed corner keeps its radius. With
-/// no container, a concentric corner is its minimum, or square.
+/// ``View/containerShape(_:)-(RoundedRectangularShape)`` — less how far inside
+/// the container this shape lies, so nested rounded panels stay concentric; and
+/// a corner inset as far as the container's radius is square, `┌`. A fixed
+/// corner keeps its radius. With no container, a concentric corner is its
+/// minimum, or square.
 ///
 /// Drawn as a rectangle of the rounded family is: in box glyphs, a corner per
 /// corner. `isUniform` makes every corner the smallest of the four (SwiftUI's

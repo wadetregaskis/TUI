@@ -36,7 +36,7 @@ extension View {
     }
 
     /// Sets the view's background to a shape filled with the background
-    /// style — the one ``View/backgroundStyle(_:)`` sets, the palette's
+    /// style — the one ``View/backgroundStyle(_:)-(S)`` sets, the palette's
     /// background where none is set.
     ///
     /// - Parameters:
