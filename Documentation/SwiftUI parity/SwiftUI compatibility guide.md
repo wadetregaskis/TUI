@@ -571,7 +571,7 @@ header, a modal's backdrop — renders against the app's ROOT palette, so a
 `\.colorScheme` pin (or a `.palette`) written inside content does not reach it,
 just as a SwiftUI subview's pin does not reach its window.
 
-### 2.6 Toolbars are the window's bars; commands are not yet
+### 2.6 Toolbars are the window's bars; commands are its menu bar
 
 ```swift
 // SwiftUI, and TUIkit: the same source, the same meaning
@@ -679,8 +679,36 @@ their `@State` for when it comes back.
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
 modifiers (`toolbarBackground`, `toolbarRole`, `toolbarItemHidden`,
 `toolbarTitleMenu`, …), a
-`NavigationStack`'s bar hosting a pushed screen's items, the customisation
-family (`toolbar(id:)`), and `Commands`/the menu bar.
+`NavigationStack`'s bar hosting a pushed screen's items, and the customisation
+family (`toolbar(id:)`).
+
+**Commands are the window's menu bar** (TUIkitCommands; refusal review O13,
+ruled 2026-10-12). A scene that declares commands — `.commands { … }` with
+`CommandMenu`s and `CommandGroup`s, or a `Commands` type of the app's own —
+has a menu bar on the window's top row, above the top bar; one that declares
+none has no bar and loses no row. Its menus are SwiftUI's on macOS, in
+SwiftUI's order (measured on macOS 15.8, the main menu read back: session
+notes `O13/probe/menus.swift`): the standard menus that have something in
+them (the app's, File, Edit, Format, View, Window, Help — a `CommandGroup`
+goes into its placement's), with the app's own menus between View and
+Window in order of declaration. Within a group the newest `before:` comes
+first, the `after:`s follow, and the last `replacing:` stands; commands on
+several modifiers add up, the innermost first, and `commandsRemoved()` and
+`commandsReplaced(content:)` take away what is inside them, keeping what is
+outside. A command's keyboard shortcut works whether its menu is open or not,
+and a command reads the focused view's `@FocusedValue` as of the frame its key
+is pressed after: the bar is drawn after the page. Two differences, each a
+choice:
+
+- **The page's own shortcut on a command's key is asked first**, as AppKit
+  sends a key equivalent to the key window before the main menu (documented;
+  UNMEASURED in SwiftUI, whose probe could not make its window key here).
+- **While a modal holds the input, the menu bar is inert** and no command's
+  key fires from behind it, as the top bar is inert; the modal's own keys
+  still work.
+
+In a terminal too short for every bar, the bottom bar keeps its rows, the
+menu bar its one, and the top bar gives way.
 
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
 toggle handles (the ◀ on the leftmost divider and the ▶ edge column), and any

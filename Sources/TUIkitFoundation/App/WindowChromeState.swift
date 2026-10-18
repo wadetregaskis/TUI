@@ -174,6 +174,20 @@ package final class WindowChromeState: @unchecked Sendable {
         style
     }
 
+    /// What draws the window's menu bar this frame — the view the scene's
+    /// commands make (`Scene.commands(content:)`, TUIkitCommands) — or `nil`
+    /// for no menu bar.
+    ///
+    /// Set by the run loop before the walk, from the scene's configuration.
+    /// A scene states its commands, so whether the bar has its row is known
+    /// before anything is laid out: unlike a toolbar's rows, the menu bar's
+    /// are this frame's answer, never last frame's.
+    package var menuBar: AnyView? { get { _menuBar } set { _menuBar = newValue } }
+
+    /// ``menuBar``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _menuBar: AnyView?
+
     /// The toolbar items this walk has declared, in the order it declared them.
     private(set) var toolbarEntries: [ToolbarEntry] = []
 

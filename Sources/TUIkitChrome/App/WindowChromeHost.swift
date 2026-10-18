@@ -11,14 +11,16 @@ import TUIkitFoundation
 
 // MARK: - The Chrome Host
 
-/// The scene-level host that lays the window out: the top bar, the content,
-/// and the bottom bar, stacked into one buffer the size of the terminal.
+/// The scene-level host that lays the window out: the menu bar, the top bar,
+/// the content, and the bottom bar, stacked into one buffer the size of the
+/// terminal.
 ///
 /// Every bar is opt-in. A bar exists while a `.toolbar` places something in it
 /// (``ToolbarItemPlacement``), and an app that places nothing draws on every
 /// row of the terminal. The line of key hints is a view the app places in the
 /// bottom bar, ``StatusBar``'s `init()`; the keys it names work with no bar at
-/// all.
+/// all. The menu bar is the scene's: it exists while the scene declares
+/// commands (TUIkitCommands), on the top row (``WindowChromeState/menuBar``).
 ///
 /// The chrome is drawn here, in the tree, rather than by the run loop around
 /// it. The run loop once built a header and a status bar outside the tree and
@@ -44,7 +46,9 @@ import TUIkitFoundation
 /// 3. Draws each bar's items after the content, so their focus sections follow
 ///    the page's, and composites the content's overlay layers — with the bars'
 ///    anchored ones lifted onto them — inside the content area, so a modal's
-///    dimming stops at the chrome.
+///    dimming stops at the chrome. The menu bar is drawn last, after the
+///    toolbars, so a command reading the focused view's `@FocusedValue` reads
+///    what this walk published; its open menu hangs over the whole window.
 /// 4. Frames each bar in its style, on its own surface, fitted to the rows it
 ///    reserved, and stacks the three.
 /// 5. Settles the reservations against what the content declared this walk,
@@ -85,16 +89,17 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // tooltip.
         let rows = chrome.map { reservedRows($0, tooltipRows: tooltip.count, height: height) } ?? Rows()
         let contentHeight = contentAreaHeight(
-            terminalHeight: height, statusBarHeight: rows.bottom, headerHeight: rows.top)
+            terminalHeight: height, statusBarHeight: rows.bottom, headerHeight: rows.menu + rows.top)
         // A sheet docked live at the bottom of the content area takes its rows
         // from the page, which is laid out in the rows above it: last frame's
         // answer, asked before the walk (`FocusManager.notePresentationDock`).
         let focusManager = context.environment.focusManager
         let dock = focusManager?.presentationDock(in: contentHeight, storage: context.stateStorage) ?? 0
 
-        // Placed below the top bar's rows, which a reader in the content is
-        // told (the carried geometry origin, `RenderContext.placingChild`).
-        var contentContext = context.placingChild(gradient: nil, x: 0, y: rows.top)
+        // Placed below the menu bar's and the top bar's rows, which a reader
+        // in the content is told (the carried geometry origin,
+        // `RenderContext.placingChild`).
+        var contentContext = context.placingChild(gradient: nil, x: 0, y: rows.menu + rows.top)
         contentContext.availableHeight = contentHeight - dock
         // Anchored overlays (a Picker drop-down) size to the area the
         // compositor will clamp them to — between the bars — rather than to
@@ -105,7 +110,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // The content offers the window its title as it draws — on the seeding
         // walk too, although it measures, since the title sizes the top bar
         // (`PreferenceModifier.offerToWindowChrome`).
-        var page = placeContent(context: contentContext, rowsAbove: rows.top)
+        var page = placeContent(context: contentContext, rowsAbove: rows.menu + rows.top)
         guard !context.isMeasuring else {
             if let chrome, context.environment.seedsWindowChrome {
                 for edge in WindowChromeState.Edge.allCases {
@@ -142,6 +147,11 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
                 width: width, isModal: isModal, context: context)
         }
         if let chrome { retainUndrawnItems(chrome, itemRows: itemRows, context: context) }
+        // The menu bar, after both toolbars: the last thing drawn, so the
+        // commands it renders read this walk's focused values.
+        let menu = rows.menu > 0 ? chrome?.menuBar.map {
+            menuBarBuffer($0, width: width, height: height, isModal: isModal, context: context)
+        } : nil
         // After the toolbars, whose items present sheets too: a dock one of
         // them posts is compared with the page's like any other.
         if let focusManager { settleDock(dock, focusManager: focusManager, contentHeight: contentHeight, context: context) }
@@ -154,7 +164,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // frames only: a scene drawn outside one selects nothing.
         if chrome != nil, let selection = context.environment.screenSelection {
             page = selection.takeFrame(
-                page, width: width, palette: palette, top: rows.top, underPresentation: isModal)
+                page, width: width, palette: palette, top: rows.menu + rows.top, underPresentation: isModal)
         }
         // Composite every free-floating overlay layer (Picker drop-downs,
         // popovers, …) emitted during rendering onto the content area only:
@@ -167,19 +177,9 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         }
         guard let chrome else { return page }
 
-        let backgrounds = RenderBackgroundCodes(palette: palette)
-        var frame = FrameBuffer()
-        if rows.top > 0 {
-            frame.appendVertically(
-                (top ?? FrameBuffer())
-                    .fittedAsChrome(toRows: rows.top, width: width, background: backgrounds.appHeader))
-        }
-        frame.appendVertically(page)
-        if rows.bottom > 0 {
-            frame.appendVertically(
-                (bottom ?? FrameBuffer())
-                    .fittedAsChrome(toRows: rows.bottom, width: width, background: backgrounds.statusBar))
-        }
+        let frame = stacked(
+            Bars(menu: menu, top: top, bottom: bottom), around: page, in: rows, width: width, height: height,
+            chrome: chrome, palette: palette)
 
         // What the content declared this walk becomes the next frame's rows.
         let now = context.environment.frameNowNanos
@@ -197,7 +197,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// holding the input — a popover, a menu, a drop-down
     /// (``OverlayLayer/holdsInput``). Not a tooltip's panel, a toast, a
     /// dragged row's picture or a view's own displaced drawing.
-    private static func presentations(in layers: [OverlayLayer]) -> Int {
+    static func presentations(in layers: [OverlayLayer]) -> Int {
         layers.reduce(0) { count, layer in
             count + (layer.isScreenLevel || layer.holdsInput ? 1 : 0) + presentations(in: layer.content.overlays)
         }
@@ -205,28 +205,35 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
 
     /// The rows each bar takes this frame, framing included.
     struct Rows {
-        /// The rows above the content.
+        /// The menu bar's row, above the top bar: 1 while the scene declares
+        /// commands, if the terminal has a row to spare.
+        var menu = 0
+        /// The top bar's rows, above the content.
         var top = 0
         /// The rows below the content.
         var bottom = 0
     }
 
-    /// Last frame's rows for each bar, in this frame's styles, with
+    /// Last frame's rows for each toolbar, in this frame's styles, with
     /// `tooltipRows` added to the bottom bar's: a tooltip with no bottom bar
-    /// takes a bar of its own while it shows.
+    /// takes a bar of its own while it shows. And this frame's row for the
+    /// menu bar, which the scene states.
     ///
-    /// In a terminal of `height` rows too short for both, the bottom bar keeps
-    /// its rows and the top bar gets what is left, cut from its end. The line
-    /// of key hints lives in the bottom bar and is how a person finds the keys,
-    /// so it is the one that stays whole — as it did when the run loop wrote
-    /// it last, over the header, at the foot of the screen. Stacked uncut, the
-    /// frame was taller than the screen and the writer dropped its last rows:
-    /// the bottom bar's.
+    /// In a terminal of `height` rows too short for every bar, the bottom bar
+    /// keeps its rows, the menu bar its one, and the top bar gets what is
+    /// left, cut from its end. The line of key hints lives in the bottom bar
+    /// and is how a person finds the keys, so it is the one that stays whole —
+    /// as it did when the run loop wrote it last, over the header, at the foot
+    /// of the screen. Stacked uncut, the frame was taller than the screen and
+    /// the writer dropped its last rows: the bottom bar's. The menu bar is the
+    /// keyboard's way to the commands that have no key of their own, so it
+    /// gives way only to the bottom bar.
     private func reservedRows(_ chrome: WindowChromeState, tooltipRows: Int, height: Int) -> Rows {
         let bottom = min(
             height, Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.style))
-        let top = min(height - bottom, Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style))
-        return Rows(top: top, bottom: bottom)
+        let menu = chrome.menuBar == nil ? 0 : min(height - bottom, 1)
+        let top = min(height - bottom - menu, Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style))
+        return Rows(menu: menu, top: top, bottom: bottom)
     }
 
     /// How many rows of each bar's content its items are laid out in: all of

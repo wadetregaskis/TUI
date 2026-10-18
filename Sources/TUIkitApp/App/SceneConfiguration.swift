@@ -15,7 +15,7 @@ import TUIkitView
 /// Everything the modifiers written on a scene state for the frame: the values
 /// the run loop reads before it renders anything, because they decide either
 /// the frame's root environment (`.environment`, `.palette`, `.appearance`) or
-/// the window's chrome (`.mouseSupport`, `.windowToolbarStyle`).
+/// the window's chrome (`.mouseSupport`, `.windowToolbarStyle`, `.commands`).
 ///
 /// Gathered by one walk down the scene's modifier chain,
 /// ``Scene/sceneConfiguration``, from the outermost modifier in. Each modifier
@@ -53,6 +53,10 @@ struct SceneConfiguration {
     /// Whether the top bar's title slot shows the window's title, if a
     /// `.windowToolbarStyle` said.
     var showsTitle: Bool?
+
+    /// What the scene's commands modifiers state: the menu bar, if any
+    /// declared commands (TUIkitCommands).
+    var commands = SceneCommands()
 
     /// Runs the scene's environment writes over `environment`, in order.
     func applyEnvironmentWrites(to environment: inout EnvironmentValues) {

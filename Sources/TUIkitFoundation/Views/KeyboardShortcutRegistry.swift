@@ -95,7 +95,9 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
         registrationCount = 0
     }
 
-    /// Registers `action` for `shortcut`; the last registration in a frame wins.
+    /// Registers `action` for `shortcut`; the last registration in a frame wins
+    /// — except over the window's own while the menu bar's commands register
+    /// (``registeringCommands(_:)``).
     ///
     /// - Parameter repeats: Whether a held key's repeats run the action again.
     ///   A repeat is told from a press only where the terminal speaks the kitty
@@ -107,10 +109,36 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
         registrationCount += 1
         let entry = Entry(repeats: repeats, action: action, serial: registrationCount)
         if let currentPane {
+            if registersCommands, paneActions[currentPane]?[shortcut.trigger] != nil { return }
             paneActions[currentPane, default: [:]][shortcut.trigger] = entry
         } else {
+            if registersCommands, actions[shortcut.trigger] != nil { return }
             actions[shortcut.trigger] = entry
         }
+    }
+
+    /// Whether what registers now is the menu bar's commands — see
+    /// ``registeringCommands(_:)``.
+    private var registersCommands = false
+
+    /// Runs `body`, in which what registers is the menu bar's commands: a
+    /// command's shortcut is registered unless the window's content already
+    /// registered one on its trigger this frame, which keeps it.
+    ///
+    /// The menu bar's commands render after the content, so that a command
+    /// reading the focused view's `@FocusedValue` reads this frame's, and
+    /// "the last registration wins" would have handed every shared chord to
+    /// the menu bar. AppKit documents the other order: a key equivalent goes
+    /// to the key window's views first, and to the main menu only if none
+    /// takes it (Cocoa Event Handling Guide, "The Path of Key Events").
+    /// UNMEASURED in SwiftUI itself: the lane's probe (session notes
+    /// O13/probe/menus.swift) could not make its window key on this machine,
+    /// and with no key window the menu took the key.
+    package func registeringCommands<Result>(_ body: () -> Result) -> Result {
+        let outer = registersCommands
+        registersCommands = true
+        defer { registersCommands = outer }
+        return body()
     }
 
     /// What `shortcut` runs, and whether a held key repeats it, if its

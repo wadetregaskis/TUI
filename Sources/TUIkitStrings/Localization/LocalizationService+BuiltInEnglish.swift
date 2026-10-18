@@ -121,6 +121,8 @@ extension LocalizationService {
       "menu.edit": "Edit",
       "menu.view": "View",
       "menu.help": "Help",
+      "menu.format": "Format",
+      "menu.window": "Window",
       "menu.new": "New",
       "menu.open": "Open",
       "menu.save": "Save",

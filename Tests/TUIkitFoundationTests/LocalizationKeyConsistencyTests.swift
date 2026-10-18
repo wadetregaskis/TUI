@@ -193,27 +193,9 @@ final class LocalizationKeyConsistencyTests {
 
     @Test("All menu keys exist in translations")
     func allMenuKeysExist() {
-        let keys = [
-            LocalizationKey.Menu.file,
-            LocalizationKey.Menu.edit,
-            LocalizationKey.Menu.view,
-            LocalizationKey.Menu.help,
-            LocalizationKey.Menu.new,
-            LocalizationKey.Menu.open,
-            LocalizationKey.Menu.save,
-            LocalizationKey.Menu.exit,
-            LocalizationKey.Menu.undo,
-            LocalizationKey.Menu.redo,
-            LocalizationKey.Menu.showLink,
-            LocalizationKey.Menu.copyLink,
-            LocalizationKey.Menu.copyLinkLabel,
-            LocalizationKey.Menu.copyLinkAsMarkdown,
-            LocalizationKey.Menu.cut,
-            LocalizationKey.Menu.selectAll,
-            LocalizationKey.Menu.yank,
-        ]
-
-        for key in keys {
+        // Enumerated, as the status bar's are: the menu bar (lane O13) grew
+        // the group, and a hand-written list stops covering what it omits.
+        for key in LocalizationKey.Menu.allCases {
             #expect(englishTranslations[key.rawValue] != nil, "Menu key '\(key.rawValue)' not found in translations")
         }
     }
@@ -345,24 +327,10 @@ final class LocalizationKeyConsistencyTests {
         enumKeys.insert(LocalizationKey.Placeholder.enterName.rawValue)
         enumKeys.insert(LocalizationKey.Placeholder.chooseFile.rawValue)
 
-        // Menu keys
-        enumKeys.insert(LocalizationKey.Menu.file.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.edit.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.view.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.help.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.new.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.open.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.save.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.exit.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.undo.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.redo.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.showLink.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.copyLink.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.copyLinkLabel.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.copyLinkAsMarkdown.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.cut.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.selectAll.rawValue)
-        enumKeys.insert(LocalizationKey.Menu.yank.rawValue)
+        // Menu keys — enumerated, as the status bar's are.
+        for key in LocalizationKey.Menu.allCases {
+            enumKeys.insert(key.rawValue)
+        }
 
         // Dialog keys
         enumKeys.insert(LocalizationKey.Dialog.confirm.rawValue)
@@ -418,7 +386,7 @@ final class LocalizationKeyConsistencyTests {
         // button + label + error + placeholder + menu + dialog + validation
         //   + statusbar + appearance + time span + key names
         let expectedKeyCount =
-            26 + LocalizationKey.Label.allCases.count + 11 + 6 + 17 + 7 + 4
+            26 + LocalizationKey.Label.allCases.count + 11 + 6 + LocalizationKey.Menu.allCases.count + 7 + 4
             + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
             + LocalizationKey.KeyName.allCases.count
         #expect(

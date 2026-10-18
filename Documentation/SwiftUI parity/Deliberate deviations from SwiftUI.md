@@ -1552,7 +1552,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   goes one frame after the page that changed it. The window's title is the
   outermost `.navigationTitle` drawn.
 - **Why:** a bar's rows must be known before the page is laid out.
-- **Decided:** [§2.6](<SwiftUI compatibility guide.md#26-toolbars-are-the-windows-bars-commands-are-not-yet>). **Recorded.**
+- **Decided:** [§2.6](<SwiftUI compatibility guide.md#26-toolbars-are-the-windows-bars-commands-are-its-menu-bar>). **Recorded.**
 
 ### W2. A toolbar in a sheet draws round the view that declared it
 
@@ -1621,6 +1621,34 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (2026-08-24; both presentations, the app's choice, confirmed when they
   shipped, 2026-09-09), and the owner's 2026-10-12 ruling that views that
   cannot take the focus have help too. **Owner**.
+
+### W7. The page's own shortcut on a command's key is asked first
+
+- **SwiftUI:** on macOS a key equivalent goes to the key window's views first
+  and to the main menu only if none takes it (AppKit's Cocoa Event Handling
+  Guide, "The Path of Key Events"). Not measured in SwiftUI: the lane's probe
+  (session notes `O13/probe/menus.swift`) could not make its window key on
+  this machine, and with no key window the main menu took the key.
+- **TUIkit:** a `.keyboardShortcut` the window's content registers keeps its
+  key when a command declares the same one; the command's fires where nothing
+  on the page binds the key (`KeyboardShortcutRegistry.registeringCommands(_:)`,
+  `MenuBarTests.pageShortcutWins`).
+- **Why:** the documented order. The menu bar renders after the page so that a
+  command reads this frame's `@FocusedValue`, and "the last registration wins"
+  would otherwise have handed every shared key to the menu bar.
+- **Decided:** [B-O13-2](<Decisions/The menu bar (O13).md#b-o13-2-the-pages-own-shortcut-on-a-commands-key-is-asked-first>). **Lane.**
+
+### W8. No command works from behind a modal
+
+- **SwiftUI:** on macOS the menu bar stays usable while a sheet is up; a
+  command that reads a focused value sees the sheet's (not measured).
+- **TUIkit:** while a modal holds the input the menu bar is drawn inert, as the
+  top bar is: no menu opens, and no command's key fires from behind the modal
+  (`MenuBarTests.inertUnderAModal`). The modal's own keys work.
+- **Why:** a terminal app has one window, and a command acting on the page
+  hidden behind a sheet is a surprise the person cannot see; it is the rule
+  every other channel of the page follows under a modal.
+- **Decided:** [B-O13-3](<Decisions/The menu bar (O13).md#b-o13-3-no-command-works-from-behind-a-modal>). **Lane.**
 
 ---
 

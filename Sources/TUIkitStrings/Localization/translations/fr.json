@@ -91,6 +91,8 @@
   "menu.edit": "Modifier",
   "menu.view": "Affichage",
   "menu.help": "Aide",
+  "menu.format": "Format",
+  "menu.window": "Fenêtre",
   "menu.new": "Nouveau",
   "menu.open": "Ouvrir",
   "menu.save": "Enregistrer",

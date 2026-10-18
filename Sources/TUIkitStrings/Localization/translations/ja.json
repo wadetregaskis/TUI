@@ -91,6 +91,8 @@
   "menu.edit": "編集",
   "menu.view": "表示",
   "menu.help": "ヘルプ",
+  "menu.format": "フォーマット",
+  "menu.window": "ウインドウ",
   "menu.new": "新規",
   "menu.open": "開く",
   "menu.save": "保存",

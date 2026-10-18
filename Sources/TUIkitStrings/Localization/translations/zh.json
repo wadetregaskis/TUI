@@ -91,6 +91,8 @@
   "menu.edit": "编辑",
   "menu.view": "视图",
   "menu.help": "帮助",
+  "menu.format": "格式",
+  "menu.window": "窗口",
   "menu.new": "新建",
   "menu.open": "打开",
   "menu.save": "保存",

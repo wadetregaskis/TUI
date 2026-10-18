@@ -297,9 +297,6 @@
     },
     {
       "match": [
-        "*.commands*",
-        "*.commandsRemoved*",
-        "*.commandsReplaced*",
         "View.onCommand*",
         "ImportFromDevicesCommands*",
         "InspectorCommands*",
@@ -308,7 +305,7 @@
         "TextFormattingCommands*",
         "ToolbarCommands*"
       ],
-      "why": "What of the command system lane O13 (refusal review O13, ruled 2026-10-12: a full menu bar) has not built yet: the scene modifiers that declare commands and draw the menu bar, and the standard command sets. The vocabulary (Commands, CommandsBuilder, CommandMenu, CommandGroup, CommandGroupPlacement, EmptyCommands) is TUIkitCommands'. `onCommand`'s Objective-C selectors and responder chain stay declined."
+      "why": "What of the command system lane O13 (refusal review O13, ruled 2026-10-12: a full menu bar) has not built yet: the standard command sets. The vocabulary (Commands, CommandsBuilder, CommandMenu, CommandGroup, CommandGroupPlacement, EmptyCommands) and the scene modifiers (commands, commandsRemoved, commandsReplaced) are TUIkitCommands'. `onCommand`'s Objective-C selectors and responder chain stay declined."
     },
     {
       "match": [

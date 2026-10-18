@@ -3764,3 +3764,21 @@ private let corpusPlacements: [CommandGroupPlacement] = [
     .printItem, .undoRedo, .pasteboard, .textEditing, .textFormatting, .toolbar, .sidebar, .windowSize,
     .windowArrangement, .windowList, .singleWindowList, .help,
 ]
+
+/// The scene modifiers that declare commands, as SwiftUI's docs write them.
+@MainActor
+private struct CorpusCommandsScene: Scene {
+    var body: some Scene {
+        WindowGroup { Text("Notes") }
+            .commands {
+                CorpusNoteCommands()
+                CommandMenu("Tools") { Button("Run") {} }
+            }
+            .commandsRemoved()
+            .commandsReplaced {
+                CommandGroup(after: .pasteboard) {
+                    Section { Button("Show Clipboard") {} }
+                }
+            }
+    }
+}

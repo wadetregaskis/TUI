@@ -126,6 +126,32 @@ extension RenderContext {
         return copy
     }
 
+    /// A copy for a render whose only lasting effect is the keyboard shortcuts
+    /// it registers: the menu bar's commands while their menus are closed
+    /// (TUIkitCommands), whose key equivalents work whether a menu is open or
+    /// not, as SwiftUI's commands do.
+    ///
+    /// The shortcut registry is the LIVE one. Every other channel a control
+    /// registers in is a throwaway or absent: the key dispatcher and the status
+    /// bar (``withThrowawayKeyChannels()``), the focus manager — one that
+    /// focuses nothing, reading the live manager's focused values, so an item
+    /// that reads `@FocusedValue` reads what the live page published — and the
+    /// mouse dispatcher, so no click region or hover is registered for rows
+    /// nobody sees. Render it inside ``withThrowawayFrameDemand(_:)``, since
+    /// its buffer is thrown away.
+    package func withRegistrationOnlyChannels() -> Self {
+        var copy = self
+        copy.environment.keyEventDispatcher = KeyEventDispatcher()
+        copy.environment.statusBar = StatusBarState()
+        copy.environment.mouseEventDispatcher = nil
+        let unseen = FocusManager()
+        unseen.suppressesAutoFocus = true
+        unseen.isBackdrop = true
+        if let live = environment.focusManager { unseen.focusedValues = live.focusedValues }
+        copy.environment.focusManager = unseen
+        return copy
+    }
+
     /// A copy whose key dispatcher, keyboard-shortcut registry and status bar
     /// are throwaways — every channel a key can arrive on except the focus
     /// ring itself.

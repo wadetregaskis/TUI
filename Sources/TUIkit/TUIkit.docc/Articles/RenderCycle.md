@@ -153,10 +153,11 @@ All state changes inside the lifecycle manager are `NSLock`-protected. Callbacks
 
 The window's chrome host draws the bars after the content, as views, into the same frame:
 
-1. Before the content draws, it reserves each bar's rows: last frame's answer, kept by `WindowChromeState`, with this frame's tooltip row added to the bottom bar's. The content declares the bars as it draws, so a frame cannot know its own; a bar the content starts or stops declaring is adopted the frame after (and that frame is asked for), and the frame in between is drawn at the old reservation — a bar cut to its rows, or blank rows where one has gone. Every frame is one walk; the first frame alone takes an extra, measuring walk to seed the reservations
+1. Before the content draws, it reserves each bar's rows. The menu bar's is this frame's: the scene states its commands, and the run loop reads them from the scene's configuration before the walk. Each toolbar's is last frame's answer, kept by `WindowChromeState`, with this frame's tooltip row added to the bottom bar's. The content declares the bars as it draws, so a frame cannot know its own; a bar the content starts or stops declaring is adopted the frame after (and that frame is asked for), and the frame in between is drawn at the old reservation — a bar cut to its rows, or blank rows where one has gone. Every frame is one walk; the first frame alone takes an extra, measuring walk to seed the reservations
 2. The content renders in the rows left, and its overlay layers are composited inside them; a layer anchored in the header (a `Menu`'s drop-down) joins them
 3. A ``StatusBar`` view is created with the app's highlight and label colors as set; the view resolves them against the palette, with an unset color standing for the palette's accent or foreground
-4. Each bar's buffer has its opacity resolved against its own background, is painted on it and fitted to its reserved rows, then the top bar, the content and the bottom bar are stacked
+4. The menu bar renders last, after the toolbars, so a command reading the focused view's `@FocusedValue` reads this frame's; the closed menus' items render for their keyboard shortcuts alone, and an open menu is composited over the whole frame
+5. Each bar's buffer has its opacity resolved against its own background, is painted on it and fitted to its reserved rows, then the menu bar, the top bar, the content and the bottom bar are stacked
 
 The bars are **never affected** by view dimming or overlays: the compositor works inside the content area only.
 

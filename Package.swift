@@ -720,7 +720,7 @@ let package = Package(
             name: "TUIkitCommandsTests",
             dependencies: [
                 "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCommands", "TUIkitCore", "TUIkitFoundation",
-                "TUIkitTestSupport", "TUIkitView",
+                "TUIkitPresentation", "TUIkitTestSupport", "TUIkitView",
             ]
         ),
         .testTarget(

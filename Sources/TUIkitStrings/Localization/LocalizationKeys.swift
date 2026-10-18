@@ -170,11 +170,15 @@ public enum LocalizationKey {
     }
 
     /// Menu items and sections
-    public enum Menu: String {
+    public enum Menu: String, CaseIterable {
         case file = "menu.file"
         case edit = "menu.edit"
         case view = "menu.view"
         case help = "menu.help"
+        /// The menu bar's Format menu (`CommandGroupPlacement.textFormatting`).
+        case format = "menu.format"
+        /// The menu bar's Window menu.
+        case window = "menu.window"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

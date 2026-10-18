@@ -10,8 +10,8 @@ import TUIkitFoundation
 
 /// The run loop's reading of the scene's own configuration — the modifiers
 /// written on a `WindowGroup` that the tree does not read: its mouse support,
-/// its chrome style, its undo and redo keys, and its screen selection's copy
-/// key and copy-on-release.
+/// its chrome style and menu bar, its undo and redo keys, and its screen
+/// selection's copy key and copy-on-release.
 ///
 /// Separate from `RenderLoop.swift` because that file is at its length limit,
 /// the bargain `RenderLoop+TerminalColors.swift` makes too; it is why
@@ -58,5 +58,8 @@ extension RenderLoop {
     private func applyChromeStyle(from configuration: SceneConfiguration) {
         windowChrome.style = configuration.toolbarStyle ?? .bordered
         windowChrome.showsTitle = configuration.showsTitle ?? true
+        // The menu bar, if the scene declares commands: its row is the
+        // scene's statement, so it is known before the walk, as the style is.
+        windowChrome.menuBar = configuration.commands.menuBar()
     }
 }
