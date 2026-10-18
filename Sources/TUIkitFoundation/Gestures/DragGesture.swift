@@ -56,9 +56,10 @@ public struct DragGesture: Gesture {
         /// counterpart of the `CGSize` SwiftUI reports).
         ///
         /// Estimated from the times the terminal's motion reports arrived, as a
-        /// Mac mouse's is from its events' timestamps, and smoothed across
-        /// reports. A pointer held still sends no reports, so the velocity is
-        /// the last motion's — as macOS 15.8's is, measured.
+        /// Mac mouse's is from its events' timestamps: a least-squares fit of
+        /// the moves of the last 100 ms, as UIKit's pan recognizer fits them.
+        /// A pointer held still sends no reports, so the velocity is the last
+        /// motion's — as macOS 15.8's is, measured.
         public internal(set) var velocity: CellVector
 
         /// The total translation from the start of the drag gesture to the
@@ -149,10 +150,11 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
     var coordinateSpace = CoordinateSpace.local
 
     private var start = CellPoint.zero
-    private var last = CellPoint.zero
-    private var lastTime: Int64 = 0
     private var velocity = CellVector(dx: 0, dy: 0)
-    private var hasVelocity = false
+
+    /// The press and the moves since, as far back as a fit reaches
+    /// (``track(_:at:)``).
+    private var samples: [DragSample] = []
 
     override func receive(_ input: GestureInput, deliver: Bool) {
         guard case .pointer(let pointer) = input else { return }
@@ -160,10 +162,9 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
         switch pointer.kind {
         case .down:
             start = location
-            last = location
-            lastTime = pointer.timeNanos
             velocity = CellVector(dx: 0, dy: 0)
-            hasVelocity = false
+            samples.removeAll(keepingCapacity: true)
+            samples.append(DragSample(time: pointer.timeNanos, location: location))
             if minimumDistance == 0 {
                 phase = .active
                 report(currentValue(at: location))
@@ -199,23 +200,89 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
         report(nil)
     }
 
-    /// Folds one report into the velocity: the speed of the move it made,
-    /// averaged with the estimate so far. A report that did not move — a
+    /// Folds one report into the velocity. A report that did not move — a
     /// release where the last drag left the pointer — leaves it as it was.
+    ///
+    /// Otherwise the velocity is the least-squares slope of the press and
+    /// the moves since, over the last ``DragSample/window`` up to this report
+    /// (decisions B91). Anchored at the last report rather than at the
+    /// clock, so a pointer held still keeps its velocity, which macOS 15.8
+    /// was measured to do. A fit reads past several reports, so one pair of
+    /// them close together cannot spike it: TUIkit stamps a report when it
+    /// dispatches it, and reports the terminal sent over a frame and read at
+    /// once arrive microseconds apart. When the window holds too little to
+    /// fit — one report, after a pause; or a burst read at once and nothing
+    /// before it — it reaches back to the report before it.
     private func track(_ location: CellPoint, at time: Int64) {
-        let elapsed = Double(time - lastTime) / 1_000_000_000
-        guard location != last, elapsed > 0 else { return }
-        let instant = CellVector(
-            dx: Double(location.x - last.x) / elapsed, dy: Double(location.y - last.y) / elapsed)
-        velocity = hasVelocity
-            ? CellVector(dx: (velocity.dx + instant.dx) / 2, dy: (velocity.dy + instant.dy) / 2)
-            : instant
-        hasVelocity = true
-        last = location
-        lastTime = time
+        guard let previous = samples.last, location != previous.location else { return }
+        samples.append(DragSample(time: time, location: location))
+        // What no later fit reaches: everything before the last report
+        // older than the window, which a short window reaches back to.
+        let horizon = time &- DragSample.window
+        if let inside = samples.firstIndex(where: { $0.time >= horizon }), inside > 1 {
+            samples.removeFirst(inside - 1)
+        }
+        if samples.count > DragSample.capacity { samples.removeFirst(samples.count - DragSample.capacity) }
+        if let fitted = DragSample.fit(samples, horizon: horizon) { velocity = fitted }
     }
 
     private func currentValue(at location: CellPoint) -> DragGesture.Value {
         DragGesture.Value(time: Date(), location: location, startLocation: start, velocity: velocity)
+    }
+}
+
+/// One report a drag's velocity is fitted to: when it arrived, and where.
+struct DragSample {
+    var time: Int64
+    var location: CellPoint
+
+    /// How far back a fit reads: 100 ms, UIKit's pan recognizer's window.
+    static let window: Int64 = 100_000_000
+
+    /// The shortest span of report times a fit is made over: reports closer
+    /// together than 1 ms were read at once, not sent apart.
+    static let minimumSpan: Int64 = 1_000_000
+
+    /// The most reports kept: a terminal reporting a move per cell, across
+    /// a fast drag, sends hundreds a second, and a fit over the last 64 of
+    /// them is as good as one over 100 ms.
+    static let capacity = 64
+
+    /// The least-squares velocity of `samples`, in cells per second, over
+    /// those at or after `horizon` — or, where those span less than
+    /// ``minimumSpan``, over them and the one before. `nil` when even that
+    /// spans no time at all.
+    static func fit(_ samples: [Self], horizon: Int64) -> CellVector? {
+        guard let last = samples.last else { return nil }
+        var first = samples.firstIndex { $0.time >= horizon } ?? samples.count - 1
+        if first > 0, last.time &- samples[first].time < minimumSpan { first -= 1 }
+        let fitted = samples[first...]
+        guard fitted.count >= 2 else { return nil }
+        // Times in nanoseconds before the last report, so the sums stay
+        // small whatever the clock reads, and whole numbers: a fit through
+        // two reports comes out exact, 40 cells a second and not 39.999….
+        let count = Double(fitted.count)
+        var meanT = 0.0
+        var meanX = 0.0
+        var meanY = 0.0
+        for sample in fitted {
+            meanT += Double(sample.time &- last.time)
+            meanX += Double(sample.location.x)
+            meanY += Double(sample.location.y)
+        }
+        meanT /= count
+        meanX /= count
+        meanY /= count
+        var spread = 0.0
+        var alongX = 0.0
+        var alongY = 0.0
+        for sample in fitted {
+            let t = Double(sample.time &- last.time) - meanT
+            spread += t * t
+            alongX += t * (Double(sample.location.x) - meanX)
+            alongY += t * (Double(sample.location.y) - meanY)
+        }
+        guard spread > 0 else { return nil }
+        return CellVector(dx: alongX * 1_000_000_000 / spread, dy: alongY * 1_000_000_000 / spread)
     }
 }

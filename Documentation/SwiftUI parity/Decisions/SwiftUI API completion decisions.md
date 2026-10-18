@@ -3318,6 +3318,18 @@ smoothed estimate.
 **The fuller version** fits the last 100 ms of reports by least squares, as
 UIKit's pan recognizer does. Two hours; it matters only to fling physics.
 
+**Fuller version shipped (lane INPUT, 2026-10-18; settled by the owner's
+earlier rulings, open to veto).** The velocity is the least-squares slope of
+the press and the moves of the last 100 ms up to the last report
+(`DragSample.fit`), anchored at that report, so a pointer held still keeps
+its velocity as on macOS. Where the window holds one report (a move after a
+pause) or a burst read at once (reports under 1 ms apart, since TUIkit stamps
+a report at dispatch), the fit reaches back to the report before. A pair read
+at once no longer spikes it: 500,000 cells a second between two such reports
+went into the average halved, where the fit reads the steady speed around them
+(`LongPressAndDragGestureTests.dragVelocityThroughABurst`). At most 64 reports
+are kept per drag.
+
 ### B92. Timed recognizers run on the frame clock
 
 *`LongPressGesture`, `TapGesture` (its hold limit and its multi-tap wait),

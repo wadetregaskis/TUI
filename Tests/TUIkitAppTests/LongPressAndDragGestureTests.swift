@@ -142,10 +142,52 @@ struct LongPressAndDragGestureTests {
         #expect(values.last?.predictedEndTranslation == CellSize(width: 14, height: 0))
         harness.now = 200 * gestureMillisecond
         harness.pointer([(.dragged, 4, 2)], view)
-        #expect(values.last?.velocity == CellVector(dx: 20, dy: 10), "averaged with the last estimate")
+        #expect(values.last?.velocity == CellVector(dx: 0, dy: 20), "fitted to the last 100 ms of moves")
         harness.now = 900 * gestureMillisecond
         harness.pointer([(.released, 4, 2)], view)
-        #expect(values.last?.velocity == CellVector(dx: 20, dy: 10), "a still pointer reports nothing, so its velocity stands")
+        #expect(values.last?.velocity == CellVector(dx: 0, dy: 20), "a still pointer reports nothing, so its velocity stands")
+    }
+
+    /// Reports read at once arrive microseconds apart (TUIkit stamps a
+    /// report when it dispatches it), so one cell between two of them was a
+    /// speed of 500,000 cells a second, which the running average halved
+    /// into the estimate (decisions B91). A fit over the last 100 ms reads
+    /// the steady 50 a second around it.
+    @Test("A drag's velocity is fitted over 100 ms, so a pair of reports read at once does not spike it")
+    func dragVelocityThroughABurst() throws {
+        var values: [DragGesture.Value] = []
+        let harness = makeHarness()
+        let view = { box(DragGesture(minimumDistance: 0).onChanged { values.append($0) }.onEnded { values.append($0) }) }
+        harness.frame(view())
+        harness.pointer([(.pressed, 0, 0)], view)
+        for step in 1...5 {
+            harness.now = Int64(step) * 20 * gestureMillisecond
+            harness.pointer([(.dragged, step, 0)], view)
+        }
+        harness.now += 2_000
+        harness.pointer([(.dragged, 6, 0)], view)
+        let velocity = try #require(values.last?.velocity)
+        // The least-squares slope of the moves at 20, 40, 60, 80, 100 and
+        // 100.002 ms: 56.25 cells a second.
+        #expect(abs(velocity.dx - 56.2495) < 0.001, "\(velocity)")
+        #expect(velocity.dy == 0)
+    }
+
+    /// One move after a pause is the only report in the window: the fit
+    /// reaches back to the one before it, a cell in half a second.
+    @Test("A move after a pause is fitted with the report before it")
+    func dragVelocityAfterAPause() {
+        var values: [DragGesture.Value] = []
+        let harness = makeHarness()
+        let view = { box(DragGesture(minimumDistance: 0).onChanged { values.append($0) }.onEnded { values.append($0) }) }
+        harness.frame(view())
+        harness.pointer([(.pressed, 0, 0)], view)
+        harness.now = 50 * gestureMillisecond
+        harness.pointer([(.dragged, 5, 0)], view)
+        #expect(values.last?.velocity == CellVector(dx: 100, dy: 0))
+        harness.now = 550 * gestureMillisecond
+        harness.pointer([(.dragged, 6, 0)], view)
+        #expect(values.last?.velocity == CellVector(dx: 2, dy: 0))
     }
 
     @Test("A drag in the global space reports terminal cells")

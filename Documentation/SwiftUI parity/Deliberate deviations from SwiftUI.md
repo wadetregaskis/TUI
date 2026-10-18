@@ -765,7 +765,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   or past its deadline, counted from the event that armed it. A tap's next click counts if released within 0.35 s of
   the last release, as measured on SwiftUI; a list row's double-click counts
   presses within 400 ms. A
-  drag's velocity is an average of report-to-report speeds. A disabled view's
+  drag's velocity is a least-squares fit of the last 100 ms of reports, as
+  UIKit's pan recognizer fits them (SwiftUI's own estimator is unknown). A disabled view's
   gestures are given up at the next press, as a removed view's are.
 - **Why:** the run loop checks deadlines at each frame's start, and each click
   interval follows its own macOS counterpart: a tap's the measured tap, a
