@@ -230,4 +230,39 @@ struct MeasureGenerationTests {
             cache.stats.delta(since: before).hits >= 1,
             "the second ask in one generation missed the value memo")
     }
+
+    /// A generation is the low six bits; bits 7 and 6 are marks. A bump that
+    /// carried out of the generation set a mark, and one that wrapped cleared
+    /// one: a plain context bumped from generation 63 was asked a marked
+    /// question, and a marked one bumped past it an unmarked one.
+    @Test("A bump moves the generation and leaves both marks as they were", arguments: [0x00, 0x40, 0x80, 0xC0])
+    func bumpKeepsTheMarks(marks: Int) {
+        var context = liveContext(width: 12)
+        context.measureGeneration = UInt8(marks) | 0x3F
+        let bumped = context.invalidatingMeasureMemo()
+        #expect(bumped.measureGeneration & 0xC0 == UInt8(marks), "the bump moved a mark: \(bumped.measureGeneration)")
+        #expect(bumped.measureGeneration & 0x3F == 0, "the generation did not wrap: \(bumped.measureGeneration)")
+        let keyed = context.invalidatingMeasureMemo(keyedBy: 62)
+        #expect(keyed.measureGeneration & 0xC0 == UInt8(marks), "the keyed bump moved a mark: \(keyed.measureGeneration)")
+    }
+
+    /// The keyed bump's promise: every key lands on a generation of its own,
+    /// apart from the context's — or the probe it separates is served the
+    /// unbumped answers it was keyed away from. In six bits a step of 64 is
+    /// none at all, so the keys are taken modulo 63.
+    @Test("No key lands on the context's own generation", arguments: [0, 17, 63])
+    func keyedBumpNeverLandsOnItsOwnGeneration(base: Int) {
+        var context = liveContext(width: 12)
+        context.measureGeneration = UInt8(base)
+        var landed: [Int: [Int]] = [:]
+        for key in -130...260 {
+            let generation = Int(context.invalidatingMeasureMemo(keyedBy: key).measureGeneration)
+            #expect(generation != base, "key \(key) landed on the context's own generation \(base)")
+            landed[generation, default: []].append(key)
+        }
+        #expect(landed.count == 63, "\(landed.count) distinct generations, not 63")
+        #expect(
+            landed.values.allSatisfy { keys in keys.allSatisfy { ($0 - keys[0]).isMultiple(of: 63) } },
+            "keys that are not 63 apart share a generation")
+    }
 }

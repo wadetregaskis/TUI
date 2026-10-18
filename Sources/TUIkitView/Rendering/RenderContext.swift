@@ -221,22 +221,33 @@ public struct RenderContext {
     /// `modifiers`**, the two shapes that pass the most contexts. In the flag
     /// run it lands in padding that was already there and the stride does not
     /// move. It wraps (``invalidatingMeasureMemo()`` uses `&+`), which is
-    /// harmless: 128 opt-in bumps on one root-to-leaf path is not a shape that
-    /// exists, and the consequence of a wrap would be the stale serve that is
-    /// the status quo everywhere this is not called.
+    /// harmless for plain bumps: 64 of them on one root-to-leaf path is not a
+    /// shape that exists, and the consequence of a wrap would be the stale
+    /// serve that is the status quo everywhere this is not called. A keyed
+    /// bump steps by up to 63 at once, so a few bumps can wrap; what that
+    /// brings back round is counted at ``invalidatingMeasureMemo(keyedBy:)``.
     ///
-    /// ## Bit 7 is not a generation
+    /// ## Bits 7 and 6 are not a generation
     ///
-    /// It is the IDEAL-WIDTH mark: set while a horizontal natural-extent probe
-    /// asks "how wide would you be if nothing stopped you" (`asksIdealWidth`),
-    /// and never at a committed render. It lives here rather than in a field of
-    /// its own because an answer taken under it differs from one taken without
-    /// it — a windowed stack answers for every row under it and for the rows
-    /// its budget reaches otherwise — and this byte is already in both measure
-    /// keys, so the two answers are kept apart by construction and at no cost.
-    /// A generation is
-    /// the low seven bits; anything that compares generations across passes
-    /// compares `generationIgnoringIdealWidth`.
+    /// They are two MARKS on a measure, each a question asked differently from
+    /// the unmarked one, and each lives here rather than in a field of its own
+    /// for the same reason: an answer taken under it differs from one taken
+    /// without it, and this byte is already in both measure keys, so the two
+    /// answers are kept apart by construction and at no cost. Neither is ever
+    /// set at a committed render. A generation is the low six bits.
+    ///
+    /// Bit 7 is the IDEAL-WIDTH mark: set while a horizontal natural-extent
+    /// probe asks "how wide would you be if nothing stopped you"
+    /// (`asksIdealWidth`) — a windowed stack answers for every row under it and
+    /// for the rows its budget reaches otherwise. Anything that compares
+    /// generations across passes compares `generationIgnoringIdealWidth`.
+    ///
+    /// Bit 6 is kept for a second mark of the same kind, which is what took
+    /// the generation from seven bits to six: it costs a wrap at 64 bumps
+    /// rather than 128, and the keyed bump's sixty-four generations became
+    /// sixty-three (``invalidatingMeasureMemo(keyedBy:)``). The stride has no
+    /// free byte, and a mark anywhere else would have had to be added to both
+    /// keys.
     public var measureGeneration: UInt8 = 0
 
     /// The column this view's top-left is PREDICTED to sit at, in the frame of
@@ -353,22 +364,46 @@ public struct RenderContext {
     /// asks under different `key`s never serve each other's answers, and asks
     /// under the same one share theirs, from walk to walk and frame to frame.
     ///
-    /// Sixty-four generations, `key` taken modulo 64, all of them apart from
-    /// this context's own: two keys sixty-four apart share one, which is the
+    /// Sixty-three generations, `key` taken modulo 63, all of them apart from
+    /// this context's own: two keys sixty-three apart share one, which is the
     /// stale serve ``invalidatingMeasureMemo()`` leaves everywhere it is not
-    /// called, and no worse.
+    /// called, and no worse. Sixty-three rather than sixty-four because a
+    /// generation is six bits (``measureGeneration``): a step of sixty-four
+    /// would come back round to this context's own.
+    ///
+    /// Apart from this context's own for the one step, not for every path below
+    /// it: steps add, modulo sixty-four. A step of `64 - n` with `n` plain
+    /// bumps beneath it — a menu's, inside the subtree — comes back round to
+    /// this context's generation: key 62 (modulo 63) and one plain bump, key 61
+    /// and two. So does a keyed bump nested in another whose keys sum to 62
+    /// modulo 63. Answers taken down there then share a generation with this
+    /// context's own unbumped asks of the same views, and either can be served
+    /// the other's: a text-style pager probed at a height of 62 with an inline
+    /// menu in its content, say, measures the menu's drawn rows in the
+    /// generation its render's hug asks in, the stale serve that menu's bump is
+    /// there to prevent.
+    ///
+    /// At seven bits, with steps of at most sixty-four out of 128, neither
+    /// happened short of sixty-four plain bumps or two keys of 63 modulo 64.
+    /// Six bits add residues to a class that was already there, not a new one:
+    /// key 0 steps by one, as a plain bump does, and lands where a menu's bump
+    /// beside it does. Steps kept short of the top — the key modulo `63 - k` —
+    /// would keep `k` plain bumps from wrapping, for `k` fewer generations: two
+    /// keys `63 - k` apart would share one.
     package func invalidatingMeasureMemo(keyedBy key: Int) -> Self {
-        invalidatingMeasureMemo(by: UInt8(truncatingIfNeeded: 1 + (key & 0x3F)))
+        let generations = 63
+        let residue = key % generations
+        return invalidatingMeasureMemo(by: UInt8(1 + (residue < 0 ? residue + generations : residue)))
     }
 
     /// This context with its generation moved on by `step`.
     private func invalidatingMeasureMemo(by step: UInt8) -> Self {
         var copy = self
-        // The low seven bits only: bit 7 is the ideal-width mark, which a bump
-        // must neither set nor clear.
-        let idealWidthMark: UInt8 = 0x80, generationBits: UInt8 = 0x7F
+        // The low six bits only: bits 7 and 6 are marks (the ideal-width mark
+        // and the one kept beside it), which a bump must neither set nor clear.
+        let marks: UInt8 = 0xC0, generationBits: UInt8 = 0x3F
         copy.measureGeneration =
-            (copy.measureGeneration & idealWidthMark) | ((copy.measureGeneration &+ step) & generationBits)
+            (copy.measureGeneration & marks) | ((copy.measureGeneration &+ step) & generationBits)
         return copy
     }
 
