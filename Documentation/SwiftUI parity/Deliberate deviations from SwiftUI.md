@@ -1025,6 +1025,19 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   path too (`BackgroundModifier.pictured`).
 - **Decided:** [B-W1-4](<Decisions/Shapes (W1).md#b-w1-4-the-rasterizer-draws-half-blocks-at-their-coverage-and-no-shape-is-a-picture>). **Lane.**
 
+### C9. A clip shape keeps or clears whole cells
+
+- **SwiftUI:** `clipShape(_:style:)` clips the view's pixels to the shape,
+  antialiased unless the fill style says not (Apple's documentation).
+- **TUIkit:** a cell of the view is kept where the shape covers at least half
+  of it and cleared to what is behind the view otherwise; the fill style's
+  antialiasing does not apply. A `Rectangle` keeps the frame, as `clipped()`
+  does (`ShapeModifierTests`).
+- **Why:** a cell holds one glyph, so it is kept or not, by the ½ rule every
+  glyph decision takes (`Opacity as composition.md` §6a).
+- **Decided:** refusal review W1 ("rects clip to the frame; other shapes mask
+  cells at coverage ≥ ½"), [B-W1-11](<Decisions/Shapes (W1).md#b-w1-11-a-clip-keeps-a-cell-at-half-coverage-and-leaves-the-hit-area-alone>). **Lane.**
+
 ---
 
 ## Animation

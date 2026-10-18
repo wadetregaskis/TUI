@@ -135,3 +135,32 @@ struct ShapeCoverage: Equatable {
         return edges
     }
 }
+
+// MARK: - A shape's coverage of whole cells
+
+extension ShapeCoverage {
+    /// How much of each whole cell of `frame` `shape` covers — what a clip
+    /// keeps by, and where a shape behind a view draws only part of a cell.
+    init(cellsOf shape: any Shape, evenOdd: Bool, frame: ShapeFrame) {
+        let aspect = CGFloat(frame.aspect)
+        let polygons = shape.path(in: frame.rect).contours(tolerance: 0.05).map {
+            $0.points.map { CGPoint(x: $0.x, y: $0.y / aspect) }
+        }
+        self.init(polygons: polygons, evenOdd: evenOdd, width: frame.columns, height: frame.rows)
+    }
+
+    /// The runs of columns of pixel row `row` whose coverage `matches`.
+    func runs(row: Int, where matches: (Double) -> Bool) -> [Range<Int>] {
+        var runs: [Range<Int>] = []
+        var start: Int?
+        for column in 0...width {
+            let inside = column < width && matches(coverage(x: column, y: row))
+            if inside, start == nil { start = column }
+            if !inside, let begun = start {
+                runs.append(begun..<column)
+                start = nil
+            }
+        }
+        return runs
+    }
+}

@@ -3613,3 +3613,29 @@ private struct CorpusShapes: View {
         return (moved.boundingRect, moved.contains(.zero, eoFill: true), moved.trimmedPath(from: 0, to: 0.5), moved.description)
     }
 }
+
+/// Shapes behind, over, clipping and as the hit area, as SwiftUI's
+/// documentation writes them.
+@MainActor
+private struct CorpusShapeModifiers: View {
+    let trapezoid = Path { path in
+        path.move(to: .zero)
+        path.addLine(to: CGPoint(x: 9, y: 0))
+        path.addLine(to: CGPoint(x: 8, y: 5))
+        path.addLine(to: CGPoint(x: 1, y: 5))
+    }
+
+    var body: some View {
+        VStack {
+            Label("Flag", systemImage: "flag.fill").padding().background(.teal, in: trapezoid)
+            Text("Tag").padding(.horizontal, 1).background(.purple, in: Capsule())
+            Text("Card").background(in: RoundedRectangle(cornerRadius: 2))
+            Text("Card").background(.blue, in: RoundedRectangle(cornerRadius: 2), fillStyle: FillStyle(eoFill: true))
+            Text("Marked").overlay(.red.opacity(0.3), in: Ellipse())
+            Text("Clipped text in a circle").frame(width: 20, height: 10).clipShape(Circle())
+            Color.orange.clipShape(.rect(cornerRadius: 3), style: FillStyle(eoFill: false))
+            HStack { Text("Row"); Spacer() }.contentShape(Rectangle()).onTapGesture {}
+            Text("Row").contentShape(.rect)
+        }
+    }
+}

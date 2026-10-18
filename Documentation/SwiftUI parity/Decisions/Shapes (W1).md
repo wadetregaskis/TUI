@@ -199,6 +199,38 @@ the views drawing them all forward their data.
 **The fuller version:** a type-erased `VectorArithmetic` box, as SwiftUI's
 `AnyShape` has. Half a day.
 
+### B-W1-10. `contentShape` takes a rectangle alone
+
+*`View.contentShape(_:eoFill:)`; `View.contentShape(_:_:eoFill:)` waits*
+
+A view's hit area is already its frame — a click on a spacer or the padding
+inside a tappable stack reaches it — so `.contentShape(Rectangle())`, the form
+nearly every port writes, asks for what is already so, and returns the view
+(refusal review P3: measured, it changes no pixel on macOS either). A hit area
+cut to another shape would need the pointer dispatch to take a region per row
+from the enclosing gesture, which it does not, so the parameter is a
+`Rectangle` and `.contentShape(Circle())` fails to compile rather than claiming
+the whole frame. The `ContentShapeKinds` form waits on P3.
+
+**The fuller version:** a hit mask carried by the buffer to the gesture, hover
+and context-menu modifiers outside it, cut from the shape's cells as a clip is.
+A day, and a field on every buffer that has to stay free for views without one.
+
+### B-W1-11. A clip keeps a cell at half coverage, and leaves the hit area alone
+
+*`View.clipShape(_:style:)`*
+
+A cell of the view is kept where the shape covers at least half of it and
+cleared — a space claimed at a field of 0, so what is behind shows — otherwise;
+the view's claims and animated runs over a cleared cell are cut with it. A
+`Rectangle` keeps the frame. The view is clipped to its frame first, as
+`clipped()` clips, so its floating layers are cut too. The hit area is not
+clipped, for B-W1-10's reason.
+
+**The fuller version:** an antialiased clip — a kept cell at the edge drawn at
+its coverage as alpha. Half a day; the ½ rule is what every other glyph decision
+here takes.
+
 ## C. Declined
 
 ### C-W1-1. `Path`'s boolean operations and its stroke outline
