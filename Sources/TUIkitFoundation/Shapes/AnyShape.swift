@@ -14,7 +14,8 @@ import Foundation
 /// A type-erased shape value — mirrors SwiftUI's `AnyShape`.
 ///
 /// It draws as the shape it holds would: a rectangle-family shape in box
-/// glyphs, any other rasterized.
+/// glyphs, any other rasterized, and one that stands for another — the
+/// `.buttonBorder` in force, a container's shape — as the one it stands for.
 nonisolated public struct AnyShape: Shape {
     /// The shape this stands for.
     let base: any Shape
@@ -45,5 +46,14 @@ extension AnyShape {
 extension AnyShape: BoxDrawnShape {
     func boxCorners(in rect: CGRect) -> RectangleCornerRadii? {
         (base as? any BoxDrawnShape)?.boxCorners(in: rect)
+    }
+}
+
+extension AnyShape: EnvironmentResolvedShape {
+    /// The shape it holds, as that shape is drawn: the one it stands for
+    /// where it stands for another — `AnyShape(.buttonBorder)` is the button
+    /// border shape in force — and a stroke as a shape still a stroke.
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        (base as? any EnvironmentResolvedShape)?.resolvedShape(in: context, columns: columns, rows: rows) ?? base
     }
 }

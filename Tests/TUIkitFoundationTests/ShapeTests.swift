@@ -107,6 +107,30 @@ struct ShapeTests {
         #expect(text(screen(ButtonBorderShape.buttonBorder.stroke(.red), width: 6, height: 3)) == ["╭────╮", "│    │", "╰────╯"])
     }
 
+    /// Before, only `BoxDrawnShape` passed through a wrapper: an erased or
+    /// transformed shape that stands for another drew as its own path —
+    /// `AnyShape(.buttonBorder)` a capsule under any button border shape, a
+    /// container-relative shape a rectangle in any container — and
+    /// `.buttonBorder.inset(by:)` was a capsule always.
+    @Test("A shape that stands for another does so erased, inset or transformed")
+    func wrappedStandIns() {
+        func square(_ view: some View, width: Int = 6, height: Int = 3) -> [String] {
+            text(screen(VStack { view }.buttonBorderShape(.roundedRectangle(radius: 0)), width: width, height: height))
+        }
+        #expect(square(AnyShape(.buttonBorder).stroke(.red)) == ["┌────┐", "│    │", "└────┘"])
+        // Big enough for a capsule's rounding to show in glyphs.
+        let inset = square(ButtonBorderShape.buttonBorder.inset(by: 1).fill(.red), width: 10, height: 5)
+        #expect(inset == square(Rectangle().inset(by: 1).fill(.red), width: 10, height: 5))
+        #expect(inset != square(Capsule().inset(by: 1).fill(.red), width: 10, height: 5))
+        func contained(_ view: some View) -> [String] {
+            text(screen(view.containerShape(RoundedRectangle(cornerRadius: 3)), width: 6, height: 3))
+        }
+        #expect(contained(AnyShape(ContainerRelativeShape()).stroke(.red)) == ["╭────╮", "│    │", "╰────╯"])
+        let rounded = text(screen(RoundedRectangle(cornerRadius: 3).offset(x: 0, y: 0).fill(.red), width: 6, height: 3))
+        #expect(contained(ContainerRelativeShape().offset(x: 0, y: 0).fill(.red)) == rounded)
+        #expect(contained(AnyShape(ContainerRelativeShape()).offset(x: 0, y: 0).fill(.red)) == rounded)
+    }
+
     // MARK: The box-drawing tier
 
     @Test("A rectangle-family stroke is a box of line glyphs, a corner per corner")

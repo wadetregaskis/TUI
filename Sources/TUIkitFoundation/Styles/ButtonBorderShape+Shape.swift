@@ -110,8 +110,23 @@ extension ButtonBorderShape: EnvironmentResolvedShape {
     /// ``automatic`` defers to the environment's button border shape, as
     /// ``Shape/buttonBorder`` does; every other shape is itself.
     func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        resolved(in: context.environment)
+    }
+
+    /// The shape this stands for in `environment`: the one
+    /// ``View/buttonBorderShape(_:)`` set for ``automatic``, a capsule where
+    /// none is set; itself for every other shape.
+    func resolved(in environment: EnvironmentValues) -> Self {
         guard kind == .automatic else { return self }
-        let stated = context.environment.buttonBorderShape
+        let stated = environment.buttonBorderShape
         return stated.kind == .automatic ? Self.capsule : stated
+    }
+}
+
+extension ButtonBorderShape._Inset: EnvironmentResolvedShape {
+    /// ``ButtonBorderShape/automatic`` inset is the environment's button border
+    /// shape, inset as far.
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        Self(shape: shape.resolved(in: context.environment), amount: amount)
     }
 }

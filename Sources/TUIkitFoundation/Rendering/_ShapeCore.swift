@@ -41,6 +41,57 @@ func resolvedShape(_ shape: any Shape, in context: RenderContext, columns: Int, 
     return resolving.resolvedShape(in: context, columns: columns, rows: rows)
 }
 
+// MARK: - Wrappers stand in for what they wrap
+
+// A shape moved, turned, scaled, transformed, trimmed or resized stands for
+// whatever the shape it wraps stands for, wrapped the same way — so
+// `ContainerRelativeShape().offset(x: 1)` moves the container's shape, not a
+// rectangle.
+
+extension OffsetShape: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func wrap<S: Shape>(_ resolved: S) -> any Shape { OffsetShape<S>(shape: resolved, offset: offset) }
+        return wrap(shape.resolvedShape(in: context, columns: columns, rows: rows))
+    }
+}
+
+extension RotatedShape: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func wrap<S: Shape>(_ resolved: S) -> any Shape { RotatedShape<S>(shape: resolved, angle: angle, anchor: anchor) }
+        return wrap(shape.resolvedShape(in: context, columns: columns, rows: rows))
+    }
+}
+
+extension ScaledShape: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func wrap<S: Shape>(_ resolved: S) -> any Shape { ScaledShape<S>(shape: resolved, scale: scale, anchor: anchor) }
+        return wrap(shape.resolvedShape(in: context, columns: columns, rows: rows))
+    }
+}
+
+extension TransformedShape: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func wrap<S: Shape>(_ resolved: S) -> any Shape { TransformedShape<S>(shape: resolved, transform: transform) }
+        return wrap(shape.resolvedShape(in: context, columns: columns, rows: rows))
+    }
+}
+
+extension _TrimmedShape: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func wrap<S: Shape>(_ resolved: S) -> any Shape {
+            _TrimmedShape<S>(shape: resolved, startFraction: startFraction, endFraction: endFraction)
+        }
+        return wrap(shape.resolvedShape(in: context, columns: columns, rows: rows))
+    }
+}
+
+extension _SizedShape: EnvironmentResolvedShape where Content: EnvironmentResolvedShape {
+    func resolvedShape(in context: RenderContext, columns: Int, rows: Int) -> any Shape {
+        func wrap<S: Shape>(_ resolved: S) -> any Shape { _SizedShape<S>(shape: resolved, size: size, anchor: anchor) }
+        return wrap(shape.resolvedShape(in: context, columns: columns, rows: rows))
+    }
+}
+
 /// What `shape`, asked to draw `drawing` for a view `columns` × `rows` in
 /// `context`, draws: the shape it stands for — and a stroke as a shape
 /// (`stroke(lineWidth:)`) as the stroke it is, so a rectangle's is the box of
