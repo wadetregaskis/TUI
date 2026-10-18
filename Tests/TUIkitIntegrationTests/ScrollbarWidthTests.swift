@@ -49,10 +49,39 @@ struct ScrollbarWidthTests {
         }
     }
 
-    /// The columns the bar's `▲` cells take on the line it is on.
+    /// The glyphs that draw an up arrow: one cell's `▲`, or the halves of one
+    /// triangle across two cells.
+    private static let upArrowGlyphs: Set<Character> = ["▲", "◢", "◣"]
+
+    /// The columns the bar's up-arrow cells take on the line it is on.
     private func arrowColumns(_ buffer: FrameBuffer) -> [Int] {
-        guard let line = buffer.lines.map(\.stripped).first(where: { $0.contains("▲") }) else { return [] }
-        return Array(line).enumerated().filter { $0.element == "▲" }.map(\.offset)
+        guard let line = buffer.lines.map(\.stripped).first(where: { $0.contains(where: Self.upArrowGlyphs.contains) })
+        else { return [] }
+        return Array(line).enumerated().filter { Self.upArrowGlyphs.contains($0.element) }.map(\.offset)
+    }
+
+    /// The up arrow's glyphs on the line it is on, left to right.
+    private func upArrow(_ buffer: FrameBuffer) -> String {
+        guard let line = buffer.lines.map(\.stripped).first(where: { $0.contains(where: Self.upArrowGlyphs.contains) })
+        else { return "" }
+        return String(line.filter(Self.upArrowGlyphs.contains))
+    }
+
+    @Test("A double-width bar's arrow is one triangle across both cells, or two arrows where the terminal cannot",
+        arguments: Site.allCases)
+    func arrowGlyphs(_ site: Site) {
+        // FB6 (owner): `◢◣` / `◥◤` by default; `▲▲` / `▼▼` on a terminal that
+        // draws the triangles from its font, short of the cells' edges.
+        let triangles = renderToBuffer(
+            view(site).scrollbarWidth(2), context: makeRenderContext(width: 30, height: 10))
+        #expect(upArrow(triangles) == "◢◣", "\(site): \(triangles.lines.map(\.stripped))")
+        #expect(triangles.lines.map(\.stripped).contains { $0.contains("◥◤") }, "\(site): the down arrow")
+        let doubled = renderToBuffer(
+            view(site).scrollbarWidth(2).environment(\.cornerTrianglesFillTheCell, false),
+            context: makeRenderContext(width: 30, height: 10))
+        #expect(upArrow(doubled) == "▲▲", "\(site): \(doubled.lines.map(\.stripped))")
+        let single = renderToBuffer(view(site), context: makeRenderContext(width: 30, height: 10))
+        #expect(upArrow(single) == "▲", "\(site): a one-cell bar keeps its arrow")
     }
 
     @Test("Two cells wide: the arrows doubled side by side, the bar still against the same edge",

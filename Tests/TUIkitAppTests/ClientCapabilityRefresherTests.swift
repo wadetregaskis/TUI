@@ -62,7 +62,7 @@ struct ClientCapabilityRefresherTests {
     /// in these tests — the refresher treats the struct opaquely.)
     nonisolated private static func settled(_ supported: Bool) -> ClientCapabilities {
         ClientCapabilities(
-            emojiChrome: supported, skinTonesSafe: supported, blockElementsFillTheLine: supported,
+            emojiChrome: supported, skinTonesSafe: supported, blockElementsFillTheLine: supported, cornerTrianglesFillTheCell: supported,
             mayImproveShortly: false)
     }
 
@@ -171,7 +171,7 @@ struct ClientCapabilityRefresherTests {
         // moment later the reply lands; the bounded retry must pick it up with
         // NO further external event — there is none coming.
         let reading = Mutable(ClientCapabilities(
-            emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false,
+            emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false, cornerTrianglesFillTheCell: false,
             mayImproveShortly: true))
         nonisolated(unsafe) var changes = 0
         let refresher = ClientCapabilityRefresher(
@@ -195,7 +195,7 @@ struct ClientCapabilityRefresherTests {
             probe: {
                 probes += 1
                 return ClientCapabilities(
-                    emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false,
+                    emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false, cornerTrianglesFillTheCell: false,
             mayImproveShortly: true)
             },
             onChange: {},

@@ -85,7 +85,7 @@ internal final class ClientCapabilityRefresher {
             reading
             ?? ClientCapabilities(
                 emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false,
-                mayImproveShortly: false)
+                cornerTrianglesFillTheCell: false, mayImproveShortly: false)
         current = seeded
         if isRefreshable, reading?.mayImproveShortly == true {
             retriesRemaining = retryDelaysNanos.count
@@ -127,6 +127,7 @@ internal final class ClientCapabilityRefresher {
                 reading.emojiChrome != current?.emojiChrome
                 || reading.skinTonesSafe != current?.skinTonesSafe
                 || reading.blockElementsFillTheLine != current?.blockElementsFillTheLine
+                || reading.cornerTrianglesFillTheCell != current?.cornerTrianglesFillTheCell
             current = reading
             if drawsDifferently {
                 onChange()

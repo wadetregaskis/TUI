@@ -903,20 +903,31 @@ package enum ScrollbarRenderer {
     /// bar's own coordinates: the caller knows which column the bar lands in and
     /// shifts them there. Arrows are dropped if the bar is too short to also show
     /// a track.
+    ///
+    /// `cornerTriangles`: a double-width bar's arrow is one triangle across its
+    /// two cells (`◢◣`, `◥◤`) — for a terminal that draws those halves edge to
+    /// edge (``EnvironmentValues/cornerTrianglesFillTheCell``) — rather than two
+    /// arrows side by side. A one-cell bar ignores it.
     package static func verticalScrollbar(
         height: Int, extent: Int, viewport: Int, offset: Int,
-        arrows: ScrollbarArrows, proportional: Bool, colors: ScrollbarColors, width: Int = 1
+        arrows: ScrollbarArrows, proportional: Bool, colors: ScrollbarColors, width: Int = 1,
+        cornerTriangles: Bool = false
     ) -> ClaimingColumn {
         var bar = ClaimingColumn(width: width)
         guard height > 0 else { return bar }
         let reserve = height > arrowReserve(arrows) ? arrowReserve(arrows) : 0
-        func arrow(_ glyph: String, atCell cell: Int) {
-            bar.append(glyph, ink: colors.arrowColor(atCell: cell), field: colors.track)
+        func arrow(pointingUp up: Bool, atCell cell: Int) {
+            let ink = colors.arrowColor(atCell: cell)
+            if width == 2, cornerTriangles {
+                bar.append(spanning: up ? "◢◣" : "◥◤", ink: ink, field: colors.track)
+            } else {
+                bar.append(up ? "▲" : "▼", ink: ink, field: colors.track)
+            }
         }
         // `single` → ▲ … ▼; `double` → ▲▼ … ▲▼ (both arrows at each end).
         let last = height - 1
-        if reserve > 0 { arrow("▲", atCell: 0) }
-        if reserve == 4 { arrow("▼", atCell: 1) }
+        if reserve > 0 { arrow(pointingUp: true, atCell: 0) }
+        if reserve == 4 { arrow(pointingUp: false, atCell: 1) }
         for cell in trackCells(
             count: height - reserve, extent: extent, viewport: viewport, offset: offset,
             proportional: proportional, vertical: true)
@@ -924,8 +935,8 @@ package enum ScrollbarRenderer {
             let drawn = paint(of: cell, thumb: colors.thumb, track: colors.track)
             bar.append(drawn.glyph, ink: drawn.ink, field: drawn.field)
         }
-        if reserve == 4 { arrow("▲", atCell: last - 1) }
-        if reserve > 0 { arrow("▼", atCell: last) }
+        if reserve == 4 { arrow(pointingUp: true, atCell: last - 1) }
+        if reserve > 0 { arrow(pointingUp: false, atCell: last) }
         return bar
     }
 
@@ -945,12 +956,14 @@ package enum ScrollbarRenderer {
     @MainActor
     package static func verticalScrollbarRuns(
         height: Int, extent: Int, viewport: Int, offset: Int,
-        arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse, width: Int = 1
+        arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse, width: Int = 1,
+        cornerTriangles: Bool = false
     ) -> [AnimatedCellRun] {
         let frames = pulse.frames.map { colors in
             verticalScrollbar(
                 height: height, extent: extent, viewport: viewport, offset: offset,
-                arrows: arrows, proportional: proportional, colors: colors, width: width)
+                arrows: arrows, proportional: proportional, colors: colors, width: width,
+                cornerTriangles: cornerTriangles)
         }
         guard let first = frames.first else { return [] }
         assertFramesOweOneClaim(frames.map(\.claims), "a scrollbar's pulse")

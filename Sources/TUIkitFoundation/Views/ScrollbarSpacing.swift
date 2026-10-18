@@ -75,15 +75,34 @@ extension EnvironmentValues {
     }
 }
 
+/// Whether the terminal draws the corner triangles edge to edge; `true` where
+/// nothing has said otherwise (headless, tests), the owner's default (FB6).
+private struct CornerTrianglesFillTheCellKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    /// Whether the terminal draws the corner triangles `◢ ◣ ◤ ◥` edge to edge
+    /// in their cells, so that a pair reads as one arrow across two cells. Set
+    /// by the run loop from `TerminalHost`, per tmux client where there are
+    /// any; read by a double-width scrollbar for its end arrows.
+    package var cornerTrianglesFillTheCell: Bool {
+        get { self[CornerTrianglesFillTheCellKey.self] }
+        set { self[CornerTrianglesFillTheCellKey.self] = newValue }
+    }
+}
+
 extension View {
     /// Draws the vertical scrollbars within this view `cells` wide: `1`, the
     /// default, or `2` for a double-width bar.
     ///
     /// TUI-specific. A bar one cell wide is a thin target for a pointer, and a
     /// thin line beside a page of text; two cells is easier to hit and to see,
-    /// for the column it costs. Every cell of a line of the bar draws the same
-    /// glyph — the thumb's eighths side by side, a doubled arrow (`▲▲`) at each
-    /// end — and the whole width takes the pointer. A ``ScrollView``, a
+    /// for the column it costs. Every cell of a line of the thumb and track draws
+    /// the same glyph, the thumb's eighths side by side. Each end arrow is one
+    /// triangle across both cells (`◢◣`, `◥◤`) where the terminal draws those
+    /// halves edge to edge, and two arrows (`▲▲`, `▼▼`) where it does not —
+    /// Apple Terminal and Warp. The whole width takes the pointer. A ``ScrollView``, a
     /// ``List``, a ``Table`` and a ``TextEditor`` draw it; an open menu's bar,
     /// beside options the menu is sized to, stays one cell, and a horizontal
     /// bar is a row, and stays one.

@@ -250,6 +250,17 @@ package struct ClaimingColumn {
         for claim in cell.claims { claims.appendCoalescing(claim.shifted(byX: 0, y: line)) }
     }
 
+    /// Appends one line drawn across the column's ``width`` cells by `glyphs`,
+    /// one per cell — a double-width arrow's two halves — painted in `ink` on
+    /// `field`.
+    mutating func append(spanning glyphs: String, ink: Color?, field: Color?) {
+        var cell = ClaimingRow()
+        cell.append(glyphs, cells: width, ink: ink, field: field)
+        let line = lines.count
+        lines.append(cell.text)
+        for claim in cell.claims { claims.appendCoalescing(claim.shifted(byX: 0, y: line)) }
+    }
+
     /// Cuts or pads the column to exactly `count` lines — padding with blank cells
     /// painted in `field`, and cutting each claim back to the lines that are left.
     ///

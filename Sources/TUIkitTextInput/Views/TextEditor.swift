@@ -481,7 +481,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             height: height, extent: extent, viewport: height, offset: offset,
             arrows: .none, proportional: true,
             colors: flash.map { colors.flashing($0, in: context.environment.palette) } ?? colors,
-            width: context.environment.scrollbarWidth)
+            width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
         // One cell per row the editor drew — an unpainted space past the bar's
         // end, as it always was — so no claim outlives the row it was for.
         let rows = min(height, output.count)
@@ -496,7 +496,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         return (
             ScrollbarRenderer.verticalScrollbarRuns(
                 height: height, extent: extent, viewport: height, offset: offset,
-                arrows: .none, proportional: true, pulse: pulse, width: context.environment.scrollbarWidth
+                arrows: .none, proportional: true, pulse: pulse, width: context.environment.scrollbarWidth,
+                cornerTriangles: context.environment.cornerTrianglesFillTheCell
             ).map { $0.shifted(byX: barColumn, y: 0) },
             claims)
     }

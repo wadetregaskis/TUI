@@ -808,7 +808,12 @@ filling its cell to the shared edge, between magenta flanks:
 
 So the owner's FB6 rule (`◢◣`/`◥◤` by default, `▲▲`/`▼▼` where a host draws
 the triangles badly) puts Apple Terminal and Warp on `▲▲`/`▼▼`, and Ghostty and
-iTerm2 on the triangles. kitty: not measured (no window on this VM).
+iTerm2 on the triangles. kitty: not measured (no window on this VM). Drawn
+so since 2026-10-17: `TerminalHost.cornerTrianglesFillTheCell` natively, and
+`ClientCapabilities.cornerTrianglesFillTheCell` through tmux (Terminal.app known
+by its owning application, Warp by that or its XTVERSION name), into
+`EnvironmentValues.cornerTrianglesFillTheCell`; an unmeasured host gets the
+triangles.
 
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 

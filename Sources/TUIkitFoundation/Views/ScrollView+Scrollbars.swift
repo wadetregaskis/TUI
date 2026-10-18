@@ -359,7 +359,8 @@ extension _ScrollViewCore {
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
             hoveredCell: handler.hoveredBarCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
-            cycle: pulse?.cycle, flash: flash, width: context.environment.scrollbarWidth)
+            cycle: pulse?.cycle, flash: flash, width: context.environment.scrollbarWidth,
+            cornerTriangles: context.environment.cornerTrianglesFillTheCell)
         let memo: ScrollbarMemo<ClaimingColumn>
         if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
             handler.verticalScrollbarMemoHits += 1
@@ -379,7 +380,7 @@ extension _ScrollViewCore {
                 arrows: context.environment.scrollbarArrows,
                 proportional: context.environment.scrollbarProportionalThumb,
                 colors: flash.map { colors.flashing($0, in: palette) } ?? colors,
-                width: context.environment.scrollbarWidth)
+                width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
             let runs =
                 pulse.map { pulse in
                     ScrollbarRenderer.verticalScrollbarRuns(
@@ -389,7 +390,8 @@ extension _ScrollViewCore {
                         offset: handler.scrollOffset,
                         arrows: context.environment.scrollbarArrows,
                         proportional: context.environment.scrollbarProportionalThumb,
-                        pulse: pulse, width: context.environment.scrollbarWidth)
+                        pulse: pulse, width: context.environment.scrollbarWidth,
+                        cornerTriangles: context.environment.cornerTrianglesFillTheCell)
                 } ?? []
             memo = ScrollbarMemo(key: key, bar: bar, runs: runs)
             handler.verticalScrollbarMemo = memo
@@ -579,6 +581,10 @@ package struct ScrollbarMemo<Bar> {
         package let flash: Double?
         /// The bar's width in cells (``View/scrollbarWidth(_:)``).
         package let width: Int
+        /// Whether a double-width bar's arrows are corner triangles
+        /// (``EnvironmentValues/cornerTrianglesFillTheCell``): it follows the
+        /// terminal, which can change under a running app — a tmux attach.
+        package let cornerTriangles: Bool
 
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUIkitLists makes these, for the lists' scrollbars.
@@ -597,7 +603,8 @@ package struct ScrollbarMemo<Bar> {
             terminalColors: TerminalColors,
             cycle: SelectionEmphasisCycle?,
             flash: Double? = nil,
-            width: Int = 1
+            width: Int = 1,
+            cornerTriangles: Bool = false
         ) {
             self.length = length
             self.extent = extent
@@ -614,6 +621,7 @@ package struct ScrollbarMemo<Bar> {
             self.cycle = cycle
             self.flash = flash
             self.width = width
+            self.cornerTriangles = cornerTriangles
         }
     }
 

@@ -48,6 +48,11 @@
 ///   full height of the line (all but Terminal.app, which draws them from the
 ///   font, short of it — `TerminalHost.blockElementsFillTheLine`). When false,
 ///   a three-row button face is drawn without them.
+/// - `cornerTrianglesFillTheCell`: every client draws the corner triangles
+///   `◢ ◣ ◤ ◥` edge to edge (all but Terminal.app and Warp —
+///   `TerminalHost.cornerTrianglesFillTheCell`). When false, a double-width
+///   scrollbar's arrows are `▲▲` and `▼▼` rather than one triangle across both
+///   cells.
 ///
 /// `mayImproveShortly` covers a measured race: the `client-attached` tmux hook
 /// fires — and the app probes — before the new client's XTVERSION reply has
@@ -59,16 +64,19 @@ package struct ClientCapabilities: Equatable, Sendable {
     package let emojiChrome: Bool
     package let skinTonesSafe: Bool
     package let blockElementsFillTheLine: Bool
+    package let cornerTrianglesFillTheCell: Bool
     package let mayImproveShortly: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and the run loop (TUIkitApp, since step B3) makes these values.
     package init(
-        emojiChrome: Bool, skinTonesSafe: Bool, blockElementsFillTheLine: Bool, mayImproveShortly: Bool
+        emojiChrome: Bool, skinTonesSafe: Bool, blockElementsFillTheLine: Bool, cornerTrianglesFillTheCell: Bool,
+        mayImproveShortly: Bool
     ) {
         self.emojiChrome = emojiChrome
         self.skinTonesSafe = skinTonesSafe
         self.blockElementsFillTheLine = blockElementsFillTheLine
+        self.cornerTrianglesFillTheCell = cornerTrianglesFillTheCell
         self.mayImproveShortly = mayImproveShortly
     }
 }

@@ -84,6 +84,16 @@ package enum TerminalHost {
     /// shapes of their own. See *Terminal compatibility survey*.
     package static var blockElementsFillTheLine: Bool { !isAppleTerminal }
 
+    /// Whether this terminal draws the corner triangles `◢ ◣ ◤ ◥`
+    /// (U+25E2–25E5) edge to edge in their cells, so that two side by side
+    /// read as ONE arrow — a double-width scrollbar's end. Apple Terminal
+    /// and Warp take them from the font, short of the cell's edges, and the
+    /// pair breaks apart (measured 2026-10-17 with `scrollbar_arrow_card.py`;
+    /// Ghostty and iTerm2 draw them as shapes). A terminal not measured is
+    /// taken to draw them well, the owner's default (FB6). See *Terminal
+    /// compatibility survey*, "A double-width scrollbar's arrows".
+    package static var cornerTrianglesFillTheCell: Bool { !isAppleTerminal && !isWarp }
+
     /// The `TERM_PROGRAM`-style name of the host terminal, from whichever
     /// signal in the environment carries it.
     ///
@@ -333,11 +343,13 @@ package enum TerminalHost {
             // it), but skin tones stay — tmux's own grid joins them correctly,
             // and an attach fires the hooks, which re-probe and fully redraw.
             return ClientCapabilities(
-                emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true, mayImproveShortly: false)
+                emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true,
+                cornerTrianglesFillTheCell: true, mayImproveShortly: false)
         }
         var chrome = true
         var skinTones = true
         var blocksFill = true
+        var trianglesFill = true
         var mayImprove = false
         for client in clients {
             switch classifyClient(client) {
@@ -369,10 +381,15 @@ package enum TerminalHost {
             {
                 blocksFill = false
             }
+            if !clientFillsCornerTriangles(
+                termtype: client.termtype, owningApplication: client.pid.flatMap(owningApplicationPath(ofTmuxClient:)))
+            {
+                trianglesFill = false
+            }
         }
         return ClientCapabilities(
             emojiChrome: chrome, skinTonesSafe: skinTones, blockElementsFillTheLine: blocksFill,
-            mayImproveShortly: mayImprove)
+            cornerTrianglesFillTheCell: trianglesFill, mayImproveShortly: mayImprove)
     }
 
     /// Whether one tmux client draws Block Elements the full height of the
@@ -383,6 +400,18 @@ package enum TerminalHost {
     static func clientFillsBlockElements(termtype: String, owningApplication: String?) -> Bool {
         guard termtype.isEmpty, let owningApplication else { return true }
         return !owningApplication.contains("/Terminal.app/Contents/MacOS/Terminal")
+    }
+
+    /// Whether one tmux client draws the corner triangles edge to edge
+    /// (``cornerTrianglesFillTheCell``): `false` for a client known to be
+    /// Terminal.app or Warp — by the application that owns it, or by Warp's
+    /// XTVERSION name. A client neither signal names is taken to draw them
+    /// well, as the native default does.
+    static func clientFillsCornerTriangles(termtype: String, owningApplication: String?) -> Bool {
+        if termtype.lowercased().hasPrefix("warp") { return false }
+        guard termtype.isEmpty, let owningApplication else { return true }
+        return !owningApplication.contains("/Terminal.app/Contents/MacOS/Terminal")
+            && !owningApplication.contains("/Warp.app/Contents/MacOS/")
     }
 
     /// Whether one client renders SMP-base skin-tone clusters (👍🏽) correctly

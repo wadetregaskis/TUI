@@ -461,6 +461,22 @@ struct TmuxCompatibilityTests {
         #expect(TerminalHost.clientFillsBlockElements(termtype: "iTerm2 3.6.11", owningApplication: terminal), "it answered")
     }
 
+    /// Terminal.app and Warp draw the corner triangles short of their cells
+    /// (FB6): known by the application that owns the client, or by Warp's
+    /// own name; anything else draws them edge to edge, the default.
+    @Test("Terminal.app and Warp clients draw a double-width bar's arrows as two arrows")
+    func cornerTrianglesThroughTmux() {
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        let warp = "/Applications/Warp.app/Contents/MacOS/stable"
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: terminal) == false)
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: warp) == false)
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "WarpTerminal v0.2026", owningApplication: nil) == false)
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: ghostty))
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "iTerm2 3.6.11", owningApplication: nil))
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: nil), "unnamed: the default")
+    }
+
     @Test(
         "Skin tones survive through tmux only when every client is Ghostty",
         arguments: [
