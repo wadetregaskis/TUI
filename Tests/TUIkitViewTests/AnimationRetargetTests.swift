@@ -70,6 +70,21 @@ struct AnimationRetargetTests {
         #expect(abs(interrupted.value(for: key, target: 20.0, animation: spring, nowNanos: 10 * second, isMeasuring: false) - 20) < 1e-6)
     }
 
+    @Test("An interpolating spring does not merge: the two springs add, each covering its own part of the way")
+    func interpolatingSpringAdds() {
+        let spring = Animation.interpolatingSpring(duration: 1)
+        let store = store(animatingTo: 10, by: spring)
+        let at = second / 5
+        _ = store.value(for: key, target: 20.0, animation: spring, nowNanos: at, isMeasuring: false)
+        for nanos in [at + second / 10, second / 2, second] {
+            let value = store.value(for: key, target: 20.0, animation: spring, nowNanos: nanos, isMeasuring: false)
+            // The first spring's last 10 still to come, and the second's.
+            let first = 10 * (1 - spring.fraction(at: Double(nanos) / 1e9))
+            let later = 10 * (1 - spring.fraction(at: Double(nanos - at) / 1e9))
+            #expect(abs(value - (20 - first - later)) < 1e-9, "\(value) at \(nanos)")
+        }
+    }
+
     @Test("The loop runs until every animation is done, an earlier one outlasting a later")
     func earlierOutlasts() {
         let slow = Animation.linear(duration: 2)

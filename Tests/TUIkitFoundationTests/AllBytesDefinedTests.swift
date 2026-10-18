@@ -110,6 +110,7 @@ struct AllBytesDefinedTests {
         Conformer(AnimationCurve.self, [
             { $0.pointee = .bezier(p1x: 0.1, p1y: 0.2, p2x: 0.3, p2y: 0.4) },
             { $0.pointee = .spring(omega: 12, zeta: 0.5) },
+            { $0.pointee = .spring(omega: 12, zeta: 0.5, initialVelocity: 2, merges: false) },
             { $0.pointee = .circular(.easeInOut) },
             { $0.pointee = .custom(CustomCurveID(index: 7)) },
         ]),

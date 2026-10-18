@@ -22,8 +22,11 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
     /// A damped harmonic oscillator, by undamped natural angular frequency
     /// (`omega`, rad/s) and damping ratio (`zeta`), starting at
     /// `initialVelocity` — in units of the whole change per second, as
-    /// `Animation.interpolatingSpring` takes it.
-    case spring(omega: Double, zeta: Double, initialVelocity: Double = 0)
+    /// `Animation.interpolatingSpring` takes it. `merges` is whether it takes
+    /// over a change it interrupts, carrying the value's velocity on, as
+    /// `Animation.spring` does; `Animation.interpolatingSpring` runs beside
+    /// it instead, the two adding (``Animation/shouldMerge(previous:value:time:context:)``).
+    case spring(omega: Double, zeta: Double, initialVelocity: Double = 0, merges: Bool = true)
 
     /// One of ``UnitCurve``'s circular curves, from
     /// ``Animation/timingCurve(_:duration:)``.
@@ -43,7 +46,7 @@ enum AnimationCurve: Sendable, Equatable, Hashable {
         switch self {
         case .bezier(let p1x, let p1y, let p2x, let p2y):
             Self.bezierValue(atX: fraction, p1x: p1x, p1y: p1y, p2x: p2x, p2y: p2y)
-        case .spring(let omega, let zeta, let initialVelocity):
+        case .spring(let omega, let zeta, let initialVelocity, _):
             Self.springValue(
                 at: fraction * duration, omega: omega, zeta: zeta, initialVelocity: initialVelocity)
         case .circular(let curve):

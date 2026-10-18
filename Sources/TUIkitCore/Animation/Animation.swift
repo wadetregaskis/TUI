@@ -199,7 +199,7 @@ extension Animation {
     ///   - blendDuration: The duration in seconds over which to interpolate
     ///     changes to the duration.
     public static func spring(_ spring: Spring, blendDuration: TimeInterval = 0.0) -> Animation {
-        Animation(spring: spring, initialVelocity: 0)
+        Animation(spring: spring, initialVelocity: 0, merges: true)
     }
 
     /// A persistent spring animation, by response and damping fraction.
@@ -263,11 +263,10 @@ extension Animation {
     /// produce values in the range [0, 1] that are then used to interpolate
     /// within the [from, to] range of the animated property.
     ///
-    /// SwiftUI's never merges: a change that arrives while it runs starts
-    /// another animation beside it, and the two ADD. TUIkit's merges as
-    /// ``spring(_:blendDuration:)`` does, the value's velocity carrying into
-    /// the spring that takes over. The starting velocity is honoured, in the
-    /// closed form, for the change it is given to.
+    /// Unlike ``spring(_:blendDuration:)`` it never merges: a change that
+    /// arrives while it runs starts another animation beside it, and the two
+    /// ADD, so the motion already under way carries on. The starting velocity
+    /// is honoured, in the closed form, for the change it is given to.
     ///
     /// - Parameters:
     ///   - spring: A description of the spring's motion.
@@ -275,7 +274,7 @@ extension Animation {
     ///     the range [0, 1] representing the magnitude of the value being
     ///     animated.
     public static func interpolatingSpring(_ spring: Spring, initialVelocity: Double = 0.0) -> Animation {
-        Animation(spring: spring, initialVelocity: initialVelocity)
+        Animation(spring: spring, initialVelocity: initialVelocity, merges: false)
     }
 
     /// An interpolating spring animation, by mass, stiffness and damping —
@@ -302,18 +301,19 @@ extension Animation {
     public static var interpolatingSpring: Animation { interpolatingSpring() }
 
     /// The animation `spring` moves with, starting at `initialVelocity` (in
-    /// units of the whole change per second).
+    /// units of the whole change per second), and taking over a change it
+    /// interrupts where it `merges`.
     ///
     /// The one place a ``Spring`` becomes a curve. Its pace becomes the
     /// angular frequency, and a pace of zero or a ratio no number describes
     /// is an instant change rather than a NaN on its way to a cell.
-    init(spring: Spring, initialVelocity: Double) {
+    init(spring: Spring, initialVelocity: Double, merges: Bool) {
         let ratio = spring.dampingRatio
         let omega = spring.response > 0 && spring.response.isFinite ? 2 * Double.pi / spring.response : 0
         let zeta = ratio.isFinite ? max(0, ratio) : 1
         let velocity = initialVelocity.isFinite ? initialVelocity : 0
         self.init(
-            curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity),
+            curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity, merges: merges),
             passDuration: AnimationCurve.springSettleDuration(
                 omega: omega, zeta: zeta, initialVelocity: velocity))
     }
@@ -323,11 +323,11 @@ extension Animation {
     /// TUIkit's around it (no delay, speed, repeat or logical completion), as
     /// a merge continues one (``AnimationStore``); any other as it is.
     package func carrying(velocity: Double) -> Animation {
-        guard case .spring(let omega, let zeta, _) = curve, velocity.isFinite, delayInterval == 0,
+        guard case .spring(let omega, let zeta, _, let merges) = curve, velocity.isFinite, delayInterval == 0,
             speedFactor == 1, logicalCompletion < 0, case .count(1, _) = repeatMode
         else { return self }
         return Animation(
-            curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity),
+            curve: .spring(omega: omega, zeta: zeta, initialVelocity: velocity, merges: merges),
             passDuration: AnimationCurve.springSettleDuration(omega: omega, zeta: zeta, initialVelocity: velocity))
     }
 
@@ -475,7 +475,7 @@ extension Animation {
     public var logicalCompletionDuration: TimeInterval? {
         guard let total = totalDuration, case .count(let passes, _) = repeatMode else { return nil }
         var natural = total
-        if case .spring(let omega, _, _) = curve, omega > 0 {
+        if case .spring(let omega, _, _, _) = curve, omega > 0 {
             let pace = min(passDuration, 2 * Double.pi / omega)
             natural = (delayInterval + passDuration * Double(passes - 1) + pace) / speedFactor
         } else if case .custom(let id) = curve, let pass = resolvedPassDuration,
@@ -622,15 +622,18 @@ extension Animation {
                 case .easeOutIn: ".circularEaseInOut.inverse"
                 }
             return "timingCurve(\(name), duration: \(passDuration))"
-        case .spring(let omega, let zeta, let initialVelocity):
+        case .spring(let omega, let zeta, let initialVelocity, let merges):
             // Inverted back through `spring(duration:bounce:)`'s own mapping.
             // This used to print the stored `omega`/`zeta`/`settles`, which no
-            // factory accepts — the one spelling that cannot round-trip.
+            // factory accepts — the one spelling that cannot round-trip. A
+            // merging spring's velocity is one a merge carried in, which no
+            // factory spells either, so it goes unprinted.
             let duration = omega > 0 ? 2 * Double.pi / omega : 0
             let bounce = zeta <= 1 ? 1 - zeta : 1 / zeta - 1
-            guard initialVelocity == 0 else {
+            guard merges else {
+                let velocity = initialVelocity == 0 ? "" : ", initialVelocity: \(initialVelocity)"
                 return "interpolatingSpring(duration: \(Self.solved(duration)), "
-                    + "bounce: \(Self.solved(bounce)), initialVelocity: \(initialVelocity))"
+                    + "bounce: \(Self.solved(bounce))\(velocity))"
             }
             return "spring(duration: \(Self.solved(duration)), bounce: \(Self.solved(bounce)))"
         }

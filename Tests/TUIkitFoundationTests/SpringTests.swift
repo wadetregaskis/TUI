@@ -163,6 +163,9 @@ struct SpringTests {
         }
         #expect(pushed.description == "interpolatingSpring(duration: 0.5, bounce: 0.3, initialVelocity: 2.0)")
         #expect(Animation.interpolatingSpring == .interpolatingSpring(Spring()))
+        // It is not the persistent spring of the same shape: that one merges.
+        #expect(Animation.interpolatingSpring(Spring()) != .spring(Spring()))
+        #expect(Animation.interpolatingSpring.description == "interpolatingSpring(duration: 0.5, bounce: 0.0)")
         #expect(Animation.interpolatingSpring(mass: 1, stiffness: 100, damping: 10) == .interpolatingSpring(
             Spring(mass: 1, stiffness: 100, damping: 10)))
         #expect(Animation.interactiveSpring == .spring(duration: 0.15, bounce: 0.15))

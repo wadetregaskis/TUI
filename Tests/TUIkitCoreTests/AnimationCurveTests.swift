@@ -163,7 +163,7 @@ struct AnimationCurveTests {
     /// Recovers a spring's parameters for tests that need to evaluate it past
     /// the settling point the public `fraction(at:)` clamps to.
     private func springParameters(_ animation: Animation) -> (omega: Double, zeta: Double) {
-        guard case .spring(let omega, let zeta, _) = animation.curve else {
+        guard case .spring(let omega, let zeta, _, _) = animation.curve else {
             Issue.record("not a spring")
             return (0, 0)
         }

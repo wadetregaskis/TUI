@@ -365,15 +365,16 @@ extension Animation {
     ///
     /// A plain custom animation answers itself. Of TUIkit's curves a spring
     /// says yes, as SwiftUI's does, and carries the value's velocity into the
-    /// spring that takes over; the rest say no, and run beside the change
-    /// they interrupt, their motions adding.
+    /// spring that takes over; the rest, `interpolatingSpring` among them,
+    /// say no, and run beside the change they interrupt, their motions
+    /// adding.
     public func shouldMerge<V: VectorArithmetic>(
         previous: Animation, value: V, time: TimeInterval, context: inout AnimationContext<V>
     ) -> Bool {
         if let custom = plainCustomAnimation {
             return custom.shouldMerge(previous: previous, value: value, time: time, context: &context)
         }
-        if case .spring = curve { return true }
+        if case .spring(_, _, _, merges: true) = curve { return true }
         return false
     }
 

@@ -943,19 +943,26 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ## Animation
 
-### A1. A spring restarts at rest when it is retargeted
+### A1. A retargeted spring's duration does not blend, and `tracksVelocity` is read by nothing
 
 - **SwiftUI:** a spring retargeted mid-flight hands its velocity to the next,
-  blending over `blendDuration`; `interpolatingSpring` adds overlapping
-  animations; `Transaction.tracksVelocity` carries velocity forward (Apple's
+  blending the two springs' durations over `blendDuration`;
+  `interpolatingSpring` and the other curves add overlapping animations;
+  `Transaction.tracksVelocity` carries velocity forward (Apple's
   documentation).
-- **TUIkit:** an animation is a closed-form function of time from rest. A
-  retarget starts the new curve from where the picture is, without its speed;
+- **TUIkit:** the velocity is handed on and overlapping animations add, as in
+  SwiftUI (O3, 2026-10-18): a merging spring starts the next at the speed the
+  value was moving, and any other animation runs beside the one it
+  interrupts. The next spring takes its own duration at once, so
   `blendDuration` has nothing to blend; `tracksVelocity` is recorded and read
   by nothing.
-- **Why:** a closed-form curve from rest needs no per-frame state, and there
-  is no velocity to hand on.
-- **Decided:** [B55](<Decisions/SwiftUI API completion decisions.md#b55-tracksvelocity-is-recorded-and-no-velocity-is-carried-iscontinuous-is-set-by-tuikits-own-continuous-controls>), [B58](<Decisions/SwiftUI API completion decisions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not-a-spring-animation-keeps-no-velocity-across-a-retarget>). **Lane.**
+- **Why:** each animation is a closed-form function of time from its start;
+  a blend would make the curve depend on the one before it for as long as
+  the blend lasts. TUIkit's own continuous controls, which `tracksVelocity`
+  serves in SwiftUI, report a cell at a time and carry no velocity worth
+  tracking.
+- **Decided:** [B55](<Decisions/SwiftUI API completion decisions.md#b55-tracksvelocity-is-recorded-and-no-velocity-is-carried-iscontinuous-is-set-by-tuikits-own-continuous-controls>), [B58](<Decisions/SwiftUI API completion decisions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not-a-spring-animation-keeps-no-velocity-across-a-retarget>);
+  the velocity and the adding were B58's lane, landed with O3. **Medium**.
 
 ### A2. Animation arithmetic follows the documentation where SwiftUI's answers do not
 
