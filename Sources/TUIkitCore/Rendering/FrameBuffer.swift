@@ -277,7 +277,7 @@ public struct FrameBuffer: Sendable, Equatable {
     ///   - width: The width in characters.
     ///   - height: The number of lines.
     public init(emptyWithWidth width: Int, height: Int) {
-        self.storage = Array(repeating: String(repeating: " ", count: width), count: height)
+        self.storage = Array(repeating: String.spaces(width), count: height)
         self.width = width
         self.linesAreUniformWidth = true  // every line is `width` spaces
         self.lineWidths = nil  // uniform at `width`; no array needed
@@ -840,7 +840,7 @@ extension FrameBuffer {
             var baseLine =
                 row < lines.count
                 ? lines[row].padToVisibleWidth(resultWidth)
-                : String(repeating: " ", count: resultWidth)
+                : String.spaces(resultWidth)
 
             // Check if this row has overlay content
             let overlayRow = row - position.y
@@ -960,7 +960,7 @@ extension FrameBuffer {
         if storage.count < resultHeight {
             storage.append(
                 contentsOf: Array(
-                    repeating: String(repeating: " ", count: resultWidth),
+                    repeating: String.spaces(resultWidth),
                     count: resultHeight - storage.count))
         }
         if resultWidth > width {
@@ -1460,13 +1460,13 @@ extension FrameBuffer {
         // wide character composites the overlay one cell left and pulls the
         // rest of the row in behind it — ragged pop-up borders next to emoji.
         let prefix = split.prefixWidth < column
-            ? split.prefix + String(repeating: " ", count: column - split.prefixWidth)
+            ? split.prefix + String.spaces(column - split.prefixWidth)
             : split.prefix
         var suffix = split.suffix
         let expectedSuffixWidth = max(0, split.totalWidth - afterOverlayColumn)
         let suffixShortfall = expectedSuffixWidth - split.suffixWidth
         if suffixShortfall > 0 {
-            suffix = String(repeating: " ", count: suffixShortfall) + suffix
+            suffix = String.spaces(suffixShortfall) + suffix
         }
         // A caller that wants the line to reach a column past everything the
         // base had (a run's end, when its frame is narrower than the run) gets
@@ -1474,7 +1474,7 @@ extension FrameBuffer {
         // base before the split would have put them.
         let trailing = minimumTotalWidth - max(split.totalWidth, afterOverlayColumn)
         if trailing > 0 {
-            suffix += String(repeating: " ", count: trailing)
+            suffix += String.spaces(trailing)
         }
 
         // Restore the styling ACTIVE at the suffix's start column (not the line's

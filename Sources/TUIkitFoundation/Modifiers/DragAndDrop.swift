@@ -106,7 +106,7 @@ extension DraggableModifier: Renderable, Layoutable {
         if session.isDragSource(identity) {
             buffer = FrameBuffer(
                 lines: Array(
-                    repeating: String(repeating: " ", count: max(0, buffer.width)),
+                    repeating: String.spaces(max(0, buffer.width)),
                     count: max(1, buffer.height)))
         }
 

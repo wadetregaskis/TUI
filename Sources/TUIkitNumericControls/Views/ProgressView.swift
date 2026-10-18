@@ -729,7 +729,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         let valueWidth = valueText.strippedLength
         let gap = max(1, width - labelWidth - valueWidth)
 
-        return labelText + String(repeating: " ", count: gap) + valueText
+        return labelText + String.spaces(gap) + valueText
     }
 
     /// The label line if it has visible content, else `nil` — so a blank label

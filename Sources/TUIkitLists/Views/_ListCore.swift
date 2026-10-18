@@ -1109,7 +1109,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             targetWidth = intrinsicWidth
         }
         let extra = max(0, targetWidth - placeholderWidth)
-        return [emptyPlaceholder + String(repeating: " ", count: extra)]
+        return [emptyPlaceholder + String.spaces(extra)]
     }
 
     // MARK: - Populated content
@@ -2169,7 +2169,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         lines: [String], ranges: [VisibleRowRange], runs: [AnimatedCellRun],
         claims: [OpacityRegion]
     ) {
-        let blank = String(repeating: " ", count: max(0, rowWidth))
+        let blank = String.spaces(max(0, rowWidth))
         let slidRows = handler.overscrollState.slid(rowLines, blank: blank)
         let topOffset = topIndicator == nil ? 0 : 1
         let assembled = [topIndicator?.text].compactMap { $0 } + slidRows
@@ -2435,11 +2435,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             func fitted(_ rowLine: String) -> String {
                 let width = rowLine.strippedLength
                 guard width > contentRowWidth else {
-                    return rowLine + String(repeating: " ", count: contentRowWidth - width)
+                    return rowLine + String.spaces(contentRowWidth - width)
                 }
                 let (cut, cutWidth) = rowLine.ansiAwarePrefixWithWidth(
                     visibleCount: contentRowWidth, knownVisibleWidth: width)
-                return cut + String(repeating: " ", count: max(0, contentRowWidth - cutWidth))
+                return cut + String.spaces(max(0, contentRowWidth - cutWidth))
             }
             for (offset, rowLine) in styledLines.enumerated() {
                 lines.append(fitted(rowLine))
@@ -2471,7 +2471,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
 
         // Fill the area below the last row so the bar spans the full height.
-        let blank = String(repeating: " ", count: contentRowWidth)
+        let blank = String.spaces(contentRowWidth)
         while lines.count < contentHeight { lines.append(blank) }
 
         // §1.5: slide the rows within the bar's span, then pair each with its
@@ -3094,7 +3094,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             body = FrameBuffer(
                 lines: body.lines
                     + Array(
-                        repeating: String(repeating: " ", count: width),
+                        repeating: String.spaces(width),
                         count: removedCount - body.height))
             body.opacityRegions = claims
         }
@@ -3229,7 +3229,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let height = max(1, buffer?.height ?? 1)
         let width = max(1, buffer?.width ?? 1)
         return FrameBuffer(
-            lines: Array(repeating: String(repeating: " ", count: width), count: height))
+            lines: Array(repeating: String.spaces(width), count: height))
     }
 
     /// Hands this frame's row geometry to the handler for the reorder drag to
@@ -4263,7 +4263,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Nothing animates: a run would paint over the blank on its next tick.
         guard !state.isReturningHome else {
             return RenderedRow(
-                lines: lines(over: nil).map { String(repeating: " ", count: $0.strippedLength) },
+                lines: lines(over: nil).map { String.spaces($0.strippedLength) },
                 pulseFrames: nil, childRuns: [])
         }
         // Two equal ends are a still row, however many frames the cycle has — see
@@ -4912,7 +4912,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             badge.displayText, foreground: ink.opaqueSpelling, bold: bold)
         let paddedLine =
             gutter + placement.fitted
-            + String(repeating: " ", count: placement.fillPadding) + styledBadge + " "
+            + String.spaces(placement.fillPadding) + styledBadge + " "
 
         return terminatedBackground(paddedLine, backgroundColor)
     }
@@ -4928,7 +4928,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let lineLength = line.strippedLength
         let usedWidth = 1 + lineLength
         let rightPadding = max(1, rowWidth - usedWidth)
-        let paddedLine = gutter + line + String(repeating: " ", count: rightPadding)
+        let paddedLine = gutter + line + String.spaces(rightPadding)
 
         return terminatedBackground(paddedLine, backgroundColor)
     }

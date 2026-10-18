@@ -219,7 +219,7 @@ extension ScreenSelection {
     ) -> FrameBuffer {
         guard let colour, !span.isEmpty else { return buffer }
         var layer = FrameBuffer(lines: [
-            ANSIRenderer.colorize(String(repeating: " ", count: span.count), background: colour.opaqueSpelling)
+            ANSIRenderer.colorize(String.spaces(span.count), background: colour.opaqueSpelling)
         ])
         layer.opacityRegions = [
             OpacityRegion(offsetX: 0, offsetY: 0, width: span.count, height: 1, opacity: pictureTint)

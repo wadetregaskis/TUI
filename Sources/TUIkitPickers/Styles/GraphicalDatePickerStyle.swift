@@ -287,8 +287,8 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let inner = Self.width - 4
         let fitted = title.count > inner ? String(title.prefix(inner)) : title
         let left = (inner - fitted.count) / 2
-        let titleText = String(repeating: " ", count: left) + fitted
-            + String(repeating: " ", count: inner - left - fitted.count)
+        let titleText = String.spaces(left) + fitted
+            + String.spaces(inner - left - fitted.count)
         let arrow = (isFocused ? palette.accent : palette.foregroundSecondary).opaqueSpelling
         return ANSIRenderer.colorize(" \(TerminalSymbols.leftArrow)", foreground: arrow)
             + ANSIRenderer.colorize(

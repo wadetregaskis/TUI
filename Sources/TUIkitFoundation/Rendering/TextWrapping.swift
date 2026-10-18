@@ -484,7 +484,7 @@ package enum TextWrapping {
                 line = unit
                 lineWidth = unitWidth
             } else if lineWidth + pendingSpaces + unitWidth <= budget {
-                line += String(repeating: " ", count: pendingSpaces) + unit
+                line += String.spaces(pendingSpaces) + unit
                 lineWidth += pendingSpaces + unitWidth
             } else {
                 commitLine()
@@ -519,7 +519,7 @@ package enum TextWrapping {
         // Trailing spaces are content when they fit (the space walk preserves
         // them the same way); at a break they'd be consumed anyway.
         if pendingSpaces > 0, !line.isEmpty, lineWidth + pendingSpaces <= budget {
-            line += String(repeating: " ", count: pendingSpaces)
+            line += String.spaces(pendingSpaces)
             lineWidth += pendingSpaces
         }
         if !line.isEmpty {

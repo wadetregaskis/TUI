@@ -24,7 +24,7 @@ private enum ASCIISpaces {
     static let count = 1024
 
     /// `count` ASCII spaces. Immutable after initialization.
-    static let run = String(repeating: " ", count: count)
+    static let run = String.spaces(count)
 
     /// `run`'s index at every offset, `0...count`, computed once.
     ///
@@ -68,5 +68,36 @@ public func asciiSpaces(_ count: Int) -> Substring {
     }
     // Wider than a full terminal row — vanishingly rare. Build it once here; the
     // caller still appends a Substring, keeping the call site uniform.
-    return Substring(String(repeating: " ", count: count))
+    return Substring(String.spaces(count))
+}
+
+extension String {
+    /// `count` ASCII spaces as a `String` of their own — the form a line of
+    /// padding is stored or concatenated in, where ``asciiSpaces(_:)`` is for
+    /// appending onto a string being built.
+    ///
+    /// Not `String(repeating: " ", count:)`, which appends its argument once
+    /// per repetition: at a terminal row's width that is about 1.2 µs a line
+    /// against 60 ns for filling the bytes, and building blank rows that way
+    /// was 3.6% of a `churn` frame (`FrameBuffer(emptyWithWidth:height:)`).
+    /// A single space is the literal, which is cheaper still. A non-positive
+    /// `count` is the empty string.
+    ///
+    /// A static function, NOT an `init(spaces:)`: an unapplied `String.init`
+    /// ignores argument labels, so `numbers.map(String.init)` would choose
+    /// a non-generic `(Int) -> String` initialiser over the generic integer
+    /// one and turn every 5 into five spaces — which it did, in three tests,
+    /// when this was one.
+    @usableFromInline
+    package static func spaces(_ count: Int) -> String {
+        switch count {
+        case ...0: ""
+        case 1: " "
+        default:
+            String(unsafeUninitializedCapacity: count) { bytes in
+                bytes.initialize(repeating: UInt8(ascii: " "))
+                return count
+            }
+        }
+    }
 }

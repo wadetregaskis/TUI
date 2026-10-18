@@ -240,7 +240,7 @@ private struct Flattening {
     /// own, so the records need not — and must not, or every tick restates them
     /// in front of each cell to no effect — say them again.
     func field(toWidth width: Int) -> String {
-        backgroundCode + String(repeating: " ", count: max(0, width)) + ANSIRenderer.reset
+        backgroundCode + String.spaces(max(0, width)) + ANSIRenderer.reset
     }
 
     /// One row — or one frame of a run covering part of a row — stripped of its

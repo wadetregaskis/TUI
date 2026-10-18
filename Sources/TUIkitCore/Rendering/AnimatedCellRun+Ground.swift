@@ -100,7 +100,7 @@ extension AnimatedCellRun {
     package static func painted(
         _ grounds: (bare: String?, underStatedDefault: String?), width: Int, by paint: (String) -> String
     ) -> (bare: String, underStatedDefault: String) {
-        let cells = String(repeating: " ", count: max(0, width))
+        let cells = String.spaces(max(0, width))
         return (paint(grounds.bare ?? cells), paint(grounds.underStatedDefault ?? statedDefault + cells))
     }
 
@@ -131,7 +131,7 @@ extension AnimatedCellRun {
         guard var record = groundUnderStatedDefault, let first = columns.first else { return self }
         /// Splices the terminal's own field over `start..<end` of the record.
         func state(_ start: Int, _ end: Int) {
-            let span = Self.statedDefault + String(repeating: " ", count: end - start) + "\u{1B}[0m"
+            let span = Self.statedDefault + String.spaces(end - start) + "\u{1B}[0m"
             record = FrameBuffer.splicing(span, into: record, atColumn: start)
         }
         var start = first

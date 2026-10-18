@@ -452,7 +452,7 @@ extension TrackRenderer {
                 // every bar draws, and it must not cost a colour change a cell.
                 // One CLAIM as well, for the same reason.
                 row.append(
-                    String(repeating: " ", count: emptyCount), cells: emptyCount,
+                    String.spaces(emptyCount), cells: emptyCount,
                     ink: backgroundColor, field: backgroundColor)
             } else {
                 row.append(emptyGlyphs(), cells: emptyCount, ink: backgroundColor)
@@ -540,7 +540,7 @@ extension TrackRenderer {
             // A mixed-width pattern that can't land on the boundary: pad the
             // shortfall so the unfilled region still starts on its cell.
             row.append(
-                String(repeating: " ", count: targetCells - cell), cells: targetCells - cell,
+                String.spaces(targetCells - cell), cells: targetCells - cell,
                 ink: backgroundColor, field: paintsBackground ? backgroundColor : nil)
         }
 
@@ -560,7 +560,7 @@ extension TrackRenderer {
                 rampCells += glyphWidth
             }
             if rampCells < quantum {
-                block += String(repeating: " ", count: quantum - rampCells)
+                block += String.spaces(quantum - rampCells)
                 rampCells = quantum
             }
             row.append(
@@ -575,7 +575,7 @@ extension TrackRenderer {
         guard remaining > 0 else { return row }
         if paintsBackground {
             row.append(
-                String(repeating: " ", count: remaining), cells: remaining, ink: backgroundColor,
+                String.spaces(remaining), cells: remaining, ink: backgroundColor,
                 field: backgroundColor)
             return row
         }
@@ -591,7 +591,7 @@ extension TrackRenderer {
             emptyIndex += 1
         }
         if emptyCell < remaining {
-            empty += String(repeating: " ", count: remaining - emptyCell)
+            empty += String.spaces(remaining - emptyCell)
         }
         row.append(empty, cells: remaining, ink: backgroundColor)
         return row

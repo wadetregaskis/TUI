@@ -45,9 +45,9 @@ package struct ListRowSeparatorLine: Equatable, Sendable {
         let start = max(0, min(leading, width))
         let end = max(start, min(trailing ?? width, width))
         let ink = (tint ?? palette.border).resolve(with: palette).opaqueSpelling
-        return String(repeating: " ", count: start)
+        return String.spaces(start)
             + ANSIRenderer.colorize(String(repeating: "─", count: end - start), foreground: ink)
-            + String(repeating: " ", count: width - end)
+            + String.spaces(width - end)
     }
 }
 

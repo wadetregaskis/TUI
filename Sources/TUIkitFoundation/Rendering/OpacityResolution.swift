@@ -423,7 +423,7 @@ extension FrameBuffer {
         // Aligned into a pseudo-row so the frame's cells sit at the run's
         // own columns, where the per-column alpha and the destination line
         // expect them.
-        let prefix = String(repeating: " ", count: max(0, run.offsetX))
+        let prefix = String.spaces(max(0, run.offsetX))
         // A frame's cell that states no field inherits one from what the
         // containers inside this fade painted under it — a frame from
         // `colorize(glyph, foreground:)` states none, and the splice relies on

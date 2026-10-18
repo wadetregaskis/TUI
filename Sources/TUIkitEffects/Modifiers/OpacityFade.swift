@@ -121,7 +121,7 @@ enum OpacityFade {
                     result += off.rendered(changingFrom: state)
                     cleared = off
                 }
-                result += String(repeating: " ", count: character.terminalWidth)
+                result += String.spaces(character.terminalWidth)
             }
             return true
         }

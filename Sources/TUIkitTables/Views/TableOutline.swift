@@ -123,10 +123,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// labels of a level line up whatever they are.
     func prefix(for id: Value.ID) -> String {
         guard let placement = placements[id] else { return "" }
-        let indent = String(repeating: " ", count: placement.depth * Self.indentStep)
-        let blank = String(repeating: " ", count: DisclosureMetrics.glyphSpacing)
+        let indent = String.spaces(placement.depth * Self.indentStep)
+        let blank = String.spaces(DisclosureMetrics.glyphSpacing)
         switch placement.disclosure {
-        case .leaf: return indent + String(repeating: " ", count: Self.indentStep)
+        case .leaf: return indent + String.spaces(Self.indentStep)
         case .closed: return indent + TerminalSymbols.disclosureCollapsed + blank
         case .open: return indent + TerminalSymbols.disclosureExpanded + blank
         }
@@ -178,7 +178,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
                 var cell = FrameBuffer(
                     lines: [prefix]
                         + Array(
-                            repeating: String(repeating: " ", count: width),
+                            repeating: String.spaces(width),
                             count: max(0, content.height - 1)))
                 cell.appendHorizontally(content)
                 return cell

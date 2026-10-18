@@ -343,7 +343,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         // Truncate and pad by CELLS, not characters — a wide glyph in the
         // prompt must not push the field wider than its neighbours.
         let (truncated, cells) = promptText.ansiAwarePrefixWithWidth(visibleCount: width)
-        let paddedPrompt = truncated + String(repeating: " ", count: width - cells)
+        let paddedPrompt = truncated + String.spaces(width - cells)
         let foreground = Self.promptColor(palette: palette, on: background)
         // Not a cascade colour — `promptColor` floors `foregroundTertiary` — so
         // this arm is the second tier: a theme that faded that slot. It claims
@@ -390,7 +390,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
             displayText.append(character)
             cells += characterWidth
         }
-        let paddedText = displayText + String(repeating: " ", count: width - cells)
+        let paddedText = displayText + String.spaces(width - cells)
         let foreground =
             isDisabled ? palette.foregroundTertiary : resolvedContentForeground(palette)
         // One rectangle, exactly `width` cells, because that is what the padding
@@ -802,7 +802,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
             return (
                 glyph
                     + ANSIRenderer.colorize(
-                        String(repeating: " ", count: cells - 1),
+                        String.spaces(cells - 1),
                         foreground: colors.text,
                         background: colors.background?.opaqueSpelling),
                 owed(colors.background))

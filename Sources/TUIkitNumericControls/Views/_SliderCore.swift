@@ -72,7 +72,7 @@ struct _SliderCore: View, Renderable, Layoutable {
     private var valueLabelText: String {
         let text = valueDisplayText
         guard text.count < valueFieldWidth else { return text }
-        return text + String(repeating: " ", count: valueFieldWidth - text.count)
+        return text + String.spaces(valueFieldWidth - text.count)
     }
 
     /// The value read-out with **no** field padding (`"52%"`) — the part the
@@ -724,7 +724,7 @@ struct _SliderCore: View, Renderable, Layoutable {
             : (valueStyle.foreground?.resolve(with: palette) ?? palette.foregroundSecondary)
         // Style only the digits; append the field padding UNSTYLED so a themed
         // underline sits under "52%", never the blank fourth cell.
-        let padding = String(repeating: " ", count: max(0, valueFieldWidth - valueDisplay.count))
+        let padding = String.spaces(max(0, valueFieldWidth - valueDisplay.count))
         let valueLabel = ANSIRenderer.colorize(
             valueDisplay,
             foreground: valueLabelColor.opaqueSpelling,

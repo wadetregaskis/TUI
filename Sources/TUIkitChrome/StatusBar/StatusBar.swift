@@ -791,7 +791,7 @@ private struct _StatusBarCore: View, Renderable {
                 running += itemWidth + separator.count
             }
             return LaidOutLine(
-                line: String(repeating: " ", count: padding) + content,
+                line: String.spaces(padding) + content,
                 placedColumns: columns
             )
 
@@ -807,9 +807,9 @@ private struct _StatusBarCore: View, Renderable {
                 columns.append(running)
                 running += itemWidth + separator.count
             }
-            let line = String(repeating: " ", count: leftPadding)
+            let line = String.spaces(leftPadding)
                 + content
-                + String(repeating: " ", count: rightPadding)
+                + String.spaces(rightPadding)
             return LaidOutLine(line: line, placedColumns: columns)
 
         case .justified:
@@ -823,7 +823,7 @@ private struct _StatusBarCore: View, Renderable {
     private func justifyContent(layouts: [ItemLayout], width: Int) -> LaidOutLine {
         guard !layouts.isEmpty else {
             return LaidOutLine(
-                line: String(repeating: " ", count: width),
+                line: String.spaces(width),
                 placedColumns: []
             )
         }
@@ -835,9 +835,9 @@ private struct _StatusBarCore: View, Renderable {
             let totalPadding = max(0, width - contentWidth)
             let leftPadding = totalPadding / 2
             let rightPadding = totalPadding - leftPadding
-            let line = String(repeating: " ", count: leftPadding)
+            let line = String.spaces(leftPadding)
                 + only.display
-                + String(repeating: " ", count: rightPadding)
+                + String.spaces(rightPadding)
             return LaidOutLine(line: line, placedColumns: [leftPadding])
         }
 
@@ -859,7 +859,7 @@ private struct _StatusBarCore: View, Renderable {
         // Left edge gap (gets extra space if available)
         let leftGapExtra = extraSpace > 0 ? 1 : 0
         let leftGap = gapWidth + leftGapExtra
-        line += String(repeating: " ", count: leftGap)
+        line += String.spaces(leftGap)
         cursor += leftGap
 
         for (index, layout) in layouts.enumerated() {
@@ -873,7 +873,7 @@ private struct _StatusBarCore: View, Renderable {
                 let gapIndex = index + 1  // 0 = left edge, 1..n-1 = between items, n = right edge
                 let extra = gapIndex < extraSpace ? 1 : 0
                 let gap = gapWidth + extra
-                line += String(repeating: " ", count: gap)
+                line += String.spaces(gap)
                 cursor += gap
             }
         }
@@ -881,7 +881,7 @@ private struct _StatusBarCore: View, Renderable {
         // Right edge gap
         let rightGapIndex = layouts.count
         let rightGapExtra = rightGapIndex < extraSpace ? 1 : 0
-        line += String(repeating: " ", count: gapWidth + rightGapExtra)
+        line += String.spaces(gapWidth + rightGapExtra)
 
         // Ensure the result fills the width exactly
         return LaidOutLine(

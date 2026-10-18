@@ -207,7 +207,7 @@ extension AnyTransition.Effect {
     private static func translated(_ buffer: FrameBuffer, dx: Int, dy: Int) -> FrameBuffer {
         guard dx != 0 || dy != 0 else { return buffer }
         let width = buffer.width
-        let blank = String(repeating: " ", count: max(0, width))
+        let blank = String.spaces(max(0, width))
         var moved: [String] = []
         moved.reserveCapacity(buffer.lines.count)
 
@@ -231,7 +231,7 @@ extension AnyTransition.Effect {
         guard abs(dx) < width else { return blank }
         if dx > 0 {
             let kept = line.ansiAwareSlice(visibleStart: 0, visibleCount: width - dx)
-            return (String(repeating: " ", count: dx) + kept).padToVisibleWidth(width)
+            return (String.spaces(dx) + kept).padToVisibleWidth(width)
         }
         let dropped = -dx
         return line.ansiAwareSlice(visibleStart: dropped, visibleCount: width - dropped)
@@ -252,7 +252,7 @@ extension AnyTransition.Effect {
         let shownHeight = Int((Double(height) * factor).rounded())
         let originX = Int((Double(width - shownWidth) * anchor.x).rounded())
         let originY = Int((Double(height - shownHeight) * anchor.y).rounded())
-        let blank = String(repeating: " ", count: max(0, width))
+        let blank = String.spaces(max(0, width))
 
         var revealed: [String] = []
         revealed.reserveCapacity(height)
@@ -264,7 +264,7 @@ extension AnyTransition.Effect {
             let line = buffer.lines[row].padToVisibleWidth(width)
             let kept = line.ansiAwareSlice(visibleStart: originX, visibleCount: shownWidth)
             revealed.append(
-                (String(repeating: " ", count: originX) + kept).padToVisibleWidth(width))
+                (String.spaces(originX) + kept).padToVisibleWidth(width))
         }
         return buffer.replacingLines(revealed)
     }

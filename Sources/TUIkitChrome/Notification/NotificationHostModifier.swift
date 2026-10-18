@@ -90,7 +90,7 @@ extension NotificationHostModifier: Renderable {
         let horizontalPadding = 1
         let innerWidth = max(1, width - BorderRenderer.borderWidthOverhead)
         let textWidth = max(1, innerWidth - horizontalPadding * 2)
-        let pad = String(repeating: " ", count: horizontalPadding)
+        let pad = String.spaces(horizontalPadding)
 
         // Render each notification as a Box and stack them vertically.
         var stackedBuffer = FrameBuffer()
@@ -150,7 +150,7 @@ extension NotificationHostModifier: Renderable {
                     baseBuffer.lines[row].padToVisibleWidth(screenWidth)
                 )
             } else {
-                fullscreenLines.append(String(repeating: " ", count: screenWidth))
+                fullscreenLines.append(String.spaces(screenWidth))
             }
         }
         // The fullscreen padding doesn't move any content, so overlays

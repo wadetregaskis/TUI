@@ -804,7 +804,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         // The indicator is one cell wide by construction — all three glyphs are
         // — and the space after it makes two.
         let indentWidth = indicator.strippedLength + 1
-        let indent = String(repeating: " ", count: indentWidth)
+        let indent = String.spaces(indentWidth)
         var lines = labelBuffer.lines.enumerated().map { row, line in
             row == 0 ? styledIndicator + " " + line : indent + line
         }

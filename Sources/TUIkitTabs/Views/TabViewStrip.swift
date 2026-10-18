@@ -54,7 +54,7 @@ extension _TabViewCore {
 
         for (y, row) in rows.enumerated() {
             let offset = max(0, alignment.childOffset(childWidth: compactRowWidth(row), in: width))
-            var line = String(repeating: " ", count: offset)
+            var line = String.spaces(offset)
             var x = offset
             for i in row {
                 // The active chip takes the surface (breathing when focused);
@@ -82,7 +82,7 @@ extension _TabViewCore {
                 }
                 x += chipWidth
             }
-            if x < width { line += String(repeating: " ", count: width - x) }
+            if x < width { line += String.spaces(width - x) }
             lines.append(line)
         }
         return (lines, regions, animatedCells, claims)
@@ -331,7 +331,7 @@ extension _TabViewCore {
         // surface with nothing drawn in it — so it owes a field and no ink. Nothing at
         // all for a body of no width.
         if aBody.len > 0 {
-            line.append(String(repeating: " ", count: aBody.len), cells: aBody.len, ink: nil, field: surface)
+            line.append(String.spaces(aBody.len), cells: aBody.len, ink: nil, field: surface)
         }
         line.append(right, cells: boxWidth - aRight, ink: border)
         return line

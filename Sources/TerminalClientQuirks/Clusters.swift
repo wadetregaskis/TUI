@@ -26,7 +26,7 @@ struct Cluster: Identifiable {
     /// each piece by its own measurement and hide exactly the disagreement
     /// the strip exists to expose. One rule, for both screens that draw one.
     var card: String {
-        let padding = String(repeating: " ", count: max(0, Clusters.field - character.terminalWidth))
+        let padding = String.spaces(max(0, Clusters.field - character.terminalWidth))
         return "│\(text)\(padding)│  \(name)"
     }
 

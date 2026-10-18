@@ -56,7 +56,7 @@ extension _StyleFillBlock: Renderable, Layoutable {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         guard width > 0, height > 0 else { return FrameBuffer(lines: []) }
-        let row = String(repeating: " ", count: width)
+        let row = String.spaces(width)
         guard let colour else {
             return FrameBuffer(
                 lines: Array(repeating: row, count: height),

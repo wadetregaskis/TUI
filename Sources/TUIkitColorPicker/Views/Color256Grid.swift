@@ -463,7 +463,7 @@ struct _Color256GridCore: View, Renderable {
                 continue
             }
             let lead = max(0, (gridWidth - row.count * cellWidth) / 2)
-            var line = String(repeating: " ", count: lead)
+            var line = String.spaces(lead)
             var x = lead
             for entry in row {
                 if let index = entry {
@@ -473,7 +473,7 @@ struct _Color256GridCore: View, Renderable {
                         numbersBold: numbersBold, palette: palette)
                     cells.append(Palette256Layout.Cell(index: index, x: x, y: y, width: cellWidth))
                 } else {
-                    line += String(repeating: " ", count: cellWidth)  // gap
+                    line += String.spaces(cellWidth)  // gap
                 }
                 x += cellWidth
             }
@@ -528,7 +528,7 @@ struct _Color256GridCore: View, Renderable {
             return ANSIRenderer.colorize(
                 centred(String(index), in: cellWidth), foreground: foreground, background: color, bold: numbersBold)
         }
-        return ANSIRenderer.colorize(String(repeating: " ", count: cellWidth), background: color)
+        return ANSIRenderer.colorize(String.spaces(cellWidth), background: color)
     }
 
     /// Centres `text` within `width` cells (a trailing-biased split for odd gaps).
@@ -536,8 +536,8 @@ struct _Color256GridCore: View, Renderable {
         let length = text.count
         guard width > length else { return text }
         let left = (width - length) / 2
-        return String(repeating: " ", count: left) + text
-            + String(repeating: " ", count: width - length - left)
+        return String.spaces(left) + text
+            + String.spaces(width - length - left)
     }
 
     /// The palette index of `color` if it is a 256-palette colour, else nil.

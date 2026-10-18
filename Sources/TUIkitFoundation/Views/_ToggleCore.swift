@@ -561,7 +561,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             subtitleContext.environment.foregroundStyle = .color(palette.foregroundSecondary)
         }
         let indent = Self.labelIndent(forIndicator: indicator)
-        let indentString = String(repeating: " ", count: indent)
+        let indentString = String.spaces(indent)
         // Wrap the subtitle to the width left after the indent. The enclosing
         // stack hands the toggle the same `availableWidth` in both the measure
         // pass (it proposes `.unspecified`, which falls back to `availableWidth`)

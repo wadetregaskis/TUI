@@ -343,7 +343,7 @@ extension String {
             let width = strippedLength
             if width <= visibleCount { return self }
             let (prefix, got) = exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount)
-            return got < visibleCount ? prefix + String(repeating: " ", count: visibleCount - got) : prefix
+            return got < visibleCount ? prefix + Self.spaces(visibleCount - got) : prefix
         }
 
         let end = visibleStart + visibleCount
@@ -585,7 +585,7 @@ extension String {
                     // short repair.  Skin tone is sacrificed in this narrow
                     // case.
                     if charWidth > 0 {
-                        result.append(String(repeating: " ", count: charWidth))
+                        result.append(Self.spaces(charWidth))
                     }
                 } else {
                     result.append(character)
@@ -673,7 +673,7 @@ extension String {
                         // glyph itself is lost from those cells; repainting
                         // it whole would mean starting the window at its
                         // own column, which this function cannot say.
-                        suffix += String(repeating: " ", count: visible + width - visibleOffset)
+                        suffix += Self.spaces(visible + width - visibleOffset)
                     }
                     visible += width
                 }
@@ -801,7 +801,7 @@ extension String {
         let shortfall = owed - slice.strippedLength
         guard shortfall > 0 else { return slice }
         let (carried, remainder) = slice.leadingANSISplit()
-        return carried + String(repeating: " ", count: shortfall) + remainder
+        return carried + Self.spaces(shortfall) + remainder
     }
 
     /// The net SGR styling active just before visible column `column` — every SGR

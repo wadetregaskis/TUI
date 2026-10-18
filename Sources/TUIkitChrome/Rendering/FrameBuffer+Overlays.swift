@@ -83,7 +83,7 @@ extension FrameBuffer {
                         let expanded = (0..<target).map { row -> String in
                             row < result.lines.count
                                 ? result.lines[row].padToVisibleWidth(maxWidth)
-                                : String(repeating: " ", count: maxWidth)
+                                : String.spaces(maxWidth)
                         }
                         result = result.replacingLines(expanded)
                     }

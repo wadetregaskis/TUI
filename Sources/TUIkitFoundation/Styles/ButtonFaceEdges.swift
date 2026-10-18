@@ -396,7 +396,7 @@ extension _ButtonStyleBody {
         var line = ""
         var faceRun = 0
         func flush() {
-            if faceRun > 0 { line += ANSIRenderer.colorize(String(repeating: " ", count: faceRun), background: face) }
+            if faceRun > 0 { line += ANSIRenderer.colorize(String.spaces(faceRun), background: face) }
             faceRun = 0
         }
         for cell in cells {
@@ -480,7 +480,7 @@ extension _ButtonStyleBody {
     /// A row of a box round an outline face `width` cells wide, its caps
     /// included, in `lines`.
     static func outlineBox(_ row: ButtonFaceEdges.BoxRow, width: Int, lines: Color) -> String {
-        guard width >= 2 else { return String(repeating: " ", count: max(0, width)) }
+        guard width >= 2 else { return String.spaces(max(0, width)) }
         return ANSIRenderer.colorize(
             String(row.leading) + String(repeating: row.edge, count: width - 2) + String(row.trailing),
             foreground: lines)

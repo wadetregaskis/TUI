@@ -353,11 +353,11 @@ struct AlertButtonRow: View, Renderable {
         // The buttons' layers, gathered as `Section` gathers its parts' (see
         // `AlertButtonColumn`).
         var layers = FrameBuffer()
-        let spacer = String(repeating: " ", count: spacing)
+        let spacer = String.spaces(spacing)
         var xCursor = leftPadding
 
         for lineIndex in 0..<maxHeight {
-            resultLines[lineIndex] = String(repeating: " ", count: leftPadding)
+            resultLines[lineIndex] = String.spaces(leftPadding)
         }
 
         for (index, buffer) in buttonBuffers.enumerated() {
@@ -371,7 +371,7 @@ struct AlertButtonRow: View, Renderable {
                 if lineIndex < buffer.height {
                     resultLines[lineIndex] += buffer.lines[lineIndex]
                 } else {
-                    resultLines[lineIndex] += String(repeating: " ", count: buffer.width)
+                    resultLines[lineIndex] += String.spaces(buffer.width)
                 }
             }
             resultRegions.append(
@@ -456,7 +456,7 @@ struct AlertButtonColumn: View, Renderable {
             let childContext = context.withChildIdentity(type: Button.self, index: index)
             let buffer = TUIkitView.renderToBuffer(button, context: childContext)
             let leftPadding = max(0, (width - buffer.width) / 2)
-            let pad = String(repeating: " ", count: leftPadding)
+            let pad = String.spaces(leftPadding)
             let startY = lines.count
             for line in buffer.lines {
                 lines.append(pad + line)

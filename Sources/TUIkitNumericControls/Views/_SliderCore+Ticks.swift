@@ -87,7 +87,7 @@ extension _SliderCore {
             let column = tickColumn(tick.value, drawnTrackWidth: drawnTrackWidth)
             let start = min(max(0, column - labelWidth / 2), width - labelWidth)
             guard labelWidth > 0, start >= drawn + (drawn > 0 ? 1 : 0) else { continue }
-            labels += String(repeating: " ", count: start - drawn) + line
+            labels += String.spaces(start - drawn) + line
             drawn = start + labelWidth
         }
         return [marks.text, labels]

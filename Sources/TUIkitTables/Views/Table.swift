@@ -1286,7 +1286,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if wantsScrollbar {
             // Pad the header to the full inner width so it aligns with the rows
             // (whose last column is the scrollbar); the cell above the bar is blank.
-            headerLine += String(repeating: " ", count: max(0, innerWidth - headerLine.strippedLength))
+            headerLine += String.spaces(max(0, innerWidth - headerLine.strippedLength))
         }
 
         // A table that was GIVEN a height fills it. `hasExplicitHeight` is
@@ -1519,7 +1519,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // land) — see `composeRowLines` for the same two lines of it.
         let drawn = handler.reorderDrawnRows(visibleRange)
         func padded(_ line: String) -> String {
-            line + String(repeating: " ", count: max(0, contentInnerWidth - line.strippedLength))
+            line + String.spaces(max(0, contentInnerWidth - line.strippedLength))
         }
         var rowLines: [String] = []
         // Heights, not entries: the slot stands for every row in hand, so it can
@@ -1587,7 +1587,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             handler: handler, drawn: drawnHeights, slide: slide,
             indicatorLines: 0, lineCount: contentHeight)
         while rowLines.count < contentHeight { rowLines.append(padded("")) }
-        let blankRow = String(repeating: " ", count: max(0, contentInnerWidth))
+        let blankRow = String.spaces(max(0, contentInnerWidth))
         let slid = handler.overscrollState.slid(rowLines, blank: blankRow)
         // A bar cell on every line — plain track below a bar shorter than the lines.
         bar.fit(toCount: slid.count, field: ScrollbarColors.track(in: palette))
@@ -2050,7 +2050,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let drawn = renderedSectionHeaders(
             fitting, heights: heights, columnWidths: columnWidths, context: context)
         let lines = drawn.lines.prefix(max(1, rowArea)).map { line in
-            line + String(repeating: " ", count: max(0, contentWidth - line.strippedLength))
+            line + String.spaces(max(0, contentWidth - line.strippedLength))
         }
         return (lines, drawn.payload.clipped(toRows: 0..<lines.count))
     }
@@ -2116,7 +2116,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ) -> (lines: [String], payload: _TableRowPayload) {
         let width = sectionHeaderWidth(columnWidths)
         let gutter = selectionGutter(context.environment)
-        let indent = String(repeating: " ", count: gutter)
+        let indent = String.spaces(gutter)
         var lines: [String] = []
         var payload = _TableRowPayload()
         for index in indices {
@@ -2387,7 +2387,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // bands are shifted elsewhere.
         let rowsTop = lines.count
         lines.append(contentsOf: handler.overscrollState.slid(
-            slidableRows, blank: String(repeating: " ", count: max(0, contentWidth))))
+            slidableRows, blank: String.spaces(max(0, contentWidth))))
         // `slid` keeps the count, so this is the block's end whatever the
         // excursion — short of `contentHeight` by the "▼ N more below" line
         // appended next and by any padding after that.
@@ -2419,7 +2419,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             || window.reservesAbove || window.reservesBelow
         {
             while lines.count < contentHeight {
-                lines.append(String(repeating: " ", count: contentWidth))
+                lines.append(String.spaces(contentWidth))
             }
         }
         guard showsBar else {
@@ -2431,7 +2431,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // included: plain track below a bar shorter than the lines, and the
         // bar's claims on its own column, unslid.
         while lines.count < contentHeight {
-            lines.append(String(repeating: " ", count: contentWidth))
+            lines.append(String.spaces(contentWidth))
         }
         var bar = bar
         bar.fit(toCount: lines.count, field: ScrollbarColors.track(in: palette))
@@ -3124,7 +3124,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Outside a drag the rows are one line each and this adds nothing.
         // (The scrollbar path fills to its own `contentHeight` already.)
         while rowLines.count < drawnBudget {
-            rowLines.append(String(repeating: " ", count: max(0, contentWidth)))
+            rowLines.append(String.spaces(max(0, contentWidth)))
         }
         let bands = publishRowBands(
             handler: handler, drawn: drawnHeights, slide: slide,
@@ -3138,7 +3138,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // `lines`; their runs take the same slide the bands just did.
         let rowsTop = lines.count
         lines.append(contentsOf: handler.overscrollState.slid(
-            rowLines, blank: String(repeating: " ", count: max(0, contentWidth))))
+            rowLines, blank: String.spaces(max(0, contentWidth))))
         let runs = rowRuns(
             pulseRuns, slide: slide, topOffset: rowsTop, lineCount: rowsTop + rowLines.count)
         let claims = rowClaims(
@@ -3184,7 +3184,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // them on the pointer, where drawing them here too would read as
         // duplicates); a faint copy each under `.dimmed`.
         let sources = handler.reorderRemovedRows.filter { data.indices.contains($0) }
-        let blank = String(repeating: " ", count: max(0, rowWidth))
+        let blank = String.spaces(max(0, rowWidth))
         guard handler.effectiveReorderFeedback == .dimmed, !sources.isEmpty else {
             // A keyboard move never takes the `.cursor` path: it resolves that
             // to `.dimmed`, precisely because there is no pointer to carry a row.
@@ -5451,7 +5451,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // `_ListCore.renderRow`, which does the same for the same reason.
         // Nothing animates: a run would paint over the blank on its next tick.
         guard !isReturningHome else {
-            return (String(repeating: " ", count: max(0, rowWidth)), nil, nil, [])
+            return (String.spaces(max(0, rowWidth)), nil, nil, [])
         }
         let visualState = rowVisualState(
             isFocused: isFocused,
@@ -5743,7 +5743,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // grab point — measured from the row line's first cell — still lands in
         // the column it was taken from.
         let gutter = selectionGutter(context.environment)
-        let pad = String(repeating: " ", count: gutter)
+        let pad = String.spaces(gutter)
         guard count > 0, steps > 0 else { return Array(repeating: pad, count: max(0, steps)) }
 
         // The picture is of the row's FIRST line, as the hand carries it, and
@@ -5787,7 +5787,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 let travel: Double = Double(handX[index] - gridX[index]) * phase
                 let target = gridX[index] + Int(travel.rounded())
                 let start = max(column, target)
-                line += String(repeating: " ", count: start - column)
+                line += String.spaces(start - column)
                 line += ANSIRenderer.colorize(clipped[index], foreground: foregroundColor, bold: bold)
                 column = start + widths[index]
             }
@@ -6101,7 +6101,7 @@ extension _TableCore {
         let padWidth = widths.max() ?? 0
         let blanks = rows - lines.count
         return (
-            lines + Array(repeating: String(repeating: " ", count: padWidth), count: blanks),
+            lines + Array(repeating: String.spaces(padWidth), count: blanks),
             widths + Array(repeating: padWidth, count: blanks)
         )
     }
@@ -6217,7 +6217,7 @@ private struct _TableSizeStub: View, Renderable, Layoutable {
         // reported size keep that path dimension-accurate too.
         FrameBuffer(
             lines: Array(
-                repeating: String(repeating: " ", count: width), count: height))
+                repeating: String.spaces(width), count: height))
     }
 }
 

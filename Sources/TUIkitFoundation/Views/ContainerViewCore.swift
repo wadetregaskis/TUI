@@ -346,7 +346,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             if bodyBuffer.height < bodyTarget, !bodyBuffer.isEmpty {
                 bodyBuffer.lines.append(
                     contentsOf: repeatElement(
-                        String(repeating: " ", count: bodyBuffer.width),
+                        String.spaces(bodyBuffer.width),
                         count: bodyTarget - bodyBuffer.height))
             }
         }

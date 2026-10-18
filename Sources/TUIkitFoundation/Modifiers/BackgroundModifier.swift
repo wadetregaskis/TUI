@@ -250,7 +250,7 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         // is (§96), and a different one under each cell: the fade is spent over
         // the ramp alone, painted as the content was.
         guard case .opaque = alphaShape else { return ramped }
-        let blank = String(repeating: " ", count: width)
+        let blank = String.spaces(width)
         return ramped.resolvingOpacity(
             onOpaqueFill: { FrameBuffer(lines: buffer.lines.indices.map { paintedRow(blank, row: $0) }) },
             surface: palette.background, palette: palette)

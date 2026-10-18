@@ -558,7 +558,7 @@ extension IndeterminateRenderer {
             // The shortfall a multi-cell pattern leaves, in whatever colour was
             // last drawn — it is the continuation of that run, not a new thing.
             let shortfall = width - column
-            run += String(repeating: " ", count: shortfall)
+            run += String.spaces(shortfall)
             runCells += shortfall
         }
         flush()

@@ -111,7 +111,7 @@ struct QuirkTableView: View {
     }
 
     private func pad(_ text: String, _ width: Int) -> String {
-        text + String(repeating: " ", count: max(0, width - text.strippedLength))
+        text + String.spaces(max(0, width - text.strippedLength))
     }
 
     private func describe(_ program: TerminalClient.Program) -> String {

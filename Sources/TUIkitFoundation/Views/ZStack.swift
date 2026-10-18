@@ -164,7 +164,7 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         let drawnHeight = overhangs ? min(frameHeight, max(0, context.availableHeight)) : frameHeight
         var result = FrameBuffer(
             lines: Array(
-                repeating: String(repeating: " ", count: drawnWidth),
+                repeating: String.spaces(drawnWidth),
                 count: drawnHeight))
         // The runs of a lower layer a later one shows the field of, whose frames turn
         // it: punched under the later layer, they ask for a render at their steps.

@@ -26,7 +26,7 @@ extension _TabViewCore {
         // introducer and a reset.
         func pad(_ count: Int) {
             guard count > 0 else { return }
-            row.append(String(repeating: " ", count: count), cells: count, ink: nil, field: surface)
+            row.append(String.spaces(count), cells: count, ink: nil, field: surface)
         }
         pad(leftPad)
         row.appendFinished(line, cells: used)

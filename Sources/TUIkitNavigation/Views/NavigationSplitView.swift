@@ -1068,7 +1068,7 @@ extension _NavigationSplitViewCore {
         }
 
         // Pad to target height
-        let emptyLine = String(repeating: " ", count: width)
+        let emptyLine = String.spaces(width)
         while lines.count < height {
             lines.append(emptyLine)
             widths.append(width)

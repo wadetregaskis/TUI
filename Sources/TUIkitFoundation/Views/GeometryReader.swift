@@ -299,10 +299,10 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
         if buffer.width < width || buffer.lines.count < height {
             var padded = buffer.lines.map { line -> String in
                 let shortfall = width - line.strippedLength
-                return shortfall > 0 ? line + String(repeating: " ", count: shortfall) : line
+                return shortfall > 0 ? line + String.spaces(shortfall) : line
             }
             while padded.count < height {
-                padded.append(String(repeating: " ", count: width))
+                padded.append(String.spaces(width))
             }
             buffer = buffer.replacingLines(padded, width: width, uniformWidth: true)
         }

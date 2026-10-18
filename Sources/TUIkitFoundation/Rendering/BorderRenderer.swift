@@ -665,7 +665,7 @@ extension BorderRenderer {
         } else if width == innerWidth {
             fittedLine = content
         } else {
-            fittedLine = content + String(repeating: " ", count: innerWidth - width)
+            fittedLine = content + String.spaces(innerWidth - width)
         }
         let styledContent = fittedLine.withPersistentBackground(backgroundColor)
         return walls.left + styledContent + ANSIRenderer.reset + walls.right

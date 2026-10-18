@@ -362,7 +362,7 @@ private struct _ContentUnavailableViewCore<Label: View, Description: View, Actio
 
         let targetWidth = context.availableWidth
         let leftPad = max(0, (targetWidth - result.width) / 2)
-        let padding = String(repeating: " ", count: leftPad)
+        let padding = String.spaces(leftPad)
         let centeredLines = result.lines.map { padding + $0 }
 
         return result.replacingLines(centeredLines, overlayShiftX: leftPad)

@@ -213,7 +213,7 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
             guard let width else { return value }
             let cells = value.strippedLength
             guard cells < width else { return value }
-            let pad = String(repeating: " ", count: width - cells)
+            let pad = String.spaces(width - cells)
             return leftAligned ? value + pad : pad + value
         }
     }

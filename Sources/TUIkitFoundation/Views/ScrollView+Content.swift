@@ -525,7 +525,7 @@ extension _ScrollViewCore {
             }
         }
         if visibleLines.count < viewportHeight {
-            let blank = String(repeating: " ", count: viewportWidth)
+            let blank = String.spaces(viewportWidth)
             let missing = viewportHeight - visibleLines.count
             visibleLines.append(contentsOf: Array(repeating: blank, count: missing))
             visibleWidths.append(contentsOf: repeatElement(viewportWidth, count: missing))

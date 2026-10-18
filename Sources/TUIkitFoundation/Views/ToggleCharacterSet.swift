@@ -146,7 +146,7 @@ public struct ToggleCharacterSet: Sendable, Hashable {
     /// set's own marks so a mixed toggle takes no more or less room.
     var mixedMark: String {
         guard openBracket.isEmpty else { return "-" }
-        return "\u{229F}" + String(repeating: " ", count: max(0, onMark.strippedLength - 1))
+        return "\u{229F}" + String.spaces(max(0, onMark.strippedLength - 1))
     }
 
     package static func automatic(emojiChrome: Bool) -> Self {

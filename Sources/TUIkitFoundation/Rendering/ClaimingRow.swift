@@ -173,7 +173,7 @@ package struct ClaimingRow: Sendable {
     /// ink came from somewhere else entirely.
     @inlinable
     package mutating func skip(cells count: Int) {
-        text += String(repeating: " ", count: max(0, count))
+        text += String.spaces(max(0, count))
         cells += max(0, count)
     }
 

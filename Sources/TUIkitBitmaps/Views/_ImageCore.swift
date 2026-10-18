@@ -809,7 +809,7 @@ extension _ImageCore {
     private func centerContent(
         _ contentLines: [(text: String, ink: Color)], width: Int, height: Int
     ) -> FrameBuffer {
-        let emptyLine = String(repeating: " ", count: width)
+        let emptyLine = String.spaces(width)
         var lines = [String](repeating: emptyLine, count: height)
         var claims: [OpacityRegion] = []
 
@@ -858,7 +858,7 @@ extension _ImageCore {
             // Still `max(0,)`: the clip above makes this non-negative, and
             // `String(repeating:count:)` traps if it ever stops being.
             let padding = max(0, (width - visibleWidth) / 2)
-            let padded = String(repeating: " ", count: padding) + line
+            let padded = String.spaces(padding) + line
             lines[y] = padded
             // The cells the glyphs actually took: past the pad, and `visibleWidth`
             // wide, which the clip above has already reduced if it cut the line. The
@@ -941,7 +941,7 @@ extension _ImageCore {
         // cells are the cheapest thing that has it.
         if context.isMeasuring {
             return FrameBuffer(
-                lines: Array(repeating: String(repeating: " ", count: target.width), count: target.height))
+                lines: Array(repeating: String.spaces(target.width), count: target.height))
         }
 
         // Never transmit more pixels than the picture HAS. The terminal fits

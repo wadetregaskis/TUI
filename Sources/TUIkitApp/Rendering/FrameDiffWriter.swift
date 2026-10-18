@@ -511,7 +511,7 @@ extension FrameDiffWriter {
         // background now between them.
         let mainWithBg = Self.restoringBackground(in: compensated, bgCode: bgCode, reset: reset)
         let padding = max(0, terminalWidth - clippedWidth)
-        let line = bgCode + eraseLine + mainWithBg + String(repeating: " ", count: padding) + reset
+        let line = bgCode + eraseLine + mainWithBg + String.spaces(padding) + reset
         // Last, after every compensation has had the bytes it expects to match
         // on. The line above is assembled from styled fragments, each ending in
         // a reset, each of which then has the row's background put back — so a

@@ -167,7 +167,7 @@ extension _ListRowColorView: Renderable {
         var filled = FrameBuffer(
             lines: (0..<foreground.height).map { _ in
                 ANSIRenderer.colorize(
-                    String(repeating: " ", count: width), background: color.opaqueSpelling)
+                    String.spaces(width), background: color.opaqueSpelling)
             })
         let fill = OpacityRegion.claim(width: width, height: foreground.height, field: color)
         if let fill {
@@ -279,7 +279,7 @@ extension _ListRowBackgroundView: Renderable {
             let source = buffer.lines[row % buffer.lines.count]
             let visible = source.strippedLength
             return visible < width
-                ? source + String(repeating: " ", count: width - visible) : source
+                ? source + String.spaces(width - visible) : source
         }
         return buffer.replacingLines(lines)
     }

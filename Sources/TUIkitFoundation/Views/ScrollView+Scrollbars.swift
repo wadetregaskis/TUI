@@ -507,7 +507,7 @@ extension _ScrollViewCore {
         var lines = buffer.lines
         lines.append(row.text)
         let barRow = lines.count - 1
-        lines.append(contentsOf: repeatElement(String(repeating: " ", count: width), count: margins.bottom))
+        lines.append(contentsOf: repeatElement(String.spaces(width), count: margins.bottom))
         var result = buffer.replacingLines(lines, width: width, uniformWidth: true)
         result.opacityRegions += row.claims.map { $0.shifted(byX: 0, y: barRow) }
         // The bar occupies the row just appended, from its leading margin.

@@ -236,9 +236,9 @@ struct NavigationBar {
     static func padded(_ buffer: FrameBuffer, toWidth width: Int, height: Int) -> FrameBuffer {
         var lines = buffer.lines.prefix(height).map { line -> String in
             let visible = line.strippedLength
-            return visible < width ? line + String(repeating: " ", count: width - visible) : line
+            return visible < width ? line + String.spaces(width - visible) : line
         }
-        let blank = String(repeating: " ", count: width)
+        let blank = String.spaces(width)
         while lines.count < height { lines.append(blank) }
         return buffer.replacingLines(Array(lines))
     }

@@ -179,7 +179,7 @@ struct IdentificationView: View {
     /// Pads to a column width in CELLS, which for ASCII labels is characters —
     /// but `terminalWidth` is the honest unit and costs nothing to use.
     private func pad(_ text: String, _ width: Int) -> String {
-        text + String(repeating: " ", count: max(0, width - text.strippedLength))
+        text + String.spaces(max(0, width - text.strippedLength))
     }
 
     private func describe(_ program: TerminalClient.Program) -> String {

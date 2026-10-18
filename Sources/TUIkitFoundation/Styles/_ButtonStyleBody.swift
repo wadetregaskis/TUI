@@ -88,7 +88,7 @@ struct _ButtonStyleBody: View, Renderable {
         // (e.g. `.buttonTextStyle { $0.bold = true }`) adds to that.
         let isBold = appearance.isBold || isFocused || (cascaded.bold ?? false)
 
-        let padding = String(repeating: " ", count: appearance.horizontalPadding)
+        let padding = String.spaces(appearance.horizontalPadding)
 
         // Plain: focus indicator prefix + label, no brackets, no background.
         if appearance.isPlain {
@@ -842,8 +842,8 @@ struct _ButtonStyleBody: View, Renderable {
     fileprivate static func filling(_ padded: String, context: RenderContext, caps: Int) -> String {
         let spare = context.availableWidth - caps - padded.strippedLength
         guard context.environment.buttonSizing.fills, spare > 0 else { return padded }
-        return String(repeating: " ", count: spare / 2) + padded
-            + String(repeating: " ", count: spare - spare / 2)
+        return String.spaces(spare / 2) + padded
+            + String.spaces(spare - spare / 2)
     }
 
     fileprivate static func fitLabel(_ label: String, into availableWidth: Int, chrome: Int) -> String {

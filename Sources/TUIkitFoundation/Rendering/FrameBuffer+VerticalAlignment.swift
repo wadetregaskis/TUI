@@ -31,7 +31,7 @@ extension FrameBuffer {
     package func placedVertically(inHeight height: Int, topPadding: Int) -> FrameBuffer {
         guard topPadding > 0 || self.height < height else { return self }
         let bottomPadding = max(0, height - self.height - topPadding)
-        let emptyLine = String(repeating: " ", count: width)
+        let emptyLine = String.spaces(width)
         var lines = Array(repeating: emptyLine, count: topPadding)
         lines += self.lines
         lines += Array(repeating: emptyLine, count: bottomPadding)

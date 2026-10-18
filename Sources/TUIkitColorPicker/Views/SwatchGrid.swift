@@ -284,7 +284,7 @@ struct _SwatchGridCore: View, Renderable {
         mark: (color: Color, isBold: Bool)?
     ) -> String {
         guard let mark else {
-            return ANSIRenderer.colorize(String(repeating: " ", count: cellWidth), background: color)
+            return ANSIRenderer.colorize(String.spaces(cellWidth), background: color)
         }
         return ANSIRenderer.colorize(
             Self.centred(Self.selectionMark, in: cellWidth),
@@ -296,8 +296,8 @@ struct _SwatchGridCore: View, Renderable {
         let length = text.count
         guard width > length else { return text }
         let left = (width - length) / 2
-        return String(repeating: " ", count: left) + text
-            + String(repeating: " ", count: width - length - left)
+        return String.spaces(left) + text
+            + String.spaces(width - length - left)
     }
 
     /// The index of the entry that best matches `color`: an exact match if the

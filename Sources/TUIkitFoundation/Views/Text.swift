@@ -1018,8 +1018,8 @@ extension Text: Renderable, Layoutable {
                 let leadingPad = alignment.leadingPad(lineWidth: lineWidth, blockWidth: knownWidth)
                 let trailingPad = max(0, knownWidth - lineWidth - leadingPad)
                 aligned.append(
-                    String(repeating: " ", count: leadingPad) + line
-                        + String(repeating: " ", count: trailingPad))
+                    String.spaces(leadingPad) + line
+                        + String.spaces(trailingPad))
             }
             plainLines = aligned
             lineWidths = Array(repeating: knownWidth, count: aligned.count)

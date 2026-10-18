@@ -79,7 +79,7 @@ extension _DatePickerCore {
                 default: -1)
             hovered = box.value
         }
-        line += String(repeating: " ", count: Self.gap)
+        line += String.spaces(Self.gap)
         for (index, arrow) in Self.arrows.enumerated() {
             let resting = isDisabled ? dimmed : isFocused ? palette.accent : dimmed
             let ink = index == hovered ? palette.hoveredGlyph(resting: resting) : resting
