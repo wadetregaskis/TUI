@@ -39,6 +39,16 @@ extension View {
     /// leaving is drawn beneath the views around it, as SwiftUI draws it,
     /// unless a `.zIndex` lifts it.
     ///
+    /// A stack whose whole content is the `if` — `VStack { if show { Card() }
+    /// }`, a view's body as often as not — draws nothing once the view has
+    /// gone, and in a stack with gaps its place moves with the gap it no
+    /// longer takes (TUIkit's rule: a child with no extent takes no stack
+    /// spacing). The view still leaves where it was, and arrives where it
+    /// lands: a container holds a child that has come to draw nothing where
+    /// it was while the change plays, and places one that has come to draw
+    /// something directly. A removal with a longer animation of its own than
+    /// the change's finishes at the stack's new place.
+    ///
     /// That is what an eager `VStack`, `HStack` and `ZStack` do, and a
     /// `Layout` with its subviews' places. Elsewhere a removal keeps its room
     /// while it plays and gives it back at once after — in a `Layout`, a lazy

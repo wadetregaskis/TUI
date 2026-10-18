@@ -220,3 +220,33 @@ modifier-first rule asks, and reaches every eager stack and `ZStack` below it:
 the slot is then laid out at the view's size until the removal has played,
 and given back at once after. Insertions still glide; the hold is about a
 removal's room.
+
+### B-FB16-13. A stack emptied by a removal stands where it was while the change plays
+
+*`ChildGlide`, `PlacementStore.Record.held`, `ChildPlacementEntry.drawsNothing`*
+
+A view leaving the only stack it is in — `VStack { if show { Card() } }`,
+which is a view's whole body as often as not — leaves that stack drawing
+nothing. Here a child with no extent takes no stack spacing (compatibility
+guide §3, an open divergence: SwiftUI's empty stack keeps its gaps), so in a
+stack with gaps its place moves by the gap, and in a `ZStack` it is
+re-centred. Glided there, it carried the view's removal with it: the view
+drifted a row while it faded or slid out, where SwiftUI's plays where it
+was. Found by review, in the Example's own panel, whose test had been
+loosened to accept it.
+
+A container now holds a child that has come to draw nothing (no rows or no
+columns) where it was while its glide runs, and places a child that has come
+to draw something directly, as it places a view seen for the first time:
+what such a child shows is what it carries past its frame, a view leaving or
+arriving in it, and that stays where it is drawn. Pinned by
+`StackGlideTests` (a column and a layer, removal and insertion) and the
+Example's `hidingSlidesOut`.
+
+**What is left:** the hold ends when the change's glide lands, so a removal
+with a longer animation of its own (`.transition(t.animation(…))`) finishes
+at the stack's new place, a row from where it started. **The fuller
+version** is the open divergence itself: an empty stack keeping its gaps, as
+SwiftUI's does, which moves nothing at all and leaves the gap SwiftUI leaves.
+It changes every page with a stack that can be empty, so it waits on a
+ruling on §3.

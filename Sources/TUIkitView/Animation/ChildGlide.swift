@@ -48,43 +48,60 @@ extension RenderContext {
     /// `withAnimation` completion as every other animated value is. Where each
     /// child was is the container's ``PlacementStore`` record.
     ///
+    /// A child that draws nothing in the container — no rows or no columns —
+    /// has no picture of its own to move: what it shows is what it carries
+    /// past its frame, a view leaving it or one arriving in it. So one that
+    /// comes to draw nothing is held where it was while its glide runs, and
+    /// one that comes to draw something is placed directly, as a view seen
+    /// for the first time is. `VStack { if show { Card() } }` in a stack with
+    /// gaps is the shape: emptied, the inner stack takes no gap (a child with
+    /// no extent takes no stack spacing, compatibility guide §3) and its
+    /// place moves by one, which a glide would have carried the card's
+    /// removal along — a view leaving plays where it was. It stands at its
+    /// new place from the frame its glide lands, so a removal that outlasts
+    /// the change's animation (a transition with an animation of its own)
+    /// finishes there.
+    ///
     /// The render walk only: a measure, and a transition body being scrubbed
     /// (``AnimationStore/scrub``), draw everything at its target.
     ///
     /// - Parameters:
     ///   - children: The children laid out, in declaration order.
+    ///   - buffers: What each of them drew, `nil` for a spacer.
     ///   - targets: Where the layout put each of them, in this container's
     ///     cells.
     ///   - departing: The slots of views still leaving (``ChildView/isDeparting``).
     @MainActor
     package func glidingPlacements(
-        of children: [ChildView], at targets: [ChildPlacement], departing: [ChildView]
+        of children: [ChildView], drawing buffers: [FrameBuffer?], at targets: [ChildPlacement],
+        departing: [ChildView]
     ) -> GlidingPlacements? {
         guard !isMeasuring, let storage = stateStorage, storage.animations.scrub == nil else { return nil }
         let store = storage.placements
         guard let record = store.record(at: identity) else {
             store.remember(
-                Self.entries(children, targets), at: identity, walk: storage.animations.currentWalk)
+                Self.entries(children, buffers, targets), at: identity, walk: storage.animations.currentWalk)
             guard !departing.isEmpty else { return nil }
             return GlidingPlacements(presented: targets, departing: departing.map { _ in nil })
         }
-        let unchanged = Self.record(record, matches: children, at: targets)
+        let unchanged = Self.record(record, matches: children, drawing: buffers, at: targets)
         // The settled frame: the layout it had, nothing moving, nothing
         // leaving. Every container on every frame nothing animates in it.
         if unchanged, record.gliding == nil, departing.isEmpty { return nil }
 
-        var glide = Glide(context: self, storage: storage, targets: targets)
+        var glide = Glide(context: self, storage: storage, targets: targets, held: record.held)
         if unchanged {
             glide.continueMoving(record.entries, flags: record.gliding)
         } else {
             let appearing = store.appearedEarlierThisPass(record, walk: storage.animations.currentWalk)
             let old = appearing ? [] : record.entries
             let matches = glide.matches(of: children, among: old)
-            glide.startMoving(children, from: old, matches: matches)
+            glide.startMoving(children, drawing: buffers, from: old, matches: matches)
             record.departed = glide.departures(departing, kept: record.departed, from: old, matches: matches)
-            record.entries = Self.entries(children, targets)
+            record.entries = Self.entries(children, buffers, targets)
         }
         record.gliding = glide.anyMoving ? glide.moving : nil
+        record.held = glide.anyMoving ? glide.held : [:]
         // Landed, and nothing leaving: drawn as a settled container is, so the
         // last frame of a glide is the picture every frame after it is.
         guard glide.anyMoving || !departing.isEmpty else { return nil }
@@ -97,31 +114,44 @@ extension RenderContext {
             departing: departing.map { record.departed[$0.identityStep] })
     }
 
-    /// `children` at `targets`, as a record keeps them.
+    /// `children` at `targets`, drawing `buffers`, as a record keeps them.
     @MainActor
-    private static func entries(_ children: [ChildView], _ targets: [ChildPlacement]) -> [ChildPlacementEntry] {
+    private static func entries(
+        _ children: [ChildView], _ buffers: [FrameBuffer?], _ targets: [ChildPlacement]
+    ) -> [ChildPlacementEntry] {
         children.indices.map {
-            ChildPlacementEntry(step: children[$0].identityStep, placement: targets[$0], zIndex: children[$0].zIndex)
+            ChildPlacementEntry(
+                step: children[$0].identityStep, placement: targets[$0], zIndex: children[$0].zIndex,
+                drawsNothing: drawsNothing(buffers[$0]))
         }
     }
 
     /// Whether `record` holds exactly `children` at `targets`: the same
-    /// children in the same order, each where it was and stacked as it was.
-    /// Asked of every container on every frame, so it builds nothing.
+    /// children in the same order, each where it was, stacked as it was and
+    /// drawing something or nothing as it did. Asked of every container on
+    /// every frame, so it builds nothing.
     @MainActor
     private static func record(
-        _ record: PlacementStore.Record, matches children: [ChildView], at targets: [ChildPlacement]
+        _ record: PlacementStore.Record, matches children: [ChildView], drawing buffers: [FrameBuffer?],
+        at targets: [ChildPlacement]
     ) -> Bool {
         let entries = record.entries
         guard entries.count == children.count else { return false }
         for index in entries.indices {
             let entry = entries[index]
             guard entry.placement == targets[index], entry.zIndex == children[index].zIndex,
-                children[index].hasIdentityStep(entry.step)
+                entry.drawsNothing == drawsNothing(buffers[index]), children[index].hasIdentityStep(entry.step)
             else { return false }
         }
         return true
     }
+}
+
+/// Whether a child drew nothing in its container: no rows or no columns. A
+/// spacer (`nil`) is not asked about; it draws nothing anywhere.
+private func drawsNothing(_ buffer: FrameBuffer?) -> Bool {
+    guard let buffer else { return false }
+    return buffer.width == 0 || buffer.height == 0
 }
 
 // MARK: - Moving the children
@@ -140,11 +170,21 @@ private struct Glide {
     var presented: [ChildPlacement]
     var moving: [Bool]
     var anyMoving = false
+    /// Where each child that has come to draw nothing was held until this
+    /// frame (``PlacementStore/Record/held``).
+    let wasHeld: [ChildIdentityStep: ChildPlacement]
+    /// The same, as this frame leaves it.
+    var held: [ChildIdentityStep: ChildPlacement]
 
-    init(context: RenderContext, storage: StateStorage, targets: [ChildPlacement]) {
+    init(
+        context: RenderContext, storage: StateStorage, targets: [ChildPlacement],
+        held: [ChildIdentityStep: ChildPlacement]
+    ) {
         self.context = context
         self.animations = storage.animations
         self.targets = targets
+        wasHeld = held
+        self.held = held
         let frame = context.environment.animationFrame
         nowNanos = frame.nowNanos
         let animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
@@ -182,28 +222,45 @@ private struct Glide {
     mutating func continueMoving(_ entries: [ChildPlacementEntry], flags: [Bool]?) {
         guard let flags else { return }
         for index in flags.indices where flags[index] {
-            ask(key(entries[index].step), for: index)
+            let step = entries[index].step
+            ask(key(step), for: index)
+            guard let place = held[step] else { continue }
+            if moving[index] { presented[index] = place } else { held[step] = nil }
         }
     }
 
     /// The frame a layout changed on: each child that was here before moves
-    /// from where its picture is — its old place, or where a glide in flight
-    /// has got to — and one seen for the first time is placed directly.
-    mutating func startMoving(_ children: [ChildView], from old: [ChildPlacementEntry], matches: [Int?]) {
+    /// from where its picture is — its old place, where a glide in flight has
+    /// got to, or where it is held — and one seen for the first time is
+    /// placed directly. So is one that drew nothing and now draws something;
+    /// one that drew something and now draws nothing is held where it was
+    /// while its glide runs (see ``RenderContext/glidingPlacements(of:drawing:at:departing:)``).
+    mutating func startMoving(
+        _ children: [ChildView], drawing buffers: [FrameBuffer?], from old: [ChildPlacementEntry], matches: [Int?]
+    ) {
+        held = [:]
         for index in children.indices {
             guard let previous = matches[index] else { continue }
+            let blank = drawsNothing(buffers[index])
+            let wasBlank = old[previous].drawsNothing
+            if wasBlank, !blank { continue }
             let step = children[index].identityStep
             let key = key(step)
-            if !animations.hasRecord(at: key) {
-                // Written differently from last frame (a `ForEach` that began
-                // resolving its rows ahead): its glide is under the old step.
-                let oldStep = old[previous].step
-                let start = (oldStep == step ? nil : inFlight(self.key(oldStep))) ?? old[previous].placement
+            // Written differently from last frame (a `ForEach` that began
+            // resolving its rows ahead): its glide is under the old step.
+            let oldStep = old[previous].step
+            let hasRecord = animations.hasRecord(at: key)
+            let holding = wasHeld[oldStep]
+            let picture = holding ?? inFlight(hasRecord ? key : self.key(oldStep)) ?? old[previous].placement
+            if !hasRecord {
                 // Not moving, or a change nothing animates: drawn at its target.
-                guard start != targets[index], animation != nil else { continue }
-                animations.settle(key, at: start.animatable, nowNanos: nowNanos)
+                guard picture != targets[index], animation != nil else { continue }
+                animations.settle(key, at: picture.animatable, nowNanos: nowNanos)
             }
             ask(key, for: index)
+            guard blank, moving[index], !wasBlank || holding != nil else { continue }
+            held[step] = picture
+            presented[index] = picture
         }
     }
 
@@ -266,7 +323,7 @@ private struct Glide {
             }
             guard let previous else { continue }
             stillHere.insert(previous)
-            let placement = inFlight(key(old[previous].step)) ?? old[previous].placement
+            let placement = wasHeld[old[previous].step] ?? inFlight(key(old[previous].step)) ?? old[previous].placement
             departed[step] = (placement, old[previous].zIndex)
         }
         return departed

@@ -74,6 +74,38 @@ private struct LaidOutRow: View {
     }
 }
 
+/// A stack whose whole content is an `if`, in a stack with gaps: a card's body
+/// is often just this, `VStack { if show { … } }`. Emptied, the inner stack
+/// takes no gap (compatibility guide §3, a child with no extent takes no
+/// stack spacing), so its place moves up a row as its content goes.
+private struct Slot: View {
+    let showing: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text("AAAAAAAA")
+            VStack(alignment: .leading, spacing: 0) {
+                if showing { Text("XXXX").transition(.move(edge: .trailing)) }
+            }
+            Text("BBBBBBBB")
+        }
+    }
+}
+
+/// The same over a layer: emptied, the inner stack is re-centred a cell along.
+private struct LayeredSlot: View {
+    let showing: Bool
+
+    var body: some View {
+        ZStack {
+            Text("AAAAAAAA")
+            VStack(spacing: 0) {
+                if showing { Text("XX").transition(.move(edge: .leading)) }
+            }
+        }
+    }
+}
+
 /// A view drawn frame by frame as the run loop draws it: the change's
 /// transaction in force for the one pass that shows the change, and none on the
 /// frames after it, which only move the clock on.
@@ -230,6 +262,54 @@ struct StackGlideTests {
         #expect(frames.row(of: "B", in: half) == 5, "standing still while the view leaves: \(half)")
         let after = frames.draw(column(false), atMillis: 2100)
         #expect(frames.row(of: "B", in: after) == 1, "closed up once it had gone: \(after)")
+    }
+
+    // MARK: - A stack of its own
+
+    /// The view leaving plays where it was. The stack holding it has nothing
+    /// left to draw, and its place moved up a row with its gap: it stands
+    /// where it was while the change plays rather than gliding there, and
+    /// carrying the view's removal with it.
+    @Test("A view leaving a stack of its own plays where it was, though the stack's gap goes")
+    func removalFromAStackOfItsOwnStaysPut() {
+        let frames = Frames()
+        _ = frames.draw(Slot(showing: true), atMillis: 0)
+        let start = frames.draw(Slot(showing: false), atMillis: 1000, animating: .linear(duration: 1))
+        #expect(frames.row(of: "X", in: start) == 2 && frames.row(of: "B", in: start) == 4, "\(start)")
+        let late = frames.draw(Slot(showing: false), atMillis: 1700)
+        #expect(frames.row(of: "X", in: late) == 2, "the view leaving moved with its empty stack: \(late)")
+        #expect(frames.row(of: "B", in: late) == 3, "the row below is on its way up: \(late)")
+        let end = frames.draw(Slot(showing: false), atMillis: 2100)
+        #expect(frames.row(of: "B", in: end) == 2 && frames.row(of: "X", in: end) == nil, "closed up: \(end)")
+    }
+
+    /// The mirror image: the view arriving is drawn where it lands from the
+    /// first frame, under the row below sliding away from over it — not
+    /// carried down a row by its stack gliding to the place it now has.
+    @Test("A view arriving in a stack of its own is drawn where it lands")
+    func insertionIntoAStackOfItsOwnLands() {
+        let frames = Frames()
+        _ = frames.draw(Slot(showing: false), atMillis: 0)
+        _ = frames.draw(Slot(showing: true), atMillis: 1000, animating: .linear(duration: 1))
+        let early = frames.draw(Slot(showing: true), atMillis: 1300)
+        #expect(frames.row(of: "X", in: early) == 2, "the view arriving moved with its stack: \(early)")
+        #expect(frames.row(of: "B", in: early) == 3, "the row below is on its way down: \(early)")
+        let end = frames.draw(Slot(showing: true), atMillis: 2000)
+        #expect(frames.row(of: "X", in: end) == 2 && frames.row(of: "B", in: end) == 4, "\(end)")
+    }
+
+    @Test("A view leaving a layer of its own plays where it was, though the layer is re-centred")
+    func removalFromALayerOfItsOwnStaysPut() {
+        let frames = Frames()
+        _ = frames.draw(LayeredSlot(showing: true), atMillis: 0)
+        #expect(frames.draw(LayeredSlot(showing: true), atMillis: 500)[0] == "AAAXXAAA", "precondition")
+        _ = frames.draw(LayeredSlot(showing: false), atMillis: 1000, animating: .linear(duration: 1))
+        // Slid a cell toward the leading edge, inside its own frame — which
+        // stands at column 3, where it was, not at 4, where the emptied layer
+        // is centred now.
+        let late = frames.draw(LayeredSlot(showing: false), atMillis: 1700)
+        #expect(late[0] == "AAAXAAAA", "the view leaving moved with its re-centred layer: \(late)")
+        #expect(frames.draw(LayeredSlot(showing: false), atMillis: 2100)[0] == "AAAAAAAA")
     }
 
     // MARK: - Interruption, reduce motion

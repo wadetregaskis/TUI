@@ -76,6 +76,12 @@ public final class PlacementStore: @unchecked Sendable {
         /// what z-index, keyed by what it was among the children.
         package var departed: [ChildIdentityStep: (placement: ChildPlacement, zIndex: Double)] = [:]
 
+        /// Where each child that has come to draw nothing is drawn while its
+        /// glide runs — where it was — keyed by what it is among the
+        /// children; empty when nothing moves. See
+        /// ``RenderContext/glidingPlacements(of:drawing:at:departing:)``.
+        package var held: [ChildIdentityStep: ChildPlacement] = [:]
+
         /// The pass this record was last asked about.
         package var lastPass: UInt64
 
@@ -203,16 +209,20 @@ package struct ChildPlacement: Equatable, Sendable {
     }
 }
 
-/// One child as a container last laid it out: what it is, where it went, and
-/// how it stacks against its siblings.
+/// One child as a container last laid it out: what it is, where it went, how
+/// it stacks against its siblings, and whether it drew anything there.
 package struct ChildPlacementEntry: Equatable {
     package var step: ChildIdentityStep
     package var placement: ChildPlacement
     package var zIndex: Double
+    /// Whether it drew no rows or no columns: what it shows, if anything, is
+    /// what it carries past its frame.
+    package var drawsNothing: Bool
 
-    package init(step: ChildIdentityStep, placement: ChildPlacement, zIndex: Double) {
+    package init(step: ChildIdentityStep, placement: ChildPlacement, zIndex: Double, drawsNothing: Bool) {
         self.step = step
         self.placement = placement
         self.zIndex = zIndex
+        self.drawsNothing = drawsNothing
     }
 }

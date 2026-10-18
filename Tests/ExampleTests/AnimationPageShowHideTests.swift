@@ -230,15 +230,12 @@ struct AnimationPageShowHideTests {
         #expect(page.belowRow == shownBelow, "the page below jumped on the first frame of the removal")
 
         page.advance(byMillis: 500)
-        // In its own row — or, its space given back, one above: the slot's
-        // stack, empty now, takes no gap, and glides up into the one above it
-        // as the page below does into the panel's rows.
+        // In its own row, past half-way, whether or not the space is given
+        // back: the slot's stack, empty now, takes no gap, so its place in
+        // the page moved up a row — but a view leaving plays where it was.
         #expect(
-            page.panelCorner.map {
-                (reservesSpace ? [shownCorner.row] : [shownCorner.row - 1, shownCorner.row]).contains($0.row)
-                    && $0.column > shownCorner.column
-            } == true,
-            "not sliding out half-way:\n\(page.screen.map(\.stripped))")
+            page.panelCorner.map { $0.row == shownCorner.row && $0.column > shownCorner.column } == true,
+            "not sliding out half-way, in its own row:\n\(page.screen.map(\.stripped))")
         if reservesSpace {
             #expect(page.belowRow == shownBelow, "the kept space was given back")
         } else {

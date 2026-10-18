@@ -49,7 +49,10 @@ extension AnimationPage {
         // Unkept and empty, the stack is no rows and takes no spacing, so the
         // page closes up — TUIkit's rule, not SwiftUI's, which would leave a
         // spacing's gap (`Documentation/SwiftUI parity/SwiftUI compatibility
-        // guide.md`, "A child with no extent takes no stack spacing").
+        // guide.md`, "A child with no extent takes no stack spacing"). Its
+        // place moves up a row with that gap, but the panel leaving it plays
+        // in its own row: an emptied stack stands where it was while the
+        // change plays (decisions B-FB16-13).
         //
         // Nothing clips the slot: a panel leaving is drawn where it was, past
         // a stack that has already given its rows back, and a clip would cut

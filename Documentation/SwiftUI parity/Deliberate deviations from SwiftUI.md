@@ -1064,13 +1064,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   back at once after. A container's own size — a border, a background, a
   frame — changes at once, so a border around a stack that has given a
   removal's room back is drawn at its new size while the view leaving is
-  drawn past it.
+  drawn past it. A child that comes to draw nothing — a stack whose only
+  content has left — stands where it was while the change plays, and one
+  that comes to draw something is placed directly, so the view leaving or
+  arriving in it does not move with the gap the empty stack gives back
+  (§3: a child with no extent takes no stack spacing); a removal animated
+  longer than the change finishes at the stack's new place.
 - **Why:** a terminal draws whole cells; a glide is remembered per
   container (`PlacementStore`), and the containers that window their rows or
   lay out a lattice have not been given that memory yet. A size that glides
   would need a presented size for every view that draws around its content.
 - **Decided:** [decisions FB16](<Decisions/Insertion and removal model (FB16).md>),
-  B-FB16-1 to B-FB16-8, A-FB16-1. **Owner** for the model (FB16 (a′),
+  B-FB16-1 to B-FB16-8, B-FB16-13, A-FB16-1. **Owner** for the model (FB16 (a′),
   2026-10-18); **Lane** for what stops short of it.
 
 ---

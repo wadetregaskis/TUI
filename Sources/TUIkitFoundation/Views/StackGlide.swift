@@ -68,7 +68,8 @@ extension RenderContext {
         _ children: [ChildView], buffers: [FrameBuffer?], at targets: [ChildPlacement],
         departing: [ChildView], width: Int, height: Int
     ) -> FrameBuffer? {
-        guard let placements = glidingPlacements(of: children, at: targets, departing: departing) else {
+        guard let placements = glidingPlacements(of: children, drawing: buffers, at: targets, departing: departing)
+        else {
             return nil
         }
         // (z-index, beneath its present siblings, declaration order)

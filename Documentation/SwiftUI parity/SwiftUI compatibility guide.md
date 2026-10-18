@@ -1245,6 +1245,13 @@ every child except one that is nothing. A `nil` already contributes no child;
 an `EmptyView` does, and would have to be told apart from a view of no size,
 which a child's measured size cannot do.
 
+Under an animation the empty stack's place moves with the gap it gives back
+(a row, in the Example), and a view leaving it would drift with it. It does
+not: a container holds a child that has come to draw nothing where it was
+while the change plays, and places one that has come to draw something
+directly, so the view leaves where it was and arrives where it lands
+(decisions [B-FB16-13](<Decisions/Insertion and removal model (FB16).md#b-fb16-13-a-stack-emptied-by-a-removal-stands-where-it-was-while-the-change-plays>)).
+
 ### Closed: `foregroundStyle` takes `some ShapeStyle`
 
 How this one fell is the fifth instance of the pattern §4b warns about, so it
