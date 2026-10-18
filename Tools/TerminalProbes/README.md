@@ -52,11 +52,17 @@ when unset), the visual/aspect probes print to the terminal.
   and `◥◤` as ONE arrow across two cells, for a double-width scrollbar's ends
   (FB6): each half between magenta flanks, alone and paired, in the bar's own
   colours, and again in double width. `▲▲`/`▼▼` and `█` are the calibration
-  rows. UNREAD on every host (2026-10-16).
+  rows. Read on four hosts 2026-10-17 (the survey's "A double-width scrollbar's
+  arrows").
 - `lines_small_card.py` — the candidate one-row looks for a button under an
   appearance of lines, other than `( Save )` (FB14): bars, corners, underline,
   brackets, eighth blocks, at `.small` and `.regular`, alone and in a row with
   one focused. A design card for the owner's eye, not a measurement.
+- `compact_glyph_card.py` — one-cell bracket pairs for a compact button
+  (E19): each pair around a label, plain, focused, padded and in a row of
+  three, every row ending in a `|` that lines up only when each glyph advances
+  one cell. Read on four hosts 2026-10-17 (the survey's "Bracket pairs for a
+  compact face").
 - `breath_card.py` — how a host paints TUIkit's reversing row breaths: at 16
   colours, a cursor row whose breath runs between a slot fill and reverse video
   (the whole row the text's colour, every glyph on it the page's); without

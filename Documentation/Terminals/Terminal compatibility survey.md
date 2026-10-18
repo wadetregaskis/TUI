@@ -768,6 +768,48 @@ cell on all four hosts for `Ⓐ ⓐ ① ⑳ ⓪ ❶ ➊ ⓿ ⊕ ⊖ ⊗ ⊙ ⊛ 
 `★⃝`, `+⃝`) advances **two** cells on Apple Terminal and one elsewhere. How
 each looks is not yet judged.
 
+**Bracket pairs for a compact face (E19) — paint measured 2026-10-17** with
+`compact_glyph_card.py`: each pair around a label as a one-row button draws it,
+plain, focused, padded and in a row of three, every row ending in a `|` that
+lines up only when each glyph advances one cell and keeps to it. Read from
+window captures on macOS 15.8.1:
+
+| Pair | Codepoints | EAW | Apple Terminal 455.1 | iTerm2 3.7 | Ghostty 1.3.1 | Warp v0.2026.10.14 |
+|---|---|---|---|---|---|---|
+| `⦇⦈` | U+2987, U+2988 | N | good | good | good | good |
+| `⦉⦊` | U+2989, U+298A | N | good | good | good | good |
+| `❲❳` | U+2772, U+2773 | N | good | good | good | good |
+| `❪❫` | U+276A, U+276B | N | good | good | good | good |
+| `❨❩` | U+2768, U+2769 | N | good | good | good | good |
+| `⟦⟧` | U+27E6, U+27E7 | Na | good | good | good | good |
+| `⟨⟩` | U+27E8, U+27E9 | Na | good | good | good | good |
+| `⦅⦆` | U+2985, U+2986 | Na | good | good | good | **overhangs into the label** |
+| `⟮⟯` | U+27EE, U+27EF | N | good | off-centre | good | **off-centre** |
+| `⸨⸩` | U+2E28, U+2E29 | N | good | good | good | **not drawn** (blank cells) |
+| `〔〕` `「」` `『』` `［］` | U+3014… U+FF3B… | W / F | two cells | two cells | two cells | two cells |
+
+So seven pairs are drawn as one clean cell on all four hosts: `⦇⦈ ⦉⦊ ❲❳ ❪❫
+❨❩ ⟦⟧ ⟨⟩`. The wide and fullwidth pairs are out everywhere, as their East
+Asian Width says. kitty: not measured (it opens no window on this VM). How
+each *looks* at size, beyond fitting its cell, is the owner's call; the
+captures are kept in the session notes (`plan/e19/`).
+
+**A double-width scrollbar's arrows (FB6) — paint measured 2026-10-17** with
+`scrollbar_arrow_card.py`: whether a host draws the corner triangles `◢◣` /
+`◥◤` (U+25E2, U+25E3, U+25E5, U+25E4) as ONE arrow across two cells, each half
+filling its cell to the shared edge, between magenta flanks:
+
+| Host | `◢◣` / `◥◤` | Double width (DECDWL) |
+|---|---|---|
+| Ghostty 1.3.1 | **one solid arrow**: drawn shapes, edge to edge, no seam | honoured |
+| iTerm2 3.7 | **one solid arrow**: drawn shapes, edge to edge | honoured |
+| Warp v0.2026.10.14 | font glyphs, smaller than the cell; the halves meet near the middle and read as one small arrow, not edge to edge | ignored |
+| Apple Terminal 455.1 | font glyphs, well short of the cell edges; the pair reads as **two separate triangles** | honoured |
+
+So the owner's FB6 rule (`◢◣`/`◥◤` by default, `▲▲`/`▼▼` where a host draws
+the triangles badly) puts Apple Terminal and Warp on `▲▲`/`▼▼`, and Ghostty and
+iTerm2 on the triangles. kitty: not measured (no window on this VM).
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027
