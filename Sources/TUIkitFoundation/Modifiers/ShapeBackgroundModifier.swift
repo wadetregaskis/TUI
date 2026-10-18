@@ -22,12 +22,18 @@ import TUIkitView
 /// Behind a view, a background's GLYPH shows only where the view draws no cell,
 /// and padding is cells: blank ones. A capsule behind `Text("Tag").padding(.horizontal,
 /// 1)` would lose its caps `▐ ▌` under the padding, and a rounded rectangle its
-/// quadrant corners. So where the shape covers only part of a cell, and the view's
-/// cell there shows nothing — a space with no field, no reverse and no line drawn
-/// across it — the view's cell is claimed at a field of 0: the compositor's
-/// "nothing at all", which leaves the shape's cell as it was. Everywhere else the
-/// view is in front, as behind any background. A shape covering whole cells
-/// (a rectangle) claims nothing.
+/// quadrant corners. So where the shape's fill draws a glyph — a cap, a quadrant
+/// corner, a half block — and the view's cell there shows nothing — a space with
+/// no field, no reverse and no line drawn across it — the view's cell is claimed
+/// at a field of 0: the compositor's "nothing at all", which leaves the shape's
+/// cell as it was. Everywhere else the view is in front, as behind any
+/// background; a cell the fill paints whole is field, which shows through a
+/// blank cell anyway. A shape covering whole cells (a rectangle) claims nothing.
+///
+/// The glyphs are the fill's own, drawn as it will draw them, not read off the
+/// path's coverage: the box tier cuts a quadrant from every rounded corner
+/// however small its radius, and a radius of a quarter column covers its corner
+/// cell whole.
 struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>: View {
     let content: Content
     let shape: S
@@ -40,30 +46,37 @@ struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>: View {
 extension _ShapeBackground: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var base = TUIkitView.renderToBuffer(content, context: context)
-        let (columns, rows) = (base.width, base.height)
-        if columns > 0, rows > 0 {
-            let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
-            let coverage = ShapeCoverage(
-                cellsOf: drawn, evenOdd: fillStyle.isEOFilled,
-                frame: ShapeFrame(columns: columns, rows: rows, aspect: context.environment.imageCellAspect))
-            var claims: [OpacityRegion] = []
-            for (row, line) in base.lines.enumerated() {
-                let partial = coverage.runs(row: row) { $0 > 0 && $0 < 1 }
-                guard !partial.isEmpty else { continue }
-                let nothing = line.columnsShowingNothing(width: columns)
-                for run in partial {
-                    for column in run where nothing[column] {
-                        claims.appendCoalescing(
-                            OpacityRegion.claim(
-                                offsetX: column, offsetY: row, width: 1, height: 1, inkAlpha: .max, fieldAlpha: 0))
-                    }
-                }
-            }
-            base.opacityRegions += claims
-        }
+        if base.width > 0, base.height > 0 { base.opacityRegions += claims(over: base, context: context) }
         return compositeLayer(
             shape.fill(style, style: fillStyle), under: base, alignment: .center, context: context,
             modifierType: Self.self)
+    }
+
+    /// The claims that let the fill's glyphs show through `base`'s blank
+    /// cells: one wherever the fill draws a glyph over a cell of `base` that
+    /// shows nothing.
+    private func claims(over base: FrameBuffer, context: RenderContext) -> [OpacityRegion] {
+        let (columns, rows) = (base.width, base.height)
+        let environment = context.environment
+        let aspect = environment.imageCellAspect
+        let drawn = resolvedDrawing(of: shape, as: .fill(fillStyle), in: context, columns: columns, rows: rows)
+        let painter = ShapePainter(
+            paint: style.paint(in: environment), extent: context.gradientFrame ?? GradientFrame(width: columns, height: rows),
+            aspect: aspect, palette: environment.palette)
+        // In colour: with none, a field is a block glyph, and the view's blank
+        // cells have always covered those.
+        let cells = ShapeCells.drawing(
+            drawn.shape, as: drawn.drawing, frame: ShapeFrame(columns: columns, rows: rows, aspect: aspect),
+            painter: painter, monochrome: false, wholeCells: !environment.blockElementsFillTheLine)
+        var claims: [OpacityRegion] = []
+        for (row, line) in base.lines.prefix(rows).enumerated() {
+            let nothing = line.columnsShowingNothing(width: columns)
+            for column in 0..<columns where nothing[column] && cells[column, row].glyph != " " {
+                claims.appendCoalescing(
+                    OpacityRegion.claim(offsetX: column, offsetY: row, width: 1, height: 1, inkAlpha: .max, fieldAlpha: 0))
+            }
+        }
+        return claims
     }
 }
 

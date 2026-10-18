@@ -43,6 +43,17 @@ struct ShapeModifierTests {
         #expect(TerminalSymbols.quadrants.contains(corner) && corner != " " && corner != "█")
     }
 
+    /// Before, only a cell the path covered in part was claimed: a radius of a
+    /// quarter column covers its corner cell whole, the fill still cuts the
+    /// corner's quadrant, and the padding's blank cell hid the `▟`.
+    @Test("A rounded corner shows through padding however small its radius")
+    func smallRadiusBehindPadding() {
+        let tag = Text("Tag").padding(1).background(.teal, in: RoundedRectangle(cornerRadius: 0.25))
+        let lines = screen(tag, width: 5, height: 3).lines.map(\.stripped)
+        #expect(lines[0].first == "▟" && lines[0].last == "▙", "\(lines)")
+        #expect(lines[2].first == "▜" && lines[2].last == "▛", "\(lines)")
+    }
+
     @Test("A rectangle behind a view paints what a background style paints")
     func rectangleBehind() {
         let shaped = screen(Text("x").frame(width: 3).background(.red, in: Rectangle()), width: 3, height: 1)
