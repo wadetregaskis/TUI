@@ -33,6 +33,10 @@ struct ButtonFaceEdges: Equatable, Sendable {
     /// label. Its caps and box are drawn in the lines' ink on the surface,
     /// and the lines and the label breathe the focus together.
     var isOutline = false
+    /// Whether an outline face with no caps draws a line under its label
+    /// instead (``ButtonBorderShape/underline``): in the lines' ink, under the
+    /// label's own cells and not its padding.
+    var underlinesLabel = false
     /// Whether a solid face's caps are cells of the face itself rather than
     /// glyphs in its colour: a one-row rectangle's square ends, and the label's
     /// row of every three-row solid face, whose shape is full there. Such a
@@ -74,6 +78,7 @@ struct ButtonFaceEdges: Equatable, Sendable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.caps?.open == rhs.caps?.open && lhs.caps?.close == rhs.caps?.close && lhs.ring == rhs.ring
             && lhs.isOutline == rhs.isOutline && lhs.capsAreFace == rhs.capsAreFace
+            && lhs.underlinesLabel == rhs.underlinesLabel
     }
 
     /// The cells the caps take, both together.
@@ -94,6 +99,9 @@ struct ButtonFaceEdges: Equatable, Sendable {
 
     /// No caps and no field: a label alone, which breathes the focus.
     static let bareOutline = Self(caps: nil, ring: nil, isOutline: true)
+
+    /// No caps and no field, and a line under the label in the lines' ink.
+    static let underlined = Self(caps: nil, ring: nil, isOutline: true, underlinesLabel: true)
 
     /// A solid face three rows tall, in `shape`.
     static func solid(_ shape: TallShape, wholeCells: Bool) -> Self {
@@ -175,6 +183,7 @@ extension _ButtonAppearance {
     /// | rounded rectangle | `│ OK │`; the box `╭────╮` / `│ OK │` / `╰────╯` | square-ended face; quadrant-cornered on three |
     /// | radius zero | `[ OK ]`; a square-cornered box | a square face |
     /// | ``ButtonBorderShape/brackets(_:_:)`` | between its glyphs; the rectangle's box | as the rounded rectangle |
+    /// | ``ButtonBorderShape/underline`` | `OK` over a line, the label's width; the rectangle's box | as the rounded rectangle |
     /// | circle | `(★)`; the capsule's box, as wide as tall | `▐★▌`; a disc in quadrants |
     ///
     /// A braille face (`.braille`) is a dotted outline of the shape, drawn at
@@ -222,7 +231,7 @@ extension _ButtonAppearance {
         switch shape.kind {
         case .automatic, .capsule: outline = .capsule
         case .circle: outline = tall ? .circle : .capsule
-        case .roundedRectangle, .brackets: outline = .rectangle(radius: tall ? 1.5 : 0)
+        case .roundedRectangle, .brackets, .underline: outline = .rectangle(radius: tall ? 1.5 : 0)
         case .square: outline = .rectangle(radius: 0)
         }
         let rows = tall ? 3 : 1
@@ -241,7 +250,7 @@ extension _ButtonAppearance {
             return tall ? .solid(.capsule, wholeCells: wholeCells) : .capsule
         case .circle:
             return tall ? .solid(.circle, wholeCells: wholeCells) : .capsule
-        case .roundedRectangle, .brackets:
+        case .roundedRectangle, .brackets, .underline:
             return tall ? .solid(.rectangle(radius: 1.5), wholeCells: wholeCells) : .solidRectangle
         case .square:
             return tall ? .solid(.rectangle(radius: 0), wholeCells: wholeCells) : .solidRectangle
@@ -264,6 +273,8 @@ extension _ButtonAppearance {
             guard !tall else { return .lines(sides, box: style) }
             let fits = String(open).strippedLength == 1 && String(close).strippedLength == 1
             return .lines(fits ? (open, close) : sides, box: nil)
+        case .underline:
+            return tall ? .lines(sides, box: style) : .underlined
         }
     }
 }

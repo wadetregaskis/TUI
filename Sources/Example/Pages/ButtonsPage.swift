@@ -51,6 +51,10 @@ struct ButtonsPage: View {
     /// for the app's own (the Theme page's picker, or the appearance key).
     @State private var looksAppearance = ""
 
+    /// Which glyph pair the looks grid's brackets column draws: an index into
+    /// ``looksBracketPairs``.
+    @State private var looksBracketPair = 0
+
     /// The app's appearance, which the looks section uses until another is
     /// picked — read so the modifier can always be written, rather than
     /// written only when something was picked, which would swap the section's
@@ -169,6 +173,12 @@ struct ButtonsPage: View {
                         Text(appearance.localizedName).tag(appearance.id)
                     }
                 }
+                Picker("page.buttons.looks.bracketPair", selection: $looksBracketPair) {
+                    ForEach(Self.looksBracketPairs.indices, id: \.self) { index in
+                        let pair = Self.looksBracketPairs[index]
+                        Text(verbatim: "\(pair.open) \(pair.close)").tag(index)
+                    }
+                }
                 Grid(alignment: .leading, horizontalSpacing: 2, verticalSpacing: 1) {
                     GridRow {
                         Text("")
@@ -177,6 +187,7 @@ struct ButtonsPage: View {
                         looksHeading("page.buttons.looks.shape.square")
                         looksHeading("page.buttons.looks.shape.circle")
                         looksHeading("page.buttons.looks.shape.brackets")
+                        looksHeading("page.buttons.looks.shape.underline")
                     }
                     ForEach(Self.looksSizes, id: \.key) { size in
                         GridRow(alignment: .center) {
@@ -186,13 +197,29 @@ struct ButtonsPage: View {
                             looksButton("page.buttons.save", .roundedRectangle(radius: 0), size.size)
                             // A circle is as wide as it is tall: one glyph.
                             looksButton("+", .circle, size.size)
-                            looksButton("page.buttons.save", .brackets("<", ">"), size.size)
+                            looksButton("page.buttons.save", looksBrackets, size.size)
+                            looksButton("page.buttons.save", .underline, size.size)
                         }
                     }
                 }
                 .appearance(AppearanceRegistry.appearance(withId: Appearance.ID(rawValue: looksAppearance)) ?? appAppearance)
             }
         }
+    }
+
+    /// The glyph pairs the brackets column offers: the corners and eighth
+    /// blocks the owner kept for a one-row lines face (FB14), and the one-cell
+    /// pairs measured clean in every terminal read (E19; *Terminal
+    /// compatibility survey*, "Bracket pairs for a compact face").
+    private static let looksBracketPairs: [(open: Character, close: Character)] = [
+        ("<", ">"), ("⌜", "⌟"), ("▕", "▏"), ("❨", "❩"), ("⟨", "⟩"), ("⦇", "⦈"), ("⟦", "⟧"), ("❪", "❫"),
+        ("❲", "❳"), ("⦉", "⦊"),
+    ]
+
+    /// The brackets column's shape: the pair picked.
+    private var looksBrackets: ButtonBorderShape {
+        let pair = Self.looksBracketPairs[looksBracketPair]
+        return .brackets(pair.open, pair.close)
     }
 
     /// The control sizes, smallest first, with the key naming each.

@@ -794,6 +794,20 @@ Asian Width says. kitty: not measured (it opens no window on this VM). How
 each *looks* at size, beyond fitting its cell, is the owner's call; the
 captures are kept in the session notes (`plan/e19/`).
 
+The owner's reading of which pairs are best laid out (2026-10-18) — taste at
+size, not whether a glyph fits:
+
+| Host | Best laid out |
+|---|---|
+| Ghostty | `()`, `⦇⦈`, `⦅⦆`, `❨❩`, `⟦⟧`, `⟨⟩` |
+| iTerm2 | `❨❩`, `⟨⟩`, `⸨⸩` |
+| Apple Terminal | `()`, `❪❫`, `❨❩`, `⟨⟩`, `⸨⸩` |
+| Warp | `()`, `⦇⦈`, flattened parentheses (`❪❫`, by the card's name for them), `❨❩`, `⟦⟧`, `⟨⟩` |
+
+Only `❨❩` and `⟨⟩` are on every list. Each pair is a
+`ButtonBorderShape.brackets(_:_:)` an app can choose; the Example's Buttons
+page offers them beside the shipped shapes.
+
 **A double-width scrollbar's arrows (FB6) — paint measured 2026-10-17** with
 `scrollbar_arrow_card.py`: whether a host draws the corner triangles `◢◣` /
 `◥◤` (U+25E2, U+25E3, U+25E5, U+25E4) as ONE arrow across two cells, each half

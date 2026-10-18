@@ -267,12 +267,15 @@ struct _ButtonStyleBody: View, Renderable {
         let edges = appearance.edges
         let labelWidth = paddedLabel.strippedLength
         let breath = outlineBreath(label: label, authored: authored, context: context)
+        let lineSupport = context.environment.lineStyleSupport
         return Self.breathingOutline(breath, context: context) { lineInk, ink in
             let open = edges.caps.map { ANSIRenderer.colorize(String($0.open), foreground: lineInk) } ?? ""
             let close = edges.caps.map { ANSIRenderer.colorize(String($0.close), foreground: lineInk) } ?? ""
-            var middle = FrameBuffer(lines: [
-                open + ANSIRenderer.colorize(paddedLabel, foreground: ink.opaqueSpelling, bold: bold) + close
-            ])
+            let label =
+                edges.underlinesLabel
+                ? Self.underlining(paddedLabel, ink: ink, lines: lineInk, bold: bold, support: lineSupport)
+                : ANSIRenderer.colorize(paddedLabel, foreground: ink.opaqueSpelling, bold: bold)
+            var middle = FrameBuffer(lines: [open + label + close])
             if let claim = OpacityRegion.claim(
                 offsetX: edges.caps == nil ? 0 : 1, width: labelWidth, height: 1, ink: ink)
             {
@@ -280,6 +283,26 @@ struct _ButtonStyleBody: View, Renderable {
             }
             return Self.outline(around: middle, edges: edges, lines: lineInk)
         }
+    }
+
+    /// `paddedLabel` in `ink`, its label — what lies between the padding — over
+    /// a line in `lines` (``ButtonBorderShape/underline``), as far as a
+    /// terminal that draws `support` colours one; the padding either side
+    /// bare, so the line is the label's width.
+    static func underlining(
+        _ paddedLabel: String, ink: Color, lines: Color, bold: Bool, support: LineStyleSupport
+    ) -> String {
+        let leading = paddedLabel.prefix { $0 == " " }
+        let rest = paddedLabel.dropFirst(leading.count)
+        let label = rest.reversed().drop { $0 == " " }.reversed()
+        let trailing = rest.dropFirst(label.count)
+        var style = TextStyle()
+        style.foregroundColor = ink.opaqueSpelling
+        style.isBold = bold
+        style.underline = .some(Text.LineStyle(color: lines).fittingUnderline(to: support))
+        let plain = TextStyle()
+        return ANSIRenderer.render(String(leading), with: plain) + ANSIRenderer.render(String(label), with: style)
+            + ANSIRenderer.render(String(trailing), with: plain)
     }
 
     /// The breath of this button's outline face, its label `label`, drawn as
@@ -665,13 +688,19 @@ struct _ButtonStyleBody: View, Renderable {
             if let caps = appearance.edges.caps {
                 Text(String(caps.open)).foregroundStyle(lines)
             }
-            centred(labelView, fills: fills)
+            centred(underlined(labelView, lines: lines), fills: fills)
                 .breathingForegroundStyle(label, holdingPicturesAt: resting)
                 .padding(.horizontal, appearance.horizontalPadding)
             if let caps = appearance.edges.caps {
                 Text(String(caps.close)).foregroundStyle(lines)
             }
         }
+    }
+
+    /// `labelView` over a line in `lines` where the face underlines its label
+    /// (``ButtonBorderShape/underline``), and as it is where it does not.
+    private func underlined(_ labelView: AnyView, lines: Color) -> AnyView {
+        appearance.edges.underlinesLabel ? AnyView(labelView.underline(color: lines)) : labelView
     }
 
     /// A whole solid face's label row for a `@ViewBuilder` label: the label,

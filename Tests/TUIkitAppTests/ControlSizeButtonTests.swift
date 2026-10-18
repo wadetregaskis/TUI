@@ -315,6 +315,42 @@ struct ControlSizeButtonTests {
     }
 
     @Test(
+        "An underline is the label alone on one row, and the rounded rectangle's box on three",
+        arguments: [
+            (ControlSize.mini, ["OK"]),
+            (.small, ["OK"]),
+            (.regular, [" OK "]),
+            (.large, ["╭────╮", "│ OK │", "╰────╯"]),
+        ])
+    func underline(size: ControlSize, expected: [String]) {
+        for button in buttons(size, .underline) {
+            #expect(drawn(button) == expected)
+        }
+    }
+
+    @Test("The underline is under the label, not its padding, in the lines' colour where the terminal colours one")
+    func underlineSpansTheLabel() {
+        func bytes(_ view: some View, support: LineStyleSupport) -> String {
+            var context = context()
+            context.environment.lineStyleSupport = support
+            return ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context).lines.joined() }
+        }
+        for button in buttons(.regular, .underline, label: "Save") {
+            let coloured = bytes(button, support: .underlines)
+            // One underlined run, and it is the label's cells exactly: the
+            // padding either side is drawn bare.
+            let underlinedRuns = coloured.components(separatedBy: "\u{1B}[").filter {
+                $0.hasPrefix("4;") || $0.contains(";4;") || $0.hasPrefix("1;4;")
+            }
+            #expect(underlinedRuns.count == 1, "\(coloured.debugDescription)")
+            #expect(underlinedRuns.first?.hasSuffix("mSave") == true, "\(coloured.debugDescription)")
+            #expect(coloured.contains("58:"), "the line in the lines' colour: \(coloured.debugDescription)")
+            let plain = bytes(button, support: .plain)
+            #expect(!plain.contains("58") && plain.contains("Save"), "\(plain.debugDescription)")
+        }
+    }
+
+    @Test(
         "The braille family: a dotted outline of the shape, one dot thick or two",
         arguments: [
             (Appearance.braille, ControlSize.regular, ButtonBorderShape.capsule, ["⢎ OK ⡱"]),

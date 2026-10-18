@@ -37,7 +37,8 @@
 /// - **Blank** — `.blank`: the label alone, breathing the focus.
 ///
 /// TUIkit's own ``brackets(_:_:)`` draws a lines face between any two glyphs
-/// of a cell each.
+/// of a cell each, and its own ``underline`` a lines face that is a line
+/// under the label alone.
 ///
 /// Read by the built-in styles with a face; a plain, borderless or link
 /// button has none, and draws as it would.
@@ -53,6 +54,8 @@ public struct ButtonBorderShape: Equatable, Sendable {
         case automatic, capsule, roundedRectangle, square, circle
         /// TUIkit's own: lines between these two glyphs.
         case brackets(open: Character, close: Character)
+        /// TUIkit's own: a line under the label.
+        case underline
     }
 
     let kind: Kind
@@ -90,6 +93,12 @@ public struct ButtonBorderShape: Equatable, Sendable {
     /// Each glyph must take one cell; a pair that does not draws as
     /// ``roundedRectangle``.
     ///
+    /// Some pairs that read well in a lines face: `⌜ ⌟` corners and `▕ ▏`
+    /// eighth blocks hugging the label; and `❨ ❩` and `⟨ ⟩`, one cell in every
+    /// terminal measured and well laid out in each (*Terminal compatibility
+    /// survey*, "Bracket pairs for a compact face"). Avoid `⦅ ⦆`, which
+    /// overhangs its label in Warp, and `⸨ ⸩`, which Warp does not draw.
+    ///
     /// - Parameters:
     ///   - open: The glyph before the label.
     ///   - close: The glyph after the label.
@@ -100,6 +109,16 @@ public struct ButtonBorderShape: Equatable, Sendable {
 
     /// A circular shape: a capsule with no padding, for a label of one glyph.
     public static let circle = Self(kind: .circle)
+
+    /// A line under the label, and no caps — TUIkit's own, beside SwiftUI's
+    /// shapes.
+    ///
+    /// The line spans the label alone, not its padding, and is drawn in the
+    /// lines' colour where the terminal colours an underline (SGR 58), in the
+    /// label's where it does not. It breathes the focus with the label. On
+    /// three rows it is the rounded rectangle's box; a solid or Braille face
+    /// draws it as a rounded rectangle, having no lines to underline with.
+    public static let underline = Self(kind: .underline)
 }
 
 private struct ButtonBorderShapeKey: EnvironmentKey {
