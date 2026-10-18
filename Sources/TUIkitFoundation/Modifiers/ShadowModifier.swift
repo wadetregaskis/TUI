@@ -32,9 +32,11 @@ struct ShadowModifier: BufferModifier, Equatable {
         guard !context.isMeasuring else { return buffer }
         // The colour through the animator, so a change inside `withAnimation`
         // fades rather than jumping; the radius and the offset are substituted
-        // before this runs (`animatableData`).
+        // before this runs (`animatableData`), under the same owner, so the
+        // colour takes a slot of its own.
         var drawn = style
-        drawn.color = ColorAnimation.resolving(style.color, owner: owner, context: context)
+        drawn.color = ColorAnimation.resolving(
+            style.color, owner: owner, slot: AnimationSlot.colour, context: context)
         switch style.kind {
         case .drop:
             return buffer.castingDropShadow(drawn, context: context, owner: owner)
@@ -42,6 +44,16 @@ struct ShadowModifier: BufferModifier, Equatable {
             return buffer.castingInnerShadow(drawn, palette: context.environment.palette)
         }
     }
+}
+
+/// Where the shadow's animations are kept in the animation store, under the
+/// one key its view and owner make.
+private enum AnimationSlot {
+    /// The colour's. Slot `0` is the radius and the offset's: the store key's
+    /// default, which `animatedValue` takes for every animatable modifier's
+    /// data. Sharing it, each overwrote the other's record at every render, a
+    /// value of another type, and neither ever animated.
+    static let colour = 1
 }
 
 /// The radius and the offset move, in whole cells, so a change of either

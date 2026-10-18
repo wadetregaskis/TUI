@@ -281,6 +281,53 @@ struct ShadowTests {
         #expect(plan.shape != .bypass, "\(plan.bypassReason ?? "")")
     }
 
+    // MARK: - Animation
+
+    /// `before` drawn and settled, then `after` drawn `millis` into a
+    /// one-second linear animation to it.
+    private func animated<V: View>(from before: V, to after: V, atMillis millis: Int) -> FrameBuffer {
+        var context = makeRenderContext(width: 30, height: 4)
+        context.environment.canAnimate = true
+        context.environment.transaction = Transaction(animation: .linear(duration: 1))
+        func render(_ view: V, atMillis millis: Int) -> FrameBuffer {
+            context.environment.frameNowNanos = Int64(millis) * 1_000_000
+            let storage = context.environment.stateStorage!
+            storage.beginRenderPass()
+            defer { storage.endRenderPass() }
+            return ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context) }
+        }
+        _ = render(before, atMillis: 0)
+        _ = render(after, atMillis: 0)
+        return render(after, atMillis: millis)
+    }
+
+    /// The radius and the offset are the modifier's animatable data, and the
+    /// colour is animated beside them under the same key: on one slot each
+    /// overwrote the other's record at every render, and none of them moved.
+    @Test("A shadow's offset, radius and colour animate together")
+    func animates() {
+        // Past the label's frame, the shadow is one layer at x - radius, -radius.
+        func place(_ buffer: FrameBuffer) -> (x: Int, y: Int)? {
+            buffer.overlays.first(where: \.isOverflow).map { ($0.offsetX, $0.offsetY) }
+        }
+        let slid = animated(
+            from: Text("ab").shadow(radius: 0, x: 4), to: Text("ab").shadow(radius: 4, x: 20), atMillis: 500)
+        #expect(place(slid)?.x == 10 && place(slid)?.y == -2, "x 12 and radius 2, half way")
+
+        let red = Color.rgb(255, 0, 0)
+        let blue = Color.rgb(0, 0, 255)
+        let faded = animated(
+            from: Text("ab").shadow(color: red, radius: 0, x: 4), to: Text("ab").shadow(color: blue, radius: 0, x: 4),
+            atMillis: 500)
+        let layer = faded.overlays.first(where: \.isOverflow)
+        let field = layer.flatMap { paintedCells($0.content.lines[0]).first?.state.backgroundColour }
+        guard case .rgb(let r, let g, let b) = field else {
+            Issue.record("no RGB shadow cell: \(String(describing: field))")
+            return
+        }
+        #expect((120...135).contains(r) && g == 0 && (120...135).contains(b), "half way from red to blue")
+    }
+
     // MARK: - Inner shadows
 
     @Test("An inner shadow darkens the cells the view paints toward its edges, ink and field alike")
