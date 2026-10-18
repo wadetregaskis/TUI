@@ -599,7 +599,9 @@ func cachedTypeName(_ type: Any.Type) -> String {
 /// `==` (the structural walk) runs only on a hash hit.
 public struct RetainedSubtreeIndex {
     private let roots: [ViewIdentity]
-    private let hashes: Set<Int>
+    /// The roots' structural hashes (``PrehashedVerdicts``: asked once per
+    /// node climbed through).
+    private let hashes: PrehashedVerdicts
     private let shallowest: Int
     private let anyRootIsRaw: Bool
     /// The verdict for every ancestor node already climbed through, by its
@@ -609,10 +611,10 @@ public struct RetainedSubtreeIndex {
     /// entry that reaches a node already judged stops there. Keyed by hash
     /// alone — a collision would only make two unrelated nodes share a
     /// verdict, and the structural confirmation on a root hit still runs.
-    /// A dictionary rather than a stamp on the node: two more stored
+    /// A table rather than a stamp on the node: two more stored
     /// properties on `IdentityNode` cost every deep-chain page that never
     /// climbs at all (+9.5% on `modifiers`, allocation size), measured.
-    private var verdicts: [Int: Bool] = [:]
+    private var verdicts: PrehashedVerdicts
     /// The hashes one ``retains(_:)`` climbed through, to write its verdict
     /// back on — kept between calls so the prune's hundreds of climbs share
     /// one buffer instead of allocating one each.
@@ -625,10 +627,12 @@ public struct RetainedSubtreeIndex {
     ///     at a time was a percent of a frame (`kitchensink`).
     public init(roots: [ViewIdentity], expectedChecks: Int = 0) {
         self.roots = roots
-        self.hashes = Set(roots.map(\.structuralHash))
+        var hashes = PrehashedVerdicts(minimumCount: roots.count)
+        for root in roots { hashes.set(true, for: root.structuralHash) }
+        self.hashes = hashes
         self.shallowest = roots.map(\.depth).min() ?? .max
         self.anyRootIsRaw = roots.contains(where: \.isRawRooted)
-        if !roots.isEmpty { verdicts.reserveCapacity(expectedChecks) }
+        verdicts = PrehashedVerdicts(minimumCount: roots.isEmpty ? 0 : expectedChecks)
     }
 
     /// Whether nothing is retained at all — the caller can skip the ask.
@@ -657,7 +661,7 @@ public struct RetainedSubtreeIndex {
                 break
             }
             climbed.append(hash)
-            if hashes.contains(hash),
+            if hashes[hash] != nil,
                 roots.contains(where: { $0.depth == candidate.depth && $0 == candidate })
             {
                 verdict = true
@@ -665,7 +669,7 @@ public struct RetainedSubtreeIndex {
             }
             cursor = candidate.parent
         }
-        for hash in climbed { verdicts[hash] = verdict }
+        for hash in climbed { verdicts.set(verdict, for: hash) }
         return verdict
     }
 }
