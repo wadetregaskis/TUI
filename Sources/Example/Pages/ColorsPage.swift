@@ -208,6 +208,26 @@ struct ColorsPage: View {
                 }
             }
 
+            DemoSection("page.colors.section.materials") {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("page.colors.material.caption")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    // Each material over the same busy row: the ramp's colours
+                    // show through tinted toward the surface, more of them the
+                    // thinner it is, and the pattern's glyphs stay.
+                    ForEach(MaterialSample.all) { sample in
+                        ZStack(alignment: .leading) {
+                            Text(verbatim: String(repeating: "▚", count: MaterialSample.width))
+                                .foregroundStyle(
+                                    LinearGradient(colors: Self.warm, startPoint: .leading, endPoint: .trailing))
+                            Text(verbatim: " \(sample.name)")
+                                .frame(width: MaterialSample.width, alignment: .leading)
+                                .background(sample.material)
+                        }
+                    }
+                }
+            }
+
             ColorEffectsDemo()
 
             Spacer()
@@ -221,6 +241,25 @@ extension ColorsPage {
     /// The one ramp every style demo above draws with, so what changes between
     /// them is visibly the GEOMETRY and not the colours.
     fileprivate static let warm: [Color] = [.rgb(255, 80, 80), .rgb(80, 160, 255)]
+}
+
+/// One row of the materials demo: a material and the name that spells it.
+private struct MaterialSample: Identifiable {
+    let name: String
+    let material: Material
+    var id: String { name }
+
+    /// How wide each row is, the pattern and the material alike.
+    static let width = 30
+
+    static let all = [
+        Self(name: ".ultraThinMaterial", material: .ultraThin),
+        Self(name: ".thinMaterial", material: .thin),
+        Self(name: ".regularMaterial", material: .regular),
+        Self(name: ".thickMaterial", material: .thick),
+        Self(name: ".ultraThickMaterial", material: .ultraThick),
+        Self(name: ".bar", material: .bar),
+    ]
 }
 
 /// How big a geometry block is, outside the generic so a call site can reach it

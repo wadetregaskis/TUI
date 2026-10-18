@@ -31,10 +31,10 @@ import TUIkitStyling
 ///
 /// ## What deliberately does not exist
 ///
-/// `Material`, `Shader` and the rest of SwiftUI's styles are absent as
-/// **types**, which is what makes `.foregroundStyle(.thickMaterial)` fail to
-/// compile rather than compile and do nothing. The protocol is not what
-/// decides that; the types are.
+/// `Shader` and the rest of SwiftUI's bitmap styles are absent as **types**,
+/// which is what makes a ported shader fail to compile rather than compile and
+/// do nothing. The protocol is not what decides that; the types are. A
+/// ``Material`` is not one of them: it is a translucent surface.
 public protocol ShapeStyle: Sendable {
 
     /// What this style resolves to. Defaults to `Never` for a style that is

@@ -130,6 +130,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "…or one ramp spanning a set of them:",
             "page.colors.gradientStyle.geometries": "the four geometries, each over the same two colours:",
             "page.colors.gradientStyle.background": "a gradient behind the words, not in them",
+            "page.colors.section.materials": "Materials",
+            "page.colors.material.caption": "a translucent surface over what is behind it: the colours show through, tinted",
 
             // page.containers
             "page.containers.aCardView": "A Card view",
@@ -453,6 +455,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "…oder ein Verlauf über mehrere hinweg:",
             "page.colors.gradientStyle.geometries": "die vier Geometrien, jede über dieselben zwei Farben:",
             "page.colors.gradientStyle.background": "ein Verlauf hinter den Wörtern, nicht in ihnen",
+            "page.colors.section.materials": "Materialien",
+            "page.colors.material.caption": "eine durchscheinende Fläche über dem, was dahinter liegt: die Farben scheinen getönt hindurch",
 
             // page.containers
             "page.containers.aCardView": "Eine Card-Ansicht",
@@ -776,6 +780,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "…ou un dégradé s'étendant sur plusieurs :",
             "page.colors.gradientStyle.geometries": "les quatre géométries, chacune sur les deux mêmes couleurs :",
             "page.colors.gradientStyle.background": "un dégradé derrière les mots, pas dedans",
+            "page.colors.section.materials": "Matériaux",
+            "page.colors.material.caption": "une surface translucide sur ce qui se trouve derrière : les couleurs transparaissent, teintées",
 
             // page.containers
             "page.containers.aCardView": "Une vue Card",
@@ -1099,6 +1105,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "…oppure una sfumatura che ne attraversa diverse:",
             "page.colors.gradientStyle.geometries": "le quattro geometrie, ciascuna sugli stessi due colori:",
             "page.colors.gradientStyle.background": "una sfumatura dietro le parole, non dentro",
+            "page.colors.section.materials": "Materiali",
+            "page.colors.material.caption": "una superficie traslucida su ciò che sta dietro: i colori traspaiono, tinti",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1422,6 +1430,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "…o un degradado que abarca varias:",
             "page.colors.gradientStyle.geometries": "las cuatro geometrías, cada una sobre los mismos dos colores:",
             "page.colors.gradientStyle.background": "un degradado detrás de las palabras, no en ellas",
+            "page.colors.section.materials": "Materiales",
+            "page.colors.material.caption": "una superficie translúcida sobre lo que hay detrás: los colores se transparentan, teñidos",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1745,6 +1755,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "……或让一个渐变横跨多个视图：",
             "page.colors.gradientStyle.geometries": "四种几何形态，都使用相同的两种颜色：",
             "page.colors.gradientStyle.background": "渐变在文字后面，而不是在文字里",
+            "page.colors.section.materials": "材质",
+            "page.colors.material.caption": "覆盖在后方内容上的半透明表面：颜色透出，带有色调",
 
             // page.containers
             "page.containers.aCardView": "一个 Card 视图",
@@ -2068,6 +2080,8 @@ extension ExampleStrings {
             "page.colors.gradientStyle.spanning": "…または複数のビューにまたがる 1 つのグラデーション:",
             "page.colors.gradientStyle.geometries": "4 つのジオメトリ、いずれも同じ 2 色で:",
             "page.colors.gradientStyle.background": "文字の中ではなく、文字の背後のグラデーション",
+            "page.colors.section.materials": "マテリアル",
+            "page.colors.material.caption": "背後のものに重なる半透明の面：色が色味を帯びて透けて見える",
 
             // page.containers
             "page.containers.aCardView": "Card ビュー",

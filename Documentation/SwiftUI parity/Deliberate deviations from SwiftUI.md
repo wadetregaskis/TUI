@@ -939,6 +939,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [§2.4](<SwiftUI compatibility guide.md#24-image-is-textascii-sf-symbols-render-as-glyphs-in-narrow-circumstances>), [B-D3M-2](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>),
   [B-D3M-3](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-3-tiles-and-caps-keep-the-fitted-scale-and-caps-are-in-pixels>). **Medium**, with **Lane** choices.
 
+### C5. A material is a translucent surface, not a blur
+
+- **SwiftUI:** a `Material` blurs what is behind it and tints it, with
+  vibrancy for the content on it; an inactive window's materials go flat
+  (Apple's documentation; not measured).
+- **TUIkit:** a `Material` is a palette surface at a fraction of its opacity
+  (`.ultraThin` 0.35 to `.ultraThick` 0.92; `.bar` the bars' surface at 0.8),
+  composited cell by cell over what it covers: what shows through is tinted
+  and the glyphs behind stay. One that does not appear active is opaque
+  (`Material.paint(in:)`; `MaterialTests`). Nothing of TUIkit's sets
+  `\.backgroundMaterial`.
+- **Why:** a cell has nothing below it to blur. Dropping the glyphs beneath
+  and averaging the neighbours' colours would be a cell-sized frost, offered
+  as an add-on once this shows in the Example.
+- **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
+  ruled 2026-10-12: option (b). **Medium**; Glass still owed.
+
 ---
 
 ## Animation

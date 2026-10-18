@@ -748,9 +748,6 @@
     "MatchedTransitionSourceConfiguration": {
       "why": "Configures a zoom transition's source: its corner shape and background. It waits with `matchedTransitionSource` on O4 of the refusal review (decisions A23)."
     },
-    "MaterialActiveAppearance": {
-      "why": "Names the active/inactive/automatic appearance of a Material; there is no Material (no blur, no translucency) and no window-activation state — the terminal emulator owns window focus, and TUIkit's own focus model is per-control (Sources/TUIkitFoundation/Focus/Focus.swift, FocusManager)."
-    },
     "OffsetShape": {
       "why": "A Shape adapter (Shape.offset(x:y:)); no Shape protocol exists. Whole-cell offsetting of a VIEW does exist as View.offset(x:y:) (Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift:71)."
     },
@@ -974,10 +971,6 @@
     "List.Body": {
       "how": "List.body: some View",
       "why": "Sources/TUIkitLists/Views/List.swift:96 `public var body: some View`, the same shape as SwiftUI's `typealias Body = some View`. The typealias is inferred in TUIkit's source and written in the SDK interface, so the gap is a symbolgraph artifact."
-    },
-    "Material": {
-      "how": "View.dimmed() / Palette.overlayBackground",
-      "why": "The scrim role a material plays for modals exists: `View.dimmed()` recolours what is behind a modal toward the palette, and `Palette.overlayBackground` paints an overlay's surface. A material as a translucent palette surface is O5 of the refusal review."
     },
     "ObservedObject": {
       "how": "a plain @Observable reference, or @Bindable for write-through",

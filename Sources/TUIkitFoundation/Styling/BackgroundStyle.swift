@@ -23,9 +23,8 @@ import TUIkitStyling
 ///
 /// With nothing named it is the palette's own ``Palette/background`` — which
 /// is a terminal's equivalent of SwiftUI's system background material, and the
-/// closest thing a cell grid has to one. SwiftUI's `Material` types are
-/// deliberately absent (a cell has nothing to blur), so this is the only
-/// "the surface behind things" style there is.
+/// closest thing a cell grid has to one. A ``Material`` is the same surface,
+/// translucent, for a view that should let what is behind it show through.
 public struct BackgroundStyle: ShapeStyle, Equatable, Sendable {
     /// Creates the background style.
     public init() {}

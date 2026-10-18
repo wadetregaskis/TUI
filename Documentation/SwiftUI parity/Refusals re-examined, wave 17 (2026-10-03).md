@@ -983,6 +983,9 @@ an optional add-on of about two days, offered once (b) shows in the Example.
 Lane owed: the materials about a day; Glass one to two days after W1, since
 `glassEffect` takes a `Shape`. A41 follows it.
 
+**Materials shipped 2026-10-18** (`Sources/TUIkitFoundation/Styling/Material.swift`,
+Deliberate deviations C5); Glass and the frosted add-on are still owed.
+
 ### O6. `ShadowStyle` (+ W16 `shadow`, W13 `ShapeStyle.shadow`) — M
 
 **What it would be:** the classic TUI drop shadow. The cells under the view's
