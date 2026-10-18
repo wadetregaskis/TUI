@@ -714,7 +714,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                     }
                 }
                 return true
-            case .dragged:
+            // Only the left button's: a press of another is never the
+            // editor's, so neither is its drag, wherever the dispatcher
+            // routes it from (a right-drag from the screen selection's
+            // highlight moved the selection, decisions-D4X).
+            case .dragged where event.button == .left:
                 if handler.block != nil {
                     placeCursor(at: event)
                     handler.extendBlock(to: gridPoint(event), shift: event.shift)

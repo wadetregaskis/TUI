@@ -187,7 +187,8 @@ enum TextFieldMouseHandler {
                     handler.pressAnchor = selectionEnd?(event).offset
                 }
                 return true
-            case .dragged:
+            // Only the left button's, as the editor's (`TextEditor`).
+            case .dragged where event.button == .left:
                 // After a multi-click, by its runs.
                 if handler.extendRun(to: selectionEnd?(event).offset ?? caretOffset(event)) { return true }
                 // The press was claimed, so this drag is bound to us: extend the

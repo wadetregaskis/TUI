@@ -453,11 +453,15 @@ listed — all fixed — these remain:
 - **Upstream affinity** (B-D4X-16): one affinity per view, not per caret;
   downstream, a drag to a wrapped row's margin stops before its hanging
   space.
-- **Right-press hand-off** (review 2 of 9873ddc07): drags that arrive in the
-  same read as a menu-opening right press, before the menu's first frame,
-  are hit-tested against page controls, and `TextEditor`'s `.dragged` arm
-  does not check the button, so a fast right-drag on a highlight over an
-  editor can move the editor's selection. Not fixed here.
+- **Right-press hand-off** (review 2 of 9873ddc07) — fixed: drags that
+  arrive in the same read as a menu-opening right press, before the menu's
+  first frame, were hit-tested against page controls, and `TextEditor`'s
+  `.dragged` arm did not check the button, so a fast right-drag on a
+  highlight over an editor could move the editor's selection. The
+  dispatcher spends such drags until a frame has drawn the menu, the
+  highlight's Copy menu's included (`MouseEventDispatcher.routeAgainstItsPress`),
+  and since 2026-10-18 the editor's and `TextField`'s drag arms take the
+  left button's drag alone (`TextEditorRightDragTests`).
 - **`textSelection` on multi-member content** (review 2 of b61f80177): on a
   `ForEach` or a `Group` each member files its own scope, so a drag keeps to
   the member it began on (SwiftUI's per-`Text` behaviour); the modifier's
