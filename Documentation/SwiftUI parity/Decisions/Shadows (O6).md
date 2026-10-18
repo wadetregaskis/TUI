@@ -42,7 +42,11 @@ what the blur is, at a cell's resolution.
   (`ShadowField.squaredDistances`, linear in the cells whatever the radius),
   one layer of cells, and the compositor a translucent `.background` already
   goes through. A view with no shadow pays nothing: the modifier is the only
-  thing that runs any of it.
+  thing that runs any of it. So that a ported `radius: 1000` does not cost a
+  square two thousand cells on a side, a shadow is drawn at most 256 cells
+  from what casts it (`ShadowField.reachLimit`), its alpha still stepping at
+  the radius's own rate, and an offset moves it at most 2^20 cells; neither
+  bound is anywhere a screen can show.
 
 **The fuller version**, in parts that can ship apart:
 1. **Coverage below a whole cell.** A glyph inks perhaps a fifth of its cell,

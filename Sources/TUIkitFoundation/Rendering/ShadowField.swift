@@ -80,6 +80,21 @@ struct ShadowField {
     /// Whether the shadow lays anything anywhere.
     var isEmpty: Bool { !alphas.contains { $0 > 0 } }
 
+    /// How far from the cells that cast it a shadow is drawn at most, whatever
+    /// its radius: 256 cells.
+    ///
+    /// A terminal shows a few hundred columns at the very most, and a shadow
+    /// costs the area it covers, so a radius past this — a ported
+    /// `radius: 1000` — would cost a square two thousand cells on a side, all
+    /// but a corner of it off the screen. The alpha still falls off at the
+    /// radius's own rate inside the reach, so what a screen shows is the
+    /// radius's answer.
+    static let reachLimit = 256
+
+    /// How far an offset moves a shadow at most: 2^20 cells, past every
+    /// screen, which keeps the arithmetic placing it far from overflowing.
+    static let offsetLimit = 1 << 20
+
     /// A drop shadow's field: `footprint` moved by the style's offset, at the
     /// colour's alpha, falling off across `radius` cells around it.
     ///
@@ -88,23 +103,26 @@ struct ShadowField {
     ///   - style: The shadow; its kind is not read.
     ///   - peak: The alpha on the moved footprint itself — the colour's.
     /// - Returns: The field over the moved footprint's bounds, `radius` larger
-    ///   all round, or `nil` when the view paints nothing.
+    ///   all round (``reachLimit`` at most), or `nil` when the view paints
+    ///   nothing.
     static func drop(footprint: ShadowFootprint, style: ShadowStyle, peak: UInt8) -> Self? {
         guard let bounds = footprint.bounds, peak > 0 else { return nil }
-        let radius = style.radius
-        let originX = bounds.minX + style.x - radius
-        let originY = bounds.minY + style.y - radius
-        let width = bounds.maxX - bounds.minX + 1 + 2 * radius
-        let height = bounds.maxY - bounds.minY + 1 + 2 * radius
+        let reach = min(style.radius, reachLimit)
+        let x = min(max(style.x, -offsetLimit), offsetLimit)
+        let y = min(max(style.y, -offsetLimit), offsetLimit)
+        let originX = bounds.minX + x - reach
+        let originY = bounds.minY + y - reach
+        let width = bounds.maxX - bounds.minX + 1 + 2 * reach
+        let height = bounds.maxY - bounds.minY + 1 + 2 * reach
         // Every painted cell, moved, lies in the rectangle, so the distance to
         // the nearest is exact everywhere in it.
         let distances = squaredDistances(width: width, height: height) { column, row in
-            footprint.paints(column: originX + column - style.x, row: originY + row - style.y)
+            footprint.paints(column: originX + column - x, row: originY + row - y)
         }
-        let ramp = alphaRamp(radius: radius, peak: peak)
+        let ramp = alphaRamp(radius: style.radius, reach: reach, peak: peak)
         return Self(
             originX: originX, originY: originY, width: width, height: height,
-            alphas: distances.map { ramp[ring(of: $0, radius: radius)] })
+            alphas: distances.map { ramp[ring(of: $0, reach: reach)] })
     }
 
     /// An inner shadow's field: over the cells the view paints, the colour's
@@ -121,17 +139,19 @@ struct ShadowField {
     ///   nothing.
     static func inner(footprint: ShadowFootprint, style: ShadowStyle, peak: UInt8) -> Self? {
         guard footprint.bounds != nil, peak > 0 else { return nil }
-        let radius = style.radius
+        let reach = min(style.radius, reachLimit)
+        let x = min(max(style.x, -offsetLimit), offsetLimit)
+        let y = min(max(style.y, -offsetLimit), offsetLimit)
         // One cell more than the reach all round: the nearest unpainted cell
         // that matters is never further from the view than that, and every cell
         // outside the view is unpainted.
-        let margin = radius + 1
+        let margin = reach + 1
         let width = footprint.width + 2 * margin
         let height = footprint.height + 2 * margin
         let distances = squaredDistances(width: width, height: height) { column, row in
-            !footprint.paints(column: column - margin - style.x, row: row - margin - style.y)
+            !footprint.paints(column: column - margin - x, row: row - margin - y)
         }
-        let ramp = alphaRamp(radius: radius, peak: peak)
+        let ramp = alphaRamp(radius: style.radius, reach: reach, peak: peak)
         var alphas = [UInt8]()
         alphas.reserveCapacity(footprint.width * footprint.height)
         for row in 0..<footprint.height {
@@ -141,31 +161,36 @@ struct ShadowField {
                     continue
                 }
                 let distance = distances[(row + margin) * width + column + margin]
-                alphas.append(ramp[ring(of: distance, radius: radius)])
+                alphas.append(ramp[ring(of: distance, reach: reach)])
             }
         }
         return Self(
             originX: 0, originY: 0, width: footprint.width, height: footprint.height, alphas: alphas)
     }
 
-    /// The alpha at each ring, `0` through `radius`, and `0` past it at
-    /// `radius + 1`: `peak` on the footprint, falling by `peak / (radius + 1)`
-    /// a ring.
-    static func alphaRamp(radius: Int, peak: UInt8) -> [UInt8] {
-        (0...(radius + 1)).map { ring in
-            UInt8((Double(peak) * Double(radius + 1 - ring) / Double(radius + 1)).rounded())
-        }
+    /// The alpha at each ring, `0` through `reach`, and `0` past it at
+    /// `reach + 1`: `peak` on the footprint, falling by `peak / (radius + 1)`
+    /// a ring, so it reaches nothing at the ring past `radius`.
+    ///
+    /// - Parameters:
+    ///   - radius: The shadow's radius, which sets the step.
+    ///   - reach: The last ring drawn: the radius, or ``reachLimit`` past it.
+    ///   - peak: The alpha at ring `0`.
+    static func alphaRamp(radius: Int, reach: Int, peak: UInt8) -> [UInt8] {
+        let rings = Double(radius) + 1
+        return (0...reach).map { ring in UInt8((Double(peak) * (rings - Double(ring)) / rings).rounded()) } + [0]
     }
 
     /// The ring a cell `squaredDistance` from the footprint is in: the distance
-    /// rounded to whole cells, `radius + 1` for anything past the last ring.
+    /// rounded to whole cells, `reach + 1` for anything past the last ring
+    /// drawn.
     ///
     /// Rounded rather than truncated or raised: the cell diagonally off a
     /// corner, 1.4 cells out, is in the first ring with the cells beside it, so
     /// a shadow one cell wide keeps square corners and wider ones round off.
-    static func ring(of squaredDistance: Int?, radius: Int) -> Int {
-        guard let squaredDistance else { return radius + 1 }
-        return min(radius + 1, Int(Double(squaredDistance).squareRoot().rounded()))
+    static func ring(of squaredDistance: Int?, reach: Int) -> Int {
+        guard let squaredDistance else { return reach + 1 }
+        return min(reach + 1, Int(Double(squaredDistance).squareRoot().rounded()))
     }
 
     /// The squared Euclidean distance, in cells, from each cell of a `width` ×

@@ -48,20 +48,22 @@ struct ShadowFieldTests {
 
     @Test("Each ring takes an equal step of the peak, down to nothing past the radius")
     func alphaRamp() {
-        #expect(ShadowField.alphaRamp(radius: 0, peak: 84) == [84, 0])
-        #expect(ShadowField.alphaRamp(radius: 3, peak: 84) == [84, 63, 42, 21, 0])
-        #expect(ShadowField.alphaRamp(radius: 1, peak: 255) == [255, 128, 0])
+        #expect(ShadowField.alphaRamp(radius: 0, reach: 0, peak: 84) == [84, 0])
+        #expect(ShadowField.alphaRamp(radius: 3, reach: 3, peak: 84) == [84, 63, 42, 21, 0])
+        #expect(ShadowField.alphaRamp(radius: 1, reach: 1, peak: 255) == [255, 128, 0])
+        // Cut short of a radius past the reach, at the radius's own step.
+        #expect(ShadowField.alphaRamp(radius: 7, reach: 3, peak: 80) == [80, 70, 60, 50, 0])
     }
 
     @Test("A cell's ring is its distance rounded, so a one-cell ring keeps square corners")
     func rings() {
-        #expect(ShadowField.ring(of: 0, radius: 2) == 0)
-        #expect(ShadowField.ring(of: 1, radius: 2) == 1)
-        #expect(ShadowField.ring(of: 2, radius: 1) == 1, "1.4 cells off a corner is the first ring")
-        #expect(ShadowField.ring(of: 5, radius: 2) == 2)
-        #expect(ShadowField.ring(of: 8, radius: 2) == 3, "2.8 cells is past a radius of 2")
-        #expect(ShadowField.ring(of: nil, radius: 2) == 3)
-        #expect(ShadowField.ring(of: 400, radius: 2) == 3)
+        #expect(ShadowField.ring(of: 0, reach: 2) == 0)
+        #expect(ShadowField.ring(of: 1, reach: 2) == 1)
+        #expect(ShadowField.ring(of: 2, reach: 1) == 1, "1.4 cells off a corner is the first ring")
+        #expect(ShadowField.ring(of: 5, reach: 2) == 2)
+        #expect(ShadowField.ring(of: 8, reach: 2) == 3, "2.8 cells is past a radius of 2")
+        #expect(ShadowField.ring(of: nil, reach: 2) == 3)
+        #expect(ShadowField.ring(of: 400, reach: 2) == 3)
     }
 
     @Test("A view casts its shadow from the cells it paints: glyphs and stated fields, not bare blanks")
@@ -97,6 +99,18 @@ struct ShadowFieldTests {
         #expect(offset.alphas == [100, 100, 100, 100, 0, 0, 100, 0, 0])
     }
 
+    @Test("A radius or an offset past every screen is drawn only as far as a screen could show")
+    func outlandishValues() throws {
+        let footprint = ShadowFootprint(FrameBuffer(lines: ["x"]))
+        let wide = try #require(ShadowField.drop(footprint: footprint, style: .drop(radius: .max), peak: 84))
+        #expect(wide.width == 2 * ShadowField.reachLimit + 1 && wide.originX == -ShadowField.reachLimit)
+        #expect(wide.alpha(column: ShadowField.reachLimit, row: ShadowField.reachLimit) == 84)
+        let far = try #require(ShadowField.drop(footprint: footprint, style: .drop(radius: 0, x: .min, y: .max), peak: 84))
+        #expect(far.originX == -ShadowField.offsetLimit && far.originY == ShadowField.offsetLimit)
+        let inner = try #require(ShadowField.inner(footprint: footprint, style: .inner(radius: .max, x: .max), peak: 84))
+        #expect(inner.alphas == [84])
+    }
+
     @Test("ShadowStyle's defaults are SwiftUI's: black at a third for a drop, a little over half inside")
     func styleDefaults() {
         #expect(ShadowStyle.drop(radius: 2).color == Color(.sRGBLinear, white: 0, opacity: 0.33))
@@ -106,6 +120,17 @@ struct ShadowFieldTests {
         let offset = ShadowStyle.drop(radius: 2, x: 1)
         #expect(offset == .drop(radius: 2, x: 1) && offset != .drop(radius: 2, y: 1))
         #expect(ShadowStyle.drop(radius: -3).radius == 0, "a negative radius is no radius")
+    }
+
+    @Test("An animated frame's radius and offset are whole cells, and a runaway value does not trap")
+    @MainActor
+    func animatableData() {
+        var modifier = ShadowModifier(style: .drop(radius: 2, x: 1, y: -1))
+        #expect(modifier.animatableData == AnimatablePair(2, AnimatablePair(1, -1)))
+        modifier.animatableData = AnimatablePair(2.6, AnimatablePair(-0.4, 3.5))
+        #expect(modifier.style == .drop(radius: 3, x: 0, y: 4))
+        modifier.animatableData = AnimatablePair(-5, AnimatablePair(.infinity, .nan))
+        #expect(modifier.style.radius == 0 && modifier.style.x == 1 << 30 && modifier.style.y == 0)
     }
 
     @Test("ShadowStyle leaves no byte between its fields undefined")

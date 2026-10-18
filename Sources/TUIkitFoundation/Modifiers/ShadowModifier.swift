@@ -51,10 +51,19 @@ extension ShadowModifier: Animatable {
     var animatableData: AnimatablePair<Double, AnimatablePair<Double, Double>> {
         get { AnimatablePair(Double(style.radius), AnimatablePair(Double(style.x), Double(style.y))) }
         set {
-            style.radius = max(0, Int(newValue.first.rounded()))
-            style.x = Int(newValue.second.first.rounded())
-            style.y = Int(newValue.second.second.rounded())
+            style.radius = max(0, Self.cells(newValue.first))
+            style.x = Self.cells(newValue.second.first)
+            style.y = Self.cells(newValue.second.second)
         }
+    }
+
+    /// `value` rounded to whole cells, held to ±2^30 — past every screen, and
+    /// inside `Int` — so a frame between two outlandish values cannot trap the
+    /// conversion; NaN is no cells.
+    private static func cells(_ value: Double) -> Int {
+        let bound = Double(1 << 30)
+        guard !value.isNaN else { return 0 }
+        return Int(min(max(value.rounded(), -bound), bound))
     }
 }
 
