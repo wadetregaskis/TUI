@@ -434,6 +434,43 @@ struct OverlayLevelStackingTests {
         #expect(joined.contains("TOAST-TEXT"), "the toast must survive the modal's dimming pass")
         #expect(joined.contains("DIALOG"))
     }
+
+    /// Content drawn past its region is a layer at the lowest level, and a page of
+    /// drop shadows is hundreds of them. The root once stopped after 256 draws,
+    /// lowest level first, so the alert over them was the one left out — an
+    /// invisible dialog holding the app.
+    @Test("An alert is drawn however many layers lie under it")
+    func alertOverManyLayers() {
+        var under = (0..<300).map { index in
+            OverlayLayer(
+                offsetX: index % 30, offsetY: index / 30 % 9, content: FrameBuffer(text: "."),
+                level: .popover, zIndex: OverlayLayer.displacedDrawingZIndex, clampsToScreen: false,
+                isOpaque: false)
+        }
+        under = under.map { layer in
+            var overflow = layer
+            overflow.isOverflow = true
+            return overflow
+        }
+        let alert = OverlayLayer(
+            offsetX: 0, offsetY: 0, content: FrameBuffer(text: "ALERT-FACE"),
+            level: .alert, centered: true, dimsBackground: true)
+        #expect(screen(under + [alert]).contains("ALERT-FACE"))
+    }
+
+    /// The cap still holds a layer whose content carries a layer whose content
+    /// carries another, on and on: it counts the draws that lift.
+    @Test("Layers that keep lifting layers are stopped after 256 lifts")
+    func liftingIsCapped() {
+        func chain(from depth: Int, to last: Int) -> OverlayLayer {
+            var content = FrameBuffer(text: String(depth).padding(toLength: 3, withPad: " ", startingAt: 0))
+            if depth < last { content.overlays = [chain(from: depth + 1, to: last)] }
+            return OverlayLayer(offsetX: 0, offsetY: 0, content: content, level: .popover, isOpaque: false)
+        }
+        // Each draw lifts the next; the 256th lift brings in the 257th layer,
+        // drawn last, and what it carries is not lifted.
+        #expect(screen([chain(from: 1, to: 300)]).stripped.hasPrefix("257"))
+    }
 }
 
 /// A page memoized by its title, hosting the toasts over it.

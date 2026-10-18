@@ -44,7 +44,14 @@ extension FrameBuffer {
         // join the queue behind what is still pending and take their place by
         // level; a drawn host is drawn, so its own nested layers land above it
         // whatever their level. A cap guards against a pathological layer that
-        // keeps re-emitting itself; 256 is far beyond real use.
+        // keeps re-emitting itself; 256 is far beyond real use. It counts the
+        // draws that LIFT layers, the only ones that can feed the queue: one
+        // that lifts nothing (content past a region, a shadow's cells) only
+        // drains it, so every layer queued is drawn however many there are.
+        // Counting every draw, the lowest levels went first and the cap fell
+        // on the highest: 256 drop shadows' worth of overflow, at `.popover`
+        // under the displaced-drawing z index, and the alert over them was
+        // never drawn, an invisible dialog holding the input.
         // A pinned section header or footer that got here passed no vertical
         // scroll view — a pinned stack that is not scrolled — and the flow
         // already shows it where it belongs (`OverlayLayer.scrollPin`). So
@@ -56,9 +63,8 @@ extension FrameBuffer {
         ).enumerated().map { (order: $0.offset, layer: $0.element) }
         result.overlays = []
         var nextOrder = queue.count
-        var drawsRemaining = 256
-        while !queue.isEmpty && drawsRemaining > 0 {
-            drawsRemaining -= 1
+        var liftsRemaining = 256
+        while !queue.isEmpty {
             queue.sort { lhs, rhs in
                 if lhs.layer.level != rhs.layer.level {
                     return lhs.layer.level < rhs.layer.level
@@ -148,6 +154,11 @@ extension FrameBuffer {
             // (`OverlayLayer.isOverflow`) inside its box: a menu's, a
             // popover's or a dialog's content belongs on the surface, and drawn
             // past its border it reads as corruption of the page.
+            guard !result.overlays.isEmpty, liftsRemaining > 0 else {
+                result.overlays = []
+                continue
+            }
+            liftsRemaining -= 1
             let liftedLayers = OverlayLayer.arrangingPeers(result.overlays, maxWidth: maxWidth, maxHeight: maxHeight)
             for lifted in liftedLayers where lifted.scrollPin == nil {
                 var kept = lifted
