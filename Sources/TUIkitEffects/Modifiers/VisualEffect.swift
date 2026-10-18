@@ -174,11 +174,9 @@ extension _VisualEffectView: Renderable, Layoutable {
 func animatedEffect<Effect: VisualEffect>(
     _ effect: Effect, owner: Any.Type, context: RenderContext, isMeasuring: Bool
 ) -> Effect {
-    guard
-        let animated = animatedValue(
-            of: _AnimatedEffect(effect: effect), owner: owner, context: context, isMeasuring: isMeasuring)?.effect
-    else { return effect }
-    return context.environment.accessibilityReduceMotion ? animated._holdingMotion(at: effect) : animated
+    animatedValueHoldingMotion(
+        of: _AnimatedEffect(effect: effect), owner: owner, context: context, isMeasuring: isMeasuring
+    )?.effect ?? effect
 }
 
 /// An effect chain as the animation store sees it: the chain's data, and the

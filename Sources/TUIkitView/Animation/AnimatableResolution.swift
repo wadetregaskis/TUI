@@ -159,6 +159,21 @@ package func animatedValue<A: Animatable>(
     return copy
 }
 
+/// `value` at the value the animation store says to draw it at
+/// (``animatedValue(of:owner:context:isMeasuring:)``), with its motion at
+/// `value`'s own where motion is reduced: a ``PartlySpatialAnimatable`` change
+/// that moves only its motion starts nothing there, and one that moves
+/// anything else animates, its picture's motion at the end meanwhile (owner
+/// decision A-D3M-1). `nil` when there is nothing to substitute.
+@MainActor
+package func animatedValueHoldingMotion<A: PartlySpatialAnimatable>(
+    of value: A, owner: Any.Type, context: RenderContext, isMeasuring: Bool
+) -> A? {
+    guard let animated = animatedValue(of: value, owner: owner, context: context, isMeasuring: isMeasuring)
+    else { return nil }
+    return context.environment.accessibilityReduceMotion ? animated.holdingMotion(at: value) : animated
+}
+
 /// Whether reduce motion holds `value`'s change at `key` still: a
 /// ``SpatialAnimatable`` change where motion is reduced, or a
 /// ``PartlySpatialAnimatable`` one that moves nothing but its motion from
