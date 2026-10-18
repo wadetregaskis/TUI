@@ -801,10 +801,15 @@ filling its cell to the shared edge, between magenta flanks:
 
 | Host | `◢◣` / `◥◤` | Double width (DECDWL) |
 |---|---|---|
-| Ghostty 1.3.1 | **one solid arrow**: drawn shapes, edge to edge, no seam | honoured |
+| Ghostty 1.3.1 | **one solid arrow**: drawn shapes, edge to edge, no seam | **ignored** |
 | iTerm2 3.7 | **one solid arrow**: drawn shapes, edge to edge | honoured |
 | Warp v0.2026.10.14 | font glyphs, smaller than the cell; the halves meet near the middle and read as one small arrow, not edge to edge | ignored |
 | Apple Terminal 455.1 | font glyphs, well short of the cell edges; the pair reads as **two separate triangles** | honoured |
+
+The double-width column was misread at first: Ghostty's capture shows the
+card's labels in that block at single width, and the owner read Ghostty and
+Warp as ignoring DECDWL (2026-10-18). Nothing in TUIkit sends it. The owner
+also read the one-arrow rows as good in every host.
 
 So the owner's FB6 rule (`◢◣`/`◥◤` by default, `▲▲`/`▼▼` where a host draws
 the triangles badly) puts Apple Terminal and Warp on `▲▲`/`▼▼`, and Ghostty and
