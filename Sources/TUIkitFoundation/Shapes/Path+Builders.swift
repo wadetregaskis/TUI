@@ -310,6 +310,12 @@ extension Path {
     /// a line; otherwise the arc starts a subpath. The arc is cubic curves of a
     /// quarter turn or less each.
     ///
+    /// As SwiftUI's does (measured): an end angle further round in the
+    /// direction drawn is reached however many turns away it is, and one
+    /// behind the start by going on round, a turn at most — so 0 to 3π is a
+    /// turn and a half, and 0 to 3π `clockwise` half a turn. An arc of exactly
+    /// one turn closes its subpath.
+    ///
     /// - Parameters:
     ///   - center: The centre of the circle.
     ///   - radius: Its radius.
@@ -329,11 +335,14 @@ extension Path {
             addRelativeArc(center: center, radius: radius, startAngle: startAngle, delta: .radians(raw), transform: transform)
             return
         }
-        var sweep = raw >= turn ? turn : raw.truncatingRemainder(dividingBy: turn)
-        if sweep < 0 { sweep += turn }
+        // Behind the start: on round to it, within a turn — and a whole number
+        // of turns behind is one turn on, as SwiftUI draws it (the remainder is
+        // then -0).
+        let sweep = raw >= 0 ? raw : raw.truncatingRemainder(dividingBy: turn) + turn
         addRelativeArc(
             center: center, radius: radius, startAngle: startAngle, delta: .radians(clockwise ? -sweep : sweep),
             transform: transform)
+        if sweep == turn { closeSubpath() }
     }
 
     /// Adds an arc of a circle, from `startAngle` through `delta`.

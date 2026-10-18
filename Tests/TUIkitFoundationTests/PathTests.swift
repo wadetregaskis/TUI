@@ -148,6 +148,31 @@ struct PathTests {
                 """)
     }
 
+    /// SwiftUI's own descriptions (the W1 review's `desc.swift` probe). Before,
+    /// an arc was held to one turn and an end behind the start was reached
+    /// the same way, so 0 to 3π drew a circle and stopped where it began.
+    @Test("An arc runs on past a turn to its end, and round to an end behind its start, as SwiftUI's does")
+    func arcTurns() {
+        func arc(to end: Double, clockwise: Bool) -> Path {
+            Path { $0.addArc(center: .zero, radius: 1, startAngle: .zero, endAngle: .radians(end), clockwise: clockwise) }
+        }
+        let quarters = "1 0 m 1 0.552285 0.552285 1 0 1 c -0.552285 1 -1 0.552285 -1 0 c -1 -0.552285 -0.552285 -1 0 -1 c"
+        expectPath(
+            arc(to: 3 * .pi, clockwise: false),
+            matches: quarters + " 0.552285 -1 1 -0.552285 1 0 c 1 0.552285 0.552285 1 0 1 c -0.552285 1 -1 0.552285 -1 0 c")
+        expectPath(
+            arc(to: 3 * .pi, clockwise: true),
+            matches: "1 0 m 1 -0.552285 0.552285 -1 0 -1 c -0.552285 -1 -1 -0.552285 -1 0 c")
+        expectPath(arc(to: -1, clockwise: false), matches: quarters + " 0.191568 -1 0.379104 -0.944975 0.540302 -0.841471 c")
+        // A whole turn closes; two do not.
+        expectPath(arc(to: 2 * .pi, clockwise: false), matches: quarters + " 0.552285 -1 1 -0.552285 1 0 c h")
+        expectPath(
+            arc(to: 2 * .pi, clockwise: true),
+            matches: "1 0 m 1 -0.552285 0.552285 -1 0 -1 c -0.552285 -1 -1 -0.552285 -1 0 c -1 0.552285 -0.552285 1 0 1 c 0.552285 1 1 0.552285 1 0 c h")
+        #expect(!arc(to: 4 * .pi, clockwise: false).description.hasSuffix("h"))
+        expectPath(arc(to: 0, clockwise: false), matches: "1 0 m")
+    }
+
     /// Every expectation is SwiftUI's on macOS 15.8 (the W1 review's
     /// `desc.swift` probe, session notes). Before, a NaN angle trapped in
     /// `Int(_:)`, and a turn of `1e10` added six billion curves.
