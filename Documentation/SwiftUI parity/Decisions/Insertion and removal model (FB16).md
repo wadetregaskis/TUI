@@ -23,11 +23,15 @@ is that of the main decisions file:*
   interrupted (merged or added, decisions O3), held still by reduce motion
   (a glide is motion, A-D3M-1) and waited on by a `withAnimation` completion
   as every animated value is.
-- **Where each child was** is remembered per container (`PlacementStore`),
-  for as long as `@State` would be: while the container renders, or while it
-  stands under a subtree the pass retained (a memo hit, a window). A record
-  pruned by re-declaration, as the animation store prunes, made the first
-  change after a memo-served frame a first sight, which never moves anything.
+- **Where each child was** is remembered per container (`PlacementStore`)
+  while it is on screen: while the container renders, or while a memo serves
+  a subtree it stands in. A record pruned by re-declaration, as the animation
+  store prunes, made the first change after a memo-served frame a first
+  sight, which never moves anything. One kept as long as `@State` is —
+  through a window's skip as well — was a record per stack in every row a
+  list had been scrolled through, walked at the end of every pass; a stack
+  scrolled back into view has nothing on screen to glide from, and is drawn
+  where its layout puts it.
 - **A settled container pays** one dictionary lookup and a comparison of each
   child's place and identity with what it remembers — no store write, no
   environment read, no allocation but the targets array. Anything moving or

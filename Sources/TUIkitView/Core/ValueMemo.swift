@@ -99,6 +99,10 @@ func renderValueMemoized<Key: Equatable, Row>(
         // reset on the next real render.
         context.stateStorage?.markActive(identity)
         context.stateStorage?.retainSubtree(identity)
+        // And to the containers' memory of where they put their children:
+        // what is served is on screen, and a change next frame moves its
+        // children from where this picture has them (`PlacementStore`).
+        context.stateStorage?.placements.retainServedSubtree(identity)
         // The same declaration to the render cache, for the same reason one layer
         // over. `markActive(identity)` above covers THIS wrapper only; a nested
         // one below it — the ordinary nested-`ForEach` shape, since `ForEach`

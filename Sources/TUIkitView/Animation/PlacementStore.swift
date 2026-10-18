@@ -34,9 +34,18 @@ import TUIkitCore
 /// and its record, pruned, made the next change a first sight, which never
 /// moves anything. That is the commonest shape there is: a page re-rendered
 /// because something ELSE on it changed, its stacks served, then the change
-/// that matters. So a record lives as `@State` does: while its container
-/// renders, or while it stands under a subtree the pass retained (a memo hit,
-/// a window that skipped its rows) — see ``endRenderPass(retaining:)``.
+/// that matters. So a record lives while its container renders, or while a
+/// memo serves a subtree it stands in (``retainServedSubtree(_:)``): the one
+/// way a container is on screen without being rendered.
+///
+/// Not for as long as `@State` lives, which also outlasts a window's skip
+/// (`StateStorage.retainSubtree(_:)`: the rows a `List` scrolled past, a
+/// collapsed `DisclosureGroup`'s content, a toolbar's hidden items). What
+/// those hold is not drawn, so where it was drawn is a place nobody has seen
+/// since: when it comes back it is placed directly, as SwiftUI places a view
+/// it inserts, not glided from wherever it stood when it went. And kept, a
+/// record per stack in every row a list had been scrolled through was a table
+/// that grew with the scrolling, which ``endRenderPass()`` walked every frame.
 ///
 /// Main-actor by discipline rather than by annotation, exactly as
 /// ``StateStorage`` is — it is a stored property of one, and rendering is
@@ -88,6 +97,13 @@ public final class PlacementStore: @unchecked Sendable {
     /// copies rather than shares, so that each store prunes by its own.
     private var pass: UInt64 = 0
 
+    /// How many records this pass has asked about or made: when that is all
+    /// of them, nothing can be stale and the end of the pass looks at none.
+    private var askedThisPass = 0
+
+    /// The subtrees a memo served this pass (``retainServedSubtree(_:)``).
+    private var servedRoots: [ViewIdentity] = []
+
     /// Creates an empty store.
     public init() {}
 
@@ -100,14 +116,18 @@ extension PlacementStore {
     /// pass, or `nil` the first time it is seen.
     package func record(at identity: ViewIdentity) -> Record? {
         guard let record = records[identity] else { return nil }
-        if record.lastPass != pass { record.lastPass = pass }
+        if record.lastPass != pass {
+            record.lastPass = pass
+            askedThisPass += 1
+        }
         return record
     }
 
     /// Remembers `entries` as the container at `identity` first lays them out,
     /// on `walk` of the pass.
     package func remember(_ entries: [ChildPlacementEntry], at identity: ViewIdentity, walk: UInt64) {
-        records[identity] = Record(entries: entries, pass: pass, walk: walk)
+        let replaced = records.updateValue(Record(entries: entries, pass: pass, walk: walk), forKey: identity)
+        if replaced?.lastPass != pass { askedThisPass += 1 }
     }
 
     /// Whether `record` was made in this pass, on a walk other than `walk`.
@@ -120,19 +140,34 @@ extension PlacementStore {
     /// Called from ``StateStorage/beginRenderPass()``.
     public func beginRenderPass() {
         pass &+= 1
+        askedThisPass = 0
+        servedRoots.removeAll(keepingCapacity: true)
     }
 
-    /// Forgets the containers that neither rendered this pass nor stand under
-    /// a subtree it retained — the rule `@State` is kept by, and for the same
-    /// reason: a memo that serves a subtree renders none of it.
+    /// Declares that a memo served the subtree at `root` this pass: the
+    /// containers below it are on screen as they last drew, so their records
+    /// are kept though none of them rendered.
     ///
-    /// Called from ``StateStorage/endRenderPass()``. Collect-then-remove, the
-    /// spelling ``AnimationStore/endRenderPass()`` uses and says why.
-    package func endRenderPass(retaining retained: inout RetainedSubtreeIndex) {
-        guard !records.isEmpty else { return }
+    /// Called where a memo serves (`renderValueMemoized`) — beside
+    /// `StateStorage.retainSubtree(_:)`, which a window that skips its rows
+    /// calls too, and that one is not this: see "What keeps a record alive".
+    package func retainServedSubtree(_ root: ViewIdentity) {
+        servedRoots.append(root)
+    }
+
+    /// Forgets the containers that neither rendered this pass nor stand in a
+    /// subtree a memo served.
+    ///
+    /// Called from ``StateStorage/endRenderPass()``. Nothing to look at on a
+    /// pass that asked about every record, which is every pass no memo
+    /// served a container on. Collect-then-remove, the spelling
+    /// ``AnimationStore/endRenderPass()`` uses and says why.
+    package func endRenderPass() {
+        guard records.count > askedThisPass else { return }
+        var served = RetainedSubtreeIndex(roots: servedRoots)
         var stale: [ViewIdentity] = []
         for (identity, record) in records where record.lastPass != pass {
-            if !retained.retains(identity) { stale.append(identity) }
+            if !served.retains(identity) { stale.append(identity) }
         }
         for identity in stale { records.removeValue(forKey: identity) }
     }
@@ -140,6 +175,7 @@ extension PlacementStore {
     /// Forgets everything.
     public func removeAll() {
         records.removeAll()
+        askedThisPass = 0
     }
 }
 

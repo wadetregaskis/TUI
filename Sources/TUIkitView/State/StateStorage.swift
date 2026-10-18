@@ -716,7 +716,7 @@ extension StateStorage {
         }
         animations.endRenderPass()
         departures.endRenderPass()
-        placements.endRenderPass(retaining: &retained)
+        placements.endRenderPass()
     }
 
     /// Removes all state for descendants of the given identity.
