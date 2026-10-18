@@ -187,24 +187,21 @@ extension Path {
     /// every point ON the path — a curve's extremes, not its control points.
     /// `CGRect.null` for an empty path.
     public var boundingRect: CGRect {
-        var (minX, minY) = (CGFloat.infinity, CGFloat.infinity)
-        var (maxX, maxY) = (-CGFloat.infinity, -CGFloat.infinity)
-        func include(_ point: CGPoint) {
-            minX = min(minX, point.x)
-            minY = min(minY, point.y)
-            maxX = max(maxX, point.x)
-            maxY = max(maxY, point.y)
-        }
+        // A struct with a mutating method, not four locals a nested function
+        // captures and mutates: those are boxed, and swift.org's 6.2.4
+        // toolchain asserts on the boxed CGFloat's debug type in an optimised
+        // build with -g ("Failed to reconstruct type for ... sil_box_type
+        // { var CGFloat }"). Xcode's 6.2.4, 6.3.3 and 6.4.0 build either.
+        var extent = PathExtent()
         for element in elements {
-            if case .move(let to) = element { include(to) }
+            if case .move(let to) = element { extent.include(to) }
         }
         for segment in segments {
-            include(segment.points[0])
-            include(segment.points[segment.points.count - 1])
-            for t in Self.extremes(of: segment.points) { include(segment.point(at: t)) }
+            extent.include(segment.points[0])
+            extent.include(segment.points[segment.points.count - 1])
+            for t in Self.extremes(of: segment.points) { extent.include(segment.point(at: t)) }
         }
-        guard minX <= maxX else { return .null }
-        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+        return extent.rect
     }
 
     /// The parameters inside `0…1` where a Bézier curve turns back along an
@@ -310,5 +307,27 @@ extension Path {
             }
         }
         return trimmed
+    }
+}
+
+/// The smallest rectangle around the points included so far:
+/// ``Path/boundingRect``'s accumulator.
+private struct PathExtent {
+    var minX = CGFloat.infinity
+    var minY = CGFloat.infinity
+    var maxX = -CGFloat.infinity
+    var maxY = -CGFloat.infinity
+
+    mutating func include(_ point: CGPoint) {
+        minX = min(minX, point.x)
+        minY = min(minY, point.y)
+        maxX = max(maxX, point.x)
+        maxY = max(maxY, point.y)
+    }
+
+    /// The rectangle, or `CGRect.null` when nothing was included.
+    var rect: CGRect {
+        guard minX <= maxX else { return .null }
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 }
