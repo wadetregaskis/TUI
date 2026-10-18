@@ -99,6 +99,19 @@ struct ContainerShapeTests {
         #expect(moved[1].contains("b") && moved[4].contains("a"))
     }
 
+    /// Before, two container shapes were compared by their paths in a 64-unit
+    /// square, where radii of 35 and 40 both clamp to 32: the same, so a
+    /// change from one to the other cleared nothing, though a view 37 units in
+    /// is square inside the first and rounded inside the second.
+    @Test("Container shapes that differ in any frame a terminal has compare unequal")
+    func containerShapeComparison() {
+        let small = ErasedInsettableShape(RoundedRectangle(cornerRadius: 35))
+        #expect(small == ErasedInsettableShape(RoundedRectangle(cornerRadius: 35)))
+        #expect(small != ErasedInsettableShape(RoundedRectangle(cornerRadius: 40)))
+        #expect(small != ErasedInsettableShape(RoundedRectangle(cornerRadius: 35, style: .circular)))
+        #expect(small != ErasedInsettableShape(Rectangle()))
+    }
+
     @Test("The corner vocabulary: corners, sets of them, and styles")
     func corners() {
         #expect(Edge.Corner.Set.top.contains(.topLeading))

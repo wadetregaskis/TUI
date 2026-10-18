@@ -36,8 +36,10 @@ struct ContainerShapeContext: Equatable, Sendable {
 ///
 /// Compared by type and by its path in a fixed square: shapes are not
 /// `Equatable`, and an environment value that cannot be compared turns the
-/// render memo off below it. Two values that draw the same path there are the
-/// same container shape for every purpose a container-relative shape has.
+/// render memo off below it. The square is larger than any terminal, so the
+/// radii it clamps alike are clamped alike in every container a terminal can
+/// hold: two values that draw the same path there are the same container shape
+/// for every purpose a container-relative shape has.
 struct ErasedInsettableShape: Equatable, Sendable {
     /// The shape.
     let base: any InsettableShape
@@ -46,9 +48,14 @@ struct ErasedInsettableShape: Equatable, Sendable {
     /// Its type.
     private let type: ObjectIdentifier
 
+    /// The comparison square's side, in units: 2¹⁴. It clamps a radius at
+    /// 8,192, and so does every container smaller than it — under 16,384
+    /// columns, or 8,192 rows.
+    static let fingerprintSide: CGFloat = 16_384
+
     init<S: InsettableShape>(_ shape: S) {
         base = shape
-        fingerprint = shape.path(in: CGRect(x: 0, y: 0, width: 64, height: 64))
+        fingerprint = shape.path(in: CGRect(x: 0, y: 0, width: Self.fingerprintSide, height: Self.fingerprintSide))
         type = ObjectIdentifier(S.self)
     }
 
