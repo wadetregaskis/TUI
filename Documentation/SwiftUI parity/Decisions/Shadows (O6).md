@@ -38,15 +38,21 @@ what the blur is, at a cell's resolution.
   from the nearest cell the view does not paint, everything outside it
   included, with that outside moved by the offset: deepest on the edges the
   offset points away from.
-- **The cost** is the shadow's area: a two-pass distance transform
-  (`ShadowField.squaredDistances`, linear in the cells whatever the radius),
-  one layer of cells, and the compositor a translucent `.background` already
-  goes through. A view with no shadow pays nothing: the modifier is the only
-  thing that runs any of it. So that a ported `radius: 1000` does not cost a
-  square two thousand cells on a side, a shadow is drawn at most 256 cells
-  from what casts it (`ShadowField.reachLimit`), its alpha still stepping at
-  the radius's own rate, and an offset moves it at most 2^20 cells; neither
-  bound is anywhere a screen can show.
+- **The cost** is the shadow's area, twice: at every render a two-pass
+  distance transform (`ShadowField.squaredDistances`, linear in the cells
+  whatever the radius) and the claims cut from it, and at every frame the
+  screen root blending each cell past the view's frame over what is behind
+  it, which a memo hit on the view does not skip (B-O6-2). A view with no
+  shadow pays nothing: the modifier is the only thing that runs any of it.
+  The area grows with the square of the radius, so the radius drawn is held
+  to 32 cells (`ShadowField.radiusLimit`), more than most terminals are rows
+  tall: a larger one is drawn as 32, its alpha still falling to nothing at the
+  edge, so a ported `radius: 100` is a soft shadow 32 cells wide. Measured on
+  a debug build, an 8 × 3 card rendered in 3 ms at a radius of 16, 8 ms at
+  32, 29 ms at 64 and 0.32 s at 256, where an earlier limit of 256 cells let
+  it go, its alpha stepping at the radius's own rate and stopping at a hard
+  edge. An offset moves a shadow at most 2^20 cells, which no screen shows.
+  A release A/B of a shadowed page is owed.
 
 **The fuller version**, in parts that can ship apart:
 1. **Coverage below a whole cell.** A glyph inks perhaps a fifth of its cell,

@@ -332,7 +332,8 @@ The numbers are **cells**, like `.padding(_:)`'s. `radius` softens the edge:
 the shadow fades out across that many cells beyond it, so `0` is a hard
 terminal-style shadow and `2` or `3` is already soft. A radius carried over
 from SwiftUI's points is far too large here: a cell is about eight points
-across, so divide by eight or so.
+across, so divide by eight or so. A radius past 32 cells is drawn as 32: a
+shadow costs the square of its radius.
 
 The shadow is behind the view: where the view paints its own background, the
 shadow is hidden, and where it leaves the background clear — a label with no

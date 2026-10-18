@@ -1054,13 +1054,16 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   paints — a glyph, or a cell with a field, reverse video or a line of its
   own — moved `x` columns and `y` rows, at the colour's alpha, and `radius` is
   an alpha falloff across that many cells beyond it, `1 / (radius + 1)` less a
-  cell and rounded at the corners. So a ported `radius: 8` is eight cells, as
-  `.padding(8)` is, where SwiftUI's is eight points; and a label with no
-  background casts the shape of its letters a whole cell at a time. What the
+  cell and rounded at the corners, up to a radius of 32 cells, past which it
+  is drawn as 32. So a ported `radius: 8` is eight cells, as `.padding(8)` is,
+  where SwiftUI's is eight points; and a label with no background casts the
+  shape of its letters a whole cell at a time. What the
   shadow falls on keeps its glyphs, ink and field darkened together
   (`ShadowTests`, `ShadowFieldTests`).
 - **Why:** a terminal addresses whole cells (U1), and the one alpha a cell has
-  that matters to a shadow is whether the view paints it.
+  that matters to a shadow is whether the view paints it. The limit is cost: a
+  shadow costs the square of its radius at every render and every frame
+  ([B-O6-1](<Decisions/Shadows (O6).md#b-o6-1-a-shadow-is-cast-by-the-cells-a-view-paints-and-falls-off-by-whole-rings>)).
 - **Decided:** [O6](<Refusals re-examined, wave 17 (2026-10-03).md#o6-shadowstyle--w16-shadow-w13-shapestyleshadow--m>),
   ruled 2026-10-12: option (b), cells as-is, documented;
   [B-O6-1](<Decisions/Shadows (O6).md#b-o6-1-a-shadow-is-cast-by-the-cells-a-view-paints-and-falls-off-by-whole-rings>). **Owner.**

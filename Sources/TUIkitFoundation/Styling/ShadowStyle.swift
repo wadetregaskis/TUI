@@ -26,7 +26,8 @@ import TUIkitStyling
 ///   `0` is a hard shadow the shape of the view and a radius of `3` fades out
 ///   over three cells. A ported `radius: 8` is eight cells — as wide, across,
 ///   as `.padding(8)` — which is much more than SwiftUI's eight points
-///   (`Deliberate deviations from SwiftUI.md`, C10).
+///   (`Deliberate deviations from SwiftUI.md`, C10). A radius past 32 cells is
+///   drawn as 32, since a shadow costs the square of its radius.
 /// - **A drop shadow** is drawn behind the view, over what is behind it: where
 ///   the view paints a field of its own the shadow is hidden, and everywhere
 ///   else — past its edges, and under the cells it leaves clear — what is

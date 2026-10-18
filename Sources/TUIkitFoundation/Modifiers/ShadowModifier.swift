@@ -108,7 +108,8 @@ extension View {
     ///   - color: The shadow's color: black at a third by default, as in
     ///     SwiftUI.
     ///   - radius: How many cells the shadow's alpha falls off across beyond its
-    ///     edge. A radius of zero is a sharp shadow.
+    ///     edge. A radius of zero is a sharp shadow; one past 32 is drawn as 32,
+    ///     since a shadow costs the square of its radius.
     ///   - x: How many columns right the shadow is drawn (negative: left).
     ///   - y: How many rows down the shadow is drawn (negative: up).
     /// - Returns: A view that adds a shadow to this view.
