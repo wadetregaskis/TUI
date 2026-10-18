@@ -193,11 +193,13 @@ enum ClipboardSequence {
     /// with every other reply. A type with no bytes is left out: an empty
     /// `wdata` would close the write.
     static func write(_ text: String, representations: [ClipboardRepresentation]) -> String? {
-        guard !text.isEmpty else { return nil }
+        let parts =
+            (text.isEmpty ? [] : [ClipboardRepresentation(type: "text/plain", text: text)])
+            + representations.filter { !$0.data.isEmpty }
+        guard !parts.isEmpty else { return nil }
         let introducer = "\u{1B}]5522;"
         let terminator = "\u{1B}\\"
         var out = introducer + "type=write" + terminator
-        let parts = [ClipboardRepresentation(type: "text/plain", text: text)] + representations
         for part in parts where !part.data.isEmpty {
             let mime = Data(part.type.utf8).base64EncodedString()
             var offset = part.data.startIndex
@@ -319,8 +321,22 @@ package final class ClipboardWriter: @unchecked Sendable {
         _ text: String, representations: [ClipboardRepresentation] = [], announcingSuccess: Bool
     ) -> ClipboardWriteResult {
         let result: ClipboardWriteResult
-        if text.isEmpty {
+        let hasRepresentations = representations.contains { !$0.data.isEmpty }
+        if text.isEmpty, !hasRepresentations {
             result = .nothingToCopy
+        } else if text.isEmpty {
+            // Only types that are not text — a picture: they cross only where
+            // the terminal takes types, and over its own write.
+            let route = ClipboardRoute.choose(
+                terminal: terminalSupport(), hasSystemHelper: hasSystemHelper, isLocal: isLocal)
+            if case .terminal(let confirmed) = route, mimeSupport(),
+                let sequence = ClipboardSequence.write(text, representations: representations)
+            {
+                pending.append(sequence)
+                result = confirmed ? .copied : .sentToTerminal
+            } else {
+                result = .unavailable
+            }
         } else {
             let route = ClipboardRoute.choose(
                 terminal: terminalSupport(), hasSystemHelper: hasSystemHelper, isLocal: isLocal)
@@ -339,7 +355,7 @@ package final class ClipboardWriter: @unchecked Sendable {
                 result = .unavailable
             }
         }
-        if result != .nothingToCopy { lastCopy = text }
+        if result != .nothingToCopy, !text.isEmpty { lastCopy = text }
         if let key = result.statusKey, result != .copied || announcingSuccess {
             note = (key, nowNanos())
         }

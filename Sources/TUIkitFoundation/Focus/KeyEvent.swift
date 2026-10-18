@@ -189,9 +189,13 @@ extension KeyEventDispatcher {
     ///   - events: The keys asked about: whether a handler is declared for
     ///     any of them. One walk of the handlers for all of them.
     ///   - focusedIdentity: Where the focused control rendered.
-    package func declaresFocusPathBinding(forAnyOf events: [KeyEvent], focusedIdentity: ViewIdentity) -> Bool {
+    ///   - stage: Which handlers are asked: `onKeyPress`'s (the default), or
+    ///     the commands' — a paste command declares the pastes it takes.
+    package func declaresFocusPathBinding(
+        forAnyOf events: [KeyEvent], focusedIdentity: ViewIdentity, stage: FocusPathStage = .keyPress
+    ) -> Bool {
         focusPathHandlers.contains { entry in
-            guard entry.stage == .keyPress, let declares = entry.declares,
+            guard entry.stage == stage, let declares = entry.declares,
                 grabbingSectionID == nil || entry.sectionID == grabbingSectionID,
                 entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity)
             else { return false }

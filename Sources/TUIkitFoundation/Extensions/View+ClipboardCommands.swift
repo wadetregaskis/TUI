@@ -26,11 +26,14 @@
     /// which reaches a paste command whenever the focused control does not take
     /// it, as a text field does.
     ///
-    /// What crosses is TEXT, in both directions: a terminal's clipboard holds a
-    /// string. A copy writes every item that can be read as a string, one per
-    /// line, and an item that cannot be (an image, a file promise) is not
-    /// written. A paste offers one item, the clipboard's text, and triggers only
-    /// if one of `supportedContentTypes` accepts text.
+    /// What crosses is TEXT on most terminals, whose clipboard holds a string:
+    /// a copy writes every item that can be read as a string, one per line,
+    /// and a paste offers one item, the clipboard's text. Where the terminal
+    /// speaks OSC 5522 (``TerminalClient/mimeClipboard``), any type crosses: a
+    /// copy writes, beside the text, every representation an item registers
+    /// that has a MIME type — an image, a PDF, rich text — and a paste reads
+    /// every type the clipboard holds that the focused view's paste commands
+    /// accept (`supportedContentTypes`, by `UTType` conformance).
     extension View {
         /// Performs an action in response to the Copy command, writing the
         /// items it returns to the clipboard.
@@ -95,7 +98,7 @@
             of supportedContentTypes: [UTType], validator: @escaping ([NSItemProvider]) -> Payload?,
             perform payloadAction: @escaping (Payload) -> Void
         ) -> some View {
-            clipboardCommand("v") { event, clipboard in
+            clipboardCommand("v", declares: { Self.takes($0, supportedContentTypes) }, perform: { event, clipboard in
                 let text: String?
                 if case .paste(let pasted) = event.key { text = pasted } else { text = clipboard.read() }
                 guard let item = Self.pastedItem(text: text, attachments: event.pasteAttachments) else { return false }
@@ -104,13 +107,27 @@
                 else { return false }
                 payloadAction(payload)
                 return true
-            }
+            })
         }
     }
 
     // MARK: - What was pasted
 
     extension View {
+        /// Whether a paste command of `types` takes `event`'s paste: its
+        /// text, where a type accepts plain text, or one of the other types
+        /// the terminal handed over, by `UTType` conformance — `.image` takes
+        /// a PNG, `.pdf` a PDF. What the command declares, so an OSC 5522
+        /// paste reads only the types something will take.
+        static func takes(_ event: KeyEvent, _ types: [UTType]) -> Bool {
+            guard case .paste(let text) = event.key else { return false }
+            if !text.isEmpty, types.contains(where: { UTType.utf8PlainText.conforms(to: $0) }) { return true }
+            return event.pasteAttachments.contains { attachment in
+                guard let type = UTType(mimeType: attachment.type) else { return false }
+                return types.contains(where: type.conforms(to:))
+            }
+        }
+
         /// What a paste offers a paste command: its text, and each of the
         /// clipboard's other types the terminal handed over, as the type a
         /// `UTType` names its MIME type; `nil` where it offers nothing.
@@ -135,15 +152,27 @@
     /// How a copy or cut puts item providers on a terminal's clipboard.
     enum ClipboardCommand {
         /// Writes the text of every item that has one, one per line, in the
-        /// order given, once all of them have loaded.
+        /// order given, with every other representation the items register
+        /// that has a MIME type beside it — where the terminal takes more
+        /// than text (see ``ClipboardAccess/write(_:representations:announcingSuccess:)``)
+        /// — once all of them have loaded.
         ///
         /// An item loads its value asynchronously, on a queue of its choosing,
         /// so the write happens on the main actor once the last has answered —
         /// which is where a text field writes the clipboard too.
         static func write(_ items: [NSItemProvider], to clipboard: ClipboardAccess) {
             let readable = items.filter { $0.canLoadObject(ofClass: NSString.self) }
-            guard !readable.isEmpty else { return }
+            let typed = items.flatMap { item in
+                item.registeredTypeIdentifiers.compactMap { identifier -> (NSItemProvider, String, String)? in
+                    guard let type = UTType(identifier), !type.conforms(to: .text),
+                        let mime = type.preferredMIMEType
+                    else { return nil }
+                    return (item, identifier, mime)
+                }
+            }
+            guard !readable.isEmpty || !typed.isEmpty else { return }
             let texts = LoadedTexts(count: readable.count)
+            let datas = LoadedData(count: typed.count)
             let group = DispatchGroup()
             for (index, item) in readable.enumerated() {
                 group.enter()
@@ -152,9 +181,39 @@
                     group.leave()
                 }
             }
+            for (index, (item, identifier, mime)) in typed.enumerated() {
+                group.enter()
+                _ = item.loadDataRepresentation(forTypeIdentifier: identifier) { data, _ in
+                    datas.set(index, data.map { ClipboardRepresentation(type: mime, data: $0) })
+                    group.leave()
+                }
+            }
             group.notify(queue: .main) {
                 let joined = texts.all.compactMap { $0 }.joined(separator: "\n")
-                if !joined.isEmpty { clipboard.write(joined) }
+                let representations = datas.all.compactMap { $0 }
+                if !joined.isEmpty || !representations.isEmpty {
+                    clipboard.write(joined, representations: representations)
+                }
+            }
+        }
+
+        /// The loaded representations, filled from the providers' queues.
+        private final class LoadedData: @unchecked Sendable {
+            private let lock = NSLock()
+            private var parts: [ClipboardRepresentation?]
+
+            init(count: Int) { parts = Array(repeating: nil, count: count) }
+
+            func set(_ index: Int, _ part: ClipboardRepresentation?) {
+                lock.lock()
+                parts[index] = part
+                lock.unlock()
+            }
+
+            var all: [ClipboardRepresentation?] {
+                lock.lock()
+                defer { lock.unlock() }
+                return parts
             }
         }
 

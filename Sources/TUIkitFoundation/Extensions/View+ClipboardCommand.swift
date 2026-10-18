@@ -17,13 +17,17 @@ extension View {
     ///
     /// - Parameters:
     ///   - key: The letter SwiftUI binds the command to with ⌘.
+    ///   - declares: Which pastes the command takes, answered without running
+    ///   it — a paste command's types, asked of the clipboard's before it is
+    ///   read (`InputHandler.acceptsPaste(ofMIMEType:)`). `nil` declares none.
     ///   - perform: Given the key event and the clipboard, answers whether
     ///     the command took the key.
     func clipboardCommand(
-        _ key: KeyEquivalent, perform: @escaping (KeyEvent, ClipboardAccess) -> Bool
+        _ key: KeyEquivalent, declares: ((KeyEvent) -> Bool)? = nil,
+        perform: @escaping (KeyEvent, ClipboardAccess) -> Bool
     ) -> FocusPathModifier<Self> {
         let takesPaste = key == "v"
-        return FocusPathModifier(content: self, stage: .command) { context in
+        return FocusPathModifier(content: self, stage: .command, declares: declares) { context in
             let chord = KeyboardShortcut(key, modifiers: .command)
                 .resolved(commandKey: context.environment.commandKey)?.trigger
             var clipboard = context.environment.clipboardAccess

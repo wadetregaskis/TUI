@@ -12,6 +12,7 @@ import Testing
 
 import TUIkit
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTerminalHost
@@ -70,6 +71,60 @@ struct ClipboardMIMETests {
         #expect(sent.contains(Data("text/markdown".utf8).base64EncodedString()))
         #expect(!sent.contains("\u{1B}]52;"))
     }
+
+    @Test("A copy with no text — a picture — goes by OSC 5522 alone, and nowhere else")
+    func pictureAlone() throws {
+        let png = ClipboardRepresentation(type: "image/png", data: Data([0x89, 0x50, 0x4E, 0x47]))
+        let sequence = try #require(ClipboardSequence.write("", representations: [png]))
+        let mime = { (type: String) in "type=wdata:mime=" + Data(type.utf8).base64EncodedString() }
+        #expect(packets(sequence).map(\.metadata) == ["type=write", mime("image/png"), "type=wdata"])
+        let writer = ClipboardWriter.stated(terminal: .honoured, isLocal: false, mime: true)
+        #expect(writer.write("", representations: [png], announcingSuccess: false) == .copied)
+        #expect(writer.takePendingSequences().contains(Data("image/png".utf8).base64EncodedString()))
+        let osc52 = ClipboardWriter.stated(terminal: .honoured, isLocal: false, mime: false)
+        #expect(osc52.write("", representations: [png], announcingSuccess: false) == .unavailable)
+        #expect(osc52.takePendingSequences().isEmpty, "OSC 52 carries text")
+    }
+
+    #if canImport(UniformTypeIdentifiers)
+    @Test("An OSC 5522 paste is asked for only the types the focused view's paste command takes")
+    func focusedPasteTypes() {
+        let harness = InputChainHarness(width: 40, height: 6)
+        func page() -> some View {
+            Button("Attach") {}.onPasteCommand(of: [.pdf]) { _ in }
+        }
+        harness.frame(page())
+        harness.frame(page())
+        #expect(harness.handler.acceptsPaste(ofMIMEType: "application/pdf"))
+        #expect(!harness.handler.acceptsPaste(ofMIMEType: "image/png"), "not a type it takes")
+    }
+
+    @Test("A copy command writes an item's typed representations beside its text")
+    func copyCommandWritesTypes() async throws {
+        final class Written: @unchecked Sendable {
+            var text: String?
+            var types: [String] = []
+        }
+        let written = Written()
+        let clipboard = ClipboardAccess(
+            put: { text, _ in written.text = text; return .copied },
+            putRepresentations: { text, representations, _ in
+                written.text = text
+                written.types = representations.map(\.type)
+                return .copied
+            },
+            read: { nil })
+        let item = NSItemProvider(object: "caption" as NSString)
+        item.registerDataRepresentation(forTypeIdentifier: "public.png", visibility: .all) { completion in
+            completion(Data([0x89, 0x50, 0x4E, 0x47]), nil)
+            return nil
+        }
+        ClipboardCommand.write([item], to: clipboard)
+        await settle(until: { written.text != nil })
+        #expect(written.text == "caption")
+        #expect(written.types == ["image/png"])
+    }
+    #endif
 
     @Test("Elsewhere a copy is its text: OSC 52 to a terminal without it, and this machine's helper")
     func textElsewhere() {

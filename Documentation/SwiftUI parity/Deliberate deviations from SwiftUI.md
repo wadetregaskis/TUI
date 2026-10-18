@@ -659,9 +659,14 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   documentation, B8).
 - **TUIkit:** the commands exist on Apple platforms only (gated on
   `UniformTypeIdentifiers`, so they fail to compile on Linux rather than do
-  nothing), and carry text: a copy writes every item that loads as a string,
-  one per line, and a paste offers the clipboard's text, triggering only for a
-  type that accepts text. A copy goes to the terminal's clipboard by OSC 52
+  nothing). Where the terminal speaks OSC 5522 (`TerminalClient.mimeClipboard`)
+  they carry any type, as SwiftUI's do: a copy writes every representation its
+  items register that has a MIME type beside their text, and a paste reads every
+  type the clipboard holds that the focused view's paste commands accept, by
+  `UTType` conformance. Elsewhere they carry text: a copy writes every item that
+  loads as a string, one per line (a copy of no text at all copies nothing), and
+  a paste offers the clipboard's text, triggering only for a type that accepts
+  text. A copy goes to the terminal's clipboard by OSC 52
   where the terminal writes it, or to this machine's only when the user is
   provably at this machine, and otherwise says in the status bar that nothing
   was copied

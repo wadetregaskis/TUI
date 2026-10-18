@@ -97,6 +97,16 @@ extension InputHandler {
     ///   would claim ⌃4);
     /// - a status-bar item with an action, and the status bar's quit key;
     /// - the scene's undo and redo keys.
+    /// Whether a paste of `mimeType` would be taken by a paste command on the
+    /// path to the focused view — `onPasteCommand(of:)`, whose types it
+    /// conforms to. What an OSC 5522 paste asks of each type the clipboard
+    /// lists, to read only what something will take.
+    func acceptsPaste(ofMIMEType mimeType: String) -> Bool {
+        guard let focused = focusManager.focusedIdentity else { return false }
+        let paste = KeyEvent(key: .paste(""), pasteAttachments: [PasteAttachment(type: mimeType, bytes: [])])
+        return keyEventDispatcher.declaresFocusPathBinding(forAnyOf: [paste], focusedIdentity: focused, stage: .command)
+    }
+
     func declaresBinding(forAnyOf events: [KeyEvent]) -> Bool {
         if events.contains(where: keyboardShortcuts.hasShortcut(for:)) { return true }
         if statusBar.takesAny(of: events) || events.contains(where: statusBar.quitShortcut.matches) { return true }

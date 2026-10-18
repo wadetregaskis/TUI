@@ -65,6 +65,22 @@ struct MIMEPasteTests {
         #expect(request == .request(expected))
     }
 
+    @Test("Asked, a paste reads the text and every listed type the app takes, never the list or text's other names")
+    func readsWhatTheAppTakes() {
+        let listed = [".", "text/plain", "UTF8_STRING", "text/html", "image/png", "image/tiff", "application/pdf"]
+        let wanted = MIMEPasteSession.wanted(
+            from: listed, accepting: { $0 == "application/pdf" || $0 == "image/tiff" })
+        #expect(wanted == ["text/plain", "image/tiff", "application/pdf"])
+        #expect(MIMEPasteSession.wanted(from: listed) == ["text/plain", "image/png"], "unasked: the first picture")
+        var session = MIMEPasteSession()
+        session.acceptsType = { $0 == "application/pdf" }
+        let actions = feed(&session, Self.pasteEvent("text/plain application/pdf image/png"))
+        let expected =
+            "\u{1B}]5522;type=read:pw=\(Self.password):name=\(Self.mime("Paste event"));"
+            + Self.mime("text/plain application/pdf") + "\u{1B}\\"
+        #expect(actions == [.request(expected)])
+    }
+
     @Test("A middle-click's paste of the primary selection reads the primary selection")
     func primarySelection() {
         var session = MIMEPasteSession()
@@ -148,6 +164,19 @@ struct MIMEPasteTests {
     }
 
     #if canImport(UniformTypeIdentifiers)
+    @Test("A paste command takes a paste whose types conform to its own, and declares no other")
+    func pasteCommandTakes() {
+        func paste(_ text: String, _ types: [String]) -> KeyEvent {
+            KeyEvent(key: .paste(text), pasteAttachments: types.map { PasteAttachment(type: $0, bytes: []) })
+        }
+        #expect(Text.takes(paste("", ["application/pdf"]), [.pdf]))
+        #expect(Text.takes(paste("", ["image/png"]), [.image]), "a PNG is an image")
+        #expect(!Text.takes(paste("", ["image/png"]), [.pdf]))
+        #expect(Text.takes(paste("hi", []), [.plainText]))
+        #expect(!Text.takes(paste("hi", []), [.png]), "text is no picture")
+        #expect(!Text.takes(KeyEvent(key: .character("v")), [.plainText]), "not a paste")
+    }
+
     @Test("A paste command for pictures is offered the picture, as its UTType; one for text, the text")
     func itemProvider() throws {
         let picture = PasteAttachment(type: "image/png", bytes: Self.picture)

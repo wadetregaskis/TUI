@@ -5960,7 +5960,7 @@ four-type write, the type list), each run inside the host:
 | iTerm2 3.6 | `4` (permanently reset) | no | unchanged |
 | Apple Terminal 455.1 | no reply (DSR answered) | no | unchanged |
 | Warp | no reply (DSR answered) | no | unchanged |
-| kitty 0.49.1 | NOT MEASURED: kitty cannot open a window on the measuring VM (no OpenGL 3.3) | | |
+| kitty (the owner's run, 2026-10-17; version not recorded) | `2` (reset, recognised) | **yes** (`DONE`) | **the types landed**: `utf8`, `HTML`, `PNGf` and the rest of macOS's own representations of them |
 | Ghostty 1.3.1 | NOT MEASURED (its `-e` consent prompt); the protocol is on Ghostty's development branch, not in 1.3.1 | | |
 
 None of the three printed anything. TUIkit asks only Ghostty, and kitty,
@@ -5982,14 +5982,18 @@ with `mime=.` whose payload is the types, space-separated, then
 selection (kitty's `send_paste_event`, read from its source; the
 specification shows no packet). kitty sends this INSTEAD of the bracketed
 text — `boss.py`'s `paste_from_clipboard` returns once `send_paste_event`
-has — so the text comes only through the read. TUIkit reads the first text type and
-the first `image/*` with that password and `name=Paste event`, so no
-permission prompt appears. The reply's `DATA` packets (each type's in order)
-become one paste key event: its text, and the picture's bytes beside it,
-which a view's `onPasteCommand(of: [.png])` is offered. A refused or failed
+has — so the text comes only through the read. TUIkit reads, with that password
+and `name=Paste event` (so no permission prompt appears), the first text type
+and every other listed type a paste command on the path to the focused view
+takes — `onPasteCommand(of:)`'s types, by `UTType` conformance, so `.image`
+takes each picture type and `.pdf` a PDF (`InputHandler.acceptsPaste(ofMIMEType:)`);
+with nothing to ask, the first `image/*`. The reply's `DATA` packets (each
+type's in order) become one paste key event: its text, and every other type's
+bytes beside it, which the view's `onPasteCommand` is offered as its `UTType`. A refused or failed
 read loses the paste, as one the terminal never delivered would be.
-Unmeasured on any host here, for the reasons the table gives. The acknowledgement is
-swallowed with every other reply. kitty and Ghostty-tip are owed a run.
+The paste is unmeasured on any host here, for the reasons the table gives (the
+owner's kitty run measured the write). The acknowledgement is swallowed with
+every other reply. A paste in kitty, and Ghostty-tip, are owed a run.
 
 ## Inherited state: the defaults raw mode asserts — since 2026-10-05
 

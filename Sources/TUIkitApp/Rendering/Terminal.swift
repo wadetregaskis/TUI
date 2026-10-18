@@ -275,6 +275,14 @@ final class Terminal: TerminalProtocol {
     var mimePaste = MIMEPasteSession()
     var completedMIMEPaste: TerminalInput?
 
+    /// Whether the app takes a paste of a MIME type — what the paste session
+    /// asks of each type a paste event lists (``MIMEPasteSession/acceptsType``).
+    /// Set by the app from its input handler; `nil` reads the first picture.
+    var acceptsPasteType: ((String) -> Bool)? {
+        get { mimePaste.acceptsType }
+        set { mimePaste.acceptsType = newValue }
+    }
+
     /// Colour answers the terminal volunteered, siphoned out of the keystrokes
     /// by the parser and waiting for the run loop to take them.
     ///

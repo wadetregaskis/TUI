@@ -24,8 +24,10 @@ import TUIkitFoundation
 /// OSC 5522 ; type=read:status=DONE:pw=<b64> ST
 /// ```
 ///
-/// The session then asks for the text and the first picture with that
-/// password (and the name the specification asks for, "Paste event"), and
+/// The session then asks, with that password (and the name the specification
+/// asks for, "Paste event"), for the text and every other listed type the
+/// app would take — ``acceptsType``, the focused view's paste commands — or,
+/// where nothing says, the first picture. It
 /// collects the reply's `DATA` packets, a type's in order, until `DONE`. What
 /// it read becomes one paste: its text as ``Key/paste(_:)`` would carry a
 /// bracketed one, and anything else beside it (``PasteAttachment``).
@@ -49,6 +51,12 @@ struct MIMEPasteSession {
 
     private var phase = Phase.idle
 
+    /// Whether the app takes a paste of a MIME type, asked of each type a
+    /// paste event lists that is not text: the focused view's paste commands
+    /// answer (`onPasteCommand(of:)`, by `UTType` conformance). `nil` reads
+    /// the first picture, as when nothing can be asked.
+    var acceptsType: ((String) -> Bool)?
+
     /// The text types asked for, most preferred first: the first the
     /// clipboard lists is read.
     static let textTypes = ["text/plain;charset=utf-8", "text/plain", "UTF8_STRING", "STRING", "TEXT"]
@@ -68,7 +76,7 @@ struct MIMEPasteSession {
             let more = listed.split(whereSeparator: \.isWhitespace).map(String.init)
             phase = .listing(password: password, primary: primary, types: types + more)
         case (.listing(let password, let primary, let types), "DONE"):
-            let wanted = Self.wanted(from: types)
+            let wanted = Self.wanted(from: types, accepting: acceptsType)
             guard !wanted.isEmpty else {
                 phase = .idle
                 return nil
@@ -96,12 +104,21 @@ struct MIMEPasteSession {
         return nil
     }
 
-    /// The types to read of those listed: the first text type, and the first
-    /// picture.
-    static func wanted(from types: [String]) -> [String] {
+    /// The types to read of those listed: the first text type, and every
+    /// other type `accepting` takes — or, with nothing to ask, the first
+    /// picture. The `.` that lists the types, and the X11 names of text
+    /// (`UTF8_STRING`, `STRING`, `TEXT`) beside the one chosen, are never
+    /// read as types of their own.
+    static func wanted(from types: [String], accepting: ((String) -> Bool)? = nil) -> [String] {
         var wanted: [String] = []
         if let text = textTypes.first(where: types.contains) { wanted.append(text) }
-        if let picture = types.first(where: { $0.hasPrefix("image/") }) { wanted.append(picture) }
+        let others = types.filter { $0 != "." && !textTypes.contains($0) }
+        guard let accepting else {
+            if let picture = others.first(where: { $0.hasPrefix("image/") }) { wanted.append(picture) }
+            return wanted
+        }
+        var seen = Set(wanted)
+        for type in others where accepting(type) && seen.insert(type).inserted { wanted.append(type) }
         return wanted
     }
 

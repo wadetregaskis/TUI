@@ -174,8 +174,16 @@ extension AppRunner {
         TerminalURLOpening.runLoopOpener = tuiContext.urlOpener
     }
 
-    /// The five-layer key-dispatch chain over the runner's collaborators.
+    /// The five-layer key-dispatch chain over the runner's collaborators —
+    /// which an OSC 5522 paste asks, too, which of the clipboard's types the
+    /// focused view's paste commands take.
     private func makeInputHandler() -> InputHandler {
+        let handler = makeKeyDispatchChain()
+        terminal.acceptsPasteType = { [handler] mime in handler.acceptsPaste(ofMIMEType: mime) }
+        return handler
+    }
+
+    private func makeKeyDispatchChain() -> InputHandler {
         InputHandler(
             statusBar: statusBar,
             keyEventDispatcher: tuiContext.keyEventDispatcher,
