@@ -1007,7 +1007,7 @@ look too heavy in the Example.
 
 **`View.shadow(color:radius:x:y:)` and `ShadowStyle` shipped 2026-10-18**
 (`Sources/TUIkitFoundation/Modifiers/ShadowModifier.swift`, Deliberate
-deviations C6, decisions [Shadows (O6)](<Decisions/Shadows (O6).md>)).
+deviations C10, decisions [Shadows (O6)](<Decisions/Shadows (O6).md>)).
 `ShapeStyle.shadow(_:)`, the one consumer of a `ShadowStyle` and so the only
 route to `.inner`, is still owed after W1.
 
