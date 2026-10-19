@@ -2347,8 +2347,8 @@ so it has nothing for them to page, and leaves them to the view around it.
   the caret's.
 - **The wheel.** A pointer over a scrolled field could scroll it, which the
   editor does not do either. Half a day for both.
-- **An Example page section** with a vertical field, which wants its strings
-  in the Example's seven languages.
+- ~~An Example page section~~ with a vertical field: shipped 2026-10-18 (lane
+  PARITYMISC), on the Text Input page.
 
 ### B63. A newline from the keyboard: Option-Return where the terminal sends it, Ctrl-O everywhere
 

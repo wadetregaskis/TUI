@@ -31,6 +31,11 @@ struct TextInputPage: View {
     /// a key that carries the count as `%@`, so a translation may place it.
     @State private var submittedLength: Int?
 
+    // Vertical TextField state
+    @State private var verticalNote: String = ""
+    /// How many lines the vertical field held when ↩ submitted it.
+    @State private var verticalSubmittedLines: Int?
+
     // TextEditor state
     @State private var notes: String = L("page.newControls.editorSample")
 
@@ -180,6 +185,9 @@ struct TextInputPage: View {
                 }
             }
 
+            // MARK: Vertical TextField
+            verticalFieldSection
+
             // MARK: SecureField
             DemoSection("page.secureField.section.passwordFields") {
                 VStack(alignment: .leading, spacing: 1) {
@@ -293,6 +301,38 @@ struct TextInputPage: View {
         .statusBarItems(cursorStatusBarItems)
         .scrollableDemoPage()
         .navigationTitle("menu.item.textInput")
+    }
+
+    /// A field that wraps and grows (decisions B62, B63): two `lineLimit`
+    /// shapes on one value, so the difference on screen is the limit. ↩
+    /// submits, as on one line; Option-↩ or Ctrl-O starts a new line.
+    private var verticalFieldSection: some View {
+        DemoSection("page.textInput.verticalSection") {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("page.textInput.verticalExplain")
+                    .foregroundStyle(.palette.foregroundSecondary)
+                VStack(alignment: .leading, spacing: 0) {
+                    // Code, not prose: the modifier as it is written.
+                    Text(verbatim: ".lineLimit(2...4)").foregroundStyle(.palette.foregroundSecondary)
+                    TextField("page.textInput.verticalPrompt", text: $verticalNote, axis: .vertical)
+                        .lineLimit(2...4)
+                        .frame(width: 40)
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(verbatim: ".lineLimit(3, reservesSpace: true)").foregroundStyle(.palette.foregroundSecondary)
+                    TextField("page.textInput.verticalPrompt", text: $verticalNote, axis: .vertical)
+                        .lineLimit(3, reservesSpace: true)
+                        .frame(width: 40)
+                }
+                if let verticalSubmittedLines {
+                    Text("page.textInput.verticalSubmitted \(verticalSubmittedLines)")
+                        .foregroundStyle(.palette.success)
+                }
+            }
+            .onSubmit {
+                verticalSubmittedLines = verticalNote.split(separator: "\n", omittingEmptySubsequences: false).count
+            }
+        }
     }
 
     /// Appends a submit-log entry, keeping only the most recent handful.
