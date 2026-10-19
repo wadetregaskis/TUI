@@ -22,34 +22,9 @@ extension _ScrollViewCore {
     /// request from the same one still sitting in the binding. Without that,
     /// scrolling away by hand would be undone on the very next frame.
     func positionSeek(handler: ScrollViewHandler, context: RenderContext) -> ScrollToRequest? {
-        guard let box = pageScrollPosition(context.environment) else { return nil }
-        let position = box.binding.wrappedValue
-        guard let target = position.target else { return nil }
-
-        switch target {
-        case .id(let id, let anchor):
-            let value = id.value
-            let isFresh =
-                position.requestToken == 0
-                ? handler.lastReportedPositionID != value
-                : handler.lastAppliedPositionToken != position.requestToken
-            guard isFresh else { return nil }
-            handler.lastAppliedPositionToken = position.requestToken
-            handler.lastReportedPositionID = value
-            // A transaction's anchor (`Transaction.scrollTargetAnchor`) is
-            // preferred to the `id:` binding's modifier anchor, as SwiftUI
-            // documents; a `ScrollPosition` request's own anchor wins over it.
-            let transactionAnchor = context.environment.transaction.scrollTargetAnchor
-            let seekAnchor =
-                position.requestToken == 0 ? transactionAnchor ?? anchor : anchor ?? transactionAnchor
-            // The same stringification `ForEach` derives its keys with, so the
-            // comparison in the seek paths is exact.
-            return ScrollToRequest(key: identityKey(value.base), anchor: seekAnchor)
-        case .edge, .offset:
-            // Both are offsets, not rows, so they do not go through the key
-            // seek — `applyPositionOffset` moves the scroll view directly.
-            return nil
-        }
+        pageScrollPosition(context.environment)?.rowRequest(
+            tracking: &handler.positionTracking,
+            transactionAnchor: context.environment.transaction.scrollTargetAnchor)
     }
 
     /// Applies an offset-shaped ``ScrollPosition`` target (an edge or an
@@ -67,14 +42,11 @@ extension _ScrollViewCore {
     /// Returns whether it placed the view — an edge or an offset — which the
     /// top-row hold must then leave where it is (`topRowHold`).
     func applyPositionOffset(handler: ScrollViewHandler, context: RenderContext) -> Bool {
-        guard let box = pageScrollPosition(context.environment) else { return false }
-        let position = box.binding.wrappedValue
-        guard let target = position.target,
-            handler.lastAppliedPositionToken != position.requestToken, position.requestToken > 0
+        guard let placement = pageScrollPosition(context.environment)?.placementRequest(
+            tracking: &handler.positionTracking)
         else { return false }
-        switch target {
+        switch placement {
         case .edge(let edge):
-            handler.lastAppliedPositionToken = position.requestToken
             switch edge {
             case .top: handler.jumpProgrammatically(to: 0)
             case .bottom:
@@ -86,11 +58,8 @@ extension _ScrollViewCore {
             case .trailing: handler.horizontal.scrollToOffset(handler.horizontal.maxOffset)
             }
         case .offset(let x, let y):
-            handler.lastAppliedPositionToken = position.requestToken
             if let y { handler.jumpProgrammatically(to: max(0, min(y, handler.maxOffset))) }
             if let x { handler.horizontal.scrollToOffset(max(0, min(x, handler.horizontal.maxOffset))) }
-        case .id:
-            return false  // Handled by the key seek — see `positionSeek`.
         }
         return true
     }
@@ -101,13 +70,7 @@ extension _ScrollViewCore {
     /// would invalidate its own subtree every frame and never settle — the
     /// same discipline `onPreferenceChange` follows, and for the same reason.
     func reportVisibleID(_ id: AnyHashable, handler: ScrollViewHandler, context: RenderContext) {
-        guard let box = pageScrollPosition(context.environment),
-            handler.lastReportedPositionID != id
-        else { return }
-        handler.lastReportedPositionID = id
-        var position = box.binding.wrappedValue
-        position.reportVisible(id: id)
-        box.binding.wrappedValue = position
+        pageScrollPosition(context.environment)?.report(id, tracking: &handler.positionTracking)
     }
 
     /// Tells a bound ``ScrollPosition`` that the user scrolled it since the last
@@ -121,11 +84,6 @@ extension _ScrollViewCore {
     func settleUserPositioning(handler: ScrollViewHandler, context: RenderContext) {
         guard handler.userScrolledSinceRender, !context.isMeasuring else { return }
         handler.userScrolledSinceRender = false
-        guard let box = pageScrollPosition(context.environment), box.tracksUserPositioning
-        else { return }
-        var position = box.binding.wrappedValue
-        guard position.target != nil || !position.isPositionedByUser else { return }
-        position.reportPositionedByUser()
-        box.binding.wrappedValue = position
+        pageScrollPosition(context.environment)?.reportPositionedByUser()
     }
 }

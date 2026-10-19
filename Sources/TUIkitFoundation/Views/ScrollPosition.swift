@@ -412,9 +412,9 @@ extension View {
 /// ``ScrollViewHandler`` instead; kept here it reset every frame, and a
 /// standing `scrollTo` undid the user's scroll on the very next render.
 @MainActor
-final class ScrollPositionBinding {
+package final class ScrollPositionBinding {
     let binding: Binding<ScrollPosition>
-    let anchor: UnitPoint
+    package let anchor: UnitPoint
     /// Where across the viewport a purely horizontal scroll view samples the
     /// column it reports: the anchor's `x`, or the leading edge where none was
     /// stated — the first column a reader sees, as the unstated anchor's
@@ -451,7 +451,7 @@ final class ScrollPositionBinding {
 /// state, which invalidates the view that holds it. The content reads only
 /// where the reported row is sampled, the anchor.
 extension ScrollPositionBinding: Equatable {
-    nonisolated static func == (lhs: ScrollPositionBinding, rhs: ScrollPositionBinding) -> Bool {
+    nonisolated package static func == (lhs: ScrollPositionBinding, rhs: ScrollPositionBinding) -> Bool {
         lhs.anchor == rhs.anchor && lhs.columnUnitX == rhs.columnUnitX
     }
 }
@@ -462,8 +462,103 @@ private struct ScrollPositionBindingKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// The enclosing ``View/scrollPosition(_:anchor:)`` binding, if any.
-    var scrollPositionBinding: ScrollPositionBinding? {
+    package var scrollPositionBinding: ScrollPositionBinding? {
         get { self[ScrollPositionBindingKey.self] }
         set { self[ScrollPositionBindingKey.self] = newValue }
+    }
+}
+
+// MARK: - What a scrollable does with the binding
+
+/// What a scrollable keeps, frame to frame, of the `.scrollPosition` bound
+/// above it: which request it acted on and which row it last reported — on
+/// its handler, since the binding's box is rebuilt with every body.
+package struct ScrollPositionTracking {
+    /// The token of the request last acted on (`ScrollPosition.requestToken`),
+    /// `nil` before any.
+    var lastAppliedToken: Int?
+    /// The row last reported, or asked for by a plain `id:` binding.
+    var lastReportedID: AnyHashable?
+
+    package init() {}
+}
+
+/// An edge or an offset a bound position asks for: arithmetic, where a row
+/// goes through the key seek (``ScrollPositionBinding/rowRequest(tracking:transactionAnchor:)``).
+package enum ScrollPositionPlacement {
+    case edge(Edge)
+    case offset(x: Int?, y: Int?)
+}
+
+extension ScrollPositionBinding {
+    /// The row this binding asks for on this frame, as a seek, or `nil`: none
+    /// asked for, an edge or an offset asked for instead, or a request already
+    /// acted on — the token, or for the plain `id:` binding the value
+    /// differing from what was last reported, is what tells a fresh request
+    /// from the same one still sitting in the binding. Without that,
+    /// scrolling away by hand would be undone on the very next frame.
+    ///
+    /// A transaction's anchor (`Transaction.scrollTargetAnchor`) is preferred
+    /// to the `id:` binding's modifier anchor, as SwiftUI documents; a
+    /// `ScrollPosition` request's own anchor wins over it.
+    package func rowRequest(
+        tracking: inout ScrollPositionTracking, transactionAnchor: UnitPoint?
+    ) -> ScrollToRequest? {
+        let position = binding.wrappedValue
+        guard case .id(let id, let anchor)? = position.target else { return nil }
+        let value = id.value
+        let isFresh =
+            position.requestToken == 0
+            ? tracking.lastReportedID != value
+            : tracking.lastAppliedToken != position.requestToken
+        guard isFresh else { return nil }
+        tracking.lastAppliedToken = position.requestToken
+        tracking.lastReportedID = value
+        let seekAnchor = position.requestToken == 0 ? transactionAnchor ?? anchor : anchor ?? transactionAnchor
+        // The same stringification `ForEach` derives its keys with, so the
+        // comparison in the seek paths is exact.
+        return ScrollToRequest(key: identityKey(value.base), anchor: seekAnchor)
+    }
+
+    /// The edge or offset this binding asks for on this frame, once, or `nil`.
+    package func placementRequest(tracking: inout ScrollPositionTracking) -> ScrollPositionPlacement? {
+        let position = binding.wrappedValue
+        guard let target = position.target,
+            tracking.lastAppliedToken != position.requestToken, position.requestToken > 0
+        else { return nil }
+        switch target {
+        case .edge(let edge):
+            tracking.lastAppliedToken = position.requestToken
+            return .edge(edge)
+        case .offset(let x, let y):
+            tracking.lastAppliedToken = position.requestToken
+            return .offset(x: x, y: y)
+        case .id:
+            return nil  // A row: see `rowRequest(tracking:transactionAnchor:)`.
+        }
+    }
+
+    /// Writes `id` back as the row shown — only when it CHANGED. A render
+    /// pass that wrote its binding every frame would invalidate its own
+    /// subtree every frame and never settle, the discipline
+    /// `onPreferenceChange` follows, for the same reason.
+    package func report(_ id: AnyHashable, tracking: inout ScrollPositionTracking) {
+        guard tracking.lastReportedID != id else { return }
+        tracking.lastReportedID = id
+        var position = binding.wrappedValue
+        position.reportVisible(id: id)
+        binding.wrappedValue = position
+    }
+
+    /// Tells the position that the user scrolled it: its request is dropped
+    /// and ``ScrollPosition/isPositionedByUser`` set, as SwiftUI does on the
+    /// user's first scroll — only where that changes something, and not for
+    /// the `id:` binding, which has no request to drop.
+    package func reportPositionedByUser() {
+        guard tracksUserPositioning else { return }
+        var position = binding.wrappedValue
+        guard position.target != nil || !position.isPositionedByUser else { return }
+        position.reportPositionedByUser()
+        binding.wrappedValue = position
     }
 }

@@ -116,10 +116,7 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// binding: that box is rebuilt with every body evaluation, and freshness
     /// that resets every frame treats a standing target as a brand-new
     /// request each render, undoing the user's scroll on the very next frame.
-    var lastAppliedPositionToken: Int?
-
-    /// See ``lastAppliedPositionToken``.
-    var lastReportedPositionID: AnyHashable?
+    var positionTracking = ScrollPositionTracking()
 
     /// Whether the user has scrolled either axis since the last render pass
     /// read it — set by ``noteUserScroll()``, consumed by the render, which
