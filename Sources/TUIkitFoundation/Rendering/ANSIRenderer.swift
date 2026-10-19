@@ -151,8 +151,8 @@ extension ANSIRenderer {
     /// TUIkitStyling has nothing below it that holds `SoftTrap`, and here is
     /// where every styled run is spelled. Having checked, the renderer spells
     /// the colour through the emitters' unchecked twins
-    /// (`Color.uncheckedForegroundParameters(depth:)`) rather than asking
-    /// again.
+    /// (`Color.uncheckedForegroundParameters(depth:)`), so a test that binds
+    /// ``translucentReporter`` sees what a release build draws.
     ///
     /// The test is a byte compare on a branch that is never taken, and the
     /// report sits out of line, so a frame of opaque colours pays only the
@@ -163,14 +163,30 @@ extension ANSIRenderer {
         if _slowPath(!colour.isOpaque) { reportTranslucent(colour) }
     }
 
-    /// The out-of-line half of ``checkOpaque(_:)``.
+    /// Where ``reportTranslucent(_:)`` sends a report instead of `SoftTrap`,
+    /// while a task binds it: the emitter's test seam.
     ///
-    /// - Parameters:
-    ///   - colour: The translucent colour.
-    ///   - report: Where the message goes: `SoftTrap`, or a test's own log.
+    /// A debug build stops at `SoftTrap`'s assertion, so without it no test
+    /// could take the path a release build takes — the report, then the colour
+    /// spelled at full strength — through ``styleSequence(for:)`` and
+    /// ``backgroundCode(for:)`` themselves. Task-local, as the render path's
+    /// other reporters are (`AlignmentGuideRun.guideErrorReporter`), so suites
+    /// running in parallel do not see each other's reports.
+    @TaskLocal static var translucentReporter: (@Sendable (String) -> Void)?
+
+    /// The out-of-line half of ``checkOpaque(_:)``: the report, to
+    /// ``translucentReporter`` when a task binds one, and otherwise through
+    /// `SoftTrap`.
+    ///
+    /// - Parameter colour: The translucent colour.
     @inline(never)
-    static func reportTranslucent(_ colour: Color, to report: (String) -> Void = { SoftTrap.report($0) }) {
-        report(colour.translucentEmissionMessage)
+    static func reportTranslucent(_ colour: Color) {
+        let message = colour.translucentEmissionMessage
+        if let reporter = translucentReporter {
+            reporter(message)
+        } else {
+            SoftTrap.report(message)
+        }
     }
 
     /// Generates the ANSI escape sequence for a background color.

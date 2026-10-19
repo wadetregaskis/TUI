@@ -104,15 +104,51 @@ struct SGRStyleSequenceTests {
         }
     }
 
-    @Test("A translucent colour at the emitter is reported in words that name its alpha")
+    @Test("A translucent colour reaching the emitter is reported, and spelled at full strength")
     func translucentColourReport() {
         // A release build has no assertion, so this report is all an app
-        // developer sees of an unmigrated path; a debug build would stop at it,
-        // so the test sends it to a log of its own.
-        var reports: [String] = []
-        ANSIRenderer.reportTranslucent(Color.rgb(255, 0, 0).opacity(0.5)) { reports.append($0) }
-        #expect(reports.count == 1)
-        #expect(reports.first?.contains("alpha 128") == true)
-        #expect(reports.first?.contains("Opacity as composition.md") == true)
+        // developer sees of an unmigrated path. A debug build would stop at it,
+        // so the reports go to a log of the test's own, through the seam, and
+        // the emitter carries on as a release build does.
+        let reports = TranslucentReports()
+        let opaque = Color.rgb(255, 0, 0)
+        let translucent = opaque.opacity(0.5)
+        func styles(_ colour: Color) -> [TextStyle] {
+            var foreground = TextStyle()
+            foreground.foregroundColor = colour
+            var background = TextStyle()
+            background.backgroundColor = colour
+            return [foreground, background]
+        }
+        ColorDepth.withCurrent(.truecolor) {
+            ANSIRenderer.$translucentReporter.withValue(
+                { reports.append($0) },
+                operation: {
+                    for (stated, full) in zip(styles(translucent), styles(opaque)) {
+                        #expect(ANSIRenderer.styleSequence(for: stated) == ANSIRenderer.styleSequence(for: full))
+                    }
+                    #expect(
+                        ANSIRenderer.backgroundCode(for: translucent) == ANSIRenderer.backgroundCode(for: opaque))
+                })
+        }
+        // One for each place a colour is spelled: a run's foreground and
+        // background, and a line's background. (An underline's colour cannot
+        // be translucent: `Text.LineStyle` keeps it without its alpha.)
+        #expect(reports.messages.count == 3, "\(reports.messages)")
+        #expect(reports.messages.allSatisfy { $0.contains("alpha 128") }, "\(reports.messages)")
+        #expect(reports.messages.allSatisfy { $0.contains("Opacity as composition.md") })
+        var line = TextStyle()
+        line.underline = .some(Text.LineStyle(pattern: .dash, color: translucent))
+        #expect(line.lineColour?.isOpaque == true)
     }
+}
+
+/// What the emitter reported through ``ANSIRenderer/translucentReporter``.
+///
+/// `@unchecked Sendable` because the reporter must be `@Sendable`, but only
+/// the test that binds it, on its own thread, ever touches it.
+private final class TranslucentReports: @unchecked Sendable {
+    private(set) var messages: [String] = []
+
+    func append(_ message: String) { messages.append(message) }
 }
