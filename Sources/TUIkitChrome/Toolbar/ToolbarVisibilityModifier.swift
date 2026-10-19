@@ -135,6 +135,22 @@ enum _ToolbarBarStatement {
     }
 }
 
+/// Read by a `switch`, as `TrackStyle` is: a payload enum, which the value
+/// hash cannot read as bytes, so every view holding a statement — every
+/// `.toolbarVisibility(_:for:)`, and every container around one — went
+/// unhashed, and unmemoised, where the visibility alone, a one-byte enum, had
+/// been read whole. See `_ValueHashing`.
+extension _ToolbarBarStatement: _ValueHashing {
+    static func _mixValueHash(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
+        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        case .visibility(let visibility): plans.mixCase(0, visibility, into: &hash)
+        case .background(let style): plans.mixCase(1, style, into: &hash)
+        case .backgroundVisibility(let visibility): plans.mixCase(2, visibility, into: &hash)
+        case .role(let role): plans.mixCase(3, role, into: &hash)
+        }
+    }
+}
+
 // MARK: - The Modifier
 
 /// Declares a statement about the window's bars into its chrome as `content`

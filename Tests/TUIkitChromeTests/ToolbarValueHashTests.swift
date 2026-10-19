@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ToolbarValueHashTests.swift
 //
-//  A view that declares toolbar items keeps its value hash: the placements it
-//  holds are read by their cases, so the memos keyed by the hash still serve
-//  the view and every container holding it.
+//  A view that declares toolbar items, or states something about the bars,
+//  keeps its value hash: the placements and statements it holds are read by
+//  their cases, so the memos keyed by the hash still serve the view and every
+//  container holding it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -76,5 +77,25 @@ struct ToolbarValueHashTests {
         expectHashed(
             type(of: Text("a").toolbar(id: "t") { ToolbarItem(id: "x", placement: .accessoryBar(id: 1)) { Text("x") } })
         )
+    }
+
+    @Test("A view stating something about the bars keeps its value hash")
+    func barStatements() {
+        expectHashed(type(of: Text("a").toolbarVisibility(.hidden, for: .accessoryBar(id: "bar"))))
+        expectHashed(type(of: Text("a").toolbarBackground(.red, for: .bottomBar)))
+        expectHashed(type(of: Text("a").toolbarBackgroundVisibility(.hidden, for: .windowToolbar)))
+        expectHashed(type(of: Text("a").toolbarRole(.editor)))
+        let views = [
+            AnyView(Text("a").toolbarVisibility(.hidden, for: .bottomBar)),
+            AnyView(Text("a").toolbarVisibility(.visible, for: .bottomBar)),
+            AnyView(Text("a").toolbarBackground(.red, for: .bottomBar)),
+            AnyView(Text("a").toolbarBackground(.blue, for: .bottomBar)),
+            AnyView(Text("a").toolbarBackgroundVisibility(.hidden, for: .bottomBar)),
+            AnyView(Text("a").toolbarRole(.editor)),
+            AnyView(Text("a").toolbarRole(.automatic)),
+        ]
+        let hashes = views.map { hash($0) }
+        #expect(!hashes.contains(nil), "\(hashes)")
+        #expect(Set(hashes).count == views.count, "\(hashes)")
     }
 }
