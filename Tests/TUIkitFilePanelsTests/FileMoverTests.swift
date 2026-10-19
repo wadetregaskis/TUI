@@ -89,6 +89,25 @@ struct FileMoverTests {
         #expect(shown.contains("inner.txt") && !shown.contains("beta.txt"), "\(shown)")
     }
 
+    @Test("Once a move is made, the panel opens on the folder moved into, not the next file's")
+    func opensOnLastDestination() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FileMoverCaller()
+        var files = [fixture.url("beta.txt")]
+        let driver = FilePanelDriver { mover(files, caller: caller) }
+        await moveIntoAlpha(driver, caller: caller)
+        #expect(caller.moved.map(\.path) == [fixture.url("Alpha/beta.txt").path])
+        // A file in the root, moved through the same view: its panel opens in
+        // Alpha, where the last went, as a macOS panel opens on the folder
+        // used last.
+        files = [fixture.url("gamma.pdf")]
+        caller.heard = []
+        caller.isPresented = true
+        let shown = await driver.waitFor("beta.txt", timeout: .seconds(10))
+        #expect(shown.contains("inner.txt") && !shown.contains("notes.md"), "\(shown)")
+    }
+
     @Test("The file is the one the binding names when the panel is presented, not when the view first drew")
     func fileReadWhenPresented() async throws {
         let fixture = try FilePanelFixture()

@@ -27,11 +27,15 @@ extension View {
     /// The dialog is the panel `fileImporter` presents, titled Move, choosing a
     /// folder: the files in it are dimmed, Return opens a folder, and Move moves
     /// the file into the folder selected, or into the folder shown when none
-    /// is. It opens on the folder that holds the file. The move is
-    /// `FileManager.moveItem(at:to:)`, done off the main actor; `onCompletion`
-    /// is handed the file's new URL, or the error — an item of the same name
-    /// already in the folder is one, `CocoaError.fileWriteFileExists`. Moving a
-    /// file to the folder it is in already is a success that moves nothing.
+    /// is. It opens on the folder that holds the file; once a move has been
+    /// made through this view, on the folder moved into, as every file panel
+    /// opens on the folder of its last choice (and a macOS panel on the
+    /// folder used last); `fileDialogDefaultDirectory(_:)` names one before
+    /// both. The move is `FileManager.moveItem(at:to:)`, done off the main
+    /// actor; `onCompletion` is handed the file's new URL, or the error — an
+    /// item of the same name already in the folder is one,
+    /// `CocoaError.fileWriteFileExists`. Moving a file to the folder it is in
+    /// already is a success that moves nothing.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to whether the dialog should be shown.
@@ -135,6 +139,8 @@ extension View {
                     purpose: .open(allowsMultipleSelection: false),
                     rule: FileChoiceRule(allowedContentTypes: [.folder], choosesFiles: false), title: move,
                     confirmationLabel: move,
+                    // Until a choice is made through this view, which the
+                    // presenter opens on instead.
                     startDirectory: files.first?.deletingLastPathComponent() ?? FilePanelRequest.defaultStartDirectory)
             },
             onChoose: { folders in

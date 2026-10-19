@@ -216,7 +216,10 @@ Apple documents what the mover is for and not how it decides. TUIkit's is the
 open panel titled Move, choosing a folder: its files are dimmed, Return opens a
 folder, and Move moves into the folder selected, or the folder shown when none
 is. It opens on the folder that holds the (first) file, the natural place to
-go from, unless a customization names another. The move is
+go from — until a move has been made through the view: then, as every panel
+does (B-O10-3), on the folder last moved into, where the next file is likely
+to go too, as a macOS panel opens on the folder used last. A customization
+names another before both. The move is
 `FileManager.moveItem(at:to:)`, off the main actor; `onCompletion` is called
 on the main actor once it is done, after `isPresented` was cleared. The files
 move in the collection's order and the first that fails ends the operation
