@@ -93,25 +93,14 @@ extension PositionView: Renderable, Layoutable {
         let height = max(0, context.availableHeight)
         guard !context.isMeasuring else { return rendered }
 
-        // Floated rather than composited into the lines, for the reason
-        // `OffsetView` floats: a terminal has no transparency, so painting a
-        // full-size blank field here would erase whatever is beneath it. The
-        // footprint — rows that exist and a declared width, both load-bearing —
-        // is ``FrameBuffer/init(footprintWidth:height:)``.
-        var placeholder = FrameBuffer(footprintWidth: width, height: height)
-        placeholder.overlays.append(
-            OverlayLayer(
-                offsetX: x - rendered.width / 2,
-                offsetY: y - rendered.height / 2,
-                content: rendered,
-                level: .popover,
-                // Below the anchored presentations at this level, as for
-                // `.offset`. See ``OverlayLayer/displacedDrawingZIndex``.
-                zIndex: OverlayLayer.displacedDrawingZIndex,
-                // Displaced drawing, not a surface — as for `.offset`. See
-                // ``OverlayLayer/isOpaque``.
-                isOpaque: false))
-        return placeholder
+        // Drawn as `.offset` draws: only the cells the content paints, at
+        // this view's place in the stacking order, not a full-size blank field
+        // (a terminal has no transparency, so one would erase whatever is
+        // beneath). The footprint — rows that exist and a declared width,
+        // both load-bearing — is this view's whole space.
+        return rendered.drawnDisplaced(
+            by: (x: x - rendered.width / 2, y: y - rendered.height / 2), footprintWidth: width,
+            footprintHeight: height)
     }
 }
 

@@ -46,46 +46,25 @@ extension OffsetView: Renderable, Layoutable {
         // whatever their order and z-index — for a displacement of no cells,
         // which an offset that animates back home always ends on.
         guard !context.isMeasuring, x != 0 || y != 0 else { return rendered }
-
-        // Paint NOTHING at the natural position (the terminal has no
-        // transparency, so an in-place blank box would erase the layers
-        // beneath — the opposite of SwiftUI, where the vacated region shows
-        // the background). The displaced drawing floats as an overlay layer,
-        // carrying the content's hit regions (and any layers it emitted
-        // itself) so interaction follows the visible position.
-        // The slot still has to EXIST, though, and has to declare its width —
-        // see ``FrameBuffer/init(footprintWidth:height:)``, which carries both
-        // halves of that and why each one was a bug.
-        var placeholder = FrameBuffer(footprintWidth: rendered.width, height: rendered.height)
-        placeholder.overlays.append(
-            OverlayLayer(
-                offsetX: x, offsetY: y, content: rendered, level: .popover,
-                // Below the anchored presentations that share this level: a
-                // displaced label is not a window, so an open drop-down it
-                // overlaps draws over it, whatever order the tree emitted them
-                // in. See ``OverlayLayer/displacedDrawingZIndex``.
-                zIndex: OverlayLayer.displacedDrawingZIndex,
-                // Displaced drawing, not a surface: `.offset` moves this view's
-                // own cells to another place on the page, and the page behind
-                // them is meant to keep showing. See ``OverlayLayer/isOpaque``.
-                isOpaque: false))
-        return placeholder
+        return rendered.drawnDisplaced(by: (x: x, y: y))
     }
 }
 
 extension View {
     /// Offsets this view's DRAWN position by `x` columns and `y` rows,
     /// leaving layout untouched — the view still occupies its natural place
-    /// for sizing, but paints displaced, floating over its siblings.
+    /// for sizing, but paints displaced, at its own place in the stacking
+    /// order, as SwiftUI's does: over the views before it, under the views
+    /// after it, clicked where it is drawn. Geometry read inside it is where
+    /// it is drawn, as SwiftUI's offset moves a view's frame in every space.
     ///
-    /// Deviations from SwiftUI, forced by the terminal's compositing model
-    /// (no per-cell transparency): the vacated cells show whatever is
-    /// beneath them (nothing is painted at the natural position), and the
-    /// displaced content composites above sibling views rather than in its
-    /// own z-position. In practice this matches the main uses — nudging
-    /// decorations and floating transient effects (see the Mouse page's
-    /// drag-and-drop poof). An offset of zero displaces nothing and draws the
-    /// view in its own place, in order among its siblings.
+    /// The vacated cells show whatever is beneath them: nothing is painted at
+    /// the natural position, and only the cells the view paints are drawn
+    /// where it lands (the blanks at either end of each line are left out), a
+    /// terminal cell having no transparency. A scroll view, a `List`, a
+    /// `Table`'s cell, a surface (a menu, a sheet) and `.clipped()` cut it at
+    /// their box, as they cut any view drawn past its region. An offset of
+    /// zero displaces nothing.
     ///
     /// - Parameters:
     ///   - x: Columns to shift right (negative shifts left).

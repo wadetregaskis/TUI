@@ -1038,8 +1038,11 @@ edge is always in the band, because its rows are.
 A view's drawing can leave its own bounds three ways here: `.offset`,
 `.position`, and — since a spring goes past its target — a `.move` / `.offset`
 transition on the way back. All three become a **non-opaque overlay layer**:
-the view's own cells, floating, with nothing painted where they came from
-(a terminal has no transparency, so an in-place blank box would erase the page).
+the view's own cells, with nothing painted where they came from (a terminal has
+no transparency, so an in-place blank box would erase the page), drawn at the
+view's place in the stacking order — over the views before it, under the views
+after it — as content past its region is (below; for `.offset` and `.position`
+since 2026-10-18, decisions-GUIDE3 B-GUIDE3-4).
 
 **Which containers clip one is SwiftUI's answer, not a terminal's.** Two doc
 comments in the SDK settle it:
@@ -1086,9 +1089,9 @@ after each combining step, that its layers hold no overflow). The
 blank space either side is not the later view drawing: a short `Text` padded to
 its stack's width, an overlay's `Spacer`, or an `.offset` view's empty footprint
 hides nothing, as in SwiftUI, and a click on the overflow drawn there is the
-overflow's (decisions-D2S B-D2S-5). No other layer is cut, so
-a view's own `.offset` drawing keeps the stacking it has always had: over the
-views after it as well. `List` and `Table` keep clipping (decisions-D2S
+overflow's (decisions-D2S B-D2S-5). A view's own `.offset` or `.position`
+drawing is overflow too since 2026-10-18 (below), cut under the views after it.
+`List` and `Table` keep clipping (decisions-D2S
 B-D2S-4), where SwiftUI's `List` on macOS honours the modifier (measured). So
 do the scrollers the framework puts around a tall menu, a sheet's or a framed
 container's content: their content belongs inside the surface they scroll in,
@@ -1104,7 +1107,10 @@ that its explicit guide places outside its `.frame`, `.overlay` or
 layers, marked and cut under later content exactly as a scroll view's are,
 with the hit regions of the cells they draw, and under what the view itself
 floats (an `.offset` mark on it); so does a `.move` or `.offset`
-transition's overshoot (below). Nothing that fits its region pays anything:
+transition's overshoot (below), and, since 2026-10-18, a view under `.offset`
+or `.position`, which draws all of itself that way: a footprint in flow where
+it is laid out, every cell it paints as overflow where it is drawn, its
+geometry markers moved with it (decisions-GUIDE3 B-GUIDE3-4). Nothing that fits its region pays anything:
 the placement asks whether the view fits (four comparisons) before it splits
 anything. What clips still clips: a `ScrollView` cuts these layers at its
 viewport, `.clipped()` at its frame, a `List` inside its border, a `Table` at

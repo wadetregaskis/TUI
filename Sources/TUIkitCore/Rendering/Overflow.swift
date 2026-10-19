@@ -513,3 +513,32 @@ extension FrameBuffer {
         return footprint
     }
 }
+
+// MARK: - Drawing a view displaced
+
+extension FrameBuffer {
+    /// This buffer drawn `offset` away from where it is laid out — `.offset`,
+    /// `.position` — at its view's place in the stacking order: a footprint
+    /// that draws nothing in flow (`footprintWidth` × `footprintHeight`, this
+    /// buffer's own size where they are `nil`), with every cell this buffer
+    /// paints drawn past it as overflow (``splitPlacing(at:inWidth:height:)``
+    /// over a region of nothing), over the views before it and under the views
+    /// after it, its hit regions travelling with the cells.
+    ///
+    /// Nothing is painted where the view was laid out, and only the cells it
+    /// paints where it lands — the unstyled blanks at either end of each line
+    /// are left out — since a cell has no transparency. Its geometry markers
+    /// ride in the footprint, moved by `offset`, so a reader inside is
+    /// answered where the view is drawn, as SwiftUI's offset moves a view's
+    /// frame in every space; the overflow's own are never read. Its floating
+    /// layers travel, moved by `offset`, drawn over its cells.
+    package func drawnDisplaced(
+        by offset: (x: Int, y: Int), footprintWidth: Int? = nil, footprintHeight: Int? = nil
+    ) -> FrameBuffer {
+        let placement = splitPlacing(at: offset, inWidth: 0, height: 0)
+        var footprint = FrameBuffer(footprintWidth: footprintWidth ?? width, height: footprintHeight ?? height)
+        footprint.hitTestRegions = placement.inside.hitTestRegions
+        footprint.overlays = placement.overflow + placement.inside.overlays
+        return footprint
+    }
+}

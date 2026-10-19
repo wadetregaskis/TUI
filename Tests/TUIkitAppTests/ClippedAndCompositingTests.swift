@@ -30,10 +30,15 @@ struct ClippedAndCompositingTests {
 
     @Test("A clipped view's displaced drawing stops at its frame")
     func clipsDisplacedDrawing() {
-        let loose = screen(HStack(spacing: 0) { Text("abcd").offset(x: 2); Text("WXYZ") })
-        #expect(loose.first?.hasPrefix("  abcd") == true, "\(loose)")
-        let clipped = screen(HStack(spacing: 0) { Text("abcd").offset(x: 2).clipped(); Text("WXYZ") })
-        #expect(clipped.first?.hasPrefix("  abWXYZ") == true, "\(clipped)")
+        // Displaced drawing is at its view's place in the stacking order: a
+        // later sibling is drawn over it, as SwiftUI's is.
+        let under = screen(HStack(spacing: 0) { Text("abcd").offset(x: 2); Text("WXYZ") })
+        #expect(under.first?.hasPrefix("  abWXYZ") == true, "\(under)")
+        // Last in the row, it is drawn past its frame unless clipped there.
+        let loose = screen(HStack(spacing: 0) { Text("WXYZ"); Text("abcd").offset(x: 2) })
+        #expect(loose.first?.hasPrefix("WXYZ  abcd") == true, "\(loose)")
+        let clipped = screen(HStack(spacing: 0) { Text("WXYZ"); Text("abcd").offset(x: 2).clipped() })
+        #expect(clipped.first?.trimmingCharacters(in: .whitespaces) == "WXYZ  ab", "\(clipped)")
         #expect(screen(Text("abcd").offset(x: 2).clipped(antialiased: true)) == screen(Text("abcd").offset(x: 2).clipped()))
     }
 

@@ -25,8 +25,10 @@ struct OffsetAlignmentTests {
             tuiContext: tui)
     }
 
-    /// Where an offset child's floated content ends up, in the coordinates of
-    /// the buffer the container returned.
+    /// Where an offset child's displaced drawing starts, in the coordinates of
+    /// the buffer the container returned: its first drawn cell, since only
+    /// the cells a displaced view paints are drawn (the blanks at either end
+    /// of each line are left out).
     private func floatedX(_ view: some View) -> Int? {
         let buffer = renderToBuffer(view, context: context())
         return buffer.overlays.first?.offsetX
@@ -61,7 +63,9 @@ struct OffsetAlignmentTests {
                 Text(verbatim: Self.band)
                 Text(verbatim: " on top ").offset(x: 3)
             })
-        #expect(placed == 13)
+        // Placed at 13 (10 + 3); its leading blank is not drawn, so its first
+        // drawn cell, the "o", is at 14.
+        #expect(placed == 14)
     }
 
     @Test("Trailing alignment places an offset child by its own width too")

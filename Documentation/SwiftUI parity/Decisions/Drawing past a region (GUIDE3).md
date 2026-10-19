@@ -210,3 +210,18 @@ is answered where the view is drawn (the floating layer carries them), and an
 overflow layer's markers are not read, so they would move into the footprint
 and be shifted by the offset. About half a day, plus the A/B of the pages
 that offset views (estimate).
+
+**Shipped 2026-10-18 (lane LAYOUT): the fuller version.** `.offset` and
+`.position` draw their view as a transition's overshoot does
+(`FrameBuffer.drawnDisplaced(by:footprintWidth:footprintHeight:)`): a
+footprint in flow, where the view is laid out, that paints nothing, and every
+cell the view paints drawn past it as overflow — over the views before it,
+under the views after it, its hit regions travelling with its cells, cut by a
+scroll view, `.clipped()`, a `List`, a `Table`'s cell or a surface as any
+overflow is (B-GUIDE3-3; an offset view in a `Table` cell or a surface was
+not cut before). Its geometry markers ride in the footprint, moved by the
+offset, so a reader inside is still answered where the view is drawn. Only
+the cells it paints are drawn, so a label's leading blank no longer covers
+what lies under it. **A/B owed** where views are offset or positioned on
+every frame: Stress's `geometry` scenario (a header offset by the tick, a
+marker by its anchor), and the Example's ZStack layering and animator demos.

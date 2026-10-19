@@ -244,24 +244,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   and a drop shadow, which is drawn past its view the same way, at the view's
   place in the stacking order (since 2026-10-18, C6).
 
-### L6. Displaced drawing floats over its neighbours
+### L6. Displaced drawing hides what it passes over
 
 - **SwiftUI:** `.offset` and `.position` draw the view at its new place in the
   normal stacking order, with whatever is behind showing through where it
-  was (not measured).
-- **TUIkit:** displaced drawing is a floating layer composited at the screen
-  root, over the views before and after it, with nothing painted at its
-  natural place. A spring transition's overshoot is the exception (since
-  2026-10-12): it is drawn at the view's place in the stacking order, over the
-  views before it and under the views after it, clicked where it is drawn,
-  with the blank cells at either end of each line left out
-  ([B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>)). While a
-  view is arriving in a transition, its slot clips it.
+  was and between its glyphs (not measured; Apple's documentation of
+  `clipped(antialiased:)`).
+- **TUIkit:** the same stacking order since 2026-10-18 — over the views before
+  it, under the views after it, clicked where it is drawn, with nothing
+  painted where it was laid out and the blank cells at either end of each line
+  left out — and so is a spring transition's overshoot (since 2026-10-12).
+  Blanks INSIDE a line still paint: a `Spacer` between two labels of a
+  displaced row covers what is under the gap. While a view is arriving in a
+  transition, its slot clips it.
 - **Why:** a cell holds one glyph and has no transparency, so being over a
-  neighbour means erasing it. `.offset` and `.position` have not moved to the
-  stacking order yet ([B-GUIDE3-4](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-4-offset-and-position-still-float-over-the-views-after-them>)).
+  neighbour means erasing it.
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>),
-  [OffsetModifier.swift](../../Sources/TUIkitFoundation/Modifiers/OffsetModifier.swift#L77-L83).
+  [B-GUIDE3-4](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-4-offset-and-position-still-float-over-the-views-after-them>).
   **Medium.**
 
 ### L7. Lazy containers window what they draw; they do not defer creation
