@@ -87,8 +87,9 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         // An explicit stack, not recursion: a deep tree must not bring the
         // render pass any nearer the stack limit. Pushed in reverse so the top
         // is always the next row in reading order.
-        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Value.ID?, siblings: Int)] =
-            tree.nodes.reversed().map { ($0, 0, nil, 0) }
+        let roots = insertions.rootList
+        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Value.ID?, siblings: Int?)] =
+            tree.nodes.reversed().map { ($0, 0, nil, roots) }
         while let (node, depth, parent, siblings) = stack.popLast() {
             let id = node.value.id
             insertions.drew(row: values.count, depth: depth, in: siblings)
@@ -287,25 +288,46 @@ struct _TableOutlineInsertions {
         let loops: [_TableRowInsertion]
     }
 
-    private var lists: [Siblings]
+    /// The lists of siblings with loops among them: a slot can only be one of
+    /// theirs, so a list without loops is not noted at all.
+    private var lists: [Siblings] = []
 
-    /// Each shown row's depth, for where a row's subtree ends.
+    /// The number of the roots' list, where the roots have loops.
+    let rootList: Int?
+
+    /// The shown row the depths start at: the first a list with loops holds,
+    /// `nil` while none has been seen. No row before it is in a list with
+    /// loops, and a subtree's end lies after its row, so nothing earlier is
+    /// needed — and an outline with no loop notes nothing.
+    private var depthsStart: Int?
+
+    /// The depth of each shown row from ``depthsStart`` on, for where a row's
+    /// subtree ends.
     private var depths: [Int] = []
 
     init(roots: [_TableRowInsertion]) {
-        lists = [Siblings(depth: 0, start: 0, loops: roots)]
+        if roots.isEmpty {
+            rootList = nil
+        } else {
+            lists = [Siblings(depth: 0, start: 0, loops: roots)]
+            rootList = 0
+            depthsStart = 0
+        }
     }
 
     /// Notes that shown row `row`, at `depth`, is the next row of the list of
-    /// siblings `list`.
-    mutating func drew(row: Int, depth: Int, in list: Int) {
-        depths.append(depth)
-        lists[list].rows.append(row)
+    /// siblings `list` — `nil` for a list with no loops.
+    mutating func drew(row: Int, depth: Int, in list: Int?) {
+        if depthsStart != nil { depths.append(depth) }
+        if let list { lists[list].rows.append(row) }
     }
 
     /// Starts the list of an opened branch — the shown row `row` — whose rows
-    /// sit at `depth`, with its loops; returns the list's number for its rows.
-    mutating func opened(after row: Int, depth: Int, loops: [_TableRowInsertion]) -> Int {
+    /// sit at `depth`, with its loops; returns the list's number for its rows,
+    /// or `nil` where it has no loops.
+    mutating func opened(after row: Int, depth: Int, loops: [_TableRowInsertion]) -> Int? {
+        guard !loops.isEmpty else { return nil }
+        if depthsStart == nil { depthsStart = row + 1 }
         lists.append(Siblings(depth: depth, start: row + 1, loops: loops))
         return lists.count - 1
     }
@@ -313,11 +335,13 @@ struct _TableOutlineInsertions {
     /// The insertion over `rowCount` shown rows, or `nil` where no loop shown
     /// takes anything.
     func action(rowCount: Int) -> (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
-        let ends = subtreeEnds(rowCount: rowCount)
+        // No list with loops: nothing was noted, and nothing is worked out.
+        guard let depthsStart else { return nil }
+        let ends = subtreeEnds(rowCount: rowCount, from: depthsStart)
         var targets: [(depth: Int, slots: [Int], loop: _TableRowInsertion)] = []
         for list in lists {
             for loop in list.loops {
-                let slots = Self.slots(of: loop.rows, in: list, ends: ends)
+                let slots = Self.slots(of: loop.rows, in: list) { ends[$0 - depthsStart] }
                 guard !slots.isEmpty else { continue }
                 targets.append((list.depth, slots, loop))
             }
@@ -337,14 +361,14 @@ struct _TableOutlineInsertions {
             })
     }
 
-    /// For each shown row, the shown row after its subtree: the next row no
-    /// deeper than it, or `rowCount`.
-    private func subtreeEnds(rowCount: Int) -> [Int] {
+    /// For each shown row from `first` on, the shown row after its subtree:
+    /// the next row no deeper than it, or `rowCount`. Indexed from `first`.
+    private func subtreeEnds(rowCount: Int, from first: Int) -> [Int] {
         var ends = [Int](repeating: rowCount, count: depths.count)
         var open: [Int] = []
         for row in depths.indices {
             while let top = open.last, depths[top] >= depths[row] {
-                ends[top] = row
+                ends[top] = first + row
                 open.removeLast()
             }
             open.append(row)
@@ -353,18 +377,18 @@ struct _TableOutlineInsertions {
     }
 
     /// The slots a loop over `rows` of `list` reaches, by offset: before each
-    /// of its rows, then after its last row's subtree. A loop with no rows has
-    /// the one slot where its rows would be.
-    private static func slots(of rows: Range<Int>, in list: Siblings, ends: [Int]) -> [Int] {
+    /// of its rows, then after its last row's subtree (`end`). A loop with no
+    /// rows has the one slot where its rows would be.
+    private static func slots(of rows: Range<Int>, in list: Siblings, end: (Int) -> Int) -> [Int] {
         guard rows.upperBound <= list.rows.count else { return [] }
         let before = rows.map { list.rows[$0] }
         let after: Int
         if let last = rows.last {
-            after = ends[list.rows[last]]
+            after = end(list.rows[last])
         } else if rows.lowerBound < list.rows.count {
             after = list.rows[rows.lowerBound]
         } else {
-            after = list.rows.last.map { ends[$0] } ?? list.start
+            after = list.rows.last.map(end) ?? list.start
         }
         return before + [after]
     }
