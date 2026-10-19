@@ -202,14 +202,18 @@ A flexible frame sizes itself as SwiftUI's does (measured,
 `Tools/SwiftUIProbes/Flexible frames/frame.out`): a maximum fills the offer up
 to it, so `Text("Short").frame(maxWidth: 30)` is 30 columns wide offered 80;
 a minimum raises the content to it; and an ideal is read only when the frame
-is offered nothing, as under `.fixedSize()`, where a frame with a maximum is
-its ideal. One difference: offered nothing, a frame with an ideal and **no**
-maximum is as wide as its content offered that ideal, where SwiftUI's is
-exactly the ideal — TUIkit lays the frame out at the width it answers, and
-offered that width such a frame is its content's size. Add a maximum —
-`.frame(idealWidth: 20, maxWidth: .infinity)` — for SwiftUI's size. (Until
-2026-10-15 a finite maximum only capped the content, and an ideal capped it
-whatever the frame was offered, wrapping a long `Text` at the ideal.)
+is offered nothing, as under `.fixedSize()`, where a frame with an ideal is
+exactly its ideal — `Text("short").frame(idealWidth: 10).fixedSize()` is ten
+wide, its text placed by the frame's alignment (since 2026-10-18; the frame
+drawn under `.fixedSize()` knows it was offered nothing,
+`EnvironmentValues.fixedSizeWidth`). One difference, down the column: offered
+nothing, a frame with an ideal height and **no** maximum is its content's
+height, where SwiftUI's is the ideal — a TUIkit stack asks every child its
+natural height by offering none, so that ask is not SwiftUI's unspecified
+proposal (deviations L16). Add a maximum — `.frame(idealHeight: 3, maxHeight:
+.infinity)` — for SwiftUI's size. (Until 2026-10-15 a finite maximum only
+capped the content, and an ideal capped it whatever the frame was offered,
+wrapping a long `Text` at the ideal.)
 
 **One sub-point worth knowing (not a defect):** stacks need a *concrete* default
 where SwiftUI uses an adaptive system metric. `spacing:` is `Int?` and defaults

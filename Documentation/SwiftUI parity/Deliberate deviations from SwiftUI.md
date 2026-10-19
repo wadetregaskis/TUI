@@ -406,6 +406,25 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** the owner's ruling of 2026-10-14 (the semantic audit's item 32,
   option a: a real layout modifier). **Lane.**
 
+### L16. Offered nothing, a frame's ideal height is not its height
+
+- **SwiftUI:** a frame with an ideal height and no maximum, offered no
+  height (under `.fixedSize()`), is exactly its ideal:
+  `Text("x").frame(idealHeight: 3).fixedSize()` is three rows tall
+  (measured 2026-10-18, `Tools/SwiftUIProbes/Alignment guides/layout1.out`,
+  case D2). Offered a height, it is its content's.
+- **TUIkit:** across, the same (`FrameIdealOfferedNothingTests`); down the
+  column such a frame is its content's height even offered nothing.
+- **Why:** a TUIkit stack asks every child its natural height by offering it
+  none, so "offered no height" is that ask, not SwiftUI's unspecified
+  proposal, and answering the ideal there would lay the frame out at its
+  ideal in every column, where SwiftUI's stacks offer a height and get the
+  content's. The width has a mark of its own for the true ask (the
+  ideal-width probe, and `.fixedSize()`'s flag when it draws). A height mark
+  would take another bit of the measure generation.
+- **Decided:** [B-LAYOUT-6](<Decisions/Layout parity (LAYOUT).md#b-layout-6-a-frames-ideal-is-its-size-offered-nothing-across-not-down>).
+  **Lane.**
+
 ---
 
 ## State and data flow

@@ -19,14 +19,22 @@
 /// when nothing was offered: offered 80, `.frame(idealWidth: 10)` leaves a
 /// long `Text` its 37 cells.
 ///
+/// Offered nothing, a frame with an ideal is exactly its ideal, as SwiftUI's
+/// is (``extentOfferedNothing(content:)``): `.frame(idealWidth: 10)` around a
+/// five-cell `Text` under `.fixedSize()` is ten wide, its text placed in it by
+/// the frame's alignment. Along the width, "offered nothing" is the ideal-width
+/// ask and the drawing under `.fixedSize()` that follows it
+/// (``EnvironmentValues/fixedSizeWidth``), so the frame draws the width it
+/// measured.
+///
 /// Two differences, both because a terminal draws inside what it is given.
 /// The content is not offered more than the frame was, where SwiftUI raises
 /// the offer to the minimum (the frame would only be cut back to the offer).
-/// And offered nothing, a frame with an ideal and no maximum is no wider than
-/// its content offered that ideal, where SwiftUI's is the ideal: TUIkit lays
-/// such a frame out at the width it answers, offered that width, and a frame
-/// offered a width with no maximum to fill toward is its content's size, so
-/// answering the ideal would draw narrower than it measured.
+/// And down the column, a frame with an ideal height and no maximum, offered
+/// nothing, is its content's height, where SwiftUI's is the ideal: a stack asks
+/// every child its natural height by offering it none, so that ask is not
+/// SwiftUI's unspecified proposal, and answering the ideal there would lay
+/// such a frame out at its ideal in every column (deviations L16).
 struct FlexibleFrameAxis {
     let minimum: Int?
     let ideal: Int?
@@ -100,6 +108,17 @@ struct FlexibleFrameAxis {
         case nil: break
         }
         return Swift.max(0, result)
+    }
+
+    /// The frame's extent around content `content` long when it is offered
+    /// nothing at all: its ideal, where it has one — held to its minimum and
+    /// maximum already, as the initialiser orders them — and otherwise
+    /// ``extent(content:offer:)`` with no offer. SwiftUI's rule, measured
+    /// (`Tools/SwiftUIProbes/Flexible frames/frame.out`, the `[ideal]` rows:
+    /// `short ideal 10` is 10, `short min 10 ideal 20` 20).
+    func extentOfferedNothing(content: Int) -> Int {
+        guard let ideal else { return extent(content: content, offer: nil) }
+        return Swift.max(0, ideal)
     }
 
     /// Whether offering the frame more would make it larger, given the

@@ -335,10 +335,14 @@ extension View {
     /// cells wide offered 80, and `.infinity` fills whatever it is offered.
     /// An ideal is read only when nothing was offered.
     ///
-    /// One difference from SwiftUI: offered nothing, a frame with an ideal
-    /// and no maximum is as wide as its content offered that ideal, where
-    /// SwiftUI's is exactly the ideal. Add a maximum
-    /// (`.frame(idealWidth: 20, maxWidth: .infinity)`) for SwiftUI's size.
+    /// Offered no width, a frame with an ideal width is exactly that ideal,
+    /// its content placed in it by `alignment`: `Text("short").frame(idealWidth:
+    /// 10).fixedSize()` is ten wide. One difference from SwiftUI: down the
+    /// column a frame with an ideal height and no maximum is its content's
+    /// height even offered nothing, where SwiftUI's is the ideal — a stack asks
+    /// every child its natural height by offering it none, so that ask cannot
+    /// mean SwiftUI's unspecified one here. Add a maximum
+    /// (`.frame(idealHeight: 3, maxHeight: .infinity)`) for SwiftUI's size.
     ///
     /// # Examples
     ///

@@ -148,3 +148,35 @@ whose content statically has no members (a check on every such wrapper's
 render, which needs its cost measured), the second by letting an effect
 wrapper hand on an empty member list (it has nothing to fire for), and the
 third with B-D1S-6. About half a day for the first two.
+
+### B-LAYOUT-6. A frame's ideal is its size offered nothing across, not down
+
+*`.frame(minWidth:idealWidth:maxWidth:minHeight:idealHeight:maxHeight:alignment:)`,
+`.fixedSize(horizontal:vertical:)` (the owner's 2026-10-15 ruling,
+"idealWidth: match SwiftUI")*
+
+Shipped: offered no width, a frame with an ideal width is exactly that ideal
+(`FlexibleFrameAxis.extentOfferedNothing(content:)`), its content offered the
+ideal and placed in it by the frame's alignment, as SwiftUI's is (measured,
+`layout1.out` case D2: `Text("short").frame(idealWidth: 10).fixedSize()` is
+ten wide, the text at 2.5). "Offered no width" is the ideal-width ask, and the
+drawing under `.fixedSize()` that follows it: `_FixedSizeView` already set
+`EnvironmentValues.fixedSizeWidth` for its content, and a frame with an ideal
+width now reads it as "offered nothing" and clears it for its own content,
+which it offers a width (so a `List` inside such a frame no longer hugs).
+Measure and render agree (`FrameIdealOfferedNothingTests`).
+
+**Not shipped: the height** (deviations L16). A TUIkit stack asks a child its
+natural height with no height, so a frame answering its ideal height to that
+ask would be laid out at its ideal in every column.
+
+**The fuller version:** a measure-generation bit for "asks the ideal height",
+set by `.fixedSize(vertical:)`'s probe and a vertical scroll view's content,
+and an environment flag for the drawing that follows, as the width has. The
+bit is the generation counter's (six bits are left), so the cost is a smaller
+counter. About half a day. A horizontal `ScrollView` offers its content
+nothing across too, in SwiftUI (measured: the frame is 10 there as well);
+here its content is drawn without the flag, so a frame with an ideal width
+in one is drawn as offered a width — not checked beyond that (an hour, with
+a test). Setting the flag for a scroll view's content would also make a
+`List` in it hug its rows, which wants its own look.

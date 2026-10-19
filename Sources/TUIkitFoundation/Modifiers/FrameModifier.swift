@@ -178,13 +178,33 @@ extension FlexibleFrameView {
 
     /// The width the content is offered for a given available width: that
     /// width, held to a finite maximum. An ideal width is not read — a frame
-    /// offered a width offers its content that width, as SwiftUI's does.
+    /// offered a width offers its content that width, as SwiftUI's does —
+    /// unless the frame was offered no width (`offeredNothing`), when its
+    /// content is offered the ideal.
     ///
     /// Shared by ``renderToBuffer(context:)`` and ``sizeThatFits(proposal:context:)``
     /// so the measure and render passes can never disagree about how the
     /// frame constrains its content.
-    func contentTargetWidth(availableWidth: Int) -> Int {
-        widthAxis.contentBudget(availableWidth, unspecified: false)
+    func contentTargetWidth(availableWidth: Int, offeredNothing: Bool = false) -> Int {
+        widthAxis.contentBudget(availableWidth, unspecified: offeredNothing)
+    }
+
+    /// Whether this frame, laid out in `context`, was offered no width though
+    /// the context carries one: it is laid out or drawn under `.fixedSize()`,
+    /// which asked it its ideal width — SwiftUI's unspecified proposal — and
+    /// hands it the width it answered (``EnvironmentValues/fixedSizeWidth``).
+    /// Only a frame with an ideal width tells the two apart: offered nothing it
+    /// is exactly that ideal, where offered a width it is its content's
+    /// (`Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D2). Such a
+    /// frame offers its content its ideal, a width, so the flag stops at it.
+    func isOfferedNoWidth(in context: RenderContext) -> Bool {
+        idealWidth != nil && context.environment.fixedSizeWidth
+    }
+
+    /// The frame's width around content `content` wide when it was offered
+    /// `offer`, or nothing (``isOfferedNoWidth(in:)``).
+    func finalWidth(content: Int, offer: Int, offeredNothing: Bool) -> Int {
+        offeredNothing ? widthAxis.extentOfferedNothing(content: content) : widthAxis.extent(content: content, offer: offer)
     }
 
     /// The height the content is offered for a given available height, or
@@ -220,7 +240,8 @@ extension FlexibleFrameView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Calculate the target width and height based on constraints (the same
         // computation the measure pass uses, see contentTargetWidth/Height).
-        let targetWidth = contentTargetWidth(availableWidth: context.availableWidth)
+        let offeredNoWidth = isOfferedNoWidth(in: context)
+        let targetWidth = contentTargetWidth(availableWidth: context.availableWidth, offeredNothing: offeredNoWidth)
         let targetHeight = contentTargetHeight(availableHeight: context.availableHeight)
 
         // Create context for content with constrained width
@@ -229,6 +250,8 @@ extension FlexibleFrameView: Renderable {
         if let height = targetHeight {
             contentContext.availableHeight = height
         }
+        // Offered no width, this frame offers its content its ideal: a width.
+        if offeredNoWidth { contentContext.environment.fixedSizeWidth = false }
 
         // Mark that an explicit width constraint was set
         if minWidth != nil || idealWidth != nil || maxWidth != nil {
@@ -256,7 +279,7 @@ extension FlexibleFrameView: Renderable {
 
         // The frame around the content: raised to a minimum, and grown to
         // what it was offered up to a maximum (``FlexibleFrameAxis``).
-        let finalWidth = widthAxis.extent(content: buffer.width, offer: context.availableWidth)
+        let finalWidth = finalWidth(content: buffer.width, offer: context.availableWidth, offeredNothing: offeredNoWidth)
         let finalHeight = heightAxis.extent(content: buffer.height, offer: context.availableHeight)
 
         // If size matches buffer, return as-is — unless the content's own
@@ -286,7 +309,8 @@ extension FlexibleFrameView: Renderable {
             content,
             proposal: ProposedSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
             context: contentContext)
-        let finalWidth = widthAxis.extent(content: size.width, offer: context.availableWidth)
+        let finalWidth = finalWidth(
+            content: size.width, offer: context.availableWidth, offeredNothing: isOfferedNoWidth(in: context))
         let finalHeight = heightAxis.extent(content: size.height, offer: context.availableHeight)
         return contentContext.placingChild(
             gradient: contentContext.gradientFrame,
@@ -491,7 +515,7 @@ extension FlexibleFrameView: Layoutable {
         // answers with its content, as SwiftUI's does under an unspecified
         // proposal. Anywhere else a nil width means the available width, as it
         // always has in TUIkit, and the frame fills it.
-        let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
+        let asksIdealWidth = (proposal.width == nil && context.asksIdealWidth) || isOfferedNoWidth(in: context)
 
         // Measure the content once, in the same context renderToBuffer renders
         // it in (full width, optional fixed height, explicit-width flag), to get
@@ -511,6 +535,8 @@ extension FlexibleFrameView: Layoutable {
             contentContext.availableHeight = targetHeight
         }
         contentContext.hasExplicitWidth = true
+        // As the render path: offered no width, the content is offered the ideal.
+        if isOfferedNoWidth(in: context) { contentContext.environment.fixedSizeWidth = false }
         // As the render path: a height constraint is an explicit height.
         if minHeight != nil || idealHeight != nil || maxHeight != nil {
             contentContext.hasExplicitHeight = true
@@ -529,7 +555,7 @@ extension FlexibleFrameView: Layoutable {
         var width = availableWidth
         var isWidthFlexible = true
         if asksIdealWidth {
-            let wanted = widthAxis.extent(content: contentSize.width, offer: nil)
+            let wanted = widthAxis.extentOfferedNothing(content: contentSize.width)
             width = max(0, min(wanted, availableWidth))
             isWidthFlexible =
                 wanted < availableWidth
@@ -594,7 +620,7 @@ extension FlexibleFrameView: Layoutable {
         // offered no height, its ideal height (see
         // `contentTargetHeight(availableHeight:fills:)`). The same shared
         // helpers renderToBuffer uses.
-        let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
+        let asksIdealWidth = (proposal.width == nil && context.asksIdealWidth) || isOfferedNoWidth(in: context)
         let fillsHeight = proposal.height != nil
         let targetWidth = widthAxis.contentBudget(availableWidth, unspecified: asksIdealWidth)
         let targetHeight = contentTargetHeight(availableHeight: availableHeight, fills: fillsHeight)
@@ -605,6 +631,8 @@ extension FlexibleFrameView: Layoutable {
         if minWidth != nil || idealWidth != nil || maxWidth != nil {
             contentContext.hasExplicitWidth = true
         }
+        // As the render path: offered no width, the content is offered the ideal.
+        if isOfferedNoWidth(in: context) { contentContext.environment.fixedSizeWidth = false }
         // As the render path: a height constraint is an explicit height.
         if minHeight != nil || idealHeight != nil || maxHeight != nil {
             contentContext.hasExplicitHeight = true
@@ -620,8 +648,8 @@ extension FlexibleFrameView: Layoutable {
         // what the frame offers it — the universal `renderToBuffer` clamps the
         // content's buffer there — and the frame is sized around it
         // (``FlexibleFrameAxis/extent(content:offer:)``).
-        let wantedWidth = widthAxis.extent(
-            content: min(contentSize.width, targetWidth), offer: asksIdealWidth ? nil : availableWidth)
+        let wantedWidth = finalWidth(
+            content: min(contentSize.width, targetWidth), offer: availableWidth, offeredNothing: asksIdealWidth)
         let wantedHeight = heightAxis.extent(
             content: targetHeight.map { min(contentSize.height, $0) } ?? contentSize.height,
             offer: fillsHeight ? availableHeight : nil)

@@ -98,12 +98,12 @@ struct FlexibleFrameSwiftUIRuleTests {
         #expect(width(Text(long).frame(idealWidth: 10), offer: nil) == 10)
     }
 
-    @Test("Offered nothing, a frame with an ideal and no maximum is its content's size")
-    func idealWithoutMaximumIsTheContents() {
-        // The one difference (`FlexibleFrameAxis`): SwiftUI's frames are 10
-        // and 20, the ideal itself.
-        #expect(width(Text(short).frame(idealWidth: 10), offer: nil) == 5)
-        #expect(width(Text(short).frame(minWidth: 10, idealWidth: 20), offer: nil) == 10)
+    @Test("Offered nothing, a frame with an ideal and no maximum is its ideal, as SwiftUI's")
+    func idealWithoutMaximumIsTheIdeal() {
+        // SwiftUI: 10 and 20 (`Flexible frames/frame.out`, the `[ideal]`
+        // rows); TUIkit's were the content's 5 and 10 until 2026-10-18.
+        #expect(width(Text(short).frame(idealWidth: 10), offer: nil) == 10)
+        #expect(width(Text(short).frame(minWidth: 10, idealWidth: 20), offer: nil) == 20)
     }
 
     @Test("Contradictory constraints are put in order")

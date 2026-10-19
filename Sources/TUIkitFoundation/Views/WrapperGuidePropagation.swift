@@ -37,7 +37,10 @@ extension FlexibleFrameView: AlignmentGuideQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         var contentContext = context
-        contentContext.availableWidth = contentTargetWidth(availableWidth: dimensions.width)
+        let offeredNoWidth = isOfferedNoWidth(in: context)
+        contentContext.availableWidth = contentTargetWidth(
+            availableWidth: dimensions.width, offeredNothing: offeredNoWidth)
+        if offeredNoWidth { contentContext.environment.fixedSizeWidth = false }
         if let height = contentTargetHeight(availableHeight: dimensions.height) {
             contentContext.availableHeight = height
         }
