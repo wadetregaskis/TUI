@@ -100,6 +100,8 @@
   "menu.aboutVersion": "Versión %@",
   "menu.settings": "Ajustes…",
   "menu.closeWindow": "Cerrar ventana",
+  "menu.showWindow": "Mostrar %@",
+  "menu.hideWindow": "Ocultar %@",
   "menu.find": "Buscar…",
   "menu.new": "Nuevo",
   "menu.open": "Abrir",

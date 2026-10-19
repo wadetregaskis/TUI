@@ -130,6 +130,8 @@ extension LocalizationService {
       "menu.aboutVersion": "Version %@",
       "menu.settings": "Settings…",
       "menu.closeWindow": "Close Window",
+      "menu.showWindow": "Show %@",
+      "menu.hideWindow": "Hide %@",
       "menu.find": "Find…",
       "menu.new": "New",
       "menu.open": "Open",

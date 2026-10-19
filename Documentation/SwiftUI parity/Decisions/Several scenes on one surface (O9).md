@@ -293,3 +293,26 @@ winning; the walk that seeds a new window's bars makes it too, so a window
 that cannot be closed never offers Escape, even on the frame it opens.
 
 **The fuller version** is none: there is no other way to close a window here.
+
+### B-O9-11. A window visibility toggle shows a window by bringing it in front, and hides it by closing it
+
+*`WindowVisibilityToggle`, `DefaultWindowVisibilityToggleLabel`*
+
+On macOS the toggle shows a `Window` scene's window or hides it, labelled for
+which it would do; with no window openable on this machine, that is taken from
+Apple's documentation, unmeasured. On one surface a window is seen only while
+it is in front (B-O9-1).
+
+**Shipped:** while the window is not in front — closed, or held behind
+another — the toggle reads "Show *Title*" and opens it or brings it to the
+front; while it is in front, "Hide *Title*", and closes it, the window behind
+coming back. The label is the window's title in the current language (seven
+languages, as macOS names such items: Show Toolbar, Hide Sidebar), and the
+identifier where the scene has no title. An identifier no `Window` scene has
+leaves the toggle disabled, there being nothing for it to do. Hiding closes the window
+rather than holding it behind the others, since a held window still runs
+(its tasks, its clock) and the person asked for it to go.
+
+**The fuller version** keeps a hidden window's state for when it is shown
+again — held, but drawn no more — about an hour, with a measurement of what
+macOS keeps.

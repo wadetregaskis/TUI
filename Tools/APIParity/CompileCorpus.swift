@@ -4134,6 +4134,21 @@ private struct CorpusWelcomeApp: App {
     }
 }
 
+/// A window shown and hidden from the menu bar, as `WindowVisibilityToggle`'s
+/// documentation writes it.
+private struct CorpusPhotoLibraryApp: App {
+    var body: some Scene {
+        WindowGroup { Text("Photos") }
+            .commands {
+                CommandGroup(before: .sidebar) {
+                    WindowVisibilityToggle(windowID: "photo-library")
+                        .keyboardShortcut("l", modifiers: [.command, .shift])
+                }
+            }
+        Window("Photo Library", id: "photo-library") { Text("Library") }
+    }
+}
+
 /// The settings scene and the ways to it, as `OpenSettingsAction`'s and
 /// `Settings`' documentation write them.
 private struct CorpusSettingsApp: App {

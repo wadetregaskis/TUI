@@ -100,6 +100,8 @@
   "menu.aboutVersion": "版本 %@",
   "menu.settings": "设置…",
   "menu.closeWindow": "关闭窗口",
+  "menu.showWindow": "显示%@",
+  "menu.hideWindow": "隐藏%@",
   "menu.find": "查找…",
   "menu.new": "新建",
   "menu.open": "打开",

@@ -264,12 +264,6 @@
     },
     {
       "match": [
-        "WindowVisibilityToggle*"
-      ],
-      "why": "Being built by lane O9 (refusal review O9, ruled (b): several scenes on one surface); each pattern goes as its symbols land."
-    },
-    {
-      "match": [
         "DocumentGroup*",
         "*FileDocument*",
         "DocumentConfiguration*",
@@ -467,7 +461,6 @@
         "Scene.menuBarExtraStyle(_:)",
         "Scene.defaultWindowPlacement(_:)",
         "UtilityWindow*",
-        "DefaultWindowVisibilityToggleLabel",
         "SceneLaunchBehavior*",
         "SceneRestorationBehavior*",
         "Scene.keyboardShortcut(_:)",

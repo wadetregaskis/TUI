@@ -194,6 +194,12 @@ public enum LocalizationKey {
         /// The menu bar's Window ▸ Close Window: the window in front, when another
         /// is open behind it.
         case closeWindow = "menu.closeWindow"
+        /// A `WindowVisibilityToggle`'s default label while its window is not in
+        /// front: `%@` is the window's title.
+        case showWindow = "menu.showWindow"
+        /// A `WindowVisibilityToggle`'s default label while its window is in
+        /// front: `%@` is the window's title.
+        case hideWindow = "menu.hideWindow"
         /// The menu bar's Edit ▸ Find… (`TextEditingCommands`).
         case find = "menu.find"
         case new = "menu.new"
