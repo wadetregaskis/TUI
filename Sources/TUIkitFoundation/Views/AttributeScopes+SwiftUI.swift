@@ -22,7 +22,7 @@ extension AttributeScopes {
     /// var status = AttributedString("FAILED")
     /// status.foregroundColor = .red
     /// status.font = .headline
-    /// Text("Build ") + Text(status)
+    /// Text("Build \(Text(status))")
     /// ```
     ///
     /// Each of these has a cell to go in: a foreground and a background colour,

@@ -11,13 +11,14 @@ import TUIkitStyling
 // MARK: - Runs
 
 extension Text {
-    /// One differently-styled fragment of a concatenated ``Text``.
+    /// One differently-styled fragment of a ``Text``: a Markdown span of its
+    /// key, a run of its attributed string, or an interpolated `Text`'s.
     ///
     /// A run carries only the attributes that fragment set for **itself**. The
     /// enclosing `Text`'s own style is the base beneath it, and the environment
-    /// cascade beneath that — so `(Text("a").bold() + Text("b")).italic()`
-    /// makes both italic and only the first bold, which is what the same
-    /// expression does in SwiftUI.
+    /// cascade beneath that — so `Text("\(Text("a").bold())b").italic()` makes
+    /// both italic and only the first bold, which is what the same expression
+    /// does in SwiftUI.
     package struct Run: Equatable, Sendable {
         /// The fragment's text — for a live fragment, as it read when built.
         let text: String
@@ -36,42 +37,16 @@ extension Text {
     }
 }
 
-// MARK: - Concatenation
-
 extension Text {
-    /// Joins two texts into one, each keeping its own styling. Matches
-    /// SwiftUI's `+`.
-    ///
-    /// ```swift
-    /// Text("Name: ").bold() + Text(person.name) + Text(" (edited)").italic()
-    /// ```
-    ///
-    /// The result is a single ``Text``, so it wraps, truncates, aligns and
-    /// measures as one piece of text — the fragments are styling, not layout.
-    /// A modifier applied to the result becomes the base beneath every
-    /// fragment's own attributes:
-    ///
-    /// ```swift
-    /// (Text("a").bold() + Text("b")).foregroundStyle(.red)   // both red, "a" bold
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - lhs: The text on the left.
-    ///   - rhs: The text to append.
-    /// - Returns: One text carrying both fragments.
-    public static func + (lhs: Text, rhs: Text) -> Text {
-        // Flatten: a run list already holds fragment-level attributes, so a
-        // side that has one contributes its runs rather than nesting. Its own
-        // `style` is the base for those runs and is folded in here, because
-        // the joined text's base belongs to whatever is applied AFTER the join.
-        let leftRuns = lhs.runs?.map { $0.rebased(on: lhs.style) } ?? [
-            Run(text: lhs.content, style: lhs.style)
-        ]
-        let rightRuns = rhs.runs?.map { $0.rebased(on: rhs.style) } ?? [
-            Run(text: rhs.content, style: rhs.style)
-        ]
-        var joined = Text(verbatim: lhs.content + rhs.content)
-        joined.runs = leftRuns + rightRuns
+    /// This text with `prefix` in front of it, plain, as one text: its own
+    /// words keep their runs (or its one style, folded into a run), and the
+    /// prefix is a run of no style. For the framework's own chrome in front of
+    /// an app's text — an outline table's disclosure triangle before a styled
+    /// cell — where an app joins texts by interpolating them.
+    package func prefixed(with prefix: String) -> Text {
+        let ownRuns = runs?.map { $0.rebased(on: style) } ?? [Run(text: content, style: style)]
+        var joined = Text(verbatim: prefix + content)
+        joined.runs = [Run(text: prefix, style: TextStyle())] + ownRuns
         return joined
     }
 }

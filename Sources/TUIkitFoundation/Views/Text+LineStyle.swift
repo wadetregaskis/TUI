@@ -16,7 +16,7 @@ extension Text {
     /// ```swift
     /// var deadline = AttributedString("Friday")
     /// deadline.underlineStyle = Text.LineStyle(pattern: .dash, color: .red)
-    /// Text("Due ") + Text(deadline)
+    /// Text("Due \(Text(deadline))")
     /// ```
     ///
     /// A terminal draws an underline in five shapes — single, double, curly,

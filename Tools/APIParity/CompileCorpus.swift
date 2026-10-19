@@ -1832,7 +1832,9 @@ private struct AttributedText: View {
     var body: some View {
         VStack {
             Text(content)
-            Text(content) + Text("tail").bold()
+            // `Text + Text` is deprecated (macOS 26); interpolating keeps the
+            // styling, as SwiftUI's own replacement does.
+            Text("\(Text(content))\(Text("tail").bold())")
             Text("Red text")
             Text("")
             Text(" ")

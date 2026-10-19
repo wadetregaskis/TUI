@@ -11,14 +11,15 @@ import Testing
 @testable import TUIkitStyling
 @testable import TUIkitTestSupport
 
-/// `Text + Text` — one text, several styles.
+/// One text, several styles: `Text`s interpolated into a `Text`, each keeping
+/// its own (SwiftUI's replacement for the deprecated `Text + Text`).
 ///
 /// The fragments are *styling*, not layout: the result wraps, truncates and
 /// measures as a single piece of text, which is what makes it different from
 /// an `HStack` of Texts and is the reason the styling has to be re-applied
 /// after the wrap rather than before it.
 @MainActor
-@Suite("Text concatenation")
+@Suite("Text of several runs")
 struct TextConcatenationTests {
 
     /// The SGR parameters the renderer emits for a foreground colour — the
@@ -68,7 +69,7 @@ struct TextConcatenationTests {
 
     @Test("The joined text reads as one string")
     func contentIsJoined() {
-        let joined = Text(verbatim: "Name: ") + Text(verbatim: "Ada")
+        let joined = Text("\(Text(verbatim: "Name: ").bold())\(Text(verbatim: "Ada"))")
         #expect(joined.content == "Name: Ada")
         #expect(joined.runs?.count == 2)
     }
@@ -76,7 +77,7 @@ struct TextConcatenationTests {
     @Test("Each fragment keeps its own styling")
     func fragmentsKeepTheirStyle() {
         let context = makeRenderContext(width: 40, height: 3)
-        let joined = Text(verbatim: "bold").bold() + Text(verbatim: "plain")
+        let joined = Text("\(Text(verbatim: "bold").bold())\(Text(verbatim: "plain"))")
         let line = renderToBuffer(joined, context: context).lines[0]
 
         // "bold" carries SGR 1 and "plain" does not — which means the styling
@@ -95,17 +96,17 @@ struct TextConcatenationTests {
     @Test("Colours stay with their own fragment")
     func coloursAreLocal() {
         let context = makeRenderContext(width: 40, height: 3)
-        let joined =
-            Text(verbatim: "red").foregroundStyle(Color.rgb(200, 20, 20))
-            + Text(verbatim: "blue").foregroundStyle(Color.rgb(20, 20, 200))
+        let red = Text(verbatim: "red").foregroundStyle(Color.rgb(200, 20, 20))
+        let joined = Text("\(red)\(Text(verbatim: "blue").foregroundStyle(Color.rgb(20, 20, 200)))")
         let line = renderToBuffer(joined, context: context).lines[0]
         #expect(line.contains(codes(Color.rgb(200, 20, 20))))
         #expect(line.contains(codes(Color.rgb(20, 20, 200))))
     }
 
-    @Test("Three or more fragments flatten rather than nest")
+    @Test("A fragment of several runs splices in flat rather than nesting")
     func flattening() {
-        let joined = Text(verbatim: "a") + Text(verbatim: "b") + Text(verbatim: "c")
+        let inner = Text("\(Text(verbatim: "a").bold())\(Text(verbatim: "b").italic())")
+        let joined = Text("\(inner)\(Text(verbatim: "c").underline())")
         #expect(joined.content == "abc")
         #expect(joined.runs?.count == 3)
         #expect(joined.runs?.map(\.text) == ["a", "b", "c"])
@@ -119,7 +120,7 @@ struct TextConcatenationTests {
         // own attribute still wins. `.italic()` here must reach both, and the
         // first must stay bold.
         let context = makeRenderContext(width: 40, height: 3)
-        let joined = (Text(verbatim: "one").bold() + Text(verbatim: "two")).italic()
+        let joined = Text("\(Text(verbatim: "one").bold())\(Text(verbatim: "two"))").italic()
         let line = renderToBuffer(joined, context: context).lines[0]
         // Compare exact SGR PARAMETERS, not substrings: a truecolour code
         // like `38;2;51;255;51` contains both a "1" and a "3", so a substring
@@ -139,9 +140,8 @@ struct TextConcatenationTests {
     @Test("A fragment's colour wins over the result's")
     func fragmentColourWins() {
         let context = makeRenderContext(width: 40, height: 3)
-        let joined =
-            (Text(verbatim: "own").foregroundStyle(Color.rgb(200, 20, 20))
-                + Text(verbatim: "inherited")).foregroundStyle(Color.rgb(20, 20, 200))
+        let own = Text(verbatim: "own").foregroundStyle(Color.rgb(200, 20, 20))
+        let joined = Text("\(own)\(Text(verbatim: "inherited"))").foregroundStyle(Color.rgb(20, 20, 200))
         let line = renderToBuffer(joined, context: context).lines[0]
         #expect(line.contains(codes(Color.rgb(200, 20, 20))))
         #expect(line.contains(codes(Color.rgb(20, 20, 200))))
@@ -151,11 +151,11 @@ struct TextConcatenationTests {
 
     @Test("It wraps as a single piece of text")
     func wrapsAsOne() {
-        // The whole point of `+` over an HStack: a break may fall inside a
-        // fragment, and the words either side of a boundary are considered
+        // The whole point of one text over an HStack: a break may fall inside
+        // a fragment, and the words either side of a boundary are considered
         // together.
         let context = makeRenderContext(width: 10, height: 5)
-        let joined = Text(verbatim: "alpha beta ").bold() + Text(verbatim: "gamma delta")
+        let joined = Text("\(Text(verbatim: "alpha beta ").bold())\(Text(verbatim: "gamma delta"))")
         let buffer = renderToBuffer(joined, context: context)
         #expect(buffer.lines.count > 1)
         let text = buffer.lines.map(\.stripped).joined(separator: " ")
@@ -169,9 +169,8 @@ struct TextConcatenationTests {
         // A fragment that spans two lines must be styled on BOTH: the SGR that
         // opened it sat on the first line, so the second needs its own.
         let context = makeRenderContext(width: 8, height: 6)
-        let joined =
-            Text(verbatim: "aaaa bbbb cccc").foregroundStyle(Color.rgb(200, 20, 20))
-            + Text(verbatim: " tail")
+        let head = Text(verbatim: "aaaa bbbb cccc").foregroundStyle(Color.rgb(200, 20, 20))
+        let joined = Text("\(head)\(Text(verbatim: " tail"))")
         let buffer = renderToBuffer(joined, context: context)
         let redLines = buffer.lines.filter { $0.contains(codes(Color.rgb(200, 20, 20))) }
         #expect(redLines.count >= 2, "the colour did not carry onto the wrapped lines")
@@ -181,7 +180,7 @@ struct TextConcatenationTests {
     func measuresAsOne() {
         let context = makeRenderContext(width: 40, height: 5)
         let proposal = ProposedSize(width: 40, height: 5)
-        let joined = Text(verbatim: "Name: ").bold() + Text(verbatim: "Ada")
+        let joined = Text("\(Text(verbatim: "Name: ").bold())\(Text(verbatim: "Ada"))")
         let plain = Text(verbatim: "Name: Ada")
         #expect(
             measureChild(joined, proposal: proposal, context: context)
@@ -191,13 +190,13 @@ struct TextConcatenationTests {
     @Test("Truncation still marks the cut")
     func truncation() {
         let context = makeRenderContext(width: 6, height: 1)
-        let joined = Text(verbatim: "aaaaaa").bold() + Text(verbatim: "bbbbbb")
+        let joined = Text("\(Text(verbatim: "aaaaaa").bold())\(Text(verbatim: "bbbbbb"))")
         let line = renderToBuffer(joined, context: context).lines[0]
         #expect(line.stripped.contains("…"))
         #expect(line.stripped.count <= 6)
     }
 
-    // MARK: - The unconcatenated path is untouched
+    // MARK: - The single-run path is untouched
 
     @Test("A plain Text renders exactly as it did")
     func singleFragmentIsByteIdentical() {
@@ -210,8 +209,8 @@ struct TextConcatenationTests {
             Text(verbatim: "a longer line that will wrap at this width"),
         ] {
             #expect(view.runs == nil)
-            // A one-run concatenation of the same thing must agree with it —
-            // the two paths differ in mechanism, not in result.
+            // The same thing as one run must agree with it — the two paths
+            // differ in mechanism, not in result.
             var asRuns = view
             asRuns.runs = [Text.Run(text: view.content, style: view.style)]
             #expect(
@@ -223,7 +222,7 @@ struct TextConcatenationTests {
     @Test("Empty fragments do not disturb the rest")
     func emptyFragments() {
         let context = makeRenderContext(width: 20, height: 3)
-        let joined = Text(verbatim: "") + Text(verbatim: "middle").bold() + Text(verbatim: "")
+        let joined = Text("\(Text(verbatim: ""))\(Text(verbatim: "middle").bold())\(Text(verbatim: ""))")
         let line = renderToBuffer(joined, context: context).lines[0]
         #expect(line.stripped == "middle")
         #expect(line.contains("1"))
@@ -232,7 +231,7 @@ struct TextConcatenationTests {
     @Test("A fragment of pure whitespace keeps its place")
     func whitespaceFragment() {
         let context = makeRenderContext(width: 20, height: 3)
-        let joined = Text(verbatim: "a") + Text(verbatim: " ") + Text(verbatim: "b")
+        let joined = Text("\(Text(verbatim: "a").bold())\(Text(verbatim: " ").italic())\(Text(verbatim: "b"))")
         #expect(renderToBuffer(joined, context: context).lines[0].stripped == "a b")
     }
 

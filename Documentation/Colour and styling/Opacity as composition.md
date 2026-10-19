@@ -1083,12 +1083,13 @@ adjacent in the code, not because they share a difficulty.
 The visible cost of the conflation: a concatenation whose fragments all take one
 translucent colour is the uniform case the plain arm already handled, and was
 refused anyway. So adding `+ Text("")` to a working translucent `Text` silently
-made it opaque — pinned now by `uniformConcatenationIsNotRefused`.
+made it opaque — pinned now by `uniformConcatenationIsNotRefused` (which spells
+the fragments by interpolation since `+` went, 2026-10-18).
 
 Three things the implementation needed that the shape did not suggest:
 
 - **Cells, not characters.** A fragment's start column accumulates
-  `strippedLength`, not `count`. `Text("日本") + Text("ab").foregroundStyle(faint)`
+  `strippedLength`, not `count`. `Text("\(Text("日本"))\(Text("ab").foregroundStyle(faint))")`
   puts the claim at column 4; counting characters puts it at 2, which fades the
   wrong two cells and leaves the last one bright.
 - **Rows come from the same interleave the lines do.** Line spacing is

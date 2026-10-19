@@ -216,34 +216,42 @@ struct TextStylesPage: View {
                     Text("page.textStyles.concatExplain")
                         .foregroundStyle(.palette.foregroundSecondary)
 
-                    // Three fragments, three styles, one Text.
-                    Text("page.textStyles.concatLabel").bold()
-                        + Text("page.textStyles.concatValue")
-                            .foregroundStyle(.palette.accent)
-                        + Text("page.textStyles.concatNote").dim()
+                    // Three fragments, three styles, one Text: each `Text`
+                    // interpolated into the outer one keeps its styling.
+                    Text(
+                        """
+                        \(Text("page.textStyles.concatLabel").bold())\
+                        \(Text("page.textStyles.concatValue").foregroundStyle(.palette.accent))\
+                        \(Text("page.textStyles.concatNote").dim())
+                        """)
 
                     // The same thing narrow enough to wrap: the break falls
                     // wherever the words need it, including inside a fragment,
                     // and each fragment keeps its styling on every line it
                     // reaches. An HStack of three Texts could not do that.
-                    (Text("page.textStyles.concatLabel").bold()
-                        + Text("page.textStyles.concatLong")
-                            .foregroundStyle(.palette.accent))
-                        .frame(width: 34)
+                    Text(
+                        """
+                        \(Text("page.textStyles.concatLabel").bold())\
+                        \(Text("page.textStyles.concatLong").foregroundStyle(.palette.accent))
+                        """
+                    )
+                    .frame(width: 34)
 
                     // A modifier on the RESULT is the base beneath each
                     // fragment's own attributes — the first stays bold.
-                    (Text("page.textStyles.concatLabel").bold()
-                        + Text("page.textStyles.concatValue"))
+                    Text("\(Text("page.textStyles.concatLabel").bold())\(Text("page.textStyles.concatValue"))")
                         .italic()
 
                     // A semantic font travels WITH its fragment, which is why
-                    // `Text` has a `.font(_:)` of its own: the join makes ONE
-                    // view, so a container's font could only reach both halves
-                    // at once. Here the heading is emphatic and the aside is
-                    // faint, in a single Text.
-                    Text("page.textStyles.concatLabel").font(.headline)
-                        + Text("page.textStyles.concatNote").font(.caption)
+                    // `Text` has a `.font(_:)` of its own: the fragments make
+                    // ONE view, so a container's font could only reach them
+                    // all at once. Here the heading is emphatic and the aside
+                    // is faint, in a single Text.
+                    Text(
+                        """
+                        \(Text("page.textStyles.concatLabel").font(.headline))\
+                        \(Text("page.textStyles.concatNote").font(.caption))
+                        """)
                 }
             }
 

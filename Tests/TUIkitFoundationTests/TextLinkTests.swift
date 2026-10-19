@@ -204,9 +204,9 @@ struct TextLinkTests {
 
     // MARK: - It survives what a run goes through
 
-    @Test("A link survives concatenation and a live read")
+    @Test("A link survives interpolation and a live read")
     func survives() throws {
-        let joined = Text(sentence) + Text(Date(timeIntervalSinceNow: 3600), style: .relative)
+        let joined = Text("\(Text(sentence))\(Text(Date(timeIntervalSinceNow: 3600), style: .relative))")
         #expect(joined.runs?.contains { $0.link == url } == true)
         let read = try #require(joined.readingLive(at: Date(), in: .current))
         #expect(read.text.runs?.contains { $0.link == url } == true)

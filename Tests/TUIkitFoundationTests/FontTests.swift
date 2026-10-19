@@ -128,24 +128,24 @@ struct FontTests {
     // MARK: - The Text-level spelling
 
     /// The reason ``Text/font(_:)`` exists at all rather than deferring to the
-    /// `View` spelling: `Text + Text` folds each side into one view, so a font
-    /// that lived only in the environment would be *gone* by the time the
-    /// joined text rendered. Both halves have to keep their own.
-    @Test("a fragment carries its font through a concatenation")
+    /// `View` spelling: interpolated `Text`s become one view, so a font that
+    /// lived only in the environment would be *gone* by the time the joined
+    /// text rendered. Both halves have to keep their own.
+    @Test("a fragment carries its font through an interpolation")
     func fontSurvivesConcatenation() {
-        let joined = Text(verbatim: "Report") + Text(verbatim: " just now").font(.caption)
+        let joined = Text("\(Text(verbatim: "Report"))\(Text(verbatim: " just now").font(.caption))")
         #expect(!codes(joined, over: "Report").contains("2"), "the first half is not faint")
         #expect(codes(joined, over: "just now").contains("2"), "…and the second half is")
     }
 
-    /// The other half of that, and the one the fold in `Text.+` exists for:
-    /// `(a + b)` is already one `Text` with runs, so a font applied to it lives
-    /// on the base — and joining again has to push it INTO those runs, since
-    /// the third fragment's join discards the base it replaces.
+    /// The other half of that, and the one the fold in an interpolated
+    /// `Text`'s runs exists for: `pair` is already one `Text` with runs, so a
+    /// font applied to it lives on the base — and interpolating it again has
+    /// to push it INTO those runs, since the outer text has a base of its own.
     @Test("a font on an already-joined text survives a further join")
     func fontFoldsIntoExistingRuns() {
-        let pair = (Text(verbatim: "Deploy") + Text(verbatim: "ment")).font(.caption)
-        let joined = pair + Text(verbatim: " now")
+        let pair = Text("\(Text(verbatim: "Deploy").italic())\(Text(verbatim: "ment"))").font(.caption)
+        let joined = Text("\(pair)\(Text(verbatim: " now"))")
         #expect(codes(joined, over: "Deploy").contains("2"), "the first fragment kept it")
         #expect(codes(joined, over: "ment").contains("2"), "…and so did the second")
         #expect(!codes(joined, over: " now").contains("2"), "…and it did not leak onto the third")
@@ -153,10 +153,10 @@ struct FontTests {
 
     /// A fragment's font is not merely a bundle of baseline attributes copied
     /// in: it has to *match scopes*, or a theme would reach a `Text.font(_:)`
-    /// and stop at the boundary of a concatenation.
+    /// and stop at the boundary of an interpolated fragment.
     @Test("a fragment's own font matches its own cascade scope")
     func fragmentFontMatchesItsScope() {
-        let joined = Text(verbatim: "Report") + Text(verbatim: " just now").font(.caption)
+        let joined = Text("\(Text(verbatim: "Report"))\(Text(verbatim: " just now").font(.caption))")
         let themed = joined.style(.font(.caption)) { $0.underline = true }
         #expect(!codes(themed, over: "Report").contains("4"), "the entry must not reach the first")
         #expect(codes(themed, over: "just now").contains("4"), "…and must reach the caption")
@@ -175,10 +175,9 @@ struct FontTests {
     /// either — otherwise a styled fragment would reflow the text around it.
     @Test("fragment fonts change no cell count")
     func concatenationGeometryIsUntouched() {
-        let plain = line(Text(verbatim: "Report") + Text(verbatim: " just now"))
+        let plain = line(Text("\(Text(verbatim: "Report"))\(Text(verbatim: " just now"))"))
         let styled = line(
-            Text(verbatim: "Report").font(.largeTitle)
-                + Text(verbatim: " just now").font(.caption))
+            Text("\(Text(verbatim: "Report").font(.largeTitle))\(Text(verbatim: " just now").font(.caption))"))
         #expect(styled.stripped == plain.stripped)
         #expect(styled.strippedLength == plain.strippedLength)
     }

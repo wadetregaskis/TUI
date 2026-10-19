@@ -220,7 +220,7 @@ source-**identical**.
 | every gradient type is also a `View` | same | `ZStack { LinearGradient(…) }` must work |
 | `ShapeStyle.opacity(_:)`, `.in(_ rect:)` | same, `CellRect` | `.in(_:)` is the portable "fix the ramp's scale" |
 | static members `.linearGradient(…)`, `.radialGradient(…)`, `.angularGradient(…)` | same | on `ShapeStyle where Self == …` |
-| `Text.foregroundStyle<S>` returns **`Text`** | same | or `Text("a").foregroundStyle(g) + Text("b")` breaks |
+| `Text.foregroundStyle<S>` returns **`Text`** | same | or `Text("\(Text("a").foregroundStyle(g))b")` breaks (it was `Text("a").foregroundStyle(g) + Text("b")` before `+` went, 2026-10-18) |
 | `Gradient.ColorSpace` (`.device` / `.perceptual`), `colorSpace(_:)` | **shipped** | see §18 |
 | `Color.mix(with:by:in:)` | **ship** | a two-stop `Gradient` evaluated at `by`; note its default space is `.perceptual` |
 | `MeshGradient` | **decline, recorded** | "given a cell, what is t?" generalises to (u,v), so it is not impossible — it is simply not worth it at 80×24 |
@@ -970,6 +970,10 @@ go.** The comment on `extension Color: View` says so, in the file.
 
 ## 15. Banding a concatenation
 
+(The examples below were written with `Text + Text`; since `+` went with SwiftUI's
+deprecation of it, 2026-10-18, a text of several runs is spelled by interpolating
+`Text`s, `Text("\(Text("aaa").italic())bbb")`, and banded the same way.)
+
 `Text("aaa") + Text("bbb")` under a horizontal ramp used to come out one flat
 colour — the ramp's representative for the whole line — because the attributed
 path and the ramp path were two separate branches and only one of them could
@@ -992,7 +996,7 @@ Three rules fall out of it, all tested:
 
 - **A fragment that states its own colour keeps it.** An explicit colour beats
   an inherited style here as everywhere else, so
-  `Text("aaa").foregroundStyle(.grey) + Text("bbb")` under a ramp is a grey
+  `Text("\(Text("aaa").foregroundStyle(.grey))bbb")` under a ramp is a grey
   "aaa" and a banded "bbb".
 - **A fragment's other attributes survive.** The ramp supplies a foreground,
   not a style, so a bold fragment stays bold through it.

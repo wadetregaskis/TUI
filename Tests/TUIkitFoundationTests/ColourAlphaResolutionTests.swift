@@ -590,15 +590,14 @@ struct TranslucentPaintTests {
     ///
     /// Here the middle fragment is translucent and the outer two are not, so the
     /// claim has to start at column 5 and be 5 wide — not cover the line.
-    @Test("A concatenation claims each translucent fragment's own columns")
+    @Test("A text of several runs claims each translucent fragment's own columns")
     func fragmentsClaimTheirOwnColumns() {
         var faint = Color.green
         faint.alpha = 102
         let context = makeRenderContext(width: 30, height: 3)
-        let text =
-            Text("HELLO").foregroundStyle(.red)
-            + Text("world").foregroundStyle(faint)
-            + Text("AGAIN").foregroundStyle(.blue)
+        let text = Text(
+            "\(Text("HELLO").foregroundStyle(.red))\(Text("world").foregroundStyle(faint))\(Text("AGAIN").foregroundStyle(.blue))"
+        )
         let buffer = renderToBuffer(text, context: context)
 
         #expect(buffer.opacityRegions.count == 1, "one claim: \(buffer.opacityRegions)")
@@ -611,23 +610,24 @@ struct TranslucentPaintTests {
             "at 40%: \(String(describing: claim?.inkOpacity))")
     }
 
-    /// **The regression the runs arm actually had.** A concatenation whose
-    /// fragments all take ONE translucent colour is the uniform case the plain arm
-    /// already handled — and `guard runs == nil` refused it anyway. So adding
-    /// `+ Text("")` to a working translucent `Text` silently made it opaque.
-    @Test("A uniformly translucent concatenation claims its whole line")
+    /// **The regression the runs arm actually had.** A text of several runs
+    /// whose fragments all take ONE translucent colour is the uniform case the
+    /// plain arm already handled — and `guard runs == nil` refused it anyway. So
+    /// joining a fragment to a working translucent `Text` silently made it
+    /// opaque.
+    @Test("A uniformly translucent text of several runs claims its whole line")
     func uniformConcatenationIsNotRefused() {
         var faint = Color.green
         faint.alpha = 102
         let context = makeRenderContext(width: 30, height: 3)
         let plain = renderToBuffer(Text("abcdef").foregroundStyle(faint), context: context)
         let joined = renderToBuffer(
-            (Text("abc").bold() + Text("def")).foregroundStyle(faint), context: context)
+            Text("\(Text("abc").bold())\(Text("def"))").foregroundStyle(faint), context: context)
 
         #expect(!plain.opacityRegions.isEmpty, "the plain text claims: \(plain.opacityRegions)")
         #expect(
             joined.opacityRegions.count == 1,
-            "and the concatenation coalesces to one: \(joined.opacityRegions)")
+            "and the runs coalesce to one: \(joined.opacityRegions)")
         #expect(
             joined.opacityRegions.first?.width == plain.opacityRegions.first?.width,
             "over the same columns: \(joined.opacityRegions)")
@@ -643,7 +643,7 @@ struct TranslucentPaintTests {
         faint.alpha = 102
         let context = makeRenderContext(width: 30, height: 3)
         // "日本" is two characters and four cells.
-        let text = Text("日本").foregroundStyle(.red) + Text("ab").foregroundStyle(faint)
+        let text = Text("\(Text("日本").foregroundStyle(.red))\(Text("ab").foregroundStyle(faint))")
         let buffer = renderToBuffer(text, context: context)
         #expect(
             buffer.opacityRegions.first?.offsetX == 4,

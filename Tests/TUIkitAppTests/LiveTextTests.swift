@@ -118,12 +118,12 @@ struct LiveTextTests {
         }
     }
 
-    @Test("A live run keeps its place and the styling around it in a concatenation")
+    @Test("A live run keeps its place and the styling around it among interpolated fragments")
     func concatenation() {
         let (tui, context, scheduler) = harness()
         let at = base.addingTimeInterval(3)
-        let joined = Text("Ends ").bold() + Text(live: TickSource(origin: base)) + Text(verbatim: "!")
-        let plain = Text("Ends ").bold() + Text(verbatim: "tick 3") + Text(verbatim: "!")
+        let joined = Text("\(Text("Ends ").bold())\(Text(live: TickSource(origin: base)))\(Text(verbatim: "!"))")
+        let plain = Text("\(Text("Ends ").bold())\(Text(verbatim: "tick 3"))\(Text(verbatim: "!"))")
         let drawn = render(joined, at: at, tui: tui, context: context, scheduler: scheduler)
         #expect(drawn.lines.map(\.stripped) == ["Ends tick 3!"])
         #expect(drawn.lines == render(plain, at: at, tui: tui, context: context, scheduler: scheduler).lines)
@@ -173,11 +173,11 @@ struct LiveTextTests {
         #expect(scheduler.isIdle)
     }
 
-    @Test("A plain text and a plain concatenation ask for nothing")
+    @Test("A plain text and a text of styled fragments ask for nothing")
     func plainTextsAreIdle() {
         let (tui, context, scheduler) = harness()
         _ = render(
-            VStack { Text("a"); Text("b").bold() + Text("c") }, at: base, tui: tui, context: context,
+            VStack { Text("a"); Text("\(Text("b").bold())\(Text("c"))") }, at: base, tui: tui, context: context,
             scheduler: scheduler)
         #expect(scheduler.isIdle)
     }

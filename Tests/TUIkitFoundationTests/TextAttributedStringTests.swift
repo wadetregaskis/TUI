@@ -203,11 +203,10 @@ struct TextAttributedStringTests {
         #expect(attributes(of: "kept", in: lines(text)) == [1, 4])
     }
 
-    @Test("Concatenation keeps each part's attributes")
+    @Test("Interpolation keeps each part's attributes")
     func concatenation() {
-        let joined =
-            Text(attributed(("alpha ", { $0.foregroundColor = red })))
-            + Text(verbatim: "beta").bold()
+        let alpha = Text(attributed(("alpha ", { $0.foregroundColor = red })))
+        let joined = Text("\(alpha)\(Text(verbatim: "beta").bold())")
         let drawn = lines(joined)
         #expect(joined.content == "alpha beta")
         #expect(parameters(of: "alpha", in: drawn).contains(codes(red)))
@@ -215,11 +214,10 @@ struct TextAttributedStringTests {
         #expect(!parameters(of: "beta", in: drawn).contains(codes(red)))
     }
 
-    @Test("A live text concatenated with an attributed one stays live")
+    @Test("A live text interpolated beside an attributed one stays live")
     func liveStaysLive() {
-        let joined =
-            Text(attributed(("Due ", { $0.underlineStyle = .single })))
-            + Text(Date(timeIntervalSinceNow: 3600), style: .relative)
+        let due = Text(attributed(("Due ", { $0.underlineStyle = .single })))
+        let joined = Text("\(due)\(Text(Date(timeIntervalSinceNow: 3600), style: .relative))")
         #expect(joined.isLive)
     }
 

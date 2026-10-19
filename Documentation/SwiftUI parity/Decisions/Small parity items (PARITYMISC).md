@@ -124,3 +124,27 @@ today), and the strip and the sidebar drawing a tab's title as a `Text`. A
 header is already bold, so only italic, strikethrough and a code span would
 show. About half a day each, and an A/B, since both are drawn every frame
 (B87's own change cost `app-shapes` +2.3%).
+
+### B-PARITYMISC-4. A gradient on one interpolated fragment is written as its description
+
+*`LocalizedStringKey.StringInterpolation.appendInterpolation(_:)`, the
+catch-all; `Text + Text`, removed*
+
+`Text + Text` is gone (SwiftUI deprecated it in macOS 26; the owner's ruling
+[21] of 2026-10-12), replaced by SwiftUI's own replacement: an interpolated
+`Text` keeps its styling. One thing `+` did differently: a gradient on one
+fragment, `Text("a").foregroundStyle(gradient) + Text("b")`, failed to
+compile, because `foregroundStyle` with a gradient returns a view, not a
+`Text`. Interpolated, that view takes the catch-all `appendInterpolation(_:)`
+and is written as its description, which SwiftUI's catch-all (deprecated
+there, with a warning) does too.
+
+**Shipped:** the interpolation as SwiftUI has it; the hole is recorded in the
+compatibility guide's gradient note.
+
+**The fuller version** closes it: an unavailable `appendInterpolation` for a
+view that is not a `Text` or an `Image`, so the spelling fails to compile as it
+did under `+`, or SwiftUI's typed overloads with the catch-all retired (the
+DEPR audit's tenth item). The first is an hour but also refuses
+`\(Color.red)`, which SwiftUI accepts with a warning; the second is half a
+day and decides what each SwiftUI-accepted type writes.

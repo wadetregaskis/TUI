@@ -161,7 +161,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
                 let prefix = self.prefix(for: value.id)
                 // A plain text stays plain, and so stays on the string path.
                 return text.drawsAsPlainString
-                    ? Text(verbatim: prefix + text.content) : Text(verbatim: prefix) + text
+                    ? Text(verbatim: prefix + text.content) : text.prefixed(with: prefix)
             }
         case .view(let render):
             column.cell = .view { value, context in

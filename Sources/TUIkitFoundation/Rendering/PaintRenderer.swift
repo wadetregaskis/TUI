@@ -156,11 +156,11 @@ package enum PaintRenderer {
     }
 
     /// The attributed twin: each line already cut into the pieces its
-    /// concatenated `Text` gave it, so a ramp bands ACROSS the pieces instead
-    /// of collapsing to one colour for the whole line.
+    /// `Text`'s runs gave it, so a ramp bands ACROSS the pieces instead of
+    /// collapsing to one colour for the whole line.
     ///
     /// A piece that stated a colour of its own keeps it and is painted flat —
-    /// `Text("a").foregroundStyle(.red) + Text("b")` under a ramp is a red "a"
+    /// `Text("\(Text("a").foregroundStyle(.red))b")` under a ramp is a red "a"
     /// and a ramped "b", which is the precedence every other styling follows.
     ///
     /// ## Claims

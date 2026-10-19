@@ -197,16 +197,17 @@ struct GradientForegroundTests {
         #expect(cells.first == "255;0;0")
     }
 
-    // MARK: - Concatenated text
+    // MARK: - Text of several runs
 
-    /// A concatenation is ONE `Text`, so a ramp runs across the whole of it —
-    /// the cell decides the colour and the fragment decides everything else.
-    /// It used to take the ramp's representative for the entire line, so a
-    /// concatenated line was one flat middle colour.
-    @Test("A ramp bands across the fragments of a concatenation")
+    /// Interpolated fragments make ONE `Text`, so a ramp runs across the whole
+    /// of it — the cell decides the colour and the fragment decides everything
+    /// else. It used to take the ramp's representative for the entire line,
+    /// so a line of several runs was one flat middle colour. (Each case gives
+    /// a fragment a style that leaves its colour alone, so the text has runs.)
+    @Test("A ramp bands across the fragments of a text")
     func concatenationBands() {
         let lines = render(
-            (Text(verbatim: "aaa") + Text(verbatim: "bbb"))
+            Text("\(Text(verbatim: "aaa").italic())\(Text(verbatim: "bbb"))")
                 .foregroundStyle(
                     LinearGradient(colors: [red, blue], startPoint: .leading, endPoint: .trailing)),
             width: 6)
@@ -223,7 +224,9 @@ struct GradientForegroundTests {
     func theSeamIsInvisible() {
         let ramp = LinearGradient(colors: [red, blue], startPoint: .leading, endPoint: .trailing)
         let split = painted(
-            render((Text(verbatim: "aaa") + Text(verbatim: "bbb")).foregroundStyle(ramp), width: 6)[0])
+            render(
+                Text("\(Text(verbatim: "aaa").italic())\(Text(verbatim: "bbb"))").foregroundStyle(ramp), width: 6
+            )[0])
         let whole = painted(render(Text(verbatim: "aaabbb").foregroundStyle(ramp), width: 6)[0])
         #expect(split == whole, "the seam moved a colour: \(split) vs \(whole)")
     }
@@ -233,7 +236,7 @@ struct GradientForegroundTests {
     @Test("A fragment with its own colour is not banded")
     func statedColourWinsOverTheRamp() {
         let lines = render(
-            (Text(verbatim: "aaa").foregroundStyle(Color.rgb(9, 9, 9)) + Text(verbatim: "bbb"))
+            Text("\(Text(verbatim: "aaa").foregroundStyle(Color.rgb(9, 9, 9)))\(Text(verbatim: "bbb"))")
                 .foregroundStyle(
                     LinearGradient(colors: [red, blue], startPoint: .leading, endPoint: .trailing)),
             width: 6)
@@ -249,7 +252,7 @@ struct GradientForegroundTests {
     @Test("A bold fragment stays bold through the ramp")
     func boldFragmentStaysBold() {
         let lines = render(
-            (Text(verbatim: "aaa").bold() + Text(verbatim: "bbb"))
+            Text("\(Text(verbatim: "aaa").bold())\(Text(verbatim: "bbb"))")
                 .foregroundStyle(
                     LinearGradient(colors: [red, blue], startPoint: .leading, endPoint: .trailing)),
             width: 6)
@@ -260,12 +263,12 @@ struct GradientForegroundTests {
         #expect(cells.first == "255;0;0" && cells.last == "0;0;255", "\(cells)")
     }
 
-    /// A vertical ramp over a wrapped concatenation still steps per ROW, which
-    /// is the cheap path (one run per line) and must stay that way.
-    @Test("A vertical ramp over a concatenation steps per row")
+    /// A vertical ramp over a wrapped text of several runs still steps per
+    /// ROW, which is the cheap path (one run per line) and must stay that way.
+    @Test("A vertical ramp over a text of several runs steps per row")
     func verticalConcatenationStepsPerRow() {
         let lines = render(
-            (Text(verbatim: "aaaa ") + Text(verbatim: "bbbb"))
+            Text("\(Text(verbatim: "aaaa ").italic())\(Text(verbatim: "bbbb"))")
                 .foregroundStyle(
                     LinearGradient(colors: [red, blue], startPoint: .top, endPoint: .bottom))
                 .frame(width: 5),

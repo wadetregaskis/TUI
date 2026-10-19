@@ -67,13 +67,13 @@ public struct Text: View, Equatable {
     ///
     /// `nil` is not an empty list: it is the overwhelmingly common case, and it
     /// takes the original render path untouched — no re-attribution, no extra
-    /// allocation, byte-identical output. See ``Text/+(_:_:)``.
+    /// allocation, byte-identical output. See `Text.Run`.
     package var runs: [Run]?
 
     /// The style of the text (color, formatting, etc.).
     ///
-    /// For a concatenated text this is the *base* beneath every run's own
-    /// attributes — see ``Text/+(_:_:)``.
+    /// For a text of several runs this is the *base* beneath every run's own
+    /// attributes — see `Text.Run`.
     package var style: TextStyle
 
     /// Whether this text draws nothing but its characters: no style or styled
@@ -408,15 +408,15 @@ extension Text {
     /// The `Text`-level spelling of ``View/font(_:)``, meaning the same thing: a
     /// terminal has one typeface at one size, so a font selects **intensity**
     /// rather than metrics (see ``Font``). What it adds is *survival through
-    /// concatenation* — a fragment carries its font into the joined text, so
-    /// both halves of
+    /// interpolation* — a fragment carries its font into the text it is
+    /// interpolated into, so both halves of
     ///
     /// ```swift
-    /// Text(name) + Text(" edited just now").font(.caption)
+    /// Text("\(Text(name)) \(Text("edited just now").font(.caption))")
     /// ```
     ///
     /// render as what they are. A container's `.font(_:)` cannot do that: it
-    /// reaches the whole subtree, and a concatenation is one view.
+    /// reaches the whole subtree, and the result is one view.
     ///
     /// - Parameter font: The font to use, or `nil` for the default appearance —
     ///   which, inside a `.font(...)` subtree, is how this one text opts out.
