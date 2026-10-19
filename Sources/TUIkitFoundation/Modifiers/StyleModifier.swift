@@ -182,6 +182,9 @@ extension View {
 extension StyleCascadeModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
+    /// Its content's context: the style it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
+
     public func rewrapping<V: View>(_ view: V) -> any View {
         StyleCascadeModifier<V>(content: view, scope: scope, attributes: attributes)
     }

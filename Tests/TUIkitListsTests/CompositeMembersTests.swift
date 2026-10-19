@@ -189,6 +189,36 @@ private struct OneOrNone: View {
     }
 }
 
+/// A body that is one view or none, by the environment.
+private struct LabelledBadge: View {
+    @Environment(\.memberLabel) private var label
+    var body: some View {
+        if label == "set" { Text("on") } else { EmptyView() }
+    }
+}
+
+/// A body that is two views or one, by the environment.
+private struct LabelledBranch: View {
+    @Environment(\.memberLabel) private var label
+    var body: some View {
+        if label == "set" {
+            Text("a")
+            Text("b")
+        } else {
+            Text("c")
+        }
+    }
+}
+
+/// A body of two views, the first saying whether it is enabled.
+private struct EnabledPair: View {
+    @Environment(\.isEnabled) private var isEnabled
+    var body: some View {
+        Text(isEnabled ? "on" : "off")
+        Text("x")
+    }
+}
+
 /// What a layout was handed.
 @MainActor
 private final class Count {
@@ -346,18 +376,25 @@ struct CompositeMembersTests {
         #expect(appeared == 1)
     }
 
-    /// A wrapper hands its content's members on in the context it was given
-    /// (`ChildViewProvider` for a `ContentRewrapping`), so a view of the
-    /// app's own among them has its body evaluated without the value the
-    /// wrapper publishes, and draws "unset x" (decisions B-LAYOUT-8). Each
-    /// member is drawn inside a copy of the wrapper, so a view the body made
-    /// reads the value; only what the body itself read is wrong.
+    /// A wrapper resolves its content's members in the context it lays its
+    /// content out in (`SingleContentWrapper.membersContext`), so a view of
+    /// the app's own among them has its body evaluated with the value the
+    /// wrapper publishes. Resolved in the wrapper's own context, the body read
+    /// the value from above it: `unset x`, and a body that chose its views by
+    /// it chose the wrong ones — an `EmptyView` arm, so the view vanished
+    /// (decisions B-LAYOUT-8; found in review).
     @Test("A body taken apart under an environment wrapper reads the wrapper's value")
     func takenApartUnderAnEnvironmentWrapper() {
         let drawn = lines(HStack(spacing: 1) { Group { LabelledPair() }.environment(\.memberLabel, "set") })
-        withKnownIssue("a wrapper hands members on without its environment (decisions B-LAYOUT-8)") {
-            #expect(drawn.first == "set x", "\(drawn)")
+        #expect(drawn.first == "set x", "\(drawn)")
+        let badge = HStack(spacing: 1) {
+            Text("<")
+            Group { LabelledBadge() }.environment(\.memberLabel, "set")
+            Text(">")
         }
+        #expect(lines(badge).first == "< on >")
+        #expect(lines(HStack(spacing: 1) { Group { LabelledBranch() }.environment(\.memberLabel, "set") }).first == "a b")
+        #expect(lines(HStack(spacing: 1) { Group { EnabledPair() }.disabled(true) }).first == "off x")
     }
 
     @Test("A view whose body holds its own type in an arm is asked once whether it hands over children")

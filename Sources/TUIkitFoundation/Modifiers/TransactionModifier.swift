@@ -150,6 +150,9 @@ extension _ValueScopedTransactionView: Layoutable {
 extension _ValueScopedTransactionView: ContentRewrapping {
     public var wrappedContent: Content { content }
 
+    /// Its content's context: the transaction it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { transformedContext(context) ?? context }
+
     public func rewrapping<Inner: View>(_ view: Inner) -> any View {
         _ValueScopedTransactionView<Inner, V>(content: view, value: value, transform: transform)
     }

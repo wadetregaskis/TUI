@@ -349,6 +349,9 @@ extension View {
 extension ThemeModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
+    /// Its content's context: the theme it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
+
     public func rewrapping<V: View>(_ view: V) -> any View {
         ThemeModifier<V>(content: view, theme: theme)
     }

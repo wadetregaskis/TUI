@@ -96,6 +96,9 @@ extension View {
 extension DisabledModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
+    /// Its content's context: the disabled state it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
+
     public func rewrapping<V: View>(_ view: V) -> any View {
         DisabledModifier<V>(content: view, disabled: disabled)
     }

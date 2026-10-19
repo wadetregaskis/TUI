@@ -208,12 +208,13 @@ package func extractRowBadge(from view: any View) -> ListRowBadge? {
 
 extension BadgeModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // Create modified environment with badge value.
-        let modifiedEnvironment = context.environment.setting(\EnvironmentValues.badgeValue, to: value)
-        let modifiedContext = context.withEnvironment(modifiedEnvironment)
+        TUIkitView.renderToBuffer(content, context: badgeContext(context))
+    }
 
-        // Render content with the badge in environment.
-        return TUIkitView.renderToBuffer(content, context: modifiedContext)
+    /// The context the content is drawn and measured in: `context` with the
+    /// badge value in the environment.
+    fileprivate func badgeContext(_ context: RenderContext) -> RenderContext {
+        context.withEnvironment(context.environment.setting(\EnvironmentValues.badgeValue, to: value))
     }
 }
 
@@ -224,7 +225,7 @@ extension BadgeModifier: Layoutable {
     /// uses: a child that draws the badge (a tab, a list row) sizes differently
     /// with it set, so the plain context would under-measure.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
+        measureChild(content, proposal: proposal, context: badgeContext(context))
     }
 }
 
@@ -234,6 +235,10 @@ extension BadgeModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it.
 extension BadgeModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// Its content's context: the badge value it publishes
+    /// (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { badgeContext(context) }
 }
 
 /// A badge on several views is each one's, as SwiftUI's modifier on a `Group`
@@ -263,6 +268,6 @@ extension BadgeModifier: DrawsContentUnchanged {}
 /// `ContentContextStating`.
 extension BadgeModifier: ContentContextStating {
     package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        context.withEnvironment(context.environment.setting(\EnvironmentValues.badgeValue, to: value))
+        badgeContext(context)
     }
 }

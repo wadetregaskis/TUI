@@ -186,6 +186,13 @@ private struct RedactionScope<Content: View>: View {
 extension RedactionScope: ContentRewrapping {
     var wrappedContent: Content { content }
 
+    /// Its content's context: the reasons in force, these added, as its body
+    /// publishes them (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
+        let reasons = context.environment.redactionReasons.union(added)
+        return context.withEnvironment(context.environment.setting(\.redactionReasons, to: reasons))
+    }
+
     func rewrapping<V: View>(_ view: V) -> any View {
         RedactionScope<V>(added: added, content: view)
     }

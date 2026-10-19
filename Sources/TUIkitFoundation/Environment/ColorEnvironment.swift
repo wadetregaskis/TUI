@@ -280,6 +280,9 @@ extension _StyleEnvironmentView: Layoutable {
 extension _StyleEnvironmentView: ContentRewrapping {
     var wrappedContent: Content { content }
 
+    /// Its content's context: the style it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { childContext(context) }
+
     func rewrapping<V: View>(_ view: V) -> any View {
         _StyleEnvironmentView<V, S>(
             content: view, style: style, slot: slot, fades: fades, clearsLevels: clearsLevels,

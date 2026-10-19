@@ -221,11 +221,41 @@ public protocol SingleContentWrapper {
     /// `true`. A wrapper that moves its content by a known offset answers the
     /// guide query itself instead (`.padding`, `.frame`, `.border`).
     static var _keepsContentGeometry: Bool { get }
+
+    /// The context this wrapper lays its content out in, given its own — the
+    /// one its measure hands its content: the environment it publishes to its
+    /// subtree, the flags it sets. For a walk that reads the content without
+    /// laying the wrapper out: the resolution of its content's members
+    /// (``ChildViewProvider`` for a ``ContentRewrapping`` wrapper), which
+    /// evaluates the body of a view of the app's own among them, and a guide
+    /// query, which lays the content out to ask it.
+    ///
+    /// `nil` by default — not said — and then the content's members are
+    /// resolved in the wrapper's own context, and a guide query stops at the
+    /// wrapper. Worked out as the measure works it out, so it notes what a
+    /// measure notes (an environment value applied, once a pass) and does
+    /// nothing more.
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext?
 }
 
 extension SingleContentWrapper {
     /// A wrapper is not taken to keep its content's geometry unless it says so.
     public static var _keepsContentGeometry: Bool { false }
+
+    /// Not said, unless a wrapper says.
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { nil }
+
+    /// The context this wrapper's content's members are resolved in: the one
+    /// it lays its content out in (``wrappedContentContext(_:)``), at the wrapper's
+    /// own identity — each member is drawn inside a copy of the wrapper, at
+    /// the identity the container gives it, so it is pinned where a member
+    /// resolved in the wrapper's own context was — or the wrapper's own where
+    /// it has not said.
+    package func membersContext(_ context: RenderContext) -> RenderContext {
+        guard var inner = wrappedContentContext(context) else { return context }
+        inner.identity = context.identity
+        return inner
+    }
 }
 
 /// Whether wrappers of `type` lay their content out where they are laid out
@@ -412,12 +442,18 @@ public protocol ContentRewrapping: SingleContentWrapper {
 extension ChildViewProvider where Self: ContentRewrapping, WrappedContent: ChildViewProvider {
     /// The content's members, each one back inside a copy of this wrapper.
     ///
-    /// - Parameter context: The rendering context, passed to the content
-    ///   unchanged — the wrapper adjusts what it wraps, not where its content
-    ///   resolves its children.
+    /// Resolved in the context the wrapper lays its content out in, at its own
+    /// identity (``SingleContentWrapper/membersContext(_:)``): a view of the
+    /// app's own among the members has its body evaluated there, so a body
+    /// that reads the value an environment wrapper publishes chooses its views
+    /// by it — `Group { Badge() }.environment(\.label, "set")` — as it does
+    /// drawn whole. Resolved in the wrapper's own context, it read the value
+    /// from above the wrapper.
+    ///
+    /// - Parameter context: The rendering context.
     /// - Returns: One ``ChildView`` per member of the content.
     public func childViews(context: RenderContext) -> [ChildView] {
-        wrappedContent.childViews(context: context).map { $0.rewrapped(by: self) }
+        wrappedContent.childViews(context: membersContext(context)).map { $0.rewrapped(by: self) }
     }
 
     /// The content's answer: whether the resolution is worth remembering is a

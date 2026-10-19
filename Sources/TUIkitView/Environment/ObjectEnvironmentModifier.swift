@@ -65,7 +65,15 @@ extension ObjectEnvironmentModifier: Layoutable {
     /// ``EnvironmentModifier``'s conformance; injecting an observable has no
     /// layout effect, only an environment one.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
+        measureChild(content, proposal: proposal, context: objectContext(context))
+    }
+
+    /// The context the content is measured in: `context` with the object
+    /// published.
+    fileprivate func objectContext(_ context: RenderContext) -> RenderContext {
+        var modifiedEnvironment = context.environment
+        modifiedEnvironment[observable: T.self] = object
+        return context.withEnvironment(modifiedEnvironment)
     }
 }
 
@@ -77,6 +85,9 @@ extension ObjectEnvironmentModifier: Layoutable {
 ///   stay the enclosing container's own children.
 extension ObjectEnvironmentModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
+
+    /// Its content's context: the object it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { objectContext(context) }
 
     public func rewrapping<V: View>(_ view: V) -> any View {
         ObjectEnvironmentModifier<V, T>(content: view, object: object)
@@ -97,8 +108,6 @@ extension ObjectEnvironmentModifier: DrawsContentUnchanged {}
 /// ``ContentContextStating``.
 extension ObjectEnvironmentModifier: ContentContextStating {
     package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        var modifiedEnvironment = context.environment
-        modifiedEnvironment[observable: T.self] = object
-        return context.withEnvironment(modifiedEnvironment)
+        objectContext(context)
     }
 }

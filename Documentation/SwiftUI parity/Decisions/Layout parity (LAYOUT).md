@@ -313,17 +313,25 @@ Not shipped:
 - **A modifier on such a view** (`Rows().padding(3)`): SwiftUI pads each of
   the body's views (measured: `a` at 5, `b` at 30); here the padded view is
   one child. Taking it apart evaluates `Rows`'s body where the walk meets the
-  modifier, in the walk's context — without what an environment wrapper sets
-  for its content (`Rows().disabled(true)`), so a body that reads
-  `@Environment` to choose its views would choose them as if the wrapper were
-  not there. **A defect found on the way, not fixed:** a view of the app's
-  own already has its body evaluated that way when it is inside a `Group`
-  under such a wrapper, since the wrappers hand their content's members on in
-  the context they are given: `HStack { Group { LabelledPair() }
-  .environment(\.memberLabel, "set") }`, whose body is `Text(label);
-  Text("x")`, draws `unset x` (`CompositeMembersTests`, a known issue). What
-  the body made is drawn inside a copy of the wrapper, so only what the body
-  itself read is wrong.
+  modifier, which must be in the context the modifier gives its content
+  (`Rows().disabled(true)`), so that a body that reads `@Environment` to
+  choose its views chooses them as drawn whole.
+
+**A defect found on the way, fixed after review:** the wrappers that hand a
+`Group`'s members on resolved them in the context they were given, so a view
+of the app's own among the members had its body evaluated without the value
+the wrapper publishes: `HStack { Group { LabelledPair() }
+.environment(\.memberLabel, "set") }`, whose body is `Text(label);
+Text("x")`, drew `unset x`. Taking apart more shapes (an `if`/`else` with an
+`EmptyView` arm or an arm of several, a modifier on a group) exposed more
+bodies to it, and one choosing its views by the value could choose the wrong
+arm — an `EmptyView`, so the view vanished. A wrapper now says what context
+it lays its content out in (`SingleContentWrapper.wrappedContentContext(_:)`, the
+one its measure hands its content; `nil` where it has not said), and its
+content's members are resolved there, at the wrapper's own identity
+(`membersContext(_:)`): the environment, style, tint, disabled, theme,
+redaction, transaction, selectability, animation, badge and help wrappers
+say (`CompositeMembersTests.takenApartUnderAnEnvironmentWrapper`).
 - **A body that is an `AnyView`** (SwiftUI: several, measured): an `AnyView`'s
   type says nothing of what it erases, and answering "may" for every one
   would evaluate each such view's body in the walk.
@@ -334,12 +342,8 @@ Not shipped:
   a view, beside other rows in a `List`, are selected by the hand-written rule
   (D1S).
 
-**The fuller version:** a requirement on the wrappers that hand members on,
-giving the context their content is resolved in (an environment wrapper's
-adjusted context, which each already computes for its render, some with a
-side effect — an applied value noted in the render cache — that the
-resolution must not repeat), used wherever they hand members on, which fixes
-the defect above; then a wrapper over
+**The fuller version:** with the wrappers' content context in place (the
+defect above), a wrapper over
 such a view hands on the view's members, each in a copy of the wrapper, and
 the static counts (`staticMemberCount`, the row counts, `mayHandOver`, a
 loop's row shape, the keyed row runs, `List`, `Form`, `Section`) are taught

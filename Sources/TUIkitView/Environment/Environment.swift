@@ -372,6 +372,9 @@ extension EnvironmentValues {
 extension EnvironmentModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
+    /// Its content's context: the value it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { contentContext(context) }
+
     public func rewrapping<Inner: View>(_ view: Inner) -> any View {
         EnvironmentModifier<Inner, V>(content: view, keyPath: keyPath, value: value)
     }
@@ -387,6 +390,9 @@ extension EnvironmentModifier: ChildViewProvider where Content: ChildViewProvide
 ///   stay the enclosing container's own children.
 extension TransformEnvironmentModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
+
+    /// Its content's context: the transformed value it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { transformed(context) }
 
     public func rewrapping<Inner: View>(_ view: Inner) -> any View {
         TransformEnvironmentModifier<Inner, V>(content: view, keyPath: keyPath, transform: transform)

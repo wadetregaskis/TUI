@@ -271,6 +271,13 @@ extension HelpModifier: SingleContentWrapper {
     public static var _keepsContentGeometry: Bool { true }
 
     public var wrappedContent: Content { content }
+
+    /// Its content's context: the help text it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
+        var childContext = context
+        childContext.environment.helpText = text
+        return childContext
+    }
 }
 
 /// Help on several views is each one's, as SwiftUI's modifier on a `Group`

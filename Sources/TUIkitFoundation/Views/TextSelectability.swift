@@ -138,6 +138,11 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
 extension _TextSelectionScope: ContentRewrapping {
     var wrappedContent: Content { content }
 
+    /// Its content's context: the selectability it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
+        context.withEnvironment(context.environment.setting(\.textSelectionAllowed, to: allowsSelection))
+    }
+
     func rewrapping<V: View>(_ view: V) -> any View {
         _TextSelectionScope<V>(content: view, allowsSelection: allowsSelection)
     }

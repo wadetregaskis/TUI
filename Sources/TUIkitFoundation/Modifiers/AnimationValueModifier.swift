@@ -111,6 +111,9 @@ extension _AnimationValueModifier: Layoutable {
 extension _AnimationValueModifier: ContentRewrapping {
     var wrappedContent: Content { content }
 
+    /// Its content's context: the animation it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { childContext(context, isMeasuring: true) }
+
     func rewrapping<Inner: View>(_ view: Inner) -> any View {
         _AnimationValueModifier<Inner, V>(content: view, animation: animation, value: value)
     }

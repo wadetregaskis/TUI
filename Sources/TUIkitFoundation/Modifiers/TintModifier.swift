@@ -198,6 +198,9 @@ extension View {
 extension TintModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
+    /// Its content's context: the tint it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
+
     public func rewrapping<V: View>(_ view: V) -> any View {
         TintModifier<V>(content: view, tint: tint)
     }
