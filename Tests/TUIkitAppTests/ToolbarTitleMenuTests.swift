@@ -126,6 +126,23 @@ struct ToolbarTitleMenuTests {
         #expect(TitleMenuProbe.shared.duplicates == 1)
     }
 
+    @Test("The open menu takes the keyboard: Down and Return choose its item")
+    func keyboardChooses() {
+        reset()
+        defer { reset() }
+        let driver = Driver()
+        _ = driver.frame()
+        _ = driver.frame()
+        driver.click(x: 3, y: 0)
+        let open = driver.frame()
+        #expect(open.contains { $0.contains("DUPLICATE") }, "\(open)")
+        _ = driver.app.send(KeyEvent(key: .down))
+        _ = driver.frame()
+        _ = driver.app.send(KeyEvent(key: .enter))
+        _ = driver.frame()
+        #expect(TitleMenuProbe.shared.duplicates == 1, "\(driver.app.screen.map(\.stripped))")
+    }
+
     @Test("toolbarTitleMenu(content:) is the same menu")
     func modifierForm() {
         reset()
