@@ -45,6 +45,9 @@ final class ListReorderFixture {
     /// Rows rendered taller than one line, by label. Variable row heights
     /// are what make the drag's row geometry go stale as rows shuffle.
     var tallRows: [String: Int] = [:]
+    /// Whether every row draws its separator: a rule line under it, which is
+    /// the row's own last line.
+    var rowSeparators = false
     let tui = TUIContext()
     var env = EnvironmentValues()
 
@@ -100,14 +103,16 @@ final class ListReorderFixture {
                 self.items.move(fromOffsets: $0, toOffset: $1)
             }
             : base
+        let separators: Visibility = rowSeparators ? .visible : .automatic
         let list: AnyView =
             selection.isEmpty
-            ? AnyView(List(selection: .constant(String?.none)) { forEach }.frame(height: 9))
+            ? AnyView(
+                List(selection: .constant(String?.none)) { forEach }.listRowSeparator(separators).frame(height: 9))
             : AnyView(
                 List(
                     selection: Binding(
                         get: { self.selection }, set: { self.selection = $0 })
-                ) { forEach }.frame(height: 9))
+                ) { forEach }.listRowSeparator(separators).frame(height: 9))
         // 20 columns wide either way: on its own the list fills the context,
         // and inside the scroller the frame pins it, leaving
         // `20 - horizontalViewport` columns to scroll.

@@ -114,6 +114,29 @@ struct ListReorderMultiRowTests {
     /// multi-row `.live` drag previewed with a slot (several rows in hand never
     /// shuffle live) and then dropped as though `.live` had already moved the
     /// data — which it never had. The gesture did nothing at all.
+    /// Census D-13, reproduced: with separators on, a row's rule is its own
+    /// last line, so a press on it measured the grab point a line past the
+    /// row's content. One row's floating copy clamped it back; a block of
+    /// several, as tall as the press was deep, did not, and hung a line high.
+    @Test("A press on a row's separator holds the block by that row's last line")
+    func pressOnTheRuleHoldsTheRow() {
+        let fixture = ListReorderFixture(feedback: .cursor)
+        fixture.rowSeparators = true
+        fixture.selection = ["a", "b"]
+        let buffer = fixture.render()
+        let session = fixture.tui.dragAndDropSession
+        let rule = fixture.rowY(buffer, "a") + 1
+        #expect(buffer.lines[rule].stripped.contains("─"), "the line under a is its rule: \(buffer.lines.map(\.stripped))")
+        fixture.dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: 2, y: rule))
+        fixture.render()
+        fixture.dispatcher.dispatch(
+            MouseEvent(button: .left, phase: .dragged, x: 2, y: fixture.rowY(buffer, "d")))
+        fixture.render()
+        let floating = (session.active?.preview.lines ?? []).map { $0.stripped.filter(\.isLetter) }
+        #expect(floating == ["a", "b"], "both rows ride the pointer, without their rules")
+        #expect(session.active?.grabY == 0, "held by a's last line, not by the line past it")
+    }
+
     @Test("A multi-row drop commits in the mode the drag was drawn in")
     func multiRowLiveDropActuallyMoves() {
         let fixture = ListReorderFixture(feedback: .live)

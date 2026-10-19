@@ -189,8 +189,11 @@ position (decisions B19).
 The rule line is the row's own bottom line, as a separator is the row's
 `.bottom` edge in SwiftUI's API: a selected or cursor row's highlight runs
 under its own rule, so the highlight is the row's full height, and a click on
-the rule selects the row above it. (Whether macOS paints a selected row's
-highlight over its separator is unmeasured.) A row lifted out of the list —
+the rule selects the row above it, and a drag begun on it holds the row by
+its last line of content — the floating copy carries no rule, and a block of
+several rows grabbed there hung a line high until 2026-10-18 (census D-13,
+reproduced in `ListReorderMultiRowTests`). (Whether macOS paints a selected
+row's highlight over its separator is unmeasured.) A row lifted out of the list —
 a drag's floating copy — leaves its rule behind; the landing slot keeps the
 rule's line, so the rows below do not jump while the drag is held. **The
 fuller version:** the rule drawn outside the row's fill and click band, as a

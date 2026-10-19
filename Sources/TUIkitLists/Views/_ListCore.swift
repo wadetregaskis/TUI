@@ -3521,7 +3521,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                         focusManager?.focus(id: captureFocusID)
                         let band = captureHandler.visibleRowBands.first { $0.rowIndex == hit.rowIndex }
                         grab.x = max(0, event.x - rowContentLeft)
-                        grab.y = max(0, event.y - topInset - (band?.yStart ?? 0))
+                        // Kept to the row's content: its separator is its last
+                        // line, and the floating copy carries no rule, so a
+                        // press on the rule holds the row by its last line of
+                        // content. Measured past it, a block of several rows —
+                        // whose preview is tall enough for the point to stay
+                        // in it — hung a line high (census D-13).
+                        let contentLines = capturedRows.first { $0.index == hit.rowIndex }.map {
+                            max(1, $0.row.content.bufferWithoutSeparator.height)
+                        }
+                        grab.y = min(
+                            max(0, event.y - topInset - (band?.yStart ?? 0)), (contentLines ?? .max) - 1)
                     }
                     return true
 
