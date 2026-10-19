@@ -163,6 +163,15 @@ extension PopoverPresentationModifier: Renderable {
         // the app had bound Escape to behind the popover, live there: an
         // app-wide "⎋ back" took the page away from under it.
         let escapeClaim = context.environment.statusBar?.claimEscape(gate.escapeLabel(dismissal: .closePopover))
+        // A claim that does not grab the input in the escape claim's sense,
+        // which silences the focus path as an open drop-down menu does
+        // (`InputHandler.focusPathHearsKeys`): a popover's content is views
+        // with focus of their own, and their `onKeyPress` handlers heard
+        // nothing while it was up — the compact date picker's calendar worked
+        // its Return around that (decisions-D2C, "Found on the way"). The
+        // app's chrome keys stay grounded behind it by its modal section,
+        // above.
+        context.environment.statusBar?.escapeClaimGrabsInput = false
         context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
             guard event.key == .escape else { return false }
             if dismissIsDisabled || gate.interactiveDismissIsDisabled, !gate.escapePressesCancelButton {

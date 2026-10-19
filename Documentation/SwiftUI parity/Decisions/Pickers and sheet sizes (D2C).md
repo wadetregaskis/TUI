@@ -126,7 +126,14 @@ Not decisions; recorded so they are not lost.
 - **`.onKeyPress(.return)` on a popover's content did not hear Return**
   with the focus inside it (the compact picker's calendar, focused through
   `FocusManager.focus(id:)` as it appeared). Worked around inside the
-  calendar's own handler; not investigated.
+  calendar's own handler; not investigated. **Fixed (lane INPUT,
+  2026-10-18):** no `onKeyPress` on a popover's content heard anything, Return
+  or a letter. The popover's claim on Escape grabbed the input as an open
+  drop-down menu's does, and such a claim silences the whole focus path
+  (`InputHandler.focusPathHearsKeys`); the popover's claim no longer grabs
+  it, and its modal section still keeps the app's keys off the page behind
+  it (`PopoverReturnKeyTests`). The calendar's own handling of Return stays:
+  it is the control's key, as a list row's Return is.
 - **A sidebar's rows are composed afresh every frame.** In a
   `.sidebarAdaptable` tab view of six tabs, 50 by 14 (`TabInteractionsMemoTests`'
   harness), every row is drawn twice per frame — once 7 by 1 and once 7 by 11
@@ -136,4 +143,15 @@ Not decisions; recorded so they are not lost.
   be served across frames anyway: a tab's menu is an `AnyView` built afresh
   whenever the body that makes the tab view runs, and an `AnyView` is keyed by
   its box. Not investigated further; it bears on what a sidebar costs, with
-  the tabs' interactions (A49) or without.
+  the tabs' interactions (A49) or without. **Investigated (lane INPUT,
+  2026-10-18), not fixed:** the second draw is the list's overflow check.
+  `_ListCore.rowsOverflow` reads each row's resolved buffer to add up its
+  height, and resolving a row renders it, for real, at the list's whole
+  height (7 by 14 at 50 by 14 without menus, the case the lane measured);
+  the drawing then renders it at its own, 7 by 1. The row memo keeps one
+  entry per row, keyed by its size, so each render evicts the other's and no
+  draw is ever served (on a quiet frame: 30 rows composed, 1 served while
+  drawing). Either the overflow check measures the rows rather than render
+  them (a row's height is all it reads), or it offers each row the height it
+  will draw at. On the lists' hot path, so an A/B decides it; queued for a
+  lists lane (decisions-INPUT, "Found on the way").

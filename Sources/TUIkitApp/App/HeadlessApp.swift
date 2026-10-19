@@ -203,6 +203,9 @@ package final class HeadlessApp<A: App> {
         renderer.invalidateDiffCache()
     }
 
+    /// The focused control's id, `nil` when nothing holds the focus.
+    package var focusedID: String? { focusManager.currentFocusedID }
+
     /// The frame on screen — the bars and the content, row by row — as the
     /// diff writer last built it for the terminal.
     package var screen: [String] { renderer.diffWriter.shownLines }

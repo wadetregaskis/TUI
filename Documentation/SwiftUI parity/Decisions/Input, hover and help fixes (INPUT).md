@@ -80,3 +80,22 @@ alternate names none, in a menu only, as SwiftUI does; and keep that walk's
 lifecycle from running, since an alternate's `onAppear` must wait until it is
 drawn — a render mode no walk has yet. About half a day, and a hidden render
 of every alternate on every frame that has one.
+
+## Found on the way
+
+Not decisions; recorded so they are not lost.
+
+- **A list's rows are composed twice a frame, and never served while
+  drawing** (decisions-D2C's "sidebar rows composed afresh", investigated
+  here). `_ListCore.rowsOverflow` resolves each row's buffer to add up the
+  rows' heights, which renders the row at the list's whole height, and the
+  drawing renders it again at its own height; the row memo, one entry per row
+  keyed by size, never keeps the one the next draw asks for. Measured on a
+  six-tab `.sidebarAdaptable` sidebar at 50 by 14: 30 rows composed and 1
+  served while drawing on a quiet frame. A plain `List` whose rows fit its
+  height reaches the same check (read from the code, not measured): more
+  rows than lines answer it by counting, without resolving any. The fix — measure the rows in the overflow check, or offer them
+  their drawing height — is on the lists' hot path and wants an A/B, so it is
+  queued for a lists lane rather than made here.
+- **`HeadlessApp.focusedID`**: added for `PopoverReturnKeyTests`, the focused
+  control's id, so a script can ask where the focus is.
