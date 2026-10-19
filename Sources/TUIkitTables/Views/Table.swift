@@ -3777,6 +3777,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             titlesX: originX + selectionGutter(context.environment), columnWidths: state.columnWidths,
             widest: max(1, state.rowContentWidth),
             openMenu: customizes ? columnMenuOpener(context: context, dispatcher: mouseDispatcher) : nil)
+        fileGapPointerShapes(
+            ranges, y: headerY, widest: max(1, state.rowContentWidth), into: &buffer, context: context,
+            mouseDispatcher: mouseDispatcher)
         // A title takes the pointer only to sort or to be customized, so a
         // table that does neither walks its titles not at all.
         guard sortModel != nil || customizes else { return gesture }
@@ -3797,6 +3800,32 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             )
         }
         return gesture
+    }
+
+    /// A column's resize arrow over the gap after it, where TUIkit's controls
+    /// set their own shapes (decisions O12, B-O12-6): the gaps a drag resizes
+    /// — a gap there is, after a column that is not the last and may be
+    /// resized. They take no events of their own (the table's handler takes a
+    /// press on one, decisions LISTSPERF, B-LISTSPERF-1), so each is a shape
+    /// alone, filed as `.pointerStyle(_:)` files one; nothing at all where the
+    /// host's own pointer is not trusted to come back.
+    private func fileGapPointerShapes(
+        _ ranges: [(Int, Range<Int>)], y: Int, widest: Int, into buffer: inout FrameBuffer, context: RenderContext,
+        mouseDispatcher: MouseEventDispatcher
+    ) {
+        guard context.environment.terminalFeatures.controlPointerShapes, !context.isMeasuring, columnSpacing > 0
+        else { return }
+        // The arrow follows the pointer as it moves, which only motion
+        // reporting tells (as `.pointerStyle(_:)` asks for it).
+        mouseDispatcher.requestFeature(.motion, in: context)
+        for (position, (index, xRange)) in ranges.enumerated()
+        where index < columns.count && position < ranges.count - 1 && columns[index].resizeBounds(upTo: widest) != nil {
+            let gap = context.withChildIdentity(erasedType: PointerShape.self, index: index)
+            let styleID = mouseDispatcher.registerPointerStyle(.columnResize, over: [], in: gap)
+            buffer.hitTestRegions.insert(
+                HitTestRegion(offsetX: xRange.upperBound, offsetY: y, width: columnSpacing, height: 1, handlerID: styleID),
+                at: 0)
+        }
     }
 
     /// Hands `handler` where this frame's header drew each column, out of
