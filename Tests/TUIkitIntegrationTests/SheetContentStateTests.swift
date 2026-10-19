@@ -49,8 +49,20 @@ private struct Draft: View {
     }
 }
 
+/// A presentation's content that counts, in its own `@State`, how many times
+/// it has appeared: once for a content that starts afresh.
+private struct Openings: View {
+    var label = ""
+    @State private var openings = 0
+
+    var body: some View {
+        Text("\(label) opened \(openings)".trimmingCharacters(in: .whitespaces))
+            .onAppear { openings += 1 }
+    }
+}
+
 @MainActor
-@Suite("A dismissed sheet's content loses its state, under a view that keeps its subtree's")
+@Suite("A dismissed sheet's or popover's content loses its state, under a view that keeps its subtree's")
 struct SheetContentStateTests {
     private static let width = 60
     private static let height = 20
@@ -113,6 +125,46 @@ struct SheetContentStateTests {
         }
         #expect(shown.edited.contains("draft: edited"), "precondition: the draft was edited: \(shown.edited)")
         #expect(shown.again.contains("draft: second"), "the sheet came back as it was left: \(shown.again)")
+    }
+
+    @Test("Opened again from a List row, a popover's content starts afresh")
+    func popoverInListRow() {
+        let model = DraftModel()
+        let build = {
+            List {
+                Text("row").popover(isPresented: model.binding) { Openings() }
+            }
+        }
+        let harness = harness()
+        harness.frame(build())
+        #expect(screen(harness, build()).contains("opened 1"), "precondition: the popover counted its opening")
+        model.presented = false
+        harness.frame(build())
+        harness.frame(build())
+        model.presented = true
+        harness.frame(build())
+        let again = screen(harness, build())
+        #expect(again.contains("opened 1"), "the popover came back as it was left: \(again)")
+    }
+
+    @Test("An item popover switched to another item and back starts the first item's content afresh")
+    func itemPopoverSwitchedAndBack() {
+        let model = DraftModel()
+        let build = {
+            List {
+                Text("row").popover(item: model.itemBinding) { item in Openings(label: item.id) }
+            }
+        }
+        let harness = harness()
+        harness.frame(build())
+        #expect(screen(harness, build()).contains("A opened 1"), "precondition: the popover counted its opening")
+        model.item = DraftItem(id: "B")
+        harness.frame(build())
+        harness.frame(build())
+        model.item = DraftItem(id: "A")
+        harness.frame(build())
+        let again = screen(harness, build())
+        #expect(again.contains("A opened 1"), "item A's popover came back as it was left: \(again)")
     }
 
     @Test("An item sheet switched to another item and back starts the first item's content afresh")

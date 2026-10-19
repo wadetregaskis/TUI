@@ -192,6 +192,8 @@ extension PopoverPresentationModifier: Renderable {
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(context.environment.overlayContentHeight)
         popoverContext.environment.activeFocusSectionID = sectionID
+        // Where the content's state lies, for the frame it goes.
+        notePresentedContent(at: popoverContext.identity, context: context)
         // Its `.toolbar`s draw their items themselves, in the popover: the
         // window's bars are inert while it is up, and a sheet it is over has
         // rows of its own.
@@ -274,17 +276,42 @@ extension PopoverPresentationModifier: Renderable {
     /// just up, so it does both on every closed frame (the deactivation is a
     /// no-op once the section is gone); one that owns its presentation knows,
     /// and does them once (``ownsPresentation``).
+    ///
+    /// Its content's state goes with it, once, as a dismissed sheet's does
+    /// (``PopoverTeardown/contentIdentity``): under a view that keeps its
+    /// subtree's state — a `List` row, a lazy stack's row — a popover opened
+    /// again came back as it was left.
     private func tearDownIfPresented(context: RenderContext) {
+        let teardown =
+            (context.stateStorage?.existingStorage(for: Self.teardownKey(context)) as StateBox<PopoverTeardown>?)?
+            .value
+        if let teardown, let content = teardown.contentIdentity {
+            context.stateStorage?.invalidateDescendants(of: content, includingItself: true)
+            teardown.contentIdentity = nil
+            teardown.itemKey = nil
+        }
         if ownsPresentation {
-            guard
-                let teardown = (context.stateStorage?.existingStorage(for: Self.teardownKey(context))
-                    as StateBox<PopoverTeardown>?)?.value,
-                teardown.isPending
-            else { return }
+            guard let teardown, teardown.isPending else { return }
             teardown.isPending = false
         }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         context.environment.focusManager?.deactivateSection(id: Self.sectionID(context))
+    }
+
+    /// Notes, at the presenter's identity, where its content is drawn
+    /// (``PopoverTeardown/contentIdentity``), from the first frame it is drawn
+    /// there: the state that goes when the popover closes — or, for the
+    /// `item:` form, when it is presented for another item, which is another
+    /// popover, and the last item's state goes at once.
+    private func notePresentedContent(at identity: ViewIdentity, context: RenderContext) {
+        guard let storage = context.stateStorage else { return }
+        let record = storage.storage(for: Self.teardownKey(context), default: PopoverTeardown()).value
+        if record.itemKey != itemKey, let old = record.contentIdentity {
+            storage.invalidateDescendants(of: old, includingItself: true)
+            record.contentIdentity = nil
+        }
+        record.itemKey = itemKey
+        if record.contentIdentity == nil { record.contentIdentity = identity }
     }
 
     /// The popover's content in its panel: a border and a cell of breathing
@@ -366,15 +393,25 @@ extension PopoverPresentationModifier: Layoutable {
 /// enum because the modifier is generic.
 private enum StateIndex {
     static let dismissalGate = 0
-    /// Whether an ``PopoverPresentationModifier/ownsPresentation`` popover was
-    /// presented since it last drew closed.
+    /// What the popover keeps for its presentation (`PopoverTeardown`).
     static let teardown = 1
 }
 
-/// Whether a popover that owns its presentation has a section to tear down: a
-/// class, so the closed frame that tears it down changes it in place rather
-/// than writing state while it draws.
+/// What a popover keeps for its presentation, to tear down on the frame it
+/// closes: a class, so the closed frame that tears it down changes it in
+/// place rather than writing state while it draws.
 @MainActor
 private final class PopoverTeardown {
+    /// Whether a popover that owns its presentation
+    /// (``PopoverPresentationModifier/ownsPresentation``) has a section to
+    /// tear down: presented since it last drew closed.
     var isPending = false
+
+    /// Where the presented content is drawn, from the first frame it is drawn
+    /// there until the popover closes or is presented for another item: the
+    /// subtree whose state goes then.
+    var contentIdentity: ViewIdentity?
+
+    /// The item the popover was last presented for, for the `item:` form.
+    var itemKey: String?
 }
