@@ -42,7 +42,8 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         // inner one painted the outer's colour for a frame and both fades were
         // then abandoned.
         let paint = PaintAnimation.resolving(
-            style.paint(in: context.environment).materializingImages(in: context), owner: owner, context: context)
+            style.paint(in: context.environment).materializingImages(in: context, owner: owner), owner: owner,
+            context: context)
         guard paint.hasShadows else { return filling(buffer, with: paint, context: context, owner: owner) }
         return shadowedFilling(buffer, with: paint, context: context, owner: owner)
     }

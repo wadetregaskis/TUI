@@ -230,7 +230,7 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         }
         // An image paint's pixels, asked for here, once for everything below
         // that draws with it (`ImagePaint`).
-        paint = paint.materializingImages(in: context)
+        paint = paint.materializingImages(in: context, owner: Self.self)
         // A ramp fades as a colour does: every stop and every number of the
         // geometry moves on its own store entry. See ``PaintAnimation``.
         if fades {

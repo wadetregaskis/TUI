@@ -39,6 +39,12 @@ struct ImagePaintTests {
         Image(.url("tuikit-test://quadrants"), decoded: _DecodedImage(quadrants))
     }
 
+    /// 2 × 2 pixels, all white: a second picture, to tell two paints apart.
+    private static var white: Image {
+        let pixels = RGBAImage(width: 2, height: 2, pixels: Array(repeating: RGBA(r: 255, g: 255, b: 255), count: 4))
+        return Image(.url("tuikit-test://white"), decoded: _DecodedImage(pixels))
+    }
+
     /// A cell one point wide and two tall, so a point of the picture is a
     /// column across and half a row down: the 4-point tile is four columns by
     /// two rows.
@@ -48,15 +54,25 @@ struct ImagePaintTests {
     /// a cell — R, G, B, W, or `.` for none.
     private func fields(_ view: some View, columns: Int = 8, rows: Int = 2, ink: Bool = false) -> [String] {
         let tui = TUIContext()
-        var environment = EnvironmentValues()
-        environment.applyRuntimeServices(from: tui)
-        environment.imageCellAspect = 2.0
-        let context = RenderContext(
-            availableWidth: columns, availableHeight: rows, environment: environment, tuiContext: tui)
+        let context = Self.context(tui, columns: columns, rows: rows)
         tui.stateStorage.beginRenderPass()
         defer { tui.stateStorage.endRenderPass() }
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context) }
-        return buffer.lines.prefix(rows).map { line in
+        return letters(buffer, columns: columns, rows: rows, ink: ink)
+    }
+
+    /// A context of `columns` × `rows` on `tui`, its cell twice as tall as wide.
+    private static func context(_ tui: TUIContext, columns: Int, rows: Int) -> RenderContext {
+        var environment = EnvironmentValues()
+        environment.applyRuntimeServices(from: tui)
+        environment.imageCellAspect = 2.0
+        return RenderContext(availableWidth: columns, availableHeight: rows, environment: environment, tuiContext: tui)
+    }
+
+    /// The colours of `buffer`'s cells — their fields, or their `ink` — a
+    /// letter a cell, as ``fields(_:columns:rows:ink:)`` spells them.
+    private func letters(_ buffer: FrameBuffer, columns: Int, rows: Int, ink: Bool) -> [String] {
+        buffer.lines.prefix(rows).map { line in
             String(
                 paintedCells(line).prefix(columns).map { cell in
                     switch ink ? cell.ink : cell.state.backgroundColour {
@@ -121,6 +137,43 @@ struct ImagePaintTests {
         #expect(fields(Rectangle().fill(.image(image))) == ["........", "........"])
     }
 
+    @Test("Two image paints drawn at one view each paint, and a still screen asks for no further frame")
+    func twoPaintsAtOneView() {
+        // Each pair draws at one identity: a style and the background around
+        // it, or two backgrounds with a padding between. Their pictures loaded
+        // into one set of state boxes, so each found the other's the last one
+        // loaded and wrote the phase back — and a write asks for a frame.
+        let letters = Text("########").foregroundStyle(.image(Self.image)).background(.image(Self.white))
+            .imageCellPoints(Self.cell)
+        let backgrounds = Text("      ").background(.image(Self.image)).padding(.horizontal, 1)
+            .background(.image(Self.white)).imageCellPoints(Self.cell)
+        let cases: [(view: AnyView, ink: String?, field: String)] = [
+            (AnyView(letters), "RRGGRRGG", "WWWWWWWW"), (AnyView(backgrounds), nil, "WRRGGRRW"),
+        ]
+        for (view, ink, field) in cases {
+            let tui = TUIContext()
+            let context = Self.context(tui, columns: 8, rows: 1)
+            // Drawn a frame at a time, as the loop draws: the cache's pass
+            // boundary first, which applies the state writes the frame before
+            // made, counted as the subtrees they clear (`TabViewIdleRenderTests`).
+            func frame() -> (buffer: FrameBuffer, drained: Int) {
+                let before = tui.renderCache.stats.subtreeClears
+                tui.renderCache.beginRenderPass()
+                let drained = tui.renderCache.stats.subtreeClears - before
+                tui.stateStorage.beginRenderPass()
+                defer { tui.stateStorage.endRenderPass() }
+                return (ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context) }, drained)
+            }
+            _ = frame()
+            _ = frame()
+            let (third, wrote) = frame()
+            let (_, wroteNext) = frame()
+            #expect(wrote == 0 && wroteNext == 0, "the second and third frames wrote state: \(wrote), \(wroteNext)")
+            if let ink { #expect(self.letters(third, columns: 8, rows: 1, ink: true) == [ink]) }
+            #expect(self.letters(third, columns: 8, rows: 1, ink: false) == [field])
+        }
+    }
+
     @Test("The pixels a paint holds are the same from frame to frame, so the paint compares equal")
     func pixelsKeptAcrossFrames() {
         let tui = TUIContext()
@@ -130,7 +183,8 @@ struct ImagePaintTests {
         func materialized() -> Paint {
             tui.stateStorage.beginRenderPass()
             defer { tui.stateStorage.endRenderPass() }
-            return ImagePaint(image: Self.image).paint(in: environment).materializingImages(in: context)
+            return ImagePaint(image: Self.image).paint(in: environment).materializingImages(
+                in: context, owner: Self.self)
         }
         let first = materialized()
         let second = materialized()

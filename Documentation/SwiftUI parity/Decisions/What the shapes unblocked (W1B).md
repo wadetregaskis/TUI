@@ -143,8 +143,9 @@ Where the measurement left a call:
 - **A picture that loads** — a file, a URL — paints nothing until it has,
   as an `Image` shows its placeholder. It loads as an image does, its state at
   a child identity of whatever draws with the paint (a foreground style once,
-  for everything under it), and is converted once; SwiftUI's images are never
-  late.
+  for everything under it), keyed by that drawer's type, so a style and the
+  backgrounds drawn at one view each keep a load of their own; it is
+  converted once. SwiftUI's images are never late.
 - **A symbol**, `Image(systemName:)`, is a character here with no pixels, and
   paints nothing.
 - **Cells, never a picture.** On a terminal that takes pictures a gradient

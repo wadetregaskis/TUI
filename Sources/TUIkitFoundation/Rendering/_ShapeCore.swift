@@ -142,7 +142,8 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         let environment = context.environment
         let aspect = environment.imageCellAspect
         let paint = PaintAnimation.resolving(
-            Self.paint(style, in: environment).materializingImages(in: context), owner: Self.self, context: context)
+            Self.paint(style, in: environment).materializingImages(in: context, owner: Self.self), owner: Self.self,
+            context: context)
         let extent = context.gradientFrame ?? GradientFrame(width: columns, height: rows)
         let painter = ShapePainter(
             paint: paint.unshadowed, extent: extent, aspect: aspect, palette: environment.palette)

@@ -192,21 +192,37 @@ package final class ImagePaintPixels: Sendable {
 
 extension Paint {
     /// This paint with an image paint's pixels in it, asked of the image in
-    /// `context` — what whatever draws with a paint does before it samples
-    /// it. Loading a picture keeps its state at a child identity of
-    /// `context`'s, as an ``Image`` keeps its own; a paint with no image in it
-    /// is returned as it is, for one enum test.
+    /// `context` by `owner` — what whatever draws with a paint does before it
+    /// samples it. A paint with no image in it is returned as it is, for one
+    /// enum test.
+    ///
+    /// Loading a picture keeps its state — the phase, the source last loaded,
+    /// the pixels — at a child identity of `context`'s, as an ``Image`` keeps
+    /// its own, and the step is keyed on `owner`: the type that draws with the
+    /// paint, the discriminator ``PaintAnimation`` keys on for the same
+    /// reason. Several of them draw at one identity — a foreground style, the
+    /// `.background` around it, a second `.background` further out — and
+    /// keyed on one step they shared one load: each found the other's source
+    /// the last one loaded, cancelled its load and wrote the phase back, and
+    /// that write asked for another frame. Neither picture ever painted, and a
+    /// still screen redrew forever.
+    ///
+    /// - Parameters:
+    ///   - context: The context the paint draws in.
+    ///   - owner: The type that draws with it: the enclosing view's, as
+    ///     ``PaintAnimation/resolving(_:owner:context:)`` is told.
     @MainActor
-    package func materializingImages(in context: RenderContext) -> Paint {
+    package func materializingImages(in context: RenderContext, owner: Any.Type) -> Paint {
         switch self {
         case .image(var source):
             guard source.pixels == nil, case .raster(let raster) = source.content else { return self }
+            // A keyed step, which no view's positional child can be.
             source.pixels = raster.paintPixels(
-                context: context.withChildIdentity(erasedType: ImagePaint.self, index: 0))
+                context: context.withChildIdentity(erasedType: owner, key: "image-paint"))
             return .image(source)
         case .shadowed(let base, let shadow):
             guard base.hasImage else { return self }
-            return .shadowed(base.materializingImages(in: context), shadow)
+            return .shadowed(base.materializingImages(in: context, owner: owner), shadow)
         case .color, .gradient, .mesh:
             return self
         }
