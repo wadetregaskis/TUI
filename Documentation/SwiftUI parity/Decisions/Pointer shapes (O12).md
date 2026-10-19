@@ -20,6 +20,25 @@ was not measured either: an offscreen `NSHostingView` given synthetic
 (`O12/probe/cursor.swift`), so what SwiftUI does needs the real pointer.
 `Tools/TerminalProbes/pointer_shape_card.py` awaits the owner's reading.*
 
+## A. Needs a decision
+
+### A-O12-1. A hand over every button, or over links only?
+
+The study's §C4 and the lane brief say "`pointer` over Link and Button"; the
+same study's question to the owner (§5, Q2), which the owner answered yes,
+says "over fields, links and dividers", without buttons; and a Mac's buttons
+keep the arrow (AppKit's convention; SwiftUI's unmeasured, see above). Shipped as the brief says, and
+off everywhere until a host's reset is read (B-O12-6), so nothing a user sees
+depends on the answer yet.
+
+- **(a) Every button**, as shipped: a hand says "this can be clicked", which in
+  a terminal, where nothing else says so, is news. Cost: none.
+- **(b) Links only**, the Mac's convention: a `Link` passes a flag to the
+  button it draws, which files the hand only then. Cost: an hour.
+
+*Recommend (b)*: the arrow over a button is what a Mac user expects, and the
+hand keeps its meaning — this goes somewhere else.
+
 ## B. Shipped the safe option
 
 ### B-O12-1. Emitted only where a host documents OSC 22, in its own names
@@ -65,8 +84,8 @@ over the view". Shipped, read as the hover machine reads its observers:
   drawn over it — shows its style only where nothing covers it. A style set
   on a view INSIDE a `Button`'s label is covered by the button's own region,
   as an `.onHover` there is.
-- A style the app set **beats a control's own shape**, even one set further
-  out: the app asked for it, and the control's is TUIkit's guess.
+- A style the app set **beats a control's own shape** (B-O12-6), even one set
+  further out: the app asked for it, and the control's is TUIkit's guess.
 - `nil` sets none, and a view inside **`.disabled(true)`** shows none (as an
   `.onHover` there hears nothing): a resize arrow or a hand over a view that
   cannot be acted on says that it can.
@@ -126,6 +145,23 @@ the terminal's answer. `TerminalClient.pointerShapeSupport` is read then too,
 so an app sets it in its `init` (the hyperlink override is live; making this
 one live costs an `onChange` path through the context, an hour, and nothing
 has asked for it).
+
+### B-O12-6. TUIkit's own controls' shapes are built, and off until a host's reset is read
+
+*`MouseEventDispatcher.fileControlPointerShape(_:for:in:)`,
+`TerminalFeatures.controlPointerShapes`*
+
+The ruling: built-in shapes "only where the reset is measured clean". Built,
+each on the control's own region: the I-beam over `TextField`, `SecureField`
+and `TextEditor`; a pointing hand over `Button` (and so `Link`, which draws
+one; and a `Menu`'s trigger, but not its rows); a column's resize arrow over
+`HSplitView`'s and `NavigationSplitView`'s dividers and over the gap after a
+resizable `Table` column's title, a row's over `VSplitView`'s; the edges of a
+`userResizable` view, its corner the diagonal. A style the app set beats a
+control's own (B-O12-2). No host's reset has been read yet
+(`PointerShapeHost.resetIsMeasured` is `false` for all), so they are off
+everywhere unless `TUIKIT_POINTER_SHAPES=all` asks for them; a host's row turns
+on once the card is read there. Off, a control's call files nothing.
 
 ## C. Declined
 

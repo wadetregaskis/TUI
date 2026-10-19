@@ -756,6 +756,10 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     return false
                 }
             }
+            // A pointing hand over it, where TUIkit's controls set their
+            // own shapes; not over a menu's rows, which a menu shows as a
+            // list (decisions O12, B-O12-6).
+            if menuOrdinal == nil { mouseDispatcher.fileControlPointerShape(.link, for: handlerID, in: context) }
             buffer.hitTestRegions += buffer.frameHitRegions(
                 handlerID: handlerID,
                 // A menu row names itself by its ordinal: it has no focus id

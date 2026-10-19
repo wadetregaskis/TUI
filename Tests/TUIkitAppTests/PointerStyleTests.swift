@@ -10,6 +10,7 @@
 import Testing
 
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
 @testable import TUIkitTerminalHost
 @testable import TUIkitTestSupport
@@ -32,54 +33,7 @@ private struct StyledCard: View, @MainActor Equatable {
     }
 }
 
-/// Renders frames as `RenderLoop` brackets them, with the terminal's features
-/// posed: whether it takes pointer shapes, and whether TUIkit's controls set
-/// theirs.
-@MainActor
-private final class Harness {
-    let tui = TUIContext()
-    let focusManager = FocusManager()
-    var cache: RenderCache { tui.renderCache }
-    var dispatcher: MouseEventDispatcher { tui.mouseEventDispatcher }
-
-    init(shapes: Bool = true, controlShapes: Bool = false) {
-        tui.terminalFeatures = TerminalFeatures(pointerShapes: shapes, controlPointerShapes: controlShapes)
-        dispatcher.setActiveSupport(.full)
-    }
-
-    @discardableResult
-    func frame(_ view: some View) -> FrameBuffer {
-        var environment = EnvironmentValues()
-        environment.focusManager = focusManager
-        environment.applyRuntimeServices(from: tui)
-        environment.installVolatileReadTracker(VolatileReadTracker())
-        let context = RenderContext(availableWidth: 40, availableHeight: 10, environment: environment, tuiContext: tui)
-        tui.stateStorage.beginRenderPass()
-        cache.beginRenderPass()
-        focusManager.beginRenderPass()
-        focusManager.beginSceneRender()
-        dispatcher.beginRenderPass()
-        let buffer = renderToBuffer(view, context: context)
-        focusManager.endRenderPass()
-        tui.stateStorage.endRenderPass()
-        cache.removeInactive()
-        dispatcher.setRegions(buffer.hitTestRegions)
-        return buffer
-    }
-
-    /// Moves the pointer to `(x, y)`, and returns whether the move asked for a
-    /// frame.
-    @discardableResult
-    func move(x: Int, y: Int) -> Bool {
-        dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: x, y: y))
-    }
-
-    /// The shape the pointer is given at `(x, y)`.
-    func shape(atX x: Int, y: Int) -> PointerShape? {
-        move(x: x, y: y)
-        return dispatcher.pointerShapeUnderPointer()
-    }
-}
+private typealias Harness = PointerShapeHarness
 
 @MainActor
 @Suite("Pointer styles")
@@ -259,5 +213,51 @@ struct PointerStyleTests {
         #expect(harness.cache.stats.hits > hits, "no memo hit on the second frame")
         #expect(harness.shape(atX: 1, y: 1) == .link, "the served card filed no style")
         #expect(harness.dispatcher.effectiveSupport(baseConfig: .standard).motion, "the served card asked for no motion")
+    }
+
+    @Test("TUIkit's controls set their own shapes only where the terminal is trusted to put the pointer back")
+    func controlShapesOnlyWhereAsked() {
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Button("Go") {}
+            Text("resize me").frame(width: 12, height: 3).userResizable()
+        }
+        let off = Harness()
+        let drawn = off.frame(view)
+        guard let go = off.cell(of: "Go", in: drawn) else {
+            Issue.record("the Button was not drawn: \(drawn.lines.map(\.stripped))")
+            return
+        }
+        #expect(off.shape(atX: go.x, y: go.y) == nil, "no control sets a shape until a host's reset is read")
+        let on = Harness(controlShapes: true)
+        on.frame(view)
+        #expect(on.shape(atX: go.x, y: go.y) == .link, "a pointing hand over a button")
+    }
+
+    @Test("A user-resizable view's edges give a resize arrow along the axis each moves, its corner the diagonal")
+    func resizableEdges() {
+        let harness = Harness(controlShapes: true)
+        let buffer = harness.frame(
+            Text("resize me").frame(width: 12, height: 3).userResizable())
+        let corner = buffer.hitTestRegions.last { $0.width == 2 && $0.height == 2 }
+        let bottom = buffer.hitTestRegions.first { $0.height == 1 && $0.width > 2 }
+        let right = buffer.hitTestRegions.first { $0.width == 1 && $0.height > 2 }
+        guard let corner, let bottom, let right else {
+            Issue.record("the resizable view drew no edges: \(buffer.hitTestRegions)")
+            return
+        }
+        #expect(harness.shape(atX: bottom.offsetX, y: bottom.offsetY) == .rowResize)
+        #expect(harness.shape(atX: right.offsetX, y: right.offsetY) == .columnResize)
+        #expect(harness.shape(atX: corner.offsetX + 1, y: corner.offsetY + 1) == .resizeNorthWestSouthEast)
+    }
+
+    @Test("A style the app set beats a control's own shape, even one set further out")
+    func appStyleBeatsTheControls() {
+        let harness = Harness(controlShapes: true)
+        let buffer = harness.frame(VStack { Button("Go") {} }.pointerStyle(.rectSelection))
+        guard let go = harness.cell(of: "Go", in: buffer) else {
+            Issue.record("the Button was not drawn")
+            return
+        }
+        #expect(harness.shape(atX: go.x, y: go.y) == .crosshair)
     }
 }

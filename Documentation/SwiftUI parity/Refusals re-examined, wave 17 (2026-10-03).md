@@ -1244,6 +1244,15 @@ tracking, motion reporting only while a style is on screen, a reset on exit
 and suspend, and built-in shapes (text over fields, a pointer over links and
 buttons, resize over dividers and table columns) only where the reset is
 measured clean, with a run-time check of whether the host honours shapes.
+
+**Shipped 2026-10-19 (lane O12):** `PointerStyle` with every member but
+`image(_:hotSpot:)`, `View.pointerStyle(_:)`, `FrameResizePosition` and
+`FrameResizeDirection`, emitted where a host documents OSC 22 and inert
+elsewhere, with `\.terminalFeatures.pointerShapes` as the run-time check; the
+reset on exit, suspend and a fatal signal; TUIkit's own controls' shapes built
+and off until a host's reset is read off `pointer_shape_card.py`.
+`image(_:hotSpot:)` and `pointerVisibility(_:)` stay refused. See
+[Pointer shapes (O12)](<Decisions/Pointer shapes (O12).md>).
 Lane owed: about two and a half days, plus a probe that takes screenshots,
 since the shape is not in the byte stream, and a `Terminal compatibility survey.md`
 entry. `pointerVisibility` and `.image(_:hotSpot:)` stay refused.

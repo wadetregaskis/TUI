@@ -458,6 +458,10 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
                 }
                 return took
             }
+            // A resize arrow along the axis it moves, where TUIkit's controls
+            // set their own shapes.
+            dispatcher.fileControlPointerShape(
+                axis == .horizontal ? .columnResize : .rowResize, for: handlerID, in: context)
             buffer.hitTestRegions.append(
                 HitTestRegion(
                     offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,

@@ -306,13 +306,22 @@ struct _UserResizableCore<Content: View>: View, Renderable {
         // grip at rest under the pointer. So a hover that moved is reported
         // (`HandlerDrawing`), as a scrollbar's lift is. A press focuses the
         // view, and a focus move clears, so a drag needs no report.
+        //
+        // Each with the resize arrow its edge moves along, where TUIkit's
+        // controls set their own shapes: the corner's, both ways along the
+        // diagonal it moves.
         func register(_ dragAxes: ResizableAxes) -> HitTestRegion.HandlerID {
-            dispatcher.register(
+            let id = dispatcher.register(
                 in: context, reportingChangesTo: { handler.isHovered },
                 { event in
                     self.handleResizeEvent(
                         event, axes: dragAxes, handler: handler, focusID: focusID, context: context)
                 })
+            let shape: PointerShape =
+                dragAxes == .vertical
+                ? .rowResize : dragAxes == .horizontal ? .columnResize : .resizeNorthWestSouthEast
+            dispatcher.fileControlPointerShape(shape, for: id, in: context)
+            return id
         }
 
         // Regions rather than one L-shape, because a hit region is a rectangle.

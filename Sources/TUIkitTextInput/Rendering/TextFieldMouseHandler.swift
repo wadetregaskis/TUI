@@ -211,6 +211,8 @@ enum TextFieldMouseHandler {
                 return false
             }
         }
+        // The I-beam over it, where TUIkit's controls set their own shapes.
+        mouseDispatcher.fileControlPointerShape(.text, for: mouseHandlerID, in: context)
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,

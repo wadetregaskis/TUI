@@ -750,6 +750,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 return false
             }
         }
+        // The I-beam over it, where TUIkit's controls set their own shapes.
+        mouseDispatcher.fileControlPointerShape(.text, for: handlerID, in: context)
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,

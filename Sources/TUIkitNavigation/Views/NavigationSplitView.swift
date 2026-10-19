@@ -875,6 +875,11 @@ extension _NavigationSplitViewCore {
                     return false
                 }
             }
+            // A column's resize arrow, where TUIkit's controls set their own
+            // shapes.
+            if let mouseHandlerID {
+                mouseDispatcher.fileControlPointerShape(.columnResize, for: mouseHandlerID, in: context)
+            }
         }
 
         return DividerRenderInfo(
