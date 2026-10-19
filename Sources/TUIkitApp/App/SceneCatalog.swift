@@ -48,6 +48,23 @@ struct SceneCatalog {
     /// The window scenes, in declaration order.
     private(set) var windows: [WindowEntry] = []
 
+    /// One scene shown over the window in front rather than as a window: a
+    /// `Settings` scene, an alert scene (``OverlayScene``).
+    struct OverlayEntry {
+        /// The scene, at the end of its modifier chain.
+        let scene: any OverlayScene
+
+        /// What the modifiers around it configure.
+        let configuration: SceneConfiguration
+
+        /// Its place in the body, which its presentation's state is kept
+        /// under.
+        let identity: ViewIdentity
+    }
+
+    /// The overlay scenes, in declaration order.
+    private(set) var overlays: [OverlayEntry] = []
+
     /// The commands of every scene, in declaration order: what the menu bar is
     /// drawn from.
     private(set) var commands = SceneCommands()
@@ -78,6 +95,10 @@ struct SceneCatalog {
                         identity: container.identity(ofScene: index, under: identity)))
             }
             return commands
+        }
+        if let overlay = scene as? any OverlayScene {
+            overlays.append(OverlayEntry(scene: overlay, configuration: configuration, identity: identity))
+            return SceneCommands()
         }
         guard let configuring = scene as? any ConfiguringScene else { return SceneCommands() }
         var configuration = configuration

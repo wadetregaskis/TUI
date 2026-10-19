@@ -32,6 +32,9 @@ package final class SceneActionHandler {
     /// Presents the app's `Settings` scene.
     package var openSettings: () -> Void = {}
 
+    /// Whether the app declares a `Settings` scene.
+    package var hasSettings: () -> Bool = { false }
+
     package init() {}
 }
 

@@ -98,6 +98,7 @@
   "menu.about": "À propos de %@",
   "menu.quitApp": "Quitter %@",
   "menu.aboutVersion": "Version %@",
+  "menu.settings": "Réglages…",
   "menu.find": "Rechercher…",
   "menu.new": "Nouveau",
   "menu.open": "Ouvrir",

@@ -12,5 +12,6 @@ builder:
     - documentation_targets: [TUIkit, TUIkitApp, TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker,
                               TUIkitCommands, TUIkitCurveEditors, TUIkitEffects, TUIkitForms, TUIkitGrid,
                               TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers,
-                              TUIkitPresentation, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput,
+                              TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTables, TUIkitTabs,
+                              TUIkitTextInput,
                               TUIkitFoundation, TUIkitStrings, TUIkitTerminalHost, TUIkitView, TUIkitStyling, TUIkitCore, TUIkitImage]

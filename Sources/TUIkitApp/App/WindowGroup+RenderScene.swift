@@ -22,6 +22,13 @@ extension WindowGroup: SceneRenderable {
         // have no scene to be told about.
         var context = context
         context.environment.sceneRenderTarget = nil
+        // The overlay scenes the window in front presents, drawn beside its
+        // content (`_SceneOverlayHost`).
+        if let overlays = context.environment.sceneOverlays?.overlays, !overlays.isEmpty {
+            context.environment.sceneOverlays = nil
+            return TUIkitView.renderToBuffer(
+                _WindowChromeHost(content: _SceneOverlayHost(content: content, overlays: overlays)), context: context)
+        }
         return TUIkitView.renderToBuffer(_WindowChromeHost(content: content), context: context)
     }
 }

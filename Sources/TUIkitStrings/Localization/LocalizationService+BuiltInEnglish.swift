@@ -128,6 +128,7 @@ extension LocalizationService {
       "menu.about": "About %@",
       "menu.quitApp": "Quit %@",
       "menu.aboutVersion": "Version %@",
+      "menu.settings": "Settings…",
       "menu.find": "Find…",
       "menu.new": "New",
       "menu.open": "Open",

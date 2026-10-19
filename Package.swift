@@ -7,7 +7,7 @@ import PackageDescription
 let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
     "TUIkitEffects", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitStrings",
+    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitStrings",
     "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
     "TUIkitWidthCorpus", "CTestSupport",
 ]
@@ -76,6 +76,10 @@ let package = Package(
         // and the scene they are declared on: `Scene.commands(content:)` and its kin draw the menu bar.
         // Re-exports TUIkitApp, whose `Scene` they extend, and TUIkitPresentation.
         .library(name: "TUIkitCommands", targets: ["TUIkitCommands"]),
+        // TUIkitScenes: the scenes presented over an app's windows — the `Settings` scene, as a sheet, and
+        // `AlertScene` — and the scene modifiers for the alerts a scene presents. Re-exports TUIkitApp, whose
+        // scene presenter shows them, and TUIkitPresentation, whose sheet and alert they are drawn with.
+        .library(name: "TUIkitScenes", targets: ["TUIkitScenes"]),
         // TUIkitCurveEditors: the tone-curve and channel-curve editor panels, which host `ColorPickerPanel`'s
         // body. Re-exports TUIkitColorPicker, TUIkitImage (their initializers take an `ASCIIToneCurve`),
         // TUIkitNumericControls and TUIkitPickers.
@@ -264,6 +268,22 @@ let package = Package(
         // TUIkitFoundation and TUIkitPresentation (Sources/TUIkitCommands/Exports.swift).
         .target(
             name: "TUIkitCommands",
+            dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitPresentation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // Lane O9's leaf, built on TUIkitApp and TUIkitPresentation: the scenes an app's scene presenter shows
+        // over the window in front rather than as windows (refusal review O9, ruled 2026-10-12: (b)), the
+        // `Settings` scene, presented as a sheet, and `AlertScene`, and the scene modifiers for the alerts a scene
+        // presents (`dialogSeverity`, `dialogIcon`, `dialogSuppressionToggle`). On TUIkitApp because they are
+        // scenes, and on TUIkitPresentation because they are drawn with its sheet and alert, which TUIkitApp does
+        // not link: the presenter reaches them through a hook that names nothing of this module (`OverlayScene`),
+        // so an app that declares neither links none of it. Nothing in TUIkitFoundation may use it
+        // (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports TUIkitApp,
+        // TUIkitFoundation and TUIkitPresentation (Sources/TUIkitScenes/Exports.swift). Like TUIkitApp it has no
+        // Windows build.
+        .target(
+            name: "TUIkitScenes",
             dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
@@ -524,7 +544,7 @@ let package = Package(
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitCommands, TUIkitCurveEditors, TUIkitEffects,
         // TUIkitForms, TUIkitGrid, TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers,
-        // TUIkitPresentation, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
+        // TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names
         // TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the
@@ -534,8 +554,9 @@ let package = Package(
             dependencies: [
                 "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
                 "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-                "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch", "TUIkitTables", "TUIkitTabs",
-                "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch",
+                "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling",
+                "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -721,6 +742,13 @@ let package = Package(
             dependencies: [
                 "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCommands", "TUIkitCore", "TUIkitFoundation",
                 "TUIkitNavigation", "TUIkitPresentation", "TUIkitTestSupport", "TUIkitTextInput", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitScenesTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCommands", "TUIkitCore", "TUIkitFoundation",
+                "TUIkitPresentation", "TUIkitScenes", "TUIkitTestSupport", "TUIkitView",
             ]
         ),
         .testTarget(

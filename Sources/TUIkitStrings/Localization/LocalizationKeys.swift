@@ -189,6 +189,8 @@ public enum LocalizationKey {
         case quitApp = "menu.quitApp"
         /// The About alert's version line: `%@` is the app's bundle version.
         case aboutVersion = "menu.aboutVersion"
+        /// The menu bar's Settings… item, and `SettingsLink`'s default label.
+        case settings = "menu.settings"
         /// The menu bar's Edit ▸ Find… (`TextEditingCommands`).
         case find = "menu.find"
         case new = "menu.new"

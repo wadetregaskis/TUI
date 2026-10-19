@@ -17,7 +17,7 @@ let url = Context.environment["TUIKIT_PRODUCT_SMOKE_URL"] ?? "file:///run-Tools/
 let products = [
     "TUIkit", "TUIkitApp", "TUIkitFoundation", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands",
     "TUIkitCurveEditors", "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
-    "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitSearch",
+    "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch",
     "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
     "TUIkitAppKit", "TUIkitMacros",
 ]

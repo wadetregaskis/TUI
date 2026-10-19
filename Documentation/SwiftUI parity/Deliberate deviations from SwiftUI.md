@@ -1844,6 +1844,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   given no input that opens one.
 - **Decided:** [B-O9-3](<Decisions/Several scenes on one surface (O9).md#b-o9-3-the-last-window-closing-quits-the-app>). **Lane.**
 
+### W12. Settings is a sheet over the window in front
+
+- **SwiftUI:** on macOS the `Settings` scene is a window of its own, which
+  `openSettings` opens or brings to the front (Apple's documentation).
+- **TUIkit:** `openSettings` and `SettingsLink` present the scene as a sheet
+  over the window in front, its content's size;
+  Escape or `dismiss()` closes it, and the window behind is inert while it is
+  up (`SettingsSceneTests`).
+- **Why:** refusal review O9, ruled 2026-10-12: `openSettings` presents the
+  `Settings` scene as a sheet.
+- **Decided:** [B-O9-6](<Decisions/Several scenes on one surface (O9).md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>). **Owner.**
+
 ---
 
 ## Lifecycle

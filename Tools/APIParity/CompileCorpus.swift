@@ -4117,3 +4117,27 @@ private struct CorpusDestructiveDismissButton: View {
         }
     }
 }
+
+/// The settings scene and the ways to it, as `OpenSettingsAction`'s and
+/// `Settings`' documentation write them.
+private struct CorpusSettingsApp: App {
+    var body: some Scene {
+        WindowGroup { CorpusAdvancedSettingsButton() }
+        #if os(macOS)
+        Settings {
+            Text("Settings")
+        }
+        #endif
+    }
+}
+
+@MainActor
+private struct CorpusAdvancedSettingsButton: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Button("Open Advanced Settings…") { openSettings() }
+        SettingsLink()
+        SettingsLink { Label("Preferences", systemImage: "gearshape") }
+    }
+}

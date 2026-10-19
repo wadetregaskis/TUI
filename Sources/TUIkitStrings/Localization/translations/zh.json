@@ -98,6 +98,7 @@
   "menu.about": "关于%@",
   "menu.quitApp": "退出%@",
   "menu.aboutVersion": "版本 %@",
+  "menu.settings": "设置…",
   "menu.find": "查找…",
   "menu.new": "新建",
   "menu.open": "打开",

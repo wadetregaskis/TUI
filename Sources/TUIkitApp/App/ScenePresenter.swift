@@ -121,6 +121,15 @@ package final class ScenePresenter {
     /// The window scenes the app declared, as last catalogued.
     private(set) var entries: [SceneCatalog.WindowEntry] = []
 
+    /// The scenes the app declared that are shown over the window in front,
+    /// as last catalogued.
+    private(set) var overlayEntries: [SceneCatalog.OverlayEntry] = []
+
+    /// Whether the `Settings` scene is presented, over the window in front.
+    package var isPresentingSettings = false {
+        didSet { if isPresentingSettings != oldValue { requestFrame() } }
+    }
+
     /// The serial number the next window opened takes.
     private var nextSerial = 0
 
@@ -152,6 +161,8 @@ package final class ScenePresenter {
 
     init() {
         actions.openWindow = { [weak self] target in self?.open(target) ?? false }
+        actions.openSettings = { [weak self] in self?.presentSettings() }
+        actions.hasSettings = { [weak self] in self?.hasSettings ?? false }
         actions.dismissWindow = { [weak self] dismissal, behavior in self?.dismiss(dismissal, behavior: behavior) }
     }
 
@@ -161,6 +172,8 @@ package final class ScenePresenter {
     /// closes a window whose scene the app no longer declares.
     func sync(with catalog: SceneCatalog) {
         entries = catalog.windows
+        overlayEntries = catalog.overlays
+        if !hasSettings { isPresentingSettings = false }
         windows.removeAll { window in !entries.contains { $0.identity == window.sceneKey } }
         if !hasLaunched {
             hasLaunched = true
@@ -188,6 +201,30 @@ package final class ScenePresenter {
     /// The bars of the window drawn in front, or of none while no window is
     /// open: what the run loop's chrome is this frame.
     var frontChrome: WindowChromeState { front?.chrome ?? closedChrome }
+
+    // MARK: Settings and Other Overlays
+
+    /// Whether the app declares a `Settings` scene.
+    var hasSettings: Bool {
+        overlayEntries.contains { $0.scene.isSettings }
+    }
+
+    /// Presents the `Settings` scene over the window in front, if the app
+    /// declares one; where it is up already, it stays.
+    func presentSettings() {
+        guard hasSettings else { return }
+        isPresentingSettings = true
+    }
+
+    /// The overlay scenes, as the window in front presents them this frame.
+    func overlays() -> SceneOverlayList? {
+        guard !overlayEntries.isEmpty else { return nil }
+        return SceneOverlayList(
+            overlayEntries.map { entry in
+                SceneOverlay(
+                    key: entry.identity.path, configuration: entry.configuration, view: entry.scene.overlay(in: self))
+            })
+    }
 
     // MARK: Opening and Closing
 

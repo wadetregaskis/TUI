@@ -140,3 +140,44 @@ without asking, as they can only be reached when nothing modal is up in it.
 **The fuller version** is a measurement: whether macOS counts a popover, and
 whether `dismiss()` at the root follows the transaction too. It needs a session
 that can open windows (none could here); five minutes there with the probe.
+
+### B-O9-5. The scenes shown over the windows are a module of their own, TUIkitScenes
+
+*`TUIkitScenes`: `Settings`, `AlertScene`, the scene dialog modifiers*
+
+A `Settings` scene is drawn with a sheet and an `AlertScene` with an alert, and
+the scene dialog modifiers write TUIkitPresentation's dialog environment; the
+scene presenter, in TUIkitApp, links none of TUIkitPresentation.
+
+**Shipped:** a leaf, `TUIkitScenes`, on TUIkitApp and TUIkitPresentation, as
+lane O13's `TUIkitCommands` is (B-O13-1): the presenter reaches its scenes
+through a hook that names nothing of it (`OverlayScene`: the view that presents
+the scene), so an app that declares neither links none of it. The window
+scenes — `Window`, `WindowGroup`'s new forms — and the presenter stay in
+TUIkitApp, which draws them with the window chrome it has; the actions, their
+environment values and `SettingsLink` sit in TUIkitFoundation beside
+`DismissAction`, where any view can read them.
+
+**The fuller version** is TUIkitApp depending on TUIkitPresentation, with these
+in it: one module fewer, at the price of TUIkitPresentation's code in every app
+on TUIkitApp alone; the owner's à-la-carte rule (A52) prices that against it.
+
+### B-O9-6. `Settings` is a sheet over the window in front
+
+*`Settings`, `SettingsLink`, `DefaultSettingsLinkLabel`, `\.openSettings`*
+
+The ruling: `openSettings` presents the `Settings` scene as a sheet. On macOS it
+is a window of its own, brought to the front if it is open.
+
+**Shipped:** `openSettings` and a `SettingsLink` (labelled "Settings…" with a
+gear, in seven languages) present the scene as a sheet over the window in front, whichever that is; presented already, it stays.
+Like every sheet it is its content's size, Escape or `dismiss()` in it closes
+it, and the window behind it is inert until then (deviation W12). The scene's
+own modifiers (`.environment`, a palette) reach its content and not the window,
+and the window's content keeps its identity whether or not the app declares a
+`Settings` scene (`_SceneOverlayHost` draws the sheet's presenter beside the
+content, not around it). An app with no `Settings` scene presents nothing.
+
+**The fuller version** opens settings as a window over the whole terminal, as
+the other scenes are — a choice the ruling made against, since a settings pane
+is usually small; a line to change, if the owner prefers it.

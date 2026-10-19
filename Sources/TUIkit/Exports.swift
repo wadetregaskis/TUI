@@ -20,7 +20,8 @@
 // TUIkitColorEditors' until 2026-10-12), TUIkitNavigation (the
 // navigation containers, since step B5, and the presentations until step C1),
 // TUIkitPresentation (the presentations: alerts, dialogs, sheets and modals,
-// since step C1), TUIkitLists (lists, since step B6), TUIkitTables (tables,
+// since step C1), TUIkitScenes (the `Settings` scene and `AlertScene`, since
+// lane O9), TUIkitLists (lists, since step B6), TUIkitTables (tables,
 // since step C2), TUIkitTabs (tab views, since step C3) and TUIkitGrid (grids,
 // since step C4), all three of which TUIkitLists compiled until then,
 // TUIkitChrome (the window chrome), TUIkitEffects (transitions and visual
@@ -66,6 +67,7 @@
 @_exported import TUIkitNumericControls
 @_exported import TUIkitPickers
 @_exported import TUIkitPresentation
+@_exported import TUIkitScenes
 @_exported import TUIkitSearch
 @_exported import TUIkitStyling
 @_exported import TUIkitTables

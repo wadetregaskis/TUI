@@ -85,7 +85,10 @@ extension ScenePresenter {
     /// button and ⌘W.
     private func renderFront(_ window: OpenWindow, scene: some Scene, context: RenderContext) -> FrameBuffer {
         guard let entry = entry(of: window) else { return FrameBuffer() }
-        let context = self.context(for: window, entry: entry, from: context)
+        var context = self.context(for: window, entry: entry, from: context)
+        // The `Settings` sheet and the alert scenes are presented over the
+        // window in front.
+        context.environment.sceneOverlays = overlays()
         if !context.isMeasuring, !window.isLaunchWindow {
             context.environment.focusManager?.registerSection(id: window.focusSection)
         }

@@ -761,6 +761,7 @@ extension RenderLoop {
         environment.appStatusBar = statusBar
         environment.windowChrome = windowChrome
         environment.openWindow = OpenWindowAction(handler: scenes.actions)
+        environment.openSettings = OpenSettingsAction(handler: scenes.actions)
         environment.focusManager = focusManager
         environment.paletteManager = paletteManager
         if let palette = paletteManager.currentPalette {
