@@ -67,7 +67,10 @@ struct ScrollTargetViewAlignedTests {
 
     /// The rows reach the scroll view moved by what is drawn above the stack
     /// (`ScrollWindowRelay`): its content margins, or a `Section`'s header.
-    @Test("View-aligned finds the rows below the content's top margin")
+    /// The behaviour sees them inside the margins, as SwiftUI's does, so a row
+    /// lands at the top margin with the row before it showing in the margin
+    /// (`Tools/SwiftUIProbes/Scroll target behaviours/margins.swift`).
+    @Test("View-aligned lands a row at the content's top margin, the row before showing in it")
     func viewAlignedUnderAMargin() {
         let frames = Frames()
         let stack = LazyVStack(alignment: .leading, spacing: 0) {
@@ -83,13 +86,17 @@ struct ScrollTargetViewAlignedTests {
             frames.render(view)
             offsets.append(frames.scrollView?.scrollOffset ?? -1)
         }
-        // Row tops at 2, 6, 10, …: the first tick reaches row 0's, the next
-        // row 1's.
-        #expect(offsets == [2, 6], "\(offsets)")
+        // Row tops at 0, 4, 8, … inside the margin: the first tick lands row 1
+        // two lines down, at the margin, with row 0's last two lines above it.
+        #expect(offsets == [4, 8], "\(offsets)")
+        let lines = frames.last.lines.map(\.stripped)
+        #expect(lines[2].hasPrefix("row 2"), "\(lines)")
     }
 
     /// The carousel SwiftUI's documentation shows: a horizontal stack, marked.
-    @Test("View-aligned across: a tick lands on the next column, lazy or eager, under a leading margin too",
+    /// Under a leading margin each column lands at the margin, as SwiftUI's
+    /// carousel does, with the one before it showing in the margin.
+    @Test("View-aligned across: a tick lands on the next column, lazy or eager, at a leading margin too",
           arguments: [(true, 0), (false, 0), (true, 1)])
     func viewAlignedColumns(lazy: Bool, margin: Int) {
         let frames = Frames(width: 20, height: 3)
@@ -108,8 +115,10 @@ struct ScrollTargetViewAlignedTests {
             frames.render(view)
             offsets.append(frames.scrollView?.horizontal.scrollOffset ?? -1)
         }
-        // Columns every 9 cells (7 wide, a gap of 2), from the leading margin.
-        #expect(offsets == (margin == 0 ? [9, 18] : [1, 10]), "\(offsets)")
+        // Columns every 9 cells (7 wide, a gap of 2), inside the leading margin.
+        #expect(offsets == [9, 18], "\(offsets)")
+        let first = frames.last.lines.map(\.stripped).first ?? ""
+        #expect(first.dropFirst(margin).hasPrefix("item2"), "\(first)")
     }
 
     @Test("View-aligned limited to one view: a tick over one-line rows moves one row")

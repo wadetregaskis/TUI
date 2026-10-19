@@ -152,6 +152,28 @@ struct ScrollTargetBehaviorTests {
         }
     }
 
+    @Test(
+        "Container-sized pages under content margins: every stop lands a page inside them",
+        arguments: [true, false])
+    func containerPagesUnderMargins(lazy: Bool) {
+        let frames = Frames()
+        let pages: AnyView = lazy ? AnyView(containerPages(5)) : AnyView(VStack(spacing: 0) { containerPages(5) })
+        let view = ScrollView { pages }
+            .contentMargins(.top, 2)
+            .contentMargins(.bottom, 1)
+            .scrollTargetBehavior(.paging)
+        frames.render(view)
+        for page in 0..<4 {
+            let lines = frames.last.lines.map(\.stripped)
+            // Seven lines a page, between the margins: lines 2 to 8, at every
+            // stop (`Tools/SwiftUIProbes/Scroll target behaviours/`).
+            #expect(lines[2].contains("top \(page)") && lines[8].contains("end \(page)"), "page \(page): \(lines)")
+            #expect(frames.scrollView?.scrollOffset == 7 * page)
+            frames.wheel(.scrollDown)
+            frames.render(view)
+        }
+    }
+
     @Test("View-aligned under the \"N more\" lines: the row a tick lands on is read whole, below \"▲\"")
     func viewAlignedUnderTextIndicators() {
         let frames = Frames()
@@ -506,6 +528,27 @@ struct ScrollTargetBehaviorTests {
         #expect(asked.contents.first == CellSize(width: 30, height: 95))
         #expect(asked.axes.first == .vertical)
         #expect(asked.scrollEnabled.first == true, "the environment, by dynamic member")
+    }
+
+    @Test("Under content margins a behaviour is handed the content and container without them")
+    func customBehaviourUnderMargins() {
+        let frames = Frames()
+        let asked = Asked()
+        let view = ScrollView { scrollTargetRows(95) }
+            .contentMargins(.vertical, 2)
+            .contentMargins(.horizontal, 1)
+            .scrollTargetBehavior(EveryFifth(asked: asked))
+        frames.render(view)
+        frames.wheel(.scrollDown)
+        frames.render(view)
+        // The target is the area inside the margins: offset 5 shows the top
+        // margin's two lines over content lines 3 and 4, and row 5 below them.
+        #expect(frames.scrollView?.scrollOffset == 5)
+        #expect(frames.last.lines.map(\.stripped)[2].hasPrefix(" row 5"))
+        #expect(asked.originals == [0])
+        #expect(asked.proposals == [3])
+        #expect(asked.containers.first == CellSize(width: 28, height: 6))
+        #expect(asked.contents.first == CellSize(width: 28, height: 95))
     }
 
     /// A behaviour that keeps the view where it is.

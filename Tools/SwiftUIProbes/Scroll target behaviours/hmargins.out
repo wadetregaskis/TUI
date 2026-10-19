@@ -1,0 +1,74 @@
+== viewAligned, leading 0 trailing 0, start 50: origin (50, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (60, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (50, 0, 210×40) proposed (50, 0, 210×40) -> (60, 0, 210×40)
+== viewAligned, leading 0 trailing 0, start 110: origin (110, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (120, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (110, 0, 210×40) proposed (110, 0, 210×40) -> (120, 0, 210×40)
+== viewAligned, leading 0 trailing 0, start 200: origin (200, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (180, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (200, 0, 210×40) proposed (200, 0, 210×40) -> (180, 0, 210×40)
+== viewAligned, leading 0 trailing 0, start 290: origin (290, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (300, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (290, 0, 210×40) proposed (290, 0, 210×40) -> (300, 0, 210×40)
+== paging, leading 0 trailing 0, start 50: origin (50, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (0, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (50, 0, 210×40) proposed (50, 0, 210×40) -> (0, 0, 210×40)
+== paging, leading 0 trailing 0, start 110: origin (110, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (210, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (110, 0, 210×40) proposed (110, 0, 210×40) -> (210, 0, 210×40)
+== paging, leading 0 trailing 0, start 200: origin (200, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (210, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (200, 0, 210×40) proposed (200, 0, 210×40) -> (210, 0, 210×40)
+== paging, leading 0 trailing 0, start 290: origin (290, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (210, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (290, 0, 210×40) proposed (290, 0, 210×40) -> (210, 0, 210×40)
+== paging, leading 0 trailing 0, start 380: origin (380, 0) insets t0 l0 b0 r0 -> resize to 210×60 -> (420, 0) insets t0 l0 b0 r0
+  call: container 210×40 content 1800×40 original (380, 0, 210×40) proposed (380, 0, 210×40) -> (420, 0, 210×40)
+== viewAligned, leading 20 trailing 20, start 50: origin (50, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (40, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (70, 0, 170×40) proposed (70, 0, 170×40) -> (60, 0, 170×40)
+== viewAligned, leading 20 trailing 20, start 110: origin (110, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (100, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (130, 0, 170×40) proposed (130, 0, 170×40) -> (120, 0, 170×40)
+== viewAligned, leading 20 trailing 20, start 200: origin (200, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (220, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (220, 0, 170×40) proposed (220, 0, 170×40) -> (240, 0, 170×40)
+== viewAligned, leading 20 trailing 20, start 290: origin (290, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (280, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (310, 0, 170×40) proposed (310, 0, 170×40) -> (300, 0, 170×40)
+== paging, leading 20 trailing 20, start 50: origin (50, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (-20, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (70, 0, 170×40) proposed (70, 0, 170×40) -> (0, 0, 170×40)
+== paging, leading 20 trailing 20, start 110: origin (110, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (160, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (130, 0, 170×40) proposed (130, 0, 170×40) -> (180, 0, 170×40)
+== paging, leading 20 trailing 20, start 200: origin (200, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (160, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (220, 0, 170×40) proposed (220, 0, 170×40) -> (180, 0, 170×40)
+== paging, leading 20 trailing 20, start 290: origin (290, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (340, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (310, 0, 170×40) proposed (310, 0, 170×40) -> (360, 0, 170×40)
+== paging, leading 20 trailing 20, start 380: origin (380, 0) insets t0 l20 b0 r20 -> resize to 210×60 -> (340, 0) insets t0 l20 b0 r20
+  call: container 170×40 content 1800×40 original (400, 0, 170×40) proposed (400, 0, 170×40) -> (360, 0, 170×40)
+== viewAligned, leading 40 trailing 0, start 50: origin (50, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (20, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (90, 0, 170×40) proposed (90, 0, 170×40) -> (60, 0, 170×40)
+== viewAligned, leading 40 trailing 0, start 110: origin (110, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (80, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (150, 0, 170×40) proposed (150, 0, 170×40) -> (120, 0, 170×40)
+== viewAligned, leading 40 trailing 0, start 200: origin (200, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (200, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (240, 0, 170×40) proposed (240, 0, 170×40) -> (240, 0, 170×40)
+  call: container 170×40 content 1800×40 original (240, 0, 170×40) proposed (240, 0, 170×40) -> (240, 0, 170×40)
+  call: container 170×40 content 1800×40 original (240, 0, 170×40) proposed (240, 0, 170×40) -> (240, 0, 170×40)
+== viewAligned, leading 40 trailing 0, start 290: origin (290, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (260, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (330, 0, 170×40) proposed (330, 0, 170×40) -> (300, 0, 170×40)
+== paging, leading 40 trailing 0, start 50: origin (50, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (-40, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (90, 0, 170×40) proposed (90, 0, 170×40) -> (0, 0, 170×40)
+== paging, leading 40 trailing 0, start 110: origin (110, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (150, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (150, 0, 170×40) proposed (150, 0, 170×40) -> (190, 0, 170×40)
+== paging, leading 40 trailing 0, start 200: origin (200, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (150, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (240, 0, 170×40) proposed (240, 0, 170×40) -> (190, 0, 170×40)
+== paging, leading 40 trailing 0, start 290: origin (290, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (340, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (330, 0, 170×40) proposed (330, 0, 170×40) -> (380, 0, 170×40)
+== paging, leading 40 trailing 0, start 380: origin (380, 0) insets t0 l40 b0 r0 -> resize to 210×60 -> (340, 0) insets t0 l40 b0 r0
+  call: container 170×40 content 1800×40 original (420, 0, 170×40) proposed (420, 0, 170×40) -> (380, 0, 170×40)
+== viewAligned, leading 0 trailing 40, start 50: origin (50, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (60, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (50, 0, 170×40) proposed (50, 0, 170×40) -> (60, 0, 170×40)
+== viewAligned, leading 0 trailing 40, start 110: origin (110, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (120, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (110, 0, 170×40) proposed (110, 0, 170×40) -> (120, 0, 170×40)
+== viewAligned, leading 0 trailing 40, start 200: origin (200, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (180, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (200, 0, 170×40) proposed (200, 0, 170×40) -> (180, 0, 170×40)
+== viewAligned, leading 0 trailing 40, start 290: origin (290, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (300, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (290, 0, 170×40) proposed (290, 0, 170×40) -> (300, 0, 170×40)
+== paging, leading 0 trailing 40, start 50: origin (50, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (0, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (50, 0, 170×40) proposed (50, 0, 170×40) -> (0, 0, 170×40)
+== paging, leading 0 trailing 40, start 110: origin (110, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (170, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (110, 0, 170×40) proposed (110, 0, 170×40) -> (170, 0, 170×40)
+== paging, leading 0 trailing 40, start 200: origin (200, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (170, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (200, 0, 170×40) proposed (200, 0, 170×40) -> (170, 0, 170×40)
+== paging, leading 0 trailing 40, start 290: origin (290, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (340, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (290, 0, 170×40) proposed (290, 0, 170×40) -> (340, 0, 170×40)
+== paging, leading 0 trailing 40, start 380: origin (380, 0) insets t0 l0 b0 r40 -> resize to 210×60 -> (340, 0) insets t0 l0 b0 r40
+  call: container 170×40 content 1800×40 original (380, 0, 170×40) proposed (380, 0, 170×40) -> (340, 0, 170×40)

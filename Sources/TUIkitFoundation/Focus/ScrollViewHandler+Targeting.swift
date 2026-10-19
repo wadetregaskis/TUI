@@ -36,6 +36,12 @@ struct ScrollViewTargeting {
     /// columns (``ScrollContentReply/targetLayoutColumns``).
     var rows: TargetLayoutSpans = .none
     var columns: TargetLayoutSpans = .none
+
+    /// The content margins the content is drawn inside (zero for a view with
+    /// none): a behaviour sees the content without them, through the window
+    /// less them, as SwiftUI's does
+    /// (``ScrollViewHandler/targetedOffsets(proposedX:proposedY:velocity:)``).
+    var margins = EdgeInsets()
 }
 
 extension ScrollViewHandler {
@@ -56,11 +62,24 @@ extension ScrollViewHandler {
     /// So the window is
     /// the same at every stop — the container a page is sized against, and the
     /// page `.paging` steps — and a row `.viewAligned` lands on is read whole.
+    ///
+    /// Under content margins the behaviour is handed SwiftUI's coordinates
+    /// (measured on macOS 15, `Tools/SwiftUIProbes/Scroll target
+    /// behaviours/`): the container is the window less the margins, the
+    /// content its size without them, and the target the area inside them,
+    /// with the content's first line at 0 — which is the scroll offset, since
+    /// offset 0 shows the top margin above that line. So a page lands inside
+    /// the margins, and a view aligned to the top lands at the top margin with
+    /// the one before it showing in the margin.
     func targetedOffsets(proposedX: Int, proposedY: Int, velocity: CellVector) -> (x: Int, y: Int)? {
         guard let targeting = scrollTargeting else { return nil }
         let scrollsAcross = targeting.axes.contains(.horizontal)
+        let margins = targeting.margins
+        let across = margins.leading + margins.trailing
+        let along = margins.top + margins.bottom
         let container = CellSize(
-            width: scrollsAcross ? horizontal.viewportHeight : targeting.width, height: viewportHeight)
+            width: max(0, (scrollsAcross ? horizontal.viewportHeight : targeting.width) - across),
+            height: max(0, viewportHeight - along))
         let original = ScrollTarget(
             rect: CellRect(
                 x: horizontal.scrollOffset, y: scrollOffset,
@@ -68,11 +87,14 @@ extension ScrollViewHandler {
         var target = original
         target.rect.x = proposedX
         target.rect.y = proposedY
+        let content = CellSize(
+            width: max(0, (scrollsAcross ? horizontal.extent : targeting.width) - across),
+            height: max(0, contentHeight - along))
         let context = ScrollTargetBehaviorContext(
-            originalTarget: original, velocity: velocity,
-            contentSize: CellSize(width: scrollsAcross ? horizontal.extent : targeting.width, height: contentHeight),
+            originalTarget: original, velocity: velocity, contentSize: content,
             containerSize: container, axes: targeting.axes, environment: targeting.environment,
-            targetLayoutRows: targeting.rows, targetLayoutColumns: targeting.columns)
+            targetLayoutRows: targeting.rows.shifted(by: -margins.top),
+            targetLayoutColumns: targeting.columns.shifted(by: -margins.leading))
         targeting.behavior.updateTarget(&target, context: context)
         let anchor = target.anchor ?? .topLeading
         return (
@@ -169,7 +191,8 @@ extension _ScrollViewCore {
         let previous = handler.scrollTargeting
         handler.scrollTargeting = ScrollViewTargeting(
             behavior: behavior, axes: axes, environment: context.environment.detachedFromRuntime(),
-            width: previous?.width ?? 0, rows: previous?.rows ?? .none, columns: previous?.columns ?? .none)
+            width: previous?.width ?? 0, rows: previous?.rows ?? .none, columns: previous?.columns ?? .none,
+            margins: appliesContentMargins ? resolvedContentMargins(context.environment) : EdgeInsets())
     }
 
     /// The scroll target behaviour this view lands its user's steps under, or

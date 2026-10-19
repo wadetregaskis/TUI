@@ -339,6 +339,28 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md` (B-D5G-8);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
+### Scroll target behaviours
+
+- **Asks:** what a scroll target behaviour is handed, and where `.paging` and `.viewAligned` land, under
+  `.contentMargins` (`margins.swift`, `margins.out`): a behaviour of the probe's own wraps the built-in one and
+  logs each call's container, content and proposed target and what the built-in behaviour returned; a resize of
+  the window from 100 to 110 points is what makes SwiftUI consult it. Rows 20 points tall in a vertical scroll
+  view, under top and bottom margins, from several offsets. The container is the bounds less the margins, the
+  content its size without them, and the target the area inside the margins at the offset, the content's first
+  row at 0; `.viewAligned` lands a row at the top margin. `.paging`'s page is the container only without a top
+  margin: with one it is the container plus HALF the top margin (`margins2.swift`, `margins2.out`, margins of
+  several sizes, the page read off the lattice the stops fall on). `hmargins.swift` (`hmargins.out`) is the
+  horizontal case, a carousel of 60-point cards under leading and trailing margins: the same, with the leading
+  margin in the top's place. All three are top-level code, built alone.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
+- **Was:** `SCROLL/probe/`.
+- **Cited by:** `Sources/TUIkitFoundation/Focus/ScrollViewHandler+Targeting.swift`,
+  `Sources/TUIkitFoundation/Views/ScrollTargetBehaviors.swift`; `Tests/TUIkitAppTests/ScrollTargetViewAlignedTests.swift`,
+  `Tests/TUIkitIntegrationTests/ScrollTargetBehaviorTests.swift`;
+  `Documentation/SwiftUI parity/Decisions/Scroll anchors, target behaviours and clipping (D2S).md` (B-D2S-7),
+  `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-1),
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R15).
+
 ### Ragged text in a larger frame
 
 - **Asks:** where SwiftUI draws the lines of a multi-line `Text` whose lines differ in width ("aaaa" over "bb")

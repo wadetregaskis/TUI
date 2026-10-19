@@ -14,9 +14,12 @@
 /// SwiftUI's type of the same name.
 ///
 /// A page is the visible area: the viewport, less what the scroll bars take,
-/// and less the "N more" lines, which a paging view keeps out of the content
-/// at every offset — so every line is read at some page, as with Page Down,
-/// and a page sized with `containerRelativeFrame` is the page a step moves.
+/// less the "N more" lines, which a paging view keeps out of the content at
+/// every offset — so every line is read at some page, as with Page Down — and
+/// less the content margins, inside which every page lands. So a page sized
+/// with `containerRelativeFrame` is the page a step moves. (SwiftUI's page is
+/// the container plus half the top or leading margin, measured, which no
+/// container-sized page matches: not copied, decisions B-SCROLL-1.)
 /// Here a gesture is a step — a wheel tick, an arrow key, a scrollbar arrow —
 /// so every step moves to the next page boundary in its direction, however
 /// small it is, and a step further than a page (Page Down past an unaligned

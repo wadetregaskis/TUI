@@ -1714,6 +1714,24 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-SCROLLANCHOR-1](<Decisions/Scroll anchoring default (SCROLLANCHOR).md#b-scrollanchor-1-a-removal-above-and-a-row-above-growing-are-held-as-an-insertion-is>).
   **Lane.**
 
+### R15. Under a top or leading margin, `.paging` steps the container
+
+- **SwiftUI (measured, macOS 15.8.1, 2026-10-19,
+  `Tools/SwiftUIProbes/Scroll target behaviours/margins2.swift`,
+  `hmargins.swift`):** the behaviour is handed the container less the
+  content margins, as documented, but `.paging` steps the container plus half
+  the top margin (vertically) or the leading margin (horizontally): 90 points
+  through a 70-point window under a top margin of 40. With only a bottom or
+  trailing margin it steps the container.
+- **TUIkit:** `.paging` steps the container, the window less the margins, so
+  every page lands inside them and a page sized with `containerRelativeFrame`
+  is the step (`ScrollTargetBehaviorTests.containerPagesUnderMargins`).
+- **Why:** SwiftUI's page matches nothing an app can size its pages to, and
+  nothing in its documentation describes it; it looks like a slip, and
+  copying it would make container-sized pages drift under margins.
+- **Decided:** [B-SCROLL-1](<Decisions/Scrolling fixes and parity (SCROLL).md#b-scroll-1-paging-under-a-top-or-leading-margin-steps-the-container-not-swiftuis-half-margin-longer-page>).
+  **Lane.**
+
 ---
 
 ## Lists, tables and controls

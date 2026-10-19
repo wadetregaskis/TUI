@@ -200,6 +200,20 @@ view-aligned behaviour honours the margins as its documentation of
 gesture or a resize, which an offscreen probe does not drive readily. Half a
 day with a resize probe and the two tests' new numbers. Owner's call.
 
+**Done 2026-10-19 (lane SCROLL), the owner having settled it as "probe, then
+follow SwiftUI".** A window resize drives SwiftUI's behaviour offscreen
+(`Tools/SwiftUIProbes/Scroll target behaviours/`), and a behaviour of the
+probe's own logs what it is handed. It confirmed the documented reading: the
+container is the bounds less the margins, the content its size without them,
+and the target the area inside them, the content's first line at 0;
+`.viewAligned` lands a row at the top margin and a carousel's card at the
+leading one, the view before it showing in the margin. That is what a
+behaviour is handed here now, the target layout's spans moved back by the top
+and leading margins with it. `.paging` steps the container, so a page lands
+inside the margins and a container-sized page is the step — where SwiftUI's
+own page is half the top (leading) margin longer, which is not copied
+(decisions SCROLL B-SCROLL-1, deviation R15).
+
 ### Notes on A6 that are not decisions
 
 - `ScrollGranularity.row` did nothing `.viewAligned` cannot: on `List` and

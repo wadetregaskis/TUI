@@ -20,8 +20,9 @@ import TUIkitCore
 /// scrolls so that ``rect`` is aligned to its visible region at ``anchor``.
 public struct ScrollTarget: Hashable, Sendable {
     /// The rect that a scrollable view should try to have contained, in the
-    /// scroll content's coordinates: line 0 is the top of what scrolls, the
-    /// content margins included.
+    /// scroll content's coordinates: line 0 is the content's first line,
+    /// inside its content margins, as in SwiftUI (measured) — so a target at
+    /// 0 is the view at its top, with the top margin above it.
     public var rect: CellRect
 
     /// The anchor to which ``rect`` should be aligned within the visible region
@@ -77,14 +78,15 @@ public struct ScrollTargetBehaviorContext {
     /// terminal's steps have no duration to measure one from.
     public let velocity: CellVector
 
-    /// The size of the scroll view's content, its margins included.
+    /// The size of the scroll view's content, without its content margins.
     public let contentSize: CellSize
 
     /// The size of the area the content is seen through: the viewport, less
-    /// what the scroll bars take, and less the "N more" lines, which a view
-    /// under a behaviour reserves at every offset rather than drawing them
-    /// over its content — so every line of it can be read, and it is the
-    /// container a `containerRelativeFrame` in the content sizes against.
+    /// what the scroll bars take, less the "N more" lines, which a view under
+    /// a behaviour reserves at every offset rather than drawing them over its
+    /// content — so every line of it can be read — and less the content
+    /// margins, as SwiftUI documents and does (measured). It is the container
+    /// a `containerRelativeFrame` in the content sizes against.
     public let containerSize: CellSize
 
     /// The axes in which the scrollable view is scrollable.
