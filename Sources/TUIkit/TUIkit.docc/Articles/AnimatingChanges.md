@@ -226,18 +226,22 @@ The effects apply to the rendered cells rather than to layout: a view sliding
 in gets its space at once and moves into it. `.scale` has no sub-cell rendering
 to shrink, so it uncovers the view from its anchor a cell at a time.
 
-A **removal** needs somewhere to play out, because the view is gone from the
-tree by the time anything notices. Whatever still stands in its slot is what
-plays it: the picture the view drew on its last frame is left behind, and the
-`nil` it became draws that picture part-way gone. This holds the view's row (and
-its width) open for as long as the removal runs, so the rest of the stack does
-not close up around it until it has finished leaving — whether the `if` has
-siblings or is the stack's only content, and with a `.frame` or an `.opacity`
-around it. Put the `.transition` on the view the `if` holds — after anything
-that draws, though a modifier that draws nothing of its own, such as
-`.onAppear` or `.foregroundStyle`, may come after it: in a few shapes the
-removal fades rather than play the transition, and `View.transition(_:)` lists
-them.
+The layout changes at once, as SwiftUI's does, and under the animation the
+views it moves glide from where they were to where they now go: a view arriving
+is drawn where it lands while the row below slides out of its way, and a view
+leaving gives its room back at once and plays its removal where it was,
+beneath the views gliding up over it. `View.transitionSpace(_:)` holds an
+`if`'s room until its removal has played, for an app that wants the views
+around to stand still.
+
+A **removal** needs something to play it, because the view is gone from the
+tree by the time anything notices. The picture the view drew on its last frame
+is left behind, and what still stands where it stood draws it part-way gone:
+the `nil` an `if` became. Put the `.transition` on the view the `if` holds —
+after anything that draws, though a modifier that draws nothing of its own,
+such as `.onAppear` or `.foregroundStyle`, may come after it: in a few shapes
+the removal fades rather than play the transition, and `View.transition(_:)`
+lists them.
 
 ## Springs
 
