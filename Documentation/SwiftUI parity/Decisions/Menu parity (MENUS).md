@@ -49,3 +49,59 @@ first frame, pinned by a test, and a look at the drawn order, which puts a
 `.cancel`-role button first in a row and so gives it the focus today. Not done
 here because it changes what Return does in every existing dialog that marks a
 default button, which is the owner's to weigh.
+
+### B-MENUS-2. A `Menu` and a `Picker` in a pop-up menu are submenus, opened by Right and closed by Left or Escape
+
+*`_MenuSubmenuRow`, `MenuPopupController.openSubmenu`, `renderMenuLevel`*
+
+A `Menu` written in a pop-up `Menu` or a `.contextMenu` drew its own collapsed
+control on a line of the menu, and choosing it closed the menu it was in; a
+`Picker` drew a drop-down on a line the menu's arrows walked past. SwiftUI makes
+both submenus (measured, `pickers.out`): a `Picker` of the menu, segmented or
+palette style is a submenu titled by its label with the selected option
+checked, an `.inline` one its label as a section header over its options in the
+menu itself, a nested `Menu` a submenu whatever its style or primary action,
+and a disabled one a submenu of disabled items.
+
+**Shipped:** the same, in the menu engine every pop-up menu shares — a pop-up
+`Menu`, a `.contextMenu`, a list's row menu, a toolbar pull-down, the menu
+bar's menus. The submenu's row is a `Button` of the menu, so it takes the row's
+look, with the submenu caret ▸ in the key-equivalent column; it publishes,
+beside its ordinal, how to draw the submenu, and the menu draws the open one as
+a layer of its own buffer, hung beside the row with its first item level with
+it, so it goes wherever the compositor puts the menu. With no room on the
+right it goes to the menu's left, and a chain of submenus goes on the way it
+turned (`OverlayLayer.besideAnchorWidth`, `opensLeading`); with no room below it
+slides up. The keyboard: Right or Return on the row opens the submenu with its
+first item highlighted, Left or Escape closes it back to its row, and moving
+the highlight off the row closes it; the keys go to the deepest submenu that
+has a highlight, so one the pointer opened leaves them with its menu. In a menu
+bar's menu, Right on a row that opens nothing steps to the next menu, and Left
+at the top level to the one before. The pointer: over the row it opens the
+submenu with nothing highlighted; over another row it closes it; a click on the
+row opens it and chooses nothing, and a press-and-hold released on it leaves
+the menu up. A radio-group picker draws inline, where macOS draws its label and
+options as disabled items with no check (measured): a menu form nobody can use.
+
+Escape closes one level, as the lane's brief asked and as Windows and GTK
+menus do; macOS, unmeasured here, is believed to close the whole menu. Recorded
+as deviation W16.
+
+**The fuller version**, each priced separately:
+- **Key equivalents in a closed submenu.** An item's `.keyboardShortcut` in a
+  submenu registers only while the submenu is drawn; in a menu bar's closed
+  menus, which register their items' keys every frame, a submenu's do not. About
+  half a day: a registration-only render of a closed submenu's items, from the
+  open menu's level and from the menu bar's pass. Done next if the lane has
+  time; see the lane report.
+- **The pointer's diagonal.** A desktop menu keeps a submenu open while the
+  pointer crosses other rows on its way into it (macOS's safe triangle,
+  unmeasured); here the pointer over another row closes it at once, so the way
+  to a submenu's lower items is across, then down. About a day: the direction
+  of the pointer's last moves, and a grace of a few frames before another row
+  takes the highlight.
+- **The status bar's hint.** With a submenu's row highlighted, the bar could
+  say "→ open"; it says what it says for any row. An hour and seven strings.
+- **The menu bar's Find submenu** (B-O13-8's fuller version), now that there
+  are submenus: Find's own items as a submenu of Edit. Lane O13's to weigh;
+  it needs the first item above for their keys.

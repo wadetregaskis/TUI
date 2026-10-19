@@ -27,18 +27,26 @@ import TUIkitFoundation
 /// resolve one identity step in (`Content`, 0) and are pinned there, and what
 /// `build` makes of them draws under (`Built`, 1), so an option's label and
 /// the control's own views never share an identity or a `@State` box.
+///
+/// `build` is told, beside the options, whether the picker is drawn in a
+/// pop-up menu's column (``EnvironmentValues/isInPopUpMenu``), where it is a
+/// submenu or its options inline rather than a control: a body cannot see
+/// that, the context can.
 struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View>: View, Renderable, Layoutable {
     let content: Content
-    let build: ([_PickerEntry<SelectionValue>]) -> Built
+    let build: (_ entries: [_PickerEntry<SelectionValue>], _ inPopUpMenu: Bool) -> Built
 
     var body: Never { fatalError("_PickerOptionsReader renders via Renderable") }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(build(entries(in: context)), proposal: proposal, context: builtScope(context))
+        measureChild(
+            build(entries(in: context), context.environment.isInPopUpMenu), proposal: proposal,
+            context: builtScope(context))
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkitView.renderToBuffer(build(entries(in: context)), context: builtScope(context))
+        TUIkitView.renderToBuffer(
+            build(entries(in: context), context.environment.isInPopUpMenu), context: builtScope(context))
     }
 
     private func builtScope(_ context: RenderContext) -> RenderContext {

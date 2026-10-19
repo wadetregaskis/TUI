@@ -43,14 +43,17 @@ import TUIkitCore
 /// column, the hover wash — and all of that lives in `_MenuItemButtonStyle`,
 /// which reaches Buttons. So another control joins the column by BEING one for
 /// the frame: `_ToggleCore` renders a row `Button` carrying its own on/off mark
-/// when this is non-nil. A control that cannot be expressed that way (a `Picker`,
-/// which SwiftUI turns into a submenu) has no row here at all.
+/// when this is non-nil, and a `Menu` or a `Picker` renders a row `Button` that
+/// opens a submenu (`_MenuSubmenuRow`), publishing the submenu with its ordinal.
 @MainActor
 final class MenuRowSink {
     /// What one row told the column about itself.
     struct Row {
         let action: () -> Void
         let isEnabled: Bool
+        /// The submenu the row opens, for a row that is one (a `Menu` or a
+        /// `Picker` written in the menu); `nil` for a row that is a choice.
+        let submenu: MenuSubmenu?
     }
 
     private var claims: [ViewIdentity: Int] = [:]
@@ -64,9 +67,21 @@ final class MenuRowSink {
         return ordinal
     }
 
-    /// Records what the row at `ordinal` does.
-    func publish(ordinal: Int, action: @escaping () -> Void, isEnabled: Bool) {
-        rows[ordinal] = Row(action: action, isEnabled: isEnabled)
+    /// Records what the row at `ordinal` does — runs `action`, or opens
+    /// `submenu`.
+    func publish(ordinal: Int, action: @escaping () -> Void, isEnabled: Bool, submenu: MenuSubmenu? = nil) {
+        rows[ordinal] = Row(action: action, isEnabled: isEnabled, submenu: submenu)
+    }
+
+    /// The submenu the row at `ordinal` opens, if it is enabled and opens one.
+    func submenu(at ordinal: Int) -> MenuSubmenu? {
+        guard let row = rows[ordinal], row.isEnabled else { return nil }
+        return row.submenu
+    }
+
+    /// The rows that open a submenu, by ordinal.
+    var submenuRows: [(ordinal: Int, submenu: MenuSubmenu)] {
+        rows.compactMap { ordinal, row in row.submenu.map { (ordinal, $0) } }.sorted { $0.ordinal < $1.ordinal }
     }
 
     /// The ordinals a highlight may rest on, in visual order: rows that
@@ -76,9 +91,11 @@ final class MenuRowSink {
         rows.filter { $0.value.isEnabled }.keys.sorted()
     }
 
-    /// Runs the row at `ordinal`, if it is one that can be chosen.
+    /// Runs the row at `ordinal`, if it is one that can be chosen. A row that
+    /// opens a submenu runs nothing: the controller opens it
+    /// (``MenuPopupController/choose(_:byKeyboard:)``).
     func activate(ordinal: Int) {
-        guard let row = rows[ordinal], row.isEnabled else { return }
+        guard let row = rows[ordinal], row.isEnabled, row.submenu == nil else { return }
         row.action()
     }
 
@@ -206,11 +223,13 @@ package final class MenuPopupController {
     /// costs nothing; a leading `.disabled()` row is caught by
     /// ``MenuHighlight/adopt(selectable:)`` as soon as the frame draws.
     package func opened(withSelection: Bool) {
+        closeSubmenu()
         highlight.move(to: withSelection ? (highlight.selectable.first ?? 0) : nil)
     }
 
-    /// Records that the menu has closed.
+    /// Records that the menu has closed, and any submenu open from it.
     package func closed() {
+        closeSubmenu()
         highlight.move(to: nil)
     }
 
@@ -225,10 +244,103 @@ package final class MenuPopupController {
         highlight.ordinal.map(menuRowRegionID)
     }
 
-    /// Runs the highlighted row, if there is one.
+    /// Runs the highlighted row, or opens the submenu it opens, if there is
+    /// one.
     func activateHighlighted() -> Bool {
         guard let ordinal = highlight.ordinal else { return false }
-        sink.activate(ordinal: ordinal)
+        choose(ordinal, byKeyboard: true)
         return true
+    }
+
+    // MARK: - Where the rows were drawn
+
+    /// Each row's first line in the popup as last drawn, by ordinal: what a
+    /// submenu opened from the row hangs level with.
+    private var drawnLines: [Int: Int] = [:]
+
+    /// Records where the rows were drawn: `firstRows` — each ordinal's first
+    /// row of the column — through a window scrolled by `offset`, under the
+    /// popup's top border.
+    func noteDrawnRows(_ firstRows: [Int: Int], scrolledBy offset: Int) {
+        let visible = max(1, scroll.viewportHeight)
+        drawnLines = firstRows.mapValues { min(max(1, $0 - offset + 1), visible) }
+    }
+
+    /// The line of the popup the row at `ordinal` was drawn on — kept within
+    /// the window when the row is scrolled out of it — or `nil` for a row
+    /// that was not drawn.
+    func drawnLine(ofOrdinal ordinal: Int) -> Int? {
+        drawnLines[ordinal]
+    }
+
+    // MARK: - Submenus
+
+    /// The submenu open from this menu — on which row, and its own controller
+    /// — or `nil`. See `MenuSubmenus.swift`.
+    private(set) var openSubmenu: (ordinal: Int, controller: MenuPopupController)?
+
+    /// Chooses the row at `ordinal`: runs it, or — for a row that opens a
+    /// submenu — opens that, with its first row highlighted when the keyboard
+    /// chose it, as a keyboard-opened menu is, and nothing highlighted when
+    /// the pointer did.
+    ///
+    /// - Returns: Whether that was a choice, which ends a press-and-hold
+    ///   gesture; opening a submenu is not one.
+    @discardableResult
+    func choose(_ ordinal: Int, byKeyboard: Bool) -> Bool {
+        guard sink.submenu(at: ordinal) != nil else {
+            sink.activate(ordinal: ordinal)
+            return true
+        }
+        highlight.move(to: ordinal)
+        openSubmenu(at: ordinal, withSelection: byKeyboard)
+        return false
+    }
+
+    /// Opens the submenu of the row at `ordinal`, closing any other, and keeps
+    /// one that is already open there as it is unless the keyboard is entering
+    /// it, when its first row is highlighted.
+    func openSubmenu(at ordinal: Int, withSelection: Bool) {
+        if let open = openSubmenu, open.ordinal == ordinal {
+            if withSelection, open.controller.highlightedOrdinal == nil {
+                open.controller.opened(withSelection: true)
+            }
+            return
+        }
+        closeSubmenu()
+        let child = MenuPopupController()
+        child.opened(withSelection: withSelection)
+        openSubmenu = (ordinal, child)
+    }
+
+    /// Closes the submenu open from this menu, and every one open from it.
+    func closeSubmenu() {
+        openSubmenu?.controller.closed()
+        openSubmenu = nil
+    }
+
+    /// The pointer is over the row at `ordinal`: highlight it, open its
+    /// submenu if it has one, and close the open one if it is another row's —
+    /// as a desktop menu tracks the pointer.
+    func pointerEntered(_ ordinal: Int) {
+        highlight.point(at: ordinal)
+        if sink.submenu(at: ordinal) != nil {
+            openSubmenu(at: ordinal, withSelection: false)
+        } else {
+            closeSubmenu()
+        }
+    }
+
+    /// The menus open from this one, this one first and the deepest last, as
+    /// far as the keyboard reaches: into a submenu once it has a highlight —
+    /// the keyboard entered it, or the pointer is in it — and no further while
+    /// it has none, which is how a submenu the pointer opened leaves the keys
+    /// with the menu it opened from.
+    var keyboardChain: [MenuPopupController] {
+        var chain = [self]
+        while let open = chain[chain.count - 1].openSubmenu, open.controller.highlightedOrdinal != nil {
+            chain.append(open.controller)
+        }
+        return chain
     }
 }

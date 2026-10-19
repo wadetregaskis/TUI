@@ -88,6 +88,10 @@ extension FrameBuffer {
             let layer = queue.removeFirst().layer
             // A surface's box, for the overflow its content carries (below).
             var surface: (x: Int, y: Int, width: Int, height: Int)?
+            // Whether a layer hung beside its anchor went to the anchor's
+            // leading side, which its own such layers then try first
+            // (`OverlayLayer.opensLeading`).
+            var wentLeading = false
             do {
                 // A modal/alert layer dims everything beneath it first.
                 if layer.dimsBackground {
@@ -108,6 +112,7 @@ extension FrameBuffer {
                         foreground: palette.foregroundTertiary, background: palette.overlayBackground)
                 }
                 let placed = layer.placed(maxWidth: maxWidth, maxHeight: maxHeight)
+                wentLeading = layer.besideAnchorWidth != nil && placed.x < layer.offsetX
                 if layer.isOpaque {
                     surface = (x: placed.x, y: placed.y, width: placed.content.width, height: placed.content.height)
                 }
@@ -173,6 +178,7 @@ extension FrameBuffer {
             let liftedLayers = OverlayLayer.arrangingPeers(result.overlays, maxWidth: maxWidth, maxHeight: maxHeight)
             for lifted in liftedLayers where lifted.scrollPin == nil {
                 var kept = lifted
+                if wentLeading, kept.besideAnchorWidth != nil { kept.opensLeading = true }
                 if let box = surface, lifted.isOverflow {
                     guard let cut = lifted.cropped(x: box.x, y: box.y, width: box.width, height: box.height)
                     else { continue }

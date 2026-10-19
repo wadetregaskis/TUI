@@ -668,5 +668,10 @@ messages cite that path), and what cites it.
   probe, since a `WindowGroup` opened none in that session.
 - **Was:** `MENUS/probe/`.
 - **Cited by:** `Sources/TUIkitPresentation/Views/AlertActions.swift`,
-  `Tests/TUIkitPresentationTests/AlertButtonModifierTests.swift`;
-  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15).
+  `Sources/TUIkitFoundation/Rendering/MenuSubmenus.swift`, `Sources/TUIkitMenus/Views/_MenuPopupCore.swift`,
+  `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/PickerMenuRows.swift`;
+  `Tests/TUIkitPresentationTests/AlertButtonModifierTests.swift`, `Tests/TUIkitMenusTests/MenuSubmenuTests.swift`,
+  `Tests/TUIkitIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIkitIntegrationTests/MenuBarSubmenuTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
+  `Documentation/SwiftUI parity/Decisions/Menu parity (MENUS).md`.

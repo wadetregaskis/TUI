@@ -74,7 +74,10 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
     /// The menu floats *over* the page, so the layout footprint is the
     /// collapsed label — open or closed.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(
+        if context.environment.isInPopUpMenu {
+            return measureChild(submenuRow, proposal: proposal, context: context)
+        }
+        return measureChild(
             trigger(
                 state(in: context), focusManager: context.environment.focusManager,
                 // Measuring only: nothing can open, so nothing to report.
@@ -83,6 +86,13 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // Written in a pop-up menu, a menu is a submenu of it, as SwiftUI's is:
+        // a row of the menu that opens its items beside it. Its primary action,
+        // if it has one, is not on that row, as SwiftUI's is not on macOS
+        // (`Tools/SwiftUIProbes/Menu items and alert buttons/pickers.out`).
+        if context.environment.isInPopUpMenu {
+            return TUIkitView.renderToBuffer(submenuRow, context: context)
+        }
         let state = state(in: context)
         let sectionID = "menu-\(context.identity.path)"
         // Keep the box alive across the run loop's per-frame StateStorage GC.
@@ -110,6 +120,11 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
             anchor: MenuAnchor(x: 0, y: buffer.height, controlHeight: buffer.height),
             dismiss: { state.close() }, context: context)
         return buffer
+    }
+
+    /// This menu as a row of the pop-up menu it is written in.
+    private var submenuRow: _MenuSubmenuRow<MenuStyleConfiguration.Label, MenuStyleConfiguration.Content> {
+        _MenuSubmenuRow(label: label, items: content)
     }
 
     /// The collapsed control: the caller's label plus the closed/open caret

@@ -29,8 +29,13 @@ package enum DropdownMenu {
     /// The caret marking a control whose drop-down is open (▴).
     package static let openCaret = "\u{25B4}"
 
+    /// The caret marking a menu row that opens a submenu (▸), where a row's
+    /// key equivalent goes: the drop-down carets' family, pointing the way the
+    /// submenu opens.
+    static let submenuCaret = "\u{25B8}"
+
     /// The marker drawn beside a menu's current value (✓).
-    static let selectedMarker = "\u{2713}"
+    package static let selectedMarker = "\u{2713}"
 
     /// One row of a drop-down menu.
     enum Row {
@@ -125,6 +130,11 @@ package enum DropdownMenu {
         /// A stable identity for the scrollbar's held-button auto-repeat
         /// (unique per control).
         let autoRepeatToken: String
+
+        /// Whether the popup files the screen-covering backdrop that closes it
+        /// on a click outside (`attachDismissBackdrop`). A submenu does not:
+        /// the menu it opened from has one already.
+        var attachesBackdrop = true
     }
 
     /// How this frame's rows are windowed — one answer, worked out once and
@@ -153,7 +163,9 @@ package enum DropdownMenu {
     ///   - onHover: Called with the row index when the cursor enters an
     ///     option row.
     ///   - onActivate: Called with the row index when an option row is
-    ///     clicked.
+    ///     clicked; answers whether that CHOSE something — which ends a
+    ///     press-and-hold gesture, closing the menu — rather than opening a
+    ///     submenu, which leaves it up.
     ///   - onDismiss: Called when the user clicks OUTSIDE the popup — close
     ///     the menu (the click itself is consumed, macOS-style) — and when a
     ///     press-and-hold is released anywhere that is not a row, the popup's
@@ -163,7 +175,7 @@ package enum DropdownMenu {
         _ config: Configuration,
         context: RenderContext,
         onHover: @escaping (Int) -> Void,
-        onActivate: @escaping (Int) -> Void,
+        onActivate: @escaping (Int) -> Bool,
         onDismiss: @escaping () -> Void
     ) -> FrameBuffer {
         let rows = config.rows
@@ -284,7 +296,7 @@ package enum DropdownMenu {
         // popup is anchored (region containment is pure arithmetic; nothing
         // clips it to the buffer). Wheel events fall through — the page can
         // still scroll behind an open menu.
-        if !context.isMeasuring {
+        if !context.isMeasuring, config.attachesBackdrop {
             attachDismissBackdrop(to: &buffer, context: context, onDismiss: onDismiss)
         }
         return buffer
@@ -411,7 +423,7 @@ package enum DropdownMenu {
         tracks: @escaping (MouseButton) -> Bool,
         mouseDispatcher: MouseEventDispatcher,
         onHover: @escaping (Int) -> Void,
-        onActivate: @escaping (Int) -> Void,
+        onActivate: @escaping (Int) -> Bool,
         onDismiss: @escaping () -> Void
     ) -> HitTestRegion.HandlerID {
         // Filed per OPTION, not per visible slot: a row scrolled into a cell is
@@ -456,7 +468,9 @@ package enum DropdownMenu {
                 // consumed here, it leaves the menu up to be picked from.
                 guard mouseDispatcher?.endsPopupOpeningClick(event) != true else { return true }
                 let endsHold = mouseDispatcher?.endsHeldGesture(event) ?? false
-                onActivate(index)
+                // A release on a row that opens a submenu opens it, and the
+                // menu stays up for it, held gesture or not.
+                let chose = onActivate(index)
                 // A press-and-HOLD ends here whatever the item's
                 // `.menuActionDismissBehavior` says. That modifier keeps a
                 // menu of settings up so more than one can be flipped —
@@ -469,7 +483,7 @@ package enum DropdownMenu {
                 // SwiftUI's `MenuActionDismissBehavior.disabled` is
                 // `@available(macOS, unavailable)`, and AppKit's tracking
                 // model ends every menu session on the mouse-up.
-                if endsHold { onDismiss() }
+                if endsHold, chose { onDismiss() }
                 return true
             default:
                 return false
@@ -750,7 +764,7 @@ package enum DropdownMenu {
         window: RowWindow,
         context: RenderContext,
         onHover: @escaping (Int) -> Void,
-        onActivate: @escaping (Int) -> Void,
+        onActivate: @escaping (Int) -> Bool,
         onDismiss: @escaping () -> Void
     ) {
         guard !context.isMeasuring,

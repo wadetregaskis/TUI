@@ -201,7 +201,7 @@ struct InactiveFocusIndicatorTests {
                 highlightedRow: 0, innerWidth: 12, scroll: ScrollAxis(), followHighlight: false,
                 autoRepeatToken: "inactive-drop-down")
             return DropdownMenu.popup(
-                config, context: context, onHover: { _ in }, onActivate: { _ in }, onDismiss: {})
+                config, context: context, onHover: { _ in }, onActivate: { _ in true }, onDismiss: {})
         }
         let active = popup(appearsActive: true)
         #expect(!active.animatedCells.isEmpty, "the premise: the drop-down breathes while active")

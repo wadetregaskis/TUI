@@ -27,7 +27,7 @@ struct PickerSectionTitleTests {
     /// A picker's entries, spelled: an option by its tag, a rule as "—", a
     /// title as "title".
     private func entries<Content: View>(@ViewBuilder _ content: () -> Content) -> [String] {
-        _PickerOptionsReader<Fruit, _, EmptyView>(content: content()) { _ in EmptyView() }
+        _PickerOptionsReader<Fruit, _, EmptyView>(content: content()) { _, _ in EmptyView() }
             .entries(in: makeRenderContext(width: 40, height: 12))
             .map { entry in
                 switch entry {

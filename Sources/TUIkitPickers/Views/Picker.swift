@@ -153,8 +153,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         let horizontal = horizontalLayout
         // Tag the picker subtree so its label/option Text resolves
         // `.control(.picker)` style entries (`.pickerTextStyle { … }`).
-        _PickerOptionsReader<SelectionValue, Content, _>(content: content) { entries in
-            pickerBody(entries: entries, style: style, horizontal: horizontal)
+        _PickerOptionsReader<SelectionValue, Content, _>(content: content) { entries, inPopUpMenu in
+            pickerBody(entries: entries, style: style, horizontal: horizontal, inPopUpMenu: inPopUpMenu)
         }
         .environment(\.controlKind, .picker)
     }
@@ -179,10 +179,27 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// `_CollapsingLabel` is the same inline label Stepper and Slider use; it
     /// supplies the separating space and collapses when blank, which is why
     /// this is an `HStack(spacing: 0)`.
+    ///
+    /// Written in a pop-up menu (`inPopUpMenu`), a picker is no control but
+    /// its options as the menu's rows, as SwiftUI's is (measured on macOS 15.8,
+    /// `Tools/SwiftUIProbes/Menu items and alert buttons/pickers.out`): a
+    /// submenu titled by its label, the selected option checked — or, as an
+    /// `.inline` picker, its label as the title of a section of its options in
+    /// the menu itself. A radio-group picker draws inline too; macOS has no
+    /// menu form for one, and draws its label and options as disabled items.
     @ViewBuilder private func pickerBody(
-        entries: [_PickerEntry<SelectionValue>], style: any PickerStyle, horizontal: Bool
+        entries: [_PickerEntry<SelectionValue>], style: any PickerStyle, horizontal: Bool, inPopUpMenu: Bool
     ) -> some View {
-        if hasNoSources {
+        if inPopUpMenu {
+            let rows = _PickerMenuRows(
+                entries: hasNoSources ? [] : entries, selection: selection, isMixed: isMixed,
+                isDisabled: isDisabled || hasNoSources)
+            if style.resolvesToMenu || style.resolvesToSegments {
+                _MenuSubmenuRow(label: label, items: rows)
+            } else {
+                _PickerInlineMenuSection(label: label, rows: rows)
+            }
+        } else if hasNoSources {
             HStack(alignment: .top, spacing: 0) {
                 _CollapsingLabel(label: label, controlDisabled: true)
                 Text(verbatim: "—").foregroundStyle(.palette.foregroundTertiary)

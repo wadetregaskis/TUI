@@ -161,7 +161,7 @@ struct SelectionEmphasisRampTests {
                 highlightedRow: 0, innerWidth: 12, scroll: ScrollAxis(),
                 followHighlight: true, autoRepeatToken: "ramp-test")
             let buffer = DropdownMenu.popup(
-                config, context: context, onHover: { _ in }, onActivate: { _ in }, onDismiss: {})
+                config, context: context, onHover: { _ in }, onActivate: { _ in true }, onDismiss: {})
             #expect(!buffer.animatedCells.isEmpty, "the open menu did not breathe")
         }
     }

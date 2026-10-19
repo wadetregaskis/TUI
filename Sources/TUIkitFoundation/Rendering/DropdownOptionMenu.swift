@@ -185,7 +185,10 @@ extension DropdownMenu {
                 autoRepeatToken: menu.autoRepeatToken),
             context: context,
             onHover: { row in ordinalByRow[row].map(onHover) },
-            onActivate: { row in ordinalByRow[row].map(onActivate) },
+            onActivate: { row in
+                ordinalByRow[row].map(onActivate)
+                return true
+            },
             onDismiss: onDismiss)
         if !menu.isEnabled { popup.hitTestRegions.removeAll() }
 

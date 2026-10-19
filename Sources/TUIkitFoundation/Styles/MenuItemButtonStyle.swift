@@ -84,7 +84,11 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
     /// their names where ``EnvironmentValues/keyNotation`` asks for those.
     /// Formatted once here rather than on each of the row's three reads of it,
     /// and asked of the environment only by a row that has a shortcut.
+    ///
+    /// A row that opens a submenu prints the submenu caret there instead
+    /// (``DropdownMenu/submenuCaret``), as a desktop menu draws its chevron.
     private func hint(in context: RenderContext) -> String {
+        if context.environment.menuRowOpensSubmenu { return DropdownMenu.submenuCaret }
         guard let symbols = configuration.keyboardShortcut?.displayString else { return "" }
         return context.environment.keyNotation.spelling(symbols)
     }

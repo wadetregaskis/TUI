@@ -688,7 +688,7 @@ struct MenuDividerTests {
             Divider()
             Text("B").tag("b")
         }
-        let options = _PickerOptionsReader<String, _, EmptyView>(content: content()) { _ in EmptyView() }
+        let options = _PickerOptionsReader<String, _, EmptyView>(content: content()) { _, _ in EmptyView() }
             .entries(in: makeRenderContext(width: 20, height: 5))
         #expect(options.count == 3)
         guard case .divider = options[1] else {

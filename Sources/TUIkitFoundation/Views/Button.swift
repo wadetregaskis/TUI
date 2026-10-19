@@ -492,8 +492,11 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         // row falls into.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         context.stateStorage?.markActive(context.identity)
+        // A submenu's row publishes the submenu it opens with its ordinal
+        // (`_MenuSubmenuRow`); every other row, `nil`.
         context.environment.menuRowSink?.publish(
-            ordinal: menuOrdinal, action: action, isEnabled: !isDisabled)
+            ordinal: menuOrdinal, action: action, isEnabled: !isDisabled,
+            submenu: context.environment.menuSubmenu)
         return menuOrdinal == context.environment.menuHighlightedOrdinal
     }
 

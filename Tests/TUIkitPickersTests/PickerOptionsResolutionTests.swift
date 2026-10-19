@@ -95,7 +95,7 @@ struct PickerOptionsResolutionTests {
                     Text("Strawberry").tag(Flavor.strawberry)
                 }
             }
-        ) { _ in EmptyView() }
+        ) { _, _ in EmptyView() }
         .entries(in: makeRenderContext(width: 40, height: 12))
         // Each section's header is its group's title (`PickerSectionTitleTests`),
         // the first's at the top, where the rule before it collapses.
@@ -113,7 +113,7 @@ struct PickerOptionsResolutionTests {
                 Text("Vanilla").tag(Flavor.vanilla)
                 Divider()
             }
-        ) { _ in EmptyView() }
+        ) { _, _ in EmptyView() }
         .entries(in: makeRenderContext(width: 40, height: 12))
         #expect(options.map(\.tag) == [.chocolate, nil, .vanilla])
     }

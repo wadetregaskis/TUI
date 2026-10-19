@@ -256,7 +256,7 @@ struct FadedPaletteRenderTests {
                     // its bar. The default budget is 24 lines, and every row fits.
                     $0.overlayContentHeight = 8
                 },
-                onHover: { _ in }, onActivate: { _ in }, onDismiss: {})
+                onHover: { _ in }, onActivate: { _ in true }, onDismiss: {})
             #expect(
                 popup.animatedCells.isEmpty == (animation == TextCursorStyle.Animation.none),
                 "the \(animation) arm is the one being asserted")
@@ -281,7 +281,7 @@ struct FadedPaletteRenderTests {
                 context: context(palette: palette, width: 30, height: 10) {
                     $0.selectionIndicatorStyle = .pulse
                 },
-                onHover: { _ in }, onActivate: { _ in }, onDismiss: {})
+                onHover: { _ in }, onActivate: { _ in true }, onDismiss: {})
             let top = try #require(popup.animatedCells.first { $0.offsetY == 0 }, "the border breathes")
             let spent = code(palette.accent.spendingAlpha(over: palette.background), palette)
             #expect(top.frames[0].contains(spent), "the bright frame: \(top.frames[0].debugDescription)")

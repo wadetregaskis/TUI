@@ -125,19 +125,27 @@ private enum MenuSectionSeparatorIndex {
 
 /// A menu section's header: drawn under the section-header chrome role, as a
 /// `List`'s is, and never a row the menu highlights or chooses — it publishes
-/// no row, as a `Divider` does not.
-private struct _MenuSectionHeader: View, Renderable, Layoutable {
+/// no row, as a `Divider` does not. Also the title over an inline `Picker`'s
+/// options in a menu, and over a section of a `Picker`'s submenu
+/// (TUIkitPickers).
+package struct _MenuSectionHeader: View, Renderable, Layoutable {
     let header: any View
 
-    var body: Never {
+    /// The memberwise initializer, spelled out because the synthesized one is
+    /// internal and TUIkitPickers makes these.
+    package init(header: any View) {
+        self.header = header
+    }
+
+    package var body: Never {
         fatalError("_MenuSectionHeader renders via Renderable")
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIkitView.renderToBuffer(header, context: sectionChromeContext(context, .sectionHeader))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(header, proposal: proposal, context: sectionChromeContext(context, .sectionHeader))
     }
 }

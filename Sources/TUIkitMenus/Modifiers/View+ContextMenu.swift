@@ -45,8 +45,11 @@ extension View {
     /// In a `List` row it adds none: the list is the stop, and its Shift+F10
     /// opens the cursor row's menu, as it opens a selection menu's.
     ///
+    /// A `Menu` or a `Picker` written in it is a submenu, as in a pop-up
+    /// ``Menu``.
+    ///
     /// - Parameter menuItems: A view builder of the menu's `Button`s (and
-    ///   `Divider`s).
+    ///   `Divider`s, `Toggle`s, and `Menu`s and `Picker`s as submenus).
     /// - Returns: A view that shows the context menu on secondary-click.
     public func contextMenu<MenuItems: View>(
         @ViewBuilder menuItems: () -> MenuItems

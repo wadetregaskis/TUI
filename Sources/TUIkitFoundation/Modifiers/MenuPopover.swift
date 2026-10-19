@@ -31,10 +31,14 @@ import TUIkitCore
 /// classifying lines by what they look like. Lines no row claims — a `Divider`,
 /// a heading — become unselectable rows: placed as drawn, never highlighted,
 /// never clickable.
+///
+/// A SUBMENU's column (`isSubmenu`) files no dismiss backdrop of its own: the
+/// menu it opened from has one over the whole screen already, and a second,
+/// filed after the first menu's rows, would take the pointer from them.
 @MainActor
 func renderMenuPopup(
     _ items: some View, context: RenderContext, controller: MenuPopupController,
-    dismiss: @escaping () -> Void
+    dismiss: @escaping () -> Void, isSubmenu: Bool = false
 ) -> FrameBuffer {
     let rowsOnly = VStack(alignment: .leading, spacing: 0) { _MenuSectionedItems(items: items) }
         .buttonStyle(_MenuItemButtonStyle())
@@ -110,9 +114,11 @@ func renderMenuPopup(
     let selectable = Set(controller.highlight.selectable)
     var rows: [DropdownMenu.Row] = []
     var rowByOrdinal: [Int: Int] = [:]
+    var firstRowByOrdinal: [Int: Int] = [:]
     for (line, content) in column.lines.enumerated() {
         if let ordinal = ordinalByLine[line] {
             rowByOrdinal[ordinal] = rows.count
+            if firstRowByOrdinal[ordinal] == nil { firstRowByOrdinal[ordinal] = rows.count }
         }
         rows.append(
             .rendered(
@@ -127,21 +133,31 @@ func renderMenuPopup(
     // As One Long Archive" ran nothing. A row here IS a line, so the lines'
     // own ordinals are the rows'.
     let ordinalByRow = ordinalByLine
-    return DropdownMenu.popup(
-        DropdownMenu.Configuration(
-            rows: rows,
-            highlightedRow: controller.highlightedOrdinal.flatMap { rowByOrdinal[$0] },
-            innerWidth: rowWidth,
-            scroll: controller.scroll,
-            followHighlight: controller.highlight.consumeFollowPending(),
-            autoRepeatToken: "menu-popup-scrollbar-\(context.identity.path)"),
+    var configuration = DropdownMenu.Configuration(
+        rows: rows,
+        highlightedRow: controller.highlightedOrdinal.flatMap { rowByOrdinal[$0] },
+        innerWidth: rowWidth,
+        scroll: controller.scroll,
+        followHighlight: controller.highlight.consumeFollowPending(),
+        autoRepeatToken: "menu-popup-scrollbar-\(context.identity.path)")
+    configuration.attachesBackdrop = !isSubmenu
+    let popup = DropdownMenu.popup(
+        configuration,
         context: context,
         // Hover follows the cursor, which a view-composed menu never did: its
         // rows had a hover state of their own but nothing joined it up to the
-        // highlight the keyboard was driving.
-        onHover: { row in ordinalByRow[row].map(controller.highlight.point(at:)) },
-        onActivate: { row in ordinalByRow[row].map(controller.sink.activate(ordinal:)) },
+        // highlight the keyboard was driving. Over a row that opens a submenu
+        // it opens it, and over any other it closes the one open.
+        onHover: { row in ordinalByRow[row].map(controller.pointerEntered) },
+        onActivate: { row in
+            guard let ordinal = ordinalByRow[row] else { return true }
+            return controller.choose(ordinal, byKeyboard: false)
+        },
         onDismiss: dismiss)
+    // Where each row was drawn, as the window just scrolled put it: where a
+    // submenu opened from it hangs.
+    controller.noteDrawnRows(firstRowByOrdinal, scrolledBy: controller.scroll.scrollOffset)
+    return popup
 }
 
 /// Where a presented menu hangs, and off what.
@@ -269,8 +285,8 @@ package func presentMenuPopover<Items: View>(
     // `SelectionEmphasis` clock, so two menus on one screen agree.)
     menuContext.environment.focusIndicator = nil
 
-    var menuBuffer = renderMenuPopup(
-        items, context: menuContext, controller: controller, dismiss: dismiss)
+    var menuBuffer = renderMenuLevel(
+        items, context: menuContext, controller: controller, dismiss: dismiss, isSubmenu: false)
     guard !menuBuffer.isEmpty else { return }
 
     // The same screen-covering dismiss backdrop the drop-down menus use.
@@ -308,9 +324,15 @@ package func presentMenuPopover<Items: View>(
 /// combo box and `RadioButtonGroup` use, so a menu and a drop-down move
 /// identically for the same keystroke.
 ///
-/// Left and Right do nothing in a menu of its own. In a menu bar's menu they
-/// step to the menu beside it (``EnvironmentValues/menuBarStep``), as a menu
-/// bar's arrows do on every desktop.
+/// Right on a row that opens a submenu opens it and enters it, its first row
+/// highlighted; Left, or Escape, in a submenu closes it and goes back to its
+/// row. Otherwise Left and Right do nothing in a menu of its own, and in a
+/// menu bar's menu step to the menu beside it
+/// (``EnvironmentValues/menuBarStep``), as a menu bar's arrows do on every
+/// desktop. The keys go to the deepest open menu that has a highlight
+/// (``MenuPopupController/keyboardChain``), so a submenu the pointer opened
+/// leaves them with the menu it opened from until the pointer or Right goes
+/// into it.
 ///
 /// Only what the menu acts on is swallowed — exactly what the focus ring
 /// swallowed for it before. A key equivalent typed with the menu open must still
@@ -328,22 +350,42 @@ private func attachMenuKeys(
     let barStep = context.environment.menuBarStep
 
     dispatcher.addHandler(sectionID: sectionID) { event in
+        // The keys go to the deepest menu open that has a highlight — a
+        // submenu the keyboard entered, or one the pointer is in — and the
+        // menu it opened from is the one Left and Escape return to.
+        let chain = controller.keyboardChain
+        let menu = chain[chain.count - 1]
+        let opener = chain.count > 1 ? chain[chain.count - 2] : nil
         switch event.key {
         case .escape:
-            dismiss()
+            // A submenu closes, back to its row; the menu itself closes.
+            if let opener { opener.closeSubmenu() } else { dismiss() }
             return true
         case .enter, .space:
-            return controller.activateHighlighted()
-        case .left, .right:
-            // On the focus ring these act as Up/Down (`dispatchKeyEvent` treats
-            // the axes alike), which in a vertical menu is simply wrong. The
-            // Picker drop-down has always eaten them. A menu bar's menu steps
-            // to its neighbour.
-            barStep?.step(event.key == .left ? -1 : 1)
+            // On a submenu's row, opens it with its first row highlighted.
+            return menu.activateHighlighted()
+        case .right:
+            // On a submenu's row, opens it and enters it, as on every desktop.
+            // Anywhere else, Right does what Up and Down do on the focus ring
+            // (`dispatchKeyEvent` treats the axes alike), which in a vertical
+            // menu is simply wrong, so it is eaten — except in a menu bar's
+            // menu, which steps to its neighbour.
+            if let ordinal = menu.highlightedOrdinal, menu.sink.submenu(at: ordinal) != nil {
+                menu.openSubmenu(at: ordinal, withSelection: true)
+            } else {
+                barStep?.step(1)
+            }
+            return true
+        case .left:
+            // Leaves a submenu for its row; in a menu bar's menu, steps to the
+            // menu before it.
+            if let opener { opener.closeSubmenu() } else { barStep?.step(-1) }
             return true
         default:
-            return controller.highlight.handle(
-                event, multiplier: multiplier, pageSize: pageSize)
+            guard menu.highlight.handle(event, multiplier: multiplier, pageSize: pageSize) else { return false }
+            // Off the row of the submenu that is open: it closes.
+            if let open = menu.openSubmenu, open.ordinal != menu.highlightedOrdinal { menu.closeSubmenu() }
+            return true
         }
     }
 }

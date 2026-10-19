@@ -112,6 +112,27 @@ public struct OverlayLayer: Sendable, Equatable {
     /// declare its height or its popover is discarded unseen.
     public var anchorHeight: Int
 
+    /// The width of the control the layer hangs BESIDE, ending at
+    /// ``offsetX`` — or `nil` for a layer that hangs below its anchor, as
+    /// every drop-down, menu and popover does.
+    ///
+    /// A submenu is the one that hangs beside: to the right of the row that
+    /// opened it, its first row level with that row. It is put back on screen
+    /// the way a submenu is on every desktop rather than the way a drop-down
+    /// is: when it would run off the right edge it goes to the other side of
+    /// the control — ending where the control starts — and when it would run
+    /// off the bottom it slides up until it fits, rather than flipping above
+    /// its anchor, which would take it off the row it belongs to. Where the
+    /// other side has no room either, it slides left as a drop-down does.
+    package var besideAnchorWidth: Int?
+
+    /// Whether a layer beside its anchor (``besideAnchorWidth``) tries the
+    /// anchor's LEADING side first: set by the compositor on the submenus of
+    /// a submenu it put on the leading side, so a chain of submenus goes on
+    /// the way it turned, as on every desktop, rather than back over the
+    /// menus it came from.
+    package var opensLeading = false
+
     /// When `true`, the layer ignores ``offsetX`` / ``offsetY`` and is centred
     /// in the composite area instead (used by screen-level modals/alerts, which
     /// must centre on the whole screen regardless of where in the tree they were
@@ -454,15 +475,21 @@ public struct OverlayLayer: Sendable, Equatable {
 
         var y = offsetY
         if y + height > maxHeight {
-            // Try flipping above the anchoring control; else nudge back on screen.
-            let flipped = offsetY - anchorHeight - height
+            // Try flipping above the anchoring control; else nudge back on
+            // screen. A layer beside its anchor only slides (`besideAnchorWidth`).
+            let flipped = besideAnchorWidth == nil ? offsetY - anchorHeight - height : -1
             y = flipped >= 0 ? flipped : max(0, maxHeight - height)
         }
         y = max(0, y)
 
         var x = offsetX
-        if x + width > maxWidth {
-            x = max(0, maxWidth - width)
+        let leading = besideAnchorWidth.map { offsetX - $0 - width } ?? -1
+        if opensLeading, leading >= 0 {
+            // A chain of submenus going the leading way goes on that way.
+            x = leading
+        } else if x + width > maxWidth {
+            // Beside a control: try its other side first.
+            x = leading >= 0 ? leading : max(0, maxWidth - width)
         }
         x = max(0, x)
 

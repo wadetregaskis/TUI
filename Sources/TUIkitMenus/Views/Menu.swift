@@ -48,10 +48,27 @@ import TUIkitFoundation
 /// ``View/menuActionDismissBehavior(_:)`` set to `.disabled` for a menu of
 /// SETTINGS, which stays up to be flipped again. See ``Toggle``.
 ///
-/// > Note: A `Picker` is NOT a row. SwiftUI turns one into a SUBMENU, and TUIkit
-/// > has no submenu yet, so a `Picker` written here draws its own collapsed
-/// > drop-down on a line of the menu and the menu's arrows walk straight past
-/// > it. Put the choice on the page, or give each option its own `Button`.
+/// A `Menu` written in a menu is a SUBMENU of it, as is a `Picker`, as in
+/// SwiftUI: a row with the submenu caret (▸) that opens its items beside it.
+/// Right or Return opens it, Left or Escape closes it, and the pointer opens
+/// it by resting on the row:
+///
+/// ```swift
+/// Menu("Actions") {
+///     Button("Duplicate") { duplicate() }
+///     Menu("Copy") {
+///         Button("Copy") { copy() }
+///         Button("Copy Formatted") { copyFormatted() }
+///     }
+///     Picker("Sort By", selection: $sort) {
+///         Text("Name").tag(Sort.name)
+///         Text("Date").tag(Sort.date)
+///     }
+/// }
+/// ```
+///
+/// A `Picker`'s submenu is its options, the selected one checked; written
+/// `.pickerStyle(.inline)` it puts them in the menu itself, under its label.
 ///
 /// A menu with a `primaryAction:` splits its control: the label performs the
 /// action, and the menu opens from the caret beside it or by the Down arrow —
@@ -70,7 +87,8 @@ public struct Menu<Label: View, Content: View>: View {
     /// Creates a menu with a custom label.
     ///
     /// - Parameters:
-    ///   - content: The menu's items — `Button`s, `Toggle`s and `Divider`s.
+    ///   - content: The menu's items — `Button`s, `Toggle`s and `Divider`s,
+    ///     and `Menu`s and `Picker`s, which are submenus.
     ///   - label: A view describing the menu.
     public init(
         @ViewBuilder content: () -> Content,

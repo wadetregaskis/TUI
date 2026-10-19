@@ -3307,6 +3307,44 @@ private struct ActionsMenu: View {
     }
 }
 
+/// SwiftUI's own `menuOrder(_:)` example: a `Picker` in a menu, which is a
+/// submenu of it, and an inline one and a nested `Menu` in a context menu.
+@MainActor
+private struct CorpusMenuSubmenus: View {
+    enum Appearance: Hashable { case icons, list }
+
+    @State private var appearance = Appearance.icons
+    func selectFolders() {}
+    func createFolder() {}
+
+    var body: some View {
+        VStack {
+            Menu {
+                Button("Select", action: selectFolders)
+                Button("New Folder", action: createFolder)
+                Picker("Appearance", selection: $appearance) {
+                    Label("Icons", systemImage: "square.grid.2x2").tag(Appearance.icons)
+                    Label("List", systemImage: "list.bullet").tag(Appearance.list)
+                }
+            } label: {
+                Label("Settings", systemImage: "ellipsis.circle")
+            }
+            .menuOrder(.fixed)
+            Text("Folder")
+                .contextMenu {
+                    Picker("Appearance", selection: $appearance) {
+                        Text("Icons").tag(Appearance.icons)
+                        Text("List").tag(Appearance.list)
+                    }
+                    .pickerStyle(.inline)
+                    Menu("Share") {
+                        Button("Mail", action: createFolder)
+                    }
+                }
+        }
+    }
+}
+
 /// SwiftUI's own `help(_:)` example: a help tag on a compose button.
 @MainActor
 private struct ComposeButton: View {
