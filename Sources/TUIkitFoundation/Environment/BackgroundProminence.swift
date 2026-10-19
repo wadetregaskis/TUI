@@ -71,12 +71,63 @@ extension EnvironmentValues {
     ///
     /// A `List` sets ``BackgroundProminence/increased`` for the content of its
     /// focused, selected row: the row under the cursor while the list has the
-    /// focus, when that row is also in the selection. The system content
-    /// styles (`.primary`, `.secondary`, …) resolve to the palette's text tiers
+    /// focus, when that row is also in the selection. A
+    /// ``SelectionShapeStyle`` background raises it for the content in front
+    /// of it too (`.background(.selection)`). The system content styles
+    /// (`.primary`, `.secondary`, …) resolve to the palette's text tiers
     /// there. Set it yourself above a custom background that needs the same.
     @inlinable
     public var backgroundProminence: BackgroundProminence {
         get { self[BackgroundProminenceKey.self] }
         set { self[BackgroundProminenceKey.self] = newValue }
+    }
+}
+
+// MARK: - A background that raises it
+
+/// A ``ShapeStyle`` whose fill, drawn behind a view, raises the prominence of
+/// that view's content: ``SelectionShapeStyle``, and an ``AnyShapeStyle``
+/// erasing one.
+///
+/// SwiftUI documents the one style: "standard shape styles like
+/// `ShapeStyle.selection` will automatically update the background prominence
+/// of foreground views" (`EnvironmentValues.backgroundProminence`). Its fill is
+/// what a selected row is drawn in — here the tint, else the accent, always
+/// vivid, as a terminal's one window is always the key one — so the content
+/// over it takes the same inks a list's raised row does.
+///
+/// A conformance rather than a test of the style's type, so the erasure can
+/// answer for what it erased: `AnyShapeStyle` keeps a closure, not the style.
+package protocol BackgroundProminenceRaising {
+    /// Whether this style raises the prominence of the content drawn over it.
+    var raisesBackgroundProminence: Bool { get }
+}
+
+extension RenderContext {
+    /// This context for the content of a background filled with `style`: with
+    /// ``EnvironmentValues/backgroundProminence`` raised to
+    /// ``BackgroundProminence/increased`` when the style raises it
+    /// (``BackgroundProminenceRaising``), and unchanged — at no more than a
+    /// cast — for every other style.
+    ///
+    /// The value is noted with the render cache as an applied environment
+    /// value, as ``EnvironmentModifier`` notes what it writes: an
+    /// `AnyShapeStyle` can raise on one frame and not the next, and a memo
+    /// below — a `List`'s looped rows, an `.equatable()` view — keys on its
+    /// own value and size, not on the prominence. Noted only by a render, for
+    /// `publishingContainerSize(_:noting:)`'s reason.
+    package func raisingBackgroundProminence(under style: some ShapeStyle) -> RenderContext {
+        guard let raising = style as? any BackgroundProminenceRaising else { return self }
+        var copy = self
+        if raising.raisesBackgroundProminence { copy.environment.backgroundProminence = .increased }
+        copy.environmentApplicationDepth += 1
+        if !isMeasuring, let cache = renderCache,
+            case .changed = cache.noteAppliedEnvironment(
+                copy.environment.backgroundProminence, identity: identity,
+                keyPath: \EnvironmentValues.backgroundProminence, depth: copy.environmentApplicationDepth)
+        {
+            cache.clearAffected(by: identity)
+        }
+        return copy
     }
 }

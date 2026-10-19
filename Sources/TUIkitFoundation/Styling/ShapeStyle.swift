@@ -242,14 +242,30 @@ struct _FixedExtentShapeStyle<Base: ShapeStyle>: ShapeStyle {
 ///
 /// Erased to the *resolution*, not to a box of the style: what a caller can do
 /// with a `ShapeStyle` is ask what it paints, so that is all this keeps.
+///
+/// The one thing it keeps besides is whether the style it erased raises the
+/// prominence of content drawn over it as a background (``SelectionShapeStyle``
+/// does), so `.background(isSelected ? AnyShapeStyle(.selection) :
+/// AnyShapeStyle(.fill))` raises its content when selected, as SwiftUI's
+/// documentation of `ShapeStyle.selection` spells it.
 public struct AnyShapeStyle: ShapeStyle {
     public typealias Resolved = Never
 
     private let resolved: @Sendable (EnvironmentValues) -> Paint
 
+    /// Whether the erased style raises the prominence of what it is behind
+    /// (``BackgroundProminenceRaising``).
+    private let raises: Bool
+
     public init<S: ShapeStyle>(_ style: S) {
         resolved = { style.paint(in: $0) }
+        raises = (style as? any BackgroundProminenceRaising)?.raisesBackgroundProminence ?? false
     }
 
     public func paint(in environment: EnvironmentValues) -> Paint { resolved(environment) }
+}
+
+/// What it erased says, on and off from one value to the next.
+extension AnyShapeStyle: BackgroundProminenceRaising {
+    package var raisesBackgroundProminence: Bool { raises }
 }

@@ -25,6 +25,13 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         self.style = style
     }
 
+    /// The content's context: raised under a style that raises the prominence
+    /// of what is drawn over it (``BackgroundProminenceRaising`` — the
+    /// selection), as is.
+    public func adjustContext(_ context: RenderContext) -> RenderContext {
+        context.raisingBackgroundProminence(under: style)
+    }
+
     /// Fills at this modifier's own type, which is the right owner only when
     /// nothing encloses it — a direct call, never the render path. `ModifiedView`
     /// calls `_modify(buffer:context:owner:)` instead and names itself.

@@ -2725,8 +2725,11 @@ cursor will be.
   reaches them unchanged. Half a day, most of it the child walk's badge and
   tag reads, which today come off the drawn row.
 - **`.background(.selection)`.** SwiftUI says its selection style raises the
-  content above it too. A `background(_:)` whose style is `.selection` would
-  set the value for its content. An hour.
+  content above it too. **Shipped (2026-10-19, lane LISTS2):** a
+  `background(_:)` or `background(_:in:fillStyle:)` whose style is
+  `.selection`, erased in an `AnyShapeStyle` or not, sets the value for its
+  content, noted with the render cache so a memo below follows an erased style
+  that changes; no other style raises it.
 
 ### B74. `\.sidebarRowSize` is read-only (always `.medium`)
 

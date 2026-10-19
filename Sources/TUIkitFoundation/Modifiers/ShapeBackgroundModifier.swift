@@ -45,7 +45,7 @@ struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>: View {
 
 extension _ShapeBackground: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var base = TUIkitView.renderToBuffer(content, context: context)
+        var base = TUIkitView.renderToBuffer(content, context: context.raisingBackgroundProminence(under: style))
         if base.width > 0, base.height > 0 { base.opacityRegions += claims(over: base, context: context) }
         return compositeLayer(
             shape.fill(style, style: fillStyle), under: base, alignment: .center, context: context,
@@ -76,6 +76,6 @@ extension _ShapeBackground: Renderable {
 extension _ShapeBackground: Layoutable {
     /// The view's size: the shape is laid in it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+        measureChild(content, proposal: proposal, context: context.raisingBackgroundProminence(under: style))
     }
 }

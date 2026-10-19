@@ -313,6 +313,12 @@ public struct LinkShapeStyle: ShapeStyle, Equatable {
 /// A style used to visually indicate selection following platform conventional
 /// colours and behaviours: the tint in force, or the accent — what a selected
 /// row is drawn in.
+///
+/// As a background — ``View/background(_:)``, ``View/background(_:in:fillStyle:)``,
+/// erased in an ``AnyShapeStyle`` or not — it raises
+/// ``EnvironmentValues/backgroundProminence`` for the content drawn over it,
+/// so the content styles there resolve to the palette's text tiers, the inks
+/// the fill is chosen to carry, as they do on a list's selected row.
 public struct SelectionShapeStyle: ShapeStyle, Equatable {
     /// Creates a selection shape style.
     public init() {}
@@ -322,6 +328,11 @@ public struct SelectionShapeStyle: ShapeStyle, Equatable {
     public func paint(in environment: EnvironmentValues) -> Paint {
         (environment.tint ?? Color.palette.accent).paint(in: environment)
     }
+}
+
+/// The selection's fill is the vivid one content has to keep its contrast on.
+extension SelectionShapeStyle: BackgroundProminenceRaising {
+    package var raisesBackgroundProminence: Bool { true }
 }
 
 /// A style appropriate for the window's background: the palette's page
