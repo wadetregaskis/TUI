@@ -259,6 +259,38 @@ struct TextContentTypeFilteringTests {
         #expect(addressBell.ringCount == 0)
     }
 
+    @Test("Ctrl-V into an editor loses what the content type turns away, with one ring")
+    func editorClipboardPasteIsFiltered() {
+        let board = FakeClipboard(contents: "12a3")
+        let (editor, box, bell) = makeEditor(.integer, clipboard: board)
+        #expect(editor.handleKeyEvent(KeyEvent(key: .character("v"), ctrl: true)))
+        #expect(box.text == "123")
+        #expect(bell.ringCount == 1)
+
+        // Nothing left of it: the paste is the editor's, and inserts nothing.
+        board.contents = "abc"
+        #expect(editor.handleKeyEvent(KeyEvent(key: .character("v"), ctrl: true)))
+        #expect(box.text == "123")
+        #expect(bell.ringCount == 2)
+    }
+
+    @Test("Ctrl-O opens no line in an editor whose content type takes no line break, and rings")
+    func editorOpenLineIsFiltered() {
+        let (editor, box, bell) = makeEditor(.emailAddress)
+        for character in "ab" { _ = editor.handleKeyEvent(KeyEvent(key: .character(character))) }
+        #expect(editor.handleKeyEvent(KeyEvent(key: .character("o"), ctrl: true)))
+        #expect(box.text == "ab")
+        #expect(bell.ringCount == 1)
+
+        // The control: a free-text type takes the line break Ctrl-O opens.
+        let (plain, plainBox, plainBell) = makeEditor(.fullStreetAddress)
+        for character in "ab" { _ = plain.handleKeyEvent(KeyEvent(key: .character(character))) }
+        _ = plain.handleKeyEvent(KeyEvent(key: .left))
+        #expect(plain.handleKeyEvent(KeyEvent(key: .character("o"), ctrl: true)))
+        #expect(plainBox.text == "a\nb")
+        #expect(plainBell.ringCount == 0)
+    }
+
     @MainActor
     @Test("A TextEditor reads the content type and the bell from its environment")
     func editorReadsItsEnvironment() {
