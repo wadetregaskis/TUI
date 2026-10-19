@@ -50,8 +50,13 @@ extension FocusManager {
     /// walk's windowing containers note which rows they draw (`storage`'s
     /// ``StateStorage/notesWindowedRows``), for the settle to ask whether a
     /// presenter it did not draw was left out of a window.
+    ///
+    /// Asking is also what makes this manager take docks at all
+    /// (``noteDocksAreRead()``): a manager no root asks — a probe's, a
+    /// snapshot's, a test host's — is posted none.
     @MainActor
     func presentationDock(in contentHeight: Int, storage: StateStorage?) -> Int {
+        noteDocksAreRead()
         let dock = Self.dock(previouslyPostedDocks, in: contentHeight) { noteDockedBeforeTheWalk($0) }
         storage?.notesWindowedRows = anyDockedBeforeTheWalk
         return dock

@@ -52,11 +52,35 @@ extension FocusManager {
 // the whole ledger would copy its dictionaries at each write through it
 // (CONTRIBUTING.md, "Crossing a module boundary").
 extension FocusManager {
+    /// Whether a sheet's presenter posts its dock here: a root lays its page
+    /// out by this manager's docks (``noteDocksAreRead()``), and the manager
+    /// is the live focus system, not a backdrop's throwaway — which a held
+    /// window's root asks as it asks the live one.
+    ///
+    /// Posted anywhere else, a dock is read by nothing and replaced by
+    /// nothing, and it keeps this manager alive: its resolver holds the
+    /// presenter's environment, and the environment holds this manager. A
+    /// windowed stack's focus-reach probe draws each row it asks under a
+    /// scratch manager of its own (`_VStackCore.focusRingContinuations`), so
+    /// every probed row that held a sheet left its manager, and all its
+    /// environment reached, behind, every frame; a snapshot (`ViewRenderer`)
+    /// of a view holding a sheet kept its whole render.
+    package var takesPresentationDocks: Bool { panes.isReadByARoot && !isBackdrop }
+
+    /// Notes that a root lays its page out by the docks posted here — as it
+    /// asks for them, before each walk — so that from then on they are
+    /// posted (``takesPresentationDocks``).
+    package func noteDocksAreRead() {
+        panes.isReadByARoot = true
+    }
+
     /// Posts the dock of the sheet presented in section `id`, for this walk:
-    /// the ledger's ``PaneLedger/docks``.
+    /// the ledger's ``PaneLedger/docks`` — if a root reads them
+    /// (``takesPresentationDocks``).
     package func postDock(
         inSection id: String, presenter: ViewIdentity, resolver: @escaping PresentationDockResolver
     ) {
+        guard takesPresentationDocks else { return }
         panes.docks[id] = PaneLedger.PostedDock(presenter: presenter, resolver: resolver)
     }
 

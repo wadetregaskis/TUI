@@ -301,6 +301,11 @@ enum SnapshotSubject: String, CaseIterable, Sendable {
     case list, table, shortcutButton, textField, slider, stepper, toggle, picker, menu
     case scrollView, hoverAndHelp, tapGesture, keyPress, contextMenu, sheet, alert
     case dropDestination, statusBarItems, navigationStack, tabView
+    /// A sheet posts the rows it docks for a root to lay the page out by: a
+    /// dismissed one every frame, a live one while it is presented. Its
+    /// resolver holds the presenter's environment, which holds the focus
+    /// manager it was posted to, and a snapshot has no root to read it.
+    case dismissedSheet, liveSheet
 
     private struct Row: Identifiable {
         let id: Int
@@ -358,6 +363,14 @@ enum SnapshotSubject: String, CaseIterable, Sendable {
             AnyView(TabView {
                 Tab("Alpha", systemImage: "a.circle") { Text("ALPHA") }
                 Tab("Beta", systemImage: "b.circle") { Text("BETA") }
+            })
+        case .dismissedSheet:
+            AnyView(Text("under").sheet(isPresented: .constant(false)) { Text("sheet") })
+        case .liveSheet:
+            AnyView(Text("under").sheet(isPresented: .constant(true)) {
+                Text("sheet")
+                    .presentationDetents([.medium])
+                    .presentationBackgroundInteraction(.enabled)
             })
         }
     }

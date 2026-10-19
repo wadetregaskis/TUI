@@ -131,6 +131,16 @@ manager, state storage, render cache and status bar
 (`ScenesLifetimeTests.scenesFreed` caught it once every dismissed sheet
 posted). The loop now forgets them when it goes.
 
+A focus manager that no run loop owns had no such end, and nothing replaced
+its posts either, because no root read them. The windowed stack's
+focus-reach probe draws each row it asks under a scratch manager of its own,
+and every probed row that held a sheet left its manager alive, every frame.
+A snapshot (`renderOnce`) of a view holding a sheet kept its whole render, and
+so did a test host per test. A manager now takes docks only once a root has
+asked it for them, before its first walk, and never while it is a backdrop's
+(`FocusManager.takesPresentationDocks`). In an app only the run loop's
+manager takes them, and the loop's end forgets what it holds.
+
 A presented live sheet's resolver has always kept its presenter's whole
 environment. It needs that environment for custom detents, which may read
 any value in it. While the sheet is presented, that resolver and the focus

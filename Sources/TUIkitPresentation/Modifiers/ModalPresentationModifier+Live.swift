@@ -147,11 +147,16 @@ extension ModalPresentationModifier {
     ///
     /// Posted with the presenter's identity, which is what the ledger asks
     /// about (`FocusManager.settlePresentationDock(laidOutBy:in:storage:)`).
+    ///
+    /// Posted only to a focus manager a root lays the page out by
+    /// (`FocusManager.takesPresentationDocks`) — never a backdrop's, a
+    /// focus-reach probe's or a snapshot's, which nothing asks.
     func postDock(
         presented: (modal: Modal, interaction: PresentationBackgroundInteraction)?, sectionID: String,
         context: RenderContext
     ) {
-        guard !context.isMeasuring, let focusManager = context.environment.focusManager, !focusManager.isBackdrop
+        guard !context.isMeasuring, let focusManager = context.environment.focusManager,
+            focusManager.takesPresentationDocks
         else { return }
         if let presented, !presented.interaction.isEnabled { return }
         let isPresented = self.isPresented

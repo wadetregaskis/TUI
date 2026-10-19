@@ -26,6 +26,12 @@ package struct PaneLedger {
         package let resolver: PresentationDockResolver
     }
 
+    /// Whether a root lays a page out by the docks posted here: set when one
+    /// first asks for them, before its first walk
+    /// (`FocusManager.noteDocksAreRead()`). Until then nothing is posted
+    /// (`FocusManager.takesPresentationDocks`).
+    var isReadByARoot = false
+
     /// The dock each sheet docked live posts, by its section: posted this walk.
     var docks: [String: PostedDock] = [:]
 
