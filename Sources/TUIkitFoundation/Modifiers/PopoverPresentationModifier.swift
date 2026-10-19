@@ -193,8 +193,9 @@ extension PopoverPresentationModifier: Renderable {
             .withAvailableHeight(context.environment.overlayContentHeight)
         popoverContext.environment.activeFocusSectionID = sectionID
         // Its `.toolbar`s draw their items themselves, in the popover: the
-        // window's bars are inert while it is up.
-        popoverContext.environment.presentationHostsToolbar = true
+        // window's bars are inert while it is up, and a sheet it is over has
+        // rows of its own.
+        popoverContext.environment.hostToolbarsRoundTheirViews()
         // It holds the keyboard, so a sheet presented from it is a modal
         // (`LiveSheet.dock`).
         popoverContext.environment.isInModalPresentation = true

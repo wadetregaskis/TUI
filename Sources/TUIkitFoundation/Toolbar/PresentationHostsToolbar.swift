@@ -32,4 +32,19 @@ extension EnvironmentValues {
         get { self[PresentationHostsToolbarKey.self] }
         set { self[PresentationHostsToolbarKey.self] = newValue }
     }
+
+    /// Makes this subtree presented content whose `.toolbar`s draw their items
+    /// round the views they are attached to — a popover's — and not in the
+    /// rows of a sheet or a cover it is presented over.
+    ///
+    /// A sheet hosts its toolbar's items at its own edges, wherever in it they
+    /// are declared (`presentationToolbar`, TUIkitChrome), and a popover over
+    /// it inherited that host with the rest of the sheet's environment: the
+    /// popover's items went to the sheet's rows, a frame later, and were
+    /// missing from the popover, and its `.toolbarVisibility(_:for:)` hid
+    /// the sheet's rows.
+    package mutating func hostToolbarsRoundTheirViews() {
+        presentationHostsToolbar = true
+        self[featureObject: .presentationToolbar] = nil
+    }
 }

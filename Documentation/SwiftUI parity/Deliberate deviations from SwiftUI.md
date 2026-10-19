@@ -1710,7 +1710,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   their edges, as SwiftUI's do (lane TOOLBARS, B-D5C-3's fuller version). In
   a popover, `.toolbar` draws its modal actions in a button row below the view
   it is attached to, and its other placements in a row above it, so a
-  `.toolbar` on an inner view of a popover puts its rows there.
+  `.toolbar` on an inner view of a popover puts its rows there. A popover
+  presented from a sheet does the same: its items do not join the sheet's
+  rows, and its `.toolbarVisibility(_:for:)` does not hide them.
 - **Why:** the popover's presenter is in TUIkitFoundation, which cannot see
   the toolbar's module; the sheet's is in TUIkitPresentation, which can.
 - **Decided:** [B-D5C-3](<Decisions/Toolbars and opt-in window chrome (D5C).md#b-d5c-3-a-toolbar-in-a-sheet-draws-its-items-round-the-view-that-declared-it>). **Lane.**

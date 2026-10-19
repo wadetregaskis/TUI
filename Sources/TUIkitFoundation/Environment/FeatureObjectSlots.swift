@@ -98,9 +98,10 @@ private enum FeatureObjectSlotKey {
 extension EnvironmentValues {
     /// The object in `slot`, or `nil` where nothing put one there.
     ///
-    /// For the feature that owns the slot, under its typed accessor, and for
-    /// ``detachedFromRuntime()``, which clears every slot; nothing else reads
-    /// or writes one.
+    /// For the feature that owns the slot, under its typed accessor; for
+    /// ``detachedFromRuntime()``, which clears every slot; and for a popover,
+    /// whose content must not inherit the toolbar host of a sheet it is over
+    /// (``hostToolbarsRoundTheirViews()``). Nothing else reads or writes one.
     package subscript(featureObject slot: FeatureObjectSlot) -> AnyObject? {
         get {
             switch slot {

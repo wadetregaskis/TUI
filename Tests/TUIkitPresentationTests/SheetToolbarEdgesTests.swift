@@ -55,6 +55,32 @@ private struct EdgesApp: App {
     }
 }
 
+/// A sheet with a button row of its own, and a popover over it whose content
+/// declares an item and hides the bottom bar.
+private struct PopoverInSheetApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .sheet(isPresented: .constant(true)) {
+                    VStack(spacing: 0) {
+                        Text("ANCHOR")
+                            .popover(isPresented: .constant(true)) {
+                                Text("POPBODY")
+                                    .toolbar {
+                                        ToolbarItem(placement: .confirmationAction) { Button("APPLY") {} }
+                                    }
+                                    .toolbarVisibility(.hidden, for: .bottomBar)
+                            }
+                        ForEach(0..<6, id: \.self) { Text("LINE \($0)") }
+                    }
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("SAVE") {} } }
+                }
+        }
+    }
+}
+
 @MainActor
 @Suite("A sheet's toolbar at its edges", .serialized)
 struct SheetToolbarEdgesTests {
@@ -118,5 +144,19 @@ struct SheetToolbarEdgesTests {
         let (_, rows) = screen(frames: 3)
         #expect(!rows.contains { $0.contains("SAVE") || $0.contains("CANCEL") }, "\(rows)")
         #expect(rows.contains { $0.contains("HEADING") }, "the top row stays: \(rows)")
+    }
+
+    @Test("A popover over a sheet draws its own toolbar round its view, and its bar statements leave the sheet's rows")
+    func popoverInSheet() {
+        let app = HeadlessApp(PopoverInSheetApp(), width: 60, height: 24)
+        for frame in 1...3 { app.frame(atNanos: Int64(frame) * 20_000_000) }
+        let rows = app.screen.map(\.stripped)
+        guard let body = row(rows, "POPBODY"), let apply = row(rows, "APPLY") else {
+            Issue.record("the popover draws its content and its item: \(rows)")
+            return
+        }
+        #expect(apply > body && apply - body <= 2, "under the popover's content, in the popover: \(rows)")
+        #expect(!rows[apply].contains("SAVE"), "not in the sheet's button row: \(rows)")
+        #expect(row(rows, "SAVE") != nil, "the popover's .toolbarVisibility leaves the sheet's button row: \(rows)")
     }
 }
