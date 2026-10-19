@@ -65,10 +65,7 @@ extension ObjectEnvironmentModifier: Layoutable {
     /// ``EnvironmentModifier``'s conformance; injecting an observable has no
     /// layout effect, only an environment one.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        var modifiedEnvironment = context.environment
-        modifiedEnvironment[observable: T.self] = object
-        let modifiedContext = context.withEnvironment(modifiedEnvironment)
-        return measureChild(content, proposal: proposal, context: modifiedContext)
+        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
     }
 }
 
@@ -95,3 +92,13 @@ extension ObjectEnvironmentModifier: ChildViewProvider where Content: ChildViewP
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension ObjectEnvironmentModifier: DrawsContentUnchanged {}
+
+/// Measures its content under the object it injects — see
+/// ``ContentContextStating``.
+extension ObjectEnvironmentModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
+        var modifiedEnvironment = context.environment
+        modifiedEnvironment[observable: T.self] = object
+        return context.withEnvironment(modifiedEnvironment)
+    }
+}

@@ -129,3 +129,7 @@ extension _AnimationValueModifier: GridRowProviding where Content: GridRowProvid
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _AnimationValueModifier: DrawsContentUnchanged {}
+/// Measures its content under the animation it scopes, as its measure does — see `ContentContextStating`.
+extension _AnimationValueModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { childContext(context, isMeasuring: true) }
+}

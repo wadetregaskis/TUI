@@ -297,3 +297,8 @@ extension TaskModifier: SingleContentWrapper {
 extension OnAppearModifier: DrawsContentUnchanged {}
 extension OnDisappearModifier: DrawsContentUnchanged {}
 extension TaskModifier: DrawsContentUnchanged {}
+/// Each measures its content in the context it is given, so an alignment
+/// guide inside it is asked through it — see `HandsContentItsContext`.
+extension OnAppearModifier: HandsContentItsContext {}
+extension OnDisappearModifier: HandsContentItsContext {}
+extension TaskModifier: HandsContentItsContext {}

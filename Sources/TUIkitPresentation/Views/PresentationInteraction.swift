@@ -239,6 +239,9 @@ extension _PresentationContentInteractionView: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _PresentationContentInteractionView: DrawsContentUnchanged {}
+/// Measures its content in the context it is given, so an alignment guide
+/// inside it is asked through it — see `HandsContentItsContext`.
+extension _PresentationContentInteractionView: HandsContentItsContext {}
 
 // MARK: - The background interaction, as a trait
 
@@ -287,3 +290,6 @@ extension _PresentationBackgroundInteractionView: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _PresentationBackgroundInteractionView: DrawsContentUnchanged {}
+/// Measures its content in the context it is given, so an alignment guide
+/// inside it is asked through it — see `HandsContentItsContext`.
+extension _PresentationBackgroundInteractionView: HandsContentItsContext {}

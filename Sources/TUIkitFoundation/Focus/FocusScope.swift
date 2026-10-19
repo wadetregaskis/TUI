@@ -485,6 +485,10 @@ extension _PrefersDefaultFocusModifier: SingleContentWrapper {
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _FocusScopeModifier: DrawsContentUnchanged {}
 extension _PrefersDefaultFocusModifier: DrawsContentUnchanged {}
+/// Each measures its content in the context it is given, so an alignment
+/// guide inside it is asked through it — see `HandsContentItsContext`.
+extension _FocusScopeModifier: HandsContentItsContext {}
+extension _PrefersDefaultFocusModifier: HandsContentItsContext {}
 
 extension MouseEventDispatcher {
     /// ``dispatch(_:)``, then ``FocusManager/notePointerInput(_:consumed:regions:)``:

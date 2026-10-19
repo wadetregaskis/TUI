@@ -177,6 +177,16 @@ extension _TextSelectionScope: SectionRowExtractor where Content: SectionRowExtr
 /// see `DrawsContentUnchanged`.
 extension _TextSelectionScope: DrawsContentUnchanged {}
 
+/// Measures its content under the selection allowance it writes, through the
+/// environment modifier its measure wraps the content in — see
+/// `ContentContextStating`.
+extension _TextSelectionScope: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
+        EnvironmentModifier(content: content, keyPath: \.textSelectionAllowed, value: allowsSelection)
+            .contentContext(context)
+    }
+}
+
 // MARK: - Environment
 
 /// `@usableFromInline`, so internal rather than `private`, with its default: the

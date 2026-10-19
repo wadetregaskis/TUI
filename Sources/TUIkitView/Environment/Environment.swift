@@ -177,14 +177,9 @@ extension EnvironmentModifier: Layoutable {
         // change noticed only on the render walk would already have served a
         // stale size. The once-per-pass short circuit in
         // `noteAppliedEnvironment` is what makes this affordable: two-pass
-        // layout visits the same modifier many times per frame.
-        let uncomparable = noteEnvironmentChange(value, at: keyPath, context: context)
-        var modifiedEnvironment = context.environment.setting(keyPath, to: value)
-        if uncomparable { modifiedEnvironment.hasUncomparableEnvironmentValue = true }
-        // Derived, as on the render arm — see the note there.
-        var modifiedContext = context.withDerivedEnvironment(modifiedEnvironment)
-        modifiedContext.environmentApplicationDepth += 1
-        return measureChild(content, proposal: proposal, context: modifiedContext)
+        // layout visits the same modifier many times per frame. The render's
+        // own context, so the two cannot describe different environments.
+        measureChild(content, proposal: proposal, context: contentContext(context))
     }
 }
 
@@ -408,3 +403,12 @@ extension TransformEnvironmentModifier: ChildViewProvider where Content: ChildVi
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension EnvironmentModifier: DrawsContentUnchanged {}
 extension TransformEnvironmentModifier: DrawsContentUnchanged {}
+
+/// Each measures its content under the value it writes — see
+/// ``ContentContextStating``.
+extension EnvironmentModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { contentContext(context) }
+}
+extension TransformEnvironmentModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { transformed(context) }
+}

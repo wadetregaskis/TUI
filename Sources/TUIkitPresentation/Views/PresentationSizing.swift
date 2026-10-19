@@ -272,6 +272,9 @@ extension _PresentationSizingView: SingleContentWrapper {
 }
 
 extension _PresentationSizingView: DrawsContentUnchanged {}
+/// Measures its content in the context it is given, so an alignment guide
+/// inside it is asked through it — see `HandsContentItsContext`.
+extension _PresentationSizingView: HandsContentItsContext {}
 
 extension View {
     /// Sets the sizing of the containing presentation.

@@ -167,8 +167,11 @@ extension View {
     /// subviews set, or one of its own
     /// (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
     ///
-    /// - Important: It stops at any other modifier written after it
-    ///   (`.border()`, a `.frame`, `.offset`), and at a view type of your own
+    /// - Important: It travels on through a modifier written after it that
+    ///   draws the view unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an
+    ///   environment write such as `.lineLimit(_:)`, the last asked under the
+    ///   value it writes — and stops at any other (`.border()`, a `.frame`,
+    ///   `.offset`), and at a view type of your own
     ///   whose `body` is one view: a guide inside such a `struct Row: View`'s
     ///   `body` does not travel out of `Row`. Put the guide on the view the
     ///   container places, or on the outside of your view. A guide is a
@@ -301,8 +304,11 @@ package func explicitGuide<V: View>(
         return provider.explicitAlignmentGuide(for: query.key, in: dimensions)
     }
     // A wrapper that draws its content unchanged at its own identity is its
-    // content's size, in its own context: the content's guide is its own.
-    if let wrapper = view as? any DrawsContentUnchanged {
+    // content's size, so the content's guide is its own — asked in the context
+    // the wrapper lays its content out in, which an environment write changes
+    // (`.lineLimit(1)` around a column). One that does not state that context
+    // stops the guide here (`ContentContextStating`, deviation L11).
+    if let wrapper = view as? any ContentContextStating {
         return explicitGuide(throughUnchanged: wrapper, query, in: dimensions, context: context)
     }
     guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
@@ -317,14 +323,15 @@ package func explicitGuide<V: View>(
         context: childContext)
 }
 
-/// ``explicitGuide(of:_:in:context:)`` of `wrapper`'s content, the existential
-/// opened to reach it.
+/// ``explicitGuide(of:_:in:context:)`` of `wrapper`'s content, in the context
+/// the wrapper lays it out in, the existential opened to reach it.
 @MainActor
-private func explicitGuide<Wrapper: DrawsContentUnchanged>(
+private func explicitGuide<Wrapper: ContentContextStating>(
     throughUnchanged wrapper: Wrapper, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions,
     context: RenderContext
 ) -> Double? {
-    explicitGuide(of: wrapper.wrappedContent, query, in: dimensions, context: context)
+    explicitGuide(
+        of: wrapper.wrappedContent, query, in: dimensions, context: wrapper.contentLayoutContext(context))
 }
 
 // MARK: - Reading a Child's Guide

@@ -166,3 +166,12 @@ extension SubmitScopeModifier: SingleContentWrapper {
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension OnSubmitModifier: DrawsContentUnchanged {}
 extension SubmitScopeModifier: DrawsContentUnchanged {}
+
+/// Each measures its content under the submit action or scope it writes — see
+/// `ContentContextStating`.
+extension OnSubmitModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { modifiedContext(context) }
+}
+extension SubmitScopeModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { modifiedContext(context) }
+}

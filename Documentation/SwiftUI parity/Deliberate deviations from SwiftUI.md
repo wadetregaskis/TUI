@@ -356,7 +356,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (`PaddingModifier`'s `_translatesAlignmentGuides`), and a wrapper that draws
   its content unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an environment
   write — passes it on as it is, being its content's size (since 2026-10-18,
-  `DrawsContentUnchanged`); but `.border()`, a `.frame` or an `.offset`
+  `DrawsContentUnchanged`), the content asked in the context the wrapper lays
+  it out in, so a guide under `.lineLimit(1)` is found where the limited
+  content draws it (`ContentContextStating`; a wrapper that does not state
+  that context stops the guide); but `.border()`, a `.frame` or an `.offset`
   written after it stops it; so does a view of the
   app's own whose `body` is one view (L3's lazy stacks honour a guide that
   reaches them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off

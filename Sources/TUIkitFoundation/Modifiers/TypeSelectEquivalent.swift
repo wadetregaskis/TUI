@@ -47,6 +47,9 @@ extension _TypeSelectEquivalentModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays.
 extension _TypeSelectEquivalentModifier: DrawsContentUnchanged {}
+/// Measures its content in the context it is given, so an alignment guide
+/// inside it is asked through it — see `HandsContentItsContext`.
+extension _TypeSelectEquivalentModifier: HandsContentItsContext {}
 
 /// The stated type-select text of `row`, looking through the single-content
 /// wrappers around it: `.some(nil)` for a row stating none — derive it — and

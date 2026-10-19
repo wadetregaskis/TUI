@@ -114,3 +114,7 @@ extension DisabledModifier: GridRowProviding where Content: GridRowProviding {}
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension DisabledModifier: DrawsContentUnchanged {}
+/// Measures its content under the disabled state it writes — see `ContentContextStating`.
+extension DisabledModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { modifiedContext(context) }
+}

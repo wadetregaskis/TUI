@@ -160,3 +160,6 @@ extension EquatableView: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension EquatableView: DrawsContentUnchanged {}
+/// Measures its content in the context it is given, so an alignment guide
+/// inside it is asked through it — see `HandsContentItsContext`.
+extension EquatableView: HandsContentItsContext {}

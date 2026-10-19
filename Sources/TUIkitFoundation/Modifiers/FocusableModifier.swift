@@ -194,12 +194,7 @@ extension FocusableModifier: Renderable {
 
 extension FocusableModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        // One environment application deeper, as the render walk hands its
-        // content — bumped by hand, never through `publishIsFocused`, which
-        // must not note from a measure (see there).
-        var contentContext = context
-        contentContext.environmentApplicationDepth += 1
-        return measureChild(content, proposal: proposal, context: contentContext)
+        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
     }
 }
 
@@ -218,3 +213,16 @@ extension FocusableModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension FocusableModifier: DrawsContentUnchanged {}
+
+/// Measures its content in the context its measure uses — see
+/// `ContentContextStating`.
+extension FocusableModifier: ContentContextStating {
+    /// One environment application deeper, as the render walk hands its
+    /// content — bumped by hand, never through `publishIsFocused`, which must
+    /// not note from a measure (see there).
+    func contentLayoutContext(_ context: RenderContext) -> RenderContext {
+        var contentContext = context
+        contentContext.environmentApplicationDepth += 1
+        return contentContext
+    }
+}

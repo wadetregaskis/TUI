@@ -236,3 +236,7 @@ extension KeyboardShortcutModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension KeyboardShortcutModifier: DrawsContentUnchanged {}
+/// Measures its content with its shortcut planted — see `ContentContextStating`.
+extension KeyboardShortcutModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { planting(into: context) }
+}

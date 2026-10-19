@@ -284,8 +284,15 @@ extension View where Self: DrawsContentUnchanged {
     /// wrapper's at the same dimensions, with nothing to translate. Without
     /// it a list row's separator guide written inside `.onTapGesture` was not
     /// found (decisions B-D6L-3), nor a stack's alignment guide inside one.
-    /// The guide query steps through such a wrapper to its content
-    /// (`explicitGuide(of:_:in:context:)` in TUIkitFoundation).
+    ///
+    /// The witness only says a guide may be inside. The guide query
+    /// (`explicitGuide(of:_:in:context:)` in TUIkitFoundation) steps through
+    /// such a wrapper only where it states the context it lays its content
+    /// out in (``ContentContextStating``), and asks in that context: an
+    /// environment write draws the same content at another size, and a stack
+    /// measured without it reported its guide where nothing is drawn. Where
+    /// a wrapper states nothing the query answers `nil`, as for a wrapper
+    /// whose witness is `false`.
     public static var _providesAlignmentGuide: Bool { WrappedContent._providesAlignmentGuide }
 }
 

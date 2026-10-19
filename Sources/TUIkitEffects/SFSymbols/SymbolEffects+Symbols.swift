@@ -245,6 +245,10 @@ import TUIkitFoundation
     /// Draws its content unchanged, at its own identity, so a removal
     /// transition written inside it plays — see `DrawsContentUnchanged`.
     extension _DiscreteSymbolEffectModifier: DrawsContentUnchanged {}
+    /// Measures its content one environment application deeper, as its measure does — see `ContentContextStating`.
+    extension _DiscreteSymbolEffectModifier: ContentContextStating {
+        package func contentLayoutContext(_ context: RenderContext) -> RenderContext { contentContext(context) }
+    }
 
     // MARK: - Transitions
 

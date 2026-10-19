@@ -308,3 +308,7 @@ extension _StyleEnvironmentView: GridRowProviding where Content: GridRowProvidin
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _StyleEnvironmentView: DrawsContentUnchanged {}
+/// Measures its content under the style it writes — see `ContentContextStating`.
+extension _StyleEnvironmentView: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { childContext(context) }
+}

@@ -399,9 +399,7 @@ extension FocusBindingRegistrar {
 
 extension _FocusedModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let env = context.environment.setting(
-            \.assignedFocusID, to: AssignedFocusID(id: forcedID(context)))
-        return measureChild(content, proposal: proposal, context: context.withEnvironment(env))
+        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
     }
 }
 
@@ -532,5 +530,17 @@ extension _DefaultFocusModifier: SingleContentWrapper {
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _FocusedModifier: DrawsContentUnchanged {}
 extension _DefaultFocusModifier: DrawsContentUnchanged {}
+/// Measures its content in the context it is given, so an alignment guide
+/// inside it is asked through it — see `HandsContentItsContext`.
+extension _DefaultFocusModifier: HandsContentItsContext {}
+
+/// Measures its content under the focus identity it assigns — see
+/// `ContentContextStating`.
+extension _FocusedModifier: ContentContextStating {
+    func contentLayoutContext(_ context: RenderContext) -> RenderContext {
+        context.withEnvironment(
+            context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: forcedID(context))))
+    }
+}
 
 extension FocusState: FrameworkDynamicProperty {}

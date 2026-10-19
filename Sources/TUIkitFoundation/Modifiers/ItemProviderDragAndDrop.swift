@@ -327,4 +327,7 @@
     }
 
     extension ItemProviderDropModifier: DrawsContentUnchanged {}
+    /// Measures its content in the context it is given, so an alignment guide
+    /// inside it is asked through it — see `HandsContentItsContext`.
+    extension ItemProviderDropModifier: HandsContentItsContext {}
 #endif

@@ -224,9 +224,7 @@ extension BadgeModifier: Layoutable {
     /// uses: a child that draws the badge (a tab, a list row) sizes differently
     /// with it set, so the plain context would under-measure.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let modifiedContext = context.withEnvironment(
-            context.environment.setting(\EnvironmentValues.badgeValue, to: value))
-        return measureChild(content, proposal: proposal, context: modifiedContext)
+        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
     }
 }
 
@@ -245,3 +243,11 @@ extension BadgeModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension BadgeModifier: DrawsContentUnchanged {}
+
+/// Measures its content under the badge it writes — see
+/// `ContentContextStating`.
+extension BadgeModifier: ContentContextStating {
+    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
+        context.withEnvironment(context.environment.setting(\EnvironmentValues.badgeValue, to: value))
+    }
+}

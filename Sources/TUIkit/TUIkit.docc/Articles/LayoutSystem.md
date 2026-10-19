@@ -149,10 +149,13 @@ Three things worth knowing before you reach for it:
   `combineExplicit`), `.padding()` reports its content's moved by the inset,
   and a ``Layout`` reports custom guides its subviews set, or one of its own.
   So a decimal point marked on a `Text` inside each row of a column lines the
-  rows up on it. A guide stops at any other modifier written after it
-  (`.border()`, a `.frame`, `.offset`) — one that does not translate it would
-  report it from the wrong coordinate space — and at a view type of your own:
-  put the guide on the view the container places, or outside your view.
+  rows up on it. A guide travels on through a modifier that draws its view
+  unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an environment write
+  such as `.lineLimit(_:)`, which it is asked under — and stops at any other
+  modifier written after it (`.border()`, a `.frame`, `.offset`) — one that
+  does not translate it would report it from the wrong coordinate space — and
+  at a view type of your own: put the guide on the view the container places,
+  or outside your view.
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and
