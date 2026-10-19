@@ -4,7 +4,9 @@
 //  A width a user gives a column with no customization identifier is kept by
 //  the table (decisions B-D4T-7), keyed by the column's place in the column
 //  closure — so a condition before it, turned on or off, does not hand the
-//  width to another column.
+//  width to another column. The table here neither sorts, selects nor is
+//  customized, so a drag at the gap after a title, which gives a column a
+//  width, has only the table's own handler to take it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -87,6 +89,24 @@ private final class Harness {
         frame()
     }
 
+    func send(_ event: MouseEvent) {
+        app.send(event)
+        frame()
+    }
+
+    /// A left-button drag along line `y` from `fromX` to `toX`, a cell at a
+    /// time.
+    func drag(on y: Int, fromX: Int, toX: Int) {
+        send(MouseEvent(button: .left, phase: .pressed, x: fromX, y: y))
+        let step = toX > fromX ? 1 : -1
+        var x = fromX
+        while x != toX {
+            x += step
+            send(MouseEvent(button: .left, phase: .dragged, x: x, y: y))
+        }
+        send(MouseEvent(button: .left, phase: .released, x: toX, y: y))
+    }
+
     var lines: [String] { app.screen.map(\.stripped) }
 
     var screen: String { lines.joined(separator: "\n") }
@@ -98,6 +118,15 @@ private final class Harness {
             let start = line.range(of: title), let end = line.range(of: next)
         else { return nil }
         return line.distance(from: start.lowerBound, to: end.lowerBound)
+    }
+
+    /// The header line, by two titles on it.
+    func headerY(_ title: String, _ next: String) -> Int? {
+        lines.firstIndex { $0.contains(title) && $0.contains(next) }
+    }
+
+    func column(of text: String, on y: Int) -> Int? {
+        lines[y].range(of: text).map { lines[y].distance(from: lines[y].startIndex, to: $0.lowerBound) }
     }
 }
 
@@ -129,5 +158,31 @@ struct TableColumnPlaceTests {
         let name = try #require(harness.width(of: "Name", before: "Size"))
         let size = try #require(harness.width(of: "Size", before: "Kind"))
         #expect(abs(size - name) <= 1, "Size is as wide as Name: \(harness.screen)")
+    }
+
+    /// A table that neither sorts, selects nor is customized registers no
+    /// title, and its gaps have no region of their own: the header gesture
+    /// it hands its own handler is all that makes a gap the edge of a column
+    /// (lane LISTSPERF), as on every table (decisions B-D4T-7).
+    @Test("On a table that neither sorts, selects nor is customized, dragging the gap after a title resizes that column")
+    func plainTableGapDragResizes() throws {
+        let harness = Harness()
+        let y = try #require(harness.headerY("Name", "Kind"), "\(harness.screen)")
+        let name = try #require(harness.width(of: "Name", before: "Kind"))
+        let kind = try #require(harness.column(of: "Kind", on: y))
+        // The gap is the two cells before Kind: three cells right, Name is
+        // three wider.
+        harness.drag(on: y, fromX: kind - 1, toX: kind + 2)
+        #expect(harness.width(of: "Name", before: "Kind") == name + 3, "\(harness.screen)")
+        harness.frame()
+        harness.frame()
+        #expect(harness.width(of: "Name", before: "Kind") == name + 3, "the width is kept from frame to frame")
+
+        // The gap before Tail is Kind's, found on the frame's header as drawn.
+        let kindWidth = try #require(harness.width(of: "Kind", before: "Tail"))
+        let tail = try #require(harness.column(of: "Tail", on: y))
+        harness.drag(on: y, fromX: tail - 2, toX: tail)
+        #expect(harness.width(of: "Kind", before: "Tail") == kindWidth + 2, "\(harness.screen)")
+        #expect(harness.width(of: "Name", before: "Kind") == name + 3, "\(harness.screen)")
     }
 }
