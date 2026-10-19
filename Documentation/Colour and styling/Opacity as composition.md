@@ -1227,12 +1227,14 @@ were tried:
   +0.9% to +3.3% of colour-heavy frames, a permanent tax to protect paths that
   had not been migrated. The paint sites check alpha instead, once per view,
   as each is migrated; `Color.foregroundParameters(depth:)` keeps the numbers.
-- **any alpha → full strength, and a word about it.** A debug build asserts at
-  the emitter. A release build, where the assertion is gone, reports it once
-  per distinct message through `SoftTrap` (2026-10-18), from
-  `ANSIRenderer.styleSequence(for:)` and `backgroundCode(for:)`, which spell
-  every styled run: a byte compare on a branch never taken, with the report
-  out of line. The message names the framework's own diagnosis and points
+- **any alpha → full strength, and a word about it.** `ANSIRenderer.styleSequence(for:)`
+  and `backgroundCode(for:)`, which spell every styled run, report it through
+  `SoftTrap` (2026-10-18): a debug build stops there, and a release build
+  reports it once per distinct message — a byte compare on a branch never
+  taken, with the report out of line — and spells the colour through the
+  emitter's unchecked twins. A caller that spells codes without the renderer
+  meets the emitter's own assertion, in a debug build only. An underline's
+  colour is never translucent: `Text.LineStyle` keeps it without its alpha. The message names the framework's own diagnosis and points
   here rather than naming a `package` function the reader cannot find.
 
 ### 16.3 Honoured as of this branch

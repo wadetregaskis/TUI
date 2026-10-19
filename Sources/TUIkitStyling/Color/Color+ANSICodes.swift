@@ -143,6 +143,20 @@ extension Color {
         // it). Section 16 of `Documentation/Colour and styling/Opacity as
         // composition.md` lists which paths honour it.
         assert(isOpaque, translucentEmissionMessage)
+        return uncheckedForegroundParameters(depth: depth)
+    }
+
+    /// ``foregroundParameters(depth:)`` without its assertion: for a caller
+    /// that has checked the colour's alpha itself. `ANSIRenderer` reports a
+    /// translucent colour through `SoftTrap` before it spells it, which a
+    /// debug build stops at as the assertion would; with a test's reporter
+    /// bound instead, the colour is spelled at full strength, as a release
+    /// build spells it.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameters; ``SGRColourParameters/none`` at
+    ///   ``ColorDepth/noColor``.
+    package func uncheckedForegroundParameters(depth: ColorDepth = ColorDepth.current) -> SGRColourParameters {
         if depth == .noColor { return .none }
         switch downsampled(to: depth).value {
         case .ansi(let slot): return .code(slot.foregroundCode)
@@ -156,7 +170,7 @@ extension Color {
         // slot gets its own default.
         case .terminalBackground:
             guard let paper = rgbComponents else { return .code(ANSIColor.defaultForegroundCode) }
-            return Self.rgb(paper.red, paper.green, paper.blue).foregroundParameters(depth: depth)
+            return Self.rgb(paper.red, paper.green, paper.blue).uncheckedForegroundParameters(depth: depth)
         case .semantic:
             fatalError(
                 "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
@@ -208,6 +222,16 @@ extension Color {
         // it). Section 16 of `Documentation/Colour and styling/Opacity as
         // composition.md` lists which paths honour it.
         assert(isOpaque, translucentEmissionMessage)
+        return uncheckedBackgroundParameters(depth: depth)
+    }
+
+    /// The BACKGROUND twin of ``uncheckedForegroundParameters(depth:)``:
+    /// ``backgroundParameters(depth:)`` without its assertion.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameters; ``SGRColourParameters/none`` at
+    ///   ``ColorDepth/noColor``.
+    package func uncheckedBackgroundParameters(depth: ColorDepth = ColorDepth.current) -> SGRColourParameters {
         if depth == .noColor { return .none }
         switch downsampled(to: depth).value {
         case .ansi(let slot): return .code(slot.backgroundCode)
@@ -219,7 +243,7 @@ extension Color {
         // own default while there is none.
         case .terminalForeground:
             guard let ink = rgbComponents else { return .code(ANSIColor.defaultBackgroundCode) }
-            return Self.rgb(ink.red, ink.green, ink.blue).backgroundParameters(depth: depth)
+            return Self.rgb(ink.red, ink.green, ink.blue).uncheckedBackgroundParameters(depth: depth)
         case .semantic:
             fatalError(
                 "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."

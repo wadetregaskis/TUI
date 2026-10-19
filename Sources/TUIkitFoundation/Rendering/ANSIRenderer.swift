@@ -126,15 +126,16 @@ extension ANSIRenderer {
         // argument, per colour), so a style with no colour reads none.
         if let foreground = style.foregroundColor {
             checkOpaque(foreground)
-            writer.add(foreground.foregroundParameters(), extended: SGRColourParameters.extendedForeground)
+            writer.add(foreground.uncheckedForegroundParameters(), extended: SGRColourParameters.extendedForeground)
         }
         if let background = style.backgroundColor {
             checkOpaque(background)
-            writer.add(background.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
+            writer.add(background.uncheckedBackgroundParameters(), extended: SGRColourParameters.extendedBackground)
         }
+        // A line's colour needs no check: `Text.LineStyle` keeps it without
+        // its alpha, as SGR states it, so it is opaque however it was written.
         if let lineColour = style.lineColour {
-            checkOpaque(lineColour)
-            writer.addUnderlineColour(lineColour.foregroundParameters())
+            writer.addUnderlineColour(lineColour.uncheckedForegroundParameters())
         }
         return writer.finish()
     }
@@ -148,7 +149,10 @@ extension ANSIRenderer {
     /// report per distinct message through `SoftTrap`, which a debug build stops
     /// at instead. It sits here rather than beside the assertion because
     /// TUIkitStyling has nothing below it that holds `SoftTrap`, and here is
-    /// where every styled run is spelled.
+    /// where every styled run is spelled. Having checked, the renderer spells
+    /// the colour through the emitters' unchecked twins
+    /// (`Color.uncheckedForegroundParameters(depth:)`) rather than asking
+    /// again.
     ///
     /// The test is a byte compare on a branch that is never taken, and the
     /// report sits out of line, so a frame of opaque colours pays only the
@@ -182,7 +186,7 @@ extension ANSIRenderer {
         // runs once per painted line.
         checkOpaque(color)
         var writer = SGRWriter()
-        writer.add(color.backgroundParameters(), extended: SGRColourParameters.extendedBackground)
+        writer.add(color.uncheckedBackgroundParameters(), extended: SGRColourParameters.extendedBackground)
         return writer.finish() ?? ""
     }
 
