@@ -38,6 +38,8 @@ struct TextInputPage: View {
 
     // TextEditor state
     @State private var notes: String = L("page.newControls.editorSample")
+    /// Whether the two editors wrap long lines or scroll sideways.
+    @State private var editorWraps = true
 
     // Disabled samples
     @State private var disabledText: String = L("page.textField.cannotEdit")
@@ -227,17 +229,23 @@ struct TextInputPage: View {
             DemoSection("page.textInput.editorSection") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.newControls.editorHint").foregroundStyle(.palette.foregroundSecondary)
+                    // Both editors below read it: on, a long line wraps at the
+                    // editor's width; off, each line stays one row and the
+                    // editor scrolls sideways to follow the caret.
+                    Toggle("page.textInput.editorWraps", isOn: $editorWraps)
                     // Default field appearance (a subtle field tint, like
                     // TextField) — no box; a scroll indicator appears when the
                     // text is taller than the frame.
                     TextEditor(text: $notes)
                         .frame(height: 5)
+                        .textEditorWrapsLines(editorWraps)
                     // The boxed look is available by adding `.border()`. Both
                     // share `notes`, so editing one updates the other.
                     Text("page.textInput.editorBordered").foregroundStyle(.palette.foregroundSecondary)
                     TextEditor(text: $notes)
                         .frame(height: 4)
                         .border()
+                        .textEditorWrapsLines(editorWraps)
 
                     // The editor's own legend, right under the editors rather
                     // than at the foot of the page: these are readline's

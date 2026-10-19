@@ -233,7 +233,9 @@ An hour, in the row renderer both editors share.
 by default.
 
 **The fuller version:** a toggle beside the editor, with its label in the
-Example's seven languages. Half a day.
+Example's seven languages. Shipped 2026-10-18 (lane PARITYMISC): the Text
+Input page's editor section has a "Wrap long lines" toggle that both its
+editors read.
 
 ### B-D4X-13. A session under a session keeper is never "at this machine", and under GNU screen no OSC 52 is sent
 
