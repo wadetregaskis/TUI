@@ -1285,7 +1285,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   re-layout per frame, with translation where the sizes are equal); a
   removed view's content is the picture it last drew (A3).
 - **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
-  [B-O4-1, B-O4-2](<Decisions/Matched geometry and the zoom transition (O4).md>).
+  [B-O4-1, B-O4-2, B-O4-7](<Decisions/Matched geometry and the zoom transition (O4).md>).
   **Owner** (the re-layout), **Lane** (the rest).
 
 ### A9. A zoom navigation transition is a reveal
