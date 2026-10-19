@@ -23,7 +23,9 @@ import TUIkitCore
 // where each was (`PlacementStore`). It also keeps what each drew on its last
 // frame (``PlacementStore/Record/pictures``) — the one thing a child that has
 // gone leaves — which costs a stored array a frame, the array the container
-// already holds.
+// already holds, and the memory of the buffers in it, kept from one frame to
+// the next: on a nested page, what every level below drew (decisions
+// B-TRANSITIONS2-1).
 //
 // A child's presence, `0` gone through `1` there, is an animated value in the
 // `AnimationStore`, keyed under the container as a glide is, so a child that

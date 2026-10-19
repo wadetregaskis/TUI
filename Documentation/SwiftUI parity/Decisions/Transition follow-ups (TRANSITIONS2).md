@@ -122,10 +122,33 @@ array a frame; an empty one now looks its record up, so that its last rows
 can fade. A conditional drawn whole stores its picture in the access it
 already made, which is now one in-place access where it was a lookup and a
 store. A change under an animation works out the identities of what came and
-went. The owner's criterion was "C (fade-in only) if significant cost esp.
-with no animation": C would save only the stored array, since fading in needs
-the record already kept. The A/B on `deep`, `fanout`, `dashboard`,
-`kitchensink`, `menus` and `churn`, cold and warm, is owed.
+went.
+
+The pictures also cost memory, which the time does not show: kept from one
+frame to the next, they keep the buffers alive, and each level of a nested
+page keeps what the levels below it drew, so what is kept grows with depth
+times area. Measured by walking the records after one frame and counting the
+line storage they keep that the frame drawn does not share
+(`TRANSITIONS2/memprobe` in the session notes): a nest 40 deep of bordered,
+padded columns whose bodies are `if`/`else`s — the shape of Stress's `deep` —
+on a 120×200 canvas keeps 3.4 MB of lines, half in the containers' records
+and half in the conditionals', against 0.19 MB for the canvas itself; a 30×6
+grid of labels keeps 12 KB, about twice its own lines.
+
+The owner's criterion was "C (fade-in only) if significant cost esp. with no
+animation": C would save the stored array and all of that memory, since
+fading in needs only the record of where each child was. The A/B on `deep`,
+`fanout`, `dashboard`, `kitchensink`, `menus` and `churn`, cold and warm, is
+owed, with the peak footprint (`--bench` prints it) beside the time: on this
+machine, with other lanes building, the footprint moved by more between runs
+of one binary than between the two builds, so it was not taken here.
+
+A middle way, if the memory proves significant and the fade-out is kept: keep
+the pictures only of children that can go — a `ForEach`'s rows, a branch, a
+case, an `if`'s views — and not of a tuple's plain members, which cannot
+leave while their container stays; that is most of what a deep page keeps.
+About half a day, the work being to tell the two kinds of child apart at
+resolution, and a child misjudged as one that cannot go would go at once.
 
 **The fuller version:** the same in the containers that keep no memory of
 their children yet — a lazy stack, a `Grid`, a `List`'s and a `Table`'s

@@ -109,7 +109,10 @@ public final class PlacementStore: @unchecked Sendable {
         /// Written on every frame the container renders, settled or not: the
         /// frame a child goes is the first that does not draw it, so what it
         /// looked like has to have been kept on the one before. A store of the
-        /// array the container already holds, a retain and a release.
+        /// array the container already holds — and the buffers in it kept
+        /// alive until the next frame, which on a nested page is what every
+        /// level below drew: memory that grows with depth times area (priced
+        /// in decisions B-TRANSITIONS2-1).
         package var pictures: [FrameBuffer?]
 
         /// Which of ``entries`` are fading in, or `nil` when none is — the

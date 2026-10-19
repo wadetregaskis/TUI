@@ -30,7 +30,10 @@ import TUIkitCore
 // The record the conditional already keeps of the branch it took
 // (`ConditionalRecord`) holds the picture as well, written in the one access
 // the record already took: a lookup and a store before, one in-place access
-// now. Nothing else happens on a frame nothing changes.
+// now. Nothing else happens on a frame nothing changes. The picture is kept
+// alive until the next frame, which is memory: a view whose body is an
+// `if`/`else`, nested in itself, keeps at each level what every level below
+// drew (decisions B-TRANSITIONS2-1).
 
 /// What a conditional did when it last rendered: the branch it took, and —
 /// where it was drawn whole — what that branch drew and what is still
