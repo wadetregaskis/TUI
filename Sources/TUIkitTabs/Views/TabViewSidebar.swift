@@ -79,23 +79,36 @@ private struct _TabSidebarList: View {
     /// The tabs, in runs of consecutive tabs of one section — or of none —
     /// each the list's section, with that section's header and actions: each
     /// section's, and each stretch between sections. A run's rows are its
-    /// tabs' places in ``tabs``.
+    /// tabs' places in ``tabs``, each with what its row draws
+    /// (``_TabRowLook``).
     private var runs: [_SidebarSection] {
         var runs: [_SidebarSection] = []
         // The section the last run's tabs were declared in, `nil` for none.
         var runSection: Int?
         for index in tabs.indices {
             let section = tabs[index].section
+            let row = _SidebarRow(place: index, look: AnyHashable(look(of: tabs[index])))
             if !runs.isEmpty, runSection == section?.ordinal {
-                runs[runs.count - 1].rows.append(index)
+                runs[runs.count - 1].rows.append(row)
             } else {
                 runs.append(
                     _SidebarSection(
-                        id: runs.count, header: section?.header, actions: section?.actions, rows: [index]))
+                        id: runs.count, header: section?.header, actions: section?.actions, rows: [row]))
             }
             runSection = section?.ordinal
         }
         return runs
+    }
+
+    /// What `tab`'s row draws, as ``row(_:)`` draws it.
+    private func look(of tab: _RawTab) -> _TabRowLook {
+        let interactions = tab.interactions
+        return _TabRowLook(
+            title: tab.title, badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
+            isDisabled: tab.isDisabled, springLoads: tab.springLoads(inheriting: springLoading),
+            hasCustomLabel: tab.customLabel != nil, hasContextMenu: interactions.contextMenu != nil,
+            popoversShown: interactions.popovers.map(\.isPresented.wrappedValue),
+            isDraggable: interactions.dragPayload != nil, drops: interactions.drops.count)
     }
 
     /// The row the selection names, by its place in ``tabs``.
@@ -167,13 +180,56 @@ private struct _TabSidebarList: View {
     }
 
     /// A tab's label in the sidebar: the app's own label view, or the title.
+    ///
+    /// The app's own is drawn afresh on every frame: its row's look
+    /// (``_TabRowLook``) cannot say what it draws, so its row is not kept.
     @ViewBuilder
     private func label(of tab: _RawTab) -> some View {
         if let customLabel = tab.customLabel {
-            customLabel
+            _DrawnAfresh(content: customLabel)
         } else {
             Text(verbatim: tab.title)
         }
+    }
+}
+
+/// What a tab's sidebar row draws, compared to decide whether the list's row
+/// memo may serve it (``_SidebarRow``): its title and badge, whether it is
+/// disabled or spring-loads, and which interactions hang from it — a context
+/// menu, its popovers and whether each is showing, a drag, its drops.
+///
+/// What a menu or a popover holds is not here: the row draws only their
+/// presence, and an open menu or popover is state of the row's own, whose
+/// change clears its memo.
+private struct _TabRowLook: Hashable {
+    let title: String
+    let badge: String?
+    let isDisabled: Bool
+    let springLoads: Bool
+    /// A label view of the app's own, which the look cannot compare: the row
+    /// draws it afresh every frame (``_DrawnAfresh``).
+    let hasCustomLabel: Bool
+    let hasContextMenu: Bool
+    let popoversShown: [Bool]
+    let isDraggable: Bool
+    let drops: Int
+}
+
+/// `content`, drawn afresh on every frame: it is a view of the app's own
+/// that nothing above it can compare, so it declares a read no memo keys on
+/// and the memos above it decline to keep it.
+private struct _DrawnAfresh<Content: View>: View, Renderable, Layoutable {
+    let content: Content
+
+    var body: Never { fatalError("_DrawnAfresh renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if !context.isMeasuring { context.environment.volatileReadTracker?.recordUnkeyedRead() }
+        return TUIkitView.renderToBuffer(content, context: context)
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
     }
 }
 
