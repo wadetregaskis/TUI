@@ -60,6 +60,21 @@ extension String {
         }
     }
 
+    /// For each of the first `width` columns of this line, whether it draws no
+    /// GLYPH, whatever its field: a blank, not reversed, and no attribute that
+    /// inks a blank cell (an underline, a strike). Such a cell shows a field —
+    /// its own, or what is behind the line — and nothing over it, so a layer
+    /// that belongs in front of the line's fields and behind its glyphs is
+    /// composited over it. A column past the end of the line draws none.
+    ///
+    /// - Parameter width: How many columns to answer for.
+    /// - Returns: One entry per column, `true` where the cell draws no glyph.
+    package func columnsDrawingNoGlyph(width: Int) -> [Bool] {
+        columns(width: width, beyondTheEnd: true) { _, state, character in
+            !state.reversesVideo && character == " " && !state.paintsInkOnBlankCell
+        }
+    }
+
     /// For each of the first `width` columns of this line, whether reverse video is
     /// in force on it: a cell that shows its ink as its field. A column past the end
     /// of the line is not.

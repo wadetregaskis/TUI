@@ -148,7 +148,9 @@ is one shape round all of its members. A cell is joined or not, so here:
   and behind its own content, so whatever lies between a member and the
   container — a background, a colour effect, an environment of its own —
   acts on its part as on glass alone; the container draws what lies between
-  the members, behind its content. (The container first drew the whole shape
+  the members as in front of what is behind them, as their parts are: over a
+  background inside the container, under anything drawn there (a glyph, and
+  the field it is drawn on). (The container first drew the whole shape
   behind its content, past all of that: an opaque background inside the
   container covered the joined glass from the second pass on — found in
   review.)

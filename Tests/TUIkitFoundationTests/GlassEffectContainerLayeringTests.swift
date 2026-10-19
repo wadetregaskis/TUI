@@ -3,7 +3,7 @@
 //
 //  What lies between a glass and its `GlassEffectContainer` — a background —
 //  acts on the glass in a joined shape as it acts on glass alone, on every
-//  pass.
+//  pass; what lies between the glass it joins is drawn over the background.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -57,5 +57,29 @@ struct GlassEffectContainerLayeringTests {
             HStack(spacing: 0) { glass("A").background(Color.red); glass("B") }
         }
         #expect(settled(view, width: 6).map(\.stripped) == ["(A  B)"])
+    }
+
+    @Test("What bridges a joined shape is drawn over a background inside the container")
+    func bridgeOverABackground() {
+        let view = GlassEffectContainer(spacing: 2) {
+            HStack(spacing: 1) { glass("A"); glass("B") }.background(Color.blue)
+        }
+        let lines = settled(view, width: 7)
+        #expect(lines.map(\.stripped) == ["(A   B)"])
+        let cells = paintedCells(lines[0])
+        #expect(cells[3].background == cells[1].background, "the gap is glass over the blue, as the padding is")
+    }
+
+    @Test("What bridges a joined shape stays under what is drawn between its members")
+    func bridgeUnderAGlyph() {
+        let namespace = Namespace().wrappedValue
+        let view = GlassEffectContainer {
+            HStack(spacing: 0) {
+                glass("A").glassEffectUnion(id: 1, namespace: namespace)
+                Text("x")
+                glass("B").glassEffectUnion(id: 1, namespace: namespace)
+            }
+        }
+        #expect(settled(view, width: 7).map(\.stripped) == ["(A x B)"])
     }
 }

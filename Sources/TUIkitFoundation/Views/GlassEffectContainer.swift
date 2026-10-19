@@ -44,7 +44,8 @@ import TUIkitView
 /// member's shape and glass. Each member draws its own part of it, where its
 /// own glass would be, so what is applied to a member — a background, a
 /// colour effect — acts on its part as on its glass alone; what lies between
-/// the members is drawn behind the container's content. A glass
+/// the members is drawn over a background inside the container, and under
+/// anything drawn there. A glass
 /// inside a ``ScrollView`` in the container is drawn by itself, since what the
 /// container draws is not clipped to the scroll view (decisions B-GLASS-5).
 public struct GlassEffectContainer<Content: View>: View {
@@ -99,7 +100,8 @@ private final class GlassJoins {
 /// part of the joined shape (``GlassPiece``) where its own glass would be, so
 /// whatever lies between it and the container acts on that part as on any
 /// glass; the container draws only the cells of the shape that no glass
-/// covers — what lies between them — behind its content.
+/// covers — what lies between them — as in front of what is behind them:
+/// over a background inside it, under anything drawn there.
 ///
 /// A glass draws the part the container found last pass. Where the content
 /// draws its glass otherwise than the container finds it — the pass a group
@@ -133,12 +135,47 @@ extension _GlassEffectContainerCore: Renderable {
             // from this.
             record.pieces = walk.found
         }
-        var base = walk.base
+        let base = walk.base
         let joined = walk.groups.filter { $0.members.count > 1 && $0.drewItsPieces(walk.found) }
         guard !joined.isEmpty, base.width > 0, base.height > 0 else { return base }
         let layer = Self.between(joined, placed: walk.placed, columns: base.width, rows: base.height, context: context)
-        base.opacityRegions += base.claimsShowingGlyphs(of: layer)
-        return compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
+        // What lies between the members is glass, in front of what is behind
+        // them as each member's part is: over a background inside the
+        // container, and under anything drawn there.
+        let (over, under) = Self.parted(layer, by: base)
+        var composite = base
+        if let under {
+            composite = compositeDrawnLayer(
+                under.buffer(), at: (0, 0), under: composite, context: context, modifierType: Self.self)
+        }
+        if let over {
+            composite = compositeDrawnLayer(
+                over.buffer(), at: (0, 0), over: composite, context: context, modifierType: Self.self)
+        }
+        return composite
+    }
+
+    /// `layer` parted by what `base` draws where it lies: the cells over one
+    /// that draws no glyph — a background, or nothing — which are drawn over
+    /// it, and the cells under a glyph, which are drawn under it; `nil` for a
+    /// part with none.
+    private static func parted(_ layer: ShapeCells, by base: FrameBuffer) -> (over: ShapeCells?, under: ShapeCells?) {
+        var over = ShapeCells(width: layer.width, height: layer.height)
+        var under = over
+        var (anyOver, anyUnder) = (false, false)
+        for (row, line) in base.lines.prefix(layer.height).enumerated() {
+            let blank = line.columnsDrawingNoGlyph(width: layer.width)
+            for column in 0..<layer.width where !layer[column, row].isEmpty {
+                if blank[column] {
+                    over[column, row] = layer[column, row]
+                    anyOver = true
+                } else {
+                    under[column, row] = layer[column, row]
+                    anyUnder = true
+                }
+            }
+        }
+        return (anyOver ? over : nil, anyUnder ? under : nil)
     }
 
     /// One drawing of the content: what it drew, where its glass ended up and
