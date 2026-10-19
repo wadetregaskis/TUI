@@ -39,6 +39,7 @@ private struct SubmenuBarApp: App {
                     Menu("More") {
                         Button("M1") { SubmenuProbe.shared.log.append("m1") }
                         Button("M2") { SubmenuProbe.shared.log.append("m2") }
+                            .keyboardShortcut("k", modifiers: .control)
                     }
                 }
                 CommandMenu("Beta") {
@@ -102,5 +103,13 @@ struct MenuBarSubmenuTests {
         driver.key(.right)
         driver.key(.right)
         #expect(driver.shows("B1") && !driver.shows("A1"), "Right in the submenu stepped to Beta: \(driver.rows)")
+    }
+
+    @Test("A submenu item's key equivalent works with every menu closed, as a command's does")
+    func submenuShortcutWithMenusClosed() {
+        let driver = Driver()
+        driver.app.send(KeyEvent(key: .character("k"), ctrl: true))
+        driver.frame()
+        #expect(SubmenuProbe.shared.log == ["m2"], "\(SubmenuProbe.shared.log)")
     }
 }

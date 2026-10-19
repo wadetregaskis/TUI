@@ -83,17 +83,18 @@ row opens it and chooses nothing, and a press-and-hold released on it leaves
 the menu up. A radio-group picker draws inline, where macOS draws its label and
 options as disabled items with no check (measured): a menu form nobody can use.
 
+An item's key equivalent in a submenu works while the menu it is in is up,
+whether or not the submenu is open, and — in a menu bar's menu — with every
+menu closed, as a command's does: a closed submenu's items are rendered for
+their registrations alone each frame (`registerMenuItemShortcuts`), from the
+menu it opens from and from the menu bar's pass, where a `Menu` renders its
+items so too.
+
 Escape closes one level, as the lane's brief asked and as Windows and GTK
 menus do; macOS, unmeasured here, is believed to close the whole menu. Recorded
 as deviation W16.
 
 **The fuller version**, each priced separately:
-- **Key equivalents in a closed submenu.** An item's `.keyboardShortcut` in a
-  submenu registers only while the submenu is drawn; in a menu bar's closed
-  menus, which register their items' keys every frame, a submenu's do not. About
-  half a day: a registration-only render of a closed submenu's items, from the
-  open menu's level and from the menu bar's pass. Done next if the lane has
-  time; see the lane report.
 - **The pointer's diagonal.** A desktop menu keeps a submenu open while the
   pointer crosses other rows on its way into it (macOS's safe triangle,
   unmeasured); here the pointer over another row closes it at once, so the way

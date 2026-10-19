@@ -30,8 +30,16 @@ final class MenuSubmenu {
     /// Draws the submenu open, with `controller`'s highlight.
     let draw: (_ controller: MenuPopupController) -> FrameBuffer
 
-    init(draw: @escaping (_ controller: MenuPopupController) -> FrameBuffer) {
+    /// Renders the submenu's items, closed, for the keyboard shortcuts they
+    /// register alone (``registerMenuItemShortcuts(_:context:)``).
+    let registerShortcuts: () -> Void
+
+    init(
+        draw: @escaping (_ controller: MenuPopupController) -> FrameBuffer,
+        registerShortcuts: @escaping () -> Void
+    ) {
         self.draw = draw
+        self.registerShortcuts = registerShortcuts
     }
 }
 
@@ -89,10 +97,13 @@ package struct _MenuSubmenuRow<Label: View, Items: View>: View, Renderable, Layo
             let items = items
             let itemsContext = Self.itemsContext(context)
             let dismiss = context.environment.dismissMenu
-            row.environment.menuSubmenu = MenuSubmenu { controller in
-                renderMenuLevel(
-                    items, context: itemsContext, controller: controller, dismiss: { dismiss?() }, isSubmenu: true)
-            }
+            row.environment.menuSubmenu = MenuSubmenu(
+                draw: { controller in
+                    renderMenuLevel(
+                        items, context: itemsContext, controller: controller, dismiss: { dismiss?() },
+                        isSubmenu: true)
+                },
+                registerShortcuts: { registerMenuItemShortcuts(items, context: itemsContext) })
         }
         return row
     }
@@ -139,7 +150,13 @@ func renderMenuLevel(
     dismiss: @escaping () -> Void, isSubmenu: Bool
 ) -> FrameBuffer {
     var buffer = renderMenuPopup(items, context: context, controller: controller, dismiss: dismiss, isSubmenu: isSubmenu)
-    guard !context.isMeasuring, let open = controller.openSubmenu else { return buffer }
+    guard !context.isMeasuring else { return buffer }
+    // The closed submenus' items' key equivalents work while this menu is up,
+    // as the open one's do: rendered for their registrations alone.
+    for row in controller.sink.submenuRows where row.ordinal != controller.openSubmenu?.ordinal {
+        row.submenu.registerShortcuts()
+    }
+    guard let open = controller.openSubmenu else { return buffer }
     guard let submenu = controller.sink.submenu(at: open.ordinal),
         let line = controller.drawnLine(ofOrdinal: open.ordinal)
     else {
@@ -157,6 +174,31 @@ func renderMenuLevel(
     return buffer
 }
 
+// MARK: - Key equivalents of items not drawn
+
+/// Renders a menu's `items` — as an open menu's column renders them, with no
+/// row channel — for the keyboard shortcuts they register alone: every other
+/// channel thrown away, and nothing asked of the frame
+/// (``RenderContext/withRegistrationOnlyChannels()``).
+///
+/// What makes an item's key equivalent work while the menu it is in is not
+/// drawn: a closed submenu's, while the menu it opens from is up, and every
+/// submenu's of a menu bar's closed menu, which the bar renders this way each
+/// frame — where a `Menu` among them renders its own items so too (`_MenuPopupCore`,
+/// under ``EnvironmentValues/rendersForRegistrationsOnly``), and theirs.
+@MainActor
+package func registerMenuItemShortcuts(_ items: some View, context: RenderContext) {
+    context.withThrowawayFrameDemand { quiet in
+        var unseen = quiet.withRegistrationOnlyChannels()
+        // Tall enough for every row: a row a column had no room for would
+        // never render, and never register its key.
+        unseen.availableHeight = 4096
+        unseen.hasExplicitHeight = false
+        _ = TUIkitView.renderToBuffer(
+            VStack(alignment: .leading, spacing: 0) { _MenuSectionedItems(items: items) }, context: unseen)
+    }
+}
+
 // MARK: - Environment
 
 private struct MenuRowOpensSubmenuKey: EnvironmentKey {
@@ -165,6 +207,10 @@ private struct MenuRowOpensSubmenuKey: EnvironmentKey {
 
 private struct MenuSubmenuKey: EnvironmentKey {
     static let defaultValue: MenuSubmenu? = nil
+}
+
+private struct RendersForRegistrationsOnlyKey: EnvironmentKey {
+    static let defaultValue = false
 }
 
 extension EnvironmentValues {
@@ -189,5 +235,14 @@ extension EnvironmentValues {
     var menuSubmenu: MenuSubmenu? {
         get { self[MenuSubmenuKey.self] }
         set { self[MenuSubmenuKey.self] = newValue }
+    }
+
+    /// Whether this render is for the keyboard shortcuts it registers alone
+    /// (``RenderContext/withRegistrationOnlyChannels()``): where a closed
+    /// pop-up `Menu` renders its items too, so a menu bar's submenus' items,
+    /// and a closed submenu's submenus', register their keys.
+    package internal(set) var rendersForRegistrationsOnly: Bool {
+        get { self[RendersForRegistrationsOnlyKey.self] }
+        set { self[RendersForRegistrationsOnlyKey.self] = newValue }
     }
 }

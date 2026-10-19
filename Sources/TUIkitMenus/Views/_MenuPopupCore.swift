@@ -109,6 +109,15 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
             // page's focus is restored rather than stranded.
             if !context.isMeasuring {
                 context.environment.focusManager?.deactivateSection(id: sectionID)
+                // In a render for its key equivalents alone — a menu bar's
+                // closed menu, a closed submenu — the items register theirs
+                // too, as a submenu's do in SwiftUI's menus.
+                if context.environment.rendersForRegistrationsOnly {
+                    registerMenuItemShortcuts(
+                        content,
+                        context: context.withChildIdentity(
+                            erasedType: MenuStyleConfiguration.Content.self, index: ChildIndex.items))
+                }
             }
             return buffer
         }

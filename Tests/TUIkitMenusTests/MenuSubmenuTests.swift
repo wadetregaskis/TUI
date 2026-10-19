@@ -44,6 +44,7 @@ private struct SubmenuApp: App {
                     Menu("Copy") {
                         Button("As Text") { record.chosen.append("As Text") }
                         Button("As Link") { record.chosen.append("As Link") }
+                            .keyboardShortcut("l", modifiers: .control)
                     }
                     .disabled(disablesCopy)
                     Button("Delete") { record.chosen.append("Delete") }
@@ -282,5 +283,16 @@ struct MenuSubmenuTests {
         let deeper = try #require(driver.cell(of: "Deepest"), "\(driver.text)")
         #expect(submenu.x < menu.x, "the submenu went to the menu's left: \(driver.text)")
         #expect(deeper.x < submenu.x, "and its own submenu further left, not back over the menu: \(driver.text)")
+    }
+
+    @Test("A closed submenu's item's key equivalent works while its menu is up, as the menu's own rows' do")
+    func closedSubmenuShortcut() {
+        let record = Record()
+        let driver = Driver(SubmenuApp(record: record))
+        driver.openMenu()
+        #expect(!driver.shows("As Link"), "the submenu is closed: \(driver.text)")
+        driver.app.send(KeyEvent(key: .character("l"), ctrl: true))
+        driver.frame()
+        #expect(record.chosen == ["As Link"], "\(record.chosen)")
     }
 }

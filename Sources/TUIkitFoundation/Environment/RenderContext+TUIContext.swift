@@ -149,6 +149,7 @@ extension RenderContext {
         unseen.isBackdrop = true
         if let live = environment.focusManager { unseen.focusedValues = live.focusedValues }
         copy.environment.focusManager = unseen
+        copy.environment.rendersForRegistrationsOnly = true
         return copy
     }
 
