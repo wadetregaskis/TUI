@@ -30,7 +30,9 @@
 /// A text field has no padding inside its caps at `.regular` to trim, and is
 /// given none at `.extraLarge`: a blank inside each cap costs a field two
 /// cells, which squeezed the colour picker's numeric fields when the caps
-/// followed the appearance.
+/// followed the appearance. A checkbox and a switch draw alike at every size —
+/// a glyph and a gap, a three-cell track — and a ``ButtonToggleStyle`` toggle is
+/// a bordered button's face, with its table.
 ///
 /// ```swift
 /// HStack {

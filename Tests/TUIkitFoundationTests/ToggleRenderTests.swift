@@ -34,6 +34,25 @@ struct ToggleRenderTests {
         renderToBuffer(v, context: makeBareRenderContext(width: w, height: h)).lines.map { $0.stripped }
     }
 
+    // MARK: - Control size
+
+    @Test("A checkbox and a switch draw alike at every control size; a button toggle follows the button's table")
+    func controlSizeDensity() {
+        func drawn(_ toggle: some View, _ size: ControlSize) -> [String] {
+            unfocusedLines(toggle.controlSize(size))
+        }
+        let checkbox = Toggle("Wi-Fi", isOn: .constant(true))
+        let toggleSwitch = Toggle("Wi-Fi", isOn: .constant(true)).toggleStyle(.switch)
+        for size in ControlSize.allCases {
+            #expect(drawn(checkbox, size) == drawn(checkbox, .regular), "checkbox at \(size)")
+            #expect(drawn(toggleSwitch, size) == drawn(toggleSwitch, .regular), "switch at \(size)")
+        }
+        // The button style draws a bordered button's face, which drops its
+        // padding at `.small`.
+        let button = Toggle("Wi-Fi", isOn: .constant(true)).toggleStyle(.button)
+        #expect(drawn(button, .small) != drawn(button, .regular), "\(drawn(button, .small))")
+    }
+
     // MARK: - On / off indicator
 
     @Test("An OFF toggle renders □ then the label, on a single line")

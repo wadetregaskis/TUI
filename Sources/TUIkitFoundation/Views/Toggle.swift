@@ -27,6 +27,15 @@
 /// > TUI-specific choice — see ``ToggleCharacterSet`` and
 /// > ``View/toggleCharacterSet(_:)``.
 ///
+/// ## Control size
+///
+/// A checkbox is a glyph and a gap, and a switch a three-cell track: neither
+/// has padding to trim at `.small` or caps to drop at `.mini`, and a gap or a
+/// track grown at `.large` would say nothing more, so both draw alike at every
+/// ``ControlSize`` — SwiftUI changes only their size, which a terminal's cell
+/// fixes. ``ButtonToggleStyle`` draws a bordered button's face, and follows the
+/// button's table.
+///
 /// ## Custom styles
 ///
 /// Conform to `ToggleStyle` and implement ``makeBody(configuration:)`` to draw a
