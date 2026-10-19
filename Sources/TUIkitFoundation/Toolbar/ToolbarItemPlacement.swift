@@ -144,7 +144,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     }
 
     /// The window bar an item of this placement joins.
-    var bar: WindowChromeState.Edge {
+    package var bar: WindowChromeState.Edge {
         switch role {
         case .status, .bottomBar, .keyboard: .bottom
         default: .top

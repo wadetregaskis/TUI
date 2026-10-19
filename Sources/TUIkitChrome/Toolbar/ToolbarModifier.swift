@@ -86,14 +86,27 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
             // buffer would leave the window with no items: the same refusal
             // `.statusBarItems` makes.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
+            // A screen pushed onto a navigation stack puts its top-bar items
+            // in the stack's bar (`NavigationBarItems`), on a drawn walk.
+            let stackBar = context.isMeasuring ? nil : context.environment.navigationBarItems
             for item in toolbarItems(of: items) {
-                chrome.declare(
-                    WindowChromeState.ToolbarEntry(
-                        placement: item.placement, view: item.view, environment: context.environment,
-                        identity: itemIdentity(item, depth: depth, context: context),
-                        isFlexibleSpace: item.isFlexibleSpace, defaultKind: item.defaultKind,
-                        isTitleMenu: item.isTitleMenu,
-                        keyboardScope: item.placement.role == .keyboard ? context.identity : nil))
+                let entry = WindowChromeState.ToolbarEntry(
+                    placement: item.placement, view: item.view, environment: context.environment,
+                    identity: itemIdentity(item, depth: depth, context: context),
+                    isFlexibleSpace: item.isFlexibleSpace, defaultKind: item.defaultKind,
+                    isTitleMenu: item.isTitleMenu,
+                    keyboardScope: item.placement.role == .keyboard ? context.identity : nil)
+                if let stackBar, item.goesInNavigationBar {
+                    stackBar.drawsItems = Self.drawsItems
+                    stackBar.declare(entry)
+                    continue
+                }
+                // The seeding walk finds the WINDOW's rows; a stack's bar is
+                // its own.
+                if context.isMeasuring, context.environment.navigationBarItems != nil, item.goesInNavigationBar {
+                    continue
+                }
+                chrome.declare(entry)
                 // A default item moves the framework's own from where it is
                 // drawn by default (`DefaultToolbarItem`).
                 switch item.defaultKind {
@@ -138,6 +151,25 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
 
 /// The identity step a toolbar item takes under the view that declared it.
 enum _ToolbarItemSlot {}
+
+extension _ToolbarModifier {
+    /// How a navigation stack's bar draws a run of the items a screen put in
+    /// it: side by side, as a window bar's run (``_ToolbarItemRun``).
+    static var drawsItems: @MainActor ([WindowChromeState.ToolbarEntry]) -> AnyView {
+        { AnyView(_ToolbarItemRun(entries: $0)) }
+    }
+}
+
+extension _ToolbarItemSpec {
+    /// Whether, declared by a screen pushed onto a navigation stack, the item
+    /// goes in the stack's bar: one placed in the top bar's own row. An
+    /// accessory bar's, the bottom bar's (`.keyboard`'s too) stay the
+    /// window's, as do the title's menu and the default items, which move
+    /// the window's own.
+    var goesInNavigationBar: Bool {
+        placement.bar == .top && placement.accessoryBar == nil && !isTitleMenu && defaultKind == nil
+    }
+}
 
 // MARK: - Nested Declarations
 

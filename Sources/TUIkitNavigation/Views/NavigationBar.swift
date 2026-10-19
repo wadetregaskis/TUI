@@ -33,9 +33,15 @@ struct NavigationBar {
     /// (a `.toolbar(removing: .title)`) leaves the Back button alone on the
     /// bar: no title, subtitle or trail. The screen's title is still recorded,
     /// for the trails of the screens pushed over it.
+    ///
+    /// `items` are the top-bar items the screen declared
+    /// (``NavigationBarItems``), drawn in the bar's row: those placed at the
+    /// leading end after the Back button or the trail, the rest at the
+    /// trailing end — principal, then secondary, then primary — with the title
+    /// truncated to what they leave.
     func render(
         title: String, subtitle: String, hidesBack: Bool, hidesTitle: Bool, width: Int, escapeHandlerSlot: Int,
-        context: RenderContext
+        items: NavigationBarItems? = nil, context: RenderContext
     ) -> FrameBuffer {
         let coordinator = coordinator
         // The Back button is a real `Button`: a Tab stop, clickable, and
@@ -121,6 +127,11 @@ struct NavigationBar {
                 proposal: ProposedSize(width: nil, height: nil),
                 context: barContext.withChildIdentity(type: NavigationBarID.self)
             ).width
+        // The screen's items, and the room they take: the title and the trail
+        // have what is left.
+        let runs = ItemRuns(items, context: barContext.withChildIdentity(type: NavigationBarID.self))
+        let leftWidth = max(0, width - runs.trailingWidth)
+        let titleWidth = max(0, leftWidth - backWidth - 1 - runs.leadingWidth)
         // Crumbs when they fit, the Back button when they do not. `backWidth`
         // is what a bar with the single button would need, so it doubles as the
         // budget the trail has to beat.
@@ -132,12 +143,14 @@ struct NavigationBar {
         let titled = navigationBar(
             back: back,
             hidesBack: hidesBack,
-            title: hidesTitle ? "" : title.truncatedToWidth(max(0, width - backWidth - 1)),
+            title: hidesTitle ? "" : title.truncatedToWidth(titleWidth),
             subtitle: hidesTitle ? "" : subtitle,
             crumbs: hidesBack || hidesTitle
                 ? nil
                 : NavigationCrumbs.trail(
-                    titles: coordinator.titles(upTo: coordinator.depth), fittingWidth: width),
+                    titles: coordinator.titles(upTo: coordinator.depth),
+                    fittingWidth: max(0, leftWidth - runs.leadingWidth)),
+            runs: runs, leftWidth: leftWidth,
             coordinator: coordinator)
 
         let rendered = TUIkitView.renderToBuffer(
@@ -149,53 +162,87 @@ struct NavigationBar {
     /// trail will not fit), and the rule beneath.
     private func navigationBar(
         back: String, hidesBack: Bool, title: String, subtitle: String,
-        crumbs: [NavigationCrumbs.Crumb]?, coordinator: NavigationCoordinator
+        crumbs: [NavigationCrumbs.Crumb]?, runs: ItemRuns, leftWidth: Int, coordinator: NavigationCoordinator
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
-                if let crumbs {
-                    // One closure parameter, NOT `{ _, crumb in`. The closure is
-                    // not the bug: `{ _, crumb in` is converted to a function of
-                    // one tuple parameter, and swift.org's Swift 6.2.4 (an
-                    // assertions build) aborts in SILGen ("no generic
-                    // environment provided for type with type parameters") on a
-                    // function conversion that needs a reabstraction thunk, in
-                    // a generic context (`_NavigationStackCore<Root>`, where
-                    // this bar was drawn until it moved here), of a function
-                    // whose opaque result does not use that context's
-                    // parameters (`crumbView`). One parameter needs no conversion. Xcode's
-                    // 6.2.4 compiles either spelling. See
-                    // Tools/CompilerBugs/README.md, section 4.
-                    ForEach(Array(crumbs.enumerated()), id: \.offset) { pair in
-                        crumbView(pair.element, coordinator: coordinator)
-                    }
-                } else if hidesBack {
-                    Text(title).bold()
-                } else {
-                    backButton(back, coordinator: coordinator)
-                    Text(" ")
-                    Text(title).bold()
-                }
-                // After the title, in what the title and the trail leave: the
-                // lowest priority in the row and one line, so it truncates
-                // first and the bar keeps its height.
-                //
-                // No `Spacer` after it: one would be of a HIGHER priority than
-                // the subtitle, and a stack offers its higher priorities space
-                // first, so the spacer would take the whole slack and leave
-                // the subtitle its `…` — as SwiftUI's would. The bar is padded
-                // to the full width below instead.
-                if !subtitle.isEmpty {
-                    // The gap on its own, so truncating the subtitle cannot
-                    // eat it.
-                    Text(verbatim: "  ")
-                    Text(verbatim: subtitle)
-                        .foregroundStyle(Color.palette.foregroundSecondary)
-                        .lineLimit(1)
-                        .layoutPriority(-1)
+                titleRow(
+                    back: back, hidesBack: hidesBack, title: title, subtitle: subtitle, crumbs: crumbs,
+                    leading: runs.leading, coordinator: coordinator)
+                    .frame(width: leftWidth, alignment: .leading)
+                if let trailing = runs.trailing {
+                    Text(verbatim: " ")
+                    trailing.frame(height: 1, alignment: .top)
                 }
             }
             Divider()
+        }
+    }
+
+    /// The bar's row less the screen's trailing items: the crumb trail (or
+    /// the Back button and title when the trail will not fit), the leading
+    /// items after the trail or the Back button, and the subtitle.
+    private func titleRow(
+        back: String, hidesBack: Bool, title: String, subtitle: String, crumbs: [NavigationCrumbs.Crumb]?,
+        leading: AnyView?, coordinator: NavigationCoordinator
+    ) -> some View {
+        HStack(spacing: 0) {
+            if let crumbs {
+                // One closure parameter, NOT `{ _, crumb in`. The closure is
+                // not the bug: `{ _, crumb in` is converted to a function of
+                // one tuple parameter, and swift.org's Swift 6.2.4 (an
+                // assertions build) aborts in SILGen ("no generic
+                // environment provided for type with type parameters") on a
+                // function conversion that needs a reabstraction thunk, in
+                // a generic context (`_NavigationStackCore<Root>`, where
+                // this bar was drawn until it moved here), of a function
+                // whose opaque result does not use that context's
+                // parameters (`crumbView`). One parameter needs no conversion. Xcode's
+                // 6.2.4 compiles either spelling. See
+                // Tools/CompilerBugs/README.md, section 4.
+                ForEach(Array(crumbs.enumerated()), id: \.offset) { pair in
+                    crumbView(pair.element, coordinator: coordinator)
+                }
+                leadingItems(leading)
+            } else if hidesBack {
+                leadingItems(leading, trailingGap: true)
+                Text(title).bold()
+            } else {
+                backButton(back, coordinator: coordinator)
+                leadingItems(leading)
+                Text(" ")
+                Text(title).bold()
+            }
+            // After the title, in what the title and the trail leave: the
+            // lowest priority in the row and one line, so it truncates
+            // first and the bar keeps its height.
+            //
+            // No `Spacer` after it: one would be of a HIGHER priority than
+            // the subtitle, and a stack offers its higher priorities space
+            // first, so the spacer would take the whole slack and leave
+            // the subtitle its `…` — as SwiftUI's would. The row is framed
+            // to its width instead.
+            if !subtitle.isEmpty {
+                // The gap on its own, so truncating the subtitle cannot
+                // eat it.
+                Text(verbatim: "  ")
+                Text(verbatim: subtitle)
+                    .foregroundStyle(Color.palette.foregroundSecondary)
+                    .lineLimit(1)
+                    .layoutPriority(-1)
+            }
+        }
+    }
+
+    /// The screen's leading items, a column apart from what is before them —
+    /// or, at the start of the row, from what is after them — kept to the
+    /// bar's one row.
+    @ViewBuilder
+    private func leadingItems(_ leading: AnyView?, trailingGap: Bool = false) -> some View {
+        if let leading {
+            if !trailingGap { Text(verbatim: " ") }
+            leading.frame(height: 1, alignment: .top)
+            if trailingGap { Text(verbatim: " ") }
         }
     }
 
@@ -247,3 +294,43 @@ struct NavigationBar {
 /// Identity tag for the navigation bar, keeping the Back button's focus
 /// registration in one stable place across pushes.
 private enum NavigationBarID {}
+
+// MARK: - The Screen's Items
+
+extension NavigationBar {
+    /// The screen's items as two runs — the leading ones, and the principal,
+    /// secondary and primary ones at the trailing end — and the columns each
+    /// takes with its gap.
+    @MainActor
+    struct ItemRuns {
+        /// The leading run, or `nil` for none.
+        let leading: AnyView?
+        /// The trailing run, or `nil` for none.
+        let trailing: AnyView?
+        /// The columns the leading run takes, its gap included; 0 for none.
+        let leadingWidth: Int
+        /// The columns the trailing run takes, its gap included; 0 for none.
+        let trailingWidth: Int
+
+        /// `items`' runs, measured in `context`.
+        init(_ items: NavigationBarItems?, context: RenderContext) {
+            let entries = items?.entries ?? []
+            guard let draw = items?.drawsItems, !entries.isEmpty else {
+                (leading, trailing, leadingWidth, trailingWidth) = (nil, nil, 0, 0)
+                return
+            }
+            func run(_ regions: [ToolbarItemPlacement.Region]) -> AnyView? {
+                let run = regions.flatMap { region in entries.filter { $0.placement.region == region } }
+                return run.isEmpty ? nil : draw(run)
+            }
+            func width(_ run: AnyView?) -> Int {
+                guard let run else { return 0 }
+                return measureChild(run, proposal: ProposedSize(width: nil, height: 1), context: context).width + 1
+            }
+            leading = run([.leading])
+            trailing = run([.principal, .secondary, .trailing])
+            leadingWidth = width(leading)
+            trailingWidth = width(trailing)
+        }
+    }
+}

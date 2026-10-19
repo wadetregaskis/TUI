@@ -643,7 +643,14 @@ line of key hints, which shows the modal's keys and answers a click as the key;
 an item declared inside a `.dimmed()` subtree is drawn inert likewise. A view
 nobody sees declares nothing: a `NavigationStack`'s root, while a screen is
 pushed over it, has no items in the bars and hides no bar — and its items keep
-their `@State` meanwhile, as the root does, to come back to. In a terminal too
+their `@State` meanwhile, as the root does, to come back to. The screen pushed
+over it puts its top-bar items in the stack's own bar (the A28 study's step 7,
+as iOS's navigation bar holds a pushed view's items): the leading ones after
+the trail or ‹ Back, the principal, secondary and primary ones at the bar's
+trailing end, the title truncated to what they leave, all on the bar's one
+row and in the screen's focus section; its bottom-bar items, accessory bars and
+title menu stay the window's, and the root's items are the window's top bar's,
+as on macOS (decisions TOOLBARS, B-TOOLBARS-2). In a terminal too
 short for both bars the bottom bar stays whole and the top bar gives way, cut
 from its end; a cut bar lays its items out in the rows of it that show, and one
 that shows none of them draws no item — none is in the Tab ring or on its key
@@ -719,8 +726,7 @@ modifiers: `.toolbarVisibility(.hidden, for:)` takes that row away (hiding
 menu bar's Hide Toolbar takes them all), and `.toolbarBackground(_:for:)` fills
 it.
 
-**Not yet:** a `NavigationStack`'s bar hosting a pushed screen's items, and the
-customisation family (`toolbar(id:)`).
+**Not yet:** the customisation family (`toolbar(id:)`).
 
 **Commands are the window's menu bar** (TUIkitCommands; refusal review O13,
 ruled 2026-10-12). A scene that declares commands — `.commands { … }` with

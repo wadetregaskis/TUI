@@ -362,6 +362,12 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         // every declaration.
         if !context.isMeasuring {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
+            // The screen's top-bar items go in this bar, not the window's
+            // (`NavigationBarItems`): inside an app, on a drawn walk.
+            if context.environment.windowChrome != nil {
+                coordinator.barItems.begin()
+                screenContext.environment.navigationBarItems = coordinator.barItems
+            }
         }
         preferences?.push()
         var content =
@@ -385,7 +391,8 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
 
         var buffer = NavigationBar(coordinator: coordinator).render(
             title: title, subtitle: subtitle, hidesBack: hidesBack, hidesTitle: hidesTitle, width: width,
-            escapeHandlerSlot: escapeHandlerSlot, context: context)
+            escapeHandlerSlot: escapeHandlerSlot,
+            items: screenContext.environment.navigationBarItems, context: context)
         buffer.appendVertically(content)
         return (buffer, zoom)
     }

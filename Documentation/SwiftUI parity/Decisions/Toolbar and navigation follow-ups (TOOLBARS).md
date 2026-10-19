@@ -34,3 +34,23 @@ as a view, drawn by the empty title menu in the registration-free way the
 menu bar draws a closed menu — so each command's key stays registered once.
 About half a day; worth it if an app ported from iPadOS leans on the inferred
 menu.
+
+### B-TOOLBARS-2. A navigation stack's bar keeps its title beside a pushed screen's principal items
+
+*`ToolbarItemPlacement.principal` in a screen pushed onto a `NavigationStack`*
+
+A pushed screen's top-bar items are drawn in the stack's bar (the A28 study,
+step 7). That bar is TUIkit's own: the crumb trail, or ‹ Back and the title,
+on one row whose height is fixed before the screen draws. In the window's top
+bar a principal item takes the title's place (iOS's reading); in the stack's
+bar the title is also the end of the trail, which says where the person is.
+
+**Shipped:** the stack's bar keeps the trail and the title, its leading items
+after them, and the principal items at the trailing end before the secondary
+and primary ones. Every item is laid out on the bar's one row; a taller one is
+cut to it.
+
+**The fuller version** gives the stack's bar the window bar's regions: the
+principal items centred in place of the title (or beside it under
+`.toolbarRole(.editor)`), the trail shortened to the screens before. About two
+hours; it changes nothing an app can do, only where the item sits.

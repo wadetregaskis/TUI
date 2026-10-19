@@ -88,6 +88,10 @@ final class NavigationCoordinator {
     /// (``ZoomNavigationTransition``, `NavigationZoom.swift`).
     var zoom = NavigationZoomState()
 
+    /// The top-bar items the screen on top declares, which the stack's bar
+    /// draws: one object for the stack's life, so the environment value that
+    /// carries it is the same every frame.
+    let barItems = NavigationBarItems()
     init() {}
 }
 

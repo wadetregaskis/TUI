@@ -316,6 +316,7 @@ extension EnvironmentValues {
         detached.focusHandoffOffer = nil
         detached.preferredFocusOffer = nil
         detached.listRowEditRestrictions = nil
+        detached.navigationBarItems = nil
         // …and by the features above the substrate, each in a slot this
         // cannot see the type of (``FeatureObjectSlot``): the navigation
         // stack's coordinator, a dialog's suppression toggle, a searchable's
