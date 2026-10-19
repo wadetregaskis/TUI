@@ -613,6 +613,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     private func allRowsContentWidth(context: RenderContext) -> Int {
         var rowContext = context
         rowContext.environment.fixedSizeWidth = false
+        Self.claimRowText(in: &rowContext.environment)
         let source = extractRows(from: content, context: rowContext)
         let widest = widestRowWidth(source: source, context: rowContext)
         let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
@@ -3177,6 +3178,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if environment.labeledContentPlacement != .listRow {
             environment.labeledContentPlacement = .listRow
         }
+        Self.claimRowText(in: &environment)
+    }
+
+    /// Claims the rows' text for `.control(.list)`: a `.style(.control(.list))
+    /// { … }` entry names the text of the list's rows, as `.control(.toggle)`
+    /// names a toggle's label — unless the list sits inside a control that has
+    /// claimed its text already (a `Picker`), whose kind it keeps. For the hug
+    /// measure too, so a cascaded `textCase` is measured as it is drawn.
+    private static func claimRowText(in environment: inout EnvironmentValues) {
+        if environment.controlKind == nil { environment.controlKind = .list }
     }
 
     private func dimmed(_ buffer: FrameBuffer) -> FrameBuffer {

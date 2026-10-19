@@ -10,6 +10,10 @@ import TUIkitStyling
 
 /// A built-in interactive control, used to scope a style entry to controls of
 /// that kind (and, with a variant, to a specific mode of one).
+///
+/// `.list` and `.table` name the text of a `List`'s rows and of a `Table`'s
+/// cells, claimed by the list or the table unless a control around it has
+/// claimed its text first (a `Picker`'s, say, which keeps `.picker`).
 public enum ControlKind: Sendable, Hashable {
     case button
     case toggle

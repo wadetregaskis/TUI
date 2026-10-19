@@ -102,6 +102,10 @@ package struct TableRowFrameKey: Equatable {
     package let colorDepth: ColorDepth
     package let colorGeneration: Int
     package let widthGeneration: Int
+    /// What the style cascade gives a string cell's text (`Table.cellTextAttributes`):
+    /// `.bold()` on the table reaches a cell drawn from a `String` key path,
+    /// and nothing the row carries changes with it.
+    package let cellText: StyleAttributes
 
     /// The memberwise initializer, written out: a synthesized one is internal,
     /// and a table in TUIkitTables makes these (module split, step C2).
@@ -109,7 +113,7 @@ package struct TableRowFrameKey: Equatable {
         columnWidths: [Int], columnSpacing: Int, gutter: Int, rowWidth: Int, ink: Color,
         selectedMark: RowSelectionIndicator, unselectedMark: RowSelectionIndicator, stripe: Color?,
         alignments: [HorizontalAlignment], truncations: [TruncationMode], lineLimits: [Int], colorDepth: ColorDepth,
-        colorGeneration: Int, widthGeneration: Int
+        colorGeneration: Int, widthGeneration: Int, cellText: StyleAttributes
     ) {
         self.columnWidths = columnWidths
         self.columnSpacing = columnSpacing
@@ -125,6 +129,7 @@ package struct TableRowFrameKey: Equatable {
         self.colorDepth = colorDepth
         self.colorGeneration = colorGeneration
         self.widthGeneration = widthGeneration
+        self.cellText = cellText
     }
 }
 

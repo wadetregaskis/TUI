@@ -28,8 +28,27 @@ public struct StyleCascadeModifier<Content: View>: View {
     public var body: some View { content }
 
     private func modifiedContext(_ context: RenderContext) -> RenderContext {
+        // Noted, as `EnvironmentModifier` notes the value it writes: a memo
+        // below — a `List`'s looped rows, an `.equatable()` view — keys on its
+        // own value and size, not on the cascade, so `.bold(flag)` turned on
+        // between two frames was served the plain picture, and the rows of a
+        // `List { ForEach(…) }.bold(flag)` kept the weight they were first
+        // drawn with. The ENTRY is noted, not the cascade it makes: the
+        // entries above it are their own writers' to note, as `TintModifier`
+        // notes its tint and not the palette it derives. Not ink alone — a
+        // cascaded `textCase` turns "ß" into "SS" — so the sizes go too, as
+        // `ThemeModifier`'s do for its styles.
+        if let cache = context.renderCache,
+            case .changed = cache.noteAppliedEnvironment(
+                StyleCascade.Entry(scope: scope, attributes: attributes), identity: context.identity,
+                keyPath: \EnvironmentValues.styleCascade, depth: context.environmentApplicationDepth)
+        {
+            cache.clearAffected(by: context.identity)
+        }
         let cascade = context.environment.styleCascade.appending(scope, attributes)
-        return context.withEnvironment(context.environment.setting(\.styleCascade, to: cascade))
+        var modified = context.withEnvironment(context.environment.setting(\.styleCascade, to: cascade))
+        modified.environmentApplicationDepth += 1
+        return modified
     }
 }
 

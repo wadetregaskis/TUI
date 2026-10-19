@@ -1,7 +1,7 @@
 # TUIkit styling & theming — design
 
-Status: **implemented** (phases 1–7 shipped; one follow-up noted below — List/Table
-container-attribute cascade). This document is the reference for the
+Status: **implemented** (phases 1–7 shipped; the List/Table container-attribute
+cascade follow-up closed 2026-10-18). This document is the reference for the
 styling/theming work: the model, the public API shape, resolution rules, a
 SwiftUI comparison, worked examples, and the phased plan.
 
@@ -570,10 +570,11 @@ reflects: colour-role attributes early; `disabled` late but before tint; tint la
    **RadioButton** — labels resolve `.control(.radioButton)` (claimed only when
    not already inside another control, so a Picker's radio options stay
    `.picker`); `.radioButtonTextStyle`. ✅ **List/Table rows** — row content is
-   ordinary Text: per-row styling and broad `.foregroundStyle` reach it (verified).
-   **Follow-up:** container-level *attribute* cascade (e.g. `.bold()` on the List)
-   does not yet reach rows — the lazy row-buffer path doesn't re-key on the style
-   cascade; tracked below. All interactive controls covered. Delivers (b), (c), (g).
+   ordinary Text: per-row styling and broad `.foregroundStyle` reach it (verified),
+   and so does a container-level *attribute* entry — `.bold()` on the List or the
+   Table, `.style(.control(.list))` / `.style(.control(.table))` — on every frame,
+   including the frame it changes (`ListAttributeCascadeTests`; see Follow-ups).
+   All interactive controls covered. Delivers (b), (c), (g).
 4. ✅ **(shipped) Cascading `.disabled`** — env `isEnabled` + an additive
    `DisabledModifier` (`.disabled(_:)` on any View); every interactive control
    combines `self.isDisabled || !environment.isEnabled`. A descendant can't
@@ -623,13 +624,18 @@ be useful or a grab-bag that permits invalid combinations.
 
 ## Follow-ups
 
-- **List/Table row attribute cascade.** Broad `.foregroundStyle` and per-row Text
-  styling reach row content, but container-level *attribute* entries (e.g.
-  `.bold()` / `.style(.control(.list)) { … }` on the List) don't yet reach row
-  text: the lazy/cached row-buffer path doesn't re-key on `styleCascade`. Wiring
-  it needs the row content cache to include the cascade in its key (carefully, to
-  preserve the List's per-frame row memoisation). Until then, style row text
-  per-row or via the palette.
+- **List/Table row attribute cascade — closed 2026-10-18.** A container-level
+  attribute entry reached a List's rows on the frame it was first drawn, but not
+  on the frame it changed: `StyleCascadeModifier` wrote the cascade without
+  noting it, so the rows' value memo served the old weight. It now notes its
+  entry as `EnvironmentModifier` notes its value, which reaches every memo below
+  it, not only a list's. A Table's `String` and plain-`Text` cells, which the
+  table draws as strings in its own ink, took none of the cascade; where the
+  cascade says something to a cell's text they are now drawn as the `Text` they
+  would be, and the table's row memo keys on what it says. And `.control(.list)`
+  / `.control(.table)` were scopes nothing claimed: a list claims its rows'
+  text and a table its cells' text, unless a control around them (a `Picker`)
+  has claimed it first. `.chrome(.listRow)` is still unclaimed.
 
 ## Resolved decisions (was: open questions)
 

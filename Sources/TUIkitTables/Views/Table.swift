@@ -869,7 +869,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let context = RowSelectionIndicator.resolvingForTable(context)
+        let context = Self.claimingCellText(RowSelectionIndicator.resolvingForTable(context))
         if let style = customStyle(context.environment) {
             return style.measureBody(
                 configuration: TableStyleConfiguration(table: AnyView(self)), proposal: proposal,
@@ -1188,7 +1188,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var context = RowSelectionIndicator.resolvingForTable(context)
+        var context = Self.claimingCellText(RowSelectionIndicator.resolvingForTable(context))
         if let style = customStyle(context.environment) {
             return style.makeBuffer(
                 configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
@@ -1962,6 +1962,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // ``cellValue(_:for:width:context:)`` they were joined into one string
         // only to be split here again, which on table-multiline was most of
         // what that path cost.
+        if let text = Self.cascadedTextCell(column, for: item, environment: context.environment) {
+            context.renderCache?.rowWork.cellValues += 1
+            return renderedCell(text, column, for: item, width: width, context: context)
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .prefix(column.lineLimit).map(String.init)
+        }
         if case .text(let make) = column.cell {
             context.renderCache?.rowWork.cellValues += 1
             let text = make(item, context)
@@ -4618,6 +4624,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> String {
         context.renderCache?.rowWork.cellValues += 1
+        if let text = Self.cascadedTextCell(column, for: item, environment: context.environment) {
+            return renderedCell(text, column, for: item, width: width, context: context)
+        }
         switch column.cell {
         case .string(let extract):
             return extract(item)
@@ -4666,6 +4675,57 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard text.isUnstyled else { return nil }
         return TextWrapping.fit(
             text.content, width: max(1, width), maxLines: column.lineLimit, mode: column.truncationMode)
+    }
+
+    /// A `String` or plain `Text` cell as the `Text` it would be, when the
+    /// style cascade has something to say to a cell's text — `.bold()` or
+    /// `.textCase(_:)` on the table, `.style(.control(.table))`: drawn as that
+    /// `Text` it takes the cascade as any `Text` does, where the string path,
+    /// which draws the characters in the table's own ink, took none of it.
+    /// `nil` for a view cell, which renders its own `Text`s, and wherever the
+    /// cascade is silent — every table without such a modifier above it,
+    /// which pays one environment read per cell for the question.
+    ///
+    /// Every reader of a cell's characters asks this — the fit scan, a row's
+    /// height and its drawing alike — so a cascaded `textCase` that turns "ß"
+    /// into "SS" is measured as it is drawn.
+    private static func cascadedTextCell(
+        _ column: _TableColumnSpec<Value>, for item: Value, environment: EnvironmentValues
+    ) -> Text? {
+        if case .view = column.cell { return nil }
+        guard cellTextAttributes(environment) != StyleAttributes() else { return nil }
+        switch column.cell {
+        case .string(let extract): return Text(verbatim: extract(item))
+        case .text(let make): return make(item)
+        case .view: return nil
+        }
+    }
+
+    /// `context` with the table's text claimed for `.control(.table)`: a
+    /// `.style(.control(.table)) { … }` entry names the text of the table's
+    /// cells, as `.control(.toggle)` names a toggle's label — unless the table
+    /// sits inside a control that has claimed its text already (a `Picker`),
+    /// whose kind it keeps. One environment write per table per pass.
+    private static func claimingCellText(_ context: RenderContext) -> RenderContext {
+        guard context.environment.controlKind == nil else { return context }
+        var claimed = context
+        claimed.environment.controlKind = .table
+        return claimed
+    }
+
+    /// What the style cascade gives a string cell's text: what a `Text` in the
+    /// cell resolves, but for the scopes a string has no part in — a font, a
+    /// semantic colour, a chrome role. Empty, without resolving anything,
+    /// where the cascade is empty.
+    static func cellTextAttributes(_ environment: EnvironmentValues) -> StyleAttributes {
+        let cascade = environment.styleCascade
+        guard !cascade.isEmpty else { return StyleAttributes() }
+        var scopes: Set<StyleScope> = [.all, .text]
+        if let kind = environment.controlKind {
+            scopes.insert(.control(kind))
+            if let variant = environment.controlVariant { scopes.insert(.controlVariant(kind, variant)) }
+        }
+        return cascade.resolve(for: scopes)
     }
 
     /// A `Text` cell rendered as the view it is, its lines joined by newlines.
@@ -5190,7 +5250,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             lineLimits: columns.map(\.lineLimit),
             colorDepth: ColorDepth.current,
             colorGeneration: TerminalColors.generation,
-            widthGeneration: TerminalWidthTraits.generation)
+            widthGeneration: TerminalWidthTraits.generation,
+            cellText: Self.cellTextAttributes(context.environment))
     }
 
     /// Whether this table's rows may be kept across frames at all.

@@ -784,9 +784,12 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
 
         // Render label, tagged so its Text resolves `.control(.radioButton)`
         // style entries — but only when not already inside another control (e.g.
-        // a Picker's radio-group style, which keeps its `.picker` identity).
+        // a Picker's radio-group style, which keeps its `.picker` identity). A
+        // list's or a table's claim is no control's: it names the text of the
+        // rows, and a radio group in a row is a control of its own.
         var labelContext = itemContext.withChildIdentity(erasedType: AnyView.self, index: 0)
-        if labelContext.environment.controlKind == nil {
+        let claimed = labelContext.environment.controlKind
+        if claimed == nil || claimed == .list || claimed == .table {
             labelContext.environment.controlKind = .radioButton
         }
         // The whole row is the click target, so the whole row answers the
