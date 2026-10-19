@@ -98,6 +98,36 @@ Price: a marker and a registration per row drawn in each of the stack's six
 paths, on the render's hot path whenever an observer is stated, about a day;
 and nothing seen needs it yet.
 
+### B-SCROLL-4. `.padding` relays the scroll window; a lazy stack below other content is still drawn whole
+
+*`LazyVStack` in a `ScrollView`, inside `.padding` or below a heading in a
+`VStack` (the 2026-10-18 inventory's LAZY-NESTED-WINDOWING)*
+
+**Shipped:** `.padding` around the content relays the scroll window below its
+top lines and above its bottom ones (`ScrollWindowRelay`), as a `Section`'s
+header and the content margins do — set up as the modifier adjusts its
+content's context, answered once the content has drawn, the two passes
+sharing the scroll view's reply (`ScrollContentReply.pendingRelay`). A lazy
+stack under `.padding(.vertical)` used to take the window as if it were all
+the content: the scroll view took the stack's height for the content's, and
+End stopped short of the last row and the padding below it. Now it bands
+itself, seeks and reports its row, and End reaches the end. The check is the
+context's, so a padding anywhere else reads nothing more.
+
+**The fuller version:** a lazy stack below other content — `VStack { Text("Feed");
+LazyVStack { … } }` — is not at the content's origin, and is measured and
+drawn over every row, as a `VStack` is. Windowing it needs the column around
+it to hand it the window moved down by the rows above it, and to answer the
+scroll view for a canvas that is drawn whole above and below the stack but
+only as a band inside it: the reply's drawn lines (one range today) would
+have to say "all of it but this stretch", or the column would have to cut a
+band of its own, so that a snap or a re-glue that moves the offset after the
+render draws the rows it lands on. About two days with the relay's seek,
+read-back and hold paths, and a hot path (every eager column in a scroll
+view asks), so an A/B with it. Lane NESTEDLAZY's design C, where the scroll
+view pulls only the rows it needs, is the owner-ruled answer to the same cost
+and would replace it; this lane leaves that shape to it.
+
 ## C. Declined
 
 ### C-SCROLL-1. `scrollTo` a row of a vertical stack inside `ScrollView(.horizontal)`

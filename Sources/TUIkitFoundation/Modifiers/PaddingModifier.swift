@@ -145,6 +145,7 @@ public struct PaddingModifier: BufferModifier {
             context.availableWidth, less: insets.leading + insets.trailing)
         adjusted.availableHeight = Self.remaining(
             context.availableHeight, less: insets.top + insets.bottom)
+        adjusted = relayingScrollWindow(from: context, to: adjusted)
         // Where the content sits in the padded view — past the leading and top
         // insets `modify` draws for content that is not empty — for a ramp
         // spanning the view and the carried geometry origin
@@ -212,9 +213,15 @@ public struct PaddingModifier: BufferModifier {
         let horizontal = Self.drawnInsets(
             insets.leading, insets.trailing, in: context.availableWidth,
             contentIsEmpty: buffer.width == 0)
-        let vertical = Self.drawnInsets(
+        var vertical = Self.drawnInsets(
             insets.top, insets.bottom, in: context.availableHeight,
             contentIsEmpty: buffer.height == 0)
+        // A lazy stack in the content that drew a band of its rows leaves out
+        // the padding the band does not reach (`relayingScrollWindow`).
+        if let placement = answerRelayedScrollWindow(contentBuffer: buffer, linesBelow: vertical.after, context: context) {
+            if !placement.drawsAbove { vertical.before = 0 }
+            if !placement.drawsBelow { vertical.after = 0 }
+        }
 
         var result: [String] = []
         result.reserveCapacity(vertical.before + buffer.lines.count + vertical.after)
@@ -264,6 +271,48 @@ public struct PaddingModifier: BufferModifier {
         return buffer.replacingLines(
             result, width: lineWidth, uniformWidth: buffer.linesAreUniformWidth,
             overlayShiftX: leadingCount, overlayShiftY: vertical.before)
+    }
+}
+
+// MARK: - The scroll window, relayed
+
+extension PaddingModifier {
+    /// The padding's lines above and below its content where it is the
+    /// scroll content, or a single-child step of it: the window a lazy stack
+    /// in the content bands itself against is relayed below the top padding
+    /// (`ScrollWindowRelay`), as a `Section` relays it below its header and
+    /// the content margins below theirs. Unrelayed, a stack under
+    /// `.padding(.vertical)` took the window as if it were all the content:
+    /// the scroll view took the stack's height for the content's, and End
+    /// stopped short of the last row and the padding below it.
+    ///
+    /// The relay waits on the content's reply for ``modify(buffer:context:)``
+    /// on the scroll view's own reply (``ScrollContentReply/pendingRelay``),
+    /// the one thing the two passes share. Asked of the insets and the
+    /// context first — vertical padding, on a render, at the scroll content's
+    /// origin — so every other padding reads nothing from the environment for
+    /// it.
+    fileprivate func relayingScrollWindow(from context: RenderContext, to adjusted: RenderContext) -> RenderContext {
+        guard insets.top > 0 || insets.bottom > 0, !context.isMeasuring, context.mayConsumeScrollWindow else {
+            return adjusted
+        }
+        let drawn = Self.drawnInsets(insets.top, insets.bottom, in: context.availableHeight, contentIsEmpty: false)
+        guard let relay = ScrollWindowRelay(context: context, linesAbove: drawn.before, linesBelow: { drawn.after })
+        else { return adjusted }
+        context.environment.scrollContentWindow?.reply?.pendingRelay = relay
+        return relay.contentContext(adjusted)
+    }
+
+    /// The relay ``relayingScrollWindow(from:to:)`` set up, answered once the
+    /// content has drawn: which of the padding's lines the band holds.
+    fileprivate func answerRelayedScrollWindow(
+        contentBuffer: FrameBuffer, linesBelow: Int, context: RenderContext
+    ) -> ScrollWindowRelay.Placement? {
+        guard insets.top > 0 || insets.bottom > 0, !context.isMeasuring, context.mayConsumeScrollWindow,
+            let reply = context.environment.scrollContentWindow?.reply, let relay = reply.pendingRelay
+        else { return nil }
+        reply.pendingRelay = nil
+        return relay.answer(contentBuffer: contentBuffer, linesBelow: linesBelow)
     }
 }
 

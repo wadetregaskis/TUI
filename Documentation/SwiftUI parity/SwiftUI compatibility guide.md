@@ -940,11 +940,13 @@ window**, not a deferred-creation machine:
   (`ScrollWindowRelay`), so `ScrollView { Section("Feed") { LazyVStack { … } } }`
   windows, answers `scrollTo` and `.scrollPosition`, holds an
   `.anchorPosition(.row)` and fires `onAppear` on visibility, as the stack
-  alone does. Other wrappers that draw lines around their content at its own
-  identity — `.padding(.vertical)` — do not relay it yet, and a lazy stack
-  under one bands itself as if it were all the content: the scroll view takes
-  the stack's height for the content's, and End stops short of the stack's
-  last row and the padding below it.
+  alone does. `.padding` relays it too, below its top lines and above its
+  bottom ones (since 2026-10-19), as the content margins do: a lazy stack
+  under `.padding(.vertical)` still bands itself, seeks and reports its row,
+  and End reaches its last row and the padding below it, where the stack used
+  to band itself as if it were all the content and End stopped short. A stack
+  below a heading in a `VStack` is still drawn whole (decisions-SCROLL
+  B-SCROLL-4).
 - **Cross-axis sizing** hugs the widest *placed* child (identical to
   `VStack`), which is stabler than SwiftUI's first-subview ideal — TUIkit
   has rendered every visible child anyway, so it knows the real width.

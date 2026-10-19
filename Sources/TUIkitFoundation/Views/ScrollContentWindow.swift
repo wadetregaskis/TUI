@@ -377,6 +377,12 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
     /// The same for the columns of a horizontal stack.
     var targetVisibleColumns: TargetLayoutSpans?
 
+    /// A relay a wrapper drawing lines around its content set up on its way
+    /// down (`PaddingModifier`), waiting for the wrapper to answer it once
+    /// its content has drawn — the wrapper's two passes share this reply and
+    /// nothing else.
+    var pendingRelay: ScrollWindowRelay?
+
     /// The id of the row or column at an ordinal of ``targetVisibleRows`` or
     /// ``targetVisibleColumns`` — its element's `id`, or its `.id(_:)` tag
     /// (`StackRowIDs`) — asked only for the ones on screen.
