@@ -85,9 +85,11 @@ private enum GlassContainerRecord {}
 /// container then finds where each glass ended up, joins them
 /// (``GlassGroup/grouping(_:spacing:)``), and draws each joined group as one
 /// glass behind the content. A glass in a group this pass drew its own glass
-/// this pass, which is not undone: the container keeps who was in a group, and
-/// next pass they leave their glass to it. A change in who is joined is a
-/// state change, which draws the next pass.
+/// this pass, which is not undone, so the group is drawn as one only once
+/// every member leaves its glass to the container: the container keeps who was
+/// in a group, and next pass they do. Until then each glass is drawn alone, as
+/// outside a container. A change in who is joined is a state change, which
+/// draws the next pass.
 struct _GlassEffectContainerCore<Content: View>: View {
     let spacing: Int
     let content: Content
@@ -116,7 +118,7 @@ extension _GlassEffectContainerCore: Renderable {
         let groups = GlassGroup.grouping(placed, spacing: spacing)
         let joined = Set(groups.filter { $0.members.count > 1 }.flatMap { $0.members.map(\.glass.identity) })
         if joined != record.value { record.value = joined }
-        let drawn = groups.filter { !$0.drewItself }
+        let drawn = groups.flatMap(\.drawnByContainer)
         guard !drawn.isEmpty, base.width > 0, base.height > 0 else { return base }
         let layer = Self.layer(drawn, columns: base.width, rows: base.height, context: context)
         base.opacityRegions += base.claimsShowingGlyphs(of: layer)

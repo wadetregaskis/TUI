@@ -59,6 +59,17 @@ struct GlassEffectContainerTests {
         #expect(drawn[1] == ["(A  B)"])
     }
 
+    @Test("The pass a group forms, its glass is drawn as it would be outside a container")
+    func formingPassIsTheGlassAlone() {
+        func firstPass(_ view: some View) -> [String] {
+            var environment = EnvironmentValues()
+            environment.palette = SystemPalette.green
+            let context = RenderContext(availableWidth: 6, availableHeight: 1, environment: environment, tuiContext: TUIContext())
+            return ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: context).lines }
+        }
+        #expect(firstPass(GlassEffectContainer { pair(spacing: 0) }) == firstPass(pair(spacing: 0)))
+    }
+
     @Test("Glass the container's spacing apart stays apart; closer, it joins")
     func spacing() {
         #expect(frames(GlassEffectContainer { pair(spacing: 1) }, width: 7).last == ["(A) (B)"])

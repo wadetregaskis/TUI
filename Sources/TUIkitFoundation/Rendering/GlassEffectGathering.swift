@@ -122,9 +122,16 @@ struct GlassGroup {
         return CellRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
-    /// Whether every member drew its own glass and none needs the container:
-    /// a glass alone, drawn as glass outside a container is.
-    var drewItself: Bool { members.count == 1 && members[0].glass.drewItself }
+    /// What the container draws of this group: the group, as one shape, when
+    /// every member left its glass to the container; each member that left
+    /// its glass, alone, when some drew their own — the pass a group forms,
+    /// or a glass joins one, before they all leave theirs to it — and nothing
+    /// when every member drew its own, as a glass alone does.
+    var drawnByContainer: [Self] {
+        let leftToContainer = members.filter { !$0.glass.drewItself }
+        guard leftToContainer.count < members.count else { return [self] }
+        return leftToContainer.map { Self(members: [$0]) }
+    }
 
     /// Groups `placed`, each glass with every other it joins, transitively.
     ///
