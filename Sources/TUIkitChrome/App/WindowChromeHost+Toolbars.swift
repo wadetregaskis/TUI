@@ -60,7 +60,7 @@ extension _WindowChromeHost {
     /// a press of the key does behind a modal (see `_ToolbarEntryView`).
     func toolbarBuffer(
         _ edge: WindowChromeState.Edge, chrome: WindowChromeState, contentRows: Int, itemRows: Int,
-        tooltip: [String] = [], width: Int, isModal: Bool, context: RenderContext
+        tooltip: [String] = [], width: Int, ground: BarGround, isModal: Bool, context: RenderContext
     ) -> FrameBuffer? {
         // A bar the page no longer declares anything for keeps its reserved
         // rows for the frame, blank: the caller pads them with its background.
@@ -94,13 +94,51 @@ extension _WindowChromeHost {
                 .fittedAsChrome(toRows: contentRows, width: style.barContentWidth(width), background: ""))
         }
         let palette = context.environment.palette
-        let backgrounds = RenderBackgroundCodes(palette: palette)
-        let background = edge == .bottom ? backgrounds.statusBar : backgrounds.appHeader
-        return framed(row, style: style, ruleAbove: edge == .bottom, width: width, context: context)
-            .resolvingOpacity(
-                surface: edge == .bottom ? palette.statusBarBackground : palette.appHeaderBackground,
-                palette: palette)
-            .groundedAsChrome(width: width, background: background)
+        let bar = framed(row, style: style, ruleAbove: edge == .bottom, width: width, context: context)
+            .resolvingOpacity(surface: ground.surface, palette: palette)
+        guard let painted = ground.style else { return bar.groundedAsChrome(width: width, background: ground.code) }
+        // A ramp, a mesh or a translucent fill: painted over the whole bar —
+        // its frame's cells too — as `.background(_:)` paints a view's.
+        let padded = bar.replacingLines(bar.lines.map { $0.padToVisibleWidth(width) })
+        return BackgroundModifier(style: painted)._modify(
+            buffer: padded, context: barContext(edge, width: width, rows: padded.height, style: style, context: context),
+            owner: _ToolbarBarRow.self)
+    }
+
+    /// What a bar is drawn on this walk (``WindowChromeState/fill(_:)``).
+    struct BarGround {
+        /// The colour the fades inside the bar resolve against.
+        let surface: Color
+        /// The background escape of the bar's bare cells and of the rows it
+        /// holds blank; empty for none, the page's own showing through.
+        let code: String
+        /// A style that is no single opaque colour — a ramp, a mesh, a
+        /// translucent fill — painted over the bar instead of ``code``.
+        let style: AnyShapeStyle?
+    }
+
+    /// What the bar at `edge` is drawn on: the palette's surface for it, a
+    /// `.toolbarBackground(_:for:)` style, or — its fill declared hidden — the
+    /// page's own background.
+    func barGround(_ edge: WindowChromeState.Edge, chrome: WindowChromeState, context: RenderContext) -> BarGround {
+        let palette = context.environment.palette
+        switch chrome.fill(edge) {
+        case .palette:
+            let surface = edge == .bottom ? palette.statusBarBackground : palette.appHeaderBackground
+            let backgrounds = RenderBackgroundCodes(palette: palette)
+            return BarGround(
+                surface: surface, code: edge == .bottom ? backgrounds.statusBar : backgrounds.appHeader, style: nil)
+        case .hidden:
+            return BarGround(surface: palette.background, code: "", style: nil)
+        case .style(let style):
+            let paint = style.paint(in: context.environment)
+            let representative = paint.representative.resolve(with: palette)
+            let code = ANSIRenderer.backgroundCode(for: representative.opaqueSpelling)
+            if case .color = paint, representative.isOpaque {
+                return BarGround(surface: representative, code: code, style: nil)
+            }
+            return BarGround(surface: representative, code: code, style: style)
+        }
     }
 
     /// Keeps the `@State` of the items a walk declared but did not draw: those

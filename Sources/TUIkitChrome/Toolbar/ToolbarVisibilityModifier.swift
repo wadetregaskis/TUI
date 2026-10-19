@@ -2,7 +2,9 @@
 //  ToolbarVisibilityModifier.swift
 //
 //  The bar modifiers: a view's say in how the window's bars are drawn —
-//  `.toolbarVisibility(_:for:)`, whether a bar is shown.
+//  `.toolbarVisibility(_:for:)`, whether a bar is shown, and
+//  `.toolbarBackground(_:for:)` / `.toolbarBackgroundVisibility(_:for:)`, what
+//  it is filled with.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -47,6 +49,60 @@ extension View {
     public func toolbarVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .visibility(visibility), bars: bars)
     }
+
+    /// Specifies the preferred shape style of the background of a bar managed
+    /// by the window — mirrors SwiftUI's `toolbarBackground(_:for:)`.
+    ///
+    /// The style fills the bar in place of the palette's surface for it
+    /// (``Palette/appHeaderBackground`` for the top bar,
+    /// ``Palette/statusBarBackground`` for the bottom one): every cell of the
+    /// bar its items leave bare, its frame's included. A colour, a gradient
+    /// (laid across the bar, frame and all) or a ``Material`` (blended over
+    /// the page, as a translucent fill is) all work.
+    ///
+    /// ```swift
+    /// ContentView()
+    ///     .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+    ///     .toolbarBackground(.blue, for: .bottomBar)
+    /// ```
+    ///
+    /// The preferred style flows up to the window, as visibility does: the one
+    /// declared closest to the content wins, and presented content states
+    /// nothing. Unlike a bar's presence, the fill is this frame's: it costs no
+    /// rows, so nothing waits for the next frame.
+    ///
+    /// - Parameters:
+    ///   - style: The style to display as the background of the bar.
+    ///   - bars: The bars to use the style for: ``ToolbarPlacement/windowToolbar``
+    ///     (or ``ToolbarPlacement/automatic``, or none at all) for the top bar,
+    ///     ``ToolbarPlacement/bottomBar`` for the bottom one.
+    /// - Returns: A view whose bars' preferred background is `style`.
+    public func toolbarBackground<S: ShapeStyle>(_ style: S, for bars: ToolbarPlacement...) -> some View {
+        _ToolbarBarStatementModifier(content: self, statement: .background(AnyShapeStyle(style)), bars: bars)
+    }
+
+    /// Specifies the preferred visibility of backgrounds on a bar managed by
+    /// the window — mirrors SwiftUI's `toolbarBackgroundVisibility(_:for:)`.
+    ///
+    /// ``Visibility/hidden`` draws the bar with no fill of its own: its items
+    /// and frame over the page's background. ``Visibility/visible`` and
+    /// ``Visibility/automatic`` fill it — with a `.toolbarBackground(_:for:)`
+    /// style if one is stated, else the palette's surface for the bar. A
+    /// terminal has no scrolled-under state for `.automatic` to follow, so it
+    /// is always filled.
+    ///
+    /// ```swift
+    /// ContentView()
+    ///     .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - visibility: The preferred visibility of the background of the bar.
+    ///   - bars: The bars to update, as for ``toolbarBackground(_:for:)``.
+    /// - Returns: A view whose bars' fill is shown or not as `visibility` says.
+    public func toolbarBackgroundVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
+        _ToolbarBarStatementModifier(content: self, statement: .backgroundVisibility(visibility), bars: bars)
+    }
 }
 
 // MARK: - The Statements
@@ -55,11 +111,17 @@ extension View {
 enum _ToolbarBarStatement {
     /// `.toolbarVisibility(_:for:)`: whether the bar is shown.
     case visibility(Visibility)
+    /// `.toolbarBackground(_:for:)`: what the bar is filled with.
+    case background(AnyShapeStyle)
+    /// `.toolbarBackgroundVisibility(_:for:)`: whether the bar is filled.
+    case backgroundVisibility(Visibility)
 
     /// Records the statement for the bar at `edge`.
     func declare(into chrome: WindowChromeState, for edge: WindowChromeState.Edge) {
         switch self {
         case .visibility(let visibility): chrome.declare(visibility, for: edge)
+        case .background(let style): chrome.declareBackground(style, for: edge)
+        case .backgroundVisibility(let visibility): chrome.declareBackgroundVisibility(visibility, for: edge)
         }
     }
 }

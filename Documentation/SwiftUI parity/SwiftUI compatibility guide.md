@@ -677,10 +677,16 @@ with an `if`.)
 any change to the bars; the statement closest to the content wins, a
 hidden line of key hints leaves its keys working, and a hidden bar's items keep
 their `@State` for when it comes back.
+`.toolbarBackground(_:for:)` fills a bar with any style — a colour, a gradient
+laid across the bar, a `Material` blended over the page — in place of the
+palette's surface for it (`appHeaderBackground`, `statusBarBackground`), and
+`.toolbarBackgroundVisibility(.hidden, for:)` draws it with no fill, on the
+page's own background; both this frame, since a fill costs no rows, and the
+statement closest to the content wins. (The deprecated
+`toolbarBackground(_: Visibility, for:)` is not there; its replacement is.)
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
-modifiers (`toolbarBackground`, `toolbarRole`, `toolbarItemHidden`,
-`toolbarTitleMenu`, …), a
+modifiers (`toolbarRole`, `toolbarItemHidden`, `toolbarTitleMenu`, …), a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation
 family (`toolbar(id:)`).
 

@@ -136,15 +136,23 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // the page, to be composited with its own. Their items are laid out in
         // the rows of each bar the frame shows (`itemRowsShown`).
         let itemRows = chrome.map { itemRowsShown($0, in: rows, tooltipRows: tooltip.count) } ?? Rows()
-        var top = chrome.flatMap {
-            toolbarBuffer(
-                .top, chrome: $0, contentRows: $0.rows(.top), itemRows: itemRows.top, width: width,
-                isModal: isModal, context: context)
+        // What each bar is filled with: stated by the page as it drew, so this
+        // frame's (`.toolbarBackground(_:for:)`).
+        let topGround = chrome.map { barGround(.top, chrome: $0, context: context) }
+        let bottomGround = chrome.map { barGround(.bottom, chrome: $0, context: context) }
+        var top = chrome.flatMap { chrome in
+            topGround.flatMap {
+                toolbarBuffer(
+                    .top, chrome: chrome, contentRows: chrome.rows(.top), itemRows: itemRows.top, width: width,
+                    ground: $0, isModal: isModal, context: context)
+            }
         }
-        var bottom = chrome.flatMap {
-            toolbarBuffer(
-                .bottom, chrome: $0, contentRows: $0.rows(.bottom), itemRows: itemRows.bottom, tooltip: tooltip,
-                width: width, isModal: isModal, context: context)
+        var bottom = chrome.flatMap { chrome in
+            bottomGround.flatMap {
+                toolbarBuffer(
+                    .bottom, chrome: chrome, contentRows: chrome.rows(.bottom), itemRows: itemRows.bottom,
+                    tooltip: tooltip, width: width, ground: $0, isModal: isModal, context: context)
+            }
         }
         if let chrome { retainUndrawnItems(chrome, itemRows: itemRows, context: context) }
         // The menu bar, after both toolbars: the last thing drawn, so the
@@ -178,7 +186,10 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         guard let chrome else { return page }
 
         let frame = stacked(
-            Bars(menu: menu, top: top, bottom: bottom), around: page, in: rows, width: width, height: height,
+            Bars(
+                menu: menu, top: top, bottom: bottom, topBackground: topGround?.code ?? "",
+                bottomBackground: bottomGround?.code ?? ""),
+            around: page, in: rows, width: width, height: height,
             chrome: chrome, palette: palette)
 
         // What the content declared this walk becomes the next frame's rows.

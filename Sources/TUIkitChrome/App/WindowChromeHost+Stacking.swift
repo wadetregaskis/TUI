@@ -15,6 +15,10 @@ extension _WindowChromeHost {
         var menu: FrameBuffer?
         var top: FrameBuffer?
         var bottom: FrameBuffer?
+        /// The background escape of the top bar's blank rows.
+        var topBackground: String
+        /// The background escape of the bottom bar's blank rows.
+        var bottomBackground: String
     }
 
     /// The window: `bars` around `page`, each fitted to its rows on its own
@@ -33,9 +37,9 @@ extension _WindowChromeHost {
             frame.appendVertically((bar ?? FrameBuffer()).fittedAsChrome(toRows: rows, width: width, background: background))
         }
         append(bars.menu, rows: rows.menu, background: backgrounds.appHeader)
-        append(bars.top, rows: rows.top, background: backgrounds.appHeader)
+        append(bars.top, rows: rows.top, background: bars.topBackground)
         frame.appendVertically(page)
-        append(bars.bottom, rows: rows.bottom, background: backgrounds.statusBar)
+        append(bars.bottom, rows: rows.bottom, background: bars.bottomBackground)
         if let layers = bars.menu?.overlays, !layers.isEmpty {
             chrome.presentationsOverPage += Self.presentations(in: layers)
             frame.overlays = layers

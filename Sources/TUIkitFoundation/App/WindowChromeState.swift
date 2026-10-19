@@ -195,6 +195,15 @@ package final class WindowChromeState: @unchecked Sendable {
     /// (`.toolbarVisibility(_:for:)`); absent is ``Visibility/automatic``.
     private var declaredVisibility: [Edge: Visibility] = [:]
 
+    /// The fill each bar was last declared with this walk
+    /// (`.toolbarBackground(_:for:)`); absent is the palette's.
+    private var declaredBackground: [Edge: AnyShapeStyle] = [:]
+
+    /// Whether each bar was last declared to show its fill this walk
+    /// (`.toolbarBackgroundVisibility(_:for:)`); absent is
+    /// ``Visibility/automatic``.
+    private var declaredBackgroundVisibility: [Edge: Visibility] = [:]
+
     /// The identities of ``toolbarEntries``, so an item a walk renders twice —
     /// the first frame's measuring walk measures some views by rendering them —
     /// is declared once.
@@ -595,6 +604,8 @@ package final class WindowChromeState: @unchecked Sendable {
         toolbarEntries.removeAll(keepingCapacity: true)
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
+        declaredBackground.removeAll(keepingCapacity: true)
+        declaredBackgroundVisibility.removeAll(keepingCapacity: true)
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
         _tooltipRows = 0..<0
         _presentationsOverPage = []
@@ -630,6 +641,39 @@ package final class WindowChromeState: @unchecked Sendable {
     /// person did, from the menu bar (``topBarHiddenByCommand``).
     package func isHidden(_ edge: Edge) -> Bool {
         declaredVisibility[edge] == .hidden || (edge == .top && _topBarHiddenByCommand)
+    }
+
+    /// What a bar is filled with: the palette's surface for it, a style the
+    /// page stated, or nothing — the page's own background showing through.
+    package enum Fill {
+        /// ``Palette/appHeaderBackground`` for the top bar,
+        /// ``Palette/statusBarBackground`` for the bottom one.
+        case palette
+        /// No fill: `.toolbarBackgroundVisibility(.hidden, for:)`.
+        case hidden
+        /// A `.toolbarBackground(_:for:)` style.
+        case style(AnyShapeStyle)
+    }
+
+    /// Records a bar fill the walk declared. As for visibility, the last
+    /// declaration of a bar wins.
+    package func declareBackground(_ style: AnyShapeStyle, for edge: Edge) {
+        declaredBackground[edge] = style
+    }
+
+    /// Records whether the walk declared a bar's fill shown or not.
+    /// ``Visibility/automatic`` states no preference.
+    package func declareBackgroundVisibility(_ visibility: Visibility, for edge: Edge) {
+        guard visibility != .automatic else { return }
+        declaredBackgroundVisibility[edge] = visibility
+    }
+
+    /// What the bar at `edge` is filled with this walk: nothing while its
+    /// fill is declared hidden, else the style declared for it, else the
+    /// palette's.
+    package func fill(_ edge: Edge) -> Fill {
+        if declaredBackgroundVisibility[edge] == .hidden { return .hidden }
+        return declaredBackground[edge].map(Fill.style) ?? .palette
     }
 
     /// Whether the menu bar's View ▸ Hide Toolbar (`ToolbarCommands`,

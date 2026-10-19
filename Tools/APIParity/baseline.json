@@ -140,8 +140,6 @@
   "View.task(name:priority:file:line:_:)",
   "View.textRenderer(_:)",
   "View.toolbar(id:content:)",
-  "View.toolbarBackground(_:for:)",
-  "View.toolbarBackgroundVisibility(_:for:)",
   "View.toolbarColorScheme(_:for:)",
   "View.toolbarItemHidden(_:)",
   "View.toolbarRole(_:)",

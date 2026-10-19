@@ -2663,6 +2663,13 @@ private struct ToolbarShapes: View {
                 .toolbarVisibility(.hidden, for: .windowToolbar)
                 .toolbarVisibility(.visible, for: .windowToolbar, .bottomBar)
                 .toolbarVisibility(.hidden)
+                .toolbarBackground(.blue, for: .windowToolbar)
+                .toolbarBackground(.ultraThinMaterial)
+                .toolbarBackground(
+                    LinearGradient(colors: [.red, .blue], startPoint: .leading, endPoint: .trailing),
+                    for: .windowToolbar, .bottomBar)
+                .toolbarBackgroundVisibility(.hidden, for: .bottomBar)
+                .toolbarBackgroundVisibility(.visible)
         }
     }
 }
