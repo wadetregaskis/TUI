@@ -288,6 +288,7 @@ struct TrackAlphaTests {
     }
 }
 
-/// `_SliderCore.trackLeft` is private to its generic type; this is the same number,
-/// stated once for the test that asserts claims do not land on the arrow.
+/// `_SliderCore.trackLeft(gap:)` at `.regular` is private to its generic type; this
+/// is the same number, stated once for the test that asserts claims do not land on
+/// the arrow.
 private let sliderTrackLeft = 2

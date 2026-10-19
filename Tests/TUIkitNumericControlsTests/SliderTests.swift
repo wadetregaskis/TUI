@@ -336,9 +336,10 @@ struct SliderArrowZoneTests {
         try? await Task.sleep(nanoseconds: 5_000_000)
     }
 
-    /// Chrome is a constant 9 columns with the value shown (`"◀ "`, `" ▶ "`,
-    /// and the 4-cell value field), so the geometry is derivable from the
-    /// buffer width alone — see `_SliderCore.chromeWidth(showsValue:)`.
+    /// Chrome is a constant 9 columns with the value shown at `.regular`
+    /// (`"◀ "`, `" ▶ "`, and the 4-cell value field), so the geometry is
+    /// derivable from the buffer width alone — see
+    /// `_SliderCore.chromeWidth(showsValue:gap:)`.
     private static let chromeWidth = 9
 
     @Test("Only the ▶ cell is the right arrow — the value read-out is not")
@@ -371,6 +372,32 @@ struct SliderArrowZoneTests {
         await Self.settle()
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: arrow, y: 0))
         #expect(value == 43, "the ▶ cell itself still increments, got \(value)")
+    }
+
+    @Test("At a control size with no gap the track starts at the cell after ◀, and its ▶ zone moves with it")
+    func zonesFollowTheGap() async {
+        var value = 50.0
+        let binding = Binding(get: { value }, set: { value = $0 })
+        for (size, gap) in [(ControlSize.small, 0), (.extraLarge, 2)] {
+            let context = makeRenderContext(width: 30, height: 1)
+            let dispatcher = context.environment.mouseEventDispatcher!
+            dispatcher.setActiveSupport(.full)
+            let buffer = renderToBuffer(
+                Slider(value: binding, in: 0...100, step: 1).controlSize(size), context: context)
+            dispatcher.setRegions(buffer.hitTestRegions)
+            // The track's first cell is the lowest value.
+            value = 50
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: 1 + gap, y: 0))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 1 + gap, y: 0))
+            #expect(value == 0, "\(size): the track's first cell set \(value)")
+            // ▶ is past the track and the gap after it.
+            let arrow = 1 + gap + (buffer.width - (2 + 2 * gap + 5)) + gap
+            value = 50
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: arrow, y: 0))
+            await Self.settle()
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: arrow, y: 0))
+            #expect(value == 51, "\(size): ▶ at \(arrow) set \(value)")
+        }
     }
 
     @Test("A coarse track's ▶ click zone is on the ▶ it drew")

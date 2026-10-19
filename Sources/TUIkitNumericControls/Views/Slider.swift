@@ -19,9 +19,14 @@ import TUIkitFoundation
 /// glance from `ProgressView`'s solid block bar and `Gauge`'s shaded meter:
 ///
 /// ```
-/// Unfocused:    ◀ ━━━━━━━━●──────── ▶  50%
-/// Focused:    ❙ ◀ ━━━━━━━━●──────── ▶ ❙ 50%
+/// ◀ ━━━━━━━━●──────── ▶ 50%    (the arrows breathe the accent while it holds the focus)
 /// ```
+///
+/// The ``ControlSize`` sets the gap between each arrow and the track, as it
+/// sets a bordered button's padding — none at `.small` and `.mini`
+/// (`◀━━━━●────▶ 50%`), two cells at `.extraLarge` — and the track takes what
+/// the gaps leave of the width the slider is given. The arrows stay at every
+/// size: they are its buttons.
 ///
 /// ## Keyboard Controls
 ///

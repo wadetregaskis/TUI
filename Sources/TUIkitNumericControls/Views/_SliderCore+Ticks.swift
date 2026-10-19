@@ -54,9 +54,9 @@ extension _SliderCore {
 
     /// The column, within the track as drawn, a tick at `value` sits on — the
     /// head's own quantisation, so a tick and the head on its value line up.
-    private func tickColumn(_ value: Double, drawnTrackWidth: Int) -> Int {
+    private func tickColumn(_ value: Double, drawnTrackWidth: Int, trackLeft: Int) -> Int {
         let span = Double(max(0, drawnTrackWidth - 1))
-        return Self.trackLeft + Int((fraction(of: value) * span).rounded())
+        return trackLeft + Int((fraction(of: value) * span).rounded())
     }
 
     /// The rows under the track: a `╵` under each tick, and each label centred
@@ -68,9 +68,11 @@ extension _SliderCore {
         var ink = palette.foregroundTertiary
         if isDisabled { ink = ink.opacity(ViewConstants.disabledForeground, over: palette.background) }
         let width = context.availableWidth
+        let trackLeft = Self.trackLeft(gap: Self.arrowGap(in: context.environment))
 
         var marks = ClaimingRow()
-        for column in Set(ticks.map { tickColumn($0.value, drawnTrackWidth: drawnTrackWidth) }).sorted()
+        let columns = ticks.map { tickColumn($0.value, drawnTrackWidth: drawnTrackWidth, trackLeft: trackLeft) }
+        for column in Set(columns).sorted()
         where column >= marks.cells && column < width {
             marks.skip(cells: column - marks.cells)
             marks.append("╵", cells: 1, ink: ink)
@@ -84,7 +86,7 @@ extension _SliderCore {
             let labelContext = context.withChildIdentity(type: _SliderTickMark.self, index: index)
             let line = TUIkitView.renderToBuffer(label, context: labelContext).lines.first ?? ""
             let labelWidth = line.strippedLength
-            let column = tickColumn(tick.value, drawnTrackWidth: drawnTrackWidth)
+            let column = tickColumn(tick.value, drawnTrackWidth: drawnTrackWidth, trackLeft: trackLeft)
             let start = min(max(0, column - labelWidth / 2), width - labelWidth)
             guard labelWidth > 0, start >= drawn + (drawn > 0 ? 1 : 0) else { continue }
             labels += String.spaces(start - drawn) + line

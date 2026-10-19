@@ -98,12 +98,14 @@ struct _SliderCore: View, Renderable, Layoutable {
     /// field is padded the track + chrome fills the available width exactly
     /// (the value padding occupies the cell the old hard-coded 9 left blank for
     /// values narrower than "100%").
-    private func chromeWidth(showsValue: Bool) -> Int {
-        // "◀" + " " (before track) + " " + "▶" + " " (after track) = 5 columns,
-        // then the value field. With the value hidden the trailing space + field
+    private func chromeWidth(showsValue: Bool, gap: Int) -> Int {
+        // "◀" + the gap (before track) + the gap + "▶", then " " (after the
+        // arrow) and the value field: 5 columns of chrome at `.regular`, where
+        // the gap is one. With the value hidden the trailing space + field
         // drop, leaving "◀ track ▶" — 4 columns of chrome.
-        guard showsValue else { return 4 }
-        return 5 + valueLabelText.count
+        let arrows = 2 + 2 * gap
+        guard showsValue else { return arrows }
+        return arrows + 1 + valueLabelText.count
     }
 
     var body: Never {
@@ -115,7 +117,8 @@ struct _SliderCore: View, Renderable, Layoutable {
     /// Slider is width-flexible: it has a minimum width but expands
     /// to fill available horizontal space in HStack.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let chrome = chromeWidth(showsValue: context.environment.sliderShowsValue)
+        let chrome = chromeWidth(
+            showsValue: context.environment.sliderShowsValue, gap: Self.arrowGap(in: context.environment))
         let proposedWidth = proposal.width ?? (defaultTrackWidth + chrome)
         let trackWidth = max(minTrackWidth, proposedWidth - chrome)
         return ViewSize(
@@ -140,7 +143,8 @@ struct _SliderCore: View, Renderable, Layoutable {
         // arrow and value field — past `availableWidth`, where it gets clipped
         // and overlaps the next view. Chrome integrity beats track length.
         let showsValue = context.environment.sliderShowsValue
-        let trackWidth = max(1, context.availableWidth - chromeWidth(showsValue: showsValue))
+        let gap = Self.arrowGap(in: context.environment)
+        let trackWidth = max(1, context.availableWidth - chromeWidth(showsValue: showsValue, gap: gap))
 
         let persistedFocusID = FocusRegistration.persistFocusID(
             context: context,
@@ -217,6 +221,7 @@ struct _SliderCore: View, Renderable, Layoutable {
             palette: palette,
             indicator: cycle,
             trackWidth: trackWidth,
+            gap: gap,
             valueStyle: context.environment.styleCascade.resolve(
                 for: [.all, .text, .control(.slider)]),
             legibilityWeight: context.environment.legibilityWeight,
@@ -232,16 +237,17 @@ struct _SliderCore: View, Renderable, Layoutable {
             lines: [content] + tickRows(drawnTrackWidth: drawnTrackWidth, isDisabled: isDisabled, context: context))
         buffer.opacityRegions += valueClaim.map { [$0] } ?? []
         // The track's own claims, in the track's coordinates, moved to where the
-        // layout actually puts it: `"◀ "` is two cells, which `arrowRuns` states as
-        // `trackLeft` and this must not spell a second time. A disabled slider
+        // layout actually puts it: `"◀ "`, two cells at `.regular`, which
+        // `arrowRuns` states as `trackLeft(gap:)` and this must not spell a
+        // second time. A disabled slider
         // produces none — `forState` composites every colour through
         // `opacity(_:over:)` and stamps the result opaque, so its alpha is spent
         // against the page rather than claimed. One colour, two answers, decided by
         // `isEnabled`; §31.3.
-        buffer.opacityRegions += trackClaims.map { $0.shifted(byX: Self.trackLeft, y: 0) }
+        buffer.opacityRegions += trackClaims.map { $0.shifted(byX: Self.trackLeft(gap: gap), y: 0) }
         if !context.isMeasuring {
             buffer.animatedCells = arrowRuns(
-                cycle: cycle, palette: palette, drawnTrackWidth: drawnTrackWidth)
+                cycle: cycle, palette: palette, drawnTrackWidth: drawnTrackWidth, gap: gap)
         }
 
         attachMouseHandlers(
@@ -251,7 +257,7 @@ struct _SliderCore: View, Renderable, Layoutable {
             hoverBox: hoverBox,
             persistedFocusID: persistedFocusID,
             stateStorage: stateStorage,
-            drawnTrackWidth: drawnTrackWidth
+            track: TrackGeometry(left: Self.trackLeft(gap: gap), width: drawnTrackWidth, gap: gap)
         )
 
         return buffer
@@ -271,7 +277,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         hoverBox: StateBox<Bool>,
         persistedFocusID: String,
         stateStorage: StateStorage,
-        drawnTrackWidth: Int
+        track: TrackGeometry
     ) {
         // Own AND cascaded — `renderToBuffer`'s shadowing local does not reach
         // this helper, so the bare `self.isDisabled` here answered only for a
@@ -286,7 +292,6 @@ struct _SliderCore: View, Renderable, Layoutable {
         mouseDispatcher.requestFeature(.motion, in: context)
 
         let focusManager = context.environment.focusManager
-        let track = TrackGeometry(left: 2, width: drawnTrackWidth)  // 2 = "◀ "
 
         let leftArrowTimer = autoRepeatTimer(
             stateStorage: stateStorage,
@@ -337,28 +342,31 @@ struct _SliderCore: View, Renderable, Layoutable {
     /// signature past what the linter will accept, which is the linter being
     /// right about it.
     private struct TrackGeometry {
-        /// The track's first column. `"◀ "` precedes it.
+        /// The track's first column. `"◀ "` precedes it, the arrow and the gap.
         let left: Int
         /// One past its last column; from here on is `" ▶ "` and the value.
         let right: Int
         /// `right - left`.
         let width: Int
+        /// The cells between each arrow and the track — one at `.regular`.
+        let gap: Int
 
         /// The column the `"◀"` glyph occupies — the whole of the left arrow,
-        /// not everything before the track: `left - 1` is the space between
-        /// them, which is chrome and adjusts nothing.
-        var leftArrow: Int { left - 2 }
+        /// not everything before the track: the gap between them is chrome and
+        /// adjusts nothing.
+        var leftArrow: Int { left - 1 - gap }
 
-        /// The column the `"▶"` glyph occupies. `right` itself is the space
-        /// before it, and `rightArrow + 1` onwards is the space and the value
-        /// read-out — six cells that are NOT the arrow, which is why the zone
-        /// is this one column rather than everything from `right` on.
-        var rightArrow: Int { right + 1 }
+        /// The column the `"▶"` glyph occupies. The gap before it is chrome,
+        /// and `rightArrow + 1` onwards is the space and the value read-out —
+        /// six cells that are NOT the arrow, which is why the zone is this one
+        /// column rather than everything from `right` on.
+        var rightArrow: Int { right + gap }
 
-        init(left: Int, width: Int) {
+        init(left: Int, width: Int, gap: Int) {
             self.left = left
             self.width = width
             self.right = left + width
+            self.gap = gap
         }
     }
 
@@ -586,12 +594,21 @@ struct _SliderCore: View, Renderable, Layoutable {
         return box.value
     }
 
-    /// Where the track starts: `"◀ "`, two cells.
+    /// Where the track starts: `"◀ "`, two cells at `.regular` — the arrow and
+    /// the gap after it.
     ///
     /// One number, because three things now depend on it — the right arrow's run, the
     /// value read-out's offset, and the track's own opacity claims — and a claim that
     /// disagreed with the runs by one cell would fade the arrow instead of the rail.
-    static var trackLeft: Int { 2 }
+    static func trackLeft(gap: Int) -> Int { 1 + gap }
+
+    /// The cells between each arrow and the track at the ``ControlSize`` in
+    /// `environment`: the bordered button's padding — one at `.regular` and
+    /// `.large`, none at `.small` and `.mini`, two at `.extraLarge`. The arrows
+    /// stay at every size: they are the slider's buttons.
+    static func arrowGap(in environment: EnvironmentValues) -> Int {
+        environment.controlSize.padding(regular: 1)
+    }
 
     /// The runs that breathe the two arrows, so the loop can advance them
     /// without walking the view tree. Empty unless the slider is focused and
@@ -607,17 +624,17 @@ struct _SliderCore: View, Renderable, Layoutable {
     /// arrow the loop breathes out of step with the real one.
     @MainActor
     private func arrowRuns(
-        cycle: SelectionEmphasisCycle, palette: any Palette, drawnTrackWidth: Int
+        cycle: SelectionEmphasisCycle, palette: any Palette, drawnTrackWidth: Int, gap: Int
     ) -> [AnimatedCellRun] {
         guard cycle.isAnimating else { return [] }
         let (dim, bright) = palette.accentPulse()
-        let trackLeft = Self.trackLeft
+        let trackLeft = Self.trackLeft(gap: gap)
         return [
             cycle.run(
                 TerminalSymbols.leftArrow, dim: dim, bright: bright, offsetX: 0, offsetY: 0),
             cycle.run(
                 TerminalSymbols.rightArrow, dim: dim, bright: bright,
-                offsetX: trackLeft + drawnTrackWidth + 1, offsetY: 0),
+                offsetX: trackLeft + drawnTrackWidth + gap, offsetY: 0),
         ].compactMap { $0 }
     }
 
@@ -633,6 +650,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         palette: any Palette,
         indicator: SelectionEmphasisCycle,
         trackWidth: Int,
+        gap: Int,
         valueStyle: StyleAttributes,
         legibilityWeight: LegibilityWeight?,
         isDisabled: Bool,
@@ -745,11 +763,14 @@ struct _SliderCore: View, Renderable, Layoutable {
         // Pulsing arrows indicate focus - no extra markers needed. The value
         // read-out is omitted when `.sliderShowsValue(false)` (some surrounding
         // control shows the value instead).
+        // The space between each arrow and the track, the control size's.
+        let gapText = String.spaces(gap)
         guard showsValue else {
             return (
-                "\(leftArrow) \(track.text) \(rightArrow)", drawnTrackWidth, nil, track.claims)
+                leftArrow + gapText + track.text + gapText + rightArrow, drawnTrackWidth, nil, track.claims)
         }
-        // Where the read-out's digits start: `"◀ "` + the track as DRAWN + `" ▶ "`.
+        // Where the read-out's digits start: `"◀ "` + the track as DRAWN + `" ▶ "`,
+        // the gaps one cell each at `.regular`.
         // `drawnTrackWidth` and not `trackWidth`, for the reason `arrowRuns` takes
         // the same number — a coarse track renders narrower than it was asked for,
         // and everything to its right moves with it.
@@ -759,9 +780,9 @@ struct _SliderCore: View, Renderable, Layoutable {
         // its colours are §16.1 row 8, still open, and a rectangle over them here
         // would multiply with the claim that migration adds.
         return (
-            "\(leftArrow) \(track.text) \(rightArrow) \(valueLabel)", drawnTrackWidth,
+            leftArrow + gapText + track.text + gapText + rightArrow + " " + valueLabel, drawnTrackWidth,
             OpacityRegion.claim(
-                offsetX: 5 + drawnTrackWidth, width: valueDisplay.strippedLength, height: 1,
+                offsetX: 3 + 2 * gap + drawnTrackWidth, width: valueDisplay.strippedLength, height: 1,
                 ink: valueLabelColor),
             track.claims)
     }

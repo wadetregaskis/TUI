@@ -41,6 +41,24 @@ struct SliderRenderTests {
     private func filled(_ line: String) -> Int { line.filter { $0 == "━" || $0 == "●" }.count }
     private func empty(_ line: String) -> Int { line.filter { $0 == "─" }.count }
 
+    // MARK: - Control Size
+
+    @Test("The control size sets the gap between the arrows and the track, as a bordered button's padding")
+    func controlSizeDensity() {
+        func line(_ size: ControlSize) -> String {
+            lines(Slider(value: .constant(0.5)).frame(width: 24).controlSize(size), w: 24)[0]
+        }
+        for size in [ControlSize.mini, .small] {
+            #expect(line(size).hasPrefix("◀━") && line(size).contains("─▶ 50%"), "\(size): \(line(size))")
+        }
+        for size in [ControlSize.regular, .large] {
+            #expect(line(size).hasPrefix("◀ ━") && line(size).contains("─ ▶ 50%"), "\(size): \(line(size))")
+        }
+        #expect(line(.extraLarge).hasPrefix("◀  ━") && line(.extraLarge).contains("─  ▶ 50%"), "\(line(.extraLarge))")
+        // The slider keeps the width it is given: the track takes what the gaps leave.
+        #expect(Set(ControlSize.allCases.map { line($0).count }).count == 1)
+    }
+
     // MARK: - Structure
 
     @Test("A slider renders on exactly one line with both arrows and the value")

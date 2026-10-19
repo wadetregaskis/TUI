@@ -19,13 +19,13 @@
 /// the focus. The other controls follow where they have chrome to trim or room
 /// to give, on their one row (``padding(regular:)``, ``drawsEndCaps``):
 ///
-/// | size          | segmented picker        | stepper   |
-/// |---------------|-------------------------|-----------|
-/// | `.mini`       | `S│M│L`                 | `◀5▶`     |
-/// | `.small`      | `▐S│M│L▌`               | `◀5▶`     |
-/// | `.regular`    | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   |
-/// | `.large`      | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   |
-/// | `.extraLarge` | `▐  S  │  M  │  L  ▌`   | `◀  5  ▶` |
+/// | size          | segmented picker        | stepper   | slider          |
+/// |---------------|-------------------------|-----------|-----------------|
+/// | `.mini`       | `S│M│L`                 | `◀5▶`     | `◀━━●──▶ 50%`   |
+/// | `.small`      | `▐S│M│L▌`               | `◀5▶`     | `◀━━●──▶ 50%`   |
+/// | `.regular`    | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   | `◀ ━━●── ▶ 50%` |
+/// | `.large`      | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   | `◀ ━━●── ▶ 50%` |
+/// | `.extraLarge` | `▐  S  │  M  │  L  ▌`   | `◀  5  ▶` | `◀  ━●─  ▶ 50%` |
 ///
 /// ```swift
 /// HStack {
