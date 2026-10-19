@@ -4342,57 +4342,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             at: 0
         )
 
-        // A landing place for a reorder of its own rows, on the container's
-        // rectangle. Registered unconditionally (not under `isScrollEnabled`,
-        // as the auto-scroll zone below is): a drop is not a scroll, and a
-        // table that did not register is one a gesture cannot land in.
-        if state.handler.onMove != nil {
-            context.environment.dragAndDropSession?.registerReorderHost(
-                DragAndDropSession.ReorderHost(
-                    focusID: state.focusID,
-                    handlerID: mouseHandlerID,
-                    // The INTERIOR top, not the first row line: the session
-                    // resolves a drag through `DragAndDropSession.contentY`
-                    // (`event.y - localOriginY - topInset`) and hit-tests the
-                    // published bands with it, so this has to name the same
-                    // origin the bands do. `_ListCore` passes its content
-                    // `topInset` here for exactly that reason.
-                    topInset: interiorTopY,
-                    contentColumns: contentColumns,
-                    handler: state.handler),
-                in: context)
-        }
-
-        // The external drop destination is registered unconditionally too, for
-        // the same reason as the reorder host above: a drop is not a scroll,
-        // and a pinned `.scrollDisabled` staging table must still take drops —
-        // as the List twin already does (`_ListCore.registerRowTargets`, which
-        // gates only its auto-scroll zone). This sat inside the
-        // `isScrollEnabled` gate below, so a non-scrolling table silently
-        // refused every external drag: no slot opened, and release flew home.
-        registerRowDropDestination(
-            zoneID: mouseHandlerID, state: state, context: context,
-            interiorTopY: interiorTopY)
-
-        // Register the table as a drag auto-scroll zone (sharing the container
-        // region id): a drag hovering near its top/bottom edge scrolls the rows
-        // to reveal an off-screen drop target. Auto-scroll is a gesture, so
-        // `.scrollDisabled` withholds the zone entirely.
-        if context.environment.isScrollEnabled {
-            context.environment.dragAndDropSession?.registerAutoScrollZone(
-                DragAndDropSession.AutoScrollZone(
-                    handlerID: mouseHandlerID,
-                    vertical: state.handler,
-                    horizontal: nil,
-                    delayNanos: context.environment.dragAutoScrollDelay.clampedNanoseconds,
-                    // The column header is not part of the scrollable band. Left
-                    // in, it ate the whole upward hot margin: the border and the
-                    // header were the two hot rows, so the "▲ N more above" line
-                    // — the one place a user aims to scroll up — was inert.
-                    topInset: headerLines(context.environment),
-                    shiftStep: context.environment.shiftStepMultiplier),
-                in: context)
-        }
+        registerDragTargets(
+            handlerID: mouseHandlerID, state: state, context: context, interiorTopY: interiorTopY,
+            contentColumns: contentColumns)
 
         registerRowHoverObservers(
             to: &buffer, state: state, context: context, mouseDispatcher: mouseDispatcher,
@@ -4478,6 +4430,91 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
+    /// Registers the table's own rectangle — the region `mouseHandlerID`
+    /// names — with the drag-and-drop session: a landing place for a reorder
+    /// of its rows, a destination for a drop from elsewhere, and a zone a drag
+    /// near its edges scrolls.
+    private func registerDragTargets(
+        handlerID mouseHandlerID: HitTestRegion.HandlerID, state: PopulatedRenderState, context: RenderContext,
+        interiorTopY: Int, contentColumns: Range<Int>
+    ) {
+        // A landing place for a reorder of its own rows, on the container's
+        // rectangle. Registered unconditionally (not under `isScrollEnabled`,
+        // as the auto-scroll zone below is): a drop is not a scroll, and a
+        // table that did not register is one a gesture cannot land in.
+        if state.handler.onMove != nil {
+            context.environment.dragAndDropSession?.registerReorderHost(
+                DragAndDropSession.ReorderHost(
+                    focusID: state.focusID,
+                    handlerID: mouseHandlerID,
+                    // The INTERIOR top, not the first row line: the session
+                    // resolves a drag through `DragAndDropSession.contentY`
+                    // (`event.y - localOriginY - topInset`) and hit-tests the
+                    // published bands with it, so this has to name the same
+                    // origin the bands do. `_ListCore` passes its content
+                    // `topInset` here for exactly that reason.
+                    topInset: interiorTopY,
+                    contentColumns: contentColumns,
+                    handler: state.handler),
+                in: context)
+        }
+
+        // The external drop destination is registered unconditionally too, for
+        // the same reason as the reorder host above: a drop is not a scroll,
+        // and a pinned `.scrollDisabled` staging table must still take drops —
+        // as the List twin already does (`_ListCore.registerRowTargets`, which
+        // gates only its auto-scroll zone). This sat inside the
+        // `isScrollEnabled` gate below, so a non-scrolling table silently
+        // refused every external drag: no slot opened, and release flew home.
+        registerRowDropDestination(
+            zoneID: mouseHandlerID, state: state, context: context,
+            interiorTopY: interiorTopY)
+
+        // Register the table as a drag auto-scroll zone (sharing the container
+        // region id): a drag hovering near its top/bottom edge scrolls the rows
+        // to reveal an off-screen drop target. Auto-scroll is a gesture, so
+        // `.scrollDisabled` withholds the zone entirely.
+        if context.environment.isScrollEnabled {
+            context.environment.dragAndDropSession?.registerAutoScrollZone(
+                DragAndDropSession.AutoScrollZone(
+                    handlerID: mouseHandlerID,
+                    vertical: state.handler,
+                    horizontal: nil,
+                    delayNanos: context.environment.dragAutoScrollDelay.clampedNanoseconds,
+                    // The column header is not part of the scrollable band. Left
+                    // in, it ate the whole upward hot margin: the border and the
+                    // header were the two hot rows, so the "▲ N more above" line
+                    // — the one place a user aims to scroll up — was inert.
+                    topInset: headerLines(context.environment),
+                    shiftStep: context.environment.shiftStepMultiplier),
+                in: context)
+        }
+    }
+
+    /// The data row drawn on the table's line `y`, out of a frame's `bands`
+    /// — `nil` for a line no row is on.
+    ///
+    /// One lookup for both layouts. It used to walk `visibleRange`
+    /// (single-line) or a per-row height array (multi-line) from a
+    /// `firstRowY` recomputed on every event, undoing the overscroll
+    /// slide by hand on the way. Every one of those terms is already
+    /// in the band, and re-deriving them is how the click map came
+    /// to disagree with the drawing: its "is an indicator drawn?"
+    /// test was `hasContentAbove`, while the multi-line path draws
+    /// by `showAbove`, which is also true for a line-granularity
+    /// clip inside row 0. Scrolled one line into the first row, the
+    /// indicator was on screen and every click landed a row low.
+    private static func drawnRow(
+        atLine y: Int, interiorTopY: Int, bands: [ItemListHandler<Value.ID>.DrawnBand]
+    ) -> Int? {
+        let contentY = y - interiorTopY
+        for band in bands where contentY >= band.yStart && contentY < band.yStart + band.height {
+            if case .row(let rowIndex) = band.entry { return rowIndex }
+            return nil
+        }
+        return nil
+    }
+
     /// The closure invoked by the container-wide hit-test
     /// region. Routes wheel to the handler's scroll position
     /// (never the selection), left-release to row hit-testing
@@ -4523,26 +4560,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // IS the gesture (see RowReorderGrabPoint).
         let grab = RowReorderGrabPoint()
         /// The clicked line's data row, from the press frame's bands.
-        ///
-        /// One lookup for both layouts. It used to walk `visibleRange`
-        /// (single-line) or a per-row height array (multi-line) from a
-        /// `firstRowY` recomputed on every event, undoing the overscroll
-        /// slide by hand on the way. Every one of those terms is already
-        /// in the band, and re-deriving them is how the click map came
-        /// to disagree with the drawing: its "is an indicator drawn?"
-        /// test was `hasContentAbove`, while the multi-line path draws
-        /// by `showAbove`, which is also true for a line-granularity
-        /// clip inside row 0. Scrolled one line into the first row, the
-        /// indicator was on screen and every click landed a row low.
-        func rowAt(y: Int) -> Int? {
-            let contentY = y - interiorTopY
-            for band in drawnBands
-            where contentY >= band.yStart && contentY < band.yStart + band.height {
-                if case .row(let rowIndex) = band.entry { return rowIndex }
-                return nil
-            }
-            return nil
-        }
+        func rowAt(y: Int) -> Int? { Self.drawnRow(atLine: y, interiorTopY: interiorTopY, bands: drawnBands) }
         return { event in
             // Wheel scrolls the viewport, never the selection — see the
             // matching comment in _ListCore for the model, routed through the
