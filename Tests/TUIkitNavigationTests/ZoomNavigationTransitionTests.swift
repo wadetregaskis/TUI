@@ -18,12 +18,13 @@ import TUIkitApp
 @testable import TUIkitTestSupport
 @testable import TUIkitView
 
-/// A stack 40×12 whose root has a source `s`, 4×2 at (10, 3), among dots; the
-/// screen it pushes fills itself with `D` under its two-row bar, and zooms
-/// from the source.
+/// A stack 40×12 whose root has a source `s`, 4×2 at (`inset`, 3) — (10, 3)
+/// unless said — among dots; the screen it pushes fills itself with `D` under
+/// its two-row bar, and zooms from the source.
 private struct Zooming: View {
     let path: Binding<NavigationPath>
     var sourceID = 1
+    var inset = 10
     var background: Color?
     var destination: String?
     /// Whether the root hugs its five rows rather than filling the stack, as
@@ -37,9 +38,9 @@ private struct Zooming: View {
             VStack(alignment: .leading, spacing: 0) {
                 GlyphFill(".").frame(width: 40, height: 3)
                 HStack(spacing: 0) {
-                    GlyphFill(".").frame(width: 10, height: 2)
+                    GlyphFill(".").frame(width: inset, height: 2)
                     source
-                    GlyphFill(".").frame(width: 26, height: 2)
+                    GlyphFill(".").frame(width: 36 - inset, height: 2)
                 }
                 if !hugging { GlyphFill(".").frame(width: 40, height: 7) }
             }
@@ -160,6 +161,32 @@ struct ZoomNavigationTransitionTests {
         let end = navigator.lines(navigator.draw(view, atMillis: 3000))
         #expect(rect(of: "D", in: end) == nil)
         #expect(rect(of: "s", in: end) == CellRect(x: 10, y: 3, width: 4, height: 2))
+    }
+
+    @Test("A popped screen folds back into its source where it is now, though the root moved it while covered")
+    func concealedIntoTheMovedSource() {
+        let moved = { (path: Binding<NavigationPath>) in Zooming(path: path, inset: 20) }
+        /// Halfway back into the source at (20, 3), from a screen pushed from
+        /// `first`'s source.
+        func halfway(pushedFrom first: @escaping (Binding<NavigationPath>) -> Zooming) -> [String] {
+            let navigator = Navigator()
+            navigator.draw(first, atMillis: 0)
+            navigator.path.append(1)
+            navigator.draw(first, atMillis: 0, transaction: Transaction(animation: nil))
+            navigator.draw(moved, atMillis: 2000)
+            navigator.draw(moved, atMillis: 2000)
+            navigator.path.removeLast()
+            navigator.draw(moved, atMillis: 2000, transaction: linear)
+            return navigator.lines(navigator.draw(moved, atMillis: 2500))
+        }
+        // Each edge halfway: 20 → 0, 3 → 0, 24 → 40, 5 → 12.
+        let expected = halfway(pushedFrom: moved)
+        #expect(rect(of: "D", in: expected) == CellRect(x: 10, y: 2, width: 22, height: 6))
+        // The root drew the source at (20, 3) off-screen while the screen
+        // covered it, where nothing found it; it is found once the root is
+        // back, and the screen folds into it there, not where it was pushed
+        // from.
+        #expect(halfway(pushedFrom: { Zooming(path: $0) }) == expected)
     }
 
     @Test("A push with no animation of its own zooms under the default one")

@@ -142,9 +142,12 @@ the screen it replaces; popped, the rectangle shrinks back into the source
 over the screen it returns to, which is live. The source is a member of the
 matched geometry registry (its id wrapped, so a transition source and a
 `matchedGeometryEffect` of the same id stay two groups), so its frame is the
-scene root's finding; a pop folds into where the source was when it was
-pushed if nothing has found it since — its screen is drawn off-screen while
-covered.
+scene root's finding. Nothing finds a source on the root while a screen covers
+it, the root being drawn off-screen, so a pop starts from where the source was
+when the screen was pushed, and folds into where the root finds it once it is
+back — from the zoom's second frame, the first that draws the source's
+rectangle, so a source the root moved while covered is folded into where it
+is now.
 
 Three calls the ruling left open:
 

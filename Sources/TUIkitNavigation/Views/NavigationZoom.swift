@@ -24,8 +24,11 @@ struct NavigationZoomState {
         }
 
         let direction: Direction
-        /// The source's frame in the global space.
-        let source: CellRect
+        /// The source's group.
+        let key: MatchedGeometryKey
+        /// The source's frame in the global space: where it was found as the
+        /// zoom started, and where it is found as it runs.
+        var source: CellRect
         /// The picture that holds still while the other is uncovered or
         /// covered: the screen pushed over, or the screen popped.
         let still: FrameBuffer
@@ -42,7 +45,9 @@ struct NavigationZoomState {
     /// The zoom each depth's screen declared while it was on top.
     var declared: [Int: MatchedGeometryKey] = [:]
     /// Where each depth's source was, in the global space, when it was pushed:
-    /// what it folds back into when nothing has found the source since.
+    /// what it starts to fold back into when nothing has found the source
+    /// since — a source on a root the screen covered, which the root drew
+    /// off-screen and no one found.
     var sources: [Int: CellRect] = [:]
     /// What the stack drew last, unzoomed: what a zoom starting now holds
     /// still.
@@ -84,7 +89,18 @@ extension NavigationCoordinator {
         guard !context.isMeasuring, let storage = context.stateStorage else { return buffer }
         let started = startZoom(depth: depth, declared: declared, context: context)
         zoom.picture = buffer
-        guard let running = zoom.running else { return buffer }
+        guard var running = zoom.running else { return buffer }
+        // Where the source is found now, as it runs: a screen popped back to
+        // a root that moved its source while covering it started to fold
+        // into where the source was pushed from, which nothing found since.
+        // Its first frame is the whole stack, so the rectangle it folds into
+        // is where the root finds the source from its second frame on.
+        if let found = context.geometryCoordinator?.matchedGeometry.source(
+            of: running.key, excluding: context.identity)?.frame, found != running.source
+        {
+            running.source = found
+            zoom.running = running
+        }
         let key = AnimationStore.Key(
             identity: context.identity, owner: ObjectIdentifier(NavigationZoomAnimation.self), slot: running.epoch)
         let now = context.environment.frameNowNanos
@@ -139,7 +155,7 @@ extension NavigationCoordinator {
         if pushed { zoom.sources[depth] = source }
         zoom.epoch += 1
         zoom.running = NavigationZoomState.Running(
-            direction: pushed ? .reveal : .conceal, source: source, still: still,
+            direction: pushed ? .reveal : .conceal, key: key, source: source, still: still,
             background: zoom.configurations[key]?.background, epoch: zoom.epoch)
         return true
     }
