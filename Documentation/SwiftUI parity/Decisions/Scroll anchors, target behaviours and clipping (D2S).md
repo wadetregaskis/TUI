@@ -102,7 +102,7 @@ the selection's looks, the stripes). They are drawn, not clicked: the list's
 click mapping covers its frame, and carrying the rows' own regions and a
 row click out to them is about two hours more. A `Table` still clips: its two
 composers (single- and multi-line rows) each need the same, about half a day
-(lane LISTS2's decisions, B-LISTS2-2).
+(lane LISTS2's decisions, B-LISTS2-5).
 
 ### B-D2S-5. A later view hides an unclipped scroll view's overflow from its first painted cell to its last
 
