@@ -60,7 +60,8 @@ lines tall — in each case every one of 40 rows appeared:
    arrangement without a section): likewise.
 
 **Shipped:** the identification and the test of the flat case; no site is
-gated yet.
+gated yet. **All three are gated since 2026-10-19 (lane LISTS2)**, and every
+shape of the test is among its arguments — see below for each.
 
 **Why not the first, which is one line:** removing it was tried, and it
 gates that site (the sectioned case then passes), but it exposes a hole in
@@ -78,7 +79,10 @@ that they are served. The order is: key the sidebar's rows by what they draw
 interactions it has — beside its place, so a change misses the memo for that
 row alone), then drop the render. About two hours, an A/B on the tabs
 scenarios and on sectioned lists (`session`, `inbox`: the render is a second
-draw of every section row, every frame).
+draw of every section row, every frame). **Done in that order (lane LISTS2,
+2026-10-19):** the sidebar's rows are `_SidebarRow`s, keyed by place and
+compared by their tab's look, and `SectionInfo` has no content buffer; the
+A/B is owed.
 
 **The second and third** are decisions B73's option 1 (draw hand-written rows
 lazily, as looped rows are drawn), which lane LISTS2 built in the same two

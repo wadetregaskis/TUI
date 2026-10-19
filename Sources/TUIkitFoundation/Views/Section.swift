@@ -449,18 +449,6 @@ package struct SectionInfo {
     /// The rendered footer buffer (nil if no footer).
     package let footerBuffer: FrameBuffer?
 
-    /// The whole content, rendered as one buffer.
-    ///
-    /// Read by nothing: the `List` takes a section's rows from
-    /// ``SectionRowExtractor/extractSectionContentRows(context:)``, and the
-    /// branch that fell back to this buffer could not be reached: it was taken
-    /// only for a section that is not a `ListRowExtractor`, and `Section`, the
-    /// only conformer, always is one. Still rendered, because
-    /// that render has effects beyond its buffer — every row of the section,
-    /// on screen or not, is drawn, registers what it registers and marks its
-    /// identity alive — and dropping it is a behaviour change of its own.
-    package let contentBuffer: FrameBuffer
-
     /// The section's separator preference (``View/listSectionSeparator(_:edges:)``
     /// and its tint): the line under its header is its `.top` edge, the line under
     /// its last row its `.bottom` edge (decisions A47).
@@ -471,12 +459,10 @@ package struct SectionInfo {
     package init(
         headerBuffer: FrameBuffer?,
         footerBuffer: FrameBuffer?,
-        contentBuffer: FrameBuffer,
         separator: ListSeparatorPreference = ListSeparatorPreference()
     ) {
         self.headerBuffer = headerBuffer
         self.footerBuffer = footerBuffer
-        self.contentBuffer = contentBuffer
         self.separator = separator
     }
 }
@@ -557,7 +543,7 @@ extension ModifiedView: SectionRowExtractor where Content: SectionRowExtractor {
         return SectionInfo(
             headerBuffer: info.headerBuffer.map { modified($0, context: context) },
             footerBuffer: info.footerBuffer.map { modified($0, context: context) },
-            contentBuffer: info.contentBuffer, separator: info.separator)
+            separator: info.separator)
     }
 
     package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
@@ -599,14 +585,13 @@ extension Section: SectionRowExtractor where Parent: View, Content: View, Footer
         }
         let headerBuffer = renderedChrome(drawnHeader, .sectionHeader, isEmptyView: !hasHeader)
         let footerBuffer = renderedChrome(footer, .sectionFooter, isEmptyView: footer is EmptyView)
-
-        let contentBuffer = showsContent ? TUIkitView.renderToBuffer(content, context: context) : FrameBuffer()
-
-        return SectionInfo(
-            headerBuffer: headerBuffer,
-            footerBuffer: footerBuffer,
-            contentBuffer: contentBuffer
-        )
+        // The content is not drawn here: its rows are the list's, drawn when
+        // the list reads them (``extractSectionContentRows(context:)``). It
+        // used to be drawn whole as well, into a buffer nothing read, every
+        // frame: every row of the section, on screen or not, appeared, put up
+        // its presentations and took a place in the focus ring, and each
+        // drawn row was drawn twice (decisions B-LISTS-2, site 1).
+        return SectionInfo(headerBuffer: headerBuffer, footerBuffer: footerBuffer)
     }
 }
 

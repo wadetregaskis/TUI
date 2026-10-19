@@ -261,17 +261,18 @@ struct SectionInfoExtractionTests {
         #expect(info.footerBuffer == nil)
     }
 
-    @Test("extractSectionInfo content buffer contains content")
-    func extractSectionInfoContent() {
+    @Test("A section's content is its list rows, drawn when a row is read")
+    func extractSectionContentRows() {
         let context = createTestContext()
 
         let section = Section("Title") {
             Text("My Content Here")
         }
 
-        let info = section.extractSectionInfo(context: context)
+        let rows: SectionContentRows<Int> = section.extractSectionContentRows(context: context)
 
-        #expect(info.contentBuffer.lines.joined().contains("My Content Here"))
+        #expect(rows.rows.count == 1)
+        #expect(rows.rows.first?.content.buffer.lines.joined().contains("My Content Here") == true)
     }
 }
 

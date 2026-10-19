@@ -4,12 +4,11 @@
 //  A `List` draws only the rows its window walks, so a row scrolled out of
 //  sight does nothing a drawn row does — appear, register a presentation,
 //  take a place in the focus ring — until it is scrolled to. That holds for a
-//  flat `ForEach`, and for rows the list's child walk reads — a hand-written
-//  row and a loop spliced beside it (`Shape.spliced`), drawn when the list
-//  reads them since lane LISTS2 (decisions B73). Not yet in a `Section`, which
-//  renders its entire content each frame (`Shape.section`,
-//  `Shape.mixedSection`). Decisions B-LISTS-2 says what gates each; add its
-//  shape to the arguments as it does.
+//  flat `ForEach`, for rows the list's child walk reads — a hand-written row
+//  and a loop spliced beside it (`Shape.spliced`), drawn when the list reads
+//  them since lane LISTS2 (decisions B73) — and for a `Section`'s rows
+//  (`Shape.section`, `Shape.mixedSection`), since the section stopped drawing
+//  its whole content a second time each frame (decisions B-LISTS-2).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -80,7 +79,7 @@ struct ListOffWindowSideEffectsTests {
         }
     }
 
-    @Test("A row far below the window does not appear; one in it does", arguments: [Shape.flat, .spliced])
+    @Test("A row far below the window does not appear; one in it does", arguments: Shape.allCases)
     func offWindowRowsDoNotAppear(_ shape: Shape) {
         let appeared = Appeared()
         frames(list(shape, appeared))

@@ -235,8 +235,9 @@ struct SectionListRowExtractorTests {
 
         #expect(info.headerBuffer != nil)
         #expect(info.footerBuffer != nil)
-        // Content should have the Text content
-        #expect(!info.contentBuffer.lines.isEmpty)
+        // The content is the list's rows, not a part of the section's info.
+        let rows: SectionContentRows<Int> = section.extractSectionContentRows(context: context)
+        #expect(rows.rows.count == 1)
 
         // Header should be styled
         let headerContent = info.headerBuffer!.lines.joined()
@@ -260,7 +261,8 @@ struct SectionListRowExtractorTests {
 
         #expect(info.headerBuffer == nil)
         #expect(info.footerBuffer == nil)
-        // Content should have the Text content
-        #expect(!info.contentBuffer.lines.isEmpty)
+        // The content is the list's rows, not a part of the section's info.
+        let rows: SectionContentRows<Int> = section.extractSectionContentRows(context: context)
+        #expect(rows.rows.count == 1)
     }
 }

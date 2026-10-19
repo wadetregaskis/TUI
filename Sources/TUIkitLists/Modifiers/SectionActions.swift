@@ -85,7 +85,6 @@ extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtr
         var header = info.headerBuffer ?? FrameBuffer()
         header.appendHorizontally(drawnActions, spacing: 1)
         return SectionInfo(
-            headerBuffer: header, footerBuffer: info.footerBuffer, contentBuffer: info.contentBuffer,
-            separator: info.separator)
+            headerBuffer: header, footerBuffer: info.footerBuffer, separator: info.separator)
     }
 }
