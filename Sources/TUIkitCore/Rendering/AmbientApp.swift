@@ -54,7 +54,11 @@ package protocol AppRenderState: AnyObject, Sendable {
 /// inside it, as a `.task` modifier's is. Work on no app's task — a callback a
 /// framework calls on a queue of its own — finds `nil`, and asks no app for a
 /// frame; the views that read what it changed still hear of it, through the
-/// observation that reaches their own app.
+/// observation that reaches their own app. A change of language, or of the
+/// strings an app registered, is the localization service's, which no
+/// observation reports: it also asks every app running from the service,
+/// which each app's run loop notes there, so it reaches the screen from
+/// there too.
 package enum AmbientApp {
     /// The render state of the app whose work is under way, or `nil` outside
     /// every app's.

@@ -54,7 +54,8 @@ struct LocalizedTitleTests {
     /// emptied the render memo of whichever app drew next. Those clears landed
     /// in the middle of the run, throwing away what every other suite rendering
     /// at the same time had just built. (It asks only the app whose work
-    /// registers now: `AmbientApp`.) Registrations merge and nothing ever removes one, so once is all
+    /// registers now, `AmbientApp`, and the apps running from the service,
+    /// which no test has.) Registrations merge and nothing ever removes one, so once is all
     /// this suite needs; a `static let` is initialized on first use, under
     /// `swift_once`.
     ///

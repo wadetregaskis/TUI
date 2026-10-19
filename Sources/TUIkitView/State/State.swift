@@ -22,9 +22,11 @@ import TUIkitCore
 /// a ``State`` write and an `@Observable` change through the render cache the
 /// app draws with, the run loop's own seams through the context, and the few
 /// changes made with no view in hand — an `AppStorage` write, a change of
-/// language — through the app whose work is under way (`AmbientApp`). Two apps
-/// in one process, as parallel tests have, so never draw each other's change
-/// under the other's transaction.
+/// language — through the app whose work is under way (`AmbientApp`). A
+/// change of language also asks every app running, wherever it was made: the
+/// localization service is the process's. Two apps in one process, as
+/// parallel tests have, so never draw each other's change under the other's
+/// transaction.
 ///
 /// - Important: This is framework infrastructure. Use ``State`` and `@Observable`
 ///   models for reactive state in your views: they reach their app's render state

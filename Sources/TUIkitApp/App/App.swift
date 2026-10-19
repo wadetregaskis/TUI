@@ -295,14 +295,27 @@ extension AppRunner {
         }
     }
 
-    /// Runs the app until it quits, with this app the one whose work is under
-    /// way (`AmbientApp`) for all of it: every event it handles, every frame it
-    /// draws, and every task they start, so a change made there with no view in
-    /// hand — an `@AppStorage` write, a change of language — asks this app for
-    /// its frame.
+    /// Runs the app until it quits (``whileRunning(_:)``).
     func run() async {
+        await whileRunning { await runLoop() }
+    }
+
+    /// Runs `body` — the run loop, but for a test — as this app's run.
+    ///
+    /// This app is the one whose work is under way (`AmbientApp`) for all of
+    /// it: every event it handles, every frame it draws, and every task they
+    /// start, so a change made there with no view in hand — an `@AppStorage`
+    /// write, a top-level `dismiss()` — asks this app for its frame. And it is
+    /// noted as running from the localization service, the process's, so a
+    /// change of language or of the strings registered asks this app for its
+    /// frame wherever it was made: on a queue of the app's own too, where no
+    /// app's work is under way.
+    func whileRunning(_ body: () async -> Void) async {
+        let localization = LocalizationService.shared
+        localization.noteRunning(appState)
+        defer { localization.noteStopped(appState) }
         await AmbientApp.$renderState.withValue(appState) {
-            await runLoop()
+            await body()
         }
     }
 

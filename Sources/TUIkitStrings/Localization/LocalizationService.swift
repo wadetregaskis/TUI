@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUIkitCore
 
 // MARK: - Localization Service
 
@@ -125,6 +126,13 @@ public final class LocalizationService: @unchecked Sendable {
     /// ``setLanguage(_:)``.
     private var configDirectoryOverride: String?
 
+    /// The render states of the apps running from this service, which a
+    /// change of what it holds asks for a frame wherever the change was made:
+    /// see ``noteRunning(_:)``. Behind a lock of its own, not `lock`: it is
+    /// read after a change has let go of that one, and noted from another
+    /// file.
+    let runningApps = Lock<[any AppRenderState]>(initialState: [])
+
     /// Creates and initializes the localization service.
     ///
     /// Loads the stored language preference, falling back to the language the
@@ -235,8 +243,9 @@ public final class LocalizationService: @unchecked Sendable {
     ///   — under the test runner a real file in the developer's own home (see
     ///   ``withPersistence(redirectedTo:)``), read back as the stored preference
     ///   by every later run on that machine;
-    /// * it asks the app whose work calls it for a frame, which a suite
-    ///   pinning a language for its renders has no reason to.
+    /// * it asks every app running from the service, and the app whose work
+    ///   calls it, for a frame, which a suite pinning a language for its
+    ///   renders has no reason to.
     ///
     /// This does neither: it moves `currentLanguage` under the lock and stops.
     ///

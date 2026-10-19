@@ -55,6 +55,47 @@ final class LocalizationServiceTests {
         #expect(!bystander.needsRender)
     }
 
+    /// `setLanguage(_:)` in a `DispatchQueue.global()` block, as the DocC
+    /// guide shows it, or translations registered from a download's callback:
+    /// no app's work is under way there, as none is on this test's task. Asked
+    /// only of the app whose work made the change, such a change asked no app
+    /// — an idle app went on drawing the old language, and the registration's
+    /// cache clear was never asked, so a memoized row kept the old strings.
+    @Test("A change made outside every app's work asks every app running from the service")
+    func changeOutsideEveryAppsWorkAsksTheRunningApps() {
+        let running = AppState()
+        let bystander = AppState()
+        sut.noteRunning(running)
+        defer { sut.noteStopped(running) }
+        #expect(AmbientApp.renderState == nil, "precondition: no app's work is under way")
+
+        sut.setLanguage(.german)
+        #expect(running.needsRender, "the running app was not asked to draw the new language")
+        sut.register(translations: ["en": ["greeting": "Hello"]])
+        #expect(running.consumeNeedsCacheClear(), "the running app's memoized rows keep the old strings")
+        #expect(!bystander.needsRender, "an app that is not running from the service was asked")
+    }
+
+    @Test("An app whose run has ended is asked for nothing")
+    func stoppedAppIsNotAsked() {
+        let app = AppState()
+        sut.noteRunning(app)
+        sut.noteStopped(app)
+        sut.register(translations: ["en": ["greeting": "Hello"]])
+        #expect(!app.needsRender)
+    }
+
+    @Test("A running app whose own work made the change is asked once")
+    func runningAppMakingTheChangeIsAskedOnce() {
+        let app = AppState()
+        let asked = Lock(initialState: 0)
+        app.observe { asked.withLock { $0 += 1 } }
+        sut.noteRunning(app)
+        defer { sut.noteStopped(app) }
+        AmbientApp.$renderState.withValue(app) { sut.setLanguage(.german) }
+        #expect(asked.withLock { $0 } == 1)
+    }
+
     deinit {
         try? FileManager.default.removeItem(atPath: configDir)
     }

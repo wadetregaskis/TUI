@@ -582,6 +582,13 @@ DispatchQueue.global().async {
 }
 ```
 
+Wherever it is called from — an event handler, a task, a queue of the app's
+own — the running app draws again in the new language. So does registering
+translations, which also throws away what the app had memoized, so a row
+drawn with the old strings is drawn again. The app's run loop notes the app
+with the service for the length of its run; translations registered before
+the app runs ask nothing to be drawn, since the first frame is still to come.
+
 ### Performance Caching
 
 Translations are cached per language after first load:

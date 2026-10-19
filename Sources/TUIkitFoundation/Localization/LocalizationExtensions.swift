@@ -34,20 +34,24 @@ extension Text {
 /// modules it cannot name them. So the service keeps the change and this asks
 /// for the frame, with no hook or registry between the two.
 ///
-/// The frame is asked of the app whose work made the change (`AmbientApp`): a
-/// language picked in its settings, translations registered as it draws. A
-/// change made outside every app's work — translations registered before the
-/// app runs, as an app's `main` does — asks no app, and needs none: the first
-/// frame is still to come.
+/// The frame is asked of every app running from the service — its run loop
+/// notes it for the length of its run — and of the app whose work made the
+/// change (`AmbientApp`), a headless app's (`appsShowingChanges`). So a
+/// language picked in an app's settings, translations registered as it
+/// draws, and either made on a queue of a framework's own — a download's
+/// callback, a `DispatchQueue.global()` block — all reach the screen. A change
+/// made before any app runs — translations registered in an app's `main` —
+/// asks no app, and needs none: the first frame is still to come.
 extension LocalizationService {
     /// Changes the active language and persists the preference.
     ///
-    /// The app draws again, in the new language.
+    /// The app draws again, in the new language, wherever this is called
+    /// from: an event handler, a task, a queue of the app's own.
     ///
     /// - Parameter language: The new language to activate.
     public func setLanguage(_ language: Language) {
         setLanguageWithoutRendering(language)
-        AmbientApp.renderState?.setNeedsRender()
+        for app in appsShowingChanges { app.setNeedsRender() }
     }
 
     /// Registers additional translations supplied by the host application.
@@ -57,8 +61,9 @@ extension LocalizationService {
     /// is keyed by language code (`Language.rawValue` — e.g. `"en"`, `"de"`,
     /// `"zh"`); the inner dictionary maps dot-notation keys to localized strings.
     /// Registrations merge across calls and take precedence over the bundled
-    /// framework strings for the same key. A re-render is requested so visible
-    /// strings refresh.
+    /// framework strings for the same key. The app draws again, so visible
+    /// strings refresh, wherever this is called from — at startup, before the
+    /// app runs, there is nothing to draw again.
     ///
     /// ```swift
     /// LocalizationService.shared.register(translations: [
@@ -74,7 +79,7 @@ extension LocalizationService {
         // key, so a re-render alone served the pre-registration text for as
         // long as the row's element compared equal. Asked once the service
         // has let go of its lock, as `setLanguage(_:)` has always asked.
-        AmbientApp.renderState?.setNeedsRenderWithCacheClear()
+        for app in appsShowingChanges { app.setNeedsRenderWithCacheClear() }
     }
 }
 

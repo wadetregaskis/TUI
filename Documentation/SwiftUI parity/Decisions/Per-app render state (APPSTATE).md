@@ -27,6 +27,9 @@ deterministically). The format is that of the main decisions file:*
   note their render cache's link as they draw it.
 - **What has no view in hand** asks the app whose work is under way
   (B-APPSTATE-1).
+- **A change of language, or of the strings an app registered,** also asks
+  every app running from the localization service, wherever it was made
+  (B-APPSTATE-4).
 
 ## A. Needs your decision
 
@@ -39,8 +42,9 @@ sites in the library*
 The service holds one language for the process, the strings an app
 registered, and the memo of what each key resolved to. Its frame requests no
 longer go through a shared render state: `setLanguage(_:)` and
-`register(translations:)` ask the app whose work made the change
-(B-APPSTATE-1). The service itself is still `LocalizationService.shared`.
+`register(translations:)` ask every app running from the service and the app
+whose work made the change (B-APPSTATE-4). The service itself is still
+`LocalizationService.shared`.
 
 Removing it is not a matter of injecting it: most of its readers resolve a key
 **when a view is made** — `Text("Cancel")`, `Button(LocalizationKey.Button.ok)`,
@@ -108,8 +112,9 @@ queue per app in a later lane, with the API change.
 ### B-APPSTATE-1. A change with no view in hand asks the app whose work made it
 
 *`AmbientApp.renderState`, a task local in TUIkitCore; `StoredKey.didChange()`,
-`LocalizationService.setLanguage(_:)`, `register(translations:)`,
-`DismissAction()`, `reportObservedChange(at:to:fallback:)`*
+`DismissAction()`, `reportObservedChange(at:to:fallback:)`; and
+`LocalizationService.setLanguage(_:)`, `register(translations:)` beside
+B-APPSTATE-4*
 
 A few changes are made with nothing that names an app: an `@AppStorage`
 write, whose frame is for a control that read the key unobserved; a change of
@@ -126,7 +131,10 @@ them all, wherever it was made; the localization service is per app
 (A-APPSTATE-1). **Price:** a lock and a lookup per `@AppStorage` property per
 walk, and a list of weak references per key; about half a day. Nothing seen
 so far writes a stored key off every app's task with a reader no observation
-saw.
+saw. A change of language is made off every app's task — the DocC guide's
+own example sets the language in a `DispatchQueue.global()` block — and no
+observation reports one, so the localization service names its apps already
+(B-APPSTATE-4).
 
 ### B-APPSTATE-2. An observed change reported with no transaction takes the next scope's
 
@@ -175,3 +183,30 @@ says so.
 public API and its documentation. **Price:** a few minutes, and a second
 public API removal in one lane; left for the owner's API review, since
 nothing depends on it either way.
+
+### B-APPSTATE-4. A change to the localization service asks every app running from it
+
+*`LocalizationService.noteRunning(_:)`, `appsShowingChanges`;
+`AppRunner.whileRunning(_:)`*
+
+The service is the process's, so a change of language or of the strings an
+app registered changes what every app reads, and is made with no view in
+hand, often off every app's task: the DocC guide sets the language in a
+`DispatchQueue.global()` block, and translations downloaded after launch are
+registered from a callback. Asked only of the app whose work made it
+(B-APPSTATE-1), such a change asked no app: an idle app went on drawing the
+old language, and the registration's cache clear was never asked, so a
+memoized row kept the old strings for good. So an app's run loop notes its
+render state with the service for the length of its run, and a change asks
+every app noted there as well as the app whose work made it, once each.
+
+Only a running app is noted. A headless app — a test's — is driven frame by
+frame and reached through its own events and frames; noting every context
+that draws, as a notification host notes its app, would have every test's
+registration into the one service clear the render cache of every other
+test's app drawing beside it, which is how a registration's clear used to
+empty other suites' memos mid-run (`LocalizedTitleTests`).
+
+**The fuller version** is A-APPSTATE-1: a service per app, or the locale as
+the language, so the change is the app's own and reaches it through its
+environment. **Price:** that entry's.

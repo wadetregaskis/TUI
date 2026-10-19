@@ -201,7 +201,8 @@ struct TimelineCollectionWidthTests {
     /// 200 is rightly built again, but it is not this app that asked. Another
     /// test in the process did — a localization change asked for a clear of
     /// the process-wide render state there was then, and whichever app drew
-    /// next took it; it asks only the app whose work made it now. Once, on CI's macOS 26 · Swift 6.4 lane (2026-09-30),
+    /// next took it; it asks only the app whose work made it now, and the
+    /// apps running from the service, which no test has. Once, on CI's macOS 26 · Swift 6.4 lane (2026-09-30),
     /// `huggingList` counted two builds of row 200 that no local run of this
     /// suite, alone or beside the rest of its target, ever did; the request was
     /// then an `@AppStorage` or `@SceneStorage` write's, which no longer clears
