@@ -9,7 +9,7 @@ person's attention (C6, Q4: yes, after progress), both on the terminal host
 ledger lane O9 built for the window title. 2026-10-19.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Five.
+- **B. Shipped the safe option.** Eight.
 - **C. Declined without asking.** None.
 
 Which terminals take what was read from each one's own documentation on this
@@ -99,3 +99,51 @@ want to add to.
 
 **The fuller version:** `TerminalClient.progressSupport: Bool?`, in the shape
 of `hyperlinkSupport`; half an hour.
+
+### B-GHOSTTY-6. Attention is a notification on Ghostty and iTerm2, and the bell everywhere else
+
+*V10 (C6): `\.requestAttention`, "OSC 9 where honoured and BEL otherwise".*
+
+**Shipped:** `requestAttention(message)` posts iTerm2's `OSC 9 ; message` on
+the two hosts documented to post it, Ghostty (`desktop-notifications`, on by
+default) and iTerm2 (its own sequence; its profiles' notifications on by
+default), and rings `BEL` everywhere else, including inside tmux: tmux 3.7c
+passes no `OSC 9` on to the terminal it is drawn in, and does pass the bell
+(measured). The run-time check is `\.terminalFeatures.postsNotifications`, and
+`TUIKIT_NOTIFICATIONS=1`/`0` the user's switch. The message is a localization
+key, as a `Text` literal is, with a disfavoured `StringProtocol` twin.
+
+**The fuller version:** inside tmux with `allow-passthrough on` (off by
+default), wrap the notification in tmux's DCS passthrough so the client
+terminal posts it, where the client is one that would: about two hours, with
+a probe of the passthrough. And kitty, recognised by its `TERM`: half an hour.
+
+### B-GHOSTTY-7. The message is made safe, and a leading digit is sent after a space
+
+*V10 (C6): "Text starting with digits and a semicolon would be read as a
+ConEmu command … so prefix a space. Sanitise as for titles."*
+
+**Shipped:** the title's sanitiser (control characters dropped, line breaks and
+tabs as spaces), and a space before a message whose first character is any
+ASCII digit, not only digits followed by a semicolon: the broader test costs a
+space in "3 files copied" and cannot miss a spelling some host reads as a
+command (ConEmu's `OSC 9` carries `9;1` to `9;12`). A message that is nothing
+but spaces after that rings the bell rather than posting an empty
+notification. No length cap: none of the hosts documents one.
+
+**The fuller version:** OSC 777 (`notify ; title ; body`), which Ghostty and
+kitty also take, for a notification with a title of the app's choosing rather
+than the terminal's: about an hour, and a look at each host.
+
+### B-GHOSTTY-8. A request is posted whatever the scene's phase
+
+**Shipped:** the action posts, or rings, whenever it is called. Whether the
+person is looking is the app's to judge, with `\.scenePhase` (mode 1004 makes
+it `.inactive` while the terminal's window is not focused), as the action's
+documentation shows. A request made as the app quits, which no frame would
+write, is written in the exit's farewell.
+
+**The alternative:** hold a request back while the scene is active and drop
+it, or ring the bell instead. Half an hour; it would take the choice away from an app that wants a
+notification anyway (a long job it was asked to report on).
+

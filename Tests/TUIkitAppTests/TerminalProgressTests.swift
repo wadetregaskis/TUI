@@ -69,7 +69,7 @@ struct TerminalProgressTests {
 
     private mutating func launched<A: App>(_ app: A, showsProgress: Bool = true) -> HeadlessApp<A> {
         let headless = HeadlessApp(app, width: 40, height: 8)
-        headless.services.terminalFeatures = TerminalFeatures(showsProgress: showsProgress)
+        headless.services.terminalFeatures = TerminalFeatures(showsProgress: showsProgress, postsNotifications: false)
         frame(headless)
         return headless
     }

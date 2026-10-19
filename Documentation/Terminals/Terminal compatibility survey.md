@@ -4,7 +4,7 @@ The canonical record of how each terminal emulator behaves on every axis
 TUIkit cares about — input encodings (keys, mouse, trackpad) and output
 behaviour (cursor advance vs painted width, emoji handling, glyph cell
 coverage, colour depth, OSC 8 hyperlinks, OSC 52 clipboard writes, the window
-title, progress bars, graphics protocols) — plus the environment variables each one defines and the exact
+title, progress bars and notifications, graphics protocols) — plus the environment variables each one defines and the exact
 versions the observations were made against.
 
 **Maintenance contract:** whenever anything new is observed or learned
@@ -3739,13 +3739,16 @@ adoption study (C2) expected.
 
 ---
 
-## Progress and attention: OSC 9;4 — documented 2026-10-19, tmux measured
+## Progress and attention: OSC 9;4, OSC 9 and BEL — documented 2026-10-19, tmux measured
 
 A terminal can draw an app's progress itself, outside its cells: a bar on
 the tab, the window or the pane, seen from other tabs and windows too.
 TUIkit puts a view's `.terminalProgress(_:)` there (`TerminalHostState`, on
 the ledger the window title uses; the Ghostty adoption study, C3, step V8).
-The sequence is ConEmu's progress report, `OSC 9 ; 4`.
+The sequence is ConEmu's progress report, `OSC 9 ; 4`. And it can ask for the
+person's attention: `\.requestAttention` posts a desktop notification where
+the terminal posts one (iTerm2's `OSC 9`), and rings the bell everywhere else
+(C6, step V10; below).
 
 ### What TUIkit sends, and to whom
 
@@ -3802,11 +3805,40 @@ runs itself in the pane to send every sequence):
   `set -as terminal-features ',xterm-ghostty:progressbar'` — tmux's call, as
   with hyperlinks.
 
+### Attention: a notification, else the bell
+
+| When | Bytes |
+|---|---|
+| `requestAttention(message)`, on a host that posts notifications, with the next frame | `ESC ] 9 ; message ESC \`: the message sanitised as a title is (control characters dropped, line breaks and tabs as spaces), and after a space where it starts with a digit, so that no host reads it as a ConEmu command (`9 ; 4 ; …` is a progress report) |
+| The same, anywhere else, or with a message that is nothing but spaces once sanitised | `BEL`, outside any string sequence |
+| Several requests between two frames | each message once, in order; the bell once, with any a control rang for input it turned away |
+| Requests made as the app quits | written in the exit's farewell, before the alternate screen is left |
+
+Only to a host documented to post one (`TerminalClient.honoursNotifications`):
+Ghostty and iTerm2. `\.terminalFeatures.postsNotifications` says which this
+is; `TUIKIT_NOTIFICATIONS=1` sends notifications to any host, `0` keeps every
+request to the bell. Nothing reports whether the person saw either.
+
+| Host | Posts `OSC 9` | Evidence | The bell |
+|---|---|---|---|
+| Ghostty 1.3.1 | yes, by default | `desktop-notifications` (default `true`), "using certain escape sequences such as OSC 9 or OSC 777" (`ghostty.5`) | `bell-features`: by default bounces the Dock icon once while unfocused, and marks the tab's title with 🔔 until it is focused |
+| iTerm2 3.7.6 | yes | the sequence is iTerm2's own; its triggers name a notification "posted by a control sequence (OSC 9)", and its default profile's notifications are on (`BM Growl`, in the app's `DefaultBookmark.plist`) | as its profile sets it; the default profile's keys: `Silence Bell` off, `Visual Bell` on, `Flashing Bell` off |
+| tmux 3.7c | **no**: passes no `OSC 9` on (measured) | — | passes it on (measured), and marks the window |
+| kitty 0.49.1 | yes (its desktop-notifications documentation, "the legacy OSC 9 protocol developed by iTerm2"); from 0.38 it drops one that starts `4;` | not a host TUIkit models: the bell | — |
+| Apple Terminal 455.1 | no | nothing in the app | its profile's |
+| Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |
+
+Measured on tmux 3.7c with `progress_probe.py --tmux-forwarding` (record
+`data/tmux-3.7c-progress-forwarding.json`): a pane's `OSC 9` reached neither
+client, with the `progressbar` feature or without, and its `BEL` reached both.
+
 ### Owed
 
 - **A look on Ghostty and iTerm2**: whether the bar appears, where, and how
   long one no program updates stays up (`progress_probe.py --hold 20`, and
-  `--timeout 20`). Ghostty's run needs its consent for a new script path,
+  `--timeout 20`); and whether a notification appears
+  (`progress_probe.py --notify`, which a host may first ask the person's
+  permission for). Ghostty's run needs its consent for a new script path,
   with someone there to give it.
 - **The leak check on the GUI hosts**: both screens, on Ghostty and iTerm2,
   which TUIkit sends it to, and on Apple Terminal and Warp, which it sends it

@@ -1,7 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  TerminalBell.swift
 //
-//  The terminal's bell, rung when a control turns input away.
+//  The terminal's bell, rung when a control turns input away, and the
+//  person's attention, asked for by the app.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -22,6 +23,11 @@ import Foundation
 /// However often it is rung between two frames — a paste that drops a dozen
 /// characters, a key held down — the frame rings it once.
 ///
+/// It also carries the app's requests for the person's attention
+/// (``RequestAttentionAction``), queued the same way: each message is a
+/// desktop notification where the terminal posts one, and rings the bell
+/// where it does not, which the run loop decides as it writes them.
+///
 /// One per ``TUIContext``, as the clipboard writer is, so two apps in one
 /// process (a test suite) do not ring each other's.
 package final class TerminalBell: @unchecked Sendable {
@@ -29,6 +35,10 @@ package final class TerminalBell: @unchecked Sendable {
     // actor; `@unchecked` because the environment that carries the bell is
     // `Sendable`.
     private var owed = false
+
+    /// The messages attention was asked with since the last frame, each once,
+    /// in the order first asked.
+    private var owedAttention: [String] = []
 
     /// How many times the bell was rung, ever — for tests, which have no
     /// terminal to hear it.
@@ -51,6 +61,12 @@ package final class TerminalBell: @unchecked Sendable {
         requestFrame()
     }
 
+    /// Asks for the person's attention at the next frame, with `message`.
+    package func requestAttention(_ message: String) {
+        if !owedAttention.contains(message) { owedAttention.append(message) }
+        requestFrame()
+    }
+
     /// The bytes owed to the terminal — one `BEL`, or nothing — and forgets
     /// them. The run loop writes them with its frame's other out-of-band
     /// writes, ahead of every cell: a bell draws nothing and moves no cursor.
@@ -58,6 +74,13 @@ package final class TerminalBell: @unchecked Sendable {
         guard owed else { return "" }
         owed = false
         return "\u{07}"
+    }
+
+    /// The messages attention was asked with since the last frame, and
+    /// forgets them: for the run loop to post, or to ring the bell for.
+    package func takePendingAttention() -> [String] {
+        defer { owedAttention.removeAll() }
+        return owedAttention
     }
 }
 

@@ -493,6 +493,19 @@ the app").
 
 #### C6. Attention: OSC 9 notification, else BEL — adopt at low priority (Q4)
 
+**Built (2026-10-19, lane GHOSTTY, step V10):** `\.requestAttention`
+(`RequestAttentionAction`, `requestAttention("Build finished")`, its message a
+localization key as a `Text` literal is), queued on the context's
+`TerminalBell` and written with the next frame: `OSC 9` on Ghostty and iTerm2,
+each documented to post it, with the ConEmu guard (a leading digit is sent
+after a space) and the title's sanitiser; `BEL` everywhere else, and for a
+message with nothing to say. Under tmux it is the bell: tmux 3.7c passes no
+`OSC 9` on and does pass `BEL` (measured, `progress_probe.py
+--tmux-forwarding`). The run-time check is
+`\.terminalFeatures.postsNotifications`; `TUIKIT_NOTIFICATIONS` the user's
+switch. Whether a notification appears is owed to a look. Decisions
+B-GHOSTTY-6 to 8.
+
 - **Mechanism.** `ESC ] 9 ; <text> ESC \` posts a desktop notification on
   iTerm2, where it originated, and on Ghostty.
   - **ConEmu collision.** Text starting with digits and a semicolon would be
@@ -924,7 +937,7 @@ lane's OSC 52 drain. Land V2 before that lane launches, or after it lands.
 | V7 | **Done 2026-10-19 (lane O9; see C2).** The ledger plus C2's window title (P15's `WindowGroup` titles; a root `.navigationTitle` per A28 §9) | new `Sources/TUIkitApp/Rendering/TerminalHostState.swift`, new `Sources/TUIkitApp/App/RenderLoop+HostState.swift`, `App.swift` (suspend, cleanup, resume), `Scene.swift`, `FatalSignalTerminalRestore.swift`, the capability environment value, `Tools/APIParity` baseline, map and corpus, compat doc | change-only writes; sanitiser (BEL, ESC, C1 in a title); push/pop around suspend; SwiftUI-shaped corpus | new `title_probe.py` on four hosts and tmux |
 | V8 | **Done 2026-10-19 (lane GHOSTTY; see C3).** C3: progress (Q3) | new `Sources/TUIkitFoundation/Modifiers/TerminalProgressModifier.swift`, the ledger, the run-loop timed wake, compat doc, new `progress_probe.py` | states and clamping; keep-alive without renders; teardown | `progress_probe.py` on Ghostty, iTerm2, kitty, tmux; `idle_cpu.py` with a bar shown |
 | V9 | C4: pointer shapes (Q2) | new `PointerStyle.swift` and `PointerStyleModifier.swift`, new per-host name table beside `TerminalHyperlinkSupport.swift`, `MouseEventDispatcher` (region resolution), the ledger, parity map (refusal removed), baseline, corpus, compat doc, new `pointer_probe.py` | topmost style wins; change-only writes; reset on exit and suspend; inert on unidentified hosts | `pointer_probe.py` with screenshots: Ghostty, iTerm2, kitty, tmux |
-| V10 | C6: attention (Q4) | new `RequestAttentionAction.swift`, the ledger's write queue, compat doc | ConEmu guard; sanitiser; BEL fallback outside strings | four hosts and tmux, by eye |
+| V10 | **Done 2026-10-19 (lane GHOSTTY; see C6).** C6: attention (Q4) | new `RequestAttentionAction.swift`, the ledger's write queue, compat doc | ConEmu guard; sanitiser; BEL fallback outside strings | four hosts and tmux, by eye |
 | V11a–d | O3: the four trims, one commit each, each kept only on its M0 number | `Sources/TUIkitApp/Rendering/FrameDiffWriter.swift`, `Sources/TUIkitCore/Extensions/String+CellSpanDiff.swift`, golden snapshots | decomposer fill after a head `K`; span planner; goldens | bytes per M0; Apple Terminal light-profile card; owner: `emit_bench.py` on `textwall`, `kitchensink`, `table` |
 | V12 | O2: hardware scrolling (Q5) | `FrameDiffWriter.swift` (band detection and cache rotation), `Documentation/Images and terminal graphics/Terminal graphics protocols.md` (its "no scroll region" sentence), compat doc | band detection table; cache rotation equals a fresh build; replay rows excluded; split invariance | scroll cards on Apple Terminal (light and dark), iTerm2, Ghostty, Warp, kitty, tmux; bytes on `scroll` and `list`; owner: `emit_bench.py` on `scrollfollow`, `scrolleager`, `megalist`, `kitchensink` |
 | V13 | D1 step 3: XTGETTCAP `RGB` (only if the G-phase probe is positive) | `TerminalIdentityQuery.swift`, its tests, compat doc | sent only after XTVERSION and never under tmux; parse | `identity_probe.py` on four hosts and tmux |

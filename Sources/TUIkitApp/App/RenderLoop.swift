@@ -1017,9 +1017,11 @@ extension RenderLoop {
         // go with the other out-of-band writes, ahead of every cell.
         let copies = tuiContext.clipboardWriter.takePendingSequences()
         if !copies.isEmpty { terminal.write(copies) }
-        // The bell a control rang for input it turned away, likewise.
-        let bell = tuiContext.terminalBell.takePending()
-        if !bell.isEmpty { terminal.write(bell) }
+        // The bell a control rang for input it turned away, and the attention
+        // the app asked for, likewise; see `RenderLoop+HostState.swift`.
+        let attention = attentionWrites()
+        if !attention.notifications.isEmpty { terminal.write(attention.notifications) }
+        if !attention.bell.isEmpty { terminal.write(attention.bell) }
         // The window title and the progress bar, where they changed; see
         // `RenderLoop+HostState.swift`.
         let host = hostStateWrites(atNanos: frameNowNanos)

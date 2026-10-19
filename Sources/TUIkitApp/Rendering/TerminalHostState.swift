@@ -3,7 +3,8 @@
 //
 //  The ledger of what the app has set on the terminal emulator itself, beyond
 //  its screen — the window title, the pointer's shape, the progress bar — and
-//  what giving it back takes.
+//  what giving it back takes; and the spelling of a request for the person's
+//  attention.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -171,6 +172,24 @@ struct TerminalHostState: Equatable {
 
     /// `OSC 9 ; 4 ; 0 ST`: no progress bar.
     static let removeProgressReport = "\u{1B}]9;4;0\u{1B}\\"
+
+    /// `OSC 9 ; message ST`: a desktop notification carrying `message`
+    /// (iTerm2's sequence, which Ghostty takes too), or `nil` where `message`
+    /// is nothing but spaces once sanitised (``sanitizedText(_:)``), for which
+    /// the bell rings instead. A message that starts with a digit is sent after
+    /// a space: `OSC 9` carries ConEmu's commands as well — `9 ; 4 ; …` is a
+    /// progress report — and a terminal that takes those would read a message
+    /// like `4;1;50 files` as one (the Ghostty adoption study, C6).
+    static func notification(_ message: String) -> String? {
+        let text = sanitizedText(message)
+        guard text.contains(where: { !$0.isWhitespace }) else { return nil }
+        let leadsWithDigit = text.unicodeScalars.first.map { ("0"..."9").contains($0) } ?? false
+        return "\u{1B}]9;" + (leadsWithDigit ? " " : "") + text + "\u{1B}\\"
+    }
+
+    /// `BEL`: the terminal's bell, which it sounds, flashes or marks as its
+    /// user has set it.
+    static let bell = "\u{07}"
 
     /// `text`, safe inside an OSC — a title, a notification's message: a line
     /// break or a tab is a space, and every other control character — C0,

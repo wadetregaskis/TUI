@@ -476,10 +476,12 @@ extension AppRunner {
         // first reads it.
         negotiateKeyboardProtocol()
         // And what it does with what the app asks of it beyond the screen — a
-        // progress bar on its tab — by which terminal it is, now that it is
-        // named: published to `\.terminalFeatures` before the first frame, and
-        // what decides whether the frames send it at all.
-        tuiContext.terminalFeatures = TerminalFeatures(showsProgress: TerminalClient.progressReportsSupported)
+        // progress bar on its tab, a desktop notification — by which terminal
+        // it is, now that it is named: published to `\.terminalFeatures`
+        // before the first frame, and what decides what the frames send.
+        tuiContext.terminalFeatures = TerminalFeatures(
+            showsProgress: TerminalClient.progressReportsSupported,
+            postsNotifications: TerminalClient.notificationsSupported)
 
         let renderer = makeRenderLoop()
         startHostMotion(renderer: renderer)
@@ -1093,10 +1095,14 @@ extension AppRunner {
         // The same hand-back as `suspendUntilContinued`'s, with the farewell:
         // the image deletes, and then a copy made in the last moments — a
         // Ctrl-C and then `q` before a frame drew — which is still owed to the
-        // terminal's clipboard.
+        // terminal's clipboard; and likewise attention asked for on the way
+        // out (`requestAttention("Done")` and then `dismiss()`), which no
+        // frame would write.
+        let attention = renderer.attentionWrites()
         terminal.handBack(
             farewell: tuiContext.terminalImageStore.takePending()
-                + tuiContext.clipboardWriter.takePendingSequences() + handBackHostState(renderer),
+                + tuiContext.clipboardWriter.takePendingSequences() + attention.notifications + attention.bell
+                + handBackHostState(renderer),
             restoringStyling: renderer.restoreTerminalStyling)
         SoftTrap.terminalRestored()
         signals.stop()

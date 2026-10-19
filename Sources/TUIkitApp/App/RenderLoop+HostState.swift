@@ -3,7 +3,8 @@
 //
 //  The terminal's window title, from the window in front, and its progress
 //  bar, from the views drawn: what each frame writes of them, and what handing
-//  the terminal back gives back.
+//  the terminal back gives back. And the person's attention, as the app asked
+//  for it: a notification, or the bell.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -44,6 +45,27 @@ extension RenderLoop {
         guard tuiContext.terminalFeatures.showsProgress else { return title }
         return title + hostState.show(progress: terminalProgress, atNanos: now)
             + hostState.keepAlive(atNanos: now)
+    }
+
+    /// What this frame writes to get the person's attention: a notification
+    /// for each message the app asked with (`requestAttention(_:)`), where the
+    /// terminal posts one (``TerminalFeatures/postsNotifications``); and the
+    /// bell — once, however often it was asked for — for input a control
+    /// turned away, and for attention where no notification is posted or its
+    /// message leaves nothing to say. Each half empty where nothing is owed.
+    func attentionWrites() -> (notifications: String, bell: String) {
+        let owed = tuiContext.terminalBell
+        var rings = !owed.takePending().isEmpty
+        var notifications = ""
+        let posts = tuiContext.terminalFeatures.postsNotifications
+        for message in owed.takePendingAttention() {
+            if posts, let notification = TerminalHostState.notification(message) {
+                notifications += notification
+            } else {
+                rings = true
+            }
+        }
+        return (notifications, rings ? TerminalHostState.bell : "")
     }
 
     /// What handing the terminal back to the shell — a suspend, or the exit —
