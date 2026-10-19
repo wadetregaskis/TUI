@@ -98,7 +98,11 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
             // `.statusBarItems` makes.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             // A screen pushed onto a navigation stack puts its top-bar items
-            // in the stack's bar (`NavigationBarItems`), on a drawn walk.
+            // in the stack's bar (`NavigationBarItems`), on a drawn walk. The
+            // first frame's seeding walk draws no pushed screen: a screen's
+            // destination is registered on a drawn walk
+            // (`navigationDestination(for:)`, a link's own), and none has run
+            // yet — so no screen's items seed the window's rows.
             let stackBar = context.isMeasuring ? nil : context.environment.navigationBarItems
             // A customizable toolbar is listed for its panel, on a drawn walk.
             if !context.isMeasuring { declareCustomizable(into: chrome, context: context) }
@@ -112,11 +116,6 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                 if let stackBar, item.goesInNavigationBar {
                     stackBar.drawsItems = Self.drawsItems
                     stackBar.declare(entry)
-                    continue
-                }
-                // The seeding walk finds the WINDOW's rows; a stack's bar is
-                // its own.
-                if context.isMeasuring, context.environment.navigationBarItems != nil, item.goesInNavigationBar {
                     continue
                 }
                 chrome.declare(entry)

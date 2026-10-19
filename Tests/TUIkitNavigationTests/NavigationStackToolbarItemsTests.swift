@@ -97,6 +97,23 @@ struct NavigationStackToolbarItemsTests {
         #expect(StackProbe.shared.saved == 1)
     }
 
+    @Test("Launched with a screen pushed, the first frame seeds no window top bar for the screen's items")
+    func firstFrameSeedsNoTopBar() {
+        reset()
+        defer { reset() }
+        StackProbe.shared.path = [3]
+        let app = HeadlessApp(StackItemsApp(), width: 50, height: 10)
+        app.frame(atNanos: 0)
+        let first = app.screen.map(\.stripped)
+        // The stack's bar is the first row from the first frame: no rows of
+        // the window's top bar, reserved for items that went to the stack's
+        // bar, drawn blank above it and taken away a frame later.
+        #expect(first.first?.contains("SAVE") == true, "\(first)")
+        var now: Int64 = 0
+        let settled = frames(app, from: &now)
+        #expect(first.firstIndex { $0.contains("SCREEN 3") } == settled.firstIndex { $0.contains("SCREEN 3") }, "\(first) \(settled)")
+    }
+
     @Test("At the root, the root's top items are the window's")
     func rootItems() {
         reset()
