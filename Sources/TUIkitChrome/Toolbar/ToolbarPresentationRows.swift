@@ -41,7 +41,7 @@ extension _ToolbarModifier {
         var bottom: [WindowChromeState.ToolbarEntry] = []
         // A title menu is the window's title's, and presented content's rows
         // have no title.
-        for item in toolbarItems(of: items) where !item.isTitleMenu {
+        for item in shownItems(context: context) where !item.isTitleMenu {
             let view: AnyView =
                 switch item.placement.role {
                 case .confirmationAction: AnyView(item.view.keyboardShortcut(.defaultAction))

@@ -68,6 +68,10 @@ struct _ToolbarItemSpec {
     /// title, not beside it.
     var isTitleMenu = false
 
+    /// What a customizable toolbar's modifiers said of the item
+    /// (``CustomizableToolbarContent``).
+    var customization = _ToolbarItemCustomization()
+
     /// Where the item sits in the content that declared it: the member of each
     /// block it is in, and the branch of each `if`/`else` — its structural
     /// identity, as a view's in a `ViewBuilder` is.
@@ -102,6 +106,13 @@ struct _ToolbarItemCollector {
             _ToolbarItemSpec(
                 placement: placement, view: view, id: id, isFlexibleSpace: isFlexibleSpace,
                 defaultKind: defaultKind, isTitleMenu: isTitleMenu, path: path))
+    }
+
+    /// Annotates every item collected since the collector held `start` of
+    /// them: what a modifier on toolbar content says of the items its content
+    /// hands over.
+    mutating func annotate(from start: Int, _ body: (inout _ToolbarItemSpec) -> Void) {
+        for index in start..<items.count { body(&items[index]) }
     }
 
     /// Adds items collected elsewhere, at their places under the current one.

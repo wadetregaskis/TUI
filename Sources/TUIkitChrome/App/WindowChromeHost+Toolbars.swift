@@ -88,12 +88,15 @@ extension _WindowChromeHost {
                     edge, row: index, width: width, rows: shown, style: style, context: context)
                 if isModal { rowContext = rowContext.isolatedForBackground() }
                 rowContext.environment.activeFocusSectionID = sectionID
-                let drawnRow = TUIkitView.renderToBuffer(
-                    _ToolbarBarRow(
-                        entries: barRow.entries, title: barRow.title, subtitle: barRow.subtitle,
-                        keepsTitleBesidePrincipal: chrome.titleBesidePrincipal),
-                    context: rowContext
-                ).fittedAsChrome(toRows: shown, width: contentWidth, background: "")
+                let barRowView = _ToolbarBarRow(
+                    entries: barRow.entries, title: barRow.title, subtitle: barRow.subtitle,
+                    keepsTitleBesidePrincipal: chrome.titleBesidePrincipal)
+                let drawnRow =
+                    (bar.hostsCustomization && index == 0
+                    ? TUIkitView.renderToBuffer(
+                        _ToolbarCustomizationHost(content: barRowView, chrome: chrome), context: rowContext)
+                    : TUIkitView.renderToBuffer(barRowView, context: rowContext))
+                    .fittedAsChrome(toRows: shown, width: contentWidth, background: "")
                 items.appendVertically(
                     accessoryGround(barRow.accessory, of: drawnRow, chrome: chrome, width: contentWidth, context: rowContext))
                 for entry in barRow.entries { drawn.insert(entry.identity) }
@@ -128,6 +131,9 @@ extension _WindowChromeHost {
         var tooltip: [String] = []
         /// What it is drawn on.
         let ground: BarGround
+        /// Whether its first row carries the customization of the window's
+        /// customizable toolbars: its context menu and panel.
+        var hostsCustomization = false
     }
 
     /// What a bar is drawn on this walk (``WindowChromeState/fill(_:)``).

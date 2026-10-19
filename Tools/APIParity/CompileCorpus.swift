@@ -2716,6 +2716,49 @@ private struct ToolbarShapes: View {
     }
 }
 
+/// A customizable toolbar as SwiftUI's documentation writes one: identified
+/// items, each customization behaviour, a default customization and its
+/// option, a hidden item, an item of a control group hidden within it, a
+/// spacer, a title menu, and a conditional item.
+@MainActor
+private struct CustomizableToolbarShapes: View {
+    @State private var showDownloads = false
+    @State private var inCollaboration = false
+
+    var body: some View {
+        Text("browser")
+            .toolbar(id: "browserToolbar") {
+                ToolbarItem(id: "new") { Button("New") {} }
+                    .customizationBehavior(.disabled)
+                ToolbarItem(id: "reorder") { Button("Reorder") {} }
+                    .customizationBehavior(.reorderable)
+                ToolbarItem(id: "downloads") { Button("Downloads") {} }
+                    .hidden(!showDownloads)
+                ToolbarItem(id: "extra") { Button("Extra") {} }
+                    .defaultCustomization(.hidden)
+                ToolbarItem(id: "always") { Button("Always") {} }
+                    .defaultCustomization(options: .alwaysAvailable)
+                ToolbarItem(id: "share") {
+                    ControlGroup {
+                        Button("Share") {}
+                        Button("Collaborate") {}.toolbarItemHidden(!inCollaboration)
+                    }
+                }
+                .customizationBehavior(.default)
+                ToolbarSpacer()
+                ToolbarTitleMenu { Button("Rename") {} }
+                if showDownloads {
+                    ToolbarItem(id: "clear") { Button("Clear") {} }
+                        .sharedBackgroundVisibility(.hidden)
+                }
+            }
+            .toolbar(id: "options") {
+                ToolbarItem(id: "raw", placement: .primaryAction) { Text("raw") }
+                    .defaultCustomization(.visible, options: ToolbarCustomizationOptions(rawValue: 1))
+            }
+    }
+}
+
 /// A view reading the window's toolbar label style.
 @MainActor
 private struct LabelStyleReader: View {

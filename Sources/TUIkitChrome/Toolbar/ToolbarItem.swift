@@ -59,9 +59,8 @@ extension ToolbarItem where ID == String {
     /// allows for user customization.
     ///
     /// The identifier is the item's identity in the bar, so its `@State`
-    /// follows it rather than its position. A terminal toolbar has no
-    /// customization sheet (`toolbar(id:content:)`), so the identifier does
-    /// nothing else.
+    /// follows it rather than its position, and in a customizable toolbar
+    /// (`toolbar(id:content:)`) it is what the person customizes the item by.
     ///
     /// - Parameters:
     ///   - id: A unique identifier for this item.

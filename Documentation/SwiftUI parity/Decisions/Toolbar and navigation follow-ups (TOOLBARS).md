@@ -76,3 +76,36 @@ the content column) shows its destination in the next column, in place of
 the column's own content, and a split that turns regular with links pushed
 shows the last one there. About half a day: the split's columns read the
 collapsed stack's links when they draw the next column.
+
+### B-TOOLBARS-4. Toolbar customization: a panel from the bar, kept per identifier
+
+*`View.toolbar(id:content:)`, `CustomizableToolbarContent` and its modifiers,
+`ToolbarCustomizationBehavior`, `ToolbarCustomizationOptions`; the A28 study's
+customisation family, option 1 (settled 2026-10-18)*
+
+**Shipped:** a customizable toolbar's identified items are customized from a
+panel that hangs from the top bar (the bottom bar, where the window has no top
+bar): a checkbox per item, ▲ ▼ to move it among the movable items, the label
+styles where the scene bound them, Reset and Done. It opens from the bar's
+context menu — a right-click, or Shift+F10 while one of the bar's items has the
+focus — and from the menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`).
+What the person chose is kept per toolbar identifier in the app's default
+storage, as JSON in TUIkit's own encoding (`order`, `shown`), with nothing
+written until they change something; Reset forgets it.
+
+Where it differs from macOS:
+
+- **Moving is within a placement.** The bar lays its items out by placement —
+  leading, principal, trailing — so an item moves among the others of its
+  placement; macOS drags an item anywhere in the toolbar.
+- **No palette of spacers.** macOS offers Space and Flexible Space to drag in;
+  a `ToolbarSpacer` here stays where it was declared.
+- **The keyboard's way in needs a stop or the menu bar.** Shift+F10 opens the
+  bar's context menu while one of the bar's items has the focus, and View ▸
+  Customize Toolbar… needs `ToolbarCommands`; a bar of text alone, in an app
+  with no menu bar, is customized by its right-click only.
+
+**The fuller versions:** a stop of its own for a bar with no focusable item,
+so Shift+F10 always reaches its menu — about two hours; moving an item across
+placements, which changes where the app placed it — about half a day, and
+arguably not the person's to change; spacers in the panel — about two hours.

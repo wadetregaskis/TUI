@@ -69,6 +69,11 @@
   "label.hideContentColumn": "Nascondi colonna dei contenuti",
   "label.showNamedPanel": "Mostra “%@”",
   "label.hideNamedPanel": "Nascondi “%@”",
+  "label.customizeToolbar": "Personalizza barra strumenti…",
+  "label.toolbarShow": "Mostra",
+  "label.iconAndText": "Icona e testo",
+  "label.iconOnly": "Solo icona",
+  "label.textOnly": "Solo testo",
 
   "error.invalid_input": "Input non valido",
   "error.required_field": "Questo campo è obbligatorio",

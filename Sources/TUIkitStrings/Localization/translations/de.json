@@ -69,6 +69,11 @@
   "label.hideContentColumn": "Inhaltsspalte ausblenden",
   "label.showNamedPanel": "„%@“ einblenden",
   "label.hideNamedPanel": "„%@“ ausblenden",
+  "label.customizeToolbar": "Symbolleiste anpassen …",
+  "label.toolbarShow": "Zeigen",
+  "label.iconAndText": "Symbol und Text",
+  "label.iconOnly": "Nur Symbol",
+  "label.textOnly": "Nur Text",
 
   "error.invalid_input": "Ungültige Eingabe",
   "error.required_field": "Dieses Feld ist erforderlich",

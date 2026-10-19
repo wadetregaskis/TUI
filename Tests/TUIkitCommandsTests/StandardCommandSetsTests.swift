@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkitApp
@@ -67,6 +68,46 @@ private struct ToolbarApp: App {
         .commandsRemoved()
         .commands { ToolbarCommands() }
     }
+}
+
+private struct CustomizableToolbarApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE").toolbar(id: "main") {
+                ToolbarItem(id: "header", placement: .navigation) { Text("HEADER") }
+                ToolbarItem(id: "extra", placement: .primaryAction) { Text("EXTRA") }
+                    .defaultCustomization(.hidden)
+            }
+        }
+        .defaultAppStorage(MemoryStore())
+        .commandsRemoved()
+        .commands { ToolbarCommands() }
+    }
+}
+
+/// A store for one test's choices, so none is kept anywhere else.
+private final class MemoryStore: StorageBackend, @unchecked Sendable {
+    private var values: [String: Data] = [:]
+    private var keys: [String: StoredKey] = [:]
+    private func stored(_ key: String) -> StoredKey {
+        if let found = keys[key] { return found }
+        let made = StoredKey()
+        keys[key] = made
+        return made
+    }
+    func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
+        (values[key].flatMap { try? JSONDecoder().decode(T.self, from: $0) }, stored(key))
+    }
+    func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
+        values[key] = try? JSONEncoder().encode(value)
+        return stored(key)
+    }
+    func remove(forKey key: String) -> StoredKey? {
+        values[key] = nil
+        return keys[key]
+    }
+    func synchronize() {}
 }
 
 private struct FindApp: App {
@@ -166,6 +207,22 @@ struct StandardCommandSetsTests {
         frame(app)
         frame(app)
         #expect(rows(app).contains { $0.contains("HEADER") }, "\(rows(app))")
+    }
+
+    @Test("ToolbarCommands: View ▸ Customize Toolbar… opens the customizable toolbar's panel")
+    mutating func customizeToolbar() {
+        let app = launched(CustomizableToolbarApp())
+        let menu = menuRows(of: app)
+        #expect(menu.contains { $0.contains("Customize Toolbar") }, "\(menu)")
+        app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
+        app.send(KeyEvent(key: .enter))
+        frame(app)
+        frame(app)
+        frame(app)
+        #expect(rows(app).contains { $0.contains("□") && $0.contains("EXTRA") }, "the panel: \(rows(app))")
     }
 
     @Test("TextEditingCommands: Edit ▸ Find… shows the focused editor's find bar")

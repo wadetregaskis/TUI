@@ -71,6 +71,10 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
     let content: Content
     let items: Items
 
+    /// The identifier of a customizable toolbar (`toolbar(id:content:)`), or
+    /// `nil` for an ordinary one.
+    var customizationID: String?
+
     var body: Never { fatalError("_ToolbarModifier renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -89,7 +93,9 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
             // A screen pushed onto a navigation stack puts its top-bar items
             // in the stack's bar (`NavigationBarItems`), on a drawn walk.
             let stackBar = context.isMeasuring ? nil : context.environment.navigationBarItems
-            for item in toolbarItems(of: items) {
+            // A customizable toolbar is listed for its panel, on a drawn walk.
+            if !context.isMeasuring { declareCustomizable(into: chrome, context: context) }
+            for item in shownItems(context: context) {
                 let entry = WindowChromeState.ToolbarEntry(
                     placement: item.placement, view: item.view, environment: context.environment,
                     identity: itemIdentity(item, depth: depth, context: context),

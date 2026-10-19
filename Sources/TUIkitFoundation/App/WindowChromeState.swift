@@ -231,6 +231,10 @@ package final class WindowChromeState: @unchecked Sendable {
     /// ``Visibility/automatic``.
     private var declaredBackgroundVisibility: [BarKey: Visibility] = [:]
 
+    /// The customizable toolbars this walk declared, the first of each
+    /// identifier (``declare(_:)-(CustomizableToolbarDeclaration)``).
+    private var customizableToolbarDeclarations: [CustomizableToolbarDeclaration] = []
+
     /// The identities of ``toolbarEntries``, so an item a walk renders twice —
     /// the first frame's measuring walk measures some views by rendering them —
     /// is declared once.
@@ -634,6 +638,7 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredBackground.removeAll(keepingCapacity: true)
         declaredBackgroundVisibility.removeAll(keepingCapacity: true)
         declaredTitleBesidePrincipal = nil
+        customizableToolbarDeclarations.removeAll(keepingCapacity: true)
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
         _tooltipRows = 0..<0
         _presentationsOverPage = []
@@ -730,6 +735,51 @@ package final class WindowChromeState: @unchecked Sendable {
     /// Whether the top bar shows its title beside its principal items this
     /// walk (`.toolbarRole(.editor)`), rather than giving them its place.
     package var titleBesidePrincipal: Bool { declaredTitleBesidePrincipal ?? false }
+
+    // MARK: Customization
+
+    /// Records a customizable toolbar the walk declared — the first of each
+    /// identifier.
+    package func declare(_ toolbar: CustomizableToolbarDeclaration) {
+        guard !customizableToolbarDeclarations.contains(where: { $0.id == toolbar.id }) else { return }
+        customizableToolbarDeclarations.append(toolbar)
+    }
+
+    /// The customizable toolbars this walk declared, in the order it declared
+    /// them.
+    package var customizableToolbars: [CustomizableToolbarDeclaration] { customizableToolbarDeclarations }
+
+    /// The identifier of the toolbar the customization panel is open on, or
+    /// `nil` while it is closed. The person's, held from frame to frame until
+    /// they close it.
+    package var customizingToolbarID: String? {
+        get { _customizingToolbarID }
+        set { _customizingToolbarID = newValue }
+    }
+
+    /// ``customizingToolbarID``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _customizingToolbarID: String?
+
+    /// Opens the customization panel on the first customizable toolbar
+    /// declared: what the menu bar's View ▸ Customize Toolbar… does. Nothing,
+    /// with none.
+    package func beginCustomizingToolbar() {
+        _customizingToolbarID = customizableToolbarDeclarations.first?.id
+    }
+
+    /// Sets the window's toolbar label style, where the scene bound it
+    /// (`Scene.windowToolbarLabelStyle(_:)`, TUIkitApp) — the person's choice
+    /// in the customization panel — handed the style as a `ToolbarLabelStyle`
+    /// (TUIkitChrome); `nil` where the scene's style is fixed or unstated.
+    package var choosesToolbarLabelStyle: (@MainActor (Any) -> Void)? {
+        get { _choosesToolbarLabelStyle }
+        set { _choosesToolbarLabelStyle = newValue }
+    }
+
+    /// ``choosesToolbarLabelStyle``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _choosesToolbarLabelStyle: (@MainActor (Any) -> Void)?
 
     /// Whether the menu bar's View ▸ Hide Toolbar (`ToolbarCommands`,
     /// TUIkitCommands) hid the top bar: the person's choice, which holds until

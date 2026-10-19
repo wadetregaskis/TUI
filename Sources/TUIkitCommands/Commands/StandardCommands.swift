@@ -82,8 +82,10 @@ public struct InspectorCommands: Commands {
 /// value of this type to the `Scene.commands(content:)` modifier. They add View ▸
 /// Hide Toolbar (Show Toolbar while it is hidden), on ⌥⌘T as on macOS: the
 /// window's top bar goes, whatever the page declares, until Show Toolbar
-/// brings it back. Disabled while the page places nothing in the top bar. The
-/// toolbar is not customizable here, so there is no Customize Toolbar….
+/// brings it back. Disabled while the page places nothing in the top bar. And
+/// View ▸ Customize Toolbar…, which opens the customization panel of the
+/// page's customizable toolbar (`toolbar(id:content:)`); disabled while it has
+/// none.
 public struct ToolbarCommands: Commands {
     @Environment(\.windowChrome) private var chrome
 
@@ -99,6 +101,10 @@ public struct ToolbarCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: [.command, .option])
             .disabled(!hidden && !declared)
+            Button(LocalizationService.shared.string(for: LocalizationKey.Label.customizeToolbar)) {
+                chrome?.beginCustomizingToolbar()
+            }
+            .disabled(chrome?.customizableToolbars.isEmpty ?? true)
         }
     }
 }

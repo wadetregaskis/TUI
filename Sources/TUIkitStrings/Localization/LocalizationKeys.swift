@@ -130,6 +130,18 @@ public enum LocalizationKey {
         /// A toolbar's panel button a label named, while the panel shows: its
         /// help, the name as `%@`.
         case hideNamedPanel = "label.hideNamedPanel"
+        /// A toolbar's context menu, and the menu bar's View menu: the item
+        /// that opens the customization panel.
+        case customizeToolbar = "label.customizeToolbar"
+        /// The toolbar customization panel: the title of the label style
+        /// choice, as macOS's "Show:".
+        case toolbarShow = "label.toolbarShow"
+        /// The toolbar customization panel: `ToolbarLabelStyle.titleAndIcon`.
+        case iconAndText = "label.iconAndText"
+        /// The toolbar customization panel: `ToolbarLabelStyle.iconOnly`.
+        case iconOnly = "label.iconOnly"
+        /// The toolbar customization panel: `ToolbarLabelStyle.titleOnly`.
+        case textOnly = "label.textOnly"
     }
 
     /// Border appearance names, as shown in a settings screen.

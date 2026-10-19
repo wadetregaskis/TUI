@@ -69,6 +69,11 @@
   "label.hideContentColumn": "コンテンツ列を非表示",
   "label.showNamedPanel": "「%@」を表示",
   "label.hideNamedPanel": "「%@」を非表示",
+  "label.customizeToolbar": "ツールバーをカスタマイズ…",
+  "label.toolbarShow": "表示",
+  "label.iconAndText": "アイコンとテキスト",
+  "label.iconOnly": "アイコンのみ",
+  "label.textOnly": "テキストのみ",
 
   "error.invalid_input": "入力が無効です",
   "error.required_field": "この項目は必須です",

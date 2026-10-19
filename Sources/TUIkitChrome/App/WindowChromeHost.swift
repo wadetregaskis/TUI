@@ -145,11 +145,15 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         let topRows = chrome.map { barRows(.top, chrome: $0, width: width, context: context) } ?? []
         let bottomRows = chrome.map { barRows(.bottom, chrome: $0, width: width, context: context) } ?? []
         var drawn = Set<ViewIdentity>()
+        // A customizable toolbar's context menu and panel hang from the top
+        // bar's first row, or the bottom bar's where there is no top bar.
+        let customizable = !(chrome?.customizableToolbars.isEmpty ?? true)
         var top = chrome.flatMap { chrome in
             topGround.flatMap {
                 toolbarBuffer(
                     BarDrawing(
-                        edge: .top, rows: topRows, contentRows: chrome.rows(.top), itemRows: itemRows.top, ground: $0),
+                        edge: .top, rows: topRows, contentRows: chrome.rows(.top), itemRows: itemRows.top, ground: $0,
+                        hostsCustomization: customizable),
                     chrome: chrome, width: width, isModal: isModal, drawn: &drawn, context: context)
             }
         }
@@ -158,7 +162,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
                 toolbarBuffer(
                     BarDrawing(
                         edge: .bottom, rows: bottomRows, contentRows: chrome.rows(.bottom), itemRows: itemRows.bottom,
-                        tooltip: tooltip, ground: $0),
+                        tooltip: tooltip, ground: $0, hostsCustomization: customizable && topRows.isEmpty),
                     chrome: chrome, width: width, isModal: isModal, drawn: &drawn, context: context)
             }
         }

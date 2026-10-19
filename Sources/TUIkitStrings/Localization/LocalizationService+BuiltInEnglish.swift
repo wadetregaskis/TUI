@@ -99,6 +99,11 @@ extension LocalizationService {
       "label.hideContentColumn": "Hide Content Column",
       "label.showNamedPanel": "Show “%@”",
       "label.hideNamedPanel": "Hide “%@”",
+      "label.customizeToolbar": "Customize Toolbar…",
+      "label.toolbarShow": "Show",
+      "label.iconAndText": "Icon and Text",
+      "label.iconOnly": "Icon Only",
+      "label.textOnly": "Text Only",
 
       "error.invalid_input": "Invalid input",
       "error.required_field": "This field is required",

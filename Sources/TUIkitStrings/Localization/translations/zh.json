@@ -69,6 +69,11 @@
   "label.hideContentColumn": "隐藏内容栏",
   "label.showNamedPanel": "显示“%@”",
   "label.hideNamedPanel": "隐藏“%@”",
+  "label.customizeToolbar": "自定工具栏…",
+  "label.toolbarShow": "显示",
+  "label.iconAndText": "图标和文本",
+  "label.iconOnly": "仅图标",
+  "label.textOnly": "仅文本",
 
   "error.invalid_input": "输入无效",
   "error.required_field": "此字段为必填项",
