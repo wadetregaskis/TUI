@@ -2654,6 +2654,14 @@ private struct ToolbarShapes: View {
                     }
                     ToolbarItem(placement: .status) { Text("3 notes") }
                     ToolbarItem(placement: .bottomBar) { Text("hints") }
+                    ToolbarItem(id: "share") {
+                        ControlGroup {
+                            Button("Share") {}
+                            Button("Collaborate") {}
+                                .toolbarItemHidden(!editing)
+                            Button("Mail") {}.toolbarItemHidden()
+                        }
+                    }
                 }
             Text("more")
                 .toolbar {

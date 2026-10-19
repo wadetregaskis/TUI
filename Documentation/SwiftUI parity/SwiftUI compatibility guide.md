@@ -693,9 +693,12 @@ here, a TUIkit addition, so `@AppStorage` keeps it) draw every `Label` in the
 window's bars' items as `.iconOnly`, `.titleOnly` or `.titleAndIcon` says,
 under any `.labelStyle` the item states itself; `.automatic` leaves the
 items as declared, and `\.toolbarLabelStyle` reads the scene's choice.
+`.toolbarItemHidden(_:)` hides one view of a toolbar item — a `ControlGroup`'s
+button, a `ToolbarItemGroup`'s view — which closes up round it and keeps its
+`@State`; outside a toolbar it changes nothing, as in SwiftUI.
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
-modifiers (`toolbarItemHidden`, `toolbarTitleMenu`, …), a
+modifiers (`toolbarTitleMenu`, …), a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation
 family (`toolbar(id:)`).
 

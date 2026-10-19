@@ -195,6 +195,8 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         // states itself. Not a presentation's rows: a sheet's buttons are not
         // the window's toolbar.
         if !bar.presentationHostsToolbar { environment.toolbarLabelStyle?.apply(to: &environment) }
+        // Where `.toolbarItemHidden(_:)` hides a view.
+        environment.drawsToolbarItem = true
         var entryContext = context.withEnvironment(environment)
         entryContext.identity = entry.identity
         return entryContext

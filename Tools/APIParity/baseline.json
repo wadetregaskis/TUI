@@ -132,7 +132,6 @@
   "View.textRenderer(_:)",
   "View.toolbar(id:content:)",
   "View.toolbarColorScheme(_:for:)",
-  "View.toolbarItemHidden(_:)",
   "View.toolbarTitleDisplayMode(_:)",
   "View.toolbarTitleMenu(content:)",
   "View.transformEffect(_:)",
