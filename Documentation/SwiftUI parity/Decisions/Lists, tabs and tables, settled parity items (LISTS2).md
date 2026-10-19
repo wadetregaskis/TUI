@@ -80,7 +80,10 @@ day, as priced.
 **Shipped:** only a section with a customization identifier moves — the
 order is stored by identifier — and it moves among the places identified
 sections have, as a stated order is applied; the loose tabs between sections
-keep theirs. From the keyboard the section in hand is drawn faint and the
+keep theirs. A move writes the sections it orders into the places the stored
+order gave them, so an identified section the sidebar does not show — its
+tabs all hidden for now, or no header to move it by — keeps its stored
+place. From the keyboard the section in hand is drawn faint and the
 others step aside as it moves, and it goes back if the focus leaves its
 header, as a list's row in hand does; a drag carries the header's title, and
 a release over another header puts the section in that one's place.

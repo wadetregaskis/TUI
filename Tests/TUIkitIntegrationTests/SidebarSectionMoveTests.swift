@@ -166,6 +166,55 @@ struct SidebarSectionMoveTests {
         #expect(store.sectionOrder == nil, "\(String(describing: store.sectionOrder))")
     }
 
+    /// A move orders the sections the sidebar shows with a header; the
+    /// stored order holds others too — one whose tabs are all hidden now, one
+    /// with no header. Written over with the moved ones alone, the others
+    /// lost their places: shown again, each went back to where it was
+    /// declared, and moving one section moved another.
+    @Test("Moving a section keeps the stored places of the sections it did not move")
+    func moveKeepsOtherSectionsPlaces() throws {
+        let store = Store()
+        store.customization = try JSONDecoder().decode(
+            TabViewCustomization.self,
+            from: Data(#"{"sidebarVisibility": {"old": "hidden"}, "sectionOrder": ["tags", "archive", "folders"]}"#.utf8))
+        func view() -> some View {
+            TabView(selection: .constant(0)) {
+                Tab("Inbox", value: 0) { Text("INBOX BODY") }
+                TabSection("Folders") {
+                    Tab("Work", value: 1) { Text("WORK BODY") }
+                }
+                .customizationID("folders")
+                TabSection("Archive") {
+                    Tab("Old", value: 3) { Text("OLD BODY") }.customizationID("old")
+                }
+                .customizationID("archive")
+                TabSection("Tags") {
+                    Tab("Red", value: 2) { Text("RED BODY") }
+                }
+                .customizationID("tags")
+            }
+            .tabViewStyle(.sidebarAdaptable)
+            .tabViewCustomization(store.binding)
+        }
+        let harness = InputChainHarness(width: 50, height: 14)
+        let drawn = harness.frame(view())
+        #expect(
+            isAbove("Tags", "Folders", in: drawn) && cell(of: "Archive", in: drawn) == nil,
+            "precondition: the stored order, with the archive's only tab hidden: \(drawn.lines.map(\.stripped))")
+        // The first section header: the Tags fold.
+        guard focusFolders(harness) else {
+            Issue.record("no section header to focus")
+            return
+        }
+        harness.frame(view())
+        harness.press(Self.pickUp)
+        harness.press(KeyEvent(key: .down))
+        harness.press(KeyEvent(key: .enter))
+        let moved = harness.frame(view())
+        #expect(isAbove("Folders", "Tags", in: moved), "\(moved.lines.map(\.stripped))")
+        #expect(store.sectionOrder == ["folders", "archive", "tags"], "\(String(describing: store.sectionOrder))")
+    }
+
     @Test("Without a customization bound, Ctrl-R on a section header moves nothing")
     func unboundDoesNothing() {
         let store = Store()

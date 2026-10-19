@@ -112,10 +112,31 @@ public struct TabViewCustomization: Equatable, Sendable, Codable {
         sectionOrder = nil
     }
 
-    /// Orders the identified sections as `ids` lists them — what a person
-    /// moving a section in the sidebar writes.
+    /// Orders the identified sections `ids` lists as it lists them — what a
+    /// person moving a section in the sidebar writes, for the sections it
+    /// shows with a header.
+    ///
+    /// They take the places the stored order gave them, and one it did not
+    /// list a place at its end; every other section it lists keeps its own.
+    /// Written over with `ids` alone, a section the sidebar did not show — its
+    /// tabs all hidden for now, or no header to move it by — lost its place,
+    /// and went back to where it was declared: moving one section moved
+    /// another.
     mutating func orderSections(_ ids: [String]) {
-        sectionOrder = ids
+        // Each once: a stated order ranks only an identifier's first place.
+        var listed = Set<String>()
+        var order = (sectionOrder ?? []).filter { listed.insert($0).inserted }
+        var moving = Set<String>()
+        let ids = ids.filter { moving.insert($0).inserted }
+        var places = order.indices.filter { moving.contains(order[$0]) }
+        for id in ids where !listed.contains(id) {
+            places.append(order.count)
+            order.append(id)
+        }
+        for (place, id) in zip(places, ids) {
+            order[place] = id
+        }
+        sectionOrder = order
     }
 
     /// Resets every tab's visibility back to its default.
