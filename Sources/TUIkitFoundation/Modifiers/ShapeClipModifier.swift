@@ -36,34 +36,54 @@ extension _ShapeClip: Renderable {
         let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
         // A rectangle keeps the frame, which `clipped()` has already cut to.
         if let rectangle = drawn as? Rectangle, rectangle.insetAmount == 0 { return buffer }
-        let kept = Self.keptCells(
-            of: drawn, evenOdd: fillStyle.isEOFilled,
-            frame: ShapeFrame(columns: columns, rows: rows, aspect: context.environment.imageCellAspect))
-        return Self.clearing(buffer, keeping: kept)
+        let kept = FrameBuffer.cellsKept(
+            by: drawn, columns: columns, rows: rows, aspect: context.environment.imageCellAspect,
+            evenOdd: fillStyle.isEOFilled)
+        return buffer.clearing(keeping: kept)
     }
+}
 
-    /// Which cells of each row the shape covers at least half of, as runs of
-    /// columns.
-    static func keptCells(of shape: any Shape, evenOdd: Bool, frame: ShapeFrame) -> [[Range<Int>]] {
+extension FrameBuffer {
+    /// Which cells of each row of a `columns` × `rows` frame `shape` covers at
+    /// least half of, as runs of columns: the cells a clip to the shape keeps.
+    ///
+    /// - Parameters:
+    ///   - shape: The shape, laid in the frame as a view's is: its rows
+    ///     `aspect` units tall.
+    ///   - columns: The frame's width.
+    ///   - rows: The frame's height.
+    ///   - aspect: How many columns tall a row is
+    ///     (``EnvironmentValues/imageCellAspect``).
+    ///   - evenOdd: Whether the even-odd rule decides what is inside.
+    /// - Returns: One list of runs a row.
+    package static func cellsKept(
+        by shape: any Shape, columns: Int, rows: Int, aspect: Double, evenOdd: Bool = false
+    ) -> [[Range<Int>]] {
+        let frame = ShapeFrame(columns: columns, rows: rows, aspect: aspect)
         let coverage = ShapeCoverage(cellsOf: shape, evenOdd: evenOdd, frame: frame)
         return (0..<frame.rows).map { row in
             coverage.runs(row: row) { $0 >= 0.5 }
         }
     }
 
-    /// `buffer` with every cell outside `kept` cleared to nothing.
-    static func clearing(_ buffer: FrameBuffer, keeping kept: [[Range<Int>]]) -> FrameBuffer {
-        let width = buffer.width
-        var lines: [String] = []
-        lines.reserveCapacity(buffer.height)
+    /// This buffer with every cell outside `kept` cleared to nothing: a space
+    /// stating no colour, claimed at a field of 0, so what is behind shows
+    /// there, its claims and animated runs cut away with it.
+    ///
+    /// - Parameter kept: The runs of columns kept, one list a row; a row past
+    ///   its end keeps nothing.
+    /// - Returns: The buffer, cleared outside `kept`.
+    package func clearing(keeping kept: [[Range<Int>]]) -> FrameBuffer {
+        var rebuiltLines: [String] = []
+        rebuiltLines.reserveCapacity(height)
         var cleared: [OpacityRegion] = []
-        var regions = buffer.opacityRegions
+        var regions = opacityRegions
         var runs: [AnimatedCellRun] = []
-        for (row, line) in buffer.lines.enumerated() {
+        for (row, line) in lines.enumerated() {
             let keep = row < kept.count ? kept[row] : []
             if keep == [0..<width] {
-                lines.append(line)
-                runs += buffer.animatedCells.filter { $0.offsetY == row }
+                rebuiltLines.append(line)
+                runs += animatedCells.filter { $0.offsetY == row }
                 continue
             }
             // The row cut at every edge of the kept runs: alternately cleared
@@ -91,12 +111,12 @@ extension _ShapeClip: Renderable {
                     regions = regions.flatMap { $0.subtracting(columns: span, rows: row..<(row + 1)) }
                 } else {
                     rebuilt += piece
-                    runs += buffer.animatedCells.filter { $0.offsetY == row }.compactMap { $0.clipped(toColumns: span) }
+                    runs += animatedCells.filter { $0.offsetY == row }.compactMap { $0.clipped(toColumns: span) }
                 }
             }
-            lines.append(rebuilt + ANSIRenderer.reset)
+            rebuiltLines.append(rebuilt + ANSIRenderer.reset)
         }
-        var result = buffer.replacingLines(lines, width: width, uniformWidth: true)
+        var result = replacingLines(rebuiltLines, width: width, uniformWidth: true)
         result.opacityRegions = regions + cleared
         result.animatedCells = runs
         return result
