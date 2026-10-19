@@ -70,6 +70,10 @@ extension _ScrollViewCore {
             ? (Content.self as? any MarginedScrollContent.Type)?.appContentType ?? Content.self
             : Content.self
         var contentContext = context.withChildIdentity(type: identityType)
+        // The visibility from above, back: `showsIndicators = false` is this
+        // view's, and a scroll view nested in the content keeps its own
+        // indicators (measured on SwiftUI).
+        if hidesAutomaticIndicators { contentContext.environment.restoreIndicatorsAboveShowsIndicators() }
         // The content margins are this view's, not its content's: a scroll view
         // nested in the content has none of its own (measured on SwiftUI).
         // Written only when set, since almost no scroll view has any. A

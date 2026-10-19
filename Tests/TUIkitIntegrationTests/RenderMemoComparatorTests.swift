@@ -114,6 +114,13 @@ struct RenderMemoComparatorTests {
 
     // MARK: - Scrolling
 
+    /// `scrollView` with `showsIndicators` set to `false`.
+    private func hidingIndicators<Content: View>(_ scrollView: ScrollView<Content>) -> ScrollView<Content> {
+        var copy = scrollView
+        copy.showsIndicators = false
+        return copy
+    }
+
     @Test("ScrollView compares its focus identity and disabled flag, not just its content")
     func scrollView() {
         let base = ScrollView { Text("a") }
@@ -126,6 +133,7 @@ struct RenderMemoComparatorTests {
                 ("isDisabled", base.disabled()),
                 ("isFocusStop", base.withoutFocusStop()),
                 ("isChrome", base.asChrome()),
+                ("showsIndicators", hidingIndicators(base)),
             ])
         expectDistinguishes(
             "ViewThatFits", ViewThatFits { Text("a") }, identical: ViewThatFits { Text("a") },

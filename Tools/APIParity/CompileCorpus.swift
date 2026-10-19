@@ -3830,3 +3830,18 @@ private struct CorpusTextOfImage: View {
         }
     }
 }
+
+/// A scroll view's stored properties, read and set as SwiftUI code does: the
+/// initializer that took `showsIndicators:` is deprecated, the property is not.
+@MainActor
+private struct CorpusScrollViewProperties: View {
+    var body: some View {
+        var scroller = ScrollView {
+            Text("scrolled")
+        }
+        scroller.showsIndicators = false
+        scroller.axes = [.vertical, .horizontal]
+        _ = scroller.content
+        return scroller
+    }
+}

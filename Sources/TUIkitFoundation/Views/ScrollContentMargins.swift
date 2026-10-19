@@ -211,7 +211,8 @@ extension _ScrollViewCore {
         return _ScrollViewCore<_ScrollContentMargins<Content>>(
             axes: axes, content: _ScrollContentMargins(content: content, insets: margins),
             explicitFocusID: explicitFocusID, isDisabled: isDisabled,
-            isFocusStop: isFocusStop, isChrome: isChrome, appliesContentMargins: true)
+            isFocusStop: isFocusStop, isChrome: isChrome, appliesContentMargins: true,
+            hidesAutomaticIndicators: hidesAutomaticIndicators)
     }
 
     /// The margins around this view's scroll indicators — `.scrollIndicators`
@@ -257,10 +258,13 @@ extension _ScrollViewCore {
     /// with it published as the content's `containerRelativeFrame` container,
     /// and the "N more" pair at it, which the container was decided by and the
     /// render's chrome is decided by too (`resolveChrome`): asked once, so a
-    /// scroll target behaviour's overflow measure is too.
+    /// scroll target behaviour's overflow measure is too. The context is the
+    /// one this view reads, ``ScrollView/showsIndicators`` applied
+    /// (``hidingAutomaticIndicators(_:)``), as everything after this does.
     func viewport(
         _ context: RenderContext
     ) -> (context: RenderContext, width: Int, height: Int, textLines: TextIndicatorLines) {
+        let context = hidingAutomaticIndicators(context)
         let width = context.availableWidth
         let height = max(0, context.availableHeight)
         let size = CellSize(width: max(0, width), height: height)

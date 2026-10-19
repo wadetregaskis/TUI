@@ -753,9 +753,6 @@
     "ScrollInputKind": {
       "why": "Its values are watchOS's — the Digital Crown and the double-tap hand-gesture shortcut — and the macOS SDK defines none, so no macOS source can name one, and View.scrollInputBehavior(_:for:) cannot be called there either. A terminal has neither input. The question macOS code can ask, whether scrolling is allowed at all, is .scrollDisabled (the ScrollInputBehavior entry)."
     },
-    "ScrollView.showsIndicators": {
-      "why": "The stored property behind the soft-deprecated ScrollView(_:showsIndicators:content:) initializer, which TUIkit omits as it omits every soft-deprecated spelling; .scrollIndicators(_:axes:) is the current one. The property alone would give that modifier a second, hidden answer, the confusion ScrollView.init's comment records splitting visibility from style was meant to end. Decisions-W10 C-W10-2 prices adding it."
-    },
     "SectionedFetchRequest": {
       "why": "A Core Data property wrapper (its partner `\\.managedObjectContext` is absent too). Core Data exists on no platform TUIkit builds for besides Apple's, and the repository's rules require macOS and Linux, with Windows in progress, so it cannot be a dependency. Decisions A18 covers Apple-only API behind `canImport`."
     },

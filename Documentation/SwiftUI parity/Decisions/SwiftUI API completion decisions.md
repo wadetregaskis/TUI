@@ -160,7 +160,7 @@ except on a right-to-left paragraph. There, `.writingDirectionBased` and
 here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
 
-*Wave 10's entries (A6–A12, B23–B31, C6–C7): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
+*Wave 10's entries (A6–A12, B23–B31, C6; C7 shipped 2026-10-18 in lane PARITYMISC): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
 
 ### A11. `scrollDismissesKeyboard(_:)` joins O8
 
@@ -3532,22 +3532,6 @@ source can name a kind, so none can call the modifier: declining it changes
 what compiles for nobody. A terminal has neither input. What macOS code can
 ask — may this view scroll at all — is `.scrollDisabled`, already the
 `ScrollInputBehavior` map entry.
-
-### C7. `ScrollView.showsIndicators`
-
-*`ScrollView.showsIndicators`*
-
-The stored property behind the soft-deprecated
-`ScrollView(_:showsIndicators:content:)`, which TUIkit omits as it omits every
-soft-deprecated spelling. `ScrollView.init`'s comment records why the
-property was not kept with it: it was a second, hidden answer to the question
-`.scrollIndicators(_:axes:)` answers. The property itself is not deprecated,
-so this is the one arguable entry in this part: a settable `Bool`, `false`
-meaning `.scrollIndicators(.hidden)` for that view, is twenty minutes if you
-would rather SwiftUI code that reads or writes it compiled.
-
-The `ScrollView.Body` map entry claimed the property was public; it never
-was, and the entry now says so.
 
 ### C8. `TypesettingLanguage`
 

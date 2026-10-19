@@ -76,10 +76,27 @@ import TUIkitCore
 public struct ScrollView<Content: View>: View {
     /// The axes along which content scrolls (`.vertical`, `.horizontal`,
     /// or both). Both are fully implemented.
-    public let axes: Axis.Set
+    public var axes: Axis.Set
 
     /// The content of the scroll view.
-    public let content: Content
+    public var content: Content
+
+    /// Whether the scroll view displays its indicators when nothing says
+    /// otherwise. The default is `true`.
+    ///
+    /// `false` hides them where ``View/scrollIndicators(_:axes:)`` leaves the
+    /// choice to the view (``ScrollIndicatorVisibility/automatic``, the
+    /// default): a stated `.visible`, `.hidden` or `.never` around the view
+    /// still wins, and a scroll view nested in the content keeps its own
+    /// indicators — all as SwiftUI's does (measured 2026-10-18, macOS 15:
+    /// `showsIndicators = false` under `.scrollIndicators(.visible)` shows its
+    /// scroller, under `.automatic` does not, and a nested scroll view shows
+    /// its own).
+    ///
+    /// The initializer that takes it, `ScrollView(_:showsIndicators:content:)`,
+    /// is deprecated in SwiftUI and absent here; the property is not deprecated
+    /// there, so code that reads or sets it compiles.
+    public var showsIndicators: Bool = true
 
     /// An explicit focus identifier, or `nil` to auto-generate.
     var explicitFocusID: String?
@@ -101,13 +118,11 @@ public struct ScrollView<Content: View>: View {
     ///   - content: A ViewBuilder that defines the content to
     ///     scroll.
     ///
-    /// - Note: SwiftUI's `showsIndicators:` variant is deliberately absent —
-    ///   it is soft-deprecated there in favour of `scrollIndicators(_:)`, and
-    ///   TUIkit does not carry deprecated spellings (see
-    ///   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). It was also a second,
-    ///   hidden answer to the question `\.verticalScrollIndicatorVisibility`
-    ///   already answers, which is exactly the confusion that splitting
-    ///   visibility from style set out to end.
+    /// - Note: SwiftUI's `showsIndicators:` initializer is deliberately
+    ///   absent — it is deprecated there in favour of `scrollIndicators(_:)`,
+    ///   and TUIkit does not carry deprecated spellings (see
+    ///   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). The
+    ///   ``showsIndicators`` property it set is not deprecated, and is here.
     public init(
         _ axes: Axis.Set = .vertical,
         @ViewBuilder content: () -> Content
@@ -134,7 +149,8 @@ public struct ScrollView<Content: View>: View {
             explicitFocusID: explicitFocusID,
             isDisabled: isDisabled,
             isFocusStop: isFocusStop,
-            isChrome: isChrome
+            isChrome: isChrome,
+            hidesAutomaticIndicators: !showsIndicators
         )
         .disabled(isDisabled)
         .paintingScrollContentBackground(reads: !isChrome)
@@ -228,7 +244,8 @@ extension ScrollView: @preconcurrency Equatable where Content: Equatable {
             lhs.content == rhs.content,
             lhs.explicitFocusID == rhs.explicitFocusID,
             lhs.isDisabled == rhs.isDisabled,
-            lhs.isFocusStop == rhs.isFocusStop
+            lhs.isFocusStop == rhs.isFocusStop,
+            lhs.showsIndicators == rhs.showsIndicators
         else { return false }
         return lhs.isChrome == rhs.isChrome
     }
@@ -293,6 +310,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// its content margins — see ``margined(context:)``. Stops that copy from
     /// making another of itself.
     var appliesContentMargins = false
+    /// Whether ``ScrollView/showsIndicators`` is `false`: an `.automatic`
+    /// indicator visibility reads as `.hidden` for this view, and its content
+    /// gets the visibility from above back (``hidingAutomaticIndicators(_:)``).
+    var hidesAutomaticIndicators = false
 
     var body: Never { fatalError("_ScrollViewCore renders via Renderable") }
 
@@ -300,9 +321,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
 
     // MARK: Layout
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        if let margined = margined(context: context) {
-            return margined.sizeThatFits(proposal: proposal, context: context)
+    func sizeThatFits(proposal: ProposedSize, context given: RenderContext) -> ViewSize {
+        let read = hidingAutomaticIndicators(given)
+        if let margined = margined(context: read) {
+            return margined.sizeThatFits(proposal: proposal, context: read)
         }
         // A ScrollView takes whatever size the parent *proposes* and scrolls if
         // its content doesn't fit — so it stays width/height-flexible, and a
@@ -314,12 +336,12 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // plus, here, the cell a scrollbar takes out of it (`idealSize`).
         // The viewport is its content's `containerRelativeFrame` container:
         // what it was proposed, as the render's is what it was given.
-        let context = context.publishingContainerSize(
+        let context = read.publishingContainerSize(
             containerSize(
                 viewport: CellSize(
-                    width: max(0, proposal.width ?? context.availableWidth),
-                    height: max(0, proposal.height ?? context.availableHeight)),
-                context: context),
+                    width: max(0, proposal.width ?? read.availableWidth),
+                    height: max(0, proposal.height ?? read.availableHeight)),
+                context: read),
             noting: false)
         let ideal =
             proposal.width == nil || proposal.height == nil
@@ -516,7 +538,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if let margined = margined(context: context) { return margined.renderToBuffer(context: context) }
-        // The viewport is its content's `containerRelativeFrame` container.
+        // The viewport is its content's `containerRelativeFrame` container, and
+        // the context this view reads (`hidingAutomaticIndicators(_:)`).
         let (context, viewportWidth, viewportHeight, textLines) = viewport(context)
 
         // Resolve the persistent focus ID and the handler.
