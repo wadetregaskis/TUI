@@ -23,13 +23,17 @@ import TUIkitFoundation
 /// | Group | Item | What choosing it does | Key shown |
 /// |---|---|---|---|
 /// | `appInfo` | About *app* | an alert naming the app, and its version where it is bundled | — |
-/// | `appTermination` | Quit *app* | the quit key, after the menu closes | `StatusBarState.quitShortcut` |
+/// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 ///
 /// The keys pressed "after the menu closes" go once the frame that closed it
 /// has given the page its focus back (``KeysAfterFrame``): a menu holds the
 /// focus and the keyboard while it is open, and these act on the focused view.
+/// Quit presses no key — through the whole chain, the quit key reached the
+/// focused view first, and a focused text field typed it — but asks for the
+/// quit the key asks for: through the status bar, where it may be confirmed
+/// first or not allowed at all, as with the key.
 @MainActor
 struct SceneOwnCommands {
     /// Shows the About alert.
@@ -49,7 +53,7 @@ struct SceneOwnCommands {
             let title = LocalizedStringKey.substituting(
                 [_MenuBarCore.appName], into: service.string(for: LocalizationKey.Menu.quitApp))
             return Self.items("quit") {
-                Button(title) { keys?.press(quit.keyEvent) }
+                Button(title) { keys?.quit() }
                     .keyboardShortcutHint(quit.keyboardShortcut)
             }
         case .undoRedo:

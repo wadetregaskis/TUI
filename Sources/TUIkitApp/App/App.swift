@@ -632,11 +632,12 @@ extension AppRunner {
     /// Presses the keys owed once a frame is on the screen (`KeysAfterFrame`):
     /// a menu bar's item's key, which goes once the frame that closed the
     /// menu has handed the focus back. Each through the whole chain, as a key
-    /// typed now; another frame shows what they did.
+    /// typed now — or the quit, as the quit key asks for it; another frame
+    /// shows what they did.
     private func pressKeysAfterFrame(to inputHandler: InputHandler) {
-        let keys = tuiContext.keysAfterFrame.take()
-        guard !keys.isEmpty else { return }
-        for key in keys { _ = inputHandler.handle(key) }
+        let owed = tuiContext.keysAfterFrame.take()
+        guard !owed.isEmpty else { return }
+        for item in owed { inputHandler.perform(item) }
         appState.setNeedsRender()
     }
 

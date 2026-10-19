@@ -137,12 +137,14 @@ it. TUIkit has the keys those commands stand for, and no responder chain.
 
 **Shipped:** the commands a terminal app has, each the way to a key the app
 already has, so the menu bar is a way to them and never the only one: About
-(an alert), Quit (the quit key), Undo and Redo (the app's `UndoManager`,
-disabled with no step to take), Cut, Copy and Paste (⌘X, ⌘C, ⌘V through
-`commandKey`). An item that acts on what has the focus presses its key once the
-frame that closed the menu has handed the focus back (`KeysAfterFrame`, a new
-hook the run loop drains after each frame): while the menu is open it holds the
-focus and the keyboard. Each item shows its key (`keyboardShortcutHint`), which
+(an alert), Quit (the quit key's quit, through the status bar — not the key
+pressed, which a focused text field would type), Undo and Redo (the app's
+`UndoManager`, disabled with no step to take), Cut, Copy and Paste (⌘X, ⌘C, ⌘V
+through `commandKey`). An item that acts on what has the focus presses its key
+once the frame that closed the menu has handed the focus back (`KeysAfterFrame`,
+a new hook the run loop drains after each frame): while the menu is open it
+holds the focus and the keyboard.
+Each item shows its key (`keyboardShortcutHint`), which
 it does not bind again. Cut, Copy and Paste are always enabled; choosing one
 with nothing to take it does what the key does then (rings the bell). No Delete
 or Select All: a terminal app has no key for either that every text control

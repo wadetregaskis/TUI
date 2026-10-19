@@ -63,6 +63,8 @@ package final class HeadlessApp<A: App> {
     private let tuiContext: TUIContext
     private let focusManager: FocusManager
     private let animationScheduler = AnimationScheduler()
+    /// The quits asked for: see ``quitsRequested``.
+    private let quits: QuitCount
     /// The instant of the last frame, which the mouse dispatcher reads as the
     /// time an event arrives. See the type's discussion.
     private let eventClock = EventClock()
@@ -77,6 +79,8 @@ package final class HeadlessApp<A: App> {
     /// Assembles `app` over an in-memory terminal of `width` × `height` cells.
     package init(_ app: A, width: Int, height: Int) {
         let terminal = InMemoryTerminal(width: width, height: height)
+        let quits = QuitCount()
+        self.quits = quits
         let appState = AppState()
         let statusBar = StatusBarState(appState: appState)
         let focusManager = FocusManager()
@@ -96,8 +100,8 @@ package final class HeadlessApp<A: App> {
             appearanceManager: appearanceManager, keyboardShortcuts: tuiContext.keyboardShortcuts,
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState, unhandledKeyBell: tuiContext.terminalBell,
-            // A script has no process to quit or suspend.
-            onQuit: {}, onSuspend: {}, screenSelection: tuiContext.screenSelection)
+            // A script has no process to quit or suspend: a quit is counted.
+            onQuit: { quits.count += 1 }, onSuspend: {}, screenSelection: tuiContext.screenSelection)
         // As `AppRunner` wires it, so a click on a status-bar item that only
         // names a key goes through the same chain the key does.
         let inputHandler = self.inputHandler
@@ -118,6 +122,11 @@ package final class HeadlessApp<A: App> {
     /// goes on rising over frames that change nothing is an app that never
     /// idles.
     package private(set) var framesAsked = 0
+
+    /// How many times the app quit — the quit key, the menu bar's Quit —
+    /// where a running app's loop would have ended. A script has no process
+    /// to end, so it carries on.
+    package var quitsRequested: Int { quits.count }
 
     /// Renders one frame at `nanos` on the monotonic clock's scale, and at
     /// `date` on the wall clock — the date a `TimelineView` resolves its
@@ -141,8 +150,8 @@ package final class HeadlessApp<A: App> {
         // `.mouseSupport` was dropped here, though the app hears it.
         tuiContext.mouseEventDispatcher.setActiveSupport(renderer.effectiveMouseSupport(), isFrameFinal: true)
         // As `AppRunner` presses them, once the frame is drawn: a menu bar's
-        // item's key. The next frame shows what they did.
-        for key in tuiContext.keysAfterFrame.take() { inputHandler.handle(key) }
+        // item's key, or its Quit. The next frame shows what they did.
+        for owed in tuiContext.keysAfterFrame.take() { inputHandler.perform(owed) }
     }
 
     /// Delivers a key through the five-layer chain, as a keypress is — noted
@@ -259,4 +268,9 @@ final class InMemoryTerminal: TerminalProtocol {
     func showCursor() {}
     func enterAlternateScreen() {}
     func exitAlternateScreen() {}
+}
+
+/// A ``HeadlessApp``'s quits, counted where the app's would end its loop.
+private final class QuitCount {
+    var count = 0
 }

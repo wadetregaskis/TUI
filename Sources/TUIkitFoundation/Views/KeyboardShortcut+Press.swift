@@ -42,9 +42,4 @@ extension QuitShortcut {
             }
         return equivalent.map { KeyboardShortcut($0, modifiers: ctrl ? .control : []) }
     }
-
-    /// The key event the quit key is.
-    package var keyEvent: KeyEvent {
-        KeyEvent(key: key, ctrl: ctrl)
-    }
 }

@@ -557,7 +557,7 @@ extension View {
 
     /// Shows `shortcut` as the wrapped control's key — the key a menu row
     /// prints at its trailing edge — without binding it: for a menu item whose
-    /// key something else binds, which choosing the item presses. The menu
+    /// key something else binds, and which does what that key does. The menu
     /// bar's standard items (TUIkitCommands) are such: Undo's key is the
     /// scene's undo key, Copy's the focused view's ⌘C, Quit's the quit key.
     ///

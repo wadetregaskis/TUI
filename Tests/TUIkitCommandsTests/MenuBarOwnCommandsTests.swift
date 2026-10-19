@@ -15,6 +15,7 @@ import Testing
 @testable import TUIkitCommands
 @testable import TUIkitFoundation
 import TUIkitPresentation
+import TUIkitTextInput
 
 // MARK: - Fixtures
 
@@ -36,6 +37,17 @@ private struct ListeningPage: View {
                 OwnCommandsProbe.shared.log.append("copy")
                 return []
             }
+    }
+}
+
+/// A focused text field, which types whatever key it is given.
+private struct FieldApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            TextField("Field", text: Binding(get: { "" }, set: { OwnCommandsProbe.shared.log.append("typed \($0)") }))
+        }
+        .commands { CommandMenu("Note") {} }
     }
 }
 
@@ -109,12 +121,22 @@ struct MenuBarOwnCommandsTests {
         #expect(bar.hasPrefix(" \(_MenuBarCore.appName)  Edit  Note"), "\(bar)")
     }
 
-    @Test("Quit presses the quit key once the menu has closed and the page has its focus back")
-    mutating func quitPressesTheQuitKey() {
+    @Test("Quit quits as the quit key does, and sends the focused view no key")
+    mutating func quitQuits() {
         let app = launched(OwnApp())
         // The app's menu: About, then Quit.
         choose(0, item: 1, in: app)
-        #expect(OwnCommandsProbe.shared.log == ["q"], "\(rows(app))")
+        #expect(app.quitsRequested == 1, "\(rows(app))")
+        #expect(OwnCommandsProbe.shared.log.isEmpty, "the page heard no q")
+    }
+
+    @Test("With a text field focused, Quit quits and types nothing")
+    mutating func quitOverATextField() {
+        let app = launched(FieldApp())
+        frame(app)
+        choose(0, item: 1, in: app)
+        #expect(app.quitsRequested == 1, "\(rows(app))")
+        #expect(OwnCommandsProbe.shared.log.isEmpty, "the field took no q: \(OwnCommandsProbe.shared.log)")
     }
 
     @Test("Copy is ⌘C to the focused view, through the scene's command key")

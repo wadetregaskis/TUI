@@ -86,9 +86,10 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that result in app termination.
     ///
-    /// By default, this group includes "Quit" the app, which presses the app's
-    /// quit key (`StatusBarState.quitShortcut`, `q` unless the app moved it)
-    /// once the menu has closed — so it quits exactly when the key would.
+    /// By default, this group includes "Quit" the app, which quits as the
+    /// app's quit key does (`StatusBarState.quitShortcut`, `q` unless the app
+    /// moved it) once the menu has closed — so it quits exactly when the key
+    /// would, whatever has the focus.
     public static let appTermination = Self(.appTermination)
 
     /// Placement for commands that create and open different kinds of

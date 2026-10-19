@@ -422,10 +422,27 @@ extension InputHandler {
     /// - Returns: Whether `event` was the quit key: taken, quit or not.
     func runQuitShortcut(_ event: KeyEvent) -> Bool {
         guard statusBar.quitShortcut.matches(event) else { return false }
+        quit()
+        return true
+    }
+
+    /// The quit key's quit, with no key: through the status bar, so a
+    /// top-level dismissal confirmation can ask first, and nothing where the
+    /// bar does not allow a quit. What the menu bar's Quit asks for
+    /// (`KeysAfterFrame.Owed.quit`).
+    func quit() {
         if statusBar.isQuitAllowed {
             statusBar.requestQuit(onQuit)
         }
-        return true
+    }
+
+    /// Does what a frame owed once it is on the screen (`KeysAfterFrame`): a
+    /// key through the whole chain, or the quit.
+    func perform(_ owed: KeysAfterFrame.Owed) {
+        switch owed {
+        case .key(let event): _ = handle(event)
+        case .quit: quit()
+        }
     }
 
     /// Layer 4's undo and redo: the scene's keys (``undoKeys``), once there
