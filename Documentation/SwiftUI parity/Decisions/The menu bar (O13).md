@@ -76,7 +76,8 @@ an alert, a cover) holds the input, and every channel of the page behind it is
 inert: its focus, its keys, its shortcuts, the top bar's items.
 
 **Shipped:** the menu bar follows that rule: drawn inert under a modal, no menu
-opens and no command's key fires (deviation W8). The modal's own keys work.
+opens, by key or by a click on a title, a menu open when the modal comes up
+closes, and no command's key fires (deviation W8). The modal's own keys work.
 
 **The fuller version** lets commands work over a modal the way macOS's do,
 reading the modal's focused values: a command that names no focused value (a

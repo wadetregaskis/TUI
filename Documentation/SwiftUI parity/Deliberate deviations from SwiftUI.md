@@ -1643,8 +1643,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** on macOS the menu bar stays usable while a sheet is up; a
   command that reads a focused value sees the sheet's (not measured).
 - **TUIkit:** while a modal holds the input the menu bar is drawn inert, as the
-  top bar is: no menu opens, and no command's key fires from behind the modal
-  (`MenuBarTests.inertUnderAModal`). The modal's own keys work.
+  top bar is: no menu opens — by key or by a click on a title — a menu open
+  when the modal comes up closes, and no command's key fires from behind the
+  modal (`MenuBarTests.inertUnderAModal`, `MenuBarOpeningTests.clickUnderAModal`).
+  The modal's own keys work.
 - **Why:** a terminal app has one window, and a command acting on the page
   hidden behind a sheet is a surprise the person cannot see; it is the rule
   every other channel of the page follows under a modal.

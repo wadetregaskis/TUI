@@ -21,6 +21,8 @@ import TUIkitPresentation
 private final class OpeningProbe: @unchecked Sendable {
     static let shared = OpeningProbe()
     var log: [String] = []
+    /// Whether ``SheetLaterApp``'s sheet is up.
+    var showsSheet = false
 }
 
 /// Two menus of two items each, over a page of two buttons; the scene's own
@@ -53,6 +55,21 @@ private struct UnderSheetApp: App {
     var body: some Scene {
         WindowGroup { Text("PAGE").sheet(isPresented: .constant(true)) { Text("SHEET") } }
             .commands { CommandMenu("Alpha") { Button("A1") {} } }
+    }
+}
+
+/// A sheet that is up while the probe says, the scene's own commands taken
+/// away.
+private struct SheetLaterApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE").sheet(
+                isPresented: Binding(get: { OpeningProbe.shared.showsSheet }, set: { OpeningProbe.shared.showsSheet = $0 })
+            ) { Text("SHEET") }
+        }
+        .commandsRemoved()
+        .commands { CommandMenu("Alpha") { Button("A1") {} } }
     }
 }
 
@@ -196,6 +213,38 @@ struct MenuBarOpeningTests {
         app.send(KeyEvent(key: .character("a"), alt: true))
         clock.frame(app)
         #expect(!shows("A1", app), "\(rows(app))")
+    }
+
+    @Test("Behind a modal, a click on a title opens nothing")
+    func clickUnderAModal() throws {
+        OpeningProbe.shared.showsSheet = true
+        let (app, clock) = launched(SheetLaterApp())
+        clock.frame(app)
+        #expect(shows("SHEET", app), "sanity: the sheet is up: \(rows(app))")
+        let bar = rows(app)[0]
+        let column = try #require(bar.range(of: "Alpha")).lowerBound.utf16Offset(in: bar)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: column, y: 0))
+        app.send(MouseEvent(button: .left, phase: .released, x: column, y: 0))
+        clock.frame(app)
+        clock.frame(app)
+        #expect(!shows("A1", app), "\(rows(app))")
+    }
+
+    @Test("A menu open when a modal comes up closes, and stays closed when it goes")
+    func modalClosesTheOpenMenu() {
+        OpeningProbe.shared.showsSheet = false
+        let (app, clock) = launched(SheetLaterApp())
+        app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        #expect(shows("A1", app), "sanity: the menu is open: \(rows(app))")
+        OpeningProbe.shared.showsSheet = true
+        clock.frame(app)
+        clock.frame(app)
+        #expect(shows("SHEET", app) && !shows("A1", app), "\(rows(app))")
+        OpeningProbe.shared.showsSheet = false
+        clock.frame(app)
+        clock.frame(app)
+        #expect(!shows("SHEET", app) && !shows("A1", app), "\(rows(app))")
     }
 }
 

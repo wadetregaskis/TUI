@@ -64,12 +64,20 @@ struct _MenuBarCore: View, Renderable {
         let state = state(in: context)
         // Keep the box alive across the run loop's per-frame StateStorage GC.
         context.stateStorage?.markActive(context.identity)
+        // Drawn as a backdrop — under a modal (`_WindowChromeHost.menuBarBuffer`)
+        // — the bar is a picture of itself. Its keys and shortcuts go to the
+        // backdrop's throwaway channels already; the mouse dispatcher is the
+        // live one, so its open menu closes and its titles take no click, as
+        // an inert toolbar item drops its regions (`_ToolbarEntryView`).
+        let isInert = context.environment.drawsBackdrop
+        if isInert { state.close() }
         let menus = resolvedMenus(context: context)
         if let open = state.openMenu, open >= menus.count { state.close() }
         registerShortcuts(of: menus, except: state.openMenu, context: context)
 
         let titles = titleRow(menus, open: state.openMenu, context: context)
         var buffer = FrameBuffer(lines: [titles.line])
+        guard !isInert else { return buffer }
         attachTitleRegions(to: &buffer, titles, state: state, context: context)
         let sectionID = "menubar-\(context.identity.path)"
         if let open = state.openMenu {

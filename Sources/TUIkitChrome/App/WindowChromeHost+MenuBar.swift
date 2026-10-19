@@ -18,8 +18,9 @@ extension _WindowChromeHost {
     /// and the window wide, whose overlays may take every row below the bar: a
     /// menu hangs over the top bar and the page alike. While a modal holds the
     /// input it is drawn inert, as the top bar is — on throwaway focus, key and
-    /// shortcut channels — so no menu opens and no command's key fires from
-    /// behind the modal.
+    /// shortcut channels, and as a backdrop, which the bar answers by closing
+    /// its menu and taking no click — so no menu opens and no command's key
+    /// fires from behind the modal.
     func menuBarBuffer(
         _ bar: AnyView, width: Int, height: Int, isModal: Bool, context: RenderContext
     ) -> FrameBuffer {
