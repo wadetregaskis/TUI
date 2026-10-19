@@ -320,6 +320,12 @@ hovered and the focused view's panels are placed first.
 2. **Nested help.** `help` on a container and on a child inside it: innermost
    wins, as with every other cascade — but a hover over the child is also a
    hover over the container, so this is a rule rather than an accident.
+   *Built so on 2026-10-18:* both hear the pointer (every hover observer in
+   front of the control does), and the innermost is the candidate
+   (`TooltipState.observersHovered`); leaving the child for the rest of the
+   container shows the container's help, its delay already served. Until then
+   hover resolved one observer per point, the outermost, so the container's
+   help showed over the child and the child's never did.
 3. **A non-focusable view with no hit region.** `.onHover` establishes one, so
    `help` on a `Text` makes that `Text` hit-testable where it was not. That is
    a small behavioural change to anything sitting under it.

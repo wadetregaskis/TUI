@@ -16,8 +16,9 @@ extension MouseEventDispatcher {
     /// One lane of the hover state machine: the region the pointer was last
     /// resolved against, and the closure still owed its exit across a reshape.
     ///
-    /// There are two lanes, ``hover`` and ``observedHover``, and they run the
-    /// same transitions independently — see ``registerHoverObserver(in:_:)``.
+    /// There is the control's lane, ``hover``, and one for each hover
+    /// observer the pointer is over, ``observedHovers``; they run the same
+    /// transitions independently — see ``registerHoverObserver(in:_:)``.
     struct HoverSlot {
         /// The handler ID of the region the cursor was sitting on
         /// when the previous `.moved` event was processed, or `nil`
@@ -92,7 +93,11 @@ extension MouseEventDispatcher {
         lastMotionPosition = nil
         leftByReshape.removeAll()
         var fired = exitLane(&hover, at: position)
-        fired = exitLane(&observedHover, at: position) || fired
+        // Innermost first, as a pointer leaves nested regions.
+        for index in observedHovers.indices.reversed() {
+            fired = exitLane(&observedHovers[index], at: position) || fired
+        }
+        observedHovers = []
         if tooltipState?.pointerLeft() == true { fired = true }
         return fired
     }
@@ -140,13 +145,64 @@ extension MouseEventDispatcher {
     func reconcileHoverAfterReshape() {
         guard let position = restingPosition ?? lastMotionPosition else {
             hover.pendingExit = nil
-            observedHover.pendingExit = nil
+            for index in observedHovers.indices { observedHovers[index].pendingExit = nil }
             return
         }
         let entering = restingPosition != nil
         let resolved = resolveHover(at: position.x, y: position.y)
         hover = reconciled(hover, to: resolved.target, at: position, entering: entering)
-        observedHover = reconciled(observedHover, to: resolved.observer, at: position, entering: entering)
+        var renamed: [HitTestRegion.HandlerID: HitTestRegion.HandlerID] = [:]
+        observedHovers = reconciledObservers(
+            observedHovers, to: resolved.observers, at: position, entering: entering, renamed: &renamed)
+        syncHoveredHelp(renamed: renamed)
+    }
+
+    /// The observer lanes of ``reconcileHoverAfterReshape()``: `slots`
+    /// re-resolved against `current`, the observers in front of the control
+    /// under the resting cursor now, outermost first.
+    ///
+    /// An observer still under the cursor — the same control, by
+    /// ``isSameControl(_:_:)`` — carries on unheard. One that is not is
+    /// exited, innermost first, and remembered (``leftByReshape``). One the
+    /// reshape put under the cursor is entered, outermost first, at a known
+    /// position while motion is reported, as a control a reshape slides under
+    /// a cursor resting on nothing is (``reconciled(_:to:at:entering:)``).
+    ///
+    /// - Parameter renamed: Gains each carried observer whose region is filed
+    ///   under another id now, by its old id.
+    private func reconciledObservers(
+        _ slots: [HoverSlot], to current: [HitTestRegion], at position: (x: Int, y: Int), entering: Bool,
+        renamed: inout [HitTestRegion.HandlerID: HitTestRegion.HandlerID]
+    ) -> [HoverSlot] {
+        var carried = Set<Int>()
+        for slot in slots.reversed() {
+            let previous = slot.pendingExit?.region ?? slot.region
+            if let index = current.indices.first(where: {
+                !carried.contains($0) && isSameControl(previous, current[$0])
+            }) {
+                carried.insert(index)
+                if let old = slot.handlerID, old != current[index].handlerID { renamed[old] = current[index].handlerID }
+                continue
+            }
+            deliverExit(of: slot, at: position)
+            if let left = previous?.handlerID { leftByReshape.insert(left) }
+        }
+        var next: [HoverSlot] = []
+        for (index, region) in current.enumerated() {
+            if carried.contains(index) {
+                next.append(HoverSlot(handlerID: region.handlerID, region: region, pendingExit: nil))
+            } else if entering, frameFinalSupport.motion, !leftByReshape.contains(region.handlerID) {
+                next.append(entered(region, at: position))
+            }
+        }
+        return next
+    }
+
+    /// Tells the tooltips which hover observers the pointer is over now,
+    /// outermost first, so that of nested views with help the innermost is
+    /// the candidate (`TooltipState.observersHovered(_:)`).
+    private func syncHoveredHelp(renamed: [HitTestRegion.HandlerID: HitTestRegion.HandlerID] = [:]) {
+        tooltipState?.observersHovered(observedHovers.compactMap(\.handlerID), renamed: renamed)
     }
 
     /// One lane of ``reconcileHoverAfterReshape()``: `slot` re-resolved against
@@ -183,6 +239,18 @@ extension MouseEventDispatcher {
         if let current, isSameControl(previous, current) {
             return HoverSlot(handlerID: current.handlerID, region: current, pendingExit: nil)
         }
+        deliverExit(of: slot, at: position)
+        if let left = previous?.handlerID { leftByReshape.insert(left) }
+        guard let current, entering, !leftByReshape.contains(current.handlerID) else { return HoverSlot() }
+        return entered(current, at: position)
+    }
+
+    /// Tells the region a reshape took `slot` off that the resting cursor at
+    /// `position` has left it: through the closure retained across the
+    /// handler-table rebuild, or, regions replaced within one frame (no
+    /// `beginRenderPass` between), through the handler still registered —
+    /// the documented same-frame window.
+    private func deliverExit(of slot: HoverSlot, at position: (x: Int, y: Int)) {
         if let pending = slot.pendingExit {
             let exit = MouseEvent(
                 button: .none, phase: .exited,
@@ -192,18 +260,12 @@ extension MouseEventDispatcher {
         } else if let oldID = slot.handlerID, let oldHandler = handlers[oldID],
             let oldRegion = slot.region
         {
-            // Regions replaced within one frame (no beginRenderPass between):
-            // the old handler is still registered, and the trailing exit is
-            // its due — this is the documented same-frame window.
             let exit = MouseEvent(
                 button: .none, phase: .exited,
                 x: position.x - oldRegion.localOriginX,
                 y: position.y - oldRegion.localOriginY)
             _ = oldHandler(exit)
         }
-        if let left = previous?.handlerID { leftByReshape.insert(left) }
-        guard let current, entering, !leftByReshape.contains(current.handlerID) else { return HoverSlot() }
-        return entered(current, at: position)
     }
 
     /// A lane on `region`, its handler told the resting cursor at `position`
@@ -237,27 +299,30 @@ extension MouseEventDispatcher {
             && a.width == b.width && a.height == b.height
     }
 
-    /// The two regions hover resolves against at a point, one per lane: the
+    /// The regions hover resolves against at a point, one per lane: the
     /// innermost region that is NOT a hover observer — the control the pointer
-    /// is over — and the innermost observer IN FRONT of it.
+    /// is over — and every observer IN FRONT of it, outermost first (the
+    /// order `matchingRegions` finds them in: a wrapper appends its region
+    /// after its content's, so it comes first).
     ///
-    /// An observer behind that control is occluded and resolves to `nil`. That
-    /// keeps the observer lane's answers exactly what they were when an observer
-    /// was an ordinary region — it hears the pointer only where it was the
-    /// innermost match — so a page's `.onHover` under a modal's consuming
-    /// backdrop, or under an open menu, still hears nothing. The one thing that
-    /// changes is that the control directly behind a stack of observers gets
-    /// the hover it used to lose.
-    private func resolveHover(at x: Int, y: Int) -> (target: HitTestRegion?, observer: HitTestRegion?) {
+    /// An observer behind that control is occluded, and not among them. That
+    /// keeps a page's `.onHover` under a modal's consuming backdrop, or under
+    /// an open menu, hearing nothing, as it did when an observer was an
+    /// ordinary region. Every observer in front of the control is: nested
+    /// `.onHover`s each hear the pointer enter and leave their own region, as
+    /// SwiftUI's do ("a region for detecting pointer movement with the size
+    /// and position of this view"); until 2026-10-18 only the outermost did
+    /// (semantic audit item 31).
+    private func resolveHover(at x: Int, y: Int) -> (target: HitTestRegion?, observers: [HitTestRegion]) {
         let matching = matchingRegions(at: x, y: y)
-        // The common frame has no observer, and is the old single lane.
-        guard !hoverObserverIDs.isEmpty else { return (matching.first, nil) }
-        var observer: HitTestRegion?
+        // The common frame has no observer, and is the control's lane alone.
+        guard !hoverObserverIDs.isEmpty else { return (matching.first, []) }
+        var observers: [HitTestRegion] = []
         for region in matching {
-            guard hoverObserverIDs.contains(region.handlerID) else { return (region, observer) }
-            if observer == nil { observer = region }
+            guard hoverObserverIDs.contains(region.handlerID) else { return (region, observers) }
+            observers.append(region)
         }
-        return (nil, observer)
+        return (nil, observers)
     }
 
     /// Whether the hover observer registered this frame as `id` is one a
@@ -279,7 +344,7 @@ extension MouseEventDispatcher {
         for region in regions where region.handlerID == id {
             for y in region.offsetY..<(region.offsetY + region.height) {
                 for x in region.offsetX..<(region.offsetX + region.width)
-                where resolveHover(at: x, y: y).observer?.handlerID == id {
+                where resolveHover(at: x, y: y).observers.contains(where: { $0.handlerID == id }) {
                     return true
                 }
             }
@@ -325,13 +390,32 @@ extension MouseEventDispatcher {
         lastMotionPosition = (event.x, event.y)
         var fired = false
         hover = advancing(hover, to: resolved.target, by: event, fired: &fired)
-        observedHover = advancing(observedHover, to: resolved.observer, by: event, fired: &fired)
+        observedHovers = advancingObservers(observedHovers, to: resolved.observers, by: event, fired: &fired)
+        syncHoveredHelp()
         // After the lanes, whose `.entered` takes back a tooltip held through
         // the status bar's reflow when the move lands on its view again
         // (`TooltipState.held`); one the move left behind goes, and its
         // going is the frame this motion asks for.
         if movedCell, tooltipState?.notePointerMoved() == true { fired = true }
         return fired
+    }
+
+    /// The observer lanes of ``dispatchMotion(_:)``: `slots` moved onto
+    /// `current`, the observers in front of the control under the pointer,
+    /// outermost first. One the pointer left is exited, innermost first; one
+    /// it is still in is offered the move; one it came into is entered,
+    /// outermost first, so the innermost hears it last.
+    private func advancingObservers(
+        _ slots: [HoverSlot], to current: [HitTestRegion], by event: MouseEvent, fired: inout Bool
+    ) -> [HoverSlot] {
+        let currentIDs = Set(current.map(\.handlerID))
+        for slot in slots.reversed() where slot.handlerID.map({ !currentIDs.contains($0) }) ?? false {
+            _ = advancing(slot, to: nil, by: event, fired: &fired)
+        }
+        return current.map { region in
+            let slot = slots.first { $0.handlerID == region.handlerID } ?? HoverSlot()
+            return advancing(slot, to: region, by: event, fired: &fired)
+        }
     }
 
     /// One lane of ``dispatchMotion(_:)``: `slot` moved onto `current`, the

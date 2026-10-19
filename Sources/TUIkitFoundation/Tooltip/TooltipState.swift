@@ -98,8 +98,18 @@ public final class TooltipState: @unchecked Sendable {
         var style: TooltipStyle
     }
 
-    /// The pointer's candidate. Set on `.entered`, cleared on `.exited`.
-    private(set) var hovered: Candidate?
+    /// The pointer's candidates: every view with help whose hover observer
+    /// heard the pointer enter and not yet leave, outermost first. Nested
+    /// views with help each hear it (`MouseEventDispatcher.resolveHover`),
+    /// and the dispatcher keeps this in its order
+    /// (``observersHovered(_:)``).
+    private var hoveredViews: [Candidate] = []
+
+    /// The pointer's candidate: of the views with help it is over, the
+    /// innermost — the most specific, as AppKit shows the tooltip of the
+    /// deepest view under the pointer. Until the hover observers nested
+    /// (2026-10-18) only the outermost one heard the pointer at all.
+    var hovered: Candidate? { hoveredViews.last }
 
     /// A hover candidate kept through the status bar's own reflow, and shown
     /// in preference to ``hovered``: the pointer has not moved, but the page
@@ -246,26 +256,70 @@ public final class TooltipState: @unchecked Sendable {
         }
         if var held, isSame(held) {
             held.text = text
-            hovered = held
+            hoveredViews.removeAll(where: isSame)
+            hoveredViews.append(held)
             self.held = nil
             return
         }
-        if let hovered, isSame(hovered) {
-            self.hovered?.text = text
+        if let index = hoveredViews.firstIndex(where: isSame) {
+            hoveredViews[index].text = text
             return
         }
-        hovered = Candidate(
-            text: text, handlerID: handlerID, owner: owner, sinceNanos: nowNanos,
-            showAtNanos: nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000),
-            style: style)
+        hoveredViews.append(
+            Candidate(
+                text: text, handlerID: handlerID, owner: owner, sinceNanos: nowNanos,
+                showAtNanos: nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000),
+                style: style))
+    }
+
+    /// Keeps the pointer's candidates in step with the hover observers the
+    /// pointer is over, `handlerIDs`, outermost first: one whose observer it
+    /// is not over goes, and the rest take that order, so the innermost is
+    /// ``hovered``. Called by the dispatcher whenever it resolves the hover.
+    ///
+    /// The order is the dispatcher's, not the order the views were entered
+    /// in: a reshape can exit and enter a container again (its rectangle
+    /// changed) while the pointer stays in a view inside it, which would put
+    /// the container last. A candidate an exit never reached — its view gone
+    /// while the pointer was not reported — goes too, where it used to stay
+    /// until another view replaced it. One published with no handler id is
+    /// kept, ahead of the rest.
+    ///
+    /// - Parameters:
+    ///   - handlerIDs: The observers the pointer is over, outermost first.
+    ///   - renamed: The observers a reshape carried on under another id —
+    ///     a view's region is filed under the id its registration got that
+    ///     frame, which can change while the view stays under the pointer
+    ///     (the dispatcher tells them apart by their rectangles): each
+    ///     candidate's id is followed first.
+    package func observersHovered(
+        _ handlerIDs: [HitTestRegion.HandlerID],
+        renamed: [HitTestRegion.HandlerID: HitTestRegion.HandlerID] = [:]
+    ) {
+        guard !hoveredViews.isEmpty else { return }
+        if !renamed.isEmpty {
+            for index in hoveredViews.indices {
+                if let id = hoveredViews[index].handlerID, let now = renamed[id] { hoveredViews[index].handlerID = now }
+            }
+        }
+        let rank = Dictionary(handlerIDs.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        let kept = hoveredViews.filter { $0.handlerID.map { rank[$0] != nil } ?? true }
+        hoveredViews = kept.enumerated()
+            .sorted { lhs, rhs in
+                let left = lhs.element.handlerID.flatMap { rank[$0] } ?? -1
+                let right = rhs.element.handlerID.flatMap { rank[$0] } ?? -1
+                return (left, lhs.offset) < (right, rhs.offset)
+            }
+            .map(\.element)
     }
 
     /// Records that the pointer has left the view it was over.
     ///
-    /// Ignores a stale exit: with nested help (a container and a child), leaving
-    /// the child fires `.exited` for it while the pointer is still inside the
-    /// container, and the container's own `.entered` may already have replaced
-    /// the candidate.
+    /// Takes that view's candidate out of the pointer's candidates: with
+    /// nested help (a container and a child), leaving the child fires
+    /// `.exited` for it while the pointer is still inside the container, whose
+    /// candidate is then ``hovered`` again, its delay served. An exit for a
+    /// view that is not a candidate does nothing.
     ///
     /// Moved out from under the pointer by the status bar's own rows, the
     /// candidate is held rather than dropped (``held``).
@@ -275,13 +329,16 @@ public final class TooltipState: @unchecked Sendable {
     ///   - owner: The view's identity, which finds its candidate however its
     ///     text has changed since.
     package func leaving(_ text: String, owner: String? = nil) {
-        guard let candidate = hovered, candidate.text == text || (owner != nil && candidate.owner == owner)
+        guard
+            let index = hoveredViews.lastIndex(where: {
+                $0.text == text || (owner != nil && $0.owner == owner)
+            })
         else { return }
-        if reshapeIsTooltipReflow, held == nil {
-            held = hovered
+        if reshapeIsTooltipReflow, held == nil, index == hoveredViews.count - 1 {
+            held = hoveredViews[index]
             heldPresentations = reshapePresentations
         }
-        hovered = nil
+        hoveredViews.remove(at: index)
     }
 
     /// Takes the help a hovered view drew this frame, where it has changed
@@ -289,7 +346,9 @@ public final class TooltipState: @unchecked Sendable {
     /// explains what it does now, not what it did. The delay already served
     /// stands, as it does for a view re-registered under a resting pointer.
     package func hoveredViewDrew(owner: String, text: String) {
-        if hovered?.owner == owner, hovered?.text != text { hovered?.text = text }
+        for index in hoveredViews.indices where hoveredViews[index].owner == owner {
+            hoveredViews[index].text = text
+        }
         if held?.owner == owner, held?.text != text { held?.text = text }
     }
 
@@ -363,7 +422,7 @@ public final class TooltipState: @unchecked Sendable {
     package func pointerLeft() -> Bool {
         let had = held ?? hovered != nil
         held = nil
-        hovered = nil
+        hoveredViews = []
         pointerSilenced = false
         return had
     }

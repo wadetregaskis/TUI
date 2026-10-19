@@ -165,6 +165,48 @@ struct HoverObserverTests {
             "…while still publishing its own hover candidate")
     }
 
+    /// Semantic audit item 31, its case (a): SwiftUI's `.onHover` defines a
+    /// region the size of its view, and nested regions both contain the
+    /// pointer, so both fire. Hover resolved one observer per point, the
+    /// outermost, and the inner `.onHover` never heard anything.
+    @Test("Nested .onHover regions each hear the pointer enter and leave their own")
+    func nestedOnHoverRegionsEachHear() {
+        var outer: [Bool] = []
+        var inner: [Bool] = []
+        let view = VStack(alignment: .leading, spacing: 0) {
+            Text("aaaa").onHover { inner.append($0) }
+            Text("bbbb")
+        }
+        .onHover { outer.append($0) }
+        let h = harness()
+        _ = frames(of: view, pointer: [(1, 0), (1, 1), (1, 0), away], in: h)
+        #expect(inner == [true, false, true, false], "the inner .onHover: \(inner)")
+        #expect(outer == [true, false], "the outer .onHover, entered once and left once: \(outer)")
+    }
+
+    /// Nesting leaves the control its hover: a `Button` inside two
+    /// `.onHover`s still lights, and both still hear the pointer.
+    @Test("A Button under two nested .onHovers still lights, and both hear it")
+    func buttonUnderNestedObservers() {
+        var log: [String] = []
+        let bare = Button("Save") {}
+        let observed = Button("Save") {}.onHover { log.append("inner \($0)") }.onHover { log.append("outer \($0)") }
+        guard let cell = controlCells(of: bare).first else {
+            Issue.record("the Button drew no hit region")
+            return
+        }
+        let path = [cell, away]
+        let (expected, got) = withColorDepth(.truecolor) {
+            (frames(of: bare, pointer: path, in: harness()),
+                frames(of: observed, pointer: path, in: harness()))
+        }
+        #expect(got[1] == expected[1], "the nested observers took the Button's hover: \(got[1])")
+        #expect(got[2] == expected[2])
+        #expect(
+            log == ["outer true", "inner true", "inner false", "outer false"],
+            "entered outermost first, left innermost first: \(log)")
+    }
+
     /// The guard on the other side, and not the red: an observer BEHIND a
     /// region that is not one — a page's `.onHover` under a modal's consuming
     /// backdrop — must stay as silent as it always was. Only the control behind

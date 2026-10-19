@@ -137,9 +137,11 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// observer.
     var hover = HoverSlot()
 
-    /// The hover observer — `.onHover`, `help(_:)` — in front of that control,
-    /// on a lane of its own so the control keeps its hover.
-    var observedHover = HoverSlot()
+    /// The hover observers — `.onHover`, `help(_:)` — in front of that
+    /// control, outermost first, each on a lane of its own so the control
+    /// keeps its hover and every observer whose region holds the pointer
+    /// hears it, as each nested `.onHover` does in SwiftUI.
+    var observedHovers: [HoverSlot] = []
 
     /// The controls a reshape has taken a hover lane off since the last
     /// input (``noteInput()``), by their ids, which are their own across
@@ -385,7 +387,9 @@ extension MouseEventDispatcher {
         // Retain each lane's hovered closure before the table dies — see
         // `HoverSlot.pendingExit`.
         if let exit = retainedExit(for: hover) { hover.pendingExit = exit }
-        if let exit = retainedExit(for: observedHover) { observedHover.pendingExit = exit }
+        for index in observedHovers.indices {
+            if let exit = retainedExit(for: observedHovers[index]) { observedHovers[index].pendingExit = exit }
+        }
         renderedSincePopupOpened = true
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)

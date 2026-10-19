@@ -308,10 +308,10 @@ extension MouseEventDispatcher {
     /// So an observer runs on a lane of its own. The control under the pointer
     /// is resolved as though observers were not there and runs the machine
     /// exactly as it always did — enter, exit, per-cell `.moved`, the reshape
-    /// remap — while the observer in front of it runs a second copy. See
-    /// ``resolveHover(at:y:)`` for which observer that is. Still ONE observer
-    /// per point: nested observers resolve to the outermost (the last
-    /// appended), not to all of them.
+    /// remap — while each observer in front of it runs a copy of its own:
+    /// nested observers each hear the pointer enter and leave their own
+    /// region, as in SwiftUI. See ``resolveHover(at:y:)`` for which observers
+    /// those are.
     ///
     /// Named apart from ``register(in:_:)`` rather than given a label: both take
     /// a single closure, and a trailing closure would match either.
