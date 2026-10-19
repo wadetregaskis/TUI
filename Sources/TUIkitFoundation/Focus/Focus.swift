@@ -139,7 +139,10 @@ public final class FocusManager: @unchecked Sendable {
     /// restores its focus instead of resetting to the section's first element.
     /// Without this, opening then closing a modal moved focus to the top of the
     /// page — and a `ScrollView` would snap-scroll there, resetting the scroll.
-    private var sectionFocusMemory: [String: String] = [:]
+    ///
+    /// Readable outside this file because ``focusedValuesIdentity`` reads the
+    /// focus a menu was opened over from it.
+    private(set) var sectionFocusMemory: [String: String] = [:]
 
     /// Sections that belong to a presented modal / alert — surfaces that *grab*
     /// input. Re-marked each render by the presentation modifiers (cleared in
@@ -156,6 +159,17 @@ public final class FocusManager: @unchecked Sendable {
     /// surface renders later in the pass than its presenter, so this frame's
     /// marks do not exist yet when the question is asked.
     private(set) var previousModalSectionIDs: Set<String> = []
+
+    /// Sections a menu is open in (``markSectionMenu(id:)``): each holds the
+    /// keyboard and leaves the focus, for the focused values, where it was.
+    /// Re-marked each render by the menu's presenter and cleared with
+    /// ``modalSectionIDs``.
+    private(set) var menuSectionIDs: Set<String> = []
+
+    /// ``menuSectionIDs`` as the previous frame left them, snapshotted by
+    /// ``beginRenderPass()``: what a reader drawn before this frame's menu
+    /// asks, as ``previousModalSectionIDs`` is for a presenter.
+    private(set) var previousMenuSectionIDs: Set<String> = []
 
     /// How to close each surface presented this frame, by its section: posted
     /// every frame the surface is drawn (``notePresentation(id:dismiss:)``).
@@ -663,6 +677,8 @@ extension FocusManager {
         sectionFocusMemory.removeAll()
         sectionRevertTarget.removeAll()
         modalSectionIDs.removeAll()
+        menuSectionIDs.removeAll()
+        previousMenuSectionIDs.removeAll()
         optionalFocusSectionIDs.removeAll()
         passiveSectionIDs.removeAll()
         focusBindings.removeAll()
@@ -1115,6 +1131,14 @@ extension FocusManager {
         modalSectionIDs.insert(id)
     }
 
+    /// Marks `id` as a section a menu is open in: it holds the keyboard and
+    /// leaves the focus, for the focused values, on the control focused where
+    /// the menu was opened (``focusedValuesIdentity``). Called by the menu's
+    /// presenter each render, like ``markSectionModal(id:)``.
+    package func markSectionMenu(id: String) {
+        menuSectionIDs.insert(id)
+    }
+
     /// Notes that the focused control has changed in a way an enclosing
     /// `ScrollView` should follow, with no key having been pressed.
     ///
@@ -1317,6 +1341,7 @@ extension FocusManager {
         // Last frame's modal marks, likewise, before `beginSceneRender` clears
         // them: see ``previousModalSectionIDs``.
         previousModalSectionIDs = modalSectionIDs
+        previousMenuSectionIDs = menuSectionIDs
         previousPresentationDismissals = presentationDismissals
         panes.beginFrame()
         beginSceneRender()
@@ -1351,6 +1376,7 @@ extension FocusManager {
         // clearing here means a dismissed modal (which no longer renders, so no
         // longer re-marks) stops grabbing input on the very next frame.
         modalSectionIDs.removeAll()
+        menuSectionIDs.removeAll()
         presentationDismissals.removeAll()
         panes.beginWalk()
         // Re-posted each render by whatever lays the columns out, for the same reason.
@@ -1518,7 +1544,7 @@ extension FocusManager {
 
         // Last, once the focus is settled: a reader handed a value this frame
         // went on to change asks for the frame that shows the change.
-        focusedValues.endPass(focusedAt: focusedIdentity)
+        focusedValues.endPass(focusedAt: focusedValuesIdentity)
     }
 }
 

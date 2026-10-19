@@ -127,9 +127,10 @@ package final class FocusedValueRegistry {
 
     /// The values a reader sees, for wherever the focus is now: the focus of
     /// the manager this registry belongs to (``owner``), the focus
-    /// ``endPass(focusedAt:)`` repeats the reading at.
+    /// ``endPass(focusedAt:)`` repeats the reading at — and while a menu is
+    /// open, the focus it was opened over (`FocusManager.focusedValuesIdentity`).
     func tableAtTheFocus() -> FocusedValues {
-        let table = resolve(focusedAt: owner?.focusedIdentity)
+        let table = resolve(focusedAt: owner?.focusedValuesIdentity)
         if isRendering, reads.last != table { reads.append(table) }
         return table
     }

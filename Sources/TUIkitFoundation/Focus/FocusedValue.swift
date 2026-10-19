@@ -84,6 +84,12 @@ final class FocusedValueReader {
 /// A reader drawn as a backdrop — on the page beneath a sheet, or inside
 /// `dimmed()` — reads what a reader on the live page reads: the values for
 /// wherever the focus is, which while a sheet is up is in the sheet.
+///
+/// An open menu — a `Menu`'s, a context menu, the menu bar's — takes the
+/// keyboard but not the focus, as a menu on macOS leaves the first responder
+/// where it was: while it is open, its items and the page read the values of
+/// the view focused where it was opened. So a menu bar command gated on a
+/// focused value (`.disabled(note == nil)`) stays enabled in its open menu.
 @propertyWrapper
 public struct FocusedValue<Value>: DynamicProperty {
     private let reader = FocusedValueReader()

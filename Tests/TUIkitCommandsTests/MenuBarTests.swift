@@ -49,6 +49,26 @@ private struct NoteCommands: Commands {
     }
 }
 
+/// Commands whose item is enabled by the focused view's note alone — the
+/// pattern `Commands`' documentation teaches.
+private struct GatedNoteCommands: Commands {
+    @FocusedValue(\.menuBarNote) private var note
+
+    var body: some Commands {
+        CommandMenu("Note") {
+            Button("Show") { MenuBarProbe.shared.log.append("show \(note ?? "none")") }
+                .disabled(note == nil)
+        }
+    }
+}
+
+/// A view on the page that reads the focused view's note.
+private struct NoteReader: View {
+    @FocusedValue(\.menuBarNote) private var note
+
+    var body: some View { Text("note: \(note ?? "none")") }
+}
+
 /// Two buttons, each publishing a note while it has the focus.
 private struct NotesPage: View {
     var body: some View {
@@ -68,6 +88,23 @@ private struct BareApp: App {
 private struct CommandsApp: App {
     init() {}
     var body: some Scene { WindowGroup { NotesPage() }.commandsRemoved().commands { NoteCommands() } }
+}
+
+/// The gated commands, over the notes and a reader of them at the foot of the
+/// page, out from under the open menu.
+private struct GatedApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            VStack(spacing: 0) {
+                NotesPage()
+                Spacer()
+                NoteReader()
+            }
+        }
+        .commandsRemoved()
+        .commands { GatedNoteCommands() }
+    }
 }
 
 /// The page binds the command's key itself.
@@ -183,6 +220,32 @@ struct MenuBarTests {
         app.frame(atNanos: 20_000_000)
         app.send(KeyEvent(key: .character("s"), ctrl: true))
         #expect(MenuBarProbe.shared.log == ["show a", "show b"], "the frame after the focus moved reads B's note")
+    }
+
+    @Test("With a menu open, its commands and the page read the focused view's @FocusedValue, as before it opened")
+    func openMenuReadsTheFocus() {
+        MenuBarProbe.shared.log = []
+        let app = HeadlessApp(GatedApp(), width: 40, height: 10)
+        var now: Int64 = 0
+        func frame() {
+            app.frame(atNanos: now)
+            now += 20_000_000
+        }
+        frame()
+        app.send(KeyEvent(key: .tab))
+        frame()
+        app.send(KeyEvent(key: .f10))
+        frame()
+        frame()
+        let asked = app.framesAsked
+        frame()
+        frame()
+        let rows = app.screen.map(\.stripped)
+        #expect(rows.dropFirst().contains { $0.contains("Show") }, "the menu is open: \(rows)")
+        #expect(rows.contains { $0.contains("note: b") }, "the page's reader still reads B's note: \(rows)")
+        #expect(app.framesAsked == asked, "no reading goes stale while the menu is open")
+        app.send(KeyEvent(key: .enter))
+        #expect(MenuBarProbe.shared.log == ["show b"], "the item is enabled by B's note, and reads it: \(rows)")
     }
 
     @Test("A disabled command's shortcut does nothing")

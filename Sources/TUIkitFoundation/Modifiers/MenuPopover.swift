@@ -227,6 +227,10 @@ package func presentMenuPopover<Items: View>(
     focusManager?.activatePresentedSection(id: sectionID)
     // Input-grabbing so global chrome hotkeys don't fire behind the menu.
     focusManager?.markSectionModal(id: sectionID)
+    // A menu takes the keyboard, not the focus: its items and the page go on
+    // reading the focused values of what was focused where it was opened
+    // (`FocusManager.focusedValuesIdentity`).
+    focusManager?.markSectionMenu(id: sectionID)
     // Closed if a frame goes by without it: see `FocusManager.notePresentation`.
     focusManager?.notePresentation(id: sectionID, dismiss: dismiss)
     // The section deliberately holds NO focus: a pop-up's rows report to the
