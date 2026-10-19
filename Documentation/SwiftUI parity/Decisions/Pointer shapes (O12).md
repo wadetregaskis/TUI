@@ -169,7 +169,9 @@ and `TextEditor`; a pointing hand over `Button` (and so `Link`, which draws
 one; and a `Menu`'s trigger, but not its rows); a column's resize arrow over
 `HSplitView`'s and `NavigationSplitView`'s dividers and over the gap after a
 resizable `Table` column's title, a row's over `VSplitView`'s; the edges of a
-`userResizable` view, its corner the diagonal. A style the app set beats a
+`userResizable` view, its corner the diagonal. Each asks for motion
+reporting while it is on screen, as a style does: a shape shows where the
+pointer rests, which nothing else reports. A style the app set beats a
 control's own (B-O12-2). No host's reset has been read yet
 (`PointerShapeHost.resetIsMeasured` is `false` for all), so they are off
 everywhere unless `TUIKIT_POINTER_SHAPES=all` asks for them; a host's row turns

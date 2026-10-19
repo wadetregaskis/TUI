@@ -33,10 +33,14 @@ final class PointerShapeHarness {
         self.width = width
         self.height = height
         tui.terminalFeatures = TerminalFeatures(pointerShapes: shapes, controlPointerShapes: controlShapes)
-        dispatcher.setActiveSupport(.full)
     }
 
-    /// Renders one frame and publishes its regions.
+    /// Renders one frame, publishes its regions, and switches the reporting
+    /// to what the frame asked for (`.standard` and its requests), as the run
+    /// loop does: a frame that asks for no motion is sent no move (``move(x:y:)``),
+    /// so a shape that forgot to ask for it never shows. (Posed as `.full`,
+    /// with every move delivered, until the lane's review, which hid exactly
+    /// that.)
     @discardableResult
     func frame(_ view: some View) -> FrameBuffer {
         var environment = EnvironmentValues()
@@ -55,14 +59,20 @@ final class PointerShapeHarness {
         tui.stateStorage.endRenderPass()
         cache.removeInactive()
         dispatcher.setRegions(buffer.hitTestRegions)
+        dispatcher.setActiveSupport(dispatcher.effectiveSupport(baseConfig: .standard), isFrameFinal: true)
         return buffer
     }
 
     /// Moves the pointer to `(x, y)`, and returns whether the move asked for a
     /// frame.
+    ///
+    /// Reported only as a terminal reports it: while the last frame switched
+    /// motion reporting on. Without it a terminal sends no plain move, and
+    /// the dispatcher never learns where the pointer rests.
     @discardableResult
     func move(x: Int, y: Int) -> Bool {
-        dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: x, y: y))
+        guard dispatcher.frameFinalSupport.motion else { return false }
+        return dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: x, y: y))
     }
 
     /// The shape the pointer is given at `(x, y)`.

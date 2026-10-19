@@ -122,20 +122,33 @@ extension MouseEventDispatcher {
     /// (``TerminalFeatures/controlPointerShapes``): elsewhere this does
     /// nothing, so a control calls it unasked.
     ///
+    /// Asks for motion reporting too, as `.pointerStyle(_:)` does: a shape
+    /// shows where the pointer rests, and only motion reporting says where
+    /// that is. The controls that ask for it to light under the pointer had
+    /// it anyway, but a text editor, a split view's divider and a table's
+    /// column gap do not: alone on a page, theirs showed only mid-drag.
+    ///
     /// Recorded for a value memo, as the handler's registration beside it is.
     @MainActor
     package func fileControlPointerShape(
         _ shape: PointerShape, for id: HitTestRegion.HandlerID, in context: RenderContext
     ) {
         guard context.environment.terminalFeatures.controlPointerShapes, !context.isMeasuring else { return }
-        controlPointerShapes[id] = shape
+        fileControlShape(shape, for: id)
         context.environment.volatileReadTracker?.recordReplayableEffect()
         guard let journal = context.recordingEffectJournal else { return }
         let token = context.environment.keyChannelToken
         journal.append(
             EffectJournal.Entry(kind: Self.controlPointerShapeKind, channelToken: token) { replay in
-                replay.environment.mouseEventDispatcher?.controlPointerShapes[id] = shape
+                replay.environment.mouseEventDispatcher?.fileControlShape(shape, for: id)
             })
+    }
+
+    /// Files a control's own shape and the motion reporting it needs: what a
+    /// render and a memo's replay of it both do.
+    private func fileControlShape(_ shape: PointerShape, for id: HitTestRegion.HandlerID) {
+        controlPointerShapes[id] = shape
+        requestFeature(.motion)
     }
 
     /// The journal kind of a pointer style's region.

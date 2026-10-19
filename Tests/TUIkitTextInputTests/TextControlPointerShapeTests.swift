@@ -34,4 +34,12 @@ struct TextControlPointerShapeTests {
         off.frame(page)
         #expect(off.shape(atX: 2, y: 0) == nil)
     }
+
+    @Test("A text editor alone on a page asks for the motion its I-beam shows by")
+    func editorAloneAsksForMotion() {
+        let harness = PointerShapeHarness(controlShapes: true)
+        harness.frame(TextEditor(text: .constant("Some text")).frame(height: 3))
+        #expect(harness.dispatcher.effectiveSupport(baseConfig: .standard).motion)
+        #expect(harness.shape(atX: 2, y: 0) == .text)
+    }
 }
