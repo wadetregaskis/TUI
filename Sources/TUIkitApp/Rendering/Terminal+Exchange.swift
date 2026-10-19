@@ -104,6 +104,14 @@ extension Terminal {
         /// stdin. Answering `true` with nothing staged is safe: the read then
         /// returns 0, which ends the exchange.
         var waitForInput: (Date) -> Bool
+        /// Receives what a signal would be owed — ``Terminal/signalDebt``,
+        /// then ``Terminal/quitDebt`` for a `SIGQUIT` — each time the
+        /// terminal arms it (``Terminal/armSignalRestore()``), in place of the
+        /// process's signal handlers, which are not a scripted terminal's to
+        /// install. So a test can read what a `SIGTERM` would have written,
+        /// and when it came to be owed. `nil`, the default, where the test
+        /// does not look: the debt is then not even spelled.
+        var armSignalRestore: ((_ signalDebt: String, _ quitDebt: String) -> Void)?
     }
 }
 

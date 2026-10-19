@@ -371,7 +371,9 @@ final class Terminal: HostStateKeeping {
     /// a mode ``enableRawMode()`` turns on, a frame — can be read back rather
     /// than printed to the console the tests run in. While it is set the
     /// process's termios is left alone and no signal handler is armed: the
-    /// scripted terminal is the test's, and the process's own is not.
+    /// scripted terminal is the test's, and the process's own is not. What
+    /// would have been armed goes to the transport instead
+    /// (``ExchangeTransport/armSignalRestore``).
     var exchangeTransport: ExchangeTransport?
 
     /// The original terminal settings, on a platform that has them.
@@ -1034,10 +1036,17 @@ extension Terminal {
     /// pin, the alternate screen entered or left, what ``hostState`` owes.
     ///
     /// A scripted terminal is a test's, and the process's signal handlers are
-    /// not its to install.
+    /// not its to install: the debt goes to its transport instead
+    /// (``ExchangeTransport/armSignalRestore``), where the test can read it.
     func armSignalRestore() {
         #if !canImport(WASILibc)
-            guard isRawMode, exchangeTransport == nil else { return }
+            guard isRawMode else { return }
+            if let exchangeTransport {
+                // Optional chaining skips the arguments too: a transport that
+                // does not look is not spelled the debt.
+                exchangeTransport.armSignalRestore?(signalDebt, quitDebt)
+                return
+            }
             FatalSignalTerminalRestore.arm(owing: signalDebt, onQuit: quitDebt, restoring: originalTermios)
         #endif
     }
