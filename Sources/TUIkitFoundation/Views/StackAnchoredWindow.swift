@@ -1024,7 +1024,8 @@ extension _VStackCore {
             reply.sliceTotalIsEstimate = true
             reportTargetLayout(placedSpans, into: reply)
             if let sampledOrdinal {
-                reply.anchorID = frame.children.anyID(at: sampledOrdinal)
+                reply.anchorID = frame.children.reportedID(
+                    at: sampledOrdinal, content: content, sectionsWhole: context.keepsSectionsWhole)
             }
         } else if total > cursor {
             result.appendVertically(FrameBuffer(emptyWithHeight: total - cursor), spacing: 0)

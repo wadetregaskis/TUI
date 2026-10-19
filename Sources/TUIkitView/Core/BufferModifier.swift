@@ -136,6 +136,11 @@ public protocol BufferModifier {
     /// Not to be implemented by hand outside `View.id(_:)`.
     var _explicitIDKey: String? { get }
 
+    /// The id value `View.id(_:)` bound, of which ``_explicitIDKey`` is the
+    /// string — see ``ExplicitIDProviding/explicitID``. Not to be implemented
+    /// by hand outside `View.id(_:)`.
+    var _explicitID: AnyHashable? { get }
+
     /// Adjusts the rendering context before the wrapped content is rendered.
     ///
     /// Override this method in modifiers that consume space (like padding)
@@ -175,6 +180,10 @@ extension BufferModifier {
     /// A modifier binds no identity key unless it is `View.id(_:)`'s.
     @inlinable
     public var _explicitIDKey: String? { nil }
+
+    /// Nor an id value.
+    @inlinable
+    public var _explicitID: AnyHashable? { nil }
 
     /// A modifier says nothing continuous about itself unless it is
     /// ``Animatable``.
@@ -351,6 +360,10 @@ extension ModifiedView {
 extension ModifiedView: ExplicitIDProviding {
     public var explicitIDKey: String? {
         modifier._explicitIDKey ?? (content as? ExplicitIDProviding)?.explicitIDKey
+    }
+
+    public var explicitID: AnyHashable? {
+        modifier._explicitID ?? (content as? ExplicitIDProviding)?.explicitID
     }
 }
 

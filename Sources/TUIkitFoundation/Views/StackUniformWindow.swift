@@ -545,7 +545,7 @@ extension _VStackCore {
             reply.sliceHoldsFirstRow = (rows.first?.ordinal ?? 0) == 0
             reply.sliceHoldsLastRow = (rows.last?.ordinal ?? count - 1) == count - 1
             reply.anchorID = sampledID(
-                children, window: sampling, pitch: pitch, totalHeight: totalHeight)
+                children, window: sampling, pitch: pitch, totalHeight: totalHeight, childContext: childContext)
         } else if cursor < totalHeight {
             result.appendVertically(FrameBuffer(emptyWithHeight: totalHeight - cursor), spacing: 0)
         }
@@ -757,13 +757,13 @@ extension _VStackCore {
     /// above it, where the exact walk names the row below.
     private func sampledID(
         _ children: ChildViewCollection, window: ScrollContentWindow, pitch: Int,
-        totalHeight: Int
+        totalHeight: Int, childContext context: RenderContext
     ) -> AnyHashable? {
         guard let unit = window.reportsIDAt, pitch > 0, !children.isEmpty else { return nil }
         let sampled = window.sampleY(
             at: unit, contentBelow: window.hasContentBelow(stackBottom: totalHeight))
         let ordinal = min(max(0, (sampled + spacing) / pitch), children.count - 1)
-        return children.anyID(at: ordinal)
+        return children.reportedID(at: ordinal, content: content, sectionsWhole: context.keepsSectionsWhole)
     }
 
     /// Resolves a pending scrollTo against uniform geometry — EXACT, the

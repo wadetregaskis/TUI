@@ -10,18 +10,30 @@
 /// re-keys, and because `ModifiedView` calls `adjustContext` on **both** the
 /// measure and render passes, `@State` keys off the same spliced identity in
 /// each, preserving measure/render alignment.
-private struct _IDModifier: BufferModifier {
+///
+/// Generic over the id, which it keeps as its own type rather than as an
+/// `AnyHashable`: the view's value hash reads it as the plain value it is,
+/// where a box would hash a pointer.
+private struct _IDModifier<ID: Hashable>: BufferModifier {
     /// Its content stays where it is laid out — an identity moves nothing — so a guide inside it
     /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }
 
     let key: String
 
+    /// The id itself, which ``key`` is the string of: what a scroll view
+    /// reports back to a `.scrollPosition(id:)` binding when this view is the
+    /// one it shows.
+    let id: ID
+
     /// The witness that makes this key readable from outside the modified
     /// view, where `adjustContext` alone leaves no trace of it: a container
     /// sees only the child's positional step, since the re-keyed step is the
     /// one BELOW. `ScrollViewProxy.scrollTo(_:anchor:)` is what reads it.
     var _explicitIDKey: String? { key }
+
+    /// The id, for the read-back (``_explicitIDKey`` is for the seek).
+    var _explicitID: AnyHashable? { AnyHashable(id) }
 
     func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         buffer
@@ -62,6 +74,6 @@ extension View {
     /// - Parameter id: A value that identifies this view.
     /// - Returns: A view with the given identity bound to it.
     public func id<ID: Hashable>(_ id: ID) -> some View {
-        modifier(_IDModifier(key: identityKey(id)))
+        modifier(_IDModifier(key: identityKey(id), id: id))
     }
 }

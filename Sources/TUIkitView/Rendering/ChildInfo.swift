@@ -22,6 +22,12 @@ import TUIkitCore
 public protocol ExplicitIDProviding {
     /// The key `View.id(_:)` bound to this view, or `nil` if it bound none.
     var explicitIDKey: String? { get }
+
+    /// The id VALUE `View.id(_:)` bound to this view — what ``explicitIDKey``
+    /// is the string of — or `nil` if it bound none: what a scroll view
+    /// reports back to a `.scrollPosition(id:)` binding, which a key, being
+    /// `String(describing:)` of the value, cannot be turned back into.
+    var explicitID: AnyHashable? { get }
 }
 
 /// A view that carries an explicit z-index for sibling draw ordering.

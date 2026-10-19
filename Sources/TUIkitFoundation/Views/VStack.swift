@@ -1102,7 +1102,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // inter-row gap belongs to the row below it), clamped to the last row.
         let ordinal = slots.firstIndex { line < $0.y + $0.height } ?? (slots.count - 1)
         let ids = resolveChildViewCollection(from: content, context: childContext)
-        reply.anchorID = ids.anyID(at: ordinal)
+        reply.anchorID = ids.reportedID(at: ordinal, content: content, sectionsWhole: childContext.keepsSectionsWhole)
     }
 
     /// The slot index of the row whose subtree a focus ID addresses, when the

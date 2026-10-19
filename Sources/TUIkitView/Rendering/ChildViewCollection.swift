@@ -123,6 +123,11 @@ public struct ChildViewCollection {
         return nil
     }
 
+    /// The wrapped eager array, or `nil` for a lazy collection — for a
+    /// question asked of each child that a lazy collection answers from its
+    /// provider instead (``anyID(at:)``), and must not build every row for.
+    public var eagerChildViews: [ChildView]? { eagerChildren }
+
     /// The wrapped eager array when this collection has one, else builds
     /// every child — the bridge for call sites not yet converted to
     /// per-ordinal access. Named to make the cost visible at the call site.

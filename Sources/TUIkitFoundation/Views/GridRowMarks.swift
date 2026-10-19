@@ -87,6 +87,10 @@ extension _GridRowMarkView: ExplicitIDProviding {
     package var explicitIDKey: String? {
         (content as? ExplicitIDProviding)?.explicitIDKey
     }
+
+    package var explicitID: AnyHashable? {
+        (content as? ExplicitIDProviding)?.explicitID
+    }
 }
 
 // MARK: - Rows That Arrive Whole

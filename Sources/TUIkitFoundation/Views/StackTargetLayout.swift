@@ -59,7 +59,8 @@ extension _VStackCore {
         let ordinal = rows.first { line < $0.bottom }?.ordinal ?? last.ordinal
         var childContext = context
         childContext.environment.scrollContentWindow = nil
-        reply.anchorID = resolveChildViewCollection(from: content, context: childContext).anyID(at: ordinal)
+        reply.anchorID = resolveChildViewCollection(from: content, context: childContext)
+            .reportedID(at: ordinal, content: content, sectionsWhole: childContext.keepsSectionsWhole)
     }
 
     /// The rows of the full walk (a lazy stack under the anchored threshold):
@@ -258,7 +259,8 @@ extension _HStackCore {
         let ordinal = columns.first { x < $0.end }?.ordinal ?? last.ordinal
         var childContext = context
         childContext.environment.scrollContentWindow = nil
-        reply.anchorID = resolveChildViewCollection(from: content, context: childContext).anyID(at: ordinal)
+        reply.anchorID = resolveChildViewCollection(from: content, context: childContext)
+            .reportedID(at: ordinal, content: content, sectionsWhole: childContext.keepsSectionsWhole)
     }
 
     /// The reply a reported column goes into, with what asks for it, or `nil`

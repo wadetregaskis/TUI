@@ -789,6 +789,14 @@ public struct ChildView {
         (wrappedView as? ExplicitIDProviding)?.explicitIDKey
     }
 
+    /// The id value an explicit `View.id(_:)` bound to this child — what
+    /// ``explicitIDKey`` is the string of — or `nil`. A cast for the same
+    /// reason; asked only by a scroll view reporting the row it shows to a
+    /// `.scrollPosition(id:)` binding.
+    public var explicitID: AnyHashable? {
+        (wrappedView as? ExplicitIDProviding)?.explicitID
+    }
+
     /// Whether this child is the seek target named by `key` — the one place
     /// the two spellings SwiftUI's `ScrollViewProxy.scrollTo(_:anchor:)`
     /// accepts are decided between.

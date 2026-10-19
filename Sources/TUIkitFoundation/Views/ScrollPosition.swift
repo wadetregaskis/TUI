@@ -211,15 +211,15 @@ extension ScrollPosition {
     /// reported yet (the first frame), when the content has no ids to report,
     /// or when the id is not a `T`.
     ///
-    /// "No ids to report" is narrower than it sounds, and was measured rather
-    /// than assumed: the sample travels through the content's keyed
-    /// collection, so it answers only where a stack's content, lazy or eager,
-    /// is a SINGLE `ForEach`: a vertical stack's, or a horizontal stack's in a
-    /// scroll view that scrolls only across (whose column is sampled at the
-    /// anchor's `x`, or at the leading edge with no anchor stated). A stack
-    /// holding two `ForEach`es reports nothing; and a `.id(_:)`-tagged child is
-    /// never reported even though ``scrollTo(id:anchor:)`` seeks to one
-    /// perfectly well. Seeking is per-child, reading is per-collection.
+    /// The row is the child of the content's stack under the anchor — a
+    /// vertical stack's, lazy or eager, or a horizontal stack's in a scroll
+    /// view that scrolls only across (whose column is sampled at the anchor's
+    /// `x`, or at the leading edge with no anchor stated) — named as a seek
+    /// names it, per child: a `ForEach` row by its element's `id`, whatever
+    /// else is in the stack (a heading, a second `ForEach` over the same ids),
+    /// and a child of the stack's own by its `.id(_:)` tag, as the tag's own
+    /// type. A child with neither — an untagged heading — reports nothing, and
+    /// the reading stays at the row reported before it.
     ///
     /// SwiftUI reports a row only once the user scrolls past one; this reports
     /// the row the view shows after any scroll, and on the first frame. A
