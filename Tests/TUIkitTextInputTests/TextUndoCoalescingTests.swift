@@ -103,6 +103,51 @@ struct TextUndoCoalescingTests {
         #expect(undone(control).isEmpty)
     }
 
+    /// Found by the lane's review: the editor took every Control and Option
+    /// chord for a step of its own, where a field's Ctrl-O and Option-Return
+    /// insert their newline as typing. Measured on macOS 15.8 (a plain-text
+    /// `NSTextView`), the field is right: Ctrl-O's newline joins the run
+    /// before it, and the typing after it is a step of its own, since the
+    /// chord moves the caret back before the newline.
+    @Test("Ctrl-O's newline joins the run before it, and the typing after it is a step of its own")
+    func openLineInARun() {
+        let control = make(.editor)
+        type("ab", into: control.handle)
+        control.handle(KeyEvent(key: .character("o"), ctrl: true))
+        type("cd", into: control.handle)
+        #expect(control.text() == "abcd\n", "precondition")
+        #expect(undone(control) == "ab\n")
+        #expect(undone(control).isEmpty)
+    }
+
+    /// Measured the same way: Option-Tab's tab is typed as any tab is.
+    @Test("Option-Tab's tab is part of a run of typing")
+    func optionTabInARun() {
+        let control = make(.editor)
+        type("ab", into: control.handle)
+        control.handle(KeyEvent(key: .tab, alt: true))
+        type("cd", into: control.handle)
+        #expect(control.text() == "ab\tcd", "precondition")
+        #expect(undone(control).isEmpty)
+    }
+
+    /// Measured the same way, and what a vertical field already did:
+    /// Option-Return's newline and Ctrl-O's join the run before them.
+    @Test("In a vertical field, Option-Return's and Ctrl-O's newlines join the run before them",
+          arguments: [false, true])
+    func newlineChordsInAVerticalField(openLine: Bool) {
+        let box = TextBox("")
+        let harness = InputChainHarness()
+        let field = {
+            TextField("Notes", text: Binding(get: { box.text }, set: { box.text = $0 }), axis: .vertical)
+        }
+        let chord = openLine ? KeyEvent(key: .character("o"), ctrl: true) : KeyEvent(key: .enter, alt: true)
+        harness.play("ab".map { KeyEvent(character: $0) } + [chord], field)
+        #expect(box.text == "ab\n", "precondition")
+        harness.play([Self.undo], field)
+        #expect(box.text.isEmpty)
+    }
+
     @Test("A caret moved elsewhere ends the run", arguments: Control.allCases)
     func caretMovedElsewhere(kind: Control) {
         let control = make(kind)

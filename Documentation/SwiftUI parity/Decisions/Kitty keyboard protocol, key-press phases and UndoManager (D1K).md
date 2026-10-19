@@ -249,6 +249,16 @@ run asks whether the newest step is still its own
 `.runEndsUnderTheAppsStep`, `.runGoesOnPastAnotherControlsKeys`). Before
 macOS 15 the step cannot be asked, and the run goes on as before.
 
+The review also found the two controls classifying chords differently: a
+vertical field's Ctrl-O and Option-Return insert their newline as typing,
+and the editor took every Control and Option chord for a step of its own.
+Measured on a plain-text `NSTextView`, the field is right: Option-Return's
+newline and Option-Tab's tab join the run, and so does Ctrl-O's newline,
+though the caret the chord moves back before it ends the run for the typing
+after. The editor now does the same
+(`TextUndoCoalescingTests.openLineInARun`, `.optionTabInARun`;
+`.newlineChordsInAVerticalField` pins the field).
+
 ### B-D1K-7. The undo and redo keys are data, Ctrl-Z among them; redo's reach only some terminals, and the status bar is the route everywhere
 
 *`EnvironmentValues.undoManager`, `UndoCommand`, `UndoShortcuts`,

@@ -281,8 +281,15 @@ final class TextEditorHandler: PersistedFocusable {
         // takes back one edit at a time, as it does in a field — a run of
         // typing being one (``TextUndoHistory``).
         let typing = standIn == nil && Self.isTyping(event)
+        // Ctrl-O's newline joins the run before it, as the macOS text
+        // system's does, but is not typing the next key can continue: there
+        // the chord moves the caret back before the newline, which ends the
+        // run ("ab", Ctrl-O, "cd" undo as "cd", then "ab" and the newline;
+        // measured on macOS 15.8). Here the caret never left, so the run is
+        // left where the key before it noted it, at a text it no longer has.
+        let opensLine = standIn == nil && editingCommand(for: event) == .openLine
         return recordingUndoStep(
-            typing: typing, continuingTyping: typing && selectionRange == nil && block == nil
+            typing: typing, continuingTyping: (typing || opensLine) && selectionRange == nil && block == nil
         ) {
             if let standIn { return perform(standIn) }
             return handleEditingKey(event)
@@ -291,8 +298,15 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Whether `event` is typing, as the macOS text system groups its undo:
     /// a character, a space, a newline, or Backspace, with neither Control
-    /// nor Option (measured on macOS 15.8; decisions-D1K B-D1K-6).
+    /// nor Option, and Option-Tab's tab (measured on macOS 15.8, a plain-text
+    /// `NSTextView`; decisions-D1K B-D1K-6). The editor's other Control and
+    /// Option chords that edit are commands — a deletion forward or by the
+    /// word, a kill, a yank, a transpose — each a step of its own, as Delete,
+    /// a word's deletion and a paste measured (the kill, yank and transpose
+    /// unmeasured). Ctrl-O's newline joins a run without continuing it (see
+    /// ``handleKeyEvent(_:)``).
     private static func isTyping(_ event: KeyEvent) -> Bool {
+        if event.alt, !event.ctrl, case .tab = event.key { return true }
         guard !event.ctrl, !event.alt else { return false }
         switch event.key {
         case .character, .space, .enter, .backspace: return true

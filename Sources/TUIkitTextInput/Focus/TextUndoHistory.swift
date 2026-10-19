@@ -26,9 +26,10 @@ import TUIkitFoundation
 ///
 /// One step per edit, except a run of typing, which is one step, as the
 /// macOS text system makes it (measured on macOS 15.8, `NSTextView`, the INPUT
-/// lane's probe; decisions-D1K B-D1K-6): characters typed — a space and a
-/// newline among them — and Backspace, each at the caret the edit
-/// before it left, with no selection. A caret moved elsewhere ends the run
+/// lane's probe; decisions-D1K B-D1K-6): characters typed — a space, a
+/// newline and a tab among them, Option-Return's and Option-Tab's too — and
+/// Backspace, each at the caret the edit before it left, with no selection;
+/// Ctrl-O's newline joins the run, but the caret it leaves behind ends it. A caret moved elsewhere ends the run
 /// (one moved away and back does not), as does any other edit: Delete, a
 /// word's deletion, a paste, a cut, an undo. A pause does not. Typing or
 /// Backspace over a selection starts a new run. So typing a word, a
