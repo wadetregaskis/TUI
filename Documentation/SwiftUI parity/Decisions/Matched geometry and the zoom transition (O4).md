@@ -227,9 +227,11 @@ that hid it: a terminal's blank cells paint, so a chip carried from the
 right-hand list back to the left one (the left list being earlier in the
 tree) was lost under the right list's box, blanks and all, until it had
 cleared it — the Example's "Reopen one" showed the chip vanish and reappear
-half-way. So while it is carried it floats over every view, as `.offset`
-draws a view (Deliberate deviations L6), and drops back into the stacking
-order when it arrives.
+half-way. So while it is carried it floats over every view, a layer of its
+own over the page, and drops back into the stacking order when it arrives.
+(It floated as `.offset` did then; since 2026-10-18 `.offset` and `.position`
+are drawn at their place in the stacking order, Deliberate deviations L6, and
+the carried view is the one that still floats.)
 
 **Fuller version:** draw a carried view in the stacking order with the
 later views' unstyled blanks letting it through — a notion of "painted"

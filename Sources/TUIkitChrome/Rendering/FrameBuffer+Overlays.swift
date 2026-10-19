@@ -73,12 +73,13 @@ extension FrameBuffer {
                     return lhs.layer.zIndex < rhs.layer.zIndex
                 }
                 // Content past its region is its view's own cells at its place
-                // in the stacking order (`OverlayLayer.isOverflow`); a displaced
-                // drawing floats over every view, after it as well as before it
-                // (Deliberate deviations L6). So at one level and z index the
-                // overflow goes first, whatever order the tree emitted them in:
-                // a removal playing past its stack, later in the tree, covered a
-                // matched view carried over it.
+                // in the stacking order (`OverlayLayer.isOverflow`) — `.offset`
+                // and `.position` too since L6 moved them there. A layer that
+                // floats — a matched view in flight (Deliberate deviations A8) —
+                // is over every view, after it as well as before it. So at one
+                // level and z index the overflow goes first, whatever order the
+                // tree emitted them in: a removal playing past its stack, later
+                // in the tree, covered a matched view carried over it.
                 if lhs.layer.isOverflow != rhs.layer.isOverflow {
                     return lhs.layer.isOverflow
                 }

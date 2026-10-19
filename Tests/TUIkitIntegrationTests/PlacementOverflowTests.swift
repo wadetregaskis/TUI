@@ -189,22 +189,6 @@ struct PlacementOverflowTests {
         #expect(lines.first == "   rbbbb", "\(lines)")
     }
 
-    @Test("A view floated by .offset is over a later view's drawing past its region")
-    func floatOverLaterOverflow() {
-        // Deliberate deviations L6: displaced drawing floats over the views
-        // before and after it. The later view's overflow is its own cells at
-        // its place in the stacking order, so the float covers that too,
-        // though the tree emits the overflow after the float. The float "oo"
-        // lands on cells 1 and 2: cell 1 is the overflow's, cell 2 in flow.
-        let screen = Screen()
-        let lines = screen.render(
-            HStack(spacing: 0) {
-                Text("oo").offset(x: 1)
-                Text("rrrr").alignmentGuide(.leading) { _ in 3 }.frame(width: 4, alignment: .leading)
-            })
-        #expect(lines.first == "roo", "\(lines)")
-    }
-
     @Test("Down a column: over the row above, under the row below")
     func downAColumn() {
         // `VStack { above; scaled red; below }` in g2c: the red covers the row

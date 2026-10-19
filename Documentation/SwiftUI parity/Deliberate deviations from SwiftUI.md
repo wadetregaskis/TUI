@@ -1387,8 +1387,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   laid out at its own size and placed in that frame.
 - **TUIkit:** every carried view is laid out again at each frame's size,
   edges rounded to whole cells, and only moved while its size is its own;
-  while it is carried it floats over every view, as `.offset` draws one
-  (L6), and only at rest is it drawn at its place in the stacking order —
+  while it is carried it floats over every view, a layer of its own over the
+  page — where `.offset` is drawn at its place in the stacking order (L6) —
+  and only at rest is it drawn at its place in the stacking order —
   there a terminal's blank cells paint, so a view carried toward the views
   before it would be lost under every container after it;
   the removed view's own cells — found by its geometry marker in the picture

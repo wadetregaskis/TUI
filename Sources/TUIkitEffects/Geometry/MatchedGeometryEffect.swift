@@ -86,10 +86,11 @@ extension View {
     ///   under the views after it — with only the cells it paints drawn, and
     ///   its clicks where it is drawn (as content drawn past its frame is,
     ///   decisions B-GUIDE-3). Nothing is drawn where it is laid out. While an
-    ///   animation carries it, it floats over every view, as `.offset` draws
-    ///   one: a terminal's blank cells paint, so in its place in the stacking
-    ///   order a view carried toward the views before it would be lost under
-    ///   the views after it (Deliberate deviations A8).
+    ///   animation carries it, it floats over every view, a layer of its own
+    ///   over the page: a terminal's blank cells paint, so in its place in the
+    ///   stacking order a view carried toward the views before it would be
+    ///   lost under the views after it (Deliberate deviations A8). `.offset`
+    ///   no longer floats so (L6); a carried view is the exception.
     /// - **A follower's `anchor` lands on the source's.** The source shares
     ///   the point of it its own `anchor` names; a follower matching
     ///   `.position` is drawn with the point its `anchor` names there.
@@ -274,8 +275,9 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
     }
 
     /// `picture` drawn `(dx, dy)` from a footprint of `size`, floating over
-    /// everything on the page as `.offset` draws a view (``View/offset(x:y:)``,
-    /// Deliberate deviations L6): a view in flight is drawn over the views
+    /// everything on the page, a layer of its own over the page — where
+    /// `.offset` and `.position` are drawn at their place in the stacking
+    /// order (Deliberate deviations L6, A8): a view in flight is drawn over the views
     /// after it as well as those before it — at its place in the stacking
     /// order, a terminal's blank cells paint, so a view carried toward the
     /// views before it was lost under every container after it until it
