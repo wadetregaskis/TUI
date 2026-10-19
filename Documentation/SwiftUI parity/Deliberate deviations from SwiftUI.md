@@ -1015,7 +1015,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   and averaging the neighbours' colours would be a cell-sized frost, offered
   as an add-on once this shows in the Example.
 - **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
-  ruled 2026-10-12: option (b). **Medium**; Glass still owed.
+  ruled 2026-10-12: option (b). **Medium**. Glass, the same surface with a
+  rim, is [C11](#c11-glass-is-a-material-with-a-highlighted-rim-not-a-lens).
 
 ### C6. A shape draws within its frame
 
@@ -1108,6 +1109,31 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [O6](<Refusals re-examined, wave 17 (2026-10-03).md#o6-shadowstyle--w16-shadow-w13-shapestyleshadow--m>),
   ruled 2026-10-12: option (b), cells as-is, documented;
   [B-O6-1](<Decisions/Shadows (O6).md#b-o6-1-a-shadow-is-cast-by-the-cells-a-view-paints-and-falls-off-by-whole-rings>). **Owner.**
+
+### C11. Glass is a material with a highlighted rim, not a lens
+
+- **SwiftUI:** `glassEffect(_:in:)` renders a shape behind the view filled
+  with a physical glass material — it refracts, blurs and tints what is
+  behind it, and lays its foreground effects over the view; interactive glass
+  reacts to touches and the pointer (Apple's documentation and the macOS 26
+  SDK's declarations; not measured — this Mac runs macOS 15).
+- **TUIkit:** the shape is filled with a material's surface — `.regular` the
+  regular material's (0.65 of the page's surface), `.clear` the ultra-thin
+  one's (0.35), a tint that colour instead — composited cell by cell over what
+  it covers, and rimmed: its outline drawn behind the view in the border's ink
+  lifted (the tint's, tinted), in the lines of the appearance in force (a
+  Braille outline, a solid band, or none under `.blank`). Glass that does not
+  appear active is opaque, as a material is. Interactive glass lifts its rim
+  again under the pointer; it takes no click and no focus. Layout is
+  untouched, and the rim shows only in the view's blank cells — pad the view,
+  as SwiftUI's examples do (`GlassEffectTests`).
+- **Why:** a cell has nothing below it to blur or bend (C5); a rim is what is
+  left of glass's edge at cell resolution, and drawn in the appearance's lines
+  it sits beside the app's boxes and buttons as one of them.
+- **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
+  ruled 2026-10-12: option (b) for Glass, with option (c)'s rim;
+  [B-GLASS-1](<Decisions/Glass (GLASS).md#b-glass-1-glass-is-a-materials-surface-with-a-highlighted-rim-behind-the-view>),
+  [B-GLASS-2](<Decisions/Glass (GLASS).md#b-glass-2-the-rim-is-drawn-in-the-appearances-family>). **Owner**, with **Lane** choices.
 
 ---
 

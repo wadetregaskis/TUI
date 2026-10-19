@@ -3925,3 +3925,24 @@ private struct CorpusTextContentTypes: View {
         }
     }
 }
+
+// MARK: - Glass (lane GLASS)
+
+/// `glassEffect(_:in:)` as Apple's documentation writes it: the defaults, the
+/// clear variant over a dimming layer, a tinted interactive glass in a shape of
+/// the caller's, and the identity glass.
+@MainActor
+private struct CorpusGlassLabels: View {
+    var body: some View {
+        VStack {
+            Label("Flag", systemImage: "flag.fill").padding().glassEffect()
+            Label("Flag", systemImage: "flag.fill")
+                .padding()
+                .glassEffect(.clear)
+                .background(.black.opacity(0.3))
+            Text("Tinted").padding().glassEffect(.regular.tint(.orange).interactive(), in: .rect(cornerRadius: 2))
+            Text("Plain").glassEffect(.identity, in: Circle())
+            Text("Default shape").glassEffect(.regular, in: DefaultGlassEffectShape())
+        }
+    }
+}
