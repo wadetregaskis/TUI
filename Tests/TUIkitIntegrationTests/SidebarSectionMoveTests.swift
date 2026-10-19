@@ -129,6 +129,43 @@ struct SidebarSectionMoveTests {
         #expect(store.sectionOrder == nil)
     }
 
+    /// The keys that place or put back a section in hand are its header's:
+    /// once the focus has left the header, by a click on a tab, say, they
+    /// cannot reach it, so the section goes back, as a list puts back a row
+    /// in hand when it loses the focus. It stayed in hand, drawn where it
+    /// would go, until the focus came back to that header and a key with it.
+    @Test("A section in hand goes back when the focus leaves its header")
+    func focusLeavingPutsItBack() {
+        let store = Store()
+        let harness = InputChainHarness(width: 50, height: 14)
+        harness.frame(sidebar(store))
+        guard focusFolders(harness) else {
+            Issue.record("no section header to focus")
+            return
+        }
+        harness.frame(sidebar(store))
+        harness.press(Self.pickUp)
+        harness.press(KeyEvent(key: .down))
+        #expect(isAbove("Tags", "Folders", in: harness.frame(sidebar(store))), "precondition: the section is in hand")
+        guard let list = harness.focusManager.registeredFocusIDsInActiveSection().first(where: { $0.hasPrefix("list") })
+        else {
+            Issue.record("no list to focus")
+            return
+        }
+        harness.focusManager.focus(id: list)
+        harness.frame(sidebar(store))
+        let back = harness.frame(sidebar(store))
+        #expect(isAbove("Folders", "Tags", in: back), "\(back.lines.map(\.stripped))")
+        // Back on the header, the arrows move the focus, not a section.
+        guard focusFolders(harness) else { return }
+        harness.frame(sidebar(store))
+        harness.press(KeyEvent(key: .down))
+        harness.press(KeyEvent(key: .enter))
+        let after = harness.frame(sidebar(store))
+        #expect(isAbove("Folders", "Tags", in: after), "\(after.lines.map(\.stripped))")
+        #expect(store.sectionOrder == nil, "\(String(describing: store.sectionOrder))")
+    }
+
     @Test("Without a customization bound, Ctrl-R on a section header moves nothing")
     func unboundDoesNothing() {
         let store = Store()

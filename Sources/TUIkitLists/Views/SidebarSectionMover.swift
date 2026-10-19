@@ -30,8 +30,9 @@ struct _SidebarSectionDrag {
 /// Moves a ``_SidebarSectionList``'s movable sections (decisions B79): with a
 /// section's header focused — its fold — the list's pick-up chord (Ctrl-R),
 /// then the arrows, Home or End, then Return puts it down where it now is, and
-/// Escape puts it back; the list's move chords (Ctrl/Option with an arrow,
-/// Option with Home or End) move it at once. The pointer drags a header onto
+/// Escape — or the focus leaving the header — puts it back; the list's move
+/// chords (Ctrl/Option with an arrow, Option with Home or End) move it at
+/// once. The pointer drags a header onto
 /// another, and the section takes that one's place.
 ///
 /// A movable section moves among the movable sections' places, as a
@@ -135,6 +136,14 @@ final class _SidebarSectionMover: SectionHeaderDecorating {
         }
     }
 
+    /// Puts `section` back if it is in hand: the focus has left its header,
+    /// and with it the keys that would place it or put it back — as a list
+    /// puts back a row in hand when it loses the focus.
+    func letGo(_ section: Int) {
+        guard held.wrappedValue?.section == section else { return }
+        held.wrappedValue = nil
+    }
+
     /// Moves the section in hand `offset` places in the order it shows.
     private func shift(_ hold: _HeldSidebarSection, by offset: Int) {
         held.wrappedValue = _HeldSidebarSection(
@@ -183,6 +192,15 @@ private struct _SectionHeaderHandle: View, Renderable, Layoutable {
     var body: Never { fatalError("_SectionHeaderHandle renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if isHeld, !context.isMeasuring, !Self.holdsFocus(context) {
+            // The focus left the header some way other than a key on it — a
+            // click elsewhere — so the section goes back. Drawn in hand this
+            // once: the write asks for the frame that draws it back, and the
+            // focus move cleared what contains this header, so it is drawn
+            // again then rather than served.
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
+            mover.letGo(section)
+        }
         var buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -216,6 +234,12 @@ private struct _SectionHeaderHandle: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
+    }
+
+    /// Whether the focus is on the header — its fold — or inside it.
+    private static func holdsFocus(_ context: RenderContext) -> Bool {
+        guard let focused = context.environment.focusManager?.focusedIdentity else { return false }
+        return focused == context.identity || context.identity.isAncestor(of: focused)
     }
 
     /// `buffer` drawn faint, its regions and claims carried.

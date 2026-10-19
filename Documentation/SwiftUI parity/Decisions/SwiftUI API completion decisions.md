@@ -2934,7 +2934,8 @@ Where it differs:
   fold (a focus stop since 2026-10-14): with it focused, the list's row-move
   chords move the section among the identified sections — Ctrl-R picks it up,
   the arrows, Home and End move it, Return puts it down and Escape puts it
-  back; Ctrl/Option with an arrow moves it at once — and the pointer drags a
+  back, as the focus leaving its header does; Ctrl/Option with an arrow moves
+  it at once — and the pointer drags a
   header onto another's, the section taking that one's place. A press
   released without moving still folds it. The new order is written through
   the binding once the move is put down. The environment carries the bound

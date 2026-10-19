@@ -81,8 +81,9 @@ day, as priced.
 order is stored by identifier — and it moves among the places identified
 sections have, as a stated order is applied; the loose tabs between sections
 keep theirs. From the keyboard the section in hand is drawn faint and the
-others step aside as it moves; a drag carries the header's title, and a
-release over another header puts the section in that one's place.
+others step aside as it moves, and it goes back if the focus leaves its
+header, as a list's row in hand does; a drag carries the header's title, and
+a release over another header puts the section in that one's place.
 
 **The fuller version:** a drag that shows a landing line between sections, as
 a list's row reorder does, and drops above or below the header it is over by
