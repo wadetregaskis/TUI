@@ -1322,14 +1322,15 @@ wrapper and generic over the new content, which is what lets the caller's
 existential be opened rather than converted. A wrapper that conforms picks up
 child resolution and grid rows with an empty
 `extension X: ChildViewProvider where Content: ChildViewProvider {}`.
-**Twenty-six** wrappers conform, in four families whose equivalence is provable
-or measured rather than assumed:
+**Thirty** wrappers conform, in four families whose equivalence is provable
+or measured rather than assumed, and two the framework uses inside:
 
 - *Environment publishers* — `EnvironmentModifier` (`.environment(_:_:)`),
   `TransformEnvironmentModifier`, `ObjectEnvironmentModifier`,
   `_StyleEnvironmentView` (`.foregroundStyle`, `.backgroundStyle`),
   `ThemeModifier`, `TintModifier`, `StyleCascadeModifier`, `RedactionScope`,
-  `DisabledModifier`, `_AnimationValueModifier`, `_ValueScopedTransactionView`.
+  `DisabledModifier`, `_AnimationValueModifier`, `_ValueScopedTransactionView`,
+  `_TextSelectionScope` (`.textSelection`).
   A value reaches a subtree whether it was set one level up or two, so
   publishing around each member is the same value in the same places.
 - *Paint* — `_OpacityView` (`.opacity`), `_ColorEffectView` (`.brightness`,
@@ -1337,7 +1338,8 @@ or measured rather than assumed:
   `_HitTestingView`, `AnimatedCellsModifier`. These rewrite cells the content
   already drew, and members of a stack do not overlap.
 - *Geometry* — `FlexibleFrameView` (`.frame`), `OffsetView` (`.offset`),
-  `PositionView` (`.position`, since 2026-10-18). Measured: `.frame(width:
+  `_FixedSizeView` (`.fixedSize`), `PositionView` (`.position`, since
+  2026-10-18). Measured: `.frame(width:
   80)` on a two-member `Group` gives frames byte-identical to writing the
   frame on each member.
 - *Values and traits* — `_ContainerValueView` (`.containerValue`), and
@@ -1347,6 +1349,8 @@ or measured rather than assumed:
   whatever size its view ends up, so each member carries it; a member
   rewrapped in a z-index or layout-value wrapper takes the wrapper's value
   (`ChildView.rewrapped(by:)`), the outermost winning as on one view.
+- *Internal* — `_GridRowMarkView` (how a `GridRow` hands its cells on) and
+  `_TextSuggestionsReader` (how a text field finds its suggestions).
 
 Content with NO members gets nothing, which is the rule's other edge and the
 one that bites: an `Optional` that is `nil` — an `if` whose condition is
