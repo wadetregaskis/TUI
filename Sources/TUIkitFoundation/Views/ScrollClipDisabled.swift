@@ -19,8 +19,10 @@ extension EnvironmentValues {
     /// Whether the scroll views in this subtree draw their content past their
     /// bounds — see ``TUIkit/View/scrollClipDisabled(_:)``.
     ///
-    /// Internal: SwiftUI exposes the modifier, not an environment value.
-    var scrollClipDisabled: Bool {
+    /// Package-wide, not public: SwiftUI exposes the modifier, not an
+    /// environment value. A `List` and a `Table` (TUIkitLists, TUIkitTables)
+    /// read it too.
+    package var scrollClipDisabled: Bool {
         get { self[ScrollClipDisabledKey.self] }
         set { self[ScrollClipDisabledKey.self] = newValue }
     }
@@ -62,10 +64,14 @@ extension View {
     /// draw nothing and take no click, so a short or indented line neither
     /// erases nor steals the clicks of what is beside it.
     ///
-    /// ``List`` and ``Table`` keep clipping (decisions-D2S B-D2S-4), and so do
-    /// the scrollers the framework puts around a tall menu, a sheet's or a
-    /// framed container's content, whose content belongs inside their surface;
-    /// the scroll views in that content still answer the modifier.
+    /// A ``List`` draws the row past each edge of its window — the rows its
+    /// window walks, and the next on either side, as a lazy stack draws its
+    /// band — above and below its frame (decisions-D2S B-D2S-4); its title,
+    /// border and indicators stay where they are. A ``Table`` keeps clipping,
+    /// and so do the scrollers the framework puts around a tall menu, a
+    /// sheet's or a framed container's content, whose content belongs inside
+    /// their surface; the scroll views in that content still answer the
+    /// modifier.
     ///
     /// A scroll view clipping, as nearly all do, pays one environment read a
     /// frame for it.

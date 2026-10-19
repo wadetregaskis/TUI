@@ -1096,8 +1096,12 @@ its stack's width, an overlay's `Spacer`, or an `.offset` view's empty footprint
 hides nothing, as in SwiftUI, and a click on the overflow drawn there is the
 overflow's (decisions-D2S B-D2S-5). A view's own `.offset` or `.position`
 drawing is overflow too since 2026-10-18 (below), cut under the views after it.
-`List` and `Table` keep clipping (decisions-D2S
-B-D2S-4), where SwiftUI's `List` on macOS honours the modifier (measured). So
+A `List` honours it too, as SwiftUI's on macOS does (measured): the row before
+its window and the one after draw past its frame — the band a lazy stack draws
+— composed as its rows are and stacked as a scroll view's overflow, its title,
+border and indicators staying where they are; they are drawn, not clicked, the
+list's click mapping covering its frame (since 2026-10-19, decisions-D2S
+B-D2S-4). A `Table` keeps clipping. So
 do the scrollers the framework puts around a tall menu, a sheet's or a framed
 container's content: their content belongs inside the surface they scroll in,
 and a 60-item inline menu inside a `.scrollClipDisabled()` page drew its items

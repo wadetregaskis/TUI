@@ -817,6 +817,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// those: the resolver takes a cell's layer from the first region over it,
         /// and the list's claims go down before any row's.
         var contentClaims: [Int: [OpacityRegion]] = [:]
+        /// The rows drawn past the frame under `scrollClipDisabled` — the lines
+        /// of the row before the window and of the one after it, each ending
+        /// or starting where the window cut it — and the column they start
+        /// at; `nil` where the list clips, which nearly every list does.
+        var overflow: (above: [String], below: [String])?
     }
 
     /// Where an entry the frame drew landed, and how much of its own top went.
@@ -1022,8 +1027,36 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             presentRowMenu(
                 over: &buffer, cursorRow: { cursorRowLines(state, contentTop: contentTop) },
                 context: context)
+            if let overflow = state.overflow {
+                buffer.overlays += Self.overflowLayers(
+                    overflow, over: buffer, contentLeft: (style.showsBorder ? 1 : 0) + style.rowPadding.leading)
+            }
         }
         return buffer
+    }
+
+    /// The rows a list that does not clip draws past its frame
+    /// (``overflowRows(_:_:_:_:_:_:_:)``),
+    /// as floating layers just above and just below it, in the rows' column:
+    /// what draws inside the frame — the title, the border, the indicators —
+    /// stays as it is. Marked as overflow, so they draw at the list's place in
+    /// the stacking order, as a scroll view's overflow does: over the views
+    /// before the list, under those after it, as the cells they paint.
+    ///
+    /// Drawn, not clicked: the list's own click mapping covers its frame. A
+    /// control in such a row is a Tab stop, as it is drawn.
+    private static func overflowLayers(
+        _ overflow: (above: [String], below: [String]), over buffer: FrameBuffer, contentLeft: Int
+    ) -> [OverlayLayer] {
+        var layers: [OverlayLayer] = []
+        for (lines, y) in [(overflow.above, -overflow.above.count), (overflow.below, buffer.height)] where !lines.isEmpty {
+            var layer = OverlayLayer(
+                offsetX: contentLeft, offsetY: y, content: FrameBuffer(lines: lines),
+                zIndex: OverlayLayer.displacedDrawingZIndex, clampsToScreen: false, isOpaque: false)
+            layer.isOverflow = true
+            layers += layer.drawnParts()
+        }
+        return layers
     }
 
     /// The cursor row's lines in the list's buffer — its top line and height —
@@ -1300,9 +1333,49 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 scrollbarColumn: scrollbarColumn,
                 scrollbarHeight: scrollbarHeight,
                 rowContentWidth: rowContentWidth,
-                contentClaims: contentClaims
+                contentClaims: contentClaims,
+                // The rows' lines are composed one cell wider than their content.
+                overflow: overflowRows(source, origin, visibleRowYRanges, handler, listHasFocus, rowContentWidth + 1, context)
             )
         )
+    }
+
+    /// The lines a list that does not clip (`scrollClipDisabled`) draws past
+    /// its frame: the row before the window's first and the one after its
+    /// last, as a lazy stack draws a band around its viewport (decisions
+    /// B-D2S-4) — each with the lines of the window's edge row the window cut,
+    /// so the rows run on from the frame without a gap. Composed as the
+    /// window's rows are, at `rowWidth`, the cursor's and the selection's
+    /// looks included. `nil` where the list clips, which is nearly always, on
+    /// a measure, and while a reorder is in hand.
+    private func overflowRows(
+        _ source: RowSource<SelectionValue>, _ origin: WindowOrigin, _ drawn: [VisibleRowRange],
+        _ handler: ItemListHandler<SelectionValue>, _ listHasFocus: Bool, _ rowWidth: Int, _ context: RenderContext
+    ) -> (above: [String], below: [String])? {
+        guard context.environment.scrollClipDisabled, !context.isMeasuring, handler.reorder == nil else { return nil }
+        let rows = drawn.filter { $0.rowIndex >= 0 }
+        guard let first = rows.first, let last = rows.last else { return nil }
+        let style = context.environment.listStyle
+        let stripes = stripesRows(style: style, environment: context.environment)
+        func lines(_ index: Int) -> [String] {
+            guard index >= 0, index < source.count else { return [] }
+            return renderRow(
+                row: source.row(at: index), at: index,
+                state: RowDrawState(
+                    isFocused: handler.isCursorRow(index) && listHasFocus, isSelected: handler.isSelected(at: index),
+                    isReturningHome: false),
+                rowWidth: rowWidth, contentRowIndex: stripes ? source.contentRowIndex(at: index) : 0,
+                style: style, context: context, palette: context.environment.palette
+            ).lines
+        }
+        // The first row's lines scrolled off above the frame, and the last's cut
+        // off below it.
+        let topCut = first.linesCutAbove + (first.rowIndex == origin.offset ? origin.topClip : 0)
+        let above = lines(first.rowIndex - 1) + lines(first.rowIndex).prefix(topCut)
+        let lastLines = lines(last.rowIndex)
+        let lastShown = last.linesCutAbove + (last.rowIndex == origin.offset ? origin.topClip : 0) + last.height
+        let below = Array(lastLines.dropFirst(lastShown)) + lines(last.rowIndex + 1)
+        return (above, below)
     }
 
     /// The interaction state of a list with no rows: a real handler (its

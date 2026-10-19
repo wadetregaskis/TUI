@@ -94,6 +94,16 @@ stack's), and hand them out as the scroll view's overflow layers are; the
 header, the border and the indicators stay where they are. About half a day
 for both, with tests, and no cost to a list without the modifier.
 
+**`List`: built (2026-10-19, lane LISTS2).** Under the modifier a list draws
+the row before its window and the one after — each with the lines of the
+window's edge row the window cut — just outside its frame, as overflow layers
+at its place in the stacking order, composed as its rows are (the cursor's and
+the selection's looks, the stripes). They are drawn, not clicked: the list's
+click mapping covers its frame, and carrying the rows' own regions and a
+row click out to them is about two hours more. A `Table` still clips: its two
+composers (single- and multi-line rows) each need the same, about half a day
+(lane LISTS2's decisions, B-LISTS2-2).
+
 ### B-D2S-5. A later view hides an unclipped scroll view's overflow from its first painted cell to its last
 
 Under `scrollClipDisabled`, the content after a scroll view hides the scroll

@@ -1597,8 +1597,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI (measured, macOS 15):** a `List` never consults a custom scroll
   target behaviour, and honours `scrollClipDisabled`.
 - **TUIkit:** `List` and `Table` honour the built-in behaviours only;
-  `.viewAligned` aligns rows at the top whatever its anchor; both keep clipping
-  under `scrollClipDisabled`.
+  `.viewAligned` aligns rows at the top whatever its anchor; under
+  `scrollClipDisabled` a `List` draws the row past each edge of its window
+  outside its frame (drawn, not clicked), and a `Table` keeps clipping.
 - **Why:** a list's offset is a row and a clip; a custom behaviour would need
   every row's height above the viewport, the walk a list exists not to make.
 - **Decided:** [B-D2S-2](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-2-list-and-table-honour-the-built-in-behaviours-and-no-behaviour-of-the-apps-own>), [B-D2S-3](<Decisions/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-3-in-a-list-or-table-viewaligned-aligns-rows-at-the-top-whatever-its-anchor>),
