@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitChrome
 import TUIkitFoundation
 
 // MARK: - Public Modifiers
