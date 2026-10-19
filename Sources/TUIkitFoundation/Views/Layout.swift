@@ -177,9 +177,12 @@ public protocol Layout {
     /// itself.
     ///
     /// `true` unless a layout says otherwise, because an override cannot be
-    /// detected. The framework's own layouts keep the default merge and say
-    /// `false`, so a parent aligning on a guide asks them about it only when a
-    /// subview might hold one — the rule every other container follows.
+    /// detected from the type. The framework's own layouts keep the default
+    /// merge and say `false`, so a parent aligning on a guide asks them about
+    /// it only when a subview might hold one — the rule every other container
+    /// follows. A layout that says `true` and keeps the default is found out
+    /// the first time the default answers for it, and asked as one that says
+    /// `false` from then on (`LayoutDefaultGuides`).
     static var _definesExplicitAlignment: Bool { get }
 
     /// Properties of this kind of layout: which way it stacks, if it does.
@@ -213,10 +216,14 @@ extension Layout {
     /// ``HorizontalAlignment/combineExplicit(_:)``, and none for an edge or
     /// the centre, which a layout of several views places them by and keeps
     /// to itself, as SwiftUI's default does (measured: decisions A-GUIDE-2).
+    ///
+    /// Running, it records that this layout's type answers by it
+    /// (`LayoutDefaultGuides`), so an edge guide is not asked of it again.
     public func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
+        LayoutDefaultGuides.noteDefault(type(of: self), along: .horizontal)
         guard !guide.isEdgeOrCentre else { return nil }
         return subviews.mergedExplicitGuide(.horizontal(guide))
     }
@@ -226,11 +233,12 @@ extension Layout {
     /// baseline is the topmost, a last one the bottommost), and none for an
     /// edge or the centre, which a layout of several views places them by and
     /// keeps to itself, as SwiftUI's default does (measured: decisions
-    /// A-GUIDE-2).
+    /// A-GUIDE-2). Recorded as the horizontal one is.
     public func explicitAlignment(
         of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
+        LayoutDefaultGuides.noteDefault(type(of: self), along: .vertical)
         guard !guide.isEdgeOrCentre else { return nil }
         return subviews.mergedExplicitGuide(.vertical(guide))
     }
@@ -497,13 +505,20 @@ extension _LayoutCore: AlignmentGuideQuerying {
     /// subviews, resolved, carry none — a loop over subviews, `ForEach(subviews:
     /// content) { $0 }`, whose proxy's type cannot know (`Subview`'s witness is
     /// `true` for every member): the default merges only the subviews' own
-    /// guides, so the answer is `nil` without the pass.
+    /// guides, so the answer is `nil` without the pass. Nor, for an edge or
+    /// the centre, for any layout that defines none of its own along the
+    /// guide's axis — one that says so, or one whose type the default has
+    /// answered for before (`LayoutDefaultGuides`) — but a stack layout of
+    /// one view, which passes its view's.
     package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
-        let defines =
-            (layout as? any ExplicitAlignmentForwarding)?.definesExplicitAlignment
-            ?? L._definesExplicitAlignment
+        let passesOneView = L.self is any PassesEveryGuideOfOneView.Type && staticViewListCount(Content.self) == 1
+        let defines = layout.definesExplicitAlignment(along: query.axis)
+        // A layout that gives no guide a value of its own answers by the
+        // default, which keeps an edge or the centre to itself: nothing to
+        // lay out to find that out, but for a stack layout of one view.
+        if !defines, query.isEdgeOrCentre, !passesOneView { return nil }
         guard defines || Content._providesAlignmentGuide else { return nil }
         let context = publishingChildAxis(context)
         let (subviews, _) = resolve(context: context)
@@ -514,9 +529,7 @@ extension _LayoutCore: AlignmentGuideQuerying {
         let size = layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
         let bounds = CellRect(x: 0, y: 0, width: max(0, size.width), height: max(0, size.height))
         layout.placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
-        if L.self is any PassesEveryGuideOfOneView.Type, staticViewListCount(Content.self) == 1 {
-            return subviews.mergedExplicitGuide(query)
-        }
+        if passesOneView { return subviews.mergedExplicitGuide(query) }
         switch query {
         case .horizontal(let guide):
             return layout.explicitAlignment(
@@ -544,8 +557,9 @@ extension ZStackLayout: PassesEveryGuideOfOneView {}
 /// own — `AnyLayout`, whose static answer cannot.
 @MainActor
 protocol ExplicitAlignmentForwarding {
-    /// The wrapped layout's ``Layout/_definesExplicitAlignment``.
-    var definesExplicitAlignment: Bool { get }
+    /// Whether the wrapped layout may give a guide along `axis` a value of its
+    /// own (``Layout/definesExplicitAlignment(along:)``).
+    func definesExplicitAlignment(along axis: Axis) -> Bool
 }
 
 // MARK: - Spacing Around a Layout

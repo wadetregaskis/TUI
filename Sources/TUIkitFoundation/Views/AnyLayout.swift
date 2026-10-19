@@ -90,9 +90,10 @@ extension AnyLayout: WholeGridRowExpanding {
 }
 
 extension AnyLayout: ExplicitAlignmentForwarding {
-    /// Whether the erased layout defines guides of its own — what the static
-    /// ``Layout/_definesExplicitAlignment``, `true` here, cannot know.
-    var definesExplicitAlignment: Bool { box.definesExplicitAlignment }
+    /// Whether the erased layout defines guides of its own along `axis` —
+    /// what the static ``Layout/_definesExplicitAlignment``, `true` here,
+    /// cannot know.
+    func definesExplicitAlignment(along axis: Axis) -> Bool { box.definesExplicitAlignment(along: axis) }
 }
 
 /// Animates nothing: no layout animates its properties here yet, so there is
@@ -142,9 +143,9 @@ private protocol AnyLayoutBox {
     func spacing(subviews: LayoutSubviews, cache: inout Any) -> ViewSpacing
     /// Whether the erased layout lays out grid cells.
     var expandsWholeGridRows: Bool { get }
-    /// The erased layout's `_definesExplicitAlignment`, through a nested
-    /// `AnyLayout` too.
-    var definesExplicitAlignment: Bool { get }
+    /// Whether the erased layout defines guides of its own along `axis`,
+    /// through a nested `AnyLayout` too.
+    func definesExplicitAlignment(along axis: Axis) -> Bool
     func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: LayoutSubviews, cache: inout Any) -> Double?
@@ -191,9 +192,8 @@ private struct ConcreteBox<L: Layout>: AnyLayoutBox {
         cache = typed
     }
 
-    var definesExplicitAlignment: Bool {
-        (layout as? any ExplicitAlignmentForwarding)?.definesExplicitAlignment
-            ?? L._definesExplicitAlignment
+    func definesExplicitAlignment(along axis: Axis) -> Bool {
+        layout.definesExplicitAlignment(along: axis)
     }
 
     var expandsWholeGridRows: Bool {
