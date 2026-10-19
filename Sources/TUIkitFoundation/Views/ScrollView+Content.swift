@@ -141,17 +141,13 @@ extension _ScrollViewCore {
 
         let renderWidth: Int
         if horizontal {
-            let natural = naturalExtent(
-                content, along: .horizontal,
-                proposal: ProposedSize(width: nil, height: nil),
-                context: measureContext,
-                startingBudget: naturalExtentStartingBudget(forVisible: contentWidth))
             // Content that FILLS the probe's budget has no width of its own: it
             // reported the rung and would have reported any other, so it is
             // drawn at the viewport, which it fills. Taken as a width, the rung
             // became the canvas — thousands of blank columns to scroll through.
-            renderWidth =
-                natural.fillsBudget ? contentWidth : max(contentWidth, natural.size.width)
+            renderWidth = max(
+                contentWidth,
+                naturalContentWidth(contentWidth: contentWidth, canvas: measureContext) ?? contentWidth)
         } else {
             renderWidth = contentWidth
         }
@@ -163,6 +159,17 @@ extension _ScrollViewCore {
             context: measureContext,
             startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight))
         return (width: renderWidth, height: max(viewportHeight, natural.height))
+    }
+
+    /// The content's own width on a horizontal view's measure `canvas`, or
+    /// `nil` for content that fills whatever it is offered, which has none.
+    func naturalContentWidth(contentWidth: Int, canvas: RenderContext) -> Int? {
+        let natural = naturalExtent(
+            content, along: .horizontal,
+            proposal: ProposedSize(width: nil, height: nil),
+            context: canvas,
+            startingBudget: naturalExtentStartingBudget(forVisible: contentWidth))
+        return natural.fillsBudget ? nil : natural.size.width
     }
 
     /// Whether the content, laid out at `contentWidth` on the canvas
