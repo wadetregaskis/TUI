@@ -68,15 +68,7 @@ extension _ShapeBackground: Renderable {
         let cells = ShapeCells.drawing(
             drawn.shape, as: drawn.drawing, frame: ShapeFrame(columns: columns, rows: rows, aspect: aspect),
             painter: painter, monochrome: false, wholeCells: !environment.blockElementsFillTheLine)
-        var claims: [OpacityRegion] = []
-        for (row, line) in base.lines.prefix(rows).enumerated() {
-            let nothing = line.columnsShowingNothing(width: columns)
-            for column in 0..<columns where nothing[column] && cells[column, row].glyph != " " {
-                claims.appendCoalescing(
-                    OpacityRegion.claim(offsetX: column, offsetY: row, width: 1, height: 1, inkAlpha: .max, fieldAlpha: 0))
-            }
-        }
-        return claims
+        return base.claimsShowingGlyphs(of: cells)
     }
 }
 

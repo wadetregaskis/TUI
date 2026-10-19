@@ -120,3 +120,34 @@ struct ShapeCells {
             inkAlpha: cell.ink?.alpha ?? .max, fieldAlpha: cell.field?.alpha ?? .max)
     }
 }
+
+// MARK: - Glyphs through a view's blank cells
+
+extension FrameBuffer {
+    /// The claims that let `layer`'s glyphs show through this buffer's blank
+    /// cells, `layer` drawn behind it from the same top-left.
+    ///
+    /// Behind a view, a layer's GLYPH shows only where the view draws no cell,
+    /// and padding is cells: blank ones. So wherever `layer` draws a glyph — a
+    /// cap, a quadrant corner, a half block, a line — and this buffer's cell
+    /// there shows nothing (a space with no field, no reverse and no line drawn
+    /// across it), the cell is claimed at a field of 0: the compositor's
+    /// "nothing at all", which leaves the layer's cell as it was. Everywhere
+    /// else this buffer is in front, as over any background; a cell the layer
+    /// paints whole is field, which shows through a blank cell anyway.
+    ///
+    /// - Parameter layer: The cells drawn behind this buffer.
+    /// - Returns: The claims, coalesced.
+    func claimsShowingGlyphs(of layer: ShapeCells) -> [OpacityRegion] {
+        let columns = min(width, layer.width)
+        var claims: [OpacityRegion] = []
+        for (row, line) in lines.prefix(layer.height).enumerated() {
+            let nothing = line.columnsShowingNothing(width: columns)
+            for column in 0..<columns where nothing[column] && layer[column, row].glyph != " " {
+                claims.appendCoalescing(
+                    OpacityRegion.claim(offsetX: column, offsetY: row, width: 1, height: 1, inkAlpha: .max, fieldAlpha: 0))
+            }
+        }
+        return claims
+    }
+}
