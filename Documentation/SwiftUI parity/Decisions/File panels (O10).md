@@ -11,6 +11,40 @@ declined with a parity-map reason. SwiftUI's side is its declarations and
 Apple's documentation unless an entry says it was measured; the probes are in
 the session notes' `O10/probe/`.*
 
+## A. Needs a decision
+
+### A-O10-1. Linux has no save panel: `fileExporter` takes only Apple-only types
+
+*`View.fileExporter` (every form) on Linux*
+
+Every `fileExporter` form takes a value of an Apple-only protocol: a
+`Transferable` (CoreTransferable) or a `FileDocument` (whose `FileWrapper` is
+Objective-C Foundation's). Under A18 option 1 both are absent on Linux, and so
+is every exporter: a Linux app can open and move files through TUIkit's panels
+but cannot ask where to save one, though the save panel itself is portable
+(it is drawn by TUIkit and writes with `Data.write`).
+
+**Options.**
+1. **Leave it** (shipped). SwiftUI code compiles on Apple platforms and fails
+   to compile on Linux at the exporter, which is A18's rule.
+2. **A TUIkit-only exporter of `Data`**, beside SwiftUI's:
+   `fileExporter(isPresented:data:contentType:defaultFilename:onCompletion:onCancellation:)`
+   on every platform — the save panel and an atomic write. About two hours
+   with its tests; a TUI-specific spelling with no SwiftUI counterpart
+   (allowed: kept apart from SwiftUI's names, as CLAUDE.md asks).
+3. **A portable stand-in for `Transferable`**: a TUIkit protocol with a value's
+   data and type, which `fileExporter(item:)` takes on Linux. About a day, and
+   a second protocol beside Apple's that code shared with macOS must satisfy
+   twice.
+4. **`FileDocument` on Linux over a TUIkit `FileWrapper`** (a regular file, a
+   directory of them, a symbolic link). About a day and a half, and a type of
+   Foundation's re-declared, which turns ambiguous the day Foundation ships
+   its own.
+
+**Recommendation:** 2: the cheapest, it adds no second spelling of anything
+SwiftUI has, and it is what a Linux app needs. 3 and 4 make SwiftUI source
+compile on Linux, which none of the other Apple-only API does (A18).
+
 ## B. Shipped the safe option
 
 ### B-O10-1. The open panel is a sheet of TUIkit's own: a folder's items in a table
@@ -233,9 +267,8 @@ off the main actor. The provider is made when the panel is presented and again
 when it saves, from the item the latest body gave, never on every body.
 `Transferable` is CoreTransferable's, which Linux does not have, so on Linux
 these two forms are absent and fail to compile (decisions A18, option 1:
-platform API where the feature is intrinsically the platform's). **The fuller
-version** for Linux is a TUIkit protocol a value conforms to with its data and
-type — about a day — which the owner did not ask for.
+platform API where the feature is intrinsically the platform's). What Linux
+should have instead is A-O10-1.
 
 ### B-O10-12. `FileDocument` ships on Apple platforms, to be written; nothing in TUIkit reads one
 
