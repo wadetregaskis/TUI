@@ -230,15 +230,24 @@ extension PointerShapeHost {
     ///
     /// By the environment alone, as the other detectors are: no portable
     /// query reports OSC 22 (kitty's `?` query is kitty's), and each host here
-    /// names itself there. tmux is never one, whatever runs it: whether it
-    /// passes OSC 22 on to its client is unmeasured, and the hypothesis is
-    /// that it drops it. Apple Terminal and Warp document nothing.
+    /// names itself there. A multiplexer that draws its panes itself is never
+    /// one, whatever runs it — tmux, GNU screen (`STY`), zellij (`ZELLIJ`,
+    /// `ZELLIJ_SESSION_NAME`): whether any passes OSC 22 on to the terminal
+    /// is unmeasured, and the hypothesis is that each drops it, while the
+    /// terminal the session inherited in `TERM_PROGRAM` is the one outside it.
+    /// Apple Terminal and Warp document nothing.
+    ///
+    /// `KITTY_WINDOW_ID` and `XTERM_VERSION` count only where no terminal is
+    /// named: every program a shell starts inherits them, so a VS Code or a
+    /// WezTerm opened from a kitty or xterm shell carries them beside its own
+    /// `TERM_PROGRAM`. `TERM` is the terminal's own, so `xterm-kitty` and
+    /// `foot` stand whatever is named beside them.
     ///
     /// A version is checked where the environment states one, and a host that
     /// states none is taken to be recent: every host here parses OSC, so an
     /// older one swallows the sequence and nothing comes of it.
     package static func detect(environment: [String: String]) -> Self? {
-        if TerminalHost.detectTmux(environment: environment) { return nil }
+        if TerminalHost.detectTmux(environment: environment) || isInsideScreenOrZellij(environment) { return nil }
         if TerminalHost.detectGhostty(environment: environment) {
             return version(environment, program: "ghostty", atLeast: [1, 0]) ? .ghostty : nil
         }
@@ -252,15 +261,24 @@ extension PointerShapeHost {
         }
         let named = TerminalHost.hostProgram(environment: environment)
         let term = environment["TERM"] ?? ""
-        if named == "kitty" || term == "xterm-kitty" || environment["KITTY_WINDOW_ID"]?.isEmpty == false {
-            return .kitty
-        }
+        if named == "kitty" || term == "xterm-kitty" { return .kitty }
         if named == "foot" || term == "foot" || term.hasPrefix("foot-") { return .foot }
+        // Any other terminal named is that terminal, not one whose variables
+        // it inherited.
+        guard named == nil else { return nil }
+        if environment["KITTY_WINDOW_ID"]?.isEmpty == false { return .kitty }
         if let xterm = environment["XTERM_VERSION"], !xterm.isEmpty {
             let recent = xtermPatch(xterm).map { $0 >= 367 } ?? true
             return recent ? .xterm : nil
         }
         return nil
+    }
+
+    /// Whether the process runs inside GNU screen or zellij, by the variables
+    /// each sets inside its sessions (the ones `SessionLocality` reads for
+    /// them too).
+    static func isInsideScreenOrZellij(_ environment: [String: String]) -> Bool {
+        ["STY", "ZELLIJ", "ZELLIJ_SESSION_NAME"].contains { environment[$0]?.isEmpty == false }
     }
 
     /// Whether the version `environment` states for `program` is at least

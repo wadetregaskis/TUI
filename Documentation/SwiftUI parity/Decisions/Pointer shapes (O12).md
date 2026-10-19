@@ -52,17 +52,23 @@ that document it. Shipped:
 - **Ghostty** from 1.0.0, **kitty** and **foot** in CSS's `cursor` names;
   **iTerm2** from 3.5.0 in the nineteen X11 names its table reads (unchanged
   from 3.5.0 to 3.6.11); **xterm** from patch #367 in the X11 cursor font's.
-  Everything else — Apple Terminal, Warp, tmux, an unidentified host — is
-  sent nothing and owed nothing.
+  Everything else — Apple Terminal, Warp, tmux, GNU screen, zellij, an
+  unidentified host — is sent nothing and owed nothing.
 - **Found by the environment**, as the other detectors are: no portable query
   reports OSC 22. A version stated below the host's turns it off; a host that
   states none is taken to be recent, because every one of them parses OSC and
   an older release swallows the sequence (the cost of being wrong is nothing).
+  `KITTY_WINDOW_ID` and `XTERM_VERSION` count only where no other terminal
+  is named: every program a shell starts inherits them, and a VS Code or a
+  WezTerm opened from a kitty shell was taken for kitty (found in review).
 - **A style a host has no name for** — a closed hand on iTerm2 or xterm, a
   zoom glass, a diagonal resize on iTerm2 — gives the host its own pointer,
   never the shape left over from the last style.
 - **tmux is off** whatever runs it: whether it passes OSC 22 to its client is
-  unmeasured, and the study's hypothesis is that it drops it.
+  unmeasured, and the study's hypothesis is that it drops it. **GNU screen**
+  (`STY`) and **zellij** (`ZELLIJ`, `ZELLIJ_SESSION_NAME`) are off for the
+  same reason (found in review): each draws its panes itself, and inside one
+  `TERM_PROGRAM` still names the terminal outside it.
 
 **The fuller version.** Each host's row read off the card, and the table
 corrected where a name draws something else (½ day with the owner's

@@ -5758,13 +5758,14 @@ documentation and its source (copies under the lane's notes, `O12/docs`):
 | Host | Since | Names | No style, mid-run | Reset | Detected by | Measured |
 |---|---|---|---|---|---|---|
 | Ghostty | 1.0.0 (its VT reference) | CSS, and xterm's X11 names as aliases (`mouse.zig`) | `default`: an empty name is ignored before its `mouse_shape_reset` | any mouse mode set gives the arrow, any reset the I-beam (`stream_handler.zig`); an empty name gives one of those (newer releases) | `TERM_PROGRAM=ghostty` with its version, or `TERM=xterm-ghostty` | UNMEASURED |
-| kitty | 0.31.0 (its pointer-shapes page) | CSS (thirty) | empty | empty; a stack per screen, so leaving the alternate screen leaves its shapes behind | `TERM=xterm-kitty` or `KITTY_WINDOW_ID` | UNMEASURED |
+| kitty | 0.31.0 (its pointer-shapes page) | CSS (thirty) | empty | empty; a stack per screen, so leaving the alternate screen leaves its shapes behind | `TERM=xterm-kitty`, or `KITTY_WINDOW_ID` where no other terminal is named (every program a shell starts inherits it) | UNMEASURED |
 | foot | 1.12.0 (its changelog) | CSS, X11 fallbacks | empty | empty | `TERM=foot`, `foot-…` | UNMEASURED |
 | iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | UNMEASURED |
-| xterm | patch #367 (its changelog) | the X11 cursor font | empty | empty: the `pointerShape` resource's default | `XTERM_VERSION` | UNMEASURED |
+| xterm | patch #367 (its changelog) | the X11 cursor font | empty | empty: the `pointerShape` resource's default | `XTERM_VERSION`, where no other terminal is named | UNMEASURED |
 | Apple Terminal | — | documents none | — | — | not sent | — |
 | Warp | — | documents none | — | — | not sent | — |
 | tmux | — | unknown whether it forwards OSC 22; the hypothesis is that it drops it | — | — | not sent | UNMEASURED |
+| GNU screen, zellij | — | unknown whether either forwards OSC 22; like tmux, each draws its panes itself, and `TERM_PROGRAM` inside names the terminal outside | — | — | not sent (`STY`; `ZELLIJ`, `ZELLIJ_SESSION_NAME`) | UNMEASURED |
 
 A version stated in the environment below the "since" column turns a host
 off; a host that states none is taken to be recent, since every one of them

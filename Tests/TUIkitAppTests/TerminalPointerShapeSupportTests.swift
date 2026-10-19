@@ -31,6 +31,7 @@ struct TerminalPointerShapeSupportTests {
             (["TERM": "foot-extra"], .foot),
             (["TERM": "xterm-256color", "XTERM_VERSION": "XTerm(390)"], .xterm),
             (["TERM": "xterm-256color", "XTERM_VERSION": "XTerm(367)"], .xterm),
+            (["TERM": "xterm-kitty", "TERM_PROGRAM": "vscode"], .kitty),
         ] as [([String: String], PointerShapeHost)])
     func documentedHosts(environment: [String: String], host: PointerShapeHost) {
         #expect(PointerShapeHost.detect(environment: environment) == host)
@@ -51,6 +52,19 @@ struct TerminalPointerShapeSupportTests {
             ["XTERM_VERSION": "XTerm(366)"],
         ])
     func otherTerminals(environment: [String: String]) {
+        #expect(PointerShapeHost.detect(environment: environment) == nil)
+    }
+
+    @Test(
+        "A terminal named beside another's inherited variables, or a screen or zellij session, is left alone",
+        arguments: [
+            ["TERM_PROGRAM": "vscode", "TERM": "xterm-256color", "KITTY_WINDOW_ID": "1"],
+            ["TERM_PROGRAM": "WezTerm", "TERM": "xterm-256color", "XTERM_VERSION": "XTerm(390)"],
+            ["TERM_PROGRAM": "ghostty", "TERM": "screen.xterm-256color", "STY": "4242.pts-0.host"],
+            ["TERM_PROGRAM": "iTerm.app", "ZELLIJ": "0", "ZELLIJ_SESSION_NAME": "work"],
+            ["TERM": "xterm-kitty", "ZELLIJ_SESSION_NAME": "work"],
+        ])
+    func inheritedOrMultiplexed(environment: [String: String]) {
         #expect(PointerShapeHost.detect(environment: environment) == nil)
     }
 
