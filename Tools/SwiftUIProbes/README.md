@@ -361,6 +361,19 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-1),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R15).
 
+### Scroll to a row
+
+- **Asks:** what `ScrollViewProxy.scrollTo(_:anchor:)` does with a row of a vertical stack inside a purely
+  horizontal `ScrollView`, which cannot scroll to it down (`hrow.swift`, `hrow.out`): rows of five widths, the stack
+  centred and leading, the request naming one row with no anchor and with `.leading`, `.trailing` and `.center`.
+  It seeks along x: the row's own span is aligned by the anchor's `x` (row 4, the widest, to 300 under
+  `.trailing` and 150 under `.center` in a 200-point view; a centred narrower row to its own edge), and no anchor
+  moves nothing where the row already shows. Top-level code, built alone.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
+- **Was:** `SCROLL/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (C-SCROLL-1);
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
 ### Ragged text in a larger frame
 
 - **Asks:** where SwiftUI draws the lines of a multi-line `Text` whose lines differ in width ("aaaa" over "bb")

@@ -97,3 +97,28 @@ count and a view inside a nested container is measured where it is drawn.
 Price: a marker and a registration per row drawn in each of the stack's six
 paths, on the render's hot path whenever an observer is stated, about a day;
 and nothing seen needs it yet.
+
+## C. Declined
+
+### C-SCROLL-1. `scrollTo` a row of a vertical stack inside `ScrollView(.horizontal)`
+
+*`ScrollViewProxy.scrollTo(_:anchor:)` and `.scrollPosition(id:)` on a purely
+horizontal scroll view whose content is a vertical stack (semantic audit 45's
+remainder)*
+
+A purely horizontal scroll view seeks a COLUMN of its horizontal stack; a row
+of a vertical stack there is not sought, and `ScrollViewReaderTests` pins the
+refusal. SwiftUI seeks it along x (measured,
+`Tools/SwiftUIProbes/Scroll to a row/hrow.swift`): the row's own span —
+narrower rows sit where the stack's alignment puts them — is aligned by the
+anchor's `x`, and no anchor moves nothing where the row already shows. The
+view cannot scroll down to the row, so only its horizontal place counts.
+
+Declined for now: the shape is rare (a column of rows wider than the view,
+scrolled only sideways), and each of the vertical stack's four paths — the
+eager layout, the full walk, the uniform and the anchored windows — would
+have to report the sought row's x span (its alignment offset and width) the
+way a horizontal stack reports a column's, for the scroll view's existing
+column arithmetic (`ScrollToRequest.columnOffset`) to place. About half a
+day with tests. A behaviour of an existing method, so there is no parity-map
+entry.
