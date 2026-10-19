@@ -240,6 +240,9 @@ import TUIkitFoundation
 
     extension _DiscreteSymbolEffectModifier: SingleContentWrapper {
         var wrappedContent: Content { content }
+
+        /// Its content's context: the environment depth its measure gives it (``SingleContentWrapper/wrappedContentContext(_:)``).
+        func wrappedContentContext(_ context: RenderContext) -> RenderContext? { contentContext(context) }
     }
 
     /// Draws its content unchanged, at its own identity, so a removal

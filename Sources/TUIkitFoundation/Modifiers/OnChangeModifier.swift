@@ -116,6 +116,9 @@ extension OnChangeModifier: Layoutable {
 /// the members of multi-view content.
 extension OnChangeModifier: SingleContentWrapper {
     package var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

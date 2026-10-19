@@ -201,6 +201,9 @@ extension _FixedSizeView: ContentRewrapping {
 
     var wrappedContent: Content { content }
 
+    /// Its content's context: the flags it sets for its content (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { flagged(context) }
+
     func rewrapping<V: View>(_ view: V) -> any View {
         _FixedSizeView<V>(content: view, horizontal: horizontal, vertical: vertical)
     }

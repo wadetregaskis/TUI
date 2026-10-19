@@ -127,6 +127,9 @@ extension CoordinateSpaceModifier: Layoutable {
 /// looks through this wrapper.
 extension CoordinateSpaceModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition

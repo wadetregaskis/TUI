@@ -272,6 +272,9 @@ private enum TaskStateIndex {
 /// the members of multi-view content.
 extension OnAppearModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
@@ -280,6 +283,9 @@ extension OnAppearModifier: SingleContentWrapper {
 /// the members of multi-view content.
 extension OnDisappearModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
@@ -288,6 +294,9 @@ extension OnDisappearModifier: SingleContentWrapper {
 /// the members of multi-view content.
 extension TaskModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

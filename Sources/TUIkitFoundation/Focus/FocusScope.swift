@@ -473,10 +473,16 @@ extension _PrefersDefaultFocusModifier: Layoutable {
 /// members of multi-view content.
 extension _FocusScopeModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 extension _PrefersDefaultFocusModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

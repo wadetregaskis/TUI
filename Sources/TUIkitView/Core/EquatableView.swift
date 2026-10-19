@@ -153,6 +153,9 @@ extension View where Self: Equatable {
 /// the members of multi-view content.
 extension EquatableView: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

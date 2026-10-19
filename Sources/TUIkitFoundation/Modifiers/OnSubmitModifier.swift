@@ -150,6 +150,9 @@ extension View {
 /// the members of multi-view content.
 extension OnSubmitModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// Its content's context: the submit action it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
@@ -158,6 +161,9 @@ extension OnSubmitModifier: SingleContentWrapper {
 /// the members of multi-view content.
 extension SubmitScopeModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content's context: the submit scope it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 }
 
 // MARK: - Removal Transitions

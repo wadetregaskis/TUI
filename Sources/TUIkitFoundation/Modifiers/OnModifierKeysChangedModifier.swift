@@ -114,6 +114,9 @@ extension OnModifierKeysChangedModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it.
 extension OnModifierKeysChangedModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition

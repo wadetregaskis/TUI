@@ -158,6 +158,9 @@ extension FocusSectionModifier: Layoutable {
 /// the members of multi-view content.
 extension FocusSectionModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

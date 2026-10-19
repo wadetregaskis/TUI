@@ -234,6 +234,9 @@ extension _PresentationContentInteractionView: PresentationTraitWrapper {
 /// the members of multi-view content.
 extension _PresentationContentInteractionView: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition
@@ -285,6 +288,9 @@ extension _PresentationBackgroundInteractionView: PresentationTraitWrapper {
 /// the members of multi-view content.
 extension _PresentationBackgroundInteractionView: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition

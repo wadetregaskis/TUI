@@ -42,6 +42,9 @@ extension _TypeSelectEquivalentModifier: _TypeSelectEquivalentCarrying {
 /// tag — can look through it.
 extension _TypeSelectEquivalentModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition

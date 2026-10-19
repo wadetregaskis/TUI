@@ -229,6 +229,9 @@ enum KeyboardShortcutRegistrar {
 /// the members of multi-view content.
 extension KeyboardShortcutModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content's context: the shortcut it plants (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { planting(into: context) }
 }
 
 // MARK: - Removal Transitions

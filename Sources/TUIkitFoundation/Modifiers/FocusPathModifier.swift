@@ -148,6 +148,9 @@ extension FocusPathModifier: Layoutable {
 /// NOT conform to ``ContentRewrapping``.
 extension FocusPathModifier: SingleContentWrapper {
     package var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

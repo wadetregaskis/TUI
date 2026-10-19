@@ -396,4 +396,7 @@ extension _TransitionView: SingleContentWrapper {
     static var _keepsContentGeometry: Bool { true }
 
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }

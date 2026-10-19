@@ -514,6 +514,11 @@ extension FocusState: EnvironmentResolvable {
 /// the members of multi-view content.
 extension _FocusedModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content's context: the focus identity it assigns (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
+        context.withEnvironment(context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: forcedID(context))))
+    }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
@@ -522,6 +527,9 @@ extension _FocusedModifier: SingleContentWrapper {
 /// the members of multi-view content.
 extension _DefaultFocusModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

@@ -146,7 +146,14 @@ is decided by a witness for size-neutrality,
 which every `DrawsContentUnchanged` wrapper meets a fortiori; the paint
 wrappers (`.opacity`, `.hidden()`, the colour effects, `.dimmed()`), drag and
 spring-loading regions, `.help`, `.fixedSize()` and a transition state it
-themselves.
+themselves. Such a wrapper's content is asked for its guide in the context the
+wrapper lays it out in (`SingleContentWrapper.wrappedContentContext(_:)`, the
+one its measure hands its content), and a wrapper that has not said what that
+is stops the guide. Asked in the wrapper's own context, the content answered
+from a layout that is never drawn wherever the wrapper's environment changes
+what it lays out: `HStack { Text("ßß"); Text("x").alignmentGuide(.mark) {
+$0[.leading] } }.textCase(.uppercase)` placed the guide two cells in, where
+the drawn row is `SSSSX` (found in review).
 
 Two differences remain:
 

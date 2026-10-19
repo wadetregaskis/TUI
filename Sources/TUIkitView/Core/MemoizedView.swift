@@ -133,6 +133,9 @@ extension View {
 /// the members of multi-view content.
 extension _MemoizedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

@@ -439,6 +439,9 @@ package struct _TextSuggestionsReader<Content: View, Suggestions: View>: View, R
 extension _TextSuggestionsReader: ContentRewrapping {
     package var wrappedContent: Content { content }
 
+    /// Its content's context: the suggestions it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { publishing(in: context).contentContext(context) }
+
     package func rewrapping<V: View>(_ view: V) -> any View {
         _TextSuggestionsReader<V, Suggestions>(content: view, suggestions: suggestions, keyPath: keyPath)
     }

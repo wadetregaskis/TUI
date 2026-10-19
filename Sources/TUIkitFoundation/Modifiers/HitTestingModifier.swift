@@ -209,6 +209,9 @@ extension _HiddenView: ContentRewrapping {
 
     var wrappedContent: Content { content }
 
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+
     func rewrapping<V: View>(_ view: V) -> any View {
         _HiddenView<V>(content: view)
     }
@@ -226,6 +229,9 @@ extension _HiddenView: GridRowProviding where Content: GridRowProviding {}
 ///   no regions belonging to the group itself.
 extension _HitTestingView: ContentRewrapping {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 
     func rewrapping<V: View>(_ view: V) -> any View {
         _HitTestingView<V>(content: view, enabled: enabled)

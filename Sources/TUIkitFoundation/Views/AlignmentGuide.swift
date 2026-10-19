@@ -186,7 +186,9 @@ extension View {
     /// `.overlay` and `.background` pass their base's; and a modifier that
     /// keeps its content where it is — environment, style, effect, focus,
     /// gesture and lifecycle modifiers, `.id`, `.tag`, `.opacity`,
-    /// `.fixedSize()` — passes it unmoved.
+    /// `.fixedSize()` — passes it unmoved, the content laid out as the
+    /// modifier lays it out: under `.textCase(.uppercase)` a guide is placed
+    /// in the uppercased text.
     /// A view type of your own reports what its `body` does, through an `if`,
     /// an `if`/`else` and a `switch` too, so a guide inside `struct Row:
     /// View`'s body travels out of `Row` as SwiftUI's does.
@@ -343,17 +345,12 @@ package func explicitGuide<V: View>(
         return provider.explicitAlignmentGuide(for: query.key, in: dimensions)
     }
     // A wrapper that lays its content out where it is itself: its content's
-    // guide, unmoved, at this identity, as such a wrapper draws it — asked in
-    // the context the wrapper lays its content out in, which an environment
-    // write changes (`.lineLimit(1)` around a column), where it states that
-    // context, else in this one where it says it keeps its content's geometry
-    // itself. A wrapper that draws its content unchanged but states neither
-    // may write to the environment, and stops the guide here
-    // (`ContentContextStating`, deviation L11).
+    // guide, unmoved, laid out in the context the wrapper gives it — or none
+    // where the wrapper has not said what that is.
     if let wrapper = view as? any ContentContextStating {
         return explicitGuide(throughUnchanged: wrapper, query, in: dimensions, context: context)
     }
-    if let wrapper = view as? any SingleContentWrapper, statesItKeepsContentGeometry(wrapper) {
+    if let wrapper = view as? any SingleContentWrapper, keepsItsContentGeometry(wrapper) {
         return explicitGuide(ofContentOf: wrapper, query, in: dimensions, context: context)
     }
     guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
@@ -379,24 +376,29 @@ private func explicitGuide<Wrapper: ContentContextStating>(
         of: wrapper.wrappedContent, query, in: dimensions, context: wrapper.contentLayoutContext(context))
 }
 
-/// Whether `wrapper` says it lays its content out where it is itself
-/// (``SingleContentWrapper/_keepsContentGeometry``), the existential opened.
-/// Not ``DrawsContentUnchanged`` alone, which `keepsContentGeometry(_:)` also
-/// counts: such a wrapper is its content's size, but may lay its content out
-/// in another context, and is stepped through only where it states that one.
+/// Whether `wrapper` lays its content out where it is itself
+/// (`keepsContentGeometry(_:)`), the existential opened.
 @MainActor
-private func statesItKeepsContentGeometry<W: SingleContentWrapper>(_: W) -> Bool {
-    W._keepsContentGeometry
+private func keepsItsContentGeometry<W: SingleContentWrapper>(_: W) -> Bool {
+    keepsContentGeometry(W.self)
 }
 
 /// ``explicitGuide(of:_:in:context:)`` of `wrapper`'s content, the existential
-/// opened: unmoved, at this identity, as a wrapper that keeps its content's
-/// geometry draws it.
+/// opened: unmoved, as a wrapper that keeps its content's geometry draws it,
+/// in the context the wrapper lays it out in
+/// (``SingleContentWrapper/wrappedContentContext(_:)``) — `.textCase(_:)`'s
+/// style, `.environment(_:_:)`'s value, which can change what the content
+/// lays out. Asked in the wrapper's own, it answered from a layout that is
+/// never drawn: `HStack { Text("ßß"); Text("x").alignmentGuide(…) }
+/// .textCase(.uppercase)` placed the guide two cells in, where the drawn row
+/// is `SSSSX` (found in review). `nil`, a stop, where the wrapper has not
+/// said: a wrong position is worse than none.
 @MainActor
 private func explicitGuide<W: SingleContentWrapper>(
     ofContentOf wrapper: W, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
 ) -> Double? {
-    explicitGuide(of: wrapper.wrappedContent, query, in: dimensions, context: context)
+    guard let contentContext = wrapper.wrappedContentContext(context) else { return nil }
+    return explicitGuide(of: wrapper.wrappedContent, query, in: dimensions, context: contentContext)
 }
 
 // MARK: - Reading a Child's Guide

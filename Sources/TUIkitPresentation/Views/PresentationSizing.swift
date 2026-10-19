@@ -269,6 +269,9 @@ extension _PresentationSizingView: PresentationTraitWrapper {
 
 extension _PresentationSizingView: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 extension _PresentationSizingView: DrawsContentUnchanged {}

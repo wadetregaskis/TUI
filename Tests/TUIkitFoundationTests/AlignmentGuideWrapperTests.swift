@@ -121,4 +121,49 @@ struct AlignmentGuideWrapperTests {
         // SwiftUI: 7 through a leading padding of 2.
         #expect(leadingReported(leadingFive().padding(.leading, 2)) == 7)
     }
+
+    /// A wrapper's content is asked for its guide laid out as the wrapper
+    /// lays it out: `.textCase(.uppercase)` draws "ßß" as "SSSS", four cells,
+    /// and the guide on the "X" after it is four cells in. Asked without the
+    /// wrapper's style, the row was laid out two cells wide and the bar below
+    /// put at 2, under nothing (found in review).
+    @Test("A guide through a wrapper is placed in the content as the wrapper lays it out")
+    func guideThroughAWrapperUsesItsContext() {
+        let buffer = renderToBuffer(
+            VStack(alignment: .wrapperProbeMark, spacing: 0) {
+                HStack(spacing: 0) {
+                    Text("ßß")
+                    Text("x").alignmentGuide(.wrapperProbeMark) { $0[.leading] }
+                }
+                .textCase(.uppercase)
+                Text("|").alignmentGuide(.wrapperProbeMark) { $0[.leading] }
+            },
+            context: makeRenderContext(width: 20, height: 4))
+        #expect(buffer.lines.prefix(2).map { $0.stripped.prefix(5) } == ["SSSSX", "    |"])
+    }
+
+    /// A wrapper that keeps its content's geometry but has not said what
+    /// context it lays its content out in stops a guide: one placed from a
+    /// layout that is never drawn is worse than none.
+    @Test("A guide stops at a wrapper that has not said what context it gives its content")
+    func unsaidWrapperStopsTheGuide() {
+        #expect(leadingReported(UnsaidWrapper(content: leadingFive())) == 0)
+    }
+}
+
+/// A custom guide the wrapper tests line rows up on.
+private enum WrapperProbeMark: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> Double { context[.leading] }
+}
+
+extension HorizontalAlignment {
+    fileprivate static let wrapperProbeMark = Self(WrapperProbeMark.self)
+}
+
+/// A wrapper that draws its content unchanged and says nothing of the context
+/// it gives it.
+private struct UnsaidWrapper<Content: View>: View, SingleContentWrapper, DrawsContentUnchanged {
+    let content: Content
+    var body: some View { content }
+    var wrappedContent: Content { content }
 }

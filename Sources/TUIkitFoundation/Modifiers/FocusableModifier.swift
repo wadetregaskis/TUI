@@ -209,6 +209,13 @@ extension FocusableModifier: Layoutable {
 /// the members of multi-view content.
 extension FocusableModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
+
+    /// Its content's context: the environment depth its measure gives it (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
+        var contentContext = context
+        contentContext.environmentApplicationDepth += 1
+        return contentContext
+    }
 }
 
 // MARK: - Removal Transitions

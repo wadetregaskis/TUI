@@ -565,6 +565,9 @@ extension DraggableModifier: SingleContentWrapper {
     public static var _keepsContentGeometry: Bool { true }
 
     public var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
@@ -573,6 +576,9 @@ extension DraggableModifier: SingleContentWrapper {
 /// the members of multi-view content.
 extension DropDestinationModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions

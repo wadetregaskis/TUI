@@ -306,6 +306,9 @@ extension DimmedModifier: ContentRewrapping {
 
     public var wrappedContent: Content { content }
 
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+
     public func rewrapping<V: View>(_ view: V) -> any View {
         DimmedModifier<V>(content: view)
     }
