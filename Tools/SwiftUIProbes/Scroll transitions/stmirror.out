@@ -1,0 +1,191 @@
+== interactive
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 1.0
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        ▿ function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.bezier
+          ▿ bezier: (2 elements)
+            ▿ startControlPoint: SwiftUI.UnitPoint
+              - x: 0.42
+              - y: 0.0
+            ▿ endControlPoint: SwiftUI.UnitPoint
+              - x: 0.58
+              - y: 1.0
+      - animation: nil
+
+== interactive.threshold(.visible)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 1.0
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        ▿ function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.bezier
+          ▿ bezier: (2 elements)
+            ▿ startControlPoint: SwiftUI.UnitPoint
+              - x: 0.42
+              - y: 0.0
+            ▿ endControlPoint: SwiftUI.UnitPoint
+              - x: 0.58
+              - y: 1.0
+      - animation: nil
+
+== interactive.threshold(.visible(1))
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 1.0
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        ▿ function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.bezier
+          ▿ bezier: (2 elements)
+            ▿ startControlPoint: SwiftUI.UnitPoint
+              - x: 0.42
+              - y: 0.0
+            ▿ endControlPoint: SwiftUI.UnitPoint
+              - x: 0.58
+              - y: 1.0
+      - animation: nil
+
+== interactive.threshold(.visible(0.5))
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 0.5
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        ▿ function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.bezier
+          ▿ bezier: (2 elements)
+            ▿ startControlPoint: SwiftUI.UnitPoint
+              - x: 0.42
+              - y: 0.0
+            ▿ endControlPoint: SwiftUI.UnitPoint
+              - x: 0.58
+              - y: 1.0
+      - animation: nil
+
+== interactive.threshold(.centered)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    - storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.center
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        ▿ function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.bezier
+          ▿ bezier: (2 elements)
+            ▿ startControlPoint: SwiftUI.UnitPoint
+              - x: 0.42
+              - y: 0.0
+            ▿ endControlPoint: SwiftUI.UnitPoint
+              - x: 0.58
+              - y: 1.0
+      - animation: nil
+
+== interactive.threshold(.hidden)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 0.0
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        ▿ function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.bezier
+          ▿ bezier: (2 elements)
+            ▿ startControlPoint: SwiftUI.UnitPoint
+              - x: 0.42
+              - y: 0.0
+            ▿ endControlPoint: SwiftUI.UnitPoint
+              - x: 0.58
+              - y: 1.0
+      - animation: nil
+
+== animated
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 0.5
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.animated
+    ▿ animated: (1 element)
+      ▿ animation: AnyAnimator(SwiftUI.DefaultAnimation())
+        - base: SwiftUI.DefaultAnimation
+
+== animated.threshold(.visible)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 1.0
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.animated
+    ▿ animated: (1 element)
+      ▿ animation: AnyAnimator(SwiftUI.DefaultAnimation())
+        - base: SwiftUI.DefaultAnimation
+
+== identity
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 1.0
+  - mode: SwiftUI.ScrollTransitionConfiguration.Mode.identity
+
+== animated(.linear)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 0.5
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.animated
+    ▿ animated: (1 element)
+      ▿ animation: AnyAnimator(SwiftUI.BezierAnimation(duration: 0.35, curve: (extension in SwiftUI):SwiftUI.UnitCurve.CubicSolver(ax: -2.0, bx: 3.0, cx: 0.0, ay: -2.0, by: 3.0, cy: 0.0)))
+        ▿ base: SwiftUI.BezierAnimation
+          - duration: 0.35
+          ▿ curve: (extension in SwiftUI):SwiftUI.UnitCurve.CubicSolver
+            - ax: -2.0
+            - bx: 3.0
+            - cx: 0.0
+            - ay: -2.0
+            - by: 3.0
+            - cy: 0.0
+
+== animated()
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 0.5
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.animated
+    ▿ animated: (1 element)
+      ▿ animation: AnyAnimator(SwiftUI.DefaultAnimation())
+        - base: SwiftUI.DefaultAnimation
+
+== interactive(timingCurve: .linear)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 1.0
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.interactive
+    ▿ interactive: (2 elements)
+      ▿ timingCurve: SwiftUI.UnitCurve
+        - function: (extension in SwiftUI):SwiftUI.UnitCurve.Function.linear
+      - animation: nil
+
+== animated.animation(.linear)
+▿ SwiftUI.ScrollTransitionConfiguration
+  ▿ threshold: SwiftUI.ScrollTransitionConfiguration.Threshold
+    ▿ storage: SwiftUI.ScrollTransitionConfiguration.Threshold.(unknown context at $1caba1844).Storage.visibility
+      - visibility: 0.5
+  ▿ mode: SwiftUI.ScrollTransitionConfiguration.Mode.animated
+    ▿ animated: (1 element)
+      ▿ animation: AnyAnimator(SwiftUI.BezierAnimation(duration: 0.35, curve: (extension in SwiftUI):SwiftUI.UnitCurve.CubicSolver(ax: -2.0, bx: 3.0, cx: 0.0, ay: -2.0, by: 3.0, cy: 0.0)))
+        ▿ base: SwiftUI.BezierAnimation
+          - duration: 0.35
+          ▿ curve: (extension in SwiftUI):SwiftUI.UnitCurve.CubicSolver
+            - ax: -2.0
+            - bx: 3.0
+            - cx: 0.0
+            - ay: -2.0
+            - by: 3.0
+            - cy: 0.0
+

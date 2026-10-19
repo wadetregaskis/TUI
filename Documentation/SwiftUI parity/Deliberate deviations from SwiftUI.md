@@ -1640,9 +1640,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   window, as in SwiftUI (since 2026-10-19), but its rows are not placed before
   they are drawn, so a scrolled list with a reader in its rows draws it twice a
   frame. A `ScrollViewReader` finds an `.id(_:)` only on
-  the stack's own children; a `ForEach` row is found by its element's id. A
-  scroll transition's default threshold is taken as `.visible`; SwiftUI's
-  could not be measured (B-D5G-8).
+  the stack's own children; a `ForEach` row is found by its element's id.
 - **Why:** the row is still there (F1), and an app that stops a player on
   "hidden" must hear it. A list renders its rows into a window under its
   chrome, and tells them its own origin until it knows where the window put

@@ -325,6 +325,20 @@ messages cite that path), and what cites it.
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
   `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.
 
+### Scroll transitions
+
+- **Asks:** the threshold SwiftUI's scroll transition configurations start with when none is set
+  (`stmirror.swift`, `stmirror.out`): the configuration keeps it as data, so a `dump` reads it — `.visible` (1.0)
+  for `.interactive` and `.interactive(timingCurve:)`, `.visible(0.5)` for `.animated` and `.animated(_:)`, kept
+  by `animation(_:)`. `stanim.swift` (`stanim.out`) drives each default through a scroll view beside the two
+  explicit thresholds, at four offsets, and finds it calling its closure exactly as the threshold it holds does.
+  Both are top-level code, built alone.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
+- **Was:** `SCROLL/probe/`.
+- **Cited by:** `Sources/TUIkitEffects/Geometry/ScrollTransitionConfiguration.swift`;
+  `Documentation/SwiftUI parity/Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md` (B-D5G-8);
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
 ### Ragged text in a larger frame
 
 - **Asks:** where SwiftUI draws the lines of a multi-line `Text` whose lines differ in width ("aaaa" over "bb")

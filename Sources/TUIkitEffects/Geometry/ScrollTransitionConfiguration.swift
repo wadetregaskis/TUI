@@ -88,7 +88,11 @@ public struct ScrollTransitionConfiguration: Sendable {
 
     let kind: Kind
 
-    /// The point at which the view counts as fully visible.
+    /// The point at which the view counts as fully visible: `.visible` unless
+    /// the configuration says otherwise, and `.visible(0.5)` for an animated
+    /// one, as SwiftUI's own defaults are (read from its configurations on
+    /// macOS 15, and seen to behave so: `Tools/SwiftUIProbes/Scroll
+    /// transitions/`).
     var visibleThreshold: Threshold = .visible
 
     /// The animation the effect is moved with, if any.
@@ -106,12 +110,16 @@ public struct ScrollTransitionConfiguration: Sendable {
     /// changes once the threshold has been reached, at which time the given
     /// animation is used to animate to the new phase.
     ///
+    /// The threshold is half the view, `.visible(0.5)`, until
+    /// ``threshold(_:)`` sets another: SwiftUI's animated configurations start
+    /// there, where its interactive ones start at `.visible`.
+    ///
     /// - Parameter animation: The animation to use when transitioning between
     ///   states.
     /// - Returns: A configuration that discretely animates between transition
     ///   phases.
     public static func animated(_ animation: Animation = .default) -> Self {
-        Self(kind: .animated, transitionAnimation: animation)
+        Self(kind: .animated, visibleThreshold: .visible(0.5), transitionAnimation: animation)
     }
 
     /// Creates a new configuration that interactively interpolates the

@@ -207,6 +207,16 @@ the documentation of `threshold(_:)` calls "fully visible".
 whose `animatableData` is observable — to settle the default; an hour, and a
 one-line change if it differs.
 
+**Done 2026-10-19 (lane SCROLL).** SwiftUI's configurations carry their
+threshold as data, and a `dump` of them reads it: `.interactive` and
+`.interactive(timingCurve:)` start at `.visible` (1.0), but `.animated` and
+`.animated(_:)` start at `.visible(0.5)`, half the view, and `animation(_:)`
+keeps it. Driven through the scroll view, each default behaves exactly as the
+threshold it holds and unlike the other, at four offsets
+(`Tools/SwiftUIProbes/Scroll transitions/`). So an animated transition now
+switches with half the view in, which only a view taller than one line can
+show; the interactive default was right.
+
 ### B-D5G-9. A `List`'s rows are not placed by the prediction, and a `List` does not own `.scrollView`
 
 *`GeometryReader` (or `scrollTransition`) in a `List` row asking `.scrollView`,

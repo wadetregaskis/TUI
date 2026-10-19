@@ -125,6 +125,44 @@ struct ScrollTransitionTests {
         #expect(phases.byRow[4] == .identity)
     }
 
+    @Test("Animated: half a view in is the default threshold, where interactive's is all of it")
+    func animatedDefaultThresholdIsHalf() {
+        let harness = InputChainHarness()
+        let phases = Phases()
+        // Two-line rows in a seven-line viewport at the top: rows 0–2 are in,
+        // row 3's first line is the viewport's last and its second is past it.
+        func page(_ configuration: ScrollTransitionConfiguration) -> some View {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<20, id: \.self) { index in
+                        Text("row \(index)").frame(height: 2)
+                            .scrollTransition(configuration) { effect, phase in
+                                // swiftlint:disable:next redundant_discardable_let
+                                let _ = (phases.byRow[index] = phase)
+                                return effect
+                            }
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .frame(width: 20, height: 7)
+        }
+        harness.frame(page(.animated))
+        #expect(phases.byRow[3] == .identity)
+        #expect(phases.byRow[4] == .bottomTrailing)
+        harness.frame(page(.animated(.linear)))
+        #expect(phases.byRow[3] == .identity)
+        harness.frame(page(.animated.threshold(.visible)))
+        #expect(phases.byRow[3] == .bottomTrailing)
+        func depth(_ configuration: ScrollTransitionConfiguration) -> Double {
+            configuration.visibleThreshold.point.depth(length: 2, container: 10)
+        }
+        #expect(depth(.animated) == 1)
+        #expect(depth(.animated(.linear).animation(.default)) == 1)
+        #expect(depth(.interactive) == 2)
+        #expect(depth(.interactive(timingCurve: .linear)) == 2)
+    }
+
     @Test("Rows of a lazy stack scrolling through the viewport are predicted: the scroll view draws them once")
     func transitionRowsArePredicted() {
         let harness = InputChainHarness()
