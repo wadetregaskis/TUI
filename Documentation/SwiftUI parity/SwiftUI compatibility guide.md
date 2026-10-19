@@ -705,7 +705,9 @@ form leaves the title as it is (decisions TOOLBARS, B-TOOLBARS-1).
 `.contentToolbar(for: .tabViewSidebar) { … }` puts a row of views at the foot
 of a `.sidebarAdaptable` tab view's sidebar, under its tabs and footer, above
 its bottom bar (iPadOS's placement, which macOS marks unavailable; TUIkit reads
-it on every platform).
+it on every platform). `ToolbarContent.sharedBackgroundVisibility(_:)` is
+honoured as it stands: a terminal bar sets no glass under a group of items,
+so every item already sits on the one background they share, the bar's fill.
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation

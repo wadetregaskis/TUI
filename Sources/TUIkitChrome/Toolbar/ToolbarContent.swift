@@ -166,6 +166,41 @@ extension ToolbarContent {
     }
 }
 
+// MARK: - Shared Background
+
+extension ToolbarContent {
+    /// Controls the visibility of the background toolbar items share with the
+    /// other items of their group — mirrors SwiftUI's
+    /// `ToolbarContent.sharedBackgroundVisibility(_:)`.
+    ///
+    /// SwiftUI's macOS 26 toolbar sets each group of items on a shared piece of
+    /// glass, and ``Visibility/hidden`` takes an item off it. A terminal bar has
+    /// no glass under its groups: every item sits on the bar's own fill
+    /// (`.toolbarBackground(_:for:)`), the one background they all share. So
+    /// ``Visibility/hidden`` is what the bar draws already, and
+    /// ``Visibility/visible`` and ``Visibility/automatic`` leave the item on
+    /// the bar's fill.
+    ///
+    /// - Parameter visibility: The visibility of the shared background.
+    /// - Returns: The content, unchanged in a terminal bar.
+    public func sharedBackgroundVisibility(_ visibility: Visibility) -> some ToolbarContent {
+        _SharedBackgroundToolbarContent(content: self)
+    }
+}
+
+/// Toolbar content with its shared background's visibility stated: it hands
+/// over its items as they are, a terminal bar having no per-group background
+/// to show or hide.
+struct _SharedBackgroundToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
+    let content: Content
+
+    var body: Never { fatalError("_SharedBackgroundToolbarContent hands its items over itself") }
+
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+        TUIkitChrome.appendToolbarItems(content, to: &items)
+    }
+}
+
 /// Toolbar content that hands over its items unless it is hidden.
 struct _HiddenToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
     let content: Content

@@ -2689,6 +2689,8 @@ private struct ToolbarShapes: View {
                         Button("Print") {}
                     }
                     ToolbarTitleMenu()
+                    ToolbarItem { Image(systemName: "person.crop.circle") }
+                        .sharedBackgroundVisibility(.hidden)
                 }
             TabView {
                 Tab("Inbox", systemImage: "tray") { Text("inbox") }

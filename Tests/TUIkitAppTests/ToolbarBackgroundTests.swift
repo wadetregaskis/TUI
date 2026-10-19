@@ -78,6 +78,23 @@ private struct FillsApp: App {
     }
 }
 
+/// An item taken off its group's shared background.
+private struct SoloItemApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) { Text("SOLO") }
+                        .sharedBackgroundVisibility(.hidden)
+                }
+        }
+        .palette(ThreeGrounds())
+        .windowToolbarStyle(.unifiedCompact)
+    }
+}
+
 @MainActor
 @Suite("Toolbar background", .serialized)
 struct ToolbarBackgroundTests {
@@ -146,6 +163,15 @@ struct ToolbarBackgroundTests {
         let bottom = row(rows, containing: "BOTTOM-ITEM")
         #expect(!bottom.contains(ANSIRenderer.backgroundCode(for: .rgb(20, 20, 60))), "\(rows)")
         #expect(row(rows, containing: "TOP-ITEM").contains(ANSIRenderer.backgroundCode(for: .rgb(60, 20, 20))))
+    }
+
+    @Test("An item off its group's shared background is drawn on the bar's fill, the one background they share")
+    func sharedBackgroundHidden() {
+        let app = HeadlessApp(SoloItemApp(), width: 30, height: 6)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        let top = row(app.screen, containing: "SOLO")
+        #expect(top.contains(ANSIRenderer.backgroundCode(for: .rgb(60, 20, 20))), "\(app.screen)")
     }
 
     @Test("A gradient is laid across the bar")
