@@ -285,6 +285,19 @@ extension Character {
     /// is the answer for every host that composes, and so the common one.
     ///
     /// Out of line deliberately: see the call site.
+    ///
+    /// What it costs is not what it cost before ``TerminalWidthTraits/textClusters``
+    /// (2026-10-19), for text. A cluster of text with an advancing extra used
+    /// to leave after one scan of its scalars; it now reads the task-local
+    /// traits, on every host. That is nearly every syllable of Indic text — a
+    /// Devanagari one carrying a matra (कि) or a conjunct (क्ष), and its kin in
+    /// the other Indic scripts — and Thai's sara am, Khmer and Myanmar
+    /// clusters. On a per-code-point host it then pays
+    /// ``perCodePointWidth(_:)`` as well, and so does an emoji cluster whose
+    /// decomposition the traits decline (on iTerm2, a ZWJ sequence or a toned
+    /// SMP base), by one property lookup. A settled view's measure memos hide
+    /// this; every re-measure of such text pays it. Unmeasured: the A/B is
+    /// owed (decisions B-WIDTHS-1).
     @inline(never)
     static func hostWidenedWidth(_ scalars: String.UnicodeScalarView) -> Int? {
         guard let first = scalars.first else { return nil }
@@ -337,8 +350,20 @@ extension Character {
     /// (iTerm2 3.6.11 advanced that 4, on the primary screen on 2026-09-04;
     /// 3.7.4 and 3.7.6 advance 2.)
     ///
-    /// Only reached for a multi-scalar cluster with width-adding extras on a
-    /// host whose traits say so, so the property lookup is off every hot path.
+    /// NOT off the hot path, for the text it exists for. On Apple Terminal,
+    /// iTerm2 and Warp every multi-scalar text cluster with an advancing extra
+    /// comes here — nearly every Indic syllable with a matra or a conjunct —
+    /// and pays the `isEmoji` lookup on its first scalar plus a
+    /// ``Unicode/Scalar/loneTerminalWidth`` per scalar, which asks
+    /// `isEmojiPresentation` of any non-ASCII scalar outside its fast paths:
+    /// three standard-library property lookups for कि and six for स्त्र, where
+    /// the cluster rule made none. That is the price of the right answer on
+    /// the hosts where the cluster rule's was wrong. Unmeasured, and two exact
+    /// remedies wait on the A/B (decisions B-WIDTHS-1): no scalar in
+    /// U+00AF…U+203B is `Emoji`, so a range test could answer the first
+    /// scalar's lookup for every one of those scripts' bases; and no scalar
+    /// below U+231A is `Emoji_Presentation`, so `loneTerminalWidth` could skip
+    /// its lookup for them — a change to every path, which is why it waits.
     static func perCodePointWidth(_ scalars: String.UnicodeScalarView) -> Int? {
         guard let first = scalars.first, !first.properties.isEmoji,
             !scalars.contains(where: { (0x1F3FB...0x1F3FF).contains($0.value) })

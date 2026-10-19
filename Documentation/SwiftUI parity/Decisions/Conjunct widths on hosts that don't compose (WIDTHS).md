@@ -69,6 +69,26 @@ disagreement rows under each host's traits, emits it through the host's walk
 and advances it by the host's MEASURED numbers, and finds the border where the
 layout put it. Both fail with the hosts' traits set back to `.clustered`.
 
+**What it costs: unmeasured, and an A/B is owed.** The claim for a cluster of
+text with an advancing extra — nearly every Indic syllable carrying a matra or
+a conjunct, and Thai's sara am, Khmer and Myanmar clusters — now reads the
+task-local traits on every host, where it used to answer after one scan of its
+scalars. On Apple Terminal, iTerm2 and Warp it also makes standard-library
+property lookups the cluster rule never made: three for कि, six for स्त्र.
+An emoji cluster whose decomposition the traits decline (on iTerm2, a ZWJ
+sequence or a toned SMP base) pays one lookup more there; Latin text, flags
+and every other emoji pay nothing new. The measure memos hide this on a
+settled view, and every re-measure of such text pays it. The harness cannot run the A/B yet: no Stress
+scenario carries Indic text (a `textwall` variant of synthesised Devanagari
+would), and a headless `--bench` never applies a host's traits, so it would
+time only the clustered hosts' share — the per-code-point arm needs a way to
+pin a host's traits there. If the A/B shows a cost, two exact remedies are
+ready: no scalar in U+00AF…U+203B is `Emoji`, so a range test answers the
+first scalar's lookup for every one of those scripts' bases; and no scalar
+below U+231A is `Emoji_Presentation`, so `loneTerminalWidth` could skip its
+lookup for all of them — a change to every path, so it would need its own
+measurement.
+
 **The fuller version:** the paint, measured — `landing_probe.py` and
 `landing_analyze.py` run in each host (Screen Recording, or a person reading
 the shots), then the rows taken out of `awaitingLandingMeasurement`. About half
