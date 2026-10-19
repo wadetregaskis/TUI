@@ -2981,7 +2981,17 @@ Where it differs:
 - **A hierarchical table's loops take no insertions**: there the drawn rows
   are the open tree's, not one loop's, and an offset into a loop under a
   closed branch has no drawn slot. An hour or two, if wanted, to map the slot
-  to the loop whose rows it falls among by walking the outline.
+  to the loop whose rows it falls among by walking the outline. **Built
+  (2026-10-19, lane LISTS2):** measured on macOS 15.8
+  (`Tools/SwiftUIProbes/Hierarchical table insertions/outlineinsert.swift`),
+  a drop SwiftUI's outline proposes among a branch's rows goes to those rows'
+  loop at its offset among them, and one among the roots to the roots' loop;
+  TUIkit's table now walks the outline it shows and does the same. A slot
+  two loops reach — the end of a branch's rows is also the place before the
+  next row out — goes to the deeper loop that takes the payload, as a
+  terminal's drop line has no indentation to aim by. Not copied: where a
+  branch's rows have no loop that takes the drop, SwiftUI hands it to the
+  roots' loop at the offset it had among the branch's rows.
 
 ### B81. The find bar: Ctrl-G opens it, the current match is the selection, and other matches are not highlighted
 

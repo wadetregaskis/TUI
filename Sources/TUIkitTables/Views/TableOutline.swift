@@ -66,9 +66,14 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// The expansion of every branch that keeps no binding of its own.
     private let expansion: StateBox<Set<AnyHashable>>
 
+    /// The loops among the shown rows that take payloads in between their
+    /// rows, as one table-wide insertion over the shown rows' slots — `nil`
+    /// where no shown loop takes any (``_TableOutlineInsertions``).
+    let insertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
+
     /// Flattens `tree`: every root, and beneath each open branch its rows, in
     /// reading order. A closed branch's rows are never built.
-    init(tree: [_TableRowNode<Value>], expansion: StateBox<Set<AnyHashable>>) {
+    init(tree: _TableRowBranch<Value>, expansion: StateBox<Set<AnyHashable>>) {
         self.expansion = expansion
         var values: [Value] = []
         var traits: [_TableRowTraits] = []
@@ -76,13 +81,17 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         var placements: [Value.ID: Placement] = [:]
         var parents: [Value.ID: Value.ID] = [:]
         var branches: [Value.ID: _TableRowNode<Value>] = [:]
+        // Where each list of siblings drew its rows — the roots, and each open
+        // branch's — for the loops among them.
+        var insertions = _TableOutlineInsertions(roots: tree.insertions)
         // An explicit stack, not recursion: a deep tree must not bring the
         // render pass any nearer the stack limit. Pushed in reverse so the top
         // is always the next row in reading order.
-        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Value.ID?)] =
-            tree.reversed().map { ($0, 0, nil) }
-        while let (node, depth, parent) = stack.popLast() {
+        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Value.ID?, siblings: Int)] =
+            tree.nodes.reversed().map { ($0, 0, nil, 0) }
+        while let (node, depth, parent, siblings) = stack.popLast() {
             let id = node.value.id
+            insertions.drew(row: values.count, depth: depth, in: siblings)
             values.append(node.value)
             traits.append(node.traits)
             anyTraits = anyTraits || !node.traits.isEmpty
@@ -95,8 +104,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             let isOpen = Self.isOpen(node, in: expansion)
             placements[id] = Placement(depth: depth, disclosure: isOpen ? .open : .closed)
             guard isOpen else { continue }
-            for child in children().reversed() {
-                stack.append((child, depth + 1, id))
+            let branch = children()
+            let list = insertions.opened(after: values.count - 1, depth: depth + 1, loops: branch.insertions)
+            for child in branch.nodes.reversed() {
+                stack.append((child, depth + 1, id, list))
             }
         }
         self.values = values
@@ -104,6 +115,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         self.placements = placements
         self.parents = parents
         self.branches = branches
+        self.insertionAction = insertions.action(rowCount: values.count)
     }
 
     /// Whether a branch is open: as its own binding says, or as the table
@@ -219,7 +231,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
                 changed = true
             }
             guard includingDescendants, let children = current.children else { continue }
-            stack += children().filter { $0.children != nil }
+            stack += children().nodes.filter { $0.children != nil }
         }
         return changed
     }
@@ -238,6 +250,123 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         } else {
             expansion.value.remove(AnyHashable(node.value.id))
         }
+    }
+}
+
+// MARK: - Insertions between an outline's rows
+
+/// Where the loops of a hierarchical table's shown rows take payloads in
+/// between their rows (decisions B80): a `ForEach`'s
+/// `.dropDestination(for:action:)` or `.onInsert(of:perform:)`, among the
+/// roots or the rows of an open branch.
+///
+/// Each loop's offsets are slots between the shown rows: its offset `k` is the
+/// slot before its `k`-th row, and its last the slot after its last row's
+/// shown subtree. A slot two loops reach — the end of a branch's rows is also
+/// the place before the next row of the list it is in — goes to the deeper,
+/// the rows the slot is among, and to a shallower one only where the deeper
+/// does not take the payload. A loop under a closed branch has no shown rows
+/// and takes nothing.
+///
+/// Measured on macOS 15.8 (`Tools/SwiftUIProbes/Hierarchical table
+/// insertions/outlineinsert.swift`): a drop SwiftUI's outline proposes among
+/// a branch's rows goes to the loop of those rows, at its offset among them,
+/// and one among the roots to the roots' loop. A terminal's drop slot is a
+/// line between rows, with no indentation to say how deep it is aimed, which
+/// is what the deeper loop answers for. Not copied: where the rows of a
+/// branch have no loop that takes the drop, SwiftUI hands it to the roots'
+/// loop at the offset it had among the branch's rows — a place among the
+/// roots unrelated to where it was dropped.
+struct _TableOutlineInsertions {
+    /// A list of siblings: its rows' shown indices, its depth, the shown row
+    /// after which it starts, and its loops in its own numbering.
+    private struct Siblings {
+        var rows: [Int] = []
+        let depth: Int
+        let start: Int
+        let loops: [_TableRowInsertion]
+    }
+
+    private var lists: [Siblings]
+
+    /// Each shown row's depth, for where a row's subtree ends.
+    private var depths: [Int] = []
+
+    init(roots: [_TableRowInsertion]) {
+        lists = [Siblings(depth: 0, start: 0, loops: roots)]
+    }
+
+    /// Notes that shown row `row`, at `depth`, is the next row of the list of
+    /// siblings `list`.
+    mutating func drew(row: Int, depth: Int, in list: Int) {
+        depths.append(depth)
+        lists[list].rows.append(row)
+    }
+
+    /// Starts the list of an opened branch — the shown row `row` — whose rows
+    /// sit at `depth`, with its loops; returns the list's number for its rows.
+    mutating func opened(after row: Int, depth: Int, loops: [_TableRowInsertion]) -> Int {
+        lists.append(Siblings(depth: depth, start: row + 1, loops: loops))
+        return lists.count - 1
+    }
+
+    /// The insertion over `rowCount` shown rows, or `nil` where no loop shown
+    /// takes anything.
+    func action(rowCount: Int) -> (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
+        let ends = subtreeEnds(rowCount: rowCount)
+        var targets: [(depth: Int, slots: [Int], loop: _TableRowInsertion)] = []
+        for list in lists {
+            for loop in list.loops {
+                let slots = Self.slots(of: loop.rows, in: list, ends: ends)
+                guard !slots.isEmpty else { continue }
+                targets.append((list.depth, slots, loop))
+            }
+        }
+        guard !targets.isEmpty else { return nil }
+        return (
+            accepts: { payload in targets.contains { $0.loop.accepts(payload) } },
+            perform: { slot, payloads in
+                // The deepest loop at the slot that takes the payload; among
+                // loops of one depth, the first, as a flat table's.
+                guard
+                    let owner = targets.filter({ $0.slots.contains(slot) && payloads.contains(where: $0.loop.accepts) })
+                        .max(by: { $0.depth < $1.depth }),
+                    let offset = owner.slots.firstIndex(of: slot)
+                else { return }
+                owner.loop.perform(offset, payloads.filter(owner.loop.accepts))
+            })
+    }
+
+    /// For each shown row, the shown row after its subtree: the next row no
+    /// deeper than it, or `rowCount`.
+    private func subtreeEnds(rowCount: Int) -> [Int] {
+        var ends = [Int](repeating: rowCount, count: depths.count)
+        var open: [Int] = []
+        for row in depths.indices {
+            while let top = open.last, depths[top] >= depths[row] {
+                ends[top] = row
+                open.removeLast()
+            }
+            open.append(row)
+        }
+        return ends
+    }
+
+    /// The slots a loop over `rows` of `list` reaches, by offset: before each
+    /// of its rows, then after its last row's subtree. A loop with no rows has
+    /// the one slot where its rows would be.
+    private static func slots(of rows: Range<Int>, in list: Siblings, ends: [Int]) -> [Int] {
+        guard rows.upperBound <= list.rows.count else { return [] }
+        let before = rows.map { list.rows[$0] }
+        let after: Int
+        if let last = rows.last {
+            after = ends[list.rows[last]]
+        } else if rows.lowerBound < list.rows.count {
+            after = list.rows[rows.lowerBound]
+        } else {
+            after = list.rows.last.map { ends[$0] } ?? list.start
+        }
+        return before + [after]
     }
 }
 
@@ -286,9 +415,9 @@ extension TableOutlineGroupContent {
     static func node(
         _ element: Data.Element, children: KeyPath<Data.Element, Data?>
     ) -> _TableRowNode<Data.Element> {
-        var rowsBeneath: (@MainActor () -> [_TableRowNode<Data.Element>])?
+        var rowsBeneath: (@MainActor () -> _TableRowBranch<Data.Element>)?
         if let kids = element[keyPath: children] {
-            rowsBeneath = { kids.map { node($0, children: children) } }
+            rowsBeneath = { _TableRowBranch(nodes: kids.map { node($0, children: children) }) }
         }
         return _TableRowNode(value: element, children: rowsBeneath, isExpanded: nil)
     }
@@ -407,9 +536,9 @@ where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Elem
         _ element: Data.Element, children: KeyPath<Data.Element, Data?>,
         content: @escaping (Data.Element) -> Leaf
     ) -> _TableRowNode<Data.Element> {
-        var rowsBeneath: (@MainActor () -> [_TableRowNode<Data.Element>])?
+        var rowsBeneath: (@MainActor () -> _TableRowBranch<Data.Element>)?
         if let kids = element[keyPath: children] {
-            rowsBeneath = { kids.map { node($0, children: children, content: content) } }
+            rowsBeneath = { _TableRowBranch(nodes: kids.map { node($0, children: children, content: content) }) }
         }
         let built = tableRows(of: content(element)).nodes.first
         return _TableRowNode(
@@ -478,7 +607,7 @@ extension DisclosureTableRow {
         let content = row.content
         rows.append(
             treeNode: _TableRowNode(
-                value: value, children: { tableRows(of: content()).nodes },
+                value: value, children: { tableRows(of: content()).branch },
                 isExpanded: row.isExpanded))
     }
 }

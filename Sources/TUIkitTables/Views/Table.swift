@@ -208,7 +208,7 @@ public struct Table<Value: Identifiable>: View {
     /// or rows with an `OutlineGroup` or a `DisclosureTableRow` among them.
     /// ``data`` is empty then: which rows show is the expansion's to say, and
     /// only the render knows where the expansion lives.
-    var rowTree: [_TableRowNode<Value>]?
+    var rowTree: _TableRowBranch<Value>?
 
     /// What the row modifiers said about each row, parallel to ``data``, or
     /// `nil` when none reached any row. A tree keeps its rows' traits in its
@@ -356,11 +356,13 @@ extension Table {
             rows: rowList.isTree ? [] : rowList.values, columns: columns, single: single,
             multi: multi, sortModel: sortModel, customization: customization)
         if rowList.isTree {
-            rowTree = rowList.nodes
+            // With the roots' loops: a loop's insertions are placed among the
+            // rows the outline shows, which only a render knows
+            // (``_TableOutlineInsertions``).
+            rowTree = rowList.branch
         } else {
             rowTraits = rowList.traits
-            // A loop's `.dropDestination(for:action:)` or `.onInsert(of:perform:)`
-            // — flat rows only: in a tree the drawn rows are not the loop's.
+            // A loop's `.dropDestination(for:action:)` or `.onInsert(of:perform:)`.
             dropInsertion = rowList.insertionAction
             sectionHeaders = rowList.sectionHeaders
         }
@@ -633,7 +635,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// The table's rows as a tree, when it is hierarchical; ``data`` is empty
     /// until ``resolveRows(_:)`` flattens it.
-    let rowTree: [_TableRowNode<Value>]?
+    let rowTree: _TableRowBranch<Value>?
 
     /// This frame's flattening of ``rowTree``: the rows that show and where
     /// each sits. Set only on the copy ``prepared(_:)`` makes (``resolveRows(_:)``).
@@ -710,6 +712,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             data = outline.values
             rowTraits = outline.traits
             self.outline = outline
+            // The loops' insertions among the rows shown, unless the table
+            // takes drops between its rows itself (`Table.dropDestination`).
+            if dropInsertion == nil { dropInsertion = outline.insertionAction }
             if let first = columns.first {
                 columns[0] = outline.disclosing(first)
             }

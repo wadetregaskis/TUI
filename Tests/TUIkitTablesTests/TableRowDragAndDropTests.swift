@@ -178,6 +178,80 @@ struct TableRowDragAndDropTests {
         #expect(log.entries == ["insert [\"seed\"] at 1"], "\(resting.lines.map(\.stripped))")
     }
 
+    /// A row of a hierarchical table: a folder, or a file in one.
+    private struct Node: Identifiable {
+        let id: String
+        var children: [Self] = []
+        var name: String { id }
+    }
+
+    private let folders = [
+        Node(id: "A", children: [Node(id: "a1"), Node(id: "a2")]),
+        Node(id: "B", children: [Node(id: "b1")]),
+    ]
+
+    /// Drags "seed" from a chip and drops it on the line of `target` in a
+    /// hierarchical table, open throughout, whose loops say where it went:
+    /// the roots' loop, and each folder's loop of files where `filesTake`.
+    private func dropInOutline(on target: String, filesTake: Bool) -> [String] {
+        let log = Log()
+        let harness = InputChainHarness(width: 30, height: 16)
+        let folders = self.folders
+        @TableRowBuilder<Node>
+        func files(of folder: Node) -> some TableRowContent<Node> {
+            if filesTake {
+                ForEach(folder.children) { TableRow($0) }
+                    .dropDestination(for: String.self) { values, offset in
+                        log.entries.append("\(folder.id) \(values) at \(offset)")
+                    }
+            } else {
+                ForEach(folder.children) { TableRow($0) }
+            }
+        }
+        func build() -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("CHIP").draggable("seed")
+                Table(of: Node.self) {
+                    TableColumn("Name", value: \.name)
+                } rows: {
+                    ForEach(folders) { folder in
+                        DisclosureTableRow(folder, isExpanded: .constant(true)) { files(of: folder) }
+                    }
+                    .dropDestination(for: String.self) { values, offset in
+                        log.entries.append("roots \(values) at \(offset)")
+                    }
+                }
+            }
+        }
+        let resting = harness.frame(build())
+        let row = line(of: target, in: resting)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 2, y: row))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 3, y: row))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 3, y: row))
+        harness.frame(build())
+        return log.entries
+    }
+
+    /// Measured on macOS 15.8 (`Tools/SwiftUIProbes/Hierarchical table
+    /// insertions/outlineinsert.swift`): a drop among a branch's rows goes to
+    /// their loop at its offset among them, and one among the roots to the
+    /// roots' loop (decisions B80).
+    @Test("In a hierarchical table a drop goes to the loop whose rows it falls among")
+    func outlineInsertion() {
+        // The gap opens before the row under the pointer.
+        #expect(dropInOutline(on: "a2", filesTake: true) == ["A [\"seed\"] at 1"])
+        #expect(dropInOutline(on: "A", filesTake: true) == ["roots [\"seed\"] at 0"])
+        #expect(dropInOutline(on: "b1", filesTake: true) == ["B [\"seed\"] at 0"])
+        // Before B is also after A's last file: the files', the deeper loop.
+        #expect(dropInOutline(on: "B", filesTake: true) == ["A [\"seed\"] at 2"])
+        // Where the files take nothing, the roots' loop has that slot.
+        #expect(dropInOutline(on: "B", filesTake: false) == ["roots [\"seed\"] at 1"])
+    }
+
     #if canImport(UniformTypeIdentifiers)
         @Test("A row's item provider is what its drag carries, and a loop's onInsert takes it")
         func itemProviderAndOnInsert() {

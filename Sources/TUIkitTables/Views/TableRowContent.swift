@@ -153,6 +153,10 @@ public struct _TableRowList<Value: Identifiable> {
         values += other.values
     }
 
+    /// These rows as a branch of a tree, or a tree's roots: the rows, and the
+    /// loops among them that take payloads in between their rows.
+    var branch: _TableRowBranch<Value> { _TableRowBranch(nodes: nodes, insertions: insertions) }
+
     /// Makes every row here one loop that takes payloads in between its rows.
     mutating func addInsertion(accepts: @escaping (Any) -> Bool, perform: @escaping (Int, [Any]) -> Void) {
         insertions.append(_TableRowInsertion(rows: 0..<values.count, accepts: accepts, perform: perform))
@@ -172,6 +176,14 @@ public struct _TableRowList<Value: Identifiable> {
     }
 }
 
+/// The rows beneath a branch of a hierarchical table — or a tree's roots — and
+/// the loops among them that take payloads in between their rows, counted in
+/// these rows' own numbering (``_TableRowList/insertions``).
+struct _TableRowBranch<Value: Identifiable> {
+    var nodes: [_TableRowNode<Value>]
+    var insertions: [_TableRowInsertion] = []
+}
+
 /// One row of a table, and — when it is a branch of a hierarchical table — how
 /// to reach the rows beneath it.
 struct _TableRowNode<Value: Identifiable> {
@@ -184,8 +196,8 @@ struct _TableRowNode<Value: Identifiable> {
     /// as in SwiftUI.
     ///
     /// Main-actor isolated because building rows is: a `DisclosureTableRow`'s
-    /// children come from its row builder.
-    private(set) var children: (@MainActor () -> [_TableRowNode<Value>])?
+    /// children come from its row builder, with the loops among them.
+    private(set) var children: (@MainActor () -> _TableRowBranch<Value>)?
 
     /// The expansion a `DisclosureTableRow` was handed, or `nil` for one the
     /// table keeps itself.
@@ -202,7 +214,11 @@ struct _TableRowNode<Value: Identifiable> {
         var node = self
         apply(&node.traits)
         if let children {
-            node.children = { children().map { $0.applying(apply) } }
+            node.children = {
+                var branch = children()
+                branch.nodes = branch.nodes.map { $0.applying(apply) }
+                return branch
+            }
         }
         return node
     }

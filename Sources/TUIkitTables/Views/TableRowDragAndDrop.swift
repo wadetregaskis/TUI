@@ -143,8 +143,10 @@ extension DynamicTableRowContent {
     /// land, as a table's own ``Table/dropDestination(for:action:)`` does; on
     /// release `action` is told the offset into this loop's collection —
     /// counted from the loop's first row, whatever rows the table draws before
-    /// it — and the dropped values. In a hierarchical table the loop takes no
-    /// drops.
+    /// it — and the dropped values. In a hierarchical table a loop among the
+    /// roots or an open branch's rows takes the drops between its rows, a slot
+    /// at the end of a branch's rows going to the deepest loop there that
+    /// takes the payload; a loop under a closed branch takes none.
     ///
     /// - Parameters:
     ///   - payloadType: The type of the dropped values.

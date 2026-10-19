@@ -500,6 +500,22 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
   `Documentation/SwiftUI parity/Decisions/List, table and section fixes (LISTS).md` (B-LISTS-1).
 
+### Hierarchical table insertions
+
+- **Asks:** which loop of a hierarchical `Table` — a `ForEach` of `DisclosureTableRow`s among the roots, or a
+  `ForEach` of rows beneath a branch, each with `dropDestination(for:action:)` — hears a drop between rows, and at
+  what offset (`outlineinsert.swift`, `outlineinsert.out`, built with `common.swift`). The table is an
+  `NSOutlineView`; the probe hands its data source a drop at the `(item, childIndex)` the outline view would
+  propose, carrying a string, as `validateDrop` and then `acceptDrop`. A drop among a branch's rows goes to that
+  branch's loop at the child index; one among the roots to the roots' loop. Where a branch's rows have no loop
+  with a destination, the roots' loop hears it at the child index — a place among the roots unrelated to the drop —
+  and where only the branches' loops have one, a drop among the roots is refused. A drop ON a row (child index -1)
+  traps inside SwiftUI and is left out.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
+- **Was:** `LISTS2/probe/`.
+- **Cited by:** `Sources/TUIkitTables/Views/TableOutline.swift`, `Tests/TUIkitTablesTests/TableRowDragAndDropTests.swift`;
+  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B80).
+
 ### Picker sections
 
 - **Asks:** how a macOS menu `Picker` draws a `Section` among its options: reads back the menu of the
