@@ -20,50 +20,6 @@ import TUIkitApp
 @testable import TUIkitTestSupport
 @testable import TUIkitView
 
-// MARK: - Harness
-
-/// Frames rendered the way the run loop renders them — the scene root's
-/// geometry answered, and the frame drawn again when a reader or a matched
-/// view drew from a wrong answer (`InputChainHarness`) — on a clock a test
-/// moves, each frame under the animation it is given, read as the screen
-/// shows it: layers composited, styling stripped.
-@MainActor
-private final class Frames {
-    let harness: InputChainHarness
-
-    init(width: Int = 40, height: Int = 12, reducesMotion: Bool = false) {
-        harness = InputChainHarness(width: width, height: height) { environment in
-            environment.canAnimate = true
-            environment.accessibilityReduceMotion = reducesMotion
-        }
-    }
-
-    /// The root's corrections so far.
-    var corrections: GeometryCorrections { harness.geometryCorrections }
-
-    /// One frame of `view` at `millis` on the frame clock, under `animation`,
-    /// as drawn: its layers not yet composited.
-    func buffer<V: View>(_ view: @autoclosure () -> V, atMillis millis: Int = 0, animation: Animation? = nil)
-        -> FrameBuffer
-    {
-        harness.now = Int64(millis) * 1_000_000
-        harness.transaction = Transaction(animation: animation)
-        return harness.frame(view())
-    }
-
-    /// One frame of `view` at `millis` on the frame clock, under `animation`.
-    @discardableResult
-    func draw<V: View>(_ view: @autoclosure () -> V, atMillis millis: Int = 0, animation: Animation? = nil)
-        -> [String]
-    {
-        let buffer = buffer(view(), atMillis: millis, animation: animation)
-        return buffer.compositingOverlays(
-            maxWidth: harness.context.availableWidth, maxHeight: harness.context.availableHeight,
-            palette: harness.context.environment.palette
-        ).lines.map(\.stripped)
-    }
-}
-
 // MARK: - Scenes
 
 /// A source `S`, 8×2 at (20, 0); three rows down a follower `f`, laid out
@@ -195,7 +151,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A follower matching the frame is drawn at its source's, and keeps its own place in the layout")
     func followerTakesTheFrame() {
-        let screen = Frames().draw(Followed())
+        let screen = MatchedFrames().draw(Followed())
         #expect(rect(of: "f", in: screen) == CellRect(x: 20, y: 0, width: 8, height: 2))
         #expect(rect(of: "S", in: screen) == nil, "drawn after the source, over it")
         #expect(screen[7].hasPrefix("below"), "the line below stays where the follower's own size puts it")
@@ -211,7 +167,7 @@ struct MatchedGeometryEffectTests {
         (.bottomTrailing, .bottomTrailing, CellRect(x: 26, y: 0, width: 2, height: 2)),
     ])
     func positionOnly(anchor: UnitPoint, sourceAnchor: UnitPoint, expected: CellRect) {
-        let screen = Frames().draw(Followed(properties: .position, anchor: anchor, sourceAnchor: sourceAnchor))
+        let screen = MatchedFrames().draw(Followed(properties: .position, anchor: anchor, sourceAnchor: sourceAnchor))
         // A row above the screen is not drawn.
         let visible = CellRect(
             x: expected.x, y: max(0, expected.y), width: expected.width, height: expected.maxY - max(0, expected.y))
@@ -222,14 +178,14 @@ struct MatchedGeometryEffectTests {
         arguments: [UnitPoint.center, .topLeading, .bottomTrailing])
     func sizeOnly(anchor: UnitPoint) {
         // SwiftUI: mg2 F3–F5.
-        let screen = Frames().draw(Followed(properties: .size, anchor: anchor))
+        let screen = MatchedFrames().draw(Followed(properties: .size, anchor: anchor))
         #expect(rect(of: "f", in: screen) == CellRect(x: 0, y: 5, width: 8, height: 2))
     }
 
     @Test("A frame matched from the follower's top-leading corner hangs from the source's centre")
     func frameWithAnchor() {
         // SwiftUI: mg2 F6.
-        let screen = Frames().draw(Followed(anchor: .topLeading))
+        let screen = MatchedFrames().draw(Followed(anchor: .topLeading))
         #expect(rect(of: "f", in: screen) == CellRect(x: 24, y: 1, width: 8, height: 2))
     }
 
@@ -237,18 +193,18 @@ struct MatchedGeometryEffectTests {
     func fixedContent() {
         // SwiftUI (mg1 S1, mg2b G1–G7): a centred 10×10 in a 40×20 frame at
         // the frame's bottom-trailing corner; here a 1×1 in an 8×2.
-        #expect(rect(of: "f", in: Frames().draw(Followed(fixedFollower: true)))
+        #expect(rect(of: "f", in: MatchedFrames().draw(Followed(fixedFollower: true)))
             == CellRect(x: 27, y: 1, width: 1, height: 1))
-        #expect(rect(of: "f", in: Frames().draw(Followed(anchor: .topLeading, fixedFollower: true)))
+        #expect(rect(of: "f", in: MatchedFrames().draw(Followed(anchor: .topLeading, fixedFollower: true)))
             == CellRect(x: 24, y: 1, width: 1, height: 1))
         // Matching the size alone, at its own corner (mg2b G4).
-        #expect(rect(of: "f", in: Frames().draw(Followed(properties: .size, fixedFollower: true)))
+        #expect(rect(of: "f", in: MatchedFrames().draw(Followed(properties: .size, fixedFollower: true)))
             == CellRect(x: 0, y: 5, width: 1, height: 1))
     }
 
     @Test("A follower of a group with no source is drawn as it is laid out")
     func noSource() {
-        let screen = Frames().draw(Selection(selected: 7))
+        let screen = MatchedFrames().draw(Selection(selected: 7))
         #expect(rect(of: "f", in: screen) == CellRect(x: 0, y: 6, width: 1, height: 1))
     }
 
@@ -270,7 +226,7 @@ struct MatchedGeometryEffectTests {
                 }
             }
         }
-        let frames = Frames()
+        let frames = MatchedFrames()
         let expected = CellRect(x: 14, y: 3, width: 3, height: 1)
         #expect(rect(of: "f", in: frames.draw(Before())) == expected)
         #expect(frames.corrections.root == 1, "found where the source is, then drawn again")
@@ -295,7 +251,7 @@ struct MatchedGeometryEffectTests {
                 }
             }
         }
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Moving(inset: 2))
         // The padding animates, so the source glides; the follower matches its
         // size and so stays where it is laid out, and the follower matching
@@ -318,7 +274,7 @@ struct MatchedGeometryEffectTests {
                 }
             }
         }
-        let over = Frames()
+        let over = MatchedFrames()
         over.draw(Over(inset: 2))
         over.draw(Over(inset: 12), atMillis: 0, animation: .linear(duration: 1))
         for millis in [0, 500, 1000] {
@@ -331,7 +287,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A follower whose source changes under an animation is carried there, laid out at each frame's size")
     func followerCarried() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Selection(selected: 0))
         let start = frames.draw(Selection(selected: 1), atMillis: 0, animation: .linear(duration: 1))
         #expect(rect(of: "f", in: start) == CellRect(x: 0, y: 0, width: 4, height: 1))
@@ -352,7 +308,7 @@ struct MatchedGeometryEffectTests {
         // walk, started a carry from where that one drew on every frame, and
         // was not carried when its source changed; and the other, reading the
         // follower's, moved the view a second time as it was carried.
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Selection(selected: 0, stacked: true))
         frames.draw(Selection(selected: 0, stacked: true))
         let start = frames.draw(Selection(selected: 1, stacked: true), atMillis: 0, animation: .linear(duration: 1))
@@ -368,7 +324,7 @@ struct MatchedGeometryEffectTests {
     /// The follower of an unstacked ``Selection`` carried from `A` to `B`, as
     /// drawn at `millis`.
     private static func carried(toMillis millis: Int) -> [String] {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Selection(selected: 0))
         frames.draw(Selection(selected: 0))
         frames.draw(Selection(selected: 1), atMillis: 0, animation: .linear(duration: 1))
@@ -377,7 +333,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A follower carried between two sources of one size is moved, a whole cell at a time")
     func followerMoved() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Selection(selected: 0))
         frames.draw(Selection(selected: 2), atMillis: 0, animation: .linear(duration: 1))
         // 30 × 0.25 = 7.5 cells, rounded to the nearest (7.5 → 8 of the
@@ -390,7 +346,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("Interrupted, a follower is carried on from where it was drawn")
     func interrupted() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Selection(selected: 0))
         frames.draw(Selection(selected: 2), atMillis: 0, animation: .linear(duration: 1))
         // Halfway to C (x 15), then sent back to A from there.
@@ -402,11 +358,11 @@ struct MatchedGeometryEffectTests {
 
     @Test("Without an animation, or with motion reduced, the change is drawn at once")
     func unanimated() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Selection(selected: 0))
         #expect(rect(of: "f", in: frames.draw(Selection(selected: 1), atMillis: 0))
             == CellRect(x: 20, y: 0, width: 8, height: 3))
-        let reduced = Frames(reducesMotion: true)
+        let reduced = MatchedFrames(reducesMotion: true)
         reduced.draw(Selection(selected: 0))
         #expect(rect(of: "f", in: reduced.draw(Selection(selected: 1), atMillis: 0, animation: .linear(duration: 1)))
             == CellRect(x: 20, y: 0, width: 8, height: 3))
@@ -414,7 +370,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A view inserted as another of its id is removed comes from where that one was drawn")
     func hero() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Hero(expanded: false))
         // It fades in as it is carried, from nothing where the one leaving
         // still is (`mg3.out` A1).
@@ -437,7 +393,7 @@ struct MatchedGeometryEffectTests {
     /// past its slot, which is all of a carried view's (decisions B-O4-2).
     @Test("A view carried into place fades in as it moves")
     func carriedViewFades() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Hero(expanded: false))
         frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
         let half = frames.buffer(Hero(expanded: true), atMillis: 500)
@@ -455,7 +411,7 @@ struct MatchedGeometryEffectTests {
     /// (decisions B-O4-1). It used to fade where it was, at (0, 0).
     @Test("A view removed as another of its id arrives is carried with it while it fades")
     func leavingViewIsCarried() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Hero(expanded: false))
         frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
         let early = frames.draw(Hero(expanded: true), atMillis: 200)
@@ -465,7 +421,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A chip moving between two columns is carried across, and the columns lay out as they will end")
     func chipBetweenColumns() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Columns(right: false))
         let start = frames.draw(Columns(right: true), atMillis: 0, animation: .linear(duration: 1))
         #expect(rect(of: "b", in: start) == nil, "it fades in as it is carried")
@@ -484,7 +440,7 @@ struct MatchedGeometryEffectTests {
     /// whole all the way, and what is drawn over or under shows.
     @Test("A view carried toward the views before it is drawn over the views after it while it moves")
     func carriedOverLaterViews() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Columns(right: true, transition: .identity))
         frames.draw(Columns(right: false, transition: .identity), atMillis: 0, animation: .linear(duration: 1))
         // A tenth of the way back from (20, 2): over the right column, which
@@ -497,7 +453,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A view inserted with nothing of its id leaving appears where it is laid out")
     func plainInsertion() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         struct Lone: View {
             let shown: Bool
             @Namespace private var space
@@ -517,7 +473,7 @@ struct MatchedGeometryEffectTests {
 
     @Test("A source at rest with no follower is only found: it starts no carried origin")
     func sourceAtRestIsOnlyFound() {
-        let frames = Frames()
+        let frames = MatchedFrames()
         frames.draw(Hero(expanded: false))
         frames.draw(Hero(expanded: false))
         #expect(!frames.harness.tui.mouseEventDispatcher.geometry.keepsReaders)
