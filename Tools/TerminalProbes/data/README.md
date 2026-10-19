@@ -108,7 +108,10 @@ conditions. Thirteen kinds of file live here:
   terminal it is drawn in (`progress_probe.py --tmux-forwarding`): the probe
   plays that terminal, as a client with the `progressbar` feature and as one
   without, and records the progress reports, notifications (`OSC 9`) and bells
-  that reached it from a pane sending each. tmux 3.7c, 2026-10-19.
+  that reached it from a pane sending each (a report twice running among
+  them), and the features tmux lists for it (`#{client_termfeatures}`); and,
+  under `late_attach`, what a client with the feature is handed when it
+  attaches to a pane that put a bar up before it. tmux 3.7c, 2026-10-19.
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of

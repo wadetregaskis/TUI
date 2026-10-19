@@ -3795,14 +3795,27 @@ What tmux passes on (record: `data/tmux-3.7c-progress-forwarding.json`;
 runs itself in the pane to send every sequence):
 
 - To a client whose terminal has the `progressbar` feature (`tmux -T
-  progressbar`): every report, spelled with both parameters, a missing value
-  filled in from the bar (`9;4;3;50` for `9;4;3` after `9;4;1;50`, and
-  `9;4;0;70` for the removal).
+  progressbar`): every **change**, spelled with both parameters, a missing
+  value filled in from the bar (`9;4;3;50` for `9;4;3` after `9;4;1;50`, and
+  `9;4;0;70` for the removal). **A report the same as the bar is not passed
+  on**: `9;4;1;50` sent twice, a second apart, reached the client once. So a
+  report sent again to keep a bar up never gets past tmux, which keeps the
+  bar itself.
 - To a client without it: nothing.
-- tmux gives a client the feature from its XTVERSION answer: iTerm2's, and not
-  Ghostty's ("Identifying the client terminal", under tmux). Inside tmux in
-  Ghostty the bar is kept for the pane and shown nowhere until
-  `set -as terminal-features ',xterm-ghostty:progressbar'` — tmux's call, as
+- **A client that attaches later is handed the bar tmux keeps**: a pane put
+  `9;4;1;50` up with no client attached, and a client with the feature that
+  attached a second later received it (the record's `late_attach`).
+- **tmux says which clients have the feature**: `#{client_termfeatures}`
+  lists `progressbar` for the client given it and not for the other
+  (`bpaste,ccolour,clipboard,cstyle,focus,progressbar,title` against the same
+  without it). That is how an app asks tmux whether the person sees its bar.
+- tmux gives a client the feature from its XTVERSION answer: iTerm2's and
+  mintty's, by the table of terminals built into tmux 3.7c (read from its
+  binary), and not Ghostty's, Apple Terminal's (which answers none) or Warp's
+  ("Identifying the client terminal", under tmux). Inside tmux in Ghostty,
+  Apple Terminal or Warp the bar is kept for the pane and shown nowhere until
+  the user gives the client the feature
+  (`set -as terminal-features ',xterm-ghostty:progressbar'`) — tmux's call, as
   with hyperlinks.
 
 ### Attention: a notification, else the bell

@@ -53,7 +53,12 @@ Writes JSON to $PROBE_OUT (default ./progress_probe.json) and prints a summary.
    plays the terminal: it runs a tmux of its own in a pseudo-terminal, as a
    client whose terminal has the `progressbar` feature (`tmux -T progressbar`)
    and as one without, runs itself in the pane with `--emit` to send every
-   sequence above, and records what reached the client.
+   sequence above — the first one twice, as TUIkit sends a bar again to keep
+   it up — and records what reached the client, and the features tmux lists
+   for it (`#{client_termfeatures}`, which is how an app asks tmux whether a
+   client draws a bar). Then a client with the feature attaches to a pane
+   that put a bar up before it was there (`--emit-hold`): whether tmux hands
+   it the bar it keeps.
 
 What no sequence reports — whether the host draws the bar, and where, and
 whether a notification appears — is for `--hold` and a look.
@@ -172,6 +177,9 @@ def timeout(fd, seconds):
 
 EMIT_STEPS = [
     ("value_50", progress(1, 50)),
+    # The same report again, as TUIkit's keep-alive sends it: does tmux pass a
+    # repeat on, or only a change?
+    ("value_50_again", progress(1, 50)),
     ("indeterminate", progress(3)),
     ("error_bare", progress(2)),
     ("paused_70", progress(4, 70)),
@@ -184,33 +192,54 @@ EMIT_STEPS = [
 def emit():
     """`--emit`: the pane's side of `--tmux-forwarding`. Each step, a pause, then out."""
     time.sleep(0.8)
-    for _, sequence in EMIT_STEPS:
+    for name, sequence in EMIT_STEPS:
         os.write(1, sequence.encode())
-        time.sleep(0.3)
+        # A whole second before the repeat, as far apart as tmux's redraws
+        # could want: a repeat it drops is not one it merged with the first.
+        time.sleep(1.0 if name == "value_50" else 0.3)
     time.sleep(0.8)
 
 
-def tmux_forwarding_run(features):
-    """Run a tmux of our own as a client of a pty we read, with `features`
-    (`-T`) or none, the pane running `--emit`; returns what the client got."""
-    socket_name = f"tuikit-progress-{os.getpid()}-{'pb' if features else 'none'}"
-    master, slave = pty.openpty()
-    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+def emit_hold():
+    """`--emit-hold`: the pane's side of the late attach. A 50% bar, then a wait
+    for a client to attach and be handed it."""
+    os.write(1, progress(1, 50).encode())
+    time.sleep(4)
+
+
+PROGRESS_PATTERN = r"\x1b\]9;4;[^\x1b\x07]*(?:\x1b\\|\x07)"
+
+
+def tmux_command(socket_name):
+    """tmux on a server of the probe's own, with no configuration read."""
+    return ["tmux", "-L", socket_name, "-f", "/dev/null"]
+
+
+def tmux_environment():
+    """The environment a tmux of the probe's own runs in: no TMUX, and a TERM
+    tmux knows, so nothing of the terminal the probe runs in reaches it."""
     environment = {key: value for key, value in os.environ.items() if not key.startswith("TMUX")}
     environment["TERM"] = "xterm-256color"
-    command = ["tmux", "-L", socket_name, "-f", "/dev/null"]
-    if features:
-        command += ["-T", features]
-    command += ["new-session", "-x", "80", "-y", "24",
-                f"{sys.executable} {os.path.abspath(__file__)} --emit"]
-    child = subprocess.Popen(command, stdin=slave, stdout=slave, stderr=slave, env=environment,
-                             start_new_session=True)
+    return environment
+
+
+def run_client(socket_name, arguments, seconds, on_attached=None):
+    """A tmux client of a pty we read, running `arguments`, for up to `seconds`
+    or until it ends; `on_attached`, if given, is called once, half a second
+    in, and its answer returned with what the client received."""
+    master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+    child = subprocess.Popen(tmux_command(socket_name) + arguments, stdin=slave, stdout=slave, stderr=slave,
+                             env=tmux_environment(), start_new_session=True)
     os.close(slave)
     received = b""
-    deadline = time.time() + 15
+    asked = None
+    start = time.time()
     try:
-        while time.time() < deadline:
-            if select.select([master], [], [], 0.2)[0]:
+        while time.time() < start + seconds:
+            if on_attached is not None and asked is None and time.time() > start + 0.5:
+                asked = on_attached()
+            if select.select([master], [], [], 0.1)[0]:
                 try:
                     chunk = os.read(master, 65536)
                 except OSError:
@@ -221,19 +250,55 @@ def tmux_forwarding_run(features):
             elif child.poll() is not None:
                 break
     finally:
-        subprocess.run(["tmux", "-L", socket_name, "kill-server"], capture_output=True)
+        subprocess.run(tmux_command(socket_name) + ["kill-server"], capture_output=True)
         if child.poll() is None:
             child.kill()
         child.wait()
         os.close(master)
-    text = received.decode("utf-8", "replace")
+    return received.decode("utf-8", "replace"), asked
+
+
+def tmux_forwarding_run(features):
+    """Run a tmux of our own as a client of a pty we read, with `features`
+    (`-T`) or none, the pane running `--emit`; returns what the client got,
+    and the features tmux lists for the client."""
+    socket_name = f"tuikit-progress-{os.getpid()}-{'pb' if features else 'none'}"
+    arguments = (["-T", features] if features else []) + [
+        "new-session", "-x", "80", "-y", "24", f"{sys.executable} {os.path.abspath(__file__)} --emit"]
+
+    def listed_features():
+        listed = subprocess.run(tmux_command(socket_name) + ["list-clients", "-F", "#{client_termfeatures}"],
+                                capture_output=True, text=True, env=tmux_environment())
+        return listed.stdout.strip()
+
+    text, client_termfeatures = run_client(socket_name, arguments, 15, on_attached=listed_features)
+    progress_sequences = re.findall(PROGRESS_PATTERN, text)
     return {
         "client_features": features or "(none given)",
-        "progress_sequences": [printable(match) for match in re.findall(r"\x1b\]9;4;[^\x1b\x07]*(?:\x1b\\|\x07)", text)],
+        "client_termfeatures": client_termfeatures,
+        "progress_sequences": [printable(match) for match in progress_sequences],
+        # The pane sent `value_50` twice running; how many reached the client.
+        "value_50_reports_received": progress_sequences.count(progress(1, 50)),
         "notification_sequences": [printable(match) for match in
                                    re.findall(r"\x1b\]9;(?!4;)[^\x1b\x07]*(?:\x1b\\|\x07)", text)],
         # A BEL that ends no string sequence: drop every OSC/DCS/APC first.
         "bells": re.sub(r"\x1b[\]P_][^\x07\x1b]*(?:\x07|\x1b\\)", "", text).count(BEL),
+    }
+
+
+def tmux_late_attach_run():
+    """A pane puts a bar up with no client attached (`--emit-hold`), then a
+    client with the `progressbar` feature attaches: what reaches it."""
+    socket_name = f"tuikit-progress-{os.getpid()}-late"
+    subprocess.run(tmux_command(socket_name) + [
+        "new-session", "-d", "-x", "80", "-y", "24", f"{sys.executable} {os.path.abspath(__file__)} --emit-hold"],
+        capture_output=True, env=tmux_environment())
+    time.sleep(1)
+    text, _ = run_client(socket_name, ["-T", "progressbar", "attach"], 2)
+    return {
+        "pane_sent_before_any_client": printable(progress(1, 50)),
+        "client_features": "progressbar",
+        "progress_sequences": [printable(match) for match in re.findall(PROGRESS_PATTERN, text)],
     }
 
 
@@ -245,15 +310,19 @@ def tmux_forwarding():
         "tmux": version,
         "emitted_in_the_pane": [{"name": name, "bytes": printable(sequence)} for name, sequence in EMIT_STEPS],
         "runs": [tmux_forwarding_run("progressbar"), tmux_forwarding_run(None)],
+        "late_attach": tmux_late_attach_run(),
     }
     out_path = os.environ.get("PROBE_OUT", "progress_probe_tmux_forwarding.json")
     with open(out_path, "w") as f:
         json.dump(record, f, indent=2, ensure_ascii=False)
     for run in record["runs"]:
-        print(f"client features {run['client_features']}:")
+        print(f"client features {run['client_features']} (tmux lists {run['client_termfeatures']!r}):")
         print(f"  progress  {run['progress_sequences']}")
+        print(f"  a report sent twice running reached it {run['value_50_reports_received']} time(s)")
         print(f"  notify    {run['notification_sequences']}")
         print(f"  bells     {run['bells']}")
+    late = record["late_attach"]
+    print(f"late attach, client features progressbar:\n  progress  {late['progress_sequences']}")
 
 
 # --- In the terminal under test ---------------------------------------------
@@ -261,6 +330,9 @@ def tmux_forwarding():
 def main():
     if "--emit" in sys.argv:
         emit()
+        return
+    if "--emit-hold" in sys.argv:
+        emit_hold()
         return
     if "--tmux-forwarding" in sys.argv:
         tmux_forwarding()

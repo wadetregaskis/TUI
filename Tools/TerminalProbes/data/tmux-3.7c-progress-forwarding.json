@@ -1,10 +1,14 @@
 {
   "probe": "progress_probe --tmux-forwarding",
-  "measured": "2026-10-19T07:36:45-0700",
+  "measured": "2026-10-19T09:03:25-0700",
   "tmux": "tmux 3.7c",
   "emitted_in_the_pane": [
     {
       "name": "value_50",
+      "bytes": "<ESC>]9;4;1;50<ESC>\\"
+    },
+    {
+      "name": "value_50_again",
       "bytes": "<ESC>]9;4;1;50<ESC>\\"
     },
     {
@@ -35,6 +39,7 @@
   "runs": [
     {
       "client_features": "progressbar",
+      "client_termfeatures": "bpaste,ccolour,clipboard,cstyle,focus,progressbar,title",
       "progress_sequences": [
         "<ESC>]9;4;1;50<ESC>\\",
         "<ESC>]9;4;3;50<ESC>\\",
@@ -42,14 +47,24 @@
         "<ESC>]9;4;4;70<ESC>\\",
         "<ESC>]9;4;0;70<ESC>\\"
       ],
+      "value_50_reports_received": 1,
       "notification_sequences": [],
       "bells": 1
     },
     {
       "client_features": "(none given)",
+      "client_termfeatures": "bpaste,ccolour,clipboard,cstyle,focus,title",
       "progress_sequences": [],
+      "value_50_reports_received": 0,
       "notification_sequences": [],
       "bells": 1
     }
-  ]
+  ],
+  "late_attach": {
+    "pane_sent_before_any_client": "<ESC>]9;4;1;50<ESC>\\",
+    "client_features": "progressbar",
+    "progress_sequences": [
+      "<ESC>]9;4;1;50<ESC>\\"
+    ]
+  }
 }

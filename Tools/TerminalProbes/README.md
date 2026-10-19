@@ -218,7 +218,9 @@ when unset), the visual/aspect probes print to the terminal.
   may first ask the user's permission. `--tmux-forwarding`, run outside tmux,
   needs no terminal: the probe plays the one tmux draws in, and records what
   tmux passes on to a client with the `progressbar` feature and to one
-  without. JSON to `$PROBE_OUT`. Run 2026-10-19 on tmux 3.7c (records
+  without (a report sent twice running among it), the features tmux lists
+  for each (`#{client_termfeatures}`), and what a client attaching to a pane
+  with a bar already up is handed. JSON to `$PROBE_OUT`. Run 2026-10-19 on tmux 3.7c (records
   `data/tmux-3.7c-progress*.json`); the GUI hosts are owed.
 - `graphics_probe.py` — Sixel, the iTerm2 inline-image protocol and the Kitty
   graphics protocol: what the host advertises (DA1's Sixel parameter, Kitty's
