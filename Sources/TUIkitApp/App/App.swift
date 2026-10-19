@@ -239,6 +239,17 @@ extension AppRunner {
         statusBar.undoKeys = tuiContext.undoKeys
     }
 
+    /// Publishes what the host does that a view decides on as it renders,
+    /// which the render path cannot ask, not being main-actor isolated:
+    /// whether it honours OSC 8 hyperlinks (a `Link` decides whether to emit
+    /// one while rendering), and whether this process may launch a browser at
+    /// all, which defaults to NO (activation is not main-actor isolated
+    /// either; see ``TerminalClient/urlOpeningSupport``).
+    private func publishHostAnswers() {
+        TerminalClient.applyHyperlinkSupport()
+        TerminalClient.applyURLOpeningSupport()
+    }
+
     /// Turns on the kitty keyboard protocol where the terminal speaks it, and
     /// publishes what the terminal reports: to the environment
     /// (`\.keyboardReporting`), and to the undo keys, which name in the status
@@ -396,15 +407,10 @@ extension AppRunner {
 
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.
+        // And, for the same reason, what else it does that a view decides on
+        // as it renders (``publishHostAnswers()``).
         TerminalClient.applyWidthTraits()
-        // And whether it honours OSC 8 hyperlinks, for the same reason: a
-        // `Link` decides whether to emit one while rendering, and the render
-        // path cannot ask a main-actor question.
-        TerminalClient.applyHyperlinkSupport()
-        // And whether this process may launch a browser at all, which defaults
-        // to NO and is published for the same reason: activation is not
-        // main-actor isolated either. See ``TerminalClient/urlOpeningSupport``.
-        TerminalClient.applyURLOpeningSupport()
+        publishHostAnswers()
         // And the opener that gate guards, for the one caller no environment
         // reaches: an `OpenURLAction` the app made itself and calls directly.
         // Withdrawn when the run ends, so nothing outside a running app reaches
