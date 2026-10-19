@@ -367,6 +367,10 @@ internal final class RenderLoop<A: App> {
         self.paletteManager = paletteManager
         self.appearanceManager = appearanceManager
         self.tuiContext = tuiContext
+        // The windows ask this loop's app for a frame and for the quit, as
+        // every other part of one app asks its own (`TUIContext.appState`).
+        scenes.requestExit = { [appState = tuiContext.appState] in appState.requestExit() }
+        scenes.requestFrame = { [appState = tuiContext.appState] in appState.setNeedsRender() }
     }
 }
 

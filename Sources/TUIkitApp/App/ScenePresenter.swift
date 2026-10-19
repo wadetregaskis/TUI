@@ -167,11 +167,13 @@ package final class ScenePresenter {
     var policy: any ScenePresentationPolicy = StackedCoversPolicy()
 
     /// Asks the app to quit — with every window closed, a terminal app has
-    /// nothing to show.
-    var requestExit: () -> Void = { AppState.shared.requestExit() }
+    /// nothing to show. The run loop points it at its own app
+    /// (``RenderLoop``); there is no process-wide app to ask.
+    var requestExit: () -> Void = {}
 
-    /// Asks for a frame, after a window opened or closed between frames.
-    var requestFrame: () -> Void = { AppState.shared.setNeedsRender() }
+    /// Asks for a frame, after a window opened or closed between frames: the
+    /// run loop's own app, as for ``requestExit``.
+    var requestFrame: () -> Void = {}
 
     /// The bars drawn while no window is open.
     private let closedChrome = WindowChromeState()

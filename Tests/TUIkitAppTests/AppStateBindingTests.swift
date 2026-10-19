@@ -161,4 +161,22 @@ struct AppStateBindingTests {
         #expect(app.countBinding.wrappedValue == 7)
         #expect(frameText(loop).contains("count 7"))
     }
+
+    /// The windows (lane O9) ask for a frame when one opens or closes between
+    /// frames, and to quit when the last closes. Each loop's ask its own app:
+    /// there is no process-wide one (lane APPSTATE).
+    @Test("A loop's windows ask their own app for a frame and the quit, not another loop's")
+    func windowsAskTheirOwnApp() {
+        let mine = RenderLoopHarness()
+        let other = RenderLoopHarness()
+        let loop = mine.loop(GreetingApp())
+        _ = other.loop(GreetingApp())
+        let otherDrew = other.appState.needsRender
+        loop.scenes.requestFrame()
+        #expect(mine.appState.needsRender)
+        #expect(other.appState.needsRender == otherDrew)
+        loop.scenes.requestExit()
+        #expect(mine.appState.consumeShouldExit())
+        #expect(!other.appState.consumeShouldExit())
+    }
 }
