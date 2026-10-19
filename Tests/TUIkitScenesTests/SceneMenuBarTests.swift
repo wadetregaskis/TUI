@@ -77,6 +77,16 @@ private struct WindowsMenuApp: App {
     }
 }
 
+/// A visibility toggle in a menu of the app's own.
+private struct ToggleMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup("Notes") { Text("main window") }
+            .commands { CommandMenu("Panels") { WindowVisibilityToggle(windowID: "inspector") } }
+        Window("Inspector", id: "inspector") { Text("inspector window") }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -215,6 +225,19 @@ struct SceneMenuBarTests {
         choose(item: 1, in: app)
         #expect(screen(app).contains("main window"), "\(screen(app))")
         #expect(app.scenes.windows.count == 2, "brought to the front, not closed")
+    }
+
+    @Test("A visibility toggle chosen from its menu hides the window in front: the open menu is no presentation that keeps it")
+    mutating func toggleFromMenu() {
+        let app = launched(ToggleMenuApp())
+        app.scenes.open(WindowTarget(id: "inspector"))
+        frame(app)
+        frame(app)
+        open("Panels", in: app)
+        #expect(screen(app).contains("Hide Inspector"), "\(screen(app))")
+        choose(item: 0, in: app)
+        #expect(app.scenes.windows.count == 1, "\(screen(app))")
+        #expect(screen(app).contains("main window"), "\(screen(app))")
     }
 
     @Test("Close Window closes the window in front")

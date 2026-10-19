@@ -59,10 +59,15 @@ extension ScenePresenter {
         }
     }
 
-    /// Whether the window in front can be closed from the menu: not the last
+    /// Whether the person may close the window in front — the Window menu's
+    /// Close Window, a visibility toggle's Hide, as Escape may: not the last
     /// one, whose closing would quit the app (the app menu's Quit does that),
-    /// nor one whose content disabled its dismissal.
-    package var canCloseFrontWindow: Bool { windows.count > 1 && front?.closesInteractively == true }
+    /// nor one whose content disabled its dismissal, nor one showing a modal
+    /// presentation, which an interactive dismissal leaves open (B-O9-4).
+    package var canCloseFrontWindow: Bool {
+        guard windows.count > 1, let front else { return false }
+        return front.closesInteractively && !front.showsModalPresentation
+    }
 
     /// Brings the window `serial` to the front: what choosing it in the
     /// Window menu does.
@@ -70,8 +75,9 @@ extension ScenePresenter {
         bringToFront(serial)
     }
 
-    /// Closes the window in front, if it is not the last: the Window menu's
-    /// Close Window, which a person chooses as they would press Escape.
+    /// Closes the window in front, where the person may
+    /// (``canCloseFrontWindow``): the Window menu's Close Window, which a
+    /// person chooses as they would press Escape.
     package func closeFrontWindow() {
         guard canCloseFrontWindow, let front else { return }
         close([front.serial])

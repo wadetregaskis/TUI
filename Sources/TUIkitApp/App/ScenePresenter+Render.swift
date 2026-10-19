@@ -79,7 +79,17 @@ extension ScenePresenter {
         _ = backdrop.withThrowawayFrameDemand { hidden in scene.renderSceneTree(context: hidden) }
         // Its presenters held the backdrop's focus manager as a presentation
         // holds the live one: a modal one is still up behind the window in front.
-        window.showsModalPresentation = backdrop.environment.focusManager?.activeSectionIsModal == true
+        window.showsModalPresentation = Self.showsModalPresentation(backdrop.environment.focusManager)
+    }
+
+    /// Whether `focusManager`'s active section is a modal presentation — a
+    /// sheet, a cover, an alert, a dialog, holding the window's keyboard — and
+    /// not an open menu, which closes with the choice made in it: the menu
+    /// bar's own, from which the Window menu's Close Window and a visibility
+    /// toggle's Hide are chosen, among them (B-O9-4).
+    private static func showsModalPresentation(_ focusManager: FocusManager?) -> Bool {
+        guard let focusManager else { return false }
+        return focusManager.activeSectionIsModal && !focusManager.activeSectionIsMenu
     }
 
     /// Draws `window`, in front, over the whole surface.
@@ -116,7 +126,7 @@ extension ScenePresenter {
             window.closesInteractively = window.chrome.dismissBehavior != .disabled
         }
         guard !context.isMeasuring else { return buffer }
-        window.showsModalPresentation = context.environment.focusManager?.activeSectionIsModal == true
+        window.showsModalPresentation = Self.showsModalPresentation(context.environment.focusManager)
         // After the window: its content's own shortcut on a scene's key keeps it.
         if let registry = context.environment.keyboardShortcutRegistry {
             registerSceneShortcuts(in: registry, commandKey: context.environment.commandKey)

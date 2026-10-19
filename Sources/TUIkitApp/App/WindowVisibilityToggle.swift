@@ -24,10 +24,13 @@ import TUIkitFoundation
 /// ```
 ///
 /// On one surface a window is shown while it is in front (refusal review O9,
-/// ruled (b)): the toggle reads "Hide *Title*" then, and closes the window;
-/// otherwise it reads "Show *Title*", and opens the window or brings it to the
-/// front. An identifier no `Window` scene has leaves the toggle disabled,
-/// there being nothing for it to do. Decisions O9, B-O9-11.
+/// ruled (b)): the toggle reads "Hide *Title*" then, and closes the window as
+/// the Window menu's Close Window would; otherwise it reads "Show *Title*", and
+/// opens the window or brings it to the front. It is disabled where there is
+/// nothing it may do: for an identifier no `Window` scene has, and for a
+/// window in front the person may not close — the last one open, one whose
+/// content says `windowDismissBehavior(.disabled)`, or one showing a modal
+/// presentation. Decisions O9, B-O9-11.
 public struct WindowVisibilityToggle<Label: View>: View {
     /// The `Window` scene's identifier.
     let windowID: String
@@ -45,7 +48,7 @@ public struct WindowVisibilityToggle<Label: View>: View {
         } label: {
             label
         }
-        .disabled(presenter?.declaresWindowScene(windowID) != true)
+        .disabled(presenter?.canToggleWindow(windowID) != true)
     }
 }
 
@@ -115,12 +118,22 @@ extension ScenePresenter {
         return entry.window.opensOneWindow && entry.window.sceneID == id
     }
 
-    /// Hides the `Window` scene `id`'s window if it is in front — closes it —
-    /// and otherwise shows it: opens it, or brings it to the front.
+    /// Whether the toggle for the `Window` scene `id` may do what it says:
+    /// show its window, or hide it where the person may close it
+    /// (``canCloseFrontWindow``).
+    package func canToggleWindow(_ id: String) -> Bool {
+        declaresWindowScene(id) && (!isShowingWindow(id) || canCloseFrontWindow)
+    }
+
+    /// Hides the `Window` scene `id`'s window if it is in front — closes it,
+    /// as the person closes a window (``closeFrontWindow()``), so never the
+    /// last, nor one that disabled its dismissal or shows a modal
+    /// presentation — and otherwise shows it: opens it, or brings it to the
+    /// front.
     package func toggleWindow(_ id: String) {
         guard declaresWindowScene(id) else { return }
-        if isShowingWindow(id), let front {
-            close([front.serial])
+        if isShowingWindow(id) {
+            closeFrontWindow()
         } else {
             open(WindowTarget(id: id))
         }

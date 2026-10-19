@@ -288,9 +288,10 @@ documentation, unmeasured. Of `WindowInteractionBehavior`'s other uses —
 minimising, resizing, full screen, dragging a window by its background — a
 surface has none (the window-server family in `parity-map.json`).
 
-**Shipped:** `.disabled` takes away a window's two ways to be closed by the
-person: Escape (B-O9-2), whose claim is not made and which the status bar does
-not name, and the Window menu's Close Window, disabled. `dismissWindow` still
+**Shipped:** `.disabled` takes away the person's ways to close a window:
+Escape (B-O9-2), whose claim is not made and which the status bar does not
+name, and the Window menu's Close Window and a visibility toggle's Hide
+(B-O9-11), disabled. `dismissWindow` still
 closes it: that is the app, not the person. `.enabled` and `.automatic` are
 the default, closable. The declaration is a view's, made each walk into the
 window's bars as `.toolbar` makes its items, the one closest to the content
@@ -311,7 +312,14 @@ it is in front (B-O9-1).
 **Shipped:** while the window is not in front — closed, or held behind
 another — the toggle reads "Show *Title*" and opens it or brings it to the
 front; while it is in front, "Hide *Title*", and closes it, the window behind
-coming back. The label is the window's title in the current language (seven
+coming back. Hiding is the person closing the window, as the Window menu's
+Close Window is, by the same rule: never the last window open — whose closing
+would quit the app, where macOS keeps an app with no window running — nor one
+whose content disabled its dismissal (B-O9-10), nor one showing a sheet, an
+alert or another modal presentation, which an interactive dismissal leaves open
+(B-O9-4); where it may not, the toggle is disabled. The menu the toggle is
+chosen from is no such presentation: an open menu closes with the choice made
+in it. The label is the window's title in the current language (seven
 languages, as macOS names such items: Show Toolbar, Hide Sidebar), and the
 identifier where the scene has no title. An identifier no `Window` scene has
 leaves the toggle disabled, there being nothing for it to do. Hiding closes the window

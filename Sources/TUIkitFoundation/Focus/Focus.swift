@@ -404,6 +404,14 @@ public final class FocusManager: @unchecked Sendable {
         return modalSectionIDs.contains(activeID)
     }
 
+    /// Whether the active section is one a menu is open in
+    /// (``markSectionMenu(id:)``): modal, as ``activeSectionIsModal`` says,
+    /// for the keyboard, but closed by the choice made in it.
+    package var activeSectionIsMenu: Bool {
+        guard let activeID = activeSectionID else { return false }
+        return menuSectionIDs.contains(activeID)
+    }
+
     /// Whether anything registered so far can actually take the focus.
     ///
     /// The question a PROBE render asks of a throwaway manager — "did this

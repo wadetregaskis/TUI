@@ -122,6 +122,23 @@ struct WindowDismissBehaviorTests {
         #expect(app.scenes.windows.count == 1, "\(screen(app))")
     }
 
+    @Test("The person's ways to close a window — Close Window, a visibility toggle's Hide — leave one showing a sheet open")
+    mutating func personLeavesSheetWindowOpen() {
+        let app = HeadlessApp(BehaviorApp(), width: 50, height: 12)
+        frame(app)
+        app.scenes.open(WindowTarget(id: "front"))
+        frame(app)
+        #expect(app.scenes.canCloseFrontWindow, "precondition: closable with no sheet up")
+        press(.enter, in: app)  // present
+        #expect(screen(app).contains("sheet up"))
+        #expect(!app.scenes.canCloseFrontWindow)
+        #expect(!app.scenes.canToggleWindow("front"))
+        app.scenes.toggleWindow("front")
+        app.scenes.closeFrontWindow()
+        frame(app)
+        #expect(app.scenes.windows.count == 2, "\(screen(app))")
+    }
+
     @Test("Interactive leaves a window held behind open while it shows a sheet; destructive closes it")
     mutating func heldWindowWithSheet() {
         let app = HeadlessApp(BehaviorApp(), width: 50, height: 12)

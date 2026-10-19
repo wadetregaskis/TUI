@@ -34,6 +34,36 @@ private struct ToggleApp: App {
     }
 }
 
+/// A `Window` first — the window opened at launch — with a toggle for
+/// itself.
+private struct SoloToggleApp: App {
+    init() {}
+    var body: some Scene {
+        Window("Solo", id: "solo") {
+            VStack {
+                Text("solo window")
+                WindowVisibilityToggle(windowID: "solo")
+            }
+        }
+        WindowGroup { Text("never opened") }
+    }
+}
+
+/// A window the person may not close, with a toggle for itself.
+private struct KeptToggleApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { WindowVisibilityToggle(windowID: "kept") }
+        Window("Kept", id: "kept") {
+            VStack {
+                Text("kept window")
+                WindowVisibilityToggle(windowID: "kept")
+            }
+            .windowDismissBehavior(.disabled)
+        }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -48,18 +78,18 @@ struct WindowVisibilityToggleTests {
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp<ToggleApp>) {
+    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp<ToggleApp>) {
+    private mutating func press<A: App>(_ key: Key, in app: HeadlessApp<A>) {
         app.send(KeyEvent(key: key))
         frame(app)
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp<ToggleApp>) -> String {
+    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 
@@ -80,6 +110,31 @@ struct WindowVisibilityToggleTests {
         press(.enter, in: app)
         #expect(screen(app).contains("main window"), "\(screen(app))")
         #expect(app.scenes.windows.count == 1)
+    }
+
+    @Test("Hiding the last window open is disabled, and does not quit the app")
+    mutating func lastWindowStays() {
+        let app = HeadlessApp(SoloToggleApp(), width: 50, height: 10)
+        frame(app)
+        frame(app)
+        #expect(screen(app).contains("Hide Solo"), "\(screen(app))")
+        #expect(!app.scenes.canToggleWindow("solo"))
+        app.scenes.toggleWindow("solo")
+        press(.enter, in: app)
+        #expect(app.quitsRequested == 0)
+        #expect(app.scenes.windows.count == 1)
+    }
+
+    @Test("Hiding a window whose content disabled its dismissal is disabled, and leaves it open")
+    mutating func keptWindowStays() {
+        let app = HeadlessApp(KeptToggleApp(), width: 50, height: 10)
+        frame(app)
+        press(.enter, in: app)
+        #expect(screen(app).contains("Hide Kept"), "\(screen(app))")
+        #expect(!app.scenes.canToggleWindow("kept"))
+        app.scenes.toggleWindow("kept")
+        press(.enter, in: app)
+        #expect(app.scenes.windows.count == 2, "\(screen(app))")
     }
 
     @Test("An identifier no Window scene has leaves the toggle disabled")
