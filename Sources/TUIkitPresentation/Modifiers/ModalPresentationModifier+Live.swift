@@ -191,7 +191,8 @@ extension ModalPresentationModifier {
         guard !sheet.isEmpty else { return baseBuffer }
         if !context.isMeasuring { blockThePage(under: &sheet, context: context) }
         baseBuffer.overlays.append(
-            .dockedAtBottom(content: sheet, level: .popover, zIndex: LiveSheet.zIndex, dimsBackground: false))
+            .dockedAtBottom(content: sheet, level: .popover, zIndex: LiveSheet.zIndex, dimsBackground: false)
+                .presenting(presented.modalContext.identity))
         return baseBuffer
     }
 

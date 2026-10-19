@@ -270,7 +270,9 @@ extension ModalPresentationModifier: Renderable {
         // it grows from stays put. Not draggable, as a cover is not: its
         // place is the edge. Its grabber is what moves it.
         if let detents, detents.height != nil {
-            baseBuffer.overlays.append(.dockedAtBottom(content: modalBuffer, level: .modal, dimsBackground: true))
+            baseBuffer.overlays.append(
+                .dockedAtBottom(content: modalBuffer, level: .modal, dimsBackground: true)
+                    .presenting(modalContext.identity))
             return baseBuffer
         }
 
@@ -291,7 +293,8 @@ extension ModalPresentationModifier: Renderable {
         baseBuffer.overlays.append(
             OverlayLayer(
                 offsetX: dragOffset.x, offsetY: dragOffset.y, content: modalBuffer,
-                level: .modal, centered: true, dimsBackground: style == .sheet))
+                level: .modal, centered: true, dimsBackground: style == .sheet
+            ).presenting(modalContext.identity))
         return baseBuffer
     }
 

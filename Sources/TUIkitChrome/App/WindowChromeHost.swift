@@ -204,7 +204,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
                 ? [
                     PresentedSurface(
                         isScreenLevel: layer.isScreenLevel, holdsInput: layer.holdsInput,
-                        firstRegion: layer.content.hitTestRegions.first?.handlerID)
+                        identity: layer.surfaceIdentity)
                 ] : []
             return own + presentations(in: layer.content.overlays)
         }

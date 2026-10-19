@@ -204,6 +204,20 @@ public struct OverlayLayer: Sendable, Equatable {
     /// unless its presenter says otherwise — the old behaviour of every layer.
     public var holdsInput: Bool = false
 
+    /// The identity of the presented content this layer draws — a sheet's or
+    /// a cover's (keyed by its item, where it has one), an alert's, a
+    /// popover's, a menu's, a pop-up button's options — and `nil` for every
+    /// layer that is not a presentation (``presenting(_:)``).
+    ///
+    /// What tells a surface that stays up from another put in its place
+    /// within a frame (`PresentedSurface`), however the surface's own content
+    /// changes meanwhile. Its first hit region stood in for it, and that is
+    /// the surface's own only where something files one ahead of the content
+    /// (a dialog's drag handle, a menu's dismissing backdrop): a cover's was
+    /// its first control's, which a row scrolled or a control put above it
+    /// changes while the cover stays up (the INPUT lane's review).
+    package var surfaceIdentity: ViewIdentity?
+
     /// The edge of the nearest vertical scroll view this layer is pinned to,
     /// and how far it may travel to stay there — `nil` for every layer but a
     /// copy of a lazy stack's section header or footer under `pinnedViews:`.
@@ -296,6 +310,14 @@ public struct OverlayLayer: Sendable, Equatable {
         self.anchorHeight = anchorHeight
         self.centered = centered
         self.dimsBackground = dimsBackground
+    }
+
+    /// This layer, as the presentation of the content at `identity`
+    /// (``surfaceIdentity``).
+    package func presenting(_ identity: ViewIdentity) -> Self {
+        var layer = self
+        layer.surfaceIdentity = identity
+        return layer
     }
 
     /// A screen-level layer resting on the BOTTOM edge of the area it is

@@ -772,14 +772,14 @@ package struct PresentedSurface: Equatable, Sendable {
     /// Whether it holds the input — a popover, a menu, a drop-down.
     package var holdsInput: Bool
 
-    /// The first hit region it files, which is its own control's and keeps
-    /// its id while it is up (interned per view): another surface in its
-    /// place files another. `nil` for a surface with none.
-    package var firstRegion: HitTestRegion.HandlerID?
+    /// The identity of its content (`OverlayLayer.surfaceIdentity`), which
+    /// it keeps while it is up, whatever that content does: another surface
+    /// in its place has another. `nil` for a layer no presentation named.
+    package var identity: ViewIdentity?
 
-    package init(isScreenLevel: Bool, holdsInput: Bool, firstRegion: HitTestRegion.HandlerID?) {
+    package init(isScreenLevel: Bool, holdsInput: Bool, identity: ViewIdentity?) {
         self.isScreenLevel = isScreenLevel
         self.holdsInput = holdsInput
-        self.firstRegion = firstRegion
+        self.identity = identity
     }
 }

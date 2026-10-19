@@ -64,6 +64,43 @@ struct HeldHelpCentredPage: View {
     }
 }
 
+/// A full-screen cover of rows with help that fill it, under a view the test
+/// swaps for another with no input: the cover's first hit region changes
+/// while the cover stays up and nothing on it moves.
+final class HeldHelpCoverModel: @unchecked Sendable {
+    var swapped = false
+}
+
+struct HeldHelpCoverApp: App {
+    let model: HeldHelpCoverModel
+
+    init() { model = HeldHelpCoverModel() }
+
+    init(model: HeldHelpCoverModel) { self.model = model }
+
+    var body: some Scene {
+        WindowGroup {
+            Text("page").fullScreenCover(isPresented: .constant(true)) {
+                VStack(alignment: .leading, spacing: 0) {
+                    if model.swapped {
+                        Text("two").onTapGesture {}
+                    } else {
+                        Text("one").onTapGesture {}
+                    }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(0..<40, id: \.self) { index in
+                                Text("row \(index) of the long list").help("HELP-\(index)")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .mouseSupport(.full)
+    }
+}
+
 @MainActor
 @Suite("Help held through the status bar's reflow: the residual cases")
 struct HeldHelpResidualTests {
@@ -109,7 +146,7 @@ struct HeldHelpResidualTests {
     }
 
     /// The last row drawn on the screen: its index and where it is.
-    private func lastRow(_ driver: Driver<HeldHelpRowsApp>) -> (index: Int, x: Int, y: Int)? {
+    private func lastRow<A: App>(_ driver: Driver<A>) -> (index: Int, x: Int, y: Int)? {
         driver.lines.enumerated().compactMap { row, line -> (index: Int, x: Int, y: Int)? in
             guard let range = line.range(of: #"row \d+"#, options: .regularExpression),
                 let index = Int(line[range].dropFirst(4))
@@ -139,6 +176,30 @@ struct HeldHelpResidualTests {
         driver.step()
         driver.stepIfAsked()
         #expect(!driver.shows(help), "a move off the covered rows takes it away: \(driver.lines)")
+    }
+
+    /// Found by the INPUT lane's review: a surface was told from another by
+    /// its first hit region, which for a cover is its first control's. A
+    /// view swapped at the cover's top, with no input and nothing moving,
+    /// read as another surface put up in the cover's place, and the help
+    /// held on the covered row went.
+    @Test("A help held on a cover's covered row stays while the cover's own content changes")
+    func coverContentChangeKeepsTheHold() throws {
+        let model = HeldHelpCoverModel()
+        let driver = Driver(HeldHelpCoverApp(model: model))
+        driver.app.clearsRenderCacheEachFrame = true
+        let target = try #require(lastRow(driver), "no rows: \(driver.lines)")
+        let help = "HELP-\(target.index)"
+        driver.move(to: (target.x + 1, target.y))
+        driver.step()
+        driver.stepIfAsked()
+        #expect(driver.shows(help), "precondition: shown: \(driver.lines)")
+        #expect(driver.position(of: "row \(target.index) ") == nil, "precondition: the bar covers the row")
+        model.swapped = true
+        driver.step()
+        driver.stepIfAsked()
+        #expect(driver.shows("two"), "precondition: the cover's content changed: \(driver.lines)")
+        #expect(driver.shows(help), "the help went, nothing presented or dismissed: \(driver.lines)")
     }
 
     /// The page's own reshape: the button puts a row above the held view,
@@ -191,8 +252,8 @@ struct HeldHelpResidualTests {
     @Test("A frame that swaps one presented surface for another lets a covered-row hold go")
     func swappedSurfaceLetsTheHoldGo() {
         let tooltips = TooltipState()
-        let first = PresentedSurface(isScreenLevel: true, holdsInput: false, firstRegion: .init(10))
-        let second = PresentedSurface(isScreenLevel: true, holdsInput: false, firstRegion: .init(20))
+        let first = PresentedSurface(isScreenLevel: true, holdsInput: false, identity: ViewIdentity(path: "first"))
+        let second = PresentedSurface(isScreenLevel: true, holdsInput: false, identity: ViewIdentity(path: "second"))
         func reshape(_ surfaces: [PresentedSurface], movedByTooltip: Bool, leaving: Bool = false) {
             tooltips.beginReshape(movedByTooltip: movedByTooltip, presentations: surfaces)
             if leaving { tooltips.leaving("HELP") }

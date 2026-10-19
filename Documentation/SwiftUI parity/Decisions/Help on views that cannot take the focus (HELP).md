@@ -120,8 +120,11 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   INPUT, 2026-10-18): a move along the rows the bar took keeps the hold
   (`TooltipState.notePointerMoved(toRow:)`); a frame that takes one surface
   down as it puts another up kept the help, the count unchanged — fixed
-  too: the surfaces are compared, each by its kind and its first region
-  (`WindowChromeState.presentationsOverPage`, `PresentedSurface`); and a
+  too: the surfaces are compared, each by its kind and the identity of its
+  content (`WindowChromeState.presentationsOverPage`, `PresentedSurface`,
+  `OverlayLayer.surfaceIdentity`; by its first hit region until the lane's
+  review found a cover's to be its first control's, which changes while the
+  cover stays up); and a
   view removed from the page while the pointer rests on its covered row
   keeps its help up until the pointer moves — still open (decisions-INPUT
   B-INPUT-1): a covered row has no region to probe, and a row a scroll view

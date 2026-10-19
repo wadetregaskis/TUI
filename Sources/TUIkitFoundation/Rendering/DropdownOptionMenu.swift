@@ -184,6 +184,7 @@ extension DropdownMenu {
         buffer.overlays.append(
             OverlayLayer(
                 offsetX: 0, offsetY: anchor, content: popup, level: .popover, anchorHeight: anchor,
-                holdsInput: true))
+                holdsInput: true
+            ).presenting(context.identity))
     }
 }

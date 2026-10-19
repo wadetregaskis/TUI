@@ -247,7 +247,8 @@ extension PopoverPresentationModifier: Renderable {
         baseBuffer.overlays.append(
             OverlayLayer(
                 offsetX: placement.x, offsetY: placement.y, content: panel,
-                level: .popover, anchorHeight: placement.anchorHeight, holdsInput: true))
+                level: .popover, anchorHeight: placement.anchorHeight, holdsInput: true
+            ).presenting(popoverContext.identity))
         return baseBuffer
     }
 

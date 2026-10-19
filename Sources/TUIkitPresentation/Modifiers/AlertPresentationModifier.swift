@@ -317,7 +317,8 @@ extension AlertPresentationModifier: Renderable {
         baseBuffer.overlays.append(
             OverlayLayer(
                 offsetX: dragOffset.x, offsetY: dragOffset.y, content: alertBuffer,
-                level: .alert, centered: true, dimsBackground: true))
+                level: .alert, centered: true, dimsBackground: true
+            ).presenting(alertContext.identity))
         return baseBuffer
     }
 }
