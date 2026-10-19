@@ -359,15 +359,20 @@ extension Transaction {
 /// documents. One the enclosing transaction already carried belongs to the
 /// enclosing call, which decides.
 ///
+/// As `body` returns, the app whose work this is (``AmbientApp``) hears that
+/// the scope ended: an `@Observable` property written in `body` whose body's
+/// observation an earlier, unanimated write had already fired reports
+/// nothing, and the app takes `transaction` for that change.
+///
 /// - Returns: Whatever `body` returns.
 public func withTransaction<Result>(
     _ transaction: Transaction, _ body: () throws -> Result
 ) rethrows -> Result {
-    guard !transaction.completions.isEmpty else {
-        return try Transaction.$ambient.withValue(transaction, operation: body)
-    }
-    let enclosing = Transaction.ambient?.completions ?? []
+    let enclosing = transaction.completions.isEmpty ? [] : Transaction.ambient?.completions ?? []
     defer {
+        // First: the app may claim the completions for the change it takes
+        // this transaction for.
+        AmbientApp.renderState?.transactionScopeEnded(transaction)
         for completion in transaction.completions
         where !completion.isClaimed && !enclosing.contains(where: { $0 === completion }) {
             completion.fire()

@@ -1191,6 +1191,28 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   B-FB16-1 to B-FB16-8, B-FB16-13, A-FB16-1. **Owner** for the model (FB16 (a′),
   2026-10-18); **Lane** for what stops short of it.
 
+### A7. A frame draws every change since the last under one transaction, and an observed change takes the next scope's
+
+- **SwiftUI (measured, macOS 15.8.1, 2026-10-18,
+  `Tools/SwiftUIProbes/Transactions of observed changes/txn.out`):** a body
+  reading two `@Observable` properties, one written plainly and one inside
+  `withAnimation` in the same turn of the run loop, is updated once per
+  write: unanimated for the plain one, animated for the other, in either
+  order. An unanimated write followed by a `withAnimation` that writes
+  nothing the body read, or nothing at all, is drawn unanimated.
+- **TUIkit:** a frame draws every change made since the last one under one
+  transaction (`AppState.consumePendingTransaction()`), so both writes are
+  drawn animated; the animated write is, in either order
+  (`ObservedChangeTransactionTests`). An unanimated observed change followed,
+  in the same app's work before the frame, by a `withTransaction` scope that
+  changed nothing any body read is drawn under that scope's transaction too
+  (`AppState.transactionScopeEnded(_:)`).
+- **Why:** a frame is one pass, and a pass runs under one transaction. A
+  body's observation fires once, at the first write to anything it read, and
+  Observation has no public way to see the writes after it: when the first
+  was unanimated, the scope's transaction is taken for its change.
+- **Decided:** [B-APPSTATE-2](<Decisions/Per-app render state (APPSTATE).md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>). **Lane.**
+
 ---
 
 ## Scrolling

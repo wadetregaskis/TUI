@@ -456,7 +456,7 @@ package func reportObservedChange(
     fallback: () -> Void = { AmbientApp.renderState?.setNeedsRenderWithCacheClear() }
 ) {
     if let link {
-        link.invalidateRender(for: identity)
+        link.invalidateRenderForObservedChange(at: identity)
     } else {
         fallback()
     }

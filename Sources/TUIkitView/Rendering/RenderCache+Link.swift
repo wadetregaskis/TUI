@@ -132,13 +132,28 @@ extension RenderCache {
         }
 
         /// Queues an invalidation and asks for a frame — what a `@State` write
-        /// and an `@Observable` change do. Thread-safe; the cache's tables are
-        /// changed later, on the main actor, by the drain. Does nothing once the
-        /// cache has gone.
+        /// does. Thread-safe; the cache's tables are changed later, on the
+        /// main actor, by the drain. Does nothing once the cache has gone.
         ///
         /// - Parameter identity: The subtree whose cached buffers are now stale,
         ///   or `nil` to drop the whole cache.
         package func invalidateRender(for identity: ViewIdentity?) {
+            enqueue(identity)?.setNeedsRender()
+        }
+
+        /// ``invalidateRender(for:)`` for an `@Observable` change a body's
+        /// observation reported: the frame is asked as an observed change's
+        /// (`AppState.setNeedsRenderForObservedChange()`), so a later write
+        /// under `withAnimation` that the spent observation cannot report
+        /// still animates it.
+        package func invalidateRenderForObservedChange(at identity: ViewIdentity) {
+            enqueue(identity)?.setNeedsRenderForObservedChange()
+        }
+
+        /// Queues the invalidation of `identity` (`nil`: of everything), and
+        /// returns the app state to ask for the frame — `nil` once the cache
+        /// has gone, or for a cache no app draws.
+        private func enqueue(_ identity: ViewIdentity?) -> AppState? {
             typealias Report = (queued: Bool, appState: AppState?, diagnostic: BodyMutationDiagnostic?)
             let (queued, appState, diagnostic) = queue.withLock { queue -> Report in
                 guard queue.attached else { return (false, nil, nil) }
@@ -150,15 +165,16 @@ extension RenderCache {
                 }
                 return (true, queue.appState, queue.diagnostic)
             }
-            guard queued else { return }
+            guard queued else { return nil }
             // Opt-in, and free when off: one optional test. See
             // `BodyMutationDiagnostic` for why a write during the walk is worth
             // naming — this is the single funnel every `@State` write reaches,
             // so it is the only place that needs to ask. Outside the lock: it
             // may print.
             diagnostic?.note(identity)
-            // Outside the lock too: the app state calls its observers.
-            appState?.setNeedsRender()
+            // The frame is asked outside the lock too: the app state calls its
+            // observers.
+            return appState
         }
 
         /// Asks the app the cache draws for a frame, and drops nothing the

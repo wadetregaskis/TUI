@@ -25,6 +25,11 @@ package protocol AppRenderState: AnyObject, Sendable {
 
     /// Asks the app's run loop to exit.
     func requestExit()
+
+    /// A ``withTransaction(_:_:)`` scope run in the app's work has ended, with
+    /// `transaction` in force for whatever it changed: the app may take it for
+    /// a change whose own report carried none.
+    func transactionScopeEnded(_ transaction: Transaction)
 }
 
 // MARK: - Ambient App
@@ -39,7 +44,9 @@ package protocol AppRenderState: AnyObject, Sendable {
 /// app runs that changes something every view of it may read, with no view in
 /// hand: an `@AppStorage` write, a change of language, a top-level `dismiss()`
 /// with no environment behind it. Those ask the app whose work they are part
-/// of: its event handlers, its frames, and the tasks they start.
+/// of: its event handlers, its frames, and the tasks they start. So does a
+/// ``withTransaction(_:_:)`` scope as it ends, for an observed change whose
+/// observation an earlier write had already fired.
 ///
 /// A task local, not a global: it is bound for the duration of an app's work —
 /// by `AppRunner` around its run loop, by `HeadlessApp` around each frame and

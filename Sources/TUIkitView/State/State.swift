@@ -42,6 +42,12 @@ public final class AppState: Sendable {
         var needsCacheClear = false
         var shouldExit = false
         var observers: [@Sendable () -> Void] = []
+        /// Whether an `@Observable` property a body read was written since
+        /// the last frame with no transaction in force — so its observation
+        /// has fired, and a later write in the same body's reads, under
+        /// `withAnimation`, has none left to fire
+        /// (``transactionScopeEnded(_:)``).
+        var unstampedObservedChange = false
 
         /// Stamps the change being recorded with whatever ``Transaction`` is in
         /// force where it was made — the seam that makes
@@ -54,8 +60,14 @@ public final class AppState: Sendable {
         /// the next frame would drop the animation on the floor.
         mutating func recordAmbientTransaction() {
             guard let ambient = Transaction.ambient else { return }
-            pendingTransaction = ambient
-            for completion in ambient.completions
+            record(ambient)
+        }
+
+        /// Makes `transaction` the one the next frame draws under, its
+        /// completions the frame's to place.
+        mutating func record(_ transaction: Transaction) {
+            pendingTransaction = transaction
+            for completion in transaction.completions
             where !pendingCompletions.contains(where: { $0 === completion }) {
                 // Claimed: the render that shows this change decides when it
                 // fires, rather than the `withTransaction` it was made in.
@@ -133,7 +145,10 @@ extension AppState {
     /// and a value rather than to the whole update.
     public func consumePendingTransaction() -> Transaction? {
         lock.withLock { state in
-            defer { state.pendingTransaction = nil }
+            defer {
+                state.pendingTransaction = nil
+                state.unstampedObservedChange = false
+            }
             return state.pendingTransaction
         }
     }
@@ -260,7 +275,57 @@ extension AppState {
 
 /// What code with no handle on its app reaches through ``AmbientApp``: the
 /// requests above, of the app whose event, frame or task is running.
-extension AppState: AppRenderState {}
+extension AppState: AppRenderState {
+    /// Marks state as changed by a write to an `@Observable` property a body
+    /// read — what its observation reports, through the render cache's link —
+    /// and notes when it was made with no transaction in force.
+    ///
+    /// Thread-safe: the observation fires on the writer's thread.
+    package func setNeedsRenderForObservedChange() {
+        let observers = lock.withLock { state -> [@Sendable () -> Void] in
+            state.needsRender = true
+            if Transaction.ambient == nil {
+                state.unstampedObservedChange = true
+            } else {
+                state.recordAmbientTransaction()
+            }
+            return state.observers
+        }
+        for observer in observers {
+            observer()
+        }
+    }
+
+    /// A ``withTransaction(_:_:)`` scope run in this app's work has ended:
+    /// `transaction` was in force for whatever it changed.
+    ///
+    /// A body's observation fires ONCE, at the first write to anything it
+    /// read, and reports with the transaction in force for that write. So in
+    ///
+    /// ```swift
+    /// model.selection = item
+    /// withAnimation { model.isExpanded = true }
+    /// ```
+    ///
+    /// — one body reading both — the first write fired it with none, and the
+    /// animated one found nothing to fire: its transaction was recorded
+    /// nowhere, and the change snapped. SwiftUI animates it, in either order
+    /// (`Tools/SwiftUIProbes/Transactions of observed changes/txn.out`).
+    /// Observation offers no way to see which properties the ended scope
+    /// wrote, so the scope's transaction is taken for the frame when an
+    /// observed change was reported with none since the last frame and no
+    /// transaction is pending yet — the frame then draws every change made
+    /// since the last one under it, as a frame always does. That also
+    /// animates an unanimated observed change followed by a `withAnimation`
+    /// that writes nothing a body read, which SwiftUI does not (see
+    /// "Deliberate deviations from SwiftUI").
+    package func transactionScopeEnded(_ transaction: Transaction) {
+        lock.withLock { state in
+            guard state.unstampedObservedChange, state.pendingTransaction == nil else { return }
+            state.record(transaction)
+        }
+    }
+}
 
 // MARK: - Render Invalidation Sink
 

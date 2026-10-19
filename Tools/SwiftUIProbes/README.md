@@ -263,6 +263,21 @@ messages cite that path), and what cites it.
   `Tests/TUIkitFoundationTests/SpringTests.swift`, `Tests/TUIkitFoundationTests/UnitCurveTests.swift`; wave 12's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
 
+### Transactions of observed changes
+
+- **Asks:** which transaction SwiftUI updates a body under when one turn of the run loop writes two `@Observable`
+  properties the body reads, one plainly and one inside `withAnimation`, in either order; and what an unanimated
+  write followed by a `withAnimation` that writes nothing the body read (or nothing at all) is drawn under
+  (`txn.swift`, a program of top-level code; `txn.out`). The body records, through `.transaction(_:)`, whether
+  each update it was given carried an animation: SwiftUI updates it once per write, the animated write's update
+  animated in both orders, and an empty `withAnimation` animates nothing.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18, in an `NSHostingView` with no window.
+- **Was:** `APPSTATE/probe/`.
+- **Cited by:** `Sources/TUIkitView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
+  `Tests/TUIkitIntegrationTests/ObservedChangeTransactionTests.swift`;
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (A7);
+  `Documentation/SwiftUI parity/Decisions/Per-app render state (APPSTATE).md` (B-APPSTATE-2).
+
 ### Scroll anchoring
 
 - **Asks:** what a scroll view does with no scroll position bound when the content above the row at its top

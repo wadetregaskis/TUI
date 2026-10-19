@@ -127,3 +127,35 @@ them all, wherever it was made; the localization service is per app
 walk, and a list of weak references per key; about half a day. Nothing seen
 so far writes a stored key off every app's task with a reader no observation
 saw.
+
+### B-APPSTATE-2. An observed change reported with no transaction takes the next scope's
+
+*`AppState.transactionScopeEnded(_:)`, `withTransaction(_:_:)`,
+`RenderCache.Link.invalidateRenderForObservedChange(at:)`*
+
+```swift
+model.selection = item
+withAnimation { model.isExpanded = true }
+```
+
+With one body reading both, the first write fired the body's observation —
+it fires once, at the first write to anything the body read — with no
+transaction in force, and the animated write found no observation left to
+report it: its transaction was recorded nowhere, and the change snapped.
+Swapping the two writes animated it. SwiftUI animates it in either order
+(`Tools/SwiftUIProbes/Transactions of observed changes/txn.out`).
+
+Observation's public API cannot say which properties a later scope wrote. So
+an observed change reported with no transaction is noted, and a
+`withTransaction` scope ending in the same app's work before the frame
+(`AmbientApp`) gives the frame its transaction if none is pending yet. The
+cost of not knowing: an unanimated observed change followed by a
+`withAnimation` that changed nothing any body read is drawn animated too,
+where SwiftUI draws it unanimated (deviation A7).
+
+**The fuller version** re-arms a fired observation for the rest of the event,
+so the later write reports itself with its own transaction. That needs the
+access list a scope read, which only Observation's `@_spi(SwiftUI)`
+`ObservationTracking._installTracking` exposes: an SPI dependency the Linux,
+Windows and WebAssembly toolchains need not keep, and one more registration
+a body. Not worth it for a scope that animates nothing.

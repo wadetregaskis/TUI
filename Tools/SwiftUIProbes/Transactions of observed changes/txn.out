@@ -1,0 +1,6 @@
+plain a, then animated b: ["a=1 b=0 animated=false", "a=1 b=1 animated=true", "a=1 b=1 animated=false"]
+animated b, then plain a: ["a=0 b=1 animated=true", "a=1 b=1 animated=false"]
+animated b only:         ["a=0 b=1 animated=true", "a=0 b=1 animated=false"]
+plain a only:            ["a=1 b=0 animated=false"]
+plain a, then empty withAnimation: ["a=1 b=0 animated=false"]
+plain a, then animated write nobody reads: ["a=1 b=0 animated=false"]
