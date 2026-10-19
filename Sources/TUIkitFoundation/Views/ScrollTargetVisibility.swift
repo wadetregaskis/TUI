@@ -14,7 +14,7 @@ extension View {
     /// Adds an action to be called with information about what views would
     /// be considered visible.
     ///
-    /// Use this modifier along with the modifier ``View/scrollTargetLayout()``
+    /// Use this modifier along with the modifier ``View/scrollTargetLayout(isEnabled:)``
     /// to be informed when the views in the targeted scroll view have crossed
     /// the provided threshold to be considered on or off screen.
     ///
