@@ -161,9 +161,9 @@ struct TerminalLedgerConformanceTests {
     /// when the complex-script rows were added. Every id below is one of those
     /// or a chrome glyph: a cluster the corpus can now ask about and no landing
     /// record has measured. The advance records have the complex-script rows
-    /// (every host's primary screen on 2026-09-04, and Ghostty's two screens on
-    /// 2026-10-19), but an advance is one of a row's four facts, and this
-    /// ledger reads the records that have all four.
+    /// (every host's primary screen on 2026-09-04, and both screens of every
+    /// host on 2026-10-19), but an advance is one of a row's four facts, and
+    /// this ledger reads the records that have all four.
     /// Listed explicitly so a missing measurement cannot look like a pass:
     /// ``ledgerCoversTheCorpus`` fails for a row that is absent from a ledger
     /// AND absent from this list, and fails the other way when a measured row
@@ -180,8 +180,11 @@ struct TerminalLedgerConformanceTests {
     ///
     /// run inside each host. Until then ``ComplexScriptWidthTests`` records
     /// what each of the two width rules claims about these rows and which of
-    /// them disagree, and asserts that the claim is the advance Ghostty
-    /// measured with mode 2027 set. What a landing record adds is the paint.
+    /// them disagree, and ``ComplexScriptHostAdvanceTests`` asserts that each
+    /// host's claim is the advance that host measured — the advance is what
+    /// the claim now follows (`TerminalWidthTraits.textClusters`). What a
+    /// landing record adds is the paint, and until one does, a claim that
+    /// matches the advance says nothing about where the glyph is drawn.
     static let awaitingLandingMeasurement: Set<String> = [
         "fullwidth_latin_a", "combining_stack",
         "conjunct_deva_ksha", "conjunct_deva_stra", "conjunct_deva_shtra",

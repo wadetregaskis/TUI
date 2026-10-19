@@ -22,7 +22,7 @@ struct TerminalWidthTraitsTests {
 
     private static let warp = TerminalWidthTraits(
         zwjSequences: .decomposedDroppingJoiners, skinTone: .detached,
-        chromeOverhang: .keyboardSymbols)
+        chromeOverhang: .keyboardSymbols, textClusters: .perCodePoint)
     /// The raw-cluster truth on Warp (and the explorer's option): each kept
     /// joiner costs a column. The SHIPPED Warp walk drops the joiners instead
     /// (2026-08-28), so `Self.warp` above mirrors `widthTraits(of: .warp)`
@@ -34,9 +34,9 @@ struct TerminalWidthTraitsTests {
     // claims follow the rewritten forms — see `TerminalClient.widthTraits(of:)`.
     private static let apple = TerminalWidthTraits(
         zwjSequences: .decomposedDroppingJoiners,
-        skinTone: .separated)
+        skinTone: .separated, textClusters: .perCodePoint)
     private static let iTerm = TerminalWidthTraits(
-        zwjSequences: .composed, skinTone: .detachedOnBMPBases)
+        zwjSequences: .composed, skinTone: .detachedOnBMPBases, textClusters: .perCodePoint)
 
     // MARK: - The measured widths
 
@@ -119,11 +119,7 @@ struct TerminalWidthTraitsTests {
             ("👩🏽\u{200D}🚀", 7, "👩\u{200C}🏽🚀"),
         ] as [(String, Int, String)])
     func appleClaimsDecomposedWidth(text: String, claim: Int, emission: String) {
-        #expect(
-            TerminalClient.widthTraits(of: .appleTerminal)
-                == TerminalWidthTraits(
-                    zwjSequences: .decomposedDroppingJoiners,
-                    skinTone: .separated))
+        #expect(TerminalClient.widthTraits(of: .appleTerminal) == Self.apple)
         TerminalWidthTraits.withTraits(Self.apple) {
             #expect(Character(text).terminalWidth == claim)
             let out = TerminalClient.compensating(text, for: .appleTerminal)

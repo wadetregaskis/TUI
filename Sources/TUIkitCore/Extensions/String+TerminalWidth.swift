@@ -254,12 +254,15 @@ extension Character {
             !Self.isWidthNeutralExtra(scalar)
         }
         if hasWidthAddingExtras {
-            // True multi-character sequence (ZWJ, flags, keycaps, skin tones).
+            // True multi-character sequence (ZWJ, flags, keycaps, skin tones),
+            // or a cluster of text with more than one advancing scalar (a
+            // Devanagari conjunct, a spacing vowel sign, Hangul jamo).
             // Two cells on a host that composes them, which is the default and
             // was once the only answer. A host that draws the components
-            // separately gets the width it actually uses, so that the layout
-            // can allocate it rather than the cluster being substituted down to
-            // something that fits — see ``TerminalWidthTraits``.
+            // separately, or advances text per code point, gets the width it
+            // actually uses, so that the layout can allocate it rather than
+            // the cluster being substituted down to something that fits — see
+            // ``TerminalWidthTraits``.
             //
             // Two cells on a host that composes, which is the default. The
             // widening case is an out-of-line call so that THIS function's
@@ -284,25 +287,71 @@ extension Character {
     /// Out of line deliberately: see the call site.
     @inline(never)
     static func hostWidenedWidth(_ scalars: String.UnicodeScalarView) -> Int? {
-        // Only a joiner or a Fitzpatrick modifier can make a host widen a
-        // cluster, and testing two scalar ranges is cheaper than reading the
-        // traits, which is a task-local lookup rather than a plain load. Flags,
-        // keycaps and RI pairs answer nil without paying for a question whose
-        // answer cannot affect them.
-        let mayWiden = scalars.contains { scalar in
+        // A flag — a regional-indicator pair — is two cells on every host and
+        // no trait widens it, so it answers before the traits are read, which
+        // is a task-local lookup rather than a plain load. (Keycaps and tag
+        // flags never reach here: their extras add no width.)
+        guard let first = scalars.first, !(0x1F1E6...0x1F1FF).contains(first.value) else {
+            return nil
+        }
+        // Only a joiner or a Fitzpatrick modifier can make a host widen an
+        // EMOJI cluster — testing two scalar ranges is cheaper than asking
+        // the traits about decomposition for every other cluster.
+        let mayDecompose = scalars.contains { scalar in
             scalar.value == 0x200D || (0x1F3FB...0x1F3FF).contains(scalar.value)
         }
-        guard mayWiden else { return nil }
         let traits = TerminalWidthTraits.current
         // NOT `traits != .composing`, which is the whole value: the traits
-        // carry a third dimension — the chrome-overhang set — that no cluster
-        // reaching here can contain (it is single-scalar chrome, and this
-        // function only runs for a joiner or a Fitzpatrick modifier). Ghostty
-        // differs from `.composing` in exactly that dimension, so the whole-
-        // value test would send every ZWJ and tone cluster on that host down
-        // the decomposition path to be told `nil`.
-        guard traits.zwjSequences != .composed || traits.skinTone != .merged else { return nil }
-        return decomposedWidth(scalars, traits: traits)
+        // carry dimensions — the chrome-overhang set, the text-cluster
+        // advance — that decomposition has nothing to say about. Ghostty
+        // differs from `.composing` in the first, so the whole-value test
+        // would send every ZWJ and tone cluster on that host down the
+        // decomposition path to be told `nil`.
+        if mayDecompose, traits.zwjSequences != .composed || traits.skinTone != .merged,
+            let decomposed = decomposedWidth(scalars, traits: traits)
+        {
+            return decomposed
+        }
+        // Text rather than emoji — including text carrying a joiner, such as
+        // the half-form request क्‍ष, which the decomposition above declines
+        // because it is not emoji-led.
+        guard traits.textClusters == .perCodePoint else { return nil }
+        return perCodePointWidth(scalars)
+    }
+
+    /// The cells a multi-scalar cluster of TEXT occupies on a host that
+    /// advances each code point by its own width — or `nil` for an emoji
+    /// cluster, whose width on such a host is a different set of measurements
+    /// (``TerminalWidthTraits/ZWJSequences``, ``TerminalWidthTraits/SkinTone``).
+    ///
+    /// The sum of the scalars' own widths, ``Unicode/Scalar/loneTerminalWidth``
+    /// — the per-scalar rule — with one exception: a conjoining vowel or
+    /// trailing jamo after the cluster's first scalar adds nothing. Measured
+    /// (DSR, 2026-10-19, both screens) on Apple Terminal 455.1, iTerm2 3.7.6
+    /// and Warp v0.2026.09.30: स्त्र 3, ष्ट्र 3, स्त्री 4 — exactly this sum —
+    /// and 한 spelled U+1112 U+1161 U+11AB 2, where the unexcepted sum is 4.
+    /// (iTerm2 3.6.11 advanced that 4, on the primary screen on 2026-09-04;
+    /// 3.7.4 and 3.7.6 advance 2.)
+    ///
+    /// Only reached for a multi-scalar cluster with width-adding extras on a
+    /// host whose traits say so, so the property lookup is off every hot path.
+    static func perCodePointWidth(_ scalars: String.UnicodeScalarView) -> Int? {
+        guard let first = scalars.first, !first.properties.isEmoji,
+            !scalars.contains(where: { (0x1F3FB...0x1F3FF).contains($0.value) })
+        else { return nil }
+        var width = first.loneTerminalWidth
+        for scalar in scalars.dropFirst() where !isConjoiningVowelOrTrailingJamo(scalar.value) {
+            width += scalar.loneTerminalWidth
+        }
+        return width
+    }
+
+    /// Whether `value` is a Hangul conjoining vowel or trailing consonant —
+    /// U+1160…U+11FF and the Jamo Extended-B block U+D7B0…U+D7FF — which a
+    /// host advancing per code point gives no cell when it follows a leading
+    /// jamo in one cluster (``perCodePointWidth(_:)``).
+    static func isConjoiningVowelOrTrailingJamo(_ value: UInt32) -> Bool {
+        (0x1160...0x11FF).contains(value) || (0xD7B0...0xD7FF).contains(value)
     }
 
     /// The cells a composed cluster occupies on a host that does NOT compose

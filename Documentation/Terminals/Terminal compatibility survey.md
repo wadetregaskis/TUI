@@ -4362,7 +4362,7 @@ came back the same, and the two screens agreed on every row of the battery.
 | 🖥 🛡 🕹 🕷 🎞 🏙 (bare SMP pictograph) | 2 | **1** | **1** | **1** | **1** |
 | ⤷ *(compensated since 2026-07-14 — all four CUF)* | | ✓ | ✓ | ✓ | ✓ |
 | 🁠 🂡 (domino / card — in-block non-emoji) | 2 | **1** | **1** | **1** | **1** |
-| स्त्र ष्ट्र स्त्री (Devanagari conjuncts of three consonants or more, one cluster under GB9c) | 2 | **3 / 3 / 4** (2026-10-19) | **3 / 3 / 4** (3.7.6, 2026-10-19) | 2 / 2 / 2 (2026-10-19) | **3 / 3 / 4** (v0.2026.09.30, 2026-10-19) |
+| स्त्र ष्ट्र स्त्री (Devanagari conjuncts of three consonants or more, one cluster under GB9c) | per host since 2026-10-19: 2 / 2 / 2 on Ghostty, 3 / 3 / 4 on the other three (`TerminalWidthTraits.textClusters`) | 3 / 3 / 4 (2026-10-19) | 3 / 3 / 4 (3.7.6, 2026-10-19) | 2 / 2 / 2 (2026-10-19) | 3 / 3 / 4 (v0.2026.09.30, 2026-10-19) |
 
 The conjunct row and the rest of the 38 complex-script rows are in "Complex
 scripts", below, measured on both screens of every host on 2026-10-19. The
@@ -6717,6 +6717,12 @@ K3).
   `Tools/TerminalProbes/data/` by `TerminalLedgerConformanceTests` (which
   also carries the known-divergence ledger), with spot batteries in
   `GhosttyWarpCompatibilityTests` / `StringTerminalWidthTests`.
+- `TerminalWidthTraits` + `TerminalClient.widthTraits(of:)` — the per-host
+  CLAIMS the models answer against: what a ZWJ sequence, a skin tone, the
+  overhanging chrome and, since 2026-10-19, a multi-scalar cluster of text
+  (`textClusters`) are allocated on each host. Published once at startup and
+  read by `Character.terminalWidth`; `ComplexScriptHostAdvanceTests` pins the
+  text-cluster claim to every host's advance records.
 - `TerminalClient.detectColors(using:)` — asks OSC 10, 11 and (outside tmux)
   OSC 4 once at startup through `Terminal.queryColors`, and publishes the
   answer to `TerminalColors.current` before the first frame. See "What the
@@ -7501,10 +7507,10 @@ The framework therefore contains two answers for the same text, and which one
 you get depends only on whether the standard library fused it — nothing about
 the host. `ComplexScriptWidthTests` records both numbers for every new row and
 wraps the disagreements in `withKnownIssue`, so they are visible in every test
-run and neither answer can quietly become the other. Since 2026-10-19 it also
-asserts that the claim is Ghostty's measured advance for every one of the 38
-rows, on both screens, from the records — and that each record was taken with
-mode 2027 set.
+run and neither answer can quietly become the other. Since 2026-10-19 the
+CLAIM is the host's (below), and `ComplexScriptHostAdvanceTests` asserts it
+against each host's own records for every one of the 38 rows, on every screen
+they hold — and that Ghostty's were taken with mode 2027 set.
 
 **Five of the 38 rows disagree, and not all in the same direction.** Asking
 every new row rather than only the Indic ones turned up a second divergence
@@ -7524,26 +7530,30 @@ one cell each, where `wcwidth` gives the whole U+1160…U+11FF range zero. That
 is why "make one rule call the other" is not the fix for either half.
 
 Both rows are pinned rather than repaired, because what a host does with a
-lone jamo is unmeasured. A composed syllable always reaches the cluster rule
-and is claimed 2 — which three of the four hosts advance (below); the per-scalar
-1 is only reachable for a **lone** V or T jamo — orphaned text, not a spelling
-of a syllable — and no terminal has been asked what it advances one by.
-Correcting it to `wcwidth`'s zero would be a change nothing here measured, in a
-file whose per-scalar answers are otherwise derived from measurements.
+lone jamo is unmeasured. A syllable spelled as jamo is claimed 2 on every host
+— the cluster rule's number where graphemes are clustered, and on a host that
+advances per code point the sum with its vowel and trailing jamo priced zero —
+which every current host advances (below); the per-scalar 1 is only reachable
+for a **lone** V or T jamo — orphaned text, not a spelling of a syllable — and
+no terminal has been asked what it advances one by. Correcting it to
+`wcwidth`'s zero would be a change nothing here measured, in a file whose
+per-scalar answers are otherwise derived from measurements.
 
 ### What the hosts advance
 
 DSR, from the records named above: every column is both screens, measured on
 2026-10-19, and each host's two screens agreed on every row. Ghostty's was
 taken with mode 2027 set; tmux's is its own grid, which is client-independent.
-**Bold** is an advance that differs from the cluster rule's number, which is
-the claim on every host.
+**Bold** is an advance that differs from that host's claim, which since
+2026-10-19 is the cluster rule's number on Ghostty and tmux and the
+per-code-point sum on Apple Terminal, iTerm2 and Warp (below) — so the
+conjuncts' 3 and 4 there are the claim now, and only tmux's are bold.
 
-| Row | Cluster rule (the claim) | Per-scalar rule | Ghostty 1.3.1 | Apple Terminal 455.1 | iTerm2 3.7.6 | Warp v0.2026.09.30 | tmux 3.7c |
+| Row | Cluster rule | Per-scalar rule | Ghostty 1.3.1 | Apple Terminal 455.1 | iTerm2 3.7.6 | Warp v0.2026.09.30 | tmux 3.7c |
 |---|---|---|---|---|---|---|---|
-| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | **3** | **3** | **3** | **3** |
-| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | **3** | **3** | **3** | **3** |
-| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | **4** | **4** | **4** | **3** |
+| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | 3 | 3 | 3 | **3** |
+| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | 3 | 3 | 3 | **3** |
+| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | 4 | 4 | 4 | **3** |
 | `hangul_jamo_lvt` | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
 | `hangul_jamo_lv` | 2 | 3 | 2 | 2 | 2 | 2 | 2 |
 | कि को कौ किं `matra_deva_*`, កា `matra_khmer_aa` | 2 | 2 | 2 | 2 | 2 | 2 | **1** |
@@ -7560,10 +7570,10 @@ the claim on every host.
   included.
 - **Apple Terminal, iTerm2 and Warp advance per code point**: each consonant
   and each spacing vowel sign a cell, a virama none — the per-scalar number for
-  every conjunct, on both screens. So the claim is a cell short for स्त्र and
-  ष्ट्र and two for स्त्री on each of them. Their primary screens gave the same
-  on 2026-09-04 (Apple Terminal 455.1, iTerm2 3.6.11, Warp v0.2026.09.02), and
-  iTerm2 3.7.4 the same again on 2026-10-13.
+  every conjunct, on both screens. Until 2026-10-19 the claim was a cell
+  short for स्त्र and ष्ट्र and two for स्त्री on each of them. Their primary
+  screens gave the same on 2026-09-04 (Apple Terminal 455.1, iTerm2 3.6.11,
+  Warp v0.2026.09.02), and iTerm2 3.7.4 the same again on 2026-10-13.
 - **Every current host advances the jamo 2**, the cluster rule's number: a
   host that advances per code point gives the conjoining vowel and trailing
   jamo no cell, which is `wcwidth`'s answer for U+1160…U+11FF. iTerm2 3.6.11
@@ -7580,14 +7590,41 @@ the claim on every host.
   the claim counts none. Two other format characters, the bidi overrides, were
   seen drawn there as a box (see "Right-to-left text").
 
-**The rule has not been changed.** This section once predicted 3 for a
-host that advances per code point and 1 for one that clusters graphemes (DEC
-mode 2027), each differing from 2 in its own direction. The first half held;
-the second did not: Ghostty with mode 2027 set advances 2, the cluster rule's
-number. So the right answer is the host's, as it is for emoji, and a change
-would be a per-host trait. The advance it would rest on is now measured on both
-screens of all five hosts; the paint is unmeasured everywhere, as is the
-advance on Ghostty with mode 2027 reset and on kitty, xterm and VTE.
+**The claim follows the host — since 2026-10-19, from the advance alone.**
+This section once predicted 3 for a host that advances per code point and 1
+for one that clusters graphemes (DEC mode 2027), each differing from 2 in its
+own direction. The first half held; the second did not: Ghostty with mode 2027
+set advances 2, the cluster rule's number. So the right answer is the host's,
+as it is for emoji, and it is a per-host trait:
+`TerminalWidthTraits.textClusters`. `.clustered` keeps the cluster rule —
+Ghostty, which TUIkit runs with mode 2027 set, tmux (below) and every
+unidentified host. `.perCodePoint` — Apple Terminal, iTerm2 and Warp — claims a
+multi-scalar cluster of TEXT as its scalars' sum by the per-scalar rule, with a
+conjoining vowel or trailing jamo after the first scalar priced zero: स्त्र 3,
+ष्ट्र 3, स्त्री 4, 한 as jamo 2, every other row's claim unchanged. Emoji
+clusters never take that sum; they have measured rules of their own.
+
+The claim is what the layout allocates and what the writer counts, so a border
+after the cluster now lands where those hosts' cursors put it — and nothing
+needs compensating, because the per-host advance models report the claim for
+these clusters and so agree with it. `ComplexScriptBorderTests` draws a
+bordered row of the five and advances it by each host's MEASURED numbers, not
+the model's.
+
+**What this rests on is the advance alone.** The paint — where the glyph's ink
+lands inside the cells it advances — is unmeasured on every host, and every row
+stays in `awaitingLandingMeasurement`. If a host drew स्त्र in two cells while
+advancing three, the row would now be aligned with a blank cell inside the
+cluster, which is the trade TUIkit already takes for SF Symbols on Ghostty;
+`landing_probe.py` would say. Also unmeasured: the advance on Ghostty with mode
+2027 reset and on kitty, xterm and VTE.
+
+**tmux keeps the cluster rule**, although it advances per code point: its table
+gives a spacing vowel sign no cell, so the per-code-point claim would put
+स्त्री at 4 against tmux's 3, and the six matra rows are 1 there under either
+claim. A pricing of tmux's own — per code point, spacing marks zero — matches
+all 38 of its rows; it waits on a tmux built against another width table being
+measured, since the one measured is Homebrew's on macOS.
 
 ### What the 38 rows cover
 

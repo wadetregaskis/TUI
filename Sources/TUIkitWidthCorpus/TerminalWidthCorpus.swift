@@ -127,11 +127,12 @@ package enum TerminalWidthCorpus {
         Entry(id: "zwj_astronaut_tone", category: "zwj_skin_tone", text: "\u{1F469}\u{1F3FD}\u{200D}\u{1F680}"),
         Entry(id: "combining_acute", category: "combining", text: "\u{65}\u{301}"),
         Entry(id: "combining_stack", category: "combining", text: "\u{65}\u{301}\u{308}\u{327}"),
-        // The complex-script rows, added 2026-09-04 and NOT YET MEASURED on any
-        // host — see `TerminalLedgerConformanceTests.awaitingLandingMeasurement`
-        // and the "Complex scripts" section of
+        // The complex-script rows, added 2026-09-04: their ADVANCE is measured
+        // on both screens of five hosts (2026-10-19), their PAINT on none — see
+        // `TerminalLedgerConformanceTests.awaitingLandingMeasurement` and the
+        // "Complex scripts" section of
         // `Documentation/Terminals/Terminal compatibility survey.md` for the command that
-        // measures them. They exist because the corpus was emoji-only, so the
+        // measures the rest. They exist because the corpus was emoji-only, so the
         // one question the width rule cannot answer — what a cluster of three
         // or more ADVANCING scalars costs — had no sample to ask it of.
         Entry(id: "conjunct_deva_ksha", category: "indic_conjunct", text: "\u{915}\u{94D}\u{937}"),
@@ -272,44 +273,46 @@ package enum TerminalWidthCorpus {
         "zwj_skin_tone": "A skin-toned segment inside a ZWJ sequence (👩🏽‍🚀) — both rules at once.",
         "indic_conjunct":
             "C + virama + C (+ virama + C) fused into ONE cluster by GB9c, plus a matra. "
-                + "UNMEASURED: the cluster rule answers a flat 2 while the per-scalar rule "
-                + "prices स्त्र at 3 and स्त्री at 4, and nothing has yet asked a terminal.",
+                + "A host that clusters graphemes advances स्त्र 2; one that advances per code "
+                + "point 3, and स्त्री 4 — the claim follows the host. Paint UNMEASURED.",
         "virama_final":
             "The half-form alone (ஸ், ಕ್, ក្). GB9c's linker set is six scripts, so Tamil, "
                 + "Kannada and Khmer conjuncts break INTO these — a shear here is per half. "
-                + "UNMEASURED.",
+                + "Paint UNMEASURED.",
         "spacing_vowel_sign":
-            "Base + Mc matra (कि को कौ ரீ កា), which the per-scalar rule says advances and "
+            "Base + Mc matra (कि को कौ ரா កា), which the per-scalar rule says advances and "
                 + "the cluster rule prices at 2. The two coincide at exactly two advancing "
-                + "scalars, which is why nothing has caught the divergence. UNMEASURED.",
+                + "scalars; tmux gives the matra no cell. Paint UNMEASURED.",
         "nukta":
             "Base + U+093C, a non-advancing Mn that changes the glyph. Should be the base's "
-                + "own width. UNMEASURED.",
+                + "own width. Paint UNMEASURED.",
         "chillu":
             "Malayalam chillu, atomic (ൻ) and spelled with a ZWJ (ന്‍) — the same letter, "
                 + "one scalar or three, and the ZWJ spelling reaches the emoji-shaped joiner "
-                + "path with no emoji in it. UNMEASURED.",
+                + "path with no emoji in it. Paint UNMEASURED.",
         "thai_lao":
             "A base carrying stacked Mn vowels and tone marks, plus sara am (a SPACING "
-                + "vowel). The classic wcwidth-zero-mark case. UNMEASURED.",
+                + "vowel). The classic wcwidth-zero-mark case. Paint UNMEASURED.",
         "tibetan_stack":
             "A head letter with a subjoined consonant, and one with a vowel on top — a "
-                + "three-scalar vertical stack in one cell. UNMEASURED.",
+                + "three-scalar vertical stack in one cell. Paint UNMEASURED.",
         "arabic":
             "The lam-alef ligature as its presentation form, and a letter carrying harakat "
                 + "(one mark, and shadda + fatha). Shaping is the renderer's; the cluster is "
-                + "one cell. UNMEASURED.",
+                + "one cell. Paint UNMEASURED.",
         "hebrew_points":
             "A letter with a vowel point, and with dagesh + vowel — two Mn marks inside one "
-                + "cell, in a right-to-left run. UNMEASURED.",
+                + "cell, in a right-to-left run. Paint UNMEASURED.",
         "hangul_jamo":
             "한 spelled as conjoining jamo (L+V+T and L+V) rather than the precomposed "
-                + "U+D55C the corpus already carries: same syllable, three scalars or two, "
-                + "and the jamo are the multi-scalar case that coincides with 2. UNMEASURED.",
+                + "U+D55C the corpus already carries: same syllable, three scalars or two. "
+                + "Every current host advances both 2 — a host that advances per code point "
+                + "gives the vowel and trailing jamo no cell. Paint UNMEASURED.",
         "format_control":
             "A letter carrying a ZWJ or ZWNJ (which is what pasted Arabic or Indic text and "
                 + "a truncated emoji both leave), and the bidi marks alone. All zero-width "
-                + "extras: the cluster is its base, and a lone mark is nothing. UNMEASURED.",
+                + "extras: the cluster is its base, and a lone mark is nothing — except on "
+                + "Apple Terminal, which advances each a cell. Paint UNMEASURED.",
         "chrome_key":
             "The keyboard symbols the status bar and menus draw — ⎋ ↩ ⇥ ⌫ ⌘, the "
                 + "arrows, ↖ ↘ ⇞ ⇟ — and ↵ ⏎ ⇤ ␣, which they drew until 2026-10-05. "

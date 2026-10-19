@@ -322,18 +322,33 @@ public struct TerminalClient: Sendable, Equatable {
             // column inside a separated skin tone.
             // Its chrome, in contrast, is contained: the overhang card read
             // 2026-09-04 marked no flank on any of the 29 rows.
+            //
+            // Text clusters advance per code point (स्त्र 3, स्त्री 4; DSR on
+            // the primary screen 2026-09-04 and both screens 2026-10-19), so
+            // they claim the scalars' sum — see `TerminalWidthTraits.TextClusters`.
             TerminalWidthTraits(
                 zwjSequences: .decomposedDroppingJoiners,
-                skinTone: .separated)
+                skinTone: .separated,
+                textClusters: .perCodePoint)
         case .iTerm2:
-            // Chrome contained here too — same card, same date.
-            TerminalWidthTraits(zwjSequences: .composed, skinTone: .detachedOnBMPBases)
+            // Chrome contained here too — same card, same date. Text clusters
+            // per code point, as on Apple Terminal (3.6.11, 3.7.4 and 3.7.6
+            // all advance स्त्र 3; 3.7.6 measured on both screens 2026-10-19).
+            TerminalWidthTraits(
+                zwjSequences: .composed, skinTone: .detachedOnBMPBases,
+                textClusters: .perCodePoint)
         case .ghostty:
             // The one host that composes every cluster — and the one whose ↵
             // (U+21B5) paints over its right-hand neighbour, which is a
             // separate question from composition and the only row the overhang
             // card marked here (2026-09-04). Warp smears seven OTHER glyphs
             // and not this one, which is why the set follows the host.
+            //
+            // Text clusters stay clustered: with DEC mode 2027 set — which
+            // startup sets here when it is off (`TerminalModeQuery`) — Ghostty
+            // advances स्त्र 2 on both screens (2026-10-19). With the mode
+            // left reset — startup sets it whenever Ghostty reports it can —
+            // these rows are unmeasured.
             TerminalWidthTraits(chromeOverhang: .returnArrow)
         case .warp:
             // Dropping rather than keeping the joiners (changed 2026-08-28):
@@ -347,10 +362,14 @@ public struct TerminalClient: Sendable, Equatable {
             //
             // Its chrome smears in the other direction from Ghostty's: ⎋ ⏎ ⌫
             // ⌦ ␣ ⌥ ⌘ paint onto the flank, ↵ does not (card-read 2026-09-04).
+            //
+            // Text clusters per code point, as on Apple Terminal (v0.2026.09.02
+            // primary, v0.2026.09.30 both screens: स्त्र 3, स्त्री 4).
             TerminalWidthTraits(
                 zwjSequences: .decomposedDroppingJoiners,
                 skinTone: .detached,
-                chromeOverhang: .keyboardSymbols)
+                chromeOverhang: .keyboardSymbols,
+                textClusters: .perCodePoint)
         case .tmux:
             // NOT widened, deliberately. Measured 2026-08-26, tmux 3.7b does
             // not split by base plane the way iTerm2 does: 👍🏽 🙏🏽 👋🏽 merge
@@ -369,6 +388,13 @@ public struct TerminalClient: Sendable, Equatable {
             // Its chrome ink is unread — the overhang card was run on the four
             // native hosts, not inside a compositor — so it takes `.contained`
             // with every other unmeasured host.
+            //
+            // Text clusters stay clustered although tmux advances per code
+            // point (DSR, 3.7c, both screens, 2026-10-19): its own table gives
+            // a SPACING vowel sign no cell, so कि is 1 and स्त्री 3 there, and
+            // `.perCodePoint` — TUIkit's per-scalar widths — would be wrong
+            // for those in the other direction. A tmux pricing of its own is
+            // the open half (decisions B-WIDTHS-2).
             .composing
         case .unidentified:
             // A terminal with no measurements is assumed to compose, for the

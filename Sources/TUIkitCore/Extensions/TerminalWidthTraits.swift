@@ -49,6 +49,13 @@
 /// and all. The codepoints themselves stay in `ChromeOverhang.swift` — this
 /// type selects among measured sets, it does not enumerate them.
 ///
+/// Text clusters are the second (``textClusters``, 2026-10-19): a Devanagari
+/// conjunct is one cluster that three of the four hosts advance per code
+/// point, so the claim follows each host's measured advance there too. That
+/// is a shear, not a substitution — the kind of defect the paragraph above
+/// leaves documented — but a shear of up to two cells per cluster, repeated
+/// for every conjunct on a line of Hindi, and only the claim can remove it.
+///
 /// ## Reading and setting
 ///
 /// Detected once at startup from the identified host and read from the render
@@ -125,6 +132,41 @@ public struct TerminalWidthTraits: Sendable, Equatable {
         case decomposedDroppingJoiners
     }
 
+    /// How the host advances a grapheme cluster of TEXT — one that is not an
+    /// emoji sequence — carrying more than one scalar that adds width: a
+    /// Devanagari conjunct (स्त्र), a spacing vowel sign (कि), Thai sara am
+    /// (กำ), conjoining Hangul jamo.
+    ///
+    /// Swift segments these as one `Character` (Unicode 15.1's GB9c fuses a
+    /// conjunct however many consonants it stacks), and the cluster rule
+    /// answers a flat 2 for any of them. Measured (DSR, 2026-10-19, both
+    /// screens), only a host that clusters graphemes advances that: Ghostty
+    /// 1.3.1 with DEC mode 2027 set — which TUIkit sets on Ghostty — moves
+    /// स्त्र, ष्ट्र and स्त्री 2 cells. Apple Terminal 455.1, iTerm2 3.7.6 and
+    /// Warp v0.2026.09.30 move them 3, 3 and 4: each consonant and spacing
+    /// mark its own cell, the virama none. A claim of 2 there puts every cell
+    /// after the cluster one or two columns left of where the host draws it,
+    /// so the row shears and a truncation clips late.
+    ///
+    /// Only the ADVANCE is measured. Where the glyph is painted inside the
+    /// cells it advances (`landing_probe.py`) is not, on any host, so the
+    /// claim decides layout from the advance alone — see
+    /// `Documentation/Terminals/Terminal compatibility survey.md`, "Complex
+    /// scripts".
+    public enum TextClusters: String, Sendable, Equatable, CaseIterable {
+        /// One advance per cluster, the cluster rule's: स्त्र is 2. Ghostty
+        /// with mode 2027 set, and the assumption for any unmeasured host.
+        case clustered
+        /// Each code point advances its own width, so the cluster claims its
+        /// scalars' sum (``Unicode/Scalar/loneTerminalWidth``): स्त्र is
+        /// 1 + 0 + 1 + 0 + 1 = 3, स्त्री 4. The conjoining vowel and trailing
+        /// jamo of a Hangul syllable spelled as jamo add nothing — `wcwidth`'s
+        /// zero, and what every current host advances (한 as U+1112 U+1161
+        /// U+11AB is 2) — although a LONE one is still priced a cell, which
+        /// no host has been asked about. Apple Terminal, iTerm2, Warp.
+        case perCodePoint
+    }
+
     /// What this host does with a ZWJ sequence.
     public var zwjSequences: ZWJSequences
 
@@ -137,20 +179,26 @@ public struct TerminalWidthTraits: Sendable, Equatable {
     /// trait and not one table.
     public var chromeOverhang: ChromeOverhang
 
+    /// How this host advances a multi-scalar cluster of text.
+    public var textClusters: TextClusters
+
     public init(
         zwjSequences: ZWJSequences = .composed,
         skinTone: SkinTone = .merged,
-        chromeOverhang: ChromeOverhang = .contained
+        chromeOverhang: ChromeOverhang = .contained,
+        textClusters: TextClusters = .clustered
     ) {
         self.zwjSequences = zwjSequences
         self.skinTone = skinTone
         self.chromeOverhang = chromeOverhang
+        self.textClusters = textClusters
     }
 
     /// A host that composes everything into the two cells the layout would
-    /// naturally claim, and whose chrome stays inside its cells — the correct
-    /// answer for a terminal TUIkit has not measured, and the behaviour every
-    /// terminal got before this existed.
+    /// naturally claim, advances a cluster of text as one, and whose chrome
+    /// stays inside its cells — the correct answer for a terminal TUIkit has
+    /// not measured, and the behaviour every terminal got before this
+    /// existed.
     public static let composing = Self()
 }
 
