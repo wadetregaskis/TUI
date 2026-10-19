@@ -153,13 +153,20 @@ extension ShapeStyle {
     /// ``View/gradientExtent(_:)`` is the modifier that can, and it wins over
     /// this one because it names an origin as well as a size.
     ///
-    /// The rectangle's own origin is therefore unused. It is a `CellRect` for
-    /// SwiftUI's spelling, and because a caller usually has one to hand from a
-    /// ``GeometryProxy``.
+    /// The rectangle's own origin is therefore unused by a ramp. It is a
+    /// `CellRect` for SwiftUI's spelling, and because a caller usually has one
+    /// to hand from a ``GeometryProxy``.
     ///
-    /// - Parameter rect: The rectangle to resolve in. Only its size is read.
+    /// An ``ImagePaint`` reads the other half: its tiles start at the
+    /// rectangle's origin, in cells from the top-leading corner of what is
+    /// filled, and the rectangle's size changes nothing — as SwiftUI's do,
+    /// measured on macOS 15.8 (`Tools/SwiftUIProbes/Image paint/`).
+    ///
+    /// - Parameter rect: The rectangle to resolve in: a ramp reads its size,
+    ///   an image paint its origin.
     public func `in`(_ rect: CellRect) -> some ShapeStyle {
-        _FixedExtentShapeStyle(base: self, extent: CellSize(width: rect.width, height: rect.height))
+        _FixedExtentShapeStyle(
+            base: self, extent: CellSize(width: rect.width, height: rect.height), origin: rect.origin)
     }
 }
 
@@ -195,19 +202,25 @@ struct _OpacityShapeStyle<Base: ShapeStyle>: ShapeStyle {
 }
 
 /// ``ShapeStyle/in(_:)``'s style. A colour has no extent to fix, so this is a
-/// gradient's modifier that happens to be spelled on every style — as it is in
-/// SwiftUI.
+/// ramp's modifier, and an image paint's, that happens to be spelled on every
+/// style — as it is in SwiftUI.
 struct _FixedExtentShapeStyle<Base: ShapeStyle>: ShapeStyle {
     let base: Base
+    /// The size a ramp is resolved over.
     let extent: CellSize
+    /// Where an image paint's tiles start.
+    let origin: CellPoint
 
     typealias Resolved = Never
 
     func paint(in environment: EnvironmentValues) -> Paint {
         base.paint(in: environment).mappingUnshadowed { drawn in
             switch drawn {
-            case .color, .shadowed, .image:
+            case .color, .shadowed:
                 return drawn
+            case .image(var source):
+                source.tileOrigin = origin
+                return .image(source)
             case .gradient(var ramp):
                 ramp.extent = extent
                 return .gradient(ramp)

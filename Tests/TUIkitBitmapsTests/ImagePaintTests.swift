@@ -106,6 +106,21 @@ struct ImagePaintTests {
         #expect(fields(trailing) == ["GGGGGGGG", "WWWWWWWW"])
     }
 
+    @Test("A rectangle given with in(_:) moves where the tiles start, and its size changes nothing")
+    func inMovesTheTileOrigin() {
+        let paint = ImagePaint(image: Self.image)
+        let anchored = Rectangle().fill(paint.in(CellRect(x: 2, y: 1, width: 8, height: 4))).imageCellPoints(Self.cell)
+        #expect(fields(anchored) == ["WWBBWWBB", "GGRRGGRR"])
+        let sized = Rectangle().fill(paint.in(CellRect(x: 0, y: 0, width: 40, height: 1))).imageCellPoints(Self.cell)
+        #expect(fields(sized) == ["RRGGRRGG", "BBWWBBWW"])
+        // A background's tiles move alike, and an origin past any screen draws.
+        let background = Text(String(repeating: " ", count: 8))
+            .background(paint.in(CellRect(x: 1, y: 0, width: 1, height: 1))).imageCellPoints(Self.cell)
+        #expect(fields(background, rows: 1) == ["GRRGGRRG"])
+        let far = Rectangle().fill(paint.in(CellRect(x: .min, y: .max, width: 1, height: 1))).imageCellPoints(Self.cell)
+        #expect(fields(far).allSatisfy { $0.count == 8 && !$0.contains(".") })
+    }
+
     @Test("Where the cell's size is not known, one tile spans what is filled, across")
     func unknownCellSpansTheFill() {
         let rectangle = Rectangle().fill(.image(Self.image))

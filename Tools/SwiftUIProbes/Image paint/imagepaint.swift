@@ -65,4 +65,11 @@ func row(_ label: String, _ view: some View, w: Int = 24, h: Int = 24, y: Int, x
     row("circle", Circle().fill(ImagePaint(image: img)).frame(width: 16, height: 16), y: 12, xs: 0..<24)
     row("fgstyle", Text("████").font(.system(size: 20)).foregroundStyle(ImagePaint(image: img)), w: 80, h: 24, y: 12, xs: 0..<40)
     row("background", Color.clear.frame(width: 16, height: 16).background(ImagePaint(image: img)), y: 4, xs: 0..<24)
+    // `ShapeStyle.in(_:)`: the rectangle's origin moves where the tiles start; its size changes nothing.
+    let anchored = ImagePaint(image: img).in(CGRect(x: 2, y: 3, width: 8, height: 8))
+    row("in(2,3,8x8)", Rectangle().fill(anchored).frame(width: 16, height: 16), y: 4, xs: 0..<24)
+    row("in(2,3,8x8)", Rectangle().fill(anchored).frame(width: 16, height: 16), y: 7, xs: 0..<24)
+    let wide = ImagePaint(image: img).in(CGRect(x: 2, y: 3, width: 40, height: 2))
+    row("in(2,3,40x2)", Rectangle().fill(wide).frame(width: 16, height: 16), y: 7, xs: 0..<24)
+    row("background in(2,3,8x8)", Color.clear.frame(width: 16, height: 16).background(anchored), y: 7, xs: 0..<24)
 } }

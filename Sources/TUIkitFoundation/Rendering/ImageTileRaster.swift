@@ -15,8 +15,9 @@ import TUIkitCore
 import TUIkitStyling
 
 /// An ``ImagePaint``'s cells, for ``SampledCells``: the image's region, a tile
-/// of it repeated across and down from the extent's top-leading corner, each
-/// cell the mean of a few samples of it.
+/// of it repeated across and down from the extent's top-leading corner — or
+/// from the origin ``ShapeStyle/in(_:)`` names, measured from that corner —
+/// each cell the mean of a few samples of it.
 ///
 /// Laid out in square units, a column wide, as a shape is: a row is
 /// `cellAspect` of them tall, so the half-cell sampler a shape's rasterizer
@@ -28,6 +29,11 @@ struct ImageTileRaster: CellColourRaster {
     /// How many samples a cell takes along each axis.
     static let samplesPerAxis = 2
 
+    /// The farthest, in cells, a tile origin moves the tiles: well past any
+    /// screen, and far enough from `Int`'s ends that no arithmetic on a cell's
+    /// place overflows. Only where a tile starts within the fill matters.
+    static let tileOriginLimit = 1 << 20
+
     private let pixels: ImagePaintPixels
     /// The region of the image drawn, in pixels: origin and size.
     private let region: (x: Double, y: Double, width: Double, height: Double)
@@ -35,7 +41,8 @@ struct ImageTileRaster: CellColourRaster {
     private let tile: (width: Double, height: Double)
     /// A row's height in square units.
     private let rowHeight: Double
-    /// Where the block drawn starts in the extent, in cells.
+    /// Where the block drawn starts, in cells from where the tiles do: its
+    /// place in the extent, less the tile origin ``ShapeStyle/in(_:)`` names.
     private let origin: (x: Int, y: Int)
     private let opacity: Double
 
@@ -64,7 +71,10 @@ struct ImageTileRaster: CellColourRaster {
         }
         guard tile.width.isFinite, tile.height.isFinite, tile.width > 0, tile.height > 0 else { return nil }
         rowHeight = cellAspect.isFinite && cellAspect > 0 ? cellAspect : 2
-        origin = (extent.originX, extent.originY)
+        func clamped(_ value: Int) -> Int { min(Self.tileOriginLimit, max(-Self.tileOriginLimit, value)) }
+        origin = (
+            clamped(extent.originX) - clamped(source.tileOrigin.x), clamped(extent.originY) - clamped(source.tileOrigin.y)
+        )
         opacity = min(1, max(0, source.opacity))
     }
 

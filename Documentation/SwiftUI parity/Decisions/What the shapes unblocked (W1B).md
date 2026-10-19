@@ -133,7 +133,8 @@ frame-as-hit-area rule does not ask for. No price until a port needs it.
 What was measured, and is drawn so (`Tools/SwiftUIProbes/Image paint/`): the
 tile is the source rectangle's share of the image's size in points, times the
 scale, repeated from the top-leading corner of the frame filled — a shape's, a
-background's, a text's. A tile is its size in points over the terminal cell's
+background's, a text's — or from the origin `in(_:)` names, whose size changes
+nothing. A tile is its size in points over the terminal cell's
 width in points columns across, a row being the cell aspect of them down, so a
 shape's half-block rasterizer samples the same picture at twice the rows; each
 cell is the mean of four samples, weighted by their alpha, the alpha a claim,

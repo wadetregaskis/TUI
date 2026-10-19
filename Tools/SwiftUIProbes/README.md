@@ -420,12 +420,14 @@ messages cite that path), and what cites it.
 
 - **Asks:** how `ImagePaint` repeats an image, read back as pixels from an `ImageRenderer` at scale 1:
   `imagepaint.swift` fills 16 × 16 shapes, and a background and a text's letters, with a 4 × 4 picture of four
-  coloured quarters, at scales 1, 2 and 0.5, from an image of scale 2, from two source rectangles, and in a
-  13 × 13 shape centred in a larger frame, and prints a row of pixels from each as letters. A program alone
-  (`@main`, built with `-parse-as-library`).
+  coloured quarters, at scales 1, 2 and 0.5, from an image of scale 2, from two source rectangles, in a
+  13 × 13 shape centred in a larger frame, and moved by `ShapeStyle.in(_:)`, and prints a row of pixels from
+  each as letters. A program alone (`@main`, built with `-parse-as-library`).
   Found: the tile is the source rectangle's share of the image's size in points, times the scale, repeated
-  from the top-leading corner of the frame filled (a shape's, a background's, a text's).
+  from the top-leading corner of the frame filled (a shape's, a background's, a text's); `in(_:)` moves where
+  the tiles start to its rectangle's origin, and its size changes nothing.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19; prints the same on a rerun.
 - **Was:** `W1B/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Styling/ImagePaint.swift`, `Tests/TUIkitBitmapsTests/ImagePaintTests.swift`;
+- **Cited by:** `Sources/TUIkitFoundation/Styling/ImagePaint.swift`, `Sources/TUIkitFoundation/Styling/ShapeStyle.swift`
+  (`in(_:)`), `Tests/TUIkitBitmapsTests/ImagePaintTests.swift`;
   `Documentation/SwiftUI parity/Decisions/What the shapes unblocked (W1B).md` (B-W1B-4).

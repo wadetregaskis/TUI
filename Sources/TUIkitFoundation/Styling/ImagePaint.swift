@@ -29,7 +29,9 @@ import TUIkitView
 /// columns as the terminal's cell is points (``EnvironmentValues/imageCellPoints``),
 /// so a 64-point tile in a terminal whose cell is 8 × 16 points is eight
 /// columns by four rows. Where the cell's size is not known, one tile spans
-/// what is filled, across, at `scale` 1.
+/// what is filled, across, at `scale` 1. ``ShapeStyle/in(_:)`` moves where the
+/// tiles start to its rectangle's origin, and its size changes nothing, as
+/// SwiftUI's does.
 ///
 /// ```swift
 /// Rectangle()
@@ -112,6 +114,9 @@ public struct ImagePaintSource: Equatable, Sendable {
     package var opacity: Double = 1
     /// The terminal cell's size in points where this was resolved.
     package var cellPoints: TerminalCellPoints?
+    /// Where the tiles start, in cells from the top-leading corner of what is
+    /// filled: the origin ``ShapeStyle/in(_:)`` names.
+    package var tileOrigin = CellPoint.zero
     /// The image's pixels, once asked for; `nil` while they load, and for a
     /// symbol.
     package var pixels: ImagePaintPixels?
@@ -129,7 +134,8 @@ public struct ImagePaintSource: Equatable, Sendable {
     /// while they loaded.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.content == rhs.content && lhs.sourceRect == rhs.sourceRect && lhs.scale == rhs.scale
-            && lhs.opacity == rhs.opacity && lhs.cellPoints == rhs.cellPoints && lhs.pixels === rhs.pixels
+            && lhs.opacity == rhs.opacity && lhs.cellPoints == rhs.cellPoints && lhs.tileOrigin == rhs.tileOrigin
+            && lhs.pixels === rhs.pixels
     }
 
     /// One colour for the paint: its pixels' mean at its strength, or nothing
