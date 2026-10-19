@@ -121,10 +121,10 @@ package struct MatchedMemberState {
     /// Where it drew itself, in the global space — filled in once the scene
     /// root has found it.
     package var presented: CellRect?
-    /// The member of its group that left as it arrived, and where that one
-    /// was drawn, while this one is carried from there — so the picture it
-    /// left is carried with it (decisions B-O4-1). `nil` at rest.
-    package var leaving: (identity: ViewIdentity, presented: CellRect)?
+    /// The member of its group that left as it arrived, while this one is
+    /// carried from where that one was drawn — so the picture it left is
+    /// carried with it (decisions B-O4-1). `nil` at rest.
+    package var leaving: MatchedMember?
 
     package init(
         key: MatchedGeometryKey, followed: ViewIdentity?, epoch: Int, offsets: MatchedEdgeOffsets
@@ -186,6 +186,9 @@ package struct MatchedRegistration {
 /// A member of a group as the scene root found it.
 package struct MatchedMember {
     package var identity: ViewIdentity
+    /// Its geometry marker, which finds it in a picture it drew in — the
+    /// one it left, when it has gone (`DepartureStore.carrying(_:leftFrom:)`).
+    package var marker: HitTestRegion.HandlerID
     package var isSource: Bool
     package var anchor: UnitPoint
     /// Its own frame in the global space.
@@ -394,7 +397,7 @@ extension MatchedGeometryRegistry {
                     } ?? frame
                 found[key, default: []].append(
                     MatchedMember(
-                        identity: registration.identity, isSource: registration.isSource,
+                        identity: registration.identity, marker: registration.marker, isSource: registration.isSource,
                         anchor: registration.anchor, frame: frame, presented: presented))
                 var state = registration.state
                 state.presented = presented

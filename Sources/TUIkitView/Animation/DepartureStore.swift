@@ -118,11 +118,12 @@ public final class DepartureStore: @unchecked Sendable {
     private var entries: [ViewIdentity: Entry] = [:]
 
     /// How far the matched view that left from each identity is carried,
-    /// toward the one of its group arriving as it left
-    /// (``noteCarried(_:byX:y:)``) — kept while it is noted or drawn, so a
-    /// picture drawn before the view arriving has said where it is takes the
-    /// last frame's carry, and one that leaves for longer than the carry
-    /// takes stays where the carry landed.
+    /// toward the one of its group arriving as it left, and how to find it in
+    /// the picture it left (``noteCarried(_:drawnAt:width:height:byX:y:)``) —
+    /// kept while it is noted or drawn, so a picture drawn before the view
+    /// arriving has said where it is takes the last frame's carry, and one
+    /// that leaves for longer than the carry takes stays where the carry
+    /// landed.
     private var carries: [ViewIdentity: Carry] = [:]
 
     /// Where a removal starting is reported, for the completions waiting on
@@ -460,39 +461,63 @@ extension DepartureStore {
         }
     }
 
-    /// Notes that the matched view that drew at `member` and has left is
-    /// carried `(dx, dy)` from where it was this pass: the member of its
-    /// group that arrived as it left is carried from its frame toward its
-    /// own, and SwiftUI moves the one leaving with it (measured,
+    /// Notes that the matched view that drew at `member` — its geometry
+    /// marker `marker`, `width` × `height` in the picture it left — has left
+    /// and is carried `(dx, dy)` from where it was: the member of its group that
+    /// arrived as it left is carried from its frame toward its own, and
+    /// SwiftUI moves the one leaving with it (measured,
     /// `Tools/SwiftUIProbes/Matched geometry/mg3.out` A1, A2). Said by the
     /// member arriving, on each frame it is carried and the frame it lands
     /// (decisions B-O4-1).
-    package func noteCarried(_ member: ViewIdentity, byX dx: Int, y dy: Int) {
-        carries[member] = Carry(dx: dx, dy: dy, touched: true)
+    package func noteCarried(
+        _ member: ViewIdentity, drawnAt marker: HitTestRegion.HandlerID, width: Int, height: Int,
+        byX dx: Int, y dy: Int
+    ) {
+        carries[member] = Carry(marker: marker, width: width, height: height, dx: dx, dy: dy, touched: true)
     }
 
-    /// How far the picture of a view leaving from `identity` is carried: the
-    /// carry last noted for a matched view that left from `identity` or from
-    /// inside it; `nil` where nothing it held is carried.
-    package func carriedOffset(within identity: ViewIdentity) -> (x: Int, y: Int)? {
-        guard !carries.isEmpty else { return nil }
-        let member =
-            carries[identity] != nil ? identity : carries.keys.first { identity.isAncestor(of: $0) }
-        guard let member, let carry = carries[member] else { return nil }
-        // Drawn: kept for as long as its picture is.
-        carries[member]?.touched = true
-        return (carry.dx, carry.dy)
-    }
-
-    /// `picture`, left by a view leaving from `identity`, drawn where it is
-    /// carried: past its own frame by the carry noted for what it held, or
-    /// as it was.
+    /// `picture`, left by a view leaving from `identity`, drawn where what
+    /// it holds is carried: each matched view in it that left as another of
+    /// its group arrived moved by its own carry, and the rest where it was —
+    /// SwiftUI moves the matched view, and what was drawn round it fades in
+    /// place. A picture that is all one matched view moves whole; one whose
+    /// matched views cannot be found in it (no marker of theirs) is drawn as
+    /// it was.
     package func carrying(_ picture: FrameBuffer, leftFrom identity: ViewIdentity) -> FrameBuffer {
-        guard let (dx, dy) = carriedOffset(within: identity), dx != 0 || dy != 0 else { return picture }
+        guard !carries.isEmpty else { return picture }
+        let within = carries.filter { member, _ in member == identity || identity.isAncestor(of: member) }
+        guard !within.isEmpty else { return picture }
+        var parts: [FrameBuffer.MovedPart] = []
+        for (member, carry) in within {
+            carries[member]?.touched = true
+            guard carry.dx != 0 || carry.dy != 0, let origin = Self.origin(of: carry.marker, in: picture) else {
+                continue
+            }
+            parts.append(
+                FrameBuffer.MovedPart(
+                    x: origin.x, y: origin.y, width: carry.width, height: carry.height,
+                    dx: carry.dx, dy: carry.dy))
+        }
+        guard !parts.isEmpty else { return picture }
         var moved = picture
         // What is leaving takes no clicks, and is not where anything is.
         moved.hitTestRegions = []
-        return moved.drawnPastSlot(width: picture.width, height: picture.lines.count, offsetX: dx, offsetY: dy)
+        if parts.count == 1, let part = parts.first, part.x <= 0, part.y <= 0,
+            part.x + part.width >= picture.width, part.y + part.height >= picture.lines.count
+        {
+            return moved.drawnPastSlot(
+                width: picture.width, height: picture.lines.count, offsetX: part.dx, offsetY: part.dy)
+        }
+        return moved.drawnPastSlot(moving: parts)
+    }
+
+    /// Where the geometry marker `marker` is in `picture`, if it is there.
+    private static func origin(of marker: HitTestRegion.HandlerID, in picture: FrameBuffer) -> (x: Int, y: Int)? {
+        var found: (x: Int, y: Int)?
+        picture.forEachGeometryMarker { id, x, y in
+            if found == nil, id == marker { found = (x, y) }
+        }
+        return found
     }
 
     /// Ends a pass: drops the entries of views that vanished without anything
@@ -526,9 +551,14 @@ extension DepartureStore {
     }
 }
 
-/// How far a matched view that left is carried
-/// (``DepartureStore/noteCarried(_:byX:y:)``).
+/// How far a matched view that left is carried, and how to find it in the
+/// picture it left (``DepartureStore/noteCarried(_:drawnAt:width:height:byX:y:)``).
 private struct Carry {
+    /// Its geometry marker, in the picture it left.
+    var marker: HitTestRegion.HandlerID
+    /// The cells it drew, from its marker.
+    var width: Int
+    var height: Int
     var dx: Int
     var dy: Int
     /// Whether it was noted or drawn this pass.

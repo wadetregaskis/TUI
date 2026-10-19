@@ -220,13 +220,13 @@ private struct BranchAnimator {
             }
         }
         if let leaving = record.leaving {
-            if var picture = picture(of: leaving) {
+            if let picture = picture(of: leaving) {
+                // A matched view in it carried with the one arriving in its
+                // place (`DepartureStore.carrying`).
+                var carried = storage.departures.carrying(picture, leftFrom: identity(ofBranch: leaving.isTrueBranch))
                 // What is leaving takes no clicks, and is not where anything is.
-                picture.hitTestRegions = []
-                // Where a matched view in it is carried, with the one
-                // arriving in its place (`DepartureStore.carrying`).
-                let carry = storage.departures.carriedOffset(within: identity(ofBranch: leaving.isTrueBranch))
-                let past = picture.drawnPastSlot(width: 0, height: 0, offsetX: carry?.x ?? 0, offsetY: carry?.y ?? 0)
+                carried.hitTestRegions = []
+                let past = carried.drawnPastSlot(width: 0, height: 0, offsetX: 0, offsetY: 0)
                 drawn.overlays = past.overlays + drawn.overlays
             } else {
                 record.leaving = nil

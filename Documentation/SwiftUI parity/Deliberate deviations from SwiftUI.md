@@ -1372,8 +1372,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (L6), and only at rest is it drawn at its place in the stacking order —
   there a terminal's blank cells paint, so a view carried toward the views
   before it would be lost under every container after it;
-  the removed view's picture is carried with the inserted one at the size it
-  was, placed in that one's frame as a content of its size is; a transition
+  the removed view's own cells — found by its geometry marker in the picture
+  it left — are carried with the inserted one at the size it was, placed in
+  that one's frame as a content of its size is, while what was drawn round
+  it in that picture fades where it was, as SwiftUI's does; a transition
   that fades the inserted view fades the cells it draws at another view's
   frame too, as it moves (both 2026-10-19, decisions B-O4-1, B-O4-2). A
   source that its parent moves is not animated by the effect, so a view under

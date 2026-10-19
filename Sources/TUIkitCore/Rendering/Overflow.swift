@@ -458,3 +458,58 @@ extension FrameBuffer {
         return footprint
     }
 }
+
+// MARK: - Drawing parts of a view past its slot
+
+extension FrameBuffer {
+    /// A rect of a buffer, and how far it is drawn from where it is
+    /// (``drawnPastSlot(moving:)``).
+    package struct MovedPart: Equatable {
+        package var x: Int
+        package var y: Int
+        package var width: Int
+        package var height: Int
+        package var dx: Int
+        package var dy: Int
+
+        package init(x: Int, y: Int, width: Int, height: Int, dx: Int, dy: Int) {
+            self.x = x
+            self.y = y
+            self.width = width
+            self.height = height
+            self.dx = dx
+            self.dy = dy
+        }
+    }
+
+    /// An empty footprint the size of this buffer, with the buffer drawn past
+    /// it: each of `parts` cut out and drawn its `(dx, dy)` from where it was,
+    /// and the rest where it was — ``drawnPastSlot(width:height:offsetX:offsetY:)``
+    /// for a picture of which only some views move, as a matched view leaving
+    /// moves with the one arriving and what was drawn round it does not
+    /// (`DepartureStore.carrying(_:leftFrom:)`).
+    ///
+    /// Drawn as that is, as content past its region: only the cells each
+    /// piece paints, the moved parts over the rest. The buffer's own layers
+    /// stay where they are, and its geometry markers stay in the footprint.
+    package func drawnPastSlot(moving parts: [MovedPart]) -> FrameBuffer {
+        var bare = self
+        bare.overlays = []
+        var whole = OverlayLayer(
+            offsetX: 0, offsetY: 0, content: bare, level: .popover,
+            zIndex: OverlayLayer.displacedDrawingZIndex, clampsToScreen: false, isOpaque: false)
+        whole.isOverflow = true
+        var staying = [whole]
+        var moving: [OverlayLayer] = []
+        for part in parts where part.width > 0 && part.height > 0 {
+            if let cut = whole.cropped(x: part.x, y: part.y, width: part.width, height: part.height) {
+                moving.append(cut.shifted(byX: part.dx, y: part.dy))
+            }
+            staying = staying.flatMap { $0.excluding(x: part.x, y: part.y, width: part.width, height: part.height) }
+        }
+        var footprint = FrameBuffer(footprintWidth: width, height: lines.count)
+        footprint.hitTestRegions = hitTestRegions.filter(\.isGeometryMarker)
+        footprint.overlays = (staying + moving).flatMap { $0.drawnParts() } + overlays
+        return footprint
+    }
+}

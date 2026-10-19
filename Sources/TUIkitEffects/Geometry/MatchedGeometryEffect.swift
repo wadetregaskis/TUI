@@ -260,13 +260,17 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
     /// (``MatchedGeometryPlacement/contentOffset(in:content:anchor:matchesPosition:)``),
     /// so the two move together as SwiftUI's do (`mg3.out` A1, A2), and the
     /// picture fades where they are (decisions B-O4-1). The picture is the one
-    /// it last drew, so it keeps its size: a cell cannot be scaled.
+    /// it last drew, so it keeps its size: a cell cannot be scaled. Only its
+    /// own cells move, found in what left by its marker: what was drawn round
+    /// it fades where it was.
     private func carryLeaving(of member: MatchedMemberDrawing, to frame: CellRect, departures: DepartureStore) {
         guard let leaving = member.registration.state.leaving else { return }
         let left = leaving.presented
         let inside = MatchedGeometryPlacement.contentOffset(
             in: frame.size, content: left.size, anchor: anchor, matchesPosition: member.matchesPosition)
-        departures.noteCarried(leaving.identity, byX: frame.x + inside.x - left.x, y: frame.y + inside.y - left.y)
+        departures.noteCarried(
+            leaving.identity, drawnAt: leaving.marker, width: leaving.frame.width, height: leaving.frame.height,
+            byX: frame.x + inside.x - left.x, y: frame.y + inside.y - left.y)
     }
 
     /// `picture` drawn `(dx, dy)` from a footprint of `size`, floating over
@@ -342,7 +346,7 @@ private struct MatchedMemberDrawing {
             // carried with it.
             startsFrom = departed.presented
             registration.assumedDeparted = departed.identity
-            registration.state.leaving = (departed.identity, departed.presented)
+            registration.state.leaving = departed
         } else {
             startsFrom = nil
         }
