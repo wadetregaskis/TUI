@@ -142,6 +142,8 @@ extension LocalizationService {
       "filePanel.untitled": "Untitled",
       "filePanel.replaceTitle": "“%@” already exists. Do you want to replace it?",
       "filePanel.replaceMessage": "A file with the same name already exists in the folder “%@”. Replacing it will overwrite its current contents.",
+      "filePanel.goTo": "Go to:",
+      "filePanel.status.goTo": "go to",
 
       "menu.file": "File",
       "menu.edit": "Edit",

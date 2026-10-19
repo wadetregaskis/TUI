@@ -34,7 +34,9 @@ import TUIkitTables
 /// - Space selects the item under the cursor, adding it to the selection
 ///   where several may be chosen;
 /// - ← or Backspace goes to the enclosing folder, and `~` to the home folder;
-/// - Escape cancels.
+/// - `/` turns the path bar into a field to type a path in, which Tab
+///   completes and Return goes to, as at a shell prompt;
+/// - Escape cancels (or closes that field).
 /// Every one of them is also a click: a double-click opens or chooses, the
 /// `..` button goes up, and the buttons are buttons.
 ///
@@ -63,9 +65,18 @@ struct FilePanel: View {
     /// The file a save would replace, while the panel asks whether to.
     @State private var replacing: URL?
 
-    /// Whether the name field holds the focus: Return on a file puts its name
-    /// there and moves the focus to it.
-    @FocusState private var nameIsFocused: Bool
+    /// The path typed in the go-to field, while it is open (`/` opens it).
+    @State private var typedPath: String?
+
+    /// Which of the panel's fields holds the focus, where the panel moves it:
+    /// to the name field when Return puts a file's name there, to the go-to
+    /// field when `/` opens it, and back to the folder when it closes.
+    @FocusState private var focus: Field?
+
+    /// The panel's fields, for ``focus``.
+    private enum Field: Hashable {
+        case name, path, rows
+    }
 
     init(request: FilePanelRequest, finish: @escaping (FilePanelOutcome) -> Void) {
         self.request = request
@@ -105,10 +116,24 @@ struct FilePanel: View {
                         ?? LocalizationService.shared.string(for: LocalizationKey.FilePanel.saveAs),
                     name: $name
                 )
-                .focused($nameIsFocused)
+                .focused($focus, equals: .name)
                 .onSubmit { confirm() }
             }
-            FilePanelPathBar(browser: browser, home: request.homeDirectory)
+            if typedPath != nil {
+                FilePanelGoToField(path: Binding(get: { typedPath ?? "" }, set: { typedPath = $0 }))
+                    .focused($focus, equals: .path)
+                    .onSubmit { goToTypedPath() }
+                    .onKeyPress(.tab) {
+                        completeTypedPath()
+                        return .handled
+                    }
+                    .onKeyPress(.escape) {
+                        closeGoToField()
+                        return .handled
+                    }
+            } else {
+                FilePanelPathBar(browser: browser, home: request.homeDirectory)
+            }
             rows
         }
     }
@@ -178,6 +203,11 @@ struct FilePanel: View {
             browser.open(request.homeDirectory)
             return .handled
         }
+        .onKeyPress("/") {
+            openGoToField()
+            return .handled
+        }
+        .focused($focus, equals: .rows)
         // Escape among them: items a presented sheet's content declares take
         // the place of the sheet's own Escape item, and without one here a
         // page's "⎋ back" outside the sheet answered Escape, taking the page
@@ -193,6 +223,8 @@ struct FilePanel: View {
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))
             StatusBarItem(
                 shortcut: "~", label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusHome))
+            StatusBarItem(
+                shortcut: "/", label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusGoTo))
         }
     }
 
@@ -346,7 +378,7 @@ struct FilePanel: View {
         if request.saveContentTypes != nil {
             if let entry = entries.first(where: \.isChoosable) {
                 name = entry.name
-                nameIsFocused = true
+                focus = .name
             }
             return
         }
@@ -364,5 +396,45 @@ struct FilePanel: View {
             return
         }
         finish(.chose([destination], ending))
+    }
+
+    // MARK: - Going to a typed path
+
+    /// Opens the go-to field on the folder shown, written as the path bar
+    /// writes it, and moves the focus there.
+    private func openGoToField() {
+        let shown = FilePanelPathBar.displayPath(of: browser.directory, home: request.homeDirectory)
+        typedPath = shown.hasSuffix("/") ? shown : shown + "/"
+        focus = .path
+    }
+
+    /// Closes the go-to field and gives the folder the focus again.
+    private func closeGoToField() {
+        typedPath = nil
+        focus = .rows
+    }
+
+    /// Return in the go-to field: a folder opens; a file opens the folder it
+    /// is in, and to save gives its name to the name field; a path to
+    /// nothing leaves the field open to be mended.
+    private func goToTypedPath() {
+        guard let typed = typedPath else { return }
+        let url = PathCompletion.resolve(typed, relativeTo: browser.directory, home: request.homeDirectory)
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
+        if isDirectory.boolValue {
+            browser.open(url)
+        } else {
+            browser.open(url.deletingLastPathComponent())
+            if request.saveContentTypes != nil { name = url.lastPathComponent }
+        }
+        closeGoToField()
+    }
+
+    /// Tab in the go-to field: the path's last part completed, as a shell
+    /// completes it.
+    private func completeTypedPath() {
+        guard let typed = typedPath else { return }
+        typedPath = PathCompletion.complete(typed, relativeTo: browser.directory, home: request.homeDirectory)
     }
 }

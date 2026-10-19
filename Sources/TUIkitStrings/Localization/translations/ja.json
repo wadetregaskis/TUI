@@ -112,6 +112,8 @@
   "filePanel.untitled": "名称未設定",
   "filePanel.replaceTitle": "“%@”はすでに存在します。置き換えますか?",
   "filePanel.replaceMessage": "同じ名前のファイルがフォルダ“%@”内にすでにあります。置き換えると、現在の内容が上書きされます。",
+  "filePanel.goTo": "移動:",
+  "filePanel.status.goTo": "移動",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

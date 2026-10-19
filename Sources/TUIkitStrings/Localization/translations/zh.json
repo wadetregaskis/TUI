@@ -112,6 +112,8 @@
   "filePanel.untitled": "未命名",
   "filePanel.replaceTitle": "“%@”已经存在。要替换它吗？",
   "filePanel.replaceMessage": "文件夹“%@”中已存在同名文件。替换它将覆盖其当前内容。",
+  "filePanel.goTo": "前往：",
+  "filePanel.status.goTo": "前往",
 
   "menu.file": "文件",
   "menu.edit": "编辑",

@@ -112,6 +112,8 @@
   "filePanel.untitled": "Ohne Titel",
   "filePanel.replaceTitle": "„%@“ ist bereits vorhanden. Möchtest du es ersetzen?",
   "filePanel.replaceMessage": "Im Ordner „%@“ ist bereits eine Datei mit diesem Namen vorhanden. Durch Ersetzen wird ihr aktueller Inhalt überschrieben.",
+  "filePanel.goTo": "Gehe zu:",
+  "filePanel.status.goTo": "gehe zu",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

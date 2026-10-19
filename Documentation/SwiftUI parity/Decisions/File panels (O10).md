@@ -40,7 +40,12 @@ area's height), titled Open, holding
 The keys are a terminal file browser's: the arrows move the table's cursor and
 typing finds a name (its type-select); Return on a folder opens it and on a
 file chooses it, or the whole selection when the cursor is in it; Space selects;
-← or Backspace goes up, `~` home; Escape cancels. A double-click is Return.
+← or Backspace goes up, `~` home; `/` turns the path bar into a field to type a
+path in, as a shell takes one — `~/…`, absolute, or relative to the folder
+shown — which Tab completes (`PathCompletion`: the one match, a folder's with
+its `/`, or as much as several share) and Return goes to (a file's folder, and
+to save its name); Escape cancels, or closes that field. A double-click is
+Return.
 Open chooses the selection's choosable items, or the folder shown where a
 folder may be chosen, or opens the one folder selected when it may not (as a
 macOS panel's Open does). The folder is read and sorted off the main actor
@@ -51,7 +56,8 @@ macOS panel's Open does). The folder is read and sorted off the main actor
 1. **A sidebar of places** (the working directory, home, Desktop, Documents,
    Downloads, recent folders, volumes), as the review's sketch has it: about
    half a day.
-2. **A typed path**, `/` opening a field with Tab completion: about a day.
+2. **A list of the matches** under the go-to field when Tab cannot complete
+   further, as zsh lists them: half a day.
 3. **A preview** of a text file's head (an image's needs TUIkitBitmaps, behind a
    seam): about a day.
 

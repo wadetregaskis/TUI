@@ -112,6 +112,8 @@
   "filePanel.untitled": "Sin título",
   "filePanel.replaceTitle": "“%@” ya existe. ¿Quieres reemplazarlo?",
   "filePanel.replaceMessage": "Ya existe un archivo con el mismo nombre en la carpeta “%@”. Si lo reemplazas, se sobrescribirá su contenido actual.",
+  "filePanel.goTo": "Ir a:",
+  "filePanel.status.goTo": "ir a",
 
   "menu.file": "Archivo",
   "menu.edit": "Editar",

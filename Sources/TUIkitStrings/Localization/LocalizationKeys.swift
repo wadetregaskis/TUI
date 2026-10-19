@@ -225,6 +225,10 @@ public enum LocalizationKey {
         case replaceTitle = "filePanel.replaceTitle"
         /// The replace alert's message, the folder's name as `%@`.
         case replaceMessage = "filePanel.replaceMessage"
+        /// The go-to field's label, and its placeholder.
+        case goTo = "filePanel.goTo"
+        /// The status bar's word for the key that opens the go-to field.
+        case statusGoTo = "filePanel.status.goTo"
     }
 
     /// Menu items and sections
