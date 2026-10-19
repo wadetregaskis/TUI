@@ -16,7 +16,7 @@ enum ExampleStrings {
             "en": en, "de": de, "fr": fr, "it": it, "es": es, "zh": zh, "ja": ja,
         ]
         let fragments: [[String: [String: String]]] = [
-            base, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22,
+            base, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, gFiles,
         ]
         var result: [String: [String: String]] = [:]
         for fragment in fragments {

@@ -48,6 +48,7 @@ enum DemoPage: Int, CaseIterable {
     case help
     case shapes
     case terminal
+    case files
 
     /// The page to open on, so a demo page can be inspected without navigating
     /// to it — `Example --page emoji`.
@@ -343,6 +344,8 @@ struct ContentView: View {
             ShapesPage().statusBarItems(subPageItems(pageSetter: pageSetter))
         case .terminal:
             TerminalPage().statusBarItems(subPageItems(pageSetter: pageSetter))
+        case .files:
+            FilePanelsPage().statusBarItems(subPageItems(pageSetter: pageSetter))
         }
     }
 

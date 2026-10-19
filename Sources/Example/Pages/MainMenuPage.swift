@@ -103,6 +103,7 @@ struct MainMenuPage: View {
         Entry(page: .help, key: "menu.item.help", shortcut: "h"),
         Entry(page: .shapes, key: "menu.item.shapes", shortcut: "d"),
         Entry(page: .terminal, key: "menu.item.terminal", shortcut: "w"),
+        Entry(page: .files, key: "menu.item.files", shortcut: "i"),
     ]
 
     /// Subtitle for the SF Symbols feature box: a few thematic glyphs — the
