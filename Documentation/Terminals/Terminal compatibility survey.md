@@ -4,7 +4,7 @@ The canonical record of how each terminal emulator behaves on every axis
 TUIkit cares about — input encodings (keys, mouse, trackpad) and output
 behaviour (cursor advance vs painted width, emoji handling, glyph cell
 coverage, colour depth, OSC 8 hyperlinks, OSC 52 clipboard writes, the window
-title, graphics protocols) — plus the environment variables each one defines and the exact
+title, progress bars, graphics protocols) — plus the environment variables each one defines and the exact
 versions the observations were made against.
 
 **Maintenance contract:** whenever anything new is observed or learned
@@ -3736,6 +3736,81 @@ prompt sets its own, which shell integration does on every host that has it.
 Under tmux the title is the PANE's (`#{pane_title}`); the outer terminal's
 window changes only with `set-titles on`, off by default, as the Ghostty
 adoption study (C2) expected.
+
+---
+
+## Progress and attention: OSC 9;4 — documented 2026-10-19, tmux measured
+
+A terminal can draw an app's progress itself, outside its cells: a bar on
+the tab, the window or the pane, seen from other tabs and windows too.
+TUIkit puts a view's `.terminalProgress(_:)` there (`TerminalHostState`, on
+the ledger the window title uses; the Ghostty adoption study, C3, step V8).
+The sequence is ConEmu's progress report, `OSC 9 ; 4`.
+
+### What TUIkit sends, and to whom
+
+| When | Bytes |
+|---|---|
+| A view drawn states progress, and on a change of its state or its whole percent | `ESC ] 9 ; 4 ; s ; p ESC \` — `s` is `1` a value, `2` an error, `3` indeterminate, `4` paused; `p` is `0`–`100`, left out (with its `;`) for indeterminate, and for an error or a pause stated without a value |
+| The bar has gone 5 s unsent | the same again, written between frames when no frame is due: nothing is drawn for it |
+| No view drawn states progress any more; a suspend; the exit; a fatal signal (the signal debt) | `ESC ] 9 ; 4 ; 0 ESC \` |
+| The first frame after a resume | the bar again |
+
+Only to a host documented to draw one (`TerminalClient.honoursProgressReports`):
+Ghostty, iTerm2 and tmux. Elsewhere nothing is sent, and
+`\.terminalFeatures.showsProgress` is `false`, so an app can draw its own.
+`TUIKIT_PROGRESS=1` turns it on for any host, `0` off for every one. The
+5 s is a margin inside Ghostty's limit (below); a host that keeps a bar
+unprompted is sent the same dozen bytes again every 5 s.
+
+### What each host documents
+
+| Host | Draws it | Evidence | A bar no program updates |
+|---|---|---|---|
+| Ghostty 1.3.1 | yes, by default | `progress-style` (default `true`): "graphical progress bars using the ConEmu OSC 9;4 escape sequence" (its configuration reference, `ghostty.5`) | removed after about 15 s (its VT reference, as the adoption study read it, C3); unmeasured |
+| iTerm2 3.7.6 | yes | an "Enable Progress Bars" setting, and its triggers' help text naming "the progress protocol (OSC 9;4)", both read from the app's binary; the setting's default is not read | unknown |
+| tmux 3.7c | keeps a bar per pane, and passes it on to a client that can draw one | its manual: `#{pane_pb_state}`, `#{pane_pb_progress}` "(can be set by application)", and the `progressbar` terminal feature; measured below | kept (measured) |
+| kitty 0.49.1 | yes, from 0.47.0 (`progress_bar`, default `top`) | its changelog and configuration reference. Not a host TUIkit models, so not sent; before 0.38 kitty posted every `OSC 9` as a notification, a report's digits included | unknown |
+| Apple Terminal 455.1 | no | nothing in the app | — |
+| Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |
+
+### Measured: tmux 3.7c, 2026-10-19 — `Tools/TerminalProbes/progress_probe.py`
+
+In a pane (record: `data/tmux-3.7c-progress.json`):
+
+- **Every spelling is swallowed**, on both screens: the cursor did not move.
+- **tmux takes each as meant**, read back as its pane's bar
+  (`#{pane_pb_state} #{pane_pb_progress}`): `normal 50`, `normal 0`,
+  `normal 100`, `error 30`, `indeterminate`, `paused 70`, `hidden`.
+- **A state sent without a value keeps the bar's value**: `9;4;2` after
+  `9;4;2;30` is `error 30`, and `9;4;3` keeps it too. That is ConEmu's
+  reading of a missing value, and what `.error(nil)` and `.paused(nil)` ask.
+- **No timeout**: a bar sent once and left for 20 s was still up.
+
+What tmux passes on (record: `data/tmux-3.7c-progress-forwarding.json`;
+`--tmux-forwarding`, where the probe plays the terminal tmux draws in, and
+runs itself in the pane to send every sequence):
+
+- To a client whose terminal has the `progressbar` feature (`tmux -T
+  progressbar`): every report, spelled with both parameters, a missing value
+  filled in from the bar (`9;4;3;50` for `9;4;3` after `9;4;1;50`, and
+  `9;4;0;70` for the removal).
+- To a client without it: nothing.
+- tmux gives a client the feature from its XTVERSION answer: iTerm2's, and not
+  Ghostty's ("Identifying the client terminal", under tmux). Inside tmux in
+  Ghostty the bar is kept for the pane and shown nowhere until
+  `set -as terminal-features ',xterm-ghostty:progressbar'` — tmux's call, as
+  with hyperlinks.
+
+### Owed
+
+- **A look on Ghostty and iTerm2**: whether the bar appears, where, and how
+  long one no program updates stays up (`progress_probe.py --hold 20`, and
+  `--timeout 20`). Ghostty's run needs its consent for a new script path,
+  with someone there to give it.
+- **The leak check on the GUI hosts**: both screens, on Ghostty and iTerm2,
+  which TUIkit sends it to, and on Apple Terminal and Warp, which it sends it
+  to only under `TUIKIT_PROGRESS=1`.
 
 ---
 

@@ -228,4 +228,29 @@ struct FramePacerTests {
             slow.waitNanos(now: 1_000, pollingPendingInput: true)
                 == FramePacer.pendingInputPollNanos)
     }
+
+    // MARK: - A wake between frames
+
+    @Test("A wake between frames bounds an idle wait and owes no frame when it comes")
+    func wakeBoundsAnIdleWaitWithoutAFrame() {
+        var pacer = rendered(at: 1_000)
+        let wake: UInt64 = 1_000 + 5_000_000_000
+        #expect(pacer.waitNanos(now: 1_000, until: wake) == 5_000_000_000)
+        // Reached, it is the loop's to serve: nothing renders for it.
+        var renders = 0
+        #expect(!pacer.renderIfDue(now: wake) { renders += 1; return frame(at: wake) })
+        #expect(renders == 0)
+        #expect(pacer.waitNanos(now: wake, until: wake) == 0)
+    }
+
+    @Test("A wake between frames only shortens a wait, and ignores the cap")
+    func wakeOnlyShortens() {
+        var pending = rendered(at: 1_000)
+        pending.requestRender()
+        #expect(pending.waitNanos(now: 1_000, until: 1_000 + 10 * interval) == interval)
+        // Sooner than the cap: what it does draws nothing, so the cap does not hold it.
+        #expect(pending.waitNanos(now: 1_000, until: 1_000 + interval / 2) == interval / 2)
+        let animating = rendered(at: 1_000, deadline: 1_000 + 3 * interval)
+        #expect(animating.waitNanos(now: 1_000, until: 1_000 + 9 * interval) == 3 * interval)
+    }
 }

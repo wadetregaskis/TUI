@@ -1,0 +1,55 @@
+{
+  "probe": "progress_probe --tmux-forwarding",
+  "measured": "2026-10-19T07:36:45-0700",
+  "tmux": "tmux 3.7c",
+  "emitted_in_the_pane": [
+    {
+      "name": "value_50",
+      "bytes": "<ESC>]9;4;1;50<ESC>\\"
+    },
+    {
+      "name": "indeterminate",
+      "bytes": "<ESC>]9;4;3<ESC>\\"
+    },
+    {
+      "name": "error_bare",
+      "bytes": "<ESC>]9;4;2<ESC>\\"
+    },
+    {
+      "name": "paused_70",
+      "bytes": "<ESC>]9;4;4;70<ESC>\\"
+    },
+    {
+      "name": "none",
+      "bytes": "<ESC>]9;4;0<ESC>\\"
+    },
+    {
+      "name": "notify",
+      "bytes": "<ESC>]9; tuikit progress_probe<ESC>\\"
+    },
+    {
+      "name": "bell",
+      "bytes": "<BEL>"
+    }
+  ],
+  "runs": [
+    {
+      "client_features": "progressbar",
+      "progress_sequences": [
+        "<ESC>]9;4;1;50<ESC>\\",
+        "<ESC>]9;4;3;50<ESC>\\",
+        "<ESC>]9;4;2;50<ESC>\\",
+        "<ESC>]9;4;4;70<ESC>\\",
+        "<ESC>]9;4;0;70<ESC>\\"
+      ],
+      "notification_sequences": [],
+      "bells": 1
+    },
+    {
+      "client_features": "(none given)",
+      "progress_sequences": [],
+      "notification_sequences": [],
+      "bells": 1
+    }
+  ]
+}

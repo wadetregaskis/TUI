@@ -109,11 +109,16 @@ struct FramePacer {
     /// the target is `nil` and the loop blocks until woken, so a static screen
     /// does no work at all.
     ///
-    /// - Parameter pollingPendingInput: `true` while the input parser holds a
-    ///   partial. The poll only ever *shortens* the wait — including a `nil` one
-    ///   — so a resolving Escape never has to wait on unrelated activity, and an
-    ///   already-sooner frame is not delayed to meet it.
-    func waitNanos(now: UInt64, pollingPendingInput: Bool = false) -> UInt64? {
+    /// - Parameters:
+    ///   - pollingPendingInput: `true` while the input parser holds a
+    ///     partial. The poll only ever *shortens* the wait — including a `nil`
+    ///     one — so a resolving Escape never has to wait on unrelated activity,
+    ///     and an already-sooner frame is not delayed to meet it.
+    ///   - wakeDeadline: The instant of something the loop does BETWEEN frames
+    ///     — sending the progress bar again — or `nil`. Like the poll it only
+    ///     shortens the wait, and unlike an animation deadline it owes no frame
+    ///     and ignores the cap: what it does draws nothing.
+    func waitNanos(now: UInt64, pollingPendingInput: Bool = false, until wakeDeadline: UInt64? = nil) -> UInt64? {
         let capDeadline = lastRenderAtNanos &+ frameIntervalNanos
         var target: UInt64?
         if isRenderPending {
@@ -122,6 +127,9 @@ struct FramePacer {
         if let deadline = animationDeadlineNanos {
             let animTarget = max(deadline, capDeadline)
             target = min(target ?? animTarget, animTarget)
+        }
+        if let wakeDeadline {
+            target = min(target ?? wakeDeadline, wakeDeadline)
         }
         let wait = target.map { $0 > now ? $0 &- now : 0 }
         guard pollingPendingInput else { return wait }

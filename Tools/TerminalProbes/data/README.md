@@ -96,6 +96,19 @@ conditions. Thirteen kinds of file live here:
   is the human half — whether the two ramps drew the same — and says
   `unmeasured` until somebody fills it in. One so far, 2026-10-19: Ghostty
   1.3.1.
+
+- **`<terminal>-<version>-progress.json`** — PROGRESS-BAR records
+  (`progress_probe.py`): the DSR column after each progress report TUIkit
+  sends (`OSC 9 ; 4` with each state, with and without a value, and the
+  removal) on both screens, and, inside tmux, the pane's bar as tmux keeps it
+  (`#{pane_pb_state}`, `#{pane_pb_progress}`) after each; with `--timeout`,
+  the bar before and after a wait with nothing sent. One so far, 2026-10-19:
+  tmux 3.7c.
+- **`tmux-<version>-progress-forwarding.json`** — what tmux passes on to the
+  terminal it is drawn in (`progress_probe.py --tmux-forwarding`): the probe
+  plays that terminal, as a client with the `progressbar` feature and as one
+  without, and records the progress reports, notifications (`OSC 9`) and bells
+  that reached it from a pane sending each. tmux 3.7c, 2026-10-19.
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of

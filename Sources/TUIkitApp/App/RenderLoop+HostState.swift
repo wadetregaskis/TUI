@@ -1,8 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  RenderLoop+HostState.swift
 //
-//  The terminal's window title, from the window in front: what each frame
-//  writes of it, and what handing the terminal back gives back.
+//  The terminal's window title, from the window in front, and its progress
+//  bar, from the views drawn: what each frame writes of them, and what handing
+//  the terminal back gives back.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -26,15 +27,29 @@ extension RenderLoop {
         return title?.isEmpty == false ? title : nil
     }
 
-    /// What this frame writes to the terminal beyond its cells: the window
-    /// title, where it changed since the last frame wrote it.
-    func hostStateWrites() -> String {
-        hostState.show(title: terminalWindowTitle)
+    /// The progress the views drawn this frame state (`.terminalProgress(_:)`):
+    /// the last one drawn's, or `nil` where none states one. Read after the
+    /// walk, from the preferences it collected at the root.
+    var terminalProgress: TerminalProgress? {
+        tuiContext.preferences.current[TerminalProgressKey.self]
+    }
+
+    /// What this frame, drawn at `now` on the monotonic clock, writes to the
+    /// terminal beyond its cells: the window title, where it changed since the
+    /// last frame wrote it; and, on a terminal that draws one
+    /// (``TerminalFeatures/showsProgress``), the progress bar, where it
+    /// changed, or where it is due to be sent again.
+    func hostStateWrites(atNanos now: Int64) -> String {
+        let title = hostState.show(title: terminalWindowTitle)
+        guard tuiContext.terminalFeatures.showsProgress else { return title }
+        return title + hostState.show(progress: terminalProgress, atNanos: now)
+            + hostState.keepAlive(atNanos: now)
     }
 
     /// What handing the terminal back to the shell — a suspend, or the exit —
-    /// writes: the terminal's own title, restored where the app saved it. The
-    /// next frame drawn, after a resume, saves and sets it again.
+    /// writes: the terminal's own title, restored where the app saved it, and
+    /// the app's progress bar taken down. The next frame drawn, after a
+    /// resume, sets both again.
     func handBackHostState() -> String {
         hostState.restore()
     }

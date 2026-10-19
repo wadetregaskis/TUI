@@ -74,9 +74,10 @@ extension EnvironmentValues {
                 modifierKeyMonitor = context.modifierKeys
             }
         }
-        // What the terminal does outside its grid, on the same terms: only
-        // where it does something, so a terminal that does none pays no write
-        // per frame, and constant for the run.
+        // What the terminal does outside its grid — the pointer's shape, a
+        // progress bar, a notification — on the same terms: written only where
+        // it does something, so a terminal that does none pays no write per
+        // frame.
         if context.terminalFeatures != .none {
             terminalFeatures = context.terminalFeatures
         }

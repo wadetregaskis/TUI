@@ -209,6 +209,17 @@ when unset), the visual/aspect probes print to the terminal.
   and pops it last. `--hold N` keeps the probe's title up for a look at the
   tab. JSON to `$PROBE_OUT`. Run 2026-10-19 on Apple Terminal, iTerm2, Warp
   and tmux (records `data/*-title.json`); Ghostty is owed.
+- `progress_probe.py` — the progress bar TUIkit asks the terminal to draw
+  (`OSC 9 ; 4`, ConEmu's): whether each spelling it sends is swallowed on both
+  screens, and, inside tmux, what tmux's own bar for the pane made of it
+  (`#{pane_pb_state}`). `--timeout N` sends a bar and nothing for N seconds;
+  `--hold N` keeps one up for a look at the tab; `--notify` adds one desktop
+  notification (`OSC 9`), opt-in because it appears on the desktop and a host
+  may first ask the user's permission. `--tmux-forwarding`, run outside tmux,
+  needs no terminal: the probe plays the one tmux draws in, and records what
+  tmux passes on to a client with the `progressbar` feature and to one
+  without. JSON to `$PROBE_OUT`. Run 2026-10-19 on tmux 3.7c (records
+  `data/tmux-3.7c-progress*.json`); the GUI hosts are owed.
 - `graphics_probe.py` — Sixel, the iTerm2 inline-image protocol and the Kitty
   graphics protocol: what the host advertises (DA1's Sixel parameter, Kitty's
   `a=q` handshake, and a *virtual placement* probe — the feature a TUI actually

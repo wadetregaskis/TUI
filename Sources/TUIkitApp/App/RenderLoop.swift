@@ -155,7 +155,8 @@ internal final class RenderLoop<A: App> {
     var windowBaseEnvironment: EnvironmentValues?
 
     /// What the app has set on the terminal emulator beyond the screen — the
-    /// window title — written with the frames (`RenderLoop+HostState.swift`).
+    /// window title, the progress bar — written with the frames
+    /// (`RenderLoop+HostState.swift`).
     var hostState = TerminalHostState()
 
     /// The focus manager (cleared each frame).
@@ -518,7 +519,8 @@ extension RenderLoop {
             buffer: buffer,
             environment: environment,
             terminalWidth: terminalWidth,
-            terminalHeight: terminalHeight
+            terminalHeight: terminalHeight,
+            frameNowNanos: frameNowNanos
         )
 
         endRenderPass()
@@ -977,7 +979,8 @@ extension RenderLoop {
         buffer: FrameBuffer,
         environment: EnvironmentValues,
         terminalWidth: Int,
-        terminalHeight: Int
+        terminalHeight: Int,
+        frameNowNanos: Int64
     ) {
         let backgroundCodes = RenderBackgroundCodes(palette: environment.palette)
         let reset = ANSIRenderer.reset
@@ -1017,8 +1020,9 @@ extension RenderLoop {
         // The bell a control rang for input it turned away, likewise.
         let bell = tuiContext.terminalBell.takePending()
         if !bell.isEmpty { terminal.write(bell) }
-        // The window title, where it changed; see `RenderLoop+HostState.swift`.
-        let host = hostStateWrites()
+        // The window title and the progress bar, where they changed; see
+        // `RenderLoop+HostState.swift`.
+        let host = hostStateWrites(atNanos: frameNowNanos)
         if !host.isEmpty { terminal.write(host) }
 
         // The terminal holds its display from here to the frame's end, if the

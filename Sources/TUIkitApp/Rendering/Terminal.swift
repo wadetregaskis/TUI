@@ -415,8 +415,9 @@ final class Terminal: TerminalProtocol {
     private var owedImageGeneration = 0
 
     /// What the app owes the terminal emulator beyond the screen — its own
-    /// window title, saved on its title stack (`TerminalHostState.debt`) —
-    /// kept current after every frame and paid by a signal (``signalDebt``).
+    /// window title, saved on its title stack, and the app's progress bar
+    /// taken down (`TerminalHostState.debt`) — kept current after every frame
+    /// and paid by a signal (``signalDebt``).
     private(set) var hostStateDebt = "" {
         didSet {
             if hostStateDebt != oldValue { armSignalRestore() }

@@ -2,18 +2,20 @@
 //  TerminalHostState.swift
 //
 //  The ledger of what the app has set on the terminal emulator itself, beyond
-//  its screen — the window title, the pointer's shape — and what giving it
-//  back takes.
+//  its screen — the window title, the pointer's shape, the progress bar — and
+//  what giving it back takes.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitFoundation
+
 // MARK: - The Ledger
 
 /// What the app has set on the terminal emulator beyond the screen, and how to
-/// give it back: the window's title, for now (refusal review P15; Ghostty
-/// adoption study, C2, "build once, on the ledger" — progress, pointer shapes
-/// and attention are to join it).
+/// give it back: the window's title (refusal review P15; Ghostty adoption
+/// study, C2, "build once, on the ledger") and the progress bar (C3; pointer
+/// shapes are to join them).
 ///
 /// The title is the window in front's: its scene's title, or a root
 /// `.navigationTitle` no top bar shows (`RenderLoop+HostState.swift`). It is
@@ -23,6 +25,14 @@
 /// the shell gets its title back. A host without the stack ignores both, and
 /// keeps the app's title until the shell's next prompt sets one — which
 /// shell integration does on every measured host that has it.
+///
+/// The progress bar is what the views drawn state (`.terminalProgress(_:)`),
+/// sent only to a terminal documented to draw one: `OSC 9 ; 4`, on a change,
+/// and again whenever it has gone ``progressKeepAliveNanos`` unsent, even with
+/// nothing to draw (``keepAlive(atNanos:)``) — Ghostty removes a bar no
+/// program has updated for about fifteen seconds. Suspending and quitting
+/// take it down (`OSC 9 ; 4 ; 0`), and a resume's first frame puts it up
+/// again.
 ///
 /// A value: the run loop owns one (``RenderLoop``), and nothing here writes —
 /// each change returns the bytes it takes, for the caller to send with the
@@ -50,6 +60,14 @@ struct TerminalHostState: Equatable {
     /// comparison, every frame asking.
     private var askedTitle: String??
 
+    /// The progress report the terminal was last given, or `nil` while it
+    /// shows none of the app's.
+    private(set) var writtenProgress: ProgressReport?
+
+    /// When ``writtenProgress`` was last sent, on the monotonic clock: what
+    /// the keep-alive counts from.
+    private var progressSentAtNanos: Int64 = 0
+
     /// The bytes that make the terminal show `title`, or give it its own back
     /// for `nil` (``restore()``): nothing where it shows that already. The
     /// title is sanitised (``sanitizedTitle(_:)``), and one that sanitises to
@@ -59,7 +77,7 @@ struct TerminalHostState: Equatable {
         defer { askedTitle = .some(asked) }
         let title = asked.map(Self.sanitizedTitle(_:)).flatMap { $0.isEmpty ? nil : $0 }
         guard title != writtenTitle else { return "" }
-        guard let title else { return restore() }
+        guard let title else { return restoreHostTitle() }
         var bytes = ""
         if !savedHostTitle {
             bytes += Self.saveTitle
@@ -69,10 +87,45 @@ struct TerminalHostState: Equatable {
         return bytes + Self.setTitle(title)
     }
 
+    /// The bytes that make the terminal show `progress` — or no bar, for
+    /// `nil` — at `now` on the monotonic clock: nothing where it shows that
+    /// already, to the whole percent it is told.
+    mutating func show(progress: TerminalProgress?, atNanos now: Int64) -> String {
+        let report = progress.map(ProgressReport.init)
+        guard report != writtenProgress else { return "" }
+        guard let report else { return removeProgress() }
+        writtenProgress = report
+        progressSentAtNanos = now
+        return report.sequence
+    }
+
+    /// The bytes that send the progress bar again, where it has gone
+    /// ``progressKeepAliveNanos`` unsent by `now`, or nothing: the write the run
+    /// loop makes between frames, which draws nothing, and a frame makes when
+    /// it is due anyway.
+    mutating func keepAlive(atNanos now: Int64) -> String {
+        guard let report = writtenProgress, let due = keepAliveDeadline, now >= due else { return "" }
+        progressSentAtNanos = now
+        return report.sequence
+    }
+
+    /// When the progress bar is next to be sent again, or `nil` while none is
+    /// shown: the instant the run loop wakes for, if nothing wakes it sooner.
+    var keepAliveDeadline: Int64? {
+        writtenProgress == nil ? nil : progressSentAtNanos &+ Self.progressKeepAliveNanos
+    }
+
+    /// The bytes that give the terminal back what the app set on it — its own
+    /// title, restored where one was saved, and no progress bar — and forgets
+    /// what the app set, so the next frame sets it again: for suspend and exit.
+    mutating func restore() -> String {
+        restoreHostTitle() + removeProgress()
+    }
+
     /// The bytes that give the terminal its own title back — a restore, where
     /// one was saved — and forgets the app's, so the next ``show(title:)``
-    /// saves and sets again: for suspend, exit, and a frame with no title.
-    mutating func restore() -> String {
+    /// saves and sets again: for a frame with no title, and the hand-back.
+    private mutating func restoreHostTitle() -> String {
         writtenTitle = nil
         askedTitle = .none
         guard savedHostTitle else { return "" }
@@ -80,10 +133,19 @@ struct TerminalHostState: Equatable {
         return Self.restoreTitle
     }
 
-    /// What the terminal is owed should the process die now: the restore,
-    /// where a title was saved (`Terminal.signalDebt`).
+    /// The bytes that take the app's progress bar down, where one is up.
+    private mutating func removeProgress() -> String {
+        guard writtenProgress != nil else { return "" }
+        writtenProgress = nil
+        return Self.removeProgressReport
+    }
+
+    /// What the terminal is owed should the process die now
+    /// (`Terminal.signalDebt`): the title's restore, where one was saved, and
+    /// the bar taken down, where one is up — both harmless on a terminal that
+    /// took neither.
     var debt: String {
-        savedHostTitle ? Self.restoreTitle : ""
+        (savedHostTitle ? Self.restoreTitle : "") + (writtenProgress == nil ? "" : Self.removeProgressReport)
     }
 
     // MARK: The Sequences
@@ -100,6 +162,15 @@ struct TerminalHostState: Equatable {
     static func setTitle(_ title: String) -> String {
         "\u{1B}]2;\(title)\u{1B}\\"
     }
+
+    /// How long a progress bar may go unsent before it is sent again: five
+    /// seconds, well inside the fifteen after which Ghostty removes a bar no
+    /// program has updated (the Ghostty adoption study, C3; tmux 3.7c keeps
+    /// one, measured, and iTerm2's limit is unknown).
+    static let progressKeepAliveNanos: Int64 = 5_000_000_000
+
+    /// `OSC 9 ; 4 ; 0 ST`: no progress bar.
+    static let removeProgressReport = "\u{1B}]9;4;0\u{1B}\\"
 
     /// `title`, safe inside an OSC: a line break or a tab is a space, and
     /// every other control character — C0, DEL, C1 — is dropped. A `BEL` or
@@ -209,5 +280,44 @@ extension TerminalHostState {
     /// Takes note that ``resets`` went out.
     mutating func noteResets() {
         pointerShape?.noteReset()
+    }
+}
+
+// MARK: - The Progress Report
+
+extension TerminalHostState {
+    /// A progress report as the terminal is told it: ConEmu's state and a
+    /// whole percent, which is what a change is judged by, so a fraction that
+    /// moves less than a percent sends nothing.
+    struct ProgressReport: Equatable {
+        /// ConEmu's state: `1` a value, `2` an error, `3` indeterminate, `4`
+        /// paused. (`0`, no bar, is ``TerminalHostState/removeProgressReport``.)
+        let state: Int
+
+        /// `0...100`, or `nil` for none: the terminal keeps the value its bar
+        /// already had (measured on tmux 3.7c, as ConEmu documents it).
+        let percent: Int?
+
+        init(_ progress: TerminalProgress) {
+            switch progress {
+            case .value(let fraction): (state, percent) = (1, Self.percent(fraction))
+            case .error(let fraction): (state, percent) = (2, fraction.map(Self.percent(_:)))
+            case .indeterminate: (state, percent) = (3, nil)
+            case .paused(let fraction): (state, percent) = (4, fraction.map(Self.percent(_:)))
+            }
+        }
+
+        /// `fraction` as a whole percent: clamped to `0...1`, `NaN` as none
+        /// done, and rounded.
+        static func percent(_ fraction: Double) -> Int {
+            guard !fraction.isNaN else { return 0 }
+            return Int((min(max(fraction, 0), 1) * 100).rounded())
+        }
+
+        /// `OSC 9 ; 4 ; state [; percent] ST`, ended by `ESC \` as every OSC
+        /// TUIkit sends is.
+        var sequence: String {
+            "\u{1B}]9;4;\(state)" + (percent.map { ";\($0)" } ?? "") + "\u{1B}\\"
+        }
     }
 }

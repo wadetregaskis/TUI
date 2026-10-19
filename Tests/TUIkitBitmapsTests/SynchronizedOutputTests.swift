@@ -108,7 +108,7 @@ struct SynchronizedOutputTests {
         terminal.showPointerShape(.link)
         terminal.keyboardFlagsPushed = true
         terminal.pinnedGraphemeClustering = true
-        terminal.oweHostState(TerminalHostState.restoreTitle)
+        terminal.oweHostState(TerminalHostState.restoreTitle + TerminalHostState.removeProgressReport)
         #expect(terminal.signalDebt.contains("\u{1B}]22;"), "the pointer's reset is not in the debt posed")
         #expect(terminal.signalDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
         #expect(terminal.quitDebt.utf8.count <= FatalSignalTerminalRestore.capacity)

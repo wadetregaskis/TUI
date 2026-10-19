@@ -475,6 +475,11 @@ extension AppRunner {
         // answer. Published before the first frame, which is when a view
         // first reads it.
         negotiateKeyboardProtocol()
+        // And what it does with what the app asks of it beyond the screen — a
+        // progress bar on its tab — by which terminal it is, now that it is
+        // named: published to `\.terminalFeatures` before the first frame, and
+        // what decides whether the frames send it at all.
+        tuiContext.terminalFeatures = TerminalFeatures(showsProgress: TerminalClient.progressReportsSupported)
 
         let renderer = makeRenderLoop()
         startHostMotion(renderer: renderer)
@@ -636,15 +641,22 @@ extension AppRunner {
             // positive interval, never a spurious "block forever".
             pacer.renderIfDue(now: now, renderOneFrame)
 
+            // The progress bar, sent again where it has gone unsent long enough
+            // for a terminal to drop it: a write between frames, which draws
+            // nothing, so a still screen with a bar up renders no frame for it.
+            keepHostStateAlive(renderer: renderer, now: now)
+
             // How long to wait until the next render is due (cap and/or animation
             // folded into one instant), or nil to block until woken. While the
             // input parser holds something that resolves on a timeout — a lone
             // ESC being disambiguated from a sequence, or a split sequence
             // awaiting its tail — the wait is shortened to a poll, so the partial
             // resolves on a bounded wall-clock deadline (a prompt Escape) instead
-            // of waiting for unrelated input or an animation tick.
+            // of waiting for unrelated input or an animation tick. The progress
+            // bar's next send shortens it too, and owes no frame.
             let waitNanos = pacer.waitNanos(
-                now: now, pollingPendingInput: terminal.hasPendingInput)
+                now: now, pollingPendingInput: terminal.hasPendingInput,
+                until: renderer.hostState.keepAliveDeadline.map { UInt64(bitPattern: $0) })
 
             // Block until woken (stdin data or a render-request `wake()`), or —
             // when a render is pending or an animation is due — until that target.
@@ -1046,8 +1058,17 @@ extension AppRunner {
         showPointerShape()
     }
 
+    /// Sends the progress bar again where it is due (`TerminalHostState.keepAlive(atNanos:)`),
+    /// at `now` on the monotonic clock, straight to the terminal: no frame is
+    /// being written between frames.
+    fileprivate func keepHostStateAlive(renderer: RenderLoop<A>, now: UInt64) {
+        let resend = renderer.hostState.keepAlive(atNanos: Int64(bitPattern: now))
+        if !resend.isEmpty { terminal.write(resend) }
+    }
+
     /// What the app set on the terminal emulator, given back — the window
-    /// title restored where it was saved — and owed no more.
+    /// title restored where it was saved, the progress bar taken down — and
+    /// owed no more.
     fileprivate func handBackHostState(_ renderer: RenderLoop<A>) -> String {
         let restore = renderer.handBackHostState()
         terminal.oweHostState(renderer.hostState.debt)

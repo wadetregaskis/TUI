@@ -240,7 +240,8 @@ package final class HeadlessApp<A: App> {
     var terminalWindowTitle: String? { renderer.hostState.writtenTitle }
 
     /// What the frames wrote to the terminal beyond its cells — each title
-    /// change, with the save before the first — in order.
+    /// change, with the save before the first, and each progress report — in
+    /// order.
     var hostWrites: [String] { terminal.hostWrites }
 
     /// What handing the terminal back — a suspend, the exit — would write,
@@ -248,6 +249,18 @@ package final class HeadlessApp<A: App> {
     func handBackHostState() {
         terminal.write(renderer.handBackHostState())
     }
+
+    /// What the app's run loop writes between frames at `nanos`, where the
+    /// progress bar is due to be sent again, written as it writes it — with
+    /// no frame (`AppRunner.keepHostStateAlive`).
+    func keepHostStateAlive(atNanos nanos: Int64) {
+        let resend = renderer.hostState.keepAlive(atNanos: nanos)
+        if !resend.isEmpty { terminal.write(resend) }
+    }
+
+    /// When the run loop would next send the progress bar again, with nothing
+    /// else to wake it (``TerminalHostState/keepAliveDeadline``).
+    var hostStateKeepAliveDeadline: Int64? { renderer.hostState.keepAliveDeadline }
 
     /// How many views' parting pictures the app is holding — every view with a
     /// transition that is on screen, and every removal still playing. A removal
@@ -286,7 +299,8 @@ final class InMemoryTerminal: TerminalProtocol {
     /// Where the cursor was last put, in cells from the top-left, or `nil`
     /// once something has been drawn after it, which moved it on.
     private(set) var cursor: CellPoint?
-    /// The writes that set or restored the window title (``TerminalHostState``).
+    /// The writes that set or restored the window title, or reported progress
+    /// (``TerminalHostState``).
     private(set) var hostWrites: [String] = []
 
     init(width: Int, height: Int) {
@@ -298,7 +312,7 @@ final class InMemoryTerminal: TerminalProtocol {
         bytesWritten &+= string.utf8.count
         if string == "\u{07}" { bellsWritten += 1 }
         if string.hasPrefix(TerminalHostState.saveTitle) || string.hasPrefix(TerminalHostState.restoreTitle)
-            || string.hasPrefix("\u{1B}]2;")
+            || string.hasPrefix("\u{1B}]2;") || string.hasPrefix("\u{1B}]9;")
         {
             hostWrites.append(string)
         }

@@ -384,10 +384,12 @@ package final class TUIContext: @unchecked Sendable {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _keyboardReporting = KeyboardReporting.legacy
 
-    /// What the terminal does outside its grid that an app can ask for,
-    /// published to `\.terminalFeatures`. Set once, by the run loop, as the
-    /// app starts; ``TerminalFeatures/none`` until then, and for a context
-    /// with no terminal behind it.
+    /// What the terminal does outside its grid that an app can ask for — the
+    /// pointer's shape, a progress bar, a notification — published to
+    /// `\.terminalFeatures`. Set by the run loop from the terminal it
+    /// identified at startup (and, for progress under tmux, from the clients
+    /// attached); ``TerminalFeatures/none`` until then, and for a context with
+    /// no terminal behind it.
     package var terminalFeatures: TerminalFeatures { get { _terminalFeatures } set { _terminalFeatures = newValue } }
 
     /// ``terminalFeatures``'s storage: private, under the `package` accessor

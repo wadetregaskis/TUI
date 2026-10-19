@@ -372,6 +372,17 @@ that rule. Ghostty's page (and its config reference) adds:
 
 #### C3. Progress (OSC 9;4) — adopt if the owner wants the API (Q3)
 
+**Built (2026-10-19, lane GHOSTTY, step V8):** `.terminalProgress(_:)` and
+`TerminalProgress` as below, on the ledger (`TerminalHostState`), sent only to
+the hosts documented to draw one — Ghostty, iTerm2 and tmux — with
+`TUIKIT_PROGRESS` the user's switch; the keep-alive every 5 s from a wake
+that draws nothing; `9;4;0` on suspend, exit and in the signal debt. The
+run-time check is `\.terminalFeatures.showsProgress` (`TerminalFeatures`, the
+one capability value this study asked for, created here). tmux measured with
+the new `progress_probe.py`: it keeps the bar, never drops one, and passes it on
+only to a client with the `progressbar` feature (iTerm2's, not Ghostty's).
+The look on Ghostty and iTerm2 is owed. Decisions B-GHOSTTY-1 to 5.
+
 - **Mechanism.** `ESC ] 9 ; 4 ; s ; v ESC \`.
   - `s`: 0 none, 1 value, 2 error, 3 indeterminate, 4 paused.
   - `v`: 0–100, clamped and rounded.
@@ -911,7 +922,7 @@ lane's OSC 52 drain. Land V2 before that lane launches, or after it lands.
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
 | V7 | **Done 2026-10-19 (lane O9; see C2).** The ledger plus C2's window title (P15's `WindowGroup` titles; a root `.navigationTitle` per A28 §9) | new `Sources/TUIkitApp/Rendering/TerminalHostState.swift`, new `Sources/TUIkitApp/App/RenderLoop+HostState.swift`, `App.swift` (suspend, cleanup, resume), `Scene.swift`, `FatalSignalTerminalRestore.swift`, the capability environment value, `Tools/APIParity` baseline, map and corpus, compat doc | change-only writes; sanitiser (BEL, ESC, C1 in a title); push/pop around suspend; SwiftUI-shaped corpus | new `title_probe.py` on four hosts and tmux |
-| V8 | C3: progress (Q3) | new `Sources/TUIkitFoundation/Modifiers/TerminalProgressModifier.swift`, the ledger, the run-loop timed wake, compat doc, new `progress_probe.py` | states and clamping; keep-alive without renders; teardown | `progress_probe.py` on Ghostty, iTerm2, kitty, tmux; `idle_cpu.py` with a bar shown |
+| V8 | **Done 2026-10-19 (lane GHOSTTY; see C3).** C3: progress (Q3) | new `Sources/TUIkitFoundation/Modifiers/TerminalProgressModifier.swift`, the ledger, the run-loop timed wake, compat doc, new `progress_probe.py` | states and clamping; keep-alive without renders; teardown | `progress_probe.py` on Ghostty, iTerm2, kitty, tmux; `idle_cpu.py` with a bar shown |
 | V9 | C4: pointer shapes (Q2) | new `PointerStyle.swift` and `PointerStyleModifier.swift`, new per-host name table beside `TerminalHyperlinkSupport.swift`, `MouseEventDispatcher` (region resolution), the ledger, parity map (refusal removed), baseline, corpus, compat doc, new `pointer_probe.py` | topmost style wins; change-only writes; reset on exit and suspend; inert on unidentified hosts | `pointer_probe.py` with screenshots: Ghostty, iTerm2, kitty, tmux |
 | V10 | C6: attention (Q4) | new `RequestAttentionAction.swift`, the ledger's write queue, compat doc | ConEmu guard; sanitiser; BEL fallback outside strings | four hosts and tmux, by eye |
 | V11a–d | O3: the four trims, one commit each, each kept only on its M0 number | `Sources/TUIkitApp/Rendering/FrameDiffWriter.swift`, `Sources/TUIkitCore/Extensions/String+CellSpanDiff.swift`, golden snapshots | decomposer fill after a head `K`; span planner; goldens | bytes per M0; Apple Terminal light-profile card; owner: `emit_bench.py` on `textwall`, `kitchensink`, `table` |
