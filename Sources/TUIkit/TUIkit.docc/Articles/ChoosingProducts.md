@@ -51,7 +51,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitTables` | `Table`, its columns and rows, the table styles | `TUIkitLists` |
 | `TUIkitTabs` | `TabView`, `Tab`, `TabSection`, the tab styles | `TUIkitLists` |
 | `TUIkitGrid` | `Grid`, `GridRow`, `LazyVGrid`, `LazyHGrid` | |
-| `TUIkitNavigation` | `NavigationStack`, `NavigationPath`, `NavigationLink`, the split views, the inspector | |
+| `TUIkitNavigation` | `NavigationStack`, `NavigationPath`, `NavigationLink`, the zoom transition and `.matchedTransitionSource`, the split views, the inspector | |
 | `TUIkitPresentation` | `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover`, `modal` | `TUIkitChrome` |
 | `TUIkitMenus` | `Menu`, `ControlGroup`, `.contextMenu`, the menu styles | |
 | `TUIkitCommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIkitApp`, `TUIkitPresentation` |
@@ -60,7 +60,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitNumericControls` | `Slider`, `Stepper`, `Gauge`, `ProgressView` | |
 | `TUIkitForms` | `Form`, `LabeledContent`, `GroupBox`, `Card`, `Panel` | |
 | `TUIkitSearch` | `.searchable`, search tokens and scopes | `TUIkitTextInput`, `TUIkitPickers` |
-| `TUIkitEffects` | transitions, `.symbolEffect`, `.visualEffect`, `.scrollTransition` | |
+| `TUIkitEffects` | transitions, `.symbolEffect`, `.visualEffect`, `.scrollTransition`, `.matchedGeometryEffect` | |
 | `TUIkitBitmaps` | `Image` from a file, a URL or a bundle, `AsyncImage`, the `.image*` options | `TUIkitImage` |
 | `TUIkitColorPicker` | `ColorPicker`, `ColorPickerPanel`, `GradientEditorPanel` | `TUIkitPresentation`, `TUIkitTabs`, `TUIkitTextInput`, `TUIkitNumericControls` |
 | `TUIkitCurveEditors` | `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIkitColorPicker`, `TUIkitImage`, `TUIkitPickers` |
