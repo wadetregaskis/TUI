@@ -48,7 +48,7 @@ struct TerminalPointerShapeOutputTests {
         output.clear()
         terminal.applyMouseSupport(.full)
         terminal.showPointerShape(.columnResize)
-        #expect(output.bytes.hasSuffix(Self.osc22("col-resize")))
+        #expect(output.bytes.hasSuffix(Self.osc22("ew-resize")))
         output.clear()
         terminal.applyMouseSupport(.full)
         terminal.showPointerShape(.columnResize)

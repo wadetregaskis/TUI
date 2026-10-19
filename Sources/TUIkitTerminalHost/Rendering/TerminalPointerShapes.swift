@@ -103,7 +103,8 @@ package enum PointerShapeHost: Equatable, Sendable {
     /// over from somewhere else.
     package func name(for shape: PointerShape) -> String? {
         switch self {
-        case .ghostty, .kitty, .foot, .unnamed: Self.cssName(shape)
+        case .ghostty: Self.ghosttyName(shape)
+        case .kitty, .foot, .unnamed: Self.cssName(shape)
         case .xterm: Self.x11Name(shape)
         case .iTerm2: Self.iTerm2Name(shape)
         }
@@ -144,6 +145,39 @@ extension PointerShapeHost {
     static func cssName(_ shape: PointerShape) -> String {
         cssNames[shape] ?? "default"
     }
+
+    /// Ghostty's name for `shape`: CSS's, but for the shapes its macOS app
+    /// draws nothing for.
+    ///
+    /// Ghostty reads every CSS keyword (its `mouse.zig`), but its macOS app
+    /// gives only some of them a cursor and IGNORES the rest
+    /// (`SurfaceView.setCursorShape`, 1.3.1: "We ignore unknown shapes"),
+    /// leaving the pointer in whatever shape it had before. Read off the
+    /// pointer card by the owner, 2026-10-19: `col-resize`, `row-resize`, the
+    /// diagonals and the magnifying glasses showed nothing new. So a divider
+    /// either way takes the two-way arrow the app does draw (`ew-resize`,
+    /// `ns-resize`), and a diagonal or a magnifying glass, which it has
+    /// nothing for, Ghostty's own pointer (`nil`, sent as ``unsetName``)
+    /// rather than the last shape. Ghostty on Linux draws all of CSS's, but a
+    /// terminal reached over ssh cannot be told apart by its platform, so
+    /// every Ghostty is spoken to as macOS's is.
+    static func ghosttyName(_ shape: PointerShape) -> String? {
+        if ghosttyUndrawn.contains(shape) { return nil }
+        return ghosttySubstitutes[shape] ?? cssName(shape)
+    }
+
+    /// The CSS keywords Ghostty's macOS app ignores, for which it draws a
+    /// keyword it does take that means the same (``ghosttyName(_:)``).
+    static let ghosttySubstitutes: [PointerShape: String] = [
+        .columnResize: "ew-resize", .rowResize: "ns-resize",
+    ]
+
+    /// The shapes Ghostty's macOS app has no cursor for at all
+    /// (``ghosttyName(_:)``).
+    static let ghosttyUndrawn: Set<PointerShape> = [
+        .resizeNorthEast, .resizeNorthWest, .resizeSouthEast, .resizeSouthWest,
+        .resizeNorthEastSouthWest, .resizeNorthWestSouthEast, .zoomIn, .zoomOut,
+    ]
 
     /// The X11 cursor font's name for `shape`: xterm's.
     static func x11Name(_ shape: PointerShape) -> String? {

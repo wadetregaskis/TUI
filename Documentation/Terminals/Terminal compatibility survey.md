@@ -6016,7 +6016,7 @@ documentation and its source (copies under the lane's notes, `O12/docs`):
 
 | Host | Since | Names | No style, mid-run | Reset | Detected by | Measured |
 |---|---|---|---|---|---|---|
-| Ghostty | 1.0.0 (its VT reference) | CSS, and xterm's X11 names as aliases (`mouse.zig`) | `default`: an empty name is ignored before its `mouse_shape_reset` | any mouse mode set gives the arrow, any reset the I-beam (`stream_handler.zig`); an empty name gives one of those (newer releases) | `TERM_PROGRAM=ghostty` with its version, or `TERM=xterm-ghostty` | UNMEASURED |
+| Ghostty | 1.0.0 (its VT reference) | CSS, and xterm's X11 names as aliases (`mouse.zig`) | `default`: an empty name is ignored before its `mouse_shape_reset` | any mouse mode set gives the arrow, any reset the I-beam (`stream_handler.zig`); an empty name gives one of those (newer releases) | `TERM_PROGRAM=ghostty` with its version, or `TERM=xterm-ghostty` | 1.3.1 on macOS, 2026-10-19: seven CSS names ignored, the pointer kept as it was; the reset UNREAD (below) |
 | kitty | 0.31.0 (its pointer-shapes page) | CSS (thirty) | empty | empty; a stack per screen, so leaving the alternate screen leaves its shapes behind | `TERM=xterm-kitty`, or `KITTY_WINDOW_ID` where no other terminal is named (every program a shell starts inherits it) | UNMEASURED |
 | foot | 1.12.0 (its changelog) | CSS, X11 fallbacks | empty | empty | `TERM=foot`, `foot-…` | UNMEASURED |
 | iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | 3.7.6, 2026-10-19: every name draws; a new shape shows only after a click; the shell's pointer is back after the card (below) |
@@ -6071,6 +6071,32 @@ environment, read by the owner on this machine, primary screen, macOS
   suspend writes the same reset as a quit, the empty name. The mode change
   (`m`), the suspend (`z`) and which of the card's ways out was taken were
   not reported.
+
+**Ghostty 1.3.1 on macOS, 2026-10-19** (the card in CSS's names, read by the
+owner on this machine, primary screen, macOS 15.8.1):
+
+- **Thirteen boxes drew their shape.** Seven did not: `.columnResize`
+  (`col-resize`), `.rowResize` (`row-resize`), the three diagonal frame
+  boxes (`nw-resize`, `nesw-resize`, `nwse-resize`), `.zoomIn` and
+  `.zoomOut`.
+- **Why, from its source:** Ghostty reads every CSS keyword
+  (`mouse.zig`), but its macOS app gives only some of them a cursor —
+  `default`, `text`, `vertical-text`, `grab`, `grabbing`, `pointer`, the
+  four single arrows, `ns-resize`, `ew-resize`, `context-menu`,
+  `crosshair`, `not-allowed` — and ignores the rest
+  (`SurfaceView.setCursorShape`: "We ignore unknown shapes"), so the
+  pointer keeps whatever shape it had. That is worse than the host's own
+  pointer: moving from a button onto a column's divider left the hand up.
+- **So TUIkit now speaks to Ghostty in the names its macOS app draws**
+  (`PointerShapeHost.ghosttyName`): a divider either way takes the two-way
+  arrow it does draw (`ew-resize`, `ns-resize`), and a diagonal or a
+  magnifying glass, which it has no cursor for, Ghostty's own pointer
+  (`default`). Ghostty on Linux draws all of CSS's names, but a terminal
+  reached over ssh cannot be told apart by its platform, so every Ghostty
+  is spoken to as macOS's is.
+- **Its reset is not yet read:** whether the shell's own pointer is back
+  once the card closes. Until it is, TUIkit's own controls' shapes stay off
+  on Ghostty.
 
 ## Focus reporting (mode 1004)
 

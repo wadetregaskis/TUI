@@ -86,6 +86,10 @@ struct TerminalPointerShapeSupportTests {
     @Test("CSS names on Ghostty, kitty and foot; X11 on xterm; iTerm2's own nineteen on iTerm2")
     func names() {
         #expect(PointerShapeHost.ghostty.name(for: .link) == "pointer")
+        #expect(PointerShapeHost.ghostty.name(for: .columnResize) == "ew-resize", "the arrow its macOS app draws")
+        #expect(PointerShapeHost.ghostty.name(for: .rowResize) == "ns-resize")
+        #expect(PointerShapeHost.ghostty.name(for: .resizeNorthWestSouthEast) == nil, "nothing to draw: its own")
+        #expect(PointerShapeHost.ghostty.name(for: .zoomIn) == nil)
         #expect(PointerShapeHost.kitty.name(for: .columnResize) == "col-resize")
         #expect(PointerShapeHost.foot.name(for: .resizeNorthWestSouthEast) == "nwse-resize")
         #expect(PointerShapeHost.xterm.name(for: .link) == "hand2")
@@ -122,6 +126,20 @@ struct TerminalPointerShapeSupportTests {
         ]
         for shape in PointerShape.allCases {
             #expect(PointerShapeHost.cssNames[shape].map(table.contains) == true, "\(shape) has no CSS name")
+        }
+    }
+
+    /// The keywords Ghostty 1.3.1's macOS app gives a cursor
+    /// (`SurfaceView.setCursorShape`): any other it ignores, and the pointer
+    /// keeps the shape it had, which the owner saw on the card (2026-10-19).
+    @Test("Every name spoken to Ghostty is one its macOS app draws")
+    func ghosttyNamesAreDrawn() {
+        let drawn: Set<String> = [
+            "default", "text", "vertical-text", "grab", "grabbing", "pointer", "w-resize", "e-resize",
+            "n-resize", "s-resize", "ns-resize", "ew-resize", "context-menu", "crosshair", "not-allowed",
+        ]
+        for shape in PointerShape.allCases {
+            if let name = PointerShapeHost.ghostty.name(for: shape) { #expect(drawn.contains(name), "\(shape)") }
         }
     }
 

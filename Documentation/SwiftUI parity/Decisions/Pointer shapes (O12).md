@@ -49,7 +49,11 @@ hand keeps its meaning — this goes somewhere else.
 The ruling said "inert where unsupported"; the lane brief named the hosts
 that document it. Shipped:
 
-- **Ghostty** from 1.0.0, **kitty** and **foot** in CSS's `cursor` names;
+- **Ghostty** from 1.0.0, **kitty** and **foot** in CSS's `cursor` names —
+  on Ghostty only those its macOS app draws, since it ignores the rest and
+  leaves the pointer as it was (read off the card, 2026-10-19): `ew-resize`
+  and `ns-resize` for a divider either way, and its own pointer for a
+  diagonal or a magnifying glass;
   **iTerm2** from 3.5.0 in the nineteen X11 names its table reads (unchanged
   from 3.5.0 to 3.6.11); **xterm** from patch #367 in the X11 cursor font's.
   Everything else — Apple Terminal, Warp, tmux, GNU screen, zellij, an
