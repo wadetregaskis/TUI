@@ -28,8 +28,9 @@ import TUIkitPresentation
 /// }
 /// ```
 ///
-/// ``EnvironmentValues/openSettings`` and a ``SettingsLink`` present it as a
-/// sheet over the window in front (refusal review O9, ruled (b)), sized to its content as every sheet is; Escape, or
+/// ``EnvironmentValues/openSettings``, a ``SettingsLink`` and the menu bar's
+/// Settings… (⌘, through `commandKey`) present it as a sheet over the window
+/// in front (refusal review O9, ruled (b)), sized to its content as every sheet is; Escape, or
 /// `dismiss()` inside it, closes it. On macOS it is a window of its own, which
 /// a terminal cannot open beside another. Its modifiers — `.environment`, a
 /// palette — reach its content alone.

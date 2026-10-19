@@ -169,8 +169,9 @@ on TUIkitApp alone; the owner's à-la-carte rule (A52) prices that against it.
 The ruling: `openSettings` presents the `Settings` scene as a sheet. On macOS it
 is a window of its own, brought to the front if it is open.
 
-**Shipped:** `openSettings` and a `SettingsLink` (labelled "Settings…" with a
-gear, in seven languages) present the scene as a sheet over the window in front, whichever that is; presented already, it stays.
+**Shipped:** `openSettings`, a `SettingsLink` (labelled "Settings…" with a gear,
+in seven languages) and the menu bar's Settings… (B-O9-9) present the scene as a
+sheet over the window in front, whichever that is; presented already, it stays.
 Like every sheet it is its content's size, Escape or `dismiss()` in it closes
 it, and the window behind it is inert until then (deviation W12). The scene's
 own modifiers (`.environment`, a palette) reach its content and not the window,
@@ -237,3 +238,36 @@ restores them — with a way to say an app does not want that
 (`Scene.restorationBehavior`, declined in the window family, would then have a
 reading). About a day; it is the owner's whether a terminal app should come
 back with the windows it had.
+
+### B-O9-9. The Window menu lists the windows, and closes the one in front
+
+*`SceneOwnCommands`: `appSettings`, `windowArrangement`, `windowList`, `singleWindowList` (decisions B-O13-7)*
+
+SwiftUI's main menu, measured with several scenes (`O9/probe/scenes.swift`):
+the app menu holds Settings… (⌘,) after About; File's New becomes a submenu
+with a New *Title* Window for each window group, then Close (⌘W) and Close
+All; the Window menu holds Minimize (⌘M) and Zoom, each `Window` scene by its
+title, and Bring All to Front, with AppKit's list of the open windows after.
+
+**Shipped:**
+- **Settings…** in the app menu, after About, where the app declares a
+  `Settings` scene, presenting it; it binds SwiftUI's ⌘, (through
+  `commandKey`), so it works with the menus closed, as a command's key does —
+  the one scene item with a key of its own, there being no other way to the
+  settings by key.
+- **A Window menu**, for an app that declares more than one window scene (an
+  app of one window has nothing to list, and its bar keeps the menus it had):
+  Close Window (`windowArrangement`), closing the window in front — disabled
+  for the last, which the app menu's Quit closes — and showing Escape, its key;
+  the open windows (`windowList`), back to front, titled by their scene, the
+  one in front checked, choosing one bringing it to the front; and the
+  `Window` scenes (`singleWindowList`), choosing one opening it.
+
+Not shipped: Minimize, Zoom and Bring All to Front, which a surface has no
+reading for; and File's New *Title* Window, Close and Close All: a group's
+window opens from what the app offers, and Close is the Window menu's here,
+beside the list it acts on (deviation W13).
+
+**The fuller version** adds File ▸ New with an item per window group (a new
+window of it) and Close / Close All on ⌘W and ⌥⌘W through `commandKey` — keys
+a text field may want (⌃W deletes a word), so the owner's call; about two hours.

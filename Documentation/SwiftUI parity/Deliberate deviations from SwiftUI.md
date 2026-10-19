@@ -1848,13 +1848,29 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** on macOS the `Settings` scene is a window of its own, which
   `openSettings` opens or brings to the front (Apple's documentation).
-- **TUIkit:** `openSettings` and `SettingsLink` present the scene as a sheet
-  over the window in front, its content's size;
+- **TUIkit:** `openSettings`, `SettingsLink` and the menu bar's Settings…
+  present the scene as a sheet over the window in front, its content's size;
   Escape or `dismiss()` closes it, and the window behind is inert while it is
   up (`SettingsSceneTests`).
 - **Why:** refusal review O9, ruled 2026-10-12: `openSettings` presents the
   `Settings` scene as a sheet.
 - **Decided:** [B-O9-6](<Decisions/Several scenes on one surface (O9).md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>). **Owner.**
+
+### W13. The Window menu closes a window; File has no New Window or Close
+
+- **SwiftUI:** with several window groups, File ▸ New is a submenu with a New
+  *Title* Window per group, and File holds Close (⌘W) and Close All (⌥⌘W); the
+  Window menu holds Minimize, Zoom, the `Window` scenes and Bring All to Front
+  (measured on macOS 15.8, `O9/probe/scenes.swift`).
+- **TUIkit:** for an app with more than one window scene, the Window menu holds
+  Close Window, the open windows (the one in front checked) and the `Window`
+  scenes; File gains nothing (`SceneMenuBarTests`). An app of one window scene
+  has no Window menu.
+- **Why:** a terminal has no minimising, zooming or bringing to front of other
+  apps' windows, and ⌘W and ⌥⌘W reach a terminal app only as `commandKey`
+  chords a text field may use; Close sits beside the list of windows it acts
+  on, and Escape, which closes a window opened over another, is its key.
+- **Decided:** [B-O9-9](<Decisions/Several scenes on one surface (O9).md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>). **Lane.**
 
 ---
 

@@ -99,6 +99,7 @@
   "menu.quitApp": "Quitter %@",
   "menu.aboutVersion": "Version %@",
   "menu.settings": "Réglages…",
+  "menu.closeWindow": "Fermer la fenêtre",
   "menu.find": "Rechercher…",
   "menu.new": "Nouveau",
   "menu.open": "Ouvrir",

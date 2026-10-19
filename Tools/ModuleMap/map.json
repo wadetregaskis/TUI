@@ -34,6 +34,7 @@
   "TUIkitApp/App/SceneCommandsDeclaration.swift": "TUIkitApp",
   "TUIkitApp/App/SceneConfiguration.swift": "TUIkitApp",
   "TUIkitApp/App/ScenePresenter+Render.swift": "TUIkitApp",
+  "TUIkitApp/App/ScenePresenter+WindowMenu.swift": "TUIkitApp",
   "TUIkitApp/App/ScenePresenter.swift": "TUIkitApp",
   "TUIkitApp/App/SignalManager.swift": "TUIkitApp",
   "TUIkitApp/App/StallWatchdog.swift": "TUIkitApp",

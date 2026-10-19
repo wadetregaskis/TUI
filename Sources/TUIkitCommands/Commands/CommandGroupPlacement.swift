@@ -71,7 +71,8 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that expose app settings and preferences.
     ///
-    /// Empty by default: TUIkit has no `Settings` scene yet.
+    /// By default, this group includes "Settings…" (⌘,), which presents the
+    /// app's `Settings` scene, where the app declares one.
     public static let appSettings = Self(.appSettings)
 
     /// Placement for commands that expose services other apps provide.
@@ -161,18 +162,24 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that arrange all of an app's windows.
     ///
-    /// Empty by default: a terminal app has one window.
+    /// By default, for an app that declares more than one window scene, this
+    /// group includes "Close Window", which closes the window in front when
+    /// another is open behind it; empty for an app of one window.
     public static let windowArrangement = Self(.windowArrangement)
 
     /// Placement for commands that describe and reveal the app's open windows.
     ///
-    /// Empty by default: a terminal app has one window.
+    /// By default, for an app that declares more than one window scene, this
+    /// group lists the open windows, the one in front checked; choosing one
+    /// brings it to the front. Empty for an app of one window.
     public static let windowList = Self(.windowList)
 
     /// Placement for commands that describe and reveal any windows that the
     /// app defines.
     ///
-    /// Empty by default: a terminal app has one window.
+    /// By default, for an app that declares more than one window scene, this
+    /// group lists its `Window` scenes; choosing one opens it, or brings its
+    /// window to the front.
     public static let singleWindowList = Self(.singleWindowList)
 
     /// Placement for commands that present documentation and helpful

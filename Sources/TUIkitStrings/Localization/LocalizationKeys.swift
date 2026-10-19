@@ -191,6 +191,9 @@ public enum LocalizationKey {
         case aboutVersion = "menu.aboutVersion"
         /// The menu bar's Settings… item, and `SettingsLink`'s default label.
         case settings = "menu.settings"
+        /// The menu bar's Window ▸ Close Window: the window in front, when another
+        /// is open behind it.
+        case closeWindow = "menu.closeWindow"
         /// The menu bar's Edit ▸ Find… (`TextEditingCommands`).
         case find = "menu.find"
         case new = "menu.new"

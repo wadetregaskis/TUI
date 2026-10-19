@@ -99,6 +99,7 @@
   "menu.quitApp": "%@を終了",
   "menu.aboutVersion": "バージョン %@",
   "menu.settings": "設定…",
+  "menu.closeWindow": "ウインドウを閉じる",
   "menu.find": "検索…",
   "menu.new": "新規",
   "menu.open": "開く",

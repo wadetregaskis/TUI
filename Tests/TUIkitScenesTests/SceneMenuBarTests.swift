@@ -1,0 +1,167 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  SceneMenuBarTests.swift
+//
+//  The menu bar's scene items (lane O9, decisions B-O13-7): the app menu's
+//  Settings…, on ⌘, with the menus closed, for an app that declares a
+//  `Settings` scene; and the Window menu — Close Window, the open windows with
+//  the one in front checked, the `Window` scenes — for an app that can open
+//  more than one window.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIkitApp
+@testable import TUIkitCommands
+@testable import TUIkitFoundation
+import TUIkitPresentation
+@testable import TUIkitScenes
+
+// MARK: - Fixtures
+
+private struct SettingsMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+        Settings { Text("settings content") }
+    }
+}
+
+private struct PlainMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+    }
+}
+
+private struct WindowsMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup("Notes") { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+        Window("Inspector", id: "inspector") { Text("inspector window") }
+    }
+}
+
+// MARK: - Tests
+
+@MainActor
+@Suite("The menu bar's scene items", .serialized)
+struct SceneMenuBarTests {
+    private var now: Int64 = 0
+
+    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+        now += 20_000_000
+        app.frame(atNanos: now)
+    }
+
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+        let headless = HeadlessApp(app, width: 60, height: 14)
+        frame(headless)
+        frame(headless)
+        return headless
+    }
+
+    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] { app.screen.map(\.stripped) }
+
+    private func screen<A: App>(_ app: HeadlessApp<A>) -> String { rows(app).joined(separator: "\n") }
+
+    /// Opens the menu titled `title` from the keyboard: F10, then Right to it.
+    private mutating func open<A: App>(_ title: String, in app: HeadlessApp<A>) {
+        let titles = rows(app)[0].split(separator: " ").map(String.init)
+        let index = titles.firstIndex(of: title) ?? 0
+        app.send(KeyEvent(key: .f10))
+        frame(app)
+        for _ in 0..<index {
+            app.send(KeyEvent(key: .right))
+            frame(app)
+        }
+    }
+
+    /// Chooses the item `downs` places past the open menu's first.
+    private mutating func choose<A: App>(item downs: Int, in app: HeadlessApp<A>) {
+        for _ in 0..<downs {
+            app.send(KeyEvent(key: .down))
+            frame(app)
+        }
+        app.send(KeyEvent(key: .enter))
+        frame(app)
+        frame(app)
+    }
+
+    @Test("An app with a Settings scene has Settings… in its app menu, showing ⌘, as the command key, and it presents them")
+    mutating func settingsItem() {
+        let app = launched(SettingsMenuApp())
+        open(_MenuBarCore.appName, in: app)
+        #expect(screen(app).contains("Settings…") && screen(app).contains("⌃,"), "\(screen(app))")
+        choose(item: 1, in: app)  // About, Settings…
+        #expect(screen(app).contains("settings content"), "\(screen(app))")
+        #expect(app.scenes.isPresentingSettings)
+    }
+
+    @Test("Settings…'s key works with every menu closed")
+    mutating func settingsKey() {
+        let app = launched(SettingsMenuApp())
+        app.send(KeyEvent(key: .character(","), ctrl: true))
+        frame(app)
+        frame(app)
+        #expect(app.scenes.isPresentingSettings, "\(screen(app))")
+    }
+
+    @Test("An app with no Settings scene has no Settings… item")
+    mutating func noSettingsItem() {
+        let app = launched(PlainMenuApp())
+        open(_MenuBarCore.appName, in: app)
+        #expect(screen(app).contains("About") && !screen(app).contains("Settings…"), "\(screen(app))")
+    }
+
+    @Test("An app of one window scene has no Window menu")
+    mutating func noWindowMenu() {
+        let app = launched(PlainMenuApp())
+        #expect(!rows(app)[0].contains("Window"), "\(rows(app)[0])")
+    }
+
+    @Test("The Window menu lists the Window scenes, and opens one")
+    mutating func windowMenuOpensScene() {
+        let app = launched(WindowsMenuApp())
+        #expect(rows(app)[0].contains("Window"), "\(rows(app)[0])")
+        open("Window", in: app)
+        let text = screen(app)
+        #expect(text.contains("Close Window") && text.contains("Notes") && text.contains("Inspector"), "\(text)")
+        // Close Window is disabled with one window open, so the highlight
+        // starts on the windows: Notes, then Inspector.
+        choose(item: 1, in: app)
+        #expect(screen(app).contains("inspector window"), "\(screen(app))")
+        #expect(app.scenes.windows.count == 2)
+    }
+
+    @Test("The Window menu lists the open windows, and brings one to the front")
+    mutating func windowMenuFrontsWindow() {
+        let app = launched(WindowsMenuApp())
+        app.scenes.open(WindowTarget(id: "inspector"))
+        frame(app)
+        frame(app)
+        open("Window", in: app)
+        // Close Window, then the windows — Notes, Inspector (in front) — then
+        // the Window scenes.
+        choose(item: 1, in: app)
+        #expect(screen(app).contains("main window"), "\(screen(app))")
+        #expect(app.scenes.windows.count == 2, "brought to the front, not closed")
+    }
+
+    @Test("Close Window closes the window in front")
+    mutating func closeWindow() {
+        let app = launched(WindowsMenuApp())
+        app.scenes.open(WindowTarget(id: "inspector"))
+        frame(app)
+        frame(app)
+        open("Window", in: app)
+        choose(item: 0, in: app)
+        #expect(app.scenes.windows.count == 1)
+        #expect(screen(app).contains("main window"), "\(screen(app))")
+        #expect(app.quitsRequested == 0)
+    }
+}

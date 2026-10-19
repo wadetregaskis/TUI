@@ -762,6 +762,7 @@ extension RenderLoop {
         environment.windowChrome = windowChrome
         environment.openWindow = OpenWindowAction(handler: scenes.actions)
         environment.openSettings = OpenSettingsAction(handler: scenes.actions)
+        environment.scenePresenter = scenes
         environment.focusManager = focusManager
         environment.paletteManager = paletteManager
         if let palette = paletteManager.currentPalette {
