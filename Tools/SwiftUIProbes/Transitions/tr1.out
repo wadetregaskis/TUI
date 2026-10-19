@@ -1,0 +1,188 @@
+T1 if/else flip in a VStack
+  before: GREEN@(0,0 10x10)  RED@(0,10 40x20)  YELLOW@(0,30 10x10)
+  t=0.0: GREEN@(0,0 10x10)  RED@(0,10 40x20)  YELLOW@(0,30 10x10)
+  t=0.5: RED@(0,10 40x20) a0.88  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.12  YELLOW@(0,35 10x10)
+  t=1.0: RED@(0,10 40x20) a0.75  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.25  YELLOW@(0,40 10x10)
+  t=1.5: RED@(0,10 40x20) a0.63  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.37  YELLOW@(0,45 10x10)
+  t=2.0: RED@(0,10 40x20) a0.50  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.50  YELLOW@(0,50 10x10)
+  t=2.5: RED@(0,10 40x20) a0.38  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.62  YELLOW@(0,55 10x10)
+  t=3.0: RED@(0,10 40x20) a0.25  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.75  YELLOW@(0,60 10x10)
+  t=3.5: RED@(0,10 40x20) a0.13  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.87  YELLOW@(0,65 10x10)
+  t=4.0: RED@(0,10 40x20) a0.00  GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a1.00  YELLOW@(0,70 10x10)
+  t=4.5: GREEN@(0,0 10x10)  BLUE@(0,10 100x60)  YELLOW@(0,70 10x10)
+T1b if/else flip back
+  before: GREEN@(0,0 10x10)  BLUE@(0,10 100x60)  YELLOW@(0,70 10x10)
+  t=0.0: GREEN@(0,0 10x10)  BLUE@(0,10 100x60)  YELLOW@(0,70 10x10)
+  t=0.5: BLUE@(0,10 100x60) a0.88  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.12  YELLOW@(0,65 10x10)
+  t=1.0: BLUE@(0,10 100x60) a0.75  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.25  YELLOW@(0,60 10x10)
+  t=1.5: BLUE@(0,10 100x60) a0.63  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.37  YELLOW@(0,55 10x10)
+  t=2.0: BLUE@(0,10 100x60) a0.50  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.50  YELLOW@(0,50 10x10)
+  t=2.5: BLUE@(0,10 100x60) a0.38  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.62  YELLOW@(0,45 10x10)
+  t=3.0: BLUE@(0,10 100x60) a0.25  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.75  YELLOW@(0,40 10x10)
+  t=3.5: BLUE@(0,10 100x60) a0.13  GREEN@(0,0 10x10)  RED@(0,10 40x20) a0.87  YELLOW@(0,35 10x10)
+  t=4.0: BLUE@(0,10 100x60) a0.00  GREEN@(0,0 10x10)  RED@(0,10 40x20) a1.00  YELLOW@(0,30 10x10)
+  t=4.5: GREEN@(0,0 10x10)  RED@(0,10 40x20)  YELLOW@(0,30 10x10)
+T2 switch 0 -> 2 in a VStack
+  before: GREEN@(0,0 10x10)  RED@(0,10 40x20)  YELLOW@(0,30 10x10)
+  t=0.0: GREEN@(0,0 10x10)  RED@(0,10 40x20)  YELLOW@(0,30 10x10)
+  t=0.5: RED@(0,10 40x20) a0.88  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.12  YELLOW@(0,32 10x10)
+  t=1.0: RED@(0,10 40x20) a0.75  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.25  YELLOW@(0,35 10x10)
+  t=1.5: RED@(0,10 40x20) a0.63  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.37  YELLOW@(0,37 10x10)
+  t=2.0: RED@(0,10 40x20) a0.50  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.50  YELLOW@(0,40 10x10)
+  t=2.5: RED@(0,10 40x20) a0.38  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.62  YELLOW@(0,42 10x10)
+  t=3.0: RED@(0,10 40x20) a0.25  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.75  YELLOW@(0,45 10x10)
+  t=3.5: RED@(0,10 40x20) a0.13  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a0.87  YELLOW@(0,47 10x10)
+  t=4.0: RED@(0,10 40x20) a0.00  GREEN@(0,0 10x10)  PURPLE@(0,10 20x40) a1.00  YELLOW@(0,50 10x10)
+  t=4.5: GREEN@(0,0 10x10)  PURPLE@(0,10 20x40)  YELLOW@(0,50 10x10)
+T3 ForEach row inserted
+  before: RED@(0,0 40x20)  BLUE@(0,20 80x20)  YELLOW@(0,40 10x10)
+  t=0.0: RED@(0,0 40x20)  BLUE@(0,20 80x20)  YELLOW@(0,40 10x10)
+  t=0.5: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.12  BLUE@(0,22 80x20)  YELLOW@(0,42 10x10)
+  t=1.0: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.25  BLUE@(0,25 80x20)  YELLOW@(0,45 10x10)
+  t=1.5: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.37  BLUE@(0,27 80x20)  YELLOW@(0,47 10x10)
+  t=2.0: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.50  BLUE@(0,30 80x20)  YELLOW@(0,50 10x10)
+  t=2.5: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.62  BLUE@(0,32 80x20)  YELLOW@(0,52 10x10)
+  t=3.0: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.75  BLUE@(0,35 80x20)  YELLOW@(0,55 10x10)
+  t=3.5: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a0.87  BLUE@(0,37 80x20)  YELLOW@(0,57 10x10)
+  t=4.0: RED@(0,0 40x20)  ORANGE@(0,20 60x20) a1.00  BLUE@(0,40 80x20)  YELLOW@(0,60 10x10)
+  t=4.5: RED@(0,0 40x20)  ORANGE@(0,20 60x20)  BLUE@(0,40 80x20)  YELLOW@(0,60 10x10)
+T3b ForEach row removed
+  before: RED@(0,0 40x20)  ORANGE@(0,20 60x20)  BLUE@(0,40 80x20)  YELLOW@(0,60 10x10)
+  t=0.0: RED@(0,0 40x20)  ORANGE@(0,20 60x20)  BLUE@(0,40 80x20)  YELLOW@(0,60 10x10)
+  t=0.5: ORANGE@(0,20 60x20) a0.88  RED@(0,0 40x20)  BLUE@(0,38 80x20)  YELLOW@(0,58 10x10)
+  t=1.0: ORANGE@(0,20 60x20) a0.75  RED@(0,0 40x20)  BLUE@(0,35 80x20)  YELLOW@(0,55 10x10)
+  t=1.5: ORANGE@(0,20 60x20) a0.63  RED@(0,0 40x20)  BLUE@(0,33 80x20)  YELLOW@(0,53 10x10)
+  t=2.0: ORANGE@(0,20 60x20) a0.50  RED@(0,0 40x20)  BLUE@(0,30 80x20)  YELLOW@(0,50 10x10)
+  t=2.5: ORANGE@(0,20 60x20) a0.38  RED@(0,0 40x20)  BLUE@(0,28 80x20)  YELLOW@(0,48 10x10)
+  t=3.0: ORANGE@(0,20 60x20) a0.25  RED@(0,0 40x20)  BLUE@(0,25 80x20)  YELLOW@(0,45 10x10)
+  t=3.5: ORANGE@(0,20 60x20) a0.13  RED@(0,0 40x20)  BLUE@(0,23 80x20)  YELLOW@(0,43 10x10)
+  t=4.0: ORANGE@(0,20 60x20) a0.00  RED@(0,0 40x20)  BLUE@(0,20 80x20)  YELLOW@(0,40 10x10)
+  t=4.5: RED@(0,0 40x20)  BLUE@(0,20 80x20)  YELLOW@(0,40 10x10)
+T4 asymmetric insertion (2 s) under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.24
+  t=1.0: RED@(0,0 40x20) a0.49
+  t=1.5: RED@(0,0 40x20) a0.74
+  t=2.0: RED@(0,0 40x20) a0.99
+  t=2.5: RED@(0,0 40x20)
+  t=3.0: RED@(0,0 40x20)
+  t=3.5: RED@(0,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+T4b asymmetric removal (8 s) under 4 s
+  before: RED@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)
+  t=0.5: RED@(0,0 40x20) a0.94
+  t=1.0: RED@(0,0 40x20) a0.88
+  t=1.5: RED@(0,0 40x20) a0.81
+  t=2.0: RED@(0,0 40x20) a0.75
+  t=2.5: RED@(0,0 40x20) a0.69
+  t=3.0: RED@(0,0 40x20) a0.63
+  t=3.5: RED@(0,0 40x20) a0.56
+  t=4.0: RED@(0,0 40x20) a0.50
+  t=4.5: RED@(0,0 40x20) a0.44
+  t=5.0: RED@(0,0 40x20) a0.38
+  t=5.5: RED@(0,0 40x20) a0.31
+  t=6.0: RED@(0,0 40x20) a0.25
+  t=6.5: RED@(0,0 40x20) a0.19
+  t=7.0: RED@(0,0 40x20) a0.13
+  t=7.5: RED@(0,0 40x20) a0.06
+  t=8.0: RED@(0,0 40x20) a0.00
+  t=8.5: 
+T4c asymmetric, removal without its own, under 4 s
+  before: RED@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)
+  t=0.5: RED@(0,0 40x20) a0.88
+  t=1.0: RED@(0,0 40x20) a0.75
+  t=1.5: RED@(0,0 40x20) a0.63
+  t=2.0: RED@(0,0 40x20) a0.50
+  t=2.5: RED@(0,0 40x20) a0.38
+  t=3.0: RED@(0,0 40x20) a0.25
+  t=3.5: RED@(0,0 40x20) a0.13
+  t=4.0: RED@(0,0 40x20) a0.00
+  t=4.5: 
+T5 .opacity.animation(nil) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20)
+  t=1.0: RED@(0,0 40x20)
+  t=1.5: RED@(0,0 40x20)
+  t=2.0: RED@(0,0 40x20)
+  t=2.5: RED@(0,0 40x20)
+  t=3.0: RED@(0,0 40x20)
+  t=3.5: RED@(0,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+T5b .opacity.animation(nil) removed under 4 s
+  before: RED@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)
+  t=0.5: 
+  t=1.0: 
+  t=1.5: 
+  t=2.0: 
+  t=2.5: 
+  t=3.0: 
+  t=3.5: 
+  t=4.0: 
+  t=4.5: 
+T5c OpacityTransition().animation(nil) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20)
+  t=1.0: RED@(0,0 40x20)
+  t=1.5: RED@(0,0 40x20)
+  t=2.0: RED@(0,0 40x20)
+  t=2.5: RED@(0,0 40x20)
+  t=3.0: RED@(0,0 40x20)
+  t=3.5: RED@(0,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+T6 .opacity.animation(.linear(4)) inserted, no withAnimation
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.12
+  t=1.0: RED@(0,0 40x20) a0.25
+  t=1.5: RED@(0,0 40x20) a0.37
+  t=2.0: RED@(0,0 40x20) a0.50
+  t=2.5: RED@(0,0 40x20) a0.62
+  t=3.0: RED@(0,0 40x20) a0.75
+  t=3.5: RED@(0,0 40x20) a0.87
+  t=4.0: RED@(0,0 40x20) a1.00
+  t=4.5: RED@(0,0 40x20)
+T7 collapsing transition removed
+  before: GREEN@(0,0 10x10)  RED@(0,10 40x60)  YELLOW@(0,70 10x10)
+  t=0.0: GREEN@(0,0 10x10)  RED@(0,10 40x60)  YELLOW@(0,70 10x10)
+  t=0.5: GREEN@(0,0 10x10)  YELLOW@(0,63 10x10)
+  t=1.0: GREEN@(0,0 10x10)  YELLOW@(0,55 10x10)
+  t=1.5: GREEN@(0,0 10x10)  YELLOW@(0,48 10x10)
+  t=2.0: GREEN@(0,0 10x10)  YELLOW@(0,40 10x10)
+  t=2.5: GREEN@(0,0 10x10)  YELLOW@(0,33 10x10)
+  t=3.0: GREEN@(0,0 10x10)  YELLOW@(0,25 10x10)
+  t=3.5: GREEN@(0,0 10x10)  YELLOW@(0,18 10x10)
+  t=4.0: GREEN@(0,0 10x10)  YELLOW@(0,10 10x10)
+  t=4.5: GREEN@(0,0 10x10)  YELLOW@(0,10 10x10)
+T7b collapsing transition inserted
+  before: GREEN@(0,0 10x10)  YELLOW@(0,10 10x10)
+  t=0.0: GREEN@(0,0 10x10)  YELLOW@(0,10 10x10)
+  t=0.5: GREEN@(0,0 10x10)  RED@(0,10 40x7)  YELLOW@(0,17 10x10)
+  t=1.0: GREEN@(0,0 10x10)  RED@(0,10 40x15)  YELLOW@(0,25 10x10)
+  t=1.5: GREEN@(0,0 10x10)  RED@(0,10 40x22)  YELLOW@(0,32 10x10)
+  t=2.0: GREEN@(0,0 10x10)  RED@(0,10 40x30)  YELLOW@(0,40 10x10)
+  t=2.5: GREEN@(0,0 10x10)  RED@(0,10 40x37)  YELLOW@(0,47 10x10)
+  t=3.0: GREEN@(0,0 10x10)  RED@(0,10 40x45)  YELLOW@(0,55 10x10)
+  t=3.5: GREEN@(0,0 10x10)  RED@(0,10 40x52)  YELLOW@(0,62 10x10)
+  t=4.0: GREEN@(0,0 10x10)  RED@(0,10 40x60)  YELLOW@(0,70 10x10)
+  t=4.5: GREEN@(0,0 10x10)  RED@(0,10 40x60)  YELLOW@(0,70 10x10)
+T8 whole body if/else
+  before: RED@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)
+  t=0.5: RED@(0,0 40x20) a0.88  BLUE@(0,0 100x60) a0.12
+  t=1.0: RED@(0,0 40x20) a0.76  BLUE@(0,0 100x60) a0.24
+  t=1.5: RED@(0,0 40x20) a0.63  BLUE@(0,0 100x60) a0.37
+  t=2.0: RED@(0,0 40x20) a0.51  BLUE@(0,0 100x60) a0.49
+  t=2.5: RED@(0,0 40x20) a0.38  BLUE@(0,0 100x60) a0.62
+  t=3.0: RED@(0,0 40x20) a0.26  BLUE@(0,0 100x60) a0.74
+  t=3.5: RED@(0,0 40x20) a0.13  BLUE@(0,0 100x60) a0.87
+  t=4.0: RED@(0,0 40x20) a0.01  BLUE@(0,0 100x60) a0.99
+  t=4.5: BLUE@(0,0 100x60)

@@ -431,3 +431,27 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitFoundation/Styling/ImagePaint.swift`, `Sources/TUIkitFoundation/Styling/ShapeStyle.swift`
   (`in(_:)`), `Tests/TUIkitBitmapsTests/ImagePaintTests.swift`;
   `Documentation/SwiftUI parity/Decisions/What the shapes unblocked (W1B).md` (B-W1B-4).
+
+### Transitions
+
+- **Asks:** how SwiftUI plays a view's arrival and removal, read from the layer tree's presentation frames as
+  `Matched geometry/mg3.swift` reads them (each view a coloured layer, sampled every 0.5 s under a linear
+  animation; a layer's opacity is multiplied down its ancestors). `tr1.swift`: with no `.transition` written,
+  an `if`/`else` whose branch flips in a column, a `switch`, a `ForEach` row inserted and removed, and a view
+  whose whole body is an `if`/`else`; an `asymmetric` transition whose halves have animations of their own; a
+  transition's `.animation(nil)` under `withAnimation`; a transition's own animation with no `withAnimation`;
+  and a custom transition that collapses its height. `tr2.swift`: how a transition's own animations compose —
+  an outer `.animation` over halves with their own, two `.animation` calls, `nil` before and after an
+  animation, and parts of a `combined` transition with different ones. Each is a program alone (`@main`, built
+  with `-parse-as-library`); `tr2` copies `tr1`'s harness.
+  Found: with no transition the leaving view fades out where it was, drawn beneath its siblings, while the new
+  one fades in and the views below glide — a branch flip, a `switch` case and a `ForEach` row alike, and a
+  whole body's two branches overlap at its origin; each half of an `asymmetric` transition keeps its own
+  animation, and a half with none takes the change's; the animation nearest the view wins, `nil` included,
+  which plays the transition at once under any `withAnimation`; a transition's own animation plays with no
+  `withAnimation`; each part of a `combined` transition runs under its own; a collapsing transition's
+  neighbours move continuously as its frame shrinks.
+- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19. Samples move by a point or two, and an
+  opacity by a hundredth, with the frame's timing.
+- **Was:** `TRANSITIONS2/probe/`.
+- **Cited by:** the commits that follow, as they cite it.

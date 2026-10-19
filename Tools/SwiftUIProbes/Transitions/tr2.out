@@ -1,0 +1,156 @@
+T9 (asym(ins 2 s, rem none)).animation(8 s) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.21
+  t=1.0: RED@(0,0 40x20) a0.46
+  t=1.5: RED@(0,0 40x20) a0.70
+  t=2.0: RED@(0,0 40x20) a0.96
+  t=2.5: RED@(0,0 40x20)
+  t=3.0: RED@(0,0 40x20)
+  t=3.5: RED@(0,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+  t=5.0: RED@(0,0 40x20)
+  t=5.5: RED@(0,0 40x20)
+  t=6.0: RED@(0,0 40x20)
+  t=6.5: RED@(0,0 40x20)
+  t=7.0: RED@(0,0 40x20)
+  t=7.5: RED@(0,0 40x20)
+  t=8.0: RED@(0,0 40x20)
+  t=8.5: RED@(0,0 40x20)
+T9b same removed under 4 s
+  before: RED@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)
+  t=0.5: RED@(0,0 40x20) a0.94
+  t=1.0: RED@(0,0 40x20) a0.88
+  t=1.5: RED@(0,0 40x20) a0.81
+  t=2.0: RED@(0,0 40x20) a0.75
+  t=2.5: RED@(0,0 40x20) a0.69
+  t=3.0: RED@(0,0 40x20) a0.63
+  t=3.5: RED@(0,0 40x20) a0.56
+  t=4.0: RED@(0,0 40x20) a0.50
+  t=4.5: RED@(0,0 40x20) a0.44
+  t=5.0: RED@(0,0 40x20) a0.38
+  t=5.5: RED@(0,0 40x20) a0.31
+  t=6.0: RED@(0,0 40x20) a0.25
+  t=6.5: RED@(0,0 40x20) a0.19
+  t=7.0: RED@(0,0 40x20) a0.13
+  t=7.5: RED@(0,0 40x20) a0.06
+  t=8.0: RED@(0,0 40x20) a0.00
+  t=8.5: 
+T10 .opacity.animation(2 s).animation(8 s) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.23
+  t=1.0: RED@(0,0 40x20) a0.49
+  t=1.5: RED@(0,0 40x20) a0.73
+  t=2.0: RED@(0,0 40x20) a0.98
+  t=2.5: RED@(0,0 40x20)
+  t=3.0: RED@(0,0 40x20)
+  t=3.5: RED@(0,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+  t=5.0: RED@(0,0 40x20)
+  t=5.5: RED@(0,0 40x20)
+  t=6.0: RED@(0,0 40x20)
+  t=6.5: RED@(0,0 40x20)
+  t=7.0: RED@(0,0 40x20)
+  t=7.5: RED@(0,0 40x20)
+  t=8.0: RED@(0,0 40x20)
+  t=8.5: RED@(0,0 40x20)
+T11 .opacity.animation(nil).animation(8 s) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20)
+  t=1.0: RED@(0,0 40x20)
+  t=1.5: RED@(0,0 40x20)
+  t=2.0: RED@(0,0 40x20)
+  t=2.5: RED@(0,0 40x20)
+  t=3.0: RED@(0,0 40x20)
+  t=3.5: RED@(0,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+  t=5.0: RED@(0,0 40x20)
+  t=5.5: RED@(0,0 40x20)
+  t=6.0: RED@(0,0 40x20)
+  t=6.5: RED@(0,0 40x20)
+  t=7.0: RED@(0,0 40x20)
+  t=7.5: RED@(0,0 40x20)
+  t=8.0: RED@(0,0 40x20)
+  t=8.5: RED@(0,0 40x20)
+T11b .opacity.animation(8 s).animation(nil) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.06
+  t=1.0: RED@(0,0 40x20) a0.12
+  t=1.5: RED@(0,0 40x20) a0.18
+  t=2.0: RED@(0,0 40x20) a0.25
+  t=2.5: RED@(0,0 40x20) a0.31
+  t=3.0: RED@(0,0 40x20) a0.37
+  t=3.5: RED@(0,0 40x20) a0.43
+  t=4.0: RED@(0,0 40x20) a0.50
+  t=4.5: RED@(0,0 40x20) a0.56
+  t=5.0: RED@(0,0 40x20) a0.62
+  t=5.5: RED@(0,0 40x20) a0.68
+  t=6.0: RED@(0,0 40x20) a0.75
+  t=6.5: RED@(0,0 40x20) a0.81
+  t=7.0: RED@(0,0 40x20) a0.87
+  t=7.5: RED@(0,0 40x20) a0.93
+  t=8.0: RED@(0,0 40x20) a1.00
+  t=8.5: RED@(0,0 40x20)
+T12 opacity(2 s).combined(opacity(8 s)) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.01
+  t=1.0: RED@(0,0 40x20) a0.06
+  t=1.5: RED@(0,0 40x20) a0.14
+  t=2.0: RED@(0,0 40x20) a0.25
+  t=2.5: RED@(0,0 40x20) a0.31
+  t=3.0: RED@(0,0 40x20) a0.37
+  t=3.5: RED@(0,0 40x20) a0.44
+  t=4.0: RED@(0,0 40x20) a0.50
+  t=4.5: RED@(0,0 40x20) a0.56
+  t=5.0: RED@(0,0 40x20) a0.62
+  t=5.5: RED@(0,0 40x20) a0.69
+  t=6.0: RED@(0,0 40x20) a0.75
+  t=6.5: RED@(0,0 40x20) a0.81
+  t=7.0: RED@(0,0 40x20) a0.87
+  t=7.5: RED@(0,0 40x20) a0.94
+  t=8.0: RED@(0,0 40x20) a1.00
+  t=8.5: RED@(0,0 40x20)
+T12b opacity(nil).combined(offset 100) inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(88,0 40x20)
+  t=1.0: RED@(75,0 40x20)
+  t=1.5: RED@(63,0 40x20)
+  t=2.0: RED@(50,0 40x20)
+  t=2.5: RED@(38,0 40x20)
+  t=3.0: RED@(25,0 40x20)
+  t=3.5: RED@(13,0 40x20)
+  t=4.0: RED@(0,0 40x20)
+  t=4.5: RED@(0,0 40x20)
+T13 asym(ins opacity, rem opacity.animation(nil)) removed under 4 s
+  before: RED@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)
+  t=0.5: 
+  t=1.0: 
+  t=1.5: 
+  t=2.0: 
+  t=2.5: 
+  t=3.0: 
+  t=3.5: 
+  t=4.0: 
+  t=4.5: 
+T13b same inserted under 4 s
+  before: 
+  t=0.0: 
+  t=0.5: RED@(0,0 40x20) a0.12
+  t=1.0: RED@(0,0 40x20) a0.24
+  t=1.5: RED@(0,0 40x20) a0.37
+  t=2.0: RED@(0,0 40x20) a0.49
+  t=2.5: RED@(0,0 40x20) a0.62
+  t=3.0: RED@(0,0 40x20) a0.74
+  t=3.5: RED@(0,0 40x20) a0.87
+  t=4.0: RED@(0,0 40x20) a0.99
+  t=4.5: RED@(0,0 40x20)
