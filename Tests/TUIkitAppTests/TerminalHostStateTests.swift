@@ -70,9 +70,9 @@ struct TerminalHostStateTests {
 
     @Test("BEL, ESC, DEL and the C1 controls are dropped from a title; line breaks and tabs are spaces")
     func sanitised() {
-        #expect(TerminalHostState.sanitizedTitle("a\u{07}b\u{1B}]0;x\u{7F}c\u{9B}d\u{9C}") == "ab]0;xcd")
-        #expect(TerminalHostState.sanitizedTitle("one\ntwo\r\nthree\tfour\u{85}five") == "one two three four five")
-        #expect(TerminalHostState.sanitizedTitle("Café 🇳🇿 ノート") == "Café 🇳🇿 ノート")
+        #expect(TerminalHostState.sanitizedText("a\u{07}b\u{1B}]0;x\u{7F}c\u{9B}d\u{9C}") == "ab]0;xcd")
+        #expect(TerminalHostState.sanitizedText("one\ntwo\r\nthree\tfour\u{85}five") == "one two three four five")
+        #expect(TerminalHostState.sanitizedText("Café 🇳🇿 ノート") == "Café 🇳🇿 ノート")
         var ledger = TerminalHostState()
         #expect(ledger.show(title: "x\u{1B}\\y") == Self.save + Self.set("x\\y"))
     }

@@ -70,12 +70,12 @@ struct TerminalHostState: Equatable {
 
     /// The bytes that make the terminal show `title`, or give it its own back
     /// for `nil` (``restore()``): nothing where it shows that already. The
-    /// title is sanitised (``sanitizedTitle(_:)``), and one that sanitises to
+    /// title is sanitised (``sanitizedText(_:)``), and one that sanitises to
     /// nothing is no title.
     mutating func show(title asked: String?) -> String {
         guard askedTitle != .some(asked) else { return "" }
         defer { askedTitle = .some(asked) }
-        let title = asked.map(Self.sanitizedTitle(_:)).flatMap { $0.isEmpty ? nil : $0 }
+        let title = asked.map(Self.sanitizedText(_:)).flatMap { $0.isEmpty ? nil : $0 }
         guard title != writtenTitle else { return "" }
         guard let title else { return restoreHostTitle() }
         var bytes = ""
@@ -172,15 +172,15 @@ struct TerminalHostState: Equatable {
     /// `OSC 9 ; 4 ; 0 ST`: no progress bar.
     static let removeProgressReport = "\u{1B}]9;4;0\u{1B}\\"
 
-    /// `title`, safe inside an OSC: a line break or a tab is a space, and
-    /// every other control character — C0, DEL, C1 — is dropped. A `BEL` or
-    /// an `ESC` would end the OSC early, and what followed would be printed
-    /// or obeyed; `sanitizedForTerminal` keeps C0, for text drawn on the
-    /// screen, so the title has its own.
-    static func sanitizedTitle(_ title: String) -> String {
+    /// `text`, safe inside an OSC — a title, a notification's message: a line
+    /// break or a tab is a space, and every other control character — C0,
+    /// DEL, C1 — is dropped. A `BEL` or an `ESC` would end the OSC early, and
+    /// what followed would be printed or obeyed; `sanitizedForTerminal` keeps
+    /// C0, for text drawn on the screen, so text sent in an OSC has its own.
+    static func sanitizedText(_ text: String) -> String {
         var sanitized = ""
-        sanitized.reserveCapacity(title.utf8.count)
-        for character in title {
+        sanitized.reserveCapacity(text.utf8.count)
+        for character in text {
             if character.isNewline || character == "\t" {
                 sanitized.append(" ")
             } else if !character.unicodeScalars.contains(where: isControl(_:)) {
