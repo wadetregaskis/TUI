@@ -207,7 +207,8 @@ package struct MatchedMember {
 /// still there, asks the root to draw the frame again — the correction
 /// `GeometryReader` uses (design study A2, G4). The effect never moves a view
 /// in its parent's layout, so the second walk lays out what the first did,
-/// and one is enough.
+/// and one is enough. Only a member the root found is checked, as only a
+/// reader it found is: one it did not was drawn nowhere anyone sees.
 ///
 /// One per geometry coordinator; touched only on the render path and at the
 /// end of a frame, both on the main actor.
@@ -227,6 +228,16 @@ package final class MatchedGeometryRegistry: @unchecked Sendable {
 
     /// Each member's state as the last resolved walk of this frame leaves it.
     private var pendingStates: [MatchedMemberID: MatchedMemberState] = [:]
+
+    /// The members that registered last frame and that the root did not find:
+    /// drawn nowhere anyone sees — the root a navigation stack draws
+    /// off-screen under a pushed screen. A source among them is not followed
+    /// from where its owner expects it, which the root would not confirm.
+    private var drawnNowhere: Set<MatchedMemberID> = []
+
+    /// The members registered and not found in the last resolved walk of this
+    /// frame.
+    private var pendingDrawnNowhere: Set<MatchedMemberID> = []
 
     init() {}
 
@@ -252,7 +263,13 @@ extension MatchedGeometryRegistry {
     /// The group's source as best known now, for a member other than it to
     /// follow: the last source the root found in this frame's last walk; else
     /// the last one registered so far in this walk, where its owner expects
-    /// it; else last frame's. `nil` when the group has none.
+    /// it, unless the root did not find it last frame either; else last
+    /// frame's. `nil` when the group has none.
+    ///
+    /// A source registered and not found last frame was drawn nowhere anyone
+    /// sees, and is not followed: followed, a follower on a screen pushed over
+    /// a navigation stack's root drew at a source on the covered root, and the
+    /// root drew every frame twice to correct it.
     ///
     /// The last, where SwiftUI calls more than one source undefined: a
     /// follower takes the later one's frame, as SwiftUI was measured doing
@@ -263,7 +280,9 @@ extension MatchedGeometryRegistry {
                 MatchedSource(identity: $0.identity, frame: $0.frame, anchor: $0.anchor)
             }
         }
-        if let registered = walk[key]?.last(where: { $0.isSource && $0.identity != identity }) {
+        if let registered = walk[key]?.last(where: {
+            $0.isSource && $0.identity != identity && !drawnNowhere.contains($0.member)
+        }) {
             if let origin = registered.expectedOrigin {
                 return MatchedSource(
                     identity: registered.identity,
@@ -341,6 +360,13 @@ extension MatchedGeometryRegistry {
     /// source moved or replaced, or one taken to have left still there — so
     /// the root draws the frame again.
     ///
+    /// A member the root did not find is not checked: its drawing was thrown
+    /// away — the root a navigation stack draws off-screen under a pushed
+    /// screen — so nothing it drew from can have been seen to be wrong, as
+    /// for a reader no owner found (``GeometryCoordinator/resolveRemaining(in:size:)``).
+    /// Checked, a follower there drew from a source that was not found
+    /// either on every frame, and every frame was drawn twice.
+    ///
     /// - Parameter origin: Where the root found the marker with an id, in the
     ///   global space, or `nil` where it found none (a container that drops
     ///   its content's regions).
@@ -349,9 +375,13 @@ extension MatchedGeometryRegistry {
         guard !isEmpty else { return false }
         var found: [MatchedGeometryKey: [MatchedMember]] = [:]
         var resolvedStates: [MatchedMemberID: MatchedMemberState] = [:]
+        var unfound: Set<MatchedMemberID> = []
         for (key, registrations) in walk {
             for registration in registrations {
-                guard let at = origin(registration.marker) else { continue }
+                guard let at = origin(registration.marker) else {
+                    unfound.insert(registration.member)
+                    continue
+                }
                 let frame = CellRect(
                     x: at.x, y: at.y, width: registration.size.width, height: registration.size.height)
                 let presented =
@@ -370,12 +400,14 @@ extension MatchedGeometryRegistry {
         var misled = false
         for (key, registrations) in walk {
             let members = found[key] ?? []
-            for registration in registrations where Self.wasMisled(registration, by: members) {
+            for registration in registrations
+            where !unfound.contains(registration.member) && Self.wasMisled(registration, by: members) {
                 misled = true
             }
         }
         settled = found
         pendingStates = resolvedStates
+        pendingDrawnNowhere = unfound
         return misled
     }
 
@@ -393,11 +425,13 @@ extension MatchedGeometryRegistry {
 
     /// Keeps what the frame's last walk found for the next frame.
     func endFrame() {
-        guard !isEmpty || !states.isEmpty else { return }
+        guard !isEmpty || !states.isEmpty || !drawnNowhere.isEmpty else { return }
         lastFrame = settled ?? [:]
         states = settled == nil ? [:] : pendingStates
+        drawnNowhere = settled == nil ? [] : pendingDrawnNowhere
         settled = nil
         pendingStates = [:]
+        pendingDrawnNowhere = []
         walk.removeAll(keepingCapacity: true)
     }
 }
