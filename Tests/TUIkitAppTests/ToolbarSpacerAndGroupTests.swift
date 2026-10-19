@@ -59,6 +59,32 @@ private struct GroupsApp: App {
     }
 }
 
+/// Toolbar content grouped with `Group`: two placements in one group, and a
+/// customizable group whose second item starts out of the bar.
+private struct GroupedContentApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar {
+                    Group {
+                        ToolbarItem(placement: .navigation) { Text("LEFT") }
+                        ToolbarItem(placement: .bottomBar) { Text("BELOW") }
+                    }
+                }
+                .toolbar(id: "grouped") {
+                    Group {
+                        ToolbarItem(id: "shown", placement: .primaryAction) { Text("SHOWN") }
+                        ToolbarItem(id: "later", placement: .primaryAction) { Text("LATER") }
+                            .defaultCustomization(.hidden)
+                    }
+                }
+        }
+        .defaultAppStorage(MockStorageBackend())
+    }
+}
+
 @MainActor
 @Suite("Toolbar spacers and groups", .serialized)
 struct ToolbarSpacerAndGroupTests {
@@ -107,5 +133,15 @@ struct ToolbarSpacerAndGroupTests {
         #expect(bottom != nil, "\(rows)")
         #expect(top.map { $0 < 3 } == true, "the top bar: \(rows)")
         #expect(bottom.map { $0 > rows.count - 4 } == true, "the bottom bar: \(rows)")
+    }
+
+    @Test("A Group of toolbar content hands over its items, each where it is placed, customizable ones too")
+    func groupedContent() {
+        let rows = screen(GroupedContentApp())
+        let top = rows.firstIndex { $0.contains("LEFT") }
+        let bottom = rows.firstIndex { $0.contains("BELOW") }
+        #expect(top.map { $0 < 3 && rows[$0].contains("SHOWN") } == true, "the top bar: \(rows)")
+        #expect(bottom.map { $0 > rows.count - 4 } == true, "the bottom bar: \(rows)")
+        #expect(!rows.contains { $0.contains("LATER") }, "it starts out of the bar: \(rows)")
     }
 }

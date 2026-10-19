@@ -2756,6 +2756,19 @@ private struct CustomizableToolbarShapes: View {
                 ToolbarItem(id: "raw", placement: .primaryAction) { Text("raw") }
                     .defaultCustomization(.visible, options: ToolbarCustomizationOptions(rawValue: 1))
             }
+            .toolbar(id: "grouped") {
+                Group {
+                    ToolbarItem(id: "cut") { Button("Cut") {} }
+                    ToolbarItem(id: "copy") { Button("Copy") {} }
+                }
+                .defaultCustomization(.hidden)
+            }
+            .toolbar {
+                Group {
+                    ToolbarItem(placement: .navigation) { Button("Back") {} }
+                    ToolbarItem(placement: .primaryAction) { Button("Next") {} }
+                }
+            }
     }
 }
 

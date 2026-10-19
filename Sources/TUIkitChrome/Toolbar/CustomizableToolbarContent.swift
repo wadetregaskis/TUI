@@ -15,8 +15,8 @@ import TUIkitFoundation
 /// a customizable toolbar — mirrors SwiftUI's `CustomizableToolbarContent`.
 ///
 /// Write it in a `toolbar(id:content:)`: ``ToolbarItem``s made with an `id:`,
-/// ``ToolbarSpacer``s, a ``ToolbarTitleMenu``, composed with `if` and
-/// `if`/`else`. The person customizes the items with an identifier — puts
+/// ``ToolbarSpacer``s, a ``ToolbarTitleMenu``, composed with `if`,
+/// `if`/`else` and `Group`. The person customizes the items with an identifier — puts
 /// them in the bar or takes them out, and moves them — from the bar's context
 /// menu or the menu bar's View ▸ Customize Toolbar…; see
 /// `toolbar(id:content:)`.
@@ -38,6 +38,10 @@ extension Optional: CustomizableToolbarContent where Wrapped: CustomizableToolba
 
 extension _ConditionalContent: CustomizableToolbarContent
 where TrueContent: CustomizableToolbarContent, FalseContent: CustomizableToolbarContent {}
+
+/// A group of customizable toolbar content is customizable: its items are
+/// handed over as they are, each with what its own modifiers said.
+extension Group: CustomizableToolbarContent where Content: CustomizableToolbarContent {}
 
 extension _TupleToolbarContent: CustomizableToolbarContent {}
 

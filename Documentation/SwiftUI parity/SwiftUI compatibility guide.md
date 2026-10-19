@@ -725,6 +725,8 @@ its bottom bar (iPadOS's placement, which macOS marks unavailable; TUIkit reads
 it on every platform). `ToolbarContent.sharedBackgroundVisibility(_:)` is
 honoured as it stands: a terminal bar sets no glass under a group of items,
 so every item already sits on the one background they share, the bar's fill.
+`Group { … }` groups toolbar content, customizable content too, as it groups
+views: it hands over its items as they are, each where it is placed.
 
 `ToolbarPlacement.accessoryBar(id:)` names an accessory bar to the bar
 modifiers: `.toolbarVisibility(.hidden, for:)` takes that row away (hiding

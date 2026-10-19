@@ -15,9 +15,9 @@ import TUIkitFoundation
 /// a toolbar — mirrors SwiftUI's `ToolbarContent`.
 ///
 /// You write toolbar content in a ``ToolbarContentBuilder`` closure passed to
-/// `toolbar(content:)`: ``ToolbarItem``s,
-/// ``ToolbarItemGroup``s and ``ToolbarSpacer``s, composed with `if` and
-/// `if`/`else`. A type of your own conforms by returning such content from its
+/// `toolbar(content:)`: ``ToolbarItem``s, ``ToolbarItemGroup``s and
+/// ``ToolbarSpacer``s, composed with `if`, `if`/`else` and `Group`. A type of
+/// your own conforms by returning such content from its
 /// ``body-swift.property``, as a view returns views.
 ///
 /// The window's bars draw what the items say. An item placed in the top bar
@@ -253,6 +253,32 @@ where TrueContent: ToolbarContent, FalseContent: ToolbarContent {
         case .trueContent(let content): items.step(0, content)
         case .falseContent(let content): items.step(1, content)
         }
+    }
+}
+
+// MARK: - Group
+
+extension Group: ToolbarContent where Content: ToolbarContent {
+    /// Creates a group of toolbar content instances — mirrors SwiftUI's
+    /// `Group.init(content:)` for toolbar content.
+    ///
+    /// The group hands over its content's items as they are, each where the
+    /// content places it: it groups them for a modifier, or past the ten a
+    /// builder block takes, and adds nothing of its own to the bars.
+    ///
+    /// - Parameter content: A ``ToolbarContentBuilder`` that produces the
+    ///   toolbar content instances to group.
+    public init(@ToolbarContentBuilder content: () -> Content) {
+        self = .grouping(content())
+    }
+
+    /// Never called: a group hands its items over itself.
+    public var body: Never { fatalError("Group hands its toolbar items over itself") }
+}
+
+extension Group: _ToolbarContentPrimitive where Content: ToolbarContent {
+    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+        TUIkitChrome.appendToolbarItems(content, to: &items)
     }
 }
 
