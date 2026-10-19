@@ -190,6 +190,11 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
             environment.drawsBackdrop = bar.drawsBackdrop
         }
         environment.volatileReadTracker = bar.volatileReadTracker
+        // The window's toolbar label style, over the declaring view's label
+        // style — the bar is where the label is drawn — and under any the item
+        // states itself. Not a presentation's rows: a sheet's buttons are not
+        // the window's toolbar.
+        if !bar.presentationHostsToolbar { environment.toolbarLabelStyle?.apply(to: &environment) }
         var entryContext = context.withEnvironment(environment)
         entryContext.identity = entry.identity
         return entryContext

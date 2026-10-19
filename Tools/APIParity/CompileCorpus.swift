@@ -2672,16 +2672,32 @@ private struct ToolbarShapes: View {
                 .toolbarBackgroundVisibility(.visible)
                 .toolbarRole(.editor)
                 .toolbarRole(.automatic)
+            LabelStyleReader()
         }
     }
 }
 
+/// A view reading the window's toolbar label style.
+@MainActor
+private struct LabelStyleReader: View {
+    @Environment(\.toolbarLabelStyle) private var style
+
+    var body: some View {
+        Text(style == .titleOnly || style == .automatic || style == nil ? "title" : "icon")
+    }
+}
+
 /// The window toolbar styles, set on a scene as SwiftUI's documentation sets
-/// them.
+/// them, and the toolbar label style, fixed and from `@AppStorage`.
 @MainActor
 private struct ToolbarStyleScenes: Scene {
+    @AppStorage("ToolbarLabelStyle") private var labelStyle: ToolbarLabelStyle = .iconOnly
+
     var body: some Scene {
         WindowGroup { Text("notes") }
+            .windowToolbarLabelStyle(fixed: .iconOnly)
+            .windowToolbarLabelStyle(fixed: .titleAndIcon)
+            .windowToolbarLabelStyle($labelStyle)
             .windowToolbarStyle(.unifiedCompact(showsTitle: false))
             .windowToolbarStyle(.unified)
             .windowToolbarStyle(UnifiedWindowToolbarStyle(showsTitle: true))

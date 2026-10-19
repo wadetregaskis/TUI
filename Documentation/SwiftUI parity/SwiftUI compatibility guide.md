@@ -687,7 +687,12 @@ statement closest to the content wins. (The deprecated
 `.toolbarRole(.editor)` keeps the title at the top bar's leading end beside
 the `.principal` items, as macOS and iPadOS draw an editor's toolbar;
 `.automatic` is TUIkit's default, iOS's reading, where a principal item takes
-the title's place.
+the title's place. `Scene.windowToolbarLabelStyle(fixed:)` and
+`windowToolbarLabelStyle(_:)` (a binding — `ToolbarLabelStyle` is `Codable`
+here, a TUIkit addition, so `@AppStorage` keeps it) draw every `Label` in the
+window's bars' items as `.iconOnly`, `.titleOnly` or `.titleAndIcon` says,
+under any `.labelStyle` the item states itself; `.automatic` leaves the
+items as declared, and `\.toolbarLabelStyle` reads the scene's choice.
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
 modifiers (`toolbarItemHidden`, `toolbarTitleMenu`, …), a
