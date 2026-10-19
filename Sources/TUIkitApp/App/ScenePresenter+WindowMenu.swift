@@ -89,15 +89,37 @@ extension ScenePresenter: Equatable {
     }
 }
 
-private struct ScenePresenterKey: EnvironmentKey {
-    static let defaultValue: ScenePresenter? = nil
-}
-
 extension EnvironmentValues {
     /// The running app's scene presenter, for the menu bar's Window menu;
     /// `nil` outside a running app.
+    ///
+    /// Held weakly (``WeakScenePresenter``), in the substrate's
+    /// `.scenePresenter` slot (``FeatureObjectSlot``), which detaching an
+    /// environment clears: the presenter holds the app's scenes, their views
+    /// and every window's bars, and through them environments that reach the
+    /// app's services, so an environment a view kept — in a key handler's
+    /// closure, a focus registration — that held it strongly kept the app's
+    /// state, cache and dispatchers alive after its loop.
     package var scenePresenter: ScenePresenter? {
-        get { self[ScenePresenterKey.self] }
-        set { self[ScenePresenterKey.self] = newValue }
+        (self[featureObject: .scenePresenter] as? WeakScenePresenter)?.presenter
+    }
+
+    /// Where ``scenePresenter`` is read from: the presenter's
+    /// ``ScenePresenter/environmentReference``, which the run loop publishes.
+    var scenePresenterReference: WeakScenePresenter? {
+        get { self[featureObject: .scenePresenter] as? WeakScenePresenter }
+        set { self[featureObject: .scenePresenter] = newValue }
+    }
+}
+
+/// The presenter, weakly, as the environment carries it
+/// (``EnvironmentValues/scenePresenter``): one per presenter
+/// (``ScenePresenter/environmentReference``), so the environment holds the
+/// same object from frame to frame.
+final class WeakScenePresenter {
+    weak var presenter: ScenePresenter?
+
+    init(_ presenter: ScenePresenter) {
+        self.presenter = presenter
     }
 }

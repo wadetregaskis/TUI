@@ -13,8 +13,9 @@
 /// A place in the environment for one object that a feature above the
 /// substrate hands down to the views it draws: a navigation stack's
 /// coordinator, a dialog's suppression toggle, a searchable's dismissal, focus
-/// offer and scope bar, and the app's notification service, which the window
-/// chrome's notification host draws.
+/// offer and scope bar, the app's notification service, which the window
+/// chrome's notification host draws, and the app's scene presenter, which the
+/// menu bar's Window menu reads.
 ///
 /// ``EnvironmentValues/detachedFromRuntime()`` has to clear these objects, as
 /// it clears the substrate's own, and it cannot name their types: each belongs
@@ -46,6 +47,9 @@ package enum FeatureObjectSlot: CaseIterable {
     /// The app's `NotificationService`, which the run loop publishes every
     /// frame for the window chrome's notification host to draw.
     case notificationService
+    /// The app's scene presenter (TUIkitApp), which the run loop publishes
+    /// every frame for the menu bar's Window menu to read.
+    case scenePresenter
 }
 
 // MARK: - Storage
@@ -78,6 +82,10 @@ private enum FeatureObjectSlotKey {
     struct NotificationServiceSlot: EnvironmentKey {
         static var defaultValue: AnyObject? { nil }
     }
+
+    struct ScenePresenterSlot: EnvironmentKey {
+        static var defaultValue: AnyObject? { nil }
+    }
 }
 
 extension EnvironmentValues {
@@ -95,6 +103,7 @@ extension EnvironmentValues {
             case .searchFocusOffer: self[FeatureObjectSlotKey.SearchFocusOfferSlot.self]
             case .searchScopeBar: self[FeatureObjectSlotKey.SearchScopeBarSlot.self]
             case .notificationService: self[FeatureObjectSlotKey.NotificationServiceSlot.self]
+            case .scenePresenter: self[FeatureObjectSlotKey.ScenePresenterSlot.self]
             }
         }
         set {
@@ -105,6 +114,7 @@ extension EnvironmentValues {
             case .searchFocusOffer: self[FeatureObjectSlotKey.SearchFocusOfferSlot.self] = newValue
             case .searchScopeBar: self[FeatureObjectSlotKey.SearchScopeBarSlot.self] = newValue
             case .notificationService: self[FeatureObjectSlotKey.NotificationServiceSlot.self] = newValue
+            case .scenePresenter: self[FeatureObjectSlotKey.ScenePresenterSlot.self] = newValue
             }
         }
     }

@@ -171,6 +171,10 @@ package final class ScenePresenter {
     /// The bars drawn while no window is open.
     private let closedChrome = WindowChromeState()
 
+    /// This presenter, weakly, as the environment carries it
+    /// (``EnvironmentValues/scenePresenter``).
+    private(set) lazy var environmentReference = WeakScenePresenter(self)
+
     init() {
         actions.openWindow = { [weak self] target in self?.open(target) ?? false }
         actions.openSettings = { [weak self] in self?.presentSettings() }

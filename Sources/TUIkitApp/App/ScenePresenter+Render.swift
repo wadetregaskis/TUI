@@ -123,7 +123,7 @@ extension ScenePresenter {
         let serial = window.serial
         context.environment.keyEventDispatcher?.insertHandler(
             at: slot, sectionID: context.environment.activeFocusSectionID
-        ) { [weak self] event in
+        ) { [weak self, weak focusManager] event in
             guard event.key == .escape, focusManager?.activePaneID == nil else { return false }
             self?.close([serial])
             return true
