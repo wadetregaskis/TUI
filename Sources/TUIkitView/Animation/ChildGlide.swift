@@ -89,6 +89,20 @@ extension RenderContext {
         // leaving. Every container on every frame nothing animates in it.
         if unchanged, record.gliding == nil, departing.isEmpty { return nil }
 
+        // A change nothing animates, with nothing moving and nothing leaving:
+        // every child is where the layout put it, and all the record needs is
+        // the layout, for the change after this one. Matching the children
+        // and asking the animation store about each of them is the glide's
+        // price, which a stack whose rows change on every frame — `churn` —
+        // paid on every frame for nothing (4–6% of its frame, profiled
+        // 2026-10-18).
+        if !unchanged, record.gliding == nil, departing.isEmpty, !Self.changeAnimates(in: self) {
+            record.entries = Self.entries(children, buffers, targets)
+            record.departed = [:]
+            record.held = [:]
+            return nil
+        }
+
         var glide = Glide(context: self, storage: storage, targets: targets, held: record.held)
         if unchanged {
             glide.continueMoving(record.entries, flags: record.gliding)
@@ -112,6 +126,17 @@ extension RenderContext {
         return GlidingPlacements(
             presented: glide.presented,
             departing: departing.map { record.departed[$0.identityStep] })
+    }
+
+    /// Whether a change of layout on this frame would move anything: the
+    /// frame can animate, its transaction carries an animation, and reduce
+    /// motion does not hold still what moves in X and Y — the answer
+    /// ``Glide``'s own `animation` gives.
+    @MainActor
+    private static func changeAnimates(in context: RenderContext) -> Bool {
+        let frame = context.environment.animationFrame
+        guard frame.canAnimate, context.environment.transaction.effectiveAnimation != nil else { return false }
+        return !context.environment.accessibilityReduceMotion
     }
 
     /// `children` at `targets`, drawing `buffers`, as a record keeps them.
