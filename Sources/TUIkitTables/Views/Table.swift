@@ -2005,7 +2005,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // ``cellValue(_:for:width:context:)`` they were joined into one string
         // only to be split here again, which on table-multiline was most of
         // what that path cost.
-        if let text = cascadedTextCell(column, for: item, environment: context.environment) {
+        if let text = cascadedTextCell(column, for: item, context: context) {
             context.renderCache?.rowWork.cellValues += 1
             return renderedCell(text, column, for: item, width: width, context: context)
                 .split(separator: "\n", omittingEmptySubsequences: false)
@@ -4732,7 +4732,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> String {
         context.renderCache?.rowWork.cellValues += 1
-        if let text = cascadedTextCell(column, for: item, environment: context.environment) {
+        if let text = cascadedTextCell(column, for: item, context: context) {
             return renderedCell(text, column, for: item, width: width, context: context)
         }
         switch column.cell {
@@ -4802,13 +4802,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// height and its drawing alike — so a cascaded `textCase` that turns "ß"
     /// into "SS" is measured as it is drawn.
     private func cascadedTextCell(
-        _ column: _TableColumnSpec<Value>, for item: Value, environment: EnvironmentValues
+        _ column: _TableColumnSpec<Value>, for item: Value, context: RenderContext
     ) -> Text? {
         if case .view = column.cell { return nil }
-        guard cascadesCellText ?? (Self.cellTextAttributes(environment) != StyleAttributes()) else { return nil }
+        guard cascadesCellText ?? (Self.cellTextAttributes(context.environment) != StyleAttributes()) else {
+            return nil
+        }
         switch column.cell {
         case .string(let extract): return Text(verbatim: extract(item))
-        case .text(let make): return make(item)
+        case .text(let make): return make(item, context)
         case .view: return nil
         }
     }

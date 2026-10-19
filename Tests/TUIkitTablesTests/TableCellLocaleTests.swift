@@ -77,6 +77,19 @@ struct TableCellLocaleTests {
         #expect(!lines.contains("Finished") && !lines.contains("Pending"), "\(lines)")
     }
 
+    @Test("Cells a text style cascades to read the override's language too")
+    func cascadedCells() {
+        // A `.bold()` above the table makes every text cell a `Text` the table
+        // renders (decisions LISTS, LIST-ATTRIBUTE-CASCADE); that path reads
+        // the key in the table's context, as the plain one does.
+        let lines = drawn(
+            Table(Self.rows) { statusColumn(lineLimit: 1) }
+                .bold()
+                .environment(\.locale, Locale(identifier: "de")))
+        #expect(lines.contains("Erledigt") && lines.contains("Offen"), "\(lines)")
+        #expect(!lines.contains("Finished") && !lines.contains("Pending"), "\(lines)")
+    }
+
     @Test("An outline's first column, drawn after its triangle, reads the override's language")
     func outlineColumn() {
         let tree = [
