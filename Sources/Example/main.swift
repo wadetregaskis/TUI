@@ -33,7 +33,9 @@ struct ExampleApp: App {
         // on the group, so each reaches all three — the Inspector and the
         // Settings sheet are themed as the main window is.
         Group {
-            WindowGroup {
+            // Titled: the title is the terminal's window or tab title while
+            // this window is in front, as the Inspector's is while it is.
+            WindowGroup(L("app.windowTitle")) {
                 ContentView(palette: $palette, styling: $styling)
                     // Host notifications once, at the app root, so a toast posted on
                     // any page stays visible until it expires — even after the user
