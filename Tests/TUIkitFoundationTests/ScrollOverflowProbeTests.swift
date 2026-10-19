@@ -258,7 +258,8 @@ struct ScrollOverflowProbeTests {
         #expect(measures.count == 10, "the first round measured \(measures.count) rows for ten that fit")
         measures.count = 0
         let window = scroll.contentOverflowsWindow(
-            viewport: CellSize(width: Self.width, height: viewportHeight), context: liveContext())
+            viewport: CellSize(width: Self.width, height: viewportHeight), horizontalBar: false,
+            context: liveContext())
         #expect(!window, "precondition: ten lines fit \(viewportHeight)")
         #expect(measures.count == 10, "the content-margins probe measured \(measures.count) rows for ten that fit")
     }

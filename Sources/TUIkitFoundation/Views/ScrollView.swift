@@ -466,7 +466,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         /// Reserved out of the content window too, at every offset, because a
         /// scroll target behaviour lands this view's steps AND its content
         /// overflows the window — see
-        /// ``_ScrollViewCore/textIndicatorLines(_:viewport:)``.
+        /// ``_ScrollViewCore/textIndicatorLines(_:viewport:horizontalBar:)``.
         let reservedForTargets: Bool
 
         /// The pair as `environment` states it. `landsScrollTargets` says
@@ -521,18 +521,23 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// pair drew "▲ 0 more lines above" over content it then pushed out of
     /// sight — five rows in a dialog drew three, and scrolled. Decided once per
     /// layout, on the content's height in the whole window
-    /// (``contentOverflowsWindow(viewport:context:)``), so it is the same at
+    /// (``contentOverflowsWindow(viewport:horizontalBar:context:)``), so it is the same at
     /// every stop: content sized against the container — pages a
     /// `containerRelativeFrame` makes — that overflows the whole window still
     /// overflows the window less the pair.
     ///
     /// Only for a view that scrolls down: the pair counts rows, and a
     /// horizontal pager reserved two lines that had nothing to count.
-    func textIndicatorLines(_ context: RenderContext, viewport: CellSize) -> TextIndicatorLines {
+    ///
+    /// `horizontalBar` is the bar as known before the content is measured
+    /// (``horizontalBarDecidedFirst(viewport:context:)``).
+    func textIndicatorLines(
+        _ context: RenderContext, viewport: CellSize, horizontalBar: Bool
+    ) -> TextIndicatorLines {
         TextIndicatorLines(context.environment) {
             axes.contains(.vertical) && scrollTargetBehaviorInForce(context.environment) != nil
         } overflows: {
-            contentOverflowsWindow(viewport: viewport, context: context)
+            contentOverflowsWindow(viewport: viewport, horizontalBar: horizontalBar, context: context)
         }
     }
 
@@ -540,7 +545,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         if let margined = margined(context: context) { return margined.renderToBuffer(context: context) }
         // The viewport is its content's `containerRelativeFrame` container, and
         // the context this view reads (`hidingAutomaticIndicators(_:)`).
-        let (context, viewportWidth, viewportHeight, textLines) = viewport(context)
+        let (context, viewportWidth, viewportHeight, textLines, knownHorizontalBar) = viewport(context)
 
         // Resolve the persistent focus ID and the handler.
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -573,8 +578,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // `resolveScrollbars` for the monotonic fixpoint (which also prevents the
         // reserve-bar → content-fits → drop-bar → overflows → … oscillation).
         let (chrome, contentWidth, contentViewportHeight, settledExtents) = resolveChrome(
-            viewportWidth: viewportWidth, viewportHeight: viewportHeight,
-            wantsHorizontal: wantsHorizontal, textLines: textLines, handler: handler, context: context)
+            viewportWidth: viewportWidth, viewportHeight: viewportHeight, wantsHorizontal: wantsHorizontal,
+            knownHorizontalBar: knownHorizontalBar, textLines: textLines, handler: handler, context: context)
         // §1.5: how far past its edges this view may be pushed. Re-resolved every
         // frame because a `.viewport`-relative allowance moves with the terminal,
         // and an existing excursion is pulled back inside a shrunken one.
@@ -901,8 +906,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// column, a horizontal bar takes a row, and — under `.visible` — the two
     /// "N more" lines take a row each.
     private func resolveChrome(
-        viewportWidth: Int, viewportHeight: Int, wantsHorizontal: Bool, textLines: TextIndicatorLines,
-        handler: ScrollViewHandler, context: RenderContext
+        viewportWidth: Int, viewportHeight: Int, wantsHorizontal: Bool, knownHorizontalBar: Bool,
+        textLines: TextIndicatorLines, handler: ScrollViewHandler, context: RenderContext
     ) -> (
         chrome: ScrollChrome, contentWidth: Int, contentViewportHeight: Int,
         settled: (width: Int, height: Int)?
@@ -915,7 +920,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         let nestedWalksBefore = context.renderCache?.nestedStackWalks
         let bars = resolveScrollbars(
             viewportWidth: viewportWidth, viewportHeight: viewportHeight,
-            horizontal: wantsHorizontal, textLines: textLines,
+            horizontal: wantsHorizontal, knownHorizontalBar: knownHorizontalBar, textLines: textLines,
             lastContentHeight: handler.contentHeight,
             contentWalksNestedStacks: handler.contentWalksNestedStacks, context: context)
         if let nestedWalksBefore, context.renderCache?.nestedStackWalks != nestedWalksBefore {
@@ -1238,7 +1243,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     /// which asks a horizontally scrolling view the same question on the
     /// measure side.
     func resolveScrollbars(
-        viewportWidth: Int, viewportHeight: Int, horizontal: Bool,
+        viewportWidth: Int, viewportHeight: Int, horizontal: Bool, knownHorizontalBar: Bool = false,
         textLines: TextIndicatorLines, lastContentHeight: Int = 0,
         contentWalksNestedStacks: Bool = false, context: RenderContext
     ) -> (vertical: Bool, horizontal: Bool, settled: (width: Int, height: Int)?) {
@@ -1252,7 +1257,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // style says.
         let verticalBar = context.environment.scrollIndicatorStyle == .scrollbar
         var wantsScrollbar = verticalBar && verticalPolicy == .visible
-        var wantsHorizontalBar = horizontal && horizontalPolicy == .visible
+        // A bar known before the content's container was published — a
+        // pager's `.automatic` one decided by a measure of its own
+        // (`horizontalBarDecidedFirst`) — stands from the first round, as a
+        // `.visible` one does: its row is already off the container.
+        var wantsHorizontalBar = horizontal && (horizontalPolicy == .visible || knownHorizontalBar)
         // Only an axis that asked to be told whether it overflows is worth
         // measuring for, and measuring is the expensive part — so a view with
         // `.visible` down one side and nothing on the other still measures

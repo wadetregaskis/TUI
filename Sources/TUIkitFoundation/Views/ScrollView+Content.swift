@@ -172,7 +172,7 @@ extension _ScrollViewCore {
     /// or, `oneLinePast`, one line past the viewport (below).
     ///
     /// The question the scrollbar's first round asks, and all it needs to: see
-    /// ``resolveScrollbars(viewportWidth:viewportHeight:horizontal:textLines:lastContentHeight:contentWalksNestedStacks:context:)``.
+    /// ``resolveScrollbars(viewportWidth:viewportHeight:horizontal:knownHorizontalBar:textLines:lastContentHeight:contentWalksNestedStacks:context:)``.
     /// The climb is what made the round dear. A lazy stack past the windowing
     /// threshold reports its estimate clamped to the budget it is offered, and a
     /// clamp says nothing about what lies past it, so the ladder climbs by eight

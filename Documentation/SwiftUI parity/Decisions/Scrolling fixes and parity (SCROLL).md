@@ -40,3 +40,27 @@ R15 rather than copied.
 top or leading margin, rounded down to whole cells. Ten minutes and a test;
 but it would undo the one thing a paging view under margins is for, and an
 app sizing its pages to the container would see them drift.
+
+### B-SCROLL-2. Only a pager decides its `.automatic` horizontal bar before its container
+
+*`containerRelativeFrame` in a `ScrollView` that scrolls across, with the
+default `.automatic` horizontal indicator (B-FU2-2)*
+
+**Shipped:** a view under a scroll target behaviour decides an `.automatic`
+horizontal bar by a measure of its content's width before it publishes the
+container, so the bar's row comes off a container-sized page and the page is
+the step (FU2's fuller version). A view under no behaviour decides the bar as
+before, by the rounds that measure the content in its container, and its
+container keeps the bar's row. In a two-axis view that is a page one line
+taller than the window, which scrolls to that line like any other; in a
+`ScrollView(.horizontal)` with no behaviour, whose content cannot scroll
+down, a card sized to the container's height has its last line under the bar.
+
+**The other version:** every view that scrolls across with an `.automatic`
+bar decides it first. Price: one more measure of the content's width on every
+frame of every such view (a wide table in a horizontal scroll view, every
+two-axis view), in a generation of its own, so it cannot warm the render's
+memo either, where today only pagers pay it. Without a behaviour the drift is
+not a defect, only the horizontal-only card's last line is, and
+`.scrollIndicators(.visible, axes: .horizontal)` or a card a line shorter
+avoids it.

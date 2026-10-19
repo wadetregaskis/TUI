@@ -256,21 +256,26 @@ extension _ScrollViewCore {
 
     /// The viewport a render draws into — what it was given — the context
     /// with it published as the content's `containerRelativeFrame` container,
-    /// and the "N more" pair at it, which the container was decided by and the
-    /// render's chrome is decided by too (`resolveChrome`): asked once, so a
-    /// scroll target behaviour's overflow measure is too. The context is the
-    /// one this view reads, ``ScrollView/showsIndicators`` applied
+    /// the horizontal bar as known before the content is measured
+    /// (``horizontalBarDecidedFirst(viewport:context:)``) and the "N more"
+    /// pair at it, which the container was decided by and the render's chrome
+    /// is decided by too (`resolveChrome`): asked once, so a scroll target
+    /// behaviour's overflow measures are too. The context is the one this
+    /// view reads, ``ScrollView/showsIndicators`` applied
     /// (``hidingAutomaticIndicators(_:)``), as everything after this does.
     func viewport(
         _ context: RenderContext
-    ) -> (context: RenderContext, width: Int, height: Int, textLines: TextIndicatorLines) {
+    ) -> (
+        context: RenderContext, width: Int, height: Int, textLines: TextIndicatorLines, horizontalBar: Bool
+    ) {
         let context = hidingAutomaticIndicators(context)
         let width = context.availableWidth
         let height = max(0, context.availableHeight)
         let size = CellSize(width: max(0, width), height: height)
-        let textLines = textIndicatorLines(context, viewport: size)
-        let container = containerSize(viewport: size, textLines: textLines, context: context)
-        return (context.publishingContainerSize(container), width, height, textLines)
+        let bar = horizontalBarDecidedFirst(viewport: size, context: context)
+        let textLines = textIndicatorLines(context, viewport: size, horizontalBar: bar)
+        let container = containerSize(viewport: size, textLines: textLines, horizontalBar: bar, context: context)
+        return (context.publishingContainerSize(container), width, height, textLines, bar)
     }
 
     /// The container size a `containerRelativeFrame` in the content sizes
@@ -285,45 +290,81 @@ extension _ScrollViewCore {
     /// stopped two lines further into each page at every step.
     ///
     /// A horizontal bar's row (and its indicator margin) comes off it too
-    /// where the bar is known before anything is measured: a view that
-    /// scrolls across with the bar `.visible`, which draws it always. The step
-    /// takes the row off the window, so a page sized against the whole
-    /// viewport was a line taller than the step and each stop showed a line
-    /// more of the page before (scroll lane review 3). Under `.automatic` the
-    /// bar comes with overflow, decided by measuring the content after its
-    /// container is published, so the container is the viewport's height and
-    /// such a pager's container-sized pages drift by the bar's row at each
-    /// stop: give it `.scrollIndicators(.visible, axes: .horizontal)`, or pages
-    /// of a fixed height. The pair is asked with the bar as known here; with
-    /// an `.automatic` one, a view three lines tall reserves nothing, and its
-    /// container is two lines short.
+    /// where the bar is known before the container is published
+    /// (``horizontalBarDecidedFirst(viewport:context:)``): `.visible`, which
+    /// draws it always, or a pager's `.automatic` one, decided first by a
+    /// measure of the content's width. The step takes the row off the window,
+    /// so a page sized against the whole viewport was a line taller than the
+    /// step and each stop showed a line more of the page before (scroll lane
+    /// review 3). A scroll view with no behaviour decides an `.automatic` bar
+    /// after the container is published, by measuring the content in it, so
+    /// its container is the viewport's height whether the bar comes or not
+    /// (decisions SCROLL B-SCROLL-2). The pair is asked with the bar as known
+    /// here.
     func containerSize(viewport: CellSize, context: RenderContext) -> CellSize {
-        containerSize(
-            viewport: viewport, textLines: textIndicatorLines(context, viewport: viewport), context: context)
+        let bar = horizontalBarDecidedFirst(viewport: viewport, context: context)
+        return containerSize(
+            viewport: viewport, textLines: textIndicatorLines(context, viewport: viewport, horizontalBar: bar),
+            horizontalBar: bar, context: context)
     }
 
-    /// ``containerSize(viewport:context:)`` with the pair at `viewport` already
-    /// in hand.
+    /// ``containerSize(viewport:context:)`` with the bar and the pair at
+    /// `viewport` already in hand.
     private func containerSize(
-        viewport: CellSize, textLines: TextIndicatorLines, context: RenderContext
+        viewport: CellSize, textLines: TextIndicatorLines, horizontalBar: Bool, context: RenderContext
     ) -> CellSize {
         let container = unreservedContainerSize(viewport: viewport, context: context)
-        let (bar, barMargin) = knownHorizontalBar(context)
+        let (bar, barMargin) = horizontalBarRows(horizontalBar, context: context)
         let text = textLines.fitted(viewportHeight: viewport.height - barMargin, horizontalBar: bar)
         let taken = (bar ? 1 + barMargin : 0) + (text.reserved ? 2 : 0)
         guard taken > 0 else { return container }
         return CellSize(width: container.width, height: max(0, container.height - taken))
     }
 
-    /// The horizontal bar known without a measure, as `resolveScrollbars`
-    /// takes it — a horizontal view's `.visible` one — and the indicator
-    /// margin it moves in by, which comes off the window with it, as
-    /// `resolveChrome` takes them. Asked of a vertical view's axes first,
-    /// which spares it the environment read.
-    private func knownHorizontalBar(_ context: RenderContext) -> (drawn: Bool, margin: Int) {
-        guard axes.contains(.horizontal), context.environment.horizontalScrollIndicatorVisibility == .visible
-        else { return (false, 0) }
-        return (true, indicatorMargins(context).bottom)
+    /// Whether this view's horizontal bar is drawn, as far as it is known
+    /// before the content's container is published — and so whether its row
+    /// comes off the container (``containerSize(viewport:context:)``) and the
+    /// render's bar rounds start with it (`resolveScrollbars`).
+    ///
+    /// `.visible` draws it always. An `.automatic` one comes with overflow,
+    /// and for a view under a scroll target behaviour that scrolls across — a
+    /// pager — it is decided here, by a measure of the content's width at the
+    /// whole viewport: wider, and the bar is drawn whatever else the rounds
+    /// decide. Without it the container was the viewport's height and the
+    /// bar's row came off only the window, so a two-axis pager's
+    /// container-sized pages were a line taller than the step and drifted by
+    /// it at each stop (decisions FU2 B-FU2-2). Content that fits the whole
+    /// width and overflows only once a vertical bar takes its column is left
+    /// for the rounds, and drifts as before.
+    ///
+    /// Only a pager pays the measure: elsewhere a container-sized page a line
+    /// taller than the window is scrolled to like any other line (decisions
+    /// SCROLL B-SCROLL-2). It is asked in a measure generation keyed by the
+    /// height of the container it publishes, as
+    /// ``contentOverflowsWindow(viewport:horizontalBar:context:)`` asks, so
+    /// neither serves the render answers given under another container — and
+    /// where no bar comes the two ask the same question and share the answer.
+    func horizontalBarDecidedFirst(viewport: CellSize, context: RenderContext) -> Bool {
+        guard axes.contains(.horizontal) else { return false }
+        let visibility = context.environment.horizontalScrollIndicatorVisibility
+        if visibility == .visible { return true }
+        guard visibility == .automatic, scrollTargetBehaviorInForce(context.environment) != nil else {
+            return false
+        }
+        let container = unreservedContainerSize(viewport: viewport, context: context)
+        let probe = context.publishingContainerSize(container, noting: false)
+            .invalidatingMeasureMemo(keyedBy: container.height)
+        let width = max(1, viewport.width)
+        return contentExtents(
+            contentWidth: width, viewportHeight: viewport.height, horizontal: true, context: probe
+        ).width > width
+    }
+
+    /// A horizontal bar `drawn` (``horizontalBarDecidedFirst(viewport:context:)``)
+    /// and the indicator margin it moves in by, which comes off the window
+    /// with it, as `resolveChrome` takes them.
+    private func horizontalBarRows(_ drawn: Bool, context: RenderContext) -> (drawn: Bool, margin: Int) {
+        drawn ? (true, indicatorMargins(context).bottom) : (false, 0)
     }
 
     /// The container with nothing reserved out of it: the viewport less the
@@ -339,7 +380,7 @@ extension _ScrollViewCore {
     /// Whether the content is taller than `viewport` seen whole — nothing
     /// reserved out of it, and the content's pages sized against that
     /// unreserved container: whether a scroll target behaviour reserves the
-    /// "N more" pair (``textIndicatorLines(_:viewport:)``).
+    /// "N more" pair (``textIndicatorLines(_:viewport:horizontalBar:)``).
     ///
     /// On the content's height alone, never the offset, so the answer is the
     /// same at every stop; and on the whole window, so content sized against
@@ -347,8 +388,8 @@ extension _ScrollViewCore {
     /// window that overflow it overflow the window less the pair as well, and
     /// one page that fits it is drawn unreserved and fits. The window is the
     /// one ``containerSize(viewport:context:)`` leaves when it reserves
-    /// nothing: less a horizontal bar known to be drawn (`.visible`), its row
-    /// and its indicator margin. Asked of the whole viewport, content that
+    /// nothing: less a horizontal bar known to be drawn (`horizontalBar`), its
+    /// row and its indicator margin. Asked of the whole viewport, content that
     /// overflowed the window by no more than the bar's row reserved nothing,
     /// and its pair was drawn over the window's edge lines under a behaviour
     /// that lands steps in it.
@@ -372,8 +413,8 @@ extension _ScrollViewCore {
     /// view at one height and drew it at another — a title above it in a
     /// stack — served the draw's probe the measure's pages, a window's worth
     /// too tall, and one page that fits reserved the pair.
-    func contentOverflowsWindow(viewport: CellSize, context: RenderContext) -> Bool {
-        let (bar, barMargin) = knownHorizontalBar(context)
+    func contentOverflowsWindow(viewport: CellSize, horizontalBar: Bool, context: RenderContext) -> Bool {
+        let (bar, barMargin) = horizontalBarRows(horizontalBar, context: context)
         let barRows = bar ? 1 + barMargin : 0
         let container = unreservedContainerSize(viewport: viewport, context: context)
         let probeHeight = max(0, container.height - barRows)

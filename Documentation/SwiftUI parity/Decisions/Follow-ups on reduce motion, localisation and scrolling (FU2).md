@@ -51,6 +51,20 @@ width at the unreserved container (a second measure for a two-axis pager, the
 only view that pays), or take the bar from the frame before (no measure, one
 frame of drift when the bar first appears). About two hours with tests.
 
+**Done 2026-10-19 (lane SCROLL), the first way.** A view under a scroll target
+behaviour that scrolls across, with an `.automatic` horizontal bar, measures
+its content's width at the whole viewport before it publishes the container
+(`_ScrollViewCore.horizontalBarDecidedFirst`), in a measure generation keyed
+by the container's height, as the text-style pager's overflow probe is; wider,
+and the bar's row comes off the container and the bar rounds start with it.
+So a two-axis pager's container-sized pages are the step, and a horizontal
+pager's container-sized cards end above the bar instead of under it. Content
+that fits the whole width and overflows only once a vertical bar takes its
+column is left to the rounds, as before. The frame before was not used: a
+frame would then depend on its history, which the memo verifiers and the
+selfcheck compare against a fresh render. Views with no behaviour keep the
+old container (decisions SCROLL B-SCROLL-2).
+
 ## C. Declined
 
 ### C-FU2-1. Reduce motion does not hold still an app's own animations
