@@ -139,6 +139,7 @@
   "statusbar.goBack": "retour",
   "statusbar.closePopover": "fermer le popover",
   "statusbar.closeSuggestions": "fermer les suggestions",
+  "statusbar.closeWindow": "fermer la fenêtre",
   "statusbar.cancelMove": "annuler le déplacement",
   "statusbar.clearSelection": "effacer la sélection",
   "statusbar.stopExtendingSelection": "arrêter d'étendre la sélection",

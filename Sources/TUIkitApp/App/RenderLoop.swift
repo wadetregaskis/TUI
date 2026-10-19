@@ -136,10 +136,20 @@ internal final class RenderLoop<A: App> {
     /// The status bar state (height, items, appearance).
     let statusBar: StatusBarState
 
+    /// The app's windows: which are open, in what order, and how they share
+    /// the terminal (refusal review O9). The loop's own, like ``diffWriter``.
+    let scenes = ScenePresenter()
+
     /// The rows the window's bars hold from frame to frame, which the scene's
     /// chrome host reserves before the content draws and adopts a frame after
-    /// the content changes them. The loop's own, like ``diffWriter``.
-    let windowChrome = WindowChromeState()
+    /// the content changes them: the window in front's. Each window keeps its
+    /// own, so one coming back to the front has its bars where it left them.
+    var windowChrome: WindowChromeState { scenes.frontChrome }
+
+    /// The environment a window held behind the one in front starts from this
+    /// frame: the loop's, without the front window's scene statements, to
+    /// which the held window's own are applied (`RenderLoop+Scene.swift`).
+    var windowBaseEnvironment = EnvironmentValues()
 
     /// The focus manager (cleared each frame).
     let focusManager: FocusManager
@@ -278,14 +288,6 @@ internal final class RenderLoop<A: App> {
     /// AppRunner reads ``effectiveMouseSupport`` after each render. Not
     /// private only because `RenderLoop+Scene.swift` sets it.
     var baseMouseSupport: MouseSupport = .standard
-
-    /// Whether the first frame has been rendered.
-    ///
-    /// On the first frame, we perform a "measurement pass" to find the chrome
-    /// the content declares before outputting anything, which seeds
-    /// ``windowChrome``: there is no last frame to reserve the bars from, and
-    /// an app that declares its chrome once should not draw a frame without it.
-    private var isFirstFrame = true
 
     /// Whether the app is running inside tmux, which decides what the terminal
     /// is asked about its colours once frames are being drawn (see
@@ -456,15 +458,11 @@ extension RenderLoop {
         cursorTimer?.beginFrameReadTracking()
 
         let scene = evaluateAppBody(environment: environment)
-        // The app's scenes, gathered in one walk of its body: each window
-        // scene with what its modifiers state, and the commands of them all.
-        let catalog = SceneCatalog(scene, identity: sceneIdentity(of: scene))
-        // What the drawn window's modifiers state — its root environment,
-        // mouse support, chrome style and undo keys — and the app's commands
-        // (`RenderLoop+Scene.swift`).
-        applySceneConfiguration(
-            catalog.windows.first?.configuration ?? SceneConfiguration(), commands: catalog.commands,
-            to: &environment)
+        // The app's scenes, gathered in one walk of its body, and the windows
+        // open on them; then what the window in front's modifiers state — its
+        // root environment, mouse support, chrome style and undo keys — and
+        // the app's commands (`RenderLoop+Scene.swift`).
+        adoptScenes(SceneCatalog(scene, identity: sceneIdentity(of: scene)), environment: &environment)
         // Before the height is read, which is the whole trick: a tooltip's
         // triggers all land between frames (a mouse event, a key press, the
         // scheduled wake for the hover delay), so the candidate is already known
@@ -472,6 +470,7 @@ extension RenderLoop {
         let tooltipMovedThePage = resolveStatusBarTooltip(
             terminalWidth: terminalWidth, nowNanos: frameNowNanos, scheduler: animationScheduler)
         publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
+        publishTerminalGeometry(into: &windowBaseEnvironment, width: terminalWidth, height: terminalHeight)
         invalidateCacheIfEnvironmentChanged(environment: environment)
 
         // Render the scene: its chrome host lays the top bar, the content
@@ -479,7 +478,6 @@ extension RenderLoop {
         // walk (two on the first frame). See `renderContent`.
         let buffer = renderContent(
             scene: scene,
-            target: catalog.launchTarget,
             environment: environment,
             terminalWidth: terminalWidth,
             terminalHeight: terminalHeight)
@@ -620,19 +618,18 @@ extension RenderLoop {
     ///
     /// The chrome host reserves the bars' rows before the content draws, and
     /// the content is what declares them, so the rows are last frame's answer
-    /// (see ``WindowChromeState``). The first frame has none, so it runs a
-    /// throwaway measure pass first, whose only output is the chrome the
-    /// content declares, and seeds the reservations from it.
+    /// (see ``WindowChromeState``). A window's first frame has none — the
+    /// launch window's is the app's first — so it runs a throwaway measure
+    /// pass first, whose only output is the chrome the content declares, and
+    /// seeds the reservations from it: there is no last frame to reserve the
+    /// bars from, and a window that declares its chrome once should not draw a
+    /// frame without it.
     private func renderContent(
         scene: A.Body,
-        target: SceneRenderTarget?,
         environment: EnvironmentValues,
         terminalWidth: Int,
         terminalHeight: Int
     ) -> FrameBuffer {
-        // Which of the app's scenes the frame draws.
-        var environment = environment
-        environment.sceneRenderTarget = target
         // The render tree is rooted at `rootIdentity` — the SAME identity
         // `evaluateAppBody` hydrates `@State` under (see that property's note).
         var context = RenderContext(
@@ -641,7 +638,9 @@ extension RenderLoop {
             environment: environment,
             identity: rootIdentity
         )
-        if isFirstFrame {
+        // A window's first frame, the launch window's on the app's first: no
+        // last frame to reserve its bars from.
+        if let front = scenes.front, front.needsSeeding {
             var measureContext = context
             // This walk's buffer is thrown away — only the chrome it declares
             // survives it — so it is a measurement, and every guard written as
@@ -662,7 +661,7 @@ extension RenderLoop {
             // walk measures.
             measureContext.environment.seedsWindowChrome = true
             _ = renderScene(scene, context: measureContext.withChildIdentity(type: type(of: scene)))
-            isFirstFrame = false
+            front.needsSeeding = false
         }
         windowChrome.beginFrame()
 
@@ -761,6 +760,7 @@ extension RenderLoop {
         environment.statusBar = statusBar
         environment.appStatusBar = statusBar
         environment.windowChrome = windowChrome
+        environment.openWindow = OpenWindowAction(handler: scenes.actions)
         environment.focusManager = focusManager
         environment.paletteManager = paletteManager
         if let palette = paletteManager.currentPalette {
@@ -1094,7 +1094,8 @@ extension RenderLoop {
         lastEnvironmentSnapshot = currentSnapshot
     }
 
-    /// Renders a scene by descending to the primitive that draws it.
+    /// Renders the app's scene: its open windows, as the scene presenter's
+    /// policy places them, each by descending to the primitive that draws it.
     ///
     /// The one funnel every walk of the scene passes through, which is why the
     /// per-walk registries are reset here — see ``beginSceneRender()``.
@@ -1108,6 +1109,8 @@ extension RenderLoop {
         let diagnostic = tuiContext.renderCache.bodyMutationDiagnostic
         diagnostic?.beginTraversal()
         defer { diagnostic?.endTraversal() }
-        return scene.renderSceneTree(context: context)
+        return scenes.render(scene, context: context) { [self] configuration in
+            heldWindowEnvironment(configuration)
+        }
     }
 }

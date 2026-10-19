@@ -46,7 +46,7 @@
 /// ```
 public final class FocusManager: @unchecked Sendable {
     /// The default section ID for elements registered without an explicit section.
-    static let defaultSectionID = "__default__"
+    package static let defaultSectionID = "__default__"
 
     /// Registered focus sections in render order. Internal, with
     /// ``sectionCount`` for the other modules (CONTRIBUTING.md, "Crossing a
@@ -1280,6 +1280,29 @@ extension FocusManager {
         focusedID = sectionFocusMemory[target]
         // The restored control cannot be notified yet — it may not re-register
         // until later this pass — so the arrival is deferred to `endRenderPass`.
+        pendingRestoreNotificationID = focusedID
+        onFocusChange?()
+    }
+
+    /// Moves the focus to `place` — where it rested in a window coming back to
+    /// the front, which was not drawn while another was — or, for a window
+    /// that has never had it, into `section`, on its first element.
+    ///
+    /// Set directly, as ``deactivateSection(id:)`` sets the section it reverts
+    /// to: the window's elements register later this pass, and `endRenderPass`
+    /// validates the result once they have. The element losing the focus is
+    /// told, as one is when a modal opens over it; the one gaining it is told
+    /// at the end of the pass.
+    ///
+    /// - Parameters:
+    ///   - place: Where the focus rested in the window, or `nil` for a window
+    ///     the focus has never been in.
+    ///   - section: The section the window's content registers in.
+    package func move(to place: Place?, enteringSection section: String) {
+        rememberFocusForActiveSection()
+        notifyFocusLost()
+        activeSectionID = place?.sectionID ?? section
+        focusedID = place?.focusedID
         pendingRestoreNotificationID = focusedID
         onFocusChange?()
     }

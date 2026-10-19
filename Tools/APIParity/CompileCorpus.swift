@@ -4034,3 +4034,40 @@ private struct CorpusSeveralScenesApp: App {
         .environment(\.lineSpacing, 1)
     }
 }
+
+/// Windows opened and dismissed by identifier, as `OpenWindowAction`'s and
+/// `DismissWindowAction`'s documentation write them.
+private struct CorpusWindowsApp: App {
+    var body: some Scene {
+        WindowGroup { CorpusNewViewerButton() }
+        WindowGroup(id: "mail-viewer") { Text("Viewer") }
+        WindowGroup("Titled", id: "titled") { Text("Titled") }
+        WindowGroup(Text("Text titled")) { Text("Text titled") }
+        Window("Auxiliary", id: "auxiliary") { CorpusDismissWindowButton() }
+    }
+}
+
+@MainActor
+private struct CorpusNewViewerButton: View {
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
+
+    var body: some View {
+        Button("Open new mail viewer") {
+            openWindow(id: "mail-viewer")
+        }
+        .disabled(!supportsMultipleWindows)
+    }
+}
+
+@MainActor
+private struct CorpusDismissWindowButton: View {
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some View {
+        Button("Close Auxiliary Window") {
+            dismissWindow(id: "auxiliary")
+        }
+        Button("Close") { dismissWindow() }
+    }
+}

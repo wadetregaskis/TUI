@@ -169,6 +169,7 @@ extension LocalizationService {
       "statusbar.goBack": "go back",
       "statusbar.closePopover": "close popover",
       "statusbar.closeSuggestions": "close suggestions",
+      "statusbar.closeWindow": "close window",
       "statusbar.cancelMove": "cancel move",
       "statusbar.clearSelection": "clear selection",
       "statusbar.stopExtendingSelection": "stop extending selection",

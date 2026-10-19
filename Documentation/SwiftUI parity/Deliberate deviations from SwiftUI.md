@@ -1801,6 +1801,49 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   every other channel of the page follows under a modal.
 - **Decided:** [B-O13-3](<Decisions/The menu bar (O13).md#b-o13-3-no-command-works-from-behind-a-modal>). **Lane.**
 
+### W9. Windows open one at a time, each over the whole terminal
+
+- **SwiftUI:** `openWindow` opens a window beside the others on the desktop,
+  each where the window server places it; any of them can be clicked and
+  typed into (Apple's documentation; not measured: no window can be opened on
+  this machine, `O9/probe/scenes.swift`).
+- **TUIkit:** the window opens over the whole terminal, in front of the one
+  open; the window in front is the only one drawn and the only one the keys,
+  the pointer and the focus reach. The windows behind are drawn off-screen, so
+  their state, lifecycle and tasks carry on, and each comes back — its focus,
+  its bars — when the one in front of it closes (`WindowPresentationTests`).
+- **Why:** a terminal app has one surface. Refusal review O9, ruled
+  2026-10-12: secondary scenes are full-surface covers stacked over the main
+  one, room left for a real windowing model (the presenter's policy, which a
+  tiling or overlapping one can replace).
+- **Decided:** [B-O9-1](<Decisions/Several scenes on one surface (O9).md#b-o9-1-windows-are-full-surface-covers-stacked-over-one-another>). **Owner** (the policy), **Lane** (the details).
+
+### W10. Escape closes a window opened over another
+
+- **SwiftUI:** a window closes by its close button or ⌘W (macOS); Escape is
+  the content's.
+- **TUIkit:** with another window open behind it, Escape closes the window in
+  front when nothing in it takes the key, as a pushed navigation screen's
+  Escape goes back; the status bar calls it "close window"
+  (`WindowPresentationTests.escapeClosesAndStateSurvives`). The window opened
+  at launch, alone, keeps Escape for its content, as before.
+- **Why:** a terminal has no close button and no ⌘ key, and a window's content
+  need not offer a way out; without one, a window opened over the main one
+  would hold the reader.
+- **Decided:** [B-O9-2](<Decisions/Several scenes on one surface (O9).md#b-o9-2-escape-closes-a-window-opened-over-another>). **Lane.**
+
+### W11. Closing the last window quits the app
+
+- **SwiftUI:** on macOS an app whose windows are all closed keeps running, with
+  its menu bar, unless its only scene is a `Window` (Apple's documentation).
+- **TUIkit:** the app quits when its last window closes — by `dismissWindow`,
+  by `dismiss()` at a window's root, or by Escape — as `dismiss()` at the top
+  quit it before (`WindowPresentationTests.lastWindowQuits`). An app that
+  declares no window scene quits at launch.
+- **Why:** a terminal app with no window open would show nothing, and could be
+  given no input that opens one.
+- **Decided:** [B-O9-3](<Decisions/Several scenes on one surface (O9).md#b-o9-3-the-last-window-closing-quits-the-app>). **Lane.**
+
 ---
 
 ## Lifecycle

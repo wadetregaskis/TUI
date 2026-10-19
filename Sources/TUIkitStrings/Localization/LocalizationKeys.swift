@@ -312,6 +312,9 @@ public enum LocalizationKey {
         case goBack = "statusbar.goBack"
         case closePopover = "statusbar.closePopover"
         case closeSuggestions = "statusbar.closeSuggestions"
+        /// A window opened over another (`openWindow`), which Escape closes
+        /// when nothing in it takes the key.
+        case closeWindow = "statusbar.closeWindow"
         /// A keyboard drag in progress.
         case cancelMove = "statusbar.cancelMove"
         case clearSelection = "statusbar.clearSelection"

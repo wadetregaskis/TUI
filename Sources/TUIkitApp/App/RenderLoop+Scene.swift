@@ -8,15 +8,41 @@ import TUIkitFoundation
 
 // MARK: - What the scene configures, each frame
 
-/// The run loop's reading of the scene's own configuration — the modifiers
-/// written on a `WindowGroup` that the tree does not read: its mouse support,
-/// its chrome style and menu bar, its undo and redo keys, and its screen
-/// selection's copy key and copy-on-release.
+/// The run loop's reading of the scenes: the windows open on them, and the
+/// configuration of the window in front — the modifiers written on its scene
+/// that the tree does not read: its mouse support, its chrome style and menu
+/// bar, its undo and redo keys, and its screen selection's copy key and
+/// copy-on-release.
 ///
 /// Separate from `RenderLoop.swift` because that file is at its length limit,
 /// the bargain `RenderLoop+TerminalColors.swift` makes too; it is why
 /// ``baseMouseSupport`` is not private.
 extension RenderLoop {
+
+    /// Adopts this frame's scenes: the presenter's windows follow the
+    /// catalogue — the launch window opens on the first frame — and the window
+    /// in front's statements and the app's commands are applied to
+    /// `environment`, which is kept first, as it is, for the windows held
+    /// behind it to start from.
+    func adoptScenes(_ catalog: SceneCatalog, environment: inout EnvironmentValues) {
+        scenes.sync(with: catalog)
+        windowBaseEnvironment = environment
+        // The window in front's bars, which need not be last frame's.
+        environment.windowChrome = windowChrome
+        let front = scenes.front.flatMap { scenes.entry(of: $0) }
+        applySceneConfiguration(
+            front?.configuration ?? SceneConfiguration(), commands: catalog.commands, to: &environment)
+    }
+
+    /// The environment a window held behind the one in front draws with,
+    /// off-screen: this frame's before any scene's statements, with its own
+    /// scene's — not the front window's, which a scene of its own may not
+    /// share.
+    func heldWindowEnvironment(_ configuration: SceneConfiguration) -> EnvironmentValues {
+        var environment = windowBaseEnvironment
+        configuration.applyRootOverrides(to: &environment)
+        return environment
+    }
 
     /// Adopts this frame's scene configuration — the configuration of the
     /// window the frame draws, and the app's commands: its root overrides into

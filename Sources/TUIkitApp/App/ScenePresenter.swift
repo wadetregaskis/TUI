@@ -1,0 +1,267 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  ScenePresenter.swift
+//
+//  The one place an app's scenes are presented from: which windows are open,
+//  in what order, and how they share the one surface a terminal app has.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUIkitFoundation
+
+// MARK: - The Policy
+
+/// How the app's open windows share the surface: where each is drawn.
+///
+/// A terminal app has one surface, the terminal it runs in. Refusal review O9
+/// was ruled (b) on 2026-10-12: secondary scenes are full-surface covers stacked
+/// over the main one — and room is to be left for a real windowing model. So the
+/// presenter asks a policy where the windows go, rather than deciding it, and a
+/// tiling or overlapping manager is a policy that answers otherwise, with the
+/// presenter, the actions and every scene's API unchanged.
+@MainActor
+protocol ScenePresentationPolicy {
+    /// Where each of `windows`, back to front, is drawn: one placement each.
+    func placements(of windows: [ScenePresenter.OpenWindow]) -> [ScenePresenter.Placement]
+}
+
+/// The first policy: every window covers the whole surface, the front one is
+/// drawn, and each behind it is held — drawn off-screen, so its state, its
+/// lifecycle and its tasks carry on — until the windows in front of it close.
+struct StackedCoversPolicy: ScenePresentationPolicy {
+    func placements(of windows: [ScenePresenter.OpenWindow]) -> [ScenePresenter.Placement] {
+        windows.indices.map { $0 == windows.count - 1 ? .wholeSurface : .covered }
+    }
+}
+
+// MARK: - The Presenter
+
+/// Opens, orders and closes the app's windows, and draws them on the surface as
+/// its policy places them. Every scene presentation goes through it: the window
+/// opened at launch, and `openWindow` and `dismissWindow`
+/// (``SceneActionHandler``).
+///
+/// One per running app, owned by its render loop: no singleton.
+@MainActor
+package final class ScenePresenter {
+    /// Where the policy puts a window.
+    enum Placement: Equatable {
+        /// Drawn over the whole surface: the window in front.
+        case wholeSurface
+
+        /// Not drawn, held behind the window in front of it: drawn off-screen,
+        /// into nothing, so that it keeps its state.
+        case covered
+    }
+
+    /// One open window: an instance of a window scene.
+    package final class OpenWindow {
+        /// Which window this is, unique for the life of the app: what a
+        /// window's own `dismissWindow` names it by.
+        package let serial: Int
+
+        /// Which window scene it is an instance of: the scene's identity, as
+        /// the catalogue reckons it.
+        let sceneKey: ViewIdentity
+
+        /// Whether it is the window opened at launch, which draws at the
+        /// scene's identity and in the page's focus section, as an app of one
+        /// window always has.
+        let isLaunchWindow: Bool
+
+        /// Its bars: their rows, their items, the menu bar's place — kept while
+        /// another window is in front, so it comes back as it was left.
+        let chrome = WindowChromeState()
+
+        /// What `dismiss()` at its root does: close it.
+        let dismissBox = DismissAction.Box()
+
+        /// Where the focus rested in it when another window came in front of
+        /// it, or `nil` while it has never lost the focus.
+        var focus: FocusManager.Place?
+
+        /// Whether its bars have yet to be found by a measuring walk, which a
+        /// window's first frame takes so its bars are there from the start.
+        var needsSeeding = true
+
+        init(serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool) {
+            self.serial = serial
+            self.sceneKey = sceneKey
+            self.isLaunchWindow = isLaunchWindow
+        }
+
+        /// The focus section its content registers in: the page's for the
+        /// launch window, one of its own for each other.
+        var focusSection: String {
+            isLaunchWindow ? FocusManager.defaultSectionID : "window-\(serial)"
+        }
+
+        /// The identity its scene tree is walked from, under the scene's
+        /// identity `root`: that identity for the launch window, as an app of
+        /// one window always had, and a child of it of its own for each other,
+        /// so two windows of one group keep apart everything they hold.
+        func rootIdentity(under root: ViewIdentity) -> ViewIdentity {
+            isLaunchWindow ? root : root.child(erasedType: OpenWindow.self, key: "window-\(serial)")
+        }
+    }
+
+    /// The open windows, back to front.
+    package private(set) var windows: [OpenWindow] = []
+
+    /// The window scenes the app declared, as last catalogued.
+    private(set) var entries: [SceneCatalog.WindowEntry] = []
+
+    /// The serial number the next window opened takes.
+    private var nextSerial = 0
+
+    /// Whether the launch window has been opened.
+    private var hasLaunched = false
+
+    /// Whether the presenter has asked the app to quit, every window closed.
+    package private(set) var hasRequestedExit = false
+
+    /// The serial number of the window drawn in front last frame, which the
+    /// focus was in.
+    private var lastFront: Int?
+
+    /// What the window actions a view calls reach: this presenter.
+    let actions = SceneActionHandler()
+
+    /// Where the windows go.
+    var policy: any ScenePresentationPolicy = StackedCoversPolicy()
+
+    /// Asks the app to quit — with every window closed, a terminal app has
+    /// nothing to show.
+    var requestExit: () -> Void = { AppState.shared.requestExit() }
+
+    /// Asks for a frame, after a window opened or closed between frames.
+    var requestFrame: () -> Void = { AppState.shared.setNeedsRender() }
+
+    /// The bars drawn while no window is open.
+    private let closedChrome = WindowChromeState()
+
+    init() {
+        actions.openWindow = { [weak self] target in self?.open(target) }
+        actions.dismissWindow = { [weak self] dismissal in self?.dismiss(dismissal) }
+    }
+
+    // MARK: Each Frame
+
+    /// Adopts this frame's catalogue: opens the launch window on the first, and
+    /// closes a window whose scene the app no longer declares.
+    func sync(with catalog: SceneCatalog) {
+        entries = catalog.windows
+        windows.removeAll { window in !entries.contains { $0.identity == window.sceneKey } }
+        if !hasLaunched {
+            hasLaunched = true
+            if let launch = entries.first {
+                windows.append(makeWindow(of: launch, isLaunchWindow: true))
+            }
+        }
+        if windows.isEmpty { quit() }
+    }
+
+    /// Where the policy places each open window, back to front.
+    var placements: [Placement] { policy.placements(of: windows) }
+
+    /// The window drawn over the whole surface, if one is.
+    var front: OpenWindow? {
+        let placements = placements
+        return windows.indices.last { placements[$0] == .wholeSurface }.map { windows[$0] }
+    }
+
+    /// The window scene `window` is an instance of.
+    func entry(of window: OpenWindow) -> SceneCatalog.WindowEntry? {
+        entries.first { $0.identity == window.sceneKey }
+    }
+
+    /// The bars of the window drawn in front, or of none while no window is
+    /// open: what the run loop's chrome is this frame.
+    var frontChrome: WindowChromeState { front?.chrome ?? closedChrome }
+
+    // MARK: Opening and Closing
+
+    /// Opens the window `target` names: brings a `Window`'s open window, or a
+    /// window presenting an equal value, to the front; otherwise opens a new
+    /// window of the scene. A target no scene answers to opens nothing.
+    func open(_ target: WindowTarget) {
+        guard let entry = entries.first(where: { $0.answers(to: target) }) else { return }
+        if entry.window.opensOneWindow, let open = windows.firstIndex(where: { $0.sceneKey == entry.identity }) {
+            bringToFront(windows[open].serial)
+            return
+        }
+        windows.append(makeWindow(of: entry, isLaunchWindow: false))
+        requestFrame()
+    }
+
+    /// Brings the window `serial` to the front of the others.
+    func bringToFront(_ serial: Int) {
+        guard let index = windows.firstIndex(where: { $0.serial == serial }), index != windows.count - 1 else { return }
+        windows.append(windows.remove(at: index))
+        requestFrame()
+    }
+
+    /// Closes the windows `dismissal` names.
+    func dismiss(_ dismissal: WindowDismissal) {
+        switch dismissal {
+        case .current(let serial):
+            close([serial])
+        case .target(let target):
+            let keys = entries.filter { $0.answers(to: target) }.map(\.identity)
+            close(windows.filter { keys.contains($0.sceneKey) }.map(\.serial))
+        }
+    }
+
+    /// Closes the windows `serials`; the window behind comes to the front, and
+    /// with none left the app quits.
+    func close(_ serials: [Int]) {
+        guard !serials.isEmpty else { return }
+        let before = windows.count
+        windows.removeAll { serials.contains($0.serial) }
+        guard windows.count != before else { return }
+        requestFrame()
+        if windows.isEmpty { quit() }
+    }
+
+    /// A new window of `entry`.
+    private func makeWindow(of entry: SceneCatalog.WindowEntry, isLaunchWindow: Bool) -> OpenWindow {
+        let window = OpenWindow(serial: nextSerial, sceneKey: entry.identity, isLaunchWindow: isLaunchWindow)
+        nextSerial += 1
+        let serial = window.serial
+        window.dismissBox.action = { [weak self] in self?.close([serial]) }
+        return window
+    }
+
+    /// Asks the app to quit, once.
+    private func quit() {
+        guard !hasRequestedExit else { return }
+        hasRequestedExit = true
+        requestExit()
+    }
+
+    // MARK: The Focus
+
+    /// Moves the focus into the window in front, if it is not the one the focus
+    /// was in last frame: to where it rested there, or into its section. Where
+    /// it rested in the window it leaves is kept for when that one comes back.
+    func handFocus(to front: OpenWindow, focusManager: FocusManager?) {
+        guard lastFront != front.serial else { return }
+        defer { lastFront = front.serial }
+        // The launch window's first frame: the focus is already the page's.
+        guard let lastFront, let focusManager else { return }
+        windows.first { $0.serial == lastFront }?.focus = focusManager.place
+        focusManager.move(to: front.focus, enteringSection: front.focusSection)
+    }
+}
+
+// MARK: - Which Scene a Target Names
+
+@MainActor
+extension SceneCatalog.WindowEntry {
+    /// Whether `openWindow` or `dismissWindow` with `target` names this scene:
+    /// its identifier, where the target names one.
+    func answers(to target: WindowTarget) -> Bool {
+        guard let id = target.id else { return false }
+        return window.sceneID == id
+    }
+}

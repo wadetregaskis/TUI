@@ -227,27 +227,53 @@
     },
     {
       "match": [
-        "Window*",
-        "*.window*",
+        "WindowStyle*",
+        "WindowResizability*",
+        "WindowIdealSize*",
+        "WindowLevel*",
+        "WindowManagerRole*",
+        "WindowPlacement*",
+        "WindowLayoutRoot*",
+        "WindowDragGesture*",
+        "WindowToolbarFullScreenVisibility*",
+        "WindowMenuBarExtraStyle*",
+        "Scene.windowStyle(_:)",
+        "Scene.windowResizability(_:)",
+        "Scene.windowIdealSize(_:)",
+        "Scene.windowIdealPlacement(_:)",
+        "Scene.windowLevel(_:)",
+        "Scene.windowManagerRole(_:)",
+        "Scene.windowBackgroundDragBehavior(_:)",
+        "Scene.windowToolbarLabelStyle(*",
+        "View.windowFullScreenBehavior(_:)",
+        "View.windowMinimizeBehavior(_:)",
+        "View.windowResizeBehavior(_:)",
+        "View.windowToolbarFullScreenVisibility(_:)",
         "MenuBarExtra*",
-        "OpenWindowAction*",
-        "DismissWindowAction*",
         "FrameResize*",
         "*.presentedWindow*",
         "*.handlesExternalEvents*",
         "*.allowsWindowActivationEvents*",
-        "EnvironmentValues.openWindow",
-        "EnvironmentValues.dismissWindow",
-        "EnvironmentValues.openSettings",
-        "EnvironmentValues.supportsMultipleWindows",
-        "AlertScene*",
         "DisplayProxy*",
         "*.defaultPosition*",
         "*.defaultSize*",
         "*.defaultLaunchBehavior*",
         "*.restorationBehavior*"
       ],
-      "why": "Windows and the desktop window server: opening, sizing, positioning, restoring, minimising, full-screen and resize behaviour, multiple windows, the menu-bar extra, the Settings scene and an alert that is itself a scene. A TUI app owns exactly one surface — the terminal it was launched in — whose size the user's terminal emulator decides and announces by SIGWINCH. There is nothing for the application to open, place, or dismiss."
+      "why": "Windows on a desktop, managed by its window server: their size, position, placement, level, style and resizing, dragging one by its background, full screen and minimising, the display they are on, which open at launch and which are restored, which handles an external event, and the menu-bar extra. A TUI app's windows share one surface, the terminal it was launched in, as covers stacked over one another (refusal review O9, ruled (b): they open, close and come to the front, which TUIkit does), and that surface's size is the user's terminal emulator's, announced by SIGWINCH: there is nothing for the application to size, place, raise above another app or restore."
+    },
+    {
+      "match": [
+        "AlertScene*",
+        "EnvironmentValues.openSettings",
+        "OpenWindowAction.SharingBehavior*",
+        "OpenWindowAction.callAsFunction(*sharingBehavior:)",
+        "WindowGroup.init(*for:*",
+        "View.windowDismissBehavior(_:)",
+        "WindowInteractionBehavior*",
+        "WindowVisibilityToggle*"
+      ],
+      "why": "Being built by lane O9 (refusal review O9, ruled (b): several scenes on one surface); each pattern goes as its symbols land."
     },
     {
       "match": [

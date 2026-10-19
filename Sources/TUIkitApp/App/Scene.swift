@@ -155,15 +155,31 @@ public struct WindowGroup<Content: View>: Scene {
     /// The content of the window.
     public let content: Content
 
+    /// The identifier ``EnvironmentValues/openWindow`` opens the group's
+    /// windows by, if it has one.
+    let sceneID: String?
+
+    /// The title of the group's windows, if it has one.
+    let title: Text?
+
     /// Creates a WindowGroup with the specified content — SwiftUI's
     /// `init(makeContent:)`, which replaces its deprecated `init(content:)`.
     ///
-    /// SwiftUI calls the builder for each window it opens; a terminal app has
-    /// one, so the builder is called once, here.
+    /// SwiftUI calls the builder for each window it opens. Here it is called
+    /// once, as the scene is declared, and every window of the group draws
+    /// what it built, each at an identity of its own, so each has its own
+    /// state.
     ///
     /// - Parameter makeContent: A ViewBuilder that defines the content.
     public init(@ViewBuilder makeContent: @escaping () -> Content) {
-        self.content = makeContent()
+        self.init(title: nil, id: nil, content: makeContent())
+    }
+
+    /// A group of windows of `content`, titled `title`, opened by `id`.
+    init(title: Text?, id: String?, content: Content) {
+        self.content = content
+        self.sceneID = id
+        self.title = title
     }
 
     /// `WindowGroup` is a primitive scene: it renders through

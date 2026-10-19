@@ -106,6 +106,9 @@ package final class HeadlessApp<A: App> {
             tooltipState: tuiContext.tooltipState, unhandledKeyBell: tuiContext.terminalBell,
             // A script has no process to quit or suspend: a quit is counted.
             onQuit: { quits.count += 1 }, onSuspend: {}, screenSelection: tuiContext.screenSelection)
+        // The last window closing asks the app to quit: counted, as the quit
+        // key's quit is, rather than asked of the process's `AppState`.
+        renderer.scenes.requestExit = { quits.count += 1 }
         // As `AppRunner` wires it, so a click on a status-bar item that only
         // names a key goes through the same chain the key does.
         let inputHandler = self.inputHandler
@@ -228,6 +231,9 @@ package final class HeadlessApp<A: App> {
     /// The app's runtime services — for a test that hands it a clipboard
     /// writer of its own, or reads its screen selection.
     var services: TUIContext { tuiContext }
+
+    /// The app's windows: which are open, in what order.
+    package var scenes: ScenePresenter { renderer.scenes }
 
     /// How many views' parting pictures the app is holding — every view with a
     /// transition that is on screen, and every removal still playing. A removal

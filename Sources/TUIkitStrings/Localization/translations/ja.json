@@ -139,6 +139,7 @@
   "statusbar.goBack": "戻る",
   "statusbar.closePopover": "ポップオーバーを閉じる",
   "statusbar.closeSuggestions": "候補を閉じる",
+  "statusbar.closeWindow": "ウインドウを閉じる",
   "statusbar.cancelMove": "移動をキャンセル",
   "statusbar.clearSelection": "選択を解除",
   "statusbar.stopExtendingSelection": "選択の拡張を終了",

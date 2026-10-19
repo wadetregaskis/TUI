@@ -28,11 +28,11 @@ import TUIkitFoundation
 /// order).
 @MainActor
 struct SceneCatalog {
-    /// One window scene: a ``WindowGroup``, which the run loop draws filling
-    /// the terminal.
+    /// One window scene: a ``WindowGroup`` or a ``Window``, whose windows the
+    /// run loop draws filling the terminal.
     struct WindowEntry {
         /// The scene, at the end of its modifier chain.
-        let scene: any Scene
+        let window: any WindowScene
 
         /// What the modifiers around it configure.
         let configuration: SceneConfiguration
@@ -84,7 +84,8 @@ struct SceneCatalog {
         configuring.configure(&configuration)
         guard let content = configuring.configuredContent else {
             // The end of a chain: the scene itself.
-            windows.append(WindowEntry(scene: scene, configuration: configuration, path: path, identity: identity))
+            guard let window = configuring as? any WindowScene else { return SceneCommands() }
+            windows.append(WindowEntry(window: window, configuration: configuration, path: path, identity: identity))
             return SceneCommands.ofWindow
         }
         var commands = walk(content, configuration: configuration, path: path, identity: identity)
