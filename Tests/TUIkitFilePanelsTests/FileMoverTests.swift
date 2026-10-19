@@ -79,6 +79,34 @@ struct FileMoverTests {
         #expect(!FileManager.default.fileExists(atPath: fixture.url("beta.txt").path))
     }
 
+    @Test("The panel opens on the folder that holds the file")
+    func opensOnFilesFolder() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FileMoverCaller()
+        let driver = FilePanelDriver { mover([fixture.url("Alpha/inner.txt")], caller: caller) }
+        let shown = await driver.waitFor("inner.txt", timeout: .seconds(10))
+        #expect(shown.contains("inner.txt") && !shown.contains("beta.txt"), "\(shown)")
+    }
+
+    @Test("The file is the one the binding names when the panel is presented, not when the view first drew")
+    func fileReadWhenPresented() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FileMoverCaller()
+        caller.isPresented = false
+        var file: URL?
+        let driver = FilePanelDriver {
+            Text("Page").fileMover(isPresented: caller.binding, file: file) { caller.completed($0.map { [$0] }) }
+        }
+        driver.screen()
+        file = fixture.url("Alpha/inner.txt")
+        driver.screen()
+        caller.isPresented = true
+        let shown = await driver.waitFor("inner.txt", timeout: .seconds(10))
+        #expect(shown.contains("inner.txt") && !shown.contains("beta.txt"), "\(shown)")
+    }
+
     @Test("Several files move together, in order")
     func movesSeveral() async throws {
         let fixture = try FilePanelFixture()

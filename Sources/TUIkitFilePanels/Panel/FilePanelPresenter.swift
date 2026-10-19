@@ -66,7 +66,11 @@ struct FilePanelPresenter<Content: View>: View {
     var body: some View {
         content
             .sheet(isPresented: isPresented, onDismiss: dismissed) {
-                FilePanel(request: currentRequest(), finish: finish)
+                // Built lazily, in a view's body: `sheet` builds its content
+                // on every frame, presented or not, and a request made then
+                // was the first frame's — a mover's file still `nil`, say —
+                // kept until a dismissal that never came.
+                FilePanelSheet(request: currentRequest, finish: finish)
                     .presentationSizing(.page)
             }
     }
@@ -155,5 +159,16 @@ struct FilePanelPresenter<Content: View>: View {
         let keys = Self.storageKeys(id)
         store.setValue(ending.directory.path, forKey: keys.directory)
         store.setValue(ending.showsHiddenFiles, forKey: keys.showsHiddenFiles)
+    }
+}
+
+/// A presented panel, made from its request only when it is drawn: what a
+/// presenter hands `sheet`, which builds its content on every frame.
+private struct FilePanelSheet: View {
+    let request: () -> FilePanelRequest
+    let finish: (FilePanelOutcome) -> Void
+
+    var body: some View {
+        FilePanel(request: request(), finish: finish)
     }
 }
