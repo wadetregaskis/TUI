@@ -72,9 +72,11 @@ conditions. Fifteen kinds of file live here:
   stop at the first that does not), and whether the clipboard was put back.
   Inside tmux, `tmux` holds `set-clipboard` and
   whether tmux kept the write as a buffer; the two tmux runs are named by
-  that option, `…-clipboard-on.json` and `…-clipboard-external.json`.
-  Six so far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6, Warp, Ghostty
-  1.3.1 and tmux 3.7c twice.
+  that option, `…-clipboard-on.json` and `…-clipboard-external.json`, and
+  iTerm2's two by its "Applications in terminal may access clipboard"
+  setting, `…-clipboard-off.json` and `…-clipboard-on.json`.
+  Seven so far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6 twice, Warp,
+  Ghostty 1.3.1 and tmux 3.7c twice.
 - **`<terminal>-<version>-identity.json`** — IDENTITY records
   (`identity_probe.py`): the reply to each query a host could be identified
   by — DA1, DA2, DA3, XTVERSION, XTGETTCAP `TN` — and to the status report

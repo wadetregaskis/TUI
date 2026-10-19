@@ -956,14 +956,13 @@ iTerm2's DA1 begins `64`, not `62`.
 Apple Terminal answers DA3 with a **DA1 reply** — it ignores the `=` and
 treats `ESC[=c` as `ESC[c`. Noted as a curiosity; nothing depends on it.
 
-**iTerm2 lists `52` in DA1 with its clipboard setting presumably off.**
-In the same minute, `clipboard_probe.py` wrote OSC 52 three ways and none of
-them reached the clipboard (see "OSC 52 clipboard writes"). The setting,
-"Applications in terminal may access clipboard", was not changed for the run;
-off is its default and the owner's choice, and nothing in the run read it.
-If it was off, DA1's `52` does not follow the setting, and cannot tell an
-application whether a write will land. iTerm2 with the setting on is
-unmeasured.
+**iTerm2 lists `52` in DA1 whether its clipboard setting is on or off.**
+iTerm2 3.7.6 answered the same `ESC[?64;1;2;4;6;17;18;21;22;52c` with
+"Applications in terminal may access clipboard" off (its default) and, the
+same morning, on (2026-10-19). Off, `clipboard_probe.py`'s three spellings of
+an OSC 52 write all went nowhere; on, all three arrived (see "OSC 52
+clipboard writes"). So DA1's `52` does not follow the setting, and cannot
+tell an application whether a write will land.
 
 ⚠️ **Do not send DCS queries at startup.** XTGETTCAP (`ESC P + q … ESC \`)
 is not safe: Apple Terminal does not parse DCS and *prints the payload* —
@@ -6373,7 +6372,7 @@ goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 | kitty | yes, by default (`clipboard_control` allows writes) | its documentation | 1 (`TERM=xterm-kitty`, `KITTY_WINDOW_ID`) |
 | WezTerm | yes, by default | its documentation | 1 (`TERM_PROGRAM=WezTerm`, `TERM=wezterm`) |
 | foot | yes, by default | its documentation | 1 (`TERM=foot`, `foot-extra`) |
-| iTerm2 3.6, 3.7.6 | only with Settings > General > Selection > "Applications in terminal may access clipboard", off by default | its documentation; its DA1 lists `52`; measured 2026-10-19 with the setting presumably off: no write arrived (below) | 3 |
+| iTerm2 3.6, 3.7.6 | only with Settings > General > Selection > "Applications in terminal may access clipboard", off by default | its documentation; measured 2026-10-19 both ways: off, no write arrived; on, every spelling did, up to 512 KiB; its DA1 lists `52` either way (below) | 3 |
 | tmux 3.7c | `external` (the default) ignores an application's write; `on` keeps it as a paste buffer and passes it on to clients whose features include `clipboard` | measured, below; the manual | 3 with `on`, else none |
 | Apple Terminal 455.1 | no | no OSC 52 anywhere in the app; measured 2026-10-19 (below) | none |
 | Warp v0.2026.09.30.08.29 | no | measured 2026-10-19 (below) | none |
@@ -6382,9 +6381,8 @@ goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 DA1 can only ADD a host: a terminal that writes by default need not say so.
 (Ghostty was the example here, with the `ESC[?62;22c` read out of its binary;
 asked on 2026-10-19, Ghostty 1.3.1 answered `ESC[?62;22;52c`, which does list
-it.) Nor does DA1 follow iTerm2's setting, as far as one run can tell: with the
-setting presumably off, iTerm2 3.7.6 listed `52` and no write arrived. Whether
-a write lands with the setting on is still to measure.
+it.) Nor does DA1 follow iTerm2's setting: iTerm2 3.7.6 lists `52` with the
+setting off, when no write lands, as with it on, when every write does.
 
 Where TUIkit stands on locality inside tmux depends on tmux: the clients are
 asked for (`list-clients`) and `set-clipboard` read (`show-options -sv`) when
@@ -6405,17 +6403,21 @@ or malformed payload was sent — run inside each host on this machine, primary
 screen, macOS 15.8.1, one host at a time, reading the clipboard back with
 `pbpaste` and putting it back after every run (every record says
 `restored: true`). The records, in `Tools/TerminalProbes/data/`, are
-`apple-terminal-455.1-clipboard.json`, `iterm2-3.7.6-clipboard.json`,
-`ghostty-1.3.1-clipboard.json` and
+`apple-terminal-455.1-clipboard.json`, `iterm2-3.7.6-clipboard-off.json`,
+`iterm2-3.7.6-clipboard-on.json`, `ghostty-1.3.1-clipboard.json` and
 `warpterminal-v0.2026.09.30.08.29.stable_01-clipboard.json`.
 
 - **Ghostty 1.3.1 writes every spelling** — ST, BEL, and the empty selector
   (which it reads as `c`) — and every size tried, 1 KiB to 1 MiB, arrived
   whole. Its DA1 lists `52`.
-- **iTerm2 3.7.6 wrote nothing**, in any spelling, while its DA1 listed
-  `52`. Its "Applications in terminal may access clipboard" setting was not
-  changed for the run and is presumably off: its default, and the owner's
-  choice. Nothing in the run read the setting.
+- **iTerm2 3.7.6 writes only with its setting on**, and its DA1 lists `52`
+  either way. With "Applications in terminal may access clipboard" off (its
+  default) nothing arrived, in any spelling. The owner turned it on, with
+  "Allow sending of clipboard contents?" at Always, and the run was made
+  again: ST, BEL and the empty selector all arrived, and so did every size
+  to 512 KiB. 1 MiB arrived cut short, at 786,430 bytes, which fits a cap of
+  1 MiB on the base64 text (1,048,576 characters decode to 786,432 bytes;
+  the cause is not established).
 - **Apple Terminal 455.1 and Warp v0.2026.09.30.08.29 ignore OSC 52**: no
   spelling arrived. Neither lists `52`.
 - **None of the four printed any of it**: the cursor did not move across
@@ -6438,15 +6440,15 @@ inherits the environment the server was started in, not the client's.)
 Run it inside each host, on the machine the host runs on, so the probe reads
 the clipboard back itself (`pbpaste`, `wl-paste`, `xclip`, `xsel`); over ssh,
 `--manual` asks for a paste instead. `--destructive` adds the empty and the
-malformed payloads. Still to run: iTerm2 with its setting on, kitty,
+malformed payloads. Still to run: kitty,
 `--destructive` on every host, and tmux with `on` under a client that writes
 OSC 52.
 
 | Host | Prints nothing | DA1 lists 52 | Write arrives | Largest copy | Empty payload | Malformed payload |
 |---|---|---|---|---|---|---|
 | Apple Terminal 455.1 | yes | no (`ESC[?1;2c`) | no | — | — | — |
-| iTerm2 3.7.6, setting presumably off | yes | **yes** | **no** | — | — | — |
-| iTerm2, setting on | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| iTerm2 3.7.6, setting off | yes | **yes** | **no** | — | — | — |
+| iTerm2 3.7.6, setting on | yes | yes, the same reply | yes — ST, BEL and an empty selector | 512 KiB; 1 MiB cut to 786,430 bytes | UNMEASURED | UNMEASURED |
 | Ghostty 1.3.1 | yes | yes (`ESC[?62;22;52c`) | yes — ST, BEL and an empty selector | 1 MiB, the largest tried | UNMEASURED | documented: cleared; UNMEASURED |
 | Warp v0.2026.09.30.08.29 | yes | no (`ESC[?62c`) | no | — | — | — |
 | kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |

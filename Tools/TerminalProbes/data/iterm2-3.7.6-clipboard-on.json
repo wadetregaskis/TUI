@@ -1,0 +1,108 @@
+{
+ "stamp": {
+  "probe": "clipboard_probe",
+  "measured": "2026-10-19T11:04:14-07:00",
+  "screen": "primary",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+   "TERM": "xterm-256color",
+   "TERM_PROGRAM": "iTerm.app",
+   "TERM_PROGRAM_VERSION": "3.7.6",
+   "COLORTERM": "truecolor",
+   "TERM_SESSION_ID": "w0t1p0:FB9C59FB-85D4-42E5-AB6E-E88BB8FB2A10",
+   "ITERM_SESSION_ID": "w0t1p0:FB9C59FB-85D4-42E5-AB6E-E88BB8FB2A10",
+   "ITERM_PROFILE": "Default",
+   "LC_TERMINAL": "iTerm2",
+   "LC_TERMINAL_VERSION": "3.7.6",
+   "COLORFGBG": "0;15",
+   "TERMINFO_DIRS": "/Applications/iTerm.app/Contents/Resources/terminfo:/usr/share/terminfo",
+   "__CFBundleIdentifier": "com.googlecode.iterm2"
+  },
+  "mode_2027_grapheme_clustering": "permanently reset",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+ },
+ "remote": {},
+ "read_back": "pbpaste",
+ "identity": {
+  "xtversion": "iTerm2 3.7.6",
+  "da1": "\u001b[?64;1;2;4;6;17;18;21;22;52c",
+  "da1_has_52": true,
+  "da2": "\u001b[>64;2500;0c"
+ },
+ "leak": {
+  "before": [
+   22,
+   1
+  ],
+  "after": [
+   22,
+   1
+  ],
+  "clean": true
+ },
+ "write_st": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 25
+ },
+ "tmux": null,
+ "write_bel": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 16
+ },
+ "write_empty_selector": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 27
+ },
+ "ceiling": {
+  "sizes": {
+   "1KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 1024,
+    "base64_bytes": 1368
+   },
+   "8KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 8192,
+    "base64_bytes": 10924
+   },
+   "64KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 65536,
+    "base64_bytes": 87384
+   },
+   "100KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 102400,
+    "base64_bytes": 136536
+   },
+   "256KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 262144,
+    "base64_bytes": 349528
+   },
+   "512KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 524288,
+    "base64_bytes": 699052
+   },
+   "1024KiB": {
+    "fenced": true,
+    "arrived": false,
+    "read_length": 786430,
+    "base64_bytes": 1398104
+   }
+  },
+  "largest_intact_kib": 512
+ },
+ "restored": true
+}
