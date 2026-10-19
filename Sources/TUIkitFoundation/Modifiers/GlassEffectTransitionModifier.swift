@@ -18,7 +18,8 @@ import TUIkitView
 /// view inserted inside `withAnimation`, or a glass that was ``Glass/identity``
 /// becoming one — materializes: its surface fades in with the animation, and
 /// its rim's lines are drawn from half-way (a glyph is drawn or not), as
-/// SwiftUI's materialize transition fades the glass in.
+/// SwiftUI's materialize transition fades the glass in. It arrives by itself,
+/// and joins the glass beside it once it has arrived.
 /// ``matchedGeometry``, SwiftUI's default, is drawn as ``materialize``: its
 /// growing out of the nearest glass is not drawn (decisions B-GLASS-6).
 /// ``identity`` appears at once. Glass leaving goes with its view — its view's

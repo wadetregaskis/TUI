@@ -62,6 +62,26 @@ struct GlassEffectTransitionTests {
         }
     }
 
+    @Test("Glass arriving beside glass in a container fades in by itself, and joins it once it has arrived")
+    func arrivingBesideGlass() {
+        func row(_ withB: Bool) -> some View {
+            GlassEffectContainer {
+                HStack(spacing: 0) {
+                    Text("A").padding(.horizontal).glassEffect()
+                    if withB { Text("B").padding(.horizontal).glassEffect() }
+                }
+            }
+        }
+        // B's view fades in too (an inserted view's default transition): its
+        // label is not there at first, then faint.
+        let tui = TUIContext()
+        #expect(frame(row(false), tui: tui, atMillis: 0) == ["(A)"])
+        #expect(frame(row(true), tui: tui, atMillis: 0, animation: .linear(duration: 1)) == ["(A)   "], "not there yet")
+        #expect(frame(row(true), tui: tui, atMillis: 250) == ["(A) B "], "a quarter of the way: A keeps its own shape")
+        #expect(frame(row(true), tui: tui, atMillis: 750) == ["(A)(B)"], "by itself until it has arrived")
+        #expect(frame(row(true), tui: tui, atMillis: 1_100) == ["(A  B)"])
+    }
+
     @Test("Glass whose transition is the identity appears at once; so does glass with no animation")
     func identityAndUnanimated() {
         let tui = TUIContext()

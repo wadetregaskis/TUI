@@ -36,7 +36,9 @@ import TUIkitView
 /// apart; at the spacing itself — the gap an `HStack` of the same spacing
 /// leaves — they stay apart, as SwiftUI's at rest do. Glasses that share a
 /// ``View/glassEffectUnion(id:namespace:)`` are drawn as one wherever they
-/// are. Only glass of one kind joins: one shape has one surface.
+/// are. Only glass of one kind joins: one shape has one surface. Glass
+/// arriving under an animation fades in by itself and joins once it has
+/// arrived (``GlassEffectTransition``).
 ///
 /// The joined shape is the smallest rectangle round its members, in the first
 /// member's shape and glass, drawn behind the container's content. A glass
@@ -179,8 +181,8 @@ extension _GlassEffectContainerCore: Renderable {
 
     /// `groups` drawn into one layer `columns` × `rows`, each its first
     /// member's glass in its first member's shape, filling the frame round its
-    /// members, its rim lifted where the pointer is over any of them, and as
-    /// present as the most present of them.
+    /// members, its rim lifted where the pointer is over any of them — all of
+    /// it there: only glass that has arrived joins.
     @MainActor
     private static func layer(_ groups: [GlassGroup], columns: Int, rows: Int, context: RenderContext) -> ShapeCells {
         var layer = ShapeCells(width: columns, height: rows)
@@ -190,8 +192,7 @@ extension _GlassEffectContainerCore: Renderable {
             guard frame.width > 0, frame.height > 0 else { continue }
             let cells = GlassCells.drawing(
                 first.glass, in: first.shape, columns: frame.width, rows: frame.height,
-                hovered: group.members.contains { $0.glass.isHovered },
-                presence: group.members.map(\.glass.presence).max() ?? 1, context: context, owner: nil)
+                hovered: group.members.contains { $0.glass.isHovered }, context: context, owner: nil)
             layer.laying(cells, at: (frame.x, frame.y))
         }
         return layer

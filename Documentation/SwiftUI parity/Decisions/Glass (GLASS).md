@@ -139,7 +139,8 @@ is one shape round all of its members. A cell is joined or not, so here:
   cells apart — at the spacing itself, the gap an `HStack` of the same spacing
   leaves, they stay apart, as SwiftUI's at rest do — and every glass of one
   union, wherever it is, when they also share a kind of shape. Glass of two
-  kinds never joins: one shape has one surface. `spacing` is cells, an `Int?`,
+  kinds never joins: one shape has one surface; nor does glass still arriving
+  (B-GLASS-6). `spacing` is cells, an `Int?`,
   as every interface measurement is (compatibility guide §2.1).
 - **What is drawn:** the smallest rectangle round the members, in the first
   member's shape and glass, behind the container's content; its rim lifts
@@ -197,7 +198,11 @@ its new.
   that fraction of its opacity, and its rim's lines from half-way, since a
   glyph is drawn or not. `.matchedGeometry` (SwiftUI's default, taken as the
   default here too, unmeasured) arrives as `.materialize` does; `.identity`
-  appears at once.
+  appears at once. Beside glass it would join, it fades in by itself and
+  joins once it has arrived: a joined shape is drawn at one strength, and
+  drawn at the arriving glass's it would fade out the glass already there, at
+  the most present's it popped the new glass in a frame after it came (found
+  in review).
 - **Leaving:** with its view, whose own removal transition plays the glass out
   with it; a joined group loses a member at once.
 - **An id:** the arrival is kept by the id in its namespace rather than by

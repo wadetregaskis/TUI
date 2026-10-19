@@ -139,8 +139,11 @@ struct GlassGroup {
     /// Two glasses join when they are the same glass and either share a union
     /// (and a kind of shape, as SwiftUI's union asks) or lie fewer than
     /// `spacing` cells apart — always when they touch or overlap. Glass of two
-    /// kinds stays apart: one shape has one surface. ``Glass/identity`` joins
-    /// nothing.
+    /// kinds stays apart: one shape has one surface. So does glass still
+    /// arriving (`glassEffectTransition(_:)`), which fades in by itself and
+    /// joins once it has arrived: a group is drawn at one strength, and drawn
+    /// at the arriving glass's it would fade out the glass already there.
+    /// ``Glass/identity`` joins nothing.
     static func grouping(_ placed: [PlacedGlass], spacing: Int) -> [Self] {
         var parent = Array(placed.indices)
         func root(_ index: Int) -> Int {
@@ -166,7 +169,7 @@ struct GlassGroup {
     /// Whether `first` and `second` are drawn as one.
     private static func joins(_ first: PlacedGlass, _ second: PlacedGlass, spacing: Int) -> Bool {
         let (a, b) = (first.glass, second.glass)
-        guard a.glass == b.glass, !a.glass.isIdentity else { return false }
+        guard a.glass == b.glass, !a.glass.isIdentity, a.presence >= 1, b.presence >= 1 else { return false }
         if let union = a.union, union == b.union,
             ObjectIdentifier(type(of: a.shape)) == ObjectIdentifier(type(of: b.shape))
         {
