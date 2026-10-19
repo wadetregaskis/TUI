@@ -1118,6 +1118,17 @@ per-scene `@SceneStorage`. A22 and A26 follow it. Proposed, the owner's to
 confirm: ship `\.supportsMultipleWindows` as `true`, since `openWindow` then
 works.
 
+**Shipped (2026-10-18, lane O9),** with the presenter and its policy as ruled:
+several scenes in one body, `Window`, `WindowGroup(id:/for:)`,
+`openWindow`/`dismissWindow` with `DismissBehavior` (A22), `Settings` as a sheet
+with `SettingsLink` and `openSettings`, `AlertScene` and the scene dialog
+modifiers (A26), per-window `@SceneStorage`, the menu bar's Settings… and Window
+menu, `windowDismissBehavior`, `WindowVisibilityToggle`, the scenes'
+`keyboardShortcut`, and `\.supportsMultipleWindows` as `true` for the owner to
+overrule — decisions file *Several scenes on one surface (O9)*. Window
+management with no reading on one surface, and `UtilityWindow`, stay declined
+(its C-O9-1 and C-O9-2).
+
 ### O10. File panels (from P16) — M–L
 
 `fileImporter`, `fileExporter` and `fileMover`.

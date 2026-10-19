@@ -341,3 +341,34 @@ File ▸ New Window for it to be the key of (B-O9-9), and ⌘N would arrive as
 
 **The fuller version** adds File ▸ New *Title* Window with SwiftUI's ⌘N on the
 first group, B-O9-9's fuller version; with it, a group's key is the item's.
+
+## C. Declined
+
+### C-O9-1. Managing windows on a desktop
+
+*`parity-map.json`'s window-server family: `WindowStyle`, `WindowResizability`, `WindowIdealSize`, `WindowLevel`, `WindowManagerRole`, `WindowPlacement`, `WindowLayoutRoot`, `WindowDragGesture`, `WindowToolbarFullScreenVisibility`, `WindowMenuBarExtraStyle`, `MenuBarExtra`, `DisplayProxy`, `FrameResize*`, `Scene.windowStyle`/`windowResizability`/`windowIdealSize`/`windowIdealPlacement`/`windowLevel`/`windowManagerRole`/`windowBackgroundDragBehavior`/`windowToolbarLabelStyle`, `defaultSize`, `defaultPosition`, `defaultLaunchBehavior`, `restorationBehavior`, `handlesExternalEvents`, `View.windowFullScreenBehavior`/`windowMinimizeBehavior`/`windowResizeBehavior`/`windowToolbarFullScreenVisibility`*
+
+Every one sizes, places, raises, styles, drags, minimises or restores a window
+among others on a display, which the window server does. On one surface the
+windows are covers the size of the terminal (B-O9-1), which the person sizes,
+not the app; nothing is beside a window to place it against or above, and a
+terminal app is launched by the person each time, with nothing to restore or
+route an external event to. `WindowInteractionBehavior` ships for the one
+interaction a cover has, closing (B-O9-10).
+
+### C-O9-2. macOS window chrome, launch and the utility window
+
+*`parity-map.json`'s macOS-chrome family: `DefaultWindowStyle`, `HiddenTitleBarWindowStyle`, `PlainWindowStyle`, `TitleBarWindowStyle`, the menu-bar-extra styles, `Scene.defaultWindowPlacement`, `SceneLaunchBehavior`, `SceneRestorationBehavior`, `UtilityWindow`*
+
+The window styles are a title bar's, which the terminal emulator draws; the
+launch and restoration behaviours choose among windows macOS reopens. A
+`UtilityWindow` is a panel that floats beside the main windows and shows the
+focused values of whichever is key, as the main menu's commands do: on one
+surface it would cover the window whose values it shows. Its useful half —
+content that reads the focused window's values — is a `Window` holding views
+that read `@FocusedValue`, which works for the window behind it only when the
+policy shows two windows at once: a tiling policy's question, kept with the
+room left for one (B-O9-1).
+
+`DocumentGroup` and the `FileDocument` family are not this lane's: they need
+the file panels of refusal review O10.
