@@ -229,6 +229,20 @@ rows' regions, and owns `.scrollView` for its rows as the scroll view does —
 a day, on the list's hot path, so with the `table`, `tables-scroll` and
 `session/inbox` A/Bs.
 
+**The ownership half: built (2026-10-19, lane LISTS2).** A `List` draws its
+frame as the owner of `.scrollView` and `.scrollView(axis: .vertical)`
+(`RenderContext.drawingAsVerticalScroller`), as a `coordinateSpace(_:)`
+declaration owns its name: a reader in a row is answered in the list's
+content window, inside the border and below a borderless title, and where one
+drew from an answer that turned out wrong the walk is put back and the frame
+drawn once more. A list with nothing asking pays the walk's checkpoint and a
+test of the waiting count, every frame — A/B owed on `table`,
+`tables-scroll` and `session/inbox`. **The placement half is not built:** the
+rows are still told the list's origin, so a scrolled list with a reader in
+its rows draws once more a frame (G1's rate); placing each row before it is
+drawn needs its line in the window before the window walk has settled it,
+which the walk renders rows to find — about a day more, with the same A/Bs.
+
 ### B-D5G-10. The prediction's third rung converts seven composers; the root's centring and five more containers are left to the residual
 
 *Where a reader inside them is told it is before it draws (the correction

@@ -1636,14 +1636,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (measured, B-D5G-1); `.scrollView` inside a `List` row is the list's own
   space (not measured).
 - **TUIkit:** a row windowed out of a lazy stack is still in the tree and is
-  reported hidden. `.scrollView` inside a `List` row is answered by the nearest
-  `ScrollView` around the list. A `ScrollViewReader` finds an `.id(_:)` only on
+  reported hidden. `.scrollView` inside a `List` row is the list's content
+  window, as in SwiftUI (since 2026-10-19), but its rows are not placed before
+  they are drawn, so a scrolled list with a reader in its rows draws it twice a
+  frame. A `ScrollViewReader` finds an `.id(_:)` only on
   the stack's own children; a `ForEach` row is found by its element's id. A
   scroll transition's default threshold is taken as `.visible`; SwiftUI's
   could not be measured (B-D5G-8).
 - **Why:** the row is still there (F1), and an app that stops a player on
   "hidden" must hear it. A list renders its rows into a window under its
-  chrome and tells them its own origin.
+  chrome, and tells them its own origin until it knows where the window put
+  them.
 - **Decided:** [B-D5G-1](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>), [B-D5G-9](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-9-a-lists-rows-are-not-placed-by-the-prediction-and-a-list-does-not-own-scrollview>),
   [ScrollViewReader.swift](../../Sources/TUIkitFoundation/Views/ScrollViewReader.swift#L47-L52).
   **Lane.**

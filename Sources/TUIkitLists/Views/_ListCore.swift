@@ -852,7 +852,18 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         offset: Int, topClip: Int, reservesAbove: Bool, reservesBelow: Bool
     )
 
+    /// The list's frame, drawn as the owner of `.scrollView` for its rows, as
+    /// SwiftUI's list is itself the scroll view its rows are in (decisions
+    /// B-D5G-9): a reader in a row asking `.scrollView` is answered in the
+    /// list's content window, not by a scroll view around the list.
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        context.drawingAsVerticalScroller { renderFrame(context: context) }
+    }
+
+    /// The list's frame, and its content window within it: the rows' lines,
+    /// inside the border and below a borderless title, as tall as the rows
+    /// get (``renderToBuffer(context:)``).
+    private func renderFrame(context: RenderContext) -> (buffer: FrameBuffer, viewport: CellRect?) {
         // A section this list draws as one row keeps the list's styling; under
         // `.listStyle(.surface)` everything is drawn on the list's own surface,
         // and the finished buffer painted with it at the end.
@@ -994,18 +1005,21 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // the header tone as rows (`rowBackground`).
         buffer = surface?.painted(buffer, headerLines: 0..<titleOverhead, context: context) ?? buffer
 
+        // Where content line 0 sits in the finished buffer: below the top
+        // border row when there is one, below a borderless title's own row
+        // (`renderBorderless` draws it above the body and shifts the body's
+        // payloads down by it), and past the top padding. ONE value for every
+        // pass that maps content lines to buffer rows — clicks, drags, drops,
+        // the rows' hit regions, overlays and opacity. Each used to derive it
+        // for itself from the border and the padding, and none counted the
+        // title, so a titled `.plain` list put every click on the row below
+        // the pointer: the title line selected the first row, and the last row
+        // could not be clicked at all.
+        let contentTop = (style.showsBorder ? 1 : 0) + titleOverhead + style.rowPadding.top
+        let border = style.showsBorder ? 1 : 0
+        let viewport = CellRect(
+            x: border, y: contentTop, width: max(0, buffer.width - 2 * border), height: targetContentHeight)
         if let state = renderState {
-            // Where content line 0 sits in the finished buffer: below the top
-            // border row when there is one, below a borderless title's own row
-            // (`renderBorderless` draws it above the body and shifts the body's
-            // payloads down by it), and past the top padding. ONE value for every
-            // pass that maps content lines to buffer rows — clicks, drags, drops,
-            // the rows' hit regions, overlays and opacity. Each used to derive it
-            // for itself from the border and the padding, and none counted the
-            // title, so a titled `.plain` list put every click on the row below
-            // the pointer: the title line selected the first row, and the last row
-            // could not be clicked at all.
-            let contentTop = (style.showsBorder ? 1 : 0) + titleOverhead + style.rowPadding.top
             let registered = attachMouseHandlers(
                 to: &buffer, context: context, state: state, topInset: contentTop)
             // One walk for all three row payloads. Compositing is not click
@@ -1032,7 +1046,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     overflow, over: buffer, contentLeft: (style.showsBorder ? 1 : 0) + style.rowPadding.leading)
             }
         }
-        return buffer
+        return (buffer, viewport)
     }
 
     /// The rows a list that does not clip draws past its frame
