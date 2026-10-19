@@ -36,6 +36,8 @@ fits there.
 
 ### A-CHURN-2. Overlay scrollbars that take no column
 
+**Re-checked 2026-10-18 (evening):** this would reverse two standing rules. Deliberate deviations R5 says a bar is a column of the viewport (kept on 10-12 under B24), and R4 says `ScrollGeometry` leaves the bars out (owner: keep, 10-12). It isn't needed for performance now, since with the early stop round 1 is a screenful. Suggested: keep R4 and R5 and decline this, unless you want macOS's overlay look for its own sake.
+
 *`ScrollView` — a design change*
 
 A bar drawn over the content's last column (as macOS's overlay scrollers sit

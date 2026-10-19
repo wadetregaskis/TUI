@@ -50,6 +50,8 @@ is that of the main decisions file:*
 
 ### A-FB16-1. A container's own size changes at once, where SwiftUI's frame glides
 
+**Re-checked 2026-10-18 (evening):** this is the unbuilt part of your ruling, not a new question. "FB16: (a′)" took SwiftUI's measured model, in which every view whose frame changes glides from its old frame to its new one: its size as well as its position. The lane built the positions. So option 1 would mean recording positions-only as a deviation from (a′).
+
 *`.border`, `.background`, `.frame`, `DemoSection` in the Example*
 
 SwiftUI animates every view's frame, its size as well as its position: a

@@ -1,22 +1,21 @@
-# Open owner decisions (2026-10-18)
+# Open owner decisions
 
-Every decision still waiting on you, gathered in one place. It was compiled on 2026-10-18 from a full inventory of the docs, notes, memory and code (361 items), and each entry here was checked against the code that day. Answer by id and option (for example, "A-D6L-1: 4"); a bare "yes" takes the recommendation.
+Everything waiting on you, gathered in one place. It was compiled on 2026-10-18 from a full inventory of the docs, notes, memory and code (361 items), each entry checked against main. **Every entry was re-checked against main at 737febb32 on the evening of 2026-10-18,** after CHURN, FB16, W1 and O6 landed: 110 still stood as written, 17 were corrected below, and one (the Trash) had been done.
 
-Lanes building on 2026-10-18 add their own owner questions to the last section as they finish.
+Answer by id and option (for example, "A-D6L-1: 4"); a bare "yes" takes the recommendation. Lanes still building add their questions to the last section as they land, and this document is re-checked before it is handed over as final.
 
-- **75 decisions for you**, below by area.
-- **47 questions settled by your earlier rulings.** They're being built or kept as recommended, and are listed in their own section so you can veto any of them.
-- **Owner actions**, things only you can do, come first.
+- **73 decisions for you**, below by area, with a summary table first.
+- **47 questions settled by your earlier rulings.** They're being built or kept as recommended, and are listed so you can veto any of them.
+- **Lane questions** at the end.
+- **Owner actions** first.
 
 ## Owner actions
 
-- **PUSH: Push local main to GitHub (your action).** When will you push local main, now 1,935 commits ahead of origin/main, so that CI runs on it? (b) today, then merge when it's green. It gets CI's Linux, Windows and macOS 27 results without publishing first.
+- **PUSH: Push local main to GitHub (your action).** When will you push local main, now 1,984 commits ahead of origin/main (which is still d259fb308, 2026-10-01), so that CI runs on it? (b) today, then merge when it's green. It gets CI's Linux, Windows and macOS 27 results without publishing first.
 
 - **STASH: A git stash from 2026-09-01 that no agent made.** Should the git stash from 2026-09-01 (stash@{0}, 'WIP on main: e4155942 RTL: the override is refused…') be kept or dropped? (b) if you're unsure; (a) if you know it's superseded.
 
-- **Trash: 3.2 GB.** `~/.Trash` holds 3.2 GB. Emptying it is a permanent delete, which I may not do. Disk is what limits how many lanes can build at once (about 4 GB each, with 14–22 GB free today).
-
-- **Compiler bug reports:** yours to file, as you said on 10-18. They're on your Desktop.
+- **Compiler bug reports:** yours to file, as you said on 10-18. A new one was added on 10-18: `swift-6.2.4-debug-type-roundtrip-boxed-CGFloat.md` (swift.org's 6.2.4 asserts on a boxed `CGFloat` in an optimised `-g` build; worked around in TUIkit).
 
 ## Summary
 
@@ -118,7 +117,7 @@ Since 9df2c1c1a the suite has one test target per module. Under 6.4's swift-buil
 
 **Running without the resource bundle: English compiled in, and the version reading 'unknown' (B-BNDL-1, B-BNDL-2).** Should TUIkit keep its English both compiled in and in the bundle, and keep the version reading 'unknown' when there is no bundle, or change either?
 
-Since e5445e2cd, a TUIkit app runs without its resource bundle instead of trapping at launch. TUIkit's English is a pasted copy of en.json compiled into the binary (Sources/TUIkitStrings/Localization/LocalizationService+BuiltInEnglish.swift, 5,462 B), and BuiltInEnglishTests fails, naming the keys, until the copy matches the file. Without the bundle, `tuiKitVersion` reads "unknown". One behaviour changed: a binary copied out of .build no longer reads the bundle left there. It used to, but only on the machine that built it; now it reads English and 'unknown' everywhere. This was flagged on 10-10 with no reply.
+Since e5445e2cd, a TUIkit app runs without its resource bundle instead of trapping at launch. TUIkit's English is a pasted copy of en.json compiled into the binary (Sources/TUIkitStrings/Localization/LocalizationService+BuiltInEnglish.swift). en.json was 5,462 B when this landed and is 6,496 B today, after 8 commits that each added keys to both copies. BuiltInEnglishTests fails, naming the keys, until the copy matches the file. Without the bundle, `tuiKitVersion` reads "unknown". One behaviour changed: a binary copied out of .build no longer reads the bundle left there. It used to, but only on the machine that built it; now it reads English and 'unknown' everywhere. This was flagged on 10-10 with no reply. (Option (a)'s price is about 6.5 KB in the binary plus the bundle's file, not 5.5 KB.)
 
 - **(a) Keep as shipped.** Two copies of English: compiled in, and in the bundle. A translator adds an English key to en.json and pastes the file into the Swift file; the test fails until they do. *Price:* Nothing. An app that has the bundle carries both copies (5.5 KB in the binary, plus the bundle's file).
 - **(b) One English: drop en.json from the bundle.** The compiled-in table becomes the only English. *Price:* Small effort. The bundle is 5.5 KB lighter and the binary is unchanged. Translators edit the Swift file for English instead of JSON.
@@ -128,6 +127,8 @@ Since e5445e2cd, a TUIkit app runs without its resource bundle instead of trappi
 **Recommended:** (a). The test already catches a stale copy, and neither the byte cost nor the 'unknown' version matters enough to change how translators work or how releases are made.
 
 **If you don't answer:** The shipped behaviour stands, which is fine.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: Documentation/SwiftUI parity/Decisions/Compile time and binary size/Running without the resource bundle (BNDL).md:18-51, :86-97; Documentation/Working notes/plan/QUEUE.md:94; Documentation/Working notes/CENSUS/census.md (B-BNDL-1..4 row)</sub>
 
@@ -167,7 +168,7 @@ Since DYNVCLAIM (landed 2026-10-13), an object shared by several views reads eac
 
 **Your review or veto of the shipped-safe-option (B) and declined (C) entries.** Do you want to review the B entries (safe option shipped) and C entries (declined) in the decisions files, read a one-page digest of the ones that change behaviour, or let them all stand?
 
-Counted today: 202 B and 10 C headings in 64 per-lane decisions files under Documentation/SwiftUI parity/Decisions/. The census on 10-11 counted 161 and 9. In the main decisions doc, B38, B54-B58, B60-B95 and C1-C15 haven't been reviewed since 10-04. All of them shipped; nothing blocks on them; and every entry that asks something or owes work has been pulled out as a separate item.
+Counted today: about 232 B and 12 C headings in 67 per-lane decisions files under Documentation/SwiftUI parity/Decisions/. That includes the 30 B and 2 C entries the 10-18 lanes added: FB16 (B-FB16-1..13), O6 (B-O6-1..3) and W1 (B-W1-1..14, C-W1-1..2). The census on 10-11 counted 161 and 9. In the main decisions doc, B38, B54-B58, B60-B95 and C1-C15 haven't been reviewed since 10-04. All of them shipped, nothing blocks on them, and every entry that asks something or owes work has been pulled out as a separate item.
 
 - **(a) Full review.** Read every B and C entry. *Price:* Several hours of your reading.
 - **(b) One-page digest.** I list, one line each, only the B and C entries that change user-visible behaviour or differ from SwiftUI, for a 10-minute veto pass. *Price:* A small effort for me; one page for you.
@@ -177,13 +178,15 @@ Counted today: 202 B and 10 C headings in 64 per-lane decisions files under Docu
 
 **If you don't answer:** They all stand as shipped.
 
+*(Corrected in the evening re-check.)*
+
 <sub>Sources: Documentation/Working notes/CENSUS/census.md:22, :67; Documentation/SwiftUI parity/Decisions/ (heading count: 202 B-*, 10 C-* in 64 files)</sub>
 
 ### B-SIZEDOCS-1
 
 **Commit the remaining SwiftUI probes that only decision documents cite.** Should I commit the remaining SwiftUI probes that only decision documents cite (about 438 KB of sources, text outputs and notes, without the pixel dumps) and point their citations at the committed copies?
 
-On 10-12 you approved committing the probes that the code cites (~233 KB, "substantial but worth it"). SIZEDOCS also committed two more sets (57 KB) into Tools/SwiftUIProbes/. The rest are still only in the git-ignored working notes: waves 6b, 8a, 8b, 10 and 11a; lanes 17, 17d, 17g and 17m; D5G; DECB. Committed docs cite them, for example the main decisions doc at :162, :520, :1498 and :1598, and Deliberate deviations at :143, :1128 and :1230. To anyone without this machine those citations point nowhere, and the working notes are not backed up.
+On 10-12 you approved committing the probes that the code cites (~233 KB, "substantial but worth it"). SIZEDOCS also committed two more sets (57 KB) into Tools/SwiftUIProbes/. The rest are still only in the git-ignored working notes: waves 6b, 8a, 8b, 10 and 11a; lanes 17, 17d, 17g and 17m; D5G; DECB; and, since 10-18, W1's shape probes (`W1/probe`) and FB16's insertion/removal probe (`plan/fb16`, 36 KB). Committed docs cite them, for example the main decisions doc at :163, :521, :1499 and :1599, Deliberate deviations at :143, :1278 and :1380, Shapes (W1).md:5-6, and Insertion and removal model (FB16).md:4. To anyone without this machine those citations point nowhere, and the working notes are not backed up. (Option (a)'s 438 KB / 189 files grows by the two new sets, leaving out W1's two built binaries.)
 
 - **(a) Commit them without the pixel dumps.** Sources, text outputs and notes go into Tools/SwiftUIProbes/, and the 22 citations are repointed. *Price:* 438,206 B in 189 files (measured) in every clone. Small effort.
 - **(b) Also the pixel dumps and renders.** Add lanes 17m's and 8b's images as well. *Price:* 5.48 MB in every clone.
@@ -193,6 +196,8 @@ On 10-12 you approved committing the probes that the code cites (~233 KB, "subst
 **Recommended:** (a). It is the same kind of material you approved, at about twice the size. The pixel dumps are large and reproducible, which your 10-12 rule keeps out of git.
 
 **If you don't answer:** The citations stay machine-local, and the evidence is at risk if the notes are pruned or the disk fails.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: Documentation/SwiftUI parity/Decisions/Binary-size study and SwiftUI probes in the repository (SIZEDOCS).md:19-57; Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:162, :520, :1498, :1598; Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md:143, :1128, :1230; memory/owner-decisions-2026-10-12.md (docs: large/reproducible data never committed)</sub>
 
@@ -429,7 +434,7 @@ Today every scroll jumps. `.animating` is declared but never produced (Sources/T
 
 **Side effects inside a corrected subtree run for both drawings.** When geometry correction draws a subtree twice in one frame, should its side effects be held back so that only the kept drawing's take effect (days of work), or should this stay a known issue?
 
-A coordinate-space owner, a scroll view or the root may correct geometry by drawing its subtree again in the same walk. Registrations made by the first drawing are rolled back (`RenderWalkCheckpoint`), but anything the first drawing actually did cannot be undone. An `onChange` that fired runs again: on a reader's first frame, `.onChange(of: proxy.frame(in: …).minY)` fires once (guess → answer) where SwiftUI fires nothing. This is pinned as a known issue at Tests/TUIkitTablesTests/CoordinateSpaceTests.swift:462 (known defect #25 on the deviations page). At the root, a missed `.global` prediction re-runs every effect in the scene for that frame. It is rare because prediction keeps corrections rare.
+A coordinate-space owner, a scroll view or the root may correct geometry by drawing its subtree again in the same walk. Registrations made by the first drawing are rolled back (`RenderWalkCheckpoint`), but what the first drawing actually did cannot be undone. An `onChange` that fired runs again. On a reader's first frame, `.onChange(of: proxy.frame(in: …).minY)` fires once (guess → answer), where SwiftUI fires nothing. This is pinned as a known issue at Tests/TUIkitTablesTests/CoordinateSpaceTests.swift:461 (`correctedSubtreeSideEffects`) and recorded under B-D5G-4 in the D5G decisions. The committed deviations page does not list it. At the root, a missed `.global` prediction re-runs every effect in the scene for that frame. It is rare, because prediction keeps corrections rare.
 
 - **1. Keep as a known issue.** No change. *Price:* Free.
 - **2. Stage every side effect.** Every side effect is held per walk, and only the last drawing's are adopted. *Price:* Days, across every side-effecting modifier, with an unmeasured per-walk bookkeeping cost.
@@ -438,6 +443,8 @@ A coordinate-space owner, a scroll view or the root may correct geometry by draw
 **Recommended:** Keep option 1 for now, and price option 3: `onChange` is the effect apps notice.
 
 **If you don't answer:** It stays a pinned known issue, and a reader's first frame inside a corrected subtree can fire one extra `onChange`.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md:109-140; /Users/robot/Documents/TUIkit/Tests/TUIkitTablesTests/CoordinateSpaceTests.swift:461-480; /Users/robot/Documents/TUIkit-session-notes/plan/QUEUE.md:582</sub>
 
@@ -455,7 +462,7 @@ Root cause 5 of the semantic audit (SwiftUI semantic audit (2026-08).md:223-231)
 
 **If you don't answer:** Fixes continue one by one, and RC5 stays OPEN in the audit.
 
-*(Marked decidable by its writer; the skeptic sent it to you: QUEUE 10-14 lists 'RC5 loud reflection fallback' as needing his ruling and it was never answered. Asserting in users' debug builds is a real trade-off with false-assert risk.)*
+*(Marked decidable by its writer; a skeptical second reading sent it to you: QUEUE 10-14 lists 'RC5 loud reflection fallback' as needing his ruling and it was never answered. Asserting in users' debug builds is a real trade-off with false-assert risk.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md:223-231; /Users/robot/Documents/TUIkit-session-notes/plan/QUEUE.md:564; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/swiftui-semantic-audit.md; /Users/robot/Documents/TUIkit/Sources/TUIkitPresentation/Views/Alert.swift:551-600; /Users/robot/Documents/TUIkit/Sources/TUIkitCore/Diagnostics/SoftTrap.swift:1-45</sub>
 
@@ -600,7 +607,7 @@ AutomaticControlGroupStyle (and the navigation and palette styles) puts the butt
 
 **If you don't answer:** ControlGroups keep drawing as touching capsules under Lines.
 
-*(Marked decidable by its writer; the skeptic sent it to you: A glyph-level look for a control under Lines. It was flagged for his morning report and never asked, he has ruled every control look personally, and it depends on FB3-OTHERCAPS.)*
+*(Marked decidable by its writer; a skeptical second reading sent it to you: A glyph-level look for a control under Lines. It was flagged for his morning report and never asked, he has ruled every control look personally, and it depends on FB3-OTHERCAPS.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit-session-notes/EXSURVEY/notes.md:24; /Users/robot/Documents/TUIkit/Sources/TUIkitMenus/Views/ControlGroup.swift:199-260; /Users/robot/Documents/TUIkit/Sources/TUIkitPickers/Views/_PickerSegmentsCore.swift:27-55; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/owner-decisions-2026-10-12.md (10-15 evening: aesthetic ⟂ shape, a family)</sub>
 
@@ -634,7 +641,7 @@ Buttons follow Appearance (4311750a1; FB14 shapes in 1fc876f94), and so do text 
 
 **If you don't answer:** Segments and chips keep their half-block caps under Lines.
 
-*(Marked decidable by its writer; the skeptic sent it to you: EVENING-REPORT-1016 asked him directly ('Want them to follow?') and he didn't answer. His 10-15 family ruling was about button shapes, and control looks are his taste.)*
+*(Marked decidable by its writer; a skeptical second reading sent it to you: EVENING-REPORT-1016 asked him directly ('Want them to follow?') and he didn't answer. His 10-15 family ruling was about button shapes, and control looks are his taste.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit-session-notes/plan/EVENING-REPORT-1016.md:49; /Users/robot/Documents/TUIkit-session-notes/plan/QUEUE.md:698, :783; /Users/robot/Documents/TUIkit/Sources/TUIkitPickers/Views/_PickerSegmentsCore.swift; /Users/robot/Documents/TUIkit/Sources/TUIkitTabs/Views/TabViewStrip.swift:33-51; /Users/robot/Documents/TUIkit/Sources/TUIkitFoundation/Views/_ToggleCore.swift:31-49; /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:112-114 (O14); /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/owner-decisions-2026-10-12.md (10-15)</sub>
 
@@ -715,7 +722,7 @@ SwiftUI's modifier is generic, so the style is fixed at compile time. A scene mo
 
 **If you don't answer:** The overload stays.
 
-*(Marked decidable by its writer; the skeptic sent it to you: The D5C decision file explicitly leaves this to him ('your call if the name sharing bothers you'). It's a taste veto on a TUI-only overload.)*
+*(Marked decidable by its writer; a skeptical second reading sent it to you: The D5C decision file explicitly leaves this to him ('your call if the name sharing bothers you'). It's a taste veto on a TUI-only overload.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/Toolbars and opt-in window chrome (D5C).md:14-36; /Users/robot/Documents/TUIkit/Sources/TUIkitApp/App/Scene+WindowToolbarStyle.swift:161, :174; /Users/robot/Documents/TUIkit/Sources/Example/main.swift:51; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/swiftui-source-compat-rules.md</sub>
 
@@ -803,7 +810,7 @@ Type select shipped in 2d529eb21: with a list or table focused, an unmodified ch
 
 **Type select also selects the row.** Should type select also select the row it lands on, as macOS does, rather than only moving the keyboard cursor?
 
-Type select moves a list's or table's cursor to the matching row (2d529eb21), and selecting it too is a one-line change (DEC B77). Throughout TUIkit, the keyboard cursor is kept apart from the selection: the arrows move the cursor, and Space or Return selects. On macOS the cursor is the selection. That is deviation V2 (Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md:1308-1322), decided by a lane, with its reason 'not recorded', not by you. If only type select selected, it would be the one key that commits a selection while browsing. In a single-selection sidebar, every typed letter would switch the detail pane.
+Type select moves a list's or table's cursor to the matching row (2d529eb21), and selecting it too is a one-line change (DEC B77). Throughout TUIkit, the keyboard cursor is kept apart from the selection: the arrows move the cursor, and Space or Return selects. On macOS the cursor is the selection. That is deviation V2 (Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md:1458-1472), decided by a lane, with its reason 'not recorded', not by you. If only type select selected, it would be the one key that commits a selection while browsing. In a single-selection sidebar, every typed letter would switch the detail pane.
 
 - **Keep: cursor only.** Type select moves the cursor, as the arrows do. *Price:* Free.
 - **Select as well.** The matched row is selected, as on macOS. *Price:* One line. It becomes inconsistent with the arrows, and each typed character fires the selection's onChange.
@@ -812,6 +819,8 @@ Type select moves a list's or table's cursor to the matching row (2d529eb21), an
 **Recommended:** Keep cursor-only, so type select behaves like the arrows. If you want macOS's behaviour, take it through V2 so the two keys don't diverge.
 
 **If you don't answer:** Type select moves the cursor, and the user presses Space or Return to select.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:2742-2763 (B77); /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md:1308-1322 (V2)</sub>
 
@@ -834,7 +843,7 @@ The gesture arena (Sources/TUIkitFoundation/App/GestureArena.swift) ranks the ge
 
 **Gesture distances in points or cells.** Should gesture distances (DragGesture.minimumDistance, LongPressGesture.maximumDistance, a tap's slop) be in points, converted through the terminal's reported cell size, instead of whole cells?
 
-SwiftUI counts Euclidean points: a drag starts at 10, a long press fails past 10, a tap fails past 40. TUIkit counts whole cells along either axis, as Int (Sources/TUIkitFoundation/Gestures/DragGesture.swift:97,113; LongPressGesture.swift:60,71). The defaults are 1 cell, and 5 columns or 2 rows for a tap. So SwiftUI code that writes DragGesture(minimumDistance: 10) asks for ten cells here, which the compatibility guide's §2.1 porting note records. Points would be the only CGFloat-like measurement in TUIkit's API. That cuts against §2.1 ('interface measurements are Int') and against your 10-12 O0 ruling that shapes use column and row units.
+SwiftUI counts Euclidean points: a drag starts at 10, a long press fails past 10, a tap fails past 40. TUIkit counts whole cells along either axis, as Int (Sources/TUIkitFoundation/Gestures/DragGesture.swift:97,113; LongPressGesture.swift:60,71). The defaults are 1 cell, and 5 columns or 2 rows for a tap. So SwiftUI code that writes DragGesture(minimumDistance: 10) asks for ten cells here, which the compatibility guide's §2.1 porting note records. Since the shapes landed (W1, 2026-10-18), TUIkit's API does take CGFloat lengths: a shape's path, lineWidth, cornerRadius, dash and offset, in square units (one column across, about two units per row; §2.12, your 10-12 O0 ruling). So points would not be the first floating-point measurement, but they would be the only one in points, and the only one that needs the terminal's pixel cell size. Interface measurements stay Int cells (§2.1), and the shadows that landed the same day kept whole-cell Int radius and offsets (O6).
 
 - **Keep cells.** Distances stay whole cells; ported values above 1 or 2 need rewriting. *Price:* Free. Consistent with §2.1 and O0.
 - **Points via the cell size.** Distances are compared in points, using the terminal's reported cell size (TIOCGWINSZ, CSI 16 t). *Price:* About half a day. Needs a default cell size where none is reported (tmux, some hosts). The parameter type changes to a floating-point value, which reopens §2.1 for these three.
@@ -843,13 +852,15 @@ SwiftUI counts Euclidean points: a drag starts at 10, a long press fails past 10
 
 **If you don't answer:** Distances stay in whole cells, so DragGesture(minimumDistance: 10) means ten cells.
 
+*(Corrected in the evening re-check.)*
+
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:3275-3292 (B90); /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/SwiftUI compatibility guide.md:174-218 (§2.1); /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/owner-decisions-2026-10-12.md (O0)</sub>
 
 ### A48
 
 **Swipe actions: keys and pointer.** How should SwiftUI's .swipeActions be reached in a terminal: as an edge menu opened by a row chord or a horizontal wheel, as buttons revealed in the row, or not at all?
 
-On macOS, a two-finger swipe on a list row reveals its swipe actions, and a full swipe performs the first one. No terminal reports swipes. Terminal.app and iTerm2 send a trackpad's horizontal scroll as the horizontal wheel buttons (answered 2026-10-05). The no-mouse-only rule also needs a keyboard route. Nothing is built: both swipeActions forms are baseline gaps (Tools/APIParity/baseline.json:84,172). The decisions doc lists A48 as 'still yours to answer'.
+On macOS, a two-finger swipe on a list row reveals its swipe actions, and a full swipe performs the first one. No terminal reports swipes. Terminal.app and iTerm2 send a trackpad's horizontal scroll as the horizontal wheel buttons (answered 2026-10-05). The no-mouse-only rule also needs a keyboard route. Nothing is built: both swipeActions forms are baseline gaps (Tools/APIParity/baseline.json:76,156). The decisions doc lists A48 as 'still yours to answer'.
 
 - **1. Edge menu.** A row chord, bindable through .rowShortcuts (say Ctrl-L for the leading edge and Ctrl-T for the trailing), or a horizontal wheel over the row, opens that edge's actions in the context-menu engine at that edge. A full swipe is not modelled. *Price:* Half a day. The menu, the shortcuts and the wheel already exist.
 - **2. Revealed buttons.** The actions slide in over the row's trailing cells, Tab moves through them, and Escape hides them. A second wheel in the same direction is the full swipe. *Price:* A day and a half. The row needs a revealed state that the list draws and memoises, and its focus ring must admit the buttons.
@@ -858,6 +869,8 @@ On macOS, a two-finger swipe on a list row reveals its swipe actions, and a full
 **Recommended:** Option 1. A swipe action is a context menu for one edge, and the menu engine already provides the keyboard handling, dismissal and colours.
 
 **If you don't answer:** swipeActions stays unbuilt (two parity gaps), and SwiftUI code that uses it does not compile.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:729-764 (A48), :43-45; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/owner-decisions-2026-10-04.md (A48); /Users/robot/Documents/TUIkit/Tools/APIParity/baseline.json:84,172; /Users/robot/Documents/TUIkit/Sources/TUIkitLists/Views/RowShortcuts.swift</sub>
 
@@ -945,7 +958,7 @@ Since lane KS, one formatter names every key TUIkit shows, macOS-style: menu sho
 
 **Menu bar keys.** For the menu bar the O13 lane is about to build, should the keys be the ones you accepted on 10-04 (F10, Alt-letter, a click), with no extra chord and no TUI-only menuBarVisibility for now?
 
-On 10-04 you accepted A28's answers, including F10, Alt-letter and a click to open the menu bar. On 10-05 you declined F-keys for the mouse hand-off key as 'prime and unreliable' (the fn setting and OS shortcuts decide whether they arrive). REFO Q11 asks whether that reasoning reopens F10 for the menu bar, and it hasn't been answered (Documentation/Working notes/REFO/notes.md:787-803, :998-1000). Opening a menu bar is F10's conventional job (Windows, GTK). On a Mac keyboard it needs fn unless F-keys are set as standard. Alt-letter needs Option sent as Meta, which Apple Terminal doesn't do by default. Commands with shortcuts work with the bar closed. The only chord left is ⌃^, which you called 'maybe too obscure'; Apple Terminal sends it only for ⌃⇧6. menuBarVisibility(.hidden) would keep commands live and show the bar only while F10 holds it open; it is TUI-only, and REFO says to build it only if an app wants it. No menu bar code exists yet.
+On 10-04 you accepted A28's answers, including F10, Alt-letter and a click to open the menu bar. On 10-05 you declined F-keys for the mouse hand-off key as 'prime and unreliable' (the fn setting and OS shortcuts decide whether they arrive). REFO Q11 asks whether that reasoning reopens F10 for the menu bar, and it hasn't been answered (Documentation/Working notes/REFO/notes.md:787-803, :998-1000). Opening a menu bar is F10's conventional job (Windows, GTK). On a Mac keyboard it needs fn unless F-keys are set as standard. Alt-letter needs Option sent as Meta, which Apple Terminal doesn't do by default. Commands with shortcuts work with the bar closed. The only chord left is ⌃^, which you called 'maybe too obscure'; Apple Terminal sends it only for ⌃⇧6. menuBarVisibility(.hidden) would keep commands live and show the bar only while F10 holds it open; it is TUI-only, and REFO says to build it only if an app wants it. The O13 lane has now built the menu bar on its branch (lane-o13, not yet on main) with exactly the 10-04 keys: F10, Alt with a title's first letter (the app's own menu takes none), and a click; no ⌃^ and no menuBarVisibility. Its survey entry records F10 as documented but not yet measured.
 
 - **The 10-04 keys.** F10 or fn-F10, Alt-letter, a click, plus each command's own shortcut. *Price:* About an hour to measure F10 and fn-F10 in Terminal.app, iTerm2 and Ghostty with cat -v.
 - **Add ⌃^.** A chord route as well. *Price:* Small. Obscure, and on Apple Terminal it is really ⌃⇧6.
@@ -955,7 +968,9 @@ On 10-04 you accepted A28's answers, including F10, Alt-letter and a click to op
 
 **If you don't answer:** The lane builds the 10-04 keys (F10, Alt-letter, click), with no extra chord and no menuBarVisibility.
 
-*(Marked decidable by its writer; the skeptic sent it to you: REFO Q11 put this to him and is still unanswered. He himself called F-keys 'prime and unreliable' on 10-05, so whether F10 stays is his call on how keys should feel.)*
+*(Marked decidable by its writer; a skeptical second reading sent it to you: REFO Q11 put this to him and is still unanswered. He himself called F-keys 'prime and unreliable' on 10-05, so whether F10 stays is his call on how keys should feel.)*
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/Working notes/REFO/notes.md:573-592,719-838,998-1000; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/owner-decisions-2026-10-04.md (A28 answers; A13.2 10-05); /Users/robot/Documents/TUIkit-session-notes/plan/LANE-O13.md</sub>
 
@@ -997,7 +1012,7 @@ You ruled on 10-12 that help(_:) must work on views that can't take focus, by ho
 
 **Formatting keys in the rich-text editor.** In the rich-text TextEditor (A42), should bold, italic and underline be reached only through the context menu (Shift-F10 or right-click), with key chords coming only when an app declares SwiftUI's TextFormattingCommands in the O13 menu bar? Or should the editor have default chords of its own?
 
-You approved A42 (rich-text editing) on 2026-10-04. It is not built: Sources has no AttributedTextSelection and no attributed editor. The RICHTEXT lane brief ships the menu route and leaves chords to you. A terminal never delivers ⌘B, ⌘I or ⌘U, and TUIkit maps ⌘ to Ctrl, so they would land as Ctrl-B (the editor's back-a-character), Ctrl-I (the same byte as Tab, so it can never arrive) and Ctrl-U (erase the line). Your 09-23 ruling already lets an app's declared shortcut win over the Emacs chords. Your 10-04 note on undo said keys must work without the menu bar, which is why this is your question.
+You approved A42 (rich-text editing) on 2026-10-04. It is not built: Sources has no AttributedTextSelection and no attributed editor. The RICHTEXT lane brief ships the menu route and leaves chords to you. A terminal never delivers ⌘B, ⌘I or ⌘U, and TUIkit maps ⌘ to Ctrl, so they would land as Ctrl-B (the editor's back-a-character), Ctrl-I (the same byte as Tab, so it can never arrive) and Ctrl-U (erase the line). Your 09-23 ruling already lets an app's declared shortcut win over the Emacs chords. Your 10-04 note on undo said keys must work without the menu bar, which is why this is your question. The O13 menu bar (branch lane-o13, not yet landed) leaves TextFormattingCommands out and records it as owed with A42, so the menu-bar route to chords arrives only when A42 adds TextFormattingCommands to it.
 
 - **Menu now, chords through TextFormattingCommands.** Shift-F10 or right-click offers Cut, Copy, Bold, Italic, Underline and Strikethrough. An app that declares TextFormattingCommands (the O13 lane) gets Ctrl-B and Ctrl-U, which win over the Emacs chords. Italic stays in the menu, since Ctrl-I is Tab. *Price:* Nothing beyond A42 and O13. Until an app opts in, formatting by keyboard takes two or three presses.
 - **Default chords in every rich editor.** Ctrl-B and Ctrl-U format with no menu bar, plus a TUI-only key for italic. *Price:* Small. Rich editors lose Emacs back-a-character and erase-line, someone has to choose an italic key, and SwiftUI has no such default.
@@ -1006,6 +1021,8 @@ You approved A42 (rich-text editing) on 2026-10-04. It is not built: Sources has
 **Recommended:** Menu now, chords through TextFormattingCommands. That is how SwiftUI adds the shortcuts, it costs nothing extra, and it keeps the Emacs keys you called a bonus.
 
 **If you don't answer:** The A42 lane ships the Shift-F10 and right-click menu with no chords, and the question stays recorded as an A entry.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: Documentation/SwiftUI parity/Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md:841-844 (§10 Q8), §7.1; Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:671-694 (A42); /Users/robot/Documents/TUIkit-session-notes/plan/LANE-RICHTEXT.md; memory/owner-decisions-2026-10-04.md:13-16 (A1: keys must work without the menu bar); memory/owner-bug-batch-2026-09-23.md:63-65 (app shortcut beats Emacs chords); Sources/TUIkitFoundation/Modifiers/ContextMenuPresentation.swift:72 (Shift-F10); Sources/TUIkitTextInput/Focus/TextEditingCommand.swift:54 (Option-B taken)</sub>
 
@@ -1128,7 +1145,7 @@ Your 10-12 ruling [21] says not to implement deprecated SwiftUI API. TUIkit's ap
 
 **Pixel effects: transforms, mask, drawingGroup, linear blending.** For Wave 16's leftovers, do you take the recommended set (decline the six transforms, ship mask(alignment:_:) at cell coverage, ship drawingGroup as compositingGroup)? And should linear-light blending be added so that drawingGroup(colorMode: .linear) is honoured rather than ignored?
 
-The decisions doc names A27 as one of the three items still yours to answer (Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:44-45, :467-518). None of scaleEffect, rotationEffect, rotation3DEffect, projectionEffect, transformEffect, mask(alignment:_:) or drawingGroup exists in Sources; all eight are gaps in Tools/APIParity/baseline.json. A glyph cannot be scaled or turned, so transforms can only be declined or faked. mask and drawingGroup do have honest per-cell readings. You asked on 10-04 whether linear blending was possible. The 10-05 answer was yes, and cheap (decode, blend, re-encode through lookup tables; Color+Compositing.swift already decodes sRGB to linear), but nobody decided it. A39 follows this answer, and while transforms are declined, a scrollTransition or visualEffect closure that scales its content fails to compile, even though both modifiers ship.
+The decisions doc names A27 as one of the three items still yours to answer (SwiftUI API completion decisions.md:44-45, :468-519). None of scaleEffect, rotationEffect, rotation3DEffect, projectionEffect, transformEffect, mask(alignment:_:) or drawingGroup exists in Sources, and all eight are still gaps in Tools/APIParity/baseline.json (:132-171). A glyph cannot be scaled or turned, so view transforms can only be declined or faked. Since W1 landed on 10-18, shapes themselves can be rotated, scaled and transformed (Shape.rotation/scale/transform, rasterized per half cell), but scaleEffect's receiver is any view. W1 also shipped clipShape(_:style:). It keeps a cell where the shape covers at least half of it and clears the rest (Shapes (W1) B-W1-11; deviation C9). W1's owed list names that rule as the natural one for mask. That bears on option 1. Its rule (keep the content wherever the mask draws a glyph or a background) would make .mask(Circle()) keep edge cells that .clipShape(Circle()) clears, because the rasterizer draws a partial edge as ▀/▄. Using the clip rule, or the coverage as alpha, keeps the two consistent, as they are in SwiftUI. mask and drawingGroup do have honest per-cell readings. You asked on 10-04 whether linear blending was possible. The 10-05 answer was yes, and cheap (decode, blend, re-encode through lookup tables; Color+Compositing.swift already decodes sRGB to linear), but nobody decided it. A39 follows this answer. While transforms are declined, a scrollTransition or visualEffect closure that scales its content fails to compile, even though both modifiers ship.
 
 - **1. Recommended set; .linear documented as ignored.** Decline all six transforms. Ship mask: a cell where the mask draws a glyph or a background keeps the content at the mask's alpha, and a blank cell with no background masks out. Ship drawingGroup as compositingGroup, with .linear and .extendedLinear blended non-linearly and documented. *Price:* About half a day for mask, plus a small amount for drawingGroup. Ported scaleEffect calls fail to compile and get removed. At runtime .linear quietly blends as non-linear.
 - **2. Option 1 plus linear blending.** As option 1, but inside a drawingGroup(colorMode: .linear) subtree the compositor blends in linear light. extendedLinear is the same, clamped at the end on an SDR terminal. *Price:* Called cheap in the 10-05 answer; not priced in hours. Needs a per-group flag on the opacity path. No cost to code that doesn't use it.
@@ -1138,6 +1155,8 @@ The decisions doc names A27 as one of the three items still yours to answer (Doc
 **Recommended:** Option 2. Declining the transforms keeps rule 2 (nothing is silently ignored), mask and drawingGroup have honest cell readings, and linear blending is cheap and makes drawingGroup's colorMode honoured instead of documented as ignored.
 
 **If you don't answer:** All eight stay as gaps that fail to compile, A39 keeps waiting, and blending stays in encoded sRGB only.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:44-45, :467-518; /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/SwiftUI API completion plan.md:149; /Users/robot/Documents/TUIkit/Tools/APIParity/baseline.json:145-187; /Users/robot/Documents/TUIkit/Sources/TUIkitStyling/Color/Color+Compositing.swift:16; /Users/robot/Documents/TUIkit/Sources/TUIkitEffects/Geometry/ScrollTransition.swift; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/owner-decisions-2026-10-04.md (A27 question)</sub>
 
@@ -1171,7 +1190,7 @@ Today .contentTransition(_:) dissolves the whole drawing of the subtree it wraps
 
 **If you don't answer:** The subtree dissolve stays.
 
-*(Marked decidable by its writer; the skeptic sent it to you: This is the first piece of the A40 per-Text design he reserved ('we could consider it'). It adds a per-Text and per-Image cost on every page, and his bar for that kind of cost is about 1%, not the 'few %' the entry cites.)*
+*(Marked decidable by its writer; a skeptical second reading sent it to you: This is the first piece of the A40 per-Text design he reserved ('we could consider it'). It adds a per-Text and per-Image cost on every page, and his bar for that kind of cost is about 1%, not the 'few %' the entry cites.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:611-655, :2253-2286; /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md:1016-1040; /Users/robot/Documents/TUIkit/Sources/TUIkitEffects/Modifiers/ContentTransitionModifier.swift; /Users/robot/Documents/TUIkit-session-notes/plan/QUEUE.md (2026-10-15 07:30 and 07:50 OWNER, A40); /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/perf-regression-tolerance.md</sub>
 
@@ -1179,7 +1198,7 @@ Today .contentTransition(_:) dissolves the whole drawing of the subtree it wraps
 
 **Gradients with two samples a cell (▀) on glyph-only terminals.** On terminals that draw no pictures, should gradient views use the upper half block (▀) to show two colour samples per cell, doubling vertical resolution?
 
-Every gradient, MeshGradient included, takes one colour sample per cell on terminals that only draw glyphs; terminals that take pictures get a picture (SwiftUI API completion decisions.md:3370-3458; Sources/TUIkitFoundation/Rendering/MeshColourField.swift). Images already draw with ▀ (Sources/TUIkitImage/ASCIIConverter+HalfBlocks.swift). The doc prices ▀ for gradients at half a day plus the self-check and a look in Apple Terminal and Warp. It held off because the change alters every gradient's look there, and copying such a region yields ▀ characters instead of spaces. Apple Terminal also draws Block Elements short of the line (Terminal compatibility survey.md:731), so ▀ there would show bands, and it takes only 256 colours. A separate one-hour probe could tell whether SwiftUI caps a mesh's colour slope as a box or a circle; the difference is under one colour level.
+Gradient views, .background(gradient) and rectangle-family fills take one colour sample per cell on terminals that only draw glyphs. Terminals that take pictures get a picture (SwiftUI API completion decisions.md:3373-3461; Sources/TUIkitFoundation/Rendering/MeshColourField.swift; deviation C2). Since W1 landed on 10-18, a gradient or mesh filling any other shape is already sampled per half cell and drawn with ▀/▄. That covers Circle, Ellipse, Path and a wide or dashed stroke, on every terminal, Apple Terminal and picture terminals included (_ShapeCore.swift:120-125, :226-235; ShapeHalfBlocks.swift:95-108; deviation C8). Deviation C2 does not yet say so. Option 1 is meant to avoid two costs: copied text gives block characters, and Apple Terminal, which draws Block Elements short of the line (Terminal compatibility survey.md:731), shows bands. Rasterized shapes already pay both. Option 1 also now leaves a gradient Circle at twice the vertical resolution of the same gradient in a Rectangle or a background. Images also draw with ▀ (ASCIIConverter+HalfBlocks.swift). The ▀ change for gradient views is priced at half a day, plus the self-check and a look in Apple Terminal and Warp. It could share the shapes' half-block emitter (W1's B-W1-1 fuller version). A separate one-hour probe could tell whether SwiftUI caps a mesh's colour slope as a box or a circle; the difference is under one colour level.
 
 - **1. Keep one sample a cell.** Unchanged. *Price:* Free.
 - **2. ▀ where block elements fill the line.** Two samples a cell on glyph-only terminals such as Warp. Apple Terminal (blockElementsFillTheLine false) keeps one sample. *Price:* Half a day plus looks. Every gradient on those terminals looks different, and copying gives ▀ instead of spaces.
@@ -1189,6 +1208,8 @@ Every gradient, MeshGradient included, takes one colour sample per cell on termi
 **Recommended:** Option 1. The gain shows on few terminals, Apple Terminal would show bands, and the copied text gets worse. Skip the slope-cap probe: it can move a colour by under one level.
 
 **If you don't answer:** Gradients stay at one sample a cell, and the slope cap stays as the box reading.
+
+*(Corrected in the evening re-check.)*
 
 <sub>Sources: /Users/robot/Documents/TUIkit/Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md:3370-3458; /Users/robot/Documents/TUIkit/Sources/TUIkitFoundation/Rendering/MeshColourField.swift; /Users/robot/Documents/TUIkit/Sources/TUIkitImage/ASCIIConverter+HalfBlocks.swift; /Users/robot/Documents/TUIkit/Documentation/Terminals/Terminal compatibility survey.md:731-745</sub>
 
@@ -1288,11 +1309,11 @@ Color(_:bundle:) picks the variant when the colour is made, using the default pa
 
 ## Settled by your earlier rulings (veto any)
 
-Each of these was an open question, but a ruling of yours, a CLAUDE.md rule or your standing guidance already settles it. A skeptical second reading agreed. "Keep" means nothing changes; anything else is being built in a lane.
+Each was an open question that a ruling of yours, a CLAUDE.md rule or your standing guidance already settles; a skeptical second reading agreed. "Keep" means nothing changes; anything else is queued in a lane and not built yet.
 
 | Id | Question | Taken | Settled by |
 |---|---|---|---|
-| A-TC1-1 | Should the 43 exit tests' bodies move into helper functions to save type-check time, or stay as written? | (c). A 0.2% saving doesn't pay for tests that hide what they check, and Future options already says what would reopen it. | Measured at about 0.2% saved against a readability cost. Leaving the tests needs no action. |
+| A-TC1-1 | Should the 56 exit tests' bodies (26 files across 8 test targets) move into helper functions to save type-check time, or stay as written? | (c). About 2 s (≈0.2%) was measured at 43 exit tests; at 56 the saving is still well under 1%, which doesn't pay for tests that hide what they check. | Measured at about 0.2% saved against a readability cost. Leaving the tests needs no action. |
 | A28-CUSTOMIZATION | Build toolbar customisation (toolbar(id:), CustomizableToolbarContent and the customisation behaviours and options, 14 gaps), or refuse it? | Option 1, following the shape of the existing column and tab customisation. Both the study's 'gap, not a refusal' and your 10-18 instruction point there. | The A28 study he accepted on 10-04 calls it 'a gap, not a refusal', and his 10-18 instruction says finish compat. The design follows the B45 and B79 precedents. |
 | A39 | Should VisualEffect's rotation, scale and transform members simply follow whatever A27 decides for the View modifiers of the same names? | Option 1. | The reuse rule says follow A27 exactly. The real question is A27's, which stays with him. |
 | B-C9B-3 | Should TUIkitView re-export TUIkitCore and TUIkitStyling, and TUIkitImage re-export TUIkitStyling, as every carved module re-exports what it is built on? | (a). It follows the split plan's own rule and your 10-07 concern about long import lists, and changes no behaviour. | The split plan's own rule (each module re-exports its direct dependencies) and his 10-07 import-list concern settle it, at negligible cost. |
@@ -1330,7 +1351,7 @@ Each of these was an open question, but a ruling of yours, a CLAUDE.md rule or y
 | C7 | Should ScrollView gain SwiftUI's settable `showsIndicators` property? It is not deprecated, although its initializer is. | Option 2. | The decline was a lane reason, not an owner ruling (C-W10-2 has no ruling). The SDK doesn't deprecate the property, so [21] doesn't apply, and the fix is about 20 minutes. |
 | CURSOR-BLINK-CI | Should CI's full-depth smoke test run the real app in a pseudo-terminal and check from its output that the caret blink is regular? | (a). | A minor CI addition. Making it advisory first removes the flake risk, and it costs about 10-20 s on an 11-minute run. |
 | D4X-FULLER | Should the three recorded leftovers be built: a lean per caret at a wrap (B-D4X-16), passing a Table cell's position down to geometry readers (B-D5G-2), and keeping a screen selection when its content moves inside an unchanged area (B-D4X-15)? | Build the per-caret lean together with B62-FULLER, since it is measured macOS behaviour. Do the cell positions only if a profile shows readers in table cells. Keep B-D4X-15 recorded until someone runs into it. | The per-caret lean is measured macOS behaviour, and the other two are conditional (profile-first, no design yet). Nothing here is taste. |
-| DEPR-DROPDEST | Keep the soft-deprecated dropDestination(for:action:isTargeted:) until A53 is unpinned, unpin part of A53 now so it can be replaced, or remove it now? | Option c. | [21] says to audit existing deprecated APIs, not remove them, and the A53 pin stands. Keeping it needs no action and preserves a capability. |
+| DEPR-DROPDEST | Keep the soft-deprecated dropDestination(for:action:isTargeted:) until A53 is unpinned, unpin part of A53 now so it can be replaced, or remove it now? | Option c: keep the overload (DragAndDrop.swift:519) until the macOS 26/27 pass. One doc line is owed: the compatibility guide should record it as SwiftUI's soft-deprecated spelling, kept while A53 is pinned (the DOCS lane will write it). | [21] says to audit existing deprecated APIs, not remove them, and the A53 pin stands. Keeping it needs no action and preserves a capability. |
 | DEPR-TFSTYLES | Replace .roundedBorder and .squareBorder with macOS 27's .bordered plus textInputBorderShape(_:) now, or at the macOS 27 pass? | Option b. | His 10-18 ruling that newer-SDK work waits for macOS 27 applies for the same reason. Waiting needs no action. |
 | O2-KEYFRAMES | Under reduce motion, should KeyframeAnimator's tracks keep moving as SwiftUI's do, or be held still? | Option a. | His A-D3M-1 ruling (only spatial motion is held) plus the parity default settle it. Keeping it needs no action. |
 | PICKER-POINTER-OPEN | When the pointer opens a Picker's drop-down, should it keep highlighting the current value, or highlight nothing, as a pointer-opened Menu and combo box do? | Keep. The 07-27 rule guards against a highlight on an arbitrary first item, and a picker's highlight sits on the current value, where a mis-click changes nothing. Confirm macOS's pop-up button with a quick probe when convenient. | Keeping it costs nothing, and the reason for the 07-27 rule (mis-clicking an arbitrary first item) doesn't apply to a highlight on the value already chosen. |
@@ -1402,16 +1423,16 @@ Parked by your own rulings (*Future options*, or an explicit "later"). Listed so
 
 ## Found already settled while compiling this
 
-- **B70:** Sectioned LazyVGrid: headers and footers as spanning cells. The B70 entry says spacing does not fall between a header and its first row and that headers keep a dimmed bold style. The code no longer does either: spacing falls there too, as measured in SwiftUI (da4409000, pinned by Tests/TUIkitGridTests/LazyGridSectionTests.swift:84), and headers are drawn as 
+- **B70:** B70: Sectioned LazyVGrid, headers and footers as spanning cells. The B70 entry says spacing does not fall between a header and its first row, and that headers keep a dimmed bold style. The code no longer does either. Spacing falls there too, as measured in SwiftUI (da4409000, pinned by Tests/TUIkitGridTests/LazyGridSectionTests.swift:84). Headers are drawn as written, with no styling of their own, as SwiftUI's are (Sources/TUIkitFoundation/Views/Section.swift:49-57, decisions B16). Its 'fuller version', which would make the header spacing SwiftUI's, is therefore moot. Nothing needs your decision. The B70 entry (SwiftUI API completion decisions.md:2537-2552) still describes the old behaviour and should be corrected.
 
 ## From the lanes building on 2026-10-18
 
 Owner questions the implementation lanes wrote while building. Each links to its full entry, which gives the options and their prices.
 
-- **[A-FB16-1. A container's own size changes at once, where SwiftUI's frame glides](<SwiftUI parity/Decisions/Insertion and removal model (FB16).md#a-fb16-1-a-containers-own-size-changes-at-once-where-swiftuis-frame-glides>)** (lane FB16). SwiftUI animates every view's frame, its size as well as its position: a bordered card whose content loses a row draws its border shrinking over the animation. Here places glide and sizes do not. On the Example's Animation page, hiding the panel draws the section's border at its new, shorter size on the first frame, and the panel fades out below the border while the next section glides up over it. **Recommendation:** 1 now, 2 if the Example's section borders read badly in use.
+- **[A-FB16-1. A container's own size changes at once, where SwiftUI's frame glides](<SwiftUI parity/Decisions/Insertion and removal model (FB16).md#a-fb16-1-a-containers-own-size-changes-at-once-where-swiftuis-frame-glides>)** (lane FB16). **Re-checked 2026-10-18 (evening):** this is the unbuilt part of your ruling, not a new question. "FB16: (a′)" took SwiftUI's measured model, in which every view whose frame changes glides from its old frame to its new one: its size as well as its position. The lane built the positions. So option 1 would mean recording positions-only as a deviation from (a′). **Recommendation:** 1 now, 2 if the Example's section borders read badly in use.
 
 - **[A-CHURN-1. Presume last frame's scrollbar (hysteresis)](<SwiftUI parity/Decisions/Scrollbar overflow check (CHURN).md#a-churn-1-presume-last-frames-scrollbar-hysteresis>)** (lane CHURN). The first round has to be exact because a bar takes a column: wrapping content can fit at the full width W and overflow at W−1, so whether it gets a bar depends on asking at W. Hysteresis would skip that question while the view had a bar last frame, keeping it as long as the content still overflows at W−1 (which round 2 measures anyway), and drop it only when the content fits there. Recommended: **As now (recommended):** round 1 is asked every frame the content overflowed last; for an eager column it now costs a screenful of rows, not the whole column.
 
-- **[A-CHURN-2. Overlay scrollbars that take no column](<SwiftUI parity/Decisions/Scrollbar overflow check (CHURN).md#a-churn-2-overlay-scrollbars-that-take-no-column>)** (lane CHURN). A bar drawn over the content's last column (as macOS's overlay scrollers sit over content) would make the two rounds one: the content is laid out at W whether or not it overflows, so the overflow answer and the scroll range come from one measure. Price: the bar covers a column of content (or the content leaves that column blank on every scroll view, overflowing or not), which is a visual choice and a parity question this lane does not decide. Not needed for performance now: with the early stop… No recommendation written.
+- **[A-CHURN-2. Overlay scrollbars that take no column](<SwiftUI parity/Decisions/Scrollbar overflow check (CHURN).md#a-churn-2-overlay-scrollbars-that-take-no-column>)** (lane CHURN). **Re-checked 2026-10-18 (evening):** this would reverse two standing rules. Deliberate deviations R5 says a bar is a column of the viewport (kept on 10-12 under B24), and R4 says `ScrollGeometry` leaves the bars out (owner: keep, 10-12). It isn't needed for performance now, since with the early stop round 1 is a screenful. Suggested: keep R4 and R5 and decline this, unless you want macOS's overlay look for its own sake. No recommendation written.
 
 - **[A-W1-1. Should `import TUIkit` bring Foundation's geometry with it?](<SwiftUI parity/Decisions/Shapes (W1).md#a-w1-1-should-import-tuikit-bring-foundations-geometry-with-it>)** (lane W1). A shape of an app's own is written against `path(in rect: CGRect)`, and `CGRect` is Foundation's (on Apple platforms, CoreGraphics'). SwiftUI re-exports Foundation, so a SwiftUI file that imports only SwiftUI compiles; a TUIkit file that imports only TUIkit does not — `cannot find type 'CGRect' in scope` (measured with a probe against the built modules). The same is already true of `Date`, `URL` and `SortDescriptor` (the compile corpus imports Foundation for them), so this lane changed nothing;… **Recommendation:** 2. It is what a ported file expects, and the cost of Foundation in scope is one SwiftUI apps already pay.
