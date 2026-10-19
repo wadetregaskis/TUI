@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
 
@@ -349,5 +350,23 @@ struct TransactionTests {
             TransactionProbe { seen = $0 }, context: makeRenderContext(width: 10, height: 3))
         #expect(seen?.animation == nil)
         #expect(seen?.effectiveAnimation == nil)
+    }
+
+    // MARK: - The input chain harness
+
+    @Test("The input chain harness draws each frame under the transaction its configure sets, until a test sets one")
+    func harnessKeepsTheConfiguredTransaction() {
+        var seen: [Animation?] = []
+        let harness = InputChainHarness { $0.transaction = Transaction(animation: .linear(duration: 1)) }
+        harness.frame(TransactionProbe { seen.append($0.animation) })
+        harness.frame(TransactionProbe { seen.append($0.animation) })
+        harness.transaction = Transaction(animation: .easeIn)
+        harness.frame(TransactionProbe { seen.append($0.animation) })
+        harness.transaction = Transaction()
+        harness.frame(TransactionProbe { seen.append($0.animation) })
+        #expect(seen == [.linear(duration: 1), .linear(duration: 1), .easeIn, nil])
+        var unconfigured: Transaction?
+        InputChainHarness().frame(TransactionProbe { unconfigured = $0 })
+        #expect(unconfigured?.animation == nil, "none, where configure set none")
     }
 }

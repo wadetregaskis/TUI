@@ -39,9 +39,15 @@ final class InputChainHarness {
 
     /// The transaction the next frame is drawn under, as the run loop hands
     /// each frame the change it shows — an animated one's for the frame that
-    /// makes it, and none (the default) after. An animation needs the frame to
-    /// be able to animate too: `configure` sets `canAnimate`.
-    var transaction = Transaction()
+    /// makes it, and none after. An animation needs the frame to be able to
+    /// animate too: `configure` sets `canAnimate`.
+    ///
+    /// It starts as the transaction `configure` left in the environment — none
+    /// unless it set one — so a test that sets one there draws every frame
+    /// under it: set over the root's environment on each frame, a default of
+    /// none undid what `configure` set, and a test drawing under an animation
+    /// drew under none (`VisualEffectTests.firstFrameUnderAnimationDoesNotSlide`).
+    var transaction: Transaction
 
     /// How many times the chain asked the app to quit.
     var quits: Int { quitCount.value }
@@ -80,6 +86,7 @@ final class InputChainHarness {
         statusBar.focusManager = focusManager
         environment.statusBar = statusBar
         configure(&environment)
+        transaction = environment.transaction
         // No run loop unions in a modifier's `.motion` request; without it the
         // dispatcher refuses every `.moved`.
         tui.mouseEventDispatcher.setActiveSupport(.full)
