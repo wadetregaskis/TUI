@@ -11,13 +11,33 @@ import TUIkitCore
 /// The action a subtree's menus run when they open — see
 /// ``View/onMenuOpen(_:)``.
 ///
+/// An object the modifier keeps in `@State` and refreshes with the app's closure
+/// each time its body runs, compared by identity — the shape ``DismissAction``'s
+/// box and the searchable's `SearchDismissal` take, for their reason: an
+/// environment value that cannot be compared turns every memo off beneath it,
+/// and a closure cannot be compared. As a struct around the closure it was, and
+/// nothing under an `.onMenuOpen` — the menu it watches, the page it wraps — was
+/// ever stored or served. Equal-by-fiat would have been worse: a buffer served
+/// from a memo replays the handlers captured when it was stored, and a stored
+/// closure would be the one the app had then. Through one object, a menu opened
+/// from a served buffer runs the closure the app gave most recently.
+///
 /// `@unchecked Sendable` on the same terms as every other action closure here:
 /// it is created and invoked only on the render loop's single thread.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-package struct MenuOpenAction: @unchecked Sendable {
-    let action: () -> Void
+package final class MenuOpenAction: Equatable, @unchecked Sendable {
+    /// What opening a menu runs: the closure the modifier's body was given last.
+    var action: () -> Void
+
+    init(_ action: @escaping () -> Void = {}) {
+        self.action = action
+    }
+
     package func callAsFunction() { action() }
+
+    @usableFromInline
+    nonisolated package static func == (lhs: MenuOpenAction, rhs: MenuOpenAction) -> Bool { lhs === rhs }
 }
 
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
@@ -63,6 +83,24 @@ extension View {
     ///
     /// - Parameter action: Run as the menu opens.
     public func onMenuOpen(_ action: @escaping () -> Void) -> some View {
-        environment(\.menuOpenAction, MenuOpenAction(action: action))
+        _MenuOpenModifier(content: self, action: action)
+    }
+}
+
+/// ``View/onMenuOpen(_:)``: the app's closure, handed to the subtree through
+/// one ``MenuOpenAction`` for the modifier's life.
+private struct _MenuOpenModifier<Content: View>: View {
+    let content: Content
+    let action: () -> Void
+
+    /// The object the subtree's menus call, refreshed below.
+    @State private var opening = MenuOpenAction()
+
+    var body: some View {
+        // A write to the object, not to the state: the box stays the one the
+        // environment compared equal last frame, and what it runs is now this
+        // body's closure.
+        opening.action = action
+        return content.environment(\.menuOpenAction, opening)
     }
 }

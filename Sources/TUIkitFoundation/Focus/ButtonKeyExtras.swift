@@ -30,18 +30,36 @@ import TUIkitView
 /// button's *label* would inherit these keys; there is no such thing in this
 /// framework, and the alternative — a mechanism that could name one button —
 /// would need an identity the composing view does not have.
+///
+/// ## Comparing it
+///
+/// An object the modifier keeps in `@State` and refreshes with the keys and the
+/// handler each time its body runs, compared by identity — the shape
+/// ``MenuOpenAction`` takes, for its reason: an environment value that cannot
+/// be compared turns every memo off beneath it, and the handler is a closure.
+/// The button reads the object at registration and asks it at the keystroke,
+/// so a registration replayed from a memo asks the keys and the handler as they
+/// stand now, not as they stood when the memo stored it.
+///
 /// Main-actor by discipline rather than by annotation, as ``DepartureStore``
 /// is: the closure is built during a render pass and called from key dispatch,
 /// both of which run on the single run loop. The `@unchecked` is what lets it
 /// sit in ``EnvironmentValues``, which every view copies.
-package struct ButtonKeyExtras: @unchecked Sendable {
+package final class ButtonKeyExtras: Equatable, @unchecked Sendable {
     /// The keys to intercept. Anything outside this set is not offered.
-    let keys: Set<Key>
+    var keys: Set<Key>
 
     /// Handles one of ``keys``. Returning `false` lets the key fall through to
     /// the button's own triggers and then out of the control entirely, which is
     /// how "Left on an already-closed group" reaches whatever is outside it.
-    let handle: (KeyEvent) -> Bool
+    var handle: (KeyEvent) -> Bool
+
+    init(keys: Set<Key> = [], handle: @escaping (KeyEvent) -> Bool = { _ in false }) {
+        self.keys = keys
+        self.handle = handle
+    }
+
+    nonisolated package static func == (lhs: ButtonKeyExtras, rhs: ButtonKeyExtras) -> Bool { lhs === rhs }
 }
 
 private struct ButtonKeyExtrasKey: EnvironmentKey {
@@ -67,6 +85,26 @@ extension View {
     package func buttonKeyExtras(
         keys: Set<Key>, handle: @escaping (KeyEvent) -> Bool
     ) -> some View {
-        environment(\.buttonKeyExtras, ButtonKeyExtras(keys: keys, handle: handle))
+        _ButtonKeyExtrasModifier(content: self, keys: keys, handle: handle)
+    }
+}
+
+/// ``View/buttonKeyExtras(keys:handle:)``: the keys and their handler, handed to
+/// the button through one ``ButtonKeyExtras`` for the modifier's life.
+private struct _ButtonKeyExtrasModifier<Content: View>: View {
+    let content: Content
+    let keys: Set<Key>
+    let handle: (KeyEvent) -> Bool
+
+    /// The object the button asks, refreshed below.
+    @State private var extras = ButtonKeyExtras()
+
+    var body: some View {
+        // Written into the object, not the state: the environment holds the
+        // object it compared equal last frame, which now answers as this body
+        // says.
+        extras.keys = keys
+        extras.handle = handle
+        return content.environment(\.buttonKeyExtras, extras)
     }
 }
