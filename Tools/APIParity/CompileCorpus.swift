@@ -3786,3 +3786,24 @@ private struct CorpusCommandsScene: Scene {
             }
     }
 }
+
+// MARK: - Small parity items (lane PARITYMISC)
+
+/// `DefaultPickerStyle` is the type `.automatic` names, and a spacer's
+/// `minLength` reads and sets under SwiftUI's name.
+@MainActor
+private struct CorpusDefaultPickerStyleAndSpacer: View {
+    @State private var choice = 0
+
+    var body: some View {
+        var spacer = Spacer(minLength: 2)
+        spacer.minLength = spacer.minLength.map { $0 + 1 }
+        return HStack {
+            Picker("Choice", selection: $choice) {
+                Text("One").tag(0)
+            }
+            .pickerStyle(DefaultPickerStyle())
+            spacer
+        }
+    }
+}

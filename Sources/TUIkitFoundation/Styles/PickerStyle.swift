@@ -44,7 +44,7 @@
 /// as well as its glyphs: one collapsed line becomes a row per option.
 ///
 /// The comparison is blunter than the presentation, and deliberately so.
-/// ``AutomaticPickerStyle`` and ``MenuPickerStyle`` draw identically, as do
+/// ``DefaultPickerStyle`` and ``MenuPickerStyle`` draw identically, as do
 /// ``InlinePickerStyle`` and ``RadioGroupPickerStyle``, but a swap within either
 /// pair still compares unequal and clears. That costs a redraw the frame did not
 /// need; the error runs toward invalidating, never toward serving a stale
@@ -63,15 +63,16 @@ public protocol PickerStyle: Sendable {}
 
 // MARK: - Built-in Picker Styles
 
-/// The default picker style.
+/// The default picker style, based on the picker's context: what
+/// ``PickerStyle/automatic`` names, as in SwiftUI.
 ///
 /// In TUIkit the default resolves to ``MenuPickerStyle`` — a collapsed
 /// control that opens a drop-down list.
 ///
 /// `Equatable` for the reason given under ``PickerStyle``: a memo below a value
 /// the render cache cannot compare declines to cache.
-public struct AutomaticPickerStyle: PickerStyle, Equatable {
-    /// Creates an automatic picker style.
+public struct DefaultPickerStyle: PickerStyle, Equatable {
+    /// Creates a default picker style.
     public init() {}
 }
 
@@ -79,14 +80,14 @@ public struct AutomaticPickerStyle: PickerStyle, Equatable {
 
 /// Environment key for the picker style.
 private struct PickerStyleKey: EnvironmentKey {
-    static let defaultValue: any PickerStyle = AutomaticPickerStyle()
+    static let defaultValue: any PickerStyle = DefaultPickerStyle()
 }
 
 extension EnvironmentValues {
     /// The picker style for this environment.
     ///
     /// Controls how ``Picker`` views render. Set via the
-    /// ``View/pickerStyle(_:)`` modifier. Default: ``AutomaticPickerStyle``.
+    /// ``View/pickerStyle(_:)`` modifier. Default: ``DefaultPickerStyle``.
     ///
     /// The render cache compares this value between frames to decide whether
     /// what it memoized below is still good, so a style that is not `Equatable`

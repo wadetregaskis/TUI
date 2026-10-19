@@ -9,7 +9,7 @@ import TUIkitFoundation
 /// A picker style that collapses to a single line and opens a drop-down
 /// list of options when activated.
 ///
-/// `Equatable` on the same terms as ``AutomaticPickerStyle``, and this is the
+/// `Equatable` on the same terms as ``DefaultPickerStyle``, and this is the
 /// half that earns the cross-type comparison: replacing it with an inline style
 /// turns one line into a row per option, so the swap must read as a change.
 public struct MenuPickerStyle: PickerStyle, Equatable {
@@ -21,7 +21,7 @@ public struct MenuPickerStyle: PickerStyle, Equatable {
 ///
 /// > Note: In TUIkit this renders identically to ``RadioGroupPickerStyle``.
 ///
-/// `Equatable` on the same terms as ``AutomaticPickerStyle``. Note that the
+/// `Equatable` on the same terms as ``DefaultPickerStyle``. Note that the
 /// identical rendering does not make it compare equal to
 /// ``RadioGroupPickerStyle`` — see ``PickerStyle``.
 public struct InlinePickerStyle: PickerStyle, Equatable {
@@ -31,7 +31,7 @@ public struct InlinePickerStyle: PickerStyle, Equatable {
 
 /// A picker style that presents the options as a radio-button group.
 ///
-/// `Equatable` on the same terms as ``AutomaticPickerStyle``.
+/// `Equatable` on the same terms as ``DefaultPickerStyle``.
 public struct RadioGroupPickerStyle: PickerStyle, Equatable {
     /// Creates a radio-group picker style.
     public init() {}
@@ -39,9 +39,9 @@ public struct RadioGroupPickerStyle: PickerStyle, Equatable {
 
 // MARK: - PickerStyle Static Accessors
 
-extension PickerStyle where Self == AutomaticPickerStyle {
+extension PickerStyle where Self == DefaultPickerStyle {
     /// The default picker style — a drop-down menu in TUIkit.
-    public static var automatic: AutomaticPickerStyle { AutomaticPickerStyle() }
+    public static var automatic: DefaultPickerStyle { DefaultPickerStyle() }
 }
 
 extension PickerStyle where Self == MenuPickerStyle {
@@ -64,11 +64,11 @@ extension PickerStyle where Self == RadioGroupPickerStyle {
 extension PickerStyle {
     /// Whether this style should render as a collapsing drop-down menu.
     ///
-    /// ``AutomaticPickerStyle`` and ``MenuPickerStyle`` resolve to the menu
+    /// ``DefaultPickerStyle`` and ``MenuPickerStyle`` resolve to the menu
     /// presentation; ``InlinePickerStyle`` and ``RadioGroupPickerStyle``
     /// resolve to the inline radio list.
     var resolvesToMenu: Bool {
-        self is MenuPickerStyle || self is AutomaticPickerStyle
+        self is MenuPickerStyle || self is DefaultPickerStyle
     }
 }
 

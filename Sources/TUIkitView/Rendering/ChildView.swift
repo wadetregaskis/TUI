@@ -161,12 +161,12 @@ public struct ChildView {
     ///
     /// The static witness ``View/_isSpacer`` answers the detection per type
     /// (`false` for everything but `Spacer` and a `Subview`); only the rare
-    /// spacer is then cast to `SpacerProtocol` to read its `spacerMinLength`.
+    /// spacer is then cast to `SpacerProtocol` to read its `minLength`.
     /// A `Subview` may stand for a spacer or for anything else, so it is asked
     /// which (``LayoutTraitsForwarding``), after the cast a real spacer passes.
     static func spacerInfo<V: View>(of view: V) -> (isSpacer: Bool, minLength: Int?) {
         guard V._isSpacer else { return (false, nil) }
-        if let spacer = view as? SpacerProtocol { return (true, spacer.spacerMinLength) }
+        if let spacer = view as? SpacerProtocol { return (true, spacer.minLength) }
         if let proxy = view as? LayoutTraitsForwarding {
             let member = proxy.forwardedChild
             return (member.isSpacer, member.spacerMinLength)

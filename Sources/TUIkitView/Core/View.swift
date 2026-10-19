@@ -82,7 +82,7 @@ public protocol View {
     /// per-type instead of probing each child with `as? SpacerProtocol` — an
     /// almost-always-failing runtime conformance cast on a hot path (`Spacer` is
     /// the sole conformer). When the witness is `true`, the rare spacer is cast
-    /// to `SpacerProtocol` to read its `spacerMinLength`.
+    /// to `SpacerProtocol` to read its `minLength`.
     ///
     /// `true` means MAY be, for a view that stands in for a child resolved
     /// elsewhere — a `Subview`, whose one type stands for every member — and

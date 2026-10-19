@@ -63,7 +63,7 @@ struct ValueHashOpenerTests {
             check(InsetGroupedListStyle() as any ListStyle),
             check(DefaultMenuStyle() as any MenuStyle),
             check(AutomaticNavigationSplitViewStyle() as any NavigationSplitViewStyle),
-            check(AutomaticPickerStyle() as any PickerStyle),
+            check(DefaultPickerStyle() as any PickerStyle),
             check(DefaultTextFieldStyle() as any TextFieldStyle),
             check(DefaultToggleStyle() as any ToggleStyle),
         ]

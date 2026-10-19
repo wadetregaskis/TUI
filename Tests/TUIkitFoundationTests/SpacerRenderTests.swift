@@ -61,6 +61,16 @@ struct SpacerRenderTests {
         #expect(size.isWidthFlexible && size.isHeightFlexible)
     }
 
+    @Test("minLength reads and sets under SwiftUI's name, and the value set is the minimum")
+    func minLengthIsSettable() {
+        var spacer = Spacer()
+        #expect(spacer.minLength == nil)
+        spacer.minLength = 5
+        #expect(spacer.minLength == 5)
+        let size = spacer.sizeThatFits(proposal: .unspecified, context: context())
+        #expect(size.width == 5, "a set minLength should be the minimum width, got \(size.width)")
+    }
+
     // MARK: - In an HStack
 
     @Test("Spacer pushes HStack siblings to opposite edges")

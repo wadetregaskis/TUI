@@ -59,7 +59,7 @@ enum _PickerEntry<SelectionValue: Hashable> {
 ///
 /// The presentation is controlled by ``View/pickerStyle(_:)``:
 ///
-/// - ``MenuPickerStyle`` (and the default ``AutomaticPickerStyle``) collapse
+/// - ``MenuPickerStyle`` (and the default ``DefaultPickerStyle``) collapse
 ///   the picker to a pop-up button — the current value and a `▾` on a bordered
 ///   button's face, `( Apple ▾ )`, which follows the ``Appearance``, the
 ///   ``ControlSize`` and the ``ButtonBorderShape`` as a button's does — that

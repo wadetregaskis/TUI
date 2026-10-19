@@ -391,7 +391,7 @@ struct MyApp: App {
 - ``NavigationSplitViewStyle``
 - ``TabViewStyle``
 - ``PickerStyle``
-- ``AutomaticPickerStyle``
+- ``DefaultPickerStyle``
 - ``MenuPickerStyle``
 - ``InlinePickerStyle``
 - ``RadioGroupPickerStyle``

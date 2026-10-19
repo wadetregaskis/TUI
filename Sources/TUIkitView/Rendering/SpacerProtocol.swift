@@ -13,8 +13,9 @@
 /// The concrete `Spacer` view conforms to this protocol.
 @MainActor
 public protocol SpacerProtocol {
-    /// The minimum length of the spacer (in characters/lines).
+    /// The minimum length of the spacer, in cells: SwiftUI's
+    /// `Spacer.minLength`, which `Spacer` satisfies this with.
     ///
-    /// If nil, the spacer expands as much as possible.
-    var spacerMinLength: Int? { get }
+    /// If nil, the default distance between two views along the stack's axis.
+    var minLength: Int? { get }
 }

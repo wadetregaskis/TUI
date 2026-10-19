@@ -30,8 +30,14 @@
 /// }
 /// ```
 public struct Spacer: View, Equatable {
-    /// The minimum length of the spacer (in characters/lines).
-    let minLength: Int?
+    /// The minimum length this spacer can be shrunk to, along the axis or axes
+    /// of expansion, in cells.
+    ///
+    /// If `nil`, the default distance between two views along its stack's
+    /// axis: one column in a row, none in a column. SwiftUI's is a `CGFloat?`
+    /// of points; a terminal lays out whole cells, as ``init(minLength:)``
+    /// takes them.
+    public var minLength: Int?
 
     /// Creates a spacer with optional minimum length.
     ///
@@ -141,9 +147,8 @@ extension ChildView {
 
 // MARK: - Spacer Protocol Conformance
 
-extension Spacer: SpacerProtocol {
-    public var spacerMinLength: Int? { minLength }
-}
+/// ``minLength`` is the requirement, under SwiftUI's name.
+extension Spacer: SpacerProtocol {}
 
 // MARK: - Spacer Rendering
 
