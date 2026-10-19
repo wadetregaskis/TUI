@@ -89,7 +89,14 @@ final class FilePanelDriver<Page: View> {
     init(width: Int = 100, height: Int = 30, _ build: @escaping () -> Page) {
         self.width = width
         self.height = height
-        self.harness = InputChainHarness(width: width, height: height)
+        // The terminal's size, as the run loop publishes it: a sheet is sized
+        // against it, and without it a panel was drawn for the defaults'
+        // 80 × 24 whatever size the test drew at.
+        self.harness = InputChainHarness(width: width, height: height) { environment in
+            environment.terminalWidth = width
+            environment.terminalHeight = height
+            environment.overlayContentHeight = height
+        }
         self.build = build
     }
 
