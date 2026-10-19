@@ -393,15 +393,12 @@ struct TableSortOrderTests {
 
     // MARK: - Where the click has to land
 
-    /// The header line's title regions, left to right: its regions less the
-    /// gap after each title but the last, which a drag resizes the column by
-    /// (decisions B-D4T-7) — two cells, the table's column spacing, where the
-    /// title's region ends.
+    /// The header line's title regions, left to right: every region one line
+    /// tall on it. The gaps between the titles, which a drag resizes a column
+    /// by (decisions B-D4T-7), have no region of their own — the table's own
+    /// region, which covers all its lines, takes them (lane LISTSPERF).
     private func titleRegions(in buffer: FrameBuffer) -> [HitTestRegion] {
-        let regions = buffer.hitTestRegions.filter { $0.offsetY == 1 && $0.height == 1 }
-            .sorted { $0.offsetX < $1.offsetX }
-        let ends = Set(regions.map { $0.offsetX + $0.width })
-        return regions.filter { !($0.width == 2 && ends.contains($0.offsetX)) }
+        buffer.hitTestRegions.filter { $0.offsetY == 1 && $0.height == 1 }.sorted { $0.offsetX < $1.offsetX }
     }
 
     /// The regions have to line up with the titles as DRAWN — the whole point

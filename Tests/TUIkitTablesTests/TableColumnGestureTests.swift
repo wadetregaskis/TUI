@@ -474,7 +474,7 @@ struct TableColumnGestureTests {
     func menuOpeningPressSpendsItsDrag(frameBetween: Bool) throws {
         // A Ctrl-press on Beta's title opens the menu and hands the gesture to
         // it; until a frame draws the menu over the header, its drag — Ctrl let
-        // go — lands on the header's own regions, here the gap before Beta.
+        // go — lands on the table's own region, at the gap before Beta.
         // Drawn, the menu's backdrop takes the drag there, and the release —
         // the pointer moved, so a hold let go away from the menu — closes it.
         // Undrawn, the same release closes it too.
@@ -547,9 +547,9 @@ struct TableColumnGestureTests {
     func emptyRowMenuPressSpendsItsDrag() throws {
         // A row menu that builds nothing closes on the frame after its press
         // without having drawn a backdrop, so after that frame the drag is
-        // hit-tested against the table: here, the gap before Beta, which
-        // never saw a press and resized Alpha from the gesture state it was
-        // left with.
+        // hit-tested against the table: here, its own region at the gap before
+        // Beta, whose handler never saw a press there — a gap's own handler
+        // once resized Alpha from the gesture state it was left with.
         let harness = Harness(emptyRowMenu: true)
         let y = try #require(harness.headerY, "\(harness.screen)")
         let beta = try #require(harness.column(of: "Beta", on: y))
