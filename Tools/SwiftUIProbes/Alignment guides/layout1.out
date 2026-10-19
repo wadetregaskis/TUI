@@ -1,0 +1,78 @@
+# ./layout1 A
+== A1: .leading out of statically-one-view containers; outer VStack(.leading){inner; C}: C.x=5 reported
+VStackLayout(leading){G} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+HStackLayout{G} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+ZStackLayout(leading){G} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+SimpleColumn{G} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+HStack{G} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+Group{G} in VStack || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack{OneViewBody()} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack{TwoViewBody()} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=11 V.h=2 C.x=0 C.y=2 C.w=6 C.h=1 outer.w=11 outer.h=3
+VStack{G.padding(0)} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack{BranchBody(true)} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+VStack{OptionalBody(true)} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+VStack{if true {G}} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+VStack{if/else G} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+VStack{VStack{G}} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+BranchBody(true) bare || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+OptionalBody(true) bare || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+TwoViewBody().padding(0) bare || G.x=0 G.y=0 G.w=1 G.h=1 S.x=5 S.y=1 S.w=6 S.h=1 V.x=5 V.y=1 V.w=6 V.h=1 C.x=5 C.y=2 C.w=6 C.h=1 outer.w=11 outer.h=3
+== A2: baselines out of rows, ZStacks and layouts; outer HStack(.xTextBaseline){inner; C 1x6}
+firstTextBaseline: control HStack{S 1x1; T 1x1} || S.x=0 S.y=5 S.w=1 S.h=1 V.x=0 V.y=5 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+firstTextBaseline: HStack{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+firstTextBaseline: ZStack{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=1 V.h=1 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6
+firstTextBaseline: VStackLayout{G 5; S} || G.x=2.50 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=6 V.h=2 C.x=6 C.y=0 C.w=1 C.h=6 outer.w=7 outer.h=6
+firstTextBaseline: HStackLayout{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+firstTextBaseline: SimpleColumn{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=6 V.h=2 C.x=6 C.y=0 C.w=1 C.h=6 outer.w=7 outer.h=6
+firstTextBaseline: AnyLayout(VStackLayout){G 5; S} || G.x=2.50 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=6 V.h=2 C.x=6 C.y=0 C.w=1 C.h=6 outer.w=7 outer.h=6
+lastTextBaseline: control HStack{S 1x1; T 1x1} || S.x=0 S.y=5 S.w=1 S.h=1 V.x=0 V.y=5 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+lastTextBaseline: HStack{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+lastTextBaseline: ZStack{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=1 V.h=1 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6
+lastTextBaseline: VStackLayout{G 5; S} || G.x=2.50 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=6 V.h=2 C.x=6 C.y=0 C.w=1 C.h=6 outer.w=7 outer.h=6
+lastTextBaseline: HStackLayout{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+lastTextBaseline: SimpleColumn{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=6 V.h=2 C.x=6 C.y=0 C.w=1 C.h=6 outer.w=7 outer.h=6
+lastTextBaseline: AnyLayout(VStackLayout){G 5; S} || G.x=2.50 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=6 V.h=2 C.x=6 C.y=0 C.w=1 C.h=6 outer.w=7 outer.h=6
+== A3: custom guide out of HStackLayout, ZStackLayout, SimpleRow
+HStackLayout{G mark 5; S} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=7 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+ZStackLayout(leading){G mark 5; S} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=6 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+SimpleRow{S; G mark 5} || G.x=6 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=7 V.h=1 C.x=11 C.y=1 C.w=6 C.h=1 outer.w=17 outer.h=2
+# ./layout1 B
+== B: .leading guide 5 on G (w1) through a wrapper; outer VStack(.leading){inner; C w6}
+G.frame(w10, leading) || G.x=-5 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=10 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=10 outer.h=2
+G.frame(w10, center) || G.x=4.25 G.y=0 G.w=1 G.h=1 V.x=-0.25 V.y=0 V.w=10 V.h=1 C.x=9.25 C.y=1 C.w=6 C.h=1 outer.w=15.50 outer.h=2
+G.frame(w10, trailing) || G.x=9 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=10 V.h=1 C.x=14 C.y=1 C.w=6 C.h=1 outer.w=20 outer.h=2
+G.frame(w10 h3, bottomTrailing) || G.x=9 G.y=2 G.w=1 G.h=1 V.x=0 V.y=0 V.w=10 V.h=3 C.x=14 C.y=3 C.w=6 C.h=1 outer.w=20 outer.h=4
+G.frame(minWidth 10, center) || G.x=4.25 G.y=0 G.w=1 G.h=1 V.x=-0.25 V.y=0 V.w=10 V.h=1 C.x=9.25 C.y=1 C.w=6 C.h=1 outer.w=15.50 outer.h=2
+G.frame(maxWidth inf, trailing).frame(w 20) || G.x=19 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=20 V.h=1 C.x=24 C.y=1 C.w=6 C.h=1 outer.w=30 outer.h=2
+G.border(2) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.offset(x 3) || G.x=3 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.offset(x 3 y 2) || G.x=3 G.y=2 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.overlay{box 10x1} || G.x=0 G.y=0 G.w=1 G.h=1 O.x=-4.50 O.y=0 O.w=10 O.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.background{box 10x1} || G.x=0 G.y=0 G.w=1 G.h=1 O.x=-4.50 O.y=0 O.w=10 O.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.padding(.leading, 2) || G.x=2 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=3 V.h=1 C.x=7 C.y=1 C.w=6 C.h=1 outer.w=13 outer.h=2
+G.fixedSize() || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.position(x 3 y 0) || G.x=2.25 G.y=-0.50 G.w=1 G.h=1 V.x=-0.25 V.y=0 V.w=10 V.h=2 C.x=7.25 C.y=2 C.w=6 C.h=1 outer.w=13.50 outer.h=3
+G.foregroundStyle(.red) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+G.id(1) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+== B2: a frame's guide where the stack aligns on the same guide as the frame's alignment, center
+outerC: G(center 0).frame(w10, center) || G.x=5 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=10 V.h=1 C.x=2 C.y=1 C.w=6 C.h=1 outer.w=10 outer.h=2
+outerT: G(trailing 0).frame(w10, trailing) || G.x=10 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=10 V.h=1 C.x=4 C.y=1 C.w=6 C.h=1 outer.w=10 outer.h=2
+== B3: vertical .top guide 5 on G (h1) through a wrapper; outer HStack(.top){inner; C 1x6}
+ref G || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=1 C.y=5 C.w=1 C.h=6 outer.w=2 outer.h=11
+G.frame(h4, top) || G.x=0 G.y=-5 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=4 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6
+G.frame(h4, center) || G.x=0 G.y=1.25 G.w=1 G.h=1 V.x=0 V.y=-0.25 V.w=1 V.h=4 C.x=1 C.y=6.25 C.w=1 C.h=6 outer.w=2 outer.h=12.50
+G.frame(h4, bottom) || G.x=0 G.y=3 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=4 C.x=1 C.y=8 C.w=1 C.h=6 outer.w=2 outer.h=14
+G.border(2) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=1 C.y=5 C.w=1 C.h=6 outer.w=2 outer.h=11
+G.offset(y 2) || G.x=0 G.y=2 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=1 C.y=5 C.w=1 C.h=6 outer.w=2 outer.h=11
+# ./layout1 C
+== C: more shapes; outer VStack(.leading){inner; C w6}: C.x=5 reported
+VStack{AnyView(G)} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+AnyView(G) bare || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack{G; EmptyView().padding()} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+VStack{G.onAppear{}} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+Grid{GridRow{G}} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=1 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=6 outer.h=2
+Grid{GridRow{G; S}} || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=7 V.h=1 C.x=0 C.y=1 C.w=6 C.h=1 outer.w=7 outer.h=2
+Grid{GridRow{G mark; S}} (mark) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=7 V.h=1 C.x=5 C.y=1 C.w=6 C.h=1 outer.w=11 outer.h=2
+firstTextBaseline: Grid{GridRow{G 5; S}} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
+firstTextBaseline: VStack{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=1 V.h=2 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6
+firstTextBaseline: VStack{G 5; S 3} || G.x=0 G.y=2 G.w=1 G.h=1 S.x=0 S.y=3 S.w=1 S.h=1 V.x=0 V.y=2 V.w=1 V.h=2 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6

@@ -164,6 +164,33 @@ and its A/B, which must pass first. **Recommended: (a)**: SwiftUI code keeps
 its layout, and a guide stays local unless the developer asks. (b) is the
 literal reading of "no exceptions".
 
+**Shipped 2026-10-18 (lane LAYOUT): (a).** A `VStack`, `HStack` or `ZStack`
+of several views, and a layout's default
+`explicitAlignment(of:in:proposal:subviews:cache:)`, answer no edge or centre
+guide (`AlignmentGuideQuery.staysInside(contentOf:)`, `isEdgeOrCentre` on both
+alignment types, which replaces `isBuiltIn`); a text baseline and a custom
+guide still travel, merged by `combineExplicit`. A layout's default and
+`GridLayout`'s now merge the baselines too, where they dropped them as
+built-in (measured since: SwiftUI's custom `Layout`, `VStackLayout`,
+`HStackLayout`, `AnyLayout`, `HStack`, `ZStack` and `Grid` all report an
+explicit baseline). The static one-view case is SwiftUI's own count of the
+views a type puts where it is written (`staticViewListCount`, not
+`staticMemberCount`, which counts an `if`/`else` whose arms agree as one so a
+loop of them stays lazy): measured, `VStack { G }`, `VStack { G;
+EmptyView().padding() }`, `Group { G }`, `G.padding(0)`, `G.onAppear {}` and
+a view of the app's own whose body is `G` report `G`'s leading guide, and so
+do `VStackLayout`, `HStackLayout` and `ZStackLayout` around `G`
+(`PassesEveryGuideOfOneView`); an `if`, an `if`/`else` (even of one view in
+each arm), a view of the app's own whose body is one of those, an `AnyView`,
+a custom layout around `G` and a `Grid` report none
+(`Tools/SwiftUIProbes/Alignment guides/layout1.swift`). The averaging of
+edge guides is gone with it: `VStack(alignment: .center) { G (leading 5); S
+(leading 1) }` reports nothing, so the row beside it stays at 0, as
+SwiftUI's does. The lazy stacks and scroll views still report nothing.
+Deviation L4 is closed. The A/B is B19's (owed): what changed here only
+removes work, an edge guide's query on a container of several views
+answering before it resolves the children.
+
 ## B. Shipped the safe option
 
 ### B-GUIDE-1. A region smaller than the run keeps the run's leading edge on its own

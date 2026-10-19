@@ -28,8 +28,11 @@ extension _VStackCore {
 extension _VStackCore: AlignmentGuideQuerying {
     /// The guide the column's children give, each moved by where the column
     /// puts it, merged by the guide's rule: SwiftUI's measured behaviour — a
-    /// `.leading` guide inside a `VStack` inside a leading-aligned `VStack`
-    /// moves the inner column as a whole.
+    /// custom guide or a text baseline inside a `VStack` inside a `VStack`
+    /// aligned on it moves the inner column as a whole. An edge or centre
+    /// guide does that only out of a column that is statically one view
+    /// (``AlignmentGuideQuery/staysInside(contentOf:)``); a column of several
+    /// places them by it and keeps it.
     ///
     /// The placement is `renderClip`'s, predicted from measures as its ramp
     /// placement is: heights distributed over `dimensions.height`, each row
@@ -39,7 +42,7 @@ extension _VStackCore: AlignmentGuideQuerying {
     package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
-        guard overflow == .clip else { return nil }
+        guard overflow == .clip, !query.staysInside(contentOf: Content.self) else { return nil }
         let context = context.publishingContainerAxis(.vertical)
         let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }

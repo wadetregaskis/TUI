@@ -143,11 +143,17 @@ Three things worth knowing before you reach for it:
   its own origin. The
   `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable raises the bound for a
   canvas that really is larger.
-- **A guide travels up through the views that know where they put it.** A
-  `VStack`, `HStack` or `ZStack` reports the guides its children set, each
-  moved by where the child sits (several merge by the alignment's
-  `combineExplicit`), `.padding()` reports its content's moved by the inset,
-  and a ``Layout`` reports custom guides its subviews set, or one of its own.
+- **A guide travels up through the views that know where they put it,
+  and how far depends on its kind.** A custom guide, or a text baseline,
+  leaves a `VStack`, `HStack`, `ZStack` or ``Layout``, moved by where its
+  view sits (several merge by the alignment's `combineExplicit`). An edge or
+  centre guide (`.leading`, `.top`, …) places the children of a container
+  of several views and stays in it, as SwiftUI's does; it leaves only a
+  container whose content is statically one view (`VStack { G }`). To line
+  up views in different containers by an edge, declare a custom
+  ``AlignmentID`` whose default is that edge. `.padding()` reports its
+  content's guides moved by the inset, and a ``Layout`` can state one of its
+  own.
   A view type of your own reports what its `body` does, so a decimal point
   marked on a `Text` inside each row of a column — a row view of your own or
   not — lines the rows up on it. A guide travels on through a modifier that

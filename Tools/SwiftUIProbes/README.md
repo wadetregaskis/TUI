@@ -133,10 +133,17 @@ messages cite that path), and what cites it.
   has not been re-checked against today's); `check.py`, which fits SwiftUI's rule and TUIkit's then rule to the
   two outputs (`python3 check.py`: 135 rows each, no mismatch) and says which of TUIkit's two rules made each of
   the 72 differing rows differ. `tuikit.out` records TUIkit before the fix this probe led to.
+- **Also:** `layout1.swift` (`layout1.out`): which guides leave which containers by kind — an edge or centre
+  guide out of statically-one-view stacks, stack layouts, branches, loops, `AnyView`, a custom layout and a
+  `Grid`; text baselines and custom guides out of rows, layers and layouts (case `A`, `C`) — and a guide through
+  `.frame`, `.border`, `.offset`, `.overlay`, `.background`, `.padding`, `.fixedSize`, `.position` (case `B`).
+  Run on macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-18 (lane LAYOUT).
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-11.
-- **Was:** `GUIDE/probe/` and `GUIDE/probe2/` (and `GUIDE/tuikit.out`).
+- **Was:** `GUIDE/probe/` and `GUIDE/probe2/` (and `GUIDE/tuikit.out`); `layout1.swift` was `LAYOUT/probe/l1.swift`.
 - **Cited by:** `Tests/TUIkitChromeTests/AlignmentGuideParityTests.swift`,
-  `Tests/TUIkitChromeTests/AlignmentGuideContainerParityTests.swift`;
+  `Tests/TUIkitChromeTests/AlignmentGuideContainerParityTests.swift`,
+  `Tests/TUIkitFoundationTests/AlignmentGuideKindTests.swift`;
+  `Sources/TUIkitView/Rendering/StaticViewListCount.swift`;
   `Documentation/SwiftUI parity/Decisions/Alignment guides outside their view (GUIDE).md`.
 
 ### List pinned headers and row stripes

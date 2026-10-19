@@ -134,23 +134,23 @@ public struct GridLayout: Layout, Sendable, Equatable {
         subviews.mergedSpacing
     }
 
-    /// The subviews' explicit values for a custom guide, merged — the
-    /// default; none for a built-in guide.
+    /// The subviews' explicit values for a custom guide or a text baseline,
+    /// merged — the default; none for an edge or the centre.
     public func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
-        guard !guide.isBuiltIn else { return nil }
+        guard !guide.isEdgeOrCentre else { return nil }
         return subviews.mergedExplicitGuide(.horizontal(guide))
     }
 
-    /// The subviews' explicit values for a custom guide, merged — the
-    /// default; none for a built-in guide.
+    /// The subviews' explicit values for a custom guide or a text baseline,
+    /// merged — the default; none for an edge or the centre.
     public func explicitAlignment(
         of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
-        guard !guide.isBuiltIn else { return nil }
+        guard !guide.isEdgeOrCentre else { return nil }
         return subviews.mergedExplicitGuide(.vertical(guide))
     }
 

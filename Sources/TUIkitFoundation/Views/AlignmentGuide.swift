@@ -158,13 +158,24 @@ extension View {
     /// ## How far a guide travels
     ///
     /// As in SwiftUI, a guide travels up through the views that place their
-    /// content at a known offset, each moving it by that offset: `VStack`,
-    /// `HStack` and `ZStack` report the guides their children set (merged by
-    /// the alignment's ``HorizontalAlignment/combineExplicit(_:)`` when several
-    /// do), and `.padding` reports its content's moved by the inset. So a
-    /// decimal-point guide set on a `Text` inside each row of a column aligns
-    /// the rows on the point. A custom ``Layout`` reports the custom guides its
-    /// subviews set, or one of its own
+    /// content at a known offset, each moving it by that offset, and what
+    /// leaves a container depends on the guide's kind:
+    ///
+    /// - A **custom** guide (your own ``AlignmentID``) and a **text
+    ///   baseline** leave `VStack`, `HStack`, `ZStack` and a ``Layout``,
+    ///   merged by the alignment's ``HorizontalAlignment/combineExplicit(_:)``
+    ///   when several children set one (the mean; the topmost first
+    ///   baseline, the bottommost last one). So a decimal-point guide set on
+    ///   a `Text` inside each row of a column aligns the rows on the point.
+    /// - An **edge or centre** guide (`.leading`, `.center`, `.trailing`,
+    ///   `.top`, `.bottom`) places a container's children and stays in it,
+    ///   unless the container's content is statically one view: `VStack { G
+    ///   }` reports `G`'s leading guide, `VStack { G; S }`, a `ForEach` of one
+    ///   row and an `if` do not. To line views up across containers by an
+    ///   edge, declare a custom ``AlignmentID`` whose default is that edge.
+    ///
+    /// `.padding` reports its content's guides moved by the inset, and a
+    /// custom ``Layout`` can state one of its own
     /// (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
     /// A view type of your own reports what its `body` does, through an `if`,
     /// an `if`/`else` and a `switch` too, so a guide inside `struct Row:
@@ -236,6 +247,28 @@ package enum AlignmentGuideQuery {
         case .horizontal(let alignment): alignment.key
         case .vertical(let alignment): alignment.key
         }
+    }
+
+    /// Whether the guide is an edge or the centre of its axis, which a
+    /// container of several views places them by and reports none of, where a
+    /// text baseline or a custom guide travels on out of it: SwiftUI's rule,
+    /// measured (decisions A-GUIDE-2).
+    var isEdgeOrCentre: Bool {
+        switch self {
+        case .horizontal(let alignment): alignment.isEdgeOrCentre
+        case .vertical(let alignment): alignment.isEdgeOrCentre
+        }
+    }
+
+    /// Whether a container whose content is a value of `Content` keeps this
+    /// guide to itself: an edge or centre guide, unless the content is
+    /// statically one view — SwiftUI's stacks report every guide of
+    /// `VStack { G }` and `VStack { G; EmptyView() }`, and no edge or centre
+    /// guide of `VStack { G; S }`, a `ForEach` of one row or an `if`
+    /// (``staticViewListCount(_:)``; decisions A-GUIDE-2).
+    @MainActor
+    func staysInside<Content: View>(contentOf _: Content.Type) -> Bool {
+        isEdgeOrCentre && staticViewListCount(Content.self) != 1
     }
 
     /// `value`, a guide position within a child, as a position within the

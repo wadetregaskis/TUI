@@ -439,7 +439,7 @@ struct AlignmentGuideModifierTests {
 
     // MARK: - A guide travels up through containers
 
-    @Test("A guide inside a column, a row or a ZStack moves that container as a whole")
+    @Test("A guide inside a column or a ZStack of one view moves that container as a whole")
     func guideTravelsThroughStacks() {
         func indentsOf(_ inner: some View) -> [Int] {
             indents(renderToBuffer(
@@ -452,13 +452,14 @@ struct AlignmentGuideModifierTests {
         // The inner container's guide is 3 cells in, so "x" moves to meet it.
         #expect(indentsOf(VStack { Text("ab").alignmentGuide(.leading) { _ in 3 } }) == [0, 3])
         #expect(indentsOf(ZStack { Text("ab").alignmentGuide(.leading) { _ in 3 } }) == [0, 3])
-        // In a row the guide is moved by where its view sits: "bc" starts at 2.
+        // A row of several views places them by an edge guide and keeps it, as
+        // SwiftUI's does (decisions A-GUIDE-2; `AlignmentGuideKindTests`).
         #expect(
             indentsOf(
                 HStack(spacing: 1) {
                     Text("a")
                     Text("bc").alignmentGuide(.leading) { _ in 1 }
-                }) == [0, 3])
+                }) == [0, 0])
     }
 
     @Test("A custom alignment set inside each row lines the rows up on it")

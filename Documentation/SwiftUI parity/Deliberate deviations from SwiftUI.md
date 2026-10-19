@@ -214,22 +214,6 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   list.
 - **Decided:** [A-GUIDE-1](<Decisions/Alignment guides outside their view (GUIDE).md#a-guide-1-swiftuis-lazy-stacks-ignore-an-explicit-alignment-guide-tuikits-honour-it--decided-keep-honouring-it>). **Owner** (2026-10-12: keep).
 
-### L4. A stack reports a built-in guide from several views
-
-- **SwiftUI:** a stack passes a built-in guide (`.leading`, `.top`) up to its
-  parent only when it holds a single view; a custom `AlignmentID` passes up
-  from several (measured for the cases in A-GUIDE-2's table; the general rule
-  is inferred).
-- **TUIkit:** a stack passes up both kinds from any number of views, merged by
-  their mean (`combineExplicit`).
-- **Why:** one rule for every guide, with no special cases.
-- **Decided:** [A-GUIDE-2](<Decisions/Alignment guides outside their view (GUIDE).md#a-guide-2-swiftui-does-not-report-a-built-in-guide-out-of-a-stack-of-several-views>). **Under review**: the owner
-  asked for uniform behaviour (2026-10-12), and SwiftUI's rule turned out to
-  depend on the guide's kind (edge and centre guides stay in a multi-view
-  container, custom guides and baselines leave it), so no rule is free of
-  exceptions. The owner is choosing between SwiftUI's rule by kind
-  (recommended) and a uniform one.
-
 ### L5. A view does not draw outside the size it reports
 
 - **SwiftUI:** a frame does not clip

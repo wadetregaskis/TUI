@@ -154,9 +154,12 @@ extension HorizontalAlignment {
     /// Aligned to the trailing (right) edge.
     public static let trailing = Self(TrailingID.self)
 
-    /// Whether this is one of the alignments the framework defines, rather
-    /// than one built from an app's own ``AlignmentID``.
-    package var isBuiltIn: Bool { self == .leading || self == .center || self == .trailing }
+    /// Whether this is an edge or the centre of the axis — each of the
+    /// alignments the framework defines — rather than one built from an app's
+    /// own ``AlignmentID``. A container that arranges several views places
+    /// them by such a guide and reports none of it out of itself, as SwiftUI's
+    /// do (decisions A-GUIDE-2).
+    package var isEdgeOrCentre: Bool { self == .leading || self == .center || self == .trailing }
 }
 
 // MARK: - Vertical Alignment
@@ -222,12 +225,13 @@ extension VerticalAlignment {
     /// Aligned to the last line of text — the view's last row.
     public static let lastTextBaseline = Self(LastTextBaselineID.self)
 
-    /// Whether this is one of the alignments the framework defines, rather
-    /// than one built from an app's own ``AlignmentID``.
-    package var isBuiltIn: Bool {
-        self == .top || self == .center || self == .bottom || self == .firstTextBaseline
-            || self == .lastTextBaseline
-    }
+    /// Whether this is an edge or the centre of the axis — `.top`, `.center`
+    /// or `.bottom` — rather than a text baseline or one built from an app's
+    /// own ``AlignmentID``. A container that arranges several views places
+    /// them by such a guide and reports none of it out of itself, where a
+    /// baseline, which names a line of text, travels on, as SwiftUI's do
+    /// (decisions A-GUIDE-2).
+    package var isEdgeOrCentre: Bool { self == .top || self == .center || self == .bottom }
 }
 
 // MARK: - Combining Explicit Values

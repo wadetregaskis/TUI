@@ -314,12 +314,15 @@ extension _ZStackCore {
 
 extension _ZStackCore: AlignmentGuideQuerying {
     /// The guide the layers give, each moved by where the stack puts it,
-    /// merged by the guide's rule. The placement is `renderToBuffer`'s, from
+    /// merged by the guide's rule — an edge or centre guide only out of a
+    /// stack that is statically one layer
+    /// (``AlignmentGuideQuery/staysInside(contentOf:)``). The placement is `renderToBuffer`'s, from
     /// the layers' sizes at the stack's: each axis its own guide run, or the
     /// stack's alignment within the largest layer.
     func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
+        guard !query.staysInside(contentOf: Content.self) else { return nil }
         let context = context.takingSectionsApart()
         let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }

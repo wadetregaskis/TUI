@@ -106,6 +106,12 @@ extension Group: StaticMemberCounting where Content: View {
     package static var staticRowMemberCount: Int? { TUIkitView.staticRowMemberCount(Content.self) }
 }
 
+/// Its content's count, as SwiftUI counts it: `VStack { Group { G } }` is
+/// statically one view, and reports `G`'s edge guides (decisions A-GUIDE-2).
+extension Group: StaticViewListCounting where Content: View {
+    package static var staticViewListCount: Int? { TUIkitView.staticViewListCount(Content.self) }
+}
+
 extension Group: ChildInfoProvider where Content: View {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         resolveChildInfos(from: content, context: context)

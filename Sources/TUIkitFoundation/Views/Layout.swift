@@ -209,23 +209,29 @@ extension Layout {
     /// Default: no stack orientation.
     public static var layoutProperties: LayoutProperties { LayoutProperties() }
 
-    /// Default: the subviews' explicit values for a custom guide, merged, and
-    /// none for a built-in one.
+    /// Default: the subviews' explicit values for a custom guide, merged by
+    /// ``HorizontalAlignment/combineExplicit(_:)``, and none for an edge or
+    /// the centre, which a layout of several views places them by and keeps
+    /// to itself, as SwiftUI's default does (measured: decisions A-GUIDE-2).
     public func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
-        guard !guide.isBuiltIn else { return nil }
+        guard !guide.isEdgeOrCentre else { return nil }
         return subviews.mergedExplicitGuide(.horizontal(guide))
     }
 
-    /// Default: the subviews' explicit values for a custom guide, merged, and
-    /// none for a built-in one.
+    /// Default: the subviews' explicit values for a custom guide or a text
+    /// baseline, merged by ``VerticalAlignment/combineExplicit(_:)`` (a first
+    /// baseline is the topmost, a last one the bottommost), and none for an
+    /// edge or the centre, which a layout of several views places them by and
+    /// keeps to itself, as SwiftUI's default does (measured: decisions
+    /// A-GUIDE-2).
     public func explicitAlignment(
         of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
-        guard !guide.isBuiltIn else { return nil }
+        guard !guide.isEdgeOrCentre else { return nil }
         return subviews.mergedExplicitGuide(.vertical(guide))
     }
 
@@ -503,6 +509,9 @@ extension _LayoutCore: AlignmentGuideQuerying {
         let size = layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
         let bounds = CellRect(x: 0, y: 0, width: max(0, size.width), height: max(0, size.height))
         layout.placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
+        if L.self is any PassesEveryGuideOfOneView.Type, staticViewListCount(Content.self) == 1 {
+            return subviews.mergedExplicitGuide(query)
+        }
         switch query {
         case .horizontal(let guide):
             return layout.explicitAlignment(
@@ -513,6 +522,18 @@ extension _LayoutCore: AlignmentGuideQuerying {
         }
     }
 }
+
+/// A stack layout of the framework's — `VStackLayout`, `HStackLayout`,
+/// `ZStackLayout` — which reports every guide of content that is statically
+/// one view, edges and centre included, as SwiftUI's do and as the stacks
+/// themselves do: `VStackLayout { G }` reports `G`'s leading guide, where an
+/// `AnyLayout` around the same layout, and a layout of the app's own, report
+/// none (measured, decisions A-GUIDE-2).
+protocol PassesEveryGuideOfOneView {}
+
+extension VStackLayout: PassesEveryGuideOfOneView {}
+extension HStackLayout: PassesEveryGuideOfOneView {}
+extension ZStackLayout: PassesEveryGuideOfOneView {}
 
 /// A layout that knows at run time whether what it wraps defines guides of its
 /// own — `AnyLayout`, whose static answer cannot.

@@ -869,7 +869,9 @@ extension _HStackCore {
 
 extension _HStackCore: AlignmentGuideQuerying {
     /// The guide the row's children give, each moved by where the row puts
-    /// it, merged by the guide's rule — SwiftUI's measured behaviour.
+    /// it, merged by the guide's rule — SwiftUI's measured behaviour. An edge
+    /// or centre guide only out of a row that is statically one view
+    /// (``AlignmentGuideQuery/staysInside(contentOf:)``).
     ///
     /// The placement is `renderClip`'s, from the same `resolvedLayout` both of
     /// the row's passes share: widths distributed over `dimensions.width` and
@@ -879,7 +881,7 @@ extension _HStackCore: AlignmentGuideQuerying {
     package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
-        guard overflow == .clip else { return nil }
+        guard overflow == .clip, !query.staysInside(contentOf: Content.self) else { return nil }
         let context = context.publishingContainerAxis(.horizontal)
         let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
