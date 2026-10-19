@@ -241,7 +241,13 @@ extension PopoverPresentationModifier: Renderable {
         // through. Letting it reach the page would be the opposite of what was
         // asked: the popover stays up and something behind it acts on a click
         // aimed at closing it.
-        DropdownMenu.attachDismissBackdrop(to: &panel, context: context, onDismiss: dismiss)
+        //
+        // …but only OUTSIDE: a click inside the panel that nothing in it took
+        // — its text, its border, a disabled button — is spent there, as one
+        // inside a macOS popover is (`NSPopover.Behavior.transient` closes it
+        // on interaction OUTSIDE the popover). It closed the popover.
+        DropdownMenu.attachDismissBackdrop(
+            to: &panel, context: context, spendsClicksInside: true, onDismiss: dismiss)
 
         let placement = placement(
             panel: (width: panel.width, height: panel.height),

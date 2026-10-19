@@ -304,11 +304,17 @@ package enum DropdownMenu {
     /// Shared by every menu presentation: the `Picker` drop-down and the combo
     /// box get it from `popup(_:)` above, and `presentMenuPopover` calls it
     /// directly for a pull-down `Menu` and `.contextMenu`.
+    ///
+    /// `spendsClicksInside` files a second region, over the surface's own
+    /// cells, that spends what nothing on it took — see
+    /// `attachSurfaceCatcher(to:dispatcher:context:)`.
     @MainActor
     static func attachDismissBackdrop(
-        to buffer: inout FrameBuffer, context: RenderContext, onDismiss: @escaping () -> Void
+        to buffer: inout FrameBuffer, context: RenderContext, spendsClicksInside: Bool = false,
+        onDismiss: @escaping () -> Void
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
+        if spendsClicksInside { attachSurfaceCatcher(to: &buffer, dispatcher: dispatcher, context: context) }
         // Weak: the dispatcher holds this handler (see `Button`'s).
         let dismissID = dispatcher.register(in: context) { [weak dispatcher] event in
             switch event.phase {
@@ -353,6 +359,40 @@ package enum DropdownMenu {
         buffer.hitTestRegions.insert(
             HitTestRegion(
                 offsetX: -4096, offsetY: -4096, width: 8192, height: 8192, handlerID: dismissID),
+            at: 0)
+    }
+
+    /// Inserts a region over the surface's own cells that takes every press,
+    /// release, drag and wheel tick nothing on the surface took — so a click on
+    /// a cell of it that no control answers is spent there, as a click inside a
+    /// macOS popover is, rather than falling through to the dismiss backdrop
+    /// and closing it.
+    ///
+    /// A surface whose content is arbitrary views needs this; a menu does not,
+    /// its popup already filing a region over its whole box for its chrome and
+    /// its wheel (`attachMouseHandlers`). Without it a popover closed on a
+    /// click on its text, on its border, or on a disabled button (which files
+    /// no region of its own), and a right-click there closed it AND reached
+    /// whatever the page had under it.
+    ///
+    /// Motion passes: the pointer's hover is not a click.
+    ///
+    /// Inserted first, then the backdrop in front of it: under the surface's
+    /// own regions, over the backdrop.
+    @MainActor
+    private static func attachSurfaceCatcher(
+        to buffer: inout FrameBuffer, dispatcher: MouseEventDispatcher, context: RenderContext
+    ) {
+        guard buffer.width > 0, buffer.height > 0 else { return }
+        let catcherID = dispatcher.register(in: context) { event in
+            switch event.phase {
+            case .pressed, .released, .dragged, .scrolled: true
+            case .moved, .entered, .exited: false
+            }
+        }
+        buffer.hitTestRegions.insert(
+            HitTestRegion(
+                offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height, handlerID: catcherID),
             at: 0)
     }
 
