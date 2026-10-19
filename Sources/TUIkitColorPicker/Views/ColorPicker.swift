@@ -58,13 +58,14 @@ public struct ColorPicker: View {
     private let labelView: AnyView?
     private let selection: Binding<Color>
     private let supportsOpacity: Bool
-    private let step: Double
 
     /// Whether the picker draws its label: `false` in a ``Form``, which draws
     /// it in its label column (``formFieldParts(in:)``). Not `.labelsHidden()`,
     /// which would reach the editor panel the picker presents, and hide the
-    /// labels of the controls on it.
+    /// labels of the controls on it. Beside `supportsOpacity`, in the padding
+    /// that `Bool` leaves before `step`, so it costs no space.
     private var drawsLabel = true
+    private let step: Double
 
     /// True while the full ``ColorPickerPanel`` is up for this picker.
     @State private var isEditing = false
