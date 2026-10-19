@@ -156,8 +156,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         case .string(let extract):
             column.cell = .string { self.prefix(for: $0.id) + extract($0) }
         case .text(let make):
-            column.cell = .text { value in
-                let text = make(value)
+            // `make` reads a key in the table's language first, so the prefix
+            // goes in front of the words the cell draws.
+            column.cell = .text { value, context in
+                let text = make(value, context)
                 let prefix = self.prefix(for: value.id)
                 // A plain text stays plain, and so stays on the string path.
                 return text.drawsAsPlainString

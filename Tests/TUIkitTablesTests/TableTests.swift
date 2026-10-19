@@ -42,7 +42,7 @@ struct TableColumnTests {
         let column = TableColumn("Name", value: \FileInfo.name)
         let file = FileInfo(id: "1", name: "test.txt", size: "1 KB", modified: "2026-01-01")
 
-        #expect(column.value(for: file) == "test.txt")
+        #expect(column.value(for: file, context: createTestContext()) == "test.txt")
     }
 
     @Test("TableColumn extracts value via closure")
@@ -52,7 +52,7 @@ struct TableColumnTests {
         }
         let file = FileInfo(id: "1", name: "test.txt", size: "1 KB", modified: "2026-01-01")
 
-        #expect(column.value(for: file) == "Size: 1 KB")
+        #expect(column.value(for: file, context: createTestContext()) == "Size: 1 KB")
     }
 
     @Test("TableColumn defaults to leading alignment")

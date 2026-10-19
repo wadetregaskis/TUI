@@ -171,7 +171,11 @@ check is one environment read for a keyed `Text`, a nil check for any other;
 nothing is read again where nothing overrides the locale. Every control whose
 label is a `Text` of its key (B87's list: `Toggle`, `Label`, `Link`,
 `Section`, `LabeledContent`, `Picker`, `Menu` and the rest) follows, and so
-does `LocalizedString` for an app's key. A key the language lacks reads
+does `LocalizedString` for an app's key. So does a `Table`'s `Text` cell: a
+plain one is drawn as the string it holds, never measured or drawn as a
+`Text`, so the table reads its key in its own `\.locale`'s language before
+taking the string (`Text.reading(in:)`), and an outline's first column puts
+its triangle in front of those words. A key the language lacks reads
 English (E4).
 
 **The fuller version** reaches what reads a key as a string when it is made:

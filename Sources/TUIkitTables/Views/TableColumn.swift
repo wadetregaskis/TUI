@@ -157,12 +157,13 @@ extension TableColumn {
         columns.specs.append(content.spec)
     }
 
-    /// The characters this column's cell holds for `item`: a `String` key
-    /// path's value, or a `Text`'s string — `nil` for any other view.
-    func value(for item: RowValue) -> String? {
+    /// The characters this column's cell holds for `item` under `context`: a
+    /// `String` key path's value, or a `Text`'s string — `nil` for any other
+    /// view.
+    func value(for item: RowValue, context: RenderContext) -> String? {
         switch cell {
         case .string(let extract): extract(item)
-        case .text(let make): make(item).content
+        case .text(let make): make(item, context).content
         case .view: nil
         }
     }
@@ -190,7 +191,7 @@ extension _TableCellSource {
         // of the `truncate` scenario's six `Text` columns. The cast succeeds
         // exactly when `Content` is `Text`.
         if let text = content as? (Value) -> Text {
-            return .text(text)
+            return .text { row, context in text(row).reading(in: context) }
         }
         return .view { row, context in
             let view = content(row)

@@ -56,7 +56,7 @@ struct TableColumnContentTests {
         let text = _TableCellSource<Row>.content { (row: Row) in Text(row.name) }
         let view = _TableCellSource<Row>.content { (row: Row) in Text(row.name).padding(.leading, 1) }
         if case .text(let make) = text {
-            #expect(make(Self.rows[0]).content == "alpha")
+            #expect(make(Self.rows[0], makeRenderContext(width: 20, height: 4)).content == "alpha")
         } else {
             Issue.record("a Text content closure took the view path")
         }

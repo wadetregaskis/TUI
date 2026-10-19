@@ -158,9 +158,12 @@ enum _TableCellSource<Value> {
     /// A string the table lays out itself — a `String` key path's value.
     case string((Value) -> String)
 
-    /// A `Text` from the column's content closure. A plain one is drawn
-    /// exactly as a string would be; any other is rendered as the view it is.
-    case text((Value) -> Text)
+    /// A `Text` from the column's content closure, as it reads under the
+    /// context given: a key read again in the language the table's `\.locale`
+    /// names (`Text.reading(in:)`), since a plain one is drawn as its string
+    /// and never measured or drawn as a `Text`. A plain one is drawn exactly as
+    /// a string would be; any other is rendered as the view it is.
+    case text((Value, RenderContext) -> Text)
 
     /// Any other view from the column's content closure, rendered into the
     /// cell's rectangle under the context given.

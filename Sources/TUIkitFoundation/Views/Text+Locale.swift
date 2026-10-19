@@ -121,4 +121,15 @@ extension Text {
         read.style = style
         return read
     }
+
+    /// This text as it reads under `context`: ``relocalized(in:)``'s reading
+    /// where that reads it again, and this text otherwise.
+    ///
+    /// For a caller that takes a text's words without measuring or drawing it,
+    /// which is where a text reads its key again: a table draws a plain cell
+    /// as the string it holds. A text that is no key pays a nil check.
+    package func reading(in context: RenderContext) -> Text {
+        guard localization != nil, let read = relocalized(in: context) else { return self }
+        return read
+    }
 }

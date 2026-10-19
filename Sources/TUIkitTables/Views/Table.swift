@@ -1964,7 +1964,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // what that path cost.
         if case .text(let make) = column.cell {
             context.renderCache?.rowWork.cellValues += 1
-            let text = make(item)
+            let text = make(item, context)
             if let lines = Self.plainLines(of: text, in: column, width: width) { return lines }
             return renderedCell(text, column, for: item, width: width, context: context)
                 .split(separator: "\n", omittingEmptySubsequences: false)
@@ -4619,7 +4619,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         case .string(let extract):
             return extract(item)
         case .text(let make):
-            let text = make(item)
+            let text = make(item, context)
             // The one-line case without the array: this is the single-line
             // table's every cell.
             if column.lineLimit == 1, text.drawsAsPlainString { return text.content }
