@@ -202,10 +202,12 @@ an `asymmetric` transition runs under its own animation where it names one,
 once inside any `withAnimation`, and the animation written nearest the view
 wins.
 
-A view with no `.transition` that an `if` puts in or takes out under an
-animated change fades, as SwiftUI's does: the default is
-``AnyTransition/opacity``. An `if`/`else` that switches branches, a `switch` and
-a `ForEach`'s rows still change at once.
+A view with no `.transition` that comes or goes under an animated change fades,
+as SwiftUI's does: the default is ``AnyTransition/opacity``. That is an `if`'s
+view, the branch an `if`/`else` takes and the one it leaves, a `switch`'s case
+and a `ForEach`'s row — fading in where it lands and out where it was. In a lazy
+stack, a `Grid`, a `List` and a `Table` a branch, a case and a row still change
+at once; an `if`'s view fades there too.
 
 A ``Transition`` of your own describes the view at each ``TransitionPhase`` with
 ordinary modifiers, and what animates is each modifier's value between one phase
@@ -241,11 +243,12 @@ around to stand still.
 A **removal** needs something to play it, because the view is gone from the
 tree by the time anything notices. The picture the view drew on its last frame
 is left behind, and what still stands where it stood draws it part-way gone:
-the `nil` an `if` became. Put the `.transition` on the view the `if` holds —
-after anything that draws, though a modifier that draws nothing of its own,
-such as `.onAppear` or `.foregroundStyle`, may come after it: in a few shapes
-the removal fades rather than play the transition, and `View.transition(_:)`
-lists them.
+the `nil` an `if` became, or — for the branch an `if`/`else` leaves, a
+`switch`'s case or a `ForEach`'s row — the stack that placed it, which sees it
+go. Put the `.transition` on the view the `if` holds — after anything that
+draws, though a modifier that draws nothing of its own, such as `.onAppear` or
+`.foregroundStyle`, may come after it: in a few shapes the removal fades rather
+than play the transition, and `View.transition(_:)` lists them.
 
 ## Springs
 

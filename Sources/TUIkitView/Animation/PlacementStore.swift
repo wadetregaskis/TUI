@@ -98,6 +98,25 @@ public final class PlacementStore: @unchecked Sendable {
         /// ``RenderContext/glidingPlacements(of:drawing:at:departing:)``.
         package var held: [ChildIdentityStep: ChildPlacement] = [:]
 
+        /// What each of ``entries`` drew when the container last rendered: the
+        /// picture a child that has gone fades out from (`ChildFade`), there
+        /// being nothing else of it left. `nil` for a spacer.
+        ///
+        /// Written on every frame the container renders, settled or not: the
+        /// frame a child goes is the first that does not draw it, so what it
+        /// looked like has to have been kept on the one before. A store of the
+        /// array the container already holds, a retain and a release.
+        package var pictures: [FrameBuffer?]
+
+        /// Which of ``entries`` are fading in, or `nil` when none is — the
+        /// question a settled container's frame asks beside ``gliding``.
+        package var arriving: [Bool]?
+
+        /// The children that have gone and are still leaving: fading out from
+        /// their last picture, or playing a transition of their own. Empty,
+        /// nearly always.
+        package var leaving: [LeavingChild] = []
+
         /// The pass this record was last asked about.
         package var lastPass: UInt64
 
@@ -106,8 +125,9 @@ public final class PlacementStore: @unchecked Sendable {
         /// shown — and moves nothing, as ``AnimationStore`` treats a value.
         package let appeared: (pass: UInt64, walk: UInt64)
 
-        init(entries: [ChildPlacementEntry], pass: UInt64, walk: UInt64) {
+        init(entries: [ChildPlacementEntry], pictures: [FrameBuffer?], pass: UInt64, walk: UInt64) {
             self.entries = entries
+            self.pictures = pictures
             self.lastPass = pass
             self.appeared = (pass, walk)
         }
@@ -154,10 +174,13 @@ extension PlacementStore {
         return record
     }
 
-    /// Remembers `entries` as the container at `identity` first lays them out,
-    /// on `walk` of the pass.
-    package func remember(_ entries: [ChildPlacementEntry], at identity: ViewIdentity, walk: UInt64) {
-        let replaced = records.updateValue(Record(entries: entries, pass: pass, walk: walk), forKey: identity)
+    /// Remembers `entries`, drawing `pictures`, as the container at `identity`
+    /// first lays them out, on `walk` of the pass.
+    package func remember(
+        _ entries: [ChildPlacementEntry], pictures: [FrameBuffer?], at identity: ViewIdentity, walk: UInt64
+    ) {
+        let record = Record(entries: entries, pictures: pictures, pass: pass, walk: walk)
+        let replaced = records.updateValue(record, forKey: identity)
         if replaced?.lastPass != pass { askedThisPass += 1 }
     }
 
@@ -246,11 +269,51 @@ package struct ChildPlacementEntry: Equatable {
     /// Whether it drew no rows or no columns: what it shows, if anything, is
     /// what it carries past its frame.
     package var drawsNothing: Bool
+    /// Whether it was the slot of a view still leaving (`ChildView.isDeparting`),
+    /// laid out by a container that holds a removal's room: when the slot
+    /// goes, the removal has played, and nothing is left to fade.
+    package var isDeparting: Bool
+    /// The type of the view it was — what a transition of its own was left by,
+    /// where its step does not say (`ChildFade`). Read once a child has gone.
+    package var viewType: Any.Type
 
-    package init(step: ChildIdentityStep, placement: ChildPlacement, zIndex: Double, drawsNothing: Bool) {
+    package init(
+        step: ChildIdentityStep, placement: ChildPlacement, zIndex: Double, drawsNothing: Bool,
+        isDeparting: Bool, viewType: Any.Type
+    ) {
         self.step = step
         self.placement = placement
         self.zIndex = zIndex
         self.drawsNothing = drawsNothing
+        self.isDeparting = isDeparting
+        self.viewType = viewType
     }
+
+    package static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.step == rhs.step && lhs.placement == rhs.placement && lhs.zIndex == rhs.zIndex
+            && lhs.drawsNothing == rhs.drawsNothing && lhs.isDeparting == rhs.isDeparting
+            && ObjectIdentifier(lhs.viewType) == ObjectIdentifier(rhs.viewType)
+    }
+}
+
+/// A child that has gone from its container, still being drawn where it was
+/// while it leaves — see `ChildFade`.
+package struct LeavingChild {
+    /// How it is drawn while it leaves.
+    package enum Picture {
+        /// The picture it drew on its last frame, faded by its presence: the
+        /// default transition, `.opacity`.
+        case fading(FrameBuffer)
+        /// The removal of a transition of its own, played from what it left
+        /// in the `DepartureStore` at `identity`, by a view of `type`.
+        case playing(identity: ViewIdentity, type: Any.Type)
+    }
+
+    /// What it was among the children.
+    package var step: ChildIdentityStep
+    /// Where it is drawn: where it was when it went.
+    package var placement: ChildPlacement
+    /// How it stacked against its siblings.
+    package var zIndex: Double
+    package var picture: Picture
 }

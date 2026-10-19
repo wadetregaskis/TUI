@@ -43,11 +43,27 @@ final class RemovalScreen<Content: View> {
     /// so while it leaves it, and the siblings gliding into its room, are
     /// drawn past the stack that has closed up (`StackGlide`).
     func draw(_ showing: Bool, atMillis millis: Int) -> [String] {
+        buffer(showing, atMillis: millis).withLayersDrawn().lines.map(\.stripped)
+    }
+
+    /// The strengths of the fades the frame at `millis` still carries — those
+    /// over nothing, which no compositor in the tree resolved — its layers'
+    /// included, to two places.
+    func fades(_ showing: Bool, atMillis millis: Int) -> [Double] {
+        func strengths(_ buffer: FrameBuffer) -> [Double] {
+            buffer.opacityRegions.map { ($0.opacity * 100).rounded() / 100 }
+                + buffer.overlays.flatMap { strengths($0.content) }
+        }
+        return strengths(buffer(showing, atMillis: millis))
+    }
+
+    /// The frame at `millis`, as drawn.
+    private func buffer(_ showing: Bool, atMillis millis: Int) -> FrameBuffer {
         context.environment.frameNowNanos = Int64(millis) * 1_000_000
         let storage = context.environment.stateStorage!
         storage.beginRenderPass()
         defer { storage.endRenderPass() }
-        return renderToBuffer(content(showing), context: context).withLayersDrawn().lines.map(\.stripped)
+        return renderToBuffer(content(showing), context: context)
     }
 }
 

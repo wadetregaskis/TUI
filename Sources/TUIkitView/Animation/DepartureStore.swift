@@ -23,10 +23,12 @@ import TUIkitCore
 /// is enough: a removal transition does not need the view, it needs the cells.
 /// So a transitioning view leaves a closure behind on every frame it renders —
 /// "if I vanish, here is what I look like part-way gone" — and whatever occupies
-/// its slot in the tree plays it out. That is the `nil` an `Optional` became,
-/// and only that: an `if`/`else` whose branch flips hands the slot to the other
-/// branch at once, so nothing is left there to play the leaving branch's
-/// removal, and it is dropped at the end of the pass.
+/// its slot in the tree plays it out. That is the `nil` an `Optional` became;
+/// or, for a view no `nil` stands in for — the branch an `if`/`else` leaves, a
+/// `ForEach`'s row — the container that placed it, which sees it go
+/// (`ChildFade`), or the conditional drawn whole that drew it
+/// (`BranchTransition`). A picture nothing plays is dropped at the end of the
+/// pass.
 ///
 /// The closure is why this type is here rather than beside `AnyTransition`: the
 /// hosts live in this module and the transitions live above it. A closure from
@@ -155,6 +157,15 @@ extension DepartureStore {
     /// its own, present or leaving.
     package func hasEntry(at identity: ViewIdentity) -> Bool {
         !entries.isEmpty && entries[identity] != nil
+    }
+
+    /// Whether the picture recorded at `identity` is one a slot that held a
+    /// view of `type` may draw — left by that view, or vouched for by the
+    /// `AnyView` that drew it (``departing(at:ofType:nowNanos:frameAnimation:)``)
+    /// — whether or not its removal will play.
+    package func hasEntry(at identity: ViewIdentity, leftBy type: Any.Type) -> Bool {
+        guard !entries.isEmpty, let entry = entries[identity] else { return false }
+        return entry.wasLeft(by: ObjectIdentifier(type))
     }
 
     /// Starts the removal of a view that has already gone, from the picture it

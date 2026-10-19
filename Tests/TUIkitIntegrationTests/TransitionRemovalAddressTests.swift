@@ -63,16 +63,17 @@ enum RemovalSurround: String, CaseIterable, Sendable {
     /// that draws nothing of its own, but re-wraps the member it reaches.
     case styledGroupInIf
 
-    /// Whether the removal still snaps in this shape — a gap on the record in
-    /// ``View/transition(_:)``, pinned as a known issue so that closing it is
-    /// noticed. `.id` puts an identity step of its own between the slot the
+    /// Whether the removal does not play its own transition in this shape —
+    /// it fades instead, the whole picture where it was — a gap on the record
+    /// in ``View/transition(_:)``, pinned as a known issue so that closing it
+    /// is noticed. `.id` puts an identity step of its own between the slot the
     /// `nil` claims and the view that left its picture, so the picture is one
-    /// step below where the `nil` looks for it. A modifier on a `Group` hands
-    /// its member over re-wrapped, as a type the `nil` — holding only the
-    /// wrapped `Group` — has no way to name; a padded one has a picture of its
-    /// own that it could not draw either.
-    var stillSnaps: Bool {
-        self == .identifiedBesideSibling || self == .paddedGroupInIf || self == .styledGroupInIf
+    /// step below where the `nil` looks for it. A padded `Group` has a picture
+    /// of its own the transition's would lose. A styled `Group` plays: its
+    /// member, which the `nil` holding the wrapped `Group` could not name, is
+    /// a child of the stack, and the stack sees it go (`ChildFade`).
+    var fadesInstead: Bool {
+        self == .identifiedBesideSibling || self == .paddedGroupInIf
     }
 
     /// Whether the shape pads the view two cells in, beside a wider sibling.
@@ -259,14 +260,15 @@ enum RemovedView: String, CaseIterable, Sendable {
     /// wrapper), with `.appHeader` and the two status-bar item modifiers.
     case preferenceObservedOutside
 
-    /// Whether the removal still snaps — a gap on the record in
-    /// ``View/transition(_:)``, pinned as a known issue. An `.id` outside the
+    /// Whether the removal does not play its own transition — it fades
+    /// instead — a gap on the record in ``View/transition(_:)``, pinned as a
+    /// known issue. An `.id` outside the
     /// transition, a custom view's `body`, `.tag` and `.sheet` put an identity
     /// step between the slot the `nil` claims and the transition: `.id`'s own,
     /// and the step a `body` or a presentation's content renders at. The
     /// wrappers that draw their content unchanged play: the slot looks through
     /// them (`DrawsContentUnchanged`), or the `AnyView` vouches for its picture.
-    var stillSnaps: Bool {
+    var fadesInstead: Bool {
         switch self {
         case .identifiedOutside, .customViewBody, .taggedOutside, .presentingOutside,
             .preferenceObservedOutside:
@@ -349,12 +351,13 @@ enum RenderedDirectly: String, CaseIterable, Sendable {
     /// whose `nil` must still find the picture the eraser vouched for.
     case optionalInsideErased
 
-    /// Whether the removal still snaps — a gap on the record in
-    /// ``View/transition(_:)``, pinned as a known issue. A `Group` draws its
-    /// view one step below the optional's identity, where a view with a `body`
-    /// draws its body, and an `if`/`else` draws its view under a branch step;
-    /// the `nil` looks for the picture at its own identity.
-    var stillSnaps: Bool { self == .groupInIf || self == .conditionalInIf }
+    /// Whether the removal does not play its own transition — it fades
+    /// instead — a gap on the record in ``View/transition(_:)``, pinned as a
+    /// known issue. A `Group` draws its view one step below the optional's
+    /// identity, where a view with a `body` draws its body, and an
+    /// `if`/`else` draws its view under a branch step; the `nil` looks for
+    /// the picture at its own identity.
+    var fadesInstead: Bool { self == .groupInIf || self == .conditionalInIf }
 }
 
 private struct HeldDirectly: View {
@@ -409,7 +412,7 @@ struct TransitionRemovalAddressTests {
             screen.draw(true, atMillis: 1100) == [surround.drawn("XXXX")] + sibling,
             "precondition: it arrived")
 
-        withKnownIssue("this shape's removal still snaps — see `stillSnaps`") {
+        withKnownIssue("this shape's removal fades instead — see `fadesInstead`") {
             #expect(
                 screen.draw(false, atMillis: 1100) == [surround.drawn("XXXX")] + sibling,
                 "gone on the frame it was removed")
@@ -417,7 +420,10 @@ struct TransitionRemovalAddressTests {
                 screen.draw(false, atMillis: 1600) == [surround.drawn("  XX")] + sibling,
                 "not sliding out half-way")
         } when: {
-            surround.stillSnaps
+            surround.fadesInstead
+        }
+        if surround.fadesInstead {
+            #expect(!screen.fades(false, atMillis: 1600).isEmpty, "it fades where it was instead")
         }
         #expect(screen.draw(false, atMillis: 2200) == sibling, "still drawn after the end")
     }
@@ -435,18 +441,21 @@ struct TransitionRemovalAddressTests {
     /// The other axis: what the `if` holds. The slot is found by the address
     /// of the view carrying the transition, and drawn only if that view is
     /// what the `if` held, so an identity step or a modifier between the two
-    /// leaves a removal that snaps.
+    /// leaves a removal that fades instead.
     @Test("The removal plays when the transition is on the view the if holds",
         arguments: RemovedView.allCases)
     func removalPlaysByWhatIsHeld(held: RemovedView) {
         let screen = RemovalScreen(animation: .linear(duration: 1)) { Held(showing: $0, held: held) }
         _ = screen.draw(true, atMillis: 0)
         #expect(screen.draw(true, atMillis: 1100) == ["XXXX", "----"], "precondition: it arrived")
-        withKnownIssue("this removal still snaps — see `RemovedView.stillSnaps`") {
+        withKnownIssue("this removal fades instead — see `RemovedView.fadesInstead`") {
             #expect(screen.draw(false, atMillis: 1100) == ["XXXX", "----"], "gone on the frame it was removed")
             #expect(screen.draw(false, atMillis: 1600) == ["  XX", "----"], "not sliding out half-way")
         } when: {
-            held.stillSnaps
+            held.fadesInstead
+        }
+        if held.fadesInstead {
+            #expect(!screen.fades(false, atMillis: 1600).isEmpty, "it fades where it was instead")
         }
         #expect(screen.draw(false, atMillis: 2200) == ["----"], "still drawn after the end")
     }
@@ -462,11 +471,14 @@ struct TransitionRemovalAddressTests {
         }
         _ = screen.draw(true, atMillis: 0)
         #expect(screen.draw(true, atMillis: 1100) == ["XXXX"], "precondition: it arrived")
-        withKnownIssue("this removal still snaps — see `RenderedDirectly.stillSnaps`") {
+        withKnownIssue("this removal fades instead — see `RenderedDirectly.fadesInstead`") {
             #expect(screen.draw(false, atMillis: 1100) == ["XXXX"], "gone on the frame it was removed")
             #expect(screen.draw(false, atMillis: 1600) == ["  XX"], "not sliding out half-way")
         } when: {
-            shape.stillSnaps
+            shape.fadesInstead
+        }
+        if shape.fadesInstead {
+            #expect(!screen.fades(false, atMillis: 1600).isEmpty, "it fades where it was instead")
         }
         #expect(screen.draw(false, atMillis: 2200).isEmpty, "still drawn after the end")
     }

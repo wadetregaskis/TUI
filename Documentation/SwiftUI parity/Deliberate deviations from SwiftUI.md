@@ -1249,7 +1249,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a frame is rebuilt from the tree, and a removed view no longer
   exists in it; a transition's parts share one presence, which a part with an
   animation of its own would split.
-- **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>).
+- **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>),
+  [B-TRANSITIONS2-4](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-4-a-combined-transition-plays-under-one-animation-for-each-half>).
   **Medium.**
 
 ### A4. A content transition dissolves everything the modifier wraps
@@ -1307,14 +1308,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   that comes to draw something is placed directly, so the view leaving or
   arriving in it does not move with the gap the empty stack gives back
   (§3: a child with no extent takes no stack spacing); a removal animated
-  longer than the change finishes at the stack's new place.
+  longer than the change finishes at the stack's new place. A conditional
+  drawn whole — a view's whole `body`, a modifier's content — draws the
+  branch it leaves over the branch it takes, past its frame, where SwiftUI
+  draws it beneath (measured, [`Tools/SwiftUIProbes/Transitions/tr1.out`](<../../Tools/SwiftUIProbes/Transitions/tr1.out>) T8).
 - **Why:** a terminal draws whole cells; a glide is remembered per
   container (`PlacementStore`), and the containers that window their rows or
   lay out a lattice have not been given that memory yet. A size that glides
   would need a presented size for every view that draws around its content.
+  Only a container composites a fade against what is beneath it; for two
+  fades crossing, over and beneath are the same blend with the weights
+  swapped.
 - **Decided:** [decisions FB16](<Decisions/Insertion and removal model (FB16).md>),
-  B-FB16-1 to B-FB16-8, B-FB16-13, A-FB16-1. **Owner** for the model (FB16 (a′),
-  2026-10-18); **Lane** for what stops short of it.
+  B-FB16-1 to B-FB16-8, B-FB16-13, A-FB16-1;
+  [B-TRANSITIONS2-2](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-2-a-conditional-drawn-whole-draws-the-branch-it-leaves-over-the-one-it-takes>).
+  **Owner** for the model (FB16 (a′), 2026-10-18); **Lane** for what stops
+  short of it.
 
 ### A7. A frame draws every change since the last under one transaction, and an observed change takes the next scope's
 
@@ -1975,7 +1984,7 @@ on. Each waits on the work, or on the ruling, its State names.
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Waits on a fix: shared, a column squeezes a control of several lines in the middle, and a squeezed inline `Menu` draws differently served from the cache than drawn afresh (the focus storm's trial 3) |
-| A view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in or takes out under an animation, with no `.transition(_:)`, appears and goes at once, where SwiftUI's fades (`.opacity`). An `if`'s view fades, as SwiftUI's does (2026-10-14) | [DefaultTransition.swift](../../Sources/TUIkitView/Animation/DefaultTransition.swift) | Known gap: an `if` keeps what its view last drew (one record per `if`; measured 2026-10-14 at up to +3.4% on menus, under 2% elsewhere); a branch switch leaves no slot for the leaving branch to play in, and a row has no `if` to keep it |
+| In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in or takes out under an animation appears and goes at once, where SwiftUI's fades (`.opacity`) or plays its `.transition(_:)` on the way out. An `if`'s view fades everywhere (2026-10-14); a branch, a case and a row fade, or play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19) | [ChildFade.swift](../../Sources/TUIkitView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
 | A `TabView` takes `Tab`s only: SwiftUI's plain-view content (`TabView { Text("A").tag(0) }`, its older form) does not compile | [TabView.swift](../../Sources/TUIkitTabs/Views/TabView.swift) | Known gap, the semantic audit's item 82: the fix draws the tagged children as pages; no ruling |
 | A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |

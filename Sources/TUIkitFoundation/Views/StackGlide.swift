@@ -74,7 +74,7 @@ extension RenderContext {
         }
         // (z-index, beneath its present siblings, declaration order)
         var layers: [(buffer: FrameBuffer, x: Int, y: Int, order: (Double, Int, Int))] = []
-        layers.reserveCapacity(children.count + departing.count)
+        layers.reserveCapacity(children.count + departing.count + placements.leaving.count)
         for (index, departed) in departing.enumerated() {
             guard let (placement, zIndex) = placements.departing[index] else { continue }
             // At the size the view had, whatever room this stack has now:
@@ -84,8 +84,16 @@ extension RenderContext {
             let picture = departed.render(width: size.width, height: size.height, context: self)
             layers.append((picture, placement.x, placement.y, (zIndex, 0, index)))
         }
+        // A branch, a case or a row that has gone, fading out or playing its
+        // own removal where it was (`ChildFade`): beneath, as a slot is.
+        for (index, leaver) in placements.leaving.enumerated() {
+            layers.append(
+                (leaver.picture, leaver.placement.x, leaver.placement.y, (leaver.zIndex, 0, departing.count + index)))
+        }
         for index in children.indices {
-            guard let buffer = buffers[index] else { continue }
+            guard var buffer = buffers[index] else { continue }
+            // Fading in where it lands, if the change put it here.
+            if let presence = placements.presence { buffer = DefaultTransition.faded(buffer, by: presence[index]) }
             let placement = placements.presented[index]
             layers.append((buffer, placement.x, placement.y, (children[index].zIndex, 1, index)))
         }

@@ -133,7 +133,7 @@ public struct ChildView {
     /// Asked by a cast, it was a conformance check on every child of every
     /// stack each time a stack read its children — a few per cent of a frame.
     /// A flag beside the two above.
-    private let isDefaultTransitioned: Bool
+    package let isDefaultTransitioned: Bool
 
     /// Whether this child's TYPE says it takes all the room it is offered on
     /// both axes, whatever its content — ``View/_fillsItsOffer``, read once.
@@ -700,6 +700,10 @@ public struct ChildView {
             zIndex: 0, providesAlignmentGuide: false, providesLayoutValues: false,
             isDeparting: true)
     }
+
+    /// The type of the view this child draws, as it draws it — wrappers and
+    /// all. A load from the existential, which builds nothing.
+    package var viewType: Any.Type { type(of: view) }
 
     /// What tells this child apart from its siblings — see ``ChildIdentityStep``.
     package var identityStep: ChildIdentityStep {

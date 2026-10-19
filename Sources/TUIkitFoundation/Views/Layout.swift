@@ -403,7 +403,12 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = publishingChildAxis(context)
         let (subviews, placements) = resolve(context: context)
-        guard !subviews.isEmpty else { return FrameBuffer() }
+        guard !subviews.isEmpty else {
+            // Nothing to place, and still a subview the change took out may
+            // be fading where it was (`ChildFade`).
+            return context.glidingStackBuffer([], buffers: [], at: [], departing: [], width: 0, height: 0)
+                ?? FrameBuffer()
+        }
 
         var cache = freshCache(subviews)
         let proposal = ProposedSize(

@@ -58,10 +58,10 @@ enum WrappedTransition: String, CaseIterable, Sendable {
     /// The rows drawn once it has gone.
     var gone: [String] { isAlone ? [] : ["------"] }
 
-    /// The rows drawn while its removal would be playing: none of it, and the
-    /// sibling below gliding up from the row it had (`StackGlide`) — the
-    /// layout change animates whether or not the removal can be drawn.
-    var goneWhileSiblingGlides: [String] { isAlone ? [] : ["      ", "------"] }
+    /// The rows drawn while its removal plays: the whole picture where it
+    /// was, padding and all, fading (`fades`), and the sibling below on its
+    /// way up from the row it had (`StackGlide`), not yet past half-way.
+    var fadingWhole: [String] { shown }
 }
 
 private struct WrappedHost: View {
@@ -418,20 +418,22 @@ struct TransitionTests {
     /// frame that places it — the slot found that picture at the view's
     /// address and drew it without the padding: the view jumped to the slot's
     /// edge on the first frame of its removal and slid out from there. Such a
-    /// removal now snaps, which is drawn right; playing it would need the
-    /// picture to carry what stood around the transition.
-    @Test("A removal is not played without what was drawn around the transition",
+    /// removal snapped for a while, which was drawn right but went at once;
+    /// now the `if` keeps the whole picture and fades it where it was, as it
+    /// does a view with no transition — padding and all.
+    @Test("A removal that cannot be played without what was drawn around the transition fades, all of it",
         arguments: WrappedTransition.allCases)
-    func removalIsNotPlayedWithoutItsSurroundings(wrapped: WrappedTransition) {
+    func removalFadesWithItsSurroundings(wrapped: WrappedTransition) {
         let screen = RemovalScreen(animation: .linear(duration: 1)) {
             WrappedHost(showing: $0, wrapped: wrapped)
         }
         _ = screen.draw(true, atMillis: 0)
         #expect(screen.draw(true, atMillis: 1100) == wrapped.shown, "precondition: it arrived")
         #expect(
-            screen.draw(false, atMillis: 1100) == wrapped.goneWhileSiblingGlides,
+            screen.draw(false, atMillis: 1100) == wrapped.fadingWhole,
             "the removal played without what surrounds the transition")
-        #expect(screen.draw(false, atMillis: 1600) == wrapped.goneWhileSiblingGlides)
+        #expect(screen.draw(false, atMillis: 1600) == wrapped.fadingWhole)
+        #expect(screen.fades(false, atMillis: 1600) == [0.5], "fading, not sliding")
         #expect(screen.draw(false, atMillis: 2200) == wrapped.gone)
     }
 
@@ -442,13 +444,13 @@ struct TransitionTests {
         #expect(screen.draw(false, .opacity, atMillis: 0).count == 1)
     }
 
-    /// What `DepartureStore` and ``View/transition(_:)`` say about an
-    /// `if`/`else`: the other branch takes the slot on the frame the condition
-    /// flips, so nothing is left standing where the leaving branch was to play
-    /// its removal, and the branch is simply replaced. Pinned so that the day
-    /// it plays, the docs that say otherwise are noticed.
-    @Test("The branch an if/else leaves is replaced at once, its removal unplayed")
-    func leavingBranchIsReplacedAtOnce() {
+    /// The branch an `if`/`else` leaves has no `nil` to play it, but its
+    /// stack sees it go: it plays its own removal where it was, beneath, while
+    /// the branch taken fades in over it (`ChildFade`; SwiftUI measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T1). It used to be replaced
+    /// on the frame the condition flipped.
+    @Test("The branch an if/else leaves plays its own removal while the other fades in")
+    func leavingBranchPlaysItsRemoval() {
         let screen = RemovalScreen(animation: .linear(duration: 1)) { showing in
             VStack(alignment: .leading, spacing: 0) {
                 if showing { Text("XXXX").transition(.move(edge: .trailing)) } else { Text("YY") }
@@ -457,8 +459,9 @@ struct TransitionTests {
         }
         _ = screen.draw(true, atMillis: 0)
         #expect(screen.draw(true, atMillis: 1100) == ["XXXX", "----"], "precondition: it arrived")
-        #expect(screen.draw(false, atMillis: 1100) == ["YY  ", "----"])
-        #expect(screen.draw(false, atMillis: 1600) == ["YY  ", "----"])
+        #expect(screen.draw(false, atMillis: 1100) == ["XXXX", "----"], "the new branch from nothing")
+        #expect(screen.draw(false, atMillis: 1600) == ["YYXX", "----"], "sliding out beneath the new one")
+        #expect(screen.draw(false, atMillis: 2200) == ["YY  ", "----"])
     }
 
     // MARK: - Composition

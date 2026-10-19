@@ -61,7 +61,10 @@ extension View {
     ///
     /// TUI-specific; SwiftUI has no equivalent. It reaches every eager stack
     /// below it, as the environment does. A lazy stack keeps the room while a
-    /// removal plays either way.
+    /// removal plays either way. The room held is a view's an `if` takes out,
+    /// whose `nil` keeps a slot: a branch an `if`/`else` leaves, a `switch`'s
+    /// case and a `ForEach`'s row are no longer children of the stack, which
+    /// closes up and fades them where they were (decisions B-TRANSITIONS2-3).
     ///
     /// - Parameter space: What happens to the room.
     /// - Returns: A view whose stacks treat a removal's room that way.

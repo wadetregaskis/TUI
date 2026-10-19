@@ -366,55 +366,51 @@ extension Optional: ChildViewProvider where Wrapped: View {
 
 extension ConditionalView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let stateStorage = context.stateStorage!
-
-        // On the render path, only invalidate the now-inactive branch when the
-        // case actually FLIPPED since the last rendered frame. On a non-flip
-        // frame the inactive branch was never rendered (or was already pruned by
-        // `endRenderPass` when it last left the tree), so it holds no persisted
-        // state and `invalidateDescendants` would be a no-op — eliding it, and
-        // the branch identity-node alloc it needs, is byte-identical.
-        //
-        // A measure invalidates NOTHING. Measuring must not mutate persistent
-        // state, and a measure that reaches this path does — `_ButtonCore` (and
-        // every other `measureFixedByRendering` view) measures by rendering, so
-        // a plain `Button` inside an `if` ran a full sweep of the state store on
-        // every measure of every frame. It was also pure waste: the branch that
-        // is about to flip is invalidated by the RENDER below before the new
-        // branch draws, so dropping the inactive branch's state early cannot
-        // change what any frame contains.
-        //
-        // The saving is not just the sweep. `invalidateDescendants` scans both
-        // state dictionaries end to end and allocates an array of matches for
-        // each, and the branch identity it is handed costs an identity-node
-        // allocation — all of it now skipped on the measure path.
         let isTrueBranch: Bool
         switch self {
         case .trueContent: isTrueBranch = true
         case .falseContent: isTrueBranch = false
         }
-
-        // Inside `keepsStateWhileHidden()` the branch left keeps its state: the
-        // flip is still recorded, and the state is left for the retained
-        // subtree to keep.
-        let shouldInvalidate =
-            !context.isMeasuring
-            && stateStorage.recordConditionalBranch(
-                context.identity, isTrueBranch: isTrueBranch)
-            && !context.environment.keepsHiddenState
-
+        let branchContext = context.withBranchIdentity(Self.branchLabel(isTrueBranch))
+        let buffer: FrameBuffer
         switch self {
-        case .trueContent(let content):
-            if shouldInvalidate {
-                stateStorage.invalidateDescendants(of: context.identity.branch("false"))
-            }
-            return TUIkitView.renderToBuffer(content, context: context.withBranchIdentity("true"))
-        case .falseContent(let content):
-            if shouldInvalidate {
-                stateStorage.invalidateDescendants(of: context.identity.branch("true"))
-            }
-            return TUIkitView.renderToBuffer(content, context: context.withBranchIdentity("false"))
+        case .trueContent(let content): buffer = TUIkitView.renderToBuffer(content, context: branchContext)
+        case .falseContent(let content): buffer = TUIkitView.renderToBuffer(content, context: branchContext)
         }
+
+        // A measure records nothing and invalidates NOTHING. Measuring must
+        // not mutate persistent state, and a measure that reaches this path
+        // does — `_ButtonCore` (and every other `measureFixedByRendering`
+        // view) measures by rendering, so a plain `Button` inside an `if` ran
+        // a full sweep of the state store on every measure of every frame. It
+        // was also pure waste: the branch that is about to flip is
+        // invalidated by the RENDER, so dropping the inactive branch's state
+        // early cannot change what any frame contains.
+        guard !context.isMeasuring, let stateStorage = context.stateStorage else { return buffer }
+
+        // The branch taken is recorded with what it drew, in one access, and
+        // under an animated change the branch left fades out from its last
+        // picture while this one fades in (`BranchTransition`).
+        let (flipped, drawn) = present(buffer, isTrueBranch: isTrueBranch, context: context, storage: stateStorage)
+
+        // Only when the case actually FLIPPED since the last rendered frame is
+        // the now-inactive branch invalidated. On a non-flip frame the
+        // inactive branch was never rendered (or was already pruned by
+        // `endRenderPass` when it last left the tree), so it holds no persisted
+        // state and `invalidateDescendants` would be a no-op — eliding it, and
+        // the branch identity-node alloc it needs, is byte-identical. The
+        // `invalidateDescendants` scan of both state dictionaries, and the
+        // array of matches it allocates for each, is paid only on a flip.
+        //
+        // After the branch taken has drawn, not before: it draws under its own
+        // branch's identity, and the other's state is no part of it. Inside
+        // `keepsStateWhileHidden()` the branch left keeps its state: the flip
+        // is still recorded, and the state is left for the retained subtree
+        // to keep.
+        if flipped, !context.environment.keepsHiddenState {
+            stateStorage.invalidateDescendants(of: context.identity.branch(Self.branchLabel(!isTrueBranch)))
+        }
+        return drawn
     }
 }
 

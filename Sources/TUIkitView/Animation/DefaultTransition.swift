@@ -7,7 +7,10 @@
 import TUIkitCore
 
 // The default transition: a view an `if` puts in or takes out under an animated
-// change fades, as SwiftUI's does with no `.transition` written.
+// change fades, as SwiftUI's does with no `.transition` written. The branch an
+// `if`/`else` takes and leaves, a `switch`'s case and a `ForEach`'s row fade
+// too, through the container that places them (`ChildFade`) or, for a
+// conditional drawn whole, through its own branch record (`BranchTransition`).
 //
 // ## Why one record per `if`, and not a re-declaration per frame
 //
@@ -110,11 +113,14 @@ package enum DefaultTransition {
     static func present(_ buffer: FrameBuffer, scope: ViewIdentity, context: RenderContext) -> FrameBuffer {
         guard !context.isMeasuring, let storage = context.stateStorage else { return buffer }
         // A transition of the view's own, declared at this address as the
-        // content drew: it plays the arrival and the removal, not this.
-        guard !storage.departures.isPresent(at: context.identity) else { return buffer }
+        // content drew, plays the arrival. The picture is kept all the same:
+        // where something is drawn round that transition — `X.transition(t)
+        // .padding()` — its own removal would lose it, and the `if` fades the
+        // whole picture out instead (`absentOptional`).
+        let ownsArrival = storage.departures.isPresent(at: context.identity)
         let phase = storage.presentOptional(
             at: scope, identity: context.identity, picture: buffer,
-            animation: frameAnimation(context), nowNanos: context.environment.frameNowNanos)
+            animation: ownsArrival ? nil : frameAnimation(context), nowNanos: context.environment.frameNowNanos)
         guard phase != 1 else { return buffer }
         // Moving: a function of time, which no memo may keep.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
@@ -132,7 +138,7 @@ package enum DefaultTransition {
     }
 
     /// `buffer` at `factor` of its strength, as `.opacity` draws it.
-    static func faded(_ buffer: FrameBuffer, by factor: Double) -> FrameBuffer {
+    package static func faded(_ buffer: FrameBuffer, by factor: Double) -> FrameBuffer {
         guard factor < 1 else { return buffer }
         var faded = buffer
         faded.opacityRegions = buffer.opacityRegions.map { region in
@@ -151,6 +157,12 @@ package enum DefaultTransition {
 }
 
 extension StateStorage {
+    /// Whether the `if` at `scope` is fading its view in — so the container
+    /// that view is a child of leaves it to the `if` (`ChildFade`).
+    func isArrivingOptional(at scope: ViewIdentity) -> Bool {
+        optionalPresence[scope]?.arrival != nil
+    }
+
     /// Records that the `if` at `scope` holds a view that drew `picture` at
     /// `identity`, and returns how far it has arrived: `1` at rest, less while
     /// it fades in after an animated change put it there.
@@ -226,8 +238,13 @@ extension StateStorage {
         }
         guard let picture = record.picture else { return }
         // A view with a transition of its own left its picture here too, and
-        // plays its removal itself.
-        if let frameAnimation, let identity = record.identity, !departures.hasEntry(at: identity) {
+        // plays its removal itself — where that picture is all the `if` drew.
+        // Where something was drawn round the transition (`X.transition(t)
+        // .padding()`), its picture would lose that, and the whole picture
+        // fades instead, as a view with no transition does.
+        if let frameAnimation, let identity = record.identity,
+            !departures.hasEntry(at: identity, leftBy: pictureType)
+        {
             var arrived = 1.0
             if let arrival = record.arrival {
                 arrived = min(1, max(0, arrival.fraction(at: Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000)))

@@ -219,7 +219,7 @@ public final class StateStorage: @unchecked Sendable {
     /// on an actual flip. Written only on the render path (never while measuring,
     /// per the measure-side-effect rule) and pruned in ``endRenderPass`` alongside
     /// the rest of the per-identity state, so removed conditionals don't leak.
-    private var lastConditionalCase: [ViewIdentity: Bool] = [:]
+    private var lastConditionalCase: [ViewIdentity: ConditionalRecord] = [:]
 
     /// What each `if` without an `else` held when it last rendered — see
     /// `OptionalPresence`. Pruned as ``lastConditionalCase`` is, by the pass
@@ -519,11 +519,24 @@ extension StateStorage {
     ///   - isTrueBranch: `true` if the `.trueContent` branch rendered this frame.
     /// - Returns: `true` if the branch differs from the last recorded one.
     public func recordConditionalBranch(_ identity: ViewIdentity, isTrueBranch: Bool) -> Bool {
+        recordingConditionalBranch(identity, isTrueBranch: isTrueBranch) { record in
+            let flipped = record.seen && record.isTrueBranch != isTrueBranch
+            record.isTrueBranch = isTrueBranch
+            record.seen = true
+            return flipped
+        }
+    }
+
+    /// ``recordConditionalBranch(_:isTrueBranch:)``'s access to the record of
+    /// the conditional at `identity`, for a caller that records more than the
+    /// branch: `body` reads and writes the record where it lies, one access
+    /// to the table, and the identity is marked active as that method marks
+    /// it. A record made here is a first sight (``ConditionalRecord/seen``).
+    func recordingConditionalBranch<Result>(
+        _ identity: ViewIdentity, isTrueBranch: Bool, _ body: (inout ConditionalRecord) -> Result
+    ) -> Result {
         activeIdentities.insert(identity)
-        let previous = lastConditionalCase[identity]
-        lastConditionalCase[identity] = isTrueBranch
-        guard let previous else { return false }
-        return previous != isTrueBranch
+        return body(&lastConditionalCase[identity, default: ConditionalRecord(isTrueBranch: isTrueBranch)])
     }
 
     // MARK: - onChange Tracking

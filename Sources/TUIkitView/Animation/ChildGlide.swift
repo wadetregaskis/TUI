@@ -25,6 +25,14 @@ package struct GlidingPlacements {
     /// z-index, in the order the container gave them, or `nil` for one whose
     /// last placement this container never saw — which is then not drawn.
     package var departing: [(placement: ChildPlacement, zIndex: Double)?]
+
+    /// How present each child laid out is — `1` for all but those fading in
+    /// (`ChildFade`) — or `nil` when none is fading in.
+    package var presence: [Double]?
+
+    /// The children that have gone, as each is drawn on this frame where it
+    /// was: faded, or part-way through a removal of its own (`ChildFade`).
+    package var leaving: [(picture: FrameBuffer, placement: ChildPlacement, zIndex: Double)] = []
 }
 
 extension RenderContext {
@@ -40,6 +48,9 @@ extension RenderContext {
     /// for the first time is placed directly: that is an insertion, and its
     /// transition is what animates it. A child that has gone is drawn where it
     /// last was while its removal plays (`DepartureStore`), taking no room.
+    /// With no transition of its own, a child the change put here fades in,
+    /// and one it took out — a branch, a case, a row — fades out where it was
+    /// from the picture it last drew, which the record keeps (`ChildFade`).
     ///
     /// A glide is the child's placement as an animated value in the
     /// ``AnimationStore``, asked about only while it moves, so it is interrupted
@@ -80,14 +91,21 @@ extension RenderContext {
         let store = storage.placements
         guard let record = store.record(at: identity) else {
             store.remember(
-                Self.entries(children, buffers, targets), at: identity, walk: storage.animations.currentWalk)
+                Self.entries(children, buffers, targets), pictures: buffers, at: identity,
+                walk: storage.animations.currentWalk)
             guard !departing.isEmpty else { return nil }
             return GlidingPlacements(presented: targets, departing: departing.map { _ in nil })
         }
         let unchanged = Self.record(record, matches: children, drawing: buffers, at: targets)
+        let still = record.gliding == nil && record.arriving == nil && record.leaving.isEmpty
         // The settled frame: the layout it had, nothing moving, nothing
-        // leaving. Every container on every frame nothing animates in it.
-        if unchanged, record.gliding == nil, departing.isEmpty { return nil }
+        // coming or going. Every container on every frame nothing animates in
+        // it — which keeps what its children drew, for the frame one of them
+        // goes on (`ChildFade`), and nothing else.
+        if unchanged, still, departing.isEmpty {
+            record.pictures = buffers
+            return nil
+        }
 
         // A change nothing animates, with nothing moving and nothing leaving:
         // every child is where the layout put it, and all the record needs is
@@ -95,15 +113,20 @@ extension RenderContext {
         // and asking the animation store about each of them is the glide's
         // price, which a stack whose rows change on every frame — `churn` —
         // paid on every frame for nothing (4–6% of its frame, profiled
-        // 2026-10-18).
-        if !unchanged, record.gliding == nil, departing.isEmpty, !Self.changeAnimates(in: self) {
+        // 2026-10-18). Under reduce motion an animated change still fades
+        // what comes and goes, so only a frame with no animation at all is
+        // this one.
+        if !unchanged, still, departing.isEmpty, !Self.frameAnimates(in: self) {
             record.entries = Self.entries(children, buffers, targets)
+            record.pictures = buffers
             record.departed = [:]
             record.held = [:]
             return nil
         }
 
         var glide = Glide(context: self, storage: storage, targets: targets, held: record.held)
+        let fade = ChildFade(context: self, storage: storage)
+        var arriving = record.arriving
         if unchanged {
             glide.continueMoving(record.entries, flags: record.gliding)
         } else {
@@ -111,32 +134,50 @@ extension RenderContext {
             let old = appearing ? [] : record.entries
             let matches = glide.matches(of: children, among: old)
             glide.startMoving(children, drawing: buffers, from: old, matches: matches)
-            record.departed = glide.departures(departing, kept: record.departed, from: old, matches: matches)
+            var claimed = Set(matches.compactMap { $0 })
+            record.departed = glide.departures(
+                departing, kept: record.departed, from: old, claiming: &claimed)
+            // A child that comes back while it leaves is a child again.
+            record.leaving.removeAll { leaver in children.contains { $0.hasIdentityStep(leaver.step) } }
+            for index in old.indices where !claimed.contains(index) {
+                let picture = index < record.pictures.count ? record.pictures[index] : nil
+                guard let leaver = fade.leaver(from: old[index], picture: picture, at: glide.picture(of: old[index]))
+                else { continue }
+                record.leaving.append(leaver)
+            }
+            // A container seen for the first time has no arrivals: what it
+            // holds is an appearance.
+            arriving =
+                appearing
+                ? nil : fade.arrivals(of: children, drawing: buffers, matches: matches, wasArriving: record.arriving)
             record.entries = Self.entries(children, buffers, targets)
         }
+        let presence = fade.presence(of: children, arriving: &arriving)
+        let leaving = fade.pictures(of: &record.leaving)
+        record.arriving = arriving
+        record.pictures = buffers
         record.gliding = glide.anyMoving ? glide.moving : nil
         record.held = glide.anyMoving ? glide.held : [:]
-        // Landed, and nothing leaving: drawn as a settled container is, so the
-        // last frame of a glide is the picture every frame after it is.
-        guard glide.anyMoving || !departing.isEmpty else { return nil }
+        // Landed, and nothing coming or going: drawn as a settled container
+        // is, so the last frame of a glide is the picture every frame after it
+        // is.
+        guard glide.anyMoving || !departing.isEmpty || presence != nil || !leaving.isEmpty else { return nil }
         // The picture is a function of the clock, which no memo can reproduce
         // from a buffer it kept: stored, the glide would freeze on this frame.
         // The declaration `animatedValue` makes.
         environment.volatileReadTracker?.recordRenderSideEffect()
         return GlidingPlacements(
             presented: glide.presented,
-            departing: departing.map { record.departed[$0.identityStep] })
+            departing: departing.map { record.departed[$0.identityStep] },
+            presence: presence, leaving: leaving)
     }
 
-    /// Whether a change of layout on this frame would move anything: the
-    /// frame can animate, its transaction carries an animation, and reduce
-    /// motion does not hold still what moves in X and Y — the answer
-    /// ``Glide``'s own `animation` gives.
+    /// Whether this frame's change runs under an animation at all — reduce
+    /// motion or not, which holds glides still and lets fades play.
     @MainActor
-    private static func changeAnimates(in context: RenderContext) -> Bool {
+    private static func frameAnimates(in context: RenderContext) -> Bool {
         let frame = context.environment.animationFrame
-        guard frame.canAnimate, context.environment.transaction.effectiveAnimation != nil else { return false }
-        return !context.environment.accessibilityReduceMotion
+        return frame.canAnimate && context.environment.transaction.effectiveAnimation != nil
     }
 
     /// `children` at `targets`, drawing `buffers`, as a record keeps them.
@@ -147,7 +188,8 @@ extension RenderContext {
         children.indices.map {
             ChildPlacementEntry(
                 step: children[$0].identityStep, placement: targets[$0], zIndex: children[$0].zIndex,
-                drawsNothing: drawsNothing(buffers[$0]))
+                drawsNothing: drawsNothing(buffers[$0]), isDeparting: children[$0].isDeparting,
+                viewType: children[$0].viewType)
         }
     }
 
@@ -320,15 +362,22 @@ private struct Glide {
         return matches
     }
 
+    /// Where the picture of `entry`, a child as this container last laid it
+    /// out, is now: where it is held, where a glide in flight has got to, or
+    /// its old place.
+    func picture(of entry: ChildPlacementEntry) -> ChildPlacement {
+        wasHeld[entry.step] ?? inFlight(key(entry.step)) ?? entry.placement
+    }
+
     /// Where each of `departing` is drawn while it leaves: where it was when
     /// it went — its old place, or where a glide in flight had got to — kept
-    /// from then on, and stacked as it was.
+    /// from then on, and stacked as it was. Each of `old` a slot stands for
+    /// joins `stillHere`, which holds those of `old` the children are already.
     func departures(
         _ departing: [ChildView], kept: [ChildIdentityStep: (placement: ChildPlacement, zIndex: Double)],
-        from old: [ChildPlacementEntry], matches: [Int?]
+        from old: [ChildPlacementEntry], claiming stillHere: inout Set<Int>
     ) -> [ChildIdentityStep: (placement: ChildPlacement, zIndex: Double)] {
         guard !departing.isEmpty else { return [:] }
-        var stillHere = Set(matches.compactMap { $0 })
         var departed: [ChildIdentityStep: (placement: ChildPlacement, zIndex: Double)] = [:]
         for child in departing {
             let step = child.identityStep
@@ -348,8 +397,7 @@ private struct Glide {
             }
             guard let previous else { continue }
             stillHere.insert(previous)
-            let placement = wasHeld[old[previous].step] ?? inFlight(key(old[previous].step)) ?? old[previous].placement
-            departed[step] = (placement, old[previous].zIndex)
+            departed[step] = (picture(of: old[previous]), old[previous].zIndex)
         }
         return departed
     }

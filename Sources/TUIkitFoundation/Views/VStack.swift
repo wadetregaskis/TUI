@@ -444,7 +444,8 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         let split = stackChildren(of: content, context: context)
         let children = split.laidOut
         guard !children.isEmpty else {
-            guard !split.departing.isEmpty else { return FrameBuffer() }
+            // Nothing laid out, and still what has left may be playing:
+            // the slot an `if` keeps, or a row the change took out (`ChildFade`).
             return context.glidingStackBuffer(
                 [], buffers: [], at: [], departing: split.departing, width: 0, height: 0) ?? FrameBuffer()
         }
