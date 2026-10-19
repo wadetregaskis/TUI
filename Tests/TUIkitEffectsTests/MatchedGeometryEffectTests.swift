@@ -12,7 +12,8 @@
 
 import Testing
 
-@testable import TUIkitApp
+import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitCore
 @testable import TUIkitEffects
 @testable import TUIkitFoundation
@@ -23,99 +24,36 @@ import Testing
 
 /// Frames rendered the way the run loop renders them — the scene root's
 /// geometry answered, and the frame drawn again when a reader or a matched
-/// view drew from a wrong answer — on a clock a test moves, each frame under
-/// the animation it is given.
+/// view drew from a wrong answer (`InputChainHarness`) — on a clock a test
+/// moves, each frame under the animation it is given, read as the screen
+/// shows it: layers composited, styling stripped.
 @MainActor
 private final class Frames {
-    let tui = TUIContext()
-    private let context: RenderContext
-    var now: Int64 = 0
-    var reducesMotion = false
+    let harness: InputChainHarness
 
-    init(width: Int = 40, height: Int = 12) {
-        var environment = EnvironmentValues()
-        environment.applyRuntimeServices(from: tui)
-        environment.canAnimate = true
-        context = RenderContext(
-            availableWidth: width, availableHeight: height, environment: environment, tuiContext: tui)
+    init(width: Int = 40, height: Int = 12, reducesMotion: Bool = false) {
+        harness = InputChainHarness(width: width, height: height) { environment in
+            environment.canAnimate = true
+            environment.accessibilityReduceMotion = reducesMotion
+        }
     }
 
     /// The root's corrections so far.
-    var corrections: GeometryCorrections { tui.mouseEventDispatcher.geometry.corrections }
+    var corrections: GeometryCorrections { harness.geometryCorrections }
 
-    /// One frame of `view` at `millis` on the frame clock, under `animation`,
-    /// as the screen shows it: styling stripped, layers composited.
+    /// One frame of `view` at `millis` on the frame clock, under `animation`.
     @discardableResult
     func draw<V: View>(_ view: @autoclosure () -> V, atMillis millis: Int = 0, animation: Animation? = nil)
         -> [String]
     {
-        now = Int64(millis) * 1_000_000
-        tui.mouseEventDispatcher.beginRenderPass()
-        tui.stateStorage.beginRenderPass()
-        tui.renderCache.beginRenderPass()
-        var frameContext = context
-        frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
-        frameContext.environment.frameNowNanos = now
-        frameContext.environment.transaction = Transaction(animation: animation)
-        frameContext.environment.accessibilityReduceMotion = reducesMotion
-        frameContext = frameContext.carryingGeometryRootOrigin()
-        let geometry = tui.mouseEventDispatcher.geometry
-        let size = CellSize(width: context.availableWidth, height: context.availableHeight)
-        let buffer = tui.stateStorage.inRenderPass {
-            let view = view()
-            var buffer = renderToBuffer(view, context: frameContext)
-            if geometry.resolveRemaining(in: buffer, size: size) {
-                geometry.noteCorrection(.root)
-                tui.mouseEventDispatcher.beginRenderPass()
-                tui.stateStorage.beginSceneRender()
-                buffer = renderToBuffer(view, context: frameContext)
-                if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }
-            }
-            return buffer
-        }
-        geometry.endFrame(frame: buffer, retainedBy: tui.stateStorage)
-        tui.stateStorage.endRenderPass()
-        tui.renderCache.removeInactive()
+        harness.now = Int64(millis) * 1_000_000
+        harness.transaction = Transaction(animation: animation)
+        let buffer = harness.frame(view())
         return buffer.compositingOverlays(
-            maxWidth: size.width, maxHeight: size.height, palette: context.environment.palette
+            maxWidth: harness.context.availableWidth, maxHeight: harness.context.availableHeight,
+            palette: harness.context.environment.palette
         ).lines.map(\.stripped)
     }
-}
-
-/// Fills whatever it is offered with one glyph: a flexible view whose drawn
-/// rectangle can be read off the screen.
-private struct Fill: View, Renderable, Layoutable {
-    let glyph: Character
-
-    init(_ glyph: Character) {
-        self.glyph = glyph
-    }
-
-    var body: Never { fatalError("Fill renders via Renderable") }
-
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        ViewSize(
-            width: proposal.width ?? context.availableWidth, height: proposal.height ?? context.availableHeight,
-            isWidthFlexible: true, isHeightFlexible: true)
-    }
-
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let line = String(repeating: glyph, count: max(0, context.availableWidth))
-        return FrameBuffer(lines: Array(repeating: line, count: max(0, context.availableHeight)))
-    }
-}
-
-/// The rectangle `glyph` covers on `screen`, as (x, y, width, height), or
-/// `nil` where it is not drawn.
-private func rect(of glyph: Character, in screen: [String]) -> CellRect? {
-    var cells: [(x: Int, y: Int)] = []
-    for (y, line) in screen.enumerated() {
-        for (x, character) in line.enumerated() where character == glyph { cells.append((x, y)) }
-    }
-    guard let minX = cells.map(\.x).min(), let maxX = cells.map(\.x).max(),
-        let minY = cells.map(\.y).min(), let maxY = cells.map(\.y).max()
-    else { return nil }
-    return CellRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
 }
 
 // MARK: - Scenes
@@ -132,15 +70,15 @@ private struct Followed: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Fill("S").frame(width: 8, height: 2)
+            GlyphFill("S").frame(width: 8, height: 2)
                 .matchedGeometryEffect(id: 1, in: space, anchor: sourceAnchor)
                 .padding(.leading, 20)
-            Fill(".").frame(width: 1, height: 3)
+            GlyphFill(".").frame(width: 1, height: 3)
             if fixedFollower {
-                Fill("f").frame(width: 1, height: 1)
+                GlyphFill("f").frame(width: 1, height: 1)
                     .matchedGeometryEffect(id: 1, in: space, properties: properties, anchor: anchor, isSource: false)
             } else {
-                Fill("f")
+                GlyphFill("f")
                     .matchedGeometryEffect(id: 1, in: space, properties: properties, anchor: anchor, isSource: false)
                     .frame(width: 2, height: 2)
             }
@@ -159,14 +97,14 @@ private struct Selection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 0) {
-                Fill("A").frame(width: 4, height: 1).matchedGeometryEffect(id: 0, in: space)
-                Fill(" ").frame(width: 16, height: 1)
-                Fill("B").frame(width: 8, height: 3).matchedGeometryEffect(id: 1, in: space)
-                Fill(" ").frame(width: 2, height: 1)
-                Fill("C").frame(width: 4, height: 1).matchedGeometryEffect(id: 2, in: space)
+                GlyphFill("A").frame(width: 4, height: 1).matchedGeometryEffect(id: 0, in: space)
+                GlyphFill(" ").frame(width: 16, height: 1)
+                GlyphFill("B").frame(width: 8, height: 3).matchedGeometryEffect(id: 1, in: space)
+                GlyphFill(" ").frame(width: 2, height: 1)
+                GlyphFill("C").frame(width: 4, height: 1).matchedGeometryEffect(id: 2, in: space)
             }
-            Fill(" ").frame(width: 1, height: 3)
-            Fill("f").matchedGeometryEffect(id: selected, in: space, isSource: false).frame(width: 1, height: 1)
+            GlyphFill(" ").frame(width: 1, height: 3)
+            GlyphFill("f").matchedGeometryEffect(id: selected, in: space, isSource: false).frame(width: 1, height: 1)
         }
     }
 }
@@ -180,10 +118,10 @@ private struct Hero: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if expanded {
-                Fill("B").matchedGeometryEffect(id: "card", in: space).frame(width: 8, height: 3)
+                GlyphFill("B").matchedGeometryEffect(id: "card", in: space).frame(width: 8, height: 3)
                     .padding(.leading, 20).padding(.top, 6)
             } else {
-                Fill("s").matchedGeometryEffect(id: "card", in: space).frame(width: 4, height: 1)
+                GlyphFill("s").matchedGeometryEffect(id: "card", in: space).frame(width: 4, height: 1)
             }
         }
     }
@@ -199,13 +137,13 @@ private struct Columns: View {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("L")
-                if !right { Fill("a").frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space) }
+                if !right { GlyphFill("a").frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space) }
             }
             .frame(width: 20, alignment: .topLeading)
             VStack(alignment: .leading, spacing: 0) {
                 Text("R")
                 Text("x")
-                if right { Fill("b").frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space) }
+                if right { GlyphFill("b").frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space) }
             }
         }
     }
@@ -292,11 +230,11 @@ struct MatchedGeometryEffectTests {
             @Namespace private var space
             var body: some View {
                 VStack(alignment: .leading, spacing: 0) {
-                    Fill("f")
+                    GlyphFill("f")
                         .matchedGeometryEffect(
                             id: 1, in: space, properties: .position, anchor: .topLeading, isSource: false)
                         .frame(width: 3, height: 1)
-                    Fill("S").frame(width: 5, height: 2)
+                    GlyphFill("S").frame(width: 5, height: 2)
                         .matchedGeometryEffect(id: 1, in: space, anchor: .bottomTrailing)
                         .padding(.leading, 9)
                 }
@@ -320,9 +258,9 @@ struct MatchedGeometryEffectTests {
             @Namespace private var space
             var body: some View {
                 VStack(alignment: .leading, spacing: 0) {
-                    Fill("S").frame(width: 3, height: 1).matchedGeometryEffect(id: 1, in: space)
+                    GlyphFill("S").frame(width: 3, height: 1).matchedGeometryEffect(id: 1, in: space)
                         .padding(.leading, inset)
-                    Fill("f").matchedGeometryEffect(id: 1, in: space, properties: .size, isSource: false)
+                    GlyphFill("f").matchedGeometryEffect(id: 1, in: space, properties: .size, isSource: false)
                         .frame(width: 1, height: 1)
                 }
             }
@@ -343,9 +281,9 @@ struct MatchedGeometryEffectTests {
             @Namespace private var space
             var body: some View {
                 VStack(alignment: .leading, spacing: 0) {
-                    Fill("S").frame(width: 3, height: 1).matchedGeometryEffect(id: 1, in: space)
+                    GlyphFill("S").frame(width: 3, height: 1).matchedGeometryEffect(id: 1, in: space)
                         .padding(.leading, inset)
-                    Fill("f").matchedGeometryEffect(id: 1, in: space, properties: .position, isSource: false)
+                    GlyphFill("f").matchedGeometryEffect(id: 1, in: space, properties: .position, isSource: false)
                         .frame(width: 1, height: 1)
                 }
             }
@@ -407,8 +345,7 @@ struct MatchedGeometryEffectTests {
         frames.draw(Selection(selected: 0))
         #expect(rect(of: "f", in: frames.draw(Selection(selected: 1), atMillis: 0))
             == CellRect(x: 20, y: 0, width: 8, height: 3))
-        let reduced = Frames()
-        reduced.reducesMotion = true
+        let reduced = Frames(reducesMotion: true)
         reduced.draw(Selection(selected: 0))
         #expect(rect(of: "f", in: reduced.draw(Selection(selected: 1), atMillis: 0, animation: .linear(duration: 1)))
             == CellRect(x: 20, y: 0, width: 8, height: 3))
@@ -455,7 +392,7 @@ struct MatchedGeometryEffectTests {
             var body: some View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("x")
-                    if shown { Fill("n").frame(width: 2, height: 1).matchedGeometryEffect(id: 1, in: space) }
+                    if shown { GlyphFill("n").frame(width: 2, height: 1).matchedGeometryEffect(id: 1, in: space) }
                 }
             }
         }

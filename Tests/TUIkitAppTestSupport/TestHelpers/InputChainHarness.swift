@@ -37,6 +37,12 @@ final class InputChainHarness {
     /// would never meet (decisions B92).
     var now: Int64 = 0
 
+    /// The transaction the next frame is drawn under, as the run loop hands
+    /// each frame the change it shows — an animated one's for the frame that
+    /// makes it, and none (the default) after. An animation needs the frame to
+    /// be able to animate too: `configure` sets `canAnimate`.
+    var transaction = Transaction()
+
     /// How many times the chain asked the app to quit.
     var quits: Int { quitCount.value }
     private let quitCount = QuitCount()
@@ -134,6 +140,7 @@ final class InputChainHarness {
         var frameContext = context
         frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
         frameContext.environment.frameNowNanos = now
+        frameContext.environment.transaction = transaction
         // The global space's origin, carried down when there are readers, as
         // `RenderLoop.renderContent` carries it.
         frameContext = frameContext.carryingGeometryRootOrigin()
