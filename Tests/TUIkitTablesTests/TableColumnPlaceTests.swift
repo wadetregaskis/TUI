@@ -66,52 +66,68 @@ private struct FilesPage: View {
 }
 
 @MainActor
+private final class Harness {
+    let shown = Shown()
+    let app: HeadlessApp<FilesApp>
+    private var now: Int64 = 0
+
+    init() {
+        app = HeadlessApp(FilesApp(shown), width: 60, height: 14)
+        frame()
+        frame()
+    }
+
+    func frame() {
+        now += 16_666_667
+        app.frame(atNanos: now)
+    }
+
+    func key(_ event: KeyEvent) {
+        app.send(event)
+        frame()
+    }
+
+    var lines: [String] { app.screen.map(\.stripped) }
+
+    var screen: String { lines.joined(separator: "\n") }
+
+    /// How far `title` starts on the header before `next` does: its column's
+    /// width and the gap after it.
+    func width(of title: String, before next: String) -> Int? {
+        guard let line = lines.first(where: { $0.contains(title) && $0.contains(next) }),
+            let start = line.range(of: title), let end = line.range(of: next)
+        else { return nil }
+        return line.distance(from: start.lowerBound, to: end.lowerBound)
+    }
+}
+
+@MainActor
 @Suite("A table keeps a column's width by its place")
 struct TableColumnPlaceTests {
     @Test("A width given to a column after an if stays with it when the if adds a column before it")
     func widthStaysWithItsColumn() throws {
-        let shown = Shown()
-        let app = HeadlessApp(FilesApp(shown), width: 60, height: 14)
-        var now: Int64 = 0
-        func frame() {
-            now += 16_666_667
-            app.frame(atNanos: now)
-        }
-        func key(_ event: KeyEvent) {
-            app.send(event)
-            frame()
-        }
-        var lines: [String] { app.screen.map(\.stripped) }
-        func width(of title: String, before next: String) -> Int? {
-            guard let line = lines.first(where: { $0.contains(title) && $0.contains(next) }),
-                let start = line.range(of: title), let end = line.range(of: next)
-            else { return nil }
-            return line.distance(from: start.lowerBound, to: end.lowerBound)
-        }
-        frame()
-        frame()
-
-        let kind = try #require(width(of: "Kind", before: "Tail"))
+        let harness = Harness()
+        let kind = try #require(harness.width(of: "Kind", before: "Tail"))
         // Ctrl-K picks the first column, → the next: Kind. Widened by two.
-        key(KeyEvent(key: .character("k"), ctrl: true))
-        key(KeyEvent(key: .right))
-        key(KeyEvent(key: .character("+")))
-        key(KeyEvent(key: .character("+")))
-        key(KeyEvent(key: .escape))
-        let widened = try #require(width(of: "Kind", before: "Tail"))
-        #expect(widened == kind + 2, "\(lines.joined(separator: "\n"))")
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        harness.key(KeyEvent(key: .right))
+        harness.key(KeyEvent(key: .character("+")))
+        harness.key(KeyEvent(key: .character("+")))
+        harness.key(KeyEvent(key: .escape))
+        let widened = try #require(harness.width(of: "Kind", before: "Tail"))
+        #expect(widened == kind + 2, "\(harness.screen)")
 
-        shown.size = true
-        frame()
-        frame()
+        harness.shown.size = true
+        harness.frame()
+        harness.frame()
         #expect(
-            width(of: "Kind", before: "Tail") == widened,
-            "Kind keeps the width it was given: \(lines.joined(separator: "\n"))")
+            harness.width(of: "Kind", before: "Tail") == widened,
+            "Kind keeps the width it was given: \(harness.screen)")
         // Size, new before it, takes no width it was not given: it shares the
         // room left as Name, declared alike and never resized, does — to the
         // cell the share's remainder gives the first column.
-        let name = try #require(width(of: "Name", before: "Size"))
-        let size = try #require(width(of: "Size", before: "Kind"))
-        #expect(abs(size - name) <= 1, "Size is as wide as Name: \(lines.joined(separator: "\n"))")
+        let name = try #require(harness.width(of: "Name", before: "Size"))
+        let size = try #require(harness.width(of: "Size", before: "Kind"))
+        #expect(abs(size - name) <= 1, "Size is as wide as Name: \(harness.screen)")
     }
 }
