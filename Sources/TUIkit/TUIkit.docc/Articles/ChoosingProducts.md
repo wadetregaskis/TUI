@@ -54,6 +54,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitNavigation` | `NavigationStack`, `NavigationPath`, `NavigationLink`, the zoom transition and `.matchedTransitionSource`, the split views, the inspector | |
 | `TUIkitPresentation` | `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover`, `modal` | `TUIkitChrome` |
 | `TUIkitMenus` | `Menu`, `ControlGroup`, `.contextMenu`, the menu styles | |
+| `TUIkitFilePanels` | `fileImporter`, `fileExporter`, `fileMover`, the `fileDialog` modifiers: the open and save panels | `TUIkitPresentation`, `TUIkitTables`, `TUIkitTextInput` |
 | `TUIkitCommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIkitApp`, `TUIkitPresentation` |
 | `TUIkitScenes` | `Settings` (presented as a sheet) and `AlertScene`, and the scene modifiers for alerts | `TUIkitApp`, `TUIkitPresentation` |
 | `TUIkitTextInput` | `TextField`, `SecureField`, `TextEditor` | |

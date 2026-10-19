@@ -15,7 +15,8 @@
 // carved out that is built on TUIkitFoundation is re-exported here: TUIkitApp
 // (`App`, `Scene` and the run loop, since step B3), TUIkitColorPicker
 // (`ColorPicker` and its panel, since step B4), TUIkitCommands (the
-// commands and the menu bar they draw, since lane O13), TUIkitCurveEditors (the
+// commands and the menu bar they draw, since lane O13), TUIkitFilePanels (the
+// file panels, since lane O10), TUIkitCurveEditors (the
 // tone-curve and channel-curve editors, TUIkitColorPicker's until C9b and
 // TUIkitColorEditors' until 2026-10-12), TUIkitNavigation (the
 // navigation containers, since step B5, and the presentations until step C1),
@@ -57,6 +58,7 @@
 @_exported import TUIkitCore
 @_exported import TUIkitCurveEditors
 @_exported import TUIkitEffects
+@_exported import TUIkitFilePanels
 @_exported import TUIkitForms
 @_exported import TUIkitFoundation
 @_exported import TUIkitGrid

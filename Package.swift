@@ -6,9 +6,9 @@ import PackageDescription
 /// Every library module: what TUIkitIntegrationTests, the one test target that can see everything, depends on.
 let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
-    "TUIkitEffects", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitStrings",
-    "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
+    "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
+    "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch",
+    "TUIkitStrings", "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
     "TUIkitWidthCorpus", "CTestSupport",
 ]
 
@@ -87,6 +87,11 @@ let package = Package(
         // TUIkitEffects: transitions, content transitions, `.symbolEffect`, `.visualEffect`,
         // `.scrollTransition` and the colour effects.
         .library(name: "TUIkitEffects", targets: ["TUIkitEffects"]),
+        // TUIkitFilePanels: `fileImporter`, `fileExporter`, `fileMover` and the `fileDialog` customizations, the
+        // open and save panels TUIkit draws for them, `FileDialogBrowserOptions`, `FileDocument` on Apple platforms
+        // and `UTType` where UniformTypeIdentifiers is absent. Re-exports TUIkitPresentation, TUIkitTables and
+        // TUIkitTextInput, which its panel is made of.
+        .library(name: "TUIkitFilePanels", targets: ["TUIkitFilePanels"]),
         // TUIkitForms: `Form`, `LabeledContent`, `GroupBox`, `Card` and `Panel`, and their styles.
         .library(name: "TUIkitForms", targets: ["TUIkitForms"]),
         // TUIkitGrid: `Grid`, `GridRow`, `LazyVGrid`, `LazyHGrid` and `GridItem`.
@@ -540,11 +545,25 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // Lane O10's leaf, built on TUIkitFoundation: the file panels (refusal review O10, ruled 2026-10-12: open and
+        // save dialogs drawn by TUIkit, adapted to the terminal). `fileImporter`, `fileExporter`, `fileMover` and
+        // the `fileDialog` customizations present a panel TUIkit draws in a sheet, listing a folder in a `Table`
+        // with a path bar and, to save, a name field; so it is built on TUIkitPresentation (the sheet and the
+        // replace alert), TUIkitTables (the folder's rows, which bring TUIkitLists) and TUIkitTextInput (the name
+        // and path fields). A module of its own so that an app with no file panel compiles and links none of it.
+        // Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it.
+        // It re-exports the four (Sources/TUIkitFilePanels/Exports.swift).
+        .target(
+            name: "TUIkitFilePanels",
+            dependencies: ["TUIkitFoundation", "TUIkitPresentation", "TUIkitTables", "TUIkitTextInput"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitCommands, TUIkitCurveEditors, TUIkitEffects,
-        // TUIkitForms, TUIkitGrid, TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers,
-        // TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
+        // TUIkitFilePanels, TUIkitForms, TUIkitGrid, TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls,
+        // TUIkitPickers, TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names
         // TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the
@@ -553,10 +572,10 @@ let package = Package(
             name: "TUIkit",
             dependencies: [
                 "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
-                "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-                "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch",
-                "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore", "TUIkitStyling",
-                "TUIkitImage", "TUIkitView",
+                "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
+                "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes",
+                "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore",
+                "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -762,6 +781,14 @@ let package = Package(
             dependencies: [
                 "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitEffects", "TUIkitFoundation",
                 "TUIkitStyling", "TUIkitTerminalHost", "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitFilePanelsTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitChrome", "TUIkitCore", "TUIkitFilePanels", "TUIkitFoundation",
+                "TUIkitLists", "TUIkitPresentation", "TUIkitStrings", "TUIkitTables", "TUIkitTestSupport",
+                "TUIkitTextInput", "TUIkitView",
             ]
         ),
         .testTarget(

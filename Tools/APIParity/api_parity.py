@@ -60,7 +60,7 @@ SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 # of TUIkitFoundation, or peeled out of a coarse group, joins this list then.
 TUIKIT_MODULES = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
-    "TUIkitEffects", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
+    "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
     "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTables",
     "TUIkitTabs", "TUIkitTextInput",
     "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",

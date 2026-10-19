@@ -849,7 +849,8 @@ jobs:
   # TUIkitTables, TUIkitTabs and TUIkitGrid, which steps C2 to C4 peeled out of
   # TUIkitLists, and TUIkitNumericControls, TUIkitPickers, TUIkitSearch and
   # TUIkitForms, which steps C7, C8, C5 and C6 peeled out of TUIkitTextInput,
-  # and TUIkitCurveEditors, which C9b peeled out of TUIkitColorPicker.
+  # and TUIkitCurveEditors, which C9b peeled out of TUIkitColorPicker, and
+  # TUIkitFilePanels, lane O10's leaf, a module of its own from the start.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -1105,6 +1106,17 @@ jobs:
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitCurveEditors"
 
+      # Lane O10's leaf, built on TUIkitPresentation, TUIkitTables and
+      # TUIkitTextInput, so after them: the file panels. It reads folders
+      # through FileManager and calls no POSIX API; its `#if`s are
+      # `canImport(UniformTypeIdentifiers)` (Apple's `UTType`, or its own
+      # where that module is absent, as on Windows) and `canImport(Darwin)`
+      # (a name column's comparator, as TUIkitTables').
+      - name: "Build TUIkitFilePanels"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFilePanels"
+
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they go green, then binding
@@ -1290,6 +1302,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitCurveEditors
+      - name: "Build TUIkitFilePanels"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitFilePanels
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.

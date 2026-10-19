@@ -407,6 +407,45 @@ for content that should always be presented while its host is on screen.
 > anchored to a control is still better spelled ``Menu`` or
 > `contextMenu(menuItems:)`; `.popover` is for arbitrary content.
 
+## Open and save panels
+
+SwiftUI's `fileImporter` presents the system's open panel; a terminal has none,
+so TUIkit draws one (the `TUIkitFilePanels` module), in a sheet as large as a
+page. It lists a folder's items in a table — Name, Size, Date Modified and
+Kind, sortable by any of them, folders first and marked with a trailing `/` —
+under the folder's path, with the hidden-files switch and the buttons below.
+Items of a type the caller does not take are dimmed, and the cursor passes over
+them.
+
+```swift
+@State private var importing = false
+
+Button("Open…") { importing = true }
+    .fileImporter(isPresented: $importing, allowedContentTypes: [.plainText, .json]) { result in
+        if case .success(let url) = result { open(url) }
+    }
+```
+
+The keys are a terminal file browser's: <kbd>↑</kbd> and <kbd>↓</kbd> move,
+typing a name's first letters finds it, <kbd>Return</kbd> opens a folder or
+chooses a file, <kbd>Space</kbd> selects (adding to the selection where several
+may be chosen), <kbd>←</kbd> or <kbd>Backspace</kbd> goes to the enclosing
+folder and <kbd>~</kbd> to the home folder, and <kbd>Esc</kbd> cancels. A
+double-click opens or chooses, and `..` beside the path goes up.
+
+The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
+`onCompletion` hears the choice; a cancellation clears the binding and calls
+`onCancellation`, never `onCompletion`. The panel opens on the folder the app
+was started from, and later on the folder of the last choice. It browses the
+machine the app runs on — over `ssh`, the remote one.
+
+`allowedContentTypes` takes UniformTypeIdentifiers' `UTType` on Apple
+platforms (import that module where you name the type, as beside SwiftUI);
+where the framework does not exist, `TUIkitFilePanels` declares a `UTType` of
+its own with the same spelling and the common types, so the code compiles
+unchanged on Linux. Type a file of your app's own by its extension with
+`UTType(filenameExtension:conformingTo:)`, which works everywhere.
+
 ## Notifications
 
 Notifications are toast-style messages that appear briefly and then fade,

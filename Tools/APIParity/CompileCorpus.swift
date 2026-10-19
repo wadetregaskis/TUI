@@ -4434,3 +4434,57 @@ private struct CorpusPointerStyles: View {
         }
     }
 }
+
+// MARK: - File panels (lane O10)
+
+/// The three importers as SwiftUI's documentation writes them: the template
+/// directory picker of `fileImporter(isPresented:allowedContentTypes:onCompletion:)`
+/// (its security-scoped access included), the PDF combiner of the multiple
+/// form, and the `onCancellation:` form with its trailing closures.
+@MainActor
+private struct CorpusFileImporters: View {
+    @State private var showFileImporter = false
+    var onTemplatesDirectoryPicked: (URL) -> Void
+    var handlePickedPDF: (URL) -> Void
+
+    var body: some View {
+        VStack {
+            Button {
+                showFileImporter = true
+            } label: {
+                Label("Choose templates directory", systemImage: "folder.circle")
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.directory]
+            ) { result in
+                switch result {
+                case .success(let directory):
+                    let gotAccess = directory.startAccessingSecurityScopedResource()
+                    if !gotAccess { return }
+                    onTemplatesDirectoryPicked(directory)
+                    directory.stopAccessingSecurityScopedResource()
+                case .failure(let error):
+                    print(error)
+                }
+            }
+            Button("Choose PDFs to combine") { showFileImporter = true }
+                .fileImporter(
+                    isPresented: $showFileImporter,
+                    allowedContentTypes: [.pdf],
+                    allowsMultipleSelection: true
+                ) { result in
+                    if case .success(let files) = result { files.forEach(handlePickedPDF) }
+                }
+            Button("Import notes") { showFileImporter = true }
+                .fileImporter(
+                    isPresented: $showFileImporter, allowedContentTypes: [.plainText, .json],
+                    allowsMultipleSelection: false
+                ) { result in
+                    _ = result
+                } onCancellation: {
+                    print("cancelled")
+                }
+        }
+    }
+}

@@ -185,6 +185,38 @@ public enum LocalizationKey {
         case chooseFile = "placeholder.choose_file"
     }
 
+    /// The words of the open and save panels TUIkitFilePanels draws for
+    /// `fileImporter`, `fileExporter` and `fileMover`. Internal to the package:
+    /// they are the panel's own words, not an app's to reuse.
+    package enum FilePanel: String, CaseIterable {
+        /// An open panel's title and confirmation button.
+        case open = "filePanel.open"
+        /// The toggle that lists the files a folder hides.
+        case showHiddenFiles = "filePanel.showHiddenFiles"
+        /// The path bar's button to the folder above.
+        case enclosingFolder = "filePanel.enclosingFolder"
+        /// The Size column's title.
+        case columnSize = "filePanel.column.size"
+        /// The Date Modified column's title.
+        case columnDateModified = "filePanel.column.dateModified"
+        /// The Kind column's title.
+        case columnKind = "filePanel.column.kind"
+        /// A folder's kind, where the system gives none.
+        case kindFolder = "filePanel.kind.folder"
+        /// A file's kind, where neither the system nor the type gives one.
+        case kindDocument = "filePanel.kind.document"
+        /// Said while a folder is being read.
+        case loading = "filePanel.loading"
+        /// Said for a folder with nothing to list.
+        case emptyFolder = "filePanel.emptyFolder"
+        /// Said for a folder that cannot be read, its name as `%@`.
+        case unreadableFolder = "filePanel.unreadableFolder"
+        /// The status bar's word for the key to the folder above.
+        case statusEnclosingFolder = "filePanel.status.enclosingFolder"
+        /// The status bar's word for the key to the home folder.
+        case statusHome = "filePanel.status.home"
+    }
+
     /// Menu items and sections
     public enum Menu: String, CaseIterable {
         case file = "menu.file"
@@ -429,6 +461,11 @@ extension LocalizationService {
 
     /// Retrieves a localized string for a placeholder key.
     public func string(for key: LocalizationKey.Placeholder) -> String {
+        frameworkString(for: key.rawValue)
+    }
+
+    /// Retrieves a localized string for a file panel key.
+    package func string(for key: LocalizationKey.FilePanel) -> String {
         frameworkString(for: key.rawValue)
     }
 

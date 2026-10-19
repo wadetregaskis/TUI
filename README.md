@@ -428,7 +428,8 @@ Sources/
 │   into TUIkitForms, TUIkitSearch, TUIkitPickers and
 │   TUIkitNumericControls). TUIkitCommands (lane O13) and TUIkitScenes
 │   (lane O9) were modules of their own from the start, built on TUIkitApp,
-│   whose Scene they extend.
+│   whose Scene they extend, and so was TUIkitFilePanels (lane O10), built
+│   on TUIkitPresentation, TUIkitTables and TUIkitTextInput.
 │   TUIkitApp, TUIkitColorPicker, TUIkitCurveEditors, TUIkitNavigation,
 │   TUIkitPresentation,
 │   TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome,
@@ -436,7 +437,7 @@ Sources/
 │   TUIkitSearch, TUIkitPickers and TUIkitNumericControls are built on
 │   TUIkitFoundation (TUIkitTables and TUIkitTabs on TUIkitLists as well,
 │   TUIkitSearch on TUIkitTextInput and TUIkitPickers, TUIkitCurveEditors
-│   on TUIkitColorPicker), and the umbrella re-exports all nineteen.
+│   on TUIkitColorPicker), and the umbrella re-exports all twenty.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
 ├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
@@ -463,6 +464,7 @@ Sources/
 ├── TUIkitCurveEditors/   The tone-curve and channel-curve editor panels
 ├── TUIkitApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
 ├── TUIkitCommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
+├── TUIkitFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
 ├── TUIkitScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows
 ├── Example/        Example app (executable target)
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
@@ -509,7 +511,7 @@ Benchmarks/
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-`import TUIkit` re-exports every module: `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitCommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIkitScenes` (the `Settings` scene and `AlertScene`), `TUIkitColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUIkitCurveEditors` (the tone-curve and channel-curve editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUIkitNumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`). Each of these is also a library product of its own (TUIkitStrings and TUIkitTerminalHost come with `TUIkitFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+`import TUIkit` re-exports every module: `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitCommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIkitFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUIkit draws for them), `TUIkitScenes` (the `Settings` scene and `AlertScene`), `TUIkitColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUIkitCurveEditors` (the tone-curve and channel-curve editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUIkitNumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`). Each of these is also a library product of its own (TUIkitStrings and TUIkitTerminalHost come with `TUIkitFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The bridges to Apple's own graphics types — `Color(nsColor:)`, `NSColor(_:)`, `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
 
 ## Requirements
 

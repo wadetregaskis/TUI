@@ -271,7 +271,6 @@
         "EnvironmentValues.openDocument",
         "NewDocumentAction*",
         "OpenDocumentAction*",
-        "View.fileImporter*",
         "View.fileExporter*",
         "View.fileMover*",
         "View.fileDialog*",
@@ -285,7 +284,7 @@
         "DocumentBaseBox*",
         "DefaultDocumentGroupLaunchActions*"
       ],
-      "why": "The document architecture and the system file panels: DocumentGroup, FileDocument, the importer/exporter/mover sheets and the Services menu. Each presents an AppKit panel backed by file coordination and UTType, and TUIkit has no window to present one in. An app that needs a file picker draws it from `List` and the file system."
+      "why": "The document architecture, the Services menu, and the file panels lane O10 has not reached yet. DocumentGroup and its configurations read and write through FileWrapper, which Linux's Foundation lacks, and ReferenceFileDocument is an ObservableObject, a family TUIkit does not have (compatibility guide §2.3). The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into. `fileImporter` ships: TUIkit draws the open panel in a sheet (TUIkitFilePanels; decisions File panels (O10))."
     },
     {
       "match": [

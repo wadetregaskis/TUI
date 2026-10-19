@@ -2006,6 +2006,27 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   on, and Escape, which closes a window opened over another, is its key.
 - **Decided:** [B-O9-9](<Decisions/Several scenes on one surface (O9).md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>). **Lane.**
 
+### W14. A file panel is TUIkit's own, browsing the machine the app runs on
+
+- **SwiftUI:** `fileImporter` presents the system's open panel (Apple's
+  documentation), which browses the Mac's file system, opens on the folder the
+  app last used, sorts folders and files together, and selects as the cursor
+  moves (macOS's panels, not measured through SwiftUI).
+- **TUIkit:** a panel TUIkit draws in a sheet (`FilePanel`): the folder's items
+  in a `Table`, folders first, opening on the process's working directory and
+  then on the folder of the last choice made through the modifier. Return opens
+  a folder or chooses the item under the cursor (or the selection, when the
+  cursor is in it), Space selects, ← or Backspace goes up. It browses the
+  file system of the machine the app runs on: over `ssh`, the remote one.
+  `FileImporterPanelTests` pins the keys and the callbacks' order.
+- **Why:** a terminal has no system panel to present; the ruling is a panel
+  drawn for the terminal. Folders first is the terminal file managers' order,
+  the working directory is where a terminal app's user is working, and the
+  cursor is apart from the selection in every TUIkit list (V2). A remote
+  session's app reads the remote disk, so that is the one to browse.
+- **Decided:** refusal review [O10](<Refusals re-examined, wave 17 (2026-10-03).md#o10-file-panels-from-p16--ml>),
+  ruled 2026-10-12; the details are [B-O10-1 to B-O10-4](<Decisions/File panels (O10).md>).
+  **Owner** (the panel), **Lane** (the details).
 ---
 
 ## Lifecycle

@@ -374,6 +374,11 @@ final class LocalizationKeyConsistencyTests {
             enumKeys.insert(key.rawValue)
         }
 
+        // The file panels' words — enumerated, as the status bar's are.
+        for key in LocalizationKey.FilePanel.allCases {
+            enumKeys.insert(key.rawValue)
+        }
+
         // Check for extraneous keys
         let translationKeys = Set(englishTranslations.keys)
         let extraneousKeys = translationKeys.subtracting(enumKeys)
@@ -384,11 +389,11 @@ final class LocalizationKeyConsistencyTests {
     @Test("All enum keys are covered in translations")
     func allEnumKeysCovered() {
         // button + label + error + placeholder + menu + dialog + validation
-        //   + statusbar + appearance + time span + key names
+        //   + statusbar + appearance + time span + key names + file panels
         let expectedKeyCount =
             26 + LocalizationKey.Label.allCases.count + 11 + 6 + LocalizationKey.Menu.allCases.count + 7 + 4
             + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
-            + LocalizationKey.KeyName.allCases.count
+            + LocalizationKey.KeyName.allCases.count + LocalizationKey.FilePanel.allCases.count
         #expect(
             englishTranslations.count == expectedKeyCount,
             "Expected \(expectedKeyCount) keys in translations, but got \(englishTranslations.count)"
