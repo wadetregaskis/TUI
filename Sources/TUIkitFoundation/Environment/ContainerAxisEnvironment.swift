@@ -21,7 +21,7 @@ import TUIkitView
 /// environment write on every stack's render. Kept within an existential's
 /// inline buffer — the stack cores write it on every render, and a value too
 /// big for it would be a heap box each time.
-struct ContainerRelationship {
+struct ContainerRelationship: Equatable {
     /// The axis the stack lays its children out along.
     var axis: Axis?
 
@@ -87,6 +87,12 @@ extension EnvironmentValues {
         get { self[ContainerAxisKey.self].offersNoWidth }
         set { self[ContainerAxisKey.self].offersNoWidth = newValue }
     }
+
+    /// The whole relationship, read or written as one entry.
+    fileprivate var containerRelationship: ContainerRelationship {
+        get { self[ContainerAxisKey.self] }
+        set { self[ContainerAxisKey.self] = newValue }
+    }
 }
 
 extension RenderContext {
@@ -106,12 +112,20 @@ extension RenderContext {
     /// cleared with the rest of the relationship — unless `passesNoWidthOn`
     /// and it was offered none itself: a row, which lays its views along the
     /// width, and a stack of statically one view pass the unspecified width
-    /// on, as SwiftUI's do. Read only where it may pass it on.
+    /// on, as SwiftUI's do.
+    ///
+    /// Written only where it differs from the relationship in force: a write
+    /// copies the whole environment, which the context shares with the one
+    /// it came from, and a column inside a column, or inside a bordered box
+    /// that stacks its body, publishes the very relationship it was given —
+    /// `deep` spent 1.0% of its frame copying environments here, its every
+    /// level a bordered column. The one read it costs is the read a row made
+    /// anyway, for the width it may pass on.
     package func publishingContainerAxis(_ axis: Axis, passesNoWidthOn: Bool = false) -> Self {
         var copy = self
-        let offersNoWidth = passesNoWidthOn && environment.offeredNoWidth
-        copy.environment.containerAxis = axis
-        if offersNoWidth { copy.environment.offeredNoWidth = true }
+        let inForce = environment.containerRelationship
+        let published = ContainerRelationship(axis: axis, offersNoWidth: passesNoWidthOn && inForce.offersNoWidth)
+        if published != inForce { copy.environment.containerRelationship = published }
         copy.sectionWholeness = .apart
         return copy
     }
