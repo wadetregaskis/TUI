@@ -47,17 +47,19 @@ enum GlassCells {
     ///   - hovered: Whether the pointer is over interactive glass.
     ///   - context: The context the glass is drawn in.
     ///   - owner: The type drawing it, which keys the surface's colour
-    ///     animation.
+    ///     animation at the context's identity; `nil` to draw the surface as it
+    ///     is, for glass drawn somewhere that is not its own (a container's).
     /// - Returns: The glass's cells.
     @MainActor
     static func drawing(
         _ glass: Glass, in shape: any Shape, columns: Int, rows: Int, hovered: Bool, context: RenderContext,
-        owner: Any.Type
+        owner: Any.Type?
     ) -> ShapeCells {
         let environment = context.environment
         let frame = ShapeFrame(columns: columns, rows: rows, aspect: environment.imageCellAspect)
         let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
-        let surface = ColorAnimation.resolving(glass.surface(in: environment), owner: owner, context: context)
+        let target = glass.surface(in: environment)
+        let surface = owner.map { ColorAnimation.resolving(target, owner: $0, context: context) } ?? target
         let painter = ShapePainter(
             paint: .color(surface), extent: GradientFrame(width: columns, height: rows), aspect: frame.aspect,
             palette: environment.palette)
@@ -229,15 +231,23 @@ enum GlassCells {
 }
 
 extension ShapeCells {
-    /// `top` laid over these cells, the same size: each cell `top` draws takes
-    /// the place of this one, keeping this one's field under a glyph that
-    /// states none — a rim's line on the surface it rims.
-    mutating func laying(_ top: ShapeCells) {
-        guard top.width == width, top.height == height else { return }
-        for index in cells.indices where !top.cells[index].isEmpty {
-            var cell = top.cells[index]
-            if cell.field == nil, cells[index].glyph == " " { cell.field = cells[index].field }
-            cells[index] = cell
+    /// `top` laid over these cells with its top-left at `origin`, cut to these
+    /// cells' bounds: each cell `top` draws takes the place of the one under
+    /// it, keeping that one's field under a glyph that states none — a rim's
+    /// line on the surface it rims.
+    mutating func laying(_ top: ShapeCells, at origin: (x: Int, y: Int) = (0, 0)) {
+        for row in 0..<top.height {
+            let y = origin.y + row
+            guard y >= 0, y < height else { continue }
+            for column in 0..<top.width {
+                let x = origin.x + column
+                guard x >= 0, x < width else { continue }
+                var cell = top[column, row]
+                guard !cell.isEmpty else { continue }
+                let under = self[x, y]
+                if cell.field == nil, under.glyph == " " { cell.field = under.field }
+                self[x, y] = cell
+            }
         }
     }
 }

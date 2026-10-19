@@ -3946,3 +3946,31 @@ private struct CorpusGlassLabels: View {
         }
     }
 }
+
+/// `GlassEffectContainer` and `glassEffectUnion(id:namespace:)` as Apple's
+/// documentation writes them: the default spacing, a stated one, and a union
+/// keyed by a value of the app's own.
+@MainActor
+private struct CorpusGlassContainers: View {
+    private enum Placement: Hashable, Sendable { case leading, trailing }
+
+    @Namespace private var namespace
+
+    var body: some View {
+        VStack {
+            GlassEffectContainer {
+                HStack {
+                    Image(systemName: "pencil").glassEffect()
+                    Image(systemName: "note").glassEffect()
+                }
+            }
+            GlassEffectContainer(spacing: 10) {
+                HStack(spacing: 10) {
+                    Text("One").padding().glassEffect().glassEffectUnion(id: Placement.leading, namespace: namespace)
+                    Text("Two").padding().glassEffect().glassEffectUnion(id: Placement.leading, namespace: namespace)
+                    Text("Three").padding().glassEffect().glassEffectUnion(id: nil as Placement?, namespace: namespace)
+                }
+            }
+        }
+    }
+}

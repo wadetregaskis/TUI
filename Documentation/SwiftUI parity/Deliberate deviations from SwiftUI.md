@@ -1126,14 +1126,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   appear active is opaque, as a material is. Interactive glass lifts its rim
   again under the pointer; it takes no click and no focus. Layout is
   untouched, and the rim shows only in the view's blank cells — pad the view,
-  as SwiftUI's examples do (`GlassEffectTests`).
+  as SwiftUI's examples do (`GlassEffectTests`). In a `GlassEffectContainer`,
+  glass of one kind that touches, overlaps or comes closer than the spacing (in
+  cells), or shares a union, is one shape — the rectangle round it — where
+  SwiftUI's shapes blend by degrees (`GlassEffectContainerTests`).
 - **Why:** a cell has nothing below it to blur or bend (C5); a rim is what is
   left of glass's edge at cell resolution, and drawn in the appearance's lines
   it sits beside the app's boxes and buttons as one of them.
 - **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
   ruled 2026-10-12: option (b) for Glass, with option (c)'s rim;
   [B-GLASS-1](<Decisions/Glass (GLASS).md#b-glass-1-glass-is-a-materials-surface-with-a-highlighted-rim-behind-the-view>),
-  [B-GLASS-2](<Decisions/Glass (GLASS).md#b-glass-2-the-rim-is-drawn-in-the-appearances-family>). **Owner**, with **Lane** choices.
+  [B-GLASS-2](<Decisions/Glass (GLASS).md#b-glass-2-the-rim-is-drawn-in-the-appearances-family>),
+  [B-GLASS-5](<Decisions/Glass (GLASS).md#b-glass-5-a-container-draws-glass-that-comes-near-as-one-shape-round-all-of-it>). **Owner**, with **Lane** choices.
 
 ---
 

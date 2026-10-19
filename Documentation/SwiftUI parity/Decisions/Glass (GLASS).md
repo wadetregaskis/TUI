@@ -119,3 +119,50 @@ page's own colour and leaves the ground as it was.
 **The fuller version:** untinted glass over something that is not the page —
 what is behind is not known where the glass draws, so the page is the best
 estimate it has, and the default already. Nothing owed.
+
+### B-GLASS-5. A container draws glass that comes near as one shape, round all of it
+
+*`GlassEffectContainer(spacing:content:)`, `View.glassEffectUnion(id:namespace:)`*
+
+SwiftUI's container renders the glass inside it together: shapes blend into
+one another as they approach — sooner the larger the spacing — and a union
+is one shape round all of its members. A cell is joined or not, so here:
+
+- **Who joins:** two glasses of the same kind (variant, tint and
+  interactivity) when they touch or overlap, or come fewer than `spacing`
+  cells apart — at the spacing itself, the gap an `HStack` of the same spacing
+  leaves, they stay apart, as SwiftUI's at rest do — and every glass of one
+  union, wherever it is, when they also share a kind of shape. Glass of two
+  kinds never joins: one shape has one surface. `spacing` is cells, an `Int?`,
+  as every interface measurement is (compatibility guide §2.1).
+- **What is drawn:** the smallest rectangle round the members, in the first
+  member's shape and glass, behind the container's content; its rim lifts
+  where the pointer is over any member.
+- **How:** each glass draws itself and tells the container where it is (a
+  geometry marker it finds in what the content drew, `GlassEffectGathering`).
+  The container keeps who was in a joined group; next pass they leave their
+  glass to it. So a group forms one pass after its members come together —
+  the change of who is joined is a state write, which draws that next pass —
+  and a member that leaves is drawn apart at once. Glass in a container
+  declares a render side effect, so no memo keeps a subtree with one.
+- **Where it stops:** a glass in a `ScrollView` inside the container draws
+  itself, since what the container draws is not clipped to the viewport. A
+  `List` does not stop it; a glass in a list row inside a container joins as
+  though the list were not clipping it. Nothing else in TUIkit draws glass in
+  lists.
+
+**Alternatives.**
+
+1. **No joining:** the container is its content. Free; a container would be
+   a no-op, which rule 2 forbids.
+2. **Join in the same pass**, drawing the content twice when who is joined
+   changes: no frame with the members apart, at the price of a second walk of
+   the container's content on each change — and a second walk re-registers
+   every handler and marker in it (`RenderWalkCheckpoint`). Half a day.
+
+**The fuller version:** the union of the members' own shapes rather than a
+rectangle round them — each member's coverage, joined by a bridge across the
+gaps closer than the spacing, its rim traced round the union's outline with
+the box glyphs' junctions — closer to SwiftUI's blended shape, at cell
+resolution. About a day and a half; and a list's rows stopping the container
+as a scroll view does, an hour.

@@ -295,6 +295,9 @@ extension _ScrollViewCore {
         // (unbounded, below) measure canvas — e.g. Image's `.imageFitTarget(.viewport)`.
         canvas.environment.scrollViewportSize = ScrollViewportSize(
             width: contentWidth, height: viewportHeight)
+        // What a glass container draws is not clipped to this viewport, so
+        // the glass in here draws itself (`glassEffectGathering`).
+        if canvas.environment.glassEffectGathering != nil { canvas.environment.glassEffectGathering = nil }
         // A windowed stack's width means every row here exactly when this
         // scrolls horizontally — see `asksWholeContentWidth`. Written only when
         // it differs, since most scroll views are vertical inside nothing.

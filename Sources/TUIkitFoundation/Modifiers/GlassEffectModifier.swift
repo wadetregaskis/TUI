@@ -98,15 +98,44 @@ extension _GlassEffect: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !glass.isIdentity else { return TUIkitView.renderToBuffer(content, context: context) }
         let hover = hoverBox(context)
+        let hovered = hover?.value ?? false
         var base = TUIkitView.renderToBuffer(content, context: contentContext(context))
         guard base.width > 0, base.height > 0 else { return base }
-        let layer = GlassCells.drawing(
-            glass, in: shape, columns: base.width, rows: base.height, hovered: hover?.value ?? false,
-            context: context, owner: Self.self)
-        base.opacityRegions += base.claimsShowingGlyphs(of: layer)
-        var buffer = compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
+        // In a container, a glass the container drew last pass as one of a
+        // joined group leaves its glass to the container again.
+        let gathering = context.isMeasuring ? nil : context.environment.glassEffectGathering
+        let drawsItself = gathering?.drawnByContainer.contains(context.identity) != true
+        var buffer = base
+        if drawsItself {
+            let layer = GlassCells.drawing(
+                glass, in: shape, columns: base.width, rows: base.height, hovered: hovered, context: context,
+                owner: Self.self)
+            base.opacityRegions += base.claimsShowingGlyphs(of: layer)
+            buffer = compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
+        }
+        if let gathering { tell(gathering, about: &buffer, drewItself: drawsItself, hovered: hovered, context: context) }
         if let hover { observeHover(into: hover, buffer: &buffer, context: context) }
         return buffer
+    }
+
+    /// Tells the ``GlassEffectContainer`` this glass is in what it is, and
+    /// stamps the marker it finds it by.
+    ///
+    /// A render side effect a cached buffer cannot repeat — the container
+    /// learns of its glass only from glass that draws — so the memos keep none
+    /// of a subtree that does it.
+    private func tell(
+        _ gathering: GlassEffectGathering, about buffer: inout FrameBuffer, drewItself: Bool, hovered: Bool,
+        context: RenderContext
+    ) {
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        let marker = gathering.gather(
+            GatheredGlass(
+                identity: context.identity, glass: glass,
+                shape: resolvedShape(shape, in: context, columns: buffer.width, rows: buffer.height),
+                size: CellSize(width: buffer.width, height: buffer.height),
+                union: context.environment.glassEffectUnion, isHovered: hovered, drewItself: drewItself))
+        buffer.hitTestRegions.append(.geometryMarker(marker))
     }
 
     /// The context the content is drawn in: on tinted glass, with the tinted
