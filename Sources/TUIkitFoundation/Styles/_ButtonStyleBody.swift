@@ -309,9 +309,16 @@ struct _ButtonStyleBody: View, Renderable {
     /// stated where it is `authored` — worked out once, for the drawing and
     /// for the measure's probe of it.
     private func outlineBreath(label: Color, authored: Bool, context: RenderContext) -> OutlineBreath {
-        let lines = Self.outlineInk(
-            palette: context.environment.palette, surface: context.environment.enclosingSurface,
-            hovered: configuration.isHovered, disabled: !configuration.isEnabled)
+        // A glass button's lines are its glass's rim; disabled, they fade as
+        // every button's do.
+        let rim =
+            configuration.isEnabled
+            ? appearance.glassRim?.rimInk(hovered: configuration.isHovered, in: context.environment) : nil
+        let lines =
+            rim
+            ?? Self.outlineInk(
+                palette: context.environment.palette, surface: context.environment.enclosingSurface,
+                hovered: configuration.isHovered, disabled: !configuration.isEnabled)
         return OutlineBreath(
             focused: configuration.isFocused && configuration.isEnabled, hovered: configuration.isHovered,
             lines: lines, label: label, labelBreathes: !authored, context: context)

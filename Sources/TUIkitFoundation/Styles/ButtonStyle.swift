@@ -624,6 +624,12 @@ struct _ButtonAppearance: Equatable {
     /// border shape in force; not read by a plain appearance.
     var edges: ButtonFaceEdges = .capsule
 
+    /// The glass whose rim a lines face's lines are drawn in, for the glass
+    /// button styles (``GlassButtonStyle``): its highlighted ink rather than
+    /// the border's, lifted again under the pointer. `nil` for every other
+    /// appearance.
+    var glassRim: Glass?
+
     /// The default appearance — dimmed foreground, not bold.
     static let `default` = Self(
         foregroundColor: Color.palette.foregroundSecondary,

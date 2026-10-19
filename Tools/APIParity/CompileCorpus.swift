@@ -4002,3 +4002,17 @@ private struct CorpusGlassTransitions: View {
         }
     }
 }
+
+/// The glass button styles as Apple's documentation writes them.
+@MainActor
+private struct CorpusGlassButtons: View {
+    var body: some View {
+        HStack {
+            Button("Button") {}.buttonStyle(.glass)
+            Button("Button") {}.buttonStyle(.glass(.clear))
+            Button("Button") {}.buttonStyle(.glassProminent)
+            Button("Button") {}.buttonStyle(GlassButtonStyle(.regular.tint(.purple)))
+            Button("Button") {}.buttonStyle(GlassProminentButtonStyle())
+        }
+    }
+}

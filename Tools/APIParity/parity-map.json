@@ -185,7 +185,6 @@
         "View.blendMode*",
         "View.luminanceToAlpha*",
         "View.backgroundExtensionEffect*",
-        "Glass*",
         "View.allowedDynamicRange*",
         "EnvironmentValues.allowedDynamicRange",
         "Image.DynamicRange*",
@@ -194,10 +193,9 @@
         "VisualEffect.colorEffect*",
         "VisualEffect.distortionEffect*",
         "VisualEffect.layerEffect*",
-        "VisualEffect.blendMode*",
-        "PrimitiveButtonStyle.glass*"
+        "VisualEffect.blendMode*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, glass materials, blend modes, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, blend modes, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels. Glass ships as a material's surface with a highlighted rim, no refraction (refusal review O5, Deliberate deviations C11)."
     },
     {
       "match": [
@@ -479,7 +477,6 @@
         "View.colorEffect*",
         "View.layerEffect*",
         "View.distortionEffect*",
-        "Glass*",
         "View.allowedDynamicRange*",
         "EnvironmentValues.allowedDynamicRange",
         "Image.DynamicRange*",
@@ -487,10 +484,9 @@
         "VisualEffect.colorEffect*",
         "VisualEffect.distortionEffect*",
         "VisualEffect.layerEffect*",
-        "VisualEffect.blendMode*",
-        "PrimitiveButtonStyle.glass*"
+        "VisualEffect.blendMode*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, glass materials, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels. Glass ships as a material's surface with a highlighted rim, no refraction (refusal review O5, Deliberate deviations C11)."
     },
     {
       "match": [

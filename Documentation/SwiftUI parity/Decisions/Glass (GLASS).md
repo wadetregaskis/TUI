@@ -200,3 +200,35 @@ identified glass that moves drawn sliding from its old frame to its new — all
 drawn by the container from the frames it kept, over the animation, with the
 leaving glass kept until it has gone. About a day and a half; matched geometry
 of views generally (refusal review O4) is its own lane.
+
+### B-GLASS-7. A glass button is the bordered button on glass, its lines the rim
+
+*`GlassButtonStyle` (`init()`, `init(_:)`), `GlassProminentButtonStyle`,
+`PrimitiveButtonStyle.glass`, `.glass(_:)`, `.glassProminent`*
+
+SwiftUI's glass buttons are "glass border artwork based on the button's
+context". Here the button's context is the family table a bordered button is
+drawn by (the appearance, `ButtonBorderShape`, `ControlSize`), so a glass
+button is the bordered button of that table — its caps, its box at the larger
+sizes, its focus breath and hover — on `glassEffect(_:in: .buttonBorder)`:
+
+- **Lines faces** (the default appearances): the lines are drawn in the
+  glass's rim ink (`_ButtonAppearance.glassRim`), lifted again under the
+  pointer, and the label sits on the glass's surface, so what is behind the
+  button shows through it tinted.
+- **`.glassProminent`:** glass tinted the accent, its label bold in the
+  palette's foreground — floored against the tinted surface, which tinted
+  glass hands its content — as `.borderedProminent` is the prominent member
+  of the bordered family.
+- **Solid faces** (`.block`): the bordered button's own face, which covers
+  the glass.
+
+Each is a primitive style whose body is `Button(configuration)` with that
+appearance, on glass: it focuses, presses and is triggered as a button is,
+and is one focus stop. `Equatable`, unlike SwiftUI's, so the memo can compare
+it.
+
+**The fuller version:** a solid face made of the glass — its field the glass's
+translucent surface and its caps the rim — which means a translucent face in
+the procedural button body, whose caps' focus cycle spends its alpha against
+the surface (`ButtonCapCycle`). Half a day.
