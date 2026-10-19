@@ -166,24 +166,18 @@ extension View {
     /// the rows on the point. A custom ``Layout`` reports the custom guides its
     /// subviews set, or one of its own
     /// (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
+    /// A view type of your own reports what its `body` does, through an `if`,
+    /// an `if`/`else` and a `switch` too, so a guide inside `struct Row:
+    /// View`'s body travels out of `Row` as SwiftUI's does.
     ///
     /// - Important: It travels on through a modifier written after it that
     ///   draws the view unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an
     ///   environment write such as `.lineLimit(_:)`, the last asked under the
     ///   value it writes — and stops at any other (`.border()`, a `.frame`,
-    ///   `.offset`), and at a view type of your own
-    ///   whose `body` is one view: a guide inside such a `struct Row: View`'s
-    ///   `body` does not travel out of `Row`. Put the guide on the view the
-    ///   container places, or on the outside of your view. A guide is a
-    ///   closure evaluated against the dimensions the view laid out at, and a
-    ///   wrapper that does not translate it would report a position from the
-    ///   wrong coordinate space; a view of your own states nothing about what
-    ///   its body holds. A body of several views is taken apart, so each of
-    ///   its views is the child of the container that takes it apart, and
-    ///   that container honours its guide — but goes no further: a stack
-    ///   around that container is not told a guide is inside (the view's
-    ///   type answers `false` to `View/_providesAlignmentGuide`), where in
-    ///   SwiftUI the guide travels on up (decisions D1S, B-D1S-6).
+    ///   `.offset`). Put the guide on the view the container places, or
+    ///   outside such a modifier. A guide is a closure evaluated against the
+    ///   dimensions the view laid out at, and a wrapper that does not
+    ///   translate it would report a position from the wrong coordinate space.
     ///
     /// - Parameters:
     ///   - g: The guide to set.
@@ -288,9 +282,9 @@ package protocol AlignmentGuideQuerying {
 /// view whose type cannot hold a guide is answered without a cast. Past it, a
 /// view answers itself (``AlignmentGuideQuerying``, or the public
 /// ``AlignmentGuideProviding``), or — a framework composite such as `VStack`,
-/// whose witness forwards its content's — its `body` is asked, at the identity
-/// its body renders at. An app's own views state no witness, so a guide inside
-/// one does not travel out of it.
+/// whose witness forwards its content's, or a view of the app's own, whose
+/// witness is its body's — its `body` is asked, at the identity its body
+/// renders at.
 @MainActor
 package func explicitGuide<V: View>(
     of view: V, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions,

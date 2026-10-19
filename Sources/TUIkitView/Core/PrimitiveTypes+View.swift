@@ -25,6 +25,10 @@ extension Never: View {
     /// A primitive's body states no spacing preference — stated for the
     /// reason ``_handsOverChildren`` is.
     public static var _statesSpacingPreference: Bool { false }
+
+    /// A primitive's body sets no alignment guide — stated for the reason
+    /// ``_handsOverChildren`` is.
+    public static var _providesAlignmentGuide: Bool { false }
 }
 
 // MARK: - Optional View Conformance

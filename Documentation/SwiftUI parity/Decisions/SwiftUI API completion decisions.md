@@ -1360,6 +1360,37 @@ stands in for the original, which is 1,357 commits back. Scenarios: `deep`,
 only where its verdict reproduces at more than one path layout. A-GUIDE-2
 needs the fuller version whichever way it is answered.
 
+**Shipped 2026-10-18 (lane LAYOUT): the fuller version.** The witness's
+default is the body's answer (`false` for a `Never` body or a view drawn
+procedurally), so a guide inside `struct Row: View`'s body travels out of
+`Row` as SwiftUI's does, and through an `if`, an `if`/`else` or a `switch`
+there (`ConditionalView` and `Optional` answer the guide query with their
+live view). The question cannot be left to the type system, since the
+providers forward it and a body that holds its own type would ask itself for
+ever: `BodyWitnessMemo` asks each type's body once, cuts the question where it
+comes back round (a type met again while its own body is asked adds nothing
+to an OR), keeps an answer only where it is exact (Tarjan's rule: a `false`
+worked out under a type still open further out is asked again on its own),
+and serves the kept answer from a direct-mapped table of 512 entries indexed
+by the type's metadata address, with a dictionary behind it. So building a
+child of a composite type costs one shift, mask and comparison per witness
+read where it cost a constant, and the walk of a body's type is made once
+per process, not per child per walk. Tests: `AppViewGuideTests` (a view whose
+body holds its own type with and without a guide, one with itself in both
+arms of an `if`/`else`, asked once, and two types whose bodies hold each
+other, asked in the order that would keep a wrong `false`).
+
+Two costs fall only on apps with a guide inside a view type of their own: a
+`ForEach` whose row type holds one forfeits its row memo (`ForEach.makeChild`,
+as for a row that sets a guide itself), and a stack around such a view asks
+it for its guide, evaluating its body in a measure. **A/B owed** (three arms,
+on a quiet machine): off (the containers' witnesses `false`, the guide
+modifier's `true`; patch in the lane's notes), the base before this commit
+(framework containers forward), and this commit. Scenarios: `deep`,
+`kitchensink`, `table`, `customlayout`, `fanout`, `anyview`; if `deep` or
+`kitchensink` costs more than about 1%, it goes back to the owner before
+landing.
+
 ### B20. A stack's `spacing: nil` is the default preference, not each pair's
 
 *`HStack.init(alignment:spacing:content:)`, `VStack`, `LazyHStack`, `LazyVStack`,

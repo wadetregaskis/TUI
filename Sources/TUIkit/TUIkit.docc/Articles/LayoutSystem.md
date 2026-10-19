@@ -148,14 +148,14 @@ Three things worth knowing before you reach for it:
   moved by where the child sits (several merge by the alignment's
   `combineExplicit`), `.padding()` reports its content's moved by the inset,
   and a ``Layout`` reports custom guides its subviews set, or one of its own.
-  So a decimal point marked on a `Text` inside each row of a column lines the
-  rows up on it. A guide travels on through a modifier that draws its view
-  unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an environment write
-  such as `.lineLimit(_:)`, which it is asked under — and stops at any other
-  modifier written after it (`.border()`, a `.frame`, `.offset`) — one that
-  does not translate it would report it from the wrong coordinate space — and
-  at a view type of your own: put the guide on the view the container places,
-  or outside your view.
+  A view type of your own reports what its `body` does, so a decimal point
+  marked on a `Text` inside each row of a column — a row view of your own or
+  not — lines the rows up on it. A guide travels on through a modifier that
+  draws its view unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an
+  environment write such as `.lineLimit(_:)`, which it is asked under — and
+  stops at any other modifier written after it (`.border()`, a `.frame`,
+  `.offset`): one that does not translate it would report it from the wrong
+  coordinate space.
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and
@@ -167,7 +167,8 @@ them; a cell has no transparency, so whatever it draws past the region hides
 what is beneath it. In a **lazy** stack the run is the realized rows, so
 prefer guides on content whose realized set is stable; a lazy stack reports none
 of its rows' guides to its own parent. SwiftUI's lazy stacks ignore explicit
-guides altogether (measured; whether TUIkit's should too is an open decision).
+guides altogether (measured); TUIkit's honour them on purpose (decisions
+A-GUIDE-1).
 
 Custom guides come from ``AlignmentID``, whose `defaultValue(in:)` receives the
 view's ``ViewDimensions``. Note that a guide's value is `Double` even though

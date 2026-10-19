@@ -101,9 +101,11 @@ public protocol View {
     static var _providesZIndex: Bool { get }
 
     /// Static witness: whether this view type carries an explicit alignment
-    /// guide (the wrapper `View.alignmentGuide(_:computeValue:)` produces).
-    /// `false` for every view but `_AlignmentGuideView`, which overrides it to
-    /// `true`.
+    /// guide (the wrapper `View.alignmentGuide(_:computeValue:)` produces), or
+    /// may hold one that it reports: `_AlignmentGuideView` answers `true`, a
+    /// container or a wrapper that reports its content's guides answers its
+    /// content's, a view of the app's own answers its `body`'s (the default
+    /// below), and a primitive `false`.
     ///
     /// Same shape and same reason as ``_providesZIndex``: the aligning
     /// containers consult a stored `Bool` per child and only cast the rare
@@ -259,9 +261,25 @@ public extension View {
     /// Default: a view carries no explicit z-index. `_ZIndexView` overrides this.
     static var _providesZIndex: Bool { false }
 
-    /// Default: a view sets no alignment guide. `_AlignmentGuideView` overrides
-    /// this.
-    static var _providesAlignmentGuide: Bool { false }
+    /// Default: what this view's `body` answers — to a container a view of the
+    /// app's own is what its body is, so a guide set anywhere in it may be
+    /// reported out of it, as SwiftUI's is. `false` for a primitive (a `Never`
+    /// body) and for a view drawn procedurally (``Renderable``), whose body
+    /// is not what is drawn. `_AlignmentGuideView` answers `true`, and the
+    /// containers that report their children's guides answer their content's.
+    ///
+    /// Not asked of the body through the type system alone: the providers
+    /// forward this to their content, so a view whose body holds its own type
+    /// would ask itself for ever. ``BodyWitnessMemo`` asks once per type,
+    /// ends the question where it comes back round, and keeps the answer, so
+    /// a child of a composite type costs a table read, not a walk of its
+    /// body's type.
+    static var _providesAlignmentGuide: Bool {
+        guard Body.self != Never.self else { return false }
+        return BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
+            Body._providesAlignmentGuide
+        }
+    }
 
     /// Default: a view writes no container value. `.tag(_:)` and
     /// `.containerValue(_:_:)` override this.

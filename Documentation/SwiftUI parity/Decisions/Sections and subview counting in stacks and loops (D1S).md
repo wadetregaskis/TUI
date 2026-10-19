@@ -187,9 +187,9 @@ shapes are still one child:
   (a heading of two views) is no run at all. A section of the app's own there
   is a section, its loop's rows selected by element and deletable.
 - **An alignment guide on one of its views** is honoured by the container
-  that takes it apart, but a stack around that container is not told a guide
-  is inside: the view's type answers `false` to `_providesAlignmentGuide`,
-  as any view of the app's own does. SwiftUI's guide travels on up.
+  that takes it apart, and since 2026-10-18 a stack around that container is
+  told a guide is inside, as SwiftUI's is: a view of the app's own answers
+  `_providesAlignmentGuide` with its body's answer (decisions B19).
 
 **The fuller version.** `ModifiedView` (and the wrappers that hand a provider's
 members their modifier) answering for content that is such a view — a

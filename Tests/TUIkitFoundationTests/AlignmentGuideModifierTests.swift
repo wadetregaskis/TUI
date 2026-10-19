@@ -480,24 +480,6 @@ struct AlignmentGuideModifierTests {
         #expect(buffer.lines.map(\.stripped) == ["12.5 ", " 1.25"])
     }
 
-    @Test("A guide does not travel out of a view type of the app's own")
-    func guideStopsAtAnAppView() {
-        // Documented: a view of the app's own states nothing about what its
-        // body holds, so the column cannot know to ask it.
-        struct Row: View {
-            var body: some View {
-                Text("ab").alignmentGuide(.leading) { _ in 3 }
-            }
-        }
-        let buffer = renderToBuffer(
-            VStack(alignment: .leading) {
-                Row()
-                Text("x")
-            },
-            context: makeRenderContext(width: 30, height: 4))
-        #expect(indents(buffer) == [0, 0])
-    }
-
     @Test("Guides do not disturb a stack that has none")
     func unguidedStacksAreByteIdentical() {
         // The regression guard for the whole change: the guide path floors ONCE

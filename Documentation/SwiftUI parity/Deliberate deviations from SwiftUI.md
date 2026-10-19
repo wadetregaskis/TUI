@@ -359,10 +359,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `DrawsContentUnchanged`), the content asked in the context the wrapper lays
   it out in, so a guide under `.lineLimit(1)` is found where the limited
   content draws it (`ContentContextStating`; a wrapper that does not state
-  that context stops the guide); but `.border()`, a `.frame` or an `.offset`
-  written after it stops it; so does a view of the
-  app's own whose `body` is one view (L3's lazy stacks honour a guide that
-  reaches them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off
+  that context stops the guide); so does a view of the app's own (since
+  2026-10-18, decisions B19); but `.border()`, a `.frame` or an `.offset`
+  written after it stops it (L3's lazy stacks honour a guide that reaches
+  them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off
   the outermost view the same way.
 - **Why:** a guide is a closure evaluated against the dimensions the view laid
   out at. A wrapper that passed it on untranslated would report a position from
@@ -371,8 +371,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [AlignmentGuide.swift](../../Sources/TUIkitFoundation/Views/AlignmentGuide.swift#L145-L158),
   [§1](<SwiftUI compatibility guide.md#1-match>) (the Layout row calls it a gap),
   [§3](<SwiftUI compatibility guide.md#3-open-divergence>). **Recorded.** The owner's A-GUIDE-2 ruling (uniform
-  behaviour, no special exceptions) bears on it; B19's exploration, in
-  [Slated to change](#slated-to-change), covers only views of the app's own.
+  behaviour, no special exceptions) bears on it.
 
 ### L13. A guide pushes a view at most 2^20 cells, and a runaway guide is reported
 
@@ -2029,7 +2028,6 @@ on. Each waits on the work, or on the ruling, its State names.
 | Difference | Where | State |
 |---|---|---|
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable; the size classes are read by `.viewAligned`, and a written `.compact` makes a popover a sheet, collapses a `NavigationSplitView` (A21), shows a `Table`'s first column alone and a `.sidebarAdaptable` tab view's strip, while nothing reads the other three. On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tuikit-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults. All four shipped 2026-10-13 |
-| An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Waits on a fix: shared, a column squeezes a control of several lines in the middle, and a squeezed inline `Menu` draws differently served from the cache than drawn afresh (the focus storm's trial 3) |
 | In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIkitView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
