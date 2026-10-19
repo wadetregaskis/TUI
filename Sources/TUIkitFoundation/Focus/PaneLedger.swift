@@ -98,6 +98,13 @@ package struct PaneLedger {
         }
     }
 
+    /// Forgets every dock posted, this frame's and the last's: for a loop
+    /// that has drawn its last frame (`FocusManager.forgetPresentationDocks()`).
+    mutating func forgetDocks() {
+        docks.removeAll()
+        previousDocks.removeAll()
+    }
+
     /// Empties what a walk posts, before the walk re-posts it.
     mutating func beginWalk() {
         docks.removeAll()

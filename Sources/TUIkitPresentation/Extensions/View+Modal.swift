@@ -41,10 +41,12 @@ extension View {
     public func modal<Modal: View>(
         @ViewBuilder content: () -> Modal
     ) -> some View {
-        ModalPresentationModifier(
+        // Always presented, so built at once, and handed over built.
+        let modal = content()
+        return ModalPresentationModifier(
             content: self,
             isPresented: .constant(true),
-            modal: content()
+            modal: { modal }
         )
     }
 }

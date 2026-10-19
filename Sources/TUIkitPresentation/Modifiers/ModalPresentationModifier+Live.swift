@@ -59,8 +59,8 @@ enum LiveSheet {
         return height
     }
 
-    /// What the presenter resolved for a presented frame, handed to the live
-    /// branch whole.
+    /// What the presenter resolved for a presented frame, handed whole to the
+    /// live branch and to the sheet's drawing (`drawSheet`).
     struct Presented {
         let sectionID: String
         let modalContext: RenderContext
@@ -125,11 +125,18 @@ extension ModalPresentationModifier {
     /// Posts, for the root, the rows this sheet docks — every frame,
     /// presented or not (`FocusManager.notePresentationDock(id:resolver:)`).
     ///
-    /// Posted while dismissed too, so that a sheet the app presents between
-    /// two frames is laid out docked on the first frame it is drawn: the
-    /// resolver reads the binding when the root asks, before the walk. An
-    /// `item:` sheet's content is unknown while it is dismissed, so its first
-    /// frame is learnt late, and settles on the next.
+    /// Presented, for content that lets the page through (`presented`: the
+    /// content built for this frame, and what it says of the page).
+    ///
+    /// Posted while dismissed too (`presented` is `nil`), so that a sheet the
+    /// app presents between two frames is laid out docked on the first frame
+    /// it is drawn: the resolver reads the binding when the root asks, before
+    /// the walk, and only then — presented by then — builds the content, to
+    /// learn whether it lets the page through and at what detent. A sheet's
+    /// content is never built while it is dismissed (``modal``). An `item:`
+    /// sheet's content is made from the item its presenter was drawn with,
+    /// which is none while it is dismissed, so its first frame is learnt late,
+    /// and settles on the next.
     ///
     /// A presented sheet whose presenter its own dock pushed out of the
     /// page's lazy window, drawn again now the page is whole, is kept off the
@@ -140,12 +147,16 @@ extension ModalPresentationModifier {
     ///
     /// Posted with the presenter's identity, which is what the ledger asks
     /// about (`FocusManager.settlePresentationDock(laidOutBy:in:storage:)`).
-    func postDock(_ interaction: PresentationBackgroundInteraction, sectionID: String, context: RenderContext) {
-        guard !context.isMeasuring, case .enabled = interaction.kind,
-            let focusManager = context.environment.focusManager, !focusManager.isBackdrop
+    func postDock(
+        presented: (modal: Modal, interaction: PresentationBackgroundInteraction)?, sectionID: String,
+        context: RenderContext
+    ) {
+        guard !context.isMeasuring, let focusManager = context.environment.focusManager, !focusManager.isBackdrop
         else { return }
+        if let presented, !presented.interaction.isEnabled { return }
         let isPresented = self.isPresented
-        let modal = self.modal
+        let build = self.modal
+        let (style, sizeClasses) = (self.style, self.sizeClasses)
         let environment = context.environment
         let state =
             isPresented.wrappedValue
@@ -156,14 +167,33 @@ extension ModalPresentationModifier {
             entry.isKeptOffTheDock = true
         }
         focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
-            guard isPresented.wrappedValue else { return nil }
-            let detents = PresentedDetents(of: modal, extent: contentHeight, environment: environment, state: state)
+            guard isPresented.wrappedValue,
+                let live = presented ?? Self.live(build(), style: style, sizeClasses: sizeClasses)
+            else { return nil }
+            let detents = PresentedDetents(
+                of: live.modal, extent: contentHeight, environment: environment, state: state)
             let rows = LiveSheet.dock(
-                detents: detents, interaction: interaction, extent: contentHeight, environment: environment,
+                detents: detents, interaction: live.interaction, extent: contentHeight, environment: environment,
                 entry: entry)
             // Content with no box docks the rows it draws, not its detent's.
             return rows.map { min($0, entry?.rowsShortOfDetent ?? $0) }
         }
+    }
+
+    /// `modal`, built for a sheet presented since its presenter last drew,
+    /// and what it says of the page behind it — or `nil` where it does not
+    /// let the page through, or is presented as a cover (`style`,
+    /// `sizeClasses`: ``presentedStyle(of:)``).
+    @MainActor
+    private static func live(_ modal: Modal, style: Style, sizeClasses: PresentationSizeClasses?)
+        -> (modal: Modal, interaction: PresentationBackgroundInteraction)?
+    {
+        guard presentedStyle(of: modal, style: style, sizeClasses: sizeClasses) == .sheet,
+            let interaction = presentationTrait(PresentationBackgroundInteractionProviding.self, of: modal)?
+                .backgroundInteraction,
+            interaction.isEnabled
+        else { return nil }
+        return (modal, interaction)
     }
 
     /// The presented sheet, live: the page it wraps drawn as itself, and the
@@ -175,19 +205,18 @@ extension ModalPresentationModifier {
     /// input grab, no modal mark, no dimming, the page's regions and runs kept.
     /// What is the sheet's is its PANE's instead (`renderingPane`): its
     /// shortcuts, its claim on Escape, its focus sections.
-    func renderLive(_ presented: LiveSheet.Presented, contentContext: RenderContext, context: RenderContext)
-        -> FrameBuffer
-    {
+    func renderLive(
+        _ presented: LiveSheet.Presented, modal: Modal, contentContext: RenderContext, context: RenderContext
+    ) -> FrameBuffer {
         var baseBuffer = TUIkitView.renderToBuffer(content, context: contentContext)
         // The sheet's section after the page's, so it is last in the Tab ring.
-        let escapeItemRegistration = context.isMeasuring ? nil : joinThePage(presented, context: context)
+        let escapeItemRegistration = context.isMeasuring ? nil : joinThePage(presented, modal: modal, context: context)
         // The presenter's manual boxes — see the modal branch.
         context.stateStorage?.markActive(context.identity)
         var sheet = renderingPane(presented.sectionID, context: context) {
             drawSheet(
-                modalContext: presented.modalContext, detents: presented.detents, isGrabbed: presented.isGrabbed,
-                gate: presented.gate, escape: presented.escape, escapeItemRegistration: escapeItemRegistration,
-                sectionID: presented.sectionID, context: context)
+                presented, modal: modal, style: .sheet, escapeItemRegistration: escapeItemRegistration,
+                context: context)
         }
         if !context.isMeasuring, let detentHeight = presented.detents?.height {
             // Short of its detent, the sheet docks the rows it drew (`postDock`).
@@ -212,7 +241,7 @@ extension ModalPresentationModifier {
     ///
     /// - Returns: The ESC item's registration, or `nil` when none was
     ///   published.
-    private func joinThePage(_ presented: LiveSheet.Presented, context: RenderContext) -> Int? {
+    private func joinThePage(_ presented: LiveSheet.Presented, modal: Modal, context: RenderContext) -> Int? {
         let sectionID = presented.sectionID
         // Per-frame registrations, as the modal branch's (`takeKeyboard`).
         context.environment.volatileReadTracker?.recordRenderSideEffect()

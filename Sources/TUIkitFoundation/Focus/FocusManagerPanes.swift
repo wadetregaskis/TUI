@@ -60,6 +60,19 @@ extension FocusManager {
         panes.docks[id] = PaneLedger.PostedDock(presenter: presenter, resolver: resolver)
     }
 
+    /// Forgets every dock posted, for a loop that has drawn its last frame.
+    ///
+    /// A dock's resolver is kept for the frame after the one that posted it,
+    /// and it holds what its sheet's presenter handed it: the presentation's
+    /// binding and the closure that builds its content. Every sheet posts
+    /// one, dismissed or not, and a binding or a content closure may reach
+    /// the environment — a scene presenter's binding does — and so this focus
+    /// manager: after the last frame, nothing replaced them, and the focus
+    /// manager, and every service the environment reaches, outlived the app.
+    package func forgetPresentationDocks() {
+        panes.forgetDocks()
+    }
+
     /// The docks this walk posted (``PaneLedger/docks``).
     package var postedDocks: [String: PaneLedger.PostedDock] { panes.docks }
 

@@ -378,6 +378,17 @@ internal final class RenderLoop<A: App> {
         scenes.requestExit = { [appState = tuiContext.appState] in appState.requestExit() }
         scenes.requestFrame = { [appState = tuiContext.appState] in appState.setNeedsRender() }
     }
+
+    /// The loop's last frame posted the docks of the sheets it drew for a
+    /// frame that will never come, and their resolvers hold what reaches the
+    /// focus manager (`FocusManager.forgetPresentationDocks()`): forgotten
+    /// with the loop, so that the app's objects go with it.
+    ///
+    /// Not isolated: `focusManager` is a `let` of a `Sendable` type, and the
+    /// loop is released where it ran, on the main thread.
+    deinit {
+        focusManager.forgetPresentationDocks()
+    }
 }
 
 // MARK: - Internal API

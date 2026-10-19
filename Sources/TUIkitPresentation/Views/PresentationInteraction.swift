@@ -66,6 +66,13 @@ public struct PresentationBackgroundInteraction: Sendable {
         Self(kind: .enabled(upThrough: detent))
     }
 
+    /// Whether the page behind a sheet stays live at any of its heights:
+    /// `.enabled`, up through a detent or not.
+    var isEnabled: Bool {
+        if case .enabled = kind { return true }
+        return false
+    }
+
     /// Whether the page behind a sheet resting `height` rows tall, in a
     /// content area `extent` rows tall, stays live.
     ///

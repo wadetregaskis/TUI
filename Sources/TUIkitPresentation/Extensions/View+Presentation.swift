@@ -294,7 +294,8 @@ extension View {
     ///     to present the modal.
     ///   - onDismiss: A closure run after the modal is dismissed, or `nil` for
     ///     no callback.
-    ///   - content: A ViewBuilder returning the modal content.
+    ///   - content: A ViewBuilder returning the modal content, called only
+    ///     while the modal is presented, each time it is drawn.
     /// - Returns: A view that presents a modal overlay conditionally.
     public func modal<Modal: View>(
         isPresented: Binding<Bool>,
@@ -302,8 +303,7 @@ extension View {
         @ViewBuilder content: @escaping () -> Modal
     ) -> some View {
         modalPresentation(
-            isPresented: isPresented, style: .sheet, itemKey: nil, onDismiss: onDismiss,
-            modal: content())
+            isPresented: isPresented, style: .sheet, itemKey: nil, onDismiss: onDismiss, modal: content)
     }
 
     /// The one place a modal presentation is assembled — panel or cover, about
@@ -329,13 +329,14 @@ extension View {
     ///     presentation is about nothing in particular. See
     ///     ``ModalPresentationModifier/itemKey``.
     ///   - onDismiss: Run on the presented → dismissed transition.
-    ///   - modal: The content to present.
+    ///   - modal: Builds the content to present — only while it is presented
+    ///     (``ModalPresentationModifier/modal``).
     private func modalPresentation<Modal: View>(
         isPresented: Binding<Bool>,
         style: ModalPresentationModifier<Self, Modal>.Style,
         itemKey: String?,
         onDismiss: (() -> Void)?,
-        modal: Modal
+        modal: @escaping () -> Modal
     ) -> some View {
         _AdaptiveModal(base: self, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
             // On the app's binding, not the presenter's: a sheet that becomes a
@@ -361,7 +362,8 @@ extension View {
     ///   - isPresented: A binding to a Boolean value that determines whether
     ///     to present the sheet.
     ///   - onDismiss: An optional closure run when the sheet is dismissed.
-    ///   - content: A ViewBuilder returning the sheet content.
+    ///   - content: A ViewBuilder returning the sheet content, called only
+    ///     while the sheet is presented, each time it is drawn.
     /// - Returns: A view that presents the content modally.
     public func sheet<Content: View>(
         isPresented: Binding<Bool>,
@@ -396,7 +398,8 @@ extension View {
     /// - Parameters:
     ///   - item: A binding to an optional, identifiable item; non-`nil` presents.
     ///   - onDismiss: An optional closure run when the sheet is dismissed.
-    ///   - content: A ViewBuilder building the sheet from the unwrapped item.
+    ///   - content: A ViewBuilder building the sheet from the unwrapped item,
+    ///     called only while the sheet is presented.
     /// - Returns: A view that presents a sheet for the selected item.
     public func sheet<Item: Identifiable, Content: View>(
         item: Binding<Item?>,
@@ -409,13 +412,15 @@ extension View {
         )
         // Assembled here rather than through the `isPresented:` spelling, which
         // has no way to name the item: the identity key has to be read from the
-        // same binding, at the same moment, as the content built from it.
+        // same binding, at the same moment, as the item the content is built
+        // from — once it is presented.
+        let shown = item.wrappedValue
         return modalPresentation(
             isPresented: isPresented,
             style: .sheet,
-            itemKey: item.wrappedValue.map { identityKey($0.id) },
+            itemKey: shown.map { identityKey($0.id) },
             onDismiss: onDismiss,
-            modal: item.wrappedValue.map(content))
+            modal: { shown.map(content) })
     }
 }
 
@@ -424,14 +429,15 @@ extension View {
 /// A sheet or a cover, presented as a cover where a sheet adapts to one
 /// (``sheetIsCover(_:horizontal:vertical:)``).
 ///
-/// One presenter whose style follows the size classes: it reads its style
-/// every frame, so a class written while the sheet is up changes no part of
-/// the structure, and both the presenting view and the presented content keep
-/// their state.
+/// One presenter whose style follows the size classes: it reads them every
+/// frame, and its presenter resolves them against the content once that is
+/// built, while it is presented — so a class written while the sheet is up
+/// changes no part of the structure, and both the presenting view and the
+/// presented content keep their state.
 struct _AdaptiveModal<Base: View, Modal: View>: View {
     let base: Base
     let isPresented: Binding<Bool>
-    let modal: Modal
+    let modal: () -> Modal
     let style: ModalPresentationModifier<Base, Modal>.Style
     let itemKey: String?
 
@@ -443,8 +449,8 @@ struct _AdaptiveModal<Base: View, Modal: View>: View {
             content: base,
             isPresented: isPresented,
             modal: modal,
-            style: style == .sheet && sheetIsCover(modal, horizontal: horizontalSizeClass, vertical: verticalSizeClass)
-                ? .fullScreen : style,
+            style: style,
+            sizeClasses: PresentationSizeClasses(horizontal: horizontalSizeClass, vertical: verticalSizeClass),
             itemKey: itemKey)
     }
 }
@@ -490,15 +496,15 @@ extension View {
     /// - Parameters:
     ///   - isPresented: A binding controlling presentation.
     ///   - onDismiss: An optional closure run when the cover is dismissed.
-    ///   - content: A ViewBuilder returning the cover's content.
+    ///   - content: A ViewBuilder returning the cover's content, called only
+    ///     while the cover is presented, each time it is drawn.
     public func fullScreenCover<Content: View>(
         isPresented: Binding<Bool>,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         modalPresentation(
-            isPresented: isPresented, style: .fullScreen, itemKey: nil, onDismiss: onDismiss,
-            modal: content())
+            isPresented: isPresented, style: .fullScreen, itemKey: nil, onDismiss: onDismiss, modal: content)
     }
 
     /// Presents a full-screen cover for a currently-selected item. Matches
@@ -511,7 +517,8 @@ extension View {
     /// - Parameters:
     ///   - item: A binding to an optional, identifiable item; non-`nil` presents.
     ///   - onDismiss: An optional closure run when the cover is dismissed.
-    ///   - content: A ViewBuilder building the cover from the unwrapped item.
+    ///   - content: A ViewBuilder building the cover from the unwrapped item,
+    ///     called only while the cover is presented.
     public func fullScreenCover<Item: Identifiable, Content: View>(
         item: Binding<Item?>,
         onDismiss: (() -> Void)? = nil,
@@ -523,12 +530,13 @@ extension View {
         )
         // Keyed by the item, for the reason ``sheet(item:onDismiss:content:)``
         // states: a cover reopened for a different item is a different view.
+        let shown = item.wrappedValue
         return modalPresentation(
             isPresented: isPresented,
             style: .fullScreen,
-            itemKey: item.wrappedValue.map { identityKey($0.id) },
+            itemKey: shown.map { identityKey($0.id) },
             onDismiss: onDismiss,
-            modal: item.wrappedValue.map(content))
+            modal: { shown.map(content) })
     }
 }
 

@@ -117,12 +117,13 @@ struct _AdaptivePopover<Base: View, Popover: View>: View {
 
     var body: some View {
         let form = popoverForm(of: popover, horizontal: horizontalSizeClass, vertical: verticalSizeClass)
+        let popover = self.popover
         PopoverPresentationModifier(
             content: ModalPresentationModifier(
                 content: ModalPresentationModifier(
-                    content: base, isPresented: isPresented(as: .sheet, when: form), modal: popover, style: .sheet,
-                    itemKey: itemKey),
-                isPresented: isPresented(as: .fullScreenCover, when: form), modal: popover, style: .fullScreen,
+                    content: base, isPresented: isPresented(as: .sheet, when: form), modal: { popover },
+                    style: .sheet, itemKey: itemKey),
+                isPresented: isPresented(as: .fullScreenCover, when: form), modal: { popover }, style: .fullScreen,
                 itemKey: itemKey),
             isPresented: isPresented(as: .popover, when: form), popover: popover,
             attachmentAnchor: attachmentAnchor, arrowEdge: arrowEdge, itemKey: itemKey)

@@ -46,11 +46,27 @@ public struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// Binding to control modal visibility.
     let isPresented: Binding<Bool>
 
-    /// The modal content to present.
-    let modal: Modal
+    /// Builds the content to present: called only while it is presented,
+    /// each time it is drawn — and by the root, before a frame's walk, for a
+    /// sheet presented since the last (`postDock`) — never while it is
+    /// dismissed, as SwiftUI calls a sheet's content closure.
+    ///
+    /// Built on every frame, presented or not, it cost every page that holds
+    /// a sheet its content's construction on every frame, and anything made
+    /// as the content was built — a file panel's request, say — was made on
+    /// the first frame the page drew, not when the sheet was presented, and
+    /// kept.
+    let modal: () -> Modal
 
     /// Whether this presents as a panel or takes the whole screen.
     var style: Style = .sheet
+
+    /// The size classes a sheet is presented in, for whether it is presented
+    /// as a cover instead (``sheetIsCover(_:horizontal:vertical:)``), or `nil`
+    /// where it is presented as ``style`` says: a popover's sheet and cover
+    /// forms, which their own presenter chose, and the always-on `modal`.
+    /// Resolved against the content once it is built, while it is presented.
+    var sizeClasses: PresentationSizeClasses?
 
     /// The identity key of the item this presentation is ABOUT, or `nil` for
     /// the `isPresented:` forms, which are about nothing in particular.
@@ -58,9 +74,9 @@ public struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// The `item:` forms fold it into the presented content's identity below,
     /// which is what makes a different item a different view — fresh `@State`,
     /// fresh lifecycle — as SwiftUI's `item:` contract requires. Read at
-    /// construction, from the same binding read the same moment the content is
-    /// built from it, so the key and the content can never describe different
-    /// items.
+    /// construction, from the same binding read the same moment as the item
+    /// ``modal`` builds the content from, so the key and the content can never
+    /// describe different items.
     var itemKey: String?
 
     public var body: Never {
@@ -115,17 +131,14 @@ extension ModalPresentationModifier: Renderable {
             startOver(forItem: itemKey, context: context)
         }
 
-        // A sheet whose content lets the page through posts the rows it docks
-        // every frame, presented or not, for the root to lay the page out by
-        // before the walk (`postDock`).
-        let backgroundInteraction =
-            style == .sheet
-            ? presentationTrait(PresentationBackgroundInteractionProviding.self, of: modal)?.backgroundInteraction
-            : nil
-        if let backgroundInteraction { postDock(backgroundInteraction, sectionID: sectionID, context: context) }
-
         // If not presented, just return base content.
         guard isPresented.wrappedValue else {
+            // A sheet whose content may let the page through posts the rows
+            // it docks every frame, presented or not, for the root to lay the
+            // page out by before the walk (`postDock`). Unbuilt: its content
+            // is built only if it has been presented by the time the root
+            // asks.
+            if style == .sheet { postDock(presented: nil, sectionID: sectionID, context: context) }
             // Tear down the modal focus section if it's still active (the modal
             // was just dismissed). This reverts focus to the page's section AND
             // restores its remembered focus, so the page doesn't jump to its
@@ -142,6 +155,31 @@ extension ModalPresentationModifier: Renderable {
             return TUIkitView.renderToBuffer(content, context: contentContext)
         }
 
+        // Built now it is presented, once for the frame, and presented as a
+        // cover where the size classes make a sheet one.
+        let modal = self.modal()
+        let style = presentedStyle(of: modal)
+        // A sheet whose content lets the page through posts the rows it docks
+        // (`postDock`).
+        let backgroundInteraction =
+            style == .sheet
+            ? presentationTrait(PresentationBackgroundInteractionProviding.self, of: modal)?.backgroundInteraction
+            : nil
+        if let backgroundInteraction {
+            postDock(presented: (modal, backgroundInteraction), sectionID: sectionID, context: context)
+        }
+        return renderPresented(
+            modal, style: style, backgroundInteraction: backgroundInteraction, sectionID: sectionID,
+            contentContext: contentContext, context: context)
+    }
+
+    /// The presented frame: the page beneath as an inert backdrop, or beside
+    /// a live sheet, and `modal` — the content, built for this frame —
+    /// presented as `style` over it.
+    private func renderPresented(
+        _ modal: Modal, style: Style, backgroundInteraction: PresentationBackgroundInteraction?,
+        sectionID: String, contentContext: RenderContext, context: RenderContext
+    ) -> FrameBuffer {
         // Whether the content forbade interactive dismissal. Read BEFORE the
         // status-bar item below, which is why it rides a static conformance
         // rather than a preference — the same constraint the detent has.
@@ -194,12 +232,15 @@ extension ModalPresentationModifier: Renderable {
                 LiveSheet.Presented(
                     sectionID: sectionID, modalContext: modalContext, detents: detents, isGrabbed: isGrabbed,
                     gate: gate, escape: escape, dismissIsDisabled: dismissIsDisabled),
-                contentContext: contentContext, context: context)
+                modal: modal, contentContext: contentContext, context: context)
         }
 
         // Modal: what it presents is presented from inside a presentation
         // that holds the keyboard (`LiveSheet.dock`).
         modalContext.environment.isInModalPresentation = true
+        let presented = LiveSheet.Presented(
+            sectionID: sectionID, modalContext: modalContext, detents: detents, isGrabbed: isGrabbed,
+            gate: gate, escape: escape, dismissIsDisabled: dismissIsDisabled)
 
         // Register the modal focus section and activate it FIRST — so the page
         // rendered beneath registers its controls in the now-inactive page
@@ -211,7 +252,7 @@ extension ModalPresentationModifier: Renderable {
         let escapeItemRegistration =
             context.isMeasuring
             ? nil
-            : takeKeyboard(sectionID: sectionID, gate: gate, escape: escape, context: context)
+            : takeKeyboard(modal, sectionID: sectionID, gate: gate, escape: escape, context: context)
 
         // The drag-offset handler is a MANUAL box at this identity, and
         // nothing else hydrates it — endRenderPass would prune it every
@@ -263,8 +304,7 @@ extension ModalPresentationModifier: Renderable {
         }
 
         var modalBuffer = drawSheet(
-            modalContext: modalContext, detents: detents, isGrabbed: isGrabbed, gate: gate, escape: escape,
-            escapeItemRegistration: escapeItemRegistration, sectionID: sectionID, context: context)
+            presented, modal: modal, style: style, escapeItemRegistration: escapeItemRegistration, context: context)
         guard !modalBuffer.isEmpty else { return baseBuffer }
 
         // A detented sheet rests on the bottom edge, as a sheet with detents
@@ -300,21 +340,22 @@ extension ModalPresentationModifier: Renderable {
         return baseBuffer
     }
 
-    /// The presented content, drawn — a row short of its detent under a
-    /// grabber — with what is attached once it has drawn: the ESC item named
-    /// for what Escape does now (`escapeItemRegistration`), and the grabber
-    /// on a detented sheet's top edge.
+    /// The presented content, `modal`, drawn as `style` says — a row short of
+    /// its detent under a grabber — with what is attached once it has drawn:
+    /// the ESC item named for what Escape does now (`escapeItemRegistration`),
+    /// and the grabber on a detented sheet's top edge.
     func drawSheet(
-        modalContext: RenderContext, detents: PresentedDetents?, isGrabbed: Bool, gate: DismissalGate,
-        escape: @escaping (_ isRepeat: Bool) -> Void, escapeItemRegistration: Int?, sectionID: String,
+        _ presented: LiveSheet.Presented, modal: Modal, style: Style, escapeItemRegistration: Int?,
         context: RenderContext
     ) -> FrameBuffer {
+        let (detents, isGrabbed, gate, sectionID) =
+            (presented.detents, presented.isGrabbed, presented.gate, presented.sectionID)
         // The grabber takes a row above the content, unless the content draws
         // its own box, whose top edge it is drawn into.
         let inTopBorder = isGrabbed && SheetGrabber.isInTopBorder(of: modal)
         let modalBuffer = gate.drawingContent(context: context) {
             renderModal(
-                context: context, modalContext: modalContext,
+                modal, style: style, context: context, modalContext: presented.modalContext,
                 overlayHeight: context.environment.overlayContentHeight,
                 detentHeight: detents?.height.map { isGrabbed && !inTopBorder ? max(1, $0 - 1) : $0 })
         }
@@ -335,7 +376,7 @@ extension ModalPresentationModifier: Renderable {
         if let escapeItemRegistration {
             let item =
                 gate.interactiveDismissIsDisabled && !gate.escapePressesCancelButton
-                ? SystemStatusBarItem.heldEscape : escapeItem(gate: gate, escape: escape)
+                ? SystemStatusBarItem.heldEscape : escapeItem(gate: gate, escape: presented.escape)
             context.environment.statusBar?.keepPresentationItem(
                 item, inSection: sectionID, registeredAs: escapeItemRegistration)
         }
@@ -357,7 +398,7 @@ extension ModalPresentationModifier: Renderable {
     /// - Returns: The ESC item's registration, for naming it again once the
     ///   content has drawn, or `nil` when none was published.
     private func takeKeyboard(
-        sectionID: String, gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void,
+        _ modal: Modal, sectionID: String, gate: DismissalGate, escape: @escaping (_ isRepeat: Bool) -> Void,
         context: RenderContext
     ) -> Int? {
         // Section registration/activation + the status-bar item are

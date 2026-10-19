@@ -66,11 +66,9 @@ struct FilePanelPresenter<Content: View>: View {
     var body: some View {
         content
             .sheet(isPresented: isPresented, onDismiss: dismissed) {
-                // Built lazily, in a view's body: `sheet` builds its content
-                // on every frame, presented or not, and a request made then
-                // was the first frame's — a mover's file still `nil`, say —
-                // kept until a dismissal that never came.
-                FilePanelSheet(request: currentRequest, finish: finish)
+                // Built only while the sheet is presented, so the request is
+                // made when it is.
+                FilePanel(request: currentRequest(), finish: finish)
                     .presentationSizing(.page)
             }
     }
@@ -159,21 +157,5 @@ struct FilePanelPresenter<Content: View>: View {
         let keys = Self.storageKeys(id)
         store.setValue(ending.directory.path, forKey: keys.directory)
         store.setValue(ending.showsHiddenFiles, forKey: keys.showsHiddenFiles)
-    }
-}
-
-/// A presented panel, made from its request only when it is drawn: what a
-/// presenter hands `sheet`, which builds its content on every frame.
-///
-/// Its `@State` — the folder, the selection, the name typed — starts from
-/// the request each time it is presented: a sheet's content loses its state
-/// when the sheet is dismissed, under a view that keeps its subtree's state
-/// too.
-private struct FilePanelSheet: View {
-    let request: () -> FilePanelRequest
-    let finish: (FilePanelOutcome) -> Void
-
-    var body: some View {
-        FilePanel(request: request(), finish: finish)
     }
 }

@@ -191,6 +191,15 @@ func popoverForm(
     }
 }
 
+/// The size classes a sheet is presented in, which decide whether it is
+/// presented as a cover (``sheetIsCover(_:horizontal:vertical:)``) — read by
+/// the view presenting it, and resolved against its content only once the
+/// content is built, while it is presented.
+struct PresentationSizeClasses {
+    let horizontal: UserInterfaceSizeClass?
+    let vertical: UserInterfaceSizeClass?
+}
+
 /// Whether a sheet whose content is `sheet` is presented as a full-screen
 /// cover under these size classes.
 ///
