@@ -3,9 +3,15 @@
 *Lane GLASS, 2026-10-18, shipped the owner's ruling on refusal review
 [O5](<../Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>)
 (2026-10-12: option (b) for Material and for Glass) for glass: `Glass`,
-`View.glassEffect(_:in:)` and `DefaultGlassEffectShape`. The materials shipped
-first (`Material.swift`, Deliberate deviations C5); glass is the same
-translucent surface, with the rim option (c) of the review describes. Where the
+`View.glassEffect(_:in:)`, `DefaultGlassEffectShape`, `GlassEffectContainer`,
+`glassEffectUnion(id:namespace:)`, `glassEffectID(_:in:)`,
+`glassEffectTransition(_:)` with `GlassEffectTransition`, and the glass button
+styles (`GlassButtonStyle`, `GlassProminentButtonStyle`, `.glass`,
+`.glass(_:)`, `.glassProminent`). The materials shipped first
+(`Material.swift`, Deliberate deviations C5); glass is the same translucent
+surface, with the rim option (c) of the review describes (Deliberate
+deviations C11). The Example shows it on the Colors page, beside the
+materials. Where the
 work met a judgement call the ruling did not settle, the safe option shipped and
 is written up here, in the three parts the other lanes use: A needs a decision,
 B shipped the safe option (with the fuller version and its price), C declined

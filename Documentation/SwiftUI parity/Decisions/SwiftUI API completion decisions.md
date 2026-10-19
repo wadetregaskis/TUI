@@ -106,7 +106,8 @@ ruling is in the review under its item. In brief, with the ruling:
   the zoom source's clip shape and shadow follow in lane W1B (B-O4-6).
 - **O5** Materials and Glass (A41 lists the material symbols waiting on it).
   **(b) for both**; a cell-resolution blur is an optional add-on. Materials
-  shipped 2026-10-18; glass is in lane GLASS.
+  and glass shipped 2026-10-18 ([Glass (GLASS)](<Glass (GLASS).md>)); the
+  frosted add-on waits on the owner.
 - **O6** `ShadowStyle`. **(b)**, radius and offsets in cells. `View.shadow(color:radius:x:y:)`
   and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shadows (O6).md>)).
 - **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.

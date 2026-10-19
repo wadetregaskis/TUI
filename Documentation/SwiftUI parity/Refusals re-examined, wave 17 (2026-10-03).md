@@ -708,7 +708,8 @@ editing: defer it, not refuse it.
   `VisualEffect.brightness/contrast/grayscale/hueRotation/saturation`. The same
   operations ship per cell as `View` modifiers (X2).
 - **`VisualEffect.blendMode`** goes with W5.
-- **`Glass*`/`glassEffect*` are §O5**, with Material.
+- **`Glass*`/`glassEffect*` are §O5**, with Material — shipped 2026-10-18 (lane
+  GLASS).
 - **CONFIRM:** `Shader`/`ShaderLibrary`/`ShaderFunction` (Metal),
   `colorEffect`/`layerEffect`/`distortionEffect`, `VisualEffect.blur` and its
   shader members, and `allowedDynamicRange`/`Image.DynamicRange` (HDR).
@@ -994,7 +995,12 @@ Lane owed: the materials about a day; Glass one to two days after W1, since
 `glassEffect` takes a `Shape`. A41 follows it.
 
 **Materials shipped 2026-10-18** (`Sources/TUIkitFoundation/Styling/Material.swift`,
-Deliberate deviations C5); Glass and the frosted add-on are still owed.
+Deliberate deviations C5). **Glass shipped 2026-10-18** (lane GLASS: `Glass`,
+`glassEffect(_:in:)`, `GlassEffectContainer`, the union, id and transition
+modifiers, and the glass button styles; Deliberate deviations C11, decisions
+[GLASS](<Decisions/Glass (GLASS).md>)): the material's surface with option (c)'s
+highlighted rim, drawn in the appearance's lines. The frosted add-on is still
+owed (open decision O5-FROSTED), and would frost glass too.
 
 ### O6. `ShadowStyle` (+ W16 `shadow`, W13 `ShapeStyle.shadow`) — M
 
