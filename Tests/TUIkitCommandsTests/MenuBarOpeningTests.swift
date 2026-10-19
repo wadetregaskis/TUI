@@ -73,6 +73,23 @@ private struct SheetLaterApp: App {
     }
 }
 
+/// A page whose own handler takes F10.
+private struct PageF10App: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Button("Page") {}
+                .onKeyEvent { event in
+                    guard event.key == .f10 else { return false }
+                    OpeningProbe.shared.log.append("page f10")
+                    return true
+                }
+        }
+        .commandsRemoved()
+        .commands { CommandMenu("Alpha") { Button("A1") {} } }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -245,6 +262,16 @@ struct MenuBarOpeningTests {
         clock.frame(app)
         clock.frame(app)
         #expect(!shows("SHEET", app) && !shows("A1", app), "\(rows(app))")
+    }
+
+    @Test("The page's own F10 handler is asked before the menu bar")
+    func pageF10Wins() {
+        let (app, clock) = launched(PageF10App())
+        clock.frame(app)
+        #expect(app.send(KeyEvent(key: .f10)))
+        clock.frame(app)
+        #expect(OpeningProbe.shared.log == ["page f10"])
+        #expect(!shows("A1", app), "\(rows(app))")
     }
 }
 

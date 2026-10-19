@@ -43,8 +43,13 @@ extension _MenuBarCore {
     /// highlighted, since the keyboard opened it. The app's menu has no letter
     /// (``TitleRow/mnemonics``): F10 is its key.
     ///
-    /// F10 is a key handler: a function key is no keyboard shortcut. Alt and a
-    /// letter are framework defaults (``KeyboardShortcutRegistry/registerDefault(_:holdsFocus:action:)``),
+    /// F10 is a key handler: a function key is no keyboard shortcut. It is
+    /// filed FIRST in the frame's handlers (`insertHandler(at:)`), which the
+    /// dispatcher asks last: the bar is drawn after the page, and a handler
+    /// added then would have been asked before the page's own, taking F10
+    /// from an app that handles it — where a page's key comes before a
+    /// command's (deviation W7). Alt and a letter are framework defaults
+    /// (``KeyboardShortcutRegistry/registerDefault(_:holdsFocus:action:)``),
     /// so any shortcut of the app's on the same chord wins over the menu, and
     /// a focused text field keeps the chords it edits with (Alt-B, Alt-F). A
     /// terminal that does not send Option as Meta never sends them; F10 and a
@@ -52,7 +57,7 @@ extension _MenuBarCore {
     /// bar's keys").
     func attachOpeningKeys(_ titles: TitleRow, state: MenuBarState, context: RenderContext) {
         guard !titles.columns.isEmpty else { return }
-        context.environment.keyEventDispatcher?.addHandler { [weak state] event in
+        context.environment.keyEventDispatcher?.insertHandler(at: 0) { [weak state] event in
             guard Self.isMenuBarKey(event), let state else { return false }
             state.open(0, withSelection: true)
             return true

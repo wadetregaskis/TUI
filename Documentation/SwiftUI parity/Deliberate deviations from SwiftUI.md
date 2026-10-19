@@ -1632,7 +1632,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** a `.keyboardShortcut` the window's content registers keeps its
   key when a command declares the same one; the command's fires where nothing
   on the page binds the key (`KeyboardShortcutRegistry.registeringCommands(_:)`,
-  `MenuBarTests.pageShortcutWins`).
+  `MenuBarTests.pageShortcutWins`). The bar's own F10 follows the same rule: a
+  page's handler that takes F10 is asked first (`MenuBarOpeningTests.pageF10Wins`).
 - **Why:** the documented order. The menu bar renders after the page so that a
   command reads this frame's `@FocusedValue`, and "the last registration wins"
   would otherwise have handed every shared key to the menu bar.

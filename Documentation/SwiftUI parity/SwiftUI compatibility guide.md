@@ -712,8 +712,9 @@ several modifiers add up, the innermost first, and `commandsRemoved()` and
 outside. A command's keyboard shortcut works whether its menu is open or not,
 and a command reads the focused view's `@FocusedValue` as of the frame its key
 is pressed after: the bar is drawn after the page. A click on a title opens its
-menu, F10 opens the first (fn-F10 on a Mac keyboard), and Alt with a title's
-first letter opens that menu where the terminal sends Option as Meta
+menu, F10 opens the first (fn-F10 on a Mac keyboard; a page's own handler of
+F10 is asked first), and Alt with a title's first letter opens that menu where
+the terminal sends Option as Meta
 ([Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>),
 "The menu bar's keys"); with one open, Left and Right step to the menus beside
 it, F10 and Escape close it, and the page has its focus back. An open menu is a

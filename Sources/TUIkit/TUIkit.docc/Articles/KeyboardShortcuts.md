@@ -268,7 +268,8 @@ A `.disabled()` split view ignores them.
 A scene that declares commands (`.commands { … }`, TUIkitCommands) has a menu
 bar on the window's top row, and each command's `.keyboardShortcut` works
 whether its menu is open or not. A shortcut your page registers on the same
-keys comes first, as a window's key equivalent comes before the menu bar's.
+keys comes first, as a window's key equivalent comes before the menu bar's, and
+so does a handler of your page's that takes F10 (`onKeyEvent`, `onKeyPress`).
 
 | Key | With every menu closed | With a menu open |
 |-----|------------------------|------------------|
