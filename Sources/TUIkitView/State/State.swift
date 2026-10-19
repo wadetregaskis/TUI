@@ -317,10 +317,16 @@ extension AppState: AppRenderState {
     /// wrote, so the scope's transaction is taken for the frame when an
     /// observed change was reported with none since the last frame and no
     /// transaction is pending yet — the frame then draws every change made
-    /// since the last one under it, as a frame always does. That also
-    /// animates an unanimated observed change followed by a `withAnimation`
-    /// that writes nothing a body read, which SwiftUI does not (see
-    /// "Deliberate deviations from SwiftUI").
+    /// since the last one under it, as a frame always does, and its
+    /// completions are claimed for the frame, to run when the animation it
+    /// draws completes (``AnimationCompletionTracker``). That also animates an
+    /// unanimated observed change followed by a `withAnimation` that writes
+    /// nothing a body read, which SwiftUI does not — and holds that
+    /// `withAnimation`'s completion until the animation completes, where
+    /// SwiftUI runs it as the body returns, since nothing the body did started
+    /// an animation (see "Deliberate deviations from SwiftUI", A7). Left
+    /// unclaimed, a completion would run before the animation of the change
+    /// the scope DID make had begun, in the case this exists for.
     package func transactionScopeEnded(_ transaction: Transaction) {
         lock.withLock { state in
             guard state.unstampedObservedChange, state.pendingTransaction == nil else { return }

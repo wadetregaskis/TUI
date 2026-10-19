@@ -1199,18 +1199,28 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `withAnimation` in the same turn of the run loop, is updated once per
   write: unanimated for the plain one, animated for the other, in either
   order. An unanimated write followed by a `withAnimation` that writes
-  nothing the body read, or nothing at all, is drawn unanimated.
+  nothing the body read, or nothing at all, is drawn unanimated, and that
+  `withAnimation`'s completion runs as soon as its body returns, as Apple
+  documents for a body whose changes create no animations.
 - **TUIkit:** a frame draws every change made since the last one under one
   transaction (`AppState.consumePendingTransaction()`), so both writes are
   drawn animated; the animated write is, in either order
   (`ObservedChangeTransactionTests`). An unanimated observed change followed,
   in the same app's work before the frame, by a `withTransaction` scope that
   changed nothing any body read is drawn under that scope's transaction too
-  (`AppState.transactionScopeEnded(_:)`).
+  (`AppState.transactionScopeEnded(_:)`), and the scope's completions go with
+  its transaction: claimed for that frame, they run when the animation it
+  draws the change with completes, not as the scope returns
+  (`AnimationCompletionTests`).
 - **Why:** a frame is one pass, and a pass runs under one transaction. A
   body's observation fires once, at the first write to anything it read, and
   Observation has no public way to see the writes after it: when the first
-  was unanimated, the scope's transaction is taken for its change.
+  was unanimated, the scope's transaction is taken for its change. Its
+  completions are taken with it because that is right where the scope did
+  write what the body read — the case this exists for, whose completion
+  SwiftUI runs when the animation ends — and TUIkit cannot tell the two
+  cases apart; run as the scope returned, they would come before the
+  animation had begun.
 - **Decided:** [B-APPSTATE-2](<Decisions/Per-app render state (APPSTATE).md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>). **Lane.**
 
 ---

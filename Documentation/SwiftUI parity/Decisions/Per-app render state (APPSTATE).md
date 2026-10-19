@@ -156,10 +156,15 @@ Swapping the two writes animated it. SwiftUI animates it in either order
 Observation's public API cannot say which properties a later scope wrote. So
 an observed change reported with no transaction is noted, and a
 `withTransaction` scope ending in the same app's work before the frame
-(`AmbientApp`) gives the frame its transaction if none is pending yet. The
-cost of not knowing: an unanimated observed change followed by a
+(`AmbientApp`) gives the frame its transaction if none is pending yet, and
+the frame its completions, which run when the animation it draws completes.
+The cost of not knowing: an unanimated observed change followed by a
 `withAnimation` that changed nothing any body read is drawn animated too,
-where SwiftUI draws it unanimated (deviation A7).
+where SwiftUI draws it unanimated, and that `withAnimation`'s completion waits
+for the animation, where SwiftUI runs it as the body returns (deviation A7).
+Leaving the completions unclaimed would get that case right and the one this
+exists for wrong: there the scope did write what the body read, and its
+completion would run before the animation began.
 
 **The fuller version** re-arms a fired observation for the rest of the event,
 so the later write reports itself with its own transaction. That needs the

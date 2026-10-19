@@ -362,7 +362,11 @@ extension Transaction {
 /// As `body` returns, the app whose work this is (`AmbientApp`) hears that
 /// the scope ended: an `@Observable` property written in `body` whose body's
 /// observation an earlier, unanimated write had already fired reports
-/// nothing, and the app takes `transaction` for that change.
+/// nothing, and the app takes `transaction` for that change — completions
+/// and all, which then run when the frame's animation completes. The app
+/// cannot tell that change from none, so a `body` that changed nothing,
+/// ending while such an unanimated change waits for its frame, has its
+/// completions held for that frame too (deviation A7).
 ///
 /// - Returns: Whatever `body` returns.
 public func withTransaction<Result>(

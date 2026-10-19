@@ -110,6 +110,35 @@ struct AnimationCompletionTests {
         #expect(!ran)
     }
 
+    /// Deviation A7's completion half. An observed change reported with no
+    /// transaction may be waiting for its frame when a scope ends; the app
+    /// takes the scope's transaction for it — the scope may have written what
+    /// the same body read, which reports nothing a second time — and its
+    /// completions with it. So a body that changed nothing then leaves its
+    /// completion to that frame's animation, where SwiftUI runs it as the body
+    /// returns; with no such change waiting, it runs at once, as SwiftUI's.
+    @Test(
+        "A body that changes nothing, ending while an unanimated observed change waits, leaves its completion to that frame"
+    )
+    func scopeTakenForAnObservedChangeKeepsItsCompletion() {
+        let state = AppState()
+        var ran = false
+        state.setNeedsRenderForObservedChange()
+        AmbientApp.$renderState.withValue(state) {
+            withAnimation(.linear(duration: 1)) {} completion: { ran = true }
+        }
+        #expect(!ran, "the completion ran before the frame that took its transaction")
+        #expect(state.consumePendingCompletions().count == 1, "the frame was not handed the completion")
+        #expect(state.consumePendingTransaction()?.animation == .linear(duration: 1))
+
+        // That frame drawn, nothing waits: the next such body completes at once.
+        var ranAgain = false
+        AmbientApp.$renderState.withValue(state) {
+            withAnimation(.linear(duration: 1)) {} completion: { ranAgain = true }
+        }
+        #expect(ranAgain)
+    }
+
     // MARK: - The render that shows it
 
     @Test("A change that starts no animation completes when its pass ends")
