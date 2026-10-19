@@ -2804,7 +2804,12 @@ Where it differs:
 - **The header and footer stay put.** SwiftUI's header and footer scroll with
   the tabs; here they are fixed above and below the list, and only the tabs
   scroll. Moving them into the list as a first and last row is an hour, but a
-  header that is a row is a row the cursor must step over.
+  header that is a row is a row the cursor must step over. **Moved
+  (2026-10-19, lane LISTS2):** they are the sidebar list's first and last
+  rows and scroll with the tabs; the selection names the tab rows by a type
+  their ordinals do not cast into, so the cursor steps over both, and a
+  control in either is a Tab stop. The bottom bar stays put below the list,
+  as SwiftUI's does.
 - **Sections are not collapsible.** macOS lets the user fold a sidebar
   section. The list's `Section(isExpanded:)` does it (tried on this branch),
   but a list draws its section headers before it registers its own focus

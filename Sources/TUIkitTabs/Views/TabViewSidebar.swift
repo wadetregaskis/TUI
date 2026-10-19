@@ -52,9 +52,15 @@ struct _TabSidebarLayout: View {
         HStack(alignment: .top, spacing: 0) {
             if !compact {
                 VStack(alignment: .leading, spacing: 0) {
-                    if let header = accessories.header { header }
-                    _TabSidebarList(tabs: tabs, selection: selection)
-                    if let footer = accessories.footer { footer }
+                    // Fixed on its own as well as in the column: a list has no
+                    // ideal width (SwiftUI's has none), so beside a toolbar or
+                    // a bottom bar, which do, the column took theirs and cut
+                    // the tabs to it. Fixed here, the list answers its hugged
+                    // width, and the column is the wider of the two.
+                    _TabSidebarList(
+                        tabs: tabs, header: accessories.header, footer: accessories.footer, selection: selection
+                    )
+                    .fixedSize(horizontal: true, vertical: false)
                     if let toolbar { toolbar }
                     if let bottomBar = accessories.bottomBar { bottomBar }
                 }
@@ -67,9 +73,12 @@ struct _TabSidebarLayout: View {
 }
 
 /// The sidebar's list of tabs: a section per run of tabs, under the header of
-/// the ``TabSection`` they were declared in (none for tabs outside one).
+/// the ``TabSection`` they were declared in (none for tabs outside one), with
+/// the sidebar's header as its first row and its footer as its last.
 private struct _TabSidebarList: View {
     let tabs: [_RawTab]
+    let header: AnyView?
+    let footer: AnyView?
     let selection: Binding<AnyHashable>
 
     /// The tab view's spring loading behavior, which a tab without one of its
@@ -131,10 +140,11 @@ private struct _TabSidebarList: View {
     }
 
     /// The sidebar list, which TUIkitLists builds: a `.sidebar` `List` of the
-    /// runs, each a section under its header with its actions
-    /// (`_SidebarSectionList`, which says why it is built there).
+    /// runs, each a section under its header with its actions, between the
+    /// sidebar's header and footer (`_SidebarSectionList`, which says why it
+    /// is built there).
     private var list: some View {
-        _SidebarSectionList(sections: runs, selection: rowSelection) { index in
+        _SidebarSectionList(sections: runs, header: header, footer: footer, selection: rowSelection) { index in
             row(index)
         }
         // A tab's title is chrome, not text to select. Under an enabled scope
@@ -288,8 +298,9 @@ struct _TabViewSidebarAccessoryModifier<Content: View>: View, Renderable, Layout
 extension View {
     /// Adds a custom header to the sidebar of a tab view: above the tabs.
     ///
-    /// Shown only by a `.sidebarAdaptable` tab view, as in SwiftUI. It stays
-    /// put above the tab list, where SwiftUI's scrolls with the tabs.
+    /// Shown only by a `.sidebarAdaptable` tab view, as in SwiftUI: the
+    /// sidebar list's first row, which scrolls with the tabs. The cursor steps
+    /// over it, as over a section's header, and a control in it is a Tab stop.
     ///
     /// - Parameter content: The header.
     public func tabViewSidebarHeader<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -299,8 +310,10 @@ extension View {
 
     /// Adds a custom footer to the sidebar of a tab view: below the tabs.
     ///
-    /// Shown only by a `.sidebarAdaptable` tab view, as in SwiftUI. It stays
-    /// put below the tab list, where SwiftUI's scrolls with the tabs.
+    /// Shown only by a `.sidebarAdaptable` tab view, as in SwiftUI: the
+    /// sidebar list's last row, which scrolls with the tabs. The cursor steps
+    /// over it, as over a section's header, and a control in it is a Tab stop.
+    /// ``View/tabViewSidebarBottomBar(content:)`` is the one that stays put.
     ///
     /// - Parameter content: The footer.
     public func tabViewSidebarFooter<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -311,7 +324,9 @@ extension View {
     /// Adds a custom bottom bar to the sidebar of a tab view, pinned at its
     /// bottom below the footer.
     ///
-    /// Shown only by a `.sidebarAdaptable` tab view, as in SwiftUI.
+    /// Shown only by a `.sidebarAdaptable` tab view, as in SwiftUI. It stays
+    /// put below the sidebar list while the tabs, the header and the footer
+    /// scroll.
     ///
     /// - Parameter content: The bottom bar.
     public func tabViewSidebarBottomBar<Content: View>(@ViewBuilder content: () -> Content) -> some View {

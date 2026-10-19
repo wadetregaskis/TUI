@@ -49,6 +49,11 @@ package struct _SidebarRow: Equatable {
     /// The row's place: what the list's `row` draws and its selection names.
     package let place: Int
 
+    /// The row's id in the list: its place, in a type no hand-written row's
+    /// ordinal casts into, so the sidebar's header and footer rows are never
+    /// a selection.
+    var id: _SidebarPlace { _SidebarPlace(place: place) }
+
     /// What the row draws, as far as it can be compared. A part that cannot —
     /// a view of the app's own — is the row's to declare (an unkeyed read), so
     /// the memo does not keep it.
@@ -62,9 +67,21 @@ package struct _SidebarRow: Equatable {
     }
 }
 
+/// A row's place, as the sidebar list's selection names it (``_SidebarRow/id``).
+struct _SidebarPlace: Hashable {
+    let place: Int
+}
+
 /// A `.sidebar` `List` of sections, each under its header with its actions,
 /// its rows drawn by `row` from their places: the list a `.sidebarAdaptable`
 /// tab view (TUIkitTabs) lists its tabs in.
+///
+/// Its header and footer (`tabViewSidebarHeader(content:)`,
+/// `tabViewSidebarFooter(content:)`) are its first and last rows, so they
+/// scroll with the tabs, as SwiftUI's do. Neither is a row the selection can
+/// name — the rows are named by ``_SidebarPlace``, which their ordinals do
+/// not cast into — so the cursor steps over them, as it steps over a section
+/// header, and a control in either is a Tab stop as in any row.
 ///
 /// A section with a header folds, as a macOS sidebar's does: its header is a
 /// disclosure the keyboard and a click toggle, and a folded section's rows
@@ -84,30 +101,46 @@ package struct _SidebarSectionList<Row: View>: View {
     /// The selected row's place, or `nil` for none.
     let selection: Binding<Int?>
 
+    /// The first row, above the sections, or `nil` for none.
+    let header: AnyView?
+
+    /// The last row, below the sections, or `nil` for none.
+    let footer: AnyView?
+
     /// Draws the row at a place.
     let row: (Int) -> Row
 
     /// The places of the sections the user has folded.
     @State private var folded: Set<Int> = []
 
-    package init(sections: [_SidebarSection], selection: Binding<Int?>, row: @escaping (Int) -> Row) {
+    package init(
+        sections: [_SidebarSection], header: AnyView? = nil, footer: AnyView? = nil, selection: Binding<Int?>,
+        row: @escaping (Int) -> Row
+    ) {
         self.sections = sections
+        self.header = header
+        self.footer = footer
         self.selection = selection
         self.row = row
     }
 
     package var body: some View {
-        List(selection: selection) {
+        let selection = self.selection
+        let placeSelection = Binding<_SidebarPlace?>(
+            get: { selection.wrappedValue.map(_SidebarPlace.init) }, set: { selection.wrappedValue = $0?.place })
+        return List(selection: placeSelection) {
+            if let header { header }
             ForEach(sections) { section in
                 Section(
                     header: section.header ?? AnyView(EmptyView()),
-                    content: ForEach(section.rows, id: \.place) { row in self.row(row.place) },
+                    content: ForEach(section.rows, id: \.id) { row in self.row(row.place) },
                     footer: EmptyView(),
                     // A run of tabs outside any section has no header to fold.
                     isExpanded: section.header == nil ? nil : expansion(of: section.id)
                 )
                 .sectionActions { section.actions }
             }
+            if let footer { footer }
         }
         // A sidebar list: no border, and a `Label` row's icon in the list
         // item tint, as a macOS sidebar draws it.

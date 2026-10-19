@@ -159,6 +159,68 @@ struct TabViewSidebarTests {
         #expect(!strip.contains("HEADER") && !strip.contains("FOOTER"), "\(strip)")
     }
 
+    /// The sidebar list has no ideal width of its own, as SwiftUI's has none:
+    /// beside a bottom bar or a toolbar, which have, the column took theirs
+    /// and cut the tabs' titles to it.
+    @Test("The sidebar is as wide as its widest tab, whatever its bottom bar and toolbar", arguments: [false, true])
+    func sidebarFitsItsTabs(toolbar: Bool) {
+        let tabs = TabView(selection: .constant(0)) {
+            Tab("A long tab title", value: 0) { Text("BODY") }
+        }
+        .tabViewSidebarBottomBar { Text("B") }
+        let view: AnyView =
+            toolbar
+            ? AnyView(tabs.contentToolbar(for: .tabViewSidebar) { Text("T") }.tabViewStyle(.sidebarAdaptable))
+            : AnyView(tabs.tabViewStyle(.sidebarAdaptable))
+        let text = renderToBuffer(view, context: makeRenderContext(width: 60, height: 8)).lines.map(\.stripped)
+        #expect(text.contains { $0.contains("A long tab title") }, "\(text)")
+    }
+
+    /// SwiftUI's sidebar header and footer scroll with the tabs, and the
+    /// bottom bar is the one that stays put (decisions B76).
+    @Test("The sidebar's header and footer scroll with the tabs, the cursor steps over them, and the bottom bar stays")
+    func headerAndFooterScroll() {
+        let box = Box()
+        let view = TabView(selection: Binding(get: { box.value }, set: { box.value = $0 })) {
+            ForEach(0..<12, id: \.self) { index in
+                Tab("Tab \(index)", value: index) { Text(verbatim: "BODY \(index)") }
+            }
+        }
+        .tabViewSidebarHeader { Button("HEADBTN") {} }
+        .tabViewSidebarFooter { Text("FOOTER") }
+        .tabViewSidebarBottomBar { Text("BOTTOM") }
+        .tabViewStyle(.sidebarAdaptable)
+        let context = makeRenderContext(width: 60, height: 8)
+        func lines() -> String { renderToBuffer(view, context: context).lines.map(\.stripped).joined(separator: "\n") }
+        let top = lines()
+        #expect(top.contains("HEADBTN") && top.contains("Tab 0"), "\(top)")
+        #expect(!top.contains("FOOTER") && top.contains("BOTTOM"), "the footer is below the fold: \(top)")
+        guard let manager = context.environment.focusManager else {
+            Issue.record("no focus manager")
+            return
+        }
+        #expect(
+            manager.registeredFocusIDsInActiveSection().contains { !$0.hasPrefix("list") },
+            "the header's button is a Tab stop")
+        // End lands on the last tab, not the footer, and shows the footer
+        // below it, as Home shows the header above the first tab.
+        #expect(manager.dispatchKeyEvent(KeyEvent(key: .end)))
+        let end = lines()
+        #expect(!end.contains("HEADBTN") && end.contains("FOOTER") && end.contains("BOTTOM"), "\(end)")
+        #expect(manager.dispatchKeyEvent(KeyEvent(key: .enter)))
+        #expect(box.value == 11, "End lands on the last tab: selected \(box.value)")
+        _ = manager.dispatchKeyEvent(KeyEvent(key: .home))
+        let home = lines()
+        #expect(home.contains("HEADBTN") && !home.contains("FOOTER"), "\(home)")
+        _ = manager.dispatchKeyEvent(KeyEvent(key: .enter))
+        #expect(box.value == 0, "Home lands on the first tab: selected \(box.value)")
+        // Up from the first tab wraps to the last, over the footer and the
+        // header, as the list's Up wraps.
+        _ = manager.dispatchKeyEvent(KeyEvent(key: .up))
+        _ = manager.dispatchKeyEvent(KeyEvent(key: .enter))
+        #expect(box.value == 11, "Up wraps to the last tab: selected \(box.value)")
+    }
+
     @Test("A content toolbar for the tab view sidebar is a row at the sidebar's foot, and only in a sidebar")
     func contentToolbar() {
         let tabs = TabView(selection: .constant(0)) {
