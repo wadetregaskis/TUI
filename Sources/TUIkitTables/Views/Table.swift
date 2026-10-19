@@ -729,7 +729,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// applied (``applyKeptWidths(_:)``), its rows resolved
     /// (``resolveRows(_:)``) and ``cascadesCellText`` answered — `nil` for the
     /// copy that already is. `context` is the one the entry points prepare,
-    /// its text claimed for `.control(.table)` (``claimingCellText(_:)``).
+    /// its text claimed for `.control(.table)` (``claimCellText(in:)``).
     ///
     /// All of it on one copy, which each entry point makes once. Prepared a
     /// step at a time, a copy a step, each copy went round the entry point
@@ -902,7 +902,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let context = Self.claimingCellText(RowSelectionIndicator.resolvingForTable(context))
+        var context = RowSelectionIndicator.resolvingForTable(context)
+        Self.claimCellText(in: &context)
         if let style = customStyle(context.environment) {
             return style.measureBody(
                 configuration: TableStyleConfiguration(table: AnyView(self)), proposal: proposal,
@@ -1221,7 +1222,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var context = Self.claimingCellText(RowSelectionIndicator.resolvingForTable(context))
+        var context = RowSelectionIndicator.resolvingForTable(context)
+        Self.claimCellText(in: &context)
         if let style = customStyle(context.environment) {
             return style.makeBuffer(
                 configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
@@ -4860,17 +4862,23 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// cascade is silent to a cell's text — every table without such a
     /// modifier above it, and every one whose cascade speaks only to other
     /// scopes (a theme's `.control(.button)` styles), which pays a stored
-    /// flag's read per cell for the question: the pass answers it once
-    /// (``cascadesCellText``). A copy of the table no pass prepared asks the
-    /// cascade itself.
+    /// flag's read per cell for the question, ahead of anything else: the
+    /// pass answers it once (``cascadesCellText``). The cell's kind is asked
+    /// after it, as it is a generic enum's case, which this unspecialised
+    /// type asks of the runtime. A copy of the table no pass prepared asks
+    /// the cascade itself.
     ///
     /// Every reader of a cell's characters asks this — the fit scan, a row's
     /// height and its drawing alike — so a cascaded `textCase` that turns "ß"
     /// into "SS" is measured as it is drawn.
+    ///
+    /// `@inline(__always)`: asked of every cell, and on almost every table
+    /// answered by the flag alone, which was cheaper than the call made to
+    /// read it (0.2% of a frame of the `table` scenario, lane LISTSPERF).
+    @inline(__always)
     private func cascadedTextCell(
         _ column: _TableColumnSpec<Value>, for item: Value, context: RenderContext
     ) -> Text? {
-        if case .view = column.cell { return nil }
         guard cascadesCellText ?? (Self.cellTextAttributes(context.environment) != StyleAttributes()) else {
             return nil
         }
@@ -4881,16 +4889,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
-    /// `context` with the table's text claimed for `.control(.table)`: a
+    /// Claims the table's text in `context` for `.control(.table)`: a
     /// `.style(.control(.table)) { … }` entry names the text of the table's
     /// cells, as `.control(.toggle)` names a toggle's label — unless the table
     /// sits inside a control that has claimed its text already (a `Picker`),
-    /// whose kind it keeps. One environment write per table per pass.
-    private static func claimingCellText(_ context: RenderContext) -> RenderContext {
-        guard context.environment.controlKind == nil else { return context }
-        var claimed = context
-        claimed.environment.controlKind = .table
-        return claimed
+    /// whose kind it keeps. One environment write per table per pass, made
+    /// in place: the entry points' context usually holds its environment
+    /// alone, ``RowSelectionIndicator/resolvingForTable(_:)`` having just
+    /// written to it, where a copy of the context to write to copied the
+    /// environment's storage every time.
+    private static func claimCellText(in context: inout RenderContext) {
+        guard context.environment.controlKind == nil else { return }
+        context.environment.controlKind = .table
     }
 
     /// What the style cascade gives a string cell's text: what a `Text` in the
@@ -5432,7 +5442,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             colorDepth: ColorDepth.current,
             colorGeneration: TerminalColors.generation,
             widthGeneration: TerminalWidthTraits.generation,
-            cellText: Self.cellTextAttributes(context.environment))
+            cellText: cascadesCellText == false ? StyleAttributes() : Self.cellTextAttributes(context.environment))
     }
 
     /// Whether this table's rows may be kept across frames at all.
