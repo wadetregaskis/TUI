@@ -92,6 +92,9 @@ private struct Followed: View {
 /// at (0, 6).
 private struct Selection: View {
     let selected: Int
+    /// Whether the follower is the source of a group of its own as well: two
+    /// effects on one view.
+    var stacked = false
     @Namespace private var space
 
     var body: some View {
@@ -104,7 +107,13 @@ private struct Selection: View {
                 GlyphFill("C").frame(width: 4, height: 1).matchedGeometryEffect(id: 2, in: space)
             }
             GlyphFill(" ").frame(width: 1, height: 3)
-            GlyphFill("f").matchedGeometryEffect(id: selected, in: space, isSource: false).frame(width: 1, height: 1)
+            if stacked {
+                GlyphFill("f").matchedGeometryEffect(id: selected, in: space, isSource: false)
+                    .matchedGeometryEffect(id: "own", in: space).frame(width: 1, height: 1)
+            } else {
+                GlyphFill("f").matchedGeometryEffect(id: selected, in: space, isSource: false)
+                    .frame(width: 1, height: 1)
+            }
         }
     }
 }
@@ -312,6 +321,37 @@ struct MatchedGeometryEffectTests {
         #expect(rect(of: "f", in: end) == CellRect(x: 20, y: 0, width: 8, height: 3))
         #expect(rect(of: "f", in: frames.draw(Selection(selected: 1), atMillis: 1500))
             == CellRect(x: 20, y: 0, width: 8, height: 3))
+    }
+
+    @Test("A follower that is the source of another group too is carried as one that is not")
+    func stackedEffectsKeepTheirOwnState() {
+        // Both effects draw at the view's identity. Each keeps its own state
+        // and its own animation: keyed by the identity alone, the follower
+        // read the other effect's state on the frames it lost a dictionary's
+        // walk, started a carry from where that one drew on every frame, and
+        // was not carried when its source changed; and the other, reading the
+        // follower's, moved the view a second time as it was carried.
+        let frames = Frames()
+        frames.draw(Selection(selected: 0, stacked: true))
+        frames.draw(Selection(selected: 0, stacked: true))
+        let start = frames.draw(Selection(selected: 1, stacked: true), atMillis: 0, animation: .linear(duration: 1))
+        #expect(rect(of: "f", in: start) == CellRect(x: 0, y: 0, width: 4, height: 1))
+        for millis in [250, 500, 750] {
+            #expect(rect(of: "f", in: frames.draw(Selection(selected: 1, stacked: true), atMillis: millis))
+                == rect(of: "f", in: Self.carried(toMillis: millis)), "at \(millis) ms")
+        }
+        #expect(rect(of: "f", in: frames.draw(Selection(selected: 1, stacked: true), atMillis: 1000))
+            == CellRect(x: 20, y: 0, width: 8, height: 3))
+    }
+
+    /// The follower of an unstacked ``Selection`` carried from `A` to `B`, as
+    /// drawn at `millis`.
+    private static func carried(toMillis millis: Int) -> [String] {
+        let frames = Frames()
+        frames.draw(Selection(selected: 0))
+        frames.draw(Selection(selected: 0))
+        frames.draw(Selection(selected: 1), atMillis: 0, animation: .linear(duration: 1))
+        return frames.draw(Selection(selected: 1), atMillis: millis)
     }
 
     @Test("A follower carried between two sources of one size is moved, a whole cell at a time")

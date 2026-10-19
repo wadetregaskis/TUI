@@ -159,10 +159,6 @@ struct _MatchedGeometryEffectView<Content: View>: View {
     }
 }
 
-/// The type a member's animation is kept under in the animation store, with
-/// its identity and the member's epoch.
-private enum MatchedGeometryAnimation {}
-
 extension _MatchedGeometryEffectView: Renderable, Layoutable {
     /// The effect never changes the view's place in its parent's layout:
     /// this measures as its content.
@@ -292,15 +288,18 @@ private struct MatchedMemberDrawing {
 
     init(effect: _MatchedGeometryEffectView<some View>, identity: ViewIdentity, registry: MatchedGeometryRegistry) {
         let key = effect.key
-        let previous = registry.state(of: identity)
+        // The wrapper's own type tells it from another wrapper on the same
+        // view, which draws at the same identity (``MatchedMemberID``).
+        let owner = ObjectIdentifier(type(of: effect))
+        let previous = registry.state(of: MatchedMemberID(identity: identity, owner: owner))
         properties = effect.properties
         anchor = effect.anchor
         ownFrame = CellRect(x: 0, y: 0, width: 0, height: 0)
         let source = effect.isSource ? nil : registry.source(of: key, excluding: identity)
         self.source = source
         registration = MatchedRegistration(
-            identity: identity, marker: HitTestRegion.HandlerID(0), isSource: effect.isSource, anchor: effect.anchor,
-            size: CellSize(width: 0, height: 0),
+            identity: identity, owner: owner, marker: HitTestRegion.HandlerID(0), isSource: effect.isSource,
+            anchor: effect.anchor, size: CellSize(width: 0, height: 0),
             state: MatchedMemberState(
                 key: key, followed: source?.identity, epoch: previous?.epoch ?? 0,
                 offsets: previous?.offsets ?? .zero))
@@ -362,9 +361,10 @@ private struct MatchedMemberDrawing {
             registration.state.offsets = MatchedEdgeOffsets(from: startsFrom, to: target)
         }
         guard !registration.state.offsets.isZero else { return target }
+        // Under the member's own wrapper type, as its state is kept: two
+        // effects on one view run apart.
         let key = AnimationStore.Key(
-            identity: registration.identity, owner: ObjectIdentifier(MatchedGeometryAnimation.self),
-            slot: registration.state.epoch)
+            identity: registration.identity, owner: registration.owner, slot: registration.state.epoch)
         let now = context.environment.frameNowNanos
         // A change is a first sight at its own epoch: it starts the animation
         // this frame's change runs under, and none at all where the change is

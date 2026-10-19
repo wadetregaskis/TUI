@@ -67,6 +67,29 @@ package struct MatchedEdgeOffsets: Equatable, Sendable {
     }
 }
 
+/// One member of the registry: a view, and the wrapper that joined it to a
+/// group.
+///
+/// A view can be in more than one group — two effects stacked on it, or an
+/// effect and a matched transition source — and every one of those wrappers
+/// draws at the view's identity, since a modifier does not descend it. So a
+/// member is told apart by the wrapper's type as well, as the animation store
+/// tells two modifiers on one view apart (`AnimationStore.Key.owner`): two
+/// stacked wrappers' types differ, the outer one's naming the inner one.
+/// Keyed by the identity alone, the wrappers on one view read each other's
+/// state, and which one each read changed with the order a dictionary was
+/// walked in.
+package struct MatchedMemberID: Hashable {
+    package let identity: ViewIdentity
+    /// The type of the wrapper that joined the view to its group.
+    package let owner: ObjectIdentifier
+
+    package init(identity: ViewIdentity, owner: ObjectIdentifier) {
+        self.identity = identity
+        self.owner = owner
+    }
+}
+
 /// What a group's source is, as a member following it reads it.
 package struct MatchedSource: Equatable {
     package var identity: ViewIdentity
@@ -112,6 +135,8 @@ package struct MatchedMemberState {
 /// A member of a group as a walk registered it, once it has drawn.
 package struct MatchedRegistration {
     package var identity: ViewIdentity
+    /// The type of the wrapper that joined it (``MatchedMemberID``).
+    package var owner: ObjectIdentifier
     /// Its geometry marker, which the scene root finds it by.
     package var marker: HitTestRegion.HandlerID
     package var isSource: Bool
@@ -135,16 +160,22 @@ package struct MatchedRegistration {
     package var state: MatchedMemberState
 
     package init(
-        identity: ViewIdentity, marker: HitTestRegion.HandlerID, isSource: Bool, anchor: UnitPoint,
-        size: CellSize, state: MatchedMemberState
+        identity: ViewIdentity, owner: ObjectIdentifier, marker: HitTestRegion.HandlerID, isSource: Bool,
+        anchor: UnitPoint, size: CellSize, state: MatchedMemberState
     ) {
         self.identity = identity
+        self.owner = owner
         self.marker = marker
         self.isSource = isSource
         self.anchor = anchor
         self.size = size
         self.isFollower = !isSource
         self.state = state
+    }
+
+    /// The member it registers.
+    package var member: MatchedMemberID {
+        MatchedMemberID(identity: identity, owner: owner)
     }
 }
 
@@ -192,10 +223,10 @@ package final class MatchedGeometryRegistry: @unchecked Sendable {
     private var lastFrame: [MatchedGeometryKey: [MatchedMember]] = [:]
 
     /// Each member's state as the last frame left it.
-    private var states: [ViewIdentity: MatchedMemberState] = [:]
+    private var states: [MatchedMemberID: MatchedMemberState] = [:]
 
     /// Each member's state as the last resolved walk of this frame leaves it.
-    private var pendingStates: [ViewIdentity: MatchedMemberState] = [:]
+    private var pendingStates: [MatchedMemberID: MatchedMemberState] = [:]
 
     init() {}
 
@@ -207,10 +238,10 @@ package final class MatchedGeometryRegistry: @unchecked Sendable {
 // MARK: - Asking
 
 extension MatchedGeometryRegistry {
-    /// The state `identity` was left in last frame, or `nil` for a member that
+    /// The state `member` was left in last frame, or `nil` for a member that
     /// is new.
-    package func state(of identity: ViewIdentity) -> MatchedMemberState? {
-        states[identity]
+    package func state(of member: MatchedMemberID) -> MatchedMemberState? {
+        states[member]
     }
 
     /// Whether `identity` was a member of `key`'s group last frame.
@@ -281,11 +312,12 @@ extension MatchedGeometryRegistry {
 // MARK: - Registering
 
 extension MatchedGeometryRegistry {
-    /// Adds a member to `key`'s group for this walk, once it has drawn. A view
-    /// drawn again in the same walk replaces what it registered the first time.
+    /// Adds a member to `key`'s group for this walk, once it has drawn. A
+    /// member drawn again in the same walk replaces what it registered the
+    /// first time.
     package func register(_ registration: MatchedRegistration, in key: MatchedGeometryKey) {
         var members = walk[key] ?? []
-        if let index = members.firstIndex(where: { $0.identity == registration.identity }) {
+        if let index = members.firstIndex(where: { $0.member == registration.member }) {
             members[index] = registration
         } else {
             members.append(registration)
@@ -316,7 +348,7 @@ extension MatchedGeometryRegistry {
     func resolveWalk(origin: (HitTestRegion.HandlerID) -> CellPoint?) -> Bool {
         guard !isEmpty else { return false }
         var found: [MatchedGeometryKey: [MatchedMember]] = [:]
-        var resolvedStates: [ViewIdentity: MatchedMemberState] = [:]
+        var resolvedStates: [MatchedMemberID: MatchedMemberState] = [:]
         for (key, registrations) in walk {
             for registration in registrations {
                 guard let at = origin(registration.marker) else { continue }
@@ -332,7 +364,7 @@ extension MatchedGeometryRegistry {
                         anchor: registration.anchor, frame: frame, presented: presented))
                 var state = registration.state
                 state.presented = presented
-                resolvedStates[registration.identity] = state
+                resolvedStates[registration.member] = state
             }
         }
         var misled = false

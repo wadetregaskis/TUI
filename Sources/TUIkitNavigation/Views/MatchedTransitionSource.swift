@@ -178,8 +178,11 @@ private struct _MatchedTransitionSourceView<Content: View>: View, Renderable, La
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         ask.want(.global)
         var buffer = TUIkitView.renderToBuffer(content, context: context)
+        // A member of its own, beside an effect on the same view
+        // (``MatchedMemberID``).
         var registration = MatchedRegistration(
-            identity: context.identity, marker: ask.id, isSource: true, anchor: .center, size: buffer.cellSize,
+            identity: context.identity, owner: ObjectIdentifier(Self.self), marker: ask.id, isSource: true,
+            anchor: .center, size: buffer.cellSize,
             state: MatchedMemberState(key: key, followed: nil, epoch: 0, offsets: .zero))
         registration.expectedOrigin = ask.expectedOrigin(in: .global)
         ask.finishRecording(size: buffer.cellSize)
