@@ -346,12 +346,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `Tools/SwiftUIProbes/Alignment guides/layout1.out`, case B).
 - **TUIkit:** the same through `.padding`, `.frame`, `.position`, `.offset`,
   `.overlay`, `.background` and every wrapper that keeps its content's
-  geometry (`AlignmentGuideWrapperTests`): `.onTapGesture`, `.tint`,
+  geometry, `.badge` among them (`AlignmentGuideWrapperTests`; SwiftUI's
+  `.badge` passes it too, `badge.out`): `.onTapGesture`, `.tint`,
   `.onAppear`, and an environment write, whose content is asked in the
   context the write lays it out in, so a guide under `.lineLimit(1)` is found
-  where the limited content draws it (`ContentContextStating`).
-  `.border()` moves the guide in by
-  its ring — a line and a blank cell across, a line down — and a `.badge`, a
+  where the limited content draws it. `.border()` moves the guide in by
+  its ring — a line and a blank cell across, a line down — and a
   `.toolbar`, a list row's insets or colours and a `BufferModifier` of the
   app's own that does not state `_keepsContentGeometry` stop it.
   `layoutValue(key:value:)` and `layoutPriority(_:)` are read through every

@@ -118,6 +118,9 @@ struct AlignmentGuideWrapperTests {
         #expect(leadingReported(leadingFive().fixedSize()) == 5)
         #expect(leadingReported(leadingFive().opacity(0.5)) == 5)
         #expect(leadingReported(leadingFive().disabled(true)) == 5)
+        // SwiftUI: 5 through a badge too (`badge.out`).
+        #expect(leadingReported(leadingFive().badge(2)) == 5)
+        #expect(leadingReported(leadingFive().badge("x")) == 5)
         // SwiftUI: 7 through a leading padding of 2.
         #expect(leadingReported(leadingFive().padding(.leading, 2)) == 7)
     }

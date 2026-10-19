@@ -215,7 +215,7 @@ public protocol SingleContentWrapper {
     /// reports a position from the wrong coordinate space.
     ///
     /// `false` by default, so a wrapper that moves or resizes its content
-    /// (a badge beside it, a toolbar round it) stops a guide rather than
+    /// (a toolbar round it, a list row's insets) stops a guide rather than
     /// report it wrongly; a wrapper that only publishes to its subtree,
     /// rewrites the cells its content drew or records an effect answers
     /// `true`. A wrapper that moves its content by a known offset answers the

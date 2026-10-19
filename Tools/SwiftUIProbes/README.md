@@ -140,6 +140,9 @@ messages cite that path), and what cites it.
   `EmptyView` under a frame, padding, overlay, background, border, `.id`, `.onAppear` and a `Group`, and a frame
   with an ideal and no maximum offered nothing (case `D`).
   Run on macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-18 (lane LAYOUT).
+- **Also:** `badge.swift` (`badge.out`): a custom guide set on a view passes `.badge(_:)` (a count and a string)
+  and `.textCase(_:)` as it passes no modifier at all. Run on macOS 15.8.1 with Xcode's `swiftc`, 2026-10-19 (the
+  review of lane LAYOUT).
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-11.
 - **Was:** `GUIDE/probe/` and `GUIDE/probe2/` (and `GUIDE/tuikit.out`); `layout1.swift` was `LAYOUT/probe/l1.swift`.
 - **Cited by:** `Tests/TUIkitChromeTests/AlignmentGuideParityTests.swift`,

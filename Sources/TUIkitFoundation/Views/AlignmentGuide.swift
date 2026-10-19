@@ -185,7 +185,7 @@ extension View {
     /// move); `.offset` passes it unmoved, being laid out where its view is;
     /// `.overlay` and `.background` pass their base's; and a modifier that
     /// keeps its content where it is — environment, style, effect, focus,
-    /// gesture and lifecycle modifiers, `.id`, `.tag`, `.opacity`,
+    /// gesture and lifecycle modifiers, `.id`, `.tag`, `.badge`, `.opacity`,
     /// `.fixedSize()` — passes it unmoved, the content laid out as the
     /// modifier lays it out: under `.textCase(.uppercase)` a guide is placed
     /// in the uppercased text.
@@ -194,8 +194,8 @@ extension View {
     /// View`'s body travels out of `Row` as SwiftUI's does.
     ///
     /// - Important: It stops at a modifier that moves or resizes its content
-    ///   without saying by how much — a `.badge`, a `.toolbar`, a list row's
-    ///   insets or colours, a ``BufferModifier`` of your own (unless it states
+    ///   without saying by how much — a `.toolbar`, a list row's insets or
+    ///   colours, a ``BufferModifier`` of your own (unless it states
     ///   ``BufferModifier/_keepsContentGeometry``). Put the guide outside such a
     ///   modifier. A guide is a closure evaluated against the dimensions the
     ///   view laid out at, and a wrapper that does not translate it would

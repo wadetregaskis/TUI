@@ -1,0 +1,5 @@
+== F7: a custom guide through .badge in VStack(alignment: .mark){G.badge; C}
+G(mark 3).badge(2) || G.x=0 G.y=0 G.w=4 G.h=1 C.x=3 C.y=1 C.w=1 C.h=1 outer.w=4 outer.h=2
+G(mark 3).badge("x") || G.x=0 G.y=0 G.w=4 G.h=1 C.x=3 C.y=1 C.w=1 C.h=1 outer.w=4 outer.h=2
+G(mark 3) (no badge) || G.x=0 G.y=0 G.w=4 G.h=1 C.x=3 C.y=1 C.w=1 C.h=1 outer.w=4 outer.h=2
+G(mark 3).textCase || G.x=0 G.y=0 G.w=4 G.h=1 C.x=3 C.y=1 C.w=1 C.h=1 outer.w=4 outer.h=2

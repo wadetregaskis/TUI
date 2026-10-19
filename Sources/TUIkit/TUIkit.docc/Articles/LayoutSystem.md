@@ -159,12 +159,12 @@ Three things worth knowing before you reach for it:
   not — lines the rows up on it. A guide passes the modifiers written after
   it, each moving it by where it puts its content (`.padding`, `.frame`,
   `.position`, `.border()`), or not at all (`.offset`, `.overlay`,
-  `.background`, and the modifiers that keep their content where it is, an
-  environment write such as `.lineLimit(_:)` asking it under the value it
-  writes). It
-  stops only at one that moves its content without saying by how much — a
-  `.badge`, a `.toolbar`, a `BufferModifier` of your own — which would
-  report it from the wrong coordinate space.
+  `.background`, and the modifiers that keep their content where it is, a
+  `.badge` among them, an environment write such as `.lineLimit(_:)` asking
+  it under the value it writes). It stops only at one that moves its content
+  without saying by how much — a `.toolbar`, a list row's insets, a
+  `BufferModifier` of your own — which would report it from the wrong
+  coordinate space.
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and

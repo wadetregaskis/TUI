@@ -133,7 +133,7 @@ first part, plus an A/B on `anyview` and `kitchensink`.
 
 ### B-LAYOUT-3. A border moves a guide by its ring, and a few wrappers stop one
 
-*`.border(_:style:width:)`, `.badge`, `.toolbar`, `listRowInsets`,
+*`.border(_:style:width:)`, `.toolbar`, `listRowInsets`,
 `listRowBackground`, `BufferModifier`; deviations L11*
 
 A guide now passes every single-child modifier written after it, as SwiftUI's
@@ -162,16 +162,19 @@ Two differences remain:
   view and moves nothing (measured: 5 under `.border(_:width: 2)`). A terminal
   border takes cells round its content, so the content's guide is where the
   content is.
-- **A `.badge`, a `.toolbar`, a list row's insets, colour or background, and a
+- **A `.toolbar`, a list row's insets, colour or background, and a
   `BufferModifier` of the app's own** stop a guide: each moves or resizes its
   content without saying by how much (a list row's colour fills the row's
   width, wider than its content), and a guide passed through unmoved would
-  report the wrong position.
+  report the wrong position. A `.badge` passes it, as SwiftUI's does
+  (measured, `Tools/SwiftUIProbes/Alignment guides/badge.out`): it publishes
+  its value and lays its content out where it is, in that environment
+  (`AlignmentGuideWrapperTests`). This entry listed it among the stops until
+  the review found the code passing it.
 
 **The fuller version:** a requirement on `BufferModifier` that states where
 the modifier puts its content (its insets), so an app's own modifier
-translates a guide as padding does, and the same for the badge (its content
-sits at the leading edge, the badge after it) and the list row styles. About
+translates a guide as padding does, and the same for the list row styles. About
 half a day for the requirement; the others an hour each, with a probe each.
 
 ### B-LAYOUT-4. A `Grid` reports no guide out of itself
