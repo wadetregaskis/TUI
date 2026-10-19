@@ -26,6 +26,10 @@ private struct Zooming: View {
     var sourceID = 1
     var inset = 10
     var background: Color?
+    /// The source's clip shape, if it has one.
+    var clip: RoundedRectangle?
+    /// Whether the source casts a hard half-black shadow a cell right and down.
+    var shadowed = false
     var destination: String?
     /// Whether a view inside the screen declares the automatic transition, under
     /// the zoom the screen declares.
@@ -77,6 +81,12 @@ private struct Zooming: View {
         if let background {
             GlyphFill("s").frame(width: 4, height: 2)
                 .matchedTransitionSource(id: 1, in: space) { $0.background(background) }
+        } else if let clip {
+            GlyphFill("s").frame(width: 4, height: 2)
+                .matchedTransitionSource(id: 1, in: space) { $0.clipShape(clip) }
+        } else if shadowed {
+            GlyphFill("s").frame(width: 4, height: 2)
+                .matchedTransitionSource(id: 1, in: space) { $0.shadow(color: .black.opacity(0.5), radius: 0, x: 1, y: 1) }
         } else {
             GlyphFill("s").frame(width: 4, height: 2).matchedTransitionSource(id: 1, in: space)
         }
@@ -342,6 +352,49 @@ struct ZoomNavigationTransitionTests {
         }
     }
 
+    @Test("The source's clip shape cuts the rectangle's corners, its radius shrinking as the rectangle grows")
+    func clipShape() {
+        let navigator = Navigator()
+        let view = { (path: Binding<NavigationPath>) in
+            Zooming(path: path, clip: RoundedRectangle(cornerRadius: 6, style: .circular))
+        }
+        navigator.draw(view, atMillis: 0)
+        navigator.path.append(1)
+        navigator.draw(view, atMillis: 0, transaction: linear)
+        // Halfway the rectangle is (5, 2) 22×6, and the radius 3: each corner
+        // cell is under half covered, and cut, showing the root behind it; the
+        // cells beside it are kept.
+        let halfway = navigator.lines(navigator.draw(view, atMillis: 500))
+        func cell(_ column: Int, _ row: Int) -> Character { Array(halfway[row])[column] }
+        #expect([cell(5, 2), cell(26, 2), cell(5, 7), cell(26, 7)] == [".", ".", ".", "."])
+        #expect([cell(6, 2), cell(5, 3), cell(25, 7), cell(26, 6)] == ["D", "D", "D", "D"])
+        // Grown to the stack, it has no radius left.
+        let end = navigator.lines(navigator.draw(view, atMillis: 1000))
+        #expect(rect(of: "D", in: end) == CellRect(x: 0, y: 2, width: 40, height: 10))
+        #expect(!end.joined().contains("."))
+    }
+
+    @Test("The source's shadow falls on the screen the rectangle grows over, and fades as it grows")
+    func shadow() {
+        ColorDepth.withCurrent(.truecolor) {
+            let navigator = Navigator()
+            let view = { (path: Binding<NavigationPath>) in Zooming(path: path, shadowed: true) }
+            navigator.draw(view, atMillis: 0)
+            navigator.path.append(1)
+            let start = navigator.draw(view, atMillis: 0, transaction: linear)
+            // At the start the rectangle is the source's, (10, 3) 4×2: its shadow
+            // a cell right and down, at the colour's half.
+            #expect(paintedCells(start.lines[5])[11].background.isEmpty == false, "under the rectangle's bottom edge")
+            #expect(paintedCells(start.lines[4])[14].background.isEmpty == false, "beside its trailing edge")
+            #expect(paintedCells(start.lines[5])[10].background.isEmpty, "offset a cell right")
+            #expect(paintedCells(start.lines[2])[11].background.isEmpty, "nothing above it")
+            let halfway = navigator.draw(view, atMillis: 500)
+            #expect(paintedCells(halfway.lines[8])[10].background.isEmpty == false, "under the grown rectangle")
+            let end = navigator.draw(view, atMillis: 1000)
+            #expect(end.lines.allSatisfy { line in paintedCells(line).allSatisfy(\.background.isEmpty) })
+        }
+    }
+
     @Test("The zoom transition and its source configuration are SwiftUI's spellings")
     func spellings() {
         struct Spelled: View {
@@ -349,7 +402,10 @@ struct ZoomNavigationTransitionTests {
             var body: some View {
                 Text("source")
                     .matchedTransitionSource(id: "card", in: space) { source in
-                        source.background(.blue)
+                        source
+                            .background(.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .shadow(radius: 4, y: 2)
                     }
                     .navigationTransition(.zoom(sourceID: "card", in: space))
             }

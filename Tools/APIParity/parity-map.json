@@ -704,12 +704,6 @@
     "LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)": {
       "why": "A colour's spoken name comes from Apple's accessibility colour naming, which is private and has no counterpart in the open-source Foundation, and a screen reader reads a terminal only through what is on screen, so a name would have to be drawn. Declined (owner, 2026-10-05; decisions A33, removed when this entry landed): code that uses it does not compile, and the app says what it means in words. Interpolating the colour's description instead would read `Color(…)` aloud, the quiet wrong answer."
     },
-    "MatchedTransitionSourceConfiguration.clipShape(_:)": {
-      "why": "Clips a zoom transition's source to a `RoundedRectangle`, which TUIkit does not have yet: shapes are lane W1, after O0 of the refusal review (ruled 2026-10-12). It lands with them, the zoom's rectangle drawn with the shape's corners; until then it fails to compile rather than clip nothing (decisions O4, B-O4-6)."
-    },
-    "MatchedTransitionSourceConfiguration.shadow(color:radius:x:y:)": {
-      "why": "A zoom source's drop shadow, by a radius and an offset: shadows are O6 of the refusal review, a lane of their own. It lands with `View.shadow(color:radius:x:y:)`, drawn round the zoom's rectangle; until then it fails to compile rather than draw nothing (decisions O4, B-O4-6)."
-    },
     "OutlineSubgroupChildren": {
       "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkitLists/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
     },

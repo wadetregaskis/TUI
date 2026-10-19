@@ -155,6 +155,31 @@ extension FrameBuffer {
         return result
     }
 
+    /// The drop shadow `caster`'s painted cells cast, as a layer to lay over
+    /// what is behind them — the layer ``castingDropShadow(_:context:owner:)``
+    /// lays under a view — and where its top-leading cell goes, in the
+    /// caster's cells. For a drawing that is not a view's buffer: the zoom
+    /// navigation transition's rectangle, whose shadow falls on the screen it
+    /// grows over.
+    ///
+    /// - Parameters:
+    ///   - caster: The cells that cast, as a buffer: those it paints cast.
+    ///   - style: The shadow. Its kind is not read.
+    ///   - palette: The palette the colour resolves in.
+    /// - Returns: The layer and its origin, or `nil` where the shadow lays
+    ///   nothing.
+    package static func dropShadowLayer(
+        castBy caster: FrameBuffer, style: ShadowStyle, palette: any Palette
+    ) -> (layer: FrameBuffer, origin: (x: Int, y: Int))? {
+        let colour = style.color.resolve(with: palette)
+        guard caster.width > 0, !caster.lines.isEmpty,
+            let field = ShadowField.drop(footprint: ShadowFootprint(caster), style: style, peak: colour.alpha),
+            !field.isEmpty
+        else { return nil }
+        let layer = shadowLayer(field, escape: ANSIRenderer.backgroundCode(for: colour.opaqueSpelling))
+        return (layer, (field.originX, field.originY))
+    }
+
     /// The drop shadow's layer: the whole of `field`'s rectangle painted in
     /// `escape`, each cell claimed at the shadow's alpha there — and a cell the
     /// shadow misses (a corner past the last ring, the gap in "a b"'s shadow)

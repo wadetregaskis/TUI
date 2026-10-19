@@ -60,3 +60,28 @@ Where the measurement left a call:
 there — half a day, the shadow field taking a strength per cell; the shadow
 animated through `PaintAnimation`'s slots, its colour, radius and offset — a
 few hours.
+
+### B-W1B-2. A zoom source's clip shape and shadow shrink to nothing as the rectangle grows
+
+*`MatchedTransitionSourceConfiguration.clipShape(_:)`,
+`MatchedTransitionSourceConfiguration.shadow(color:radius:x:y:)`*
+
+The zoom (B-O4-5) is a rectangle growing from the source's frame to the stack's.
+The source's clip shape cuts the rectangle's corners — a cell kept where the
+shape covers at least half of it, the rule `clipShape(_:)` keeps
+(B-W1-11) — and the screen it grows over shows in the corners cut away; its
+shadow is cast from the rectangle, or from the clip shape where there is one,
+onto that screen, in cells as every shadow here is (C10), and is cut at the
+stack's edge. SwiftUI interpolates a source's configuration into the
+destination's (Apple's documentation; the zoom is iOS-only, so not measured);
+a pushed screen has neither, so the radius shrinks with what is left of the
+zoom and the shadow's alpha fades with it, the source's at the start and
+nothing once the rectangle is the stack's.
+
+While a corner is cut, a click there reaches the screen being uncovered, not
+the one showing through: the hit regions are the screen's whole rectangle, as
+they were before the clip.
+
+**The fuller version:** the screen's hit regions cut with its corners — an
+hour, with the mask a `contentShape` uses (B-W1B-3).
+

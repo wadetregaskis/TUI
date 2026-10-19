@@ -3456,7 +3456,10 @@ private struct ZoomFromRows: View {
                     Text(color)
                 }
                 .matchedTransitionSource(id: color, in: namespace) { source in
-                    source.background(.blue)
+                    source
+                        .background(.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(radius: 8, y: 4)
                 }
             }
         }

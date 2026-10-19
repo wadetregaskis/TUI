@@ -170,7 +170,7 @@ Four calls the ruling left open:
   live, so its controls take clicks inside the rectangle from the first frame.
 
 **Fuller version:** none that a cell allows for the scale itself. The
-rectangle could be drawn with the source's corners once shapes land (below).
+rectangle is drawn with the source's corners since shapes landed (B-O4-6).
 
 ### B-O4-6. A transition source's configuration has its background; clip shapes and shadows wait
 
@@ -190,6 +190,9 @@ either.
 rounded corner glyphs and clip the uncovered screen to them — half a day; once
 O6 lands, draw the source's shadow round the rectangle — a couple of hours on
 top of O6's own drawing.
+
+**Shipped** by lane W1B (2026-10-19), the clip and the shadow both:
+[B-W1B-2](<What the shapes unblocked (W1B).md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>).
 
 ### B-O4-7. A carried member floats over every view while it moves
 

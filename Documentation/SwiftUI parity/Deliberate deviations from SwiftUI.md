@@ -1336,7 +1336,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the screen it replaces; a popped screen is covered back down into the
   source over the screen it returns to. A push with no animation of its own
   zooms under `Animation.default`; none zooms where the transaction disables
-  animations, motion is reduced, or no source is on screen.
+  animations, motion is reduced, or no source is on screen. The source's
+  `clipShape(_:)` cuts the rectangle's corners by the ½ rule a clip keeps,
+  and its `shadow(color:radius:x:y:)` falls on the screen it grows over, in
+  cells; both go from the source's to nothing as the rectangle reaches the
+  stack ([B-W1B-2](<Decisions/What the shapes unblocked (W1B).md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
   (`ZoomNavigationTransitionTests`.)
 - **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: the
   zoom is the `.scale` reveal generalised).

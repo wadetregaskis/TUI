@@ -8,6 +8,10 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
+import Foundation
 import TUIkitCore
 import TUIkitFoundation
 import TUIkitStyling
@@ -32,8 +36,9 @@ struct NavigationZoomState {
         /// The picture that holds still while the other is uncovered or
         /// covered: the screen pushed over, or the screen popped.
         let still: FrameBuffer
-        /// The source's background, drawn in the rectangle.
-        let background: Color?
+        /// The source's configuration: its background, drawn in the
+        /// rectangle, its clip shape and its shadow.
+        let configuration: _ResolvedMatchedTransitionSourceConfiguration
         /// Its slot in the animation store.
         let epoch: Int
     }
@@ -120,18 +125,40 @@ extension NavigationCoordinator {
             x: 0, y: 0, width: max(buffer.width, running.still.width), height: max(buffer.height, running.still.height))
         let present = running.direction == .reveal ? phase : 1 - phase
         let rect = MatchedEdgeOffsets(from: source, to: whole).applied(to: whole, remaining: 1 - present)
-        let fill = running.background.map { colour in
+        let fill = running.configuration.background.map { colour in
             TUIkitView.renderToBuffer(
                 colour,
                 context: context.withChildIdentity(erasedType: NavigationZoomAnimation.self, index: 0)
                     .withAvailableSize(width: max(0, rect.width), height: max(0, rect.height)))
         }
+        let edge = Self.edge(of: rect, configuration: running.configuration, remaining: 1 - present, context: context)
         switch running.direction {
         case .reveal:
-            return Self.revealing(buffer, through: rect, over: running.still, fill: fill)
+            return Self.revealing(buffer, through: rect, over: running.still, fill: fill, edge: edge)
         case .conceal:
-            return Self.revealing(running.still, through: rect, over: buffer, fill: fill, keepsBase: true)
+            return Self.revealing(running.still, through: rect, over: buffer, fill: fill, edge: edge, keepsBase: true)
         }
+    }
+
+    /// What the rectangle's edge is this frame: the source's clip shape, its
+    /// radius `remaining` of the source's, and its shadow at `remaining` of
+    /// its alpha — the source's at the start, and nothing once the rectangle
+    /// is the stack's.
+    private static func edge(
+        of rect: CellRect, configuration: _ResolvedMatchedTransitionSourceConfiguration, remaining: Double,
+        context: RenderContext
+    ) -> ZoomEdge {
+        let environment = context.environment
+        let kept = configuration.clipShape.map { shape in
+            var shrunk = shape
+            shrunk.cornerSize = CGSize(
+                width: shape.cornerSize.width * remaining, height: shape.cornerSize.height * remaining)
+            return FrameBuffer.cellsKept(
+                by: shrunk, columns: max(0, rect.width), rows: max(0, rect.height),
+                aspect: environment.imageCellAspect)
+        }
+        return ZoomEdge(
+            kept: kept, shadow: configuration.shadow?.style(at: remaining), palette: environment.palette)
     }
 
     /// Starts a zoom if the path's change calls for one: a push of a screen
@@ -156,7 +183,8 @@ extension NavigationCoordinator {
         zoom.epoch += 1
         zoom.running = NavigationZoomState.Running(
             direction: pushed ? .reveal : .conceal, key: key, source: source, still: still,
-            background: zoom.configurations[key]?.background, epoch: zoom.epoch)
+            configuration: zoom.configurations[key] ?? _ResolvedMatchedTransitionSourceConfiguration(),
+            epoch: zoom.epoch)
         return true
     }
 
@@ -189,12 +217,14 @@ extension NavigationCoordinator {
     /// once the zoom is over, as it would have at once without one.
     static func revealing(
         _ top: FrameBuffer, through rect: CellRect, over base: FrameBuffer, fill: FrameBuffer?,
-        keepsBase: Bool = false
+        edge: ZoomEdge = ZoomEdge(), keepsBase: Bool = false
     ) -> FrameBuffer {
         let size = CellSize(width: max(top.width, base.width), height: max(top.height, base.height))
         var result = keepsBase ? padded(base, to: size) : picture(base, fittedTo: size)
+        if rect.width > 0, rect.height > 0 { result = edge.shadowing(result, from: rect, within: size) }
         if let fill, rect.width > 0, rect.height > 0 {
-            result = result.composited(with: FrameBuffer(lines: fill.lines), at: (rect.x, rect.y))
+            result = edge.laying(
+                edge.clipping(FrameBuffer(lines: fill.lines), at: (0, 0)), onto: result, at: (rect.x, rect.y))
         }
         let layer = OverlayLayer(offsetX: 0, offsetY: 0, content: keepsBase ? picture(top, fittedTo: size) : top)
         let visible = CellRect(
@@ -211,7 +241,8 @@ extension NavigationCoordinator {
             if !keepsBase { result.hitTestRegions += top.hitTestRegions.filter(\.isGeometryMarker) }
             return result
         }
-        return result.composited(with: part.content, at: (part.offsetX, part.offsetY))
+        let clipped = edge.clipping(part.content, at: (part.offsetX - rect.x, part.offsetY - rect.y))
+        return edge.laying(clipped, onto: result, at: (part.offsetX, part.offsetY))
     }
 
     /// `buffer`, its payloads with it, padded with blank cells to `size`.
@@ -235,5 +266,63 @@ extension NavigationCoordinator {
                 : blank
         }
         return FrameBuffer(lines: lines)
+    }
+}
+
+/// The zoom's rectangle's edge this frame: the cells its clip shape keeps,
+/// and the shadow it casts — what a source's `clipShape(_:)` and
+/// `shadow(color:radius:x:y:)` draw (``MatchedTransitionSourceConfiguration``).
+struct ZoomEdge {
+    /// The runs of the rectangle's columns kept, a list a row; `nil` keeps
+    /// the whole rectangle.
+    var kept: [[Range<Int>]]?
+    /// The shadow the rectangle casts, or `nil`.
+    var shadow: ShadowStyle?
+    /// The palette the shadow resolves and blends in.
+    var palette: (any Palette)?
+
+    /// `part` — a piece of the rectangle whose top-leading cell is at
+    /// `offset` in it — with the cells the clip shape leaves out cleared, so
+    /// what is behind shows there.
+    func clipping(_ part: FrameBuffer, at offset: (x: Int, y: Int)) -> FrameBuffer {
+        guard let kept else { return part }
+        let rows = (0..<part.height).map { row -> [Range<Int>] in
+            let source = row + offset.y
+            guard kept.indices.contains(source) else { return [] }
+            return kept[source].compactMap { run in
+                let moved = (run.lowerBound - offset.x)..<(run.upperBound - offset.x)
+                let clamped = moved.clamped(to: 0..<part.width)
+                return clamped.isEmpty ? nil : clamped
+            }
+        }
+        return part.clearing(keeping: rows)
+    }
+
+    /// `piece` laid onto `base` at `position`: over every cell of it, or, cut
+    /// to a clip shape, over the cells kept alone — a cleared cell's claim of
+    /// nothing resolved against `base`, so the screen under a cut corner
+    /// shows there.
+    func laying(_ piece: FrameBuffer, onto base: FrameBuffer, at position: (x: Int, y: Int)) -> FrameBuffer {
+        guard kept != nil, let palette else { return base.composited(with: piece, at: position) }
+        var laid = base
+        laid.compositeCarryingClaimsOverNothing(with: piece, at: position, palette: palette)
+        return laid
+    }
+
+    /// `base` with the shadow of the rectangle at `rect` — of its clip shape,
+    /// where it has one — laid over it, cut to `size`, the stack's.
+    func shadowing(_ base: FrameBuffer, from rect: CellRect, within size: CellSize) -> FrameBuffer {
+        guard let shadow, let palette else { return base }
+        let solid = String(repeating: "█", count: rect.width)
+        let caster = clipping(FrameBuffer(lines: Array(repeating: solid, count: rect.height)), at: (0, 0))
+        guard let cast = FrameBuffer.dropShadowLayer(castBy: caster, style: shadow, palette: palette),
+            let inside = OverlayLayer(
+                offsetX: rect.x + cast.origin.x, offsetY: rect.y + cast.origin.y, content: cast.layer
+            ).cropped(x: 0, y: 0, width: size.width, height: size.height)
+        else { return base }
+        var shadowed = base
+        shadowed.compositeCarryingClaimsOverNothing(
+            with: inside.content, at: (inside.offsetX, inside.offsetY), palette: palette)
+        return shadowed
     }
 }

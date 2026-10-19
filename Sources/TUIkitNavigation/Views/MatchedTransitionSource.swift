@@ -22,6 +22,29 @@ public struct _ResolvedMatchedTransitionSourceConfiguration: Sendable {
     /// The colour drawn behind the source's content as the zoom grows from
     /// it, or `nil` for none.
     var background: Color?
+
+    /// The shape the zoom's rectangle is cut to as it grows from the source,
+    /// or `nil` for the rectangle itself.
+    var clipShape: RoundedRectangle?
+
+    /// The shadow the zoom's rectangle casts as it grows from the source, or
+    /// `nil` for none.
+    var shadow: _MatchedTransitionSourceShadow?
+}
+
+/// A matched transition source's shadow, as ``MatchedTransitionSourceConfiguration/shadow(color:radius:x:y:)``
+/// states it: a drop shadow, in cells.
+struct _MatchedTransitionSourceShadow: Sendable {
+    let color: Color
+    let radius: Int
+    let x: Int
+    let y: Int
+
+    /// The shadow at `strength` of its colour's alpha: what the zoom draws
+    /// part of the way to the screen, which has none.
+    func style(at strength: Double) -> ShadowStyle {
+        .drop(color: color.opacity(strength), radius: radius, x: x, y: y)
+    }
 }
 
 /// A configuration that defines the appearance of a matched transition
@@ -29,11 +52,12 @@ public struct _ResolvedMatchedTransitionSourceConfiguration: Sendable {
 ///
 /// Made by the configuration modifiers, starting from the
 /// ``EmptyMatchedTransitionSourceConfiguration`` the closure of
-/// ``View/matchedTransitionSource(id:in:configuration:)`` is handed.
-/// ``background(_:)`` is here; SwiftUI's `clipShape(_:)`, which takes a
-/// `RoundedRectangle`, waits on shapes (refusal review O0, lane W1), and its
-/// `shadow(color:radius:x:y:)` on shadows (O6), so both fail to compile until
-/// they ship.
+/// ``View/matchedTransitionSource(id:in:configuration:)`` is handed:
+/// ``background(_:)``, ``clipShape(_:)`` and ``shadow(color:radius:x:y:)``.
+/// What they set is the zoom's rectangle's as it grows from the source; the
+/// clip's radius and the shadow go from the source's to nothing as the
+/// rectangle reaches the stack, the screen having neither, as SwiftUI
+/// interpolates the source's appearance into the destination's.
 public protocol MatchedTransitionSourceConfiguration: Sendable {
     /// Writes what this configuration sets into `configuration`. Not to be
     /// implemented by hand: configurations are made by the modifiers.
@@ -59,7 +83,75 @@ struct _BackgroundMatchedTransitionSourceConfiguration<Base: MatchedTransitionSo
     }
 }
 
+/// A configuration with a clip shape set over `base`.
+struct _ClipShapeMatchedTransitionSourceConfiguration<Base: MatchedTransitionSourceConfiguration>:
+    MatchedTransitionSourceConfiguration
+{
+    let base: Base
+    let shape: RoundedRectangle
+
+    func _update(configuration: inout _ResolvedMatchedTransitionSourceConfiguration) {
+        base._update(configuration: &configuration)
+        configuration.clipShape = shape
+    }
+}
+
+/// A configuration with a shadow set over `base`.
+struct _ShadowMatchedTransitionSourceConfiguration<Base: MatchedTransitionSourceConfiguration>:
+    MatchedTransitionSourceConfiguration
+{
+    let base: Base
+    let shadow: _MatchedTransitionSourceShadow
+
+    func _update(configuration: inout _ResolvedMatchedTransitionSourceConfiguration) {
+        base._update(configuration: &configuration)
+        configuration.shadow = shadow
+    }
+}
+
 extension MatchedTransitionSourceConfiguration {
+    /// Applies the specified shape as to the matched transition source,
+    /// clipping its content.
+    ///
+    /// The zoom's rectangle is cut to the shape as it grows from the source —
+    /// a cell kept where the shape covers at least half of it, as
+    /// ``View/clipShape(_:style:)`` keeps one — the screen it covers showing
+    /// in the corners cut away. The radius is the source's at the start, and
+    /// shrinks to nothing as the rectangle reaches the stack. In square units,
+    /// as every shape's are: a radius of 2 is two columns, and a row's worth
+    /// of the cell aspect down (``EnvironmentValues/imageCellAspect``).
+    ///
+    /// - Parameter shape: The shape to use as a mask.
+    /// - Returns: The configuration, with the clip shape set.
+    public func clipShape(_ shape: RoundedRectangle) -> some MatchedTransitionSourceConfiguration {
+        _ClipShapeMatchedTransitionSourceConfiguration(base: self, shape: shape)
+    }
+
+    /// Applies the specified shadow effect to the matched transition source.
+    ///
+    /// The zoom's rectangle — its clip shape, where it has one — casts a drop
+    /// shadow onto the screen it grows over, in whole cells as
+    /// ``View/shadow(color:radius:x:y:)`` casts one (`Deliberate deviations
+    /// from SwiftUI.md`, C10): moved `x` columns and `y` rows, falling off
+    /// across `radius` cells. It is at the colour's alpha at the start, and
+    /// fades to nothing as the rectangle reaches the stack. A shadow past the
+    /// stack's edge is cut there.
+    ///
+    /// - Parameters:
+    ///   - color: The shadow's color: black at a third by default, as in
+    ///     SwiftUI.
+    ///   - radius: How many cells the shadow's alpha falls off across beyond
+    ///     the rectangle.
+    ///   - x: How many columns right the shadow is drawn (negative: left).
+    ///   - y: How many rows down the shadow is drawn (negative: up).
+    /// - Returns: The configuration, with the shadow set.
+    public func shadow(
+        color: Color = Color(.sRGBLinear, white: 0, opacity: 0.33), radius: Int, x: Int = 0, y: Int = 0
+    ) -> some MatchedTransitionSourceConfiguration {
+        _ShadowMatchedTransitionSourceConfiguration(
+            base: self, shadow: _MatchedTransitionSourceShadow(color: color, radius: max(0, radius), x: x, y: y))
+    }
+
     /// Specifies a color that will be drawn behind the content within the
     /// matched transition source.
     ///
