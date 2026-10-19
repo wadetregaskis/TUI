@@ -219,4 +219,18 @@ struct TerminalProgressTests {
         #expect(harness.terminal.allOutput.contains(Self.progress(1, 50)))
         #expect(loop.diffWriter.shownLines.map(\.stripped).joined().contains(shows ? "shows progress" : "shows none"))
     }
+
+    /// tmux keeps the bar with no time limit and passes a repeat on to no
+    /// client (measured, 3.7c): sent again, it would reach no terminal, and
+    /// the run loop would wake every five seconds for nothing.
+    @Test("Under tmux the bar is not sent again to keep it up, and the loop is given nothing to wake for")
+    func notKeptAliveUnderTmux() {
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(FeaturesApp(), isTmux: true, clientCapabilities: Self.clients(drawProgressBars: true))
+        loop.sendsProgressReports = true
+        _ = loop.render(frameNowNanos: Self.second)
+        #expect(loop.hostState.keepAliveDeadline == nil)
+        _ = loop.render(frameNowNanos: 7 * Self.second)
+        #expect(harness.terminal.writtenOutput.filter { $0.contains(Self.progress(1, 50)) }.count == 1)
+    }
 }

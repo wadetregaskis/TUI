@@ -50,11 +50,16 @@ machine's cannot).
 seconds.*
 
 **Shipped:** while a bar is up it is sent again whenever it has gone 5 s
-unsent, a third of Ghostty's limit, to every host that is sent one: from a
-frame that is drawn anyway, or between frames by the run loop, which wakes for
-it and draws nothing (`TerminalHostState.keepAlive(atNanos:)`,
+unsent, a third of Ghostty's limit, to every host that is sent one but tmux:
+from a frame that is drawn anyway, or between frames by the run loop, which
+wakes for it and draws nothing (`TerminalHostState.keepAlive(atNanos:)`,
 `FramePacer.waitNanos(now:pollingPendingInput:until:)`). That is a dozen bytes
-every 5 s on a still screen with a bar up, and one wake of the loop.
+every 5 s on a still screen with a bar up, and one wake of the loop. tmux
+keeps a bar with no time limit and passes a report the same as the bar on to
+no client (both measured), so a repeat would reach no terminal: it is sent
+none. (The first version sent tmux one every 5 s as well; the lane's review
+found it.) Inside tmux in a Ghostty given the `progressbar` feature, a bar
+left unchanged for 15 s may therefore go, which only tmux could prevent.
 
 **The fuller version:** measure each host's limit (`progress_probe.py
 --timeout 20` and a look; tmux keeps a bar, measured) and send the keep-alive

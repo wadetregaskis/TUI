@@ -3755,7 +3755,7 @@ the terminal posts one (iTerm2's `OSC 9`), and rings the bell everywhere else
 | When | Bytes |
 |---|---|
 | A view drawn states progress, and on a change of its state or its whole percent | `ESC ] 9 ; 4 ; s ; p ESC \` — `s` is `1` a value, `2` an error, `3` indeterminate, `4` paused; `p` is `0`–`100`, left out (with its `;`) for indeterminate, and for an error or a pause stated without a value |
-| The bar has gone 5 s unsent | the same again, written between frames when no frame is due: nothing is drawn for it |
+| The bar has gone 5 s unsent, on any host but tmux | the same again, written between frames when no frame is due: nothing is drawn for it. Not under tmux, which keeps the bar with no time limit and passes a report the same as the bar on to no client (measured below), so the repeat would reach no terminal |
 | No view drawn states progress any more; a suspend; the exit; a fatal signal (the signal debt) | `ESC ] 9 ; 4 ; 0 ESC \` |
 | The first frame after a resume | the bar again |
 
@@ -3764,7 +3764,8 @@ Ghostty and iTerm2, which draw it, and tmux, which keeps it for the pane and
 passes it on to a client that draws it. Elsewhere nothing is sent.
 `TUIKIT_PROGRESS=1` turns it on for any host, `0` off for every one. The
 5 s is a margin inside Ghostty's limit (below); a host that keeps a bar
-unprompted is sent the same dozen bytes again every 5 s.
+unprompted is sent the same dozen bytes again every 5 s, but for tmux, which
+is sent none (it keeps the bar, and passes no repeat on).
 
 **Whether the person sees it** is `\.terminalFeatures.showsProgress`, which
 an app reads to draw its own progress where the terminal shows none: `false`

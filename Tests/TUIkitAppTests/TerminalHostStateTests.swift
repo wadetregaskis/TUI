@@ -169,6 +169,20 @@ struct TerminalHostStateTests {
         #expect(ledger.keepAlive(atNanos: 20 * Self.second).isEmpty)
     }
 
+    /// tmux keeps a pane's bar with no time limit, and passes a report the
+    /// same as the bar on to no client (measured, 3.7c): a repeat would reach
+    /// no terminal.
+    @Test("A ledger for a host that keeps its bar sends none again, and gives the loop nothing to wake for")
+    func noKeepAliveWhereTheHostKeepsTheBar() {
+        var ledger = TerminalHostState(keepsProgressAlive: false)
+        #expect(ledger.show(progress: .value(0.5), atNanos: Self.second) == Self.progress(1, 50))
+        #expect(ledger.keepAliveDeadline == nil)
+        #expect(ledger.keepAlive(atNanos: 60 * Self.second).isEmpty)
+        // A change is still sent, and the hand-back still takes the bar down.
+        #expect(ledger.show(progress: .value(0.6), atNanos: 61 * Self.second) == Self.progress(1, 60))
+        #expect(ledger.restore() == Self.progress(0))
+    }
+
     @Test("Handing the terminal back takes the bar down with the title, and the next frame puts it up again")
     func progressHandBack() {
         var ledger = TerminalHostState()

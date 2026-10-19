@@ -28,12 +28,12 @@ import TUIkitFoundation
 /// shell integration does on every measured host that has it.
 ///
 /// The progress bar is what the views drawn state (`.terminalProgress(_:)`),
-/// sent only to a terminal documented to draw one: `OSC 9 ; 4`, on a change,
+/// sent only to a terminal documented to take one: `OSC 9 ; 4`, on a change,
 /// and again whenever it has gone ``progressKeepAliveNanos`` unsent, even with
 /// nothing to draw (``keepAlive(atNanos:)``) — Ghostty removes a bar no
-/// program has updated for about fifteen seconds. Suspending and quitting
-/// take it down (`OSC 9 ; 4 ; 0`), and a resume's first frame puts it up
-/// again.
+/// program has updated for about fifteen seconds — where the terminal is one
+/// that may (``keepsProgressAlive``; not tmux). Suspending and quitting take
+/// it down (`OSC 9 ; 4 ; 0`), and a resume's first frame puts it up again.
 ///
 /// A value: the run loop owns one (``RenderLoop``), and nothing here writes —
 /// each change returns the bytes it takes, for the caller to send with the
@@ -48,6 +48,19 @@ struct TerminalHostState: Equatable {
     /// The pointer's shape (OSC 22), where the terminal takes one by name;
     /// `nil` where it is left alone. The ``Terminal``'s instance keeps it.
     var pointerShape: TerminalHostSetting?
+
+    /// Whether a progress bar is sent again before the terminal can drop it
+    /// (``keepAlive(atNanos:)``): `false` for tmux, which keeps a pane's bar
+    /// with no time limit and passes a report the same as the bar on to no
+    /// client (both measured, 3.7c, `progress_probe.py`), so the repeat would
+    /// reach no terminal and only wake the run loop for it.
+    let keepsProgressAlive: Bool
+
+    /// A ledger with nothing set on the terminal yet, for a terminal that may
+    /// drop a bar no program updates (`keepsProgressAlive`), or not.
+    init(keepsProgressAlive: Bool = true) {
+        self.keepsProgressAlive = keepsProgressAlive
+    }
 
     /// The title the terminal was last given, or `nil` while it shows its own.
     private(set) var writtenTitle: String?
@@ -111,9 +124,11 @@ struct TerminalHostState: Equatable {
     }
 
     /// When the progress bar is next to be sent again, or `nil` while none is
-    /// shown: the instant the run loop wakes for, if nothing wakes it sooner.
+    /// shown, or where none is sent again (``keepsProgressAlive``): the
+    /// instant the run loop wakes for, if nothing wakes it sooner.
     var keepAliveDeadline: Int64? {
-        writtenProgress == nil ? nil : progressSentAtNanos &+ Self.progressKeepAliveNanos
+        guard keepsProgressAlive, writtenProgress != nil else { return nil }
+        return progressSentAtNanos &+ Self.progressKeepAliveNanos
     }
 
     /// The bytes that give the terminal back what the app set on it — its own
@@ -166,8 +181,9 @@ struct TerminalHostState: Equatable {
 
     /// How long a progress bar may go unsent before it is sent again: five
     /// seconds, well inside the fifteen after which Ghostty removes a bar no
-    /// program has updated (the Ghostty adoption study, C3; tmux 3.7c keeps
-    /// one, measured, and iTerm2's limit is unknown).
+    /// program has updated (the Ghostty adoption study, C3; iTerm2's limit is
+    /// unknown). tmux keeps one, measured, and is sent none again
+    /// (``keepsProgressAlive``).
     static let progressKeepAliveNanos: Int64 = 5_000_000_000
 
     /// `OSC 9 ; 4 ; 0 ST`: no progress bar.

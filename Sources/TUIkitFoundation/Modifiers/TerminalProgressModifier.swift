@@ -77,7 +77,8 @@ extension View {
     /// TUI-specific, with no SwiftUI counterpart: sent as ConEmu's progress
     /// report, `OSC 9 ; 4`, on a change, and again every five seconds while it
     /// is shown, because Ghostty takes a bar no program has updated for about
-    /// fifteen seconds for one left behind and removes it. See
+    /// fifteen seconds for one left behind and removes it — but not to tmux,
+    /// which keeps the bar itself. See
     /// `Documentation/Terminals/Terminal compatibility survey.md`, "Progress
     /// and attention".
     ///

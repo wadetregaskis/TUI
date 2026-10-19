@@ -156,8 +156,9 @@ internal final class RenderLoop<A: App> {
 
     /// What the app has set on the terminal emulator beyond the screen — the
     /// window title, the progress bar — written with the frames
-    /// (`RenderLoop+HostState.swift`).
-    var hostState = TerminalHostState()
+    /// (`RenderLoop+HostState.swift`). Under tmux the bar is not sent again
+    /// to keep it up: tmux keeps it, and passes no repeat on.
+    var hostState: TerminalHostState
 
     /// The focus manager (cleared each frame).
     let focusManager: FocusManager
@@ -359,6 +360,7 @@ internal final class RenderLoop<A: App> {
         keyNotation: KeyNotation = .symbols
     ) {
         self.isTmux = isTmux
+        self.hostState = TerminalHostState(keepsProgressAlive: !isTmux)
         self.publishTerminalColors = publishTerminalColors
         self.probeClientCapabilities = probeClientCapabilities
         self.reducesMotion = reducesMotion
