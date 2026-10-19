@@ -45,16 +45,19 @@ struct TextEditorUndoClipboardTests {
         return (editor, box, board)
     }
 
-    @Test("Ctrl-Z takes back one key's change at a time, and the cursor with it")
+    /// A run of typing is one step (decisions-D1K B-D1K-6), so the caret
+    /// moves between the two keys here, which ends the first run.
+    @Test("Ctrl-Z takes back one edit at a time, and the cursor with it")
     func undoStepsBack() {
         let (editor, box, _) = makeEditor("ab\ncd")
         _ = editor.handleKeyEvent(typed("X"))
+        _ = editor.handleKeyEvent(KeyEvent(key: .right))
         _ = editor.handleKeyEvent(typed("Y"))
-        #expect(box.text == "XYab\ncd", "precondition: the typing")
+        #expect(box.text == "XaYb\ncd", "precondition: the typing")
 
         #expect(editor.handleKeyEvent(ctrl("z")))
         #expect(box.text == "Xab\ncd")
-        #expect(editor.cursor == TextEditorPosition(line: 0, column: 1))
+        #expect(editor.cursor == TextEditorPosition(line: 0, column: 2))
         #expect(editor.handleKeyEvent(ctrl("z")))
         #expect(box.text == "ab\ncd")
         #expect(editor.cursor == TextEditorPosition(line: 0, column: 0))

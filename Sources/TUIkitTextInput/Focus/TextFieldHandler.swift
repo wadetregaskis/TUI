@@ -66,7 +66,7 @@ import TUIkitFoundation
 /// | Ctrl+C | Copy selection to clipboard; with nothing selected the key passes on |
 /// | Ctrl+X | Cut selection to clipboard; with nothing selected the key passes on |
 /// | Ctrl+V | Paste from clipboard |
-/// | Ctrl+Z | Undo last change (see ``TextUndoHistory``: one step per key, forgotten when the app replaces the text) |
+/// | Ctrl+Z | Undo last change (see ``TextUndoHistory``: one step per edit, a run of typing being one, forgotten when the app replaces the text) |
 /// | Enter | Trigger the submit action — with no `onSubmit` the field declines Return, so a dialog's default button fires |
 ///
 /// Ctrl+A, E, B, F, D, K, Y and T, Option+Ctrl+A and Alt+b / Alt+f come from
@@ -800,7 +800,10 @@ extension TextFieldHandler {
         }
 
         resetSuggestionNavigation()
-        pushUndoState()
+        // Typing: at the caret the last key left, the same undo step
+        // (``TextUndoHistory``); over a selection, a new one.
+        pushUndoState(continuingTyping: selectionRange == nil)
+        defer { noteTyped() }
 
         // Replace selection if present
         if let range = selectionRange {
@@ -835,16 +838,20 @@ extension TextFieldHandler {
     /// If text is selected, the entire selection is deleted.
     func deleteBackward() {
         resetSuggestionNavigation()
-        // Delete selection if present
+        // Delete selection if present: a new undo step, which typing goes on
+        // (``TextUndoHistory``).
         if let range = selectionRange {
             pushUndoState()
             deleteRangeWithoutUndo(range)
             clearSelection()
+            noteTyped()
             return
         }
 
         guard cursorPosition > 0 else { return }
-        pushUndoState()
+        // Backspace is typing: the same undo step as the keys before it.
+        pushUndoState(continuingTyping: true)
+        defer { noteTyped() }
         var current = text.wrappedValue
         let index = current.index(current.startIndex, offsetBy: cursorPosition - 1)
         current.remove(at: index)
@@ -1006,12 +1013,26 @@ extension TextFieldHandler {
     ///
     /// In a running app the step is registered with the app's undo manager
     /// too (``TextUndoBridge``), so Ctrl-minus and the status bar undo it.
-    func pushUndoState() {
+    ///
+    /// - Parameter continuingTyping: Whether the edit is typing — a
+    ///   character, or Backspace — with no selection, which continues the
+    ///   undo step of the typing before it when made where that left the
+    ///   caret (``TextUndoHistory/record(text:caret:continuingTyping:)``).
+    func pushUndoState(continuingTyping: Bool = false) {
         forgetHistoryIfReplaced()
-        if let mark = undoHistory.record(text: text.wrappedValue, caret: cursorPosition), let undoManager {
+        if let mark = undoHistory.record(
+            text: text.wrappedValue, caret: cursorPosition, continuingTyping: continuingTyping),
+            let undoManager
+        {
             TextUndoBridge.registerEdit(of: self, mark: mark, on: undoManager)
         }
         forgetDroppedSteps()
+    }
+
+    /// Notes the state a typing edit has just left, so the next typed key
+    /// made from it continues its undo step.
+    private func noteTyped() {
+        undoHistory.noteTyped(text: text.wrappedValue, caret: cursorPosition)
     }
 
     /// Forgets the history, and the steps registered for it, if the app has

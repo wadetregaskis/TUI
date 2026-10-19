@@ -278,10 +278,25 @@ final class TextEditorHandler: PersistedFocusable {
             return true
         }
         // Any key that changes the text records what the text was, so Ctrl-Z
-        // takes back one key's edit at a time, as it does in a field.
-        return recordingUndoStep {
+        // takes back one edit at a time, as it does in a field — a run of
+        // typing being one (``TextUndoHistory``).
+        let typing = standIn == nil && Self.isTyping(event)
+        return recordingUndoStep(
+            typing: typing, continuingTyping: typing && selectionRange == nil && block == nil
+        ) {
             if let standIn { return perform(standIn) }
             return handleEditingKey(event)
+        }
+    }
+
+    /// Whether `event` is typing, as the macOS text system groups its undo:
+    /// a character, a space, a newline, or Backspace, with neither Control
+    /// nor Option (measured on macOS 15.8; decisions-D1K B-D1K-6).
+    private static func isTyping(_ event: KeyEvent) -> Bool {
+        guard !event.ctrl, !event.alt else { return false }
+        switch event.key {
+        case .character, .space, .enter, .backspace: return true
+        default: return false
         }
     }
 
@@ -291,15 +306,26 @@ final class TextEditorHandler: PersistedFocusable {
     /// once (typing over a selection deletes, then inserts) and is still one
     /// step to take back.
     ///
+    ///
+    /// - Parameters:
+    ///   - typing: Whether the edit is typing (``isTyping(_:)``): what it
+    ///     leaves may be continued by the next typed key's.
+    ///   - continuingTyping: Whether it is typing with no selection, which
+    ///     continues the undo step of the typing before it when made where
+    ///     that left the caret
+    ///     (``TextUndoHistory/record(text:caret:continuingTyping:)``).
     /// - Returns: What `edit` returns.
-    func recordingUndoStep(_ edit: () -> Bool) -> Bool {
+    func recordingUndoStep(typing: Bool = false, continuingTyping: Bool = false, _ edit: () -> Bool) -> Bool {
         let textBefore = text.wrappedValue
         let caretBefore = cursor
         let handled = edit()
-        if text.wrappedValue != textBefore,
-            let mark = undoHistory.record(text: textBefore, caret: caretBefore), let undoManager
-        {
-            TextUndoBridge.registerEdit(of: self, mark: mark, on: undoManager)
+        if text.wrappedValue != textBefore {
+            if let mark = undoHistory.record(text: textBefore, caret: caretBefore, continuingTyping: continuingTyping),
+                let undoManager
+            {
+                TextUndoBridge.registerEdit(of: self, mark: mark, on: undoManager)
+            }
+            if typing { undoHistory.noteTyped(text: text.wrappedValue, caret: cursor) }
         }
         forgetDroppedSteps()
         return handled

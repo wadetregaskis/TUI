@@ -39,6 +39,14 @@ struct TextUndoManagerTests {
         text.map { KeyEvent(character: $0) }
     }
 
+    /// `text` typed a character at a time at the start of the text, Home
+    /// before each: every character a step of its own, since a caret moved
+    /// elsewhere ends a run of typing (decisions-D1K B-D1K-6). The text ends
+    /// up reversed.
+    private func typedApart(_ text: String) -> [KeyEvent] {
+        text.flatMap { [KeyEvent(key: .home), KeyEvent(character: $0)] }
+    }
+
     private static let undoKey = KeyEvent.parse([0x1F])!
     private static let redoKey = KeyEvent(key: .character("Z"), ctrl: true, shift: true)
     private static let controlZ = KeyEvent(key: .character("z"), ctrl: true)
@@ -52,11 +60,11 @@ struct TextUndoManagerTests {
         let manager = makeManager()
         let box = TextBox()
         let harness = InputChainHarness(undoManager: manager)
-        harness.play(typed("ab") + [Self.undoKey]) { field(box) }
+        harness.play(typedApart("ab") + [Self.undoKey]) { field(box) }
         #expect(box.value == "a")
         #expect(manager.canUndo && manager.canRedo)
         harness.play([Self.undoKey, Self.redoKey, Self.redoKey]) { field(box) }
-        #expect(box.value == "ab")
+        #expect(box.value == "ba")
         #expect(!manager.canRedo)
     }
 
@@ -90,7 +98,7 @@ struct TextUndoManagerTests {
                 Button("Other") {}
             }
         }
-        harness.play(typed("ab") + [KeyEvent(key: .tab), Self.undoKey], page)
+        harness.play(typedApart("ab") + [KeyEvent(key: .tab), Self.undoKey], page)
         #expect(box.value == "a")
         harness.play([KeyEvent(key: .tab, shift: true), Self.controlZ], page)
         #expect(box.value.isEmpty, "and the field's own Ctrl-Z after it")
@@ -118,15 +126,15 @@ struct TextUndoManagerTests {
                 Button("Other") {}
             }
         }
-        harness.play(typed("abc") + [Self.undoKey], page)
-        #expect(box.value == "ab")
+        harness.play(typedApart("abc") + [Self.undoKey], page)
+        #expect(box.value == "ba")
         #expect(manager.canUndo && manager.canRedo)
         shown.on = false
         harness.frame(page())
         harness.frame(page())
         #expect(!manager.canUndo && !manager.canRedo, "no step left whose control is gone")
         harness.play([Self.undoKey, Self.redoKey], page)
-        #expect(box.value == "ab")
+        #expect(box.value == "ba")
     }
 
     /// Holds the only reference to a field's handler, for another thread to
@@ -178,7 +186,7 @@ struct TextUndoManagerTests {
         let manager = makeManager()
         let box = TextBox()
         let harness = InputChainHarness(undoManager: manager)
-        harness.play(typed(String(repeating: "x", count: 53))) { field(box) }
+        harness.play(typedApart(String(repeating: "x", count: 53))) { field(box) }
         harness.play(Array(repeating: Self.undoKey, count: 50)) { field(box) }
         #expect(box.value == "xxx", "the fifty newest steps undone")
         #expect(!manager.canUndo, "the three oldest, whose states the field let go of, are not offered")
@@ -196,10 +204,10 @@ struct TextUndoManagerTests {
                 Button("Other") {}
             }
         }
-        harness.play(typed("hi") + [KeyEvent(key: .tab), Self.undoKey], page)
+        harness.play(typedApart("hi") + [KeyEvent(key: .tab), Self.undoKey], page)
         #expect(box.value == "h")
         harness.play([Self.redoKey], page)
-        #expect(box.value == "hi")
+        #expect(box.value == "ih")
     }
 
     @Test("Text the app replaced is not brought back, and its steps are forgotten")
@@ -312,7 +320,7 @@ struct TextUndoManagerTests {
     func fieldWithoutAnApp() {
         let box = TextBox()
         let harness = InputChainHarness()
-        harness.play(typed("ab") + [Self.controlZ, Self.controlZ, Self.redoKey]) { field(box) }
+        harness.play(typedApart("ab") + [Self.controlZ, Self.controlZ, Self.redoKey]) { field(box) }
         #expect(box.value == "a")
     }
 

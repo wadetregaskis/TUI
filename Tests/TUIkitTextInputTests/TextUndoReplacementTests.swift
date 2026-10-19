@@ -95,8 +95,11 @@ struct TextUndoReplacementTests {
             focusID: "field",
             text: Binding(get: { box.text }, set: { box.text = $0.uppercased() }))
         _ = field.handleKeyEvent(typed("a"))
+        // Home between, so the second key is a step of its own (a run of
+        // typing is one: decisions-D1K B-D1K-6).
+        _ = field.handleKeyEvent(KeyEvent(key: .home))
         _ = field.handleKeyEvent(typed("b"))
-        #expect(box.text == "AB", "precondition: the binding rewrote the typing")
+        #expect(box.text == "BA", "precondition: the binding rewrote the typing")
 
         _ = field.handleKeyEvent(undo)
         #expect(box.text == "A")

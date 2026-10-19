@@ -197,6 +197,23 @@ undo together. About half a day, with a timer or a "next non-typing key"
 boundary to choose; the per-key step is what the controls already did on
 their own.
 
+**Fuller version shipped (lane INPUT, 2026-10-18; settled by the owner's
+earlier rulings, open to veto).** Measured first, on macOS 15.8 with an
+offscreen `NSTextView` (probe in the INPUT lane's session notes): typed
+characters — a space, a newline and a tab among them — and Backspace undo as
+one step while each is made at the caret the edit before it left, a pause of
+two seconds included, so the boundary is neither a timer nor the next
+non-typing key exactly, but the next edit that is not typing or a caret moved
+elsewhere (one moved away and back does not end the run); Delete, a word's
+deletion and a paste are steps of their own and end it; typing or Backspace
+over a selection starts a new run that the typing after it continues; an undo
+ends it. `TextUndoHistory` keeps the state the run's last edit left
+(`record(text:caret:continuingTyping:)`, `noteTyped(text:caret:)`), and both
+controls classify their keys the same way; a key that continues a run
+registers nothing with the app's undo manager, so the run is one step there
+too (`TextUndoCoalescingTests`, every measured case in a field and an
+editor).
+
 ### B-D1K-7. The undo and redo keys are data, Ctrl-Z among them; redo's reach only some terminals, and the status bar is the route everywhere
 
 *`EnvironmentValues.undoManager`, `UndoCommand`, `UndoShortcuts`,

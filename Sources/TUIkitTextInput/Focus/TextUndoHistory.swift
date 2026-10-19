@@ -24,15 +24,23 @@ import TUIkitFoundation
 /// text that is not the one last written means a replacement, and the history
 /// is forgotten.
 ///
-/// One step per edit, and a key is one edit: typing a word takes as many
-/// undos as it has letters. The macOS text system groups a run of typing into
-/// one step; this does not. (Inside a running app the app's undo manager
-/// groups each event's steps into one undo, as it does on macOS — see
-/// ``TextUndoBridge``.)
+/// One step per edit, except a run of typing, which is one step, as the
+/// macOS text system makes it (measured on macOS 15.8, `NSTextView`, the INPUT
+/// lane's probe; decisions-D1K B-D1K-6): characters typed — a space and a
+/// newline among them — and Backspace, each at the caret the edit
+/// before it left, with no selection. A caret moved elsewhere ends the run
+/// (one moved away and back does not), as does any other edit: Delete, a
+/// word's deletion, a paste, a cut, an undo. A pause does not. Typing or
+/// Backspace over a selection starts a new run. So typing a word, a
+/// mistake rubbed out, and the rest of the sentence is one undo
+/// (``record(text:caret:continuingTyping:)``, ``noteTyped(text:caret:)``).
+/// Inside a running app the app's undo manager groups each event's steps into
+/// one undo too, as it does on macOS — see ``TextUndoBridge``; a key that
+/// continues a run registers nothing there.
 ///
 /// It keeps redo as well: an undo puts the state it replaces on the redo
 /// stack, a redo puts it back, and a new edit forgets redo.
-struct TextUndoHistory<Caret> {
+struct TextUndoHistory<Caret: Equatable> {
     /// One recorded state, and the mark its step in the app's undo manager is
     /// registered against.
     private struct Entry {
@@ -54,6 +62,11 @@ struct TextUndoHistory<Caret> {
 
     /// The marks of states let go of since the last ``takeDroppedMarks()``.
     private var dropped: [TextUndoMark] = []
+
+    /// The text and caret the last edit of a run of typing left, while that
+    /// run may go on: a typing edit made from exactly this state is part of
+    /// the same step (``record(text:caret:continuingTyping:)``).
+    private var typingRun: (text: String, caret: Caret)?
 
     /// How many states are kept. Recording one more drops the oldest.
     let limit: Int
@@ -85,6 +98,7 @@ struct TextUndoHistory<Caret> {
         states.removeAll()
         redoStates.removeAll()
         written = nil
+        typingRun = nil
     }
 
     /// Records the state before an edit, and forgets redo: a new edit is a
@@ -94,10 +108,21 @@ struct TextUndoHistory<Caret> {
     /// edit that pushes before a change it then does not make costs no undo
     /// step.
     ///
+    /// An edit that continues a run of typing — `continuingTyping`, made
+    /// from the state the run's last edit left — is part of that run's step,
+    /// and records nothing. Any other ends the run; a typing edit then starts
+    /// one, once it has noted the state it leaves (``noteTyped(text:caret:)``).
+    ///
+    /// - Parameter continuingTyping: Whether the edit is typing — a character,
+    ///   or Backspace — with no selection, so it may continue a run.
     /// - Returns: The mark of the state recorded, to register its step
     ///   against; `nil` when nothing was recorded.
     @discardableResult
-    mutating func record(text: String, caret: Caret) -> TextUndoMark? {
+    mutating func record(text: String, caret: Caret, continuingTyping: Bool = false) -> TextUndoMark? {
+        if continuingTyping, let run = typingRun, run.caret == caret, run.text == text {
+            return nil
+        }
+        typingRun = nil
         if let last = states.last, last.text == text {
             return nil
         }
@@ -114,6 +139,12 @@ struct TextUndoHistory<Caret> {
         if states.count > limit {
             dropped.append(states.removeFirst().mark)
         }
+    }
+
+    /// Notes the state a typing edit — a character, or Backspace — has just
+    /// left, so a typing edit made from it next continues the same step.
+    mutating func noteTyped(text: String, caret: Caret) {
+        typingRun = (text, caret)
     }
 
     /// Notes the text the control has just written, as its binding reads it
@@ -135,6 +166,7 @@ struct TextUndoHistory<Caret> {
         from current: (text: String, caret: Caret), mark: TextUndoMark? = nil
     ) -> (text: String, caret: Caret)? {
         guard let previous = states.last, mark.map({ $0 === previous.mark }) ?? true else { return nil }
+        typingRun = nil
         states.removeLast()
         redoStates.append(Entry(text: current.text, caret: current.caret, mark: previous.mark))
         return (previous.text, previous.caret)
@@ -147,6 +179,7 @@ struct TextUndoHistory<Caret> {
         from current: (text: String, caret: Caret), mark: TextUndoMark? = nil
     ) -> (text: String, caret: Caret)? {
         guard let next = redoStates.last, mark.map({ $0 === next.mark }) ?? true else { return nil }
+        typingRun = nil
         redoStates.removeLast()
         append(Entry(text: current.text, caret: current.caret, mark: next.mark))
         return (next.text, next.caret)

@@ -426,15 +426,18 @@ struct TextFieldSelectionTests {
         let binding = Binding(get: { text }, set: { text = $0 })
         let handler = TextFieldHandler(focusID: "test", text: binding)
 
-        // Type "ABC"
+        // Three edits, the caret moved between them: a run of typing is one
+        // undo step (decisions-D1K B-D1K-6), and a caret moved ends it.
         _ = handler.handleKeyEvent(KeyEvent(key: .character("A")))
+        _ = handler.handleKeyEvent(KeyEvent(key: .home))
         _ = handler.handleKeyEvent(KeyEvent(key: .character("B")))
+        _ = handler.handleKeyEvent(KeyEvent(key: .end))
         _ = handler.handleKeyEvent(KeyEvent(key: .character("C")))
-        #expect(text == "HiABC")
+        #expect(text == "BHiAC")
 
         // Undo three times
         _ = handler.handleKeyEvent(KeyEvent(key: .character("z"), ctrl: true))
-        #expect(text == "HiAB")
+        #expect(text == "BHiA")
         _ = handler.handleKeyEvent(KeyEvent(key: .character("z"), ctrl: true))
         #expect(text == "HiA")
         _ = handler.handleKeyEvent(KeyEvent(key: .character("z"), ctrl: true))

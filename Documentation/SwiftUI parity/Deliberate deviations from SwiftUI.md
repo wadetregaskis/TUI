@@ -689,12 +689,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   default, and the automatic choice must not count as held; shipped
   2026-10-13).
 
-### I6. Undo steps are per input event, and the keys are Control chords
+### I6. Undo keys are Control chords, and TUIkit's own undo manager raises nothing
 
-- **SwiftUI:** on macOS a text view coalesces a typing run into one undo step,
-  undo is ⌘Z, and `NSUndoManager` raises on an unbalanced group (the raise
-  measured on macOS 15, B-D1K-5 and B-D1K-6).
-- **TUIkit:** each input event's edits are one step. The keys are data: undo on
+- **SwiftUI:** undo is ⌘Z, and `NSUndoManager` raises on an unbalanced group
+  (the raise measured on macOS 15, B-D1K-5).
+- **TUIkit:** a text control coalesces a typing run into one undo step, as
+  the macOS text system does (measured on macOS 15.8, B-D1K-6; until
+  2026-10-18 each input event's edits were one step). The keys are data: undo on
   Ctrl-Z, Ctrl-minus and Ctrl-/; redo on Ctrl-Shift-Z, Ctrl-_ and Option-_,
   replaced app-wide with `.undoShortcuts(_:)`. A `SecureField` registers
   nothing. Where Foundation has no `UndoManager` (Linux), TUIkit's own does
