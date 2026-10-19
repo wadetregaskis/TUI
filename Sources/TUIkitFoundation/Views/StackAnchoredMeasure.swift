@@ -36,7 +36,7 @@ extension _VStackCore {
         guard count > 0 else { return ViewSize.fixed(0, 0) }
         // Declined for the same reason the render declines it — see
         // `renderAnchoredWindow`.
-        guard !children[0].providesAlignmentGuide else { return nil }
+        guard !children[0].mayHaveExplicitGuide(.horizontal(alignment)) else { return nil }
 
         var measureContext = context
         measureContext.isMeasuring = true

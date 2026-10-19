@@ -81,6 +81,10 @@ package struct BodyWitnessMemo {
     /// The memo for ``View/_providesAlignmentGuide``.
     package static let alignmentGuide = permanentMemo()
 
+    /// The memo for whether a view type may report an edge or centre guide
+    /// out of itself (TUIkitFoundation's `mayReportEdgeOrCentreGuide(_:)`).
+    package static let edgeOrCentreGuide = permanentMemo()
+
     /// The memo for ``View/_statesSpacingPreference``.
     package static let spacingPreference = permanentMemo()
 

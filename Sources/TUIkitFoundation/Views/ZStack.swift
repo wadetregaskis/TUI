@@ -312,6 +312,13 @@ extension _ZStackCore {
     static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
+/// See `EdgeGuideReach.swift`: a stack of several layers reports none.
+extension _ZStackCore: EdgeGuideReaching {
+    static var mayReportEdgeOrCentreGuide: Bool {
+        TUIkitFoundation.mayReportEdgeOrCentreGuide(ofStackContent: Content.self)
+    }
+}
+
 extension _ZStackCore: AlignmentGuideQuerying {
     /// The guide the layers give, each moved by where the stack puts it,
     /// merged by the guide's rule — an edge or centre guide only out of a

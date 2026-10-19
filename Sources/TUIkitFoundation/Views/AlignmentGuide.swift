@@ -321,7 +321,9 @@ package protocol AlignmentGuideQuerying {
 /// in `context` (its own), or `nil` when it has none.
 ///
 /// The static witness (``View/_providesAlignmentGuide``) gates everything: a
-/// view whose type cannot hold a guide is answered without a cast. Past it, a
+/// view whose type cannot hold a guide is answered without a cast, and for an
+/// edge or centre guide, one whose type keeps every guide it holds inside a
+/// stack of several views (``mayReportEdgeOrCentreGuide(_:)``). Past it, a
 /// view answers itself (``AlignmentGuideQuerying``, or the public
 /// ``AlignmentGuideProviding``), or — a framework composite such as `VStack`,
 /// whose witness forwards its content's, or a view of the app's own, whose
@@ -333,6 +335,7 @@ package func explicitGuide<V: View>(
     context: RenderContext
 ) -> Double? {
     guard V._providesAlignmentGuide else { return nil }
+    if query.isEdgeOrCentre, !mayReportEdgeOrCentreGuide(V.self) { return nil }
     if let querying = view as? AlignmentGuideQuerying {
         return querying.explicitGuide(query, in: dimensions, context: context)
     }

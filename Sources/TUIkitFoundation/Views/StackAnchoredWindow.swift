@@ -717,7 +717,7 @@ extension _VStackCore {
         // measures every row anyway — do the placement. Row 0 answers for all of
         // them: this path only runs over a uniformly keyed collection, whose
         // rows are built by one closure.
-        guard !children[0].providesAlignmentGuide else { return nil }
+        guard !children[0].mayHaveExplicitGuide(.horizontal(alignment)) else { return nil }
 
         // Off-window rows leave the WINDOW, not the tree (§5h).
         context.stateStorage?.retainSubtree(context.identity)

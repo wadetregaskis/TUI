@@ -82,10 +82,20 @@ do it for such a row type where they did not before:
   itself; now it is any row type whose body holds one, even one that a stack
   inside the row keeps to itself (an edge guide of a stack of several views,
   A-GUIDE-2), because the static question cannot tell the guide's kind.
+- **A lazy stack gives up its window over such rows** (`StackUniformWindow`,
+  `StackAnchoredWindow`): placing a row by its guide needs the whole run, so
+  every row is built and measured on every walk, as it was before B19 for a
+  row that set a guide itself. Only a row type that may report a guide of
+  the kind the stack aligns on does: a stack of several views keeps its edge
+  and centre guides (A-GUIDE-2), and the type says whether one can leave it
+  (`mayReportEdgeOrCentreGuide(_:)`, kept per type). This entry recorded only
+  the memo until the review, which found a row type holding an edge guide
+  inside an `HStack` of two views costing a `LazyVStack` of 3,000 rows
+  18,011 body evaluations to draw ten; it keeps its window again.
 - **A stack around such a view asks it for its guide**, evaluating its body in
-  a measure, where it answered nothing before. A stack of several views
-  answers an edge or centre guide before resolving its children (A-GUIDE-2),
-  so the common query stops at the first such stack in the body.
+  a measure, where it answered nothing before — for an edge or centre guide
+  only where the type says one can leave it, so a view whose guides all sit
+  inside a stack of several views is not evaluated to ask.
 
 Apps with no guide inside a view type of their own pay one table read per
 child of a composite type (`BodyWitnessMemo`), where they read a constant.
