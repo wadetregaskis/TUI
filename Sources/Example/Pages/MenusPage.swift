@@ -27,6 +27,9 @@ struct MenusPage: View {
     @State private var showsSizes = true
     @State private var showsPreviews = false
 
+    /// Opens the Example's Inspector window over this one (the Scenes section).
+    @Environment(\.openWindow) private var openWindow
+
     /// Suggestions for the combo box. Editor names are proper nouns, so the
     /// menu reads the same in every language — the point on show is the
     /// control, not the words.
@@ -189,6 +192,16 @@ struct MenusPage: View {
             DemoSection("page.menus.menuBarSection") {
                 Text("page.menus.menuBarInstruction")
                     .foregroundStyle(.palette.foregroundSecondary)
+            }
+            DemoSection("page.menus.scenesSection") {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("page.menus.scenesInstruction")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    HStack(spacing: 2) {
+                        Button("page.menus.openInspector") { openWindow(id: "inspector") }
+                        SettingsLink()
+                    }
+                }
             }
         }
     }

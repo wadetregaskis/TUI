@@ -29,14 +29,28 @@ struct ExampleApp: App {
     @State private var styling = ExampleStyling()
 
     var body: some Scene {
-        WindowGroup {
-            ContentView(palette: $palette, styling: $styling)
-                // Host notifications once, at the app root, so a toast posted on
-                // any page stays visible until it expires — even after the user
-                // navigates to a different page. (A per-page host would drop the
-                // toast the instant you left that page, though the global
-                // `NotificationService` still holds it.)
-                .notificationHost()
+        // Three scenes, styled together: the scene modifiers below are written
+        // on the group, so each reaches all three — the Inspector and the
+        // Settings sheet are themed as the main window is.
+        Group {
+            WindowGroup {
+                ContentView(palette: $palette, styling: $styling)
+                    // Host notifications once, at the app root, so a toast posted on
+                    // any page stays visible until it expires — even after the user
+                    // navigates to a different page. (A per-page host would drop the
+                    // toast the instant you left that page, though the global
+                    // `NotificationService` still holds it.)
+                    .notificationHost()
+            }
+            // A second window, opened over the main one by `openWindow(id:)`
+            // (the Menus page, or the menu bar's Window menu).
+            Window(L("inspector.title"), id: "inspector") {
+                ExampleInspector()
+            }
+            // Presented as a sheet by Settings… (⌃,) or a `SettingsLink`.
+            Settings {
+                ExampleSettings(styling: $styling)
+            }
         }
         .theme(Theme(palette: palette, tint: styling.tint))
         // Apply the user-built custom border (Theme page) at the *scene* level so
@@ -50,8 +64,8 @@ struct ExampleApp: App {
         // style for every bar, chosen on the Theme page.
         .windowToolbarStyle(styling.toolbarStyle.style)
         // The menu bar, on the top row: declaring commands shows it. The app's
-        // menu and Edit are TUIkit's; File and View add the Example's own.
-        // F10 opens it, as does a click on a title.
+        // menu (with Settings…), Edit and Window are TUIkit's; File and View add
+        // the Example's own. F10 opens it, as does a click on a title.
         .commands { ExampleCommands() }
     }
 }
