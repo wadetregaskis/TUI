@@ -132,9 +132,25 @@ extension ItemListHandler {
     }
 
     /// The slot, clamped to the list's own bounds — a list that shrank under
-    /// the pointer must not strand it past the end.
+    /// the pointer must not strand it past the end — or none, where the
+    /// destination refuses a drop there (``externalDropTakes``).
+    ///
+    /// A refused slot opens no gap, and the drop the pointer would make there
+    /// finds no slot and is refused. The line the pointer named is kept, as
+    /// for a slot taken: rows scrolling under a still pointer may bring one
+    /// the destination takes, which the auto-scroll retarget then finds.
     private func setExternalDropSlot(_ slot: Int) {
-        externalDropSlot = min(max(0, slot), itemCount)
+        let slot = min(max(0, slot), itemCount)
+        guard let takes = externalDropTakes, !takes(slot) else {
+            externalDropSlot = slot
+            return
+        }
+        // Clearing the slot forgets the line it was found from; it is put
+        // back, since only the slot is refused.
+        let (line, resolvedOffset) = (lastExternalDropContentY, externalDropResolvedOffset)
+        externalDropSlot = nil
+        lastExternalDropContentY = line
+        externalDropResolvedOffset = resolvedOffset
     }
 
     /// The drop index of the first band drawn that takes one, when `contentY`

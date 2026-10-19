@@ -198,7 +198,7 @@ public struct Table<Value: Identifiable>: View {
     /// The `.dropDestination(for:action:)` insertion action, if attached:
     /// `(insertion index, payloads)`. Type-erased so `Table` need not carry the
     /// payload type; the erased pair is `(accepts, perform)`.
-    var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
+    var dropInsertion: _TableDropInsertion?
 
     /// The customization the table's columns are shown by, when it was given
     /// one with a `columnCustomization:` initializer.
@@ -310,10 +310,9 @@ extension Table {
         action: @escaping ([Payload], Int) -> Void
     ) -> Table {
         var copy = self
-        copy.dropInsertion = (
-            accepts: { $0 is Payload },
-            perform: { index, values in action(values.compactMap { $0 as? Payload }, index) }
-        )
+        copy.dropInsertion = _TableDropInsertion(
+            accepts: { $0 is Payload }, takes: nil,
+            perform: { index, values in action(values.compactMap { $0 as? Payload }, index) })
         return copy
     }
 }
@@ -631,7 +630,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     let emptyPlaceholder: String
     let columnSpacing: Int
     var moveAction: ((IndexSet, Int) -> Void)?
-    var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
+    var dropInsertion: _TableDropInsertion?
 
     /// The table's rows as a tree, when it is hierarchical; ``data`` is empty
     /// until ``resolveRows(_:)`` flattens it.
@@ -3312,7 +3311,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             let session = context.environment.dragAndDropSession
         else {
             handler.externalDropSlot = nil
+            handler.externalDropTakes = nil
             return
+        }
+        // Where not every slot takes what the rows accept — a hierarchical
+        // table whose loops are its branches', say — a slot that does not
+        // take the drag in hand opens no gap, and a drop there is refused.
+        handler.externalDropTakes = insertion.takes.map { takes in
+            { [weak session] slot in session?.active.map { takes(slot, $0.payload) } ?? true }
         }
         // Every move of the slot is reported, as `_ListCore`'s are: the gap is
         // drawn from it, and the drag moves it from outside this render.
@@ -3323,6 +3329,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 handlerID: zoneID,
                 accepts: insertion.accepts,
                 perform: { payload, _ in
+                    // No slot open where the rows refuse the one under the
+                    // pointer: refused, and the drag flies home.
+                    if insertion.takes != nil, handler.externalDropSlot == nil { return false }
                     drawing.reportingChanges(to: slot) {
                         insertion.perform(handler.takeExternalDropSlot(), [payload])
                     }

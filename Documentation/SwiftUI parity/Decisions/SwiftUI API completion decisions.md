@@ -2992,7 +2992,10 @@ Where it differs:
   next row out — goes to the deeper loop that takes the payload, as a
   terminal's drop line has no indentation to aim by. Not copied: where a
   branch's rows have no loop that takes the drop, SwiftUI hands it to the
-  roots' loop at the offset it had among the branch's rows.
+  roots' loop at the offset it had among the branch's rows. A slot no loop
+  that takes the payload reaches opens no gap and refuses the drop, which
+  flies home — in a flat table too, where a hand-written row sits outside
+  the loops.
 
 ### B81. The find bar: Ctrl-G opens it, the current match is the selection, and other matches are not highlighted
 

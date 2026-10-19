@@ -69,7 +69,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// The loops among the shown rows that take payloads in between their
     /// rows, as one table-wide insertion over the shown rows' slots — `nil`
     /// where no shown loop takes any (``_TableOutlineInsertions``).
-    let insertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
+    let insertionAction: _TableDropInsertion?
 
     /// Flattens `tree`: every root, and beneath each open branch its rows, in
     /// reading order. A closed branch's rows are never built.
@@ -333,31 +333,40 @@ struct _TableOutlineInsertions {
     }
 
     /// The insertion over `rowCount` shown rows, or `nil` where no loop shown
-    /// takes anything.
-    func action(rowCount: Int) -> (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
+    /// takes anything. A slot no loop that takes the payload reaches — among
+    /// the roots of a tree whose loops are its branches', say — takes nothing:
+    /// it opens no gap, and a drop there is refused.
+    func action(rowCount: Int) -> _TableDropInsertion? {
         // No list with loops: nothing was noted, and nothing is worked out.
         guard let depthsStart else { return nil }
         let ends = subtreeEnds(rowCount: rowCount, from: depthsStart)
-        var targets: [(depth: Int, slots: [Int], loop: _TableRowInsertion)] = []
+        var found: [(depth: Int, slots: [Int], loop: _TableRowInsertion)] = []
         for list in lists {
             for loop in list.loops {
                 let slots = Self.slots(of: loop.rows, in: list) { ends[$0 - depthsStart] }
                 guard !slots.isEmpty else { continue }
-                targets.append((list.depth, slots, loop))
+                found.append((list.depth, slots, loop))
             }
         }
-        guard !targets.isEmpty else { return nil }
-        return (
+        guard !found.isEmpty else { return nil }
+        let targets = found
+        /// The loop `slot` goes to for `payloads`, and its offset there: the
+        /// deepest loop at the slot that takes one of them; among loops of one
+        /// depth, the first, as a flat table's.
+        func owner(at slot: Int, of payloads: [Any]) -> (offset: Int, loop: _TableRowInsertion)? {
+            guard
+                let owner = targets.filter({ $0.slots.contains(slot) && payloads.contains(where: $0.loop.accepts) })
+                    .max(by: { $0.depth < $1.depth }),
+                let offset = owner.slots.firstIndex(of: slot)
+            else { return nil }
+            return (offset, owner.loop)
+        }
+        return _TableDropInsertion(
             accepts: { payload in targets.contains { $0.loop.accepts(payload) } },
+            takes: { slot, payload in owner(at: slot, of: [payload]) != nil },
             perform: { slot, payloads in
-                // The deepest loop at the slot that takes the payload; among
-                // loops of one depth, the first, as a flat table's.
-                guard
-                    let owner = targets.filter({ $0.slots.contains(slot) && payloads.contains(where: $0.loop.accepts) })
-                        .max(by: { $0.depth < $1.depth }),
-                    let offset = owner.slots.firstIndex(of: slot)
-                else { return }
-                owner.loop.perform(offset, payloads.filter(owner.loop.accepts))
+                guard let (offset, loop) = owner(at: slot, of: payloads) else { return }
+                loop.perform(offset, payloads.filter(loop.accepts))
             })
     }
 

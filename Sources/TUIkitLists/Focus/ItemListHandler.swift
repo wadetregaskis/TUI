@@ -1132,6 +1132,21 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
         }
     }
 
+    /// Whether a drop from outside at a slot would be taken, for a
+    /// destination that takes a payload at some slots and not at others — a
+    /// hierarchical table, whose loops take drops among their own rows — or
+    /// `nil` where every slot takes it. A slot it refuses opens no gap
+    /// (``setExternalDropSlot(_:)``). Set by the destination each frame, for
+    /// the drag in hand.
+    package var externalDropTakes: ((Int) -> Bool)? {
+        get { _externalDropTakes }
+        set { _externalDropTakes = newValue }
+    }
+
+    /// ``externalDropTakes``' storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _externalDropTakes: ((Int) -> Bool)?
+
     /// The content-space line the incoming drag last hovered, so an auto-scroll
     /// tick can re-resolve the slot with no mouse event to go on. See
     /// ``hoverExternalDrop(atContentY:)``, which is the only thing that should

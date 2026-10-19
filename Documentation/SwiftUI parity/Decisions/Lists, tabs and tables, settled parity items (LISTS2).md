@@ -137,7 +137,9 @@ the deeper loop that takes the payload has that slot, and the next row's loop
 the ones it alone reaches. **Not copied:** where a branch's rows have no loop
 that takes the drop, SwiftUI hands it to the roots' loop at the offset it had
 among the branch's rows; TUIkit gives the slot to the loop whose rows it is
-among, or to none.
+among, or to none: a slot none takes opens no gap, and a drop there is
+refused and flies home, as it does in a flat table at a slot outside its
+loops.
 
 **The alternative:** aim by the pointer's column, as the outline view does —
 left of the deeper level's indentation, the shallower loop. A drag's column

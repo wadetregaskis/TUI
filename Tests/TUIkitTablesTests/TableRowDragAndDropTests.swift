@@ -178,6 +178,43 @@ struct TableRowDragAndDropTests {
         #expect(log.entries == ["insert [\"seed\"] at 1"], "\(resting.lines.map(\.stripped))")
     }
 
+    /// The same rule as a hierarchical table's (below): the slot before the
+    /// hand-written first row is no loop's, so it opens no gap and refuses
+    /// the drop. It opened one, and the drop was reported taken.
+    @Test("In a flat table a slot no loop reaches opens no gap, and a drop there is refused")
+    func flatRefusesASlotNoLoopReaches() {
+        let log = Log()
+        let harness = InputChainHarness(width: 30, height: 16)
+        let fruit = self.fruit
+        func build() -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("CHIP").draggable("seed")
+                Table(of: Fruit.self) {
+                    TableColumn("Name", value: \.name)
+                } rows: {
+                    TableRow(Fruit(id: "header"))
+                    ForEach(fruit) { TableRow($0) }
+                        .dropDestination(for: String.self) { values, offset in
+                            log.entries.append("insert \(values) at \(offset)")
+                        }
+                }
+            }
+        }
+        let resting = harness.frame(build())
+        let header = line(of: "header", in: resting)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 2, y: header))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 3, y: header))
+        let hovering = harness.frame(build())
+        #expect(line(of: "header", in: hovering) == header, "a gap opened: \(hovering.lines.map(\.stripped))")
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 3, y: header))
+        harness.frame(build())
+        #expect(log.entries.isEmpty, "\(log.entries)")
+        #expect(harness.tui.dragAndDropSession.returnFlight != nil, "the drop was taken: nothing flies home")
+    }
+
     /// A row of a hierarchical table: a folder, or a file in one.
     private struct Node: Identifiable {
         let id: String
@@ -250,6 +287,50 @@ struct TableRowDragAndDropTests {
         #expect(dropInOutline(on: "B", filesTake: true) == ["A [\"seed\"] at 2"])
         // Where the files take nothing, the roots' loop has that slot.
         #expect(dropInOutline(on: "B", filesTake: false) == ["roots [\"seed\"] at 1"])
+    }
+
+    /// The common tree: a loop that takes drops among each branch's rows and
+    /// none among the roots. The table took the drag over every row because a
+    /// loop of it takes the payload, and opened its gap at every slot; a drop
+    /// at one no loop takes was reported taken, and nothing heard it.
+    @Test("In a hierarchical table a slot no loop takes opens no gap, and a drop there is refused")
+    func outlineRefusesASlotNoLoopTakes() {
+        let log = Log()
+        let harness = InputChainHarness(width: 30, height: 16)
+        let folders = self.folders
+        func build() -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("CHIP").draggable("seed")
+                Table(of: Node.self) {
+                    TableColumn("Name", value: \.name)
+                } rows: {
+                    ForEach(folders) { folder in
+                        DisclosureTableRow(folder, isExpanded: .constant(true)) {
+                            ForEach(folder.children) { TableRow($0) }
+                                .dropDestination(for: String.self) { values, offset in
+                                    log.entries.append("\(folder.id) \(values) at \(offset)")
+                                }
+                        }
+                    }
+                }
+            }
+        }
+        let resting = harness.frame(build())
+        // Before the first root: among the roots, whose loop takes nothing.
+        let row = line(of: "A", in: resting)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 2, y: row))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 3, y: row))
+        let hovering = harness.frame(build())
+        #expect(line(of: "A", in: hovering) == row, "a gap opened: \(hovering.lines.map(\.stripped))")
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 3, y: row))
+        harness.frame(build())
+        #expect(log.entries.isEmpty, "\(log.entries)")
+        #expect(harness.tui.dragAndDropSession.returnFlight != nil, "the drop was taken: nothing flies home")
+        // Among a branch's rows the loop takes it, as ever.
+        #expect(dropInOutline(on: "a2", filesTake: true) == ["A [\"seed\"] at 1"])
     }
 
     #if canImport(UniformTypeIdentifiers)

@@ -31,27 +31,48 @@ struct _TableRowInsertion {
     let perform: (Int, [Any]) -> Void
 }
 
+/// What a table does with payloads dropped between its rows: its loops'
+/// insertion, a flat table's or a hierarchical one's
+/// (``_TableOutlineInsertions``), or `Table.dropDestination(for:action:)`'s.
+struct _TableDropInsertion {
+    /// Whether a drag carrying this payload can be inserted at all: what
+    /// makes the table a destination for the drag.
+    let accepts: (Any) -> Bool
+
+    /// Whether a drop of this payload at this slot is taken, where not every
+    /// slot takes what ``accepts`` does — a slot no loop that takes it reaches
+    /// — or `nil` where every slot does. A slot it refuses opens no gap, and a
+    /// drop there is refused (`ItemListHandler.externalDropTakes`).
+    let takes: ((Int, Any) -> Bool)?
+
+    /// Inserts payloads at a slot.
+    let perform: (Int, [Any]) -> Void
+}
+
 extension _TableRowList {
     /// One table-wide insertion made of every loop's: a drop between two rows
     /// goes to the loop whose rows it falls among — its first offset to the
     /// slot above the loop's first row, its last to the slot after its last —
     /// at that loop's own offset, as SwiftUI's `onInsert` offsets are. A slot
     /// no loop that takes the payload reaches takes nothing.
-    var insertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {
+    var insertionAction: _TableDropInsertion? {
         let insertions = self.insertions
         guard !insertions.isEmpty else { return nil }
-        return (
-            accepts: { payload in insertions.contains { $0.accepts(payload) } },
-            perform: { index, payloads in
-                guard
-                    let owner = insertions.first(where: { insertion in
-                        insertion.rows.lowerBound <= index && index <= insertion.rows.upperBound
-                            && payloads.contains(where: insertion.accepts)
-                    })
-                else { return }
-                owner.perform(index - owner.rows.lowerBound, payloads.filter(owner.accepts))
+        /// The first loop whose rows reach `slot` and that takes one of
+        /// `payloads`.
+        func owner(at slot: Int, of payloads: [Any]) -> _TableRowInsertion? {
+            insertions.first { insertion in
+                insertion.rows.lowerBound <= slot && slot <= insertion.rows.upperBound
+                    && payloads.contains(where: insertion.accepts)
             }
-        )
+        }
+        return _TableDropInsertion(
+            accepts: { payload in insertions.contains { $0.accepts(payload) } },
+            takes: { slot, payload in owner(at: slot, of: [payload]) != nil },
+            perform: { slot, payloads in
+                guard let owner = owner(at: slot, of: payloads) else { return }
+                owner.perform(slot - owner.rows.lowerBound, payloads.filter(owner.accepts))
+            })
     }
 }
 

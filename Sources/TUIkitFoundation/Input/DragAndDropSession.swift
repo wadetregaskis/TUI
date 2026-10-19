@@ -235,7 +235,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// The drag in flight, or `nil`.
     package struct ActiveDrag {
         /// The dragged value, type-erased (drops re-match it by type).
-        let payload: Any
+        package let payload: Any
 
         /// The floating preview drawn at the cursor by the root scene render.
         ///
