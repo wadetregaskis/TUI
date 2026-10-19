@@ -359,7 +359,7 @@ extension Transaction {
 /// documents. One the enclosing transaction already carried belongs to the
 /// enclosing call, which decides.
 ///
-/// As `body` returns, the app whose work this is (``AmbientApp``) hears that
+/// As `body` returns, the app whose work this is (`AmbientApp`) hears that
 /// the scope ended: an `@Observable` property written in `body` whose body's
 /// observation an earlier, unanimated write had already fired reports
 /// nothing, and the app takes `transaction` for that change.

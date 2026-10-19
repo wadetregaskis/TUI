@@ -273,7 +273,7 @@ extension AppState {
 
 // MARK: - The App Whose Work Is Under Way
 
-/// What code with no handle on its app reaches through ``AmbientApp``: the
+/// What code with no handle on its app reaches through `AmbientApp`: the
 /// requests above, of the app whose event, frame or task is running.
 extension AppState: AppRenderState {
     /// Marks state as changed by a write to an `@Observable` property a body
