@@ -151,6 +151,11 @@ Where the measurement left a call:
   for everything under it), keyed by that drawer's type, so a style and the
   backgrounds drawn at one view each keep a load of their own; it is
   converted once. SwiftUI's images are never late.
+- **Once a member.** A style on a `Group` or a `ForEach` goes round each of
+  its members, as every style does, and each copy loads the paint at its own
+  member: three members of a file's paint decode the file three times, hold
+  three copies of its pixels, and each paints on the frame its own load
+  lands — as three `Image`s of the file would. A cost, not a wrong picture.
 - **A symbol**, `Image(systemName:)`, is a character here with no pixels, and
   paints nothing.
 - **Cells, never a picture.** On a terminal that takes pictures a gradient
@@ -161,7 +166,10 @@ Where the measurement left a call:
 **The fuller version:** an image paint behind blank cells sent as a picture —
 the tile drawn at the terminal's pixel resolution, half a day with
 `GradientRaster`'s picture path; a symbol's paint drawn as the glyph repeated, a
-day, since a paint names colours, not glyphs.
+day, since a paint names colours, not glyphs; one load and one set of pixels
+for every paint of one source — a store of decoded pictures on the app's
+context, keyed by the source and released with the last paint holding it, which
+the `Image`s of one file would share too — half a day.
 
 ## C. Declined
 
