@@ -251,11 +251,16 @@ first — "“beta.txt” already exists. Do you want to replace it?", Cancel an
 Replace, as macOS words it — and Replace writes over it.
 
 `items:` saves several files, so it asks for a folder, as the mover does, and
-saves each item into it under its suggested name, else Untitled, Untitled 2, …,
-with its type's extension (`ExportNames`). They are written in order and the
-first failure ends the operation; an item of the same name already in the
-folder is one — the panel shows no question per file. **The fuller version**
-asks once to replace whichever already exist: half a day.
+saves each item into it under its suggested name, else Untitled (as for a
+suggestion no file can have), with its type's extension — numbered as Finder
+numbers a copy it keeps beside the original, `note 2.txt`, `note 3.txt`, where
+the folder has the name already or a file before it in the export took it
+(`ExportNames`). So an export never replaces a file, and never fails on its own
+names: before the numbering, two items suggesting one name, or documents
+exported twice into one folder, ended at the second file with the first
+written. They are written in order and the first failure ends the operation;
+the panel shows no question per file. **The fuller version** asks once whether
+to replace whichever already exist or keep both, as numbered now: half a day.
 
 ### B-O10-11. A `Transferable` is exported through an item provider, on Apple platforms only
 
@@ -293,7 +298,8 @@ Objective-C Foundation's, so all of it is present only where Objective-C is
 fails to compile (A18, option 1). Without `contentTypes`, the document's
 `writableContentTypes` (by default its readable ones) are the panel's; the
 name offered is `defaultFilename`, else Untitled. `documents:` saves into a
-folder as `items:` does, as Untitled, Untitled 2, ….
+folder as `items:` does, as Untitled, Untitled 2, …, numbered past the names
+the folder has.
 
 ## C. Declined
 

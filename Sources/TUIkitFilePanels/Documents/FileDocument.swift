@@ -135,8 +135,8 @@
         }
 
         /// Writes `documents` into `folder`, each under its name, in order;
-        /// the first failure ends the operation, an existing item of the name
-        /// one.
+        /// the first failure ends the operation — an item of the name made
+        /// since the names were chosen (``ExportNames``) one, never replaced.
         static func write<D: FileDocument>(
             _ documents: [D], named names: [String], as types: [UTType], into folder: URL
         ) async -> Result<[URL], any Error> {

@@ -48,11 +48,20 @@ struct SaveNameTests {
         #expect(SaveName.type(for: "a", among: []) == nil)
     }
 
-    @Test("Several files are named by their suggestions, else Untitled, numbered")
-    func exportNames() {
-        let names = ExportNames.names(
-            ["report", nil, nil], contentTypes: [[.plainText], [.plainText], [.json]])
-        #expect(names == ["report.txt", "Untitled.txt", "Untitled 2.json"])
+    @Test("Several files are named by their suggestions, else Untitled, numbered past the names taken")
+    func exportNames() throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        // The folder has beta.txt; a/b is no file's name; REPORT.txt is
+        // report.txt to a Mac's disk; with no type, Untitled has no extension.
+        let suggested = ["report", nil, nil, "beta.txt", "REPORT.txt", "a/b", nil]
+        let types: [[UTType]] = [[.plainText], [.plainText], [.json], [.plainText], [.plainText], [.plainText], []]
+        let names = ExportNames.names(suggested, contentTypes: types, in: fixture.root)
+        #expect(
+            names == [
+                "report.txt", "Untitled.txt", "Untitled.json", "beta 2.txt", "REPORT 2.txt", "Untitled 2.txt",
+                "Untitled",
+            ])
     }
 }
 

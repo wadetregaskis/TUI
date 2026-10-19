@@ -100,9 +100,9 @@
         ///
         /// The interface is TUIkit's panel choosing a folder, titled Save; the
         /// documents are written into it in order, as Untitled, Untitled 2, …
-        /// with the first type's extension, the first that cannot be — an item
-        /// of the same name is already in the folder, say — ending the
-        /// operation with its error.
+        /// with the first type's extension, numbered past the names the folder
+        /// has already, so nothing is replaced; the first that cannot be
+        /// written ends the operation with its error.
         ///
         /// - Parameters:
         ///   - isPresented: A binding to whether the interface should be shown.
@@ -128,7 +128,8 @@
                     guard let folder = folders.first else { return }
                     let all = Array(documents)
                     let names = ExportNames.names(
-                        Array(repeating: nil, count: all.count), contentTypes: Array(repeating: types, count: all.count))
+                        Array(repeating: nil, count: all.count), contentTypes: Array(repeating: types, count: all.count),
+                        in: folder)
                     Task { @MainActor in
                         onCompletion(await FileDocumentWrite.write(all, named: names, as: types, into: folder))
                     }

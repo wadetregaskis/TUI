@@ -79,21 +79,44 @@ extension FilePanelRequest {
 }
 
 /// The names several exported files are given in the folder chosen for
-/// them: each one's own, else "Untitled", "Untitled 2", …, each with its
-/// type's extension, as ``SaveName/resolve(_:contentTypes:)`` gives one.
+/// them: each one's suggested name, else Untitled — a suggestion no file can
+/// have too — with its type's extension, as ``SaveName/resolve(_:contentTypes:)``
+/// gives one; and numbered as Finder numbers a copy it keeps beside the
+/// original (`note.txt`, `note 2.txt`, `note 3.txt`) where the folder has the
+/// name already, or a file saved before it in the same export took it. So an
+/// export neither replaces a file nor fails on its own names: two items that
+/// suggest one name, or the same documents exported twice, once ended at the
+/// second file, with the first written.
 enum ExportNames {
-    static func names(_ suggested: [String?], contentTypes: [[UTType]]) -> [String] {
+    static func names(_ suggested: [String?], contentTypes: [[UTType]], in folder: URL) -> [String] {
         let untitled = LocalizationService.shared.string(for: LocalizationKey.FilePanel.untitled)
-        var count = 0
+        // Lowercased: a Mac's disk does not tell two names apart by their
+        // case alone, so neither does this.
+        var taken: Set<String> = []
         return zip(suggested, contentTypes).map { suggestion, types in
-            let base: String
-            if let suggestion, !suggestion.isEmpty {
-                base = suggestion
-            } else {
-                count += 1
-                base = count == 1 ? untitled : "\(untitled) \(count)"
+            let name =
+                suggestion.flatMap { SaveName.resolve($0, contentTypes: types) }
+                ?? SaveName.resolve(untitled, contentTypes: types) ?? untitled
+            let free = firstFree(name) { candidate in
+                !taken.contains(candidate.lowercased())
+                    && !FileManager.default.fileExists(atPath: folder.appendingPathComponent(candidate).path)
             }
-            return SaveName.resolve(base, contentTypes: types) ?? base
+            taken.insert(free.lowercased())
+            return free
+        }
+    }
+
+    /// `name`, or else the first of `name 2`, `name 3`, …, the number before
+    /// the extension, that `isFree` takes.
+    static func firstFree(_ name: String, isFree: (String) -> Bool) -> String {
+        if isFree(name) { return name }
+        let ext = (name as NSString).pathExtension
+        let stem = (name as NSString).deletingPathExtension
+        var number = 2
+        while true {
+            let candidate = ext.isEmpty ? "\(stem) \(number)" : "\(stem) \(number).\(ext)"
+            if isFree(candidate) { return candidate }
+            number += 1
         }
     }
 }
@@ -197,9 +220,10 @@ enum FileExportWrite {
         ///
         /// The interface is TUIkit's panel choosing a folder, titled Save; each
         /// item is saved into it under its suggested file name, or Untitled,
-        /// Untitled 2, …, with its type's extension. The items are written in
-        /// order, and the first that cannot be — an item of the same name is
-        /// already in the folder, say — ends the operation with its error.
+        /// with its type's extension — numbered, `note 2.txt`, where the folder
+        /// has the name already or an item before it took it, so nothing is
+        /// replaced. The items are written in order, and the first that cannot
+        /// be ends the operation with its error.
         ///
         /// Apple platforms only, as ``fileExporter(isPresented:item:contentTypes:defaultFilename:onCompletion:onCancellation:)``.
         ///
@@ -226,7 +250,7 @@ enum FileExportWrite {
                     guard let folder = folders.first else { return }
                     let exports = items.map { TransferableExport($0, contentTypes: contentTypes) }
                     let names = ExportNames.names(
-                        exports.map(\.suggestedFilename), contentTypes: exports.map(\.contentTypes))
+                        exports.map(\.suggestedFilename), contentTypes: exports.map(\.contentTypes), in: folder)
                     Task { @MainActor in
                         onCompletion(await TransferableExport.write(exports, named: names, into: folder))
                     }
@@ -291,7 +315,8 @@ enum FileExportWrite {
         }
 
         /// Writes `exports` into `folder`, each under its name, in order; the
-        /// first failure ends the operation, an existing item of the name one.
+        /// first failure ends the operation — an item of the name made since
+        /// the names were chosen (``ExportNames``) one, never replaced.
         static func write(
             _ exports: [Self], named names: [String], into folder: URL
         ) async -> Result<[URL], any Error> {
