@@ -52,6 +52,31 @@ internal final class ClientCapabilityRefresher {
     /// client set is never missed.
     private var coalescer = ProbeCoalescer()
 
+    /// The probe an app's render loop asks with: the static allowlist off
+    /// tmux, and tmux's own answer about the clients attached under it
+    /// (``TerminalHost/probeTmuxClients()``).
+    nonisolated static let probeHost: @Sendable () -> ClientCapabilities? = {
+        guard TerminalHost.isTmux else {
+            // Native: the chrome is the static allowlist, and skin tones
+            // are the writer's per-host business (each native path strips
+            // or keeps them itself) — `true` here means "don't ALSO strip".
+            return ClientCapabilities(
+                emojiChrome: TerminalHost.supportsEmojiChrome,
+                skinTonesSafe: true,
+                blockElementsFillTheLine: TerminalHost.blockElementsFillTheLine,
+                cornerTrianglesFillTheCell: TerminalHost.cornerTrianglesFillTheCell,
+                mayImproveShortly: false)
+        }
+        // nil propagates ("could not ask; keep the previous answer") —
+        // deliberately NOT collapsed to false. Fail-closed is right when
+        // there is nothing better (the launch seed), but wrong for a
+        // refresh, where flipping every glyph on a transient probe failure
+        // is strictly worse than keeping a possibly-stale style.
+        return TerminalHost.probeTmuxClients().map {
+            TerminalHost.clientCapabilities(tmuxClients: $0)
+        }
+    }
+
     init(
         isRefreshable: Bool,
         probe: @escaping @Sendable () -> ClientCapabilities?,

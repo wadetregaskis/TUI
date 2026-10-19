@@ -212,27 +212,7 @@ internal final class RenderLoop<A: App> {
     /// into the refresher's detached task.
     private lazy var clientCapabilities = ClientCapabilityRefresher(
         isRefreshable: TerminalHost.isTmux,
-        probe: {
-            guard TerminalHost.isTmux else {
-                // Native: the chrome is the static allowlist, and skin tones
-                // are the writer's per-host business (each native path strips
-                // or keeps them itself) — `true` here means "don't ALSO strip".
-                return ClientCapabilities(
-                    emojiChrome: TerminalHost.supportsEmojiChrome,
-                    skinTonesSafe: true,
-                    blockElementsFillTheLine: TerminalHost.blockElementsFillTheLine,
-                    cornerTrianglesFillTheCell: TerminalHost.cornerTrianglesFillTheCell,
-                    mayImproveShortly: false)
-            }
-            // nil propagates ("could not ask; keep the previous answer") —
-            // deliberately NOT collapsed to false. Fail-closed is right when
-            // there is nothing better (the launch seed), but wrong for a
-            // refresh, where flipping every glyph on a transient probe failure
-            // is strictly worse than keeping a possibly-stale style.
-            return TerminalHost.probeTmuxClients().map {
-                TerminalHost.clientCapabilities(tmuxClients: $0)
-            }
-        },
+        probe: probeClientCapabilities,
         onChange: { [diffWriter, appState = tuiContext.appState] in
             // Every glyph on screen could differ (■ vs ⬛ change cell widths):
             // full-repaint invalidation, plus a wake so the redraw happens NOW
@@ -316,6 +296,13 @@ internal final class RenderLoop<A: App> {
     /// renders in the process, and outlives the test that assigned it.
     private let publishTerminalColors: (TerminalColors) -> Void
 
+    /// How ``clientCapabilities`` asks what the terminal(s) in front of the
+    /// user can render: ``ClientCapabilityRefresher/probeHost`` in an app.
+    ///
+    /// Taken at init, as ``isTmux`` is, so a test can say what the terminals
+    /// attached to tmux are without a tmux to ask.
+    private let probeClientCapabilities: @Sendable () -> ClientCapabilities?
+
     /// Whether the user asked for less motion with `TUIKIT_REDUCE_MOTION=1`,
     /// as the app runner read it from the process: written at the root of
     /// every frame as ``EnvironmentValues/accessibilityReduceMotion``.
@@ -353,11 +340,13 @@ internal final class RenderLoop<A: App> {
         isTmux: Bool = TerminalHost.isTmux,
         publishTerminalColors: @escaping (TerminalColors) -> Void =
             TerminalColorRefresher.publishProcessWide,
+        probeClientCapabilities: @escaping @Sendable () -> ClientCapabilities? = ClientCapabilityRefresher.probeHost,
         reducesMotion: Bool = false,
         keyNotation: KeyNotation = .symbols
     ) {
         self.isTmux = isTmux
         self.publishTerminalColors = publishTerminalColors
+        self.probeClientCapabilities = probeClientCapabilities
         self.reducesMotion = reducesMotion
         self.keyNotation = keyNotation
         self.app = app

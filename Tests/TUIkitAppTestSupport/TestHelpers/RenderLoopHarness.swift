@@ -71,17 +71,24 @@ final class RenderLoopHarness {
     /// `reducesMotion` is what the app runner reads from `TUIKIT_REDUCE_MOTION`,
     /// and `keyNotation` what it reads from `TUIKIT_KEY_SYMBOLS`; a test states
     /// them, and by default the loop draws as if both were unset.
+    ///
+    /// `clientCapabilities`, where given, is what the terminals in front of the
+    /// user can render — the answer tmux would give about the clients attached
+    /// — in place of asking the process's own host.
     func loop<A: App>(
-        _ app: A, isTmux: Bool = false, reducesMotion: Bool = false, keyNotation: KeyNotation = .symbols
+        _ app: A, isTmux: Bool = false, reducesMotion: Bool = false, keyNotation: KeyNotation = .symbols,
+        clientCapabilities: ClientCapabilities? = nil
     ) -> RenderLoop<A> {
-        loop(app, on: terminal, isTmux: isTmux, reducesMotion: reducesMotion, keyNotation: keyNotation)
+        loop(
+            app, on: terminal, isTmux: isTmux, reducesMotion: reducesMotion, keyNotation: keyNotation,
+            clientCapabilities: clientCapabilities)
     }
 
     /// A loop over another terminal: a real `Terminal` writing to a script
     /// (`ScriptedTerminalOutput`), for a test of the bytes a frame is sent as.
     func loop<A: App>(
         _ app: A, on terminal: any TerminalProtocol, isTmux: Bool = false, reducesMotion: Bool = false,
-        keyNotation: KeyNotation = .symbols
+        keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil
     ) -> RenderLoop<A> {
         RenderLoop(
             app: app,
@@ -93,8 +100,16 @@ final class RenderLoopHarness {
             tuiContext: tuiContext,
             isTmux: isTmux,
             publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) },
+            probeClientCapabilities: Self.probe(answering: clientCapabilities),
             reducesMotion: reducesMotion,
             keyNotation: keyNotation)
+    }
+
+    /// A probe that answers `capabilities`, or the process's own host's where
+    /// a test states none.
+    private static func probe(answering capabilities: ClientCapabilities?) -> @Sendable () -> ClientCapabilities? {
+        guard let capabilities else { return ClientCapabilityRefresher.probeHost }
+        return { capabilities }
     }
 }
 
