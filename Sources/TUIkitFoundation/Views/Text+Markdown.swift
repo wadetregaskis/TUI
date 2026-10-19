@@ -78,6 +78,17 @@ extension LocalizedStringKey {
         text.runs = runs
         return (parsed.content, text)
     }
+
+    /// This key's words, its Markdown parsed and its styles left behind: the
+    /// title of a table column's header or a tab, which TUIkit measures and
+    /// draws as a string in a style of its own.
+    ///
+    /// SwiftUI parses Markdown in both (measured 2026-10-18 on macOS 15:
+    /// `TableColumn("**Name** *x*", …)`'s header reads "Name x", and a
+    /// `Tab("**Bold** tab", …)` draws as a `Text` of the key does), so the
+    /// delimiters must not show. The styles they ask for are not drawn there
+    /// yet (decisions B-PARITYMISC-3).
+    @MainActor package var titleWords: String { resolvedTitle.plain }
 }
 
 // MARK: - A template's parse, kept

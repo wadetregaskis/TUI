@@ -65,3 +65,29 @@ character, so it belongs to submission rather than typing; about a day for
 the numeric ones, and a locale table for postal codes. Not recommended
 without an app asking.
 
+### B-PARITYMISC-3. A column header and a tab title draw their key's Markdown words, not its styles
+
+*`TableColumn`'s `LocalizedStringKey` initializers, `Tab`'s, and
+`TextField`'s (B87's three leftovers)*
+
+Measured on macOS 15 (2026-10-18, probes in the session notes,
+`PARITYMISC/probes/b87`): SwiftUI parses Markdown in all three. A
+`TextField`'s title becomes its placeholder as plain words
+(`TextField("**Bold** and *it*", …)` has the placeholder string "Bold and
+it", no attributes); a `TableColumn`'s header is styled (`"**Name** *x*"`
+draws a semibold "Name" and an italic "x"); a `Tab`'s title draws exactly as
+a `Text` of the key does.
+
+**Shipped:** a field's title is its key's `Text`, so the placeholder draws its
+words plain, exactly as SwiftUI's. A header and a tab title, which TUIkit
+measures, truncates and draws as strings in a style of its own (the header
+bold in the secondary ink, the strip's cells), take the key's words with the
+delimiters gone (`LocalizedStringKey.titleWords`) and draw them in that
+style.
+
+**The fuller version** draws the styles too: the header row appending a cell
+as styled runs rather than one ink (`ClaimingRow` takes one style a cell
+today), and the strip and the sidebar drawing a tab's title as a `Text`. A
+header is already bold, so only italic, strikethrough and a code span would
+show. About half a day each, and an A/B, since both are drawn every frame
+(B87's own change cost `app-shapes` +2.3%).

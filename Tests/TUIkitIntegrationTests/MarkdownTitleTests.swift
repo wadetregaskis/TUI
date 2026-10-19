@@ -154,6 +154,36 @@ struct MarkdownTitleTests {
             GroupBox("Go **bold** now") { Text("row") }, GroupBox(Self.computed) { Text("row") }, "GroupBox")
     }
 
+    /// A row for the table below.
+    struct Row: Identifiable {
+        let id = 1
+        let name = "cell"
+    }
+
+    @Test("A field's title, a column's header and a tab's title draw their words, unstyled")
+    func titlesDrawnAsStrings() {
+        // Measured on macOS 15 (2026-10-18): SwiftUI parses all three. A
+        // field's title is its placeholder, drawn as plain words; a header
+        // and a tab draw the words here in their own style (decisions
+        // B-PARITYMISC-3).
+        let text = Box("")
+        expectParsed(
+            TextField("Go **bold** now", text: text.binding), TextField(Self.computed, text: text.binding),
+            "TextField")
+        expectParsed(
+            TextField("Go **bold** now", text: text.binding, axis: .vertical),
+            TextField(Self.computed, text: text.binding, axis: .vertical), "TextField(axis:)")
+        let bold = /\u{1B}\[(?:[0-9;]*;)?1(?:;[0-9;]*)?m/
+        let placeholder = rendered(TextField("Go **bold** now", text: text.binding), stripped: false)
+        #expect(!placeholder.contains(bold), "a placeholder is plain words, as SwiftUI's is: \(placeholder)")
+        expectParsed(
+            Table([Row()]) { TableColumn("Go **bold** now", value: \.name) },
+            Table([Row()]) { TableColumn(Self.computed, value: \.name) }, "TableColumn")
+        expectParsed(
+            TabView { Tab("Go **bold** now", systemImage: "star") { Text("x") } },
+            TabView { Tab(Self.computed, systemImage: "star") { Text("x") } }, "Tab")
+    }
+
     /// Somewhere for a `Binding` to point, as in `LocalizedTitleTests`.
     final class Box<T> {
         var value: T

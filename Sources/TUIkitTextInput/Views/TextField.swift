@@ -279,7 +279,7 @@ extension TextField where Label == Text {
     ///   - text: The text to display and edit.
     @inlinable
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>) {
-        self.init(verbatimTitle: titleKey.localized, text: text, prompt: nil)
+        self.init(title: Text(titleKey), text: text, prompt: nil)
     }
 
     /// Creates a text field with a localized label and a prompt.
@@ -289,7 +289,7 @@ extension TextField where Label == Text {
     ///   - text: The text to display and edit.
     ///   - prompt: A `Text` providing guidance on what to type into the field.
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?) {
-        self.init(verbatimTitle: titleKey.localized, text: text, prompt: prompt)
+        self.init(title: Text(titleKey), text: text, prompt: prompt)
     }
 
     /// Creates a text field with a text label generated from a title string.
@@ -335,7 +335,20 @@ extension TextField where Label == Text {
     /// property, and those would all have to be exported.
     @usableFromInline
     init(verbatimTitle title: String, text: Binding<String>, prompt: Text?) {
-        self.label = Text(verbatim: title)
+        self.init(title: Text(verbatim: title), text: text, prompt: prompt)
+    }
+
+    /// The one initializer the titled ones share: `title` is the field's
+    /// label, and its placeholder where no prompt is given.
+    ///
+    /// A key's title is its `Text`, Markdown parsed as SwiftUI parses it
+    /// (measured 2026-10-18 on macOS 15: `TextField("**Bold** and *it*", …)`
+    /// shows the placeholder "Bold and it"), so the delimiters are gone; the
+    /// placeholder draws its words in the prompt's colour, unstyled, as
+    /// SwiftUI's plain placeholder string does.
+    @usableFromInline
+    init(title: Text, text: Binding<String>, prompt: Text?) {
+        self.label = title
         self.text = text
         self.prompt = prompt
         // Auto-generated focusID from view identity (collision-free)

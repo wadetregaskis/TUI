@@ -3224,6 +3224,12 @@ title (drawn as its placeholder), a `TableColumn`'s header and a `Tab`'s title,
 which are measured and drawn as strings; and TUIkit's own chrome, as above.
 Tests: `MarkdownTitleTests`.
 
+**2026-10-18 (lane PARITYMISC):** the three are parsed. A `TextField`'s title is
+its `Text`, and its placeholder draws the words plain, as SwiftUI's does
+(measured); a header and a tab title draw the words in their own style, the
+styles not yet
+([B-PARITYMISC-3](<Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>)).
+
 ### B88. A live text with an attributed format draws the characters only
 
 *`Text(_:format:)` over a `TimeDataSource` with an `AttributedString` output;

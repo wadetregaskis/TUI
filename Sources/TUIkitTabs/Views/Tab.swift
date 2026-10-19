@@ -106,7 +106,7 @@ extension Tab where Label == DefaultTabLabel {
     ) {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.localized, systemImage: systemImage),
+            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: systemImage),
             content: content())
     }
 
@@ -146,7 +146,7 @@ extension Tab where Label == DefaultTabLabel {
         @ViewBuilder content: () -> Content
     ) {
         self.init(
-            value: value, role: role, label: DefaultTabLabel(title: titleKey.localized, systemImage: nil),
+            value: value, role: role, label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil),
             content: content())
     }
 
@@ -200,7 +200,7 @@ extension Tab where Value == Never, Label == DefaultTabLabel {
     ) {
         self.init(
             value: nil, role: role,
-            label: DefaultTabLabel(title: titleKey.localized, systemImage: systemImage),
+            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: systemImage),
             content: content())
     }
 
@@ -307,7 +307,7 @@ extension Tab where Label == DefaultTabLabel {
     ) where Value == T? {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.localized, systemImage: systemImage),
+            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: systemImage),
             content: content())
     }
 
@@ -332,7 +332,7 @@ extension Tab where Label == DefaultTabLabel {
     ) where Value == T? {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.localized, systemImage: nil), content: content())
+            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil), content: content())
     }
 
     /// Creates a tab with a title shown as written, selected by `value` in a
