@@ -48,7 +48,11 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
     /// The options of `content`, each whose tag answers for `SelectionValue`,
     /// with a rule between groups and a section's header as the title of its
     /// group, under the rule; edge and doubled rules collapsed, so a group a
-    /// condition empties leaves none behind.
+    /// condition empties leaves no rule of its own behind. A section's header
+    /// stays when a condition empties the section: a macOS menu picker keeps
+    /// it, between its separators over no options, and sizes the collapsed
+    /// control to it (`Tools/SwiftUIProbes/Picker sections/pickersection.out`,
+    /// `emptied`), as the title counts here.
     func entries(in context: RenderContext) -> [_PickerEntry<SelectionValue>] {
         let groups = subviewGroups(of: content, in: context.withChildIdentity(type: Content.self, index: 0))
         var entries: [_PickerEntry<SelectionValue>] = []

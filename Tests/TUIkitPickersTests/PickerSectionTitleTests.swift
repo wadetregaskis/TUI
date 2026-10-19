@@ -59,6 +59,27 @@ struct PickerSectionTitleTests {
         #expect(spelled == ["apple", "—", "pear"], "\(spelled)")
     }
 
+    /// Fruit's citrus section, its one option shown only when `showCitrus`,
+    /// and an option outside it.
+    private func citrus(showCitrus: Bool) -> [String] {
+        entries {
+            Section("Citrus") {
+                if showCitrus { Text("Lemon").tag(Fruit.kale) }
+            }
+            Text("Apple").tag(Fruit.apple)
+        }
+    }
+
+    /// A macOS menu picker keeps the header of a section a condition empties,
+    /// between its separators, over no options (`pickersection.out`,
+    /// `emptied`); the leading rule is an edge rule, collapsed here.
+    @Test("A section a condition empties keeps its title, set apart by a rule")
+    func emptiedSectionKeepsItsTitle() {
+        #expect(citrus(showCitrus: true) == ["title", "kale", "—", "apple"])
+        let spelled = citrus(showCitrus: false)
+        #expect(spelled == ["title", "—", "apple"], "\(spelled)")
+    }
+
     /// The open drop-down of a menu picker over two sections, composited as
     /// the render loop composites it.
     private func openMenu(

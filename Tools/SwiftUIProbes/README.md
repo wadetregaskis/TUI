@@ -484,8 +484,11 @@ messages cite that path), and what cites it.
 - **Asks:** how a macOS menu `Picker` draws a `Section` among its options: reads back the menu of the
   `NSPopUpButton` SwiftUI makes and prints each item's kind and title (`pickersection.swift`, `pickersection.out`,
   built with `common.swift`). Each section is wrapped in separators, its header an `NSMenuItem` section header
-  over its options.
-- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18.
+  over its options. A section a condition empties keeps its header between its separators, over no options,
+  and the collapsed control is as wide as that header needs (`emptied`: 197 points, against 74 for its one
+  option alone, `baseline`).
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18; the emptied section 2026-10-19.
 - **Was:** `LISTS/probe/`.
-- **Cited by:** `Sources/TUIkitPickers/Views/Picker.swift`, `Tests/TUIkitPickersTests/PickerSectionTitleTests.swift`;
+- **Cited by:** `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/_PickerOptionsReader.swift`,
+  `Tests/TUIkitPickersTests/PickerSectionTitleTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Pickers).

@@ -1,4 +1,4 @@
-sectioned: 10 items, selected=3
+sectioned: 10 items, selected=3 width=290.5
   [separator] '' enabled=false indent=0
   [sectionHeader] 'Fruit' enabled=true indent=0
   [option] 'Apple' enabled=true indent=0
@@ -9,7 +9,7 @@ sectioned: 10 items, selected=3
   [option] 'Kale' enabled=true indent=0
   [separator] '' enabled=false indent=0
   [option] 'Loose' enabled=true indent=0
-headerOnlyFirst: 8 items, selected=0
+headerOnlyFirst: 8 items, selected=0 width=290.5
   [option] 'First' enabled=true indent=0
   [separator] '' enabled=false indent=0
   [sectionHeader] 'Group' enabled=true indent=0
@@ -18,3 +18,16 @@ headerOnlyFirst: 8 items, selected=0
   [separator] '' enabled=false indent=0
   [option] 'Third' enabled=true indent=0
   [separator] '' enabled=false indent=0
+baseline: 1 items, selected=0 width=74.0
+  [option] 'Apple' enabled=true indent=0
+emptied: 4 items, selected=3 width=197.0
+  [separator] '' enabled=false indent=0
+  [sectionHeader] 'Citrus fruit of a long name' enabled=true indent=0
+  [separator] '' enabled=false indent=0
+  [option] 'Apple' enabled=true indent=0
+filled: 5 items, selected=4 width=197.0
+  [separator] '' enabled=false indent=0
+  [sectionHeader] 'Citrus fruit of a long name' enabled=true indent=0
+  [option] 'Lemon' enabled=true indent=0
+  [separator] '' enabled=false indent=0
+  [option] 'Apple' enabled=true indent=0
