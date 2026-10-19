@@ -112,12 +112,12 @@ extension ItemListHandler {
 
         case .home:
             if let row = firstLandableRow(orElse: 0) { focusedIndex = row }
-            ensureFocusedItemVisible()
+            revealWithEdge(.top)
             return true
 
         case .end:
             if let row = lastLandableRow(orElse: itemCount - 1) { focusedIndex = row }
-            ensureFocusedItemVisible()
+            revealWithEdge(.bottom)
             return true
 
         // The CURSOR moves by the rows on screen, which is what
@@ -351,6 +351,22 @@ extension ItemListHandler {
     /// (``ItemListHandler/deleteFocusedRow()``).
     func isLandable(_ index: Int) -> Bool {
         isInLandingSet(index) && !selectionDisabledRows.contains(index)
+    }
+
+    /// Reveals the cursor that Home or End just put on the first or last row
+    /// it can land on, with the rows beyond it to that edge of the list: the
+    /// rows above the first landable row, or below the last, are rows the
+    /// cursor cannot reach — a section's header, a row the selection cannot
+    /// name, a tab view sidebar's header and footer — and Home and End go to
+    /// the top and the bottom, as a macOS list's do. A control in such a row
+    /// is drawn, and so a Tab stop, only while the row is in the window.
+    ///
+    /// The cursor still wins: rows past it taller than the window leave it
+    /// revealed, not them.
+    private func revealWithEdge(_ edge: VerticalEdge) {
+        scrollOffset = edge == .top ? 0 : settledMaxOffset
+        scrollTopClipLines = 0
+        ensureFocusedItemVisible()
     }
 
     /// The first row the cursor may land on (Home, and the Page clamp at the
