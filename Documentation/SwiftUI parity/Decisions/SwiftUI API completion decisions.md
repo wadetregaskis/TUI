@@ -49,13 +49,13 @@ the quiet machine. A40's default dissolve was measured on 2026-10-15 and, as
 agreed, not shipped: it cost far more than 1% (see A40).
 
 **Decided, lane owed.** A0's ruled O items but O1, O2, O7, O17 and O16 (deferred), and with them
-A22 and A26 (O9), A24 (O0, O15) and A41 (O5's glass); A42, B19 (after its
-A/B), B22 (a look at the faint tiers).
+A22 and A26 (O9) and A24 (O0, O15); A42, B19 (after its A/B), B22 (a look at
+the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
 Shipped on 2026-10-14: A25; O7 with A12; O1; O17; O2 with A37.
 Shipped on 2026-10-18: O0's shapes (lane W1); O3's merging and additive
-retargets with A38; O5's materials; O6's shadows; O13's menu bar; O4 with A23
-and A36.
+retargets with A38; O5's materials with A41, and its glass; O6's shadows;
+O13's menu bar; O4 with A23 and A36.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -682,8 +682,8 @@ is behind, its thickness an alpha and with no blur (recommended), or stay the
 `dimmed()`/`overlayBackground` substitution. These symbols ship or are
 declined with that answer.
 
-**Decided with O5 (2026-10-12): the translucent surface.** Lane owed: about a
-day.
+**Decided with O5 (2026-10-12): the translucent surface.** **Shipped
+2026-10-18** (the Colors page's Materials section shows them).
 
 ### A42. Rich-text editing, now that P8 has shipped
 
