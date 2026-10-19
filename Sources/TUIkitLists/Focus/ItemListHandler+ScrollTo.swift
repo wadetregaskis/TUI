@@ -2,7 +2,9 @@
 //  ItemListHandler+ScrollTo.swift
 //
 //  `ScrollViewProxy.scrollTo(_:anchor:)` reaching a `List` or a `Table`: the
-//  handler is a ``ScrollToTarget``, and places the row the request names.
+//  handler is a ``ScrollToTarget``, and places the row the request names. And
+//  a `.scrollPosition` bound above one: the row, edge or line it asks for is
+//  placed the same way, and the row at its anchor is written back.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -50,5 +52,92 @@ extension ItemListHandler {
             row += 1
         }
         return lines
+    }
+}
+
+// MARK: - A bound scroll position
+
+extension ItemListHandler {
+    /// Records that the user scrolled the list (``ScrollableOffsetState``),
+    /// for a bound `.scrollPosition` to hear at the next render.
+    package func noteUserScroll() {
+        userScrolledSinceRender = true
+    }
+
+    /// Places what a `.scrollPosition` bound above the list asks for on this
+    /// frame, once, as a `ScrollView` does: a row, by the key `rowIndex`
+    /// finds it under (``scroll(toRow:anchor:)``, so every anchor and the
+    /// least move), the top or bottom edge as the first or last row, or a
+    /// line of the content. A list does not scroll across, so the leading
+    /// and trailing edges and an `x` move nothing. Before the offset settles.
+    @MainActor
+    package func applyScrollPosition(rowIndex: (String) -> Int?, context: RenderContext) {
+        guard !context.isMeasuring, let position = context.environment.scrollPositionBinding else { return }
+        if let request = position.rowRequest(
+            tracking: &positionTracking, transactionAnchor: context.environment.transaction.scrollTargetAnchor)
+        {
+            if let index = rowIndex(request.key) { scroll(toRow: index, anchor: request.anchor) }
+            return
+        }
+        switch position.placementRequest(tracking: &positionTracking) {
+        case .edge(.top): scroll(toRow: 0, anchor: .top)
+        case .edge(.bottom): scroll(toRow: itemCount - 1, anchor: .bottom)
+        case .offset(_, let y?): scroll(toLine: y)
+        default: break
+        }
+    }
+
+    /// Writes the row at a bound `.scrollPosition`'s anchor back to it —
+    /// named by `rowID`, nothing for a row it names nothing — and tells it
+    /// the user scrolled, when they did, as a `ScrollView` does. After the
+    /// offset settles.
+    @MainActor
+    package func reportScrollPosition(rowID: (Int) -> AnyHashable?, context: RenderContext) {
+        guard !context.isMeasuring else { return }
+        guard let position = context.environment.scrollPositionBinding else {
+            userScrolledSinceRender = false
+            return
+        }
+        if let row = row(atRowLine: Int((Double(rowLineBudget - 1) * position.anchor.y).rounded(.down))),
+            let id = rowID(row)
+        {
+            position.report(id, tracking: &positionTracking)
+        }
+        if userScrolledSinceRender {
+            userScrolledSinceRender = false
+            position.reportPositionedByUser()
+        }
+    }
+
+    /// Scrolls so the content's line `line` is the first the rows show.
+    private func scroll(toLine line: Int) {
+        guard itemCount > 0 else { return }
+        clearOverscroll()
+        let rowHeight = self.rowHeight ?? { _ in 1 }
+        var top = 0
+        for row in 0..<itemCount {
+            let height = max(1, rowHeight(row))
+            if line < top + height || row == itemCount - 1 {
+                place(row: row, linesAbove: -max(0, min(line - top, height - 1)), rowHeight: rowHeight)
+                break
+            }
+            top += height
+        }
+        clampScrollOffset()
+        clampTopClip()
+    }
+
+    /// The row on the rows' line `line`, counted from the first line they
+    /// show, or `nil` past the last row.
+    private func row(atRowLine line: Int) -> Int? {
+        let rowHeight = self.rowHeight ?? { _ in 1 }
+        var bottom = -scrollTopClipLines
+        var row = scrollOffset
+        while row < itemCount {
+            bottom += max(1, rowHeight(row))
+            if line < bottom { return row }
+            row += 1
+        }
+        return itemCount > 0 ? itemCount - 1 : nil
     }
 }

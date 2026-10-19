@@ -1819,6 +1819,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             measuring: context.isMeasuring, overflowing: furthest > 0,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: heightOf(0))
+        handler.reportScrollPosition(rowID: { AnyHashable(data[$0].id) }, context: context)
         bindSelection(handler, context: context)
 
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. `engageFocus`
@@ -2904,6 +2905,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             measuring: context.isMeasuring, overflowing: overflowing,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: 1)
+        handler.reportScrollPosition(rowID: { AnyHashable(data[$0].id) }, context: context)
         bindSelection(handler, context: context)
         return (handler, overflowing)
     }
@@ -2925,11 +2927,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard !context.isMeasuring else { return }
         context.environment.scrollToRegistry?.register(
             handler: handler, identity: context.identity, renderCache: context.renderCache)
-        guard let request = handler.pendingScrollTo else { return }
-        handler.pendingScrollTo = nil
-        if let index = rows.firstIndex(where: { identityKey($0.id) == request.key }) {
-            handler.scroll(toRow: index, anchor: request.anchor)
+        if let request = handler.pendingScrollTo {
+            handler.pendingScrollTo = nil
+            if let index = rows.firstIndex(where: { identityKey($0.id) == request.key }) {
+                handler.scroll(toRow: index, anchor: request.anchor)
+            }
         }
+        handler.applyScrollPosition(rowIndex: { key in rows.firstIndex { identityKey($0.id) == key } }, context: context)
     }
 
     /// The table's content width: the selection gutter plus the columns and their

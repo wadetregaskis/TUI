@@ -232,6 +232,14 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
         }
     }
 
+    /// The id a bound `.scrollPosition` is told for the row at `index`: the
+    /// row id ``index(ofScrollKey:)`` finds it by, or `nil` for a section's
+    /// header or footer.
+    func scrollID(at index: Int) -> AnyHashable? {
+        guard case .content(let id) = typeAt(index) else { return nil }
+        return AnyHashable(id)
+    }
+
     /// Where the row at `index` stands among the list's content rows — the
     /// index `ListStyle.alternatingRowColors` stripes by — counted exactly as the
     /// composers count: every row but a section's header and footer, on across
@@ -1864,6 +1872,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     handler.scroll(toRow: index, anchor: request.anchor)
                 }
             }
+            handler.applyScrollPosition(rowIndex: { source.index(ofScrollKey: $0) }, context: context)
         }
         // Clamp, snap off the resting duplicate, apply the anchor — one sequence,
         // shared with `Table`'s two paths, along with the render-pass guard that
@@ -1874,6 +1883,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             measuring: context.isMeasuring, overflowing: overflowing,
             drawsTextIndicators: indicators.text,
             firstRowHeight: source.content(at: 0).buffer.height)
+        handler.reportScrollPosition(rowID: { source.scrollID(at: $0) }, context: context)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
         handler.compactColumnAdvance = context.environment.compactColumnAdvance

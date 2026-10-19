@@ -501,6 +501,15 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _pendingScrollTo: ScrollToRequest?
 
+    /// What this list keeps of a `.scrollPosition` bound above it: the request
+    /// it acted on and the row it last reported (``applyScrollPosition(rowIndex:context:)``).
+    var positionTracking = ScrollPositionTracking()
+
+    /// Whether the user has scrolled the list since its last render — the
+    /// wheel, the keys, the scrollbar — for a bound `.scrollPosition` to be
+    /// told so (``reportScrollPosition(rowID:context:)``).
+    var userScrolledSinceRender = false
+
     /// The collapsed `NavigationSplitView`'s way to its next column, where
     /// this list is in the column on top of one
     /// (``EnvironmentValues/compactColumnAdvance``): choosing a row selects it
