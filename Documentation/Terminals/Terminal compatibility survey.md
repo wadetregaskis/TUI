@@ -5726,6 +5726,63 @@ reported Shift-click is a `<4;x;yM` line in the log, one the terminal kept is
 no line at all, and anything the terminal answers to the sequence is logged
 ahead of the first event.
 
+## Pointer shapes (OSC 22)
+
+**Status: sent since 2026-10-19 where a host DOCUMENTS it; the shape is
+UNMEASURED on every host, and `Tools/TerminalProbes/pointer_shape_card.py`
+awaits the owner's reading.**
+
+**What TUIkit does.** `View.pointerStyle(_:)` files a region the size of its
+view with the style's shape. After every batch of input, and after every
+frame, the run loop resolves the shape under the pointer — the innermost
+style in front of the control there, or that control's own — and writes
+`ESC ] 22 ; name ESC \` when it differs from what it last sent
+(`Terminal.showPointerShape`, `TerminalHostState`), in the host's own names
+(`PointerShapeHost`). Motion reporting (mode 1003) is asked for only while a
+style is on screen. The teardown — a quit and a Ctrl-Z alike — writes the
+empty name, every host's reset, BEFORE the mouse modes go off, and the debt a
+fatal signal pays begins with the same (`Terminal.inputModesOwed`). After any
+mouse mode change the shape is written again, because Ghostty resets it on
+one. A host not in the table below is sent nothing and owed nothing.
+`TUIKIT_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the
+table (in CSS names), and `all` also turns on TUIkit's own controls' shapes
+(the I-beam over a text field, a hand over a link or a button, a resize arrow
+over a divider or a table's column edge), which are otherwise off on every
+host until its reset is read off the card.
+
+**What each host is documented to do**, read 2026-10-19 from its
+documentation and its source (copies under the lane's notes, `O12/docs`):
+
+| Host | Since | Names | No style, mid-run | Reset | Detected by | Measured |
+|---|---|---|---|---|---|---|
+| Ghostty | 1.0.0 (its VT reference) | CSS, and xterm's X11 names as aliases (`mouse.zig`) | `default`: an empty name is ignored before its `mouse_shape_reset` | any mouse mode set gives the arrow, any reset the I-beam (`stream_handler.zig`); an empty name gives one of those (newer releases) | `TERM_PROGRAM=ghostty` with its version, or `TERM=xterm-ghostty` | UNMEASURED |
+| kitty | 0.31.0 (its pointer-shapes page) | CSS (thirty) | empty | empty; a stack per screen, so leaving the alternate screen leaves its shapes behind | `TERM=xterm-kitty` or `KITTY_WINDOW_ID` | UNMEASURED |
+| foot | 1.12.0 (its changelog) | CSS, X11 fallbacks | empty | empty | `TERM=foot`, `foot-…` | UNMEASURED |
+| iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | UNMEASURED |
+| xterm | patch #367 (its changelog) | the X11 cursor font | empty | empty: the `pointerShape` resource's default | `XTERM_VERSION` | UNMEASURED |
+| Apple Terminal | — | documents none | — | — | not sent | — |
+| Warp | — | documents none | — | — | not sent | — |
+| tmux | — | unknown whether it forwards OSC 22; the hypothesis is that it drops it | — | — | not sent | UNMEASURED |
+
+A version stated in the environment below the "since" column turns a host
+off; a host that states none is taken to be recent, since every one of them
+parses OSC and an older one swallows the sequence. A style a host has no name
+for gives it its own pointer rather than leaving the last shape up.
+
+**What is unmeasured, and what the card asks.** Everything that matters here
+happens outside the byte stream, so nothing above is measured: whether each
+name draws the shape its style describes; whether the empty name, the mouse
+modes going off, or leaving the alternate screen gives the shell its own
+pointer back on a quit and on a Ctrl-Z; whether a mode change loses a shape
+(Ghostty's source says it does, and TUIkit writes it again); and what tmux
+does with the sequence. `python3 Tools/TerminalProbes/pointer_shape_card.py`
+draws a box per style, gives the pointer each box's shape as it moves on, and
+offers four ways out (TUIkit's, and three others that tell which reset a host
+needs) and a suspend. Its reading, per host, belongs in this section; a host
+whose reset reads clean turns on TUIkit's own controls' shapes there
+(`PointerShapeHost.resetIsMeasured`). `pointerVisibility(_:)` stays refused
+unless the card shows a name that hides the pointer.
+
 ## Focus reporting (mode 1004)
 
 **Status: tmux 3.7c MEASURED; every native host UNMEASURED.**

@@ -2,7 +2,8 @@
 //  TerminalHostState.swift
 //
 //  The ledger of what the app has set on the terminal emulator itself, beyond
-//  its screen — the window title — and what giving it back takes.
+//  its screen — the window title, the pointer's shape — and what giving it
+//  back takes.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -26,7 +27,17 @@
 /// A value: the run loop owns one (``RenderLoop``), and nothing here writes —
 /// each change returns the bytes it takes, for the caller to send with the
 /// frame or the hand-back.
+///
+/// Two lanes built this ledger at once, and both halves are here: the window
+/// title (lane O9), kept by the run loop's instance, and the pointer's shape
+/// (lane O12, ``pointerShape``), kept by the ``Terminal``'s, which changes the
+/// mouse modes that reset it on Ghostty. One owner for every value is queued
+/// (HOSTLEDGER); until then each instance uses its own half.
 struct TerminalHostState: Equatable {
+    /// The pointer's shape (OSC 22), where the terminal takes one by name;
+    /// `nil` where it is left alone. The ``Terminal``'s instance keeps it.
+    var pointerShape: TerminalHostSetting?
+
     /// The title the terminal was last given, or `nil` while it shows its own.
     private(set) var writtenTitle: String?
 
@@ -111,5 +122,77 @@ struct TerminalHostState: Equatable {
     /// Whether `scalar` is a C0 control, DEL or a C1 control.
     private static func isControl(_ scalar: Unicode.Scalar) -> Bool {
         scalar.value < 0x20 || (0x7F...0x9F).contains(scalar.value)
+    }
+}
+
+// MARK: - One value outside the grid
+
+/// One thing the app sets on the terminal outside its grid of cells: what it
+/// wants now, what it last sent, how to put the terminal's own back mid-run,
+/// and what is owed as the app leaves.
+///
+/// The Ghostty study's "one mechanism for state outside the grid" (§1.2): a
+/// pointer shape, a window title and a progress bar each need the value the
+/// frame wants, the value last sent, a write when they differ, and a reset on
+/// suspend, exit and fatal signal, sent again on resume — so each is one of
+/// these, held by ``TerminalHostState``, rather than a copy of that logic of
+/// its own. Bytes in, bytes out: what a value means, and how a host spells
+/// it, is the caller's.
+struct TerminalHostSetting: Equatable {
+    /// The bytes that put back the terminal's own value while the app runs.
+    let unset: String
+
+    /// The bytes that put back the terminal's own value as the app leaves —
+    /// a quit, a suspend, the debt a signal pays. Harmless when nothing was
+    /// set: they are owed from the start.
+    let reset: String
+
+    /// What the terminal was last sent: `.some(nil)` its own value, `nil`
+    /// unknown, which the next ``update(to:)`` settles by sending.
+    private var sent: String?? = .some(nil)
+
+    init(unset: String, reset: String) {
+        self.unset = unset
+        self.reset = reset
+    }
+
+    /// The bytes that set `wanted` (`nil`: the terminal's own), or `nil` when
+    /// the terminal already shows it. The write is the caller's.
+    mutating func update(to wanted: String?) -> String? {
+        if case .some(let last) = sent, last == wanted { return nil }
+        sent = .some(wanted)
+        return wanted ?? unset
+    }
+
+    /// Forgets what was sent: the terminal may have changed it itself.
+    mutating func forgetSent() {
+        if case .some(.some) = sent { sent = nil }
+    }
+
+    /// Takes note that ``reset`` went out: the terminal shows its own again,
+    /// so a resume sends the wanted value afresh.
+    mutating func noteReset() {
+        sent = .some(nil)
+    }
+}
+
+// MARK: - The values set by name
+
+/// The ledger's values kept as ``TerminalHostSetting``s — the pointer's shape
+/// — which the ``Terminal``'s instance holds: the terminal writes each
+/// change, owes each reset and pays it as the app leaves, because it is what
+/// the bytes go to, what composes the debt a signal pays
+/// (`Terminal.signalDebt`), and what changes the mouse modes, which on
+/// Ghostty change the pointer's shape themselves.
+extension TerminalHostState {
+    /// What every value owes as the app leaves, in one string: written before
+    /// the input modes go off (`Terminal.inputModesOwed`).
+    var resets: String {
+        pointerShape?.reset ?? ""
+    }
+
+    /// Takes note that ``resets`` went out.
+    mutating func noteResets() {
+        pointerShape?.noteReset()
     }
 }

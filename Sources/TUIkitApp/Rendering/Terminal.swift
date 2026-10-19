@@ -72,6 +72,18 @@ final class Terminal: TerminalProtocol {
     /// Read once, as the terminal is made.
     let capturesShiftClicks: Bool
 
+    /// The terminal TUIkit sets the pointer's shape on, in its names (OSC 22,
+    /// ``showPointerShape(_:)``), or `nil` where it leaves the pointer alone:
+    /// `TerminalClient.pointerShapeSupport`, then `TUIKIT_POINTER_SHAPES`,
+    /// then the hosts documented to take it. Decided once, as the terminal is
+    /// made: every such host names itself in the environment, so the startup
+    /// exchange has nothing to add.
+    let pointerShapeHost: PointerShapeHost?
+
+    /// What the app has set on the terminal outside its grid, and owes back
+    /// (``TerminalHostState``).
+    var hostState = TerminalHostState()
+
     /// All input bytes that have been drained from stdin but not yet
     /// dispatched as events. Bytes are appended at the back by
     /// ``appendDrain()`` (one `read()` syscall per call) and consumed
@@ -482,6 +494,13 @@ final class Terminal: TerminalProtocol {
         capturesShiftClicks =
             !TerminalHost.detectAppleTerminal(environment: environment)
             && Self.shiftClicksAllowed(environment: environment)
+        let pointerHost = TerminalClient.pointerShapeHost(
+            override: TerminalClient.pointerShapeSupport, environment: environment)
+        pointerShapeHost = pointerHost
+        hostState.pointerShape = pointerHost.map { host in
+            TerminalHostSetting(
+                unset: PointerShapeHost.sequence(naming: host.unsetName), reset: PointerShapeHost.reset)
+        }
     }
 
     /// Destructor ensures raw mode is disabled.
@@ -784,6 +803,7 @@ extension Terminal {
         popKeyboardFlags()
 
         writeImmediate(inputModesOwed)
+        hostState.noteResets()
         appliedMouseMode = .none
 
         // Put grapheme clustering back only if we turned it on: the mode
@@ -878,8 +898,15 @@ extension Terminal {
     /// owed. Owed whether or not reporting is on now: `CSI > 0 s` is the
     /// terminal's default, so handing back what was not taken changes
     /// nothing.
+    ///
+    /// Headed by what the app set outside the grid put back
+    /// (``TerminalHostState/resets``): the pointer's shape, where it sets
+    /// one, by the empty name every host reads as a reset. Before the mouse
+    /// modes go off, because on Ghostty their going off is itself the reset,
+    /// to the I-beam a shell has, and nothing may follow it that sets a shape.
     var inputModesOwed: String {
-        capturesShiftClicks ? Self.inputModesOff + Self.shiftEscapeOff : Self.inputModesOff
+        hostState.resets
+            + (capturesShiftClicks ? Self.inputModesOff + Self.shiftEscapeOff : Self.inputModesOff)
     }
 
     /// Puts back the grapheme-clustering mode this process pinned on
@@ -1041,6 +1068,11 @@ extension Terminal {
             if capturesShiftClicks { writeImmediate(Self.shiftEscapeOff) }
         }
         appliedMouseMode = target
+        // Ghostty gives the pointer a shape of its own on every mouse mode
+        // set or reset (the arrow on, the I-beam off; its source), so a shape
+        // the app set is not on screen any more: sent again by the next
+        // ``showPointerShape(_:)``.
+        hostState.pointerShape?.forgetSent()
     }
 
     /// XTSHIFTESCAPE asking for Shift-modified mouse events to be reported

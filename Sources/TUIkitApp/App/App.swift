@@ -245,9 +245,29 @@ extension AppRunner {
     /// one while rendering), and whether this process may launch a browser at
     /// all, which defaults to NO (activation is not main-actor isolated
     /// either; see ``TerminalClient/urlOpeningSupport``).
+    ///
+    /// And whether it takes the pointer's shape by name (OSC 22), which the
+    /// terminal decided as it was made, to `\.terminalFeatures`, which
+    /// `pointerStyle(_:)` reads as it renders; with whether TUIkit's own
+    /// controls set theirs.
     private func publishHostAnswers() {
         TerminalClient.applyHyperlinkSupport()
         TerminalClient.applyURLOpeningSupport()
+        let pointerHost = terminal.pointerShapeHost
+        tuiContext.terminalFeatures = TerminalFeatures(
+            pointerShapes: pointerHost != nil,
+            controlPointerShapes: TerminalClient.builtInPointerShapes(
+                host: pointerHost, environment: ProcessInfo.processInfo.environment))
+    }
+
+    /// Gives the pointer the shape the views under it ask for
+    /// (`MouseEventDispatcher.pointerShapeUnderPointer()`), where the terminal
+    /// takes one: after each batch of input, which may have moved the pointer,
+    /// and after each frame, which may have moved what is under it. Written
+    /// only when it changes.
+    private func showPointerShape() {
+        guard terminal.pointerShapeHost != nil else { return }
+        terminal.showPointerShape(tuiContext.mouseEventDispatcher.pointerShapeUnderPointer())
     }
 
     /// Turns on the kitty keyboard protocol where the terminal speaks it, and
@@ -796,6 +816,8 @@ extension AppRunner {
         let effective = renderer.effectiveMouseSupport()
         terminal.applyMouseSupport(effective)
         tuiContext.mouseEventDispatcher.setActiveSupport(effective, isFrameFinal: true)
+        // After the mouse mode, which on Ghostty resets the pointer's shape.
+        showPointerShape()
         // What a SIGQUIT owes for the images this frame put in or took out,
         // and a signal for the title it saved.
         terminal.oweFarewell(for: tuiContext.terminalImageStore)
@@ -1011,6 +1033,9 @@ extension AppRunner {
         // burst of replies one publication and one repaint.
         renderer.noteVolunteeredColorReplies(
             terminal.takeVolunteeredColorReplies(), sawStatusFence: terminal.takeStatusFence())
+        // The pointer may have moved onto another style: shown now, with no
+        // frame needed for it.
+        showPointerShape()
     }
 
     /// What the app set on the terminal emulator, given back — the window

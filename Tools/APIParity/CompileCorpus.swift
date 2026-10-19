@@ -4403,3 +4403,34 @@ private struct CorpusAlertSceneApp: App {
         }
     }
 }
+
+// MARK: - Pointer styles (decisions O12)
+
+/// `pointerStyle(_:)` as Apple's documentation writes it — an optional style
+/// chosen per state — and every style SwiftUI declares but the image one.
+@MainActor
+private struct CorpusPointerStyles: View {
+    enum ToolMode { case selection }
+    @State private var toolMode: ToolMode?
+
+    var body: some View {
+        VStack {
+            Text("Canvas")
+                .pointerStyle(toolMode == .selection ? .rectSelection : nil)
+                .onModifierKeysChanged { _, modifierKeys in
+                    toolMode = modifierKeys.contains(.option) ? .selection : nil
+                }
+            Divider().pointerStyle(.columnResize)
+            Divider().pointerStyle(.columnResize(directions: .trailing))
+            Divider().pointerStyle(.rowResize(directions: [.up, .down]))
+            Color.clear.pointerStyle(.frameResize(position: .bottomTrailing))
+            Color.clear.pointerStyle(.frameResize(position: .top, directions: .outward))
+            Text("Pan").pointerStyle(.grabIdle)
+            Text("Panning").pointerStyle(.grabActive)
+            Text("Text").pointerStyle(.horizontalText)
+            Text("Vertical").pointerStyle(.verticalText)
+            Link("Docs", destination: URL(string: "https://example.com")!).pointerStyle(.link)
+            Text("Zoom").pointerStyle(.zoomIn).pointerStyle(.zoomOut).pointerStyle(.default)
+        }
+    }
+}

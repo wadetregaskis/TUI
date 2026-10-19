@@ -250,7 +250,6 @@
         "View.windowResizeBehavior(_:)",
         "View.windowToolbarFullScreenVisibility(_:)",
         "MenuBarExtra*",
-        "FrameResize*",
         "*.presentedWindow*",
         "*.handlesExternalEvents*",
         "*.allowsWindowActivationEvents*",
@@ -287,14 +286,6 @@
         "DefaultDocumentGroupLaunchActions*"
       ],
       "why": "The document architecture and the system file panels: DocumentGroup, FileDocument, the importer/exporter/mover sheets and the Services menu. Each presents an AppKit panel backed by file coordination and UTType, and TUIkit has no window to present one in. An app that needs a file picker draws it from `List` and the file system."
-    },
-    {
-      "match": [
-        "PointerStyle*",
-        "View.pointerStyle*",
-        "View.pointerVisibility*"
-      ],
-      "why": "The mouse pointer's SHAPE. Some terminals let an app set it by name with OSC 22 (Ghostty from 1.0.0, kitty and foot with CSS names; iTerm2 from 3.5.0 and xterm with X11 names), others do not, and none reports which names it takes. Refused until the lane the owner decided on 2026-10-12 lands (refusal review O12, option (b): honoured on measured hosts with a run-time check, inert elsewhere; design in Ghostty VT reference adoption study.md §C4). `pointerVisibility` stays refused unless a probe shows the name `none` hides the pointer."
     },
     {
       "match": [
@@ -707,6 +698,9 @@
     "OutlineSubgroupChildren": {
       "why": "The content type of the DisclosureGroup that is SwiftUI's OutlineGroup `Subgroup` parameter, written only inside OutlineGroup's full five-parameter type. TUIkit's OutlineGroup declares the three generic parameters that carry information and drops the two that never vary (`Parent` is always `Leaf`, `Subgroup` always that one DisclosureGroup) — Sources/TUIkitLists/Views/OutlineGroup.swift — so there is no subgroup for this marker to be the content of. Every initializer, for views and for table rows, is SwiftUI's; only spelling the type out by hand differs. Decisions C10."
     },
+    "PointerStyle.image(_:hotSpot:)": {
+      "why": "A pointer drawn from a picture, with its hot spot. A terminal takes its pointer's shape by NAME (OSC 22) from the window system's own cursors, and no terminal takes an image for one. The named styles ship where the terminal documents OSC 22 (decisions O12, C-O12-1); this one would have to draw nothing, so it fails to compile."
+    },
     "PreferredColorSchemeKey": {
       "why": "The preference key behind `View.preferredColorScheme(_:)`, kept out with it (see that entry)."
     },
@@ -793,6 +787,9 @@
     },
     "View.minimumScaleFactor(_:)": {
       "why": "It permits shrinking the FONT to fit, down to a fraction of the nominal size. A TUIkit app does not own the font: cell size belongs to the emulator, is chosen by the user, and is identical for every glyph on screen. Nothing in the framework can scale one view's text without scaling the whole terminal."
+    },
+    "View.pointerVisibility(_:)": {
+      "why": "Hiding the pointer over a view. No terminal documents a name that hides it: CSS's `none` is not among the names Ghostty, kitty or foot read, and iTerm2 and xterm take none. Refused unless `pointer_shape_card.py` finds a name that hides the pointer on a host (decisions O12, C-O12-2); `pointerStyle(_:)` ships."
     },
     "View.preferredColorScheme(_:)": {
       "why": "Kept out on purpose (owner, 2026-10-04: omit for now; decisions A17, removed when this entry landed). A terminal's look is a palette, and the write half of `\\.colorScheme` is `.palette(_:)` (SwiftUI compatibility guide.md §2.5). Choosing a light or dark variant would need palettes in pairs, which TUIkit's are not; it becomes possible if light palettes are wanted for their own sake."

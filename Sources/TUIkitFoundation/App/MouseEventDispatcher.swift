@@ -166,6 +166,21 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// handler table.
     var hoverObserverIDs: Set<HitTestRegion.HandlerID> = []
 
+    /// The regions `.pointerStyle(_:)` filed this frame, by id, with the shape
+    /// each asks for: no handler, never offered an event, cleared with the
+    /// handler table. See ``registerPointerStyle(_:in:)``.
+    var pointerStyleRegions: [HitTestRegion.HandlerID: PointerShape] = [:]
+
+    /// The shapes controls filed for their own regions this frame — the
+    /// I-beam over a text field — cleared with the handler table. See
+    /// ``fileControlPointerShape(_:for:in:)``.
+    var controlPointerShapes: [HitTestRegion.HandlerID: PointerShape] = [:]
+
+    /// The shape under the pointer as last resolved, and whether the pointer
+    /// or the regions have moved since (``pointerShapeUnderPointer()``).
+    var resolvedPointerShape: PointerShape?
+    var pointerShapeIsStale = false
+
     /// The handlers registered as taking no plain left press this frame
     /// (``registerPassive(in:_:)``), cleared with the handler table.
     private var passiveIDs: Set<HitTestRegion.HandlerID> = []
@@ -209,7 +224,12 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// none, a Ctrl-Z, or a drag reported as `.dragged` left the last `.moved`
     /// behind, and a later reshape entered the view it slid under that cell
     /// — a help shown for a view the pointer was not on.
-    var restingPosition: (x: Int, y: Int)?
+    ///
+    /// The cell the pointer's shape is resolved at, too, so a change marks
+    /// that answer stale (``pointerShapeUnderPointer()``).
+    var restingPosition: (x: Int, y: Int)? {
+        didSet { pointerShapeIsStale = true }
+    }
 
     /// Where the pointer rests, in the screen's coordinates, while that is
     /// known: see ``restingPosition``. `nil` before it has reported any.
@@ -394,6 +414,8 @@ extension MouseEventDispatcher {
         renderedSincePopupOpened = true
         handlers.removeAll(keepingCapacity: true)
         hoverObserverIDs.removeAll(keepingCapacity: true)
+        pointerStyleRegions.removeAll(keepingCapacity: true)
+        controlPointerShapes.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)
         applicationHandlerIDs.removeAll(keepingCapacity: true)
         wheelHandlerIDs.removeAll(keepingCapacity: true)
@@ -562,6 +584,7 @@ extension MouseEventDispatcher {
     @discardableResult
     package func setRegions(_ regions: [HitTestRegion]) -> Bool {
         self.regions = regions
+        pointerShapeIsStale = true
         reconcileHoverAfterReshape()
         return redeliverHeldDrag()
     }
@@ -677,6 +700,12 @@ extension MouseEventDispatcher {
     /// ``registerWheelHandler(in:_:)``.
     func noteWheelHandler(_ id: HitTestRegion.HandlerID) {
         wheelHandlerIDs.insert(id)
+    }
+
+    /// Whether `id`'s handler hears the wheel and nothing else — see
+    /// ``registerWheelHandler(in:_:)``.
+    func isWheelHandler(_ id: HitTestRegion.HandlerID) -> Bool {
+        wheelHandlerIDs.contains(id)
     }
 
     /// How many handlers this walk has registered so far.
@@ -1176,11 +1205,15 @@ extension MouseEventDispatcher {
     /// A wheel handler's region (``registerWheelHandler(in:_:)``) is left out
     /// unless `includingWheelOnly`, which only a wheel event's dispatch asks
     /// for: hover, clicks and drop targeting never see it.
+    ///
+    /// A pointer style's region (``registerPointerStyle(_:in:)``) is never
+    /// one: it hears nothing, and is read only for the pointer's shape.
     func matchingRegions(at x: Int, y: Int, includingWheelOnly: Bool = false) -> [HitTestRegion] {
         // A geometry marker has no area, so `contains` already refuses it; the
         // explicit test says so, and keeps a marker inert if one ever grows a
         // size (`HitTestRegion.geometryMarker(_:)`).
-        let matching = regions.reversed().filter { !$0.isGeometryMarker && $0.contains(x: x, y: y) }
+        var matching = regions.reversed().filter { !$0.isGeometryMarker && $0.contains(x: x, y: y) }
+        if !pointerStyleRegions.isEmpty { matching.removeAll { pointerStyleRegions[$0.handlerID] != nil } }
         guard !includingWheelOnly, !wheelHandlerIDs.isEmpty else { return matching }
         return matching.filter { !wheelHandlerIDs.contains($0.handlerID) }
     }
