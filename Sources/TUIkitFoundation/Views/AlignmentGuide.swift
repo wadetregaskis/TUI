@@ -300,6 +300,11 @@ package func explicitGuide<V: View>(
     if let provider = view as? AlignmentGuideProviding {
         return provider.explicitAlignmentGuide(for: query.key, in: dimensions)
     }
+    // A wrapper that draws its content unchanged at its own identity is its
+    // content's size, in its own context: the content's guide is its own.
+    if let wrapper = view as? any DrawsContentUnchanged {
+        return explicitGuide(throughUnchanged: wrapper, query, in: dimensions, context: context)
+    }
     guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
     // The body as the measure walk evaluates it: `@Environment` resolved and
     // `@State` bound at this view's identity, so it is the body that is drawn.
@@ -310,6 +315,16 @@ package func explicitGuide<V: View>(
     return explicitGuide(
         of: preparedBody(of: view, plan: plan, context: context, isMeasuring: true), query, in: dimensions,
         context: childContext)
+}
+
+/// ``explicitGuide(of:_:in:context:)`` of `wrapper`'s content, the existential
+/// opened to reach it.
+@MainActor
+private func explicitGuide<Wrapper: DrawsContentUnchanged>(
+    throughUnchanged wrapper: Wrapper, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions,
+    context: RenderContext
+) -> Double? {
+    explicitGuide(of: wrapper.wrappedContent, query, in: dimensions, context: context)
 }
 
 // MARK: - Reading a Child's Guide

@@ -145,8 +145,14 @@ package func departingSlot<Content: View>(
 ///
 /// Refines ``SingleContentWrapper`` for its ``SingleContentWrapper/WrappedContent``,
 /// the type the look-through steps to.
+///
+/// Public, as ``SingleContentWrapper`` is, for the one public witness it
+/// supplies: a wrapper that draws its content unchanged is its content's size,
+/// so an alignment guide its content states is the wrapper's at the same
+/// dimensions, and its ``View/_providesAlignmentGuide`` forwards its content's
+/// (see that extension in ChildInfo.swift).
 @MainActor
-package protocol DrawsContentUnchanged: SingleContentWrapper {}
+public protocol DrawsContentUnchanged: SingleContentWrapper {}
 
 /// The type of view whose parting picture a slot that held a view of `type`
 /// may draw: `type` itself, or the view inside it, through every wrapper that

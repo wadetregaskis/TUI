@@ -353,8 +353,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   it, each translating it by where it put its content (measured, including
   `.padding(0)`: [§1](<SwiftUI compatibility guide.md#1-match>), the Layout row).
 - **TUIkit:** `.padding` passes a guide on, translated by its inset
-  (`PaddingModifier`'s `_translatesAlignmentGuides`), but `.border()`, a
-  `.frame` or an `.offset` written after it stops it; so does a view of the
+  (`PaddingModifier`'s `_translatesAlignmentGuides`), and a wrapper that draws
+  its content unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an environment
+  write — passes it on as it is, being its content's size (since 2026-10-18,
+  `DrawsContentUnchanged`); but `.border()`, a `.frame` or an `.offset`
+  written after it stops it; so does a view of the
   app's own whose `body` is one view (L3's lazy stacks honour a guide that
   reaches them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off
   the outermost view the same way.

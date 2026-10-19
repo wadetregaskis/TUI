@@ -171,16 +171,20 @@ were not, so `.selectionDisabled()` on one named no row; by the same stamp it no
 A section's preference rides `SectionInfo`. The guides are read from the
 row's view and carried up through stacks, as any explicit guide is.
 
-Not covered, each by construction rather than by choice: a `Section` a
-`ForEach` makes (`ForEach(regions) { Section … }`) draws without its section
-separator (that path reads `SectionParts`, which carries none); a guide
-inside a wrapper that is neither a stack nor a separator modifier (the two
-separator modifiers forward their content's guides, so Apple's documented
-row — the guide inside an `HStack`, `.listRowSeparator` on the stack — draws
-from the guide; `.onTapGesture`, `.tint` and the other modifiers that draw
-their content unchanged do not forward guides yet, a framework-wide gap
-older than this lane) is not seen; a row of several views (decisions B15)
-reads no guides. Each is an hour or two where it matters.
+Not covered at first, each by construction rather than by choice, and each
+covered since: a `Section` a `ForEach` makes (`ForEach(regions) { Section … }`)
+draws its section separators as a hand-written one does (found so by
+`ListSeparatorGapsTests` on 2026-10-18, the path having been routed through
+the sections' own extraction since); a guide inside a wrapper that draws its
+content unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an environment
+write, any `DrawsContentUnchanged` wrapper — is seen through it, as one
+inside a stack or a separator modifier always was (2026-10-18, lane LISTS:
+such a wrapper is its content's size, so the guide needs no translating; it
+reaches a stack's alignment the same way); and a row of several views
+(decisions B15) reads the guide each of its views states (2026-10-18). A
+guide behind a wrapper that moves or resizes its content — a `.frame`, an
+`.offset`, a `.border` — still stops there, rather than report the wrong
+position (decisions B19).
 
 The rule line is the row's own bottom line, as a separator is the row's
 `.bottom` edge in SwiftUI's API: a selected or cursor row's highlight runs

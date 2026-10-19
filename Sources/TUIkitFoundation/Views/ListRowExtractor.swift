@@ -590,6 +590,11 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 // Cleared after, as the eager paths clear it, so what draws
                 // next outside a row reports against none.
                 context.environment.listRowEditRestrictions?.currentRowIndex = nil
+                // The separator guides this view states, as the child walks
+                // report a row's — a row of several views read none before
+                // (decisions B-D6L-3).
+                TUIkitFoundation.reportSeparatorGuides(
+                    of: member, size: (buffer.width, buffer.height), row: listRowIndex, context: rowContext)
                 return (buffer, extractRowBadge(from: member.wrappedView))
             })
         box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) ?? {

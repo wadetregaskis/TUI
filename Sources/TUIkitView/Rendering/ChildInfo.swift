@@ -272,10 +272,23 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 ///   that know where they put their content — the stacks, and padding through
 ///   `BufferModifier._translatesAlignmentGuides` — forward the witness and
 ///   answer a context-carrying guide query that moves the content's guide by
-///   that offset. Every other wrapper leaves the witness `false`, so a guide
-///   stops there rather than report the wrong position. Forwarding it through
-///   the wrappers that demonstrably do NOT change size would be sound too; it
-///   needs a witness for size-neutrality that does not exist yet.
+///   that offset. A wrapper that draws its content unchanged at its own
+///   identity (``DrawsContentUnchanged``) forwards it too, as it demonstrably
+///   does not change size: its own extension below. Every other wrapper leaves
+///   the witness `false`, so a guide stops there rather than report the wrong
+///   position.
+extension View where Self: DrawsContentUnchanged {
+    /// The content's answer: a wrapper that draws its content unchanged at its
+    /// own identity — `.onTapGesture`, `.tint`, `.onAppear`, an environment
+    /// write — is its content's size, so a guide its content states is the
+    /// wrapper's at the same dimensions, with nothing to translate. Without
+    /// it a list row's separator guide written inside `.onTapGesture` was not
+    /// found (decisions B-D6L-3), nor a stack's alignment guide inside one.
+    /// The guide query steps through such a wrapper to its content
+    /// (`explicitGuide(of:_:in:context:)` in TUIkitFoundation).
+    public static var _providesAlignmentGuide: Bool { WrappedContent._providesAlignmentGuide }
+}
+
 extension View where Self: SingleContentWrapper {
     /// The content's answer: a z-index bound inside this wrapper is still a
     /// z-index, so the gate that decides whether to look for one has to say so.
