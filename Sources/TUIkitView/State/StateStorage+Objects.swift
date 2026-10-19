@@ -114,13 +114,12 @@ extension StateStorage {
         _ own: StateBox<Value>, at key: StateKey, adopting: Bool, from predecessor: ObjectHub?
     ) -> StateBox<Value> {
         if adopting, let kept = values[key] as? StateBox<Value> {
-            kept.identity = key.identity
             if let predecessor, predecessor.object != nil {
                 predecessor.keep(StateBox(kept.value), handedOverWith: kept)
             }
             return kept
         }
-        own.identity = key.identity
+        own.place(at: key.identity)
         if let replaced = values.updateValue(own, forKey: key), replaced !== own {
             (replaced as? any DroppableBox)?.markDropped()
         }

@@ -344,13 +344,14 @@ extension StateStorage {
         for key: StateKey, default defaultValue: @autoclosure () -> Value
     ) -> StateBox<Value> {
         if let existing = values[key] as? StateBox<Value> {
-            existing.identity = key.identity
-            existing.invalidationSink = renderCacheLink
+            // Its identity is the key's it was placed at, which this key
+            // equals; its sink is written only if the storage's link moved.
+            existing.setInvalidationSink(renderCacheLink)
             return existing
         }
         let fresh = StateBox(defaultValue())
-        fresh.identity = key.identity
-        fresh.invalidationSink = renderCacheLink
+        fresh.place(at: key.identity)
+        fresh.setInvalidationSink(renderCacheLink)
         // A box of another type under the key — the property's type changed
         // at its place — is dropped.
         (values.updateValue(fresh, forKey: key) as? any DroppableBox)?.markDropped()
@@ -783,9 +784,13 @@ private let renderPassSerials = Lock(initialState: UInt32(0))
 public final class StateBox<Value>: @unchecked Sendable {
     /// The identity of the view that owns this state property.
     ///
-    /// Set during hydration from ``StateStorage``. Passed to the sink so it can
-    /// invalidate only the affected subtree.
-    var identity: ViewIdentity?
+    /// Set when ``StateStorage`` first keeps the box at a place, and when an
+    /// object's own box is placed at one; not again while the storage keeps
+    /// it there, since the key it is found by is equal to it. Passed to the
+    /// sink so it can invalidate only the affected subtree. Written on the
+    /// main actor under the box's stamp lock (``withStamp(_:)``), read under
+    /// it by a write on any thread.
+    private(set) var identity: ViewIdentity?
 
     /// The sink that turns a value change into a (deferred, thread-safe) cache
     /// invalidation plus a re-render request — the box's owning context's
@@ -799,15 +804,24 @@ public final class StateBox<Value>: @unchecked Sendable {
     /// object holds, the object's ``ObjectHub``, which hands the invalidation
     /// to that context's link for every view drawn holding the object.
     ///
-    /// Strong: the link holds nothing that holds the box, and it is stamped
-    /// at every hydration, where a weak store — which this was — made the
-    /// cache's reference count a side table's from the first frame on.
-    var invalidationSink: (any RenderInvalidationSink)?
+    /// Strong: the link holds nothing that holds the box, where a weak store
+    /// — which this was — made the cache's reference count a side table's
+    /// from the first frame on.
+    ///
+    /// Written on the main actor, where the walks run, only when it changes
+    /// (``setInvalidationSink(_:)``) — for a view's `@State`, once — and
+    /// under the box's stamp lock, which a write of ``value`` on any thread
+    /// reads it under. It used to be stored at every hydration while a
+    /// `@State` written from a background task read it on that task's
+    /// thread: a data race on a two-word existential and on the reference
+    /// counts of what it held, and the same on ``identity``.
+    private(set) var invalidationSink: (any RenderInvalidationSink)?
 
     /// The current value.
     public var value: Value {
         didSet {
-            invalidationSink?.invalidateRender(for: identity)
+            let (sink, identity) = withStamp { ($0.invalidationSink, $0.identity) }
+            sink?.invalidateRender(for: identity)
         }
     }
 
@@ -823,6 +837,45 @@ public final class StateBox<Value>: @unchecked Sendable {
         self.value = value
     }
 }
+
+// MARK: - The Box's Stamp
+
+extension StateBox {
+    /// Points the box's writes at `sink`, unless they point there already.
+    /// Main actor only — the one writer — so the comparison reads without
+    /// the lock; the store takes it.
+    func setInvalidationSink(_ sink: (any RenderInvalidationSink)?) {
+        guard invalidationSink !== sink else { return }
+        withStamp { $0.invalidationSink = sink }
+    }
+
+    /// Notes that the box is kept at `identity`'s place. Main actor only.
+    func place(at identity: ViewIdentity) {
+        withStamp { $0.identity = identity }
+    }
+
+    /// Runs `body` on the box under its stamp lock: one of
+    /// ``stateBoxStampLocks``, picked by the box's address — above the bits
+    /// every allocation's alignment leaves zero.
+    private func withStamp<R: Sendable>(_ body: @Sendable (StateBox) -> R) -> R {
+        let address = UInt(bitPattern: Unmanaged.passUnretained(self).toOpaque())
+        let lock = stateBoxStampLocks[Int(truncatingIfNeeded: (address >> 5) & 15)]
+        return lock.withLock { _ in body(self) }
+    }
+}
+
+/// The locks a ``StateBox``'s identity and sink are written and read under:
+/// sixteen, each shared by every box whose address picks it.
+///
+/// Not one a box. A box is made with every `@State` a view value is built
+/// with, in every body, before the walk binds it to the one its place keeps:
+/// a lock a box would be an allocation in the hottest constructor there is,
+/// and stored at every hydration besides. Sixteen locks shared by address
+/// cost nothing until a box is written, and a write already takes its link's
+/// lock; two boxes writing at once on two threads share one only by chance.
+/// A fixed pool of locks, which nothing outside this file reaches — not
+/// state any app shares.
+private let stateBoxStampLocks: [Lock<Void>] = (0..<16).map { _ in Lock(initialState: ()) }
 
 /// A box ``StateStorage`` keeps, told when the storage drops it.
 protocol DroppableBox: AnyObject {

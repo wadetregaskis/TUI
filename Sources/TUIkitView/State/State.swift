@@ -749,7 +749,7 @@ final class StateBacking<Value> {
     init(ownDefault defaultValue: Value, sink: (any RenderInvalidationSink)?, createdIn pass: UInt32) {
         self.defaultValue = defaultValue
         self.box = StateBox(defaultValue)
-        self.box.invalidationSink = sink
+        self.box.setInvalidationSink(sink)
         self.bound = .own
         self.createdIn = pass
     }
@@ -770,7 +770,7 @@ final class StateBacking<Value> {
     /// Makes the box the backing has its object's own, redrawing what `sink`
     /// redraws when one is given.
     func own(sink: (any RenderInvalidationSink)?) {
-        if let sink { box.invalidationSink = sink }
+        if let sink { box.setInvalidationSink(sink) }
         bound = .own
     }
 
@@ -780,7 +780,7 @@ final class StateBacking<Value> {
     /// bound to (``ObjectHub/takeState(handedOverWith:)``), kept by that hub
     /// with no sink until now.
     func take(_ box: StateBox<Value>, sink: ObjectHub) {
-        box.invalidationSink = sink
+        box.setInvalidationSink(sink)
         self.box = box
         bound = .own
     }
@@ -790,7 +790,7 @@ final class StateBacking<Value> {
     /// it was made in.
     func convert(sink: (any RenderInvalidationSink)?) {
         let own = StateBox(box.value)
-        own.invalidationSink = sink
+        own.setInvalidationSink(sink)
         box = own
         bound = .own
     }
@@ -947,7 +947,7 @@ extension State: StateBindable {
             }
             // Never drawn, drawn in another context, or held by a dead
             // object's hub: this hub's from now on.
-            if !isMeasuring, let hub = object.hub { backing.box.invalidationSink = hub }
+            if !isMeasuring, let hub = object.hub { backing.box.setInvalidationSink(hub) }
             return ObjectStateBinding(kind: .longLived)
         case .unbound:
             guard madeThisPass else {
@@ -994,7 +994,7 @@ extension State: StateBindable {
         // After the storage has stamped the box: its sink is the object's
         // hub, so a write redraws every view drawn holding the object, not
         // only the place's.
-        box.invalidationSink = object.hub
+        box.setInvalidationSink(object.hub)
     }
 }
 
