@@ -293,6 +293,8 @@ struct MousePage: View {
 
             PointerTrackingDemo()
 
+            PointerStylesDemo()
+
             DemoSection("page.mouse.rawEvents") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.mouse.rawEventsInstruction")
