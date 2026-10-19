@@ -216,11 +216,11 @@ package final class WindowChromeState: @unchecked Sendable {
 
     /// The visibility each bar was last declared with this walk
     /// (`.toolbarVisibility(_:for:)`); absent is ``Visibility/automatic``.
-    private var declaredVisibility: [Edge: Visibility] = [:]
+    private var declaredVisibility: [BarKey: Visibility] = [:]
 
     /// The fill each bar was last declared with this walk
     /// (`.toolbarBackground(_:for:)`); absent is the palette's.
-    private var declaredBackground: [Edge: AnyShapeStyle] = [:]
+    private var declaredBackground: [BarKey: AnyShapeStyle] = [:]
 
     /// Whether the last `.toolbarRole(_:)` this walk drew keeps the title
     /// beside the top bar's principal items (`.editor`); `nil` with none.
@@ -229,7 +229,7 @@ package final class WindowChromeState: @unchecked Sendable {
     /// Whether each bar was last declared to show its fill this walk
     /// (`.toolbarBackgroundVisibility(_:for:)`); absent is
     /// ``Visibility/automatic``.
-    private var declaredBackgroundVisibility: [Edge: Visibility] = [:]
+    private var declaredBackgroundVisibility: [BarKey: Visibility] = [:]
 
     /// The identities of ``toolbarEntries``, so an item a walk renders twice —
     /// the first frame's measuring walk measures some views by rendering them —
@@ -656,19 +656,29 @@ package final class WindowChromeState: @unchecked Sendable {
         dismissBehavior = behavior
     }
 
+    /// A bar a bar modifier can name: one of the two toolbars, or one of the
+    /// accessory bars under the top one.
+    package enum BarKey: Hashable {
+        case edge(Edge)
+        case accessory(AccessoryBarID)
+    }
     /// Records a bar visibility the walk declared. The last declaration of a
     /// bar wins — the one closest to the content it wraps, since a modifier
     /// declares before its content renders — and ``Visibility/automatic``
     /// states no preference.
-    package func declare(_ visibility: Visibility, for edge: Edge) {
+    package func declare(_ visibility: Visibility, for bar: BarKey) {
         guard visibility != .automatic else { return }
-        declaredVisibility[edge] = visibility
+        declaredVisibility[bar] = visibility
     }
 
     /// Whether this walk hid the bar at `edge` — or, for the top bar, the
     /// person did, from the menu bar (``topBarHiddenByCommand``).
+    ///
+    /// For the top bar, its own row: its accessory bars are hidden each by
+    /// its own placement, and by the person's choice with the rest of the top
+    /// bar (``toolbarEntries(for:)``).
     package func isHidden(_ edge: Edge) -> Bool {
-        declaredVisibility[edge] == .hidden || (edge == .top && _topBarHiddenByCommand)
+        declaredVisibility[.edge(edge)] == .hidden || (edge == .top && _topBarHiddenByCommand)
     }
 
     /// What a bar is filled with: the palette's surface for it, a style the
@@ -685,23 +695,29 @@ package final class WindowChromeState: @unchecked Sendable {
 
     /// Records a bar fill the walk declared. As for visibility, the last
     /// declaration of a bar wins.
-    package func declareBackground(_ style: AnyShapeStyle, for edge: Edge) {
-        declaredBackground[edge] = style
+    package func declareBackground(_ style: AnyShapeStyle, for bar: BarKey) {
+        declaredBackground[bar] = style
     }
 
     /// Records whether the walk declared a bar's fill shown or not.
     /// ``Visibility/automatic`` states no preference.
-    package func declareBackgroundVisibility(_ visibility: Visibility, for edge: Edge) {
+    package func declareBackgroundVisibility(_ visibility: Visibility, for bar: BarKey) {
         guard visibility != .automatic else { return }
-        declaredBackgroundVisibility[edge] = visibility
+        declaredBackgroundVisibility[bar] = visibility
     }
 
-    /// What the bar at `edge` is filled with this walk: nothing while its
-    /// fill is declared hidden, else the style declared for it, else the
-    /// palette's.
-    package func fill(_ edge: Edge) -> Fill {
-        if declaredBackgroundVisibility[edge] == .hidden { return .hidden }
-        return declaredBackground[edge].map(Fill.style) ?? .palette
+    /// What `bar` is filled with this walk: nothing while its fill is
+    /// declared hidden, else the style declared for it, else the palette's —
+    /// for an accessory bar, the top bar's own fill, whatever that is.
+    package func fill(_ bar: BarKey) -> Fill {
+        if declaredBackgroundVisibility[bar] == .hidden { return .hidden }
+        return declaredBackground[bar].map(Fill.style) ?? .palette
+    }
+
+    /// Whether this walk stated anything about `bar`'s fill: an accessory bar
+    /// that states nothing is drawn on the top bar's.
+    package func statesFill(_ bar: BarKey) -> Bool {
+        declaredBackgroundVisibility[bar] == .hidden || declaredBackground[bar] != nil
     }
 
     /// Records the role a `.toolbarRole(_:)` the walk drew gives the top bar:
@@ -734,11 +750,19 @@ package final class WindowChromeState: @unchecked Sendable {
         toolbarEntries.append(entry)
     }
 
-    /// The items this walk declared for the toolbar at `edge`: none while a
-    /// `.toolbarVisibility(.hidden, for:)` hides it.
+    /// The items this walk declared for the toolbar at `edge`, less those a
+    /// `.toolbarVisibility(.hidden, for:)` hides: the bar's own, and an
+    /// accessory bar's each by its own placement. The person's View ▸ Hide
+    /// Toolbar hides the top bar's accessory bars with it.
     package func toolbarEntries(for edge: Edge) -> [ToolbarEntry] {
-        guard !isHidden(edge) else { return [] }
-        return declaredEntries(for: edge)
+        if edge == .top, _topBarHiddenByCommand { return [] }
+        let ownHidden = isHidden(edge)
+        return declaredEntries(for: edge).filter { entry in
+            if let accessory = entry.placement.accessoryBar {
+                return declaredVisibility[.accessory(accessory)] != .hidden
+            }
+            return !ownHidden
+        }
     }
 
     /// The items this walk declared for the toolbar at `edge`, whether or not

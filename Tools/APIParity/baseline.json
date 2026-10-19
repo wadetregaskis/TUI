@@ -75,8 +75,6 @@
   "ToolbarCustomizationOptions.alwaysAvailable",
   "ToolbarCustomizationOptions.init(rawValue:)",
   "ToolbarCustomizationOptions.rawValue",
-  "ToolbarItemPlacement.accessoryBar(id:)",
-  "ToolbarPlacement.accessoryBar(id:)",
   "Transition.blurReplace",
   "Transition.blurReplace(_:)",
   "View.attributedTextFormattingDefinition(_:)",

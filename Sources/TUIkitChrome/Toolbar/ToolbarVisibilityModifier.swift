@@ -43,8 +43,10 @@ extension View {
     /// - Parameters:
     ///   - visibility: The preferred visibility of the bar.
     ///   - bars: The bars to update: ``ToolbarPlacement/windowToolbar`` (or
-    ///     ``ToolbarPlacement/automatic``, or none at all) for the top bar,
-    ///     ``ToolbarPlacement/bottomBar`` for the bottom one.
+    ///     ``ToolbarPlacement/automatic``, or none at all) for the top bar's own
+    ///     row, ``ToolbarPlacement/bottomBar`` for the bottom bar, and
+    ///     ``ToolbarPlacement/accessoryBar(id:)`` for one of the top bar's
+    ///     accessory bars, which hiding the top bar's own row leaves.
     /// - Returns: A view whose bars' preferred visibility is `visibility`.
     public func toolbarVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .visibility(visibility), bars: bars)
@@ -75,7 +77,9 @@ extension View {
     ///   - style: The style to display as the background of the bar.
     ///   - bars: The bars to use the style for: ``ToolbarPlacement/windowToolbar``
     ///     (or ``ToolbarPlacement/automatic``, or none at all) for the top bar,
-    ///     ``ToolbarPlacement/bottomBar`` for the bottom one.
+    ///     ``ToolbarPlacement/bottomBar`` for the bottom one, and
+    ///     ``ToolbarPlacement/accessoryBar(id:)`` for an accessory bar's row,
+    ///     which is otherwise drawn on the top bar's fill.
     /// - Returns: A view whose bars' preferred background is `style`.
     public func toolbarBackground<S: ShapeStyle>(_ style: S, for bars: ToolbarPlacement...) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .background(AnyShapeStyle(style)), bars: bars)
@@ -118,12 +122,12 @@ enum _ToolbarBarStatement {
     /// `.toolbarRole(_:)`: where the top bar puts the title.
     case role(ToolbarRole)
 
-    /// Records the statement for the bar at `edge`.
-    func declare(into chrome: WindowChromeState, for edge: WindowChromeState.Edge) {
+    /// Records the statement for `bar`.
+    func declare(into chrome: WindowChromeState, for bar: WindowChromeState.BarKey) {
         switch self {
-        case .visibility(let visibility): chrome.declare(visibility, for: edge)
-        case .background(let style): chrome.declareBackground(style, for: edge)
-        case .backgroundVisibility(let visibility): chrome.declareBackgroundVisibility(visibility, for: edge)
+        case .visibility(let visibility): chrome.declare(visibility, for: bar)
+        case .background(let style): chrome.declareBackground(style, for: bar)
+        case .backgroundVisibility(let visibility): chrome.declareBackgroundVisibility(visibility, for: bar)
         case .role(let role): chrome.declareTitleBesidePrincipal(role.keepsTitleBesidePrincipal)
         }
     }
@@ -153,7 +157,7 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
             // buffer would leave the window without the statement.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             for bar in bars.isEmpty ? [.automatic] : bars {
-                statement.declare(into: chrome, for: bar.edge == .bottom ? .bottom : .top)
+                statement.declare(into: chrome, for: bar.bar)
             }
         }
         return TUIkitView.renderToBuffer(content, context: context)

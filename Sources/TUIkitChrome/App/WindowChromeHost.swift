@@ -140,21 +140,29 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // frame's (`.toolbarBackground(_:for:)`).
         let topGround = chrome.map { barGround(.top, chrome: $0, context: context) }
         let bottomGround = chrome.map { barGround(.bottom, chrome: $0, context: context) }
+        // Each bar's rows as this walk declared them: drawn now, in the rows
+        // last frame reserved, and settled below as the next frame's.
+        let topRows = chrome.map { barRows(.top, chrome: $0, width: width, context: context) } ?? []
+        let bottomRows = chrome.map { barRows(.bottom, chrome: $0, width: width, context: context) } ?? []
+        var drawn = Set<ViewIdentity>()
         var top = chrome.flatMap { chrome in
             topGround.flatMap {
                 toolbarBuffer(
-                    .top, chrome: chrome, contentRows: chrome.rows(.top), itemRows: itemRows.top, width: width,
-                    ground: $0, isModal: isModal, context: context)
+                    BarDrawing(
+                        edge: .top, rows: topRows, contentRows: chrome.rows(.top), itemRows: itemRows.top, ground: $0),
+                    chrome: chrome, width: width, isModal: isModal, drawn: &drawn, context: context)
             }
         }
         var bottom = chrome.flatMap { chrome in
             bottomGround.flatMap {
                 toolbarBuffer(
-                    .bottom, chrome: chrome, contentRows: chrome.rows(.bottom), itemRows: itemRows.bottom,
-                    tooltip: tooltip, width: width, ground: $0, isModal: isModal, context: context)
+                    BarDrawing(
+                        edge: .bottom, rows: bottomRows, contentRows: chrome.rows(.bottom), itemRows: itemRows.bottom,
+                        tooltip: tooltip, ground: $0),
+                    chrome: chrome, width: width, isModal: isModal, drawn: &drawn, context: context)
             }
         }
-        if let chrome { retainUndrawnItems(chrome, itemRows: itemRows, context: context) }
+        if let chrome { retainUndrawnItems(chrome, drawn: drawn, context: context) }
         // The menu bar, after both toolbars: the last thing drawn, so the
         // commands it renders read this walk's focused values.
         let menu = rows.menu > 0 ? chrome?.menuBar.map {
@@ -195,7 +203,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // What the content declared this walk becomes the next frame's rows.
         let now = context.environment.frameNowNanos
         for edge in WindowChromeState.Edge.allCases {
-            let wanted = toolbarContentRows(edge, chrome: chrome, width: width, context: context)
+            let wanted = Self.contentRows(of: edge == .top ? topRows : bottomRows)
             settle(chrome.settle(edge, wanting: wanted, nowNanos: now), context: context)
         }
         return frame

@@ -18,7 +18,9 @@ extension WindowChromeState {
     @MainActor
     func barEntries(for edge: Edge, focus focusManager: FocusManager?) -> [ToolbarEntry] {
         let entries = toolbarEntries(for: edge).filter { $0.isShown(focus: focusManager) }
-        guard edge == .top, !entries.isEmpty else { return entries }
+        // Only in the top bar's own row, and only where the page placed
+        // something there: an accessory bar's items are in rows of their own.
+        guard edge == .top, entries.contains(where: { $0.placement.accessoryBar == nil }) else { return entries }
         return [automaticSidebarToggle, automaticToggle(.content, kind: .contentColumnToggle)].compactMap { $0 }
             + entries
     }

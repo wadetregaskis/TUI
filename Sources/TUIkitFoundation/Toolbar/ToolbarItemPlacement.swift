@@ -22,6 +22,7 @@
 /// | ``confirmationAction``, ``cancellationAction``, ``destructiveAction`` | top bar, trailing (macOS's reading outside a sheet) |
 /// | ``bottomBar``, ``status`` | bottom bar |
 /// | ``keyboard`` | bottom bar, leading — while a text input inside the view that declared it has the focus |
+/// | ``accessoryBar(id:)`` | an accessory bar: a row of the top bar under its items, one for each identifier |
 ///
 /// ``status`` takes iOS's reading, the bottom bar, where macOS centres it in
 /// the window toolbar: the bottom bar is where a terminal app's status lives.
@@ -52,6 +53,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
         case topBarLeading
         case topBarTrailing
         case keyboard
+        case accessoryBar(AccessoryBarID)
     }
 
     /// This placement's role.
@@ -120,12 +122,39 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// goes for them does so a frame later.
     public static let keyboard = Self(role: .keyboard)
 
+    /// Creates a unique accessory bar placement — mirrors SwiftUI's
+    /// `ToolbarItemPlacement.accessoryBar(id:)`.
+    ///
+    /// Each identifier is an accessory bar of its own: a row of the window's
+    /// top bar under its items, in the order the page first places something
+    /// in each. Its items are laid out along it as the top bar's are, from the
+    /// trailing end. `ToolbarPlacement.accessoryBar(id:)` with the same
+    /// identifier names the bar to `.toolbarVisibility(_:for:)` and
+    /// `.toolbarBackground(_:for:)`.
+    ///
+    /// ```swift
+    /// extension ToolbarItemPlacement {
+    ///     static let favoritesBar = accessoryBar(id: "com.example.favorites")
+    /// }
+    /// ```
+    ///
+    /// - Parameter id: A unique identifier for this placement.
+    public static func accessoryBar<ID: Hashable>(id: ID) -> Self {
+        Self(role: .accessoryBar(AccessoryBarID(id)))
+    }
+
     /// The window bar an item of this placement joins.
     var bar: WindowChromeState.Edge {
         switch role {
         case .status, .bottomBar, .keyboard: .bottom
         default: .top
         }
+    }
+
+    /// The accessory bar an item of this placement is in, or `nil` for one in
+    /// the top bar's own row or the bottom bar.
+    package var accessoryBar: AccessoryBarID? {
+        if case .accessoryBar(let id) = role { id } else { nil }
     }
 
     /// Where in its bar the item sits.
@@ -141,5 +170,23 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// The regions of a bar, in the order they are laid out.
     package enum Region {
         case leading, principal, secondary, trailing
+    }
+}
+
+// MARK: - Accessory Bars
+
+/// The identifier of one of the window's accessory bars:
+/// ``ToolbarItemPlacement/accessoryBar(id:)``'s, and the bar placement's of
+/// the same name.
+///
+/// `@unchecked Sendable` because `AnyHashable` is not: the identifiers an app
+/// names its bars with are values — a string, an enumeration case — which
+/// SwiftUI's own placements, themselves `Sendable`, carry the same way.
+package struct AccessoryBarID: Hashable, @unchecked Sendable {
+    /// The identifier the app gave.
+    let id: AnyHashable
+
+    package init(_ id: some Hashable) {
+        self.id = AnyHashable(id)
     }
 }

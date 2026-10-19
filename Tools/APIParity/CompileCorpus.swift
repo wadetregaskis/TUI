@@ -2700,7 +2700,10 @@ private struct ToolbarShapes: View {
                     }
                     ToolbarItem { Image(systemName: "person.crop.circle") }
                         .sharedBackgroundVisibility(.hidden)
+                    ToolbarItem(placement: .accessoryBar(id: "com.example.favorites")) { Text("Favorites") }
                 }
+                .toolbarVisibility(.hidden, for: .accessoryBar(id: "com.example.favorites"))
+                .toolbarBackground(.blue, for: .accessoryBar(id: 7))
             TabView {
                 Tab("Inbox", systemImage: "tray") { Text("inbox") }
             }

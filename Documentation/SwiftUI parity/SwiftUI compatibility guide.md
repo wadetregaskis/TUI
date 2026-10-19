@@ -604,6 +604,7 @@ exists while something is placed in it:
 | `.confirmationAction`, `.cancellationAction`, `.destructiveAction` | top bar, trailing (macOS's reading outside a sheet) |
 | `.bottomBar`, `.status` | bottom bar — `.status` takes iOS's reading, where macOS centres it in the window toolbar |
 | `.keyboard` | bottom bar, leading, while a text input inside the view that declared it has the focus — where SwiftUI puts it above iOS's keyboard or in a Mac's Touch Bar |
+| `.accessoryBar(id:)` | an accessory bar: a row of the top bar under its own items, one per identifier, in the order first placed — macOS's accessory bars under the toolbar |
 
 **Every bar is opt-in.** An app that places nothing in a bar draws on every row
 of the terminal. TUIkit's line of key hints is a view the app places in the
@@ -712,9 +713,14 @@ it on every platform). `ToolbarContent.sharedBackgroundVisibility(_:)` is
 honoured as it stands: a terminal bar sets no glass under a group of items,
 so every item already sits on the one background they share, the bar's fill.
 
-**Not yet:** the `.accessoryBar(id:)` placement, a
-`NavigationStack`'s bar hosting a pushed screen's items, and the customisation
-family (`toolbar(id:)`).
+`ToolbarPlacement.accessoryBar(id:)` names an accessory bar to the bar
+modifiers: `.toolbarVisibility(.hidden, for:)` takes that row away (hiding
+`.windowToolbar` takes the top bar's own row and leaves its accessory bars; the
+menu bar's Hide Toolbar takes them all), and `.toolbarBackground(_:for:)` fills
+it.
+
+**Not yet:** a `NavigationStack`'s bar hosting a pushed screen's items, and the
+customisation family (`toolbar(id:)`).
 
 **Commands are the window's menu bar** (TUIkitCommands; refusal review O13,
 ruled 2026-10-12). A scene that declares commands — `.commands { … }` with
