@@ -23,6 +23,16 @@ struct LocaleKey: EnvironmentKey {
     @usableFromInline static let defaultValue = Locale.autoupdatingCurrent
 }
 
+/// EnvironmentKey for the language a subtree's own strings are read in, where
+/// its `\.locale` was set for it.
+///
+/// `@usableFromInline` for the `@inlinable` ``EnvironmentValues/locale`` setter,
+/// which writes it.
+@usableFromInline
+struct StringLanguageKey: EnvironmentKey {
+    @usableFromInline static let defaultValue: String? = nil
+}
+
 /// EnvironmentKey for the current calendar.
 private struct CalendarKey: EnvironmentKey {
     static let defaultValue = Calendar.autoupdatingCurrent
@@ -49,10 +59,36 @@ extension EnvironmentValues {
     ///
     /// `Table`, `List`, and `ScrollView`'s number chrome read it, so an override
     /// re-locales their formatted output.
+    ///
+    /// An override picks the language of the strings below it too, as
+    /// SwiftUI's does (measured 2026-10-18): a `Text` made from a key reads it
+    /// again, when it is drawn, in the language the locale names — the app's
+    /// strings in that language, then TUIkit's, then English — so
+    /// `ContentView().environment(\.locale, Locale(identifier: "de"))` shows
+    /// the app's German strings. A locale whose language the app has no
+    /// strings in reads English, as SwiftUI's development language does.
     @inlinable
     public var locale: Locale {
         get { self[LocaleKey.self] }
-        set { self[LocaleKey.self] = newValue }
+        set {
+            self[LocaleKey.self] = newValue
+            self[StringLanguageKey.self] = newValue.language.languageCode?.identifier
+        }
+    }
+
+    /// The language a subtree's own strings are read in, as a code, where its
+    /// ``locale`` was set for it with `.environment(\.locale, _)`; `nil` where
+    /// it was not, and strings are read in the app's language. Written by
+    /// ``locale``'s setter; read by a `Text` made from a key when it draws.
+    package var stringLanguage: String? {
+        self[StringLanguageKey.self]
+    }
+
+    /// Publishes `locale` as the user's, at the root: what ``locale`` reads,
+    /// with no language of a subtree's own (``stringLanguage``), since the
+    /// app's strings are already read in the user's.
+    package mutating func publishUserLocale(_ locale: Locale) {
+        self[LocaleKey.self] = locale
     }
 
     /// The calendar for the view subtree — SwiftUI's `\.calendar`.

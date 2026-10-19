@@ -394,21 +394,49 @@ public final class LocalizationService: @unchecked Sendable {
     package func string(
         for key: String, swiftUIKey: String? = nil, tableName: String?, bundle: Bundle?
     ) -> String {
-        lock.lock()
-        defer { lock.unlock() }
-
-        let memoKey = ResolvedStrings.Key(key: key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle)
-        if let answer = resolved.answer(for: memoKey) { return answer }
-        let answer = _resolve(key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle)
-        resolved.remember(answer, for: memoKey)
-        return answer
+        reading(key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, in: nil).text
     }
 
-    /// The walk ``string(for:swiftUIKey:tableName:bundle:)`` remembers the
-    /// answer of. Called under the lock.
-    private func _resolve(_ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?) -> String {
+    /// The language the app's own keys are read in first — the first of the
+    /// languages the user asked for, or the one the app chose — as a code.
+    /// What a `Text` made from a key notes it was read in, so that a subtree
+    /// whose `\.locale` names another language can read it again in that one.
+    package var stringLanguage: String {
+        lock.withLock { lookupCodes[0] }
+    }
+
+    /// `key` as ``string(for:swiftUIKey:tableName:bundle:)`` resolves it, and
+    /// the language it was read in first, from one lock.
+    ///
+    /// With a `language`, it is read as a subtree whose `\.locale` names that
+    /// language reads it, as SwiftUI's `Text` does (measured 2026-10-18): in
+    /// that language first, every place in turn, and then in English — where
+    /// SwiftUI shows the key itself when the language's table lacks it
+    /// (Deliberate deviations E4). `nil`, or the service's own first language,
+    /// reads it as ``string(for:swiftUIKey:tableName:bundle:)`` does.
+    package func reading(
+        _ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, in language: String?
+    ) -> (text: String, language: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        let own = lookupCodes[0]
+        let other = language.flatMap { $0 == own ? nil : $0 }
+        let memoKey = ResolvedStrings.Key(
+            key: key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, language: other)
+        if let answer = resolved.answer(for: memoKey) { return (answer, other ?? own) }
+        let codes = other.map { Self.lookupCodes(asked: [$0], language: .english) } ?? lookupCodes
+        let answer = _resolve(key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, codes: codes)
+        resolved.remember(answer, for: memoKey)
+        return (answer, other ?? own)
+    }
+
+    /// The walk ``reading(_:swiftUIKey:tableName:bundle:in:)`` remembers the
+    /// answer of, through `codes` in order. Called under the lock.
+    private func _resolve(
+        _ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, codes: [String]
+    ) -> String {
         let namesTable = !bundleTables.isDefaultTable(tableName, in: bundle)
-        for code in lookupCodes {
+        for code in codes {
             if let swiftUIKey,
                 let value = _appValue(
                     swiftUIKey, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle,

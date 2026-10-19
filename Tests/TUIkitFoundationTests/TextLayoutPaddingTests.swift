@@ -45,9 +45,11 @@ struct TextLayoutPaddingTests {
         // each, pattern and colour value, at the style's byte-aligned tail —
         // eight more bytes and no padding, and a `Text` still a whole number
         // of words, so nothing holding one gains padding after it. (32 and 56
-        // before, since `textScale`.)
+        // before, since `textScale`.) A `Text` is 72 since it keeps the key
+        // it was read from (`localization`, lane PARITYMISC, 2026-10-18): one
+        // word, between the runs and the style, so still no padding.
         #expect(MemoryLayout<TextStyle>.size == 40, "\(MemoryLayout<TextStyle>.size)")
-        #expect(MemoryLayout<Text>.size == 64, "\(MemoryLayout<Text>.size)")
+        #expect(MemoryLayout<Text>.size == 72, "\(MemoryLayout<Text>.size)")
     }
 
     @Test("A style's statements read back as the optionals they stand for")

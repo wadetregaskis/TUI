@@ -44,7 +44,7 @@ extension EnvironmentValues {
         // (the single source of truth),
         // so `\.locale` tracks it by default while a subtree may still
         // override it. See LocaleEnvironment.swift.
-        locale = LocalizationService.shared.currentLocale
+        publishUserLocale(LocalizationService.shared.currentLocale)
         // …and the scene phase from the run loop, for the same reason: one
         // source of truth, republished every frame. `appearsActive` is derived
         // from it rather than held beside it, so the two cannot disagree; it

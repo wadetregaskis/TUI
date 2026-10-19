@@ -29,12 +29,13 @@ struct ControlLayoutPaddingTests {
     /// padding. (`Animation.logicallyComplete(after:)` the same day costs
     /// nothing: its 4-byte time sits in the gap after the animation's curve.)
     /// 214 since a text's lines carry a pattern and a colour (W11b,
-    /// 2026-10-18): a `Text` is 64 bytes, eight more.
-    @Test("A Toggle titled with a string: no padding, 208 → 206 → 214 bytes")
+    /// 2026-10-18): a `Text` is 64 bytes, eight more. 222 since a `Text` keeps
+    /// the key it was read from (one word more, lane PARITYMISC, the same day).
+    @Test("A Toggle titled with a string: no padding, 208 → 206 → 214 → 222 bytes")
     func toggle() {
         typealias Titled = Toggle<Text>
         #expect(interiorPadding(of: Titled.self).isEmpty, "\(interiorPadding(of: Titled.self))")
-        #expect(MemoryLayout<Titled>.size == 214)
+        #expect(MemoryLayout<Titled>.size == 222)
     }
 
     @Test("A ProgressView with no labels: no padding, 97 → 90 → 106 bytes")

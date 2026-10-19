@@ -49,6 +49,10 @@ public struct LocalizedString: View {
     /// having to switch to do it.
     @Environment(\.localizationService) private var service
 
+    /// The language a subtree's `\.locale` names, which an app key is read in
+    /// first, as a `Text` made from a key reads it (`Text+Locale.swift`).
+    @Environment(\.stringLanguage) private var language
+
     /// Creates a localized string view.
     ///
     /// - Parameter key: The dot-notation key (e.g., "button.ok", "error.invalid_input")
@@ -64,7 +68,10 @@ public struct LocalizedString: View {
     }
 
     public var body: some View {
-        Text(verbatim: isFrameworkKey ? service.frameworkString(for: key) : service.string(for: key))
+        Text(
+            verbatim: isFrameworkKey
+                ? service.frameworkString(for: key)
+                : service.reading(key, swiftUIKey: nil, tableName: nil, bundle: nil, in: language).text)
     }
 }
 
@@ -73,5 +80,6 @@ public struct LocalizedString: View {
 extension LocalizedString: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _service.resolveEnvironment(environment)
+        _language.resolveEnvironment(environment)
     }
 }

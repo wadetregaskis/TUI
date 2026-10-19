@@ -70,6 +70,13 @@ public struct Text: View, Equatable {
     /// allocation, byte-identical output. See `Text.Run`.
     package var runs: [Run]?
 
+    /// Where this text's words came from, when it was made from a key: so a
+    /// subtree whose `\.locale` names another language reads them again in
+    /// that one when it draws (``LocalizedTextSource``). `nil` for every other
+    /// text. A word, so the layout gains no padding; one object per key and
+    /// language, so equal texts hold the same one.
+    package var localization: LocalizedTextSource?
+
     /// The style of the text (color, formatting, etc.).
     ///
     /// For a text of several runs this is the *base* beneath every run's own
@@ -164,26 +171,7 @@ public struct Text: View, Equatable {
     public init(
         _ key: LocalizedStringKey, tableName: String? = nil, bundle: Bundle? = nil, comment: StaticString? = nil
     ) {
-        let template = LocalizationService.shared.string(
-            for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
-        // A byte scan first: most keys hold nothing Markdown could act on, and
-        // those take the plain path exactly as before. An interpolated `Text`
-        // with styling of its own is spliced in on the Markdown path too.
-        if InlineMarkdown.mightContainMarkup(template) || !key.styledArguments.isEmpty {
-            let parsed = Self.markdownRuns(in: template, key: key)
-            self.init(verbatim: parsed.content)
-            runs = parsed.runs
-            return
-        }
-        self.init(
-            verbatim: key.arguments.isEmpty ? template : LocalizedStringKey.substituting(key.arguments, into: template))
-        if !key.liveArguments.isEmpty {
-            runs = [
-                Run(
-                    text: content, style: TextStyle(),
-                    live: LiveTextBox(LocalizedKeySource(key: key, tableName: tableName, bundle: bundle)))
-            ]
-        }
+        self.init(key, tableName: tableName, bundle: bundle, language: nil)
     }
 
     /// Creates a text view with the specified string, displayed as-is.
@@ -218,6 +206,7 @@ public struct Text: View, Equatable {
         self.content = verbatim
         self.style = TextStyle()
         self.runs = nil
+        self.localization = nil
     }
 
     /// Creates a text view that displays a value formatted with the given
@@ -959,6 +948,11 @@ extension Text: Renderable, Layoutable {
     }
 
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        // A key's words in the language a subtree's `\.locale` names; a text
+        // that is no key pays a nil check.
+        if localization != nil, let read = relocalized(in: context) {
+            return read.sizeThatFits(proposal: proposal, context: context)
+        }
         // A live text measures the words it reads at this frame. Only a text
         // with runs can be live, so a plain one pays a nil check.
         if runs != nil, let read = readingLive(declaringIn: context, measuring: true) {
@@ -1020,6 +1014,9 @@ extension Text: Renderable, Layoutable {
     /// by the rules the measure above and the render below lay a text out by.
     func fitsWhole(width: Int, height: Int?, context: RenderContext) -> Bool {
         guard width > 0 else { return false }
+        if localization != nil, let read = relocalized(in: context) {
+            return read.fitsWhole(width: width, height: height, context: context)
+        }
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
         let wrapped = TextWrapping.wrapMeasured(
@@ -1035,6 +1032,9 @@ extension Text: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if localization != nil, let read = relocalized(in: context) {
+            return read.renderToBuffer(context: context)
+        }
         // A live text draws the words it reads at this frame — see
         // `sizeThatFits` for why a plain one pays only a nil check.
         if runs != nil, let read = readingLive(declaringIn: context, measuring: false) {

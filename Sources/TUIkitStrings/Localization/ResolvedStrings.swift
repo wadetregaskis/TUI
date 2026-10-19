@@ -22,12 +22,16 @@ struct ResolvedStrings {
         /// The bundle, by identity: a `Bundle` is one object per bundle, kept
         /// for the life of the process.
         let bundle: ObjectIdentifier?
+        /// The language read first, where it is not the service's own: a
+        /// subtree's `\.locale` naming another. `nil` for the service's.
+        let language: String?
 
-        init(key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?) {
+        init(key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, language: String? = nil) {
             self.key = key
             self.swiftUIKey = swiftUIKey
             self.tableName = tableName
             self.bundle = bundle.map(ObjectIdentifier.init)
+            self.language = language
         }
     }
 

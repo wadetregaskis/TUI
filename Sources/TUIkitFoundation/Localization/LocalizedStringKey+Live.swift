@@ -78,21 +78,29 @@ struct LocalizedKeySource: LiveTextSource, Equatable {
     /// it, as `Text(_:tableName:bundle:comment:)` named it.
     var tableName: String?
     var bundle: Bundle?
+    /// The language a subtree's `\.locale` named, where the key is read in
+    /// that one first (``Text/relocalized(in:)``); `nil` for the app's.
+    var language: String?
+
+    /// The key's template, read where the `Text` reads it.
+    private var template: String {
+        LocalizationService.shared.reading(
+            key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle, in: language
+        ).text
+    }
 
     func text(at date: Date, in environment: LiveTextEnvironment) -> String {
         var arguments = key.arguments
         for (index, live) in key.liveArguments where arguments.indices.contains(index) {
             arguments[index] = live.source.text(at: date, in: environment)
         }
-        let template = LocalizationService.shared.string(
-            for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
+        let template = template
         return arguments.isEmpty ? template : LocalizedStringKey.substituting(arguments, into: template)
     }
 
     /// Each live argument's ladder, substituted rung by rung.
     func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
-        let template = LocalizationService.shared.string(
-            for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
+        let template = template
         let ladders = key.arguments.indices.map { index -> [String] in
             guard let live = key.liveArguments[index] else { return [key.arguments[index]] }
             return live.source.sizeVariants(at: date, in: environment)

@@ -594,6 +594,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [A-D3M-1](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
   **Owner** (2026-10-05).
 
+### E4. A key a locale's language lacks reads English, not the key
+
+- **SwiftUI:** a `Text` under `.environment(\.locale, _)` reads its key in
+  that locale's language only: where the language's table lacks the key it
+  shows the key itself; where the app has no table in that language at all it
+  reads the development language's (measured 2026-10-18, macOS 15, an app
+  bundle with `en`, `de` and `fr` tables; probe in the session notes,
+  `PARITYMISC/probes/locale`).
+- **TUIkit:** reads it in that language and then in English, every place in
+  turn, as it reads every key — so a key the German table lacks reads its
+  English words under a German locale rather than `greeting.title`
+  (`LocalizationService.reading(_:swiftUIKey:tableName:bundle:in:)`,
+  `LocaleStringLanguageTests`).
+- **Why:** TUIkit keeps the fallback every one of its lookups has, rather than
+  copying a limitation: a missing translation shows the text it stands in for.
+- **Decided:** [B-PARITYMISC-5](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-5-a-locale-override-re-reads-a-texts-key-not-a-buttons-title>). **Lane.**
+
 ---
 
 ## Focus and input

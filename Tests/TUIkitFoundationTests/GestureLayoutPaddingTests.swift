@@ -20,11 +20,13 @@ struct GestureLayoutPaddingTests {
     private typealias TextTap = GestureAttachment<Text, _EndedGesture<TapGesture>>
 
     /// 93 since a text's lines carry a pattern and a colour (W11b, 2026-10-18):
-    /// a `Text` is 64 bytes, eight more, and still a whole number of words.
-    @Test("A Text's tap: no padding, 88 → 85 → 93 bytes, one dense run")
+    /// a `Text` is 64 bytes, eight more, and still a whole number of words. 101
+    /// since a `Text` keeps the key it was read from (one word more, lane
+    /// PARITYMISC, the same day).
+    @Test("A Text's tap: no padding, 88 → 85 → 93 → 101 bytes, one dense run")
     func textTap() {
         #expect(interiorPadding(of: TextTap.self).isEmpty, "\(interiorPadding(of: TextTap.self))")
-        #expect(MemoryLayout<TextTap>.size == 93)
+        #expect(MemoryLayout<TextTap>.size == 101)
         let plans = ValueHashPlans()
         #expect(plans.plan(for: TextTap.self).pointee.shape == .dense)
     }

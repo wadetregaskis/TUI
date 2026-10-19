@@ -36,12 +36,13 @@ struct FrameLayoutPaddingTests {
     }
 
     // 160 since a text's lines carry a pattern and a colour (W11b, 2026-10-18):
-    // a `Text` is 64 bytes, eight more.
-    @Test("Six words of constraints, the alignment, then the content: 160 bytes over a Text, down from 200")
+    // a `Text` is 64 bytes, eight more. 168 since a `Text` keeps the key it was
+    // read from (one word more, lane PARITYMISC, the same day).
+    @Test("Six words of constraints, the alignment, then the content: 168 bytes over a Text, down from 200")
     func size() {
         #expect(
             MemoryLayout<FlexibleFrameView<Text>>.size
                 == 6 * 8 + MemoryLayout<Alignment>.size + MemoryLayout<Text>.size)
-        #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 160)
+        #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 168)
     }
 }

@@ -148,3 +148,38 @@ did under `+`, or SwiftUI's typed overloads with the catch-all retired (the
 DEPR audit's tenth item). The first is an hour but also refuses
 `\(Color.red)`, which SwiftUI accepts with a warning; the second is half a
 day and decides what each SwiftUI-accepted type writes.
+
+### B-PARITYMISC-5. A locale override re-reads a Text's key, not a Button's title
+
+*`EnvironmentValues.locale`, `Text(_:tableName:bundle:comment:)` (the owner's
+option B, 2026-10-14, and "locale should also pick string language as
+SwiftUI does", 2026-10-15)*
+
+Measured on macOS 15 (2026-10-18, an app bundle with `en`, `de` and `fr`
+tables): under `.environment(\.locale, Locale(identifier: "de_CH"))` a
+`Text("greeting")` reads the German table; under `pt_BR`, with no Portuguese
+table, the development language's; a key the German table lacks shows the
+key.
+
+**Shipped:** the root `\.locale` is the user's locale (`pt_BR` stays
+`pt_BR`). A `Text` made from a key keeps where its words came from (one
+interned object per key, table and language, a word in the `Text`), and when
+it is measured or drawn under a `\.locale` naming another language it reads
+the key again in that language, its own style kept — lazily, at draw, as the
+owner asked, since a `Text` is made before its environment is known. The
+check is one environment read for a keyed `Text`, a nil check for any other;
+nothing is read again where nothing overrides the locale. Every control whose
+label is a `Text` of its key (B87's list: `Toggle`, `Label`, `Link`,
+`Section`, `LabeledContent`, `Picker`, `Menu` and the rest) follows, and so
+does `LocalizedString` for an app's key. A key the language lacks reads
+English (E4).
+
+**The fuller version** reaches what reads a key as a string when it is made:
+`Button`'s and `ColorPicker`'s titles (kept as strings for their measure and
+truncation, B87), the titles drawn as strings (a column header, a tab's title,
+a field's placeholder), `LocalizedStringKey.localized`, and TUIkit's own
+chrome words (`frameworkString(for:)`: an alert's OK, a search field's
+prompt). Each would resolve at draw from the environment's language: about a
+day, most of it the string-titled controls. An A/B of the shipped half is
+owed (Text-heavy scenarios: the `Text` grew a word, and a keyed `Text` pays
+an intern lookup when it is made).
