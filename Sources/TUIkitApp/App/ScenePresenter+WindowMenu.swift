@@ -32,6 +32,9 @@ extension ScenePresenter {
 
         /// Its title.
         package let title: String?
+
+        /// The key that opens it, if its `.keyboardShortcut` states one.
+        package let shortcut: KeyboardShortcut?
     }
 
     /// Whether the app declares more than one window scene: whether it has
@@ -52,7 +55,7 @@ extension ScenePresenter {
     package var listedScenes: [ListedScene] {
         entries.compactMap { entry in
             guard entry.window.opensOneWindow, let id = entry.window.sceneID else { return nil }
-            return ListedScene(id: id, title: entry.window.windowTitle?.content)
+            return ListedScene(id: id, title: entry.window.windowTitle?.content, shortcut: shortcut(of: entry))
         }
     }
 

@@ -2,8 +2,9 @@
 //  SceneMenuBarTests.swift
 //
 //  The menu bar's scene items (lane O9, decisions B-O13-7): the app menu's
-//  Settings…, on ⌘, with the menus closed, for an app that declares a
-//  `Settings` scene; and the Window menu — Close Window, the open windows with
+//  Settings…, for an app that declares a `Settings` scene, showing its key —
+//  ⌘, or its `.keyboardShortcut` — which works with the menus closed or no
+//  menu bar at all; and the Window menu — Close Window, the open windows with
 //  the one in front checked, the `Window` scenes — for an app that can open
 //  more than one window.
 //
@@ -34,6 +35,36 @@ private struct PlainMenuApp: App {
     var body: some Scene {
         WindowGroup { Text("main window") }
             .commands { CommandMenu("Note") {} }
+    }
+}
+
+/// A Settings scene on a key of its own.
+private struct SettingsKeyApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+        Settings { Text("settings content") }
+            .keyboardShortcut("p")
+    }
+}
+
+/// A Settings scene with its key taken away.
+private struct SettingsNoKeyApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+        Settings { Text("settings content") }
+            .keyboardShortcut(nil)
+    }
+}
+
+/// A Settings scene in an app with no menu bar.
+private struct SettingsBarlessApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+        Settings { Text("settings content") }
     }
 }
 
@@ -109,6 +140,40 @@ struct SceneMenuBarTests {
         frame(app)
         frame(app)
         #expect(app.scenes.isPresentingSettings, "\(screen(app))")
+    }
+
+    @Test("A Settings scene's own key presents it, and Settings… shows that key instead of ⌘,")
+    mutating func settingsOwnKey() {
+        let app = launched(SettingsKeyApp())
+        app.send(KeyEvent(key: .character(","), ctrl: true))
+        frame(app)
+        #expect(!app.scenes.isPresentingSettings, "⌘, is not its key now")
+        open(_MenuBarCore.appName, in: app)
+        #expect(screen(app).contains("⌃P") && !screen(app).contains("⌃,"), "\(screen(app))")
+        app.send(KeyEvent(key: .escape))
+        frame(app)
+        app.send(KeyEvent(key: .character("p"), ctrl: true))
+        frame(app)
+        frame(app)
+        #expect(app.scenes.isPresentingSettings, "\(screen(app))")
+    }
+
+    @Test("A Settings scene's key taken away with nil: ⌘, does nothing")
+    mutating func settingsKeyRemoved() {
+        let app = launched(SettingsNoKeyApp())
+        app.send(KeyEvent(key: .character(","), ctrl: true))
+        frame(app)
+        #expect(!app.scenes.isPresentingSettings)
+    }
+
+    @Test("⌘, presents the Settings scene in an app with no menu bar")
+    mutating func settingsKeyWithoutMenuBar() {
+        let app = launched(SettingsBarlessApp())
+        app.send(KeyEvent(key: .character(","), ctrl: true))
+        frame(app)
+        frame(app)
+        #expect(app.scenes.isPresentingSettings, "\(screen(app))")
+        #expect(screen(app).contains("settings content"), "\(screen(app))")
     }
 
     @Test("An app with no Settings scene has no Settings… item")

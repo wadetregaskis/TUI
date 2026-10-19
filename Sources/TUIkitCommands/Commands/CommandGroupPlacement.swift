@@ -71,8 +71,9 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that expose app settings and preferences.
     ///
-    /// By default, this group includes "Settings…" (⌘,), which presents the
-    /// app's `Settings` scene, where the app declares one.
+    /// By default, this group includes "Settings…" (⌘, unless the scene's
+    /// `.keyboardShortcut` says otherwise), which presents the app's
+    /// `Settings` scene, where the app declares one.
     public static let appSettings = Self(.appSettings)
 
     /// Placement for commands that expose services other apps provide.

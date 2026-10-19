@@ -117,6 +117,15 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
         }
     }
 
+    /// Registers `action` for `shortcut`, which `KeyboardShortcut.resolved(commandKey:)`
+    /// has resolved: for a framework command outside a view — a scene's
+    /// `.keyboardShortcut` (TUIkitApp) — inside ``registeringCommands(_:)``,
+    /// so the window's own shortcut on the key keeps it. A held key does not
+    /// repeat it.
+    package func registerCommand(_ shortcut: KeyboardShortcut, action: @escaping () -> Void) {
+        register(shortcut, repeats: false, action: action)
+    }
+
     /// Whether what registers now is the menu bar's commands — see
     /// ``registeringCommands(_:)``.
     private var registersCommands = false

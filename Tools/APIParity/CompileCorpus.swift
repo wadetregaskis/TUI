@@ -4146,6 +4146,13 @@ private struct CorpusPhotoLibraryApp: App {
                 }
             }
         Window("Photo Library", id: "photo-library") { Text("Library") }
+            .keyboardShortcut("0", modifiers: [.command, .option])
+        WindowGroup("Viewer", id: "viewer") { Text("Viewer") }
+            .keyboardShortcut(KeyboardShortcut("v", modifiers: [.command, .shift]))
+        #if os(macOS)
+        Settings { Text("Settings") }
+            .keyboardShortcut(nil)
+        #endif
     }
 }
 

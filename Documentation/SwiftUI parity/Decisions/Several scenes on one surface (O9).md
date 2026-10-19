@@ -251,10 +251,9 @@ title, and Bring All to Front, with AppKit's list of the open windows after.
 
 **Shipped:**
 - **Settings…** in the app menu, after About, where the app declares a
-  `Settings` scene, presenting it; it binds SwiftUI's ⌘, (through
-  `commandKey`), so it works with the menus closed, as a command's key does —
-  the one scene item with a key of its own, there being no other way to the
-  settings by key.
+  `Settings` scene, presenting it, and showing its key: SwiftUI's ⌘, (through
+  `commandKey`), or the one the scene's `.keyboardShortcut` states, bound by
+  the presenter whether or not the app shows a menu bar (B-O9-12).
 - **A Window menu**, for an app that declares more than one window scene (an
   app of one window has nothing to list, and its bar keeps the menus it had):
   Close Window (`windowArrangement`), closing the window in front — disabled
@@ -316,3 +315,29 @@ rather than holding it behind the others, since a held window still runs
 **The fuller version** keeps a hidden window's state for when it is shown
 again — held, but drawn no more — about an hour, with a measurement of what
 macOS keeps.
+
+### B-O9-12. A scene's key opens it, menu bar or none; a window group has no ⌘N
+
+*`Scene.keyboardShortcut(_:)`, `Scene.keyboardShortcut(_:modifiers:localization:)`*
+
+Apple's documentation: the key is bound to the command a scene adds to open a
+window — a window group's New *Title* Window, a `Window`'s item that brings it
+forward, `Settings`'s Settings… — and pressing it is choosing that item; `nil`
+removes a scene's default key. A window group's default is ⌘N (File ▸ New
+Window), `Settings`'s ⌘, — the latter measured (`O9/probe/scenes.swift`, the
+app menu's Settings… on ⌘,); unmeasured beyond the menu, no window being
+openable here.
+
+**Shipped:** the presenter binds each scene's key every frame, as a menu
+bar's command binds its own (below whatever the window's content binds on the
+same key: the content keeps it), through `commandKey`, whether or not the app
+shows a menu bar. A `Window`'s key opens its window or brings it to the front;
+a group's opens a new window of it, presenting its default value or `nil`;
+`Settings`'s presents the settings sheet, ⌘, by default, and `nil` takes the
+key away. Settings… and a `Window`'s item in the Window menu show the key.
+A window group has no key unless one is stated: TUIkit's menu bar has no
+File ▸ New Window for it to be the key of (B-O9-9), and ⌘N would arrive as
+⌃N, which a terminal app's own views often bind.
+
+**The fuller version** adds File ▸ New *Title* Window with SwiftUI's ⌘N on the
+first group, B-O9-9's fuller version; with it, a group's key is the item's.

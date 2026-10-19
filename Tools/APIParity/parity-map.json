@@ -462,11 +462,9 @@
         "Scene.defaultWindowPlacement(_:)",
         "UtilityWindow*",
         "SceneLaunchBehavior*",
-        "SceneRestorationBehavior*",
-        "Scene.keyboardShortcut(_:)",
-        "Scene.keyboardShortcut(_:modifiers:localization:)"
+        "SceneRestorationBehavior*"
       ],
-      "why": "macOS window and menu-bar chrome: window and menu-bar-extra styles, window placement, utility windows, which scenes launch or are restored, and the shortcut that opens a scene's window. The terminal emulator owns the one window a TUIkit app draws in. Further scenes are the multi-scene question, Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md O9."
+      "why": "macOS window and menu-bar chrome: window and menu-bar-extra styles, window placement, which scenes launch or are restored, and the utility window, a panel that floats beside the main window and shows the focused values of whichever main window is key. The terminal emulator owns the one window a TUIkit app draws in, and its scenes are covers stacked over one another (refusal review O9, ruled (b); decisions file Several scenes on one surface (O9)), so nothing floats beside the window in front, and a utility window would have no main window to read while it covered it."
     },
     {
       "match": [

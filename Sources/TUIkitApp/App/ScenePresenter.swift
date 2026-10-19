@@ -270,6 +270,12 @@ package final class ScenePresenter {
         return true
     }
 
+    /// Opens a new window of `entry`, presenting nothing.
+    func openNewWindow(of entry: SceneCatalog.WindowEntry) {
+        windows.append(makeWindow(of: entry, isLaunchWindow: false))
+        requestFrame()
+    }
+
     /// Brings the window `serial` to the front of the others.
     func bringToFront(_ serial: Int) {
         guard let index = windows.firstIndex(where: { $0.serial == serial }), index != windows.count - 1 else { return }

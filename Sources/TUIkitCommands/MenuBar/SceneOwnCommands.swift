@@ -24,18 +24,19 @@ import TUIkitFoundation
 /// | Group | Item | What choosing it does | Key shown |
 /// |---|---|---|---|
 /// | `appInfo` | About *app* | an alert naming the app, and its version where it is bundled | — |
-/// | `appSettings` | Settings… | presents the `Settings` scene (`openSettings`), where the app declares one | ⌘, (bound here) |
+/// | `appSettings` | Settings… | presents the `Settings` scene (`openSettings`), where the app declares one | the scene's key: ⌘, unless its `.keyboardShortcut` says otherwise |
 /// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled for the last | Escape |
 /// | `windowList` | each open window, the one in front checked | brings it to the front | — |
-/// | `singleWindowList` | each `Window` scene | opens it, or brings its window to the front | — |
+/// | `singleWindowList` | each `Window` scene | opens it, or brings its window to the front | its `.keyboardShortcut`, if it states one |
 ///
 /// The Window menu's three groups are filled only for an app that declares
 /// more than one window scene: one with a single window has nothing to list.
-/// Settings… has no key of its own elsewhere, so it binds SwiftUI's ⌘,
-/// (through `commandKey`), and works with the menu closed.
+/// The scenes' keys — Settings…'s ⌘, and any a scene's `.keyboardShortcut`
+/// states — are bound by the scene presenter, menu bar or none, through
+/// `commandKey`.
 ///
 /// The keys pressed "after the menu closes" go once the frame that closed it
 /// has given the page its focus back (``KeysAfterFrame``): a menu holds the
@@ -83,15 +84,18 @@ struct SceneOwnCommands {
         }
     }
 
-    /// Settings…, presenting the app's `Settings` scene, on SwiftUI's ⌘,; none
+    /// Settings…, presenting the app's `Settings` scene, showing its key; none
     /// for an app that declares no `Settings` scene.
     private func settingsItems(_ environment: EnvironmentValues) -> CommandItems? {
         let openSettings = environment.openSettings
         guard openSettings.isAvailable else { return nil }
         let title = LocalizationService.shared.string(for: LocalizationKey.Menu.settings)
+        // The `Settings` scene's key — ⌘, unless its `.keyboardShortcut` says
+        // otherwise — which the presenter binds, menu bar or none.
+        let shortcut = environment.scenePresenter?.settingsShortcut
         return Self.items("settings") {
             Button(title) { openSettings() }
-                .keyboardShortcut(",", modifiers: .command)
+                .keyboardShortcutHint(shortcut)
         }
     }
 
@@ -124,6 +128,7 @@ struct SceneOwnCommands {
             return Self.items("single-window-list") {
                 ForEach(scenes, id: \.id) { scene in
                     Button(scene.title ?? scene.id) { presenter.openScene(scene.id) }
+                        .keyboardShortcutHint(scene.shortcut)
                 }
             }
         default:

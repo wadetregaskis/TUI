@@ -55,6 +55,10 @@ struct SceneConfiguration {
     /// `.windowToolbarStyle` said.
     var showsTitle: Bool?
 
+    /// The key the scene opens on, if a `.keyboardShortcut` said: `.some(nil)`
+    /// where it took the scene's default key away.
+    var keyboardShortcut: KeyboardShortcut??
+
     /// Runs the scene's environment writes over `environment`, in order.
     func applyEnvironmentWrites(to environment: inout EnvironmentValues) {
         for write in environmentWrites { write(&environment) }
