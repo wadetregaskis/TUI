@@ -191,3 +191,46 @@ package struct AccessoryBarID: Hashable, @unchecked Sendable {
         self.id = AnyHashable(id)
     }
 }
+
+// MARK: - Value Hash
+
+/// Read by a `switch`, as `TrackStyle` is: since `accessoryBar(id:)` the role is
+/// a payload enum, which the value hash cannot read as bytes, and every view
+/// holding a placement — a `ToolbarItemGroup`, so any `.toolbar { … }` of views
+/// — would go unhashed, and unmemoised, with every container around it. See
+/// `_ValueHashing`.
+extension ToolbarItemPlacement.Role: _ValueHashing {
+    package static func _mixValueHash(
+        at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
+    ) -> Bool {
+        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        case .automatic: plans.mixCase(0, (), into: &hash)
+        case .principal: plans.mixCase(1, (), into: &hash)
+        case .navigation: plans.mixCase(2, (), into: &hash)
+        case .primaryAction: plans.mixCase(3, (), into: &hash)
+        case .secondaryAction: plans.mixCase(4, (), into: &hash)
+        case .status: plans.mixCase(5, (), into: &hash)
+        case .confirmationAction: plans.mixCase(6, (), into: &hash)
+        case .cancellationAction: plans.mixCase(7, (), into: &hash)
+        case .destructiveAction: plans.mixCase(8, (), into: &hash)
+        case .bottomBar: plans.mixCase(9, (), into: &hash)
+        case .topBarLeading: plans.mixCase(10, (), into: &hash)
+        case .topBarTrailing: plans.mixCase(11, (), into: &hash)
+        case .keyboard: plans.mixCase(12, (), into: &hash)
+        case .accessoryBar(let id): plans.mixCase(13, id, into: &hash)
+        }
+    }
+}
+
+/// Read by the identifier's hash value. An `AnyHashable`'s box is the standard
+/// library's to lay out, and opening it by its plan would read a `String`
+/// identifier by its storage, not by its characters; the hash value is what
+/// the identifier's `==` agrees with — two identifiers the bars take for one
+/// hash the same, `1` and `1 as UInt8` among them.
+extension AccessoryBarID: _ValueHashing {
+    package static func _mixValueHash(
+        at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
+    ) -> Bool {
+        plans.mixValue(pointer.assumingMemoryBound(to: Self.self).pointee.id.hashValue, into: &hash)
+    }
+}

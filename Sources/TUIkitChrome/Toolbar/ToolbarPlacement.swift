@@ -56,3 +56,19 @@ public struct ToolbarPlacement: Sendable, Equatable {
         Self(edge: .accessory(AccessoryBarID(id)))
     }
 }
+
+// MARK: - Value Hash
+
+/// Read by a `switch`, as ``ToolbarItemPlacement``'s role is: since
+/// `accessoryBar(id:)` the edge is a payload enum, which the value hash cannot
+/// read as bytes. See `_ValueHashing`.
+extension ToolbarPlacement.Edge: _ValueHashing {
+    static func _mixValueHash(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
+        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        case .automatic: plans.mixCase(0, (), into: &hash)
+        case .top: plans.mixCase(1, (), into: &hash)
+        case .bottom: plans.mixCase(2, (), into: &hash)
+        case .accessory(let id): plans.mixCase(3, id, into: &hash)
+        }
+    }
+}
