@@ -223,6 +223,14 @@ extension FocusableModifier: SingleContentWrapper {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 }
 
+/// `.focusable` written on a form row makes the row the form lays out a focus
+/// stop, and it keeps its place, as SwiftUI's form keeps a modified row.
+extension FocusableModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        FocusableModifier<V>(content: row, isFocusable: isFocusable, interactions: interactions)
+    }
+}
+
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition

@@ -526,6 +526,14 @@ extension _FocusedModifier: SingleContentWrapper {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 }
 
+/// `.focused` written on a form row binds the control in the row the form lays
+/// out, which keeps its place, as SwiftUI's form keeps a modified row.
+extension _FocusedModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _FocusedModifier<V, Value>(content: row, store: store, value: value)
+    }
+}
+
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to

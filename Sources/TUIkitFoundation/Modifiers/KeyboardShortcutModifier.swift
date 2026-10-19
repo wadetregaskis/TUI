@@ -234,6 +234,16 @@ extension KeyboardShortcutModifier: SingleContentWrapper {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { planting(into: context) }
 }
 
+/// A shortcut written on a form's button — `Button("Save") { … }
+/// .keyboardShortcut(.defaultAction)` — goes around the row the form lays out,
+/// which keeps its place, as SwiftUI's form keeps it (measured,
+/// `Tools/SwiftUIProbes/Form rows`).
+extension KeyboardShortcutModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        KeyboardShortcutModifier<V>(content: row, assignment: assignment)
+    }
+}
+
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition

@@ -55,6 +55,24 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     }
 }
 
+/// A context menu written on a form row is the menu of the row the form lays
+/// out, which keeps its place, as SwiftUI's form keeps it (measured,
+/// `Tools/SwiftUIProbes/Form rows`).
+extension ContextMenuModifier: FormRowRewrapping {
+    package var formRowContent: Content { content }
+
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        // The route is a type of each specialisation's own, so it is spelled
+        // again for the new one.
+        let route: ContextMenuModifier<V, MenuItems>.KeyboardRoute =
+            switch keyboardRoute {
+            case .ownStop: .ownStop
+            case .contentStops: .contentStops
+            }
+        return ContextMenuModifier<V, MenuItems>(content: row, menuItems: menuItems, keyboardRoute: route)
+    }
+}
+
 /// StateStorage property indices for ``ContextMenuModifier``. A free enum because
 /// the modifier is generic (which can't hold static stored properties).
 private enum StateIndex {

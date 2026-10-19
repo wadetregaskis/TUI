@@ -113,6 +113,41 @@ struct FormModifiedRowTests {
         #expect(toggleColumn(toggle.padding(.leading, 2)) == bare.map { $0 + 2 })
     }
 
+    @Test("A lifecycle, event or focus modifier or an overlay written on a LabeledContent row keeps it on the pillar")
+    func labeledRowUnderEventModifiers() {
+        let row = LabeledContent("Name", value: "Alice")
+        for (name, out) in [
+            ("onAppear", form(row.onAppear {})),
+            ("onDisappear", form(row.onDisappear {})),
+            ("task", form(row.task {})),
+            ("onChange", form(row.onChange(of: 1) {})),
+            ("onTapGesture", form(row.onTapGesture {})),
+            ("onHover", form(row.onHover { _ in })),
+            ("focusable", form(row.focusable())),
+            ("onSubmit", form(row.onSubmit {})),
+            ("contextMenu", form(row.contextMenu { Button("Copy") {} })),
+            ("overlay", form(row.overlay { Text("") })),
+            ("onChange under padding", form(row.onChange(of: 1) {}.padding(.leading, 1))),
+        ] {
+            #expect(column(of: "Alice", in: out) != nil && column(of: "Alice", in: out) == column(of: "a@b.c", in: out), "\(name): \(out)")
+            #expect(out.first { $0.contains("Alice") }?.contains("Name ") == true, "\(name): \(out)")
+            #expect(column(of: "Name", in: out).map { $0 + 4 } == column(of: "Email address", in: out).map { $0 + 13 }, "\(name): \(out)")
+        }
+    }
+
+    @Test("A change action on a Toggle row, or a shortcut on a Button row, keeps it in its place")
+    func controlAndButtonRowsUnderEventModifiers() {
+        func rows(_ row: some View) -> [String] {
+            lines(Form { LabeledContent("Account email", value: "ada@example.com"); row })
+        }
+        let toggle = Toggle("Wi-Fi", isOn: .constant(true))
+        #expect(column(of: "Wi-Fi", in: rows(toggle.onChange(of: 1) {})) == column(of: "Wi-Fi", in: rows(toggle)))
+        let button = Button("Sign Out") {}
+        let bare = rows(button).first { $0.contains("Sign Out") }
+        #expect(bare?.hasPrefix(" ") == true)
+        #expect(rows(button.keyboardShortcut(.defaultAction)).first { $0.contains("Sign Out") } == bare)
+    }
+
     @Test("Help written on a Button row keeps it right-aligned")
     func modifiedButtonRow() {
         func buttonRow(_ button: some View) -> String {

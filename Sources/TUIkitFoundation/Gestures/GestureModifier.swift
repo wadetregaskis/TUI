@@ -336,6 +336,15 @@ extension GestureAttachment: SingleContentWrapper {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
+/// A gesture written on a form row is the gesture of the row the form lays
+/// out, which keeps its place, as SwiftUI's form keeps it (measured,
+/// `Tools/SwiftUIProbes/Form rows`).
+extension GestureAttachment: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        GestureAttachment<V, G>(content: row, gesture: gesture, mask: mask, priority: priority)
+    }
+}
+
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension GestureAttachment: DrawsContentUnchanged {}

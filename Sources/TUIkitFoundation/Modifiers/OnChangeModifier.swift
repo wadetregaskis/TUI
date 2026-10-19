@@ -121,6 +121,15 @@ extension OnChangeModifier: SingleContentWrapper {
     package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
+/// A change action written on a form row — `Toggle(…).onChange(of: x) { … }`
+/// — goes around the row the form lays out, which keeps its place, as
+/// SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension OnChangeModifier: FormRowRewrapping {
+    package func rewrappingFormRow<R: View>(_ row: R) -> any View {
+        OnChangeModifier<R, V>(content: row, value: value, initial: initial, action: action)
+    }
+}
+
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition

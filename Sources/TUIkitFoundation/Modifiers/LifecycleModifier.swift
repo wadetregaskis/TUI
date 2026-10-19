@@ -299,6 +299,27 @@ extension TaskModifier: SingleContentWrapper {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
+/// An appearance, a disappearance or a task written on a form row is the row's
+/// the form lays out, which keeps its place, as SwiftUI's form keeps it
+/// (measured, `Tools/SwiftUIProbes/Form rows`).
+extension OnAppearModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OnAppearModifier<V>(content: row, action: action)
+    }
+}
+
+extension OnDisappearModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OnDisappearModifier<V>(content: row, action: action)
+    }
+}
+
+extension TaskModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        TaskModifier<V>(content: row, task: task, priority: priority, id: id)
+    }
+}
+
 // MARK: - Removal Transitions
 
 /// Each draws its content unchanged, at its own identity, so a removal transition

@@ -155,6 +155,14 @@ extension OnSubmitModifier: SingleContentWrapper {
     public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 }
 
+/// A submit action written on a form row goes around the row the form lays
+/// out, which keeps its place, as SwiftUI's form keeps a modified row.
+extension OnSubmitModifier: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OnSubmitModifier<V>(content: row, triggers: triggers, action: action)
+    }
+}
+
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to

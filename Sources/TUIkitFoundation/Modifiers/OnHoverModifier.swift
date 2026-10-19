@@ -274,6 +274,14 @@ extension OnHoverModifier: SingleContentWrapper {
     public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
+/// A hover action written on a form row is the row's the form lays out, which
+/// keeps its place, as SwiftUI's form keeps a modified row.
+extension OnHoverModifier: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OnHoverModifier<V>(content: row, coordinateSpace: coordinateSpace, observe: observe)
+    }
+}
+
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition

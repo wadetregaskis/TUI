@@ -35,6 +35,19 @@ public struct OverlayModifier<Base: View, Overlay: View>: View {
     }
 }
 
+// MARK: - In a Form
+
+/// An overlay written on a form row is drawn over the row the form lays out,
+/// which keeps its place, as SwiftUI's form keeps it (measured,
+/// `Tools/SwiftUIProbes/Form rows`).
+extension OverlayModifier: FormRowRewrapping {
+    package var formRowContent: Base { base }
+
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OverlayModifier<V, Overlay>(base: row, overlay: overlay, alignment: alignment)
+    }
+}
+
 // MARK: - Equatable Conformance
 
 extension OverlayModifier: @preconcurrency Equatable where Base: Equatable, Overlay: Equatable {

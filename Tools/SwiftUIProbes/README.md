@@ -541,5 +541,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19.
 - **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`).
 - **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,
-  `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift`, `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`;
+  `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift` and the modifiers' conformances to it (in
+  `LifecycleModifier.swift`, `OnChangeModifier.swift`, `GestureModifier.swift`, `KeyboardShortcutModifier.swift`,
+  `ContextMenuModifier.swift`, `OverlayModifier.swift` and beside them), `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`).
