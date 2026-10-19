@@ -98,6 +98,22 @@ struct StepperRenderTests {
         #expect(arrowRegions.contains { $0.offsetX == 4 }, "left arrow ◀ just after the 'Qty ' label")
         #expect(buffer.hitTestRegions.allSatisfy { $0.offsetX >= 4 }, "no hit region under the label")
     }
+
+    @Test("The control size sets the space round the value, as a bordered button's padding")
+    func controlSizeDensity() {
+        func drawn(_ size: ControlSize) -> String {
+            line(Stepper("Qty", value: .constant(5)).controlSize(size)).trimmingCharacters(in: .whitespaces)
+        }
+        #expect(drawn(.mini) == "Qty ◀5▶")
+        #expect(drawn(.small) == "Qty ◀5▶")
+        #expect(drawn(.regular) == "Qty ◀ 5 ▶")
+        #expect(drawn(.large) == "Qty ◀ 5 ▶")
+        #expect(drawn(.extraLarge) == "Qty ◀  5  ▶")
+        // The arrows are still each a cell at either end, whatever the space.
+        let buffer = renderToBuffer(Stepper("Qty", value: .constant(5)).controlSize(.small), context: mouseContext())
+        let arrowRegions = buffer.hitTestRegions.filter { $0.width == 1 }
+        #expect(arrowRegions.contains { $0.offsetX == 4 } && arrowRegions.contains { $0.offsetX == 6 }, "\(arrowRegions)")
+    }
 }
 
 // MARK: - Live range (bounds must track the current render)

@@ -17,9 +17,12 @@ import TUIkitFoundation
 /// ## Rendering
 ///
 /// ```
-/// Unfocused:    ◀  5  ▶
-/// Focused:    ❙ ◀  5  ▶ ❙    (bars + arrows pulsing in accent)
+/// ◀ 5 ▶    (the arrows breathe the accent while it holds the focus)
 /// ```
+///
+/// The ``ControlSize`` sets the space round the value, as it sets a bordered
+/// button's padding: `◀5▶` at `.small` and `.mini`, `◀ 5 ▶` at `.regular`
+/// and `.large`, `◀  5  ▶` at `.extraLarge`.
 ///
 /// ## Keyboard Controls
 ///
@@ -541,7 +544,9 @@ private struct _StepperCore: View, Renderable, Layoutable {
             valueStyle: context.environment.styleCascade.resolve(
                 for: [.all, .text, .control(.stepper)]),
             legibilityWeight: context.environment.legibilityWeight,
-            isDisabled: isDisabled
+            isDisabled: isDisabled,
+            // The bordered button's density table, round the value.
+            padding: context.environment.controlSize.padding(regular: 1)
         )
 
         var buffer = FrameBuffer(text: content)
@@ -813,7 +818,8 @@ private struct _StepperCore: View, Renderable, Layoutable {
         emphasis: SelectionEmphasisCycle,
         valueStyle: StyleAttributes,
         legibilityWeight: LegibilityWeight?,
-        isDisabled: Bool
+        isDisabled: Bool,
+        padding: Int
     ) -> (content: String, valueClaim: OpacityRegion?) {
         // Arrow and value colors:
         //   - Focused: pulsing accent
@@ -858,8 +864,9 @@ private struct _StepperCore: View, Renderable, Layoutable {
         guard !shown.isEmpty else { return ("\(leftArrow)\(rightArrow)", nil) }
         let effectiveValueColor =
             isDisabled ? valueColor : (valueStyle.foreground?.resolve(with: palette) ?? valueColor)
+        let pad = String.spaces(padding)
         let valueText = ANSIRenderer.colorize(
-            " \(shown) ",
+            pad + shown + pad,
             foreground: effectiveValueColor.opaqueSpelling,
             // A tier heavier under a bold legibility weight: the read-out is text.
             bold: legibilityWeight.applied(bold: !isDisabled && (valueStyle.bold ?? false), faint: false).bold,
@@ -870,7 +877,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         // The read-out's rectangle starts past the left arrow, MEASURED rather
         // than assumed to be one cell: `◀` is U+25C0, East Asian Ambiguous (see
         // `TerminalWidthCorpus`), which is exactly why `_ToggleCore.claims`
-        // measures its own runs. Its two pad spaces are INSIDE the styled run —
+        // measures its own runs. Its pad spaces are INSIDE the styled run —
         // unlike a Slider's, which are appended bare — so `.stepperTextStyle
         // { $0.underline = true }` puts ink on them and they are part of the claim.
         // The arrows themselves are opaque on every arm and animate besides.
@@ -878,7 +885,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
             "\(leftArrow)\(valueText)\(rightArrow)",
             OpacityRegion.claim(
                 offsetX: TerminalSymbols.leftArrow.strippedLength,
-                width: shown.strippedLength + 2, height: 1, ink: effectiveValueColor))
+                width: shown.strippedLength + 2 * padding, height: 1, ink: effectiveValueColor))
     }
 }
 
