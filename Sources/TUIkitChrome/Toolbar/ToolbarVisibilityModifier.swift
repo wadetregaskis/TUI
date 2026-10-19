@@ -1,14 +1,15 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ToolbarVisibilityModifier.swift
 //
-//  `.toolbarVisibility(_:for:)`: a view's say in whether a window bar is shown.
+//  The bar modifiers: a view's say in how the window's bars are drawn —
+//  `.toolbarVisibility(_:for:)`, whether a bar is shown.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import TUIkitFoundation
 
-// MARK: - Public Modifier
+// MARK: - Public Modifiers
 
 extension View {
     /// Specifies the visibility of a bar managed by the window — mirrors
@@ -44,21 +45,36 @@ extension View {
     ///     ``ToolbarPlacement/bottomBar`` for the bottom one.
     /// - Returns: A view whose bars' preferred visibility is `visibility`.
     public func toolbarVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
-        _ToolbarVisibilityModifier(content: self, visibility: visibility, bars: bars)
+        _ToolbarBarStatementModifier(content: self, statement: .visibility(visibility), bars: bars)
+    }
+}
+
+// MARK: - The Statements
+
+/// What a bar modifier says about the bars it names.
+enum _ToolbarBarStatement {
+    /// `.toolbarVisibility(_:for:)`: whether the bar is shown.
+    case visibility(Visibility)
+
+    /// Records the statement for the bar at `edge`.
+    func declare(into chrome: WindowChromeState, for edge: WindowChromeState.Edge) {
+        switch self {
+        case .visibility(let visibility): chrome.declare(visibility, for: edge)
+        }
     }
 }
 
 // MARK: - The Modifier
 
-/// Declares a bar visibility into the window's chrome as `content` renders —
-/// on the drawn walk, and on the first frame's seeding walk, as `.toolbar`
-/// declares its items.
-struct _ToolbarVisibilityModifier<Content: View>: View, Renderable, Layoutable {
+/// Declares a statement about the window's bars into its chrome as `content`
+/// renders — on the drawn walk, and on the first frame's seeding walk, as
+/// `.toolbar` declares its items.
+struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
-    let visibility: Visibility
+    let statement: _ToolbarBarStatement
     let bars: [ToolbarPlacement]
 
-    var body: Never { fatalError("_ToolbarVisibilityModifier renders via Renderable") }
+    var body: Never { fatalError("_ToolbarBarStatementModifier renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Not from presented content: a sheet's toolbar is the sheet's
@@ -72,7 +88,7 @@ struct _ToolbarVisibilityModifier<Content: View>: View, Renderable, Layoutable {
             // buffer would leave the window without the statement.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             for bar in bars.isEmpty ? [.automatic] : bars {
-                chrome.declare(visibility, for: bar.edge == .bottom ? .bottom : .top)
+                statement.declare(into: chrome, for: bar.edge == .bottom ? .bottom : .top)
             }
         }
         return TUIkitView.renderToBuffer(content, context: context)
@@ -89,6 +105,6 @@ struct _ToolbarVisibilityModifier<Content: View>: View, Renderable, Layoutable {
 /// Names its content so a z-index or a container value (a `.tag`) written
 /// inside it still reaches the container around it — see `_ToolbarModifier`'s
 /// conformance. Read-only: not ``ContentRewrapping``.
-extension _ToolbarVisibilityModifier: SingleContentWrapper {
+extension _ToolbarBarStatementModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
