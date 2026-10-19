@@ -50,8 +50,15 @@ public struct DisabledModifier<Content: View>: View {
     /// Not used during rendering — ``Renderable`` conformance takes priority.
     public var body: some View { content }
 
+    /// `context` with `isEnabled` ANDed with `!disabled` — `context` itself
+    /// where that changes nothing, as `.disabled(false)` and `.disabled(true)`
+    /// in a disabled subtree do: a write copies the whole environment, which
+    /// the context shares with its parent's (`framedcolumns`: 0.7% of a
+    /// frame, every list and toggle measured under one).
     private func modifiedContext(_ context: RenderContext) -> RenderContext {
-        let enabled = context.environment.isEnabled && !disabled
+        let wasEnabled = context.environment.isEnabled
+        let enabled = wasEnabled && !disabled
+        guard enabled != wasEnabled else { return context }
         return context.withEnvironment(context.environment.setting(\.isEnabled, to: enabled))
     }
 }
