@@ -49,7 +49,8 @@ extension View {
     ///   - arrowEdge: Which side of this view the popover sits on. A terminal
     ///     draws no arrow, but the edge still decides the side; `nil` (the
     ///     default) means below.
-    ///   - content: A ViewBuilder returning the popover's content.
+    ///   - content: A ViewBuilder returning the popover's content, called only
+    ///     while the popover is presented, each time it is drawn.
     public func popover<Content: View>(
         isPresented: Binding<Bool>,
         attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds),
@@ -57,7 +58,7 @@ extension View {
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         _AdaptivePopover(
-            base: self, isPresented: isPresented, popover: content(), attachmentAnchor: attachmentAnchor,
+            base: self, isPresented: isPresented, popover: content, attachmentAnchor: attachmentAnchor,
             arrowEdge: arrowEdge ?? .bottom, itemKey: nil)
     }
 
@@ -72,7 +73,8 @@ extension View {
     ///   - item: A binding to an optional, identifiable item; non-`nil` presents.
     ///   - attachmentAnchor: Where on this view the popover attaches.
     ///   - arrowEdge: Which side of this view the popover sits on.
-    ///   - content: A ViewBuilder building the popover from the unwrapped item.
+    ///   - content: A ViewBuilder building the popover from the unwrapped item,
+    ///     called only while the popover is presented.
     public func popover<Item: Identifiable, Content: View>(
         item: Binding<Item?>,
         attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds),
@@ -85,11 +87,12 @@ extension View {
         )
         // Built here rather than through the `isPresented:` spelling, which has
         // no way to name the item: the key has to be read from the same binding,
-        // at the same moment, as the content built from it.
+        // at the same moment, as the item the content is built from.
+        let shown = item.wrappedValue
         return _AdaptivePopover(
-            base: self, isPresented: isPresented, popover: item.wrappedValue.map(content),
+            base: self, isPresented: isPresented, popover: { shown.map(content) },
             attachmentAnchor: attachmentAnchor, arrowEdge: arrowEdge ?? .bottom,
-            itemKey: item.wrappedValue.map { identityKey($0.id) })
+            itemKey: shown.map { identityKey($0.id) })
     }
 }
 
@@ -104,10 +107,14 @@ extension View {
 /// structure, so the presenting view keeps its state. The presented content
 /// is a different view in each — it starts over when the form changes, as a
 /// presentation that changes form does.
+///
+/// The content is built only while the popover is presented — once, here,
+/// for the form and for whichever presenter shows it — and is `nil` while it
+/// is not: never built, as SwiftUI never calls a closed popover's closure.
 struct _AdaptivePopover<Base: View, Popover: View>: View {
     let base: Base
     let isPresented: Binding<Bool>
-    let popover: Popover
+    let popover: () -> Popover
     let attachmentAnchor: PopoverAttachmentAnchor
     let arrowEdge: Edge
     let itemKey: String?
@@ -116,8 +123,10 @@ struct _AdaptivePopover<Base: View, Popover: View>: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     var body: some View {
-        let form = popoverForm(of: popover, horizontal: horizontalSizeClass, vertical: verticalSizeClass)
-        let popover = self.popover
+        let popover = isPresented.wrappedValue ? self.popover() : nil
+        let form =
+            popover.map { popoverForm(of: $0, horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
+            ?? .popover
         PopoverPresentationModifier(
             content: ModalPresentationModifier(
                 content: ModalPresentationModifier(

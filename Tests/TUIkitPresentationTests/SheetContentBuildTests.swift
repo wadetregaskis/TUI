@@ -109,6 +109,17 @@ struct SheetContentBuildTests {
         #expect(builds.dismissedAgain == 2)
     }
 
+    @Test("A popover's content is built only in the frames it is presented")
+    func popover() {
+        let model = Model()
+        let builds = buildsAcross(model, page: {
+            Text("page").popover(isPresented: model.binding) { model.draft() }
+        }, toggle: { model.presented = $0 })
+        #expect(builds.dismissed == 0, "a closed popover built its content")
+        #expect(builds.presented == 2, "two presented frames built it \(builds.presented) times")
+        #expect(builds.dismissedAgain == 2, "the closed popover built its content again")
+    }
+
     @Test("What a sheet's content is made from is read when it is presented, not when the page first drew")
     func madeWhenPresented() {
         let model = Model()
