@@ -2690,6 +2690,13 @@ private struct ToolbarShapes: View {
                     }
                     ToolbarTitleMenu()
                 }
+            TabView {
+                Tab("Inbox", systemImage: "tray") { Text("inbox") }
+            }
+            .tabViewStyle(.sidebarAdaptable)
+            .contentToolbar(for: .tabViewSidebar) {
+                Button("New Mailbox", systemImage: "plus") {}
+            }
             LabelStyleReader()
         }
     }

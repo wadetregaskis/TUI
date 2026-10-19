@@ -159,6 +159,32 @@ struct TabViewSidebarTests {
         #expect(!strip.contains("HEADER") && !strip.contains("FOOTER"), "\(strip)")
     }
 
+    @Test("A content toolbar for the tab view sidebar is a row at the sidebar's foot, and only in a sidebar")
+    func contentToolbar() {
+        let tabs = TabView(selection: .constant(0)) {
+            Tab("Only", value: 0) { Text("BODY") }
+        }
+        .tabViewSidebarFooter { Text("FOOTER") }
+        .tabViewSidebarBottomBar { Text("BOTTOM") }
+        .contentToolbar(for: .tabViewSidebar) {
+            Text("ADD")
+            Text("REMOVE")
+        }
+        let sidebar = renderToBuffer(
+            tabs.tabViewStyle(.sidebarAdaptable), context: makeRenderContext(width: 60, height: 12)
+        ).lines.map(\.stripped)
+        let footer = sidebar.firstIndex { $0.contains("FOOTER") }
+        let toolbar = sidebar.firstIndex { $0.contains("ADD REMOVE") }
+        let bottom = sidebar.firstIndex { $0.contains("BOTTOM") }
+        #expect(footer != nil && toolbar != nil && bottom != nil, "\(sidebar)")
+        if let footer, let toolbar, let bottom {
+            #expect(footer < toolbar && toolbar < bottom, "\(sidebar)")
+        }
+        let strip = renderToBuffer(tabs, context: makeRenderContext(width: 60, height: 12))
+            .lines.map(\.stripped).joined()
+        #expect(!strip.contains("ADD"), "\(strip)")
+    }
+
     @Test("The bottom accessory placement is nil, as on macOS")
     func bottomAccessoryPlacement() {
         #expect(EnvironmentValues().tabViewBottomAccessoryPlacement == nil)

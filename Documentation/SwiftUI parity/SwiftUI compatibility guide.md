@@ -702,9 +702,12 @@ is; it is the title's, so it goes where the title goes (not under a principal
 item, nor with the title removed). SwiftUI fills `ToolbarTitleMenu()`'s menu
 from the app's commands; TUIkit's commands are in the menu bar, and the empty
 form leaves the title as it is (decisions TOOLBARS, B-TOOLBARS-1).
+`.contentToolbar(for: .tabViewSidebar) { … }` puts a row of views at the foot
+of a `.sidebarAdaptable` tab view's sidebar, under its tabs and footer, above
+its bottom bar (iPadOS's placement, which macOS marks unavailable; TUIkit reads
+it on every platform).
 
-**Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
-modifiers (`contentToolbar`, `sharedBackgroundVisibility`), a
+**Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation
 family (`toolbar(id:)`).
 

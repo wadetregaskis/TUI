@@ -51,6 +51,7 @@ struct _TabSidebarLayout: View {
                     if let header = accessories.header { header }
                     _TabSidebarList(tabs: tabs, selection: selection)
                     if let footer = accessories.footer { footer }
+                    if let toolbar = accessories.toolbar { toolbar }
                     if let bottomBar = accessories.bottomBar { bottomBar }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -183,6 +184,8 @@ private struct _TabSidebarList: View {
 struct _TabViewSidebarAccessories {
     var header: AnyView?
     var footer: AnyView?
+    /// The sidebar's toolbar: `.contentToolbar(for: .tabViewSidebar)`.
+    var toolbar: AnyView?
     var bottomBar: AnyView?
 }
 
