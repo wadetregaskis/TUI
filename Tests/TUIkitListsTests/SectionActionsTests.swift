@@ -48,6 +48,51 @@ struct SectionActionsTests {
         #expect(drawn.contains { $0.contains("Pear") }, "\(drawn)")
     }
 
+    /// The cells after a line's last ink, before the list's right border —
+    /// the trailing edge a badge and a flush-right action end at.
+    private func trailingGap(_ line: String) -> Int {
+        var cells = Array(line)
+        if cells.last == "│" { cells.removeLast() }
+        return cells.reversed().prefix { $0 == " " }.count
+    }
+
+    /// macOS puts the actions at the trailing end of the header; a list that
+    /// hugs its rows draws its headers before it knows its width (decisions
+    /// B78).
+    @Test("In a list that fills its width the actions end where a row's badge ends; in one that hugs, after the title")
+    func flushRightWhereTheListFills() {
+        let rows = List {
+            Section("Fruit") {
+                Text("Apple").badge(5)
+            }
+            .sectionActions {
+                Button("Add") {}
+            }
+        }
+        let filled = lines(rows)
+        guard let header = filled.first(where: { $0.contains("Fruit") }),
+            let apple = filled.first(where: { $0.contains("Apple") })
+        else {
+            Issue.record("\(filled)")
+            return
+        }
+        #expect(trailingGap(header) == trailingGap(apple), "the action ends where the badge does: \(filled)")
+        #expect(trailingGap(header) <= 2, "flush right: \(filled)")
+        let hugged = lines(HStack(spacing: 0) {
+            rows.fixedSize(horizontal: true, vertical: false)
+            Spacer()
+        })
+        guard let huggedHeader = hugged.first(where: { $0.contains("Fruit") }),
+            let title = huggedHeader.range(of: "Fruit"), let add = huggedHeader.range(of: "Add")
+        else {
+            Issue.record("\(hugged)")
+            return
+        }
+        #expect(
+            huggedHeader.distance(from: title.upperBound, to: add.lowerBound) <= 3,
+            "after the title in a list that hugs: \(hugged)")
+    }
+
     @Test("An action is a focus stop that Return presses")
     func actionIsAFocusStop() {
         let counter = Counter()

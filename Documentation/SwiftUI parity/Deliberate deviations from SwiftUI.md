@@ -1753,7 +1753,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `.standard` badge sits in a capsule; a section's actions show while the
   pointer is over it.
 - **TUIkit:** `.automatic` is bordered; no separators unless asked; a badge is
-  plain text; section actions are always shown, after the header's title.
+  plain text; section actions are always shown — at the header's trailing
+  edge in a list that fills its width, after the title in one that hugs its
+  rows.
 - **Why:** a separator costs a line per row; actions shown only on hover are
   out of the keyboard's reach.
 - **Decided:** decisions A29 and A46 (**Owner**, 2026-10-07: tables stripe by

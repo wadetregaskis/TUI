@@ -13,14 +13,15 @@ import TUIkitView
 extension View {
     /// Adds custom actions to a section.
     ///
-    /// On macOS the actions appear when the pointer hovers over the section.
-    /// A terminal list shows them all the time instead, one cell after the
-    /// section's header title, where the keyboard reaches them as it reaches
-    /// any control — Tab moves onto each — and a click presses them: an action
-    /// shown only under the pointer would be one the keyboard could not use.
-    /// Not at the header's trailing edge, as macOS puts them: the header row
-    /// is drawn before the list knows the width it hugs to, and a flush-right
-    /// action would be clipped in a list that hugs its rows.
+    /// On macOS the actions appear at the trailing end of the section's
+    /// header when the pointer hovers over the section. A terminal list shows
+    /// them all the time instead, where the keyboard reaches them as it
+    /// reaches any control — Tab moves onto each — and a click presses them:
+    /// an action shown only under the pointer would be one the keyboard could
+    /// not use. They are at the header's trailing edge, as macOS puts them, in
+    /// a list that fills the width it is offered; in one that hugs its rows —
+    /// a tab view's sidebar — they go one cell after the header's title, as
+    /// the header is drawn before the list knows the width it hugs to.
     ///
     /// A section with no header shows its actions alone on the header's line.
     /// The actions belong to a section in a `List`; anywhere else — a
@@ -73,17 +74,24 @@ extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtr
         content.extractSectionContentRows(context: context.withChildIdentity(type: Content.self))
     }
 
-    /// The section's header, footer and content, with the actions drawn on
-    /// the header's first line one cell after its title — or as the header,
-    /// for a section without one. Actions that draw nothing leave the header
-    /// as it was.
+    /// The section's header and footer, with the actions drawn on the
+    /// header's line: flush against the row's trailing edge in a list that
+    /// fills its width — the width the row is drawn at, where the list puts a
+    /// row's badge — and one cell after the title in a list that hugs its
+    /// rows (``EnvironmentValues/listRowsHug``), whose width is settled from
+    /// the rows only after they are drawn. A section without a header shows
+    /// them alone on the header's line. Actions that draw nothing leave the
+    /// header as it was.
     func extractSectionInfo(context: RenderContext) -> SectionInfo {
         let info = content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
         let drawnActions = TUIkitView.renderToBuffer(
             actions, context: context.withChildIdentity(erasedType: Actions.self, key: "sectionActions"))
         guard !drawnActions.isBlank else { return info }
         var header = info.headerBuffer ?? FrameBuffer()
-        header.appendHorizontally(drawnActions, spacing: 1)
+        let spacing =
+            context.environment.listRowsHug
+            ? 1 : max(1, context.availableWidth - header.width - drawnActions.width)
+        header.appendHorizontally(drawnActions, spacing: spacing)
         return SectionInfo(
             headerBuffer: header, footerBuffer: info.footerBuffer, separator: info.separator)
     }

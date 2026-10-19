@@ -2891,7 +2891,11 @@ Where it differs:
   action there would lose its trailing cells. Flushing right in a list that
   fills its width, and after the title in one that hugs, is half a day: the
   header row would carry the actions apart from its buffer and the list
-  would place them as it places a badge.
+  would place them as it places a badge. **Shipped (2026-10-19, lane
+  LISTS2), more cheaply:** a list that fills draws its rows at the width it
+  composes them at, so the header is drawn with its actions flush against
+  that width, where a row's badge ends, and the list tells its rows whether
+  it hugs them (`listRowsHug`), where the actions stay after the title.
 
 ### B79. Tab view customization is the app's to change; no gesture changes it
 

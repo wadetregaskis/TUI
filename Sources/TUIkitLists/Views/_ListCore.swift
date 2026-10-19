@@ -616,6 +616,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var rowContext = context
         rowContext.environment.fixedSizeWidth = false
         Self.claimRowText(in: &rowContext.environment)
+        Self.tellRows(hugging: true, in: &rowContext.environment)
         let source = extractRows(from: content, context: rowContext)
         let widest = widestRowWidth(source: source, context: rowContext)
         let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
@@ -696,6 +697,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 ) { checkContext in
                     var rowContext = checkContext
                     rowContext.environment.fixedSizeWidth = false
+                    Self.tellRows(hugging: true, in: &rowContext.environment)
                     return ViewSize.fixed(walkForWidestRow(extractRows(from: content, context: rowContext)), 0)
                 }.width
             }
@@ -893,6 +895,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     - Self.cellsForBar(predictsBar, in: context.environment))
         }
         describeRows(in: &rowContext.environment, isSidebar: style is SidebarListStyle)
+        Self.tellRows(hugging: context.environment.fixedSizeWidth, in: &rowContext.environment)
         yieldRowSecondaryClicks(in: &rowContext.environment)
         // The rows' `containerRelativeFrame` container: the width a row gets,
         // and the height inside the border.
@@ -3192,6 +3195,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// measure too, so a cascaded `textCase` is measured as it is drawn.
     private static func claimRowText(in environment: inout EnvironmentValues) {
         if environment.controlKind == nil { environment.controlKind = .list }
+    }
+
+    /// Tells the rows whether this list hugs them
+    /// (``EnvironmentValues/listRowsHug``) — a list nested in a hugging list's
+    /// row fills, and says so — written only where it changes.
+    private static func tellRows(hugging hugs: Bool, in environment: inout EnvironmentValues) {
+        if environment.listRowsHug != hugs { environment.listRowsHug = hugs }
     }
 
     private func dimmed(_ buffer: FrameBuffer) -> FrameBuffer {
