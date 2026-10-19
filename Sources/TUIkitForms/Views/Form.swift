@@ -28,7 +28,9 @@ import TUIkitFoundation
 ///   a `Picker` of any style, a `Slider`, a `Stepper`, a `DatePicker` or a
 ///   `ColorPicker` written bare: a right-aligned field label — the control's
 ///   own, for those five — then the control. In a grouped form the label leads
-///   the row and the control trails it.
+///   the row and the control trails it. A row whose label draws nothing —
+///   `Slider(value:)`, or a label that is an `EmptyView` — has its control in
+///   the value column all the same.
 /// - **Checkboxes / radios** — a `Toggle("Wi-Fi", isOn:)` or `RadioButtonGroup`
 ///   used directly (with its own label) sits in the control column, box first,
 ///   and the **whole control (box, gap, and label) is clickable** — so don't wrap
@@ -608,18 +610,26 @@ private struct _FormFieldRow: View {
             // indented by one for a label that is not there.
             content
         } else {
-            // The gap is the label's trailing padding, not the stack's
-            // spacing: a label framed to no width at all — a row whose leading
-            // padding fills the column — would take the stack's spacing with
-            // it, and its content would start a cell short of the others'.
+            // The label's share of the column is held by a clear cell beneath
+            // it, not by the label's frame: a label that draws nothing — an
+            // `EmptyView`, `Slider(value:)`'s, a false `if` — takes a frame
+            // written on it away with it, as a modifier on nothing is nothing,
+            // and the content closed up to the row's leading edge. SwiftUI's form puts
+            // such a row's content in the value column, as it puts a row whose
+            // label is hidden (measured, `Tools/SwiftUIProbes/Form
+            // rows/unlabelled.out`).
+            //
+            // The gap is the cell's trailing padding, not the stack's spacing:
+            // a column with no width left for the label — a row whose leading
+            // padding fills it — would take the stack's spacing with it, and
+            // its content would start a cell short of the others'.
+            let width = max(0, pillar - leadingInset)
             HStack(spacing: 0) {
-                if !hidesLabel {
-                    label.frame(width: max(0, pillar - leadingInset), alignment: .trailing).padding(.trailing, 1)
-                } else {
-                    // A hidden label keeps no cell of the column but its place:
-                    // the value stays in the value column.
-                    Color.clear.frame(width: max(0, pillar - leadingInset) + 1, height: 1)
+                ZStack(alignment: .trailing) {
+                    Color.clear.frame(width: width, height: 1)
+                    if !hidesLabel { label.frame(width: width, alignment: .trailing) }
                 }
+                .padding(.trailing, 1)
                 content
             }
         }

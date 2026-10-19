@@ -96,6 +96,56 @@ struct FormLabelledControlTests {
         }
     }
 
+    /// A condition that is false, for a label that is not drawn.
+    private static var showsLabel: Bool { false }
+
+    @Test("A control with no label, or a row whose label draws nothing, is in the value column")
+    func unlabelledRowInValueColumn() {
+        // Measured on macOS 15.8: SwiftUI's columns form puts each of these in
+        // the value column, a `Text` written bare in it too (`Tools/SwiftUIProbes/
+        // Form rows/unlabelled.out`). Their label drew nothing and took its
+        // frame with it, and the row closed up to column 1, or 0.
+        let rows: [(String, AnyView)] = [
+            ("slider", AnyView(Slider(value: .constant(0.5)))),
+            (
+                "slider with value labels",
+                AnyView(
+                    Slider(value: .constant(0.5)) { EmptyView() } minimumValueLabel: { Text("lo") } maximumValueLabel: {
+                        Text("hi")
+                    })
+            ),
+            ("labelled content", AnyView(LabeledContent { Text("Alice") } label: { EmptyView() })),
+            ("menu picker", AnyView(Picker(selection: .constant(1)) { Text("One").tag(1) } label: { EmptyView() })),
+            ("stepper", AnyView(Stepper(value: .constant(3)) { EmptyView() })),
+            ("date picker", AnyView(DatePicker(selection: .constant(Self.date), displayedComponents: .date) { EmptyView() })),
+            ("colour picker", AnyView(ColorPicker(selection: .constant(.red)) { EmptyView() })),
+            ("a label of a false condition", AnyView(LabeledContent { Text("Alice") } label: { if Self.showsLabel { Text("x") } })),
+        ]
+        for (name, row) in rows {
+            let out = lines(Form { LabeledContent("Email address", value: "a@b.c"); row })
+            let drawn = Array(out.count > 1 ? out[1] : "")
+            // "Email address" is the column: thirteen cells, the gap, and the
+            // value column at fourteen.
+            #expect(drawn.firstIndex { $0 != " " } == 14, "\(name): \(out)")
+        }
+    }
+
+    @Test("In a grouped form a slider with no label starts where a labelled one does, at 45% of the row")
+    func unlabelledSliderInGroupedForm() {
+        // Measured: SwiftUI's grouped form starts the track of a slider with no
+        // label from 45% of the row, as it starts a labelled one's. Its label
+        // drew nothing and took its frame with it, and the track started at
+        // the row's leading edge.
+        func trackStart(_ slider: some View) -> Int? {
+            let out = lines(Form { Section { LabeledContent("Email", value: "a@b.c"); slider } }.formStyle(.grouped))
+            let row = line(with: "◀", in: out)
+            return row.firstRange(of: "◀").map { row.distance(from: row.startIndex, to: $0.lowerBound) }
+        }
+        let labelled = trackStart(Slider(value: .constant(0.5)) { Text("V") })
+        #expect(labelled.map { $0 > 20 } == true, "\(String(describing: labelled))")
+        #expect(trackStart(Slider(value: .constant(0.5))) == labelled)
+    }
+
     @Test("labelsHidden on a labelled control hides its label and keeps the control in the value column")
     func hiddenLabel() {
         let out = lines(

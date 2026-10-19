@@ -537,10 +537,16 @@ messages cite that path), and what cites it.
   label in the label column, the control in the value column, and in a grouped form the label leading and the
   control trailing (a slider and a segmented picker from 45% of the row). A checkbox is in the value column, its
   label after it. A leading padding on a field row widens the label column by as much; on a checkbox or a button it
-  moves the control on from where it would be. A hidden label takes no part in the column.
-- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19.
-- **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`).
+  moves the control on from where it would be. A hidden label takes no part in the column. `unlabelled.swift`
+  (`unlabelled.out`) asks where a row with no label goes: a `Slider(value:)`, a control or a `LabeledContent` whose
+  label is an `EmptyView`, a `Picker("")`. In a columns form each is in the value column, as a `Text` written bare
+  is; in a grouped form the control trails the row (a slider from 45% of it), as a labelled one's does.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19,
+  `unlabelled.swift` 2026-10-19.
+- **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`,
+  `p5/unlabelled.swift`).
 - **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,
+  `Sources/TUIkitForms/Views/Form.swift` (a field row's label column),
   `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift` and the modifiers' conformances to it (in
   `LifecycleModifier.swift`, `OnChangeModifier.swift`, `GestureModifier.swift`, `KeyboardShortcutModifier.swift`,
   `ContextMenuModifier.swift`, `OverlayModifier.swift` and beside them), `Sources/TUIkitFoundation/Views/FormControlRow.swift`

@@ -1,0 +1,24 @@
+Form(.columns): A LabeledContent with a long label, then B
+Text plain                A label    0..120  value  128..560  | B row  132..162  control  nothing
+Slider no label           A label    0..120  value  128..560  | B row  124..560  control  337..357 
+Slider EmptyView lo/hi    A label    0..120  value  128..560  | B row  124..560  control  337..357 
+LC Text, EmptyView label  A label    0..120  value  128..560  | B row  124..162  control  nothing
+LC TextField, EmptyView   A label    0..120  value  128..560  | B row  120..560  control  138..559 
+Picker EmptyView label    A label    0..120  value  128..560  | B row  124..560  control  133..559 
+Picker ""                 A label    0..120  value  128..560  | B row  124..560  control  133..559 
+Stepper EmptyView label   A label    0..120  value  128..560  | B row  124..146  control  133..146 
+Toggle EmptyView label    A label    0..120  value  128..560  | B row  132..146  control  133..147 
+ColorPicker EmptyView     A label    0..120  value  128..560  | B row  124..176  control  133..177 
+DatePicker EmptyView      A label    0..120  value  128..560  | B row  124..226  control  134..227 
+Form(.grouped): A LabeledContent with a long label, then B
+Text plain                A label   30..150  value  255..530  | B row   30..59   control   31..58  
+Slider no label           A label   30..150  value  255..530  | B row   30..530  control  255..530 
+Slider EmptyView lo/hi    A label   30..150  value  255..530  | B row   30..530  control  256..529 
+LC Text, EmptyView label  A label   30..150  value  255..530  | B row   30..530  control  501..530 
+LC TextField, EmptyView   A label   30..150  value  255..530  | B row   30..530  control  523..530 
+Picker EmptyView label    A label   30..150  value  255..530  | B row   30..530  control  485..528 
+Picker ""                 A label   30..150  value  255..530  | B row   30..530  control  485..528 
+Stepper EmptyView label   A label   30..150  value  255..530  | B row   30..530  control  515..528 
+Toggle EmptyView label    A label   30..150  value  255..530  | B row   30..530  control  504..530 
+ColorPicker EmptyView     A label   30..150  value  255..530  | B row   30..530  control  483..533 
+DatePicker EmptyView      A label   30..150  value  255..530  | B row   30..530  control  435..530 

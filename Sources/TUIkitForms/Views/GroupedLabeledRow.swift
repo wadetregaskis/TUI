@@ -60,7 +60,16 @@ private struct _GroupedLabeledRowCore: View, Renderable, Layoutable {
     private func row(width: Int, context: RenderContext) -> some View {
         let (start, fills, _) = arrangement(width: width, context: context)
         return HStack(alignment: .top, spacing: 0) {
-            collapsingLabel.frame(width: start, alignment: .leading)
+            // The cells before the content are held by a clear cell beneath the
+            // label, not by the label's frame: a label that draws nothing —
+            // `Slider(value:)`'s — takes a frame written on it away with it,
+            // and a flexible content started at the row's leading edge rather
+            // than at 45% of it, where SwiftUI's starts (measured,
+            // `Tools/SwiftUIProbes/Form rows/unlabelled.out`).
+            ZStack(alignment: .topLeading) {
+                Color.clear.frame(width: start, height: 1)
+                collapsingLabel.frame(width: start, alignment: .leading)
+            }
             content
                 .foregroundStyle(.secondary)
                 .environment(\.unstatedMultilineTextAlignment, fills ? .leading : .trailing)
