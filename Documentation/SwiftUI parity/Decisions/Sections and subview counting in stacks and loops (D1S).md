@@ -173,12 +173,13 @@ shapes are still one child:
   each of the body's views (measured: two subviews, each padded). The modified
   view is no provider here, as a modifier reaches members only through a
   provider it wraps.
-- **A body that is an `if`/`else`, an `AnyView`, or a modifier on several
-  views** (`Group { a; b }.padding()`): they answer the default witness (their
-  own body is `Never`), so such a body is one child. Most of the framework's
-  own controls have an `if`/`else` body (`TextField`'s does) and hand over
-  one view either way; answering `true` for it would evaluate their bodies on
-  every walk to find that out.
+- **A body that is an `AnyView`**, or an effect on several views
+  (`Group { a; b }.onAppear {}`), is one child. *Since 2026-10-19 (lane
+  LAYOUT, decisions B-LAYOUT-8) a body that is an `if`/`else` with an arm of
+  several views, or a modifier on several views (`Group { a; b }.padding()`),
+  is taken apart:* an `if`/`else` answers the witness with its arms, so one
+  of a view in each arm — `TextField`'s body — still answers `false` and is
+  never evaluated to find out.
 - **In a `List` beside other rows**, the rows of a loop in such a view are
   drawn as rows but selected and edited by the hand-written rule (their tag,
   else their place): a list's row placement cannot see into a body without

@@ -1,0 +1,10 @@
+== if/else body, true: a@(0,0) b@(20,0) fired=0
+== if/else body, false: c@(0,0) d@(20,0) fired=0
+== Group.padding body: a@(5,0) b@(30,0) fired=0
+== AnyView body: a@(0,0) b@(20,0) fired=0
+== Rows().padding: a@(5,0) b@(30,0) fired=0
+== Rows().opacity: a@(0,0) b@(20,0) fired=0
+== Group.opacity body: a@(0,0) b@(20,0) fired=0
+== Group.onAppear body: a@(0,0) b@(20,0) fired=1
+== Rows().onAppear: a@(0,0) b@(20,0) fired=1
+== Tree(3): leaf@(3,0) fired=0

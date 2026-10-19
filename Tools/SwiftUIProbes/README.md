@@ -174,8 +174,12 @@ messages cite that path), and what cites it.
   view of the app's own (`formcomposite.swift`); deleting the second view of an element's multi-view `List` row
   (`listdel.swift`); and a `Section` in a menu, read from the `NSMenu` of a `CommandMenu` (`menuapp.swift`;
   `menu.swift` tried a `Menu` in a window first, and its pop-up had no items offscreen). All are built with
-  `common.swift`, whose `Counter` layout and `probe(_:)` modifier print what a container saw.
-- **Ran:** macOS 15.8, 2026-10-04 and 2026-10-05. `cv.swift`, `lv.swift` and `z.swift` kept no output.
+  `common.swift`, whose `Counter` layout and `probe(_:)` modifier print what a container saw. A third round,
+  built alone: a body that is an `if`/`else` of several views, a modifier or an effect on a `Group` of several,
+  or an `AnyView`, and a modifier on such a view from outside, in an `HStack`, with how often the effect fires
+  (`composite-bodies.swift`).
+- **Ran:** macOS 15.8, 2026-10-04 and 2026-10-05; `composite-bodies.swift` macOS 15.8.1, 2026-10-19. `cv.swift`,
+  `lv.swift` and `z.swift` kept no output.
 - **Was:** `D1S/probe/`, and `D1S/probe2/` for the second round.
 - **Cited by:** `Sources/TUIkitView/Core/AnyViewMembers.swift`, `Sources/TUIkitView/Rendering/CompositeMembers.swift`,
   `Sources/TUIkitForms/Views/FormContentExtraction.swift`, `Sources/TUIkitFoundation/Rendering/MenuSections.swift`,

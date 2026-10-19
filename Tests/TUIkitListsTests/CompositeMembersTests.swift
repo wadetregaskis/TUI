@@ -8,8 +8,9 @@
 //  an `HStack` lays all three along its row, `Group(subviews:)` counts two, a
 //  `List` draws three rows; so is one inside another, a body that is a loop,
 //  and one that is an `if` (none while false); a loop of them is each one's
-//  views. It was one child everywhere, its body stacked in a column. Decisions
-//  D1S, B-D1S-6.
+//  views. It was one child everywhere, its body stacked in a column. So is a
+//  body that is an `if`/`else` with an arm of several views, or a modifier on
+//  several (`composite-bodies.swift` beside it). Decisions D1S, B-D1S-6.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -83,6 +84,63 @@ private struct SelfNested: View {
     var body: some View {
         Text("x")
         if flag { Self(flag: false) } else { Self(flag: true) }
+    }
+}
+
+/// A body that is an `if`/`else` with an arm of several views.
+private struct Branch: View {
+    let flag: Bool
+    var body: some View {
+        if flag {
+            Text("a")
+            Text("b")
+        } else {
+            Text("c")
+        }
+    }
+}
+
+/// A body that is a modifier on several views.
+private struct FramedPair: View {
+    var body: some View {
+        Group {
+            Text("a")
+            Text("b")
+        }
+        .frame(width: 3, alignment: .leading)
+    }
+}
+
+/// A body that is a padding on several views.
+private struct PaddedPair: View {
+    var body: some View {
+        Group {
+            Text("a")
+            Text("b")
+        }
+        .padding(.leading, 1)
+    }
+}
+
+/// A body that is an effect on several views.
+private struct AppearingPair: View {
+    let appeared: () -> Void
+    var body: some View {
+        Group {
+            Text("a")
+            Text("b")
+        }
+        .onAppear(perform: appeared)
+    }
+}
+
+/// A view whose body holds its own type, padded, in one arm of an
+/// `if`/`else`: asked whether it hands over children, it would ask itself for
+/// ever through the arm and the padding, were the answer not kept per type.
+private struct Tree: View {
+    let depth: Int
+    var body: some View {
+        if depth == 0 { Text("leaf") } else { Self(depth: depth - 1).padding(.leading, 1) }
     }
 }
 
@@ -199,6 +257,36 @@ struct CompositeMembersTests {
         #expect(ids == [nil, "x", nil, "alpha", "beta"], "\(ids)")
         #expect(fixture.pressDelete(onRow: 4, named: "beta"))
         #expect(deleted == [IndexSet(integer: 1)])
+    }
+
+    @Test("A body that is an if/else of several views is those views, as SwiftUI's is")
+    func ifElseBody() {
+        #expect(lines(HStack(spacing: 1) { Branch(flag: true) }).first == "a b")
+        #expect(lines(HStack(spacing: 1) { Branch(flag: false); Text("d") }).first == "c d")
+        #expect(layoutCount { Branch(flag: true); Text("c") } == 3)
+    }
+
+    @Test("A body that is a modifier on several views is each of them, modified, as SwiftUI's is")
+    func modifiedBody() {
+        #expect(lines(HStack(spacing: 0) { FramedPair() }).first == "a  b")
+        #expect(lines(HStack(spacing: 0) { PaddedPair() }).first == " a b")
+        #expect(layoutCount { FramedPair() } == 2)
+    }
+
+    /// SwiftUI fires an effect on several views once (semantic audit item
+    /// 50), so the effect wrappers hand no members on, and a view whose body
+    /// is one stays one view: its effect fires once, not once per member.
+    @Test("A body that is an effect on several views fires its effect once")
+    func effectBodyFiresOnce() {
+        var appeared = 0
+        _ = lines(HStack(spacing: 1) { AppearingPair { appeared += 1 } })
+        #expect(appeared == 1)
+    }
+
+    @Test("A view whose body holds its own type in an arm is asked once whether it hands over children")
+    func selfNestedBodyIsAskedOnce() {
+        #expect(!Tree._handsOverChildren)
+        #expect(lines(HStack { Tree(depth: 3) }).first == "   leaf")
     }
 
     @Test("Counting a row whose body holds its own type in both arms of an if/else descends each type once")

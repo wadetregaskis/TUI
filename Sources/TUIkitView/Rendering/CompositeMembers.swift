@@ -22,11 +22,40 @@ extension Optional where Wrapped: View {
     public static var _handsOverChildren: Bool { true }
 }
 
-// An `if`/`else` (`ConditionalView`), an `AnyView` and a modifier answer the
-// default — their `body` is `Never` — so a view whose body is one of them is
-// the one child it was: an `if`/`else` of one view each, the body of most of
-// the framework's own controls (`TextField`'s is), hands over one view either
-// way, and taking it apart would evaluate the body on every walk for nothing.
+extension ConditionalView {
+    /// An `if`/`else` hands over what its live arm hands over, so it may hand
+    /// over several when either arm may (``View/_handsOverChildren``) — and a
+    /// view whose body is one is taken apart, as SwiftUI's is (measured,
+    /// `Tools/SwiftUIProbes/Sections and subview counting/composite-bodies.out`:
+    /// `if flag { a; b } else { c }` as a body lays `a` and `b` along an
+    /// `HStack`). An `if`/`else` of one view each — the body of many of the
+    /// framework's own controls (`TextField`'s is) — answers `false`, and is
+    /// never evaluated to find out.
+    public static var _handsOverChildren: Bool {
+        TrueContent._handsOverChildren || FalseContent._handsOverChildren
+    }
+}
+
+extension ModifiedView {
+    /// A modifier on views that hand over several hands over each of them,
+    /// modified (`ModifiedView`'s ``ChildViewProvider`` conformance) — so a
+    /// view whose body is `Group { a; b }.padding()` is `a` and `b`, each
+    /// padded, as SwiftUI's is (``View/_handsOverChildren``).
+    public static var _handsOverChildren: Bool { Content._handsOverChildren }
+}
+
+extension View where Self: ContentRewrapping {
+    /// A wrapper that hands its content's members on, each inside a copy of
+    /// itself, hands over what its content does (``View/_handsOverChildren``):
+    /// `Group { a; b }.frame(width: 3)` as a body is `a` and `b`, each framed.
+    /// The effect wrappers (`.onAppear`, `.task`, …) are not
+    /// ``ContentRewrapping``, and answer `false`: SwiftUI fires such an effect
+    /// on several views once, so a view whose body is one stays one child.
+    public static var _handsOverChildren: Bool { WrappedContent._handsOverChildren }
+}
+
+// An `AnyView` answers `false` — what it erases is not in its type — so a view
+// whose body is one is the one child it was.
 
 /// The children a view of the app's own hands the container resolving it,
 /// when its `body` is a provider of children, or `nil` for any other view —
@@ -49,9 +78,9 @@ extension Optional where Wrapped: View {
 /// body the identity, the `@State` and the render-cache entries it had when
 /// the view was drawn whole.
 ///
-/// Gated by ``View/_handsOverChildren`` — a few witness calls down the chain
-/// of `body` types — so a view whose body is a stack, a `Text`, or anything
-/// else that is one view is never evaluated here.
+/// Gated by ``View/_handsOverChildren`` — its type's kept answer, worked out
+/// once down the chain of `body` types — so a view whose body is a stack, a
+/// `Text`, or anything else that is one view is never evaluated here.
 ///
 /// A view nested in itself through such bodies is taken apart at every level
 /// at once, each level a descent of this walk, so the walk stops where the

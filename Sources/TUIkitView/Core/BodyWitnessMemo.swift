@@ -84,6 +84,9 @@ package struct BodyWitnessMemo {
     /// The memo for ``View/_statesSpacingPreference``.
     package static let spacingPreference = permanentMemo()
 
+    /// The memo for ``View/_handsOverChildren``.
+    package static let handsOverChildren = permanentMemo()
+
     /// The memo for whether a view type is drawn at its own size whatever it
     /// is offered (TUIkitFoundation's `drawsAtItsOwnSize(_:)`).
     package static let ownSize = permanentMemo()

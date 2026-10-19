@@ -311,8 +311,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   probes).
 - **TUIkit:** an `if` without `else` that is a `ForEach` row's only view is one
   child, empty while false; an `AnyView` that is a `ForEach` row is one child;
-  a modified view of the app's own, or one whose body is an `if`/`else`, an
-  `AnyView` or a modifier on several views, is one child. A stack neither draws
+  a modified view of the app's own, or one whose body is an `AnyView` or an
+  effect on several views, is one child (a body that is an `if`/`else` or a
+  modifier on several views is taken apart since 2026-10-19, decisions
+  [B-LAYOUT-8](<Decisions/Layout parity (LAYOUT).md#b-layout-8-a-body-that-is-an-ifelse-or-a-modifier-on-several-views-is-those-views-a-modifier-on-such-a-view-is-still-one-child>)). A stack neither draws
   nor spaces an empty child, so only an app's own `Layout`, which counts
   subviews, sees the first difference.
 - **Why:** counting these exactly means building every row on every walk,

@@ -261,3 +261,57 @@ member than once.
 their effect once: the members reach the container as separate children, and
 the effect is put on exactly one of them. About a day, with a test per effect
 wrapper that the effect fires once.
+
+### B-LAYOUT-8. A body that is an `if`/`else` or a modifier on several views is those views; a modifier on such a view is still one child
+
+*`View`, `HStack`, `Layout`, `List`, `Group` (the settled question B-D1S-6,
+option 2)*
+
+Shipped: a view of the app's own whose body is an `if`/`else` with an arm of
+several views, or a modifier on several views that hands each member a copy
+of itself (`Group { a; b }.padding()`, `.frame`, `.opacity` — the thirty
+wrappers of the compatibility guide §3, and `ModifiedView`), is those views to
+a container, as SwiftUI's is (measured,
+`Tools/SwiftUIProbes/Sections and subview counting/composite-bodies.out`:
+`if flag { a; b } else { c }` as a body lays `a` and `b` along an `HStack`,
+and `Group { a; b }.padding(.leading, 5)` pads each). `_handsOverChildren`
+answers through an `if`/`else`'s arms and a modifier's content, and a view of
+the app's own asks it once per type and keeps the answer
+(`BodyWitnessMemo`), as the guide witness does since B19: an arm can hold
+the view's own type (`CompositeMembersTests`). An `if`/`else` of one view
+each — `TextField`'s body — still answers `false`, and is never evaluated to
+find out.
+
+Not shipped:
+
+- **A modifier on such a view** (`Rows().padding(3)`): SwiftUI pads each of
+  the body's views (measured: `a` at 5, `b` at 30); here the padded view is
+  one child. Taking it apart evaluates `Rows`'s body where the walk meets the
+  modifier, in the walk's context — without what an environment wrapper sets
+  for its content (`Rows().disabled(true)`), so a body that reads
+  `@Environment` to choose its views would choose them as if the wrapper were
+  not there. By reading the code, `Group { Rows() }.disabled(true)` already
+  evaluates `Rows`'s body that way, since the wrappers hand their content's
+  members on in the context they are given; no test pins it either way.
+- **A body that is an `AnyView`** (SwiftUI: several, measured): an `AnyView`'s
+  type says nothing of what it erases, and answering "may" for every one
+  would evaluate each such view's body in the walk.
+- **A body that is an effect on several views** (`Group { a; b }.onAppear
+  {}`): one child, its effect fired once (B-LAYOUT-7). SwiftUI lays the views
+  out apart and fires it once (measured).
+- **A list's row placement** is told nothing new: the rows of a loop in such
+  a view, beside other rows in a `List`, are selected by the hand-written rule
+  (D1S).
+
+**The fuller version:** a requirement on the wrappers that hand members on,
+giving the context their content is resolved in (an environment wrapper's
+adjusted context), used wherever they hand members on; then a wrapper over
+such a view hands on the view's members, each in a copy of the wrapper, and
+the static counts (`staticMemberCount`, the row counts, `mayHandOver`, a
+loop's row shape, the keyed row runs, `List`, `Form`, `Section`) are taught
+the same. About a day and a half, with a test per site. `AnyView` bodies:
+about two hours, plus an A/B on `anyview` and `kitchensink`.
+
+**A/B owed:** the witness now reads a kept answer for each child of a
+composite type, as the guide's does; with B19's arms, on `fanout`, `deep`,
+`kitchensink`, `megalist`, `anyview` and `table`.

@@ -322,9 +322,21 @@ public extension View {
 
     /// Default: what this view's `body` answers — to a container a view of the
     /// app's own is what its body is. A tuple, an `if`, a loop, a `Group` of
-    /// those and a `Section` answer `true`; `Never` — a primitive's body —
+    /// those and a `Section` answer `true`, and so do an `if`/`else` with an
+    /// arm that does and a modifier on one; `Never` — a primitive's body —
     /// `false`.
-    static var _handsOverChildren: Bool { Body._handsOverChildren }
+    ///
+    /// Asked once per type and kept (``BodyWitnessMemo``), as the guide
+    /// witness is: an `if`/`else` answers with its arms and a modifier with its
+    /// content, so a view whose body holds its own type in an arm (`if depth
+    /// == 0 { Text("leaf") } else { Tree(depth: depth - 1).padding() }`) would
+    /// otherwise ask itself for ever.
+    static var _handsOverChildren: Bool {
+        guard Body.self != Never.self else { return false }
+        return BodyWitnessMemo.answer(in: BodyWitnessMemo.handsOverChildren, for: Self.self) {
+            Body._handsOverChildren
+        }
+    }
 
     /// A view says nothing continuous about itself unless it is ``Animatable``.
     @inlinable
