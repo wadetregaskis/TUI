@@ -98,3 +98,17 @@ blank space is under the resting pointer, and back, lights the row it brings
 back (today that row waits for the pointer to move). About half a day with
 tests, mostly wiring the event funnel's entry points (`AppRunner`,
 `HeadlessApp`).
+
+**Fuller version shipped (lane INPUT, 2026-10-18).** The event funnel notes
+every input it dispatches — a key, a modifier key, any report from the mouse
+(`MouseEventDispatcher.noteInput()`, from `AppRunner`, `HeadlessApp.send` and
+`dispatch(_:)` itself) — and the dispatcher remembers every control a reshape
+has taken a hover lane off since the last one
+(`MouseEventDispatcher.leftByReshape`, replacing the per-lane
+`HoverSlot.leftByReshape`). No reshape enters one of them, whether the lane
+rests on nothing or on another control, so the loop through two hover views
+goes round once and settles, and a row a key scrolls away and back is
+entered again without waiting for the pointer
+(`HoverReshapeTests.reshapeLoopThroughTwoControlsSettles`,
+`.inputLetsALeftControlBeEnteredAgain`;
+`HoverReshapeRunLoopTests.twoViewLoopSettles`, `.keyMovedRowIsEnteredAgain`).

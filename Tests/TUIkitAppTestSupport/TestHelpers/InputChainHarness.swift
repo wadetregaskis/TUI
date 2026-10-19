@@ -187,7 +187,9 @@ final class InputChainHarness {
     /// Hands `event` to the chain and reports whether some layer took it.
     @discardableResult
     func press(_ event: KeyEvent) -> Bool {
-        handler.handle(event)
+        // As the app's funnel notes every input (`AppRunner`).
+        tui.mouseEventDispatcher.noteInput()
+        return handler.handle(event)
     }
 
     /// Hands a mouse event, in terminal cells, to the dispatcher, and reports

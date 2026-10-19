@@ -40,22 +40,6 @@ extension MouseEventDispatcher {
         /// cursor, `.exited` must still reach the one that was left — by then
         /// its numeric id belongs to someone else, or to no one.
         var pendingExit: PendingHoverExit?
-
-        /// The control a reshape took this lane off, leaving it on nothing:
-        /// a later reshape that puts that control back under the resting
-        /// cursor does not enter it again, until the cursor next reports
-        /// motion (which re-resolves the lane, `dispatchMotion`). Any other
-        /// control a reshape slides under the cursor is entered. `nil` while
-        /// the lane hovers something, or rests on nothing because the cursor
-        /// moved there.
-        ///
-        /// Without it, a hover whose change moves its own view out from under
-        /// the cursor — `.onHover` showing a line of details above its row —
-        /// flickered for ever: entered, moved away and exited, moved back and
-        /// entered again, a frame each, and the app never idled. By the
-        /// control's id, which is its own across frames (interned per view):
-        /// the view comes back where it was, or near it.
-        var leftByReshape: HitTestRegion.HandlerID?
     }
 
     /// A control that was hovered and whose `.exited` still has to reach it.
@@ -73,6 +57,15 @@ extension MouseEventDispatcher {
     struct PendingHoverExit {
         let region: HitTestRegion
         let handler: (MouseEvent) -> Bool
+    }
+
+    /// Notes that the event funnel is dispatching an input — a key, a
+    /// modifier key, or any report from the mouse — so the reshapes from
+    /// here on are its effect, not the hover handlers' own: the controls
+    /// reshapes took a lane off since the last input are forgotten
+    /// (``leftByReshape``). The mouse's are noted by ``dispatch(_:)`` itself.
+    package func noteInput() {
+        leftByReshape.removeAll(keepingCapacity: true)
     }
 
     /// Lets go of the pointer: the terminal says it has left the window, as
@@ -97,6 +90,7 @@ extension MouseEventDispatcher {
         let position = restingPosition ?? lastMotionPosition ?? (x: 0, y: 0)
         restingPosition = nil
         lastMotionPosition = nil
+        leftByReshape.removeAll()
         var fired = exitLane(&hover, at: position)
         fired = exitLane(&observedHover, at: position) || fired
         if tooltipState?.pointerLeft() == true { fired = true }
@@ -171,16 +165,17 @@ extension MouseEventDispatcher {
     /// the walk reset to the scene's base mid-frame — without motion unless
     /// the scene declares it, though an `.onHover` asks for it every frame.
     /// Entered once: the lane holds the control from then on,
-    /// and the next reshape finds the same one. Not the control a reshape
-    /// took the lane off, until the cursor moves (``HoverSlot/leftByReshape``).
+    /// and the next reshape finds the same one. Never a control a reshape
+    /// has taken a lane off since the last input (``leftByReshape``).
     ///
     /// A lane that hovered something enters the newcomer under the pointer
-    /// only at a known position too (`entering`); it is exited as before.
+    /// only at a known position too (`entering`); it is exited as before,
+    /// and what it left is remembered.
     private func reconciled(
         _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int), entering: Bool
     ) -> HoverSlot {
         guard slot.region != nil || slot.pendingExit != nil else {
-            guard let current, entering, frameFinalSupport.motion, current.handlerID != slot.leftByReshape
+            guard let current, entering, frameFinalSupport.motion, !leftByReshape.contains(current.handlerID)
             else { return slot }
             return entered(current, at: position)
         }
@@ -206,7 +201,8 @@ extension MouseEventDispatcher {
                 y: position.y - oldRegion.localOriginY)
             _ = oldHandler(exit)
         }
-        guard let current, entering else { return HoverSlot(leftByReshape: previous?.handlerID) }
+        if let left = previous?.handlerID { leftByReshape.insert(left) }
+        guard let current, entering, !leftByReshape.contains(current.handlerID) else { return HoverSlot() }
         return entered(current, at: position)
     }
 

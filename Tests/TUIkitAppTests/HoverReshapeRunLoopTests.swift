@@ -72,6 +72,75 @@ private struct SelfDisplacingPage: View {
     }
 }
 
+/// decisions-BUGS13 B-BUGS13-2's loop through two hover views: hovering the
+/// first shows the second in its place, which pushes the first a row down,
+/// and the second's going brings the first back under the pointer.
+private struct TwoViewLoopApp: App {
+    let log: HoverLog
+
+    init() { log = HoverLog() }
+
+    init(log: HoverLog) { self.log = log }
+
+    var body: some Scene {
+        WindowGroup {
+            TwoViewLoopPage(log: log)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .mouseSupport(.full)
+    }
+}
+
+private struct TwoViewLoopPage: View {
+    let log: HoverLog
+    @State private var firstHovered = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if firstHovered {
+                Text("second").onHover { log.heard.append($0) }
+            }
+            Text("first").onHover {
+                firstHovered = $0
+                log.heard.append($0)
+            }
+        }
+    }
+}
+
+/// A row with `.onHover` that a key moves down a row and back.
+private struct KeyMovedRowApp: App {
+    let log: HoverLog
+
+    init() { log = HoverLog() }
+
+    init(log: HoverLog) { self.log = log }
+
+    var body: some Scene {
+        WindowGroup {
+            KeyMovedRowPage(log: log)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .mouseSupport(.full)
+    }
+}
+
+private struct KeyMovedRowPage: View {
+    let log: HoverLog
+    @State private var pushed = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if pushed { Text("spacer") }
+            Text("row").onHover { log.heard.append($0) }
+        }
+        .onKeyEvent(keys: [.character("n")]) { _ in
+            pushed.toggle()
+            return true
+        }
+    }
+}
+
 /// A focused button that puts a row above an `.onHover`, so it slides under a
 /// pointer resting on the blank row below it, in an app that declares no
 /// mouse support: the motion is what its views ask for, the `.onHover` and
@@ -201,6 +270,41 @@ struct HoverReshapeRunLoopTests {
             for _ in 0..<12 { driver.step() }
             #expect(log.heard == settled, "\(height) rows: it went on after it settled: \(log.heard)")
         }
+    }
+
+    /// decisions-BUGS13 B-BUGS13-2: each reshape moved the lane from one
+    /// view to the other, and the app never idled.
+    @Test("A loop through two .onHover views under a resting pointer settles")
+    func twoViewLoopSettles() throws {
+        let log = HoverLog()
+        let driver = Driver(TwoViewLoopApp(log: log))
+        let first = try #require(driver.position(of: "first"), "precondition: drawn")
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: first.x + 1, y: first.y))
+        for _ in 0..<12 { driver.step() }
+        let settled = log.heard
+        #expect(settled.first == true, "precondition: the move entered it: \(settled)")
+        #expect(settled.count <= 4, "it loops: \(settled)")
+        for _ in 0..<12 { driver.step() }
+        #expect(log.heard == settled, "it went on after it settled: \(log.heard)")
+    }
+
+    /// decisions-BUGS13 B-BUGS13-2: a row a key moves from under a resting
+    /// pointer, and back, lights again; it waited for the pointer to move.
+    @Test("A row a key moves away and back under a resting pointer is entered again")
+    func keyMovedRowIsEnteredAgain() throws {
+        let log = HoverLog()
+        let driver = Driver(KeyMovedRowApp(log: log))
+        let row = try #require(driver.position(of: "row"), "precondition: drawn")
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: row.x + 1, y: row.y))
+        driver.step()
+        #expect(driver.app.send(KeyEvent(character: "n")))
+        driver.step()
+        driver.step()
+        #expect(log.heard == [true, false], "precondition: the key moved it away: \(log.heard)")
+        #expect(driver.app.send(KeyEvent(character: "n")))
+        driver.step()
+        driver.step()
+        #expect(log.heard == [true, false, true], "the row came back unlit: \(log.heard)")
     }
 
     /// Found by the BUGS13 lane's review: the reshape asked whether motion is

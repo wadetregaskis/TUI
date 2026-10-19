@@ -147,7 +147,8 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   review found that an `.onHover` whose change moves its own view out from
   under the pointer then flickered at frame rate, entered, exited and
   entered again, and the app never idled
-  (`MouseEventDispatcher.HoverSlot.leftByReshape`,
+  (`MouseEventDispatcher.leftByReshape`, every control since the last input
+  since 2026-10-18,
   `HoverReshapeTests.reshapeDoesNotReenterWhatItLeft`,
   `HoverReshapeRunLoopTests.selfDisplacingHoverSettles`; decisions-BUGS13
   B-BUGS13-2).

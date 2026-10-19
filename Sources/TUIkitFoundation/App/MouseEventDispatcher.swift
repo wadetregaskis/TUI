@@ -141,6 +141,24 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// on a lane of its own so the control keeps its hover.
     var observedHover = HoverSlot()
 
+    /// The controls a reshape has taken a hover lane off since the last
+    /// input (``noteInput()``), by their ids, which are their own across
+    /// frames (interned per view): no reshape enters one of them again until
+    /// an input is dispatched, the pointer's moves included.
+    ///
+    /// A hover whose change moves its own view out from under a resting
+    /// pointer — `.onHover` showing a line of details above its row —
+    /// flickered for ever without it: entered, moved away and exited, moved
+    /// back and entered again, a frame each, and the app never idled. One
+    /// control per lane, kept until the pointer moved, stopped that (lane
+    /// BUGS13) but not a loop through two hover views, one whose change
+    /// puts another under the pointer and takes it away as it leaves: each
+    /// reshape moved the lane from one to the other. Every control left
+    /// since the last input, forgotten at the next one, stops both, and
+    /// lets a row the keyboard scrolls away and back light again without
+    /// waiting for the pointer to move (decisions-BUGS13 B-BUGS13-2).
+    var leftByReshape: Set<HitTestRegion.HandlerID> = []
+
     /// The handlers registered as hover observers this frame, cleared with the
     /// handler table.
     var hoverObserverIDs: Set<HitTestRegion.HandlerID> = []
@@ -880,6 +898,7 @@ extension MouseEventDispatcher {
         // too: a drag's moves arrive as `.dragged`, never as `.moved`
         // (`restingPosition`).
         if event.phase == .moved || event.phase == .dragged { restingPosition = (event.x, event.y) }
+        noteInput()
 
         // Honour the active MouseSupport configuration: drop events
         // whose category isn't enabled. The terminal may still send

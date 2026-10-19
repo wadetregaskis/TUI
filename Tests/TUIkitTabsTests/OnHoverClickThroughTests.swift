@@ -428,6 +428,71 @@ struct HoverReshapeTests {
         #expect(Array(events.suffix(2)) == ["hovering exited", "other entered"], "the newcomer: \(events)")
     }
 
+    /// decisions-BUGS13 B-BUGS13-2: a loop through two hover views — one
+    /// whose change puts the other under the resting cursor and takes it
+    /// away as it leaves — moved the lane from one to the other at every
+    /// reshape, and never rested on nothing. Every control a reshape took a
+    /// lane off since the last input is kept from it.
+    @Test("A reshape loop through two controls settles", arguments: [false, true])
+    func reshapeLoopThroughTwoControlsSettles(observer: Bool) {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full, isFrameFinal: true)
+        let first = dispatcher.handlerIDs.freshID()
+        let second = dispatcher.handlerIDs.freshID()
+        var events: [String] = []
+
+        func frame(underCursor id: HitTestRegion.HandlerID) {
+            dispatcher.beginRenderPass()
+            var regions: [HitTestRegion] = []
+            for (each, name) in [(first, "first"), (second, "second")] {
+                _ = dispatcher.register(id: each) { events.append("\(name) \($0.phase)"); return true }
+                if observer { dispatcher.noteHoverObserver(each) }
+                // Of different widths: a region with no focus id is told
+                // from another by its rectangle.
+                regions.append(
+                    HitTestRegion(
+                        offsetX: 0, offsetY: each == id ? 2 : 5, width: each == first ? 6 : 7, height: 1,
+                        handlerID: each))
+            }
+            dispatcher.setRegions(regions)
+        }
+
+        frame(underCursor: first)
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 2, y: 2))
+        for index in 0..<8 { frame(underCursor: index.isMultiple(of: 2) ? second : first) }
+        #expect(
+            events == ["first entered", "first exited", "second entered", "second exited"],
+            "the loop goes round: \(events)")
+    }
+
+    /// The other half: a key, a click or the wheel is an input, and the
+    /// reshape that follows it is its effect. A row a reshape took the lane
+    /// off and a key brings back under the resting cursor is entered; it
+    /// waited for the cursor to move.
+    @Test("A row an input brings back under the resting cursor is entered", arguments: [false, true])
+    func inputLetsALeftControlBeEnteredAgain(observer: Bool) {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full, isFrameFinal: true)
+        let row = dispatcher.handlerIDs.freshID()
+        var events: [MousePhase] = []
+
+        func frame(rowAt y: Int) {
+            dispatcher.beginRenderPass()
+            _ = dispatcher.register(id: row) { events.append($0.phase); return true }
+            if observer { dispatcher.noteHoverObserver(row) }
+            dispatcher.setRegions([HitTestRegion(offsetX: 0, offsetY: y, width: 6, height: 1, handlerID: row)])
+        }
+
+        frame(rowAt: 2)
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 2, y: 2))
+        dispatcher.noteInput()  // a key scrolls the row away
+        frame(rowAt: 5)
+        #expect(events == [.entered, .exited])
+        dispatcher.noteInput()  // and back
+        frame(rowAt: 2)
+        #expect(events == [.entered, .exited, .entered], "the row came back unlit: \(events)")
+    }
+
     /// Found by the BUGS13 lane's second review: a reshape entered what it
     /// slid under the cell of the last `.moved`, which a drag (its moves
     /// arrive as `.dragged`) and a suspend (the terminal reports nothing

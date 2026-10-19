@@ -170,6 +170,7 @@ package final class HeadlessApp<A: App> {
     @discardableResult
     package func send(_ event: KeyEvent) -> Bool {
         focusManager.noteInputSource(.keyboard)
+        tuiContext.mouseEventDispatcher.noteInput()
         return AmbientApp.$renderState.withValue(tuiContext.appState) { inputHandler.handle(event) }
     }
 

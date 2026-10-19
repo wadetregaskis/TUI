@@ -942,6 +942,7 @@ extension AppRunner {
             switch input {
             case .key(let keyEvent):
                 focusManager.noteInputSource(.keyboard)
+                tuiContext.mouseEventDispatcher.noteInput()
                 // "`": dump the current frame to a file (debug shortcut, not
                 // consumed). Opt-in via TUIKIT_DEBUG_FRAME_DUMP=1 — unguarded,
                 // every backtick ANYWHERE (typing one into a TextField, a
@@ -984,6 +985,7 @@ extension AppRunner {
                 // the keyboard the input source: a Shift held for a Shift-click
                 // is the pointer's. The views listening for it hear it now,
                 // and a frame follows only if one drew from it.
+                tuiContext.mouseEventDispatcher.noteInput()
                 if tuiContext.modifierKeys.record(state) {
                     appState.setNeedsRender()
                 }
