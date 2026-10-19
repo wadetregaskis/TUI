@@ -149,7 +149,7 @@ back — from the zoom's second frame, the first that draws the source's
 rectangle, so a source the root moved while covered is folded into where it
 is now.
 
-Three calls the ruling left open:
+Four calls the ruling left open:
 
 - **Which animation.** TUIkit's stack changes at once, and a `NavigationLink`
   pushes outside any `withAnimation`; SwiftUI animates a push regardless. The
@@ -160,6 +160,10 @@ Three calls the ruling left open:
 - **No source.** With no `matchedTransitionSource` of the id on screen the
   stack changes at once, as `.automatic` does; what SwiftUI does then is not
   documented.
+- **Which declaration.** A screen can declare more than one transition — a
+  view inside it declaring `.automatic`, say, under the `.zoom` written on the
+  screen. The outermost is the screen's, the one written where it is pushed,
+  and of two side by side the first; SwiftUI's rule could not be measured.
 - **The pictures.** The screen being covered is drawn from its last picture,
   so it holds still while the new one grows over it; what is uncovered is
   live, so its controls take clicks inside the rectangle from the first frame.

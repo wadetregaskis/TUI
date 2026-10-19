@@ -95,7 +95,10 @@ extension View {
     /// it says how that screen comes and goes. ``NavigationTransition/automatic``
     /// is the transition the stack already makes;
     /// ``NavigationTransition/zoom(sourceID:in:)`` is a reveal from its
-    /// source (``ZoomNavigationTransition``).
+    /// source (``ZoomNavigationTransition``). Where the screen declares more
+    /// than one, the outermost is its transition — the one written on the
+    /// screen itself, over any a view inside it declares — and of two side by
+    /// side, the first.
     ///
     /// - Parameter style: The transition.
     /// - Returns: A view that says how its screen comes and goes.
@@ -105,7 +108,14 @@ extension View {
 }
 
 /// The zoom a pushed screen declared (``View/navigationTransition(_:)``), read
-/// by its ``NavigationStack`` as it reads the screen's title.
+/// by its ``NavigationStack`` as it reads the screen's title; `nil` for the
+/// automatic transition.
 struct NavigationZoomKey: PreferenceKey {
     static var defaultValue: MatchedGeometryKey? { nil }
+
+    /// The first declaration is kept: the outermost, since a preference is
+    /// set before its content draws, and of two side by side the first. The
+    /// default keeps the last — the innermost — so a view inside a zooming
+    /// screen that declared `.automatic` turned its zoom off.
+    static func reduce(value: inout MatchedGeometryKey?, nextValue: () -> MatchedGeometryKey?) {}
 }

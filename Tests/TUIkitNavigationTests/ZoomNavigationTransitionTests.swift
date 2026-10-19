@@ -27,6 +27,9 @@ private struct Zooming: View {
     var inset = 10
     var background: Color?
     var destination: String?
+    /// Whether a view inside the screen declares the automatic transition, under
+    /// the zoom the screen declares.
+    var innerAutomatic = false
     /// Whether the root hugs its five rows rather than filling the stack, as
     /// a root of a few links does: its picture is then shorter than the
     /// screen pushed over it, which fills the stack.
@@ -62,6 +65,8 @@ private struct Zooming: View {
     @ViewBuilder private var screen: some View {
         if let destination {
             Text(verbatim: destination)
+        } else if innerAutomatic {
+            VStack(spacing: 0) { GlyphFill("D").navigationTransition(.automatic) }
         } else {
             GlyphFill("D")
         }
@@ -187,6 +192,16 @@ struct ZoomNavigationTransitionTests {
         // back, and the screen folds into it there, not where it was pushed
         // from.
         #expect(halfway(pushedFrom: { Zooming(path: $0) }) == expected)
+    }
+
+    @Test("A zoom on the screen is the screen's transition, whatever a view inside it declares")
+    func outermostDeclarationWins() {
+        let navigator = Navigator()
+        let view = { (path: Binding<NavigationPath>) in Zooming(path: path, innerAutomatic: true) }
+        navigator.draw(view, atMillis: 0)
+        navigator.path.append(1)
+        let start = navigator.lines(navigator.draw(view, atMillis: 0, transaction: linear))
+        #expect(rect(of: "D", in: start) == CellRect(x: 10, y: 3, width: 4, height: 2))
     }
 
     @Test("A push with no animation of its own zooms under the default one")
