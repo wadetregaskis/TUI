@@ -203,9 +203,10 @@ or its place in the column closure, `_TableColumnSpec.place`, which a
 condition before it does not move) for as long as the table is shown, as
 SwiftUI keeps it in the outline view. Reordering and the column menu still need a binding and an
 identifier, as measured. The price, paid by every table: a state lookup per
-frame (`resizingColumns`), and a mouse region per resizable column gap
-registered each frame on a table that had none. A/B owed: tables,
-tables-scroll.
+frame (`resizingColumns`), and the header's gaps registered for the pointer
+each frame on a table that had none — since lane LISTSPERF, one handler for
+all of them, each gap a piece of the header line's one region, rather than a
+handler a gap. A/B owed: tables, tables-scroll.
 
 ## C. Declined, with the reason
 

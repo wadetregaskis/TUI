@@ -3734,14 +3734,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// Makes the header take the pointer: a click on a sortable column's title
-    /// re-sorts; on a table bound to a ``TableColumnCustomization``, dragging a
-    /// title moves its column, dragging the gap after it resizes it, and a
-    /// secondary click opens the column menu.
+    /// re-sorts; dragging the gap after a title resizes its column, on every
+    /// table (``attachHeaderGaps(to:ranges:headerY:state:gesture:context:mouseDispatcher:)``);
+    /// and on a table bound to a ``TableColumnCustomization``, dragging a
+    /// title moves its column, and a secondary click opens the column menu.
     ///
-    /// One region per column rather than one for the whole header line: which
+    /// One region per title rather than one for the whole header line: which
     /// column was pressed is the entire content of the gesture, and a single
     /// region would have to re-derive it from an x the dispatcher already
-    /// knows how to route. A column that nothing can be done to registers
+    /// knows how to route. A title that nothing can be done to registers
     /// nothing, so clicks there fall through to the table's own handler and
     /// simply focus it — a header that cannot sort or be customized stays as
     /// inert as it looks.
@@ -3754,7 +3755,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         to buffer: inout FrameBuffer,
         context: RenderContext,
         state: PopulatedRenderState,
-        mouseDispatcher: MouseEventDispatcher
+        mouseDispatcher: MouseEventDispatcher,
+        focusManager: FocusManager?
     ) {
         let customizes = columnCustomization != nil
         // Every table with a header: a column's edge resizes it whether or not
@@ -3768,21 +3770,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Where the columns are on THIS frame, for a header drag that started
         // on an earlier one: a live reorder moves them under the pointer.
         if !context.isMeasuring {
-            state.handler.headerColumns = ranges.compactMap { index, range in
-                columns.indices.contains(index)
-                    ? (columns[index].customizationID, columns[index].declarationIndex, range) : nil
-            }
+            publishHeaderColumns(ranges, to: state.handler)
             state.handler.headerColumnsWidest = max(1, state.rowContentWidth)
         }
         let gesture = _TableHeaderGesture(
-            focus: { [focusManager = context.environment.focusManager, id = state.focusID] in
-                focusManager?.focus(id: id)
-            },
+            focus: { [id = state.focusID] in focusManager?.focus(id: id) },
             openMenu: customizes ? columnMenuOpener(context: context, dispatcher: mouseDispatcher) : nil)
-        for (index, xRange) in ranges where columns.indices.contains(index) {
-            let column = columns[index]
-            let sortable = sortModel != nil && column.sortComparator != nil
-            if sortable || customizes {
+        // A title takes the pointer only to sort or to be customized, so a
+        // table that does neither walks its titles not at all.
+        if sortModel != nil || customizes {
+            for (index, xRange) in ranges where index < columns.count {
+                let sortable = sortModel != nil && columns[index].sortComparator != nil
+                guard sortable || customizes else { continue }
+                let column = columns[index]
                 let handlerID = mouseDispatcher.register(in: context) { event in
                     headerTitleEvent(
                         event, column: column, at: xRange.lowerBound, y: headerY, sortable: sortable,
@@ -3795,29 +3795,85 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     at: 0
                 )
             }
-            // The gap after the title is the column's right edge, which a drag
-            // moves — when there is a gap, and the column may be resized.
-            guard columnSpacing > 0, index < ranges.count - 1,
-                let bounds = column.resizeBounds(upTo: max(1, state.rowContentWidth))
-            else { continue }
-            let width = xRange.count
-            let resize = columnResizer(for: column, handler: state.handler)
-            let gapID = mouseDispatcher.register(in: context) { event in
-                headerGapEvent(
-                    event, resize: resize, width: width, bounds: bounds, at: xRange.upperBound, gesture: gesture)
-            }
-            buffer.hitTestRegions.insert(
-                HitTestRegion(
-                    offsetX: xRange.upperBound, offsetY: headerY,
-                    width: columnSpacing, height: 1, handlerID: gapID),
-                at: 0
-            )
         }
+        attachHeaderGaps(
+            to: &buffer, ranges: ranges, headerY: headerY, state: state, gesture: gesture, context: context,
+            mouseDispatcher: mouseDispatcher)
+    }
+
+    /// Makes the gap after each column's title — its right edge — take a drag
+    /// that resizes the column, where there is a gap, and the column may be
+    /// resized: on every table with a header (decisions B-D4T-7).
+    ///
+    /// The gaps are pieces of one region, the header line's, clipped to each
+    /// (``HitTestRegion/clipped(toColumns:rows:)``): one handler, registered
+    /// once, hears a press on any of them in the header line's own columns,
+    /// and finds there whose gap it is. Nothing is hit between them, so a
+    /// press on a title goes where it went before. A handler of its own for
+    /// each gap, each holding a copy of the whole table, was a registration
+    /// and a closure per column of every table with a header on every frame:
+    /// 1.0% of a frame of the `table` scenario (lane LISTSPERF).
+    @MainActor
+    private func attachHeaderGaps(
+        to buffer: inout FrameBuffer, ranges: [(Int, Range<Int>)], headerY: Int, state: PopulatedRenderState,
+        gesture: _TableHeaderGesture, context: RenderContext, mouseDispatcher: MouseEventDispatcher
+    ) {
+        guard columnSpacing > 0 else { return }
+        var gaps: [_TableHeaderGap] = []
+        gaps.reserveCapacity(ranges.count)
+        for (index, xRange) in ranges.dropLast() where index < columns.count && columns[index].isResizable {
+            gaps.append(
+                _TableHeaderGap(
+                    column: index, width: xRange.count, x: xRange.upperBound..<(xRange.upperBound + columnSpacing)))
+        }
+        guard let last = gaps.last else { return }
+        let columns = columns
+        let customization = columnCustomization
+        let handler = state.handler
+        let widest = max(1, state.rowContentWidth)
+        let gapsID = mouseDispatcher.register(in: context) { event in
+            Self.headerGapEvent(
+                event, gaps: gaps, columns: columns, widest: widest, customization: customization,
+                handler: handler, gesture: gesture)
+        }
+        let line = HitTestRegion(
+            offsetX: 0, offsetY: headerY, width: max(buffer.width, last.x.upperBound), height: 1,
+            handlerID: gapsID)
+        buffer.hitTestRegions.insert(
+            contentsOf: gaps.compactMap { line.clipped(toColumns: $0.x, rows: headerY..<(headerY + 1)) }, at: 0)
+    }
+
+    /// Hands `handler` where this frame's header drew each column, out of
+    /// `ranges` (``ItemListHandler/headerColumns``) — unless it holds that
+    /// already, as it does on every frame the columns hold still: compared
+    /// where it would have been built again, on every frame of every table
+    /// with a header.
+    private func publishHeaderColumns(_ ranges: [(Int, Range<Int>)], to handler: ItemListHandler<Value.ID>) {
+        let drawn = handler.headerColumns
+        var position = 0
+        var unchanged = true
+        for (index, x) in ranges where index < columns.count {
+            guard position < drawn.count, drawn[position].x == x,
+                drawn[position].declaration == columns[index].declarationIndex,
+                drawn[position].id == columns[index].customizationID
+            else {
+                unchanged = false
+                break
+            }
+            position += 1
+        }
+        guard !unchanged || position != drawn.count else { return }
+        var placed: [(id: String?, declaration: Int, x: Range<Int>)] = []
+        placed.reserveCapacity(ranges.count)
+        for (index, x) in ranges where index < columns.count {
+            placed.append((columns[index].customizationID, columns[index].declarationIndex, x))
+        }
+        handler.headerColumns = placed
     }
 
     /// A press on a column's title: a click sorts by it, a drag moves it, a
     /// secondary click opens the column menu on it. See
-    /// ``attachHeaderHandlers(to:context:state:mouseDispatcher:)``.
+    /// ``attachHeaderHandlers(to:context:state:mouseDispatcher:focusManager:)``.
     @MainActor
     private func headerTitleEvent(
         _ event: MouseEvent, column: _TableColumnSpec<Value>, at originX: Int, y: Int, sortable: Bool,
@@ -3946,42 +4002,54 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return laidOut
     }
 
-    /// Where a column's width goes when a user resizes it: the customization,
-    /// for a column with an identifier in a table bound to one; the table's
-    /// own state otherwise (``ItemListHandler/transientColumnWidths``,
-    /// decisions B-D4T-7). `width` is the one set, `nil` while none is.
-    private struct ColumnResizer {
-        let width: () -> Int?
-        let set: (Int) -> Void
-    }
-
-    private func columnResizer(for column: _TableColumnSpec<Value>, handler: ItemListHandler<Value.ID>) -> ColumnResizer {
-        if let binding = columnCustomization, let id = column.customizationID {
-            return ColumnResizer(width: { binding.wrappedValue[width: id] }, set: { binding.wrappedValue[width: id] = $0 })
+    /// Where `column`'s width goes when a user resizes it within `bounds`: the
+    /// customization, for a column with an identifier in a table bound to
+    /// one; the table's own state otherwise
+    /// (``ItemListHandler/transientColumnWidths``, decisions B-D4T-7).
+    private static func columnResizer(
+        for column: _TableColumnSpec<Value>, bounds: ClosedRange<Int>,
+        customization: Binding<TableColumnCustomization<Value>>?, handler: ItemListHandler<Value.ID>
+    ) -> _TableColumnResizer {
+        if let customization, let id = column.customizationID {
+            return _TableColumnResizer(
+                bounds: bounds, width: { customization.wrappedValue[width: id] },
+                set: { customization.wrappedValue[width: id] = $0 })
         }
         let key = column.columnKey
-        return ColumnResizer(
-            width: { [weak handler] in handler?.transientColumnWidths[key] },
+        return _TableColumnResizer(
+            bounds: bounds, width: { [weak handler] in handler?.transientColumnWidths[key] },
             set: { [weak handler] in handler?.transientColumnWidths[key] = $0 })
     }
 
-    /// A press on the gap after a column's title: a drag resizes the column,
-    /// within its bounds, the width going where ``columnResizer(for:handler:)``
-    /// says.
+    /// A press on one of `gaps`, the gaps after the columns' titles, measured
+    /// as `event` is in the header line's columns: a drag resizes the column
+    /// whose gap it is, within its bounds, the width going where
+    /// ``columnResizer(for:bounds:customization:handler:)`` says. See
+    /// ``attachHeaderGaps(to:ranges:headerY:state:gesture:context:mouseDispatcher:)``.
     @MainActor
-    private func headerGapEvent(
-        _ event: MouseEvent, resize: ColumnResizer, width: Int, bounds: ClosedRange<Int>, at originX: Int,
+    private static func headerGapEvent(
+        _ event: MouseEvent, gaps: [_TableHeaderGap], columns: [_TableColumnSpec<Value>], widest: Int,
+        customization: Binding<TableColumnCustomization<Value>>?, handler: ItemListHandler<Value.ID>,
         gesture: _TableHeaderGesture
     ) -> Bool {
         guard event.button == .left, !event.ctrl else { return false }
-        let x = originX + event.x
+        let x = event.x
         switch event.phase {
         case .pressed:
+            guard let gap = gaps.first(where: { $0.x.contains(x) }),
+                let bounds = columns[gap.column].resizeBounds(upTo: widest)
+            else { return false }
             gesture.pressX = x
-            gesture.startWidth = width
+            gesture.startWidth = gap.width
+            gesture.resizing = columnResizer(
+                for: columns[gap.column], bounds: bounds, customization: customization, handler: handler)
             return true
         case .dragged:
-            let wanted = min(bounds.upperBound, max(bounds.lowerBound, gesture.startWidth + x - gesture.pressX))
+            // Only the drag of a press on a gap resizes: one that began
+            // anywhere else, met here, has no column in hand.
+            guard let resize = gesture.resizing else { return true }
+            let wanted = min(
+                resize.bounds.upperBound, max(resize.bounds.lowerBound, gesture.startWidth + x - gesture.pressX))
             if wanted != gesture.startWidth || resize.width() != nil, resize.width() != wanted {
                 resize.set(wanted)
             }
@@ -4216,12 +4284,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             to: &buffer, context: context, state: state,
             mouseDispatcher: mouseDispatcher, firstRowY: firstRowY)
 
-        // Sortable column headers, for the same reason and by the same trick as
-        // the scrollbar above: registered first so the container's later
-        // `insert(at: 0)` leaves these at a higher index, where the reverse
-        // hit-test finds them before the table's own catch-all.
+        // The header's titles and gaps, for the same reason and by the same
+        // trick as the scrollbar above: registered first so the container's
+        // later `insert(at: 0)` leaves these at a higher index, where the
+        // reverse hit-test finds them before the table's own catch-all.
         attachHeaderHandlers(
-            to: &buffer, context: context, state: state, mouseDispatcher: mouseDispatcher)
+            to: &buffer, context: context, state: state, mouseDispatcher: mouseDispatcher, focusManager: focusManager)
 
         // The border columns are chrome: a click there (however row-aligned its
         // y) must not select — see the x-guard in the handler. Tables always
@@ -5271,6 +5339,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         columnWidths: [Int], originX: Int, gutter: Int
     ) -> [(Int, Range<Int>)] {
         var ranges: [(Int, Range<Int>)] = []
+        ranges.reserveCapacity(columnWidths.count)
         var x = originX + gutter
         for (index, width) in zip(columnWidths.indices, columnWidths) {
             ranges.append((index, x..<(x + width)))
@@ -6251,6 +6320,10 @@ private final class _TableHeaderGesture {
     /// The column's width when the resize drag was pressed.
     var startWidth = 0
 
+    /// Where the column a resize drag was pressed on takes its width, `nil`
+    /// until a press on a gap.
+    var resizing: _TableColumnResizer?
+
     /// Whether the drag has moved a column — then its release sorts nothing.
     var moved = false
 
@@ -6258,6 +6331,23 @@ private final class _TableHeaderGesture {
         self.focus = focus
         self.openMenu = openMenu
     }
+}
+
+/// The gap after a column's title on one frame: the column's place among
+/// those shown, its width, and the cells of the gap, in the header line's
+/// columns.
+private struct _TableHeaderGap {
+    let column: Int
+    let width: Int
+    let x: Range<Int>
+}
+
+/// Where a column a user resizes takes its width, and the widths it may
+/// take: `width` reads the one set, `nil` while none is, and `set` sets one.
+private struct _TableColumnResizer {
+    let bounds: ClosedRange<Int>
+    let width: () -> Int?
+    let set: (Int) -> Void
 }
 
 /// A table's column menu: "Hide" for the column it was opened on, then every
