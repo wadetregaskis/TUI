@@ -2680,6 +2680,16 @@ private struct ToolbarShapes: View {
                 .toolbarBackgroundVisibility(.visible)
                 .toolbarRole(.editor)
                 .toolbarRole(.automatic)
+                .toolbarTitleMenu {
+                    Button("Rename") {}
+                }
+                .toolbar {
+                    ToolbarTitleMenu {
+                        Button("Duplicate") {}
+                        Button("Print") {}
+                    }
+                    ToolbarTitleMenu()
+                }
             LabelStyleReader()
         }
     }

@@ -73,12 +73,15 @@ package final class WindowChromeState: @unchecked Sendable {
         /// The default item a ``DefaultToolbarItem`` places, or `nil`: how the
         /// window tells a sidebar button the page placed itself.
         package var defaultKind: ToolbarDefaultItemKind.Kind?
+        /// Whether it is a `ToolbarTitleMenu`: the top bar draws it as its
+        /// title, a pull-down, rather than beside the title.
+        package var isTitleMenu = false
 
         /// The memberwise initializer, spelled out because the synthesized one is internal and the
         /// toolbars (TUIkitChrome) declare these.
         package init(
             placement: ToolbarItemPlacement, view: AnyView, environment: EnvironmentValues, identity: ViewIdentity,
-            isFlexibleSpace: Bool = false, defaultKind: ToolbarDefaultItemKind.Kind? = nil
+            isFlexibleSpace: Bool = false, defaultKind: ToolbarDefaultItemKind.Kind? = nil, isTitleMenu: Bool = false
         ) {
             self.placement = placement
             self.view = view
@@ -86,6 +89,7 @@ package final class WindowChromeState: @unchecked Sendable {
             self.identity = identity
             self.isFlexibleSpace = isFlexibleSpace
             self.defaultKind = defaultKind
+            self.isTitleMenu = isTitleMenu
         }
     }
 

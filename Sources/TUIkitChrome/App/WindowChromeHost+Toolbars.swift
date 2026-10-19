@@ -28,7 +28,8 @@ extension _WindowChromeHost {
         let style = chrome.style(edge)
         let measureContext = barContext(edge, width: width, rows: context.availableHeight, style: style, context: context)
         let proposal = ProposedSize(width: style.barContentWidth(width), height: nil)
-        let tallest = entries.map {
+        // A title menu is the title, counted below.
+        let tallest = entries.filter { !$0.isTitleMenu }.map {
             measureChild(_ToolbarEntryView(entry: $0), proposal: proposal, context: measureContext).height
         }.max() ?? 0
         let (title, subtitle) = titleSlot(edge, chrome: chrome)

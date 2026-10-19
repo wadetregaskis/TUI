@@ -39,15 +39,21 @@ struct _ToolbarBarRow: View {
     var isPresentation = false
 
     var body: some View {
-        let leading = entries.filter { region(of: $0) == .leading }
-        let principal = entries.filter { region(of: $0) == .principal }
+        let items = entries.filter { !$0.isTitleMenu }
+        let leading = items.filter { region(of: $0) == .leading }
+        let principal = items.filter { region(of: $0) == .principal }
         let trailing =
-            entries.filter { region(of: $0) == .secondary }
-            + inButtonRowOrder(entries.filter { region(of: $0) == .trailing })
+            items.filter { region(of: $0) == .secondary }
+            + inButtonRowOrder(items.filter { region(of: $0) == .trailing })
         HStack(spacing: 1) {
             _ToolbarItemRun(entries: leading)
             if principal.isEmpty || keepsTitleBesidePrincipal, !title.isEmpty {
-                _ToolbarTitle(title: title, subtitle: subtitle)
+                // The first title menu declared makes the title its pull-down.
+                if let menu = entries.first(where: \.isTitleMenu) {
+                    _ToolbarEntryView(entry: menu, titleSlot: _ToolbarTitleSlot(title: title, subtitle: subtitle))
+                } else {
+                    _ToolbarTitle(title: title, subtitle: subtitle)
+                }
             }
             Spacer(minLength: 0)
             if !principal.isEmpty {
@@ -149,6 +155,9 @@ struct _ToolbarItemRun: View, Renderable, ChildViewProvider {
 struct _ToolbarEntryView: View, Renderable, Layoutable {
     let entry: WindowChromeState.ToolbarEntry
 
+    /// The title a title menu shows, when this item is the title's.
+    var titleSlot: _ToolbarTitleSlot?
+
     var body: Never { fatalError("_ToolbarEntryView renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -197,6 +206,7 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         if !bar.presentationHostsToolbar { environment.toolbarLabelStyle?.apply(to: &environment) }
         // Where `.toolbarItemHidden(_:)` hides a view.
         environment.drawsToolbarItem = true
+        if let titleSlot { environment.toolbarTitleSlot = titleSlot }
         var entryContext = context.withEnvironment(environment)
         entryContext.identity = entry.identity
         return entryContext

@@ -696,9 +696,15 @@ items as declared, and `\.toolbarLabelStyle` reads the scene's choice.
 `.toolbarItemHidden(_:)` hides one view of a toolbar item — a `ControlGroup`'s
 button, a `ToolbarItemGroup`'s view — which closes up round it and keeps its
 `@State`; outside a toolbar it changes nothing, as in SwiftUI.
+`ToolbarTitleMenu { … }` in a `.toolbar`, or `.toolbarTitleMenu { … }`, makes
+the top bar's title a pull-down of its items, opened and walked as a `Menu`
+is; it is the title's, so it goes where the title goes (not under a principal
+item, nor with the title removed). SwiftUI fills `ToolbarTitleMenu()`'s menu
+from the app's commands; TUIkit's commands are in the menu bar, and the empty
+form leaves the title as it is (decisions TOOLBARS, B-TOOLBARS-1).
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
-modifiers (`toolbarTitleMenu`, …), a
+modifiers (`contentToolbar`, `sharedBackgroundVisibility`), a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation
 family (`toolbar(id:)`).
 

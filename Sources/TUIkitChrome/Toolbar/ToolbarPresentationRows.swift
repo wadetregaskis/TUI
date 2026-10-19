@@ -39,7 +39,9 @@ extension _ToolbarModifier {
     ) -> (top: [WindowChromeState.ToolbarEntry], bottom: [WindowChromeState.ToolbarEntry]) {
         var top: [WindowChromeState.ToolbarEntry] = []
         var bottom: [WindowChromeState.ToolbarEntry] = []
-        for item in toolbarItems(of: items) {
+        // A title menu is the window's title's, and presented content's rows
+        // have no title.
+        for item in toolbarItems(of: items) where !item.isTitleMenu {
             let view: AnyView =
                 switch item.placement.role {
                 case .confirmationAction: AnyView(item.view.keyboardShortcut(.defaultAction))

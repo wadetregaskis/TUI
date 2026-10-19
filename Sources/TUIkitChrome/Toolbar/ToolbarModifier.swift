@@ -91,7 +91,8 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                     WindowChromeState.ToolbarEntry(
                         placement: item.placement, view: item.view, environment: context.environment,
                         identity: itemIdentity(item, depth: depth, context: context),
-                        isFlexibleSpace: item.isFlexibleSpace, defaultKind: item.defaultKind))
+                        isFlexibleSpace: item.isFlexibleSpace, defaultKind: item.defaultKind,
+                        isTitleMenu: item.isTitleMenu))
                 // A default item moves the framework's own from where it is
                 // drawn by default (`DefaultToolbarItem`).
                 switch item.defaultKind {
