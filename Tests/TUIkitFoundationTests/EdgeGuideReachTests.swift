@@ -19,11 +19,11 @@ import Testing
 /// How many times a body was evaluated.
 @MainActor
 private final class Evaluations {
-    var count = 0
+    var times = 0
 
     /// `content`, counted as one evaluation of the body it is.
     func counted<Content: View>(@ViewBuilder _ content: () -> Content) -> Content {
-        count += 1
+        times += 1
         return content()
     }
 }
@@ -63,19 +63,6 @@ private struct GuidedColumn: View {
     }
 }
 
-/// ``GuidedColumn`` without its guide.
-private struct PlainColumn: View {
-    let evaluations: Evaluations
-    var body: some View {
-        evaluations.counted {
-            VStack(alignment: .leading) {
-                Text("a")
-                Text("b")
-            }
-        }
-    }
-}
-
 @MainActor
 @Suite("Edge and centre guides a type keeps inside")
 struct EdgeGuideReachTests {
@@ -106,17 +93,21 @@ struct EdgeGuideReachTests {
             },
             context: makeRenderContext(width: 40, height: 10))
         #expect(buffer.lines.first?.stripped.contains("row 0") == true, "\(buffer.lines.map(\.stripped))")
-        #expect(evaluations.count < 1000, "evaluated \(evaluations.count) row bodies")
+        #expect(evaluations.times < 1000, "evaluated \(evaluations.times) row bodies")
     }
 
-    @Test("A stack aligning on its centre does not evaluate a view to ask it a guide it keeps inside")
-    func eagerStackDoesNotAsk() {
+    /// An `HStack(alignment: .center)` beside such a view asked it its
+    /// vertical centre guide, evaluating its body for a guide that cannot
+    /// leave it (found in review: three evaluations a render, not two).
+    @Test("An edge or centre guide is not asked of a view whose guides all stay inside a stack of several")
+    func edgeQueryDoesNotEvaluate() {
         let guided = Evaluations()
-        let plain = Evaluations()
+        let dimensions = ViewDimensions(width: 1, height: 2)
         let context = makeRenderContext(width: 30, height: 4)
-        _ = renderToBuffer(HStack(alignment: .center) { GuidedColumn(evaluations: guided); Text("x") }, context: context)
-        _ = renderToBuffer(HStack(alignment: .center) { PlainColumn(evaluations: plain); Text("x") }, context: context)
-        #expect(guided.count == plain.count, "evaluated \(guided.count) times, \(plain.count) without the guide")
+        let column = GuidedColumn(evaluations: guided)
+        #expect(explicitGuide(of: column, .vertical(.center), in: dimensions, context: context) == nil)
+        #expect(explicitGuide(of: column, .horizontal(.leading), in: dimensions, context: context) == nil)
+        #expect(guided.times == 0, "evaluated \(guided.times) times to ask")
     }
 
     @Test("A guide of one view still leaves a lazy stack's row")

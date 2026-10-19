@@ -353,9 +353,9 @@ struct StackSpacingPerPairTests {
 
     /// A column's leading and trailing edges are its views' but a spacer's, so
     /// a view whose body is a column of a text and a spacer can state nothing
-    /// a row reads: the row does not ask it, and its body is evaluated as
-    /// often as it is without the spacer. Asked, it was evaluated once more
-    /// on every walk of the row, to find nothing (found in review).
+    /// a row reads, and the row asks it nothing: its gaps stay one value.
+    /// Asked, the row evaluated its body again and resolved its column on
+    /// every walk, to find nothing (found in review).
     @Test("A row does not ask a child whose preference can only be on edges the row does not read")
     func rowSkipsAChildThatStatesNothingAcross() {
         #expect(!mayStateSpacing(SideBar.self, along: .horizontal))
@@ -363,44 +363,20 @@ struct StackSpacingPerPairTests {
         #expect(
             mayStateSpacing(HStack<TupleView<Text, Spacer>>.self, along: .horizontal),
             "a nested row's spacer forms its trailing edge")
-        let spaced = Evaluations()
-        let plain = Evaluations()
-        #expect(lines(HStack { SideBar(evaluations: spaced); Text("x") }).first == "side x")
-        #expect(lines(HStack { PlainSideBar(evaluations: plain); Text("x") }).first == "side x")
-        #expect(spaced.count == plain.count, "evaluated \(spaced.count) times, \(plain.count) without the spacer")
-    }
-}
-
-/// How many times a body was evaluated.
-@MainActor
-private final class Evaluations {
-    var count = 0
-
-    /// `content`, counted as one evaluation of the body it is.
-    func counted<Content: View>(@ViewBuilder _ content: () -> Content) -> Content {
-        count += 1
-        return content()
+        #expect(lines(HStack { SideBar(); Text("x") }).first == "side x")
+        let read = Read()
+        _ = lines(GapsReader(read: read) { SideBar(); Text("x") })
+        #expect(!read.uniform.isEmpty && read.uniform.allSatisfy { $0 }, "the row asked the column \(read.uniform)")
     }
 }
 
 /// A view of the app's own whose body is a column of a text and a spacer.
 private struct SideBar: View {
-    let evaluations: Evaluations
     var body: some View {
-        evaluations.counted {
-            VStack {
-                Text("side")
-                Spacer()
-            }
+        VStack {
+            Text("side")
+            Spacer()
         }
-    }
-}
-
-/// ``SideBar`` without its spacer.
-private struct PlainSideBar: View {
-    let evaluations: Evaluations
-    var body: some View {
-        evaluations.counted { VStack { Text("side") } }
     }
 }
 
