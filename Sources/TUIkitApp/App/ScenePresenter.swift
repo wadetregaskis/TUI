@@ -93,11 +93,19 @@ package final class ScenePresenter {
         /// dismissal leaves open.
         var showsModalPresentation = false
 
-        init(serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool, presented: PresentedWindowSlot?) {
+        /// Where its `@SceneStorage` keeps its values, after `scene.`
+        /// (``EnvironmentValues/sceneStorageNamespace``).
+        let storageNamespace: String
+
+        init(
+            serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool, presented: PresentedWindowSlot?,
+            storageNamespace: String
+        ) {
             self.serial = serial
             self.sceneKey = sceneKey
             self.isLaunchWindow = isLaunchWindow
             self.presented = presented
+            self.storageNamespace = storageNamespace
         }
 
         /// The focus section its content registers in: the page's for the
@@ -132,6 +140,10 @@ package final class ScenePresenter {
 
     /// The serial number the next window opened takes.
     private var nextSerial = 0
+
+    /// How many windows of each scene have been opened this session: what a
+    /// window's scene storage is told apart from its group's others by.
+    private var openedCounts: [ViewIdentity: Int] = [:]
 
     /// Whether the launch window has been opened.
     private var hasLaunched = false
@@ -290,11 +302,26 @@ package final class ScenePresenter {
     ) -> OpenWindow {
         let presented = entry.window.presentedValueType.map { _ in PresentedWindowSlot(openedValue: value) }
         let window = OpenWindow(
-            serial: nextSerial, sceneKey: entry.identity, isLaunchWindow: isLaunchWindow, presented: presented)
+            serial: nextSerial, sceneKey: entry.identity, isLaunchWindow: isLaunchWindow, presented: presented,
+            storageNamespace: storageNamespace(of: entry, isLaunchWindow: isLaunchWindow))
         nextSerial += 1
         let serial = window.serial
         window.dismissBox.action = { [weak self] in self?.close([serial]) }
         return window
+    }
+
+    /// Where a new window of `entry` keeps its `@SceneStorage`: nothing more
+    /// than `scene.` for the launch window, as an app of one window always
+    /// had; the scene's identifier (or its place among the window scenes, for
+    /// one with none) for a `Window`'s and the first of a group's; and that
+    /// with the how-manyth of its group it is for each after.
+    private func storageNamespace(of entry: SceneCatalog.WindowEntry, isLaunchWindow: Bool) -> String {
+        let ordinal = openedCounts[entry.identity, default: 0] + 1
+        openedCounts[entry.identity] = ordinal
+        guard !isLaunchWindow else { return "" }
+        let index = entries.firstIndex { $0.identity == entry.identity } ?? 0
+        let scene = entry.window.sceneID ?? "scene-\(index)"
+        return ordinal > 1 && !entry.window.opensOneWindow ? "\(scene)#\(ordinal)." : "\(scene)."
     }
 
     /// Asks the app to quit, once.

@@ -208,3 +208,32 @@ SwiftUI's scene modifiers reach a window's own alerts, which A26 inferred from
 the documentation's wording; and whether an alert scene presented while a sheet
 is up comes over the sheet (here it comes over the window's content, under the
 sheet's own presentations' order). Five minutes there with the probe.
+
+### B-O9-8. Each window keeps its own scene storage, under a namespace that lasts from launch to launch where it can
+
+*`@SceneStorage`, `EnvironmentValues.sceneStorageNamespace`*
+
+SwiftUI keeps `@SceneStorage` per window and restores it with the window when
+the system restores the app's windows. TUIkit keeps it in the store
+`@AppStorage` uses, which outlives the app, and restores no windows: the window
+opened at launch is the app's, and the others are opened by the app.
+
+**Shipped:** each window's values under a namespace of its own, found as the
+view is drawn (the property resolves it from the environment, as `@AppStorage`
+resolves its store):
+
+- the window opened at launch: `scene.` and the key, as an app of one window
+  always had, so nothing stored before moves;
+- a `Window`'s window: `scene.`, its identifier and the key
+  (`scene.inspector.tab`), the same from launch to launch;
+- a group's windows: `scene.`, the group's identifier — or its place among the
+  app's window scenes, for one with none — and the key for the first opened in
+  a session, and `#2`, `#3`… after the identifier for those after
+  (`scene.viewer#2.tab`).
+
+**The fuller version** restores windows: the windows open at quit are opened
+again at launch, each with its storage (and a group's presented value), as macOS
+restores them — with a way to say an app does not want that
+(`Scene.restorationBehavior`, declined in the window family, would then have a
+reading). About a day; it is the owner's whether a terminal app should come
+back with the windows it had.

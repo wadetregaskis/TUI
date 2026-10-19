@@ -21,23 +21,26 @@ import Foundation
 /// }
 /// ```
 ///
-/// ## How this differs from `@AppStorage` — and why it mostly doesn't
+/// ## How this differs from `@AppStorage`
 ///
 /// SwiftUI draws the line by *scope*: `@AppStorage` is one value for the whole
 /// app, `@SceneStorage` is one per window, so two windows of the same document
-/// can be scrolled to different places. That distinction is real when an app
-/// has several scenes and meaningless when it has one — and a terminal app has
-/// exactly one, filling the terminal. SwiftUI behaves the same way in that
-/// case, which is the point: the same source keeps working.
+/// can be scrolled to different places. So it is here: each window the app
+/// opens (`openWindow`) keeps its own, under a namespace of its own.
 ///
-/// So the two differ here in exactly one respect, and it is the one that
-/// survives having a single scene: **the namespace**. Scene storage is written
-/// under a `scene.` prefix, so `@SceneStorage("tab")` and `@AppStorage("tab")`
-/// are different values rather than the same one under two names. Which one to
-/// reach for is then a statement of intent — "this is where the user was" (a
-/// tab, a scroll position, a selection) versus "this is what the user chose" (a
-/// theme, a font size) — and that intent is worth keeping legible even when the
-/// mechanism underneath is shared.
+/// - The window opened at launch keeps its values under `scene.`, so
+///   `@SceneStorage("tab")` and `@AppStorage("tab")` are different values
+///   rather than the same one under two names.
+/// - A `Window` scene's window keeps them under `scene.` and its identifier —
+///   `scene.inspector.tab` — the same from launch to launch.
+/// - Each other window of a group keeps them under `scene.`, its group's
+///   identifier (or its place among the app's window scenes, for one with
+///   none) and, past the first, the how-manyth of its group opened this
+///   session it is — `scene.viewer.tab`, `scene.viewer#2.tab`.
+///
+/// Which one to reach for is then a statement of intent — "this is where the
+/// user was" (a tab, a scroll position, a selection) versus "this is what the
+/// user chose" (a theme, a font size).
 ///
 /// > Note: SwiftUI does not guarantee scene storage survives a relaunch — it is
 ///   for *state restoration*, and the system may discard it. TUIkit persists it
@@ -46,8 +49,16 @@ import Foundation
 ///   nobody chose deliberately should not outlive the reason it was written.
 @propertyWrapper
 public struct SceneStorage<Value> {
-    /// The scene-scoped key actually written.
+    /// The key the property was declared with, within its scene's namespace.
     private let key: String
+
+    /// The namespace of the window the property's view is drawn in
+    /// (``EnvironmentValues/sceneStorageNamespace``), found where the view is
+    /// drawn, before its body runs, as an `@Environment` is: empty for the
+    /// window opened at launch. A box, so the copies of the property a body's
+    /// closures captured write where their view's window keeps its values;
+    /// behind a lock, because the property is `Sendable` where its value is.
+    private let sceneNamespace = Lock(initialState: "")
 
     /// The value used when nothing has been stored.
     private let defaultValue: Value
@@ -65,16 +76,21 @@ public struct SceneStorage<Value> {
     /// Scene storage for `key`, within the scene's namespace, falling back to
     /// `defaultValue`, in `storage`, kept as `codec` says.
     private init(key: String, defaultValue: Value, storage: StorageBackend, codec: any StorageCodec<Value>) {
-        self.key = Self.prefix + key
+        self.key = key
         self.defaultValue = defaultValue
         self.storage = storage
         self.codec = codec
     }
 
+    /// The key written: the declared key, in the scene's namespace.
+    private var scopedKey: String {
+        Self.prefix + sceneNamespace.withLock { $0 } + key
+    }
+
     /// The current value.
     public var wrappedValue: Value {
         get {
-            codec.read(storage, key) ?? defaultValue
+            codec.read(storage, scopedKey) ?? defaultValue
         }
         nonmutating set {
             // Observed per key, as an `@Observable` property is: the store's
@@ -83,7 +99,7 @@ public struct SceneStorage<Value> {
             // through a control's `Binding` under a kept result — and nothing
             // else, and asks for a frame. See `StoredKey` for why this used to
             // clear the whole render cache on every write.
-            codec.write(storage, key, newValue)
+            codec.write(storage, scopedKey, newValue)
         }
     }
 
@@ -181,3 +197,29 @@ extension SceneStorage {
 extension SceneStorage: Sendable where Value: Sendable {}
 
 extension SceneStorage: FrameworkDynamicProperty {}
+
+// MARK: - Finding the Scene
+
+extension SceneStorage: EnvironmentResolvable {
+    /// Hands the property the namespace of the window its view is drawn in,
+    /// before the view's body runs.
+    public func resolveEnvironment(_ environment: EnvironmentValues) {
+        let namespace = environment.sceneStorageNamespace
+        sceneNamespace.withLock { $0 = namespace }
+    }
+}
+
+private struct SceneStorageNamespaceKey: EnvironmentKey {
+    static let defaultValue = ""
+}
+
+extension EnvironmentValues {
+    /// Where the `@SceneStorage` of the window being drawn keeps its values,
+    /// after `scene.`: empty for the window opened at launch, and for any
+    /// other window its scene's and, past its group's first, its own, each
+    /// ending in a dot. Set by the app's scene presenter.
+    package var sceneStorageNamespace: String {
+        get { self[SceneStorageNamespaceKey.self] }
+        set { self[SceneStorageNamespaceKey.self] = newValue }
+    }
+}
