@@ -571,39 +571,9 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
     private func makeMemberListRowContent(
         at index: Int, perElement: Int, context: RenderContext
     ) -> LazyListRowContent {
-        let member = rowMember(index % perElement, of: element(at: index / perElement), context: context)
-        let listRowIndex = (context.environment.listRowEditRestrictions?.rowIndexBase ?? 0) + index
-        let box = LazyListRowContent(
-            identity: member.pinnedIdentity,
-            measure: {
-                let size = member.measure(
-                    proposal: ProposedSize(width: context.availableWidth, height: nil), context: context)
-                return (size, context.availableWidth)
-            },
-            render: { placement, prominence in
-                var rowContext = context
-                rowContext.gradientFrame = placement ?? rowContext.gradientFrame
-                if prominence != .standard { rowContext.environment.backgroundProminence = prominence }
-                context.environment.listRowEditRestrictions?.currentRowIndex = listRowIndex
-                let buffer = member.render(
-                    width: rowContext.availableWidth, height: rowContext.availableHeight, context: rowContext)
-                // Cleared after, as the eager paths clear it, so what draws
-                // next outside a row reports against none.
-                context.environment.listRowEditRestrictions?.currentRowIndex = nil
-                // The separator guides this view states, as the child walks
-                // report a row's — a row of several views read none before
-                // (decisions B-D6L-3).
-                TUIkitFoundation.reportSeparatorGuides(
-                    of: member, size: (buffer.width, buffer.height), row: listRowIndex, context: rowContext)
-                return (buffer, extractRowBadge(from: member.wrappedView))
-            })
-        box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) {
-            var probe = context
-            probe.isMeasuring = true
-            return LazyListRowContent.typeSelectText(
-                drawnIn: member.render(width: context.availableWidth, height: context.availableHeight, context: probe))
-        }
-        return box
+        deferredListRow(
+            of: rowMember(index % perElement, of: element(at: index / perElement), context: context),
+            listRow: (context.environment.listRowEditRestrictions?.rowIndexBase ?? 0) + index, context: context)
     }
 
     /// The selection value `element`'s row names itself by: its own
