@@ -30,15 +30,14 @@ struct OverlayModifierTests {
         renderToBuffer(view, context: testContext())
     }
 
-    @Test("Overlay with empty base returns overlay")
-    func emptyBaseReturnsOverlay() {
+    @Test("An overlay on an EmptyView draws nothing, as in SwiftUI")
+    func emptyBaseDrawsNothing() {
         let view = OverlayModifier(
             base: EmptyView(),
             overlay: Text("Over"),
             alignment: .center
         )
-        let buffer = render(view)
-        #expect(buffer.lines[0].stripped == "Over")
+        #expect(render(view).isEmpty)
     }
 
     @Test("Overlay with empty overlay returns base")
@@ -228,8 +227,10 @@ struct OverlayModifierTests {
     func trulyEmptyLayerShortCircuits() {
         let base = render(Text("base").overlay { EmptyView() })
         #expect(base.lines.first?.stripped == "base")
+        // An `EmptyView` base is nothing, so its overlay is not drawn, as in
+        // SwiftUI (`EmptyContentLayoutTests`).
         let overlay = render(EmptyView().overlay { Text("over") })
-        #expect(overlay.lines.first?.stripped == "over")
+        #expect(overlay.isEmpty)
     }
 
     @Test("Two chained overlays keep their state apart")

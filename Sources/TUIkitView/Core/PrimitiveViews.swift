@@ -228,6 +228,30 @@ extension AnyView {
 
 // MARK: - EmptyView Rendering
 
+// MARK: - EmptyView as Content With No Members
+
+/// No views, to a container that resolves its content as views: a stack, a
+/// layout, a grid, a list. SwiftUI treats `EmptyView` as it treats a `nil`, so
+/// a modifier on one has nothing to apply to — `EmptyView().frame(height: 50)`
+/// and `EmptyView().padding(20)` add nothing to a `VStack` (measured on macOS
+/// 15.8, 2026-09-24 and 2026-10-18, `Tools/SwiftUIProbes/Alignment
+/// guides/layout1.out`, case D). As a provider of none, it is reached through
+/// every wrapper that hands its content's members on (``ContentRewrapping``,
+/// a ``ModifiedView``), as a `nil` already was. Drawn on its own — a sheet's
+/// whole content, say — it is still a view that draws nothing.
+extension EmptyView: ChildViewProvider {
+    public func childViews(context: RenderContext) -> [ChildView] { [] }
+
+    /// It hands its container its members — none — so a view of the app's own
+    /// whose body is an `EmptyView` is none too, as SwiftUI counts it.
+    public static var _handsOverChildren: Bool { true }
+
+    /// It states no spacing, having nothing to space: stated, not the default
+    /// (``View/_handsOverChildren``), which would put every row holding an
+    /// `if`/`else` with an `EmptyView` arm on the per-pair path.
+    public static var _statesSpacingPreference: Bool { false }
+}
+
 extension EmptyView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         FrameBuffer()

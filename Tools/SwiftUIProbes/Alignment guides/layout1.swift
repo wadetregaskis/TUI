@@ -2,7 +2,8 @@ import SwiftUI
 import AppKit
 
 // layout1 (lane LAYOUT, 2026-10-18): which guides leave which containers (decisions A-GUIDE-2) and how a
-// guide passes single-child wrappers (SA-L11). Run with A, B or C; output in layout1.out.
+// guide passes single-child wrappers (SA-L11), case A to C; EmptyView under modifiers and a frame's ideal
+// offered nothing (case D). Run with A, B, C or D; output in layout1.out.
 // Offscreen NSHostingView, the harness of GUIDE2's g2d.swift (session notes). 1 pt stands in for 1 cell.
 
 @MainActor var keep: [NSWindow] = []
@@ -66,8 +67,6 @@ func fmt(_ v: CGFloat) -> String {
 }
 
 
-// layout1 (lane LAYOUT, 2026-10-18): the rows A-GUIDE-2 and SA-L11 still needed. Run with A, B or C.
-// Harness after GUIDE2/probe/g2d.swift (session notes).
 // A: built-in guides out of statically-one-view layouts, app views, branches; baselines out of rows and layouts.
 // B: a guide through single-child wrappers (frame, border, offset, overlay, background, padding, fixedSize).
 
@@ -213,6 +212,29 @@ struct OptionalBody: View { let flag: Bool; var body: some View { if flag { gl()
     }
 }
 
+@MainActor func runD() {
+    print("== D: EmptyView under modifiers in VStack(spacing 0){A 6x1; inner; B 6x1}: B.y = 1 + inner height")
+    func col<I: View>(_ inner: I) -> some View { VStack(alignment: .leading, spacing: 0) { box(6, 1, "A"); inner; box(6, 1, "B") } }
+    show("EmptyView()", col(EmptyView()), ["A", "B"])
+    show("EmptyView().frame(height 5)", col(EmptyView().frame(height: 5)), ["A", "B"])
+    show("EmptyView().padding(2)", col(EmptyView().padding(2)), ["A", "B"])
+    show("EmptyView().overlay{box 4x2 O}", col(EmptyView().overlay { box(4, 2, "O") }), ["A", "O", "B"])
+    show("EmptyView().background{box 4x2 O}", col(EmptyView().background { box(4, 2, "O") }), ["A", "O", "B"])
+    show("EmptyView().overlay{box}.frame(height 3)", col(EmptyView().overlay { box(4, 2, "O") }.frame(height: 3)), ["A", "O", "B"])
+    show("EmptyView().border(.red)", col(EmptyView().border(Color.red)), ["A", "B"])
+    show("EmptyView().frame(width 5, height 5).background(Color.red)", col(EmptyView().frame(width: 5, height: 5).background(Color.red)), ["A", "B"])
+    show("Group{EmptyView()}.frame(height 5)", col(Group { EmptyView() }.frame(height: 5)), ["A", "B"])
+    show("EmptyView().id(1).frame(height 5)", col(EmptyView().id(1).frame(height: 5)), ["A", "B"])
+    show("EmptyView().onAppear{}.frame(height 5)", col(EmptyView().onAppear {}.frame(height: 5)), ["A", "B"])
+    show("HStack{A; EmptyView().frame(width 5); B} row", HStack(spacing: 0) { box(1, 1, "A"); EmptyView().frame(width: 5); box(1, 1, "B") }, ["A", "B"])
+    print("== D2: a frame with an ideal and no maximum, offered nothing on the width (fixedSize, horizontal ScrollView)")
+    show("box(5).frame(idealWidth 10).fixedSize()", box(5, 1, "T").frame(idealWidth: 10).background(Reader(tag: "F")).fixedSize(), ["T", "F"])
+    show("ScrollView(.horizontal){box(5).frame(idealWidth 10)}", ScrollView(.horizontal) { box(5, 1, "T").frame(idealWidth: 10).background(Reader(tag: "F")) }.frame(width: 40, height: 3), ["T", "F"])
+    show("HStack{box(5).frame(idealWidth 10); box(3)}.fixedSize()", HStack(spacing: 0) { box(5, 1, "T").frame(idealWidth: 10).background(Reader(tag: "F")); box(3, 1, "S") }.fixedSize(), ["T", "F", "S"])
+    show("box(5).frame(idealHeight 3).fixedSize()", box(5, 1, "T").frame(idealHeight: 3).background(Reader(tag: "F")).fixedSize(), ["T", "F"])
+    show("VStack{box(5).frame(idealHeight 3); box(3)} in 200 tall", VStack(spacing: 0) { box(5, 1, "T").frame(idealHeight: 3).background(Reader(tag: "F")); box(3, 1, "S") }, ["T", "F", "S"])
+}
+
 setlinebuf(stdout)
 let which = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "A"
 MainActor.assumeIsolated {
@@ -220,6 +242,7 @@ MainActor.assumeIsolated {
     case "A": runA()
     case "B": runB()
     case "C": runC()
+    case "D": runD()
     default: print("unknown case")
     }
 }

@@ -118,3 +118,33 @@ reports custom guides and baselines through the layout's default.
 **The fuller version:** the grid answers the query from its lattice: each
 cell's guide moved by where the grid placed the cell, merged by the guide's
 rule, edge guides never. About two hours with tests.
+
+### B-LAYOUT-5. `EmptyView` is no member to a container; drawn on its own it is still a view
+
+*`EmptyView`, `.frame`, `.padding`, `.overlay`, `.background` (the settled
+question S3-EMPTYVIEW-FRAME, option 2)*
+
+Shipped: `EmptyView` is a `ChildViewProvider` of no members, as SwiftUI counts
+it, so a stack, a layout, a grid or a list gets nothing from it, and nothing
+from a frame, a padding, an `.id` or a `Group` around it, which reach their
+content's members and find none (measured on SwiftUI, `layout1.out` case D:
+each adds nothing to a `VStack`). A view of the app's own whose body is an
+`EmptyView` is none too, and an overlay or a background on an `EmptyView`
+draws nothing, as SwiftUI's does. Three shapes still draw what they did:
+
+- **Drawn on its own**, not by a container (a sheet's whole content, a
+  page's root), a padded or framed `EmptyView` is padding or a frame round a
+  view that draws nothing. SwiftUI's was not measured there.
+- **An effect modifier between** (`EmptyView().onAppear {}.frame(height:
+  5)`): an effect wrapper does not hand its content's members on, since it
+  must fire once, not once per member, so the frame frames one child.
+- **A modifier on a view of the app's own whose body is a modified
+  `EmptyView`** (`struct V { var body: some View { EmptyView().frame(height:
+  5) } }`): the view is one child, as any view whose body is a modifier is
+  (B-D1S-6).
+
+**The fuller version** answers the first by drawing nothing for a wrapper
+whose content statically has no members (a check on every such wrapper's
+render, which needs its cost measured), the second by letting an effect
+wrapper hand on an empty member list (it has nothing to fire for), and the
+third with B-D1S-6. About half a day for the first two.

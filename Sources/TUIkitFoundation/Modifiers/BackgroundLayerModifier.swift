@@ -30,8 +30,10 @@ struct BackgroundLayerModifier<Base: View, Background: View>: View {
 }
 
 extension BackgroundLayerModifier: Renderable {
+    /// Nothing on an `EmptyView`, as under `.overlay` (``OverlayModifier``).
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        compositeLayer(
+        guard Base.self != EmptyView.self else { return FrameBuffer() }
+        return compositeLayer(
             background, under: TUIkitView.renderToBuffer(base, context: context), alignment: alignment,
             context: context, modifierType: Self.self)
     }
@@ -40,7 +42,8 @@ extension BackgroundLayerModifier: Renderable {
 extension BackgroundLayerModifier: Layoutable {
     /// The base's size, as ``OverlayModifier``'s is.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        layeredSize(
+        guard Base.self != EmptyView.self else { return ViewSize.fixed(0, 0) }
+        return layeredSize(
             background, baseSize: measureChild(base, proposal: proposal, context: context),
             proposal: proposal, context: context, modifierType: Self.self)
     }

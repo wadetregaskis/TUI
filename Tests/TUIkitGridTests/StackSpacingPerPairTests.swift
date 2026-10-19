@@ -226,7 +226,9 @@ struct StackSpacingPerPairTests {
         #expect(lines(HStack { Text("a"); Merging { Text("b"); if shows { Text("c") } else { EmptyView() } } }) == ["a b"])
         let read = Read()
         _ = lines(SpacingReader(read: read) { Text("a"); EmptyView(); Row { Text("b") } })
-        #expect(read.distances == [1, 1, 0], "an EmptyView member's own preference is the default")
+        // The `EmptyView` is no member at all (it hands its container none),
+        // so the layout reads two subviews and one distance between them.
+        #expect(read.distances == [1, 0], "an EmptyView is no member, as SwiftUI counts it")
     }
 
     @Test("A stack layout puts its gaps only between subviews that take room, and measures what it draws")

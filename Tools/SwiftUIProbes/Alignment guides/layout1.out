@@ -76,3 +76,23 @@ Grid{GridRow{G mark; S}} (mark) || G.x=0 G.y=0 G.w=1 G.h=1 V.x=0 V.y=0 V.w=7 V.h
 firstTextBaseline: Grid{GridRow{G 5; S}} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=2 V.h=1 C.x=2 C.y=0 C.w=1 C.h=6 outer.w=3 outer.h=6
 firstTextBaseline: VStack{G 5; S} || G.x=0 G.y=1 G.w=1 G.h=1 V.x=0 V.y=1 V.w=1 V.h=2 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6
 firstTextBaseline: VStack{G 5; S 3} || G.x=0 G.y=2 G.w=1 G.h=1 S.x=0 S.y=3 S.w=1 S.h=1 V.x=0 V.y=2 V.w=1 V.h=2 C.x=1 C.y=0 C.w=1 C.h=6 outer.w=2 outer.h=6
+# ./layout1 D
+== D: EmptyView under modifiers in VStack(spacing 0){A 6x1; inner; B 6x1}: B.y = 1 + inner height
+EmptyView() || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().frame(height 5) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().padding(2) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().overlay{box 4x2 O} || A.x=0 A.y=0 A.w=6 A.h=1 O.x=inf O.y=inf O.w=0 O.h=0 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().background{box 4x2 O} || A.x=0 A.y=0 A.w=6 A.h=1 O.x=inf O.y=inf O.w=0 O.h=0 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().overlay{box}.frame(height 3) || A.x=0 A.y=0 A.w=6 A.h=1 O.x=inf O.y=inf O.w=0 O.h=0 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().border(.red) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().frame(width 5, height 5).background(Color.red) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+Group{EmptyView()}.frame(height 5) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().id(1).frame(height 5) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+EmptyView().onAppear{}.frame(height 5) || A.x=0 A.y=0 A.w=6 A.h=1 B.x=0 B.y=1 B.w=6 B.h=1 outer.w=6 outer.h=2
+HStack{A; EmptyView().frame(width 5); B} row || A.x=0 A.y=0 A.w=1 A.h=1 B.x=1 B.y=0 B.w=1 B.h=1 outer.w=2 outer.h=1
+== D2: a frame with an ideal and no maximum, offered nothing on the width (fixedSize, horizontal ScrollView)
+box(5).frame(idealWidth 10).fixedSize() || T.x=2.50 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 outer.w=10 outer.h=1
+ScrollView(.horizontal){box(5).frame(idealWidth 10)} || T.x=2.50 T.y=1 T.w=5 T.h=1 F.x=0 F.y=1 F.w=10 F.h=1 outer.w=40 outer.h=3
+HStack{box(5).frame(idealWidth 10); box(3)}.fixedSize() || T.x=2.50 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 S.x=10 S.y=0 S.w=3 S.h=1 outer.w=13 outer.h=1
+box(5).frame(idealHeight 3).fixedSize() || T.x=0 T.y=1 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=3 outer.w=5 outer.h=3
+VStack{box(5).frame(idealHeight 3); box(3)} in 200 tall || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=1 S.y=1 S.w=3 S.h=1 outer.w=5 outer.h=2

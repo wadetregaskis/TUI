@@ -14,8 +14,12 @@
 ///
 /// The exception is an axis the base has no extent on at all: there is no frame
 /// to lay the overlay in, so the overlay is drawn whole and is what the
-/// modifier measures. `EmptyView().overlay { … }` is that case, and so is a
-/// base whose entire payload floats (an `OffsetView` renders no in-flow lines).
+/// modifier measures — a base whose entire payload floats (an `OffsetView`
+/// renders no in-flow lines). An `EmptyView` base is not that case but
+/// nothing: SwiftUI draws no overlay on one (measured,
+/// `Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D), an
+/// `EmptyView` being no view at all to the modifier, as it is no member to a
+/// container.
 public struct OverlayModifier<Base: View, Overlay: View>: View {
     /// The base content.
     let base: Base
@@ -45,7 +49,8 @@ extension OverlayModifier: Renderable {
     /// The base at this modifier's identity, then the overlay laid out in its
     /// frame and composited over it — `compositeLayer(_:over:alignment:context:modifierType:)`.
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        compositeLayer(
+        guard Base.self != EmptyView.self else { return FrameBuffer() }
+        return compositeLayer(
             overlay, over: TUIkitView.renderToBuffer(base, context: context), alignment: alignment,
             context: context, modifierType: Self.self)
     }
@@ -64,7 +69,8 @@ extension OverlayModifier: Layoutable {
     /// thing it badges widened the view it was laid on, and with it every
     /// sibling in the enclosing stack.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        layeredSize(
+        guard Base.self != EmptyView.self else { return ViewSize.fixed(0, 0) }
+        return layeredSize(
             overlay, baseSize: measureChild(base, proposal: proposal, context: context),
             proposal: proposal, context: context, modifierType: Self.self)
     }

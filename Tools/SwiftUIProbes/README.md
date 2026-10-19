@@ -136,13 +136,18 @@ messages cite that path), and what cites it.
 - **Also:** `layout1.swift` (`layout1.out`): which guides leave which containers by kind — an edge or centre
   guide out of statically-one-view stacks, stack layouts, branches, loops, `AnyView`, a custom layout and a
   `Grid`; text baselines and custom guides out of rows, layers and layouts (case `A`, `C`) — and a guide through
-  `.frame`, `.border`, `.offset`, `.overlay`, `.background`, `.padding`, `.fixedSize`, `.position` (case `B`).
+  `.frame`, `.border`, `.offset`, `.overlay`, `.background`, `.padding`, `.fixedSize`, `.position` (case `B`);
+  `EmptyView` under a frame, padding, overlay, background, border, `.id`, `.onAppear` and a `Group`, and a frame
+  with an ideal and no maximum offered nothing (case `D`).
   Run on macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-18 (lane LAYOUT).
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-11.
 - **Was:** `GUIDE/probe/` and `GUIDE/probe2/` (and `GUIDE/tuikit.out`); `layout1.swift` was `LAYOUT/probe/l1.swift`.
 - **Cited by:** `Tests/TUIkitChromeTests/AlignmentGuideParityTests.swift`,
   `Tests/TUIkitChromeTests/AlignmentGuideContainerParityTests.swift`,
-  `Tests/TUIkitFoundationTests/AlignmentGuideKindTests.swift`;
+  `Tests/TUIkitFoundationTests/AlignmentGuideKindTests.swift`,
+  `Tests/TUIkitFoundationTests/AlignmentGuideWrapperTests.swift`,
+  `Tests/TUIkitFoundationTests/EmptyContentLayoutTests.swift`;
+  `Sources/TUIkitView/Core/PrimitiveViews.swift`, `Sources/TUIkitFoundation/Modifiers/OverlayModifier.swift`,
   `Sources/TUIkitView/Rendering/StaticViewListCount.swift`;
   `Documentation/SwiftUI parity/Decisions/Alignment guides outside their view (GUIDE).md`.
 

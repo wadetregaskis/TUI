@@ -92,8 +92,10 @@ struct LazyStackZeroExtentGapTests {
         context.gradientFrame = GradientFrame(width: 20, height: 5, isProvisional: true)
         let children = resolveChildViews(from: stack.content, context: context)
         let placement = stack.windowGradientPlacement(children, gaps: StackGaps(uniform: stack.spacing), context: context)
+        // The `EmptyView` is no member (it hands its container none), so
+        // the row places two columns.
         let columns = placement.offsets.map(\.x)
-        #expect(columns == [0, 1, 3])
+        #expect(columns == [0, 3])
         #expect(placement.frame?.width == 4)
     }
 
@@ -158,7 +160,8 @@ struct LazyStackZeroExtentGapTests {
             alignment: .leading, spacing: 1, overflow: .clip,
             content: TupleView(Text("A"), EmptyView(), Text("B")))
         let context = makeBareRenderContext(width: 20, height: 50)
-        let placedY = stack.placement(at: 2, proposal: .unspecified, context: context)?.y
+        // The `EmptyView` is no member, so "B" is the column's second child.
+        let placedY = stack.placement(at: 1, proposal: .unspecified, context: context)?.y
         let drawnY = trimmedRows(renderToBuffer(stack, context: context)).firstIndex(of: "B")
         #expect(drawnY == 2)
         #expect(placedY == 2)
@@ -173,8 +176,9 @@ struct LazyStackZeroExtentGapTests {
         context.gradientFrame = GradientFrame(width: 20, height: 10, isProvisional: true)
         let children = resolveChildViews(from: stack.content, context: context)
         let placement = stack.windowGradientPlacement(children, context: context)
+        // The `EmptyView` is no member: two rows.
         let rows = placement.offsets.map(\.y)
-        #expect(rows == [0, 2, 2])
+        #expect(rows == [0, 2])
         #expect(placement.frame?.height == 3)
     }
 }

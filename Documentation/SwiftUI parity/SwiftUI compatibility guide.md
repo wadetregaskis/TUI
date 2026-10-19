@@ -1337,23 +1337,20 @@ always there, with the `if` inside it; the Example's Animation page ("Keep the
 space") is written that way, and was not until this distribution reached
 `.frame` and took its reserved rows away.
 
-**`EmptyView` does not follow it, and there the two diverge.** SwiftUI treats
-`EmptyView` as it treats the `nil`: `EmptyView().frame(height: 50)` adds 0 in
-the same probe, and so does `EmptyView().padding(20)`. In TUIkit `EmptyView`
-is a view that draws nothing rather than content with no members — it is not
-a `ChildViewProvider` — so a frame on it is an ordinary `FlexibleFrameView`,
-whose minimum height keeps its 5 rows, and a padding on it pads its empty
-buffer as `PaddingModifier` pads any other: `EmptyView().padding(2)` is 4
-blank rows, the two insets (it drew 3 until 2026-09-24, keeping back a row
-for content that draws nothing, though it measured 4). Left open rather than closed: making `EmptyView` flatten to
-nothing would change it in every container that counts what it is given,
-and the framework gives a modifier on one a meaning of its own —
-`EmptyView().overlay { … }` draws the overlay whole (`OverlayModifier`).
-Nothing in the framework or the Example writes a frame or a padding on an
-`EmptyView` itself; write a kept slot as a stack, as above, and it is right
-in both. Pinned by
-`EmptyContentLayoutTests`, which holds the halves that match beside the two
-that do not.
+**`EmptyView` follows it too** (since 2026-10-18). SwiftUI treats `EmptyView`
+as it treats the `nil`: `EmptyView().frame(height: 50)` adds 0 in the same
+probe, and so do `EmptyView().padding(20)`, `.border`, `.id`, a `Group`
+around it, and an `.overlay` or `.background` on it, which are not drawn at
+all (`Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D). TUIkit's
+`EmptyView` is content with no members now — a `ChildViewProvider` of none —
+so a frame or a padding on it reaches no member and keeps no rows, a view of
+the app's own whose body is one is none either, and an overlay or a
+background on it draws nothing. Drawn on its own rather than by a container
+(a sheet's whole content), a padded `EmptyView` is still padding round a view
+that draws nothing. One wrapper shape still keeps its rows: a frame around an
+effect modifier on it (`EmptyView().onAppear {}.frame(height: 5)`), since an
+effect wrapper does not hand its content's members on (it must fire once,
+not per member). Pinned by `EmptyContentLayoutTests`.
 
 **Every other wrapper is still opaque to child resolution** — `.badge` builds
 `BadgeModifier`, `.position` builds `PositionView`, `.tag` builds `_TaggedView`,

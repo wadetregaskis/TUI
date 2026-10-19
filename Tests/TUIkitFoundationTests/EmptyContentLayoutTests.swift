@@ -4,8 +4,8 @@
 //  What a stack gives content with nothing in it: a frame on a `nil`, on an
 //  empty `Group`, on `EmptyView`, and an empty stack between two siblings.
 //  SwiftUI's answers were measured with an `NSHostingView` probe and are
-//  recorded in `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §3, beside the two
-//  places TUIkit answers differently.
+//  recorded in `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §3, beside the
+//  place TUIkit answers differently (an empty stack's spacing).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -51,27 +51,55 @@ struct EmptyContentLayoutTests {
         #expect(rows(between: slot, spacing: 0) == ["A", "", "", "", "", "", "B"])
     }
 
-    /// SwiftUI: 32 — a frame on `EmptyView` is as empty as one on a `nil`.
-    /// TUIkit keeps the frame's minimum height: `EmptyView` is a view here, not
-    /// a provider with no members, so nothing distributes the frame away.
-    @Test("A frame on EmptyView keeps its rows, where SwiftUI's keeps none")
-    func frameOnEmptyViewKeepsRows() {
-        #expect(rows(between: EmptyView().frame(height: 5), spacing: 0) == ["A", "", "", "", "", "", "B"])
+    /// SwiftUI: 32 — a frame on `EmptyView` is as empty as one on a `nil`
+    /// (measured again 2026-10-18, `Tools/SwiftUIProbes/Alignment
+    /// guides/layout1.out`, case D). `EmptyView` is content with no members,
+    /// so the frame, which reaches each member, has none to reach.
+    @Test("A frame on EmptyView keeps no rows, as in SwiftUI")
+    func frameOnEmptyViewKeepsNoRows() {
+        #expect(rows(between: EmptyView().frame(height: 5), spacing: 0) == ["A", "B"])
+        #expect(rows(between: Group { EmptyView() }.frame(height: 5), spacing: 0) == ["A", "B"])
+        #expect(rows(between: EmptyView().id(1).frame(height: 5), spacing: 0) == ["A", "B"])
     }
 
-    /// SwiftUI: 32 — `EmptyView().padding(20)` adds nothing either. TUIkit
-    /// pads the empty buffer like any other, so padding rows are there: the
-    /// same divergence as the frame's, through `PaddingModifier` rather than
-    /// `FlexibleFrameView`. Four rows, the two insets, which is what it
-    /// measures: it drew three while a padding kept back a row for content
-    /// that draws nothing, and the stack below it moved up a row.
-    @Test("A padding on EmptyView keeps rows, where SwiftUI's keeps none")
-    func paddingOnEmptyViewKeepsRows() {
-        #expect(rows(between: EmptyView().padding(2), spacing: 0) == ["A", "", "", "", "", "B"])
+    /// SwiftUI: 32 — `EmptyView().padding(20)` adds nothing either.
+    @Test("A padding on EmptyView keeps no rows, as in SwiftUI")
+    func paddingOnEmptyViewKeepsNoRows() {
+        #expect(rows(between: EmptyView().padding(2), spacing: 0) == ["A", "B"])
+        #expect(rows(between: EmptyView().padding(2), spacing: 1) == ["A", "", "B"])
     }
 
-    /// What a stack of it measures is what it draws: the padding's insets drawn
-    /// in full around content that draws nothing, on both axes.
+    /// SwiftUI: 32, and the overlay or background is not drawn at all.
+    @Test("An overlay or a background on EmptyView draws nothing and keeps no rows, as in SwiftUI")
+    func layerOnEmptyViewDrawsNothing() {
+        #expect(rows(between: EmptyView().overlay { Text("x") }, spacing: 0) == ["A", "B"])
+        #expect(rows(between: EmptyView().background { Text("x") }, spacing: 0) == ["A", "B"])
+    }
+
+    /// SwiftUI: the two boxes touch — a frame's width on `EmptyView` is none.
+    @Test("A frame on EmptyView in a row takes no columns")
+    func frameOnEmptyViewInARow() {
+        let row = HStack(spacing: 0) {
+            Text("A")
+            EmptyView().frame(width: 5)
+            Text("B")
+        }
+        #expect(renderToBuffer(row, context: makeRenderContext(width: 12, height: 2)).lines.first?.stripped == "AB")
+    }
+
+    /// A view of the app's own whose body is an `EmptyView` is that body:
+    /// nothing.
+    @Test("A view whose body is an EmptyView keeps no rows")
+    func appViewOfEmptyViewKeepsNoRows() {
+        struct Nothing: View {
+            var body: some View { EmptyView() }
+        }
+        #expect(rows(between: Nothing(), spacing: 0) == ["A", "B"])
+    }
+
+    /// What a stack of it measures is what it draws. On its own, not in a
+    /// container — a sheet's whole content, say — a padded `EmptyView` is
+    /// still padding round a view that draws nothing.
     @Test("A padding on EmptyView draws what it measures")
     func paddingOnEmptyViewDrawsWhatItMeasures() {
         let context = makeRenderContext(width: 8, height: 12)
@@ -82,7 +110,7 @@ struct EmptyContentLayoutTests {
         }
         let measured = measureChild(stack, proposal: ProposedSize(width: 8, height: nil), context: context)
         let drawn = renderToBuffer(stack, context: context)
-        #expect(measured.height == 6)
+        #expect(measured.height == 2)
         #expect(drawn.height == measured.height, "measured \(measured.height) rows, drew \(drawn.height)")
         #expect(renderToBuffer(EmptyView().padding(2), context: context).width == 4)
     }

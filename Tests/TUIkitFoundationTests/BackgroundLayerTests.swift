@@ -67,9 +67,9 @@ struct BackgroundLayerTests {
         #expect(partialTail == bareTail, "and the last two do not")
     }
 
-    @Test("With nothing in the base the background is what is drawn, as under .overlay")
+    @Test("On an EmptyView neither a background nor an overlay is drawn, as in SwiftUI")
     func emptyBase() {
-        #expect(render(EmptyView().background { Text("x") }).lines.first?.stripped == "x")
-        #expect(render(EmptyView().overlay { Text("x") }).lines.first?.stripped == "x")
+        #expect(render(EmptyView().background { Text("x") }).isEmpty)
+        #expect(render(EmptyView().overlay { Text("x") }).isEmpty)
     }
 }
